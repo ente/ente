@@ -35,6 +35,7 @@ import {
     type CollectionSummaries,
     type CollectionSummary,
 } from "ente-new/photos/services/collection-summary";
+import { enableV2 } from "ente-new/photos/utils/feature-flags";
 import { includes } from "ente-utils/type-guards";
 import { t } from "i18next";
 import React, {
@@ -44,6 +45,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import { CollectionSelectorV2 } from "./CollectionSelectorV2";
 
 export type CollectionSelectorAction =
     | "upload"
@@ -96,7 +98,7 @@ export interface CollectionSelectorAttributes {
     onCancel?: () => void;
 }
 
-type CollectionSelectorProps = ModalVisibilityProps & {
+export type CollectionSelectorProps = ModalVisibilityProps & {
     /** Callback fired after the selector has finished closing. */
     onExited?: () => void;
     /**
@@ -138,8 +140,22 @@ type CollectionSelectorProps = ModalVisibilityProps & {
 /**
  * A dialog allowing the user to select one of their existing collections or
  * create a new one.
+ *
+ * The shared Photos UI flag chooses the restyled
+ * {@link CollectionSelectorV2} variant or the classic implementation below.
+ * Both share the exact same props and behaviour.
  */
-export const CollectionSelector: React.FC<CollectionSelectorProps> = ({
+export const CollectionSelector: React.FC<CollectionSelectorProps> = (
+    props,
+) => {
+    return enableV2 ? (
+        <CollectionSelectorV2 {...props} />
+    ) : (
+        <CollectionSelectorClassic {...props} />
+    );
+};
+
+const CollectionSelectorClassic: React.FC<CollectionSelectorProps> = ({
     open,
     onClose,
     onExited,

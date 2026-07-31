@@ -35,7 +35,7 @@ export function UploadCompletionV2({
         finishedUploads,
         preUploadSkippedFiles,
     );
-    const hasFailedUploads = counts.failed > 0;
+    const hasReviewableUploads = counts.failed > 0 || counts.skipped > 0;
 
     const handleClose: DialogProps["onClose"] = (_, reason) => {
         if (reason != "backdropClick") onClose();
@@ -76,10 +76,10 @@ export function UploadCompletionV2({
                             component="h2"
                             sx={completionTitleSx}
                         >
-                            Your upload is done!
+                            {t("upload_completion_title")}
                         </Typography>
                         <Typography sx={completionSubtitleSx}>
-                            Uploaded items are now available on Ente.
+                            {t("upload_completion_subtitle")}
                         </Typography>
                     </Stack>
                 </Stack>
@@ -97,7 +97,7 @@ export function UploadCompletionV2({
                                     }}
                                 />
                                 <Typography sx={completionStatLabelSx}>
-                                    {completionStatLabels[kind]}
+                                    {t(completionStatLabelKeys[kind])}
                                 </Typography>
                             </Stack>
                             <Typography sx={completionStatValueSx}>
@@ -107,25 +107,25 @@ export function UploadCompletionV2({
                     ))}
                 </Box>
                 <Stack sx={{ gap: 1.5 }}>
-                    {hasFailedUploads ? (
+                    {hasReviewableUploads ? (
                         <Button
                             fullWidth
                             onClick={onReviewFailed}
                             sx={primaryButtonSx}
                         >
-                            Review failed items
+                            {t("review_items")}
                         </Button>
                     ) : null}
                     <Button
                         fullWidth
                         onClick={onClose}
                         sx={
-                            hasFailedUploads
+                            hasReviewableUploads
                                 ? secondaryButtonSx
                                 : primaryButtonSx
                         }
                     >
-                        Close
+                        {t("close")}
                     </Button>
                 </Stack>
             </Stack>
@@ -133,10 +133,10 @@ export function UploadCompletionV2({
     );
 }
 
-const completionStatLabels = {
-    completed: "Completed",
-    skipped: "Skipped",
-    failed: "Failed",
+const completionStatLabelKeys = {
+    completed: "upload_stat_completed",
+    skipped: "upload_stat_skipped",
+    failed: "upload_stat_failed",
 } as const;
 
 const completionDialogPaperSx = (theme: Theme) => ({

@@ -6,9 +6,9 @@ edition = "2024"
 ente-core.workspace = true
 serde.workspace = true
 thiserror.workspace = true
-url = "2.5.8"
+url.workspace = true
 
 [dev-dependencies]
-mockito = "1.6"
+mockito.workspace = true
 serde_json.workspace = true
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

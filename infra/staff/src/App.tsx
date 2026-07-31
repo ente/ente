@@ -6,14 +6,26 @@ import {
     Tabs,
     TextField,
 } from "@mui/material";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import "./App.css";
+import { AdHocActions } from "./components/AdHocActions";
 import { FamilyTable } from "./components/FamilyTable";
 import { StorageBonusTableComponent } from "./components/StorageBonusTableComponent";
 import { TokensTableComponent } from "./components/TokenTableComponent";
 import { UserDetails, type UserDetailsData } from "./components/UserDetails";
 import duckieimage from "./components/duckie.png";
-import { getUser, type UserResponse } from "./services/admin-user";
+import {
+    getScheduledDeletions,
+    getUser,
+    type ScheduledDeletion,
+    type UserResponse,
+} from "./services/admin-user";
 import { StaffSessionProvider } from "./services/session";
 import {
     dateFromMicroseconds,
@@ -35,6 +47,15 @@ export const App: React.FC = () => {
     const [fetchSuccess, setFetchSuccess] = useState(false);
     const [tabValue, setTabValue] = useState(0);
     const [userData, setUserData] = useState<UserDetailsData | null>(null);
+    const [activeUserID, setActiveUserID] = useState<number>();
+    const [scheduledDeletions, setScheduledDeletions] = useState<
+        ScheduledDeletion[]
+    >([]);
+    const [scheduledDeletionsLoading, setScheduledDeletionsLoading] =
+        useState(false);
+    const [scheduledDeletionsLoaded, setScheduledDeletionsLoaded] =
+        useState(false);
+    const searchRequestID = useRef(0);
 
     useEffect(() => {
         if (authToken) {
@@ -45,25 +66,90 @@ export const App: React.FC = () => {
     }, [authToken]);
 
     const fetchData = useCallback(async (input: string, authToken: string) => {
+        const requestID = ++searchRequestID.current;
         setLoading(true);
         setError("");
         setFetchSuccess(false);
+        setUserData(null);
+        setActiveUserID(undefined);
+        setScheduledDeletions([]);
+        setScheduledDeletionsLoading(false);
+        setScheduledDeletionsLoaded(false);
         try {
             const userSearchInput = input.trim();
-            const userDetailsData = buildUserDetailsData(
-                await getUser({ token: authToken }, userSearchInput),
+            const userResult = await getUser(
+                { token: authToken },
                 userSearchInput,
-            );
-            setSelectedUserEmail(userDetailsData.email);
-            setUserData(userDetailsData);
+            ).catch((error: unknown) => {
+                if (
+                    error instanceof Error &&
+                    error.message === "User not found"
+                ) {
+                    return undefined;
+                }
+                throw error;
+            });
+            if (requestID !== searchRequestID.current) return;
+            if (userResult) {
+                const userDetailsData = buildUserDetailsData(
+                    userResult,
+                    userSearchInput,
+                );
+                setSelectedUserEmail(userDetailsData.email);
+                setUserData(userDetailsData);
+                setActiveUserID(userResult.user.ID);
+            } else {
+                if (!userSearchInput.includes("@")) {
+                    throw new Error("User not found");
+                }
+                const scheduled = await getScheduledDeletions(
+                    { token: authToken },
+                    userSearchInput,
+                );
+                if (requestID !== searchRequestID.current) return;
+                if (scheduled.length === 0) {
+                    throw new Error(noSearchableAccountMessage);
+                }
+                setSelectedUserEmail(userSearchInput);
+                setScheduledDeletions(scheduled);
+                setScheduledDeletionsLoaded(true);
+            }
             setFetchSuccess(true);
         } catch (error) {
+            if (requestID !== searchRequestID.current) return;
             console.error("Error fetching data:", error);
             setError(fetchErrorMessage(error));
         } finally {
-            setLoading(false);
+            if (requestID === searchRequestID.current) setLoading(false);
         }
     }, []);
+
+    const loadScheduledDeletions = useCallback(async () => {
+        if (scheduledDeletionsLoaded || scheduledDeletionsLoading) return;
+        const requestID = searchRequestID.current;
+        setScheduledDeletionsLoading(true);
+        try {
+            const scheduled = await getScheduledDeletions(
+                { token: authToken },
+                selectedUserEmail,
+            );
+            if (requestID !== searchRequestID.current) return;
+            setScheduledDeletions(scheduled);
+            setScheduledDeletionsLoaded(true);
+        } catch (error) {
+            if (requestID !== searchRequestID.current) return;
+            throw error;
+        } finally {
+            if (requestID === searchRequestID.current) {
+                setScheduledDeletionsLoading(false);
+            }
+        }
+    }, [
+        authToken,
+        scheduledDeletionsLoaded,
+        scheduledDeletionsLoading,
+        selectedUserEmail,
+    ]);
 
     useEffect(() => {
         const { email, token } = urlCredentials;
@@ -76,13 +162,11 @@ export const App: React.FC = () => {
         }
     }, [fetchData, urlCredentials]);
 
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            fetchData(searchInput, authToken).catch((error: unknown) =>
-                console.error("Fetch data error:", error),
-            );
-        }
+    const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        fetchData(searchInput, authToken).catch((error: unknown) =>
+            console.error("Fetch data error:", error),
+        );
     };
 
     const handleTabChange = (
@@ -100,7 +184,7 @@ export const App: React.FC = () => {
     return (
         <StaffSessionProvider session={session}>
             <div className="container">
-                <form className="input-form" onKeyDown={handleKeyDown}>
+                <form className="input-form" onSubmit={handleSubmit}>
                     <div className="horizontal-group">
                         <a
                             href="https://staff.ente.sh"
@@ -122,20 +206,29 @@ export const App: React.FC = () => {
                         </div>
                         <div className="fetch-button-container">
                             <Button
+                                className="fetch-button"
+                                type="submit"
                                 variant="contained"
-                                onClick={() => {
-                                    fetchData(searchInput, authToken).catch(
-                                        (error: unknown) =>
-                                            console.error(
-                                                "Fetch data error:",
-                                                error,
-                                            ),
-                                    );
-                                }}
                                 sx={{ px: 2 }}
                             >
                                 FETCH
                             </Button>
+                            <AdHocActions
+                                email={selectedUserEmail}
+                                activeUserID={activeUserID}
+                                scheduledDeletions={scheduledDeletions}
+                                scheduledDeletionsLoading={
+                                    scheduledDeletionsLoading
+                                }
+                                scheduledDeletionsLoaded={
+                                    scheduledDeletionsLoaded
+                                }
+                                disabled={!fetchSuccess || loading}
+                                onOpen={loadScheduledDeletions}
+                                onRecovered={() =>
+                                    fetchData(selectedUserEmail, authToken)
+                                }
+                            />
                         </div>
                     </div>
                 </form>
@@ -152,60 +245,62 @@ export const App: React.FC = () => {
                         <div className="error-message">{error}</div>
                     ) : fetchSuccess ? (
                         <>
-                            <Box
-                                sx={{
-                                    width: "100%",
-                                    maxWidth: "600px",
-                                    bgcolor: "#FAFAFA",
-                                    borderRadius: "7px",
-                                    position: "relative",
-                                    zIndex: 1000,
-                                }}
-                            >
-                                <Tabs
-                                    value={tabValue}
-                                    onChange={handleTabChange}
-                                    centered
+                            {userData && (
+                                <Box
                                     sx={{
-                                        "& .MuiTabs-indicator": {
-                                            backgroundColor: SUCCESS_COLOR,
-                                            height: "5px",
-                                            borderRadius: "20px",
-                                        },
-                                        "& .MuiTab-root": {
-                                            textTransform: "none",
-                                        },
+                                        width: "100%",
+                                        maxWidth: "600px",
+                                        bgcolor: "#FAFAFA",
+                                        borderRadius: "7px",
+                                        position: "relative",
+                                        zIndex: 1000,
                                     }}
                                 >
-                                    <Tab label="User" />
-                                    <Tab label="Family" />
-                                    <Tab label="Bonuses" />
-                                    <Tab label="Devices" />
-                                </Tabs>
-                            </Box>
-                            <Box
-                                sx={{
-                                    width: "100%",
-                                    maxWidth: "900px",
-                                    bgcolor: "#FAFAFA",
-                                    borderRadius: "7px",
-                                    padding: "20px",
-                                    position: "relative",
-                                    zIndex: 999,
-                                    marginTop: "16px",
-                                }}
-                            >
-                                {tabValue === 0 && userData && (
-                                    <UserDetails userData={userData} />
-                                )}
-                                {tabValue === 1 && userData && <FamilyTable />}
-                                {tabValue === 2 && userData && (
-                                    <StorageBonusTableComponent />
-                                )}
-                                {tabValue === 3 && userData && (
-                                    <TokensTableComponent />
-                                )}
-                            </Box>
+                                    <Tabs
+                                        value={tabValue}
+                                        onChange={handleTabChange}
+                                        centered
+                                        sx={{
+                                            "& .MuiTabs-indicator": {
+                                                backgroundColor: SUCCESS_COLOR,
+                                                height: "5px",
+                                                borderRadius: "20px",
+                                            },
+                                            "& .MuiTab-root": {
+                                                textTransform: "none",
+                                            },
+                                        }}
+                                    >
+                                        <Tab label="User" />
+                                        <Tab label="Family" />
+                                        <Tab label="Bonuses" />
+                                        <Tab label="Devices" />
+                                    </Tabs>
+                                </Box>
+                            )}
+                            {userData && (
+                                <Box
+                                    sx={{
+                                        width: "100%",
+                                        maxWidth: "900px",
+                                        bgcolor: "#FAFAFA",
+                                        borderRadius: "7px",
+                                        padding: "20px",
+                                        position: "relative",
+                                        zIndex: 999,
+                                        marginTop: "16px",
+                                    }}
+                                >
+                                    {tabValue === 0 && (
+                                        <UserDetails userData={userData} />
+                                    )}
+                                    {tabValue === 1 && <FamilyTable />}
+                                    {tabValue === 2 && (
+                                        <StorageBonusTableComponent />
+                                    )}
+                                    {tabValue === 3 && <TokensTableComponent />}
+                                </Box>
+                            )}
                         </>
                     ) : (
                         <img
@@ -226,6 +321,9 @@ const readUrlCredentials = () => {
 };
 
 const subscriptionDataNotFoundMessage = "No subscription record for this user";
+
+const noSearchableAccountMessage =
+    "No active account or searchable scheduled deletion found. For older deletions, find the user ID in logs and use the existing recovery flow.";
 
 const fetchErrorMessage = (error: unknown) =>
     error instanceof Error ? error.message : "Invalid token or email/user id";

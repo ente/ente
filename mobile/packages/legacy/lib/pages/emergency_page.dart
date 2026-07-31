@@ -123,7 +123,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
             slivers: [
               if (info != null && hasActiveLegacyKitRecovery)
                 SliverPadding(
-                  padding: const EdgeInsets.only(top: 20, left: 16, right: 16),
+                  padding: const EdgeInsets.only(left: 16, right: 16),
                   sliver: SliverToBoxAdapter(
                     child: _WarningBanner(
                       text: context.strings.legacyKitRecoveryWarning,
@@ -147,7 +147,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
                 ),
               if (info != null && info!.recoverSessions.isNotEmpty)
                 SliverPadding(
-                  padding: const EdgeInsets.only(top: 20, left: 16, right: 16),
+                  padding: const EdgeInsets.only(left: 16, right: 16),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       if (index == 0) {
@@ -426,7 +426,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
   Widget _buildLegacyKitsSliver(EnteColorScheme colorScheme) {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+        padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

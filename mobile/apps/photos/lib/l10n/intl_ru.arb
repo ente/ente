@@ -344,7 +344,6 @@
   "theyAlsoGetXGb": "Они тоже получат {storageAmountInGB} ГБ",
   "referralStorageForBoth": "{storageAmountInGB} ГБ для них + {storageAmountInGB} ГБ для вас при переходе на платный тариф.",
   "freeStorageOnReferralSuccess": "{storageAmountInGB} ГБ каждый раз, когда кто-то подписывается на платный тариф и применяет ваш код",
-  "shareTextReferralCode": "Ente Photos — это безопасное и защищённое хранилище для ваших фотографий\n* Скачайте Ente Photos — https://ente.com/app\n* Создайте аккаунт\n* Примените реферальный код {referralCode} в Настройки -> Рефералы -> Применить код\n* Получите {referralStorageInGB} ГБ бесплатно при переходе на платный тариф",
   "claimFreeStorage": "Получить бесплатное хранилище",
   "inviteYourFriends": "Пригласите своих друзей",
   "earnFreeStorage": "Заработайте бесплатное место в хранилище",
@@ -1038,7 +1037,6 @@
   "appleId": "Идентификатор Apple",
   "playstoreSubscription": "Подписка PlayStore",
   "appstoreSubscription": "Подписка AppStore",
-  "subAlreadyLinkedErrMessage": "Ваш {id} уже связан с другим аккаунтом Ente.\nЕсли вы хотите использовать {id} с этим аккаунтом, пожалуйста, свяжитесь с нашей службой поддержки",
   "visitWebToManage": "Пожалуйста, посетите {webUrl} для управления вашей подпиской",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

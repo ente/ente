@@ -346,7 +346,7 @@ class _SettingsBody extends StatelessWidget {
           },
         ),
         _buildMenuItem(
-          title: AppLocalizations.of(context).familyPlans,
+          title: AppLocalizations.of(context).family,
           icon: HugeIcons.strokeRoundedUserMultiple,
           showOnlyLoadingState: true,
           shouldSurfaceExecutionStates: true,
@@ -518,12 +518,10 @@ class _SettingsBody extends StatelessWidget {
   }
 
   Future<void> _showVerifyIdentityDialog(BuildContext context) async {
-    await showDialog(
-      useRootNavigator: false,
-      context: context,
-      builder: (BuildContext context) {
-        return VerifyIdentifyDialog(self: true);
-      },
+    await showVerifyIdentitySheet(
+      context,
+      self: true,
+      title: AppLocalizations.of(context).verifyIDLabel,
     );
   }
 }

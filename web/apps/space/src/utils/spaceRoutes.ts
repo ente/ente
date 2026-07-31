@@ -11,10 +11,10 @@ const routeWithProfileImageFlowSource = (
 ) => (source == "settings" ? `${route}?from=settings` : route);
 
 export const spaceRoutes = {
-    friend: (spaceId: string) => `/app/friends/${encodeURIComponent(spaceId)}`,
+    friend: (username: string) => `/${encodeURIComponent(username)}`,
+    friendPage: "/profile-link",
     friends: "/app/friends",
     home: "/app",
-    invite: "/invite",
     login: "/login",
     message: (spaceId: string) =>
         `/app/messages/${encodeURIComponent(spaceId)}`,
@@ -38,7 +38,6 @@ export const spaceRoutes = {
     profilePhotoFrom: (source?: ProfileImageFlowSource) =>
         routeWithProfileImageFlowSource("/app/profile/photo", source),
     settings: "/app/settings",
-    settingsProfile: "/app/settings/profile",
     settingsProfileName: "/app/settings/profile/name",
     createProfile: (from?: CreateProfileSource) =>
         from == "login" ? "/create-profile?from=login" : "/create-profile",

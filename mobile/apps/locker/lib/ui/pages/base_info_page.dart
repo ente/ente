@@ -609,6 +609,7 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
                     child: ButtonComponent(
                       label: submitButtonText,
                       onTap: isSaveEnabled ? _saveRecord : null,
+                      shouldShowSuccessState: false,
                     ),
                   ),
                 ),

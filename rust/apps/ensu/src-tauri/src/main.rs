@@ -21,8 +21,9 @@ fn main() {
             logging::init_logging(app.handle());
             logging::log("App", "setup started");
 
-            let models_dir = app.path().app_data_dir()?.join("models");
-            app.manage(commands::llm::ModelDownloadState::new(models_dir));
+            app.manage(commands::llm::ModelDownloadState::new(
+                app.path().app_data_dir()?,
+            ));
 
             // Show the main window after setup is complete
             if let Some(window) = app.get_webview_window("main")

@@ -732,24 +732,30 @@ export interface ElectronMLWorker {
     fsStatMtime: (path: string) => Promise<number>;
 
     /**
-     * Return a CLIP embedding of the given image.
+     * Analyze a single image with the Rust ML pipeline, computing the indexes
+     * (faces, CLIP) that are enabled in the request.
      *
-     * See: [Note: Natural language search using CLIP]
+     * The image is decoded, preprocessed, run through the ONNX models, and
+     * postprocessed entirely on the native side (by the Rust crate shared
+     * with the other Ente clients); we get back the final results.
      *
-     * The input is a opaque float32 array representing the image. The layout
-     * and exact encoding of the input is specific to the runtime (ONNX) and the
-     * ML model (a MobileCLIP variant) we use. In particular, the image
-     * pre-processing happens within our model itself.
-     *
-     * @returns A CLIP embedding (an array of 512 floating point values).
+     * See: [Note: ML with Rust]
      */
-    computeCLIPImageEmbedding: (
-        input: Uint8ClampedArray,
-        inputShape: number[],
-    ) => Promise<Float32Array>;
+    analyzeImage: (
+        request: MLWorkerAnalyzeImageRequest,
+    ) => Promise<MLWorkerAnalyzeImageResponse>;
 
     /**
-     * Return a CLIP embedding of the given image if we already have the model
+     * Release the (pinned) native ML sessions.
+     *
+     * Invoked when indexing goes idle so that the utility process doesn't
+     * hold on to the model memory while there is nothing to do. Sessions are
+     * transparently recreated on the next {@link analyzeImage}.
+     */
+    releaseMLRuntime: () => Promise<void>;
+
+    /**
+     * Return a CLIP embedding of the given text if we already have the model
      * downloaded and prepped. If the model is not available return `undefined`.
      *
      * This differs from the other sibling ML functions in that it doesn't wait
@@ -766,30 +772,129 @@ export interface ElectronMLWorker {
      *
      * @param text The string whose embedding we want to compute.
      *
-     * @returns A CLIP embedding.
+     * @returns A CLIP embedding (a normalized array of 512 floating point
+     * values).
      */
     computeCLIPTextEmbeddingIfAvailable: (
         text: string,
     ) => Promise<Float32Array | undefined>;
+}
 
+/**
+ * A request to index a single image via {@link ElectronMLWorker.analyzeImage}.
+ */
+export interface MLWorkerAnalyzeImageRequest {
+    /** The ID of the {@link EnteFile} being indexed. */
+    fileID: number;
     /**
-     * Detect faces in the given image using YOLO.
-     *
-     * Both the input and output are opaque binary data whose internal structure
-     * is specific to our implementation and the model (YOLO) we use.
+     * Path to the image on the user's local file system. Exactly one of
+     * {@link path} and {@link bytes} should be provided.
      */
-    detectFaces: (
-        input: Uint8ClampedArray,
-        inputShape: number[],
-    ) => Promise<Float32Array>;
+    path?: string | undefined;
+    /**
+     * The (encoded) contents of the image, in any supported format; the
+     * native side takes care of decoding.
+     */
+    bytes?: Uint8Array | undefined;
+    /** Compute the face related parts of the index. */
+    runFaces: boolean;
+    /** Compute the CLIP image embedding. */
+    runClip: boolean;
+    /** Run the pet recognition models (feature in development). */
+    runPets: boolean;
+    /**
+     * When set, the result will carry a JPEG face crop for each detected
+     * face.
+     */
+    generateFaceCrops: boolean;
+}
 
+/**
+ * Broad category for an error encountered while analyzing an image.
+ *
+ * Only `image` indicates a permanent problem inherent to the image. `init`
+ * blocks indexing for the lifetime of the utility process, while `ort` and
+ * `misc` remain retryable. None of those other kinds should permanently mark
+ * the file as unindexable.
+ */
+export type MLWorkerAnalyzeImageErrorKind = "init" | "ort" | "image" | "misc";
+
+/** An error returned by the Electron ML utility process. */
+export interface MLWorkerAnalyzeImageError {
+    kind: MLWorkerAnalyzeImageErrorKind;
+    message: string;
+}
+
+/**
+ * Result envelope for an image analysis request.
+ *
+ * This explicit envelope is used instead of throwing a custom `Error` because
+ * Comlink only preserves an error's name, message and stack.
+ */
+export type MLWorkerAnalyzeImageResponse =
+    | { ok: true; result: MLWorkerAnalyzeImageResult }
+    | { ok: false; error: MLWorkerAnalyzeImageError };
+
+/**
+ * A face detected by {@link ElectronMLWorker.analyzeImage}.
+ *
+ * All coordinates are relative (normalized to 0-1 by the dimensions of the
+ * image).
+ */
+export interface MLWorkerFaceResult {
     /**
-     * Return a MobileFaceNet embeddings for the given faces.
-     *
-     * Both the input and output are opaque binary data whose internal structure
-     * is specific to our implementation and the model (MobileFaceNet) we use.
+     * The face ID. Same format as the faceIDs the web pipeline used to
+     * generate: `{fileID}_{xMin}_{yMin}_{xMax}_{yMax}`.
      */
-    computeFaceEmbeddings: (input: Float32Array) => Promise<Float32Array>;
+    faceId: string;
+    detection: {
+        score: number;
+        /** Relative [xMin, yMin, xMax, yMax]. */
+        boxXyxy: number[];
+        /**
+         * 5 relative [x, y] landmarks: leftEye, rightEye, nose, leftMouth,
+         * rightMouth.
+         */
+        keypoints: number[][];
+    };
+    blurValue: number;
+    /** The face embedding (192 floating point values). */
+    embedding: Float32Array<ArrayBuffer>;
+}
+
+/**
+ * The result of an {@link ElectronMLWorker.analyzeImage} call.
+ *
+ * This mirrors the result produced by the Rust pipeline (only the parts of
+ * the index that were enabled in the request are present).
+ */
+export interface MLWorkerAnalyzeImageResult {
+    fileId: number;
+    /** The dimensions of the decoded image (after orientation correction). */
+    decodedImageSize: { width: number; height: number };
+    /** Present when the request had {@link runFaces} set. */
+    faces?: MLWorkerFaceResult[];
+    /**
+     * JPEG blobs of the crops of detected faces, index-aligned with
+     * {@link faces}. Present when the request had {@link generateFaceCrops}
+     * set. Crop generation is best effort: a face whose crop could not be
+     * generated has a `null` in its slot.
+     */
+    faceCrops?: (Uint8Array<ArrayBuffer> | null)[];
+    /** Present when the request had {@link runClip} set. */
+    clip?: {
+        /** The (normalized) CLIP image embedding (512 floating point values). */
+        embedding: Float32Array<ArrayBuffer>;
+    };
+    /** Pet recognition results (feature in development, ignored for now). */
+    petFaces?: unknown;
+    petBodies?: unknown;
+    /**
+     * True when any model that contributed to this result ran on the
+     * respective accelerated execution provider.
+     */
+    usedCoreml: boolean;
+    usedWebgpu: boolean;
 }
 
 /**

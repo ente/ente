@@ -607,7 +607,6 @@
   "appleId": "معرّف Apple",
   "playstoreSubscription": "اشتراك متجر Play",
   "appstoreSubscription": "اشتراك متجر App Store",
-  "subAlreadyLinkedErrMessage": "تم ربط {id} الخاص بك بحساب Ente آخر.\nإذا كنت ترغب في استخدام {id} مع هذا الحساب، يرجى الاتصال بدعمنا.",
   "visitWebToManage": "يرجى زيارة {webUrl} لإدارة اشتراكك.",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

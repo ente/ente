@@ -157,7 +157,7 @@ func (c *SpaceDripController) spaceDripStages() []spaceDripStage {
 		{
 			TemplateID: SpaceDripFeedback7dTemplateID,
 			Subject:    "Thoughts on Ente Space?",
-			BodyLines:  []string{"Hey,", "You've been using Ente Space for a few days.", "What do you love about it? What should we improve?", "Reply to this email or drop a message on our Discord!"},
+			BodyLines:  []string{"Hey,", "Thank you for checking out Space!", "What did you like about it? What should we improve?", "If you've any thoughts, please reply, we'd love to chat!"},
 			Candidates: func(ctx context.Context, now int64, limit int) ([]spacerepo.SpaceDripCandidate, error) {
 				return c.DripsRepo.ListFeedbackCandidates(ctx, now-7*day, []string{SpaceDripFeedback7dTemplateID}, limit)
 			},

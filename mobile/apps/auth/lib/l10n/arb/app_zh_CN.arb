@@ -112,6 +112,9 @@
   "passwordEmptyError": "密码不能为空",
   "passwordTooShort": "密码长度必须至少为 8 个字符。",
   "importFromApp": "从 {appName} 导入代码",
+  "importGoogleAuthGuide": "使用“转移帐户”选项，将您的 Google Authenticator 帐户导出到二维码。然后扫描二维码或从图像导入。",
+  "scannerTorchOn": "打开手电筒",
+  "scannerTorchOff": "关闭手电筒",
   "importSelectJsonFile": "选择 JSON 文件",
   "importSelectAppExport": "选择 {appName} 的导出文件",
   "importEnteEncGuide": "选择从 Ente 导出的 JSON 加密文件",
@@ -121,6 +124,7 @@
   "import2FasGuide": "使用 2FAS 中的“设置 -> 备份 -> 导出”选项。\n\n如果您的备份已加密，则需要输入密码来解密备份",
   "importLastpassGuide": "使用 Lastpass Authenticator 设置中的“转移账户”选项，然后按“将账户导出到文件”。导入下载的 JSON。",
   "importProtonAuthGuide": "使用 Proton Authenticator 设置中的“导出”选项导出您的验证码。\n\n如果导出的文件受密码保护，您需要输入密码才能解密。",
+  "importOtpAuthGuide": "从 OTP 身份验证导出加密备份，然后选择 .otpauthdb 或 .otpauthdp 文件。也支持单账户 .otpauth 文件导出。",
   "invalidProtonExportTitle": "Proton 导出无效",
   "invalidProtonExportMessage": "所选文件不是有效的 Proton Authenticator 导出文件。",
   "exportCodes": "导出代码",
@@ -193,6 +197,7 @@
   "deleteAccountQuery": "我们很抱歉看到您离开。您面临一些问题？",
   "yesSendFeedbackAction": "是，发送反馈",
   "noDeleteAccountAction": "否，删除账户",
+  "authToInitiateAccountDeletion": "解锁即可删除您的账户",
   "sendEmail": "发送电子邮件",
   "createNewAccount": "创建新账号",
   "weakStrength": "弱",
@@ -327,6 +332,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, other{要从 Google Authenticator 导入 {codeCount} 个验证码吗？}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -484,6 +499,9 @@
   "somethingWentWrongParsingCode": "我们无法解析 {x} 代码。",
   "updateNotAvailable": "更新不可用",
   "viewRawCodes": "查看原始代码",
+  "parsingError": "解析出错",
+  "deleteUnparseableCodeTitle": "要删除无法解析的代码吗？",
+  "deleteUnparseableCodeMessage": "这将从 Auth 中永久删除此代码，不会将其移至回收站。",
   "rawCodes": "原始代码",
   "rawCodeData": "原始代码数据",
   "appLock": "应用锁",

@@ -217,8 +217,19 @@ func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limi
 		return r.limit700ReqPerSec
 	}
 	if reqPath == "/space/public/by-slug/:spaceSlug" ||
-		reqPath == "/space/public/slug-availability/:spaceSlug" {
+		reqPath == "/space/public/slug-availability/:spaceSlug" ||
+		reqPath == "/space/public/by-slug/:spaceSlug/link/bootstrap" ||
+		reqPath == "/space/public/by-slug/:spaceSlug/link/profile" ||
+		reqPath == "/space/public/by-slug/:spaceSlug/link/posts" ||
+		reqPath == "/space/public/by-slug/:spaceSlug/link/versions" {
 		return r.limit200ReqPerMin
+	}
+	if reqPath == "/space/public/by-slug/:spaceSlug/link/assets/redirect" {
+		return r.limit500ReqPerMin
+	}
+	if reqPath == "/space/public/by-slug/:spaceSlug/link/push/subscription" &&
+		reqMethod == http.MethodPut {
+		return r.limit10ReqPerMin
 	}
 	if reqPath == "/spaces/:spaceID/uploads/presign" && reqMethod == http.MethodPost {
 		return r.limit10ReqPerMin
@@ -268,6 +279,8 @@ func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limi
 		reqPath == "/public-collection/verify-password" ||
 		reqPath == "/file-link/verify-password" ||
 		reqPath == "/family/accept-invite" ||
+		reqPath == "/users/recover-account/validate" ||
+		(reqPath == "/users/recover-account" && reqMethod == http.MethodPost) ||
 		reqPath == "/users/srp/attributes" ||
 		(reqPath == "/cast/device-info" && reqMethod == "POST") ||
 		(reqPath == "/cast/device-info/" && reqMethod == "POST") ||

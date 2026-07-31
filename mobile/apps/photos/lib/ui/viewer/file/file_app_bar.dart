@@ -74,7 +74,6 @@ class FileAppBarState extends State<FileAppBar> {
   bool isGuestView = false;
   bool shouldLoopVideo = localSettings.shouldLoopVideo();
   bool _reloadActions = false;
-  ValueNotifier<bool>? _isInSharedCollectionNotifier;
   ValueNotifier<String?>? _showingThumbnailFallbackNotifier;
 
   @override
@@ -103,29 +102,13 @@ class FileAppBarState extends State<FileAppBar> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final detailPageState = InheritedDetailPageState.maybeOf(context);
-    _updateIsInSharedCollectionNotifier(
-      detailPageState?.isInSharedCollectionNotifier,
-    );
     _updateShowingThumbnailFallbackNotifier(
       detailPageState?.showingThumbnailFallbackNotifier,
     );
   }
 
-  void _onSharedCollectionChanged() {
-    _requestActionsReload();
-  }
-
   void _onThumbnailFallbackChanged() {
     _requestActionsReload();
-  }
-
-  void _updateIsInSharedCollectionNotifier(ValueNotifier<bool>? notifier) {
-    if (_isInSharedCollectionNotifier == notifier) {
-      return;
-    }
-    _isInSharedCollectionNotifier?.removeListener(_onSharedCollectionChanged);
-    _isInSharedCollectionNotifier = notifier;
-    _isInSharedCollectionNotifier?.addListener(_onSharedCollectionChanged);
   }
 
   void _updateShowingThumbnailFallbackNotifier(
@@ -143,7 +126,6 @@ class FileAppBarState extends State<FileAppBar> {
 
   @override
   void dispose() {
-    _isInSharedCollectionNotifier?.removeListener(_onSharedCollectionChanged);
     _showingThumbnailFallbackNotifier?.removeListener(
       _onThumbnailFallbackChanged,
     );
@@ -274,11 +256,6 @@ class FileAppBarState extends State<FileAppBar> {
     final Collection? collection = collectionID != null
         ? CollectionsService.instance.getCollectionByID(collectionID)
         : null;
-    final isInSharedCollection =
-        InheritedDetailPageState.maybeOf(
-          context,
-        )?.isInSharedCollectionNotifier.value ??
-        false;
     bool isFileHidden = false;
     if (isOwnedByUser && isFileUploaded) {
       isFileHidden = collection?.isHidden() ?? false;
@@ -350,17 +327,6 @@ class FileAppBarState extends State<FileAppBar> {
             AppLocalizations.of(context).edit,
             value: 11,
             hugeIcon: HugeIcons.strokeRoundedSlidersHorizontal,
-          ),
-        );
-      }
-      // Add to Album option - shown when file is in shared collection
-      // (moved from bottom bar to make room for social icons)
-      if (isInSharedCollection && isFileUploaded && !isFileHidden) {
-        items.add(
-          _fileMenuOption(
-            AppLocalizations.of(context).addToAlbum,
-            value: 10,
-            hugeIcon: HugeIcons.strokeRoundedImageAdd01,
           ),
         );
       }
@@ -562,14 +528,6 @@ class FileAppBarState extends State<FileAppBar> {
       if (collection != null) {
         await _handleSuggestDelete(collection);
       }
-    } else if (value == 10) {
-      final selectedFiles = SelectedFiles();
-      selectedFiles.files.add(widget.file);
-      showCollectionActionSheet(
-        context,
-        selectedFiles: selectedFiles,
-        actionType: CollectionActionType.addFiles,
-      );
     }
   }
 
@@ -615,7 +573,7 @@ class FileAppBarState extends State<FileAppBar> {
   Future<void> _handleUnHideRequest(BuildContext context) async {
     final selectedFiles = SelectedFiles();
     selectedFiles.files.add(widget.file);
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: selectedFiles,
       actionType: CollectionActionType.unHide,

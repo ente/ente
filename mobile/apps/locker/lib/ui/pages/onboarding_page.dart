@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:dots_indicator/dots_indicator.dart';
+import 'package:ente_accounts/pages/developer_settings_page.dart';
 import 'package:ente_accounts/pages/email_entry_page.dart';
 import 'package:ente_accounts/pages/login_page.dart';
 import 'package:ente_accounts/pages/password_entry_page.dart';
 import 'package:ente_accounts/pages/password_reentry_page.dart';
 import 'package:ente_components/ente_components.dart';
-import "package:ente_ui/pages/developer_settings_page.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import "package:flutter_svg/flutter_svg.dart";

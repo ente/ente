@@ -1,14 +1,15 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:ente_accounts/ente_accounts.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_lock_screen/auth_util.dart';
 import 'package:ente_lock_screen/lock_screen_host.dart';
 import 'package:ente_lock_screen/lock_screen_settings.dart';
 import 'package:ente_lock_screen/ui/app_lock.dart';
 import 'package:ente_lock_screen/ui/local_authentication_unavailable_dialog.dart';
 import 'package:ente_strings/ente_strings.dart';
-import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:ente_ui/utils/dialog_util.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
@@ -68,15 +69,14 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final colorTheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colorTheme = context.componentColors;
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
         leading: widget.config.isLoggedIn()
             ? IconButton(
                 icon: const Icon(Icons.logout_outlined),
-                color: Theme.of(context).iconTheme.color,
+                color: colorTheme.textBase,
                 onPressed: () {
                   _onLogoutTapped(context);
                 },
@@ -105,10 +105,10 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
                           colors: [
-                            Colors.grey.shade500.withValues(alpha: 0.2),
-                            Colors.grey.shade50.withValues(alpha: 0.1),
-                            Colors.grey.shade400.withValues(alpha: 0.2),
-                            Colors.grey.shade300.withValues(alpha: 0.4),
+                            colorTheme.strokeDark,
+                            colorTheme.strokeFaint,
+                            colorTheme.strokeDark,
+                            colorTheme.strokeFaint,
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
@@ -135,9 +135,9 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                         duration: const Duration(seconds: 1),
                         builder: (context, value, _) =>
                             CircularProgressIndicator(
-                              backgroundColor: colorTheme.fillFaintPressed,
+                              backgroundColor: colorTheme.strokeFaint,
                               value: value,
-                              color: colorTheme.primary400,
+                              color: colorTheme.primary,
                               strokeWidth: 1.5,
                             ),
                       ),
@@ -153,7 +153,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                       children: [
                         Text(
                               context.strings.tooManyIncorrectAttempts,
-                              style: textTheme.small,
+                              style: TextStyles.body,
                             )
                             .animate(delay: const Duration(milliseconds: 2000))
                             .fadeOut(
@@ -162,7 +162,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                             ),
                         Text(
                               _formatTime(remainingTimeInSeconds),
-                              style: textTheme.small,
+                              style: TextStyles.body,
                             )
                             .animate(delay: const Duration(milliseconds: 2250))
                             .fadeIn(
@@ -175,7 +175,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                       onTap: () => _showLockScreen(source: "tap"),
                       child: Text(
                         context.strings.tapToUnlock,
-                        style: textTheme.small,
+                        style: TextStyles.body,
                       ),
                     ),
               const Padding(padding: EdgeInsets.only(bottom: 24)),
@@ -187,20 +187,28 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   }
 
   void _onLogoutTapped(BuildContext context) {
-    showChoiceActionSheet(
-      context,
-      title: context.strings.areYouSureYouWantToLogout,
-      firstButtonLabel: context.strings.yesLogout,
-      isCritical: true,
-      firstButtonOnTap: () async {
-        if (widget.onLogout != null) {
-          await widget.onLogout!(context);
-        } else {
-          await UserService.instance.logout(context);
-        }
-        // To start the app afresh, resetting all state.
-        Process.killPid(pid, ProcessSignal.sigkill);
-      },
+    unawaited(
+      showBottomSheetComponent(
+        context: context,
+        builder: (_) => BottomSheetComponent(
+          title: context.strings.areYouSureYouWantToLogout,
+          actions: [
+            ButtonComponent(
+              label: context.strings.yesLogout,
+              variant: ButtonComponentVariant.critical,
+              onTap: () async {
+                if (widget.onLogout != null) {
+                  await widget.onLogout!(context);
+                } else {
+                  await UserService.instance.logout(context);
+                }
+                // To start the app afresh, resetting all state.
+                Process.killPid(pid, ProcessSignal.sigkill);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 

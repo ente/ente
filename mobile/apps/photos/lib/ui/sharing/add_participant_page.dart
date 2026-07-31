@@ -219,16 +219,11 @@ class _AddParticipantPage extends State<AddParticipantPage> {
             }
             setState(() => {});
           },
-          onLongPress: () {
-            showDialog(
-              useRootNavigator: false,
-              context: context,
-              builder: (BuildContext context) {
-                return VerifyIdentifyDialog(
-                  self: false,
-                  email: currentUser.email,
-                );
-              },
+          onLongPress: () async {
+            await showVerifyIdentitySheet(
+              context,
+              self: false,
+              email: currentUser.email,
             );
           },
         ),

@@ -117,8 +117,9 @@ Future<int?> _process2FasExportFile(
     var digits = item['otp']['digits'];
     var counter = item['otp']['counter'];
 
-    Code code = Code.fromOTPAuthUrl(
-      buildImportOtpUri(
+    Code code = parseImportOtpCode(
+      item,
+      () => buildImportOtpUri(
         kind: kind,
         issuer: issuer,
         account: account,

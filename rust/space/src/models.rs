@@ -3,6 +3,7 @@ use zeroize::Zeroize;
 
 use crate::transport::{
     PostObjectPayload, ProfileAvatarResponse, ProfileCoverResponse, SpaceActorResponse,
+    SpaceKeyResponse,
 };
 
 #[derive(Clone)]
@@ -10,9 +11,27 @@ pub struct OpenAccountSpaceCtxInput {
     pub base_url: String,
     pub space_session_token: Option<String>,
     pub space_root_key: Vec<u8>,
+    pub initial_owned_spaces: Option<Vec<SpaceKeyResponse>>,
     pub user_agent: Option<String>,
     pub client_package: Option<String>,
     pub client_version: Option<String>,
+}
+
+#[derive(Clone)]
+pub struct OpenSpaceLinkCtxInput {
+    pub base_url: String,
+    pub space_slug: String,
+    pub access_key: String,
+    pub user_agent: Option<String>,
+    pub client_package: Option<String>,
+    pub client_version: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreatedSpaceLink {
+    pub space_id: String,
+    pub space_slug: String,
+    pub access_key: String,
 }
 
 #[derive(Clone)]

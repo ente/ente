@@ -69,6 +69,12 @@ Future<int?> _processOtpAuthFile(
       );
       continue;
     }
+    if (result['status'] == 'entry_error') {
+      throw ImportEntryParseException(
+        entry: result['entry'],
+        error: result['error']!,
+      );
+    }
 
     final codes = (result['otpUris'] as List).cast<String>().map(
       Code.fromOTPAuthUrl,
@@ -89,5 +95,11 @@ Map<String, Object> _parseOtpAuthExport(Map<String, Object> params) {
     };
   } on IncorrectOtpAuthPasswordException {
     return {'status': 'incorrect_password'};
+  } on ImportEntryParseException catch (error) {
+    return {
+      'status': 'entry_error',
+      'entry': error.entryText,
+      'error': error.errorText,
+    };
   }
 }

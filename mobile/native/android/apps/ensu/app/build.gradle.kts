@@ -54,7 +54,7 @@ val debugAbis = listOf(connectedDeviceAbi() ?: hostAbi())
 
 android {
     namespace = "io.ente.ensu"
-    compileSdk = 35
+    compileSdk = 36
 
     signingConfigs {
         create("release") {
@@ -75,7 +75,7 @@ android {
     defaultConfig {
         applicationId = "io.ente.ensu"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = (project.findProperty("versionCode") as? String)?.toInt() ?: 33
         versionName = "0.1.18"
     }
@@ -159,6 +159,8 @@ dependencies {
     implementation("com.github.gregcockroft:AndroidMath:v1.1.0") {
         exclude(group = "com.google.guava", module = "listenablefuture")
     }
+
+    testImplementation("junit:junit:4.13.2")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

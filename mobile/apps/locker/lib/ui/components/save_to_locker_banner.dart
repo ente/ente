@@ -1,12 +1,15 @@
+import "dart:math" as math;
+
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:locker/l10n/l10n.dart";
+import "package:rive/rive.dart" as rive;
 
 const _bannerHeight = 147.0;
-const _illustrationWidth = 198.0;
-const _illustrationHeight = 115.0;
-const _duckyWidth = 193.0;
+const _illustrationWidth = 220.0;
+const _illustrationHeight = 128.0;
+const _illustrationTilt = -3 * math.pi / 180;
 const _contentLeftInset = 25.0;
 const _contentRightReserve = 200.0;
 const _brandName = "Locker";
@@ -20,8 +23,30 @@ const _titleStyle = TextStyle(
   letterSpacing: -0.72,
 );
 
-class SaveToLockerBanner extends StatelessWidget {
+class SaveToLockerBanner extends StatefulWidget {
   const SaveToLockerBanner({super.key});
+
+  @override
+  State<SaveToLockerBanner> createState() => _SaveToLockerBannerState();
+}
+
+class _SaveToLockerBannerState extends State<SaveToLockerBanner> {
+  late final rive.FileLoader _illustrationLoader;
+
+  @override
+  void initState() {
+    super.initState();
+    _illustrationLoader = rive.FileLoader.fromAsset(
+      "assets/save_to_locker.riv",
+      riveFactory: rive.Factory.flutter,
+    );
+  }
+
+  @override
+  void dispose() {
+    _illustrationLoader.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,28 +70,26 @@ class SaveToLockerBanner extends StatelessWidget {
               ),
             ),
             Positioned(
-              right: 0,
-              bottom: 0,
-              child: SizedBox(
-                width: _illustrationWidth,
-                height: _illustrationHeight,
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Image.asset(
-                        "assets/save_to_locker_ducky.png",
-                        width: _duckyWidth,
-                        height: _illustrationHeight,
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: SvgPicture.asset(
-                        "assets/svg/save_to_locker_stars.svg",
-                      ),
-                    ),
-                  ],
+              right: -18,
+              bottom: -12,
+              child: Transform.rotate(
+                angle: _illustrationTilt,
+                alignment: Alignment.bottomRight,
+                child: SizedBox(
+                  width: _illustrationWidth,
+                  height: _illustrationHeight,
+                  child: rive.RiveWidgetBuilder(
+                    fileLoader: _illustrationLoader,
+                    builder: (context, state) {
+                      if (state is rive.RiveLoaded) {
+                        return rive.RiveWidget(
+                          controller: state.controller,
+                          fit: rive.Fit.contain,
+                        );
+                      }
+                      return const SizedBox.expand();
+                    },
+                  ),
                 ),
               ),
             ),

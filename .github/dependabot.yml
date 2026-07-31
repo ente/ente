@@ -1,0 +1,17 @@
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directories:
+      - "/web"
+      - "/web/apps/*"
+      - "/web/packages/*"
+      - "/web/packages/wasm/space"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    groups:
+      web-security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"

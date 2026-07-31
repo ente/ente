@@ -9,6 +9,7 @@ import 'package:locker/l10n/l10n.dart';
 import 'package:locker/models/selected_collections.dart';
 import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
+import 'package:locker/services/configuration.dart';
 import 'package:locker/ui/components/collection_list_widget.dart';
 import "package:locker/ui/components/empty_state_widget.dart";
 import 'package:locker/ui/components/item_list_view.dart';
@@ -70,9 +71,11 @@ class _AllCollectionsPageState extends State<AllCollectionsPage> {
 
       final regularCollections = <Collection>[];
       Collection? uncategorized;
+      final userID = Configuration.instance.getUserID()!;
 
       for (final collection in collections) {
-        if (collection.type == CollectionType.uncategorized) {
+        if (collection.type == CollectionType.uncategorized &&
+            collection.isOwner(userID)) {
           uncategorized = collection;
         } else {
           regularCollections.add(collection);

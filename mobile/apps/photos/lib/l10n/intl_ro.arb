@@ -664,7 +664,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "Abonament PlayStore",
   "appstoreSubscription": "Abonament AppStore",
-  "subAlreadyLinkedErrMessage": "{id} este deja legat la un alt cont Ente.\nDacă doriți să folosiți {id} cu acest cont, vă rugăm să contactați asistența noastră",
   "visitWebToManage": "Vă rugăm să vizitați {webUrl} pentru a vă gestiona abonamentul",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

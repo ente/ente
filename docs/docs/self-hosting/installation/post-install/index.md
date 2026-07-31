@@ -101,9 +101,10 @@ apps:
     cast: https://cast.ente.yourdomain.tld
     embed-albums: https://embed.ente.yourdomain.tld
     accounts: https://accounts.ente.yourdomain.tld
+    legacy: https://legacy.ente.yourdomain.tld
 ```
 
-If you are using quickstart, note that only Photos and Albums are exposed by default in `compose.yaml`. Uncomment the Share / Paste / Memories port mappings there, or deploy them separately, before pointing `apps.public-locker` / `apps.public-paste` / `apps.public-memories` to those URLs.
+If you are using quickstart, note that only Photos and Albums are exposed by default in `compose.yaml`. Uncomment the port mappings of the other apps there, or deploy them separately, before pointing their `apps.*` keys to those URLs.
 
 ## Step 4: Make it publicly accessible
 

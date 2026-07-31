@@ -1,1 +1,0 @@
-- Added support for saving contact names and profile photos, and removed indirect connections from Contacts.

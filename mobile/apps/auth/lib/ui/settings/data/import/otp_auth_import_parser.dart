@@ -55,7 +55,8 @@ List<Code> parseOtpAuthExport(Uint8List fileBytes, {required String password}) {
     try {
       codes.add(_accountToCode(_asMap(account)));
     } catch (error, stackTrace) {
-      _logger.warning('Skipping unsupported OTP Auth entry', error, stackTrace);
+      _logger.warning('Failed to parse OTP Auth entry', error, stackTrace);
+      throwImportEntryParseError(account, error);
     }
   }
   return codes;
@@ -115,8 +116,8 @@ Code _accountToCode(Map<String, Object?> account) {
       account: Uri.encodeComponent(label),
       secret: secret,
       algorithm: algorithm.name.toUpperCase(),
-      digits: digits == 0 ? Code.defaultDigits : digits,
-      period: period == 0 ? Code.defaultPeriod : period,
+      digits: digits,
+      period: period,
       counter: counter,
     ),
   );

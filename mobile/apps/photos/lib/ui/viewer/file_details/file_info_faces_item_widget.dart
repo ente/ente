@@ -298,6 +298,7 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
   }
 
   Widget _buildNoFacesWidget() {
+    final l10n = AppLocalizations.of(context);
     final reason = _errorReason ?? NoFacesReason.noFacesFound;
     final showManualTagOption =
         !isLocalGalleryMode &&
@@ -307,10 +308,24 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(AppLocalizations.of(context).people, style: TextStyles.h2),
+        Text(l10n.people, style: TextStyles.h2),
         const SizedBox(height: Spacing.lg),
         if (showManualTagOption)
-          _buildAddFaceThumbnail(onTap: _openAddFilesToPersonPage)
+          MenuComponent(
+            title: l10n.noFacesFound,
+            subtitle: l10n.addPerson,
+            leading: const HugeIcon(
+              icon: HugeIcons.strokeRoundedUserCircle,
+              size: IconSizes.medium,
+            ),
+            trailing: Icon(
+              Icons.chevron_right_rounded,
+              size: IconSizes.medium,
+              color: context.componentColors.textLight,
+            ),
+            shouldSurfaceExecutionStates: false,
+            onTap: _openAddFilesToPersonPage,
+          )
         else
           Text(
             getNoFaceReasonText(context, reason),

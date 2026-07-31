@@ -7,6 +7,7 @@ import {
 import {
     CollectionOrder,
     collectionTypes,
+    findUserUncategorizedCollection,
     type Collection,
 } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
@@ -655,7 +656,10 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 hiddenCollectionSummaries,
                 archivedCollectionSummaries,
                 uncategorizedCollectionSummaryID:
-                    deriveUncategorizedCollectionSummaryID(normalCollections),
+                    deriveUncategorizedCollectionSummaryID(
+                        normalCollections,
+                        user.id,
+                    ),
                 view,
             });
         }
@@ -786,7 +790,10 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 hiddenCollectionSummaries,
                 archivedCollectionSummaries,
                 uncategorizedCollectionSummaryID:
-                    deriveUncategorizedCollectionSummaryID(normalCollections),
+                    deriveUncategorizedCollectionSummaryID(
+                        normalCollections,
+                        state.user!.id,
+                    ),
                 selectedCollectionSummaryID,
                 pendingSearchSuggestions:
                     enqueuePendingSearchSuggestionsIfNeeded(
@@ -1541,8 +1548,9 @@ const deriveNormalCollectionSummaries = (
         collectionFiles,
     );
 
-    const uncategorizedCollection = normalCollections.find(
-        ({ type }) => type == "uncategorized",
+    const uncategorizedCollection = findUserUncategorizedCollection(
+        normalCollections,
+        user.id,
     );
     if (!uncategorizedCollection) {
         const id = PseudoCollectionID.uncategorizedPlaceholder;
@@ -1698,8 +1706,9 @@ const deriveArchivedCollectionSummaries = (
  */
 const deriveUncategorizedCollectionSummaryID = (
     normalCollections: Collection[],
+    userID: number,
 ) =>
-    normalCollections.find(({ type }) => type == "uncategorized")?.id ??
+    findUserUncategorizedCollection(normalCollections, userID)?.id ??
     PseudoCollectionID.uncategorizedPlaceholder;
 
 const createCollectionSummaries = (

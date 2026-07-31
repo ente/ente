@@ -9,14 +9,17 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/core/event_bus.dart';
+import 'package:photos/events/collection_updated_event.dart';
 import 'package:photos/events/contacts_changed_event.dart';
 import 'package:photos/events/people_changed_event.dart';
 import 'package:photos/gateways/billing/models/billing_plan.dart';
 import 'package:photos/gateways/billing/models/subscription.dart';
 import 'package:photos/generated/l10n.dart';
+import 'package:photos/models/library_sharing/library_sharing_recipient.dart';
 import 'package:photos/models/user_details.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/family_service.dart';
+import 'package:photos/services/library_sharing_service.dart';
 import 'package:photos/services/machine_learning/face_ml/person/person_service.dart';
 import 'package:photos/services/photos_contacts_service.dart';
 import 'package:photos/theme/ente_theme.dart';
@@ -28,8 +31,11 @@ import 'package:photos/ui/family/family_ui.dart';
 import 'package:photos/ui/family/invite_members_page.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/payment/subscription.dart';
+import 'package:photos/ui/sharing/library_sharing/library_sharing_page.dart';
+import 'package:photos/ui/sharing/library_sharing/library_sharing_strings.dart';
 import 'package:photos/ui/viewer/search/result/edit_contact_page.dart';
 import 'package:photos/utils/dialog_util.dart';
+import 'package:photos/utils/person_contact_linking_util.dart';
 
 class FamilyPlanPage extends StatefulWidget {
   const FamilyPlanPage({
@@ -54,11 +60,15 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
   static const double _advertBalancedMinHeight = 560;
 
   late UserDetails _userDetails = widget.initialUserDetails;
+  late final LibrarySharingService _librarySharingService =
+      LibrarySharingService();
   final Map<int, contacts.ContactRecord?> _contactsByUserId = {};
   final Map<int, Uint8List?> _profilePictureBytesByUserId = {};
+  Map<int, int> _sharedAlbumCountsByUserId = const {};
   String? _startingPrice;
   bool _isRefreshing = false;
   int _memberContactsLoadGeneration = 0;
+  StreamSubscription<CollectionUpdatedEvent>? _collectionUpdatedSubscription;
   StreamSubscription<ContactsChangedEvent>? _contactsChangedSubscription;
   StreamSubscription<PeopleChangedEvent>? _peopleChangedSubscription;
 
@@ -78,6 +88,8 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
   bool get _showsDashboard => _showsAdminDashboard || _showsMemberDashboard;
 
+  bool get _librarySharingEnabled => flagService.librarySharing;
+
   int get _remainingSlots {
     final memberCount =
         _userDetails.familyData?.members
@@ -96,6 +108,12 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       unawaited(_refreshUserDetails());
     }
     unawaited(_loadMemberContacts());
+    if (_librarySharingEnabled) {
+      _loadSharedAlbumCounts();
+      _collectionUpdatedSubscription = Bus.instance
+          .on<CollectionUpdatedEvent>()
+          .listen(_onCollectionUpdated);
+    }
     _contactsChangedSubscription = Bus.instance
         .on<ContactsChangedEvent>()
         .listen(_onContactsChanged);
@@ -113,6 +131,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
   @override
   void dispose() {
+    _collectionUpdatedSubscription?.cancel();
     _contactsChangedSubscription?.cancel();
     _peopleChangedSubscription?.cancel();
     super.dispose();
@@ -126,6 +145,13 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       return;
     }
     unawaited(_loadMemberContacts());
+  }
+
+  void _onCollectionUpdated(CollectionUpdatedEvent event) {
+    if (!mounted || !_showsDashboard || event.updatedFiles.isNotEmpty) {
+      return;
+    }
+    _loadSharedAlbumCounts();
   }
 
   @override
@@ -348,38 +374,50 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
   Widget _buildDashboard(BuildContext context, {required bool isAdminView}) {
     final members = _userDetails.familyData?.members ?? const <FamilyMember>[];
+    final linkedPersons = _linkedPersonsFor(members);
     return FamilyDashboard(
       userDetails: _userDetails,
       members: members,
       isAdmin: isAdminView,
       contactsByUserId: _contactsByUserId,
       profilePictureBytesByUserId: _profilePictureBytesByUserId,
-      linkedPersonIdsByUserId: _linkedPersonIdsFor(members),
+      linkedPersonIdsByUserId: linkedPersons.idsByUserId,
+      linkedPersonNamesByUserId: linkedPersons.namesByUserId,
+      librarySharingEnabled: _librarySharingEnabled,
+      sharedAlbumCountsByUserId: _sharedAlbumCountsByUserId,
       onMemberTap: _showMemberActions,
       onAddMember: () => unawaited(_openInvitePage()),
       remainingSlots: _remainingSlots,
     );
   }
 
-  Map<int, String> _linkedPersonIdsFor(List<FamilyMember> members) {
+  ({Map<int, String> idsByUserId, Map<int, String> namesByUserId})
+  _linkedPersonsFor(List<FamilyMember> members) {
     if (!PersonService.isInitialized) {
-      return const {};
+      return (idsByUserId: const {}, namesByUserId: const {});
     }
-    final result = <int, String>{};
+    final idsByUserId = <int, String>{};
+    final namesByUserId = <int, String>{};
     for (final member in members) {
       final userID = member.userID;
       if (userID == null) {
         continue;
       }
-      final personID = PersonService.instance.getCachedPartialPersonData(
+      final personData = PersonService.instance.getCachedPartialPersonData(
         userID: userID,
         email: member.email,
-      )?[PersonService.kPersonIDKey];
-      if (personID != null) {
-        result[userID] = personID;
+      );
+      final personID = personData?[PersonService.kPersonIDKey];
+      if (personID == null) {
+        continue;
+      }
+      idsByUserId[userID] = personID;
+      final personName = personData?[PersonService.kNameKey]?.trim();
+      if (personName != null && personName.isNotEmpty) {
+        namesByUserId[userID] = personName;
       }
     }
-    return result;
+    return (idsByUserId: idsByUserId, namesByUserId: namesByUserId);
   }
 
   Widget _buildDashboardOverflow(BuildContext context) {
@@ -438,6 +476,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       }
       setState(() => _userDetails = details);
       unawaited(_loadMemberContacts());
+      _loadSharedAlbumCounts();
     } catch (error) {
       if (mounted && showError) {
         await showGenericErrorDialog(context: context, error: error);
@@ -469,10 +508,11 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     }
   }
 
-  Future<void> _showMemberActions(FamilyMember member) async {
-    final isCurrentUser =
-        member.email.trim().toLowerCase() ==
-        _userDetails.email.trim().toLowerCase();
+  Future<void> _showMemberActions(
+    FamilyMember member,
+    String fallbackDisplayName,
+  ) async {
+    final isCurrentUser = _isCurrentMember(member);
     final savedContact = await _resolveMemberContact(member);
     if (!mounted) {
       return;
@@ -482,19 +522,27 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       isCurrentUser: isCurrentUser,
       member: member,
       hasSavedContact: savedContact != null,
+      librarySharingEnabled: _librarySharingEnabled,
     );
     if (actions.isEmpty) {
       return;
     }
 
-    final displayName = savedContact?.data?.name.trim();
+    final savedContactName = savedContact?.data?.name.trim();
+    final displayName = savedContactName == null || savedContactName.isEmpty
+        ? fallbackDisplayName
+        : savedContactName;
+    final linkedPersonId = member.userID == null || !PersonService.isInitialized
+        ? null
+        : PersonService.instance.getCachedPartialPersonData(
+            userID: member.userID,
+            email: member.email,
+          )?[PersonService.kPersonIDKey];
     final l10n = AppLocalizations.of(context);
     await showBottomSheetComponent<void>(
       context: context,
       builder: (sheetContext) => BottomSheetComponent(
-        title: displayName == null || displayName.isEmpty
-            ? member.email
-            : displayName,
+        title: displayName,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -502,6 +550,8 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
               _buildMemberActionItem(
                 sheetContext,
                 member: member,
+                displayName: displayName,
+                linkedPersonId: linkedPersonId,
                 action: actions[index],
                 l10n: l10n,
               ),
@@ -517,12 +567,16 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
   Widget _buildMemberActionItem(
     BuildContext sheetContext, {
     required FamilyMember member,
+    required String displayName,
+    required String? linkedPersonId,
     required FamilyMemberAction action,
     required AppLocalizations l10n,
   }) {
     final actionLabel = switch (action) {
       FamilyMemberAction.saveContact => l10n.saveContact,
       FamilyMemberAction.editContact => l10n.editContact,
+      FamilyMemberAction.shareAlbums =>
+        LibrarySharingStrings.internalShareAlbums,
       FamilyMemberAction.editStorageLimit => l10n.editStorageLimit,
       FamilyMemberAction.removeMember => l10n.removeFromFamily,
       FamilyMemberAction.resendInvite => l10n.resendInvite,
@@ -531,6 +585,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     final icon = switch (action) {
       FamilyMemberAction.saveContact => HugeIcons.strokeRoundedUserAdd01,
       FamilyMemberAction.editContact => HugeIcons.strokeRoundedEdit03,
+      FamilyMemberAction.shareAlbums => HugeIcons.strokeRoundedAlbum02,
       FamilyMemberAction.editStorageLimit =>
         HugeIcons.strokeRoundedFilterHorizontal,
       FamilyMemberAction.removeMember => HugeIcons.strokeRoundedUserRemove01,
@@ -540,11 +595,18 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     final isDestructive =
         action == FamilyMemberAction.removeMember ||
         action == FamilyMemberAction.revokeInvite;
-    final subtitle = action == FamilyMemberAction.editStorageLimit
-        ? member.storageLimit == null
-              ? l10n.noLimitSet
-              : convertBytesToReadableFormat(member.storageLimit!)
-        : null;
+    final sharedAlbumCount = _sharedAlbumCountsByUserId[member.userID];
+    final subtitle = switch (action) {
+      FamilyMemberAction.shareAlbums =>
+        sharedAlbumCount == null
+            ? null
+            : LibrarySharingStrings.sharedAlbumCount(sharedAlbumCount),
+      FamilyMemberAction.editStorageLimit =>
+        member.storageLimit == null
+            ? l10n.noLimitSet
+            : convertBytesToReadableFormat(member.storageLimit!),
+      _ => null,
+    };
 
     return MenuComponent(
       title: actionLabel,
@@ -560,19 +622,17 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
           case FamilyMemberAction.editContact:
             await _openMemberContact(member);
             break;
+          case FamilyMemberAction.shareAlbums:
+            await _openLibrarySharing(member, displayName);
+            break;
           case FamilyMemberAction.editStorageLimit:
             final updatedUserDetails = await routeToPage<UserDetails>(
               context,
               EditStorageLimitPage(
                 member: member,
+                displayName: displayName,
+                linkedPersonId: linkedPersonId,
                 totalStorageInBytes: _userDetails.getTotalStorage(),
-                avatarColor: avatarComponentColorValue(
-                  context,
-                  familyMemberAvatarComponentColor(
-                    member,
-                    currentUserEmail: _userDetails.email,
-                  ),
-                ),
               ),
             );
             if (!mounted) {
@@ -610,7 +670,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       return _contactsByUserId[userID];
     }
 
-    final resolved = await _loadMemberContact(userID);
+    final resolved = await _loadMemberContact(member);
     if (!mounted) {
       return resolved.contact;
     }
@@ -656,8 +716,13 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
   Future<void> _loadMemberContacts() async {
     final generation = ++_memberContactsLoadGeneration;
-    final userIDs = _familyMemberUserIDs();
-    final resolvedContacts = await Future.wait(userIDs.map(_loadMemberContact));
+    final members =
+        _userDetails.familyData?.members
+            ?.where((member) => member.userID != null)
+            .toList() ??
+        const <FamilyMember>[];
+    final userIDs = members.map((member) => member.userID!).toSet();
+    final resolvedContacts = await Future.wait(members.map(_loadMemberContact));
     if (!mounted || generation != _memberContactsLoadGeneration) {
       return;
     }
@@ -674,6 +739,40 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     });
   }
 
+  void _loadSharedAlbumCounts() {
+    if (!mounted || !_showsDashboard || !_librarySharingEnabled) {
+      return;
+    }
+    setState(() {
+      _sharedAlbumCountsByUserId = _librarySharingService.sharedAlbumCounts(
+        _familyMemberUserIDs(),
+      );
+    });
+  }
+
+  Future<void> _openLibrarySharing(
+    FamilyMember member,
+    String displayName,
+  ) async {
+    final userID = member.userID;
+    if (!_librarySharingEnabled || userID == null || !member.isActive) {
+      return;
+    }
+    await routeToPage(
+      context,
+      LibrarySharingPage(
+        recipient: LibrarySharingRecipient(
+          userID: userID,
+          email: member.email,
+          displayName: displayName,
+        ),
+      ),
+    );
+    if (mounted) {
+      _loadSharedAlbumCounts();
+    }
+  }
+
   Set<int> _familyMemberUserIDs() =>
       _userDetails.familyData?.members
           ?.map((member) => member.userID)
@@ -681,10 +780,32 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
           .toSet() ??
       const <int>{};
 
-  Future<_ResolvedMemberContact> _loadMemberContact(int userID) async {
-    final contact = await PhotosContactsService.instance.getContact(
+  bool _isCurrentMember(FamilyMember member) =>
+      member.email.trim().toLowerCase() ==
+      _userDetails.email.trim().toLowerCase();
+
+  Future<_ResolvedMemberContact> _loadMemberContact(FamilyMember member) async {
+    final userID = member.userID!;
+    var contact = await PhotosContactsService.instance.getContact(
       contactUserId: userID,
     );
+    if (contact == null &&
+        member.isActive &&
+        !_isCurrentMember(member) &&
+        PersonService.isInitialized) {
+      final person = await findPersonLinkedToContact(
+        contactUserId: userID,
+        email: member.email,
+      );
+      if (person != null) {
+        contact = await PersonService.instance
+            .tryAutoCreateContactForLinkedPerson(
+              person: person,
+              contactUserId: userID,
+              email: member.email,
+            );
+      }
+    }
     final profilePicture = contact == null
         ? null
         : await PhotosContactsService.instance.getProfilePictureBytesByUserId(

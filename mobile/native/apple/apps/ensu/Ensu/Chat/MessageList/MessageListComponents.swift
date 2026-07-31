@@ -246,11 +246,27 @@ struct AssistantMessageBubbleView: View {
     let onOpenAttachment: (ChatAttachment) -> Void
     let showsMetadata: Bool
 
+    @State private var showSources = false
+
     var body: some View {
+        let parsed = parseAssistantText(storedText: message.text)
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: EnsuSpacing.sm) {
-                    AssistantMessageRenderer(text: message.text, isStreaming: false, storageId: message.id.uuidString)
+                    AssistantMessageRenderer(text: parsed.text, isStreaming: false, storageId: message.id.uuidString)
+
+                    if let sourceLabel = parsed.sourceLabel {
+                        Button(sourceLabel) {
+                            showSources = true
+                        }
+                        .font(EnsuTypography.small)
+                        .foregroundStyle(EnsuColor.textPrimary)
+                        .padding(.horizontal, EnsuSpacing.md)
+                        .padding(.vertical, EnsuSpacing.sm)
+                        .background(EnsuColor.fillFaint)
+                        .clipShape(RoundedRectangle(cornerRadius: EnsuCornerRadius.button))
+                        .buttonStyle(.plain)
+                    }
 
                     if message.isInterrupted {
                         Text("Interrupted")
@@ -296,6 +312,84 @@ struct AssistantMessageBubbleView: View {
             .animation(.easeInOut(duration: 0.22), value: showsMetadata)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .sheet(isPresented: $showSources) {
+            KnowledgeSourcesSheet(citations: parsed.citations)
+        }
+    }
+}
+
+private struct KnowledgeSourcesSheet: View {
+    let citations: [SourceCitation]
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: EnsuSpacing.lg) {
+                    Text(sourceCountLabel)
+                        .font(EnsuTypography.small)
+                        .foregroundStyle(EnsuColor.textMuted)
+
+                    ForEach(Array(citations.enumerated()), id: \.offset) { index, citation in
+                        VStack(alignment: .leading, spacing: EnsuSpacing.sm) {
+                            Text("SOURCE \(index + 1) · \(citation.datasetLabel.uppercased())")
+                                .font(EnsuTypography.mini)
+                                .foregroundStyle(EnsuColor.textMuted)
+
+                            Text(citation.title)
+                                .font(EnsuTypography.large)
+                                .foregroundStyle(EnsuColor.textPrimary)
+
+                            Divider()
+
+                            Text("Attribution")
+                                .font(EnsuTypography.mini)
+                                .foregroundStyle(EnsuColor.textMuted)
+
+                            Text(citation.credit)
+                                .font(EnsuTypography.small)
+                                .foregroundStyle(EnsuColor.textPrimary)
+
+                            HStack(spacing: EnsuSpacing.lg) {
+                                Link(destination: URL(string: citation.sourceUrl)!) {
+                                    Label("Open source", systemImage: "arrow.up.right.square")
+                                }
+                                Link(destination: URL(string: citation.licenseUrl)!) {
+                                    Label(citation.licenseLabel, systemImage: "doc.text")
+                                }
+                            }
+                            .font(EnsuTypography.small)
+                        }
+                        .padding(EnsuSpacing.md)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(EnsuColor.fillFaint)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: EnsuCornerRadius.card,
+                                style: .continuous
+                            )
+                        )
+                    }
+                }
+                .padding(EnsuSpacing.lg)
+            }
+            .background(EnsuColor.backgroundBase)
+            .navigationTitle("Sources")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var sourceCountLabel: String {
+        citations.count == 1
+            ? "1 source used in this response"
+            : "\(citations.count) sources used in this response"
     }
 }
 

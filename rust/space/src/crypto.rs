@@ -1,4 +1,5 @@
-use ente_core::crypto::{Key, Nonce, PublicKey, SecretKey, blob, encode_b64, sealed, secretbox};
+use ente_core::b64;
+use ente_core::crypto::{Key, Nonce, PublicKey, SecretKey, blob, sealed, secretbox};
 use md5::{Digest, Md5};
 
 use crate::error::Result;
@@ -36,7 +37,7 @@ pub(crate) fn open_with_keypair(
 
 pub(crate) fn content_md5_base64(bytes: &[u8]) -> String {
     let digest = Md5::digest(bytes);
-    encode_b64(&digest)
+    b64::encode(&digest)
 }
 
 pub(crate) fn encrypt_secretbox_payload(key: &[u8], plaintext: &[u8]) -> Result<Vec<u8>> {

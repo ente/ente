@@ -957,15 +957,15 @@ class _CodeWidgetState extends State<CodeWidget> {
     await showBottomSheetComponent<void>(
       context: context,
       useRootNavigator: true,
-      builder: (_) {
+      builder: (dialogContext) {
         return AuthQrDialog(
           data: qrData,
           title: widget.code.issuer,
           subtitle: widget.code.account,
           shareFileName: 'ente_auth_qr_${widget.code.account}.png',
           shareText: 'QR code for ${widget.code.account}',
-          dialogTitle: context.l10n.qrCode,
-          shareButtonText: context.l10n.share,
+          dialogTitle: dialogContext.l10n.qrCode,
+          shareButtonText: dialogContext.l10n.share,
         );
       },
     );

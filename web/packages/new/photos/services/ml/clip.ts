@@ -1,7 +1,6 @@
 import type { ElectronMLWorker } from "ente-base/types/ipc";
-import type { ImageBitmapAndData } from "./blob";
 import { savedCLIPIndexes } from "./db";
-import { dotProduct, norm } from "./math";
+import { dotProduct } from "./math";
 import type { CLIPMatches } from "./worker-types";
 
 /**
@@ -73,58 +72,16 @@ export type RemoteCLIPIndex = CLIPIndex & {
     version: number;
     /** The UA for the client which generated this embedding. */
     client: string;
+    /**
+     * Bitmask describing the runtime that generated this index. An absent
+     * value on legacy remote data is parsed as zero.
+     */
+    flags: number;
 };
 
 export type LocalCLIPIndex = CLIPIndex & {
     /** The ID of the {@link EnteFile} whose index this is. */
     fileID: number;
-};
-
-/**
- * Compute the CLIP embedding of a given {@link image}.
- *
- * This function is the third and fourth stage of the CLIP indexing pipeline.
- * The file goes through various stages:
- *
- * 1. Download the original (if needed).
- * 2. Convert (if needed) to obtain an image bitmap.
- * 3. Preprocess the image bitmap.
- * 4. Compute embeddings of this preprocessed image using ONNX/CLIP.
- *
- * Once all of it is done, it CLIP embedding (wrapped as a {@link CLIPIndex} so
- * that it can be saved locally and also uploaded to the user's remote storage
- * for use on their other devices).
- *
- * @param image The image bitmap (and its associated data) of the image file
- * whose CLIP embedding we're computing.
- *
- * @param electron The {@link ElectronMLWorker} instance that allows us to call
- * our Node.js layer to run the ONNX inference.
- */
-export const indexCLIP = async (
-    image: ImageBitmapAndData,
-    electron: ElectronMLWorker,
-): Promise<CLIPIndex> => ({
-    embedding: Array.from(await computeEmbedding(image.data, electron)),
-});
-
-const computeEmbedding = async (
-    imageData: ImageData,
-    electron: ElectronMLWorker,
-): Promise<Float32Array> => {
-    // The image pre-preprocessing happens within the model itself, using ONNX
-    // primitives. This is more performant and also saves us from having to
-    // reinvent (say) the antialiasing wheels.
-    const { height, width, data: pixelData } = imageData;
-    const inputShape = [height, width, 4]; // [H, W, C]
-    return normalized(
-        await electron.computeCLIPImageEmbedding(pixelData, inputShape),
-    );
-};
-
-const normalized = (embedding: Float32Array) => {
-    const n = norm(embedding);
-    return embedding.map((v) => v / n);
 };
 
 /**
@@ -137,10 +94,10 @@ export const _clipMatches = async (
     searchPhrase: string,
     electron: ElectronMLWorker,
 ): Promise<CLIPMatches | undefined> => {
-    const t = await electron.computeCLIPTextEmbeddingIfAvailable(searchPhrase);
-    if (!t) return undefined;
-
-    const textEmbedding = normalized(t);
+    // The native pipeline returns the embedding already normalized.
+    const textEmbedding =
+        await electron.computeCLIPTextEmbeddingIfAvailable(searchPhrase);
+    if (!textEmbedding) return undefined;
     const items = (await cachedOrReadCLIPIndexes()).map(
         ({ fileID, embedding }) =>
             // The dot product gives us cosine similarity here since both the

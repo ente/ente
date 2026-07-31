@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:ente_components/components/app_bar_component.dart';
 import 'package:ente_components/components/menu_component.dart';
@@ -54,6 +55,8 @@ void main() {
         ),
         selected: true,
         titleColor: ColorTokens.light.warning,
+        subtitleColor: ColorTokens.light.primary,
+        titleBold: true,
         iconColor: ColorTokens.light.primary,
         onTap: () async => tapped = true,
       ),
@@ -74,6 +77,14 @@ void main() {
     expect(
       tester.widget<Text>(find.text('Camera uploads')).style?.color,
       ColorTokens.light.warning,
+    );
+    expect(
+      tester.widget<Text>(find.text('Camera uploads')).style?.fontWeight,
+      TextStyles.bodyBold.fontWeight,
+    );
+    expect(
+      tester.widget<Text>(find.text('Enabled on Wi-Fi')).style?.color,
+      ColorTokens.light.primary,
     );
     expect(
       IconTheme.of(
@@ -129,6 +140,47 @@ void main() {
 
       await tester.pump(const Duration(seconds: 1));
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'MenuComponent clears hover after returning from a pushed route',
+    (tester) async {
+      await pumpComponent(
+        tester,
+        Builder(
+          builder: (context) => MenuComponent(
+            title: 'Security',
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) => const Scaffold(body: Text('Submenu')),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(tester.getCenter(find.text('Security')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Security'));
+      await tester.pumpAndSettle();
+      await mouse.moveTo(const Offset(700, 500));
+      await tester.pump();
+
+      Navigator.of(tester.element(find.text('Submenu'))).pop();
+      await tester.pumpAndSettle();
+
+      final surface = tester.widget<AnimatedContainer>(
+        find.byKey(const ValueKey('menu-item-surface')),
+      );
+      expect(
+        (surface.decoration! as BoxDecoration).color,
+        ColorTokens.light.fillLight,
+      );
     },
   );
 
@@ -818,6 +870,37 @@ void main() {
       expect(tester.getTopLeft(find.text('Item 0')).dy, closeTo(56, 1));
     },
   );
+
+  testWidgets('SliverAppBarComponent reserves custom title height', (
+    tester,
+  ) async {
+    const customTitleKey = ValueKey('custom-title');
+    const firstItemKey = ValueKey('first-item');
+
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          SliverAppBarComponent(
+            title: 'Custom title',
+            titleBuilderHeight: 80,
+            titleBuilder: (_, _) =>
+                const SizedBox(key: customTitleKey, height: 80),
+          ),
+          const SliverToBoxAdapter(
+            child: SizedBox(key: firstItemKey, height: 80),
+          ),
+        ],
+      ),
+      width: 390,
+      height: 600,
+    );
+
+    expect(
+      tester.getBottomLeft(find.byKey(customTitleKey)).dy,
+      lessThanOrEqualTo(tester.getTopLeft(find.byKey(firstItemKey)).dy),
+    );
+  });
 
   testWidgets('AppBarComponent lets short content stick collapsed', (
     tester,

@@ -6,10 +6,10 @@ import "dart:typed_data";
 import 'package:dio/dio.dart';
 import 'package:ente_crypto/ente_crypto.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart'
-    show isFileSystemPathMissing;
+    show deleteFileSystemEntityIfPresent, isFileSystemPathMissing;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:logging/logging.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/core/cache/thumbnail_in_memory_cache.dart';
 import 'package:photos/core/configuration.dart';
@@ -22,6 +22,7 @@ import 'package:photos/module/download/file.dart';
 import "package:photos/module/download/file_url.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/utils/file_key.dart";
+import 'package:uuid/uuid.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
 final _logger = Logger("ThumbnailUtil");
@@ -217,26 +218,58 @@ Future<Uint8List?> getThumbnailFromLocal(
 }
 
 Future<Uint8List?> getThumbnailFromInAppCacheFile(EnteFile file) async {
-  var localFile = File(getSharedMediaFilePath(file));
+  final localFile = File(getSharedMediaFilePath(file));
   if (!localFile.existsSync()) {
     return null;
   }
   if (file.fileType == FileType.video) {
     try {
-      final thumbnailFilePath = await VideoThumbnail.thumbnailFile(
-        video: localFile.path,
-        imageFormat: ImageFormat.JPEG,
-        thumbnailPath: (await getTemporaryDirectory()).path,
+      return await withTemporaryVideoThumbnail<Uint8List>(
+        videoPath: localFile.path,
         maxWidth: thumbnailLargeSize,
         quality: 80,
+        use: (thumbnailFile) async =>
+            compressThumbnailToSizeLimit(await thumbnailFile.readAsBytes()),
       );
-      localFile = File(thumbnailFilePath!);
     } catch (e) {
       _logger.warning('Failed to generate video thumbnail', e);
       return null;
     }
   }
   return compressThumbnailToSizeLimit(await localFile.readAsBytes());
+}
+
+Future<T?> withTemporaryVideoThumbnail<T>({
+  required String videoPath,
+  required int quality,
+  required Future<T?> Function(File thumbnailFile) use,
+  int maxWidth = 0,
+}) async {
+  final thumbnailFile = File(
+    p.join(
+      Configuration.instance.getTempDirectory(),
+      'video-thumbnail-${const Uuid().v4()}.jpg',
+    ),
+  );
+  try {
+    final thumbnailFilePath = await VideoThumbnail.thumbnailFile(
+      video: videoPath,
+      imageFormat: ImageFormat.JPEG,
+      thumbnailPath: thumbnailFile.path,
+      maxWidth: maxWidth,
+      quality: quality,
+    );
+    if (thumbnailFilePath == null) {
+      return null;
+    }
+    return await use(File(thumbnailFilePath));
+  } finally {
+    try {
+      await deleteFileSystemEntityIfPresent(thumbnailFile);
+    } catch (e, s) {
+      _logger.warning('Failed to delete temporary video thumbnail', e, s);
+    }
+  }
 }
 
 void removePendingGetThumbnailRequestIfAny(EnteFile file) {

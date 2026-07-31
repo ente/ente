@@ -20,6 +20,7 @@ import 'package:photos/db/files_db.dart';
 import 'package:photos/db/social_db.dart';
 import 'package:photos/db/trash_db.dart';
 import 'package:photos/events/collection_updated_event.dart';
+import 'package:photos/events/contact_relationships_invalidated_event.dart';
 import 'package:photos/events/files_updated_event.dart';
 import 'package:photos/events/force_reload_home_gallery_event.dart';
 import 'package:photos/events/local_photos_updated_event.dart';
@@ -206,6 +207,7 @@ class CollectionsService {
     watch.log("${fetchedCollections.length} collection cached refreshed ");
 
     if (fetchedCollections.isNotEmpty) {
+      Bus.instance.fire(ContactRelationshipsInvalidatedEvent());
       Bus.instance.fire(
         CollectionUpdatedEvent(
           null,
@@ -295,48 +297,76 @@ class CollectionsService {
     return false;
   }
 
-  /// Returns the count of shared collections containing this file.
-  /// Uses early exit optimization - stops counting at 2.
+  /// Returns the shared collections containing [uploadedFileID].
   ///
-  /// Returns:
-  /// - 0: File not in any shared collection
-  /// - 1: File in exactly one shared collection
-  /// - 2: File in multiple shared collections (early exit)
-  Future<int> getSharedCollectionCountForFile(int uploadedFileID) async {
+  /// A collection is considered shared if it has sharees, has a public link,
+  /// or is owned by someone else (incoming share).
+  Future<List<Collection>> getSharedCollectionsForFile(
+    int uploadedFileID, {
+    bool includeHidden = false,
+  }) async {
     final Set<int> collectionIDs = await _filesDB.getAllCollectionIDsOfFile(
       uploadedFileID,
     );
-
-    if (collectionIDs.isEmpty) {
-      return 0;
-    }
-
     final int? currentUserID = _config.getUserID();
-    if (currentUserID == null) {
-      return 0;
+    if (collectionIDs.isEmpty || currentUserID == null) {
+      return [];
     }
 
-    int sharedCount = 0;
-    for (final int collectionID in collectionIDs) {
-      final Collection? collection = _collectionIDToCollections[collectionID];
-
-      if (collection == null || collection.isDeleted) {
-        continue;
-      }
-
-      // Same logic as isFileInSharedCollection
-      if (collection.hasSharees ||
-          collection.hasLink ||
-          !collection.isOwner(currentUserID)) {
-        sharedCount++;
-        // Early exit: we only need to distinguish between 0, 1, and >1
-        if (sharedCount > 1) {
-          return 2;
-        }
+    final sharedCollections = <Collection>[];
+    for (final collectionID in collectionIDs) {
+      final collection = _collectionIDToCollections[collectionID];
+      if (_isEligibleSharedCollection(
+        collection,
+        currentUserID,
+        includeHidden: includeHidden,
+      )) {
+        sharedCollections.add(collection!);
       }
     }
+    return sharedCollections;
+  }
 
-    return sharedCount;
+  /// Returns IDs of shared collections containing [uploadedFileID].
+  ///
+  /// Use this to scope social content on the view path without constructing a
+  /// list of collection objects.
+  Future<List<int>> getSharedCollectionIDsForFile(
+    int uploadedFileID, {
+    bool includeHidden = false,
+  }) async {
+    final collectionIDs = await _filesDB.getAllCollectionIDsOfFile(
+      uploadedFileID,
+    );
+    final currentUserID = _config.getUserID();
+    if (collectionIDs.isEmpty || currentUserID == null) {
+      return [];
+    }
+
+    final sharedCollectionIDs = <int>[];
+    for (final collectionID in collectionIDs) {
+      if (_isEligibleSharedCollection(
+        _collectionIDToCollections[collectionID],
+        currentUserID,
+        includeHidden: includeHidden,
+      )) {
+        sharedCollectionIDs.add(collectionID);
+      }
+    }
+    return sharedCollectionIDs;
+  }
+
+  bool _isEligibleSharedCollection(
+    Collection? collection,
+    int currentUserID, {
+    required bool includeHidden,
+  }) {
+    return collection != null &&
+        !collection.isDeleted &&
+        (includeHidden || !collection.isHidden()) &&
+        (collection.hasSharees ||
+            collection.hasLink ||
+            !collection.isOwner(currentUserID));
   }
 
   Future<List<Collection>> getArchivedCollection() async {
@@ -385,6 +415,53 @@ class CollectionsService {
     _collectionIDToNewestFileTime ??= _filesDB
         .getCollectionIDToMaxCreationTime();
     return _collectionIDToNewestFileTime!;
+  }
+
+  Future<void> sortCollectionsByAlbumPreferences(
+    List<Collection> collections, {
+    AlbumSortKey? sortKey,
+    AlbumSortDirection? sortDirection,
+  }) async {
+    if (collections.length < 2) {
+      return;
+    }
+    final comparator = await _albumPreferenceComparator(
+      sortKey: sortKey,
+      sortDirection: sortDirection,
+    );
+    collections.sort(comparator);
+  }
+
+  Future<Comparator<Collection>> _albumPreferenceComparator({
+    AlbumSortKey? sortKey,
+    AlbumSortDirection? sortDirection,
+  }) async {
+    final effectiveSortKey = sortKey ?? localSettings.albumSortKey();
+    final effectiveSortDirection =
+        sortDirection ?? localSettings.albumSortDirection();
+    final newestPhotoTimeByCollectionID =
+        effectiveSortKey == AlbumSortKey.newestPhoto
+        ? await getCollectionIDToNewestFileTime()
+        : const <int, int>{};
+
+    return (Collection first, Collection second) {
+      final comparison = switch (effectiveSortKey) {
+        AlbumSortKey.albumName => compareAsciiLowerCaseNatural(
+          first.displayName,
+          second.displayName,
+        ),
+        AlbumSortKey.newestPhoto =>
+          (newestPhotoTimeByCollectionID[second.id] ?? -intMaxValue).compareTo(
+            newestPhotoTimeByCollectionID[first.id] ?? -intMaxValue,
+          ),
+        AlbumSortKey.lastUpdated => second.updationTime.compareTo(
+          first.updationTime,
+        ),
+      };
+      return effectiveSortDirection == AlbumSortDirection.ascending
+          ? comparison
+          : -comparison;
+    };
   }
 
   Future<EnteFile?> getCover(Collection c) async {
@@ -495,7 +572,8 @@ class CollectionsService {
           (c) =>
               !c.isDeleted &&
               (includeUncategorized ||
-                  c.type != CollectionType.uncategorized) &&
+                  c.type != CollectionType.uncategorized ||
+                  !c.isOwner(userID)) &&
               !c.isHidden() &&
               allowedRoles.contains(c.getRole(userID)),
         )
@@ -547,14 +625,12 @@ class CollectionsService {
   }
 
   Future<SharedCollections> getSharedCollections() async {
-    final AlbumSortKey sortKey = localSettings.albumSortKey();
-    final AlbumSortDirection sortDirection = localSettings.albumSortDirection();
-
     final List<Collection> outgoing = [];
     final List<Collection> incoming = [];
     final List<Collection> quickLinks = [];
     final List<Collection> collections = getCollectionsForUI(
       includedShared: true,
+      includeUncategorized: true,
     );
     for (final c in collections) {
       if (c.owner.id == Configuration.instance.getUserID()) {
@@ -568,11 +644,7 @@ class CollectionsService {
       }
     }
 
-    late Map<int, int> collectionIDToNewestPhotoTime;
-    if (sortKey == AlbumSortKey.newestPhoto) {
-      collectionIDToNewestPhotoTime = await CollectionsService.instance
-          .getCollectionIDToNewestFileTime();
-    }
+    final comparator = await _albumPreferenceComparator();
 
     // Sort incoming collections, then separate pinned from rest
     incoming.sort((first, second) {
@@ -581,47 +653,10 @@ class CollectionsService {
       final secondPinned = second.hasShareePinned();
       if (firstPinned && !secondPinned) return -1;
       if (!firstPinned && secondPinned) return 1;
-
-      int comparison;
-      if (sortKey == AlbumSortKey.albumName) {
-        comparison = compareAsciiLowerCaseNatural(
-          first.displayName,
-          second.displayName,
-        );
-      } else if (sortKey == AlbumSortKey.newestPhoto) {
-        comparison =
-            (collectionIDToNewestPhotoTime[second.id] ?? -1 * intMaxValue)
-                .compareTo(
-                  collectionIDToNewestPhotoTime[first.id] ?? -1 * intMaxValue,
-                );
-      } else {
-        comparison = second.updationTime.compareTo(first.updationTime);
-      }
-      return sortDirection == AlbumSortDirection.ascending
-          ? comparison
-          : -comparison;
+      return comparator(first, second);
     });
 
-    outgoing.sort((first, second) {
-      int comparison;
-      if (sortKey == AlbumSortKey.albumName) {
-        comparison = compareAsciiLowerCaseNatural(
-          first.displayName,
-          second.displayName,
-        );
-      } else if (sortKey == AlbumSortKey.newestPhoto) {
-        comparison =
-            (collectionIDToNewestPhotoTime[second.id] ?? -1 * intMaxValue)
-                .compareTo(
-                  collectionIDToNewestPhotoTime[first.id] ?? -1 * intMaxValue,
-                );
-      } else {
-        comparison = second.updationTime.compareTo(first.updationTime);
-      }
-      return sortDirection == AlbumSortDirection.ascending
-          ? comparison
-          : -comparison;
-    });
+    outgoing.sort(comparator);
 
     return SharedCollections(outgoing, incoming, quickLinks);
   }
@@ -641,36 +676,10 @@ class CollectionsService {
   }
 
   Future<List<Collection>> getCollectionForOnEnteSection() async {
-    final AlbumSortKey sortKey = localSettings.albumSortKey();
-    final AlbumSortDirection sortDirection = localSettings.albumSortDirection();
     final List<Collection> collections = CollectionsService.instance
         .getCollectionsForUI();
     final bool hasFavorites = FavoritesService.instance.hasFavorites();
-    late Map<int, int> collectionIDToNewestPhotoTime;
-    if (sortKey == AlbumSortKey.newestPhoto) {
-      collectionIDToNewestPhotoTime = await CollectionsService.instance
-          .getCollectionIDToNewestFileTime();
-    }
-    collections.sort((first, second) {
-      int comparison;
-      if (sortKey == AlbumSortKey.albumName) {
-        comparison = compareAsciiLowerCaseNatural(
-          first.displayName,
-          second.displayName,
-        );
-      } else if (sortKey == AlbumSortKey.newestPhoto) {
-        comparison =
-            (collectionIDToNewestPhotoTime[second.id] ?? -1 * intMaxValue)
-                .compareTo(
-                  collectionIDToNewestPhotoTime[first.id] ?? -1 * intMaxValue,
-                );
-      } else {
-        comparison = second.updationTime.compareTo(first.updationTime);
-      }
-      return sortDirection == AlbumSortDirection.ascending
-          ? comparison
-          : -comparison;
-    });
+    await sortCollectionsByAlbumPreferences(collections);
     final List<Collection> favorites = [];
     final List<Collection> pinned = [];
     final List<Collection> rest = [];
@@ -697,37 +706,11 @@ class CollectionsService {
   }
 
   Future<List<Collection>> getCollectionForWidgetSelection() async {
-    final AlbumSortKey sortKey = localSettings.albumSortKey();
-    final AlbumSortDirection sortDirection = localSettings.albumSortDirection();
     const bool includeShared = true;
     final List<Collection> collections = CollectionsService.instance
         .getCollectionsForUI(includedShared: includeShared);
     final bool hasFavorites = FavoritesService.instance.hasFavorites();
-    late Map<int, int> collectionIDToNewestPhotoTime;
-    if (sortKey == AlbumSortKey.newestPhoto) {
-      collectionIDToNewestPhotoTime = await CollectionsService.instance
-          .getCollectionIDToNewestFileTime();
-    }
-    collections.sort((first, second) {
-      int comparison;
-      if (sortKey == AlbumSortKey.albumName) {
-        comparison = compareAsciiLowerCaseNatural(
-          first.displayName,
-          second.displayName,
-        );
-      } else if (sortKey == AlbumSortKey.newestPhoto) {
-        comparison =
-            (collectionIDToNewestPhotoTime[second.id] ?? -1 * intMaxValue)
-                .compareTo(
-                  collectionIDToNewestPhotoTime[first.id] ?? -1 * intMaxValue,
-                );
-      } else {
-        comparison = second.updationTime.compareTo(first.updationTime);
-      }
-      return sortDirection == AlbumSortDirection.ascending
-          ? comparison
-          : -comparison;
-    });
+    await sortCollectionsByAlbumPreferences(collections);
     final List<Collection> favorites = [];
     final List<Collection> pinned = [];
     final List<Collection> rest = [];
@@ -754,36 +737,10 @@ class CollectionsService {
   }
 
   Future<List<Collection>> getCollectionsForRituals() async {
-    final AlbumSortKey sortKey = localSettings.albumSortKey();
-    final AlbumSortDirection sortDirection = localSettings.albumSortDirection();
     final List<Collection> collections = CollectionsService.instance
         .getCollectionsForUI();
     final bool hasFavorites = FavoritesService.instance.hasFavorites();
-    late Map<int, int> collectionIDToNewestPhotoTime;
-    if (sortKey == AlbumSortKey.newestPhoto) {
-      collectionIDToNewestPhotoTime = await CollectionsService.instance
-          .getCollectionIDToNewestFileTime();
-    }
-    collections.sort((first, second) {
-      int comparison;
-      if (sortKey == AlbumSortKey.albumName) {
-        comparison = compareAsciiLowerCaseNatural(
-          first.displayName,
-          second.displayName,
-        );
-      } else if (sortKey == AlbumSortKey.newestPhoto) {
-        comparison =
-            (collectionIDToNewestPhotoTime[second.id] ?? -1 * intMaxValue)
-                .compareTo(
-                  collectionIDToNewestPhotoTime[first.id] ?? -1 * intMaxValue,
-                );
-      } else {
-        comparison = second.updationTime.compareTo(first.updationTime);
-      }
-      return sortDirection == AlbumSortDirection.ascending
-          ? comparison
-          : -comparison;
-    });
+    await sortCollectionsByAlbumPreferences(collections);
     final List<Collection> favorites = [];
     final List<Collection> pinned = [];
     final List<Collection> rest = [];
@@ -839,6 +796,22 @@ class CollectionsService {
     return sharees;
   }
 
+  Future<List<User>> refreshSharees(int collectionID) async {
+    final sharees = await getSharees(collectionID);
+    final collection = _collectionIDToCollections[collectionID];
+    if (collection != null) {
+      _cacheSharees(collection, sharees);
+    }
+    return sharees;
+  }
+
+  void _cacheSharees(Collection collection, List<User> sharees) {
+    final updatedCollection = collection.copyWith(sharees: sharees);
+    _collectionIDToCollections[collection.id] = updatedCollection;
+    Bus.instance.fire(ContactRelationshipsInvalidatedEvent());
+    unawaited(_db.insert([updatedCollection]));
+  }
+
   String getCastData(
     String castToken,
     Collection collection,
@@ -873,9 +846,7 @@ class CollectionsService {
         encryptedKey: CryptoUtil.bin2base64(encryptedKey),
         role: role.toStringVal(),
       );
-      _collectionIDToCollections[collectionID] =
-          _collectionIDToCollections[collectionID]!.copyWith(sharees: sharees);
-      unawaited(_db.insert([_collectionIDToCollections[collectionID]!]));
+      _cacheSharees(_collectionIDToCollections[collectionID]!, sharees);
       RemoteSyncService.instance.sync(silently: true).ignore();
       return sharees;
     } on DioException catch (e) {
@@ -892,9 +863,7 @@ class CollectionsService {
         collectionID: collectionID,
         email: email,
       );
-      _collectionIDToCollections[collectionID] =
-          _collectionIDToCollections[collectionID]!.copyWith(sharees: sharees);
-      unawaited(_db.insert([_collectionIDToCollections[collectionID]!]));
+      _cacheSharees(_collectionIDToCollections[collectionID]!, sharees);
       RemoteSyncService.instance.sync(silently: true).ignore();
       return sharees;
     } catch (e) {

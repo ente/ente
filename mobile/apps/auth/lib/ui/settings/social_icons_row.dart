@@ -56,8 +56,8 @@ class SocialIconsRow extends StatelessWidget {
 
     return Wrap(
       alignment: WrapAlignment.center,
-      spacing: Spacing.sm,
-      runSpacing: Spacing.sm,
+      spacing: Spacing.xs,
+      runSpacing: Spacing.xs,
       children: links.map((link) => _SocialIconButton(link: link)).toList(),
     );
   }

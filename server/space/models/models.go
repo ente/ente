@@ -20,6 +20,28 @@ type SpaceBrowserSessionBootstrapResponse struct {
 	SessionWrapKey string `json:"sessionWrapKey"`
 }
 
+type SpaceWebPushVAPIDKeyResponse struct {
+	PublicKey string `json:"publicKey"`
+}
+
+type SpaceWebPushSubscriptionKeys struct {
+	P256dh string `json:"p256dh" binding:"required"`
+	Auth   string `json:"auth" binding:"required"`
+}
+
+type SpaceWebPushSubscriptionRequest struct {
+	Endpoint string                       `json:"endpoint" binding:"required"`
+	Keys     SpaceWebPushSubscriptionKeys `json:"keys" binding:"required"`
+}
+
+type SpaceWebPushUnsubscriptionRequest struct {
+	Endpoint string `json:"endpoint" binding:"required"`
+}
+
+type SpaceWebPushTargetResponse struct {
+	TargetID string `json:"targetId"`
+}
+
 type GetSpaceProfileRequest struct {
 	SpaceID       string `form:"spaceId"`
 	ViewerSpaceID string `form:"viewerSpaceId"`
@@ -81,6 +103,43 @@ type AssetDownloadResponse struct {
 	ExpiresIn int    `json:"expiresIn"`
 }
 
+type SpaceLinkWriteRequest struct {
+	AuthKey            string `json:"authKey" binding:"required"`
+	KDFSalt            string `json:"kdfSalt" binding:"required"`
+	KDFMemLimit        int64  `json:"kdfMemLimit" binding:"required,gt=0"`
+	KDFOpsLimit        int64  `json:"kdfOpsLimit" binding:"required,gt=0"`
+	KeyVersion         int    `json:"keyVersion" binding:"required,gt=0"`
+	EncryptedSpaceKey  string `json:"encryptedSpaceKey" binding:"required"`
+	EncryptedAccessKey string `json:"encryptedAccessKey" binding:"required"`
+}
+
+type SpaceLinkStatusResponse struct {
+	LinkID             int64  `json:"linkId,omitempty"`
+	SpaceID            string `json:"spaceId"`
+	SpaceSlug          string `json:"spaceSlug"`
+	Active             bool   `json:"active"`
+	KDFSalt            string `json:"kdfSalt,omitempty"`
+	KDFMemLimit        int64  `json:"kdfMemLimit,omitempty"`
+	KDFOpsLimit        int64  `json:"kdfOpsLimit,omitempty"`
+	KeyVersion         int    `json:"keyVersion,omitempty"`
+	EncryptedAccessKey string `json:"encryptedAccessKey,omitempty"`
+	CreatedAt          string `json:"createdAt,omitempty"`
+	UpdatedAt          string `json:"updatedAt,omitempty"`
+}
+
+type SpaceLinkBootstrapResponse struct {
+	KDFSalt     string `json:"kdfSalt"`
+	KDFMemLimit int64  `json:"kdfMemLimit"`
+	KDFOpsLimit int64  `json:"kdfOpsLimit"`
+}
+
+type SpaceLinkProfileResponse struct {
+	EncryptedSpaceKey string               `json:"encryptedSpaceKey"`
+	KeyVersion        int                  `json:"keyVersion"`
+	Posts             int64                `json:"posts"`
+	Profile           SpaceProfileResponse `json:"profile"`
+}
+
 type ProfileAvatarPayload struct {
 	ObjectID string `json:"objectID" binding:"required"`
 	Size     int64  `json:"size,omitempty" binding:"omitempty,gt=0"`
@@ -140,6 +199,12 @@ type SpaceFriendRequestResponse struct {
 	CreatedAt string             `json:"createdAt"`
 }
 
+type SpaceSentFriendRequestResponse struct {
+	RequestID int64              `json:"requestId"`
+	Target    SpaceActorResponse `json:"target"`
+	CreatedAt string             `json:"createdAt"`
+}
+
 type FriendRelationshipResponse struct {
 	Relationship string `json:"relationship"`
 }
@@ -195,10 +260,12 @@ type SpaceSlugAvailabilityResponse struct {
 }
 
 type RotateSpaceKeyRequest struct {
-	KeyVersion          int    `json:"keyVersion" binding:"required,gt=0"`
-	RootWrappedSpaceKey string `json:"rootWrappedSpaceKey" binding:"required"`
-	WrappedPrevKey      string `json:"wrappedPrevKey" binding:"required"`
-	EncryptedProfile    string `json:"encryptedProfile" binding:"required"`
+	KeyVersion            int    `json:"keyVersion" binding:"required,gt=0"`
+	RootWrappedSpaceKey   string `json:"rootWrappedSpaceKey" binding:"required"`
+	WrappedPrevKey        string `json:"wrappedPrevKey" binding:"required"`
+	EncryptedProfile      string `json:"encryptedProfile" binding:"required"`
+	ExpectedLinkID        *int64 `json:"expectedLinkId,omitempty"`
+	LinkEncryptedSpaceKey string `json:"linkEncryptedSpaceKey,omitempty"`
 }
 
 type SpaceKeyVersionResponse struct {

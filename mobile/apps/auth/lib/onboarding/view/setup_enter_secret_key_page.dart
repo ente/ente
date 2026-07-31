@@ -453,7 +453,7 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
       context: context,
       builder: (sheetContext) => BottomSheetComponent(
         title: title,
-        closeTooltip: context.l10n.close,
+        closeTooltip: sheetContext.l10n.close,
         content: MenuGroupComponent(
           showDividers: true,
           items: [

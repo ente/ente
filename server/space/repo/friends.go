@@ -274,6 +274,39 @@ func (r *FriendsRepository) ListFriendRequestsForSpace(ctx context.Context, targ
 	return out, stacktrace.Propagate(rows.Err(), "")
 }
 
+func (r *FriendsRepository) ListSentFriendRequestsForSpace(ctx context.Context, requesterSpaceID string) ([]SpaceFriendRequestRecord, error) {
+	query := `
+		SELECT fr.request_id,
+		       fr.created_at,
+		       ` + spaceActorPublicSelectColumns("target_space", "target") + `
+		FROM space_friend_requests fr
+		JOIN spaces target_space ON target_space.space_id = fr.target_space_id
+		JOIN users target_owner ON target_owner.user_id = target_space.owner_id AND target_owner.encrypted_email IS NOT NULL
+		WHERE fr.requester_space_id = $1
+		ORDER BY fr.created_at DESC, fr.request_id DESC
+	`
+	rows, err := r.DB.QueryContext(ctx, query, requesterSpaceID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+
+	var out []SpaceFriendRequestRecord
+	for rows.Next() {
+		var rec SpaceFriendRequestRecord
+		dest := []any{
+			&rec.RequestID,
+			&rec.CreatedAt,
+		}
+		dest = append(dest, spaceActorScanDest(&rec.Target)...)
+		if err := rows.Scan(dest...); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		out = append(out, rec)
+	}
+	return out, stacktrace.Propagate(rows.Err(), "")
+}
+
 func (r *FriendsRepository) ConfirmFriendRequest(ctx context.Context, targetSpaceID string, requestID int64, targetFriendSealedSpaceKey []byte, targetKeyVersion int) (int64, bool, error) {
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -355,12 +388,12 @@ func (r *FriendsRepository) ConfirmFriendRequest(ctx context.Context, targetSpac
 	return requesterOwnerID, !alreadyFriends, nil
 }
 
-func (r *FriendsRepository) DeleteFriendRequest(ctx context.Context, targetSpaceID string, requestID int64) error {
+func (r *FriendsRepository) DeleteFriendRequest(ctx context.Context, spaceID string, requestID int64) error {
 	res, err := r.DB.ExecContext(ctx, `
 		DELETE FROM space_friend_requests
 		WHERE request_id = $1
-		  AND target_space_id = $2
-	`, requestID, targetSpaceID)
+		  AND (requester_space_id = $2 OR target_space_id = $2)
+	`, requestID, spaceID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -483,29 +516,6 @@ func (r *FriendsRepository) ListSharesForFriendAndSpace(ctx context.Context, fri
 			return nil, err
 		}
 		out = append(out, *rec)
-	}
-	return out, stacktrace.Propagate(rows.Err(), "")
-}
-
-func (r *FriendsRepository) ListFriendOwnerIDsForSpace(ctx context.Context, spaceID string) ([]int64, error) {
-	rows, err := r.DB.QueryContext(ctx, `
-		SELECT friend_space.owner_id
-		FROM space_friend_shares s
-		JOIN spaces friend_space ON friend_space.space_id = s.friend_space_id
-		JOIN users friend_owner ON friend_owner.user_id = friend_space.owner_id AND friend_owner.encrypted_email IS NOT NULL
-		WHERE s.space_id = $1
-	`, spaceID)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	defer rows.Close()
-	var out []int64
-	for rows.Next() {
-		var ownerID int64
-		if err := rows.Scan(&ownerID); err != nil {
-			return nil, stacktrace.Propagate(err, "")
-		}
-		out = append(out, ownerID)
 	}
 	return out, stacktrace.Propagate(rows.Err(), "")
 }

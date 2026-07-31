@@ -1,25 +1,53 @@
 import "@fontsource-variable/inter";
 import "@fontsource/nunito/800.css";
 import { CssBaseline } from "@mui/material";
-import { ThemeProvider } from "@mui/material/styles";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { SpaceRouteTransitionBoundary } from "components/SpaceRouteTransitionBoundary";
+import { SpaceShareLinkDialogHost } from "components/SpaceShareLinkDialog";
 import "configureZod";
 import { CustomHead } from "ente-base/components/Head";
 import { useSetupLogs } from "ente-base/components/utils/hooks-app";
 import { shareTheme } from "ente-base/components/utils/theme";
+import { captureSpacePWAInstallPrompt } from "hooks/useSpacePWAInstallPrompt";
 import type { AppProps } from "next/app";
+import { useRouter } from "next/router";
 import "photoswipe/dist/photoswipe.css";
 import React from "react";
 import "react-easy-crop/react-easy-crop.css";
+import { registerSpaceServiceWorker } from "services/spaceWebPush";
 import { SpaceAppStateProvider } from "state/SpaceAppStateProvider";
 import "styles/globals.css";
 
+const spaceTheme = createTheme(shareTheme, {
+    components: {
+        MuiDialog: {
+            styleOverrides: {
+                root: {
+                    ".MuiBackdrop-root": {
+                        backgroundColor:
+                            "var(--space-dialog-backdrop, rgba(0 0 0 / 0.48))",
+                    },
+                },
+            },
+        },
+    },
+});
+
 const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     useSetupLogs({ disableDiskLogs: true });
+    const router = useRouter();
+    const publicProfileManifest = router.pathname == "/profile-link";
+
+    React.useEffect(captureSpacePWAInstallPrompt, []);
+    React.useEffect(() => {
+        void registerSpaceServiceWorker().catch((error: unknown) =>
+            console.warn("Failed to register the Space service worker", error),
+        );
+    }, []);
 
     return (
         <ThemeProvider
-            theme={shareTheme}
+            theme={spaceTheme}
             defaultMode="light"
             storageManager={null}
         >
@@ -36,7 +64,14 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
                     name="apple-mobile-web-app-status-bar-style"
                     content="default"
                 />
-                <link rel="manifest" href="/manifest.webmanifest" />
+                <link
+                    rel="manifest"
+                    href={
+                        publicProfileManifest
+                            ? "/manifest-public.webmanifest"
+                            : "/manifest.webmanifest"
+                    }
+                />
                 <link
                     rel="apple-touch-icon"
                     href="/images/apple-touch-icon.png"
@@ -46,6 +81,7 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
             <SpaceRouteTransitionBoundary>
                 <SpaceAppStateProvider>
                     <Component {...pageProps} />
+                    <SpaceShareLinkDialogHost />
                 </SpaceAppStateProvider>
             </SpaceRouteTransitionBoundary>
         </ThemeProvider>

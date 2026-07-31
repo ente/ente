@@ -30,6 +30,14 @@ npm ci
 npm run postinstall
 ```
 
+> [!NOTE]
+>
+> `npm run postinstall` fetches binary dependencies but does not compile the Rust ML addon. `npm run dev` builds an optimized addon automatically. When changing the Rust Photos ML code, regenerate the bindings with:
+>
+> ```sh
+> (cd "$(git rev-parse --show-toplevel)/rust" && cargo codegen napi)
+> ```
+
 Now you can run in development mode (supports hot reload for the renderer process)
 
 ```sh

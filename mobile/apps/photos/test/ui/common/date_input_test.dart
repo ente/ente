@@ -2,8 +2,13 @@ import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:photos/ui/common/date_input.dart";
+import "package:shared_preferences/shared_preferences.dart";
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('supports typed optional dates', (tester) async {
     DateTime? selectedDate;
     bool? isValid;
@@ -41,5 +46,52 @@ void main() {
     expect(selectedDate, isNull);
     expect(isValid, isTrue);
     expect(find.text('MM/DD/YYYY'), findsNothing);
+  });
+
+  testWidgets('opens with a stale maximum date', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ComponentTheme.lightTheme(),
+        home: Scaffold(
+          body: DatePickerField(
+            firstDate: DateTime(100),
+            lastDate: DateUtils.dateOnly(
+              DateTime.now().subtract(const Duration(days: 1)),
+            ),
+            isRequired: false,
+          ),
+        ),
+      ),
+    );
+
+    final input = find.byType(TextInputComponent);
+    final inputRect = tester.getRect(input);
+    await tester.tapAt(Offset(inputRect.right - 24, inputRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+  });
+
+  testWidgets('opens with an out-of-range initial date', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ComponentTheme.lightTheme(),
+        home: Scaffold(
+          body: DatePickerField(
+            initialValue: '2200-01-01',
+            firstDate: DateTime(100),
+            lastDate: DateTime.now(),
+            isRequired: false,
+          ),
+        ),
+      ),
+    );
+
+    final input = find.byType(TextInputComponent);
+    final inputRect = tester.getRect(input);
+    await tester.tapAt(Offset(inputRect.right - 24, inputRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DatePickerDialog), findsOneWidget);
   });
 }

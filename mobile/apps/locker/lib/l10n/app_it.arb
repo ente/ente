@@ -29,9 +29,57 @@
       }
     }
   },
+  "keepOffline": "Mantieni offline",
+  "cloudOnly": "Rimuovi offline",
+  "savingOffline": "Salvataggio offline...",
+  "filesAvailableOffline": "{count, plural, one{{count} file salvato offline} other{{count} file salvati offline}}",
+  "@filesAvailableOffline": {
+    "description": "Success message when files are saved offline",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesAvailableOfflinePartial": "{successCount, plural, one{Salvato {successCount} file offline} other{Salvato {successCount} file offline}}, {failureCount, plural, one{{failureCount} fallito} other{{failureCount} fallito}}",
+  "@filesAvailableOfflinePartial": {
+    "description": "Partial success message for offline save",
+    "placeholders": {
+      "successCount": {
+        "type": "int",
+        "example": "2"
+      },
+      "failureCount": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "failedToSaveFilesOffline": "{count, plural, one{Impossibile salvare {count} file offline} other{Impossibile salvare {count} file offline}}",
+  "@failedToSaveFilesOffline": {
+    "description": "Failure message when files could not be saved offline",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "filesRemovedFromOffline": "{count, plural, one{{count} file rimosso da offline} other{{count} file rimossi da offline}}",
+  "@filesRemovedFromOffline": {
+    "description": "Success message when offline copies are removed",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "downloadFailed": "Scaricamento fallito",
   "failedToDownloadOrDecrypt": "Impossibile scaricare l'elemento",
   "errorOpeningFile": "Errore nell'apertura dell'elemento",
+  "unableToExtractFileInformation": "Impossibile estrarre le informazioni da questo file",
   "errorOpeningFileMessage": "Errore nell'apertura dell'elemento: {error}",
   "@errorOpeningFileMessage": {
     "description": "Error message when opening an item fails",
@@ -51,6 +99,10 @@
         "example": "Permission denied"
       }
     }
+  },
+  "noAppToOpenFileDownloadInstead": "Nessuna applicazione è disponibile per visualizzare in anteprima questo file. Puoi scaricarlo e aprirlo in un'altra app.",
+  "@noAppToOpenFileDownloadInstead": {
+    "description": "Message shown when Android cannot find an app to open or preview a file"
   },
   "minutesAgo": "{minutes}m fa",
   "@minutesAgo": {
@@ -94,9 +146,9 @@
       }
     }
   },
-  "collectionCannotBeDeleted": "Questa raccolta non puo essere eliminata",
-  "collectionCannotBeEdited": "Questa raccolta non puo essere modificata",
-  "collectionCannotBeShared": "Questa raccolta non puo essere condivisa",
+  "collectionCannotBeDeleted": "Questa raccolta non può essere eliminata",
+  "collectionCannotBeEdited": "Questa raccolta non può essere modificata",
+  "collectionCannotBeShared": "Questa raccolta non può essere condivisa",
   "deleteCollection": "Elimina raccolta",
   "deleteCollectionConfirmation": "Sei sicuro di voler eliminare \"{collectionName}\"?",
   "@deleteCollectionConfirmation": {
@@ -197,6 +249,7 @@
   "create": "Crea",
   "renameCollection": "Rinomina raccolta",
   "save": "Salva",
+  "download": "Scarica",
   "deleteFile": "Elimina elemento",
   "deleteFileConfirmation": "Sei sicuro di voler eliminare \"{fileName}\"?",
   "@deleteFileConfirmation": {
@@ -219,9 +272,39 @@
   "yourTrashIsEmpty": "Il tuo cestino e vuoto",
   "homeLockerEmptyTitle": "Il tuo Locker e vuoto",
   "homeLockerEmptySubtitle": "Clicca il pulsante + per iniziare",
+  "homeEmptyStateLegacyDescription": "Imposta la tua Eredità in modo che i tuoi cari possano accedere a informazioni importanti, in tua assenza",
+  "@homeEmptyStateLegacyDescription": {
+    "description": "Description shown in the empty Locker home state above the Legacy setup action"
+  },
+  "setupYourLegacy": "Imposta la tua Legacy",
+  "@setupYourLegacy": {
+    "description": "Action that opens Legacy setup from the empty Locker home state"
+  },
+  "shareYourLegacyBannerTitle": "Condividi la tua Legacy",
+  "@shareYourLegacyBannerTitle": {
+    "description": "Title of the home banner prompting the user to set up Legacy"
+  },
+  "setupLegacy": "Imposta Legacy",
+  "@setupLegacy": {
+    "description": "Short action label on the home banner that opens Legacy setup"
+  },
+  "shareYourLegacyBannerDescription": "Aiuta i cari ad accedere a informazioni importanti, in tua assenza.",
+  "@shareYourLegacyBannerDescription": {
+    "description": "Description of the home banner prompting the user to set up Legacy"
+  },
   "uploadDocument": "Carica documento",
   "items": "{count} elementi",
   "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "files": "{count, plural, =0{nessun elemento} one{{count} elemento} other{{count} elementi}}",
+  "@files": {
     "description": "Number of items in a collection",
     "placeholders": {
       "count": {
@@ -252,6 +335,7 @@
   "optionalNote": "Nota opzionale",
   "upload": "Carica",
   "documentsHint": "Documenti",
+  "searchHint": "Cerca i tuoi documenti",
   "searchEmptyTitle": "Nessuna corrispondenza trovata",
   "searchEmptyDescription": "Prova a cercare qualcos'altro.",
   "searchEverywhereTitle": "Cerca ovunque \"{query}\"",
@@ -276,6 +360,7 @@
     }
   },
   "uncategorized": "Senza categoria",
+  "syncing": "Sincronizzazione in corso...",
   "syncingTrash": "Sincronizzazione cestino...",
   "restoring": "Ripristino in corso...",
   "restoredFileToCollection": "\"{fileName}\" ripristinato in \"{collectionName}\"",
@@ -314,16 +399,20 @@
   "authToChangeYourEmail": "Autenticati per cambiare la tua email",
   "changePasswordTitle": "Modifica password",
   "authToChangeYourPassword": "Autenticati per cambiare la tua password",
+  "authToInitiateAccountDeletion": "Sblocca per eliminare il tuo account",
   "recoveryKey": "Chiave di recupero",
+  "ok": "Ok",
   "logout": "Disconnetti",
   "deleteAccount": "Elimina account",
   "areYouSureYouWantToLogout": "Sei sicuro di volerti disconnettere?",
   "yesLogout": "Sì, disconnetti",
   "changePassword": "Modifica password",
   "authToViewYourRecoveryKey": "Autenticati per visualizzare la tua chiave di recupero",
+  "account": "Account",
   "security": "Sicurezza",
   "emailVerificationToggle": "Verifica Email",
   "authToChangeEmailVerificationSetting": "Autenticati per modificare la verifica email",
+  "passkey": "Passkey",
   "authenticateGeneric": "Si prega di autenticarsi",
   "somethingWentWrong": "Qualcosa è andato storto",
   "appLock": "Blocco app",
@@ -332,25 +421,61 @@
   "authToChangeLockscreenSetting": "Autenticati per modificare le impostazioni della schermata di blocco",
   "authToViewPasskey": "Autenticati per visualizzare le tue passkey",
   "theme": "Tema",
+  "appearance": "Aspetto",
   "lightTheme": "Chiaro",
   "darkTheme": "Scuro",
   "systemTheme": "Sistema",
   "settings": "Impostazioni",
   "about": "Info",
+  "aboutUs": "Chi Siamo",
   "weAreOpenSource": "Siamo open source!",
+  "privacy": "Privacy",
   "terms": "Termini d'uso",
   "termsOfServicesTitle": "Termini d'uso",
+  "checkForUpdates": "Controlla aggiornamenti",
+  "checkingForUpdates": "Controllo aggiornamenti...",
+  "unableToCheckForUpdatesRightNow": "Impossibile verificare gli aggiornamenti in questo momento",
+  "youAreOnTheLatestVersion": "Stai utilizzando l'ultima versione",
+  "aNewVersionOfEnteLockerIsAvailable": "Una nuova versione di Ente Locker",
+  "criticalUpdateAvailable": "Aggiornamento critico disponibile",
+  "updateAvailable": "Aggiornamento disponibile",
+  "downloadUpdate": "Scarica l'aggiornamento",
   "support": "Assistenza",
+  "helpAndSupport": "Aiuto e supporto",
+  "getInTouch": "Contattaci",
+  "browseHelpPages": "Consulta la guida",
   "contactSupport": "Contatta il supporto",
   "help": "Aiuto",
+  "askAQuestion": "Chiedi una domanda",
   "suggestFeatures": "Suggerisci una funzionalità",
+  "requestAFeature": "Richiedi una funzionalità",
   "reportABug": "Segnala un bug",
+  "reportAnIssue": "Segnala un problema",
   "reportBug": "Segnala un bug",
+  "viewAllHelpTopics": "Visualizza tutti gli argomenti di aiuto",
+  "gettingStarted": "Inizia",
+  "gettingStartedDesc": "Installa Locker, crea un account e salva il tuo primo oggetto",
+  "informationTypes": "Tipi d'informazioni",
+  "informationTypesDesc": "Documenti, note, carte, password e altri tipi di elementi",
+  "organization": "Organizzazione",
+  "organizationDesc": "Collezioni, preferiti, ricerca e modi per mantenere gli oggetti organizzati",
+  "legacyDesc": "Contatti affidabili, Kit Legacy e pianificazione del recupero account",
+  "securityDesc": "Crittografia, chiavi di ripristino, blocco app e protezione account",
+  "troubleshooting": "Risoluzione problemi",
+  "troubleshootingDesc": "Problemi comuni e le loro soluzioni",
   "logsDialogBodyLocker": "Questo inviera i log per aiutarci a risolvere il tuo problema.",
   "@logsDialogBodyLocker": {
     "description": "Dialog body text for sending logs in Locker app (without file name warning)"
   },
+  "social": "Social",
   "rateUsOnStore": "Valutaci su {storeName}",
+  "blog": "Blog",
+  "merchandise": "Prodotti",
+  "twitter": "Twitter",
+  "mastodon": "Mastodon",
+  "matrix": "Matrix",
+  "discord": "Discord",
+  "reddit": "Reddit",
   "information": "Informazioni",
   "saveInformation": "Salva informazioni",
   "saveToLocker": "Salva in Locker",
@@ -391,9 +516,12 @@
   "recordLocationHint": "Dove si trova questo oggetto?",
   "recordNotes": "Note",
   "recordNotesHint": "Informazioni aggiuntive sull'oggetto",
+  "credentialName": "Account",
   "credentialNameHint": "Nome del servizio",
   "username": "Nome utente",
   "usernameHint": "ID di accesso o email",
+  "password": "Password",
+  "passwordHint": "Password",
   "credentialNotes": "Note aggiuntive",
   "credentialNotesHint": "Metodi di recupero, domande di sicurezza, ...",
   "contactName": "Nome contatto",
@@ -418,6 +546,7 @@
   "sharedByYou": "Condivise da te",
   "sharedWithYou": "Condivise con te",
   "manageLink": "Gestisci link",
+  "linkLabel": "Link",
   "linkExpiry": "Scadenza del link",
   "linkNeverExpires": "Mai",
   "linkExpired": "Scaduto",
@@ -449,6 +578,15 @@
   "linkDeviceLimit": "Limite dei dispositivi",
   "expiredLinkInfo": "Questo link è scaduto. Si prega di selezionare un nuovo orario di scadenza o disabilitare la scadenza del link.",
   "linkExpiresOn": "Il link scadrà il {expiryTime}",
+  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0 {Condividi con persone specifiche} one {Condividi con {numberOfPeople} persona} other {Condividi con {numberOfPeople} persone}}",
+  "@shareWithPeopleSectionTitle": {
+    "placeholders": {
+      "numberOfPeople": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "linkHasExpired": "Il link è scaduto",
   "publicLinkEnabled": "Link pubblico abilitato",
   "shareALink": "Condividi un link",
@@ -462,6 +600,28 @@
   "add": "Aggiungi",
   "collaboratorsCanAddFilesToTheSharedCollection": "I collaboratori possono aggiungere elementi alla raccolta condivisa.",
   "enterEmail": "Inserisci email",
+  "viewersSuccessfullyAdded": "{count, plural, =0 {Nessun visualizzatore aggiunto} one {Aggiunto {count} visualizzatore} other {Aggiunti {count} visualizzatori}}",
+  "@viewersSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of viewers that were successfully added to a collection."
+  },
+  "collaboratorsSuccessfullyAdded": "{count, plural, =0 {Nessun collaboratore aggiunto} one {Aggiunto {count} collaboratore} other {Aggiunti {count} collaboratori}}",
+  "@collaboratorsSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of collaborators that were successfully added to a collection."
+  },
+  "addViewers": "{count, plural, =0 {Aggiungi visualizzatore} one {Aggiungi visualizzatore} other {Aggiungi visualizzatori}}\n",
+  "addCollaborators": "{count, plural, =0 {Aggiungi collaboratore} one {Aggiungi collaboratore} other {Aggiungi collaboratori}}\n",
   "longPressAnEmailToVerifyEndToEndEncryption": "Premi a lungo un'email per verificare la crittografia end to end.",
   "sharing": "Condivisione in corso...",
   "invalidEmailAddress": "Indirizzo email non valido",
@@ -472,6 +632,7 @@
   "youCannotShareWithYourself": "Non puoi condividere con te stesso",
   "inviteToEnte": "Invita su Ente",
   "sendInvite": "Invita",
+  "shareTextRecommendUsingEnte": "Scarica Ente\n\nhttps://ente.com",
   "thisIsYourVerificationId": "Questo è il tuo ID di verifica",
   "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Chi condivide gli album con te deve vedere lo stesso ID sul proprio dispositivo.",
   "howToViewShareeVerificationID": "Chiedi di premere a lungo il loro indirizzo email nella schermata delle impostazioni e verificare che gli ID su entrambi i dispositivi corrispondano.",
@@ -487,6 +648,8 @@
   "verificationId": "ID di verifica",
   "verifyEmailID": "Verifica {email}",
   "emailNoEnteAccount": "{email} non ha un account Ente.\n\nInvia un invito per condividere elementi.",
+  "shareMyVerificationID": "Ecco il mio ID di verifica: {verificationID} per ente.com.",
+  "shareTextConfirmOthersVerificationID": "Ehi, puoi confermare che questo è il tuo ID di verifica per ente.com: {verificationID}",
   "passwordLock": "Blocco con password",
   "manage": "Gestisci",
   "addedAs": "Aggiunto come",
@@ -510,6 +673,16 @@
   "viewer": "Sola lettura",
   "collaborator": "Collaboratore",
   "collaboratorsCanAddFilesToTheSharedAlbum": "I collaboratori possono aggiungere elementi alla raccolta condivisa.",
+  "albumParticipantsCount": "{count, plural, =0 {Nessun partecipante} one {{count} partecipante} other {{count} partecipanti}}",
+  "@albumParticipantsCount": {
+    "description": "The count of participants in an album",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
   "addMore": "Aggiungi altri",
   "you": "Tu",
   "albumOwner": "Proprietario",
@@ -527,6 +700,7 @@
   "leaveSharedCollection": "Lasciare la raccolta condivisa?",
   "noSystemLockFound": "Nessun blocco di sistema trovato",
   "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Per abilitare il blocco dell'app, configura il codice di accesso del dispositivo o il blocco schermo nelle impostazioni di sistema.",
+  "legacy": "Legacy",
   "authToManageLegacy": "Autenticati per gestire i tuoi contatti fidati",
   "uploadError": "Errore di caricamento",
   "uploadStorageLimitErrorTitle": "Limite di archiviazione raggiunto",
@@ -536,6 +710,14 @@
   "uploadStorageLimitErrorBody": "Hai esaurito lo spazio di archiviazione. Libera spazio per continuare a caricare.",
   "@uploadStorageLimitErrorBody": {
     "description": "Body shown when uploads fail due to running out of storage"
+  },
+  "uploadSubscriptionExpiredErrorTitle": "Abbonamento scaduto",
+  "@uploadSubscriptionExpiredErrorTitle": {
+    "description": "Title shown when uploads fail because the Photos subscription is expired"
+  },
+  "uploadSubscriptionExpiredErrorBody": "Il tuo abbonamento Ente Photos è scaduto. Rinnova il tuo abbonamento per continuare a caricare.",
+  "@uploadSubscriptionExpiredErrorBody": {
+    "description": "Body shown when uploads fail because the Photos subscription is expired"
   },
   "uploadFileCountLimitErrorTitle": "Limite file raggiunto",
   "@uploadFileCountLimitErrorTitle": {
@@ -571,6 +753,7 @@
   "deselectAll": "Deseleziona tutti",
   "selectAll": "Seleziona tutto",
   "unnamedCollection": "Raccolta senza nome",
+  "enteLocker": "ente Locker",
   "uploadedFilesProgress": "Caricati {completed}/{total} elementi...",
   "@uploadedFilesProgress": {
     "description": "Progress message showing uploaded items",
@@ -616,6 +799,16 @@
   "clickHereToUpload": "Clicca qui per caricare",
   "saveDocument": "Salva documento",
   "uploadFiles": "Carica elementi",
+  "filesSelected": "{count, plural, =0{Nessun elemento selezionato} other{{count} elementi selezionati}}",
+  "@filesSelected": {
+    "description": "Number of items selected for upload",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "addToCollection": "Aggiungi alla raccolta",
   "newCollection": "Nuova raccolta",
   "title": "Titolo",
@@ -634,6 +827,16 @@
     }
   },
   "informationCollectionName": "Informazioni",
+  "recordSavedToMultipleCollections": "Elemento salvato in {count, plural, one {{count} raccolta} other {{count} raccolte}} con successo\n",
+  "@recordSavedToMultipleCollections": {
+    "description": "Success message when record is saved to multiple collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "copiedToClipboard": "{fieldName} copiato negli appunti",
   "@copiedToClipboard": {
     "description": "Message when a field is copied to clipboard",
@@ -644,7 +847,24 @@
       }
     }
   },
+  "searchResultsCount": "{count, plural, one {{count} risultato} other {{count} risultati}} per \"{query}\"\n",
+  "@searchResultsCount": {
+    "description": "Search results count message",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      },
+      "query": {
+        "type": "String",
+        "example": "vacation"
+      }
+    }
+  },
+  "locker": "Locker",
   "loginToEnteAccount": "Accedi al tuo account Ente",
+  "createAnEnteAccount": "Crea un account per Ente",
+  "loginToExistingAccount": "Accedi all'account esistente",
   "unlockLockerNewUserTitle": "Unisciti a Ente per usare Locker",
   "unlockLockerNewUserBody": "Locker e attualmente disponibile solo per gli utenti Ente esistenti. Puoi creare un account su Ente Photos per usare Locker.",
   "checkoutEntePhotos": "Scopri Ente Photos",
@@ -653,7 +873,9 @@
   "featureSaveImportant": "Salva i tuoi documenti e credenziali importanti",
   "featurePassAutomatically": "Trasmettili automaticamente in caso di emergenza",
   "featureShareAnytime": "Condividili in qualsiasi momento",
+  "emailIdLabel": "Email",
   "emailIdHint": "Inserisci il tuo indirizzo email",
+  "loginPasswordLabel": "Password",
   "loginPasswordHint": "Inserisci la tua password",
   "forgotPassword": "Password dimenticata?",
   "logInAction": "Accedi",
@@ -685,17 +907,81 @@
       }
     }
   },
+  "deleteMultipleCollectionsDialogBody": "{count, plural, one {{count} raccolta} other {{count} raccolte}} sarà eliminata definitivamente.",
+  "@deleteMultipleCollectionsDialogBody": {
+    "description": "Confirmation message body for deleting multiple collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "deleteMultipleFilesDialogBody": "{count, plural, one{{count} elemento sarà eliminato definitivamente.} other{{count} elementi saranno eliminati definitivamente.}}",
+  "@deleteMultipleFilesDialogBody": {
+    "description": "Confirmation message body for deleting multiple items",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "deleteCollectionFromEverywhere": "Elimina anche gli elementi ovunque",
   "@deleteCollectionFromEverywhere": {
     "description": "Checkbox label asking whether to delete collection items everywhere"
   },
+  "yesDeleteCollections": "Sì, elimina {count, plural, one{raccolta} other{raccolte}}",
+  "@yesDeleteCollections": {
+    "description": "Button label for confirming deletion of one or more collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "yesDeleteFiles": "Sì, elimina {count, plural, one{elemento} other{elementi}}",
+  "@yesDeleteFiles": {
+    "description": "Button label for confirming deletion of one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "usage": "Utilizzo",
+  "fileCount": "{used} / {max}",
+  "@fileCount": {
+    "description": "Display item count usage in the format 'used / max'",
+    "placeholders": {
+      "used": {
+        "type": "String",
+        "example": "8"
+      },
+      "max": {
+        "type": "String",
+        "example": "1,000"
+      }
+    }
+  },
   "important": "Importante",
   "unimportant": "Non importante",
   "removingFromImportant": "Rimozione da importanti...",
   "markingAsImportant": "Contrassegno come importante...",
   "fileMarkedAsImportant": "Elemento contrassegnato come importante",
   "fileRemovedFromImportant": "Elemento rimosso dagli importanti",
+  "filesMarkedAsImportant": "{count, plural, one{{count} elemento contrassegnato come importante} other{{count} elementi contrassegnati come importanti}}",
+  "@filesMarkedAsImportant": {
+    "description": "Success message when items are marked as important",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "allFilesAlreadyMarkedAsImportant": "Tutti gli elementi sono gia contrassegnati come importanti",
   "failedToMarkFilesAsImportant": "Impossibile contrassegnare gli elementi come importanti: {error}",
   "@failedToMarkFilesAsImportant": {
@@ -720,6 +1006,7 @@
   "sorry": "Siamo spiacenti",
   "subscribe": "Iscriviti",
   "sharedWith": "Condiviso con",
+  "shareCollection": "Condividi la collezione",
   "shareLater": "Condividi dopo",
   "enterNameOrEmailToShareWith": "Inserisci nome o email per condividere",
   "chooseFromAnExistingContact": "Scegli da un contatto esistente",
@@ -736,5 +1023,126 @@
   "clearAllFilters": "Cancella tutti i filtri",
   "selectLanguage": "Seleziona lingua",
   "general": "Generali",
-  "language": "Lingua"
+  "language": "Lingua",
+  "selectedCount": "{count, plural, one {{count} selezionato} other{{count} selezionati}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "actionNotSupportedForSharedFiles": "{count, plural, one{L'azione non è supportata per {count} il file condiviso} other{L'azione non è supportata per {count} i file condivisi}}",
+  "@actionNotSupportedForSharedFiles": {
+    "description": "Message when action is not supported for shared files",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "addTo": "Aggiungi a",
+  "shareNotSupportedForSharedFiles": "La condivisione non è supportata per i file condivisi",
+  "editNotSupportedForSharedFiles": "Modifica non supportata per i file condivisi",
+  "deleteNotSupportedForSharedFiles": "L'eliminazione non è supportata per i file condivisi",
+  "importantNotSupportedForSharedFiles": "Importante non è supportato per i file condivisi",
+  "canOnlyRemoveFilesOwnedByYou": "Puoi rimuovere solo i tuoi file",
+  "sharingSection": "Condivisione in corso",
+  "sharingEnabledToggle": "Condivisione abilitata",
+  "publicLinkSection": "Link Pubblico",
+  "linkEnabledToggle": "Link abilitato",
+  "allowUploads": "Consenti caricamenti",
+  "collectionUpdated": "Collezione aggiornata",
+  "actionNotSupportedOnFavouritesAlbum": "Questa azione non è supportata nei Album preferiti",
+  "leaveCollectionSuccessfully": "Hai lasciato la raccolta con successo",
+  "leftCollectionsSuccessfully": "{count, plural, one{Hai lasciato {count} raccolta con successo} other{Hai lasciato {count} raccolte con successo}}",
+  "@leftCollectionsSuccessfully": {
+    "description": "Success message when leaving collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "removePublicLink": "Rimuovi link pubblico",
+  "removePublicLinkConfirmation": "Questo rimuoverà il link pubblico per accedere a \"{collectionName}\".",
+  "@removePublicLinkConfirmation": {
+    "description": "Confirmation message when removing public link",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Collection"
+      }
+    }
+  },
+  "collectionsDeletedSuccessfully": "{count, plural, one{{count} raccolta eliminata con successo} other{{count} collezioni cancellate con successo}}",
+  "@collectionsDeletedSuccessfully": {
+    "description": "Success message when collections are deleted",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "restoreToCollection": "Ripristina alla collezione",
+  "restoringFiles": "Ripristino in corso...",
+  "filesRestoredSuccessfully": "{count, plural, one{{count} elemento ripristinato con successo} other{{count} elementi ripristinati con successo}}",
+  "@filesRestoredSuccessfully": {
+    "description": "Success message when items are restored from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "failedToRestoreFiles": "Impossibile ripristinare l'elemento",
+  "permanentlyDelete": "Elimina definitivamente",
+  "permanentlyDeleteFilesBody": "{count, plural, one{Questi elemento} other{Questi {count} elementi}} saranno eliminati definitivamente e non potranno essere recuperati.",
+  "@permanentlyDeleteFilesBody": {
+    "description": "Confirmation body for permanent deletion from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "yesDelete": "Sì, elimina",
+  "deletingFiles": "Eliminazione in corso...",
+  "filesDeletedPermanently": "{count, plural, one{{count} elemento eliminato permanentemente} other{{count} elementi eliminati permanentemente}}",
+  "@filesDeletedPermanently": {
+    "description": "Success message when items are permanently deleted from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "failedToDeleteFiles": "Impossibile eliminare l'elemento",
+  "itemsStored": "Elementi memorizzati",
+  "of_": "di",
+  "usageYou": "Tu",
+  "usageFamily": "Famiglia",
+  "searchSettings": "Impostazioni di ricerca",
+  "suggestions": "Suggerimenti",
+  "noResultsFound": "Nessun risultato trovato",
+  "viewActiveSessions": "Visualizza sessioni attive",
+  "authToViewYourActiveSessions": "Autenticati per visualizzare le sessioni attive",
+  "deleteAccountFeedbackPrompt": "Qualcosa non funziona? Raggiungi a {email}, ci piacerebbe aiutare.",
+  "@deleteAccountFeedbackPrompt": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "sendFeedback": "Invia feedback",
+  "deleteAccountPermanentWarning": "Questo eliminerà definitivamente i tuoi dati Ente Auth, Photos e Locker"
 }

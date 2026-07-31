@@ -1,1 +1,0 @@
-- Made fallback avatar colors consistent across Photos.

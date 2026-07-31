@@ -49,7 +49,12 @@ import {
     type ModalVisibilityProps,
 } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
-import { basename, dirname, joinPath } from "ente-base/file-name";
+import {
+    basename,
+    dirname,
+    joinPath,
+    lowercaseExtension,
+} from "ente-base/file-name";
 import log from "ente-base/log";
 import type {
     CollectionMapping,
@@ -87,7 +92,6 @@ import { CollectionMappingChoice } from "ente-new/photos/components/CollectionMa
 import type { CollectionSelectorAttributes } from "ente-new/photos/components/CollectionSelector";
 import type { RemotePullOpts } from "ente-new/photos/components/gallery";
 import { downloadAppDialogAttributes } from "ente-new/photos/components/utils/download";
-import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import { suppressAutoLockOnBlurForTrustedPrompt } from "ente-new/photos/services/app-lock";
 import {
     addOrCopyToCollection,
@@ -104,6 +108,7 @@ import {
 } from "ente-new/photos/services/collection";
 import { redirectToCustomerPortal } from "ente-new/photos/services/user-details";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
+import { enableV2 } from "ente-new/photos/utils/feature-flags";
 import { firstNonEmpty } from "ente-utils/array";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -213,6 +218,13 @@ interface UploadConfirmation {
     includePartnerSharedFiles: boolean;
 }
 
+type UploadConfirmationState =
+    | { phase: "counting"; isTakeout: boolean }
+    | ({ phase: "ready" } & UploadConfirmation);
+
+const containsJSONFiles = (uploadItemAndPaths: UploadItemAndPath[]) =>
+    uploadItemAndPaths.some(([, path]) => lowercaseExtension(path) == "json");
+
 /**
  * Top level component that houses the infrastructure for handling uploads.
  */
@@ -231,8 +243,6 @@ export const Upload: React.FC<UploadProps> = ({
 }) => {
     const { showMiniDialog, onGenericError } = useBaseContext();
     const { showNotification, watchFolderView } = usePhotosAppContext();
-    const { isInternalUser } = useSettingsSnapshot();
-    const enableUploadProgressUIV2 = isInternalUser;
 
     const [uploadProgressView, setUploadProgressView] = useState(false);
     const [
@@ -253,8 +263,9 @@ export const Upload: React.FC<UploadProps> = ({
     const [percentComplete, setPercentComplete] = useState(0);
     const [hasLivePhotos, setHasLivePhotos] = useState(false);
     const [prefilledNewAlbumName, setPrefilledNewAlbumName] = useState("");
-    const [uploadConfirmation, setUploadConfirmation] =
-        useState<UploadConfirmation>();
+    const [uploadConfirmation, setUploadConfirmation] = useState<
+        UploadConfirmationState | undefined
+    >();
 
     const [openCollectionMappingChoice, setOpenCollectionMappingChoice] =
         useState(false);
@@ -391,6 +402,7 @@ export const Upload: React.FC<UploadProps> = ({
     }, []);
 
     const handleInputCancel = useCallback(() => {
+        selectedUploadType.current = undefined;
         setIsInputPending(false);
     }, []);
 
@@ -857,7 +869,7 @@ export const Upload: React.FC<UploadProps> = ({
     ) => {
         if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
 
-        if (!isInternalUser) {
+        if (!enableV2) {
             void commitUploadToExistingCollection(
                 collection,
                 uploadItemAndPaths,
@@ -866,12 +878,20 @@ export const Upload: React.FC<UploadProps> = ({
             return;
         }
 
+        const isTakeoutHint = containsJSONFiles(uploadItemAndPaths);
+        if (uploadItemAndPaths.length > 1 || isTakeoutHint)
+            setUploadConfirmation({
+                phase: "counting",
+                isTakeout: isTakeoutHint,
+            });
+
         try {
             const { count: fileCount, isTakeout } = await uploadableMediaCount([
                 uploadItemAndPaths,
             ]);
             if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
             if (fileCount == 1 && !isTakeout) {
+                setUploadConfirmation(undefined);
                 void commitUploadToExistingCollection(
                     collection,
                     uploadItemAndPaths,
@@ -880,6 +900,7 @@ export const Upload: React.FC<UploadProps> = ({
                 return;
             }
             setUploadConfirmation({
+                phase: "ready",
                 pendingUpload: {
                     type: "existing-collection",
                     collection,
@@ -960,6 +981,17 @@ export const Upload: React.FC<UploadProps> = ({
         }: NewCollectionsOptions = {},
     ) => {
         const uploadItemAndPaths = uploadItemsAndPaths.current;
+        const isTakeoutHint = containsJSONFiles(uploadItemAndPaths);
+        if (
+            enableV2 &&
+            !skipConfirmation &&
+            (uploadItemAndPaths.length > 1 || isTakeoutHint)
+        )
+            setUploadConfirmation({
+                phase: "counting",
+                isTakeout: isTakeoutHint,
+            });
+
         let collectionNameToUploadItems = new Map<
             string,
             UploadItemAndPath[]
@@ -988,7 +1020,7 @@ export const Upload: React.FC<UploadProps> = ({
 
         if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
 
-        if (skipConfirmation || !isInternalUser) {
+        if (skipConfirmation || !enableV2) {
             void commitUploadToNewCollections(
                 uploadItemAndPaths,
                 collectionNameToUploadItems,
@@ -1005,6 +1037,7 @@ export const Upload: React.FC<UploadProps> = ({
             ]);
             if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
             if (fileCount == 1 && !isTakeout) {
+                setUploadConfirmation(undefined);
                 void commitUploadToNewCollections(
                     uploadItemAndPaths,
                     collectionNameToUploadItems,
@@ -1015,6 +1048,7 @@ export const Upload: React.FC<UploadProps> = ({
                 return;
             }
             setUploadConfirmation({
+                phase: "ready",
                 pendingUpload: {
                     type: "new-collections",
                     uploadItemAndPaths,
@@ -1103,7 +1137,7 @@ export const Upload: React.FC<UploadProps> = ({
 
     const handleUploadConfirm = () => {
         const confirmation = uploadConfirmation;
-        if (!confirmation) return;
+        if (confirmation?.phase != "ready") return;
 
         setUploadConfirmation(undefined);
         const { pendingUpload, importFavorites, includePartnerSharedFiles } =
@@ -1141,20 +1175,18 @@ export const Upload: React.FC<UploadProps> = ({
         _event: React.ChangeEvent<HTMLInputElement>,
         checked: boolean,
     ) =>
-        setUploadConfirmation((confirmation) =>
-            confirmation
-                ? { ...confirmation, importFavorites: checked }
-                : undefined,
+        setUploadConfirmation((c) =>
+            c?.phase == "ready" ? { ...c, importFavorites: checked } : c,
         );
 
     const handleIncludePartnerSharedFilesChange = (
         _event: React.ChangeEvent<HTMLInputElement>,
         checked: boolean,
     ) =>
-        setUploadConfirmation((confirmation) =>
-            confirmation
-                ? { ...confirmation, includePartnerSharedFiles: checked }
-                : undefined,
+        setUploadConfirmation((c) =>
+            c?.phase == "ready"
+                ? { ...c, includePartnerSharedFiles: checked }
+                : c,
         );
 
     const waitInQueueAndUploadFiles = async (
@@ -1371,6 +1403,9 @@ export const Upload: React.FC<UploadProps> = ({
             createHidden: props.isInHiddenSection,
         });
 
+    const readyConfirmation =
+        uploadConfirmation?.phase == "ready" ? uploadConfirmation : undefined;
+
     return (
         <>
             <Inputs
@@ -1389,13 +1424,12 @@ export const Upload: React.FC<UploadProps> = ({
                 open={props.uploadTypeSelectorView}
                 onClose={props.closeUploadTypeSelector}
                 intent={props.uploadTypeSelectorIntent}
-                {...{ isInternalUser }}
                 pendingUploadType={
                     isInputPending ? selectedUploadType.current : undefined
                 }
                 onSelect={handleUploadTypeSelect}
             />
-            {enableUploadProgressUIV2 ? (
+            {enableV2 ? (
                 <UploadProgressV2
                     open={uploadProgressView}
                     onClose={closeUploadProgress}
@@ -1430,18 +1464,17 @@ export const Upload: React.FC<UploadProps> = ({
                 open={showCanvasReadbackBlockedDialog}
                 onClose={() => setShowCanvasReadbackBlockedDialog(false)}
             />
-            {isInternalUser && (
+            {enableV2 && (
                 <UploadConfirmationDialog
                     open={!!uploadConfirmation}
+                    loading={uploadConfirmation?.phase == "counting"}
                     isTakeout={uploadConfirmation?.isTakeout ?? false}
-                    fileCount={uploadConfirmation?.fileCount ?? 0}
-                    albumCount={uploadConfirmation?.albumCount ?? 0}
-                    importFavorites={
-                        uploadConfirmation?.importFavorites ?? true
-                    }
+                    fileCount={readyConfirmation?.fileCount ?? 0}
+                    albumCount={readyConfirmation?.albumCount ?? 0}
+                    importFavorites={readyConfirmation?.importFavorites ?? true}
                     onImportFavoritesChange={handleImportFavoritesChange}
                     includePartnerSharedFiles={
-                        uploadConfirmation?.includePartnerSharedFiles ?? true
+                        readyConfirmation?.includePartnerSharedFiles ?? true
                     }
                     onIncludePartnerSharedFilesChange={
                         handleIncludePartnerSharedFilesChange
@@ -1452,6 +1485,7 @@ export const Upload: React.FC<UploadProps> = ({
             )}
             <SingleInputDialog
                 {...newAlbumNameInputVisibilityProps}
+                variant={enableV2 ? "v2" : "default"}
                 onClose={handleNewAlbumNameInputClose}
                 title={t("new_album")}
                 label={t("album_name")}
@@ -1737,8 +1771,6 @@ const setPendingUploads = async (
 };
 
 type UploadTypeSelectorProps = ModalVisibilityProps & {
-    /** Whether experimental upload UI should be shown. */
-    isInternalUser: boolean;
     /**
      * The particular context / scenario in which this upload is occurring.
      */
@@ -1766,7 +1798,6 @@ type UploadTypeSelectorProps = ModalVisibilityProps & {
 const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
     open,
     onClose,
-    isInternalUser,
     intent,
     pendingUploadType,
     onSelect,
@@ -1813,13 +1844,7 @@ const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
             }}
         >
             <UploadOptions
-                {...{
-                    isInternalUser,
-                    intent,
-                    pendingUploadType,
-                    onSelect,
-                    onClose,
-                }}
+                {...{ intent, pendingUploadType, onSelect, onClose }}
             />
         </Dialog>
     );
@@ -1827,11 +1852,10 @@ const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
 
 type UploadOptionsProps = Pick<
     UploadTypeSelectorProps,
-    "isInternalUser" | "onClose" | "intent" | "pendingUploadType" | "onSelect"
+    "onClose" | "intent" | "pendingUploadType" | "onSelect"
 >;
 
 const UploadOptions: React.FC<UploadOptionsProps> = ({
-    isInternalUser,
     intent,
     pendingUploadType,
     onSelect,
@@ -1873,7 +1897,7 @@ const UploadOptions: React.FC<UploadOptionsProps> = ({
     const handleSelectFolder = () => handleSelect("folders");
 
     return showTakeoutOptions ? (
-        isInternalUser ? (
+        enableV2 ? (
             <TakeoutOptionsV2
                 onBack={handleTakeoutClose}
                 onSelectFolder={handleSelectFolder}
@@ -1886,7 +1910,7 @@ const UploadOptions: React.FC<UploadOptionsProps> = ({
                 onClose={handleTakeoutClose}
             />
         )
-    ) : isInternalUser && intent != "collect" ? (
+    ) : enableV2 && intent != "collect" ? (
         <DefaultOptionsV2
             intent={intent}
             isFileSelectionPending={pendingUploadType == "files"}

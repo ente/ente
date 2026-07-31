@@ -780,11 +780,6 @@ Future<MLResult> analyzeImageRust(Map args) async {
         args["petBodyEmbeddingDogModelPath"] as String?;
     final String? petBodyEmbeddingCatModelPath =
         args["petBodyEmbeddingCatModelPath"] as String?;
-    final bool preferCoreml = args["preferCoreml"] as bool? ?? true;
-    final bool preferNnapi = args["preferNnapi"] as bool? ?? true;
-    final bool preferXnnpack = args["preferXnnpack"] as bool? ?? false;
-    final bool allowCpuFallback = args["allowCpuFallback"] as bool? ?? true;
-
     bool isMissingModelPath(String? path) =>
         path == null || path.trim().isEmpty;
     final missingModelPaths = <String>[];
@@ -825,6 +820,13 @@ Future<MLResult> analyzeImageRust(Map args) async {
       );
     }
 
+    // The Rust runtime creates sessions lazily, so configure execution
+    // behavior here as well in case the runtime was not prepared explicitly
+    // in this isolate.
+    await rust_ml.setMlExecutionConfig(
+      enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
+    );
+
     final modelPaths = rust_ml.RustModelPaths(
       faceDetection: faceDetectionModelPath ?? "",
       faceEmbedding: faceEmbeddingModelPath ?? "",
@@ -837,13 +839,6 @@ Future<MLResult> analyzeImageRust(Map args) async {
       petBodyEmbeddingDog: petBodyEmbeddingDogModelPath ?? "",
       petBodyEmbeddingCat: petBodyEmbeddingCatModelPath ?? "",
     );
-    final providerPolicy = rust_ml.RustExecutionProviderPolicy(
-      preferCoreml: preferCoreml,
-      preferNnapi: preferNnapi,
-      preferXnnpack: preferXnnpack,
-      allowCpuFallback: allowCpuFallback,
-    );
-
     Future<rust_ml.AnalyzeImageResult> runRustAnalyzeForPath(
       String analyzePath,
     ) {
@@ -855,7 +850,6 @@ Future<MLResult> analyzeImageRust(Map args) async {
           runClip: runClip,
           runPets: runPets,
           modelPaths: modelPaths,
-          providerPolicy: providerPolicy,
         ),
       );
     }
@@ -865,28 +859,35 @@ Future<MLResult> analyzeImageRust(Map args) async {
     try {
       rustResult = await runRustAnalyzeForPath(imagePath);
     } catch (e, s) {
-      if (!_isRustDecodeIssue(e)) {
+      if (!_isRustImageIssue(e)) {
         if (_isRustCorruptModelIssue(e)) {
           rethrow;
         }
         _logger.severe(
-          "Rust pipeline failed (non-decode) for fileID $enteFileID (format: $fileFormat)",
+          "Rust pipeline failed (non-image) for fileID $enteFileID (format: $fileFormat)",
           e,
           s,
         );
         rethrow;
       }
 
-      // A Rust decode error may be a resource-limit rejection. Retrying it
-      // through an unbounded Dart decoder can exhaust the mobile process.
-      throw _asInvalidImageFormatExceptionForRustDecodeFailure(
+      // A Rust image error is deterministic for this file. In particular, a
+      // decode error may be a resource-limit rejection, so retrying it through
+      // an unbounded Dart decoder can exhaust the mobile process.
+      throw _asInvalidImageFormatExceptionForRustImageFailure(
         enteFileID: enteFileID,
         fileFormat: fileFormat,
         primaryError: e,
       );
     }
 
-    final result = MLResult.fromEnteFileID(enteFileID);
+    final result = MLResult.fromEnteFileID(
+      enteFileID,
+      remoteFlags:
+          mlIndexFlagRuntimeRust |
+          (rustResult.usedCoreml ? mlIndexFlagCoreML : 0) |
+          (rustResult.usedWebgpu ? mlIndexFlagWebGPU : 0),
+    );
     result.decodedImageSize = Dimensions(
       width: rustResult.decodedImageSize.width,
       height: rustResult.decodedImageSize.height,
@@ -1023,8 +1024,9 @@ String formatExpectedMlSkipReasonForLogs(Object error) {
   return firstLine.isEmpty ? "unknown ML skip reason" : firstLine;
 }
 
-bool _isRustDecodeIssue(Object error) {
-  return error is rust_ml.RustMlError_Decode;
+bool _isRustImageIssue(Object error) {
+  return error is rust_ml.RustMlError_Decode ||
+      error is rust_ml.RustMlError_Image;
 }
 
 bool _isRustCorruptModelIssue(Object error) {
@@ -1043,13 +1045,13 @@ String _normalizedErrorMessage(Object error) {
   return error.toString().toLowerCase();
 }
 
-Exception _asInvalidImageFormatExceptionForRustDecodeFailure({
+Exception _asInvalidImageFormatExceptionForRustImageFailure({
   required int enteFileID,
   required String fileFormat,
   required Object primaryError,
 }) {
   final details = <String>[
-    "InvalidImageFormatException: Rust decode failed for fileID $enteFileID (format: $fileFormat)",
+    "InvalidImageFormatException: Rust image processing failed for fileID $enteFileID (format: $fileFormat)",
     "primary_error: $primaryError",
   ];
   return Exception(details.join("; "));

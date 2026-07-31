@@ -1,4 +1,5 @@
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import log from "ente-base/log";
 import React, { useEffect, useRef } from "react";
 import { verifyEmailBackground } from "screens/VerifyEmailScreen";
 import { completeSpaceLoginPasskey } from "services/spaceLogin";
@@ -38,7 +39,7 @@ const Page: React.FC = () => {
                     "replace",
                 );
             } catch (error) {
-                console.error("Space passkey verification failed", error);
+                log.error("Space passkey verification failed", error);
                 void router.replace(spaceRoutes.login);
             }
         })();

@@ -17,7 +17,7 @@
         "idb": "8.0.3",
         "libsodium-wrappers-sumo": "0.7.15",
         "nanoid": "5.1.11",
-        "next": "16.2.7",
+        "next": "16.2.11",
         "react": "19.2.7",
         "react-dom": "19.2.7",
         "react-i18next": "16.6.6",

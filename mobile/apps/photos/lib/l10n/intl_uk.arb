@@ -607,7 +607,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "Передплата Play Store",
   "appstoreSubscription": "Передплата App Store",
-  "subAlreadyLinkedErrMessage": "Ваш {id} вже пов'язаний з іншим обліковим записом Ente.\nЯкщо ви хочете використовувати свій {id} з цим обліковим записом, зверніться до нашої служби підтримки",
   "visitWebToManage": "Відвідайте {webUrl}, щоб керувати передплатою",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

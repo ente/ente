@@ -290,12 +290,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
       return;
     }
 
-    await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return VerifyIdentifyDialog(self: false, email: emailToAdd);
-      },
-    );
+    await showVerifyIdentitySheet(context, self: false, email: emailToAdd);
   }
 
   List<User> _getSuggestedUser() {

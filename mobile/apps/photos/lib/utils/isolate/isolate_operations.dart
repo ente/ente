@@ -4,6 +4,7 @@ import 'dart:typed_data' show Float32List, Uint8List;
 import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Uint64List;
 import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart"
     show Int64List;
+import "package:logging/logging.dart";
 import "package:ml_linalg/linalg.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/models/ml/face/box.dart";
@@ -21,7 +22,8 @@ import "package:photos/utils/ml_util.dart";
 
 final Map<String, dynamic> _isolateCache = {};
 const _rustLibLoadedCacheKey = "rustLibLoaded";
-const _rustMlRuntimeConfigCacheKey = "rustMlRuntimeConfig";
+const _rustMlModelPathsCacheKey = "rustMlModelPaths";
+final _rustMlRuntimeLogger = Logger("RustMLRuntime");
 
 class RustCorruptModelCacheDeletedException implements Exception {
   const RustCorruptModelCacheDeletedException(this.modelPath);
@@ -132,7 +134,11 @@ Future<dynamic> isolateFunction(
 
     /// MLIndexingIsolate
     case IsolateOperation.releaseRustMlRuntime:
-      await _releaseRustRuntime();
+      try {
+        await _releaseRustRuntime();
+      } finally {
+        await _logRustMlRuntimeEvents();
+      }
       return true;
 
     /// Cases for MLIndexingIsolate stop here
@@ -182,29 +188,34 @@ Future<dynamic> isolateFunction(
         );
       }
 
-      final rust_ml.RunClipTextResult result;
       try {
-        result = await rust_ml.runClipTextRust(
-          req: rust_ml.RunClipTextRequest(
-            text: text,
-            modelPath: clipTextModelPath,
-            vocabPath: clipTextVocabPath,
-            providerPolicy: rust_ml.RustExecutionProviderPolicy(
-              preferCoreml: args["preferCoreml"] as bool? ?? true,
-              preferNnapi: args["preferNnapi"] as bool? ?? true,
-              preferXnnpack: args["preferXnnpack"] as bool? ?? false,
-              allowCpuFallback: args["allowCpuFallback"] as bool? ?? true,
-            ),
-          ),
+        // Configure execution behavior before the CLIP text session is
+        // created; the session is process-global and cannot be reconfigured
+        // once built.
+        await rust_ml.setMlExecutionConfig(
+          enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
         );
-      } on rust_ml.RustMlError_CorruptModel catch (e) {
-        final file = File(e.field0);
-        if (await file.exists()) {
-          await file.delete();
+
+        final rust_ml.RunClipTextResult result;
+        try {
+          result = await rust_ml.runClipTextRust(
+            req: rust_ml.RunClipTextRequest(
+              text: text,
+              modelPath: clipTextModelPath,
+              vocabPath: clipTextVocabPath,
+            ),
+          );
+        } on rust_ml.RustMlError_CorruptModel catch (e) {
+          final file = File(e.field0);
+          if (await file.exists()) {
+            await file.delete();
+          }
+          return RustCorruptModelCacheDeletedException(e.field0);
         }
-        return RustCorruptModelCacheDeletedException(e.field0);
+        return List<double>.from(result.embedding, growable: false);
+      } finally {
+        await _logRustMlRuntimeEvents();
       }
-      return List<double>.from(result.embedding, growable: false);
 
     /// MLComputer
     case IsolateOperation.computeBulkSimilarities:
@@ -385,6 +396,10 @@ Future<void> _ensureRustDisposed() async {
 }
 
 Future<void> _ensureRustRuntimePrepared(Map<String, dynamic> args) async {
+  // Configure execution behavior before any ONNX session is created.
+  await rust_ml.setMlExecutionConfig(
+    enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
+  );
   final modelPaths = rust_ml.RustModelPaths(
     faceDetection: (args["faceDetectionModelPath"] as String?) ?? "",
     faceEmbedding: (args["faceEmbeddingModelPath"] as String?) ?? "",
@@ -401,16 +416,10 @@ Future<void> _ensureRustRuntimePrepared(Map<String, dynamic> args) async {
     petBodyEmbeddingCat:
         (args["petBodyEmbeddingCatModelPath"] as String?) ?? "",
   );
-  final providerPolicy = rust_ml.RustExecutionProviderPolicy(
-    preferCoreml: args["preferCoreml"] as bool? ?? true,
-    preferNnapi: args["preferNnapi"] as bool? ?? true,
-    preferXnnpack: args["preferXnnpack"] as bool? ?? false,
-    allowCpuFallback: args["allowCpuFallback"] as bool? ?? true,
-  );
-  final runtimeConfigKey = _runtimeConfigCacheKey(modelPaths, providerPolicy);
-  final currentConfigKey =
-      _isolateCache[_rustMlRuntimeConfigCacheKey] as String?;
-  if (currentConfigKey == runtimeConfigKey) {
+  final modelPathsKey = _modelPathsCacheKey(modelPaths);
+  final currentModelPathsKey =
+      _isolateCache[_rustMlModelPathsCacheKey] as String?;
+  if (currentModelPathsKey == modelPathsKey) {
     return;
   }
 
@@ -430,13 +439,8 @@ Future<void> _ensureRustRuntimePrepared(Map<String, dynamic> args) async {
     );
   }
 
-  await rust_ml.initMlRuntime(
-    config: rust_ml.RustMlRuntimeConfig(
-      modelPaths: modelPaths,
-      providerPolicy: providerPolicy,
-    ),
-  );
-  _isolateCache[_rustMlRuntimeConfigCacheKey] = runtimeConfigKey;
+  await rust_ml.initMlRuntime(modelPaths: modelPaths);
+  _isolateCache[_rustMlModelPathsCacheKey] = modelPathsKey;
 }
 
 Future<void> _releaseRustRuntime() async {
@@ -449,13 +453,29 @@ Future<void> _releaseRustRuntime() async {
   } catch (_) {
     // no-op: indexing-model release is best-effort.
   }
-  _isolateCache.remove(_rustMlRuntimeConfigCacheKey);
+  _isolateCache.remove(_rustMlModelPathsCacheKey);
 }
 
-String _runtimeConfigCacheKey(
-  rust_ml.RustModelPaths modelPaths,
-  rust_ml.RustExecutionProviderPolicy providerPolicy,
-) {
+Future<void> _logRustMlRuntimeEvents() async {
+  try {
+    final events = await rust_ml.takeMlRuntimeEvents();
+    for (final event in events) {
+      final message = "Rust ML runtime: ${event.message}";
+      switch (event.severity) {
+        case "severe":
+          _rustMlRuntimeLogger.severe(message);
+        case "warning":
+          _rustMlRuntimeLogger.warning(message);
+        default:
+          _rustMlRuntimeLogger.info(message);
+      }
+    }
+  } catch (e, s) {
+    _rustMlRuntimeLogger.warning("Failed to take Rust ML runtime events", e, s);
+  }
+}
+
+String _modelPathsCacheKey(rust_ml.RustModelPaths modelPaths) {
   return [
     modelPaths.faceDetection,
     modelPaths.faceEmbedding,
@@ -467,9 +487,5 @@ String _runtimeConfigCacheKey(
     modelPaths.petBodyDetection,
     modelPaths.petBodyEmbeddingDog,
     modelPaths.petBodyEmbeddingCat,
-    providerPolicy.preferCoreml,
-    providerPolicy.preferNnapi,
-    providerPolicy.preferXnnpack,
-    providerPolicy.allowCpuFallback,
   ].join("|");
 }

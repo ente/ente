@@ -14,21 +14,26 @@ import "package:photos/services/collections_service.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 
-class AlbumsItemWidget extends StatefulWidget {
+class AlbumsItemWidget extends StatelessWidget {
   final EnteFile file;
   final int currentUserID;
   const AlbumsItemWidget(this.file, this.currentUserID, {super.key});
 
   @override
-  State<AlbumsItemWidget> createState() => _AlbumsItemWidgetState();
-}
-
-class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
-  Future<List<Widget>>? _chipsFuture;
-
-  @override
   Widget build(BuildContext context) {
-    _chipsFuture ??= _buildChips(context);
+    final Future<List<Widget>> chipsFuture;
+    if (file.uploadedFileID != null) {
+      chipsFuture = _collectionsListOfFile(
+        context,
+        FilesDB.instance.getAllCollectionIDsOfFile(file.uploadedFileID!),
+        currentUserID,
+      );
+    } else {
+      chipsFuture = _deviceFoldersListOfFile(
+        Future.sync(() => {file.deviceFolder ?? ''}),
+      );
+    }
+
     return Column(
       key: const ValueKey("Albums"),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,7 +42,7 @@ class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
         Text(AppLocalizations.of(context).albums, style: TextStyles.h2),
         const SizedBox(height: Spacing.lg),
         FutureBuilder<List<Widget>>(
-          future: _chipsFuture,
+          future: chipsFuture,
           builder: (context, snapshot) {
             final chips = snapshot.data ?? const <Widget>[];
             return Wrap(
@@ -51,23 +56,7 @@ class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
     );
   }
 
-  Future<List<Widget>> _buildChips(BuildContext context) {
-    final file = widget.file;
-    if (file.uploadedFileID != null) {
-      return _collectionsListOfFile(
-        context,
-        FilesDB.instance.getAllCollectionIDsOfFile(file.uploadedFileID!),
-        widget.currentUserID,
-      );
-    }
-    return _deviceFoldersListOfFile(
-      context,
-      Future.sync(() => {file.deviceFolder ?? ''}),
-    );
-  }
-
   Future<List<Widget>> _deviceFoldersListOfFile(
-    BuildContext context,
     Future<Set<String>> allDeviceFoldersOfFile,
   ) async {
     try {
@@ -112,7 +101,7 @@ class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
                 context,
                 CollectionPage(
                   CollectionWithThumbnail(c, null),
-                  fileToJumpTo: widget.file,
+                  fileToJumpTo: file,
                 ),
               );
             },
@@ -130,7 +119,7 @@ class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
           shouldSurfaceExecutionStates: false,
           onTap: () {
             final selectedFiles = SelectedFiles();
-            selectedFiles.files.add(widget.file);
+            selectedFiles.files.add(file);
             showCollectionActionSheet(
               context,
               selectedFiles: selectedFiles,

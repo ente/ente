@@ -28,6 +28,11 @@ func (h *Handlers) ListFriendRequests(c *gin.Context, space *spacerepo.SpaceReco
 	respondJSON(c, resp, err)
 }
 
+func (h *Handlers) ListSentFriendRequests(c *gin.Context, space *spacerepo.SpaceRecord) {
+	resp, err := h.Module.Friends.ListSentRequests(c, space)
+	respondJSON(c, resp, err)
+}
+
 func (h *Handlers) ConfirmFriendRequest(c *gin.Context, space *spacerepo.SpaceRecord) {
 	var req models.ConfirmFriendRequestPayload
 	if !bindJSON(c, &req) {

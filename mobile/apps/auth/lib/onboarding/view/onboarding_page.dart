@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dots_indicator/dots_indicator.dart';
+import 'package:ente_accounts/pages/developer_settings_page.dart';
 import 'package:ente_accounts/pages/email_entry_page.dart';
 import 'package:ente_accounts/pages/login_page.dart';
 import 'package:ente_accounts/pages/password_entry_page.dart';
@@ -14,7 +15,6 @@ import 'package:ente_auth/locale.dart';
 import 'package:ente_auth/theme/colors.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/account/logout_dialog.dart';
-import 'package:ente_auth/ui/common/gradient_button.dart';
 import 'package:ente_auth/ui/components/buttons/button_widget.dart';
 import 'package:ente_auth/ui/components/models/button_result.dart';
 import 'package:ente_auth/ui/home/widgets/rounded_action_buttons.dart';
@@ -25,9 +25,9 @@ import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/navigation_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_ui/components/alert_bottom_sheet.dart';
-import 'package:ente_ui/pages/developer_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -213,8 +213,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
         isDismissible: false,
         showCloseButton: false,
         buttons: [
-          GradientButton(
-            text: context.l10n.yes,
+          ButtonComponent(
+            label: context.l10n.yes,
             onTap: () async {
               Navigator.of(context).pop();
               await Navigator.of(context).push(

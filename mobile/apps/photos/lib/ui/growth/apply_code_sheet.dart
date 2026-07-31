@@ -141,6 +141,7 @@ class _ApplyCodeContentState extends State<_ApplyCodeContent> {
         const SizedBox(height: Spacing.lg),
         ButtonComponent(
           label: l10n.apply,
+          variant: ButtonComponentVariant.primary,
           isDisabled: !_isValid,
           onTap: _applyCode,
         ),

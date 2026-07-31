@@ -199,7 +199,7 @@ Learn more in the [Collaboration guide](/photos/features/sharing-and-collaborati
 
 Use your own domain instead of `albums.ente.com` for your public links.
 
-For example: `https://pics.example.org/?t=...` instead of `https://albums.ente.com/?t=...`
+For example: `https://pics.example.org/...#...` instead of `https://albums.ente.com/...#...`
 
 Learn more in the [Custom domains guide](/photos/features/sharing-and-collaboration/custom-domains/).
 

@@ -124,6 +124,7 @@
   "import2FasGuide": "Naudokite programoje 2FAS esančią parinktį „Settings->2FAS Backup->Export to file“.\n\nJei atsarginė kopija užšifruota, turėsite įvesti slaptažodį, kad iššifruotumėte atsarginę kopiją.",
   "importLastpassGuide": "Naudokite „Lastpass Authenticator“ nustatymuose esančią parinktį „Transfer accounts“ (perkelti paskyras) ir paspauskite „Export accounts to file“ (eksportuoti paskyras į failą). Importuokite atsisiųstą JSON failą.",
   "importProtonAuthGuide": "Naudokite „Proton Authenticator“ nustatymuose esančią parinktį „Export“ (eksportuoti), kad eksportuotumėte savo kodus.\n\nJei eksportuotas failas apsaugotas slaptažodžiu, turėsite įvesti, kad jį iššifruotumėte.",
+  "importOtpAuthGuide": "Eksportuokite šifruotą atsarginę kopiją iš „OTP Auth“, tada pasirinkite .otpauthdb arba .otpauthdp failą. Taip pat palaikomas vienos paskyros .otpauth eksportai.",
   "invalidProtonExportTitle": "Netinkamas „Proton“ eksportas",
   "invalidProtonExportMessage": "Pasirinktas failas nėra tinkamas „Proton Authenticator“ eksportas.",
   "exportCodes": "Eksportuoti kodus",

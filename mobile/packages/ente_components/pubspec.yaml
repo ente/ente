@@ -18,6 +18,8 @@ dev_dependencies:
     sdk: flutter
 
 flutter:
+  assets:
+    - assets/apps/
   fonts:
     - family: Inter
       fonts:
@@ -39,3 +41,6 @@ flutter:
           weight: 600
         - asset: fonts/Outfit-Bold.ttf
           weight: 700
+    - family: Gochi Hand
+      fonts:
+        - asset: fonts/GochiHand-Regular.ttf

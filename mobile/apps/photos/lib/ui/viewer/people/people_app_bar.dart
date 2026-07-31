@@ -26,7 +26,7 @@ import "package:photos/ui/viewer/gallery/hooks/pick_person_avatar.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/people/person_cluster_suggestion.dart";
-import "package:photos/ui/viewer/people/person_selection_action_widgets.dart";
+import "package:photos/ui/viewer/people/reassign_me_selection_page.dart";
 import "package:photos/ui/viewer/people/save_or_edit_person.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/person_contact_linking_util.dart";

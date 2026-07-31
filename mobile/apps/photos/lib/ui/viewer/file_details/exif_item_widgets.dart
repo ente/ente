@@ -4,6 +4,9 @@ import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart';
+import "package:photos/theme/colors.dart";
+import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/components/info_item_widget.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/file/exif_info_dialog.dart";
 
@@ -14,28 +17,26 @@ class BasicExifItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    final parts = <String>[];
-    if (exifData["fNumber"] != null) {
-      parts.add('ƒ/${exifData["fNumber"]}');
-    }
-    if (exifData["exposureTime"] != null) {
-      parts.add(exifData["exposureTime"].toString());
-    }
-    if (exifData["focalLength"] != null) {
-      parts.add('${exifData["focalLength"]}mm');
-    }
-    if (exifData["ISO"] != null) {
-      parts.add('ISO${exifData["ISO"]}');
-    }
-    return MenuComponent(
+    final subtitleTextStyle = TextStyles.mini.copyWith(color: colors.textLight);
+    return InfoItemWidget(
       key: const ValueKey("Basic EXIF"),
-      leading: HugeIcon(
+      leadingIconWidget: HugeIcon(
         icon: HugeIcons.strokeRoundedCamera01,
         size: IconSizes.small,
         color: colors.textLight,
       ),
       title: exifData["takenOnDevice"] ?? "--",
-      subtitle: parts.isEmpty ? null : parts.join("   "),
+      subtitleSection: Future.value([
+        if (exifData["fNumber"] != null)
+          Text('ƒ/${exifData["fNumber"]}', style: subtitleTextStyle),
+        if (exifData["exposureTime"] != null)
+          Text(exifData["exposureTime"].toString(), style: subtitleTextStyle),
+        if (exifData["focalLength"] != null)
+          Text('${exifData["focalLength"]}mm', style: subtitleTextStyle),
+        if (exifData["ISO"] != null)
+          Text('ISO${exifData["ISO"]}', style: subtitleTextStyle),
+      ]),
+      useMenuStyle: true,
     );
   }
 }
@@ -47,33 +48,36 @@ class AllExifItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.componentColors;
     final l10n = AppLocalizations.of(context);
-    final String subtitle;
-    final VoidCallback? onTap;
-    if (exif == null) {
-      subtitle = l10n.loadingExifData;
+    final currentExif = exif;
+    late final String label;
+    late final VoidCallback? onTap;
+    if (currentExif == null) {
+      label = l10n.loadingExifData;
       onTap = null;
-    } else if (exif!.isNotEmpty) {
-      subtitle = l10n.viewAllExifData;
-      onTap = () => showBottomSheetComponent(
+    } else if (currentExif.isNotEmpty) {
+      label = l10n.viewAllExifData;
+      onTap = () => showDialog(
+        useRootNavigator: false,
         context: context,
-        builder: (context) => ExifInfoDialog(file),
+        builder: (BuildContext context) {
+          return ExifInfoDialog(file);
+        },
+        barrierColor: backdropFaintDark,
       );
     } else {
-      subtitle = l10n.noExifData;
+      label = l10n.noExifData;
       onTap = () => showShortToast(context, l10n.thisImageHasNoExifData);
     }
-    return MenuComponent(
-      key: const ValueKey("All EXIF"),
-      leading: HugeIcon(
-        icon: HugeIcons.strokeRoundedCameraLens,
-        size: IconSizes.small,
-        color: colors.textLight,
-      ),
+
+    return InfoItemWidget(
+      leadingIconWidget: const HugeIcon(icon: HugeIcons.strokeRoundedLicense),
       title: l10n.exif,
-      subtitle: subtitle,
+      subtitleSection: [
+        Text(label, style: getEnteTextTheme(context).miniBoldMuted),
+      ],
       onTap: onTap,
+      useMenuStyle: true,
     );
   }
 }

@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
 import { SpaceAvatarCropPage } from "components/SpaceAvatarCropPage";
 import { SpaceLoadingSpinner } from "components/SpaceRouteFallback";
+import log from "ente-base/log";
 import React, { useEffect, useRef, useState } from "react";
 import type { Area, Point } from "react-easy-crop";
 import { profileBackground } from "screens/ProfileScreen";
@@ -190,7 +191,7 @@ export const EditProfilePhotoScreen: React.FC<EditProfilePhotoScreenProps> = ({
                 setAvatarZoom(1);
             } catch (error) {
                 if (avatarSelectionIDRef.current != selectionID) return;
-                console.error("Failed to prepare space profile image", error);
+                log.error("Failed to prepare space profile image", error);
                 setAvatarError(imageErrorMessage(error));
             } finally {
                 if (avatarSelectionIDRef.current == selectionID) {
@@ -240,7 +241,7 @@ export const EditProfilePhotoScreen: React.FC<EditProfilePhotoScreenProps> = ({
                   ));
             avatarFile = avatar.file;
         } catch (error) {
-            console.error("Failed to crop space profile image", error);
+            log.error("Failed to crop space profile image", error);
             setAvatarError(imageErrorMessage(error));
             setIsApplyingAvatarCrop(false);
             return;
@@ -249,7 +250,7 @@ export const EditProfilePhotoScreen: React.FC<EditProfilePhotoScreenProps> = ({
         try {
             await onSave(avatarFile);
         } catch (error) {
-            console.error("Failed to save space profile image", error);
+            log.error("Failed to save space profile image", error);
             setAvatarError(
                 error instanceof Error
                     ? error.message

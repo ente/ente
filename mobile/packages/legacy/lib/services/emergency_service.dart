@@ -279,7 +279,7 @@ class EmergencyContactService {
         srpUserID: username,
         srpSalt: base64Encode(salt),
         srpVerifier: base64Encode(SRP6Util.encodeBigInt(v)),
-        srpA: base64Encode(SRP6Util.encodeBigInt(A!)),
+        srpA: base64Encode(SRP6Util.getPadded(A!, 512)),
         isUpdate: false,
       );
       final response = await _enteDio.post(
@@ -308,7 +308,7 @@ class EmergencyContactService {
             "recoveryID": recoverySessions.id,
             'updateSrpAndKeysRequest': {
               'setupID': setupSRPResponse.setupID,
-              'srpM1': base64Encode(SRP6Util.encodeBigInt(clientM!)),
+              'srpM1': base64Encode(SRP6Util.getPadded(clientM!, 32)),
               'updatedKeyAttr': setKeysRequest.toMap(),
             },
           },

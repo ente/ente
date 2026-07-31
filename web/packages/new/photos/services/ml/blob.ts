@@ -1,4 +1,5 @@
 import { basename } from "ente-base/file-name";
+import log from "ente-base/log";
 import type { ElectronMLWorker } from "ente-base/types/ipc";
 import { renderableImageBlob } from "ente-gallery/services/convert";
 import { downloadManager } from "ente-gallery/services/download";
@@ -12,65 +13,113 @@ import type { EnteFile } from "ente-media/file";
 import { fileFileName } from "ente-media/file-metadata";
 import { FileType } from "ente-media/file-type";
 import { decodeLivePhoto } from "ente-media/live-photo";
-export { createImageBitmapAndData } from "./decode";
-export type { ImageBitmapAndData } from "./decode";
 
 /**
- * Return a renderable blob (converting to JPEG if needed) for the given data.
+ * The encoded, undecoded image contents that should be indexed for a given
+ * file.
  *
- * The blob from the relevant image component is either constructed using the
- * given {@link uploadItem} if present, otherwise it is downloaded from remote.
+ * The native side decodes all the formats we care about itself, so unlike
+ * {@link fetchRenderableEnteFileBlob} there is no JPEG conversion involved.
+ */
+export interface IndexableImageSource {
+    bytes: Uint8Array<ArrayBuffer>;
+}
+
+/**
+ * Return the original image contents for the native ML pipeline to index.
  *
- * - For images it is constructed from the image.
- * - For videos it is constructed from the thumbnail.
- * - For live photos it is constructed from the image component of the live
- *   photo.
- *
- * Then, if the image blob we have seems to be something that the browser cannot
- * handle, we convert it into a JPEG blob so that it can subsequently be used to
- * create an {@link ImageBitmap}.
+ * - For images this is the original image itself: the local file when we're
+ *   called during an upload from this client, otherwise the downloaded (and
+ *   decrypted) original.
+ * - For videos it is their (JPEG) thumbnail.
+ * - For live photos it is the image component of the live photo.
  *
  * @param file The {@link EnteFile} to index.
  *
- * @param uploadItem If we're called during the upload process, then this will
- * be set to the {@link FilesystemUploadItem} that was uploaded so that we can
+ * @param puItem If we're called during the upload process, then this will be
+ * set to the {@link ProcessableUploadItem} that was uploaded so that we can
  * directly use the on-disk file instead of needing to download the original.
  *
- * @param electron The {@link ElectronMLWorker} instance that we can use to IPC
- * with the Node.js layer.
+ * @param electron The {@link ElectronMLWorker} instance that we can use to
+ * IPC with the Node.js layer.
  */
-export const fetchRenderableBlob = async (
+export const fetchIndexableImageSource = async (
     file: EnteFile,
     puItem: ProcessableUploadItem | undefined,
     electron: ElectronMLWorker,
-): Promise<Blob> =>
-    (puItem
-        ? await fetchRenderableUploadItemBlob(file, puItem, electron)
-        : undefined) ?? (await fetchRenderableEnteFileBlob(file));
-
-const fetchRenderableUploadItemBlob = async (
-    file: EnteFile,
-    puItem: ProcessableUploadItem,
-    electron: ElectronMLWorker,
-) => {
+): Promise<IndexableImageSource> => {
     if (file.metadata.fileType == FileType.video) {
         const thumbnailData = await downloadManager.thumbnailData(file);
-        return new Blob([thumbnailData!]);
-    } else {
-        const uploadItem =
-            puItem instanceof File
-                ? puItem
-                : await fileSystemUploadItemIfUnchanged(
-                      puItem,
-                      electron.fsStatMtime,
-                  );
-        if (!uploadItem) {
-            // The file on disk has changed. Fetch it from remote.
-            return undefined;
-        }
-        const blob = await readNonVideoUploadItem(uploadItem, electron);
-        return renderableImageBlob(blob, fileFileName(file));
+        return { bytes: thumbnailData! };
     }
+
+    if (puItem) {
+        if (puItem instanceof File) {
+            return { bytes: new Uint8Array(await puItem.arrayBuffer()) };
+        }
+        const uploadItem = await fileSystemUploadItemIfUnchanged(
+            puItem,
+            electron.fsStatMtime,
+        );
+        if (uploadItem) {
+            try {
+                const blob = await readNonVideoUploadItem(uploadItem, electron);
+                const bytes = new Uint8Array(await blob.arrayBuffer());
+
+                // Revalidate after stabilizing the bytes. Multiple files are
+                // fetched ahead of the serialized native analysis queue, so a
+                // path must not remain as a deferred reference to mutable file
+                // system contents. If it changed while we were reading it,
+                // fall through and use the uploaded remote original instead.
+                if (
+                    await fileSystemUploadItemIfUnchanged(
+                        puItem,
+                        electron.fsStatMtime,
+                    )
+                ) {
+                    return { bytes };
+                }
+            } catch (e) {
+                log.warn(
+                    "Could not read upload item for ML indexing; fetching the remote original",
+                    e,
+                );
+            }
+        }
+        // The file on disk has changed. Fetch it from remote instead.
+    }
+
+    const originalFileBlob = await downloadManager.fileBlob(file, {
+        background: true,
+    });
+
+    if (file.metadata.fileType == FileType.livePhoto) {
+        const { imageData } = await decodeLivePhoto(
+            fileFileName(file),
+            originalFileBlob,
+        );
+        return { bytes: imageData };
+    } else {
+        return { bytes: new Uint8Array(await originalFileBlob.arrayBuffer()) };
+    }
+};
+
+/**
+ * Return renderable image bytes derived from an already fetched source.
+ *
+ * This is used when the native decoder rejects a format that the desktop app
+ * can convert to JPEG. Keeping conversion separate from fetching ensures the
+ * fallback uses the same stable bytes as the initial analysis attempt.
+ */
+export const renderableImageBytes = async (
+    file: EnteFile,
+    source: IndexableImageSource,
+): Promise<Uint8Array> => {
+    const blob = await renderableImageBlob(
+        new Blob([source.bytes]),
+        fileFileName(file),
+    );
+    return new Uint8Array(await blob.arrayBuffer());
 };
 
 /**

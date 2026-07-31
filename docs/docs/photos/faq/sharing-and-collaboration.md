@@ -83,13 +83,13 @@ Yes! Ente's custom domains feature lets you serve your public album links using 
 For example, instead of:
 
 ```
-https://albums.ente.com/?t=...
+https://albums.ente.com/...#...
 ```
 
 You can use:
 
 ```
-https://pics.example.org/?t=...
+https://pics.example.org/...#...
 ```
 
 **Requirements:**
@@ -650,7 +650,7 @@ Create a public link for your album, then add an iframe to your HTML with the UR
 
 ```html
 <iframe
-    src="https://embed.ente.com/?t=...#..."
+    src="https://embed.ente.com/...#..."
     width="800"
     height="600"
     frameborder="0"
@@ -670,7 +670,7 @@ If you're using the easy method (copy embed HTML button), the app automatically 
 If you're creating the embed code manually and have a custom domain configured:
 
 - Replace your custom domain with `embed.ente.com` in the iframe src
-- For example: `https://embed.ente.com/?t=...` (not `https://pics.example.org/?t=...`)
+- For example: `https://embed.ente.com/...#...` (not `https://pics.example.org/...#...`)
 
 The embed will still work perfectly - it's just served from the embed subdomain instead of your custom domain.
 

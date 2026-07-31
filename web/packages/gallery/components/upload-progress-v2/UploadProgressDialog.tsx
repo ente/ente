@@ -4,6 +4,7 @@ import {
     Box,
     Dialog,
     IconButton,
+    keyframes,
     LinearProgress,
     Stack,
     Typography,
@@ -20,7 +21,7 @@ import {
 } from "./helpers";
 import { UploadProgressDetails } from "./UploadProgressDetails";
 
-export function UploadProgressDialog({ closeOnly }: { closeOnly: boolean }) {
+export function UploadProgressDialog() {
     const { onClose, uploadPhase } = useUploadProgressContext();
     const isDone = uploadPhase == "done";
 
@@ -39,11 +40,11 @@ export function UploadProgressDialog({ closeOnly }: { closeOnly: boolean }) {
             <Box sx={uploadProgressDialogContentSx(isDone)}>
                 <UploadProgressV2Header />
                 {isDone ? (
-                    <UploadProgressDetails closeOnly={closeOnly} />
+                    <UploadProgressDetails />
                 ) : (
                     <Stack sx={{ gap: 3 }}>
                         <UploadProgressV2Summary />
-                        <UploadProgressDetails closeOnly={closeOnly} />
+                        <UploadProgressDetails />
                     </Stack>
                 )}
             </Box>
@@ -54,7 +55,7 @@ export function UploadProgressDialog({ closeOnly }: { closeOnly: boolean }) {
 function UploadProgressV2Header() {
     const { onClose, setExpanded, uploadPhase } = useUploadProgressContext();
     const isDone = uploadPhase == "done";
-    const title = isDone ? "Upload details" : t("file_upload");
+    const title = t(isDone ? "upload_details" : "file_upload");
 
     const handleMinimize = () => setExpanded(false);
 
@@ -69,7 +70,7 @@ function UploadProgressV2Header() {
             </Typography>
             <Stack direction="row" sx={headerActionsSx}>
                 <IconButton
-                    aria-label="Minimize"
+                    aria-label={t("minimize")}
                     onClick={handleMinimize}
                     sx={headerActionButtonSx}
                 >
@@ -90,38 +91,73 @@ function UploadProgressV2Header() {
 function UploadProgressV2Summary() {
     const context = useUploadProgressContext();
     const { uploadPhase, percentComplete } = context;
+    const isUploading = uploadPhase == "uploading";
+    const isDeterminate = isUploading || uploadPhase == "readingMetadata";
     const progress = normalizePercent(percentComplete);
+    const headline = isUploading
+        ? t("uploaded_percent", { percent: progress })
+        : uploadStatusText(uploadPhase);
+    const supportingText =
+        uploadPhase == "preparing"
+            ? t("upload_getting_ready")
+            : uploadPhase == "cancelling"
+              ? t("upload_finishing_active")
+              : uploadCountsText(context);
+    const progressCaption =
+        uploadPhase == "readingMetadata"
+            ? t("upload_reading_file_information")
+            : uploadPhase == "cancelling"
+              ? t("this_may_take_a_moment")
+              : isUploading
+                ? uploadStatusText(uploadPhase)
+                : undefined;
 
     return (
         <Box sx={summaryLayoutSx}>
             <Stack sx={{ gap: 2, minWidth: 0 }}>
                 <Stack sx={{ minWidth: 0, gap: "4px" }}>
-                    <Typography component="p" sx={titleTextSx}>
-                        {progress.toLocaleString()}% uploaded
+                    <Typography
+                        component="p"
+                        sx={[titleTextSx, !isDeterminate && animatedEllipsisSx]}
+                    >
+                        {headline}
                     </Typography>
-                    <Typography sx={mutedBodySx}>
-                        {uploadCountsText(context)}
-                    </Typography>
+                    <Typography sx={mutedBodySx}>{supportingText}</Typography>
                 </Stack>
                 <Stack sx={{ gap: "10px" }}>
                     <LinearProgress
                         variant="determinate"
-                        value={progress}
+                        value={isDeterminate ? progress : 0}
                         sx={mainProgressSx}
                     />
-                    <Stack
-                        direction="row"
-                        sx={{
-                            justifyContent: "space-between",
-                            alignItems: "baseline",
-                            gap: 2,
-                        }}
-                    >
-                        <Typography sx={mutedCaptionSx}>
-                            {uploadStatusText(uploadPhase)}
-                        </Typography>
-                        <Typography sx={mutedCaptionSx}>{"100%"}</Typography>
-                    </Stack>
+                    {(progressCaption || isDeterminate) && (
+                        <Stack
+                            direction="row"
+                            sx={{
+                                justifyContent: "space-between",
+                                alignItems: "baseline",
+                                gap: 2,
+                            }}
+                        >
+                            {progressCaption && (
+                                <Typography
+                                    sx={[
+                                        mutedCaptionSx,
+                                        isUploading && animatedEllipsisSx,
+                                    ]}
+                                >
+                                    {progressCaption}
+                                </Typography>
+                            )}
+                            {isDeterminate && (
+                                <Typography sx={mutedCaptionSx}>
+                                    {t("percent_complete", {
+                                        percent: progress,
+                                    })}
+                                </Typography>
+                            )}
+                        </Stack>
+                    )}
                 </Stack>
             </Stack>
             <Box
@@ -199,6 +235,22 @@ const headerActionButtonSx = (theme: Theme) => ({
     }),
 });
 const titleTextSx = { fontSize: 24, lineHeight: "32px", fontWeight: 600 };
+const waitingDotsAnimation = keyframes`
+    0% { content: "."; }
+    33% { content: ".."; }
+    66%, 100% { content: "..."; }
+`;
+const animatedEllipsisSx = {
+    "&::after": {
+        display: "inline-block",
+        width: "1.5em",
+        content: '""',
+        animation: `${waitingDotsAnimation} 1.2s steps(1, end) infinite`,
+    },
+    "@media (prefers-reduced-motion: reduce)": {
+        "&::after": { animation: "none", content: '"..."' },
+    },
+};
 const uploadTitleSx = { ...ellipsisSx, ...titleTextSx };
 const summaryLayoutSx = {
     pl: "8px",

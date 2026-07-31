@@ -18,7 +18,7 @@ import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
-import "package:photos/module/download/file.dart";
+import "package:photos/module/share/picker_result_uri.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/filter/db_filters.dart";
@@ -129,10 +129,8 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
     final selectedFiles = _selectedFiles.files.toList();
     final uris = <String>[];
     for (final file in selectedFiles) {
-      final ioFile = await getFile(file);
-      if (ioFile != null) {
-        uris.add(ioFile.uri.toString());
-      }
+      final uri = await getPickerResultUri(file);
+      if (uri != null) uris.add(uri);
     }
 
     if (!mounted) {

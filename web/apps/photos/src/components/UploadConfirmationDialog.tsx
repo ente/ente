@@ -1,5 +1,6 @@
 import {
     Cancel01Icon,
+    Loading03Icon,
     StarIcon,
     Tick02Icon,
     UserMultipleIcon,
@@ -15,10 +16,12 @@ import {
 } from "@mui/material";
 import { EnteSwitch } from "ente-base/components/EnteSwitch";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
+import { t } from "i18next";
 import type { ChangeEvent, ReactElement } from "react";
 
 interface UploadConfirmationDialogProps {
     open: boolean;
+    loading: boolean;
     /**
      * `true` if the items being uploaded were detected to be a Google Takeout
      * import (Takeout metadata JSONs were found amongst them).
@@ -42,6 +45,7 @@ interface UploadConfirmationDialogProps {
 
 export function UploadConfirmationDialog({
     open,
+    loading,
     isTakeout,
     fileCount,
     albumCount,
@@ -58,18 +62,19 @@ export function UploadConfirmationDialog({
             onClose={onCancel}
             maxWidth={false}
             aria-labelledby="upload-confirmation-title"
+            aria-busy={loading}
             slotProps={{ paper: { sx: paperSx } }}
         >
             <Stack sx={contentSx}>
                 <Stack direction="row" sx={headerSx}>
                     <Typography sx={displayTitleSx}>
                         {isTakeout
-                            ? "Import from Google Photos"
-                            : "Upload to Ente"}
+                            ? t("import_from_google_photos")
+                            : t("upload_to_ente")}
                     </Typography>
                     <Stack direction="row" sx={headerActionsSx}>
                         <IconButton
-                            aria-label="Close"
+                            aria-label={t("close")}
                             onClick={onCancel}
                             sx={headerButtonSx}
                         >
@@ -82,38 +87,79 @@ export function UploadConfirmationDialog({
                     <Stack sx={{ gap: "20px" }}>
                         <Stack sx={readySx}>
                             <Box aria-hidden sx={successIllustrationSx}>
-                                <Box sx={successIconSx}>
-                                    <HugeiconsIcon
-                                        icon={Tick02Icon}
-                                        size={26}
-                                        strokeWidth={2.5}
-                                    />
-                                </Box>
+                                {loading ? (
+                                    <Box sx={loadingIconSx}>
+                                        <Box sx={loadingSpinnerSx}>
+                                            <HugeiconsIcon
+                                                icon={Loading03Icon}
+                                                size={26}
+                                            />
+                                        </Box>
+                                    </Box>
+                                ) : (
+                                    <Box sx={successIconSx}>
+                                        <HugeiconsIcon
+                                            icon={Tick02Icon}
+                                            size={26}
+                                            strokeWidth={2.5}
+                                        />
+                                    </Box>
+                                )}
                             </Box>
                             <Typography
                                 id="upload-confirmation-title"
                                 component="h2"
                                 sx={displayTitleSx}
                             >
-                                {isTakeout
-                                    ? "Ready to import!"
-                                    : "Ready to upload!"}
+                                {loading
+                                    ? t("calculating_title")
+                                    : t(
+                                          isTakeout
+                                              ? "ready_to_import"
+                                              : "ready_to_upload",
+                                      )}
                             </Typography>
+                            {loading && (
+                                <Typography sx={calculatingDescriptionSx}>
+                                    {t(
+                                        isTakeout
+                                            ? "calculating_takeout_description"
+                                            : "calculating_upload_description",
+                                    )}
+                                </Typography>
+                            )}
                         </Stack>
 
-                        <Stack direction="row" sx={statsSx}>
+                        <Stack
+                            direction="row"
+                            sx={[statsSx, loading && { opacity: 0.4 }]}
+                        >
                             <StatCard
+                                loading={loading}
                                 value={fileCount}
-                                label="photos and videos found"
+                                label={t("preupload_media_found", {
+                                    count: fileCount,
+                                })}
                             />
-                            <StatCard value={albumCount} label="albums found" />
+                            <StatCard
+                                loading={loading}
+                                value={albumCount}
+                                label={t("preupload_album_found", {
+                                    count: albumCount,
+                                })}
+                            />
                         </Stack>
                     </Stack>
 
                     {isTakeout && (
-                        <Stack sx={{ gap: "20px" }}>
+                        <Stack
+                            sx={{
+                                gap: "20px",
+                                ...(loading && { opacity: 0.4 }),
+                            }}
+                        >
                             <Typography component="h3" sx={sectionTitleSx}>
-                                More options
+                                {t("more_options")}
                             </Typography>
                             <Stack direction="row" sx={optionSx}>
                                 <Box sx={optionIconSx}>
@@ -121,19 +167,19 @@ export function UploadConfirmationDialog({
                                 </Box>
                                 <Stack sx={optionTextSx}>
                                     <Typography sx={bodySx}>
-                                        Favourites
+                                        {t("favorites")}
                                     </Typography>
                                     <Typography sx={captionSx}>
-                                        Carry over your favourites from Google
-                                        Photos
+                                        {t("import_favorites_hint")}
                                     </Typography>
                                 </Stack>
                                 <EnteSwitch
                                     color="accent"
                                     checked={importFavorites}
+                                    disabled={loading}
                                     onChange={onImportFavoritesChange}
                                     slotProps={{
-                                        input: { "aria-label": "Favourites" },
+                                        input: { "aria-label": t("favorites") },
                                     }}
                                     sx={switchSx}
                                 />
@@ -147,21 +193,22 @@ export function UploadConfirmationDialog({
                                 </Box>
                                 <Stack sx={optionTextSx}>
                                     <Typography sx={bodySx}>
-                                        Partner shared photos
+                                        {t("partner_shared_photos")}
                                     </Typography>
                                     <Typography sx={captionSx}>
-                                        Import photos that were shared by your
-                                        partner on Google Photos
+                                        {t("import_partner_shared_photos_hint")}
                                     </Typography>
                                 </Stack>
                                 <EnteSwitch
                                     color="accent"
                                     checked={includePartnerSharedFiles}
+                                    disabled={loading}
                                     onChange={onIncludePartnerSharedFilesChange}
                                     slotProps={{
                                         input: {
-                                            "aria-label":
-                                                "Partner shared photos",
+                                            "aria-label": t(
+                                                "partner_shared_photos",
+                                            ),
                                         },
                                     }}
                                     sx={switchSx}
@@ -174,20 +221,38 @@ export function UploadConfirmationDialog({
                 <FocusVisibleButton
                     fullWidth
                     color="accent"
+                    disabled={loading}
                     onClick={onConfirm}
                     sx={confirmButtonSx}
                 >
-                    {isTakeout ? "Start import" : "Start upload"}
+                    {loading ? (
+                        <>
+                            <Box component="span" sx={buttonSpinnerSx} />
+                            {t("calculating_title")}
+                        </>
+                    ) : (
+                        t(isTakeout ? "start_import" : "start_upload")
+                    )}
                 </FocusVisibleButton>
             </Stack>
         </Dialog>
     );
 }
 
-function StatCard({ value, label }: { value: number; label: string }) {
+function StatCard({
+    value,
+    label,
+    loading,
+}: {
+    value: number;
+    label: string;
+    loading: boolean;
+}) {
     return (
         <Stack sx={statCardSx}>
-            <Typography sx={statValueSx}>{value.toLocaleString()}</Typography>
+            <Typography sx={statValueSx}>
+                {loading ? "–" : value.toLocaleString()}
+            </Typography>
             <Typography sx={captionSx}>{label}</Typography>
         </Stack>
     );
@@ -259,6 +324,14 @@ const successIllustrationSx = (theme: Theme) => ({
     ...theme.applyStyles("dark", { backgroundColor: "rgba(8 194 37 / 0.16)" }),
 });
 
+const calculatingDescriptionSx = {
+    maxWidth: 420,
+    color: "text.muted",
+    fontSize: 14,
+    fontWeight: 500,
+    lineHeight: "20px",
+};
+
 const successIconSx = {
     display: "flex",
     width: 40,
@@ -268,6 +341,24 @@ const successIconSx = {
     borderRadius: "50%",
     color: "#fff",
     backgroundColor: green,
+};
+
+const loadingIconSx = {
+    ...successIconSx,
+    animation: "upload-confirmation-fade-in 0.5s ease-out forwards",
+    "@keyframes upload-confirmation-fade-in": {
+        "0%": { opacity: 0 },
+        "100%": { opacity: 1 },
+    },
+};
+
+const loadingSpinnerSx = {
+    display: "inline-flex",
+    animation: "upload-confirmation-spin 3s linear infinite",
+    "@keyframes upload-confirmation-spin": {
+        from: { transform: "rotate(0deg)" },
+        to: { transform: "rotate(360deg)" },
+    },
 };
 
 const statsSx = { gap: "10px", minWidth: 0 };
@@ -336,10 +427,11 @@ const switchSx = {
 
 const bodySx = { fontSize: 14, fontWeight: 500, lineHeight: "20px" };
 
-const confirmButtonSx = {
+const confirmButtonSx = (theme: Theme) => ({
     minHeight: 52,
     px: 3,
     py: "14px",
+    gap: "10px",
     borderRadius: "20px",
     color: "#fff",
     backgroundColor: green,
@@ -349,4 +441,29 @@ const confirmButtonSx = {
     lineHeight: "20px",
     textTransform: "none",
     "&:hover": { backgroundColor: "#07ad21", boxShadow: "none" },
-};
+    "&.Mui-disabled": {
+        color: "rgba(0 0 0 / 0.6)",
+        backgroundColor: "rgba(0 0 0 / 0.12)",
+        ...theme.applyStyles("dark", {
+            color: "rgba(255 255 255 / 0.7)",
+            backgroundColor: "rgba(255 255 255 / 0.12)",
+        }),
+    },
+});
+
+const buttonSpinnerSx = (theme: Theme) => ({
+    display: "block",
+    width: 16,
+    height: 16,
+    borderRadius: "50%",
+    border: "2px solid rgba(0 0 0 / 0.2)",
+    borderTopColor: "rgba(0 0 0 / 0.6)",
+    animation: "upload-confirmation-spin 0.9s linear infinite",
+    "@keyframes upload-confirmation-spin": {
+        to: { transform: "rotate(360deg)" },
+    },
+    ...theme.applyStyles("dark", {
+        borderColor: "rgba(255 255 255 / 0.24)",
+        borderTopColor: "rgba(255 255 255 / 0.7)",
+    }),
+});

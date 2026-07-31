@@ -10,9 +10,9 @@ fail() {
 
 remove_direct_dependencies() {
     local count
-    count=$(rg -c "^  (firebase_core|firebase_messaging|in_app_purchase):" pubspec.yaml || true)
-    [[ "$count" == "3" ]] || fail "expected three restricted dependencies in pubspec.yaml"
-    perl -0pi -e 's/^  (firebase_core|firebase_messaging|in_app_purchase):[^\n]*\n//mg' pubspec.yaml
+    count=$(rg -c "^  (firebase_core|firebase_messaging|in_app_purchase_storekit|in_app_purchase):" pubspec.yaml || true)
+    [[ "$count" == "4" ]] || fail "expected four restricted dependencies in pubspec.yaml"
+    perl -0pi -e 's/^  (firebase_core|firebase_messaging|in_app_purchase_storekit|in_app_purchase):[^\n]*\n//mg' pubspec.yaml
 }
 
 remove_playstore_sources() {
@@ -24,7 +24,7 @@ copy_fdroid_overlay() {
 }
 
 assert_fdroid_source() {
-    if rg -n "package:(firebase_core|firebase_messaging|in_app_purchase)" lib pubspec.yaml; then
+    if rg -n "package:(firebase_core|firebase_messaging|in_app_purchase_storekit|in_app_purchase)" lib pubspec.yaml; then
         fail "restricted package imports or direct dependencies remain"
     fi
 

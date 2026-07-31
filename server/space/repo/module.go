@@ -15,6 +15,8 @@ type Module struct {
 	Read     *ReadMarkersRepository
 	Sessions *SessionsRepository
 	Drips    *DripsRepository
+	Links    *LinksRepository
+	WebPush  *WebPushRepository
 }
 
 type SpacesRepository struct {
@@ -47,6 +49,14 @@ type SessionsRepository struct {
 }
 
 type DripsRepository struct {
+	DB *sql.DB
+}
+
+type LinksRepository struct {
+	DB *sql.DB
+}
+
+type WebPushRepository struct {
 	DB *sql.DB
 }
 
@@ -212,6 +222,7 @@ type SpaceFriendRequestRecord struct {
 	RequesterKeyVersion           int
 	CreatedAt                     int64
 	Requester                     SpaceActorRecord
+	Target                        SpaceActorRecord
 }
 
 type SpaceBrowserSessionRecord struct {
@@ -224,6 +235,30 @@ type SpaceBrowserSessionRecord struct {
 	LastUsedAt     int64
 }
 
+type SpaceLinkRecord struct {
+	LinkID             int64
+	SpaceID            string
+	SpaceSlug          string
+	AuthKeyHash        []byte
+	KDFSalt            []byte
+	KDFMemLimit        int64
+	KDFOpsLimit        int64
+	KeyVersion         int
+	EncryptedSpaceKey  []byte
+	EncryptedAccessKey []byte
+	Active             bool
+	CreatedAt          int64
+	UpdatedAt          int64
+}
+
+type SpaceWebPushSubscriptionRecord struct {
+	TargetID string
+	Endpoint string
+	P256dh   string
+	Auth     string
+	Public   bool
+}
+
 func NewModule(db *sql.DB, s3Config *s3config.S3Config) *Module {
 	return &Module{
 		Spaces:   &SpacesRepository{DB: db},
@@ -234,5 +269,7 @@ func NewModule(db *sql.DB, s3Config *s3config.S3Config) *Module {
 		Read:     &ReadMarkersRepository{DB: db},
 		Sessions: &SessionsRepository{DB: db},
 		Drips:    &DripsRepository{DB: db},
+		Links:    &LinksRepository{DB: db},
+		WebPush:  &WebPushRepository{DB: db},
 	}
 }

@@ -10,52 +10,32 @@ license = "AGPL-3.0-only"
 [features]
 museum = []
 
-[[test]]
-name = "paste"
-required-features = ["museum"]
-
-[[test]]
-name = "sync"
-required-features = ["museum"]
-
 [dependencies]
-# CLI
+chrono = "0.4"
 clap = { version = "4.5", features = ["derive", "env"] }
+dialoguer = "0.11"
+dirs = "5.0"
 ente-accounts.workspace = true
-ente-core = { workspace = true, features = ["srp"] }
+ente-core.workspace = true
 ente-paste.workspace = true
+env_logger = "0.11"
+futures = "0.3"
+indicatif = "0.18"
+log = "0.4"
+open = "5.0"
+rusqlite = { version = "0.38", features = ["bundled", "serde_json"] }
 serde.workspace = true
 serde_json.workspace = true
-
-# Async runtime and networking
-tokio = { version = "1.41", features = ["full"] }
-futures = "0.3"
-
-# Cryptography - using ente-core pure Rust implementation
-base64 = "0.22"
-zeroize = { version = "1.8", features = ["derive"] }
-
-# Storage
-rusqlite = { version = "0.38", features = ["bundled", "serde_json"] }
-
-# Utilities
 thiserror.workspace = true
-log = "0.4"
-env_logger = "0.11"
-dirs = "5.0"
-chrono = "0.4"
+tokio = { version = "1.41", features = ["full"] }
+urlencoding.workspace = true
 uuid = { version = "1.11", features = ["serde", "v4"] }
-urlencoding = "2.1"
-indicatif = "0.18"
-dialoguer = "0.11"
-open = "5.0"
-
-# File operations
+zeroize.workspace = true
 zip = "2.2"
 
 [dev-dependencies]
 ente-test-support.workspace = true
-mockito = "1.6"
-url = "2.5.8"
-sha2 = "0.11"
+mockito.workspace = true
+sha2.workspace = true
 srp = { version = "0.7.0-rc.3", default-features = false }
+url.workspace = true

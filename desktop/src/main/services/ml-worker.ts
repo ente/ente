@@ -1,26 +1,30 @@
 /**
  * @file ML related tasks. This code runs in a utility process.
  *
- * The ML runtime we use for inference is [ONNX](https://onnxruntime.ai). Models
- * for various tasks are not shipped with the app but are downloaded on demand.
+ * The ML pipeline itself — image decode, preprocessing, ONNX inference and
+ * postprocessing — is implemented by the Rust crate shared with the mobile
+ * apps, and reaches us via a Node native addon (see [Note: ML with Rust]).
+ * This file loads the addon and forwards requests that arrive from the web
+ * layer over our MessagePort. The addon downloads the models through the
+ * shared Rust asset store.
  */
 
 // See [Note: Using Electron APIs in UtilityProcess] about what we can and
 // cannot import.
 
-import Tokenizer from "clip-bpe-js";
 import { expose } from "comlink";
-import { net } from "electron/main";
-import { existsSync } from "fs";
-import fs from "node:fs/promises";
 import path from "node:path";
-import * as ort from "onnxruntime-node";
 import { z } from "zod";
 import log from "../log-worker";
 import { messagePortMainEndpoint } from "../utils/comlink";
 import { wait } from "../utils/common";
-import { writeStream } from "../utils/stream";
 import { fsStatMtime } from "./fs";
+
+// The addon is loaded at runtime from the path the main process gives us, so
+// this import is used only for its types (it resolves to the generated
+// `rust-bindings/index.d.ts`).
+import type * as MLNativeModule from "../../../rust-bindings";
+import type { MLNativePaths } from "./ml-native";
 
 log.debugString("Started ML utility process");
 
@@ -28,16 +32,17 @@ process.on("uncaughtException", (e, origin) => log.error(origin, e));
 
 process.parentPort.once("message", (e) => {
     // Initialize ourselves with the data we got from our parent.
-    parseInitData(e.data);
+    const { mlNativePaths } = parseInitData(e.data);
+    loadMLNative(mlNativePaths);
+    if (_native) void warmUpClipTextEncoder(_native);
     // Expose an instance of `ElectronMLWorker` on the port we got from our
     // parent.
     expose(
         {
             fsStatMtime,
-            computeCLIPImageEmbedding,
+            analyzeImage,
+            releaseMLRuntime,
             computeCLIPTextEmbeddingIfAvailable,
-            detectFaces,
-            computeFaceEmbeddings,
         },
         messagePortMainEndpoint(e.ports[0]!),
     );
@@ -53,255 +58,363 @@ let _userDataPath: string | undefined;
 /** Equivalent to app.getPath("userData") */
 const userDataPath = () => _userDataPath!;
 
-const MLWorkerInitData = z.object({ userDataPath: z.string() });
+const MLWorkerInitData = z.object({
+    userDataPath: z.string(),
+    mlNativePaths: z.object({
+        addon: z.string(),
+        onnxRuntimeLibrary: z.string(),
+    }),
+});
 
 const parseInitData = (data: unknown) => {
-    _userDataPath = MLWorkerInitData.parse(data).userDataPath;
+    const initData = MLWorkerInitData.parse(data);
+    _userDataPath = initData.userDataPath;
+    return initData;
+};
+
+type MLNative = typeof MLNativeModule;
+
+type MLWorkerAnalyzeImageErrorKind = "init" | "ort" | "image" | "misc";
+
+interface MLWorkerAnalyzeImageError {
+    kind: MLWorkerAnalyzeImageErrorKind;
+    message: string;
+}
+
+type MLWorkerAnalyzeImageResponse =
+    | { ok: true; result: MLNativeModule.AnalyzeImageResult }
+    | { ok: false; error: MLWorkerAnalyzeImageError };
+
+class CategorizedMLWorkerError extends Error {
+    constructor(
+        public readonly kind: MLWorkerAnalyzeImageErrorKind,
+        message: string,
+    ) {
+        super(message);
+        this.name = "CategorizedMLWorkerError";
+    }
+}
+
+let _native: MLNative | undefined;
+let _assetStore: MLNativeModule.AssetStore | undefined;
+let _nativeLoadError: string | undefined;
+
+/**
+ * Load the Rust ML addon and point it at the ONNX Runtime library.
+ *
+ * A failure here (e.g. an OS version too old for the ONNX Runtime build) is
+ * not fatal to the app: we remember the error, and all subsequent ML requests
+ * fail with it, leaving the rest of the app functional.
+ */
+const loadMLNative = (paths: MLNativePaths) => {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const native = require(paths.addon) as MLNative;
+        native.initOrt(paths.onnxRuntimeLibrary);
+        // Enables the guarded WebGPU path on Linux and Windows. This is a
+        // no-op on macOS, where CoreML remains the preferred provider.
+        native.setMlExecutionConfig(true);
+        _assetStore = new native.AssetStore(
+            path.join(userDataPath(), "assets"),
+            path.join(userDataPath(), "models"),
+        );
+        _native = native;
+    } catch (e) {
+        _nativeLoadError = e instanceof Error ? e.message : String(e);
+        log.error(`Failed to load ML addon at ${paths.addon}`, e);
+    }
 };
 
 /**
- * Return a function that can be used to trigger a download of the specified
- * model, and the creating of an ONNX inference session initialized using it.
- *
- * Multiple parallel calls to the returned function are fine, it ensures that
- * the the model will be downloaded and the session created using it only once.
- * All pending calls to it meanwhile will just await on the same promise.
- *
- * And once the promise is resolved, the create ONNX inference session will be
- * cached, so subsequent calls to the returned function will just reuse the same
- * session.
- *
- * {@link makeCachedInferenceSession} can itself be called anytime, it doesn't
- * actively trigger a download until the returned function is called.
- *
- * @param modelName The name of the model to download.
- *
- * @param modelByteSize The size in bytes that we expect the model to have. If
- * the size of the downloaded model does not match the expected size, then we
- * will redownload it.
- *
- * @returns a function. calling that function returns a promise to an ONNX
- * session.
+ * Return the loaded addon, throwing if it (or the ONNX Runtime library it
+ * needs) could not be loaded on this machine.
  */
-const makeCachedInferenceSession = (
-    modelName: string,
-    modelByteSize: number,
-) => {
-    let session: Promise<ort.InferenceSession> | undefined;
+const mlNative = () => {
+    if (_native) return _native;
+    throw new CategorizedMLWorkerError(
+        "init",
+        `ML is unavailable: ${_nativeLoadError ?? "not loaded"}`,
+    );
+};
 
-    const download = () =>
-        modelPathDownloadingIfNeeded(modelName, modelByteSize);
-
-    const createSession = (modelPath: string) =>
-        createInferenceSession(modelPath);
-
-    const cachedInferenceSession = () =>
-        (session ??= download().then(createSession));
-
-    return cachedInferenceSession;
+const assetStore = () => {
+    if (_assetStore) return _assetStore;
+    throw new CategorizedMLWorkerError(
+        "init",
+        `ML is unavailable: ${_nativeLoadError ?? "asset store not loaded"}`,
+    );
 };
 
 /**
- * Download the model named {@link modelName} if we don't already have it.
- *
- * Also verify that the size of the model we get matches {@expectedByteSize} (if
- * not, redownload it).
- *
- * @returns the path to the model on the local machine.
+ * Drain the runtime events (execution provider fallbacks, self-test failures)
+ * buffered on the Rust side, writing each to our log at its severity.
  */
-const modelPathDownloadingIfNeeded = async (
-    modelName: string,
-    expectedByteSize: number,
+const logMLRuntimeEvents = (native: MLNative) => {
+    for (const { severity, message } of native.takeMlRuntimeEvents()) {
+        const s = `[ml-rt] ${message}`;
+        if (severity == "severe") log.error(s);
+        else if (severity == "warning") log.warn(s);
+        else log.info(s);
+    }
+};
+
+/**
+ * The models needed for the indexing tasks enabled in the given request,
+ * mapped to verified on-disk paths.
+ *
+ * Models for tasks that are not requested are left as empty strings, which
+ * the Rust side treats as "not configured".
+ */
+const _indexingModelPaths = new Map<
+    number,
+    Promise<MLNativeModule.ModelPaths>
+>();
+
+const indexingModelPaths = (
+    runFaces: boolean,
+    runClip: boolean,
+    runPets: boolean,
 ) => {
-    const modelPath = modelSavePath(modelName);
+    const key =
+        Number(runFaces) | (Number(runClip) << 1) | (Number(runPets) << 2);
+    let promise = _indexingModelPaths.get(key);
+    if (!promise) {
+        promise = assetStore()
+            .indexingModelPaths(runFaces, runClip, runPets)
+            .catch((e: unknown) => {
+                _indexingModelPaths.delete(key);
+                throw e;
+            });
+        _indexingModelPaths.set(key, promise);
+    }
+    return promise;
+};
 
-    await cleanupOldModelsIfNeeded();
+/**
+ * The model paths key for which the Rust runtime is currently prepared, if
+ * any. Re-preparing with the same paths is skipped (the Rust side would
+ * anyway no-op, this just avoids the IPC churn).
+ */
+let _preparedRuntimeKey: string | undefined;
 
-    if (!existsSync(modelPath)) {
-        log.info("CLIP image model not found, downloading");
-        await downloadModel(modelPath, modelName);
+const ensureMLRuntime = (
+    native: MLNative,
+    modelPaths: MLNativeModule.ModelPaths,
+) => {
+    const key = JSON.stringify(modelPaths);
+    if (_preparedRuntimeKey == key) return;
+    native.initMlRuntime(modelPaths);
+    _preparedRuntimeKey = key;
+};
+
+/**
+ * Release the (pinned) Rust ML runtime sessions. Called by the web layer when
+ * indexing goes idle so that we don't hold on to the session memory.
+ */
+export const releaseMLRuntime = () => {
+    if (!_native) return;
+    _native.releaseMlRuntime();
+    _preparedRuntimeKey = undefined;
+    logMLRuntimeEvents(_native);
+};
+
+/**
+ * The request the web layer sends us to analyze a single image. Mirrors (a
+ * subset of) the addon's own request, except the image source, which we
+ * convert to what the addon expects.
+ */
+export interface MLWorkerAnalyzeImageRequest {
+    fileID: number;
+    /** Path to the image on the local filesystem. */
+    path?: string | undefined;
+    /** The encoded image bytes (used when there is no local file). */
+    bytes?: Uint8Array | undefined;
+    runFaces: boolean;
+    runClip: boolean;
+    runPets: boolean;
+    generateFaceCrops: boolean;
+}
+
+/**
+ * Analyze a single image with the Rust ML pipeline, downloading any needed
+ * models first.
+ *
+ * If the Rust side reports the on-disk model as corrupt, delete and
+ * redownload it, and retry once.
+ */
+export const analyzeImage = async (
+    req: MLWorkerAnalyzeImageRequest,
+): Promise<MLWorkerAnalyzeImageResponse> => {
+    try {
+        return { ok: true, result: await analyzeImageOrThrow(req) };
+    } catch (e) {
+        return { ok: false, error: categorizeAnalyzeImageError(e) };
+    }
+};
+
+const analyzeImageOrThrow = async (req: MLWorkerAnalyzeImageRequest) => {
+    const native = mlNative();
+    try {
+        return await analyzeImageOnce(native, req);
+    } catch (e) {
+        if (!evictModelIfReportedCorrupt(e)) throw e;
+        _preparedRuntimeKey = undefined;
+        return await analyzeImageOnce(native, req);
+    } finally {
+        logMLRuntimeEvents(native);
+    }
+};
+
+const categorizeAnalyzeImageError = (e: unknown): MLWorkerAnalyzeImageError => {
+    if (e instanceof CategorizedMLWorkerError) {
+        return { kind: e.kind, message: e.message };
+    }
+
+    const message = e instanceof Error ? e.message : String(e);
+    const kind: MLWorkerAnalyzeImageErrorKind =
+        message.startsWith("Decode: ") || message.startsWith("Image: ")
+            ? "image"
+            : message.startsWith("Ort: ") ||
+                message.startsWith("CorruptModel: ") ||
+                message.startsWith("Runtime: ")
+              ? "ort"
+              : "misc";
+    return { kind, message };
+};
+
+const analyzeImageOnce = async (
+    native: MLNative,
+    req: MLWorkerAnalyzeImageRequest,
+) => {
+    let source;
+    if (req.path !== undefined) {
+        source = { imagePath: req.path };
+    } else if (req.bytes) {
+        source = { imageBytes: uint8ArrayToBuffer(req.bytes) };
     } else {
-        const size = (await fs.stat(modelPath)).size;
-        if (size !== expectedByteSize) {
-            log.error(
-                `The size ${size} of model ${modelName} does not match the expected size, downloading again`,
-            );
-            await downloadModel(modelPath, modelName);
-        }
+        throw new Error("The analyze request has neither a path nor bytes");
     }
 
-    return modelPath;
-};
-
-/**
- * Cleanup old models.
- *
- * This code runs whenever we need to download a new model, which usually
- * happens when we update a model, so this is a great time to go through the
- * list of previously existent but now unused models, and delete them if they
- * exist to clean up the user's disk space.
- */
-const cleanupOldModelsIfNeeded = async () => {
-    const oldModelNames = [
-        "clip-image-vit-32-float32.onnx",
-        "clip-text-vit-32-uint8.onnx",
-        "mobileclip_s2_image.onnx",
-        "mobileclip_s2_image_opset18_rgba_sim.onnx",
-        "mobileclip_s2_text_int32.onnx",
-        "yolov5s_face_640_640_dynamic.onnx",
-        "yolov5s_face_opset18_rgba_opt.onnx",
-    ];
-
-    for (const modelName of oldModelNames) {
-        const modelPath = modelSavePath(modelName);
-        if (existsSync(modelPath)) {
-            log.info(`Removing unused ML model at ${modelPath}`);
-            await fs.rm(modelPath);
-        }
-    }
-};
-
-/** Return the path where the given {@link modelName} is meant to be saved */
-const modelSavePath = (modelName: string) =>
-    path.join(userDataPath(), "models", modelName);
-
-const downloadModel = async (saveLocation: string, name: string) => {
-    // `mkdir -p` the directory where we want to save the model.
-    const saveDir = path.dirname(saveLocation);
-    await fs.mkdir(saveDir, { recursive: true });
-    // Download.
-    log.info(`Downloading ML model from ${name}`);
-    const url = `https://models.ente.com/${name}`;
-    const res = await net.fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch ${url}: HTTP ${res.status}`);
-    const body = res.body;
-    if (!body) throw new Error(`Received an null response for ${url}`);
-    // Save.
-    await writeStream(saveLocation, body);
-    log.info(`Downloaded CLIP model ${name}`);
-};
-
-/**
- * Create an ONNX {@link InferenceSession} with some defaults.
- */
-const createInferenceSession = (modelPath: string) =>
-    ort.InferenceSession.create(modelPath, {
-        // Restrict the number of threads to 1.
-        intraOpNumThreads: 1,
-        // Be more conservative with RAM usage.
-        enableCpuMemArena: false,
+    const modelPaths = await indexingModelPaths(
+        req.runFaces,
+        req.runClip,
+        req.runPets,
+    );
+    ensureMLRuntime(native, modelPaths);
+    return await native.analyzeImage({
+        fileId: req.fileID,
+        ...source,
+        runFaces: req.runFaces,
+        runClip: req.runClip,
+        runPets: req.runPets,
+        generateFaceCrops: req.generateFaceCrops,
+        modelPaths,
     });
-
-const cachedCLIPImageSession = makeCachedInferenceSession(
-    "mobileclip_s2_image_opset18_rgba_opt.onnx",
-    143099752 /* 143 MB */,
-);
-
-/**
- * Compute CLIP embeddings for an image.
- *
- * The embeddings are computed using ONNX runtime, with MobileCLIP as the model.
- */
-export const computeCLIPImageEmbedding = async (
-    input: Uint8ClampedArray,
-    inputShape: number[],
-) => {
-    const session = await cachedCLIPImageSession();
-    const inputArray = new Uint8Array(input.buffer);
-    const feeds = { input: new ort.Tensor("uint8", inputArray, inputShape) };
-    const t = Date.now();
-    const results = await session.run(feeds);
-    log.debugString(`ONNX/CLIP image embedding took ${Date.now() - t} ms`);
-    /* Need these model specific casts to type the result */
-    return results.output!.data as Float32Array;
 };
 
-const cachedCLIPTextSession = makeCachedInferenceSession(
-    "mobileclip_s2_text_opset18_quant.onnx",
-    67144712 /* 67 MB */,
-);
-
-let _tokenizer: Tokenizer | undefined;
-const getTokenizer = () => (_tokenizer ??= new Tokenizer());
+/**
+ * If {@link e} is the addon's tagged "CorruptModel" error, return the path of
+ * the corrupt model file it reports.
+ */
+const corruptModelPathFromError = (e: unknown) => {
+    if (!(e instanceof Error)) return undefined;
+    if (!e.message.startsWith("CorruptModel: ")) return undefined;
+    return e.message.slice("CorruptModel: ".length).trim();
+};
 
 /**
- * Compute CLIP embeddings for an text snippet.
+ * If {@link e} is the addon's tagged "CorruptModel" error, evict the model it
+ * names so that its next use downloads a fresh copy, and return `true`.
+ */
+const evictModelIfReportedCorrupt = (e: unknown) => {
+    const corruptModelPath = corruptModelPathFromError(e);
+    if (!corruptModelPath) return false;
+    if (!assetStore().removeModel(corruptModelPath)) return false;
+    _indexingModelPaths.clear();
+    log.error(
+        `Rust ML reported a corrupt model at ${corruptModelPath}, evicting it so that it gets redownloaded`,
+    );
+    _clipTextModelPaths = undefined;
+    return true;
+};
+
+// Zero-copy view over the transferred bytes.
+const uint8ArrayToBuffer = (bytes: Uint8Array) =>
+    Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+let _clipTextModelPaths: Promise<MLNativeModule.ClipTextModelPaths> | undefined;
+
+const clipTextModelPaths = () =>
+    (_clipTextModelPaths ??= assetStore()
+        .clipTextModelPaths()
+        .catch((e: unknown) => {
+            _clipTextModelPaths = undefined;
+            throw e;
+        }));
+
+/**
+ * Run a throwaway CLIP text query so that the Rust side builds and caches the
+ * text encoder session before the user's first search. Mirrors the mobile
+ * app's warm up (see ml_computer.dart).
  *
- * The embeddings are computed using ONNX runtime, with MobileCLIP as the model.
+ * Best effort - on failure, queries build the session on demand as before.
+ */
+const warmUpClipTextEncoder = async (native: MLNative) => {
+    try {
+        const { modelPath, vocabPath } = await clipTextModelPaths();
+        await native.runClipText({
+            text: "warm up text encoder",
+            modelPath,
+            vocabPath,
+        });
+    } catch (e) {
+        if (!evictModelIfReportedCorrupt(e))
+            log.warn("Failed to warm up the CLIP text encoder", e);
+    } finally {
+        logMLRuntimeEvents(native);
+    }
+};
+
+/**
+ * Compute CLIP embeddings for a text snippet, if the model is available.
+ *
+ * The embedding is computed by the Rust pipeline (which also handles the
+ * tokenization). If the model (or the addon itself) is not available yet, we
+ * return `undefined` instead of blocking the caller on the download.
  */
 export const computeCLIPTextEmbeddingIfAvailable = async (text: string) => {
-    const sessionOrSkip = await Promise.race([
-        cachedCLIPTextSession(),
-        // Wait a bit to get the session promise to resolved the first time this
-        // code runs on each app start (in these cases the model will already be
-        // downloaded, so session creation should take only a 1 or 2 ticks: file
-        // system stat, and ort.InferenceSession.create).
-        wait(50).then(() => 1),
+    if (!_native) return undefined;
+    const native = _native;
+
+    const pathsOrSkip = await Promise.race([
+        clipTextModelPaths(),
+        // Wait a bit for the models to resolve the first time this code runs
+        // on each app start (when they're already downloaded, resolving them
+        // is quick), but don't block on a download.
+        wait(50).then(() => 1 as const),
     ]);
 
-    // Don't wait for the download to complete.
-    if (typeof sessionOrSkip == "number") {
+    if (typeof pathsOrSkip == "number") {
         log.info(
             "Ignoring CLIP text embedding request because model download is pending",
         );
         return undefined;
     }
 
-    const session = sessionOrSkip;
-    const tokenizer = getTokenizer();
-    const tokenizedText = Int32Array.from(tokenizer.encodeForCLIP(text));
-    const feeds = { input: new ort.Tensor("int32", tokenizedText, [1, 77]) };
-
-    const t = Date.now();
-    const results = await session.run(feeds);
-    log.debugString(`ONNX/CLIP text embedding took ${Date.now() - t} ms`);
-    return results.output!.data as Float32Array;
-};
-
-const cachedFaceDetectionSession = makeCachedInferenceSession(
-    "yolov5s_face_opset18_rgba_opt_nosplits.onnx",
-    28952651 /* 29 MB */,
-);
-
-/**
- * Face detection with the YOLO model and ONNX runtime.
- */
-export const detectFaces = async (
-    input: Uint8ClampedArray,
-    inputShape: number[],
-) => {
-    const session = await cachedFaceDetectionSession();
-    const inputArray = new Uint8Array(input.buffer);
-    const feeds = { input: new ort.Tensor("uint8", inputArray, inputShape) };
-    const t = Date.now();
-    const results = await session.run(feeds);
-    log.debugString(`ONNX/YOLO face detection took ${Date.now() - t} ms`);
-    return results.output!.data;
-};
-
-const cachedFaceEmbeddingSession = makeCachedInferenceSession(
-    "mobilefacenet_opset15.onnx",
-    5286998 /* 5 MB */,
-);
-
-/**
- * Face embedding with the MobileFaceNet model and ONNX runtime.
- */
-export const computeFaceEmbeddings = async (input: Float32Array) => {
-    // Dimension of each face (alias)
-    const mobileFaceNetFaceSize = 112;
-    // Smaller alias
-    const z = mobileFaceNetFaceSize;
-    // Size of each face's data in the batch
-    const n = Math.round(input.length / (z * z * 3));
-    const inputTensor = new ort.Tensor("float32", input, [n, z, z, 3]);
-
-    const session = await cachedFaceEmbeddingSession();
-    const feeds = { img_inputs: inputTensor };
-    const t = Date.now();
-    const results = await session.run(feeds);
-    log.debugString(`ONNX/MFNT face embedding took ${Date.now() - t} ms`);
-    /* Need these model specific casts to extract and type the result */
-    return (results.embeddings as unknown as Record<string, unknown>)
-        .cpuData as Float32Array;
+    const { modelPath, vocabPath } = pathsOrSkip;
+    try {
+        const { embedding } = await native.runClipText({
+            text,
+            modelPath,
+            vocabPath,
+        });
+        return embedding;
+    } catch (e) {
+        // Don't block this query on the redownload; a subsequent query will
+        // pick up the fresh copy.
+        if (!evictModelIfReportedCorrupt(e)) throw e;
+        return undefined;
+    } finally {
+        logMLRuntimeEvents(native);
+    }
 };

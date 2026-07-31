@@ -4,9 +4,15 @@ import {
     clearSpaceBrowserSession,
     revokeSpaceBrowserSessions,
 } from "services/spacePersistentSession";
+import { forgetSpaceWebPushAccountTarget } from "services/spaceWebPush";
 
 export const spaceLogout = async () => {
     await revokeSpaceBrowserSessions();
+    try {
+        await forgetSpaceWebPushAccountTarget();
+    } catch (error) {
+        log.warn("Failed to clear Space notification state on logout", error);
+    }
     try {
         clearSpaceBrowserSession();
     } catch (error) {

@@ -1,45 +1,72 @@
 import { Box } from "@mui/material";
+import { AuthenticatedFriendProfile } from "components/AuthenticatedFriendProfile";
 import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
 import { SpaceMobileBestToast } from "components/SpaceMobileBestToast";
 import { SpacePageMeta } from "components/SpacePageMeta";
+import { SpacePublicProfileNotificationControl } from "components/SpacePublicProfileNotificationControl";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
-import React, { useEffect, useState } from "react";
+import log from "ente-base/log";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     OnboardingScreen,
     addFriendOnboardingTitle,
     onboardingGreen,
 } from "screens/OnboardingScreen";
-import { profileBackground } from "screens/ProfileScreen";
+import { ProfileScreen, profileBackground } from "screens/ProfileScreen";
 import {
-    joinSpaceInvite,
+    loadCurrentSpaceRelationship,
     loadPublicSpaceIdentity,
+    openPublicSpaceLink,
+    requestFriendByUsername,
     type PublicSpaceIdentity,
+    type PublicSpaceLinkSession,
+    type SpaceProfilePost,
 } from "services/space";
 import {
     clearPendingSpaceInvite,
     clearPendingSpaceInviteFriend,
+    clearPendingSpaceInviteIntent,
     savePendingSpaceInvite,
     savePendingSpaceInviteFriend,
+    savePendingSpaceInviteIntent,
     saveSentSpaceInviteFriend,
     savedPendingSpaceInvite,
+    savedPendingSpaceInviteIntent,
     spaceInviteFromLocation,
     type PendingSpaceInvite,
+    type SpaceInviteIntent,
+    type SpaceInviteRoute,
 } from "services/spaceInvite";
 import {
     useSpaceAppState,
     type OnboardingEntrySource,
 } from "state/spaceAppState";
+import { profilePostGroupsFromPosts } from "utils/spacePostDisplay";
 import { spaceRoutes } from "utils/spaceRoutes";
 import { useSpaceRouter } from "utils/spaceRouteTransitions";
 
 type RouteMode =
     | { kind: "checking" }
     | { kind: "app" }
-    | ({ kind: "public-profile" } & PendingSpaceInvite);
+    | ({ kind: "public-profile" } & SpaceInviteRoute);
+
+type AuthenticatedProfileRoute = "friend" | "self";
+type AuthenticatedProfileRouteStatus = "idle" | "loading" | "complete";
 
 interface PageProps {
     invitePreview?: boolean;
 }
+
+const addFriendPostActionOnboardingTitle = (
+    username: string,
+    intent: SpaceInviteIntent,
+) => (
+    <>
+        {`Add @${username} as a friend`}
+        <br />
+        {intent == "like" ? "to like their posts" : "to reply privately"}
+    </>
+);
 
 const PublicProfileUnavailable: React.FC = () => (
     <Box
@@ -85,12 +112,14 @@ interface PublicFriendRequestScreenProps {
     identity: PublicSpaceIdentity;
     isAddingFriend: boolean;
     onAddFriend: () => void;
+    showAddingFriendSpinner: boolean;
 }
 
 const PublicFriendRequestScreen: React.FC<PublicFriendRequestScreenProps> = ({
     identity,
     isAddingFriend,
     onAddFriend,
+    showAddingFriendSpinner,
 }) => (
     <Box
         component="main"
@@ -259,7 +288,11 @@ const PublicFriendRequestScreen: React.FC<PublicFriendRequestScreenProps> = ({
                         },
                     }}
                 >
-                    {isAddingFriend ? <SpaceButtonSpinner /> : "Add Friend"}
+                    {showAddingFriendSpinner ? (
+                        <SpaceButtonSpinner />
+                    ) : (
+                        "Add Friend"
+                    )}
                 </Box>
             </Box>
         </Box>
@@ -281,8 +314,25 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
     const [publicIdentity, setPublicIdentity] =
         useState<PublicSpaceIdentity | null>(null);
     const [publicError, setPublicError] = useState<string>();
+    const [publicLink, setPublicLink] = useState<PublicSpaceLinkSession | null>(
+        null,
+    );
+    const [authenticatedProfileRoute, setAuthenticatedProfileRoute] =
+        useState<AuthenticatedProfileRoute>();
+    const [
+        authenticatedProfileRouteStatus,
+        setAuthenticatedProfileRouteStatus,
+    ] = useState<AuthenticatedProfileRouteStatus>("idle");
+    const [publicPosts, setPublicPosts] = useState<SpaceProfilePost[]>([]);
+    const [arePublicPostsLoading, setArePublicPostsLoading] = useState(false);
     const [pendingInviteUsername, setPendingInviteUsername] = useState("");
+    const [pendingInviteIntent, setPendingInviteIntent] =
+        useState<SpaceInviteIntent>();
     const [isAddingFriend, setIsAddingFriend] = useState(false);
+    const publicPostGroups = useMemo(
+        () => profilePostGroupsFromPosts(publicPosts),
+        [publicPosts],
+    );
 
     useEffect(() => {
         const publicInvite = spaceInviteFromLocation();
@@ -293,6 +343,7 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
             );
             if (pendingInvite) {
                 setPendingInviteUsername(pendingInvite.spaceUsername);
+                setPendingInviteIntent(savedPendingSpaceInviteIntent());
             }
         }
         setRouteMode(
@@ -305,21 +356,148 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
     useEffect(() => {
         if (routeMode.kind != "public-profile") return;
 
-        let cancelled = false;
+        const abortController = new AbortController();
+        const isAborted = () => abortController.signal.aborted;
+        setAuthenticatedProfileRoute(undefined);
+        setAuthenticatedProfileRouteStatus("idle");
         setPublicError(undefined);
         setPublicIdentity(null);
-        void loadPublicSpaceIdentity(routeMode.spaceUsername)
-            .then((identity) => {
-                if (!cancelled) setPublicIdentity(identity);
-            })
-            .catch(() => {
-                if (!cancelled) setPublicError("This profile is unavailable.");
-            });
+        setPublicLink(null);
+        setPublicPosts([]);
+        setArePublicPostsLoading(false);
+
+        let openedLink: PublicSpaceLinkSession | undefined;
+        let settled = false;
+        void (async () => {
+            try {
+                if (!routeMode.accessKey) {
+                    const identity = await loadPublicSpaceIdentity(
+                        routeMode.spaceUsername,
+                    );
+                    if (isAborted()) return;
+                    setPublicIdentity(identity);
+                    return;
+                }
+
+                try {
+                    openedLink = await openPublicSpaceLink(
+                        routeMode.spaceUsername,
+                        routeMode.accessKey,
+                    );
+                } catch {
+                    const identity = await loadPublicSpaceIdentity(
+                        routeMode.spaceUsername,
+                    );
+                    if (isAborted()) return;
+                    setPublicIdentity(identity);
+                    return;
+                }
+                if (isAborted()) {
+                    openedLink.close();
+                    openedLink = undefined;
+                    return;
+                }
+                const link = openedLink;
+                if (!link.profile.spaceId) {
+                    throw new Error("Public Space profile is missing its ID.");
+                }
+                setPublicLink(link);
+                setPublicIdentity({
+                    spaceId: link.profile.spaceId,
+                    username: link.profile.username,
+                });
+                setArePublicPostsLoading(true);
+                const loadPosts = link
+                    .loadPosts()
+                    .then((posts) => {
+                        if (!isAborted()) setPublicPosts(posts);
+                    })
+                    .catch((error: unknown) =>
+                        log.error("Failed to load public Space posts", error),
+                    )
+                    .finally(() => {
+                        if (!isAborted()) setArePublicPostsLoading(false);
+                    });
+                const loadProfileMedia = link
+                    .loadProfileMedia()
+                    .then((media) => {
+                        if (isAborted()) return;
+                        setPublicLink((currentLink) =>
+                            currentLink == link
+                                ? {
+                                      ...link,
+                                      profile: { ...link.profile, ...media },
+                                  }
+                                : currentLink,
+                        );
+                    })
+                    .catch((error: unknown) =>
+                        log.error(
+                            "Failed to load public Space profile media",
+                            error,
+                        ),
+                    );
+                await Promise.allSettled([loadPosts, loadProfileMedia]);
+            } catch {
+                if (!isAborted())
+                    setPublicError("This profile is unavailable.");
+            } finally {
+                settled = true;
+                if (isAborted()) {
+                    openedLink?.close();
+                    openedLink = undefined;
+                }
+            }
+        })();
 
         return () => {
-            cancelled = true;
+            abortController.abort();
+            if (settled) {
+                openedLink?.close();
+                openedLink = undefined;
+            }
         };
     }, [routeMode]);
+
+    useEffect(() => {
+        setAuthenticatedProfileRoute(undefined);
+        if (
+            routeMode.kind != "public-profile" ||
+            !publicIdentity ||
+            profileLoadStatus == "loading"
+        ) {
+            setAuthenticatedProfileRouteStatus("idle");
+            return;
+        }
+        if (profileLoadStatus != "ready" || !profile?.spaceId) {
+            setAuthenticatedProfileRouteStatus("complete");
+            return;
+        }
+
+        const abortController = new AbortController();
+        setAuthenticatedProfileRouteStatus("loading");
+        void (async () => {
+            let relationship: AuthenticatedProfileRoute | null = null;
+            if (publicIdentity.spaceId == profile.spaceId) {
+                relationship = "self";
+            } else {
+                try {
+                    relationship = await loadCurrentSpaceRelationship(
+                        publicIdentity.spaceId,
+                    );
+                } catch (error) {
+                    log.error("Failed to load Space relationship", error);
+                }
+            }
+            if (abortController.signal.aborted) return;
+            setAuthenticatedProfileRoute(relationship ?? undefined);
+            setAuthenticatedProfileRouteStatus("complete");
+        })();
+
+        return () => {
+            abortController.abort();
+        };
+    }, [profile?.spaceId, profileLoadStatus, publicIdentity, routeMode.kind]);
 
     useEffect(() => {
         if (
@@ -330,6 +508,12 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
             void router.replace(spaceRoutes.home);
         }
     }, [profile, profileLoadStatus, routeMode.kind, router]);
+
+    useEffect(() => {
+        if (authenticatedProfileRoute == "self") {
+            void router.replace(spaceRoutes.profile);
+        }
+    }, [authenticatedProfileRoute, router]);
 
     const hasProfileLoadError =
         routeMode.kind == "app" && profileLoadStatus == "error";
@@ -357,6 +541,26 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
     }
 
     if (routeMode.kind == "public-profile") {
+        if (
+            profileLoadStatus == "loading" ||
+            (profile && authenticatedProfileRouteStatus != "complete")
+        ) {
+            return <SpaceRouteFallback background={profileBackground} />;
+        }
+
+        if (authenticatedProfileRoute == "friend" && publicIdentity) {
+            return (
+                <AuthenticatedFriendProfile
+                    friendSpaceId={publicIdentity.spaceId}
+                    username={publicIdentity.username}
+                />
+            );
+        }
+
+        if (authenticatedProfileRoute == "self") {
+            return <SpaceRouteFallback background={profileBackground} />;
+        }
+
         if (!publicIdentity && !publicError) {
             return <SpaceRouteFallback background={profileBackground} />;
         }
@@ -374,16 +578,21 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
         }
 
         const inviteFriend = {
-            fullName: "",
+            fullName: publicLink?.profile.fullName ?? "",
             username: publicIdentity.username,
         };
-        const addFriend = async () => {
+        const addFriend = async (intent?: SpaceInviteIntent) => {
             const invite = {
                 spaceId: publicIdentity.spaceId,
                 spaceUsername: publicIdentity.username,
             };
             savePendingSpaceInvite(invite);
             savePendingSpaceInviteFriend(inviteFriend);
+            if (intent) {
+                savePendingSpaceInviteIntent(intent);
+            } else {
+                clearPendingSpaceInviteIntent();
+            }
             setOnboardingEntrySource("add-friend-link");
             setIsAddingFriend(true);
             try {
@@ -396,16 +605,17 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
                     return;
                 }
 
-                const status = await joinSpaceInvite(invite);
+                const status = await requestFriendByUsername(invite);
                 clearPendingSpaceInvite();
                 clearPendingSpaceInviteFriend();
+                clearPendingSpaceInviteIntent();
                 if (status == "requested") {
                     saveSentSpaceInviteFriend(inviteFriend);
                 }
                 void router.push(spaceRoutes.home);
             } catch (error) {
                 setIsAddingFriend(false);
-                console.error("Failed to send friend request", error);
+                log.error("Failed to send friend request", error);
             }
         };
 
@@ -415,11 +625,46 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
                     themeColor={profileBackground}
                     preview="invite"
                 />
-                <PublicFriendRequestScreen
-                    identity={publicIdentity}
-                    isAddingFriend={isAddingFriend}
-                    onAddFriend={() => void addFriend()}
-                />
+                {publicLink ? (
+                    <>
+                        <ProfileScreen
+                            friendsCount={publicLink.profile.friendsCount}
+                            headerVariant={
+                                profile ? "public" : "public-anonymous"
+                            }
+                            isAddingFriend={isAddingFriend}
+                            isPostsLoading={arePublicPostsLoading}
+                            isStatsLoading={false}
+                            onAddFriend={() => void addFriend()}
+                            onAddFriendForPostAction={(intent) =>
+                                void addFriend(intent)
+                            }
+                            onBack={() => window.location.assign("/")}
+                            onLoadPostImage={publicLink.loadPostImage}
+                            postGroups={publicPostGroups}
+                            postsCount={publicLink.postsCount}
+                            profile={publicLink.profile}
+                            publicNotificationControl={
+                                <SpacePublicProfileNotificationControl
+                                    session={publicLink}
+                                />
+                            }
+                            showAddingFriendSpinner={
+                                isAddingFriend && Boolean(profile)
+                            }
+                        />
+                        {!profile && <SpaceMobileBestToast />}
+                    </>
+                ) : (
+                    <PublicFriendRequestScreen
+                        identity={publicIdentity}
+                        isAddingFriend={isAddingFriend}
+                        onAddFriend={() => void addFriend()}
+                        showAddingFriendSpinner={
+                            isAddingFriend && Boolean(profile)
+                        }
+                    />
+                )}
             </>
         );
     }
@@ -435,7 +680,12 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
                 onLogin={() => void router.push(spaceRoutes.login)}
                 title={
                     isAddFriendLinkOnboarding
-                        ? addFriendOnboardingTitle(pendingInviteUsername)
+                        ? pendingInviteIntent
+                            ? addFriendPostActionOnboardingTitle(
+                                  pendingInviteUsername,
+                                  pendingInviteIntent,
+                              )
+                            : addFriendOnboardingTitle(pendingInviteUsername)
                         : undefined
                 }
             />

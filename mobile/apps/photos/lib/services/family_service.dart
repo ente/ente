@@ -40,18 +40,14 @@ class FamilyService {
     required UserDetails userDetails,
     required List<String> emails,
   }) async {
-    final familyAuthToken = await usersGateway.getFamiliesAuthToken();
     if (userDetails.familyData == null) {
-      await usersGateway.createFamily(authToken: familyAuthToken);
+      await usersGateway.createFamily();
     }
 
     final failures = <FamilyInviteFailure>[];
     for (final email in emails) {
       try {
-        await usersGateway.inviteFamilyMember(
-          email: email,
-          authToken: familyAuthToken,
-        );
+        await usersGateway.inviteFamilyMember(email: email);
       } catch (error, stackTrace) {
         _logger.warning("Failed to invite $email", error, stackTrace);
         failures.add(FamilyInviteFailure(email: email, error: error));

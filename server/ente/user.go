@@ -179,6 +179,21 @@ type DeleteAccountResponse struct {
 	UserID                  int64 `json:"userID"`
 }
 
+type AccountRecoveryRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+type AccountRecoveryStatus string
+
+const (
+	AccountRecoveryReady     AccountRecoveryStatus = "ready"
+	AccountRecoveryRecovered AccountRecoveryStatus = "recovered"
+)
+
+type AccountRecoveryResponse struct {
+	Status AccountRecoveryStatus `json:"status"`
+}
+
 // TwoFactorSecret represents the two factor secret generator value, user enters in his authenticator app
 type TwoFactorSecret struct {
 	SecretCode string `json:"secretCode"`

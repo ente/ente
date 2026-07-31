@@ -9,7 +9,7 @@ use serde_json::json;
 use super::{AccountSpaceCtx, SpaceIdentity, cache_lock, generate_key, generate_keypair};
 use crate::crypto::encrypt_secretbox_payload;
 use crate::models::OpenAccountSpaceCtxInput;
-use ente_core::crypto::{SecretVec, encode_b64};
+use ente_core::{b64, crypto::SecretVec};
 
 /// A WEBP magic-number header, enough for the media sniffer to accept the bytes
 /// as a photo.
@@ -34,6 +34,7 @@ pub(crate) fn test_account_ctx_with_space_root_key(
         base_url: base_url.to_owned(),
         space_session_token: Some("space-session-token".to_owned()),
         space_root_key,
+        initial_owned_spaces: None,
         user_agent: None,
         client_package: None,
         client_version: None,
@@ -74,7 +75,7 @@ pub(crate) fn owned_space_response(
     json!([{
         "spaceId": space_id,
         "spaceSlug": space_slug,
-        "rootWrappedSpaceKey": encode_b64(
+        "rootWrappedSpaceKey": b64::encode(
             &encrypt_secretbox_payload(space_root_key, space_key).expect("space key wrap")
         ),
         "encryptedProfile": "",

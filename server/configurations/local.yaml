@@ -69,6 +69,13 @@
 # It must be specified if running in a non-local environment.
 log-file: ""
 
+# The minimum level of logs to emit: "panic", "fatal", "error", "warn", "info",
+# "debug" or "trace".
+#
+# Anything below the configured level is dropped, e.g. "warn" suppresses info
+# and debug logs. If not specified or invalid defaults to "info".
+#log-level: info
+
 # HTTP connection parameters
 http:
     # The port to bind to.
@@ -88,6 +95,7 @@ apps:
     # set this to the URL where your albums web app is running.
     public-albums:
     # Default is https://embed.ente.com
+    #
     # For self-hosted instances, set this to the URL where your embed app is running.
     embed-albums:
     # Default is https://share.ente.com
@@ -117,6 +125,7 @@ apps:
     # Default is https://family.ente.io
     family:
     # Default is https://ente.space
+    #
     # Set this to the URL where your space web app is running.
     space:
     # Default is https://memories.ente.com

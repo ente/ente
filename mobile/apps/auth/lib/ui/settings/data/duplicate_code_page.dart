@@ -175,12 +175,12 @@ class _DuplicateCodePageState extends State<DuplicateCodePage> {
       builder: (sheetContext) => Semantics(
         identifier: 'auth_duplicate_confirm_sheet',
         child: BottomSheetComponent(
-          title: context.l10n.deleteDuplicates,
-          message: context.l10n.moveMultipleToTrashMessage(itemCount),
-          closeTooltip: context.l10n.close,
+          title: sheetContext.l10n.deleteDuplicates,
+          message: sheetContext.l10n.moveMultipleToTrashMessage(itemCount),
+          closeTooltip: sheetContext.l10n.close,
           actions: [
             ButtonComponent(
-              label: context.l10n.trash,
+              label: sheetContext.l10n.trash,
               variant: ButtonComponentVariant.critical,
               onTap: () async {
                 final didTrash = await _trashSelectedDuplicates();

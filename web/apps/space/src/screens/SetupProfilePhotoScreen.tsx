@@ -7,6 +7,7 @@ import {
 import { SpaceAvatarImage } from "components/SpaceAvatarImage";
 import { SpaceBackIcon } from "components/SpaceBackIcon";
 import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
+import log from "ente-base/log";
 import React, { useEffect, useRef, useState } from "react";
 import type { Area, Point } from "react-easy-crop";
 import { setupProfileBackground } from "screens/SetupProfileScreen";
@@ -104,7 +105,7 @@ export const SetupProfilePhotoScreen: React.FC<
             setAvatarZoom(1);
         } catch (error) {
             if (avatarSelectionIDRef.current != selectionID) return;
-            console.error("Failed to prepare space avatar", error);
+            log.error("Failed to prepare space avatar", error);
             setAvatarError(spaceAvatarImageErrorMessage(error));
         } finally {
             if (avatarSelectionIDRef.current == selectionID) {
@@ -141,7 +142,7 @@ export const SetupProfilePhotoScreen: React.FC<
             await onContinue(avatar.file);
             setIsApplyingAvatarCrop(false);
         } catch (error) {
-            console.error("Failed to crop space avatar", error);
+            log.error("Failed to crop space avatar", error);
             setAvatarError(spaceAvatarImageErrorMessage(error));
             setIsApplyingAvatarCrop(false);
         }

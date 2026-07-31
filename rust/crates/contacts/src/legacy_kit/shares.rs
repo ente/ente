@@ -1,3 +1,4 @@
+use ente_core::b64;
 use ente_core::crypto::{self, SecretVec};
 use sha2::{Digest, Sha256};
 
@@ -17,7 +18,7 @@ pub(super) fn checksum(
     digest.update(kit_id.as_bytes());
     digest.update(kit_secret);
     let hash = digest.finalize();
-    crypto::encode_b64(&hash[..8])
+    b64::encode(&hash[..8])
 }
 
 pub(super) fn split_secret_2_of_3(secret: &[u8]) -> Result<Vec<Vec<u8>>> {
@@ -76,8 +77,8 @@ pub(super) fn reconstruct_secret_2_of_3(shares: &[LegacyKitShare]) -> Result<Sec
         ));
     }
 
-    let y1 = crypto::decode_b64(&first.share)?;
-    let y2 = crypto::decode_b64(&second.share)?;
+    let y1 = b64::decode(&first.share)?;
+    let y2 = b64::decode(&second.share)?;
     if y1.len() != 32 || y2.len() != 32 {
         return Err(ContactsError::InvalidInput(
             "legacy kit shares must be 32 bytes".into(),

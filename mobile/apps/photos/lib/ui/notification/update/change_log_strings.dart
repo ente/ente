@@ -1,370 +1,746 @@
 import 'dart:ui';
 
 class ChangeLogStrings {
-  final String title1;
-  final String desc1;
-  final String desc1Item1;
-  final String desc1Item2;
-  final String title2;
-  final String desc2;
-  final String title3;
-  final String desc3;
-  final String title4;
-  final String desc4;
+  final List<ChangeLogEntryStrings> entries;
 
-  const ChangeLogStrings({
-    required this.title1,
-    required this.desc1,
-    this.desc1Item1 = '',
-    this.desc1Item2 = '',
-    this.title2 = '',
-    this.desc2 = '',
-    this.title3 = '',
-    this.desc3 = '',
-    this.title4 = '',
-    this.desc4 = '',
-  });
-
-  bool get hasVisibleEntries =>
-      title1.trim().isNotEmpty ||
-      desc1.trim().isNotEmpty ||
-      desc1Item1.trim().isNotEmpty ||
-      desc1Item2.trim().isNotEmpty ||
-      title2.trim().isNotEmpty ||
-      desc2.trim().isNotEmpty ||
-      title3.trim().isNotEmpty ||
-      desc3.trim().isNotEmpty ||
-      title4.trim().isNotEmpty ||
-      desc4.trim().isNotEmpty;
+  const ChangeLogStrings({required this.entries});
 
   static ChangeLogStrings? maybeForLocale(
     Locale locale, {
     bool isLocalGallery = false,
-    required bool isAndroid,
   }) {
     final key = locale.countryCode != null && locale.countryCode!.isNotEmpty
         ? '${locale.languageCode}_${locale.countryCode}'
         : locale.languageCode;
     final strings =
-        _featureTranslations[key] ??
-        _featureTranslations[locale.languageCode] ??
-        _featureTranslations['en'];
+        _translations[key] ??
+        _translations[locale.languageCode] ??
+        _translations['en'];
 
     if (strings == null) {
       return null;
     }
 
-    final changeLog = _forFeatureStrings(
-      strings,
-      isLocalGallery: isLocalGallery,
-      isAndroid: isAndroid,
-    );
-    if (!changeLog.hasVisibleEntries) {
-      return null;
-    }
-    return changeLog;
+    final entries = isLocalGallery
+        ? strings.entries
+              .where((entry) => !entry.isOnlineOnly)
+              .toList(growable: false)
+        : strings.entries;
+    return entries.isEmpty ? null : ChangeLogStrings(entries: entries);
   }
 
   static bool hasContentForLocale(
     Locale locale, {
     bool isLocalGallery = false,
-    required bool isAndroid,
   }) {
-    return maybeForLocale(
-          locale,
-          isLocalGallery: isLocalGallery,
-          isAndroid: isAndroid,
-        ) !=
-        null;
+    return maybeForLocale(locale, isLocalGallery: isLocalGallery) != null;
   }
 
-  static ChangeLogStrings _forFeatureStrings(
-    _ChangeLogFeatureStrings strings, {
-    required bool isLocalGallery,
-    required bool isAndroid,
-  }) {
-    if (isLocalGallery) {
-      return isAndroid
-          ? ChangeLogStrings(
-              title1: strings.deleteTitle,
-              desc1: strings.localAndroidDeleteDesc,
-              title2: strings.storageTitle,
-              desc2: strings.storageDesc,
-            )
-          : ChangeLogStrings(
-              title1: strings.storageTitle,
-              desc1: strings.storageDesc,
-            );
-    }
-
-    return isAndroid
-        ? ChangeLogStrings(
-            title1: strings.deleteTitle,
-            desc1: strings.onlineAndroidDeleteDesc,
-            title2: strings.castTitle,
-            desc2: strings.castDesc,
-            title3: strings.storageTitle,
-            desc3: strings.storageDesc,
-          )
-        : ChangeLogStrings(
-            title1: strings.castTitle,
-            desc1: strings.castDesc,
-            title2: strings.storageTitle,
-            desc2: strings.storageDesc,
-          );
-  }
-
-  static const Map<String, _ChangeLogFeatureStrings> _featureTranslations = {
-    'en': _ChangeLogFeatureStrings(
-      deleteTitle: 'Easier delete confirmations',
-      onlineAndroidDeleteDesc:
-          'When deleting from your device, Ente can help you set up media management to avoid repeated system prompts. Ente can also remember your last delete choice.',
-      localAndroidDeleteDesc:
-          'When deleting from your device, Ente can help you set up media management to avoid repeated system prompts.',
-      castTitle: 'Cast to multiple screens',
-      castDesc:
-          "You can now cast albums to more than one screen at a time, view active sessions, and stop a specific session when you're done.",
-      storageTitle: 'More reliable storage cleanup',
-      storageDesc:
-          'Ente now clears temporary image and video files more reliably, keeping the app from holding on to extra device storage.',
+  static const Map<String, ChangeLogStrings> _translations = {
+    'en': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comments and reactions in memories',
+          description:
+              "Talk about shared memories with your loved ones, as you're reliving them.",
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Share memories, your way',
+          description:
+              'Choose exactly which photos and videos go into a memory before you share.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Photo viewer, polished',
+          description:
+              'The photo viewer and info sheet have been redesigned. Cleaner, nicer, easier to read.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Text in photos, sharper',
+          description:
+              'Copying text from photos is now faster and more reliable. Long press to start selecting.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Smarter caching',
+          description:
+              'Your photos stay quick to open while taking up less space on your device.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'and more!',
+          description:
+              'Faster and more reliable backups, smoother gallery browsing, better thumbnail loading and download reliability, improved text detection in photos, better avatar colors, fixes for crashes during background work, and lots of smaller polish across the app.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'cs': _ChangeLogFeatureStrings(
-      deleteTitle: 'Snazší potvrzení odstranění',
-      onlineAndroidDeleteDesc:
-          'Při odstraňování ze zařízení vám Ente může pomoci nastavit správu médií, abyste se vyhnuli opakovaným systémovým výzvám. Ente si také může zapamatovat vaši poslední volbu odstranění.',
-      localAndroidDeleteDesc:
-          'Při odstraňování ze zařízení vám Ente může pomoci nastavit správu médií, abyste se vyhnuli opakovaným systémovým výzvám.',
-      castTitle: 'Promítání na více obrazovek',
-      castDesc:
-          'Alba teď můžete promítat na více obrazovek najednou, zobrazit aktivní relace a po skončení zastavit konkrétní relaci.',
-      storageTitle: 'Spolehlivější čištění úložiště',
-      storageDesc:
-          'Ente teď spolehlivěji odstraňuje dočasné soubory obrázků a videí, takže aplikace nezabírá zbytečně další místo v úložišti zařízení.',
+    'ca': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentaris i reaccions als records',
+          description:
+              'Parla dels records compartits amb les persones que estimes mentre els torneu a viure.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Comparteix els records a la teva manera',
+          description:
+              "Tria exactament quines fotos i vídeos formaran part d'un record abans de compartir-lo.",
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visualitzador de fotos, renovat',
+          description:
+              "El visualitzador de fotos i el full d'informació s'han redissenyat. Més nets, agradables i fàcils de llegir.",
+        ),
+        ChangeLogEntryStrings(
+          title: 'Text més nítid a les fotos',
+          description:
+              'Copiar text de les fotos ara és més ràpid i fiable. Mantén premut per començar a seleccionar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Memòria cau més intel·ligent',
+          description:
+              'Les fotos es continuen obrint ràpidament i ocupen menys espai al dispositiu.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'i molt més!',
+          description:
+              "Còpies de seguretat més ràpides i fiables, navegació més fluida per la galeria, millor càrrega de miniatures i baixades més fiables, detecció de text millorada a les fotos, millors colors d'avatar, correccions d'errors durant les tasques en segon pla i molts petits retocs a tota l'aplicació.",
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'de': _ChangeLogFeatureStrings(
-      deleteTitle: 'Einfachere Löschbestätigungen',
-      onlineAndroidDeleteDesc:
-          'Beim Löschen von deinem Gerät kann Ente dir helfen, die Medienverwaltung einzurichten, um wiederholte Systemabfragen zu vermeiden. Ente kann sich auch deine letzte Löschentscheidung merken.',
-      localAndroidDeleteDesc:
-          'Beim Löschen von deinem Gerät kann Ente dir helfen, die Medienverwaltung einzurichten, um wiederholte Systemabfragen zu vermeiden.',
-      castTitle: 'Auf mehrere Bildschirme streamen',
-      castDesc:
-          'Du kannst Alben jetzt auf mehr als einen Bildschirm gleichzeitig streamen, aktive Sitzungen anzeigen und eine bestimmte Sitzung beenden, wenn du fertig bist.',
-      storageTitle: 'Zuverlässigere Speicherbereinigung',
-      storageDesc:
-          'Ente entfernt temporäre Bild- und Videodateien jetzt zuverlässiger, damit die App keinen zusätzlichen Gerätespeicher belegt.',
+    'cs': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Komentáře a reakce ve vzpomínkách',
+          description:
+              'Povídejte si o sdílených vzpomínkách se svými blízkými, zatímco je znovu prožíváte.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sdílejte vzpomínky po svém',
+          description:
+              'Před sdílením si přesně vyberte, které fotky a videa budou ve vzpomínce.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Vyladěný prohlížeč fotek',
+          description:
+              'Prohlížeč fotek a informační panel jsme přepracovali. Jsou přehlednější, hezčí a lépe se čtou.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ostřejší text ve fotkách',
+          description:
+              'Kopírování textu z fotek je nyní rychlejší a spolehlivější. Dlouhým stisknutím zahájíte výběr.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Chytřejší ukládání do mezipaměti',
+          description:
+              'Fotky se otevírají rychle a zabírají v zařízení méně místa.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'a ještě víc!',
+          description:
+              'Rychlejší a spolehlivější zálohování, plynulejší procházení galerie, lepší načítání náhledů a spolehlivější stahování, lepší rozpoznávání textu ve fotkách, lepší barvy avatarů, opravy pádů během práce na pozadí a spousta dalších drobných vylepšení v celé aplikaci.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'es': _ChangeLogFeatureStrings(
-      deleteTitle: 'Confirmaciones de eliminación más sencillas',
-      onlineAndroidDeleteDesc:
-          'Al eliminar desde tu dispositivo, Ente puede ayudarte a configurar la gestión de medios para evitar solicitudes repetidas del sistema. Ente también puede recordar tu última elección de eliminación.',
-      localAndroidDeleteDesc:
-          'Al eliminar desde tu dispositivo, Ente puede ayudarte a configurar la gestión de medios para evitar solicitudes repetidas del sistema.',
-      castTitle: 'Transmitir a varias pantallas',
-      castDesc:
-          'Ahora puedes transmitir álbumes a más de una pantalla a la vez, ver las sesiones activas y detener una sesión específica cuando termines.',
-      storageTitle: 'Limpieza de almacenamiento más fiable',
-      storageDesc:
-          'Ente ahora elimina los archivos temporales de imágenes y videos con mayor fiabilidad, evitando que la app retenga almacenamiento adicional del dispositivo.',
+    'de': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Kommentare und Reaktionen in Erinnerungen',
+          description:
+              'Unterhalte dich mit deinen Liebsten über geteilte Erinnerungen, während ihr sie gemeinsam noch einmal erlebt.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Erinnerungen teilen, wie du möchtest',
+          description:
+              'Wähle vor dem Teilen genau aus, welche Fotos und Videos in einer Erinnerung enthalten sind.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Fotoanzeige, jetzt noch besser',
+          description:
+              'Die Fotoanzeige und das Infoblatt wurden neu gestaltet. Aufgeräumter, schöner und leichter zu lesen.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Text in Fotos, klarer',
+          description:
+              'Das Kopieren von Text aus Fotos ist jetzt schneller und zuverlässiger. Halte zum Auswählen länger gedrückt.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Intelligenteres Caching',
+          description:
+              'Deine Fotos lassen sich weiterhin schnell öffnen und belegen dabei weniger Speicherplatz auf deinem Gerät.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'und vieles mehr!',
+          description:
+              'Schnellere und zuverlässigere Backups, flüssigeres Durchsuchen der Galerie, besseres Laden von Miniaturansichten und zuverlässigere Downloads, verbesserte Texterkennung in Fotos, bessere Avatarfarben, Korrekturen für Abstürze bei Hintergrundaufgaben und viele kleinere Verbesserungen in der gesamten App.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'fr': _ChangeLogFeatureStrings(
-      deleteTitle: 'Confirmations de suppression plus simples',
-      onlineAndroidDeleteDesc:
-          'Lorsque vous supprimez des éléments de votre appareil, Ente peut vous aider à configurer la gestion des médias afin d’éviter les invites système répétées. Ente peut aussi mémoriser votre dernier choix de suppression.',
-      localAndroidDeleteDesc:
-          'Lorsque vous supprimez des éléments de votre appareil, Ente peut vous aider à configurer la gestion des médias afin d’éviter les invites système répétées.',
-      castTitle: 'Diffuser sur plusieurs écrans',
-      castDesc:
-          'Vous pouvez maintenant diffuser des albums sur plusieurs écrans à la fois, voir les sessions actives et arrêter une session précise lorsque vous avez terminé.',
-      storageTitle: 'Nettoyage du stockage plus fiable',
-      storageDesc:
-          'Ente supprime désormais les fichiers temporaires d’images et de vidéos de manière plus fiable, afin que l’app n’occupe pas inutilement de l’espace sur votre appareil.',
+    'es': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentarios y reacciones en los recuerdos',
+          description:
+              'Habla sobre los recuerdos compartidos con tus seres queridos mientras los revives.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Comparte recuerdos a tu manera',
+          description:
+              'Elige exactamente qué fotos y vídeos incluir en un recuerdo antes de compartirlo.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visor de fotos, renovado',
+          description:
+              'Se han rediseñado el visor de fotos y la hoja de información. Más limpios, agradables y fáciles de leer.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Texto más nítido en las fotos',
+          description:
+              'Copiar texto de las fotos ahora es más rápido y fiable. Mantén pulsado para empezar a seleccionar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Caché más inteligente',
+          description:
+              'Tus fotos siguen abriéndose rápidamente y ocupan menos espacio en el dispositivo.',
+        ),
+        ChangeLogEntryStrings(
+          title: '¡y mucho más!',
+          description:
+              'Copias de seguridad más rápidas y fiables, navegación más fluida por la galería, mejor carga de miniaturas y descargas más fiables, detección de texto mejorada en las fotos, mejores colores de avatar, correcciones de fallos durante tareas en segundo plano y muchos pequeños retoques en toda la app.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'it': _ChangeLogFeatureStrings(
-      deleteTitle: 'Conferme di eliminazione più semplici',
-      onlineAndroidDeleteDesc:
-          'Quando elimini dal dispositivo, Ente può aiutarti a configurare la gestione dei contenuti multimediali per evitare richieste di sistema ripetute. Ente può anche ricordare la tua ultima scelta di eliminazione.',
-      localAndroidDeleteDesc:
-          'Quando elimini dal dispositivo, Ente può aiutarti a configurare la gestione dei contenuti multimediali per evitare richieste di sistema ripetute.',
-      castTitle: 'Trasmetti su più schermi',
-      castDesc:
-          'Ora puoi trasmettere gli album su più di uno schermo alla volta, vedere le sessioni attive e interrompere una sessione specifica quando hai finito.',
-      storageTitle: 'Pulizia dello spazio più affidabile',
-      storageDesc:
-          "Ente ora elimina i file temporanei di immagini e video in modo più affidabile, evitando che l'app trattenga spazio extra sul dispositivo.",
+    'fr': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Commentaires et réactions dans les souvenirs',
+          description:
+              'Discutez des souvenirs partagés avec vos proches tout en les revivant.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Partagez vos souvenirs à votre façon',
+          description:
+              'Choisissez précisément les photos et vidéos à inclure dans un souvenir avant de le partager.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visionneuse de photos peaufinée',
+          description:
+              'La visionneuse de photos et la fiche d’informations ont été repensées. Plus claires, plus agréables et plus faciles à lire.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Texte plus net dans les photos',
+          description:
+              'La copie de texte depuis les photos est désormais plus rapide et plus fiable. Appuyez longuement pour commencer la sélection.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Mise en cache plus intelligente',
+          description:
+              'Vos photos restent rapides à ouvrir tout en occupant moins d’espace sur votre appareil.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'et bien plus encore !',
+          description:
+              'Des sauvegardes plus rapides et plus fiables, une navigation plus fluide dans la galerie, un meilleur chargement des miniatures et des téléchargements plus fiables, une meilleure détection du texte dans les photos, de meilleures couleurs d’avatar, des correctifs pour les plantages pendant les tâches en arrière-plan et de nombreuses petites améliorations dans toute l’app.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'ja': _ChangeLogFeatureStrings(
-      deleteTitle: '削除確認がより簡単に',
-      onlineAndroidDeleteDesc:
-          'デバイスから削除するとき、Ente はメディア管理の設定を案内し、繰り返し表示されるシステム確認を避けられるようにします。Ente は最後に選んだ削除方法を記憶することもできます。',
-      localAndroidDeleteDesc:
-          'デバイスから削除するとき、Ente はメディア管理の設定を案内し、繰り返し表示されるシステム確認を避けられるようにします。',
-      castTitle: '複数の画面にキャスト',
-      castDesc:
-          'アルバムを複数の画面に同時にキャストし、アクティブなセッションを確認して、終了したい特定のセッションだけを停止できるようになりました。',
-      storageTitle: 'ストレージクリーンアップの信頼性向上',
-      storageDesc:
-          'Ente は一時的な画像ファイルと動画ファイルをより確実に削除し、アプリが余分なデバイスストレージを使い続けないようにします。',
+    'it': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Commenti e reazioni nei ricordi',
+          description:
+              'Parla dei ricordi condivisi con le persone che ami mentre li rivivi.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Condividi i ricordi a modo tuo',
+          description:
+              'Scegli esattamente quali foto e video inserire in un ricordo prima di condividerlo.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visualizzatore di foto perfezionato',
+          description:
+              'Il visualizzatore di foto e la scheda delle informazioni sono stati riprogettati. Più ordinati, gradevoli e facili da leggere.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Testo nelle foto più nitido',
+          description:
+              'Copiare il testo dalle foto ora è più veloce e affidabile. Tieni premuto per iniziare la selezione.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Cache più intelligente',
+          description:
+              'Le tue foto restano rapide da aprire e occupano meno spazio sul dispositivo.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'e molto altro!',
+          description:
+              'Backup più veloci e affidabili, navigazione più fluida nella galleria, caricamento migliore delle miniature e download più affidabili, rilevamento del testo nelle foto migliorato, colori degli avatar migliori, correzioni per gli arresti anomali durante le attività in background e tanti piccoli miglioramenti in tutta l’app.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'nl': _ChangeLogFeatureStrings(
-      deleteTitle: 'Eenvoudigere verwijderbevestigingen',
-      onlineAndroidDeleteDesc:
-          'Wanneer je iets van je apparaat verwijdert, kan Ente je helpen mediabeheer in te stellen om herhaalde systeemmeldingen te vermijden. Ente kan ook je laatste verwijderkeuze onthouden.',
-      localAndroidDeleteDesc:
-          'Wanneer je iets van je apparaat verwijdert, kan Ente je helpen mediabeheer in te stellen om herhaalde systeemmeldingen te vermijden.',
-      castTitle: 'Naar meerdere schermen casten',
-      castDesc:
-          'Je kunt albums nu naar meer dan één scherm tegelijk casten, actieve sessies bekijken en een specifieke sessie stoppen wanneer je klaar bent.',
-      storageTitle: 'Betrouwbaardere opslagopruiming',
-      storageDesc:
-          'Ente verwijdert tijdelijke afbeeldings- en videobestanden nu betrouwbaarder, zodat de app geen extra opslagruimte op je apparaat blijft innemen.',
+    'ja': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: '思い出でのコメントとリアクション',
+          description: '大切な人と共有した思い出を振り返りながら、会話を楽しめます。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '思い出を自分らしく共有',
+          description: '共有する前に、思い出に含める写真や動画を自由に選べます。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '写真ビューアーをさらに使いやすく',
+          description: '写真ビューアーと情報シートを再設計しました。よりすっきり、美しく、読みやすくなりました。',
+        ),
+        ChangeLogEntryStrings(
+          title: '写真内のテキストをより鮮明に',
+          description: '写真からのテキストコピーが、より高速で確実になりました。長押しして選択を開始できます。',
+        ),
+        ChangeLogEntryStrings(
+          title: 'よりスマートなキャッシュ',
+          description: '写真をすばやく開ける快適さはそのままに、デバイスの使用容量を抑えます。',
+        ),
+        ChangeLogEntryStrings(
+          title: 'さらに多くの改善！',
+          description:
+              'バックアップの高速化と信頼性向上、ギャラリー閲覧のなめらかさ向上、サムネイル読み込みとダウンロードの信頼性向上、写真内のテキスト検出の改善、アバターの色の改善、バックグラウンド処理中のクラッシュ修正など、アプリ全体に多くの細かな改善を加えました。',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'no': _ChangeLogFeatureStrings(
-      deleteTitle: 'Enklere bekreftelser ved sletting',
-      onlineAndroidDeleteDesc:
-          'Når du sletter fra enheten, kan Ente hjelpe deg med å sette opp medieadministrasjon for å unngå gjentatte systemmeldinger. Ente kan også huske det siste slettevalget ditt.',
-      localAndroidDeleteDesc:
-          'Når du sletter fra enheten, kan Ente hjelpe deg med å sette opp medieadministrasjon for å unngå gjentatte systemmeldinger.',
-      castTitle: 'Cast til flere skjermer',
-      castDesc:
-          'Du kan nå caste album til mer enn én skjerm om gangen, se aktive økter og stoppe en bestemt økt når du er ferdig.',
-      storageTitle: 'Mer pålitelig lagringsopprydding',
-      storageDesc:
-          'Ente fjerner nå midlertidige bilde- og videofiler mer pålitelig, slik at appen ikke bruker ekstra lagringsplass på enheten.',
+    'nl': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Opmerkingen en reacties in herinneringen',
+          description:
+              'Praat met je dierbaren over gedeelde herinneringen terwijl jullie ze opnieuw beleven.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Deel herinneringen op jouw manier',
+          description:
+              "Kies precies welke foto's en video's in een herinnering komen voordat je deze deelt.",
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Fotoviewer, verfijnd',
+          description:
+              'De fotoviewer en het informatieblad zijn opnieuw ontworpen. Rustiger, mooier en makkelijker te lezen.',
+        ),
+        ChangeLogEntryStrings(
+          title: "Tekst in foto's, scherper",
+          description:
+              "Tekst uit foto's kopiëren is nu sneller en betrouwbaarder. Houd ingedrukt om te beginnen met selecteren.",
+        ),
+        ChangeLogEntryStrings(
+          title: 'Slimmere caching',
+          description:
+              "Je foto's blijven snel openen en nemen minder ruimte in op je apparaat.",
+        ),
+        ChangeLogEntryStrings(
+          title: 'en meer!',
+          description:
+              "Snellere en betrouwbaardere back-ups, soepeler bladeren door de galerij, beter laden van miniaturen en betrouwbaardere downloads, verbeterde tekstherkenning in foto's, betere avatarkleuren, oplossingen voor crashes tijdens achtergrondtaken en veel kleinere verbeteringen in de hele app.",
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'pl': _ChangeLogFeatureStrings(
-      deleteTitle: 'Łatwiejsze potwierdzanie usuwania',
-      onlineAndroidDeleteDesc:
-          'Podczas usuwania z urządzenia Ente może pomóc skonfigurować zarządzanie multimediami, aby uniknąć powtarzających się monitów systemowych. Ente może też zapamiętać twój ostatni wybór usuwania.',
-      localAndroidDeleteDesc:
-          'Podczas usuwania z urządzenia Ente może pomóc skonfigurować zarządzanie multimediami, aby uniknąć powtarzających się monitów systemowych.',
-      castTitle: 'Przesyłaj na wiele ekranów',
-      castDesc:
-          'Możesz teraz przesyłać albumy na więcej niż jeden ekran jednocześnie, wyświetlać aktywne sesje i zatrzymać wybraną sesję, gdy skończysz.',
-      storageTitle: 'Bardziej niezawodne czyszczenie pamięci',
-      storageDesc:
-          'Ente teraz bardziej niezawodnie usuwa tymczasowe pliki obrazów i wideo, dzięki czemu aplikacja nie zajmuje dodatkowej pamięci urządzenia.',
+    'no': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Kommentarer og reaksjoner i minner',
+          description:
+              'Snakk om delte minner med dem du er glad i, mens dere opplever dem på nytt.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Del minner på din måte',
+          description:
+              'Velg nøyaktig hvilke bilder og videoer som skal være med i et minne før du deler det.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'En mer polert bildevisning',
+          description:
+              'Bildevisningen og informasjonsarket har fått ny design. Renere, finere og enklere å lese.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Skarpere tekst i bilder',
+          description:
+              'Kopiering av tekst fra bilder er nå raskere og mer pålitelig. Trykk og hold for å begynne å velge.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Smartere hurtigbufring',
+          description:
+              'Bildene dine åpnes fortsatt raskt, samtidig som de tar mindre plass på enheten.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'og mer!',
+          description:
+              'Raskere og mer pålitelige sikkerhetskopier, jevnere galleriblaing, bedre innlasting av miniatyrbilder og mer pålitelige nedlastinger, forbedret tekstgjenkjenning i bilder, bedre avatarfarger, rettelser for krasj under bakgrunnsarbeid og mange små forbedringer i hele appen.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'pt_BR': _ChangeLogFeatureStrings(
-      deleteTitle: 'Confirmações de exclusão mais fáceis',
-      onlineAndroidDeleteDesc:
-          'Ao excluir do seu dispositivo, o Ente pode ajudar você a configurar o gerenciamento de mídia para evitar avisos repetidos do sistema. O Ente também pode lembrar sua última escolha de exclusão.',
-      localAndroidDeleteDesc:
-          'Ao excluir do seu dispositivo, o Ente pode ajudar você a configurar o gerenciamento de mídia para evitar avisos repetidos do sistema.',
-      castTitle: 'Transmitir para várias telas',
-      castDesc:
-          'Agora você pode transmitir álbuns para mais de uma tela ao mesmo tempo, ver sessões ativas e encerrar uma sessão específica quando terminar.',
-      storageTitle: 'Limpeza de armazenamento mais confiável',
-      storageDesc:
-          'Agora o Ente limpa arquivos temporários de imagens e vídeos com mais confiabilidade, evitando que o app ocupe espaço extra no dispositivo.',
+    'pl': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Komentarze i reakcje we wspomnieniach',
+          description:
+              'Rozmawiaj z bliskimi o udostępnionych wspomnieniach, przeżywając je ponownie.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Udostępniaj wspomnienia po swojemu',
+          description:
+              'Przed udostępnieniem wybierz dokładnie, które zdjęcia i filmy znajdą się we wspomnieniu.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Dopracowana przeglądarka zdjęć',
+          description:
+              'Przeglądarka zdjęć i panel informacji zostały przeprojektowane. Są przejrzystsze, ładniejsze i łatwiejsze do odczytania.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Wyraźniejszy tekst na zdjęciach',
+          description:
+              'Kopiowanie tekstu ze zdjęć jest teraz szybsze i bardziej niezawodne. Naciśnij i przytrzymaj, aby rozpocząć zaznaczanie.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Inteligentniejsze buforowanie',
+          description:
+              'Zdjęcia nadal otwierają się szybko, zajmując mniej miejsca na urządzeniu.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'i wiele więcej!',
+          description:
+              'Szybsze i bardziej niezawodne kopie zapasowe, płynniejsze przeglądanie galerii, lepsze wczytywanie miniatur i bardziej niezawodne pobieranie, ulepszone wykrywanie tekstu na zdjęciach, lepsze kolory awatarów, poprawki awarii podczas pracy w tle oraz wiele drobnych ulepszeń w całej aplikacji.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'pt_PT': _ChangeLogFeatureStrings(
-      deleteTitle: 'Confirmações de eliminação mais simples',
-      onlineAndroidDeleteDesc:
-          'Ao eliminar do seu dispositivo, o Ente pode ajudá-lo a configurar a gestão de multimédia para evitar avisos repetidos do sistema. O Ente também pode memorizar a sua última escolha de eliminação.',
-      localAndroidDeleteDesc:
-          'Ao eliminar do seu dispositivo, o Ente pode ajudá-lo a configurar a gestão de multimédia para evitar avisos repetidos do sistema.',
-      castTitle: 'Transmitir para vários ecrãs',
-      castDesc:
-          'Agora pode transmitir álbuns para mais de um ecrã ao mesmo tempo, ver sessões ativas e parar uma sessão específica quando terminar.',
-      storageTitle: 'Limpeza de armazenamento mais fiável',
-      storageDesc:
-          'O Ente limpa agora ficheiros temporários de imagens e vídeos de forma mais fiável, evitando que a app ocupe espaço extra no dispositivo.',
+    'pt_BR': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentários e reações nas memórias',
+          description:
+              'Converse sobre memórias compartilhadas com quem você ama enquanto vocês as revivem.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Compartilhe memórias do seu jeito',
+          description:
+              'Escolha exatamente quais fotos e vídeos entram em uma memória antes de compartilhá-la.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visualizador de fotos aprimorado',
+          description:
+              'O visualizador de fotos e a tela de informações foram redesenhados. Mais limpos, bonitos e fáceis de ler.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Texto mais nítido nas fotos',
+          description:
+              'Copiar texto das fotos agora está mais rápido e confiável. Toque e segure para começar a selecionar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Cache mais inteligente',
+          description:
+              'Suas fotos continuam abrindo rapidamente e ocupam menos espaço no dispositivo.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'e muito mais!',
+          description:
+              'Backups mais rápidos e confiáveis, navegação mais fluida na galeria, melhor carregamento de miniaturas e downloads mais confiáveis, melhor detecção de texto nas fotos, melhores cores de avatar, correções de falhas durante tarefas em segundo plano e muitos pequenos aprimoramentos em todo o app.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'ro': _ChangeLogFeatureStrings(
-      deleteTitle: 'Confirmări de ștergere mai simple',
-      onlineAndroidDeleteDesc:
-          'Când ștergi de pe dispozitiv, Ente te poate ajuta să configurezi gestionarea media pentru a evita solicitările repetate ale sistemului. Ente poate reține și ultima ta alegere de ștergere.',
-      localAndroidDeleteDesc:
-          'Când ștergi de pe dispozitiv, Ente te poate ajuta să configurezi gestionarea media pentru a evita solicitările repetate ale sistemului.',
-      castTitle: 'Transmite pe mai multe ecrane',
-      castDesc:
-          'Acum poți transmite albume pe mai multe ecrane în același timp, poți vedea sesiunile active și poți opri o anumită sesiune când ai terminat.',
-      storageTitle: 'Curățare mai fiabilă a stocării',
-      storageDesc:
-          'Ente curăță acum mai fiabil fișierele temporare de imagini și video, împiedicând aplicația să păstreze spațiu suplimentar pe dispozitiv.',
+    'pt_PT': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentários e reações nas memórias',
+          description:
+              'Converse sobre memórias partilhadas com quem mais gosta enquanto as revive.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Partilhe memórias à sua maneira',
+          description:
+              'Escolha exatamente quais fotografias e vídeos entram numa memória antes de a partilhar.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visualizador de fotografias aperfeiçoado',
+          description:
+              'O visualizador de fotografias e a folha de informações foram redesenhados. Mais simples, agradáveis e fáceis de ler.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Texto mais nítido nas fotografias',
+          description:
+              'Copiar texto das fotografias é agora mais rápido e fiável. Toque sem soltar para começar a selecionar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Armazenamento em cache mais inteligente',
+          description:
+              'As suas fotografias continuam a abrir rapidamente e ocupam menos espaço no dispositivo.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'e muito mais!',
+          description:
+              'Cópias de segurança mais rápidas e fiáveis, navegação mais fluida na galeria, melhor carregamento de miniaturas e transferências mais fiáveis, melhor deteção de texto nas fotografias, melhores cores de avatar, correções de falhas durante tarefas em segundo plano e muitos pequenos aperfeiçoamentos em toda a aplicação.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'ru': _ChangeLogFeatureStrings(
-      deleteTitle: 'Более простые подтверждения удаления',
-      onlineAndroidDeleteDesc:
-          'При удалении с устройства Ente может помочь настроить управление медиа, чтобы избежать повторяющихся системных запросов. Ente также может запомнить ваш последний выбор удаления.',
-      localAndroidDeleteDesc:
-          'При удалении с устройства Ente может помочь настроить управление медиа, чтобы избежать повторяющихся системных запросов.',
-      castTitle: 'Трансляция на несколько экранов',
-      castDesc:
-          'Теперь вы можете транслировать альбомы сразу на несколько экранов, просматривать активные сеансы и останавливать нужный сеанс, когда закончите.',
-      storageTitle: 'Более надежная очистка хранилища',
-      storageDesc:
-          'Теперь Ente надежнее удаляет временные файлы изображений и видео, чтобы приложение не занимало лишнее место в памяти устройства.',
+    'ro': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentarii și reacții în amintiri',
+          description:
+              'Vorbește despre amintirile partajate cu cei dragi, în timp ce le retrăiți.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Partajează amintirile în felul tău',
+          description:
+              'Alege exact ce fotografii și videoclipuri intră într-o amintire înainte de a o partaja.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Vizualizator de fotografii îmbunătățit',
+          description:
+              'Vizualizatorul de fotografii și panoul de informații au fost reproiectate. Mai clare, mai plăcute și mai ușor de citit.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Text mai clar în fotografii',
+          description:
+              'Copierea textului din fotografii este acum mai rapidă și mai fiabilă. Apasă lung pentru a începe selectarea.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Stocare în cache mai inteligentă',
+          description:
+              'Fotografiile se deschid în continuare rapid și ocupă mai puțin spațiu pe dispozitiv.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'și multe altele!',
+          description:
+              'Copii de siguranță mai rapide și mai fiabile, navigare mai fluidă în galerie, încărcare mai bună a miniaturilor și descărcări mai fiabile, detectare îmbunătățită a textului din fotografii, culori mai bune pentru avatare, remedieri pentru blocări în timpul activităților din fundal și multe mici îmbunătățiri în întreaga aplicație.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'tr': _ChangeLogFeatureStrings(
-      deleteTitle: 'Daha kolay silme onayları',
-      onlineAndroidDeleteDesc:
-          'Cihazınızdan silerken Ente, tekrarlanan sistem istemlerini önlemek için medya yönetimini ayarlamanıza yardımcı olabilir. Ente son silme seçiminizi de hatırlayabilir.',
-      localAndroidDeleteDesc:
-          'Cihazınızdan silerken Ente, tekrarlanan sistem istemlerini önlemek için medya yönetimini ayarlamanıza yardımcı olabilir.',
-      castTitle: 'Birden fazla ekrana yayınla',
-      castDesc:
-          'Artık albümleri aynı anda birden fazla ekrana yayınlayabilir, etkin oturumları görebilir ve işiniz bittiğinde belirli bir oturumu durdurabilirsiniz.',
-      storageTitle: 'Daha güvenilir depolama temizliği',
-      storageDesc:
-          'Ente artık geçici görüntü ve video dosyalarını daha güvenilir şekilde temizleyerek uygulamanın cihazda fazladan depolama alanı tutmasını önler.',
+    'ru': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Комментарии и реакции в воспоминаниях',
+          description:
+              'Обсуждайте общие воспоминания с близкими, заново переживая их вместе.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Делитесь воспоминаниями по-своему',
+          description:
+              'Перед публикацией выберите, какие именно фото и видео войдут в воспоминание.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Обновлённый просмотр фото',
+          description:
+              'Мы переработали просмотр фото и панель сведений. Они стали чище, приятнее и удобнее для чтения.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Более чёткий текст на фото',
+          description:
+              'Копировать текст с фотографий теперь быстрее и надёжнее. Нажмите и удерживайте, чтобы начать выделение.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Умнее кэширование',
+          description:
+              'Фотографии по-прежнему быстро открываются, занимая меньше места на устройстве.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'и не только!',
+          description:
+              'Более быстрое и надёжное резервное копирование, плавный просмотр галереи, улучшенная загрузка миниатюр и надёжность скачивания, более точное распознавание текста на фото, улучшенные цвета аватаров, исправления сбоев во время фоновой работы и множество небольших улучшений во всём приложении.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'uk': _ChangeLogFeatureStrings(
-      deleteTitle: 'Простіші підтвердження видалення',
-      onlineAndroidDeleteDesc:
-          'Під час видалення з пристрою Ente може допомогти налаштувати керування медіа, щоб уникнути повторних системних запитів. Ente також може запам’ятати ваш останній вибір видалення.',
-      localAndroidDeleteDesc:
-          'Під час видалення з пристрою Ente може допомогти налаштувати керування медіа, щоб уникнути повторних системних запитів.',
-      castTitle: 'Трансляція на кілька екранів',
-      castDesc:
-          'Тепер ви можете транслювати альбоми на кілька екранів одночасно, переглядати активні сеанси та зупиняти певний сеанс, коли завершите.',
-      storageTitle: 'Надійніше очищення сховища',
-      storageDesc:
-          'Ente тепер надійніше очищує тимчасові файли зображень і відео, щоб застосунок не займав зайве місце у сховищі пристрою.',
+    'tr': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Anılarda yorumlar ve tepkiler',
+          description:
+              'Paylaşılan anıları yeniden yaşarken sevdiklerinizle onlar hakkında konuşun.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Anıları istediğiniz gibi paylaşın',
+          description:
+              'Paylaşmadan önce bir anıya hangi fotoğraf ve videoların ekleneceğini tam olarak seçin.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Daha şık fotoğraf görüntüleyici',
+          description:
+              'Fotoğraf görüntüleyici ve bilgi sayfası yeniden tasarlandı. Daha sade, güzel ve okunması kolay.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Fotoğraflardaki metin artık daha net',
+          description:
+              'Fotoğraflardan metin kopyalamak artık daha hızlı ve güvenilir. Seçmeye başlamak için basılı tutun.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Daha akıllı önbellekleme',
+          description:
+              'Fotoğraflarınız hızlı açılmaya devam ederken cihazınızda daha az yer kaplar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 've daha fazlası!',
+          description:
+              'Daha hızlı ve güvenilir yedeklemeler, daha akıcı galeri gezintisi, daha iyi küçük resim yükleme ve indirme güvenilirliği, fotoğraflarda geliştirilmiş metin algılama, daha iyi avatar renkleri, arka plan çalışmaları sırasında oluşan çökmeler için düzeltmeler ve uygulama genelinde birçok küçük iyileştirme.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'vi': _ChangeLogFeatureStrings(
-      deleteTitle: 'Xác nhận xóa dễ hơn',
-      onlineAndroidDeleteDesc:
-          'Khi xóa khỏi thiết bị, Ente có thể giúp bạn thiết lập quản lý phương tiện để tránh các lời nhắc hệ thống lặp lại. Ente cũng có thể ghi nhớ lựa chọn xóa gần nhất của bạn.',
-      localAndroidDeleteDesc:
-          'Khi xóa khỏi thiết bị, Ente có thể giúp bạn thiết lập quản lý phương tiện để tránh các lời nhắc hệ thống lặp lại.',
-      castTitle: 'Truyền lên nhiều màn hình',
-      castDesc:
-          'Giờ bạn có thể truyền album lên nhiều màn hình cùng lúc, xem các phiên đang hoạt động và dừng một phiên cụ thể khi xong.',
-      storageTitle: 'Dọn dẹp bộ nhớ đáng tin cậy hơn',
-      storageDesc:
-          'Ente giờ xóa các tệp ảnh và video tạm thời đáng tin cậy hơn, giúp ứng dụng không giữ thêm dung lượng lưu trữ trên thiết bị.',
+    'uk': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Коментарі та реакції у спогадах',
+          description:
+              'Обговорюйте спільні спогади з близькими, переживаючи їх знову.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Діліться спогадами по-своєму',
+          description:
+              'Перед публікацією виберіть, які саме фото й відео увійдуть до спогаду.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Оновлений переглядач фото',
+          description:
+              'Ми оновили переглядач фото та інформаційну панель. Вони стали охайнішими, приємнішими й легшими для читання.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Чіткіший текст на фото',
+          description:
+              'Копіювати текст із фотографій тепер швидше й надійніше. Натисніть і утримуйте, щоб почати виділення.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Розумніше кешування',
+          description:
+              'Фотографії, як і раніше, відкриваються швидко, займаючи менше місця на пристрої.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'і не тільки!',
+          description:
+              'Швидше та надійніше резервне копіювання, плавніший перегляд галереї, краще завантаження мініатюр і надійніше завантаження файлів, покращене розпізнавання тексту на фото, кращі кольори аватарів, виправлення збоїв під час фонової роботи та багато невеликих покращень у всьому застосунку.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
-    'zh_CN': _ChangeLogFeatureStrings(
-      deleteTitle: '更轻松的删除确认',
-      onlineAndroidDeleteDesc:
-          '从设备删除时，Ente 可以帮助你设置媒体管理，避免重复的系统提示。Ente 还可以记住你上一次的删除选择。',
-      localAndroidDeleteDesc: '从设备删除时，Ente 可以帮助你设置媒体管理，避免重复的系统提示。',
-      castTitle: '投放到多个屏幕',
-      castDesc: '你现在可以将相册同时投放到多个屏幕，查看活跃会话，并在完成后停止指定会话。',
-      storageTitle: '更可靠的存储清理',
-      storageDesc: 'Ente 现在会更可靠地清理临时图片和视频文件，避免应用占用额外的设备存储空间。',
+    'vi': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Bình luận và cảm xúc trong kỷ niệm',
+          description:
+              'Trò chuyện về những kỷ niệm đã chia sẻ với người thân yêu khi cùng nhau sống lại những khoảnh khắc ấy.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Chia sẻ kỷ niệm theo cách của bạn',
+          description:
+              'Chọn chính xác ảnh và video sẽ có trong một kỷ niệm trước khi chia sẻ.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Trình xem ảnh được trau chuốt',
+          description:
+              'Trình xem ảnh và bảng thông tin đã được thiết kế lại. Gọn gàng, đẹp mắt và dễ đọc hơn.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Văn bản trong ảnh rõ nét hơn',
+          description:
+              'Sao chép văn bản từ ảnh giờ nhanh hơn và đáng tin cậy hơn. Nhấn giữ để bắt đầu chọn.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Bộ nhớ đệm thông minh hơn',
+          description:
+              'Ảnh vẫn mở nhanh trong khi chiếm ít dung lượng hơn trên thiết bị.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'và nhiều hơn nữa!',
+          description:
+              'Sao lưu nhanh và đáng tin cậy hơn, duyệt thư viện mượt mà hơn, tải hình thu nhỏ tốt hơn và tải xuống đáng tin cậy hơn, cải thiện khả năng phát hiện văn bản trong ảnh, màu hình đại diện đẹp hơn, sửa lỗi treo ứng dụng khi chạy tác vụ nền cùng nhiều cải tiến nhỏ khác trong toàn bộ ứng dụng.',
+          isOnlineOnly: true,
+        ),
+      ],
+    ),
+    'zh_CN': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: '回忆中的评论和回应',
+          description: '与亲友一起重温共享回忆，边看边聊。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '按你的方式分享回忆',
+          description: '分享前，精确选择要加入回忆的照片和视频。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '更精致的照片查看器',
+          description: '照片查看器和信息面板已重新设计。界面更简洁、更美观，也更易读。',
+        ),
+        ChangeLogEntryStrings(
+          title: '照片中的文字更清晰',
+          description: '现在，从照片中复制文字更快、更可靠。长按即可开始选择。',
+        ),
+        ChangeLogEntryStrings(
+          title: '更智能的缓存',
+          description: '照片依然能快速打开，同时占用更少的设备空间。',
+        ),
+        ChangeLogEntryStrings(
+          title: '还有更多！',
+          description:
+              '备份更快、更可靠，浏览图库更流畅，缩略图加载更好，下载更可靠，照片文字检测更准确，头像颜色更协调，修复后台任务期间的崩溃问题，以及贯穿整个应用的众多细节优化。',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
   };
 }
 
-class _ChangeLogFeatureStrings {
-  final String deleteTitle;
-  final String onlineAndroidDeleteDesc;
-  final String localAndroidDeleteDesc;
-  final String castTitle;
-  final String castDesc;
-  final String storageTitle;
-  final String storageDesc;
+class ChangeLogEntryStrings {
+  final String title;
+  final String description;
+  final bool isOnlineOnly;
 
-  const _ChangeLogFeatureStrings({
-    required this.deleteTitle,
-    required this.onlineAndroidDeleteDesc,
-    required this.localAndroidDeleteDesc,
-    required this.castTitle,
-    required this.castDesc,
-    required this.storageTitle,
-    required this.storageDesc,
+  const ChangeLogEntryStrings({
+    required this.title,
+    required this.description,
+    this.isOnlineOnly = false,
   });
 }

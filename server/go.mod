@@ -5,6 +5,7 @@ go 1.26.0
 toolchain go1.26.5
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/TwiN/go-away v1.6.13
 	github.com/avct/uasurfer v0.0.0-20191028135549-26b5daa857f1
 	github.com/awa/go-iap v1.3.16
@@ -39,7 +40,7 @@ require (
 	github.com/zsais/go-gin-prometheus v0.1.0
 	golang.org/x/crypto v0.53.0
 	golang.org/x/sync v0.21.0
-	golang.org/x/text v0.38.0
+	golang.org/x/text v0.39.0
 	google.golang.org/api v0.126.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
@@ -63,7 +64,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
 )
 
 require (
@@ -110,7 +111,7 @@ require (
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sys v0.46.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/grpc v1.81.1 // indirect
+	google.golang.org/grpc v1.82.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect

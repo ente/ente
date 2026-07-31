@@ -14,7 +14,7 @@ use crate::transport::{
     ProfileAvatarPayload, ProfileCoverPayload, SpaceProfileResponse, UpdateSpaceProfileRequest,
     UpdateSpaceProfileResponse,
 };
-use ente_core::crypto::encode_b64;
+use ente_core::b64;
 
 impl AccountSpaceCtx {
     pub async fn get_space_profile_raw(
@@ -96,7 +96,7 @@ impl AccountSpaceCtx {
             })?;
         let request = UpdateSpaceProfileRequest {
             key_version: space_key.key_version,
-            encrypted_profile: encode_b64(&encrypt_secretbox_payload(
+            encrypted_profile: b64::encode(&encrypt_secretbox_payload(
                 &space_key.space_key,
                 profile,
             )?),

@@ -7,6 +7,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
+import "package:photos/ui/components/info_item_widget.dart";
 import "package:photos/ui/viewer/date/edit_date_sheet.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
 
@@ -29,33 +30,31 @@ class _CreationTimeItemState extends State<CreationTimeItem> {
             widget.file.ownerID == widget.currentUserID) &&
         widget.file.uploadedFileID != null &&
         !widget.file.isTrash;
-    return MenuComponent(
-      key: const ValueKey("Creation time"),
-      leading: HugeIcon(
-        icon: HugeIcons.strokeRoundedCalendar04,
-        size: IconSizes.small,
-        color: colors.textLight,
-      ),
-      title: DateFormat.yMMMEd(
-        Localizations.localeOf(context).languageCode,
-      ).format(dateTime),
-      subtitle: getTimeIn12hrFormat(dateTime),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
       onTap: () {
         Bus.instance.fire(PauseVideoEvent());
         routeToPage(context, JumpToDateGallery(fileToJumpTo: widget.file));
       },
-      trailing: canEdit
-          ? IconButtonComponent(
-              icon: HugeIcon(
-                icon: HugeIcons.strokeRoundedEdit03,
-                size: IconSizes.small,
-                color: colors.textLight,
-              ),
-              variant: IconButtonComponentVariant.secondary,
-              shouldSurfaceExecutionStates: false,
-              onTap: () => _showDateTimePicker(widget.file),
-            )
-          : null,
+      child: InfoItemWidget(
+        key: const ValueKey("Creation time"),
+        leadingIconWidget: HugeIcon(
+          icon: HugeIcons.strokeRoundedCalendar04,
+          size: IconSizes.small,
+          color: colors.textLight,
+        ),
+        title: DateFormat.yMMMEd(
+          Localizations.localeOf(context).languageCode,
+        ).format(dateTime),
+        subtitleSection: Future.value([
+          Text(
+            getTimeIn12hrFormat(dateTime),
+            style: TextStyles.mini.copyWith(color: colors.textLight),
+          ),
+        ]),
+        editOnTap: canEdit ? () => _showDateTimePicker(widget.file) : null,
+        useMenuStyle: true,
+      ),
     );
   }
 

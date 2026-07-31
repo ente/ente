@@ -63,12 +63,10 @@ class SharedEmptyState extends StatelessWidget {
             ButtonComponent(
               label: strings.shareAnAlbum,
               shouldSurfaceExecutionStates: false,
-              onTap: () async {
-                showCollectionActionSheet(
-                  context,
-                  actionType: CollectionActionType.shareCollection,
-                );
-              },
+              onTap: () => showCollectionActionSheet(
+                context,
+                actionType: CollectionActionType.shareCollection,
+              ),
             ),
           ],
         ),

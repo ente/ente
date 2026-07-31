@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { SpacedRow } from "ente-base/components/containers";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
+import { t } from "i18next";
 import React from "react";
 
 interface DefaultOptionsV2Props {
@@ -24,47 +25,6 @@ interface DefaultOptionsV2Props {
     onSelectGooglePhotos: () => void;
     onSelectFolder: () => void;
 }
-
-const importHelp = (
-    <Typography
-        sx={{
-            color: "text.faint",
-            fontSize: "14px",
-            fontWeight: 500,
-            lineHeight: "20px",
-            textAlign: "center",
-        }}
-    >
-        <Link
-            href="https://ente.com/help/photos/migration/#import-your-photos-into-ente"
-            target="_blank"
-            rel="noopener"
-            sx={{
-                color: "accent.main",
-                fontWeight: 500,
-                textDecoration: "underline",
-            }}
-        >
-            Need help?
-        </Link>{" "}
-        <span style={{ opacity: 0.7 }}>Not seeing your provider</span>
-    </Typography>
-);
-
-const dragAndDropHint = (
-    <Typography
-        sx={{
-            color: "text.faint",
-            fontSize: "12px",
-            fontWeight: 500,
-            lineHeight: "16px",
-            opacity: 0.7,
-            textAlign: "center",
-        }}
-    >
-        Or just drag and drop here
-    </Typography>
-);
 
 export function DefaultOptionsV2({
     intent,
@@ -93,10 +53,10 @@ export function DefaultOptionsV2({
                         lineHeight: "32px",
                     }}
                 >
-                    {intent == "import" ? "Import your library" : "Upload"}
+                    {t(intent == "import" ? "import_library" : "upload")}
                 </Typography>
                 <IconButton
-                    aria-label="Close"
+                    aria-label={t("close")}
                     onClick={onClose}
                     sx={(theme) => ({
                         width: "38px",
@@ -156,7 +116,7 @@ function ImportOptions({
                             color="var(--mui-palette-text-muted)"
                         />
                     }
-                    label="Google Photos"
+                    label={t("google_photos")}
                     onClick={onSelectGooglePhotos}
                 />
                 <ImportProviderButton
@@ -167,13 +127,13 @@ function ImportOptions({
                             color="var(--mui-palette-text-muted)"
                         />
                     }
-                    label="Folder"
+                    label={t("folder")}
                     pending={isFolderSelectionPending}
                     onClick={onSelectFolder}
                 />
             </Stack>
-            {dragAndDropHint}
-            {importHelp}
+            <DragAndDropHint />
+            <ImportHelp />
         </Stack>
     );
 }
@@ -196,7 +156,7 @@ function UploadOptions({
 }: UploadOptionsProps): React.JSX.Element {
     return (
         <Stack sx={{ gap: "24px" }}>
-            <ImportSection title="Upload from">
+            <ImportSection title={t("upload_from")}>
                 <Stack direction="row" sx={{ gap: "10px" }}>
                     <ImportProviderButton
                         icon={
@@ -206,7 +166,7 @@ function UploadOptions({
                                 color="var(--mui-palette-text-muted)"
                             />
                         }
-                        label="Files"
+                        label={t("files")}
                         pending={isFileSelectionPending}
                         onClick={onSelectFiles}
                     />
@@ -218,22 +178,22 @@ function UploadOptions({
                                 color="var(--mui-palette-text-muted)"
                             />
                         }
-                        label="Folder"
+                        label={t("folder")}
                         pending={isFolderSelectionPending}
                         onClick={onSelectFolder}
                     />
                 </Stack>
-                {dragAndDropHint}
+                <DragAndDropHint />
             </ImportSection>
 
-            <ImportSection title="Import from" gap="20px">
+            <ImportSection title={t("import_from")} gap="20px">
                 <OptionRowButton
                     icon={
                         <GoogleIcon
                             sx={{ color: "text.muted", fontSize: "20px" }}
                         />
                     }
-                    label="Google takeout"
+                    label={t("google_takeout")}
                     onClick={onSelectGooglePhotos}
                 />
             </ImportSection>
@@ -402,6 +362,51 @@ function OptionRowButton({
                 </Box>
             </Stack>
         </FocusVisibleButton>
+    );
+}
+
+function ImportHelp(): React.JSX.Element {
+    return (
+        <Typography
+            sx={{
+                color: "text.faint",
+                fontSize: "14px",
+                fontWeight: 500,
+                lineHeight: "20px",
+                textAlign: "center",
+            }}
+        >
+            <Link
+                href="https://ente.com/help/photos/migration/#import-your-photos-into-ente"
+                target="_blank"
+                rel="noopener"
+                sx={{
+                    color: "accent.main",
+                    fontWeight: 500,
+                    textDecoration: "underline",
+                }}
+            >
+                {t("need_help")}
+            </Link>{" "}
+            <span style={{ opacity: 0.7 }}>{t("provider_not_listed")}</span>
+        </Typography>
+    );
+}
+
+function DragAndDropHint(): React.JSX.Element {
+    return (
+        <Typography
+            sx={{
+                color: "text.faint",
+                fontSize: "12px",
+                fontWeight: 500,
+                lineHeight: "16px",
+                opacity: 0.7,
+                textAlign: "center",
+            }}
+        >
+            {t("drag_and_drop_here")}
+        </Typography>
     );
 }
 

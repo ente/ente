@@ -294,25 +294,40 @@ func (r *MessagesRepository) ListThread(ctx context.Context, viewerSpaceID strin
 }
 
 func (r *MessagesRepository) SetLike(ctx context.Context, messageID string, actorSpaceID string, like bool) error {
+	_, err := r.SetLikeWithChanged(ctx, messageID, actorSpaceID, like)
+	return err
+}
+
+func (r *MessagesRepository) SetLikeWithChanged(ctx context.Context, messageID string, actorSpaceID string, like bool) (bool, error) {
 	if like {
-		_, err := r.DB.ExecContext(ctx, `
+		result, err := r.DB.ExecContext(ctx, `
 			UPDATE space_messages
-			SET recipient_liked_at = COALESCE(recipient_liked_at, now_utc_micro_seconds())
+			SET recipient_liked_at = now_utc_micro_seconds()
 			WHERE message_id = $1
 			  AND recipient_space_id = $2
 			  AND kind IN ('regular', 'post_reply')
 			  AND is_deleted = FALSE
+			  AND recipient_liked_at IS NULL
 		`, messageID, actorSpaceID)
-		return stacktrace.Propagate(err, "")
+		if err != nil {
+			return false, stacktrace.Propagate(err, "")
+		}
+		affected, err := result.RowsAffected()
+		return affected > 0, stacktrace.Propagate(err, "")
 	}
-	_, err := r.DB.ExecContext(ctx, `
+	result, err := r.DB.ExecContext(ctx, `
 		UPDATE space_messages
 		SET recipient_liked_at = NULL
 		WHERE message_id = $1
 		  AND recipient_space_id = $2
 		  AND kind IN ('regular', 'post_reply')
+		  AND recipient_liked_at IS NOT NULL
 	`, messageID, actorSpaceID)
-	return stacktrace.Propagate(err, "")
+	if err != nil {
+		return false, stacktrace.Propagate(err, "")
+	}
+	affected, err := result.RowsAffected()
+	return affected > 0, stacktrace.Propagate(err, "")
 }
 
 func (r *MessagesRepository) DeleteMessage(ctx context.Context, messageID string, senderSpaceID string) error {

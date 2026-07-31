@@ -1,1 +1,0 @@
-- Improved handling of photos and videos with incomplete metadata.

@@ -2,6 +2,7 @@ import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
 import { savedPartialLocalUser } from "ente-accounts-rs/services/accounts-db";
 import { isHTTPErrorWithStatus } from "ente-base/http";
+import log from "ente-base/log";
 import React, { useEffect, useState } from "react";
 import {
     VerifyTwoFactorScreen,
@@ -56,7 +57,7 @@ const Page: React.FC = () => {
             await routeAfterCompletedLogin(router, refreshProfile);
         } catch (error) {
             if (!isExpectedTwoFactorError(error)) {
-                console.error("Space 2FA verification failed", error);
+                log.error("Space 2FA verification failed", error);
             }
             if (isHTTPErrorWithStatus(error, 401)) {
                 setCodeResetKey((key) => key + 1);

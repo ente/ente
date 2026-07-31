@@ -69,7 +69,7 @@ func (m *CollectionLinkMiddleware) Authenticate(urlSanitizer func(_ *gin.Context
 		shouldCheckDeviceLimit := shouldCheckCollectionLinkDeviceLimit(reqPath)
 		passwordValidated := false
 
-		cacheKey := computeHashKeyForList([]string{accessToken, clientIP, userAgent}, ":")
+		cacheKey := computeHashKeyForList([]string{accessToken, clientIP, userAgent, c.GetHeader("Origin")}, ":")
 		var cachedValue interface{}
 		cacheHit := false
 		if !shouldCheckDeviceLimit {
@@ -299,7 +299,7 @@ func (m *CollectionLinkMiddleware) validateOrigin(c *gin.Context, ownerID int64)
 		// origin to embed.ente.com. Custom embed origins should not inherit this.
 		(embedAlbumsOrigin == "https://embed.ente.com" && origin == "https://embed.ente.io") ||
 		origin == viper.GetString("apps.public-locker") ||
-		strings.HasPrefix(strings.ToLower(origin), "http://localhost:") {
+		network.IsLoopbackOrigin(origin) {
 		return nil
 	}
 	reqId := requestid.Get(c)

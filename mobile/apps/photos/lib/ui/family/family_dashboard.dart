@@ -7,29 +7,23 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/generated/l10n.dart';
 import 'package:photos/models/user_details.dart';
+import 'package:photos/ui/sharing/library_sharing/library_sharing_strings.dart';
 import 'package:photos/ui/viewer/people/person_face_widget.dart';
 import 'package:photos/utils/avatar_util.dart';
 
 enum FamilyMemberAction {
   saveContact,
   editContact,
+  shareAlbums,
   editStorageLimit,
   removeMember,
   resendInvite,
   revokeInvite,
 }
 
-AvatarComponentColor familyMemberAvatarComponentColor(
-  FamilyMember member, {
-  required String currentUserEmail,
-}) {
-  return avatarComponentColorForAvatarIdentity(
-    AvatarIdentity.account(
-      label: member.email,
-      email: member.email,
-      userID: member.userID,
-      currentUserEmail: currentUserEmail,
-    ),
+AvatarComponentColor familyMemberAvatarComponentColor(FamilyMember member) {
+  return avatarComponentColorForIdentity(
+    avatarIdentityKey(email: member.email, userID: member.userID),
   );
 }
 
@@ -38,6 +32,7 @@ List<FamilyMemberAction> familyMemberActions({
   required bool isCurrentUser,
   required FamilyMember member,
   required bool hasSavedContact,
+  bool librarySharingEnabled = false,
 }) {
   if (isCurrentUser) {
     return const [];
@@ -48,10 +43,15 @@ List<FamilyMemberAction> familyMemberActions({
       : hasSavedContact
       ? FamilyMemberAction.editContact
       : FamilyMemberAction.saveContact;
+  final shareAction =
+      librarySharingEnabled && member.userID != null && member.isActive
+      ? FamilyMemberAction.shareAlbums
+      : null;
 
   if (isAdmin) {
     return [
       ?contactAction,
+      ?shareAction,
       if (member.isPending) ...[
         FamilyMemberAction.resendInvite,
         FamilyMemberAction.revokeInvite,
@@ -65,7 +65,7 @@ List<FamilyMemberAction> familyMemberActions({
   if (!member.isActive || contactAction == null) {
     return const [];
   }
-  return [contactAction];
+  return [contactAction, ?shareAction];
 }
 
 class FamilyDashboard extends StatelessWidget {
@@ -76,6 +76,9 @@ class FamilyDashboard extends StatelessWidget {
     required this.contactsByUserId,
     required this.profilePictureBytesByUserId,
     required this.linkedPersonIdsByUserId,
+    required this.linkedPersonNamesByUserId,
+    this.librarySharingEnabled = false,
+    this.sharedAlbumCountsByUserId = const {},
     required this.onMemberTap,
     required this.onAddMember,
     required this.remainingSlots,
@@ -88,7 +91,10 @@ class FamilyDashboard extends StatelessWidget {
   final Map<int, contacts.ContactRecord?> contactsByUserId;
   final Map<int, Uint8List?> profilePictureBytesByUserId;
   final Map<int, String> linkedPersonIdsByUserId;
-  final ValueChanged<FamilyMember> onMemberTap;
+  final Map<int, String> linkedPersonNamesByUserId;
+  final bool librarySharingEnabled;
+  final Map<int, int> sharedAlbumCountsByUserId;
+  final void Function(FamilyMember member, String displayName) onMemberTap;
   final VoidCallback onAddMember;
   final int remainingSlots;
 
@@ -123,8 +129,12 @@ class FamilyDashboard extends StatelessWidget {
             profilePictureBytes: profilePictureBytesByUserId[member.userID],
             linkedPersonId: linkedPersonIdsByUserId[member.userID],
             hasSavedContact: contactsByUserId[member.userID] != null,
+            librarySharingEnabled: librarySharingEnabled,
             avatarColor: _avatarColorFor(member),
-            onTap: () => onMemberTap(member),
+            sharedAlbumCount: librarySharingEnabled
+                ? sharedAlbumCountsByUserId[member.userID]
+                : null,
+            onTap: () => onMemberTap(member, _displayNameFor(member)),
           ),
           if (index < visibleMembers.length - 1)
             const SizedBox(height: Spacing.sm),
@@ -166,21 +176,25 @@ class FamilyDashboard extends StatelessWidget {
   }
 
   String _displayNameFor(FamilyMember member) =>
-      _savedNameFor(member) ?? member.email;
+      _savedNameFor(member) ?? _linkedPersonNameFor(member) ?? member.email;
 
   String _storageLabelFor(FamilyMember member) =>
-      _savedNameFor(member) ?? member.email.split('@').first;
+      _savedNameFor(member) ??
+      _linkedPersonNameFor(member) ??
+      member.email.split('@').first;
 
   String? _savedNameFor(FamilyMember member) {
     final savedName = contactsByUserId[member.userID]?.data?.name.trim();
     return savedName == null || savedName.isEmpty ? null : savedName;
   }
 
+  String? _linkedPersonNameFor(FamilyMember member) {
+    final personName = linkedPersonNamesByUserId[member.userID]?.trim();
+    return personName == null || personName.isEmpty ? null : personName;
+  }
+
   AvatarComponentColor _avatarColorFor(FamilyMember member) =>
-      familyMemberAvatarComponentColor(
-        member,
-        currentUserEmail: userDetails.email,
-      );
+      familyMemberAvatarComponentColor(member);
 }
 
 class _FamilyStorageCard extends StatelessWidget {
@@ -353,7 +367,9 @@ class _FamilyMemberRow extends StatelessWidget {
     required this.profilePictureBytes,
     required this.linkedPersonId,
     required this.hasSavedContact,
+    required this.librarySharingEnabled,
     required this.avatarColor,
+    this.sharedAlbumCount,
     required this.onTap,
   });
 
@@ -364,7 +380,9 @@ class _FamilyMemberRow extends StatelessWidget {
   final Uint8List? profilePictureBytes;
   final String? linkedPersonId;
   final bool hasSavedContact;
+  final bool librarySharingEnabled;
   final AvatarComponentColor avatarColor;
+  final int? sharedAlbumCount;
   final VoidCallback onTap;
 
   @override
@@ -375,13 +393,17 @@ class _FamilyMemberRow extends StatelessWidget {
       isCurrentUser: isCurrentUser,
       member: member,
       hasSavedContact: hasSavedContact,
+      librarySharingEnabled: librarySharingEnabled,
     );
     final isInteractive = actions.isNotEmpty;
+    final storageUsage = l10n.memberStorageUsed(
+      amount: convertBytesToReadableFormat(member.usage),
+    );
     final subtitle = member.isPending
         ? l10n.pending
-        : l10n.memberStorageUsed(
-            amount: convertBytesToReadableFormat(member.usage),
-          );
+        : isCurrentUser || member.userID == null || sharedAlbumCount == null
+        ? storageUsage
+        : LibrarySharingStrings.memberSubtitle(sharedAlbumCount!, storageUsage);
 
     return MenuComponent(
       title: displayName,
@@ -418,9 +440,16 @@ class _MemberAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = profilePictureBytes != null
+    final cachedPixelWidth =
+        (AvatarComponentSize.large.dimension *
+                MediaQuery.devicePixelRatioOf(context))
+            .round();
+    Widget avatar = profilePictureBytes != null
         ? AvatarComponent.image(
-            image: MemoryImage(profilePictureBytes!),
+            image: ResizeImage(
+              MemoryImage(profilePictureBytes!),
+              width: cachedPixelWidth,
+            ),
             size: AvatarComponentSize.large,
             semanticLabel: displayName,
           )
@@ -433,20 +462,29 @@ class _MemberAvatar extends StatelessWidget {
               child: ClipOval(
                 child: PersonFaceWidget(
                   personId: linkedPersonId,
-                  cachedPixelWidth:
-                      (AvatarComponentSize.large.dimension *
-                              MediaQuery.devicePixelRatioOf(context))
-                          .round(),
+                  cachedPixelWidth: cachedPixelWidth,
                 ),
               ),
             ),
           )
         : AvatarComponent(
-            initials: _initials(displayName),
+            initials: avatarInitials(displayName),
             color: avatarColor,
             size: AvatarComponentSize.large,
             semanticLabel: displayName,
           );
+
+    avatar = DecoratedBox(
+      position: DecorationPosition.foreground,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: avatarComponentColorValue(context, avatarColor),
+          width: 2,
+        ),
+      ),
+      child: avatar,
+    );
 
     if (!member.isAdmin) {
       return avatar;
@@ -473,19 +511,4 @@ class _MemberAvatar extends StatelessWidget {
       ],
     );
   }
-}
-
-String _initials(String value) {
-  final words = value
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((word) => word.isNotEmpty)
-      .toList();
-  if (words.isEmpty) {
-    return '?';
-  }
-  if (words.length == 1) {
-    return words.first.substring(0, 1);
-  }
-  return '${words.first.substring(0, 1)}${words.last.substring(0, 1)}';
 }

@@ -307,8 +307,12 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
               contactUserId: personData.userID,
               email: personData.userID == null ? personData.email : null,
             );
+        final resolvedName = PhotosContactsService.instance.getCachedSavedName(
+          contactUserId: personData.userID,
+          email: personData.userID == null ? personData.email : null,
+        );
         _personIdentity = AvatarIdentity.account(
-          label: personData.name,
+          label: resolvedName ?? personData.name,
           email: resolvedEmail ?? personData.email,
           userID: personData.userID,
           personID: personEntity.remoteID,
@@ -572,7 +576,7 @@ class _EmptyPersonThumbnail extends StatelessWidget {
                       ? shortestSide * 0.42
                       : textTheme.h2.fontSize ?? 24;
                   return Text(
-                    identity!.initial,
+                    identity!.initials,
                     style: textTheme.h2Bold.copyWith(
                       color: Colors.white,
                       fontSize: fontSize,

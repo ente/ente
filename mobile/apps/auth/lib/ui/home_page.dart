@@ -78,6 +78,11 @@ class HomePage extends BaseHomePage {
   State<HomePage> createState() => _HomePageState();
 }
 
+@visibleForTesting
+String addedCodeFocusSearchQuery(Code code) {
+  return code.issuer.trim().isNotEmpty ? code.issuer : code.account;
+}
+
 class _HomePageState extends State<HomePage> {
   final _codeDisplayStore = CodeDisplayStore.instance;
   late final _settingsPage = SettingsPage(
@@ -533,15 +538,15 @@ class _HomePageState extends State<HomePage> {
     await showBottomSheetComponent<void>(
       context: context,
       useRootNavigator: true,
-      builder: (_) {
+      builder: (dialogContext) {
         return AuthQrDialog(
           data: qrData,
           title: code.issuer,
           subtitle: code.account,
           shareFileName: 'ente_auth_qr_${code.account}.png',
           shareText: 'QR code for ${code.account}',
-          dialogTitle: context.l10n.qrCode,
-          shareButtonText: context.l10n.share,
+          dialogTitle: dialogContext.l10n.qrCode,
+          shareButtonText: dialogContext.l10n.share,
         );
       },
     );
@@ -2021,8 +2026,9 @@ class _HomePageState extends State<HomePage> {
     _showSearchBox = true;
     selectedTag = "";
     _isTrashOpen = false;
-    _textController.text = newCode.account;
-    _searchText = newCode.account;
+    final searchQuery = addedCodeFocusSearchQuery(newCode);
+    _textController.text = searchQuery;
+    _searchText = searchQuery;
     _applyFilteringAndRefresh();
   }
 

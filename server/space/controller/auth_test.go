@@ -28,7 +28,7 @@ func setupSpaceAuthControllerTest(t *testing.T) (*Module, *spacerepo.Module, *ba
 	gin.SetMode(gin.TestMode)
 	repos := spacerepo.NewModule(db, nil)
 	userAuthRepo := &baserepo.UserAuthRepository{DB: db}
-	return NewModule(repos, userAuthRepo), repos, userAuthRepo, context.Background()
+	return NewModule(repos, userAuthRepo, noopSpaceActivityNotifier{}, nil), repos, userAuthRepo, context.Background()
 }
 
 func newPublicSpaceContext() *gin.Context {

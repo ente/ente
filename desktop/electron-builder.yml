@@ -11,9 +11,6 @@ protocols:
     - name: Ente
       schemes: ["ente"]
 win:
-    files:
-        - "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,linux}/**/*"
-        - "!node_modules/onnxruntime-node/bin/napi-v6/win32/!(${arch})/**/*"
     target:
         - target: nsis
           arch: [x64, arm64]
@@ -26,9 +23,6 @@ win:
 nsis:
     deleteAppDataOnUninstall: true
 linux:
-    files:
-        - "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,win32}/**/*"
-        - "!node_modules/onnxruntime-node/bin/napi-v6/linux/!(${arch})/**/*"
     target:
         - target: AppImage
           arch: [x64, arm64]
@@ -41,12 +35,14 @@ linux:
     category: Photography
     icon: ./build/icon.icns
 mac:
-    files:
-        - "!node_modules/onnxruntime-node/bin/napi-v6/{linux,win32}/**/*"
+    minimumSystemVersion: "13.3"
     target:
         target: default
         arch: [universal]
     category: public.app-category.photography
     hardenedRuntime: true
     mergeASARs: false
-    x64ArchFiles: "**/node_modules/onnxruntime-node/bin/napi-v6/darwin/**"
+    # The Rust N-API addon and the ONNX Runtime library are shipped as separate
+    # per-arch Mach-Os (in both slices of the universal build) instead of fat
+    # binaries; the app picks the one matching the process arch at runtime.
+    x64ArchFiles: "**/{napi,onnxruntime}/**"

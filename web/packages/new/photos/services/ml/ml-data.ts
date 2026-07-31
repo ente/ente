@@ -94,6 +94,7 @@ export type ParsedRemoteMLData = Partial<{
 const RemoteFaceIndex = z.object({
     version: z.number(),
     client: z.string(),
+    flags: z.number().int().default(0),
     width: z.number(),
     height: z.number(),
     faces: z.array(
@@ -123,6 +124,7 @@ const RemoteFaceIndex = z.object({
 const RemoteCLIPIndex = z.object({
     version: z.number(),
     client: z.string(),
+    flags: z.number().int().default(0),
     embedding: z.array(z.number()),
 });
 

@@ -108,7 +108,7 @@ class _SummaryRows extends StatelessWidget {
     return Column(
       children: [
         _row(
-          assetName: 'photos.png',
+          app: ComponentApp.photos,
           title: summary == null
               ? context.strings.entePhotos
               : context.strings.photosAndVideosCount(
@@ -119,7 +119,7 @@ class _SummaryRows extends StatelessWidget {
         ),
         const SizedBox(height: Spacing.sm),
         _row(
-          assetName: 'auth.png',
+          app: ComponentApp.auth,
           title: summary == null
               ? context.strings.enteAuth
               : context.strings.authenticatorCodesCount(
@@ -130,7 +130,7 @@ class _SummaryRows extends StatelessWidget {
         ),
         const SizedBox(height: Spacing.sm),
         _row(
-          assetName: 'locker.png',
+          app: ComponentApp.locker,
           title: summary == null
               ? context.strings.enteLocker
               : context.strings.lockerRecordsCount(
@@ -144,7 +144,7 @@ class _SummaryRows extends StatelessWidget {
   }
 
   Widget _row({
-    required String assetName,
+    required ComponentApp app,
     required String title,
     String? subtitle,
   }) {
@@ -153,15 +153,7 @@ class _SummaryRows extends StatelessWidget {
       subtitle: subtitle,
       titleMaxLines: 1,
       subtitleMaxLines: 1,
-      leading: SizedBox(
-        width: 24,
-        height: 24,
-        child: Image.asset(
-          'assets/$assetName',
-          package: 'ente_account_deletion',
-          fit: BoxFit.contain,
-        ),
-      ),
+      leading: EnteAppIcon(app: app),
     );
   }
 }

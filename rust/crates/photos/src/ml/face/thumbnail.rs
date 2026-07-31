@@ -54,9 +54,8 @@ pub fn generate_face_thumbnails(
     let mut results = Vec::with_capacity(face_boxes.len());
 
     for (index, face_box) in face_boxes.iter().enumerate() {
-        let crop = compute_crop_rect(face_box, image_width, image_height).map_err(|e| {
-            MlError::InvalidRequest(format!("invalid face box at index {index}: {e}",))
-        })?;
+        let crop = compute_crop_rect(face_box, image_width, image_height)
+            .map_err(|e| MlError::Image(format!("invalid face box at index {index}: {e}")))?;
         let (target_width, target_height) =
             face_thumbnail_dimensions(crop.output_width, crop.output_height)?;
         let resized =
@@ -164,7 +163,7 @@ fn resize_crop_with_fir(
         .resize_alg(ResizeAlg::Convolution(filter));
     resizer
         .resize(source, &mut resized, Some(&options))
-        .map_err(|e| MlError::Postprocess(format!("failed to resize face thumbnail crop: {e}")))?;
+        .map_err(|e| MlError::Image(format!("failed to resize face thumbnail crop: {e}")))?;
     Ok(resized)
 }
 
@@ -191,7 +190,7 @@ fn select_resize_filter(crop: &CropRect, target_width: u32, target_height: u32) 
 
 fn face_thumbnail_dimensions(width: u32, height: u32) -> MlResult<(u32, u32)> {
     if width == 0 || height == 0 {
-        return Err(MlError::Postprocess(
+        return Err(MlError::Image(
             "cannot compute resize dimensions for zero-sized crop".to_string(),
         ));
     }
@@ -227,7 +226,7 @@ fn face_thumbnail_dimensions(width: u32, height: u32) -> MlResult<(u32, u32)> {
 
 fn scaled_dimension(value: u32, original_dimension: u32, target_dimension: u32) -> MlResult<u32> {
     if original_dimension == 0 {
-        return Err(MlError::Postprocess(
+        return Err(MlError::Image(
             "cannot scale from a zero-sized dimension".to_string(),
         ));
     }
@@ -237,7 +236,7 @@ fn scaled_dimension(value: u32, original_dimension: u32, target_dimension: u32) 
     let rounded = (numerator + (denominator / 2)) / denominator;
 
     u32::try_from(rounded.max(1)).map_err(|_| {
-        MlError::Postprocess(format!(
+        MlError::Image(format!(
             "scaled dimension exceeds u32 for value={value}, original={original_dimension}, target={target_dimension}",
         ))
     })
@@ -252,7 +251,10 @@ mod tests {
         FaceBox, compute_crop_rect, face_thumbnail_dimensions, generate_face_thumbnails,
         select_resize_filter,
     };
-    use crate::ml::types::{DecodedImage, Dimensions};
+    use crate::ml::{
+        error::MlError,
+        types::{DecodedImage, Dimensions},
+    };
 
     #[test]
     fn compute_crop_rect_matches_canvas_math_for_center_box() {
@@ -330,9 +332,10 @@ mod tests {
             height: 0.3,
         }];
 
-        let result = generate_face_thumbnails(&decoded, &face_boxes);
-
-        assert!(result.is_err());
+        assert!(matches!(
+            generate_face_thumbnails(&decoded, &face_boxes),
+            Err(MlError::Image(_))
+        ));
     }
 
     #[test]

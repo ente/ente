@@ -26,7 +26,3 @@ dev_dependencies:
   flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
-
-flutter:
-  assets:
-    - assets/

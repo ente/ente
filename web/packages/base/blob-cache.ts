@@ -104,6 +104,14 @@ export const openBlobCache = async (
     isDesktop ? openOPFSCacheWeb(name) : openWebCache(name);
 
 /**
+ * Delete all data in the cache corresponding to {@link name}.
+ */
+export const clearBlobCache = async (name: BlobCacheNamespace) => {
+    cachedCaches.delete(name);
+    return isDesktop ? clearOPFSCache(name) : caches.delete(name);
+};
+
+/**
  * [Note: ArrayBuffer vs Blob vs Uint8Array]
  *
  * ArrayBuffers are in memory, while blobs are unreified, and can directly point
@@ -238,6 +246,19 @@ export const clearBlobCaches = async () => {
 
 const clearWebCaches = () =>
     Promise.all(blobCacheNames.map((name) => caches.delete(name)));
+
+const clearOPFSCache = async (name: BlobCacheNamespace) => {
+    const root = await navigator.storage.getDirectory();
+    try {
+        const caches = await root.getDirectoryHandle("cache");
+        await caches.removeEntry(name, { recursive: true });
+        return true;
+    } catch (e) {
+        if (e instanceof DOMException && e.name == "NotFoundError")
+            return false;
+        throw e;
+    }
+};
 
 const clearOPFSCaches = async () => {
     const root = await navigator.storage.getDirectory();

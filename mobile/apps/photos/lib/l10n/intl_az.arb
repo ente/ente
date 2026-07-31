@@ -721,7 +721,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore abunəliyi",
   "appstoreSubscription": "AppStore abunəliyi",
-  "subAlreadyLinkedErrMessage": "Sizin {id} artıq başqa bir Ente hesabına bağlanıb.\nƏgər {id} kimliyinizi bu hesab ilə istifadə etmək istəyirsinizsə, lütfən dəstək xidmətimizlə əlaqə saxlayın",
   "visitWebToManage": "Abunəliyinizi idarə etmək üçün lütfən {webUrl} saytına daxil olun",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

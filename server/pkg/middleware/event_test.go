@@ -28,6 +28,12 @@ func TestShouldSkipBodyLogForSpaceKeyRoutes(t *testing.T) {
 	require.False(t, shouldSkipBodyLog(http.MethodGet, "/user-entity/key"))
 }
 
+func TestAccountRecoveryTokensAreNotLogged(t *testing.T) {
+	require.True(t, shouldSkipBodyLog(http.MethodPost, "/users/recover-account/validate"))
+	require.True(t, shouldSkipBodyLog(http.MethodPost, "/users/recover-account"))
+	require.False(t, shouldSkipBodyLog(http.MethodGet, "/users/recover-account"))
+}
+
 func TestEventsUse120PerHourGlobalRateLimit(t *testing.T) {
 	limit := util.NewRateLimiter("120-H")
 	rateLimiter := &RateLimitMiddleware{limit120ReqPerHour: limit}
@@ -52,6 +58,12 @@ func TestSpaceRoutesUseRouteSpecificRateLimits(t *testing.T) {
 
 	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug", http.MethodGet))
 	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/slug-availability/:spaceSlug", http.MethodGet))
+	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/bootstrap", http.MethodGet))
+	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/profile", http.MethodGet))
+	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/posts", http.MethodGet))
+	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/versions", http.MethodGet))
+	require.Same(t, limit500ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/assets/redirect", http.MethodGet))
+	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/push/subscription", http.MethodPut))
 	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/uploads/presign", http.MethodPost))
 	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/profile", http.MethodGet))
 	require.Same(t, limit500ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/assets/redirect", http.MethodGet))
@@ -67,6 +79,15 @@ func TestSpaceRoutesUseRouteSpecificRateLimits(t *testing.T) {
 	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/account/space/sessions/bootstrap", http.MethodPost))
 	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/account/space/sessions/current", http.MethodDelete))
 	require.Nil(t, rateLimiter.getLimiter("/account/space", http.MethodGet))
+}
+
+func TestAccountRecoveryRoutesUsePublicSensitiveRateLimit(t *testing.T) {
+	limit := util.NewRateLimiter("10-M")
+	rateLimiter := &RateLimitMiddleware{limit10ReqPerMin: limit}
+
+	require.Same(t, limit, rateLimiter.getLimiter("/users/recover-account/validate", http.MethodPost))
+	require.Same(t, limit, rateLimiter.getLimiter("/users/recover-account", http.MethodPost))
+	require.Nil(t, rateLimiter.getLimiter("/users/recover-account", http.MethodGet))
 }
 
 func TestEventsShareGlobalRateLimitAcrossPublicAndAuthenticatedRoutes(t *testing.T) {

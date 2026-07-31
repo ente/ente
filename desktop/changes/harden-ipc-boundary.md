@@ -1,1 +1,0 @@
-- Harden IPC boundary between the renderer and main process.

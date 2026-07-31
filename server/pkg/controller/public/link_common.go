@@ -13,7 +13,7 @@ import (
 func validateJWTToken(secret []byte, jwtToken string, passwordHash string) error {
 	token, err := jwt.ParseWithClaims(jwtToken, &enteJWT.LinkPasswordClaim{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return stacktrace.Propagate(fmt.Errorf("unexpected signing method: %v", token.Header["alg"]), ""), nil
+			return nil, stacktrace.Propagate(fmt.Errorf("unexpected signing method: %v", token.Header["alg"]), "")
 		}
 		return secret, nil
 	})
@@ -40,7 +40,7 @@ func verifyPassword(secret []byte, expectedPassHash *string, req ente.VerifyPass
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &enteJWT.LinkPasswordClaim{
 		PassHash:   req.PassHash,
-		ExpiryTime: time.NDaysFromNow(365),
+		ExpiryTime: time.NDaysFromNow(30),
 	})
 	// Sign and get the complete encoded token as a string using the secret
 	tokenString, err := token.SignedString(secret)

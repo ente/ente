@@ -339,7 +339,6 @@
   "theyAlsoGetXGb": "Oni również otrzymują {storageAmountInGB} GB",
   "referralStorageForBoth": "{storageAmountInGB} GB dla nich + {storageAmountInGB} GB dla ciebie, gdy ulepszą swoje konto.",
   "freeStorageOnReferralSuccess": "{storageAmountInGB} GB za każdym razem, gdy ktoś zarejestruje się w płatnym planie i użyje twojego kodu",
-  "shareTextReferralCode": "Zdjęcia Ente to prywatny i bezpieczny dom dla twoich zdjęć\n* Pobierz Zdjęcia Ente z https://ente.com/app\n* Załóż konto\n* Wpisz kod polecający {referralCode} w Ustawienia->Polecanie\n* Otrzymaj {referralStorageInGB} GB za darmo po uaktualnieniu do płatnego planu",
   "claimFreeStorage": "Odbierz bezpłatną przestrzeń dyskową",
   "inviteYourFriends": "Zaproś znajomych",
   "earnFreeStorage": "Zdobywaj bezpłatną przestrzeń dyskową",
@@ -963,7 +962,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "Subskrypcja PlayStore",
   "appstoreSubscription": "Subskrypcja AppStore",
-  "subAlreadyLinkedErrMessage": "Twoje {id} jest już połączony z innym kontem Ente.\nJeśli chcesz użyć swojego {id} za pomocą tego konta, skontaktuj się z naszym wsparciem technicznym",
   "visitWebToManage": "Odwiedź stronę {webUrl}, aby zarządzać subskrypcją",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

@@ -7,6 +7,7 @@ import "package:photos/models/ffmpeg/ffprobe_props.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/file/file_type.dart";
 import "package:photos/services/video_preview_service.dart";
+import "package:photos/ui/components/info_item_widget.dart";
 
 class PreviewPropertiesItemWidget extends StatefulWidget {
   final EnteFile file;
@@ -27,7 +28,7 @@ class PreviewPropertiesItemWidget extends StatefulWidget {
 
 class _PreviewPropertiesItemWidgetState
     extends State<PreviewPropertiesItemWidget> {
-  String? _subtitle;
+  Widget? child;
 
   @override
   void initState() {
@@ -37,57 +38,61 @@ class _PreviewPropertiesItemWidgetState
 
   @override
   Widget build(BuildContext context) {
-    if (_subtitle == null) return const SizedBox();
-    final colors = context.componentColors;
-    return MenuComponent(
-      key: const ValueKey("Stream properties"),
-      leading: HugeIcon(
-        icon: HugeIcons.strokeRoundedPlay,
-        size: IconSizes.small,
-        color: colors.textLight,
-      ),
-      title: AppLocalizations.of(context).streamDetails,
-      subtitle: _subtitle,
-    );
+    return child ?? const SizedBox();
   }
 
   Future<void> _getSection() async {
     if (!mounted) return;
-
-    final parts = <String>[];
+    final textStyle = TextStyles.mini.copyWith(
+      color: context.componentColors.textLight,
+    );
+    final subSectionWidgets = <Widget>[];
 
     final data = await VideoPreviewService.instance
         .getPlaylist(widget.file)
         .onError((error, stackTrace) {
+          if (!mounted) return;
           return null;
         });
-    if (data == null) return;
 
-    if (!mounted) return;
+    if (!mounted || data == null) return;
 
     if (data.width != null && data.height != null) {
-      parts.add("${data.width!}x${data.height!}");
+      subSectionWidgets.add(
+        Text("${data.width}x${data.height}", style: textStyle),
+      );
     }
 
     if (data.size != null) {
-      parts.add(formatBytes(data.size!));
+      subSectionWidgets.add(Text(formatBytes(data.size!), style: textStyle));
     }
 
     if ((widget.file.fileType == FileType.video) &&
         (widget.file.localID != null || widget.file.duration != 0) &&
         data.size != null) {
+      // show bitrate, i.e. size * 8 / duration formatted
       final result = FFProbeProps.formatBitrate(
         data.size! * 8 / widget.file.duration!,
         "b/s",
       );
       if (result != null) {
-        parts.add(result);
+        subSectionWidgets.add(Text(result, style: textStyle));
       }
     }
 
-    if (parts.isEmpty) return;
+    if (subSectionWidgets.isEmpty) return;
 
-    _subtitle = parts.join("   ");
+    child = InfoItemWidget(
+      key: const ValueKey("Stream properties"),
+      leadingIconWidget: HugeIcon(
+        icon: HugeIcons.strokeRoundedPlay,
+        size: IconSizes.small,
+        color: context.componentColors.textLight,
+      ),
+      title: AppLocalizations.of(context).streamDetails,
+      subtitleSection: Future.value(subSectionWidgets),
+      useMenuStyle: true,
+    );
     if (mounted) {
       setState(() {});
     }

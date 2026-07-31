@@ -3,12 +3,19 @@ export interface PendingSpaceInvite {
     spaceUsername: string;
 }
 
+export interface SpaceInviteRoute extends PendingSpaceInvite {
+    accessKey?: string;
+}
+
 export interface SpaceInviteFriendSummary {
     fullName: string;
     username: string;
 }
 
+export type SpaceInviteIntent = "like" | "reply";
+
 const pendingSpaceInviteFriendKey = "spacePendingInviteFriend";
+const pendingSpaceInviteIntentKey = "spacePendingInviteIntent";
 const pendingSpaceInviteKey = "spacePendingInvite";
 let sentSpaceInviteFriend: SpaceInviteFriendSummary | undefined;
 
@@ -78,6 +85,21 @@ export const clearPendingSpaceInvite = () => {
     sessionStorage.removeItem(pendingSpaceInviteKey);
 };
 
+export const savePendingSpaceInviteIntent = (intent: SpaceInviteIntent) => {
+    sessionStorage.setItem(pendingSpaceInviteIntentKey, intent);
+};
+
+export const savedPendingSpaceInviteIntent = ():
+    | SpaceInviteIntent
+    | undefined => {
+    const intent = sessionStorage.getItem(pendingSpaceInviteIntentKey);
+    return intent == "like" || intent == "reply" ? intent : undefined;
+};
+
+export const clearPendingSpaceInviteIntent = () => {
+    sessionStorage.removeItem(pendingSpaceInviteIntentKey);
+};
+
 export const savePendingSpaceInviteFriend = (
     friend: SpaceInviteFriendSummary,
 ) => saveSpaceInviteFriendSummary(pendingSpaceInviteFriendKey, friend);
@@ -99,17 +121,29 @@ export const consumeSentSpaceInviteFriend = () => {
     return friend;
 };
 
-export const spaceInviteFromLocation = (): PendingSpaceInvite | null => {
+export const spaceInviteFromLocation = (): SpaceInviteRoute | null => {
     const match = /^\/([^/]+)\/?$/.exec(window.location.pathname);
-    if (!match || window.location.hash.trim()) return null;
+    if (!match) return null;
 
     try {
         const spaceUsername = decodeURIComponent(match[1] ?? "").trim();
-        return spaceUsername ? { spaceUsername } : null;
+        if (!spaceUsername) return null;
+        const fragment = window.location.hash.slice(1);
+        return {
+            spaceUsername,
+            accessKey: /^[A-Za-z0-9]{12}$/.test(fragment)
+                ? fragment
+                : undefined,
+        };
     } catch {
         return null;
     }
 };
 
-export const spaceInviteURL = ({ spaceUsername }: PendingSpaceInvite) =>
-    `${window.location.origin}/${encodeURIComponent(spaceUsername)}`;
+export const spaceInviteURL = ({
+    accessKey,
+    spaceUsername,
+}: SpaceInviteRoute) =>
+    `${window.location.origin}/${encodeURIComponent(spaceUsername)}${
+        accessKey ? `#${accessKey}` : ""
+    }`;

@@ -1,6 +1,7 @@
 import { SpaceFileViewer } from "components/SpaceFileViewer";
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import log from "ente-base/log";
 import React from "react";
 import {
     loadCurrentSpacePost,
@@ -8,6 +9,7 @@ import {
     setCurrentPostLiked,
     type SpacePost,
 } from "services/space";
+import { patchCachedSpaceFeedPost } from "services/spaceFeedCache";
 import { useSpaceAppState } from "state/spaceAppState";
 import { spaceRoutes } from "utils/spaceRoutes";
 import { useSpaceRouter } from "utils/spaceRouteTransitions";
@@ -102,7 +104,7 @@ const Page: React.FC = () => {
                 setPost(nextPost);
             })
             .catch((error: unknown) => {
-                console.error("Failed to load space post", error);
+                log.error("Failed to load space post", error);
                 if (!cancelled) setPostLoadError("Post unavailable.");
             })
             .finally(() => {
@@ -114,20 +116,27 @@ const Page: React.FC = () => {
         };
     }, [postRouteKey, profile?.spaceId, profileLoadStatus, spaceId, postId]);
 
-    const ownerProfileRoute = React.useCallback(() => {
+    const openOwnerProfile = React.useCallback(() => {
         const ownerSpaceId = post?.spaceId ?? spaceId;
-        return ownerSpaceId == profile?.spaceId
-            ? spaceRoutes.profile
-            : spaceRoutes.friend(ownerSpaceId);
-    }, [post?.spaceId, profile?.spaceId, spaceId]);
+        if (ownerSpaceId == profile?.spaceId) {
+            void router.push(spaceRoutes.profile);
+        } else if (post?.username) {
+            void router.push(
+                spaceRoutes.friendPage,
+                spaceRoutes.friend(post.username),
+            );
+        } else {
+            void router.push(spaceRoutes.home);
+        }
+    }, [post?.spaceId, post?.username, profile?.spaceId, router, spaceId]);
 
     const closePost = React.useCallback(() => {
         if (typeof window != "undefined" && window.history.length > 1) {
             router.back();
             return;
         }
-        void router.push(ownerProfileRoute());
-    }, [ownerProfileRoute, router]);
+        openOwnerProfile();
+    }, [openOwnerProfile, router]);
 
     if (
         !router.isReady ||
@@ -162,7 +171,7 @@ const Page: React.FC = () => {
                 photo={viewerPhotoFromPost(post)}
                 postActionMode={isOwnPost ? "hidden" : "like-only"}
                 onClose={closePost}
-                onOpenProfile={() => void router.push(ownerProfileRoute())}
+                onOpenProfile={openOwnerProfile}
                 onReplyToPost={
                     isOwnPost
                         ? undefined
@@ -174,9 +183,12 @@ const Page: React.FC = () => {
                                   text,
                               )
                 }
-                onSetPostLiked={(nextPostId, liked) =>
-                    setCurrentPostLiked(actorSpaceId, nextPostId, liked)
-                }
+                onSetPostLiked={async (nextPostId, liked) => {
+                    await setCurrentPostLiked(actorSpaceId, nextPostId, liked);
+                    void patchCachedSpaceFeedPost(actorSpaceId, nextPostId, {
+                        viewerLiked: liked,
+                    });
+                }}
             />
         </>
     );

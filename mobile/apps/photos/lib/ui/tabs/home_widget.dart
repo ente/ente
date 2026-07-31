@@ -260,13 +260,6 @@ class _HomeWidgetState extends State<HomeWidget> {
           if (mounted) {
             setState(() {});
             syncWidget();
-            if (!NotificationService.instance.hasGrantedPermissions() &&
-                isLocalGalleryMode &&
-                !Configuration.instance.hasConfiguredAccount()) {
-              Future.delayed(const Duration(seconds: 2), () {
-                NotificationService.instance.requestPermissions().ignore();
-              });
-            }
           }
         });
       }
@@ -1238,7 +1231,6 @@ class _HomeWidgetState extends State<HomeWidget> {
         locale: Localizations.localeOf(context),
         isLocalGallery: isLocalGalleryMode,
         isSignedIn: Configuration.instance.isLoggedIn(),
-        isAndroid: Platform.isAndroid,
       );
       if (!mounted || action == ChangeLogAction.skip) {
         return;

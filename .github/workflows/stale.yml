@@ -14,30 +14,50 @@ jobs:
     stale:
         runs-on: ubuntu-latest
         steps:
-            - name: Close pull requests missing CLA
+            - name: Manage pull requests missing CLA
               uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
               with:
                   script: |
                       const repo = context.repo;
-                      const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                      const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000;
 
                       for (const pr of await github.paginate(github.rest.pulls.list, {
                           ...repo,
                           state: "open",
                           per_page: 100,
                       })) {
-                          if (Date.parse(pr.created_at) > cutoff) continue;
-
                           const { data: { statuses } } = await github.rest.repos.getCombinedStatusForRef({
                               ...repo,
                               ref: pr.head.sha,
                           });
-                          if (!statuses.some((status) => status.context === "license/cla" && status.state === "pending")) continue;
+                          const cla = statuses.find((status) => status.context === "license/cla");
+                          const pending = pr.labels.some((label) => label.name === "pending-cla");
+
+                          if (cla?.state === "success") {
+                              if (pending) {
+                                  await github.rest.issues.removeLabel({
+                                      ...repo,
+                                      issue_number: pr.number,
+                                      name: "pending-cla",
+                                  });
+                              }
+                              continue;
+                          }
+                          if (cla?.state !== "pending") continue;
+
+                          if (!pending) {
+                              await github.rest.issues.addLabels({
+                                  ...repo,
+                                  issue_number: pr.number,
+                                  labels: ["pending-cla"],
+                              });
+                          }
+                          if (Date.parse(pr.created_at) > cutoff) continue;
 
                           await github.rest.issues.createComment({
                               ...repo,
                               issue_number: pr.number,
-                              body: "This pull request has been automatically closed because the CLA has not been signed for 7 days. Reopen it after signing.",
+                              body: "This pull request has been automatically closed because the CLA has not been signed. Reopen it after signing.",
                           });
                           await github.rest.pulls.update({
                               ...repo,

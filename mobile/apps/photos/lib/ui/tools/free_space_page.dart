@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/freeable_space_info.dart';
-import 'package:photos/ui/common/gradient_button.dart';
 import "package:photos/ui/notification/toast.dart";
 import 'package:photos/utils/delete_file_util.dart';
 
@@ -29,139 +28,76 @@ class _FreeSpacePageState extends State<FreeSpacePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: Text(AppLocalizations.of(context).freeUpSpace),
+      backgroundColor: context.componentColors.backgroundBase,
+      body: AppBarComponent(
+        title: AppLocalizations.of(context).freeUpDeviceSpace,
+        backgroundColor: context.componentColors.backgroundBase,
+        slivers: [
+          SliverSafeArea(
+            top: false,
+            sliver: SliverFillRemaining(
+              hasScrollBody: false,
+              child: _getBody(widget.status),
+            ),
+          ),
+        ],
       ),
-      body: _getBody(),
     );
   }
 
-  Widget _getBody() {
-    Logger("FreeSpacePage").info(
-      "Number of uploaded files: " + widget.status.localIDs.length.toString(),
-    );
+  Widget _getBody(FreeableSpaceInfo status) {
     Logger(
       "FreeSpacePage",
-    ).info("Space consumed: " + widget.status.size.toString());
-    return SingleChildScrollView(child: _getWidget(widget.status));
-  }
-
-  Widget _getWidget(FreeableSpaceInfo status) {
+    ).info("Number of uploaded files: " + status.localIDs.length.toString());
+    Logger("FreeSpacePage").info("Space consumed: " + status.size.toString());
     final count = status.localIDs.length;
     final formattedCount = NumberFormat().format(count);
-    final String textMessage = widget.clearSpaceForFolder
-        ? AppLocalizations.of(
-            context,
-          ).filesBackedUpInAlbum(count: count, formattedNumber: formattedCount)
-        : AppLocalizations.of(context).filesBackedUpFromDevice(
-            count: count,
-            formattedNumber: formattedCount,
-          );
-    final informationTextStyle = TextStyle(
-      fontSize: 14,
-      height: 1.3,
-      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
-      fontWeight: FontWeight.w500,
-    );
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(height: 24),
-        Stack(
-          alignment: Alignment.center,
+    final formattedSize = formatBytes(status.size);
+    final l10n = AppLocalizations.of(context);
+    final colors = context.componentColors;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      child: Align(
+        alignment: const Alignment(0, -0.2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            isLightMode
-                ? Image.asset(
-                    'assets/loading_photos_background.png',
-                    color: Colors.white.withValues(alpha: 0.4),
-                    colorBlendMode: BlendMode.modulate,
-                  )
-                : Image.asset(
-                    'assets/loading_photos_background_dark.png',
-                    color: Colors.white.withValues(alpha: 0.25),
-                  ),
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Image.asset("assets/gallery_locked.png", height: 160),
+            Image.asset("assets/on_ente.png", width: 260, fit: BoxFit.contain),
+            const SizedBox(height: 42),
+            Text(
+              l10n.reclaimSpace(sizeInMBorGB: formattedSize),
+              textAlign: TextAlign.center,
+              style: TextStyles.display2.copyWith(color: colors.textBase),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: 300,
+              child: Text(
+                widget.clearSpaceForFolder
+                    ? l10n.filesInAlbumSafelyOnEnte(
+                        count: count,
+                        formattedNumber: formattedCount,
+                      )
+                    : l10n.filesSafelyOnEnte(
+                        count: count,
+                        formattedNumber: formattedCount,
+                      ),
+                textAlign: TextAlign.center,
+                style: TextStyles.mini.copyWith(color: colors.textLight),
+              ),
+            ),
+            const SizedBox(height: 32),
+            ButtonComponent(
+              shouldSurfaceExecutionStates: false,
+              onTap: () async {
+                await _showConfirmFreeSpaceSheet(context, status);
+              },
+              label: l10n.freeUpAmount(sizeInMBorGB: formattedSize),
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.only(left: 36, right: 40),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.cloud_done_outlined,
-                color: Color.fromRGBO(45, 194, 98, 1.0),
-              ),
-              const Padding(padding: EdgeInsets.all(10)),
-              Expanded(child: Text(textMessage, style: informationTextStyle)),
-            ],
-          ),
-        ),
-        const Padding(padding: EdgeInsets.all(12)),
-        Padding(
-          padding: const EdgeInsets.only(left: 36, right: 40),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.delete_outline,
-                color: Color.fromRGBO(45, 194, 98, 1.0),
-              ),
-              const Padding(padding: EdgeInsets.all(10)),
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context).freeUpSpaceSaving(
-                    count: count,
-                    formattedSize: formatBytes(status.size),
-                  ),
-                  style: informationTextStyle,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Padding(padding: EdgeInsets.all(12)),
-        Padding(
-          padding: const EdgeInsets.only(left: 36, right: 40),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.devices,
-                color: Color.fromRGBO(45, 194, 98, 1.0),
-              ),
-              const Padding(padding: EdgeInsets.all(10)),
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(
-                    context,
-                  ).freeUpAccessPostDelete(count: count),
-                  style: informationTextStyle,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Padding(padding: EdgeInsets.all(24)),
-        Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 64),
-          padding: const EdgeInsets.fromLTRB(60, 0, 60, 0),
-          child: GradientButton(
-            onTap: () async {
-              await _showConfirmFreeSpaceSheet(context, status);
-            },
-            text: AppLocalizations.of(
-              context,
-            ).freeUpAmount(sizeInMBorGB: formatBytes(status.size)),
-          ),
-        ),
-        const Padding(padding: EdgeInsets.all(24)),
-      ],
+      ),
     );
   }
 

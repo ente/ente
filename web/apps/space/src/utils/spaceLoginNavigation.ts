@@ -1,6 +1,7 @@
+import log from "ente-base/log";
 import type { NextRouter } from "next/router";
 import type { SpaceAppState } from "state/spaceAppState";
-import { acceptPendingSpaceInvite } from "utils/spacePendingInvite";
+import { sendPendingSpaceFriendRequest } from "utils/spacePendingFriendRequest";
 import { spaceRoutes } from "utils/spaceRoutes";
 
 type RefreshProfile = SpaceAppState["refreshProfile"];
@@ -21,8 +22,8 @@ export const routeAfterCompletedLogin = async (
     }
 
     if (profile) {
-        await acceptPendingSpaceInvite().catch((error: unknown) =>
-            console.error("Failed to accept pending invite", error),
+        await sendPendingSpaceFriendRequest().catch((error: unknown) =>
+            log.error("Failed to send pending friend request", error),
         );
         await routeTo(spaceRoutes.home);
         return;

@@ -41,6 +41,7 @@ import "package:photos/l10n/l10n.dart";
 import 'package:photos/module/upload/service/file_uploader.dart';
 import 'package:photos/module/upload/service/local_file_update_service.dart';
 import "package:photos/service_locator.dart";
+import "package:photos/services/account/store_purchase_integration.dart";
 import "package:photos/services/account/user_service.dart";
 import 'package:photos/services/app_lifecycle_service.dart';
 import 'package:photos/services/collections_service.dart';
@@ -89,6 +90,7 @@ enum ForegroundStartupMode { normal, picker }
 void main() async {
   debugRepaintRainbowEnabled = false;
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeStorePurchases();
   ente_ui.AppThemeConfig.initialize(ente_ui.EnteApp.photos);
   await initIsIPad();
   if (isIPad) {

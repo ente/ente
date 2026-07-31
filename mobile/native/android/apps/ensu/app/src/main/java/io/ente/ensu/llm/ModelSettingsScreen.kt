@@ -52,46 +52,18 @@ fun ModelSettingsScreen(
             ModelChoice(
                 id = DEFAULT_OPTION_ID,
                 title = defaults.mobileDefaultModel.title,
-                url = defaults.mobileDefaultModel.url,
-                mmproj = defaults.mobileDefaultModel.mmprojUrl,
                 isDefault = true
             )
         ) + defaults.mobileModelPresets.map { preset ->
             ModelChoice(
                 id = preset.id,
-                title = preset.title,
-                url = preset.url,
-                mmproj = preset.mmprojUrl
+                title = preset.title
             )
-        } + listOf(
-            ModelChoice(
-                id = CUSTOM_OPTION_ID,
-                title = "Custom",
-                isCustom = true
-            )
-        )
+        }
     }
 
     var selectedModelId by remember(state) {
         mutableStateOf(initialSelectionId(state, modelChoices))
-    }
-    var customModelUrl by remember(state) {
-        mutableStateOf(
-            if (state.useCustomModel && modelChoices.none { !it.isCustom && it.url == state.modelUrl }) {
-                state.modelUrl
-            } else {
-                ""
-            }
-        )
-    }
-    var customMmprojUrl by remember(state) {
-        mutableStateOf(
-            if (state.useCustomModel && modelChoices.none { !it.isCustom && it.url == state.modelUrl }) {
-                state.mmprojUrl
-            } else {
-                ""
-            }
-        )
     }
     var contextLength by remember(state) { mutableStateOf(state.contextLength) }
     var maxTokens by remember(state) { mutableStateOf(state.maxTokens) }
@@ -106,8 +78,6 @@ fun ModelSettingsScreen(
     var isModelMenuExpanded by remember { mutableStateOf(false) }
 
     val selectedModel = modelChoices.firstOrNull { it.id == selectedModelId } ?: modelChoices.first()
-    val isCustomSelected = selectedModel.isCustom
-    val canSave = !isCustomSelected || customModelUrl.isNotBlank()
 
     Column(
         modifier = Modifier
@@ -118,7 +88,7 @@ fun ModelSettingsScreen(
         SectionHeader("Select model")
         Spacer(modifier = Modifier.height(EnsuSpacing.xs.dp))
         Text(
-            text = "Choose a built-in model or switch to Custom.",
+            text = "Choose a built-in model.",
             style = EnsuTypography.small,
             color = EnsuColor.textMuted()
         )
@@ -150,37 +120,9 @@ fun ModelSettingsScreen(
                         onClick = {
                             selectedModelId = choice.id
                             isModelMenuExpanded = false
-                            if (choice.isCustom) {
-                                customModelUrl = ""
-                                customMmprojUrl = ""
-                            }
                         }
                     )
                 }
-            }
-        }
-
-        AnimatedVisibility(isCustomSelected) {
-            Column {
-                Spacer(modifier = Modifier.height(EnsuSpacing.lg.dp))
-                Text(text = "Model .gguf URL", style = EnsuTypography.small, color = EnsuColor.textMuted())
-                Spacer(modifier = Modifier.height(EnsuSpacing.xs.dp))
-                OutlinedTextField(
-                    value = customModelUrl,
-                    onValueChange = { customModelUrl = it },
-                    placeholder = { Text(text = "https://huggingface.co/...") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(EnsuSpacing.md.dp))
-                Text(text = "mmproj .gguf URL", style = EnsuTypography.small, color = EnsuColor.textMuted())
-                Spacer(modifier = Modifier.height(EnsuSpacing.xs.dp))
-                OutlinedTextField(
-                    value = customMmprojUrl,
-                    onValueChange = { customMmprojUrl = it },
-                    placeholder = { Text(text = "(optional for multimodal)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
 
@@ -248,37 +190,16 @@ fun ModelSettingsScreen(
 
         Button(
             onClick = {
-                val savedState = when {
-                    selectedModel.isDefault -> state.copy(
-                        useCustomModel = false,
-                        modelUrl = "",
-                        mmprojUrl = "",
-                        contextLength = contextLength,
-                        maxTokens = maxTokens,
-                        temperature = temperature
-                    )
-                    selectedModel.isCustom -> state.copy(
-                        useCustomModel = true,
-                        modelUrl = customModelUrl,
-                        mmprojUrl = customMmprojUrl,
-                        contextLength = contextLength,
-                        maxTokens = maxTokens,
-                        temperature = temperature
-                    )
-                    else -> state.copy(
-                        useCustomModel = true,
-                        modelUrl = selectedModel.url.orEmpty(),
-                        mmprojUrl = selectedModel.mmproj.orEmpty(),
-                        contextLength = contextLength,
-                        maxTokens = maxTokens,
-                        temperature = temperature
-                    )
-                }
+                val savedState = state.copy(
+                    modelId = selectedModel.id.takeUnless { selectedModel.isDefault }.orEmpty(),
+                    contextLength = contextLength,
+                    maxTokens = maxTokens,
+                    temperature = temperature
+                )
                 onSave(savedState)
                 Toast.makeText(context, "Model settings saved", Toast.LENGTH_SHORT).show()
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = canSave,
             colors = ButtonDefaults.buttonColors(containerColor = EnsuColor.accent())
         ) {
             Text(text = "Save Model Settings", style = EnsuTypography.body)
@@ -289,8 +210,6 @@ fun ModelSettingsScreen(
         TextButton(onClick = {
             onReset()
             selectedModelId = DEFAULT_OPTION_ID
-            customModelUrl = ""
-            customMmprojUrl = ""
             contextLength = ""
             maxTokens = ""
             temperature = ""
@@ -334,19 +253,14 @@ private fun ExpandButton(
 private data class ModelChoice(
     val id: String,
     val title: String,
-    val url: String? = null,
-    val mmproj: String? = null,
-    val isDefault: Boolean = false,
-    val isCustom: Boolean = false
+    val isDefault: Boolean = false
 )
 
 private fun initialSelectionId(
     state: ModelSettingsState,
     choices: List<ModelChoice>
 ): String {
-    if (!state.useCustomModel || state.modelUrl.isBlank()) return DEFAULT_OPTION_ID
-    return choices.firstOrNull { !it.isCustom && it.url == state.modelUrl }?.id ?: CUSTOM_OPTION_ID
+    return choices.firstOrNull { it.id == state.modelId }?.id ?: DEFAULT_OPTION_ID
 }
 
 private const val DEFAULT_OPTION_ID = "default"
-private const val CUSTOM_OPTION_ID = "custom"

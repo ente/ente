@@ -2,218 +2,314 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
-	baserepo "github.com/ente/museum/pkg/repo"
+	webpush "github.com/SherClockHolmes/webpush-go"
 	util "github.com/ente/museum/pkg/utils"
-	emailutil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/museum/space/repo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/ulule/limiter/v3"
 )
 
 const (
-	spaceNotificationTemplate          = "space_notification.html"
-	spaceNewPostIllustrationURL        = "https://email-assets.ente.com/space-new-post.png"
-	spaceNewPostLikeIllustrationURL    = "https://email-assets.ente.com/space-new-post-like.png"
-	spaceNewPostReplyIllustrationURL   = "https://email-assets.ente.com/space-new-post-reply.png"
-	spaceNewFriendIllustrationURL      = "https://email-assets.ente.com/space-new-friend.png"
-	spaceNotificationPostCreated       = "post_created"
-	spaceNotificationPostLiked         = "post_liked"
-	spaceNotificationPostReplied       = "post_replied"
-	spaceNotificationFriendAdded       = "friend_added"
-	spaceNotificationFriendRequested   = "friend_requested"
-	spaceNewPostIllustrationWidth      = 112
-	spaceNewPostLikeIllustrationWidth  = 132
-	spaceNewPostReplyIllustrationWidth = 132
-	spaceNewFriendIllustrationWidth    = 220
-	spaceEmailSendRate                 = "50-H"
+	spaceActivityPostCreated     = "post_created"
+	spaceActivityPostLiked       = "post_liked"
+	spaceActivityPostReplied     = "post_replied"
+	spaceActivityMessageSent     = "message_sent"
+	spaceActivityMessageLiked    = "message_liked"
+	spaceActivityFriendAdded     = "friend_added"
+	spaceActivityFriendRequested = "friend_requested"
+	spaceWebPushSendRate         = "50-H"
+	spaceWebPushTTLSeconds       = 24 * 60 * 60
+	// Firefox Android's FCM bridge rejects encrypted records larger than 2744 bytes.
+	spaceWebPushRecordSize  = 2744
+	spaceWebPushSendTimeout = 30 * time.Second
+	spaceWebPushConcurrency = 10
 )
 
-var sendSpaceNotificationEmail = emailutil.SendTemplatedEmail
+var sendSpaceWebPush = webpush.SendNotificationWithContext
 
-type SpaceEmailNotifier interface {
-	OnSpacePostCreated(actorUserID int64, actorSlug string, recipientUserIDs []int64)
-	OnSpacePostLiked(actorUserID int64, actorSlug string, recipientUserID int64)
-	OnSpacePostReplied(actorUserID int64, actorSlug string, recipientUserID int64)
-	OnSpaceFriendAdded(actorUserID int64, actorSlug string, recipientUserID int64)
-	OnSpaceFriendRequested(actorUserID int64, actorSlug string, recipientUserID int64)
+type SpaceActivityActor struct {
+	UserID  int64
+	SpaceID string
+	Slug    string
 }
 
-type SpaceEmailSender struct {
-	UserRepo    *baserepo.UserRepository
+func spaceActivityActor(space *repo.SpaceRecord) SpaceActivityActor {
+	return SpaceActivityActor{
+		UserID:  space.OwnerID,
+		SpaceID: space.SpaceID,
+		Slug:    space.SpaceSlug,
+	}
+}
+
+type SpaceActivityNotifier interface {
+	OnSpacePostCreated(actor SpaceActivityActor)
+	OnSpacePostLiked(actor SpaceActivityActor, recipientUserID int64)
+	OnSpacePostReplied(actor SpaceActivityActor, recipientUserID int64)
+	OnSpaceMessageSent(actor SpaceActivityActor, recipientUserID int64)
+	OnSpaceMessageLiked(actor SpaceActivityActor, recipientUserID int64)
+	OnSpaceFriendAdded(actor SpaceActivityActor, recipientUserID int64)
+	OnSpaceFriendRequested(actor SpaceActivityActor, recipientUserID int64)
+}
+
+type SpaceWebPushSender struct {
+	webPushRepo *repo.WebPushRepository
+	options     *webpush.Options
 	sendLimiter *limiter.Limiter
+	sendSlots   chan struct{}
 }
 
-func NewSpaceEmailSender(userRepo *baserepo.UserRepository) *SpaceEmailSender {
-	return &SpaceEmailSender{
-		UserRepo:    userRepo,
-		sendLimiter: util.NewRateLimiter(spaceEmailSendRate),
+type spaceWebPushPayload struct {
+	Title    string `json:"title"`
+	Body     string `json:"body"`
+	Action   string `json:"action,omitempty"`
+	URL      string `json:"url,omitempty"`
+	TargetID string `json:"targetId,omitempty"`
+}
+
+func NewSpaceWebPushSender(
+	webPushRepo *repo.WebPushRepository,
+	config *SpaceWebPushConfig,
+) *SpaceWebPushSender {
+	sender := &SpaceWebPushSender{
+		webPushRepo: webPushRepo,
+		sendLimiter: util.NewRateLimiter(spaceWebPushSendRate),
+		sendSlots:   make(chan struct{}, spaceWebPushConcurrency),
 	}
+	if config != nil {
+		sender.options = &webpush.Options{
+			HTTPClient:      newSpaceWebPushHTTPClient(),
+			RecordSize:      spaceWebPushRecordSize,
+			Subscriber:      config.subscriber,
+			TTL:             spaceWebPushTTLSeconds,
+			Urgency:         webpush.UrgencyNormal,
+			VAPIDPublicKey:  config.publicKey,
+			VAPIDPrivateKey: config.privateKey,
+		}
+	}
+	return sender
 }
 
-func (n *SpaceEmailSender) OnSpacePostCreated(actorUserID int64, actorSlug string, recipientUserIDs []int64) {
-	n.send(actorUserID, actorSlug, "posted a new photo", spaceNotificationPostCreated, recipientUserIDs)
-}
-
-func (n *SpaceEmailSender) OnSpacePostLiked(actorUserID int64, actorSlug string, recipientUserID int64) {
-	n.send(actorUserID, actorSlug, "liked your post", spaceNotificationPostLiked, []int64{recipientUserID})
-}
-
-func (n *SpaceEmailSender) OnSpacePostReplied(actorUserID int64, actorSlug string, recipientUserID int64) {
-	n.send(actorUserID, actorSlug, "replied to your post", spaceNotificationPostReplied, []int64{recipientUserID})
-}
-
-func (n *SpaceEmailSender) OnSpaceFriendAdded(actorUserID int64, actorSlug string, recipientUserID int64) {
-	n.send(actorUserID, actorSlug, "is now your friend", spaceNotificationFriendAdded, []int64{recipientUserID})
-}
-
-func (n *SpaceEmailSender) OnSpaceFriendRequested(actorUserID int64, actorSlug string, recipientUserID int64) {
-	n.send(actorUserID, actorSlug, "sent you a friend request", spaceNotificationFriendRequested, []int64{recipientUserID})
-}
-
-func (n *SpaceEmailSender) send(actorUserID int64, actorSlug, action, event string, recipientUserIDs []int64) {
-	if n == nil || n.UserRepo == nil || len(recipientUserIDs) == 0 {
+func (n *SpaceWebPushSender) OnSpacePostCreated(actor SpaceActivityActor) {
+	if !n.available() {
 		return
 	}
-	recipientUserIDs = uniqueUserIDs(recipientUserIDs)
-	if len(recipientUserIDs) == 0 {
-		return
-	}
-	users, err := n.UserRepo.GetActiveUsersForIds(recipientUserIDs)
+	subscriptions, err := n.webPushRepo.ListPostSubscriptions(
+		context.Background(),
+		actor.SpaceID,
+	)
 	if err != nil {
-		log.WithField("event", event).WithError(err).Error("Error fetching users for space email")
+		log.WithField("event", spaceActivityPostCreated).WithError(err).
+			Error("Failed to list Space web push subscriptions")
 		return
 	}
+	n.send(
+		actor,
+		"posted a new photo",
+		"Check it out",
+		spaceActivityPostCreated,
+		"/app",
+		subscriptions,
+	)
+}
 
-	subject := spaceEmailSubject(actorSlug, action)
-	templateData := map[string]interface{}{
-		"ActorLabel":        spaceEmailActorLabel(actorSlug),
-		"AppURL":            spaceAppURL(),
-		"IllustrationURL":   spaceEmailIllustrationURL(event),
-		"IllustrationWidth": spaceEmailIllustrationWidth(event),
-		"Notification":      spaceEmailNotificationText(event, action),
+func (n *SpaceWebPushSender) OnSpacePostLiked(actor SpaceActivityActor, recipientUserID int64) {
+	n.sendAccountActivity(actor, "liked your post", "", spaceActivityPostLiked, conversationURL(actor.SpaceID), recipientUserID)
+}
+
+func (n *SpaceWebPushSender) OnSpacePostReplied(actor SpaceActivityActor, recipientUserID int64) {
+	n.sendAccountActivity(actor, "replied to your post", "Check it out", spaceActivityPostReplied, conversationURL(actor.SpaceID), recipientUserID)
+}
+
+func (n *SpaceWebPushSender) OnSpaceMessageSent(actor SpaceActivityActor, recipientUserID int64) {
+	n.sendAccountActivity(actor, "sent you a message", "Check it out", spaceActivityMessageSent, conversationURL(actor.SpaceID), recipientUserID)
+}
+
+func (n *SpaceWebPushSender) OnSpaceMessageLiked(actor SpaceActivityActor, recipientUserID int64) {
+	n.sendAccountActivity(actor, "liked a message", "View conversation", spaceActivityMessageLiked, conversationURL(actor.SpaceID), recipientUserID)
+}
+
+func (n *SpaceWebPushSender) OnSpaceFriendAdded(actor SpaceActivityActor, recipientUserID int64) {
+	n.sendAccountActivity(
+		actor,
+		"is now your friend",
+		"Say hi to "+spaceActivityActorLabel(actor.Slug),
+		spaceActivityFriendAdded,
+		conversationURL(actor.SpaceID),
+		recipientUserID,
+	)
+}
+
+func (n *SpaceWebPushSender) OnSpaceFriendRequested(actor SpaceActivityActor, recipientUserID int64) {
+	n.sendAccountActivity(actor, "sent you a friend request", "Review request", spaceActivityFriendRequested, "/app/messages", recipientUserID)
+}
+
+func (n *SpaceWebPushSender) sendAccountActivity(
+	actor SpaceActivityActor,
+	activity, action, event, destination string,
+	recipientUserID int64,
+) {
+	if !n.available() || recipientUserID <= 0 {
+		return
 	}
-	for _, userID := range recipientUserIDs {
-		user := users[userID]
-		if user == nil || strings.TrimSpace(user.Email) == "" {
-			continue
+	subscriptions, err := n.webPushRepo.ListActiveAccountSubscriptions(
+		context.Background(),
+		recipientUserID,
+	)
+	if err != nil {
+		log.WithField("event", event).WithError(err).
+			Error("Failed to list Space web push subscriptions")
+		return
+	}
+	n.send(actor, activity, action, event, destination, subscriptions)
+}
+
+func (n *SpaceWebPushSender) available() bool {
+	return n.webPushRepo != nil &&
+		n.options != nil &&
+		!viper.GetBool("internal.silent")
+}
+
+func (n *SpaceWebPushSender) send(
+	actor SpaceActivityActor,
+	activity, action, event, destination string,
+	subscriptions []repo.SpaceWebPushSubscriptionRecord,
+) {
+	subscriptions = deduplicateSpaceWebPushSubscriptions(subscriptions)
+	if len(subscriptions) == 0 {
+		return
+	}
+	limitContext, err := n.sendLimiter.Get(
+		context.Background(),
+		strconv.FormatInt(actor.UserID, 10),
+	)
+	if err != nil {
+		log.WithField("actor_user_id", actor.UserID).WithError(err).
+			Error("Failed to check Space web push rate limit")
+		return
+	}
+	if limitContext.Reached {
+		return
+	}
+	if limitContext.Remaining == 0 {
+		log.WithFields(log.Fields{
+			"actor_user_id": actor.UserID,
+			"reset_at":      limitContext.Reset,
+		}).Warn("Space web push rate limit reached")
+	}
+
+	var waitGroup sync.WaitGroup
+	for _, subscription := range subscriptions {
+		payload := spaceWebPushPayload{
+			Title:  "Ente Space",
+			Body:   fmt.Sprintf("%s %s", spaceActivityActorLabel(actor.Slug), activity),
+			Action: action,
 		}
-		limitContext, err := n.sendLimiter.Get(context.Background(), strconv.FormatInt(actorUserID, 10))
+		if subscription.Public {
+			payload.TargetID = subscription.TargetID
+		} else {
+			payload.URL = destination
+		}
+		encoded, err := json.Marshal(payload)
 		if err != nil {
-			log.WithField("actor_user_id", actorUserID).WithError(err).Error("Error checking space email rate limit")
+			log.WithField("event", event).WithError(err).
+				Error("Failed to encode Space web push payload")
 			continue
 		}
-		if limitContext.Reached {
-			continue
+
+		waitGroup.Add(1)
+		n.sendSlots <- struct{}{}
+		go func(subscription repo.SpaceWebPushSubscriptionRecord, payload []byte) {
+			defer waitGroup.Done()
+			defer func() { <-n.sendSlots }()
+			n.sendSubscription(event, payload, subscription)
+		}(subscription, encoded)
+	}
+	waitGroup.Wait()
+}
+
+func (n *SpaceWebPushSender) sendSubscription(
+	event string,
+	payload []byte,
+	subscription repo.SpaceWebPushSubscriptionRecord,
+) {
+	ctx, cancel := context.WithTimeout(context.Background(), spaceWebPushSendTimeout)
+	defer cancel()
+	response, err := sendSpaceWebPush(ctx, payload, &webpush.Subscription{
+		Endpoint: subscription.Endpoint,
+		Keys: webpush.Keys{
+			P256dh: subscription.P256dh,
+			Auth:   subscription.Auth,
+		},
+	}, n.options)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"event":     event,
+			"target_id": subscription.TargetID,
+		}).WithError(err).Error("Failed to send Space web push")
+		return
+	}
+	defer response.Body.Close()
+	if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusGone {
+		if err := n.webPushRepo.DeleteEndpoint(context.Background(), subscription.Endpoint); err != nil {
+			log.WithField("event", event).WithError(err).
+				Error("Failed to delete expired Space web push subscription")
 		}
-		if limitContext.Remaining == 0 {
-			log.WithFields(log.Fields{
-				"actor_user_id": actorUserID,
-				"reset_at":      limitContext.Reset,
-			}).Warn("Space email rate limit reached")
-		}
-		if err := sendSpaceNotificationEmail(
-			[]string{user.Email},
-			"Ente Space",
-			"space@ente.com",
-			subject,
-			spaceNotificationTemplate,
-			templateData,
-			nil,
-		); err != nil {
-			log.WithFields(log.Fields{
-				"user_id": userID,
-				"email":   user.Email,
-				"event":   event,
-			}).WithError(err).Error("Error sending space email")
-		}
+		return
+	}
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		log.WithFields(log.Fields{
+			"event":     event,
+			"status":    response.StatusCode,
+			"target_id": subscription.TargetID,
+		}).Warn("Space web push provider rejected notification")
 	}
 }
 
-func spaceEmailSubject(actorSlug, action string) string {
-	actorSlug = strings.TrimSpace(actorSlug)
-	if actorSlug == "" {
-		return fmt.Sprintf("A friend %s", action)
+func deduplicateSpaceWebPushSubscriptions(
+	subscriptions []repo.SpaceWebPushSubscriptionRecord,
+) []repo.SpaceWebPushSubscriptionRecord {
+	byEndpoint := make(map[string]repo.SpaceWebPushSubscriptionRecord, len(subscriptions))
+	order := make([]string, 0, len(subscriptions))
+	for _, subscription := range subscriptions {
+		existing, found := byEndpoint[subscription.Endpoint]
+		if !found {
+			order = append(order, subscription.Endpoint)
+			byEndpoint[subscription.Endpoint] = subscription
+			continue
+		}
+		if existing.Public && !subscription.Public {
+			byEndpoint[subscription.Endpoint] = subscription
+		}
 	}
-	return fmt.Sprintf("@%s %s", actorSlug, action)
+	result := make([]repo.SpaceWebPushSubscriptionRecord, 0, len(order))
+	for _, endpoint := range order {
+		result = append(result, byEndpoint[endpoint])
+	}
+	return result
 }
 
-func spaceEmailActorLabel(actorSlug string) string {
+func spaceActivityActorLabel(actorSlug string) string {
 	actorSlug = strings.TrimSpace(actorSlug)
 	if actorSlug == "" {
 		return "A friend"
 	}
-	return fmt.Sprintf("@%s", actorSlug)
+	return "@" + actorSlug
 }
 
-func spaceEmailNotificationText(event, action string) string {
-	switch event {
-	case spaceNotificationPostCreated:
-		return "just posted a new photo"
-	case spaceNotificationPostLiked:
-		return "just liked your post"
-	case spaceNotificationPostReplied:
-		return "just replied to your post"
-	case spaceNotificationFriendAdded:
-		return "is now your friend"
-	case spaceNotificationFriendRequested:
-		return "sent you a friend request"
-	default:
-		return action
-	}
-}
-
-func spaceEmailIllustrationURL(event string) string {
-	switch event {
-	case spaceNotificationPostCreated:
-		return spaceNewPostIllustrationURL
-	case spaceNotificationPostLiked:
-		return spaceNewPostLikeIllustrationURL
-	case spaceNotificationPostReplied:
-		return spaceNewPostReplyIllustrationURL
-	case spaceNotificationFriendAdded:
-		return spaceNewFriendIllustrationURL
-	case spaceNotificationFriendRequested:
-		return spaceNewFriendIllustrationURL
-	default:
-		return ""
-	}
-}
-
-func spaceEmailIllustrationWidth(event string) int {
-	switch event {
-	case spaceNotificationPostCreated:
-		return spaceNewPostIllustrationWidth
-	case spaceNotificationPostLiked:
-		return spaceNewPostLikeIllustrationWidth
-	case spaceNotificationPostReplied:
-		return spaceNewPostReplyIllustrationWidth
-	case spaceNotificationFriendAdded:
-		return spaceNewFriendIllustrationWidth
-	case spaceNotificationFriendRequested:
-		return spaceNewFriendIllustrationWidth
-	default:
-		return 0
-	}
-}
-
-func uniqueUserIDs(userIDs []int64) []int64 {
-	seen := make(map[int64]struct{}, len(userIDs))
-	out := make([]int64, 0, len(userIDs))
-	for _, userID := range userIDs {
-		if userID <= 0 {
-			continue
-		}
-		if _, ok := seen[userID]; ok {
-			continue
-		}
-		seen[userID] = struct{}{}
-		out = append(out, userID)
-	}
-	return out
+func conversationURL(spaceID string) string {
+	return "/app/messages/" + url.PathEscape(spaceID)
 }
 
 func spaceAppURL() string {
@@ -222,4 +318,91 @@ func spaceAppURL() string {
 		origin = "https://ente.space"
 	}
 	return origin + "/app"
+}
+
+func newSpaceWebPushHTTPClient() *http.Client {
+	dialer := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = nil
+	transport.DialContext = func(
+		ctx context.Context,
+		network, address string,
+	) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(address)
+		if err != nil {
+			return nil, err
+		}
+		addresses, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+		if err != nil {
+			return nil, err
+		}
+		for _, address := range addresses {
+			if !isPublicWebPushAddress(address) {
+				return nil, errors.New("web push endpoint resolved to a non-public address")
+			}
+		}
+		for _, address := range addresses {
+			connection, err := dialer.DialContext(
+				ctx,
+				network,
+				net.JoinHostPort(address.String(), port),
+			)
+			if err == nil {
+				return connection, nil
+			}
+		}
+		return nil, errors.New("failed to connect to web push endpoint")
+	}
+	return &http.Client{
+		Transport: transport,
+		Timeout:   spaceWebPushSendTimeout,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return errors.New("web push endpoint redirects are not allowed")
+		},
+	}
+}
+
+var reservedWebPushNetworks = mustParseNetworks(
+	"0.0.0.0/8",
+	"100.64.0.0/10",
+	"192.0.0.0/24",
+	"192.0.2.0/24",
+	"192.88.99.0/24",
+	"198.18.0.0/15",
+	"198.51.100.0/24",
+	"203.0.113.0/24",
+	"240.0.0.0/4",
+	"64:ff9b::/96",
+	"64:ff9b:1::/48",
+	"100::/64",
+	"2001::/23",
+	"2001:db8::/32",
+	"2002::/16",
+)
+
+func mustParseNetworks(values ...string) []*net.IPNet {
+	networks := make([]*net.IPNet, 0, len(values))
+	for _, value := range values {
+		_, network, err := net.ParseCIDR(value)
+		if err != nil {
+			panic(err)
+		}
+		networks = append(networks, network)
+	}
+	return networks
+}
+
+func isPublicWebPushAddress(address net.IP) bool {
+	if !address.IsGlobalUnicast() ||
+		address.IsPrivate() ||
+		address.IsLoopback() ||
+		address.IsLinkLocalUnicast() {
+		return false
+	}
+	for _, network := range reservedWebPushNetworks {
+		if network.Contains(address) {
+			return false
+		}
+	}
+	return true
 }

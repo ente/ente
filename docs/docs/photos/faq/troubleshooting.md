@@ -555,6 +555,16 @@ Disable your content blocker or add `photos.ente.com` to your allowlist. Wait 15
 
 **Known issue with AdGuard:** AdGuard's basic filter blocks videos in Ente when using AdGuard Mini on Safari. This has been [reported to AdGuard filter developers](https://github.com/AdguardTeam/AdguardFilters/issues/216424).
 
+### Why do some of my videos stutter or freeze when I play them on iOS? {#ios-video-stutter-playback}
+
+This is an iOS-specific issue: for some videos, Apple Photos rejects the file and doesn't store it on your device, even though Ente backed it up successfully. Since the video isn't fully available locally, playback in the Ente app can stutter or freeze. The video itself is still safely stored in Ente - nothing is lost.
+
+Because this happens at the iOS level, there isn't much the app can do to prevent it directly. The workaround is to enable video streaming on desktop.
+
+As videos are processed, your iPhone automatically uses the streamable version for smooth playback, while your original file stays untouched.
+
+Learn more about [Video streaming](/photos/features/utilities/video-streaming).
+
 ## Performance Issues
 
 ### Why is the app slow to load my photos? {#app-slow-loading}

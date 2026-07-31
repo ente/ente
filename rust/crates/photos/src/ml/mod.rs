@@ -1,10 +1,18 @@
-pub mod clip;
+pub mod assets;
+mod clip;
 pub mod error;
+pub mod events;
 pub mod face;
+pub mod golden;
+mod golden_data;
+pub mod golden_tooling;
 pub mod indexing;
-pub mod onnx;
-pub mod pet;
-pub mod preprocess;
+mod onnx;
+mod pet;
+mod postprocess;
+mod preprocess;
 pub mod runtime;
 pub mod types;
+#[cfg(feature = "usearch")]
 pub mod vector_db;
+mod webgpu;

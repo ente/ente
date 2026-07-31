@@ -56,8 +56,9 @@ Future<int?> _processRaivoExportFile(BuildContext context, String path) async {
     var counter = item['counter'];
 
     parsedCodes.add(
-      Code.fromOTPAuthUrl(
-        buildImportOtpUri(
+      parseImportOtpCode(
+        item,
+        () => buildImportOtpUri(
           kind: kind,
           issuer: issuer,
           account: account,

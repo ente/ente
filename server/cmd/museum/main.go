@@ -720,6 +720,8 @@ func main() {
 	privateAPI.GET("/users/delete-challenge", userHandler.GetDeleteChallenge)
 	privateAPI.DELETE("/users/delete", userHandler.DeleteUser)
 	publicAPI.GET("/users/recover-account", userHandler.SelfAccountRecovery)
+	publicAPI.POST("/users/recover-account/validate", userHandler.ValidateSelfAccountRecovery)
+	publicAPI.POST("/users/recover-account", userHandler.RecoverSelfAccount)
 
 	accountsJwtAuthAPI := server.Group("/")
 	accountsJwtAuthAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenAuthMiddleware(jwt.ACCOUNTS.Ptr()), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
@@ -964,6 +966,7 @@ func main() {
 	adminAPI.GET("/listmonk/missing-subscribers/count", adminHandler.GetListmonkMissingSubscribersCount)
 	adminAPI.GET("/users", adminHandler.GetUsers)
 	adminAPI.GET("/user", adminHandler.GetUser)
+	adminAPI.GET("/user/scheduled-deletions", adminHandler.GetScheduledDeletions)
 	adminAPI.POST("/user/disable-2fa", adminHandler.DisableTwoFactor)
 	adminAPI.POST("/user/update-referral", adminHandler.UpdateReferral)
 	adminAPI.POST("/user/disable-passkeys", adminHandler.RemovePasskeys)
@@ -986,7 +989,17 @@ func main() {
 	userEntityHandler := &api.UserEntityHandler{Controller: userEntityController}
 	spaceRepos := spacerepo.NewModule(db, s3Config)
 	userController.SpaceAccessResetter = spaceRepos
-	spaceModule := spacecontroller.NewModule(spaceRepos, userAuthRepo, spacecontroller.NewSpaceEmailSender(userRepo))
+	spaceWebPushConfig := spacecontroller.NewSpaceWebPushConfig(
+		viper.GetString("space.webPush.publicKey"),
+		viper.GetString("space.webPush.privateKey"),
+		viper.GetString("space.webPush.subscriber"),
+	)
+	spaceModule := spacecontroller.NewModule(
+		spaceRepos,
+		userAuthRepo,
+		spacecontroller.NewSpaceWebPushSender(spaceRepos.WebPush, spaceWebPushConfig),
+		spaceWebPushConfig,
+	)
 	spaceModule.Posts.AbuseNotifier = discordController
 	spaceDripController := spacecontroller.NewSpaceDripController(spaceRepos, userRepo, notificationHistoryRepo, lockController)
 	spaceModule.UserTokens = userController
@@ -1148,6 +1161,9 @@ func setupLogger(environment string) {
 			MaxAge:   30,
 			Compress: true,
 		})
+	}
+	if level, err := log.ParseLevel(viper.GetString("log-level")); err == nil {
+		log.SetLevel(level)
 	}
 }
 
@@ -1399,7 +1415,7 @@ func cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", c.GetHeader("Origin"))
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Auth-Token, X-Space-Session-Token, X-Auth-Access-Token, X-Cast-Access-Token, X-Auth-Access-Token-JWT, X-Auth-Link-Device-Token, X-Client-Package, X-Client-Version, X-Paste-Consume, Authorization, accept, origin, Cache-Control, X-Requested-With, upgrade-insecure-requests, Range")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Auth-Token, X-Space-Session-Token, X-Ente-Space-Link-Auth, X-Auth-Access-Token, X-Cast-Access-Token, X-Auth-Access-Token-JWT, X-Auth-Link-Device-Token, X-Client-Package, X-Client-Version, X-Paste-Consume, Authorization, accept, origin, Cache-Control, X-Requested-With, upgrade-insecure-requests, Range")
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "X-Request-Id, X-Ente-Link-Device-Token")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
 		c.Writer.Header().Set("Access-Control-Max-Age", "1728000")

@@ -1,4 +1,5 @@
 import "@fontsource-variable/inter";
+import "@fontsource-variable/outfit";
 import "@fontsource/itim";
 import { CssBaseline, GlobalStyles } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
@@ -10,14 +11,19 @@ import Head from "next/head";
 import React from "react";
 
 const memoriesAppStyle = { "--font-itim": "'Itim'" } as React.CSSProperties;
-const memoriesAppTitle = "Ente Memories";
+const memoriesAppTitle = "Memories, shared with you";
+const memoriesAppDescription = "Tap to relive with Ente";
 
 function MemoriesAppHead() {
-    const previewImage = "https://memories.ente.com/images/memories-meta.png";
+    const previewImage =
+        "https://memories.ente.com/images/memories-meta-new.png";
 
     return (
         <>
-            <CustomHead title={memoriesAppTitle} />
+            <CustomHead
+                title={memoriesAppTitle}
+                description={memoriesAppDescription}
+            />
             <Head>
                 <meta property="og:image" content={previewImage} />
                 <meta property="og:image:secure_url" content={previewImage} />

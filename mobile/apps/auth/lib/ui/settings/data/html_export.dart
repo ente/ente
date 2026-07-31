@@ -60,6 +60,7 @@ Future<String> generateOTPEntryHtml(Code code) async {
     notes = '<p class="group">Note: <b>$notes</b></p>';
   }
   return '''
+    <section class="otp-entry-card">
     <table class="otp-entry">
       <tr>
         <td>
@@ -76,9 +77,8 @@ Future<String> generateOTPEntryHtml(Code code) async {
         </td>
       </tr>
     </table>
-    <br/>
     <hr class="red-separator" />
-    <br/>
+    </section>
   ''';
 }
 
@@ -193,10 +193,17 @@ Future<String> generateHtml(BuildContext context) async {
     width: 24px !important;
   }
 
+  .otp-entry-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   .otp-entry {
     width: 100%;
     table-layout: fixed;
     border-collapse: collapse;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .otp-entry td {
@@ -222,6 +229,8 @@ Future<String> generateHtml(BuildContext context) async {
     width: 30%;
     text-align: center;
     vertical-align: middle;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .otp-entry p {
@@ -237,6 +246,22 @@ Future<String> generateHtml(BuildContext context) async {
     height: 1px;
     background-color: rgb(173, 0, 255);
   }
+
+  @media print {
+    body {
+      background-color: #fff;
+    }
+
+    .otp-entry-card,
+    .otp-entry,
+    .otp-entry tr,
+    .otp-entry td,
+    .otp-qr,
+    .otp-qr img {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
 </style>
   </head>
   <body>
@@ -248,9 +273,7 @@ Future<String> generateHtml(BuildContext context) async {
             30px 30px 30px; max-width: 700px; margin: 0 auto; border-radius: 5px;
             font-size: 16px; ">
       <main>
-        <p>
-          ${enteries.join('')}
-        </p>
+        ${enteries.join('')}
       </main>
     </div>
     <br />  

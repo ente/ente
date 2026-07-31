@@ -1,229 +1,415 @@
 package controller
 
 import (
+	"context"
+	"crypto/ecdh"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"io"
+	"net"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/ente/museum/internal/testutil"
-	baserepo "github.com/ente/museum/pkg/repo"
+	webpush "github.com/SherClockHolmes/webpush-go"
+	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/ente/museum/space/models"
-	log "github.com/sirupsen/logrus"
-	logtest "github.com/sirupsen/logrus/hooks/test"
+	"github.com/ente/museum/space/repo"
 	"github.com/stretchr/testify/require"
 )
 
-type recordedSpaceEmail struct {
-	event       string
-	actorUserID int64
-	actorSlug   string
-	recipients  []int64
+type recordedSpaceActivity struct {
+	event        string
+	actorUserID  int64
+	actorSpaceID string
+	actorSlug    string
+	recipientIDs []int64
 }
 
-type recordingSpaceEmailNotifier struct {
-	events chan recordedSpaceEmail
+type recordingSpaceActivityNotifier struct {
+	events chan recordedSpaceActivity
 }
 
-func newRecordingSpaceEmailNotifier() *recordingSpaceEmailNotifier {
-	return &recordingSpaceEmailNotifier{events: make(chan recordedSpaceEmail, 8)}
+func newRecordingSpaceActivityNotifier() *recordingSpaceActivityNotifier {
+	return &recordingSpaceActivityNotifier{events: make(chan recordedSpaceActivity, 8)}
 }
 
-func (n *recordingSpaceEmailNotifier) OnSpacePostCreated(actorUserID int64, actorSlug string, recipientUserIDs []int64) {
-	n.events <- recordedSpaceEmail{event: "post_created", actorUserID: actorUserID, actorSlug: actorSlug, recipients: append([]int64(nil), recipientUserIDs...)}
+func (n *recordingSpaceActivityNotifier) OnSpacePostCreated(actor SpaceActivityActor) {
+	n.record(spaceActivityPostCreated, actor)
 }
 
-func (n *recordingSpaceEmailNotifier) OnSpacePostLiked(actorUserID int64, actorSlug string, recipientUserID int64) {
-	n.events <- recordedSpaceEmail{event: "post_liked", actorUserID: actorUserID, actorSlug: actorSlug, recipients: []int64{recipientUserID}}
+func (n *recordingSpaceActivityNotifier) OnSpacePostLiked(actor SpaceActivityActor, recipientUserID int64) {
+	n.record(spaceActivityPostLiked, actor, recipientUserID)
 }
 
-func (n *recordingSpaceEmailNotifier) OnSpacePostReplied(actorUserID int64, actorSlug string, recipientUserID int64) {
-	n.events <- recordedSpaceEmail{event: "post_replied", actorUserID: actorUserID, actorSlug: actorSlug, recipients: []int64{recipientUserID}}
+func (n *recordingSpaceActivityNotifier) OnSpacePostReplied(actor SpaceActivityActor, recipientUserID int64) {
+	n.record(spaceActivityPostReplied, actor, recipientUserID)
 }
 
-func (n *recordingSpaceEmailNotifier) OnSpaceFriendAdded(actorUserID int64, actorSlug string, recipientUserID int64) {
-	n.events <- recordedSpaceEmail{event: "friend_added", actorUserID: actorUserID, actorSlug: actorSlug, recipients: []int64{recipientUserID}}
+func (n *recordingSpaceActivityNotifier) OnSpaceMessageSent(actor SpaceActivityActor, recipientUserID int64) {
+	n.record(spaceActivityMessageSent, actor, recipientUserID)
 }
 
-func (n *recordingSpaceEmailNotifier) OnSpaceFriendRequested(actorUserID int64, actorSlug string, recipientUserID int64) {
-	n.events <- recordedSpaceEmail{event: "friend_requested", actorUserID: actorUserID, actorSlug: actorSlug, recipients: []int64{recipientUserID}}
+func (n *recordingSpaceActivityNotifier) OnSpaceMessageLiked(actor SpaceActivityActor, recipientUserID int64) {
+	n.record(spaceActivityMessageLiked, actor, recipientUserID)
 }
 
-func requireSpaceEmail(t *testing.T, notifier *recordingSpaceEmailNotifier) recordedSpaceEmail {
+func (n *recordingSpaceActivityNotifier) OnSpaceFriendAdded(actor SpaceActivityActor, recipientUserID int64) {
+	n.record(spaceActivityFriendAdded, actor, recipientUserID)
+}
+
+func (n *recordingSpaceActivityNotifier) OnSpaceFriendRequested(actor SpaceActivityActor, recipientUserID int64) {
+	n.record(spaceActivityFriendRequested, actor, recipientUserID)
+}
+
+func (n *recordingSpaceActivityNotifier) record(event string, actor SpaceActivityActor, recipientIDs ...int64) {
+	n.events <- recordedSpaceActivity{
+		event:        event,
+		actorUserID:  actor.UserID,
+		actorSpaceID: actor.SpaceID,
+		actorSlug:    actor.Slug,
+		recipientIDs: append([]int64(nil), recipientIDs...),
+	}
+}
+
+func requireSpaceActivity(t *testing.T, notifier *recordingSpaceActivityNotifier) recordedSpaceActivity {
 	t.Helper()
 	select {
 	case event := <-notifier.events:
 		return event
 	case <-time.After(time.Second):
-		t.Fatal("timed out waiting for space email")
-		return recordedSpaceEmail{}
+		t.Fatal("timed out waiting for Space activity notification")
+		return recordedSpaceActivity{}
 	}
 }
 
-func requireNoSpaceEmail(t *testing.T, notifier *recordingSpaceEmailNotifier) {
+func requireNoSpaceActivity(t *testing.T, notifier *recordingSpaceActivityNotifier) {
 	t.Helper()
 	select {
 	case event := <-notifier.events:
-		t.Fatalf("unexpected space email: %+v", event)
+		t.Fatalf("unexpected Space activity notification: %+v", event)
 	case <-time.After(100 * time.Millisecond):
 	}
 }
 
-func TestSpaceEmailSubjectPrefixesUsernameWithAt(t *testing.T) {
-	require.Equal(t, "@alice liked your post", spaceEmailSubject("alice", "liked your post"))
-	require.Equal(t, "@alice posted a new photo", spaceEmailSubject(" alice ", "posted a new photo"))
-	require.Equal(t, "A friend liked your post", spaceEmailSubject(" ", "liked your post"))
-}
+func TestSpaceWebPushCopyAndValidation(t *testing.T) {
+	require.Equal(t, "@alice", spaceActivityActorLabel(" alice "))
+	require.Equal(t, "A friend", spaceActivityActorLabel(" "))
+	require.Equal(t, "/app/messages/space_id", conversationURL("space_id"))
 
-func TestSpaceEmailTemplateData(t *testing.T) {
-	require.Equal(t, "@alice", spaceEmailActorLabel(" alice "))
-	require.Equal(t, "A friend", spaceEmailActorLabel(" "))
-	require.Equal(t, "just posted a new photo", spaceEmailNotificationText(spaceNotificationPostCreated, "posted a new photo"))
-	require.Equal(t, "just liked your post", spaceEmailNotificationText(spaceNotificationPostLiked, "liked your post"))
-	require.Equal(t, "just replied to your post", spaceEmailNotificationText(spaceNotificationPostReplied, "replied to your post"))
-	require.Equal(t, "is now your friend", spaceEmailNotificationText(spaceNotificationFriendAdded, "is now your friend"))
-	require.Equal(t, "sent you a friend request", spaceEmailNotificationText(spaceNotificationFriendRequested, "sent you a friend request"))
-	require.Equal(t, spaceNewPostIllustrationURL, spaceEmailIllustrationURL(spaceNotificationPostCreated))
-	require.Equal(t, spaceNewPostLikeIllustrationURL, spaceEmailIllustrationURL(spaceNotificationPostLiked))
-	require.Equal(t, spaceNewPostReplyIllustrationURL, spaceEmailIllustrationURL(spaceNotificationPostReplied))
-	require.Equal(t, spaceNewFriendIllustrationURL, spaceEmailIllustrationURL(spaceNotificationFriendAdded))
-	require.Equal(t, spaceNewFriendIllustrationURL, spaceEmailIllustrationURL(spaceNotificationFriendRequested))
-	require.Equal(t, spaceNewPostIllustrationWidth, spaceEmailIllustrationWidth(spaceNotificationPostCreated))
-	require.Equal(t, spaceNewPostLikeIllustrationWidth, spaceEmailIllustrationWidth(spaceNotificationPostLiked))
-	require.Equal(t, spaceNewPostReplyIllustrationWidth, spaceEmailIllustrationWidth(spaceNotificationPostReplied))
-	require.Equal(t, spaceNewFriendIllustrationWidth, spaceEmailIllustrationWidth(spaceNotificationFriendAdded))
-	require.Equal(t, spaceNewFriendIllustrationWidth, spaceEmailIllustrationWidth(spaceNotificationFriendRequested))
-}
-
-func TestSpaceEmailSenderLimitsEachSenderToFiftyEmailsPerHour(t *testing.T) {
-	_, repos, _ := setupPostsControllerTest(t)
-	recipientID := insertSpaceControllerUser(t, repos, "space-email-limit-recipient@example.com", "recipient-public")
-	otherRecipientID := insertSpaceControllerUser(t, repos, "space-email-limit-other-recipient@example.com", "other-recipient-public")
-	sender := NewSpaceEmailSender(&baserepo.UserRepository{
-		DB:                  repos.Spaces.DB,
-		SecretEncryptionKey: testutil.SecretEncryptionKey(),
-	})
-	logger := log.StandardLogger()
-	originalHooks := logger.ReplaceHooks(make(log.LevelHooks))
-	originalOutput := logger.Out
-	logger.SetOutput(io.Discard)
-	hook := logtest.NewGlobal()
-	t.Cleanup(func() {
-		logger.ReplaceHooks(originalHooks)
-		logger.SetOutput(originalOutput)
-		hook.Reset()
-	})
-
-	originalSend := sendSpaceNotificationEmail
-	t.Cleanup(func() {
-		sendSpaceNotificationEmail = originalSend
-	})
-	sent := 0
-	sendSpaceNotificationEmail = func(_ []string, fromName string, fromEmail string, _ string, _ string, _ map[string]interface{}, _ []map[string]interface{}) error {
-		require.Equal(t, "Ente Space", fromName)
-		require.Equal(t, "space@ente.com", fromEmail)
-		sent++
-		return nil
-	}
-
-	for range 50 {
-		sender.OnSpacePostReplied(1, "alice", recipientID)
-	}
-	require.Equal(t, 50, sent)
-
-	sender.OnSpacePostLiked(1, "alice", otherRecipientID)
-	require.Equal(t, 50, sent)
-	require.Len(t, hook.AllEntries(), 1)
-	require.Equal(t, log.WarnLevel, hook.LastEntry().Level)
-	require.Equal(t, "Space email rate limit reached", hook.LastEntry().Message)
-	require.Equal(t, int64(1), hook.LastEntry().Data["actor_user_id"])
-
-	sender.OnSpaceFriendRequested(2, "bob", recipientID)
-	require.Equal(t, 51, sent)
-}
-
-func TestPostLikeSendsEmailOnce(t *testing.T) {
-	_, repos, ctx := setupPostsControllerTest(t)
-	notifier := newRecordingSpaceEmailNotifier()
-	posts := NewModule(repos, nil, notifier).Posts
-	aliceID := insertSpaceControllerUser(t, repos, "alice-post-like-email@example.com", "alice-public")
-	bobID := insertSpaceControllerUser(t, repos, "bob-post-like-email@example.com", "bob-public")
-	aliceSpace, err := testCreateSpace(ctx, repos, aliceID, "alice_post_like_email", "alice-space-key", "alice-post-like-email-public", "alice-post-like-email-secret", "alice-post-like-email-secret-nonce", "alice-profile")
+	privateKey, err := ecdh.P256().GenerateKey(rand.Reader)
 	require.NoError(t, err)
-	bobSpace, err := testCreateSpace(ctx, repos, bobID, "bob_post_like_email", "bob-space-key", "bob-post-like-email-public", "bob-post-like-email-secret", "bob-post-like-email-secret-nonce", "bob-profile")
+	p256dh := base64.RawURLEncoding.EncodeToString(privateKey.PublicKey().Bytes())
+	auth := base64.RawURLEncoding.EncodeToString(make([]byte, 16))
+	require.NoError(t, validateWebPushSubscription("https://push.example/subscription", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("http://push.example/subscription", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("https://user@push.example/subscription", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("https://push.example/subscription#fragment", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("https://push.example/subscription", "invalid", auth))
+	require.Error(t, validateWebPushSubscription("https://push.example/subscription", p256dh, "invalid"))
+}
+
+func TestSpaceWebPushAddressMustBePublic(t *testing.T) {
+	require.True(t, isPublicWebPushAddress(net.ParseIP("8.8.8.8")))
+	require.True(t, isPublicWebPushAddress(net.ParseIP("2606:4700:4700::1111")))
+	require.False(t, isPublicWebPushAddress(net.ParseIP("127.0.0.1")))
+	require.False(t, isPublicWebPushAddress(net.ParseIP("10.0.0.1")))
+	require.False(t, isPublicWebPushAddress(net.ParseIP("100.64.0.1")))
+	require.False(t, isPublicWebPushAddress(net.ParseIP("192.0.2.1")))
+	require.False(t, isPublicWebPushAddress(net.ParseIP("::1")))
+	require.False(t, isPublicWebPushAddress(net.ParseIP("2001:db8::1")))
+}
+
+func TestSpaceWebPushConfigRequiresMatchingKeysAndBareSubscriber(t *testing.T) {
+	privateKey, publicKey, err := webpush.GenerateVAPIDKeys()
+	require.NoError(t, err)
+	config := NewSpaceWebPushConfig(publicKey, privateKey, "security@ente.io")
+	require.NotNil(t, config)
+	require.Equal(t, publicKey, config.publicKey)
+
+	otherPrivateKey, _, err := webpush.GenerateVAPIDKeys()
+	require.NoError(t, err)
+	require.Nil(t, NewSpaceWebPushConfig(publicKey, otherPrivateKey, "security@ente.io"))
+	require.Nil(t, NewSpaceWebPushConfig(publicKey, privateKey, "mailto:security@ente.io"))
+	require.Nil(t, NewSpaceWebPushConfig("", "", ""))
+}
+
+func newSpaceWebPushTestConfig(t *testing.T) *SpaceWebPushConfig {
+	t.Helper()
+	privateKey, publicKey, err := webpush.GenerateVAPIDKeys()
+	require.NoError(t, err)
+	config := NewSpaceWebPushConfig(publicKey, privateKey, "security@ente.io")
+	require.NotNil(t, config)
+	return config
+}
+
+func TestUnconfiguredSpaceWebPushSenderIsUnavailable(t *testing.T) {
+	sender := NewSpaceWebPushSender(&repo.WebPushRepository{}, nil)
+	require.False(t, sender.available())
+	sender.OnSpacePostReplied(SpaceActivityActor{UserID: 1, SpaceID: "alice_space", Slug: "alice"}, 2)
+}
+
+func TestSpaceWebPushDeduplicatesSharedEndpointForAccount(t *testing.T) {
+	subscriptions := deduplicateSpaceWebPushSubscriptions([]repo.SpaceWebPushSubscriptionRecord{
+		{Endpoint: "https://push.example/shared", TargetID: "public", Public: true},
+		{Endpoint: "https://push.example/shared", TargetID: "account"},
+		{Endpoint: "https://push.example/other", TargetID: "other", Public: true},
+	})
+	require.Equal(t, []repo.SpaceWebPushSubscriptionRecord{
+		{Endpoint: "https://push.example/shared", TargetID: "account"},
+		{Endpoint: "https://push.example/other", TargetID: "other", Public: true},
+	}, subscriptions)
+}
+
+func TestNewPostNotifiesWithNoAccountFriends(t *testing.T) {
+	_, repos, _ := setupPostsControllerTest(t)
+	notifier := newRecordingSpaceActivityNotifier()
+	posts := NewModule(repos, nil, notifier, nil).Posts
+
+	posts.notifyFriendsOfNewPost(SpaceActivityActor{UserID: 1, SpaceID: "space_id", Slug: "alice"})
+
+	require.Equal(t, recordedSpaceActivity{
+		event:        spaceActivityPostCreated,
+		actorUserID:  1,
+		actorSpaceID: "space_id",
+		actorSlug:    "alice",
+	}, requireSpaceActivity(t, notifier))
+}
+
+func TestPostLikeSendsActivityOnlyOnLikeTransition(t *testing.T) {
+	_, repos, ctx := setupPostsControllerTest(t)
+	notifier := newRecordingSpaceActivityNotifier()
+	posts := NewModule(repos, nil, notifier, nil).Posts
+	aliceID := insertSpaceControllerUser(t, repos, "alice-post-like-push@example.com", "alice-public")
+	bobID := insertSpaceControllerUser(t, repos, "bob-post-like-push@example.com", "bob-public")
+	aliceSpace, err := testCreateSpace(ctx, repos, aliceID, "alice_post_like_push", "alice-space-key", "alice-post-public", "alice-post-secret", "nonce", "alice-profile")
+	require.NoError(t, err)
+	bobSpace, err := testCreateSpace(ctx, repos, bobID, "bob_post_like_push", "bob-space-key", "bob-post-public", "bob-post-secret", "nonce", "bob-profile")
 	require.NoError(t, err)
 	require.NoError(t, testAddFriend(ctx, repos, bobID, bobSpace.SpaceID, aliceSpace.SpaceID, "alice-share-key", aliceSpace.CurrentVersion, "bob-share-key", bobSpace.CurrentVersion))
 	postID, err := testCreatePost(ctx, repos, aliceID, aliceSpace.SpaceID, "post-key", nil, aliceSpace.CurrentVersion, nil)
 	require.NoError(t, err)
-
-	resp, err := posts.SetLike(ctx, bobSpace, postID, true)
-	require.NoError(t, err)
-	require.True(t, resp.Liked)
-	email := requireSpaceEmail(t, notifier)
-	require.Equal(t, recordedSpaceEmail{event: "post_liked", actorUserID: bobID, actorSlug: bobSpace.SpaceSlug, recipients: []int64{aliceID}}, email)
 
 	_, err = posts.SetLike(ctx, bobSpace, postID, true)
 	require.NoError(t, err)
-	requireNoSpaceEmail(t, notifier)
+	expected := recordedSpaceActivity{
+		event:        spaceActivityPostLiked,
+		actorUserID:  bobID,
+		actorSpaceID: bobSpace.SpaceID,
+		actorSlug:    bobSpace.SpaceSlug,
+		recipientIDs: []int64{aliceID},
+	}
+	require.Equal(t, expected, requireSpaceActivity(t, notifier))
+
+	_, err = posts.SetLike(ctx, bobSpace, postID, true)
+	require.NoError(t, err)
+	requireNoSpaceActivity(t, notifier)
+	_, err = posts.SetLike(ctx, bobSpace, postID, false)
+	require.NoError(t, err)
+	requireNoSpaceActivity(t, notifier)
+	_, err = posts.SetLike(ctx, bobSpace, postID, true)
+	require.NoError(t, err)
+	require.Equal(t, expected, requireSpaceActivity(t, notifier))
 }
 
-func TestPostReplySendsEmail(t *testing.T) {
+func TestMessageActivitiesAndLikeTransition(t *testing.T) {
 	_, repos, ctx := setupMessagesControllerTest(t)
-	notifier := newRecordingSpaceEmailNotifier()
-	messages := NewModule(repos, nil, notifier).Messages
-	aliceID, aliceSpace := createMessageControllerUserAndSpace(t, repos, "alice-post-reply-email", "alice-public")
-	bobID, bobSpace := createMessageControllerUserAndSpace(t, repos, "bob-post-reply-email", "bob-public")
+	notifier := newRecordingSpaceActivityNotifier()
+	messages := NewModule(repos, nil, notifier, nil).Messages
+	aliceID, aliceSpace := createMessageControllerUserAndSpace(t, repos, "alice-message-push", "alice-public")
+	bobID, bobSpace := createMessageControllerUserAndSpace(t, repos, "bob-message-push", "bob-public")
 	require.NoError(t, testAddFriend(ctx, repos, bobID, bobSpace.SpaceID, aliceSpace.SpaceID, "alice-share-key", aliceSpace.CurrentVersion, "bob-share-key", bobSpace.CurrentVersion))
+	request := models.CreateMessageRequest{
+		MessageCipher:                spaceTestB64("cipher"),
+		SenderEncryptedMessageKey:    spaceTestB64("sender-key"),
+		RecipientEncryptedMessageKey: spaceTestB64("recipient-key"),
+	}
+
+	message, err := messages.Create(ctx, aliceSpace, bobSpace.SpaceID, request)
+	require.NoError(t, err)
+	require.Equal(t, recordedSpaceActivity{
+		event:        spaceActivityMessageSent,
+		actorUserID:  aliceID,
+		actorSpaceID: aliceSpace.SpaceID,
+		actorSlug:    aliceSpace.SpaceSlug,
+		recipientIDs: []int64{bobID},
+	}, requireSpaceActivity(t, notifier))
+
+	_, err = messages.SetLike(ctx, bobSpace, message.MessageID, true)
+	require.NoError(t, err)
+	expectedLike := recordedSpaceActivity{
+		event:        spaceActivityMessageLiked,
+		actorUserID:  bobID,
+		actorSpaceID: bobSpace.SpaceID,
+		actorSlug:    bobSpace.SpaceSlug,
+		recipientIDs: []int64{aliceID},
+	}
+	require.Equal(t, expectedLike, requireSpaceActivity(t, notifier))
+	_, err = messages.SetLike(ctx, bobSpace, message.MessageID, true)
+	require.NoError(t, err)
+	requireNoSpaceActivity(t, notifier)
+	_, err = messages.SetLike(ctx, bobSpace, message.MessageID, false)
+	require.NoError(t, err)
+	requireNoSpaceActivity(t, notifier)
+
 	postID, err := testCreatePost(ctx, repos, aliceID, aliceSpace.SpaceID, "post-key", nil, aliceSpace.CurrentVersion, nil)
 	require.NoError(t, err)
-
-	_, err = messages.ReplyToPost(ctx, bobSpace, postID, models.CreateMessageRequest{
-		MessageCipher:                spaceTestB64("reply-cipher"),
-		SenderEncryptedMessageKey:    spaceTestB64("reply-sender-key"),
-		RecipientEncryptedMessageKey: spaceTestB64("reply-recipient-key"),
-	})
+	_, err = messages.ReplyToPost(ctx, bobSpace, postID, request)
 	require.NoError(t, err)
-	email := requireSpaceEmail(t, notifier)
-	require.Equal(t, recordedSpaceEmail{event: "post_replied", actorUserID: bobID, actorSlug: bobSpace.SpaceSlug, recipients: []int64{aliceID}}, email)
+	require.Equal(t, recordedSpaceActivity{
+		event:        spaceActivityPostReplied,
+		actorUserID:  bobID,
+		actorSpaceID: bobSpace.SpaceID,
+		actorSlug:    bobSpace.SpaceSlug,
+		recipientIDs: []int64{aliceID},
+	}, requireSpaceActivity(t, notifier))
 }
 
-func TestAddFriendSendsEmailOnce(t *testing.T) {
+func TestFriendActivitiesOnlyOnRelationshipTransitions(t *testing.T) {
 	_, repos, ctx := setupFriendsControllerTest(t)
-	notifier := newRecordingSpaceEmailNotifier()
-	friends := NewModule(repos, nil, notifier).Friends
-	aliceID := insertSpaceControllerUser(t, repos, "alice-friend-email@example.com", "alice-public")
-	bobID := insertSpaceControllerUser(t, repos, "bob-friend-email@example.com", "bob-public")
-	aliceSpace, err := testCreateSpace(ctx, repos, aliceID, "alice_friend_email", "alice-space-key", "alice-friend-email-public", "alice-friend-email-secret", "alice-friend-email-secret-nonce", "alice-profile")
+	notifier := newRecordingSpaceActivityNotifier()
+	friends := NewModule(repos, nil, notifier, nil).Friends
+	aliceID := insertSpaceControllerUser(t, repos, "alice-friend-push@example.com", "alice-public")
+	bobID := insertSpaceControllerUser(t, repos, "bob-friend-push@example.com", "bob-public")
+	aliceSpace, err := testCreateSpace(ctx, repos, aliceID, "alice_friend_push", "alice-space-key", "alice-public", "alice-secret", "nonce", "alice-profile")
 	require.NoError(t, err)
-	bobSpace, err := testCreateSpace(ctx, repos, bobID, "bob_friend_email", "bob-space-key", "bob-friend-email-public", "bob-friend-email-secret", "bob-friend-email-secret-nonce", "bob-profile")
+	bobSpace, err := testCreateSpace(ctx, repos, bobID, "bob_friend_push", "bob-space-key", "bob-public", "bob-secret", "nonce", "bob-profile")
 	require.NoError(t, err)
-	req := models.AddFriendPayload{
+	request := models.AddFriendPayload{
 		TargetSpaceID:                 aliceSpace.SpaceID,
 		RequesterFriendSealedSpaceKey: base64.StdEncoding.EncodeToString([]byte("bob-requester-key")),
 		RequesterKeyVersion:           bobSpace.CurrentVersion,
 	}
 
-	resp, err := friends.Add(ctx, bobSpace, req)
+	_, err = friends.Add(ctx, bobSpace, request)
 	require.NoError(t, err)
-	require.Equal(t, "requested", resp.Status)
-	email := requireSpaceEmail(t, notifier)
-	require.Equal(t, recordedSpaceEmail{event: "friend_requested", actorUserID: bobID, actorSlug: bobSpace.SpaceSlug, recipients: []int64{aliceID}}, email)
-
-	_, err = friends.Add(ctx, bobSpace, req)
+	require.Equal(t, recordedSpaceActivity{
+		event:        spaceActivityFriendRequested,
+		actorUserID:  bobID,
+		actorSpaceID: bobSpace.SpaceID,
+		actorSlug:    bobSpace.SpaceSlug,
+		recipientIDs: []int64{aliceID},
+	}, requireSpaceActivity(t, notifier))
+	_, err = friends.Add(ctx, bobSpace, request)
 	require.NoError(t, err)
-	requireNoSpaceEmail(t, notifier)
+	requireNoSpaceActivity(t, notifier)
 
 	requests, err := friends.ListRequests(ctx, aliceSpace)
 	require.NoError(t, err)
 	require.Len(t, requests, 1)
-	require.Equal(t, bobSpace.SpaceSlug, requests[0].Requester.SpaceSlug)
-
-	resp, err = friends.ConfirmRequest(ctx, aliceSpace, requests[0].RequestID, models.ConfirmFriendRequestPayload{
+	_, err = friends.ConfirmRequest(ctx, aliceSpace, requests[0].RequestID, models.ConfirmFriendRequestPayload{
 		TargetFriendSealedSpaceKey: base64.StdEncoding.EncodeToString([]byte("alice-target-key")),
 		TargetKeyVersion:           aliceSpace.CurrentVersion,
 	})
 	require.NoError(t, err)
-	require.Equal(t, "friend", resp.Status)
-	email = requireSpaceEmail(t, notifier)
-	require.Equal(t, recordedSpaceEmail{event: "friend_added", actorUserID: aliceID, actorSlug: aliceSpace.SpaceSlug, recipients: []int64{bobID}}, email)
+	require.Equal(t, recordedSpaceActivity{
+		event:        spaceActivityFriendAdded,
+		actorUserID:  aliceID,
+		actorSpaceID: aliceSpace.SpaceID,
+		actorSlug:    aliceSpace.SpaceSlug,
+		recipientIDs: []int64{bobID},
+	}, requireSpaceActivity(t, notifier))
+}
+
+func TestSpaceWebPushSenderUsesGenericPayloadAndPrunesDeadEndpoint(t *testing.T) {
+	_, repos, ctx := setupPostsControllerTest(t)
+	recipientID := insertSpaceControllerUser(t, repos, "space-push-recipient@example.com", "recipient-public")
+	sessionHash := []byte("space-push-session-hash")
+	require.NoError(t, repos.Sessions.CreateBrowserSession(ctx, sessionHash, recipientID, "wrap-key", timeutil.NDaysFromNow(1)))
+	_, err := repos.WebPush.UpsertAccountSubscription(ctx, sessionHash, "https://push.example/subscription", "p256dh", "auth")
+	require.NoError(t, err)
+
+	config := newSpaceWebPushTestConfig(t)
+
+	originalSend := sendSpaceWebPush
+	t.Cleanup(func() { sendSpaceWebPush = originalSend })
+	var payload spaceWebPushPayload
+	sendSpaceWebPush = func(_ context.Context, message []byte, subscription *webpush.Subscription, options *webpush.Options) (*http.Response, error) {
+		require.Equal(t, "https://push.example/subscription", subscription.Endpoint)
+		require.Equal(t, uint32(spaceWebPushRecordSize), options.RecordSize)
+		require.Equal(t, spaceWebPushTTLSeconds, options.TTL)
+		require.Equal(t, webpush.UrgencyNormal, options.Urgency)
+		require.Equal(t, "security@ente.io", options.Subscriber)
+		require.NoError(t, json.Unmarshal(message, &payload))
+		return &http.Response{StatusCode: http.StatusGone, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}
+
+	sender := NewSpaceWebPushSender(repos.WebPush, config)
+	sender.OnSpacePostReplied(SpaceActivityActor{UserID: 1, SpaceID: "alice_space", Slug: "alice"}, recipientID)
+	require.Equal(t, spaceWebPushPayload{
+		Title:  "Ente Space",
+		Body:   "@alice replied to your post",
+		Action: "Check it out",
+		URL:    "/app/messages/alice_space",
+	}, payload)
+	var count int
+	require.NoError(t, repos.WebPush.DB.QueryRow(`SELECT COUNT(*) FROM space_web_push_subscriptions`).Scan(&count))
+	require.Zero(t, count)
+}
+
+func TestPublicPostPushCarriesOnlyOpaqueLocalRouteTarget(t *testing.T) {
+	config := newSpaceWebPushTestConfig(t)
+
+	originalSend := sendSpaceWebPush
+	t.Cleanup(func() { sendSpaceWebPush = originalSend })
+	var payload spaceWebPushPayload
+	sendSpaceWebPush = func(_ context.Context, message []byte, _ *webpush.Subscription, _ *webpush.Options) (*http.Response, error) {
+		require.NoError(t, json.Unmarshal(message, &payload))
+		return &http.Response{StatusCode: http.StatusCreated, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}
+
+	sender := NewSpaceWebPushSender(nil, config)
+	sender.send(
+		SpaceActivityActor{UserID: 2, Slug: "alice"},
+		"posted a new photo",
+		"Check it out",
+		spaceActivityPostCreated,
+		"/app",
+		[]repo.SpaceWebPushSubscriptionRecord{{
+			Endpoint: "https://push.example/public",
+			P256dh:   "p256dh",
+			Auth:     "auth",
+			TargetID: "wpt_public_target",
+			Public:   true,
+		}},
+	)
+	require.Equal(t, spaceWebPushPayload{
+		Title:    "Ente Space",
+		Body:     "@alice posted a new photo",
+		Action:   "Check it out",
+		TargetID: "wpt_public_target",
+	}, payload)
+}
+
+func TestSpaceWebPushSendRateAppliesOncePerActivity(t *testing.T) {
+	config := newSpaceWebPushTestConfig(t)
+
+	originalSend := sendSpaceWebPush
+	t.Cleanup(func() { sendSpaceWebPush = originalSend })
+	sent := make(chan struct{}, 51)
+	sendSpaceWebPush = func(_ context.Context, _ []byte, _ *webpush.Subscription, _ *webpush.Options) (*http.Response, error) {
+		sent <- struct{}{}
+		return &http.Response{StatusCode: http.StatusCreated, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}
+
+	subscriptions := make([]repo.SpaceWebPushSubscriptionRecord, 51)
+	for index := range subscriptions {
+		subscriptions[index] = repo.SpaceWebPushSubscriptionRecord{
+			Endpoint: fmt.Sprintf("https://push.example/%d", index),
+			P256dh:   "p256dh",
+			Auth:     "auth",
+		}
+	}
+	NewSpaceWebPushSender(nil, config).send(
+		SpaceActivityActor{UserID: 3, Slug: "alice"},
+		"posted a new photo",
+		"Check it out",
+		spaceActivityPostCreated,
+		"/app",
+		subscriptions,
+	)
+	require.Equal(t, len(subscriptions), len(sent))
 }

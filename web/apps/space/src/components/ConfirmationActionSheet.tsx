@@ -17,6 +17,7 @@ interface ConfirmationActionSheetProps {
     description?: React.ReactNode;
     confirmLabel: string;
     confirmBackgroundColor?: string;
+    confirmClassName?: string;
     confirmActionPhase?: SpaceActionPhase | null;
     confirmDisabled?: boolean;
     errorMessage?: string | null;
@@ -36,6 +37,7 @@ export const ConfirmationActionSheet: React.FC<
     description,
     confirmLabel,
     confirmBackgroundColor = dangerColor,
+    confirmClassName,
     confirmActionPhase = null,
     confirmDisabled = false,
     errorMessage = null,
@@ -64,20 +66,11 @@ export const ConfirmationActionSheet: React.FC<
                 isDark
                     ? {
                           zIndex: 1500,
-                          "& .MuiBackdrop-root": {
-                              backgroundColor: "rgba(0, 0, 0, 0.86) !important",
-                          },
+                          "--space-dialog-backdrop": "rgba(0 0 0 / 0.86)",
                       }
                     : undefined
             }
             slotProps={{
-                backdrop: {
-                    sx: {
-                        backgroundColor: isDark
-                            ? "rgba(0, 0, 0, 0.86)"
-                            : "rgba(0, 0, 0, 0.48)",
-                    },
-                },
                 paper: {
                     sx: {
                         bgcolor: isDark ? "#1E1E1E" : "#FAFAFA",
@@ -155,6 +148,7 @@ export const ConfirmationActionSheet: React.FC<
                     <SheetButton
                         label={confirmLabel}
                         backgroundColor={confirmBackgroundColor}
+                        className={confirmClassName}
                         color="#FFFFFF"
                         disabled={confirmDisabled}
                         actionPhase={confirmActionPhase}
@@ -192,6 +186,7 @@ export const ConfirmationActionSheet: React.FC<
 
 interface SheetButtonProps {
     backgroundColor: string;
+    className?: string;
     color: string;
     actionPhase?: SpaceActionPhase | null;
     disabled?: boolean;
@@ -201,6 +196,7 @@ interface SheetButtonProps {
 
 const SheetButton: React.FC<SheetButtonProps> = ({
     backgroundColor,
+    className,
     color,
     actionPhase = null,
     disabled = false,
@@ -208,6 +204,7 @@ const SheetButton: React.FC<SheetButtonProps> = ({
     onClick,
 }) => (
     <Box
+        className={className}
         component="button"
         type="button"
         aria-label={label}

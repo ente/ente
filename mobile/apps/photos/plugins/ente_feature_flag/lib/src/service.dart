@@ -53,6 +53,10 @@ class FlagService {
     return (flags.internalUser || kDebugMode) && !isDisabled;
   }
 
+  bool get librarySharing => internalUser;
+
+  bool get webGPUEnabled => internalUser;
+
   bool get cloudflareUploadWorker =>
       internalUser || _isInUserRollout(_cfUploadWorkerRolloutPercent);
 

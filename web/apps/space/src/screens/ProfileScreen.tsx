@@ -1,12 +1,20 @@
 import {
     AddSquareIcon,
     ArrowLeft02Icon,
+    BubbleChatIcon,
     Menu01Icon,
-    MultiplicationSignIcon,
+    MoreHorizontalIcon,
+    UserRemove01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Box, Skeleton } from "@mui/material";
+import { Box, Menu, MenuItem, Skeleton } from "@mui/material";
+import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
+import {
+    spaceActionDoneDurationMs,
+    type SpaceActionPhase,
+} from "components/SpaceActionFeedback";
 import { SpaceAvatarImage } from "components/SpaceAvatarImage";
+import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
 import {
     SpaceFileViewer,
     SpaceViewerFeedBackdrop,
@@ -17,10 +25,13 @@ import {
 import { SpacePostFloatingActionButton } from "components/SpacePostFloatingActionButton";
 import { SpaceLoadingSpinner } from "components/SpaceRouteFallback";
 import { SpaceShareIcon } from "components/SpaceShareInviteButton";
+import log from "ente-base/log";
 import { useBrowserBackClose } from "hooks/useBrowserBackClose";
 import React, { useState } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import type { SpacePostAsset } from "services/space";
+import type { SpaceInviteIntent } from "services/spaceInvite";
+import { openSpaceShareLinkDialog } from "services/spaceShareLink";
 import { spaceTouchTargetSize } from "styles/touchTargets";
 import { createLoadedLocalPostPhoto } from "utils/localPostPhoto";
 import { firstNameFrom } from "utils/spaceDisplay";
@@ -36,6 +47,7 @@ import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 export const profileBackground = "#FFFFFF";
 
 const green = "#08C225";
+const dangerColor = "#F63A3A";
 const textBase = "#000";
 const textStrong = "#303030";
 const textSoft = "#777777";
@@ -50,11 +62,10 @@ const profileAvatarSize = 120;
 const profileCoverHeight =
     profileHeaderHeight + profileAvatarTopOffset + profileAvatarSize / 2;
 const photoMasonryGap = "3px";
-const profileHorizontalPadding = "16px";
 const photoMasonryPlaceholderBackground = "#F2F2F2";
 const photoMasonryRadius = "12px";
 const photoMasonryLoadRootMargin = "800px 0px";
-const profileToastTransition = "opacity 160ms ease, transform 160ms ease";
+const publicPhotoMasonryLoadRootMargin = "400px 0px";
 interface ProfilePhotoDimensions {
     height: number;
     width: number;
@@ -115,18 +126,6 @@ interface PostMasonryTile {
 interface PostMasonryRow {
     aspectRatio: number;
     tiles: PostMasonryTile[];
-}
-
-interface ProfileToastProps {
-    message: string;
-    open: boolean;
-    onClose?: () => void;
-    onExited?: () => void;
-}
-
-interface ProfileToastState {
-    message: string;
-    open: boolean;
 }
 
 const buildPostMasonryRows = (
@@ -222,6 +221,49 @@ const ProfileStatsSkeleton: React.FC = () => (
     </Box>
 );
 
+interface PublicProfileAddFriendButtonProps {
+    isAddingFriend: boolean;
+    onAddFriend: () => void;
+    showSpinner: boolean;
+}
+
+const PublicProfileAddFriendButton: React.FC<
+    PublicProfileAddFriendButtonProps
+> = ({ isAddingFriend, onAddFriend, showSpinner }) => (
+    <Box
+        component="button"
+        type="button"
+        disabled={isAddingFriend}
+        onClick={onAddFriend}
+        sx={{
+            alignItems: "center",
+            appearance: "none",
+            bgcolor: "#FFF",
+            border: 0,
+            borderRadius: "14px",
+            color: "#000",
+            cursor: isAddingFriend ? "default" : "pointer",
+            display: "flex",
+            flexShrink: 0,
+            fontFamily: '"Inter Variable", Inter, sans-serif',
+            fontSize: 14,
+            fontWeight: 600,
+            justifyContent: "center",
+            justifySelf: "end",
+            lineHeight: "18px",
+            px: "14px",
+            py: "8px",
+            "&:hover": { bgcolor: isAddingFriend ? "#FFF" : "#F4F4F4" },
+            "&:focus-visible": {
+                outline: `2px solid ${green}`,
+                outlineOffset: 2,
+            },
+        }}
+    >
+        {showSpinner ? <SpaceButtonSpinner /> : "Add Friend"}
+    </Box>
+);
+
 const ProfilePostLoadingIndicator: React.FC = () => (
     <Box
         sx={{
@@ -249,6 +291,7 @@ interface ProfilePostTileProps {
     index: number;
     isSingleItemRow: boolean;
     item: ProfilePostItem;
+    loadRootMargin: string;
     onLoadImage: () => Promise<string | undefined>;
     onOpen: (imageUrl: string) => void;
     onRememberDimensions: (itemID: string, image: HTMLImageElement) => void;
@@ -263,6 +306,7 @@ const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
     index,
     isSingleItemRow,
     item,
+    loadRootMargin,
     onLoadImage,
     onOpen,
     onRememberDimensions,
@@ -299,16 +343,16 @@ const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
                     observer.disconnect();
                 }
             },
-            { rootMargin: photoMasonryLoadRootMargin },
+            { rootMargin: loadRootMargin },
         );
         observer.observe(element);
         return () => observer.disconnect();
-    }, [imageUrl, shouldLoad]);
+    }, [imageUrl, loadRootMargin, shouldLoad]);
 
     React.useEffect(() => {
         if (!shouldLoad || imageUrl) return;
         void onLoadImage().catch((error: unknown) => {
-            console.warn("Failed to load profile post image", error);
+            log.warn("Failed to load profile post image", error);
         });
     }, [imageUrl, onLoadImage, shouldLoad]);
 
@@ -396,133 +440,19 @@ const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
     );
 };
 
-const CopyIcon: React.FC = () => (
-    <svg
-        width="14"
-        height="14"
-        viewBox="0 0 14 14"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-    >
-        <path
-            d="M4.5 4.5V2.5C4.5 1.39543 5.39543 0.5 6.5 0.5H11.5C12.6046 0.5 13.5 1.39543 13.5 2.5V7.5C13.5 8.60457 12.6046 9.5 11.5 9.5H9.5M2.5 4.5H7.5C8.60457 4.5 9.5 5.39543 9.5 6.5V11.5C9.5 12.6046 8.60457 13.5 7.5 13.5H2.5C1.39543 13.5 0.5 12.6046 0.5 11.5V6.5C0.5 5.39543 1.39543 4.5 2.5 4.5Z"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
-    </svg>
-);
-
-const ProfileToast: React.FC<ProfileToastProps> = ({
-    message,
-    open,
-    onClose,
-    onExited,
-}) => (
-    <Box
-        onTransitionEnd={(event) => {
-            if (event.currentTarget != event.target || open) return;
-            onExited?.();
-        }}
-        sx={{
-            boxSizing: "border-box",
-            left: "50%",
-            opacity: open ? 1 : 0,
-            px: profileHorizontalPadding,
-            pointerEvents: "none",
-            position: "fixed",
-            top: "calc(env(safe-area-inset-top) + 10px)",
-            transform: open
-                ? "translateX(-50%) translateY(0)"
-                : "translateX(-50%) translateY(-8px)",
-            transition: profileToastTransition,
-            width: "100%",
-            zIndex: 20,
-            "@media (min-width: 600px)": { maxWidth: 390 },
-        }}
-    >
-        <Box
-            role="status"
-            aria-live="polite"
-            sx={{
-                alignItems: "center",
-                bgcolor: "#FFFFFF",
-                borderRadius: "18px",
-                boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
-                boxSizing: "border-box",
-                color: textBase,
-                display: "flex",
-                fontFamily: '"Inter Variable", Inter, sans-serif',
-                fontSize: 14,
-                fontWeight: 650,
-                gap: "10px",
-                lineHeight: "20px",
-                minHeight: 50,
-                pointerEvents: "auto",
-                pl: "16px",
-                pr: "6px",
-                py: "3px",
-                width: "100%",
-            }}
-        >
-            <Box component="span" sx={{ display: "flex", flexShrink: 0 }}>
-                <CopyIcon />
-            </Box>
-            <Box
-                component="span"
-                sx={{
-                    flex: "1 1 auto",
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                }}
-            >
-                {message}
-            </Box>
-            <Box
-                component="button"
-                type="button"
-                aria-label="Close"
-                onClick={onClose}
-                sx={{
-                    alignItems: "center",
-                    appearance: "none",
-                    bgcolor: "transparent",
-                    border: 0,
-                    color: textBase,
-                    cursor: onClose ? "pointer" : "default",
-                    display: "flex",
-                    flexShrink: 0,
-                    height: spaceTouchTargetSize,
-                    justifyContent: "center",
-                    opacity: 0.9,
-                    p: 0,
-                    width: spaceTouchTargetSize,
-                    "&:focus-visible": {
-                        outline: "2px solid rgba(0 0 0 / 0.72)",
-                        outlineOffset: 2,
-                    },
-                }}
-            >
-                <HugeiconsIcon
-                    icon={MultiplicationSignIcon}
-                    size={16}
-                    strokeWidth={2}
-                />
-            </Box>
-        </Box>
-    </Box>
-);
-
 interface ProfileScreenProps {
     friendsCount?: number;
-    headerVariant?: "friend" | "owner";
+    headerVariant?: "friend" | "owner" | "public" | "public-anonymous";
+    isAddingFriend?: boolean;
+    showAddingFriendSpinner?: boolean;
     isCoverLoading?: boolean;
+    isNameLoading?: boolean;
     isPostsLoading?: boolean;
     isStatsLoading?: boolean;
     showPostLoadingIndicator?: boolean;
     onBack?: () => void;
+    onAddFriend?: () => void;
+    onAddFriendForPostAction?: (intent: SpaceInviteIntent) => void;
     onCreatePost?: (
         image: DraftSpacePostImage,
         caption: string,
@@ -534,24 +464,34 @@ interface ProfileScreenProps {
     onOpenProfilePhoto?: () => void;
     onOpenSettings?: () => void;
     onLoadPostImage?: (asset: SpacePostAsset) => Promise<string>;
+    onMessageFriend?: () => void;
     onReplyToPost?: (
         postSpaceId: string,
         postId: number,
         text: string,
     ) => Promise<void>;
     onSetPostLiked?: (postId: number, liked: boolean) => Promise<void>;
+    onUnfriend?: () => Promise<void> | void;
+    onUnfriendComplete?: () => void;
+    onUpdatePostCaption?: (postId: number, caption: string) => Promise<void>;
     postGroups?: ProfilePostGroup[];
+    postsCount?: number;
     profile: SetupProfile;
     profileLink?: string;
+    publicNotificationControl?: React.ReactNode;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     friendsCount = 0,
     headerVariant = "owner",
+    isAddingFriend = false,
     isCoverLoading = false,
+    isNameLoading = false,
     isPostsLoading = false,
     isStatsLoading = false,
     onBack,
+    onAddFriend,
+    onAddFriendForPostAction,
     onCreatePost,
     onDeletePost,
     onDraftPostPublished,
@@ -560,21 +500,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     onOpenProfilePhoto,
     onOpenSettings,
     onLoadPostImage,
+    onMessageFriend,
     onReplyToPost,
     onSetPostLiked,
+    onUnfriend,
+    onUnfriendComplete,
+    onUpdatePostCaption,
     postGroups = [],
+    postsCount,
     profile,
     profileLink,
+    publicNotificationControl,
+    showAddingFriendSpinner = isAddingFriend,
     showPostLoadingIndicator,
 }) => {
     const [selectedPost, setSelectedPost] =
         useState<SelectedProfilePost | null>(null);
+    const [isDraftPostExiting, setIsDraftPostExiting] = useState(false);
     const [isPostPhotoOpening, setIsPostPhotoOpening] = useState(false);
     const [deletedPostIDs, setDeletedPostIDs] = useState<Set<string>>(
         () => new Set(),
     );
-    const [profileShareToast, setProfileShareToast] =
-        useState<ProfileToastState | null>(null);
+    const [friendActionsAnchor, setFriendActionsAnchor] =
+        useState<HTMLElement | null>(null);
+    const [isUnfriendSheetOpen, setIsUnfriendSheetOpen] = useState(false);
+    const [unfriendActionPhase, setUnfriendActionPhase] =
+        useState<SpaceActionPhase | null>(null);
+    const [unfriendErrorMessage, setUnfriendErrorMessage] = useState<
+        string | null
+    >(null);
     const [loadedPhotoDimensionsByID, setLoadedPhotoDimensionsByID] = useState<
         Record<string, ProfilePhotoDimensions>
     >({});
@@ -588,14 +542,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     >(new Map());
     const localPostObjectUrlsRef = React.useRef<Set<string>>(new Set());
     const activeLocalPostObjectUrlRef = React.useRef<string | null>(null);
-    const profileShareToastTimeoutRef = React.useRef<number | undefined>(
-        undefined,
-    );
-    const profileShareToastFrameRef = React.useRef<number | undefined>(
-        undefined,
-    );
     const isOwnerProfile = headerVariant == "owner";
     const isFriendProfile = headerVariant == "friend";
+    const isAnonymousPublicProfile = headerVariant == "public-anonymous";
+    const isPublicProfile =
+        headerVariant == "public" || isAnonymousPublicProfile;
+    const friendActionsButtonID = React.useId();
+    const friendActionsMenuID = React.useId();
+    const isFriendActionsOpen = Boolean(friendActionsAnchor);
+    const isUnfriendActionRunning = unfriendActionPhase != null;
+    const canManageFriend =
+        isFriendProfile && Boolean(onMessageFriend || onUnfriend);
     const displayName = profile.fullName.trim() || profile.username.trim();
     const coverUrl = profile.coverUrl ?? null;
     const isCoverURLPending = Boolean(profile.coverObjectID && !coverUrl);
@@ -619,8 +576,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         (count, group) => count + group.items.length,
         0,
     );
+    const displayedPostsCount = postsCount ?? postsSharedCount;
     const canOpenFriends = isOwnerProfile && Boolean(onOpenFriends);
-    const canOpenProfileCover = isOwnerProfile && Boolean(onOpenProfileCover);
+    const canOpenProfileCover = Boolean(onOpenProfileCover);
     const canOpenProfilePhoto = Boolean(onOpenProfilePhoto);
     const hasProfilePosts = postsSharedCount > 0;
     const shouldShowPostLoadingIndicator =
@@ -630,55 +588,64 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     );
     const shouldShowCoverSkeleton =
         isCoverLoading || isCoverURLPending || isCoverImageLoading;
-    const selectedPostActionMode: SpaceViewerPostActionMode = isOwnerProfile
-        ? "hidden"
-        : "like-only";
+    const selectedPostActionMode: SpaceViewerPostActionMode =
+        isOwnerProfile || (isPublicProfile && !onAddFriendForPostAction)
+            ? "hidden"
+            : "like-only";
+    const postImageLoadRootMargin = isAnonymousPublicProfile
+        ? publicPhotoMasonryLoadRootMargin
+        : photoMasonryLoadRootMargin;
 
-    const clearProfileShareToastTimers = React.useCallback(() => {
-        if (profileShareToastTimeoutRef.current !== undefined) {
-            window.clearTimeout(profileShareToastTimeoutRef.current);
-            profileShareToastTimeoutRef.current = undefined;
-        }
-        if (profileShareToastFrameRef.current !== undefined) {
-            window.cancelAnimationFrame(profileShareToastFrameRef.current);
-            profileShareToastFrameRef.current = undefined;
-        }
-    }, []);
+    const closeFriendActions = () => setFriendActionsAnchor(null);
 
-    const hideProfileShareToast = React.useCallback(() => {
-        clearProfileShareToastTimers();
-        setProfileShareToast((currentToast) =>
-            currentToast ? { ...currentToast, open: false } : currentToast,
-        );
-    }, [clearProfileShareToastTimers]);
+    const messageFriend = () => {
+        closeFriendActions();
+        onMessageFriend?.();
+    };
 
-    const showProfileShareToast = React.useCallback(
-        (message: string) => {
-            clearProfileShareToastTimers();
-            setProfileShareToast({ message, open: false });
-            profileShareToastFrameRef.current = window.requestAnimationFrame(
-                () => {
-                    setProfileShareToast((currentToast) =>
-                        currentToast
-                            ? { ...currentToast, open: true }
-                            : currentToast,
-                    );
-                    profileShareToastFrameRef.current = undefined;
-                },
-            );
-            profileShareToastTimeoutRef.current = window.setTimeout(() => {
-                profileShareToastTimeoutRef.current = undefined;
-                hideProfileShareToast();
-            }, 1800);
-        },
-        [clearProfileShareToastTimers, hideProfileShareToast],
-    );
+    const requestUnfriend = () => {
+        closeFriendActions();
+        setUnfriendErrorMessage(null);
+        setIsUnfriendSheetOpen(true);
+    };
 
-    const clearClosedProfileShareToast = React.useCallback(() => {
-        setProfileShareToast((currentToast) =>
-            currentToast?.open ? currentToast : null,
-        );
-    }, []);
+    const cancelUnfriend = () => {
+        if (isUnfriendActionRunning) return;
+        setUnfriendErrorMessage(null);
+        setIsUnfriendSheetOpen(false);
+    };
+
+    const confirmUnfriend = () => {
+        if (!onUnfriend || isUnfriendActionRunning) return;
+        setUnfriendErrorMessage(null);
+        setUnfriendActionPhase("busy");
+        void (async () => {
+            try {
+                await Promise.resolve(onUnfriend());
+                setUnfriendActionPhase("done");
+            } catch (error) {
+                log.error("Failed to unfriend space friend", error);
+                setUnfriendActionPhase(null);
+                setUnfriendErrorMessage("Couldn't unfriend. Please try again.");
+            }
+        })();
+    };
+
+    React.useEffect(() => {
+        if (unfriendActionPhase != "done") return;
+
+        const timeoutID = window.setTimeout(() => {
+            setIsUnfriendSheetOpen(false);
+            onUnfriendComplete?.();
+        }, spaceActionDoneDurationMs);
+
+        return () => window.clearTimeout(timeoutID);
+    }, [onUnfriendComplete, unfriendActionPhase]);
+
+    const handleUnfriendSheetExited = () => {
+        setUnfriendActionPhase(null);
+        setUnfriendErrorMessage(null);
+    };
 
     const revokeLocalPostObjectUrls = React.useCallback(() => {
         localPostObjectUrlsRef.current.forEach((objectUrl) =>
@@ -696,6 +663,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     };
     const closeSelectedPost = () => {
         activeLocalPostObjectUrlRef.current = null;
+        setIsDraftPostExiting(false);
         setSelectedPost(null);
         revokeLocalPostObjectUrls();
     };
@@ -756,7 +724,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     return imageUrl;
                 })
                 .catch((error: unknown) => {
-                    console.warn("Failed to load profile post image", error);
+                    log.warn("Failed to load profile post image", error);
                     return undefined;
                 })
                 .finally(() => {
@@ -944,7 +912,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         });
                     })
                     .catch((error: unknown) => {
-                        console.error("Failed to prepare post preview", error);
+                        log.error("Failed to prepare post preview", error);
                         const message = spacePostImageErrorMessage(error);
                         setSelectedPost((currentPost) => {
                             if (currentPost?.localObjectUrl != draftKey)
@@ -983,33 +951,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         setIsPostPhotoOpening(true);
         void prepareSelectedPostPhoto(file)
             .catch((error: unknown) => {
-                console.error("Failed to open post photo draft", error);
+                log.error("Failed to open post photo draft", error);
             })
             .finally(() => {
                 setIsPostPhotoOpening(false);
             });
     };
 
-    const shareProfile = async () => {
+    const shareProfile = () => {
         if (!profileLink) return;
-
-        if (typeof navigator.share == "function") {
-            try {
-                await navigator.share({ url: profileLink });
-                return;
-            } catch (error) {
-                if (error instanceof DOMException && error.name == "AbortError")
-                    return;
-            }
-        }
-
-        try {
-            await navigator.clipboard.writeText(profileLink);
-            showProfileShareToast("Invite link copied");
-        } catch (error) {
-            console.error("Failed to copy profile link", error);
-            showProfileShareToast("Couldn't copy link. Please try again.");
-        }
+        openSpaceShareLinkDialog();
     };
 
     const deleteSelectedPost = async () => {
@@ -1033,13 +984,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         [revokeLocalPostObjectUrls],
     );
 
-    React.useEffect(
-        () => () => {
-            clearProfileShareToastTimers();
-        },
-        [clearProfileShareToastTimers],
-    );
-
     return (
         <Box
             component="main"
@@ -1053,7 +997,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 position: "relative",
             }}
         >
-            {selectedPost && <SpaceViewerFeedBackdrop />}
+            {selectedPost && (
+                <SpaceViewerFeedBackdrop exiting={isDraftPostExiting} />
+            )}
             <Box
                 sx={{
                     bgcolor: profileBackground,
@@ -1169,9 +1115,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     sx={{
                         alignItems: "center",
                         color: coverForeground,
-                        display: "grid",
-                        gridTemplateColumns: `${spaceTouchTargetSize}px 1fr ${spaceTouchTargetSize}px`,
+                        display: isPublicProfile ? "flex" : "grid",
+                        gridTemplateColumns: isPublicProfile
+                            ? undefined
+                            : `${spaceTouchTargetSize}px 1fr ${spaceTouchTargetSize}px`,
                         height: profileHeaderHeight,
+                        justifyContent: isPublicProfile
+                            ? "space-between"
+                            : undefined,
                         position: "relative",
                         px: 2,
                         py: 0,
@@ -1179,89 +1130,132 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         zIndex: 3,
                     }}
                 >
-                    <Box
-                        component="button"
-                        type="button"
-                        aria-label={
-                            isFriendProfile ? "Back to friends" : "Back to home"
-                        }
-                        onClick={onBack}
-                        sx={{
-                            alignItems: "center",
-                            bgcolor: "transparent",
-                            border: 0,
-                            color: "inherit",
-                            cursor: "pointer",
-                            display: "flex",
-                            height: spaceTouchTargetSize,
-                            justifyContent: "flex-start",
-                            ml: "-2px",
-                            p: 0,
-                            width: spaceTouchTargetSize,
-                            "&:focus-visible": {
-                                borderRadius: "50%",
-                                outline: `2px solid ${green}`,
-                                outlineOffset: 2,
-                            },
-                        }}
-                    >
-                        <HugeiconsIcon
-                            icon={ArrowLeft02Icon}
-                            size={24}
-                            strokeWidth={1.8}
-                        />
-                    </Box>
-                    <Box
-                        component="h1"
-                        sx={{
-                            color: "inherit",
-                            fontFamily: '"Inter Variable", Inter, sans-serif',
-                            fontSize: 18,
-                            fontWeight: 700,
-                            justifySelf: "center",
-                            lineHeight: "24px",
-                            m: 0,
-                            maxWidth: "100%",
-                            overflow: "hidden",
-                            px: "4px",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                        }}
-                    >
-                        {profile.username}
-                    </Box>
-                    {isOwnerProfile ? (
-                        <Box
-                            component="button"
-                            type="button"
-                            aria-label="Settings"
-                            onClick={onOpenSettings}
-                            sx={{
-                                alignItems: "center",
-                                bgcolor: "transparent",
-                                border: 0,
-                                color: "inherit",
-                                cursor: onOpenSettings ? "pointer" : "default",
-                                display: "flex",
-                                height: spaceTouchTargetSize,
-                                justifyContent: "flex-end",
-                                p: 0,
-                                width: spaceTouchTargetSize,
-                                "&:focus-visible": {
-                                    borderRadius: "50%",
-                                    outline: `2px solid ${green}`,
-                                    outlineOffset: 2,
-                                },
-                            }}
-                        >
-                            <HugeiconsIcon
-                                icon={Menu01Icon}
-                                size={20}
-                                strokeWidth={2.4}
-                            />
-                        </Box>
+                    {isPublicProfile ? (
+                        <>
+                            <Box
+                                component="a"
+                                href="/"
+                                aria-label="Go to Space"
+                                sx={{
+                                    display: "block",
+                                    flexShrink: 0,
+                                    lineHeight: 0,
+                                }}
+                            >
+                                <Box
+                                    component="img"
+                                    alt="Space"
+                                    src="/images/space.svg"
+                                    sx={{
+                                        display: "block",
+                                        height: 17,
+                                        width: "auto",
+                                    }}
+                                />
+                            </Box>
+                            {onAddFriend && (
+                                <PublicProfileAddFriendButton
+                                    isAddingFriend={isAddingFriend}
+                                    onAddFriend={onAddFriend}
+                                    showSpinner={showAddingFriendSpinner}
+                                />
+                            )}
+                        </>
                     ) : (
-                        <Box aria-hidden sx={{ width: spaceTouchTargetSize }} />
+                        <>
+                            <Box
+                                component="button"
+                                type="button"
+                                aria-label={
+                                    isFriendProfile
+                                        ? "Back to friends"
+                                        : "Back to home"
+                                }
+                                onClick={onBack}
+                                sx={{
+                                    alignItems: "center",
+                                    bgcolor: "transparent",
+                                    border: 0,
+                                    color: "inherit",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    height: spaceTouchTargetSize,
+                                    justifyContent: "flex-start",
+                                    ml: "-2px",
+                                    p: 0,
+                                    width: spaceTouchTargetSize,
+                                    "&:focus-visible": {
+                                        borderRadius: "50%",
+                                        outline: `2px solid ${green}`,
+                                        outlineOffset: 2,
+                                    },
+                                }}
+                            >
+                                <HugeiconsIcon
+                                    icon={ArrowLeft02Icon}
+                                    size={24}
+                                    strokeWidth={1.8}
+                                />
+                            </Box>
+                            <Box
+                                component="h1"
+                                sx={{
+                                    color: "inherit",
+                                    fontFamily:
+                                        '"Inter Variable", Inter, sans-serif',
+                                    fontSize: 18,
+                                    fontWeight: 700,
+                                    justifySelf: "center",
+                                    lineHeight: "24px",
+                                    m: 0,
+                                    maxWidth: "100%",
+                                    overflow: "hidden",
+                                    px: "4px",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                {profile.username}
+                            </Box>
+                            {isOwnerProfile ? (
+                                <Box
+                                    component="button"
+                                    type="button"
+                                    aria-label="Settings"
+                                    onClick={onOpenSettings}
+                                    sx={{
+                                        alignItems: "center",
+                                        bgcolor: "transparent",
+                                        border: 0,
+                                        color: "inherit",
+                                        cursor: onOpenSettings
+                                            ? "pointer"
+                                            : "default",
+                                        display: "flex",
+                                        height: spaceTouchTargetSize,
+                                        justifyContent: "flex-end",
+                                        p: 0,
+                                        width: spaceTouchTargetSize,
+                                        "&:focus-visible": {
+                                            borderRadius: "50%",
+                                            outline: `2px solid ${green}`,
+                                            outlineOffset: 2,
+                                        },
+                                    }}
+                                >
+                                    <HugeiconsIcon
+                                        icon={Menu01Icon}
+                                        size={20}
+                                        strokeWidth={2.4}
+                                    />
+                                </Box>
+                            ) : (
+                                <Box
+                                    aria-hidden
+                                    sx={{ width: spaceTouchTargetSize }}
+                                />
+                            )}
+                        </>
                     )}
                 </Box>
                 <Box
@@ -1367,14 +1361,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                     whiteSpace: "nowrap",
                                 }}
                             >
-                                {displayName}
+                                {isNameLoading ? (
+                                    <Skeleton
+                                        variant="rounded"
+                                        sx={{
+                                            bgcolor:
+                                                photoMasonryPlaceholderBackground,
+                                            height: 26,
+                                            transform: "none",
+                                            width: 112,
+                                        }}
+                                    />
+                                ) : (
+                                    displayName
+                                )}
                             </Box>
-                            {isOwnerProfile && (
+                            {isOwnerProfile ? (
                                 <Box
                                     component="button"
                                     type="button"
                                     aria-label="Share profile"
-                                    onClick={() => void shareProfile()}
+                                    onClick={shareProfile}
                                     sx={{
                                         alignItems: "center",
                                         bgcolor: "transparent",
@@ -1403,6 +1410,189 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 >
                                     <SpaceShareIcon strokeWidth={2.2} />
                                 </Box>
+                            ) : (
+                                canManageFriend && (
+                                    <Box
+                                        component="button"
+                                        id={friendActionsButtonID}
+                                        type="button"
+                                        aria-label={`Actions for ${displayName}`}
+                                        aria-controls={
+                                            isFriendActionsOpen
+                                                ? friendActionsMenuID
+                                                : undefined
+                                        }
+                                        aria-expanded={
+                                            isFriendActionsOpen
+                                                ? "true"
+                                                : undefined
+                                        }
+                                        aria-haspopup="menu"
+                                        onClick={(event) =>
+                                            setFriendActionsAnchor(
+                                                event.currentTarget,
+                                            )
+                                        }
+                                        sx={{
+                                            alignItems: "center",
+                                            bgcolor: "transparent",
+                                            border: 0,
+                                            color: textStrong,
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            gridColumn: 3,
+                                            height: 24,
+                                            justifyContent: "flex-start",
+                                            justifySelf: "start",
+                                            ml: "8px",
+                                            p: 0,
+                                            width: 24,
+                                            "&:focus-visible": {
+                                                borderRadius: "50%",
+                                                outline: `2px solid ${green}`,
+                                                outlineOffset: 2,
+                                            },
+                                        }}
+                                    >
+                                        <HugeiconsIcon
+                                            icon={MoreHorizontalIcon}
+                                            size={24}
+                                            strokeWidth={2}
+                                        />
+                                    </Box>
+                                )
+                            )}
+                            {canManageFriend && (
+                                <Menu
+                                    id={friendActionsMenuID}
+                                    anchorEl={friendActionsAnchor}
+                                    open={isFriendActionsOpen}
+                                    onClose={closeFriendActions}
+                                    anchorOrigin={{
+                                        horizontal: "left",
+                                        vertical: "bottom",
+                                    }}
+                                    transformOrigin={{
+                                        horizontal: "left",
+                                        vertical: "top",
+                                    }}
+                                    slotProps={{
+                                        paper: {
+                                            sx: {
+                                                bgcolor: "#FFFFFF",
+                                                borderRadius: "14px",
+                                                boxShadow:
+                                                    "0 14px 40px rgba(0, 0, 0, 0.16)",
+                                                mt: "6px",
+                                                minWidth: 0,
+                                                p: "4px",
+                                                width: "max-content",
+                                            },
+                                        },
+                                        list: {
+                                            "aria-labelledby":
+                                                friendActionsButtonID,
+                                            sx: { p: 0 },
+                                        },
+                                    }}
+                                >
+                                    {onMessageFriend && (
+                                        <MenuItem
+                                            dense
+                                            disableRipple
+                                            onClick={messageFriend}
+                                            sx={{
+                                                alignItems: "center",
+                                                borderRadius: "10px",
+                                                color: textBase,
+                                                display: "flex",
+                                                gap: "8px",
+                                                minHeight: 36,
+                                                px: "9px",
+                                                py: "4px",
+                                                whiteSpace: "nowrap",
+                                                "&.Mui-focusVisible": {
+                                                    bgcolor:
+                                                        "rgba(0, 0, 0, 0.04)",
+                                                },
+                                                "&:active": {
+                                                    bgcolor:
+                                                        "rgba(0, 0, 0, 0.04)",
+                                                },
+                                                "&:hover": {
+                                                    bgcolor:
+                                                        "rgba(0, 0, 0, 0.04)",
+                                                },
+                                            }}
+                                        >
+                                            <HugeiconsIcon
+                                                icon={BubbleChatIcon}
+                                                size={18}
+                                                strokeWidth={1.8}
+                                                style={{ flexShrink: 0 }}
+                                            />
+                                            <Box
+                                                sx={{
+                                                    fontFamily:
+                                                        '"Inter Variable", Inter, sans-serif',
+                                                    fontSize: 13,
+                                                    fontWeight: 650,
+                                                    lineHeight: "18px",
+                                                }}
+                                            >
+                                                Message
+                                            </Box>
+                                        </MenuItem>
+                                    )}
+                                    {onUnfriend && (
+                                        <MenuItem
+                                            dense
+                                            disableRipple
+                                            onClick={requestUnfriend}
+                                            sx={{
+                                                alignItems: "center",
+                                                borderRadius: "10px",
+                                                color: dangerColor,
+                                                display: "flex",
+                                                gap: "8px",
+                                                minHeight: 36,
+                                                px: "9px",
+                                                py: "4px",
+                                                whiteSpace: "nowrap",
+                                                "&.Mui-focusVisible": {
+                                                    bgcolor:
+                                                        "rgba(246, 58, 58, 0.06)",
+                                                },
+                                                "&:active": {
+                                                    bgcolor:
+                                                        "rgba(246, 58, 58, 0.06)",
+                                                },
+                                                "&:hover": {
+                                                    bgcolor:
+                                                        "rgba(246, 58, 58, 0.06)",
+                                                },
+                                            }}
+                                        >
+                                            <HugeiconsIcon
+                                                icon={UserRemove01Icon}
+                                                size={18}
+                                                strokeWidth={1.8}
+                                                style={{ flexShrink: 0 }}
+                                            />
+                                            <Box
+                                                sx={{
+                                                    fontFamily:
+                                                        '"Inter Variable", Inter, sans-serif',
+                                                    fontSize: 13,
+                                                    fontWeight: 650,
+                                                    lineHeight: "18px",
+                                                }}
+                                            >
+                                                Unfriend
+                                            </Box>
+                                        </MenuItem>
+                                    )}
+                                </Menu>
                             )}
                         </Box>
                         {isStatsLoading ? (
@@ -1429,10 +1619,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 }}
                             >
                                 <Box component="span" sx={{ color: textBase }}>
-                                    {postsSharedCount}
+                                    {displayedPostsCount}
                                 </Box>
                                 <Box component="span">
-                                    {postsSharedCount == 1 ? "post" : "posts"}
+                                    {displayedPostsCount == 1
+                                        ? "post"
+                                        : "posts"}
                                 </Box>
                                 <Box component="span">·</Box>
                                 <Box
@@ -1482,6 +1674,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                             : "friends"}
                                     </Box>
                                 </Box>
+                            </Box>
+                        )}
+                        {isPublicProfile && publicNotificationControl && (
+                            <Box
+                                sx={{
+                                    display: selectedPost ? "none" : "contents",
+                                }}
+                            >
+                                {publicNotificationControl}
                             </Box>
                         )}
                     </Box>
@@ -1601,6 +1802,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                                                         isSingleItemRow
                                                                     }
                                                                     item={item}
+                                                                    loadRootMargin={
+                                                                        postImageLoadRootMargin
+                                                                    }
                                                                     onLoadImage={() =>
                                                                         loadPostImage(
                                                                             item,
@@ -1656,23 +1860,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 width: "100%",
                             }}
                         >
-                            <Box
-                                component="p"
-                                sx={{
-                                    color: textSoft,
-                                    fontFamily:
-                                        '"Inter Variable", Inter, sans-serif',
-                                    fontSize: 14,
-                                    fontWeight: 500,
-                                    lineHeight: "20px",
-                                    m: 0,
-                                    maxWidth: isOwnerProfile ? 230 : 250,
-                                }}
-                            >
-                                {isOwnerProfile
-                                    ? "What are you up to?"
-                                    : `${firstName} hasn't posted anything yet.`}
-                            </Box>
+                            {!isOwnerProfile && (
+                                <Box
+                                    component="p"
+                                    sx={{
+                                        color: textSoft,
+                                        fontFamily:
+                                            '"Inter Variable", Inter, sans-serif',
+                                        fontSize: 14,
+                                        fontWeight: 500,
+                                        lineHeight: "20px",
+                                        m: 0,
+                                        maxWidth: 250,
+                                    }}
+                                >
+                                    {`${firstName} hasn't posted anything yet.`}
+                                </Box>
+                            )}
                             {isOwnerProfile && (
                                 <Box
                                     className="green-bg"
@@ -1700,7 +1904,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                         height: spaceTouchTargetSize,
                                         justifyContent: "center",
                                         lineHeight: "20px",
-                                        mt: "24px",
                                         px: "16px",
                                         py: 0,
                                         pointerEvents: "auto",
@@ -1723,24 +1926,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                         size={20}
                                         strokeWidth={1.8}
                                     />
-                                    Post
+                                    Share a moment
                                 </Box>
                             )}
                         </Box>
                     )}
                 </Box>
-                {isOwnerProfile && (
+                {isOwnerProfile && hasProfilePosts && (
                     <SpacePostFloatingActionButton
                         disabled={isPostPhotoOpening}
                         onClick={openPostPhotoPicker}
-                    />
-                )}
-                {profileShareToast && (
-                    <ProfileToast
-                        message={profileShareToast.message}
-                        open={profileShareToast.open}
-                        onClose={hideProfileShareToast}
-                        onExited={clearClosedProfileShareToast}
                     />
                 )}
                 {selectedPost && (
@@ -1766,6 +1961,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 : handleSelectedPostIndexChange
                         }
                         onClose={closeSelectedPost}
+                        onAddFriendForPostAction={
+                            isPublicProfile
+                                ? onAddFriendForPostAction
+                                : undefined
+                        }
+                        onDraftPostExitStart={() => setIsDraftPostExiting(true)}
                         onDeletePost={
                             isOwnerProfile ? deleteSelectedPost : undefined
                         }
@@ -1805,9 +2006,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 : undefined
                         }
                         onSetPostLiked={onSetPostLiked}
+                        onUpdatePostCaption={
+                            isOwnerProfile ? onUpdatePostCaption : undefined
+                        }
                     />
                 )}
             </Box>
+            <ConfirmationActionSheet
+                open={isUnfriendSheetOpen}
+                title="Are you sure you want to unfriend?"
+                confirmLabel="Yes, unfriend"
+                confirmActionPhase={unfriendActionPhase}
+                confirmDisabled={isUnfriendActionRunning}
+                errorMessage={unfriendErrorMessage}
+                cancelDisabled={isUnfriendActionRunning}
+                onCancel={cancelUnfriend}
+                onConfirm={confirmUnfriend}
+                onExited={handleUnfriendSheetExited}
+            />
         </Box>
     );
 };

@@ -29,6 +29,10 @@ You can install Ente Photos on your desktop by downloading the installer from [o
 - **macOS**: Download the DMG file
 - **Linux**: Download the installer or AppImage
 
+> [!NOTE]
+>
+> Ente Photos for macOS requires macOS 13.3 or later.
+
 ### How do I install CLI for Ente Photos? {#install-cli}
 
 Ente's CLI is distributed directly over [GitHub](https://github.com/ente/ente/releases?q=tag%3Acli-v0). The CLI is useful for:

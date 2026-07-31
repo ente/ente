@@ -192,8 +192,13 @@ func (c *AssetsController) Redirect(ctx *gin.Context, req models.AssetRedirectRe
 	if err := c.auth.canViewSpace(ctx, viewer, space); err != nil {
 		return nil, err
 	}
+	return c.redirectForSpace(ctx, space, req)
+}
+
+func (c *AssetsController) redirectForSpace(ctx context.Context, space *spacerepo.SpaceRecord, req models.AssetRedirectRequest) (*models.AssetDownloadResponse, error) {
 	objectKey := strings.TrimSpace(req.ObjectKey)
 	var bucketID string
+	var err error
 	if objectKey == "" {
 		assetType := strings.TrimSpace(req.AssetType)
 		objectID := strings.TrimSpace(req.ObjectID)

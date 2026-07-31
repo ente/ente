@@ -78,23 +78,15 @@ export const uploadCompletionCounts = (
 
 export const uploadProgressStatCounts = ({
     uploadPhase,
-    uploadCounter,
     inProgressUploads,
     finishedUploads,
     preUploadSkippedFiles,
 }: {
     uploadPhase: UploadPhase;
-    uploadCounter: UploadCounter;
     inProgressUploads: InProgressUpload[];
     finishedUploads: SegregatedFinishedUploads;
     preUploadSkippedFiles: PreUploadSkippedFile[];
 }): Record<UploadStatKind, number> => ({
-    inProgress:
-        uploadPhase == "done"
-            ? 0
-            : Math.max(
-                  inProgressUploads.length,
-                  uploadCounter.total - uploadCounter.finished,
-              ),
+    inProgress: uploadPhase == "done" ? 0 : inProgressUploads.length,
     ...uploadCompletionCounts(finishedUploads, preUploadSkippedFiles),
 });

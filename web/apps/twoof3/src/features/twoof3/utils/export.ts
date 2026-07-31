@@ -662,8 +662,11 @@ export const createOfflineRecoveryHtml = async () => {
   <script>${escapeScriptTagContent(OFFLINE_QR_DECODER_SOURCE)}</script>
   <script>
     const GF_POLY = 0x11b;
-    const VERSION = 1;
-    const HEADER_LENGTH = 14;
+    const VERSION = 2;
+    const HEADER_LENGTH = 10;
+    const LEGACY_HEADER_LENGTH = 14;
+    const CHECKSUM_LENGTH = 4;
+    const SHARE_OVERHEAD = HEADER_LENGTH + CHECKSUM_LENGTH;
     const gfMul = (left, right) => {
       let result = 0;
       let a = left;
@@ -714,41 +717,45 @@ export const createOfflineRecoveryHtml = async () => {
       const encoded = input.replace(/\\s+/gu, "");
       if (!encoded.startsWith("2of3-")) throw new Error("That code does not look like a 2of3 share.");
       const payload = base64UrlDecode(encoded.slice(5));
-      if (payload.length <= HEADER_LENGTH) throw new Error("That share looks incomplete.");
+      if (payload.length <= SHARE_OVERHEAD) throw new Error("That share looks incomplete.");
       const version = payload[0];
       const index = payload[1];
       const length = ((payload[2] || 0) << 8) | (payload[3] || 0);
-      if (version !== VERSION) throw new Error("This share was created by a newer format.");
+      if (version !== 1 && version !== VERSION) throw new Error(version > VERSION ? "This card uses a newer format than this recovery page. Recover at 2of3.ente.com." : "This share uses an unsupported format version.");
       if (![1,2,3].includes(index)) throw new Error("This share number is invalid.");
-      if (payload.length !== HEADER_LENGTH + length) throw new Error("This share was cut off.");
+      const headerLength = version === 1 ? LEGACY_HEADER_LENGTH : HEADER_LENGTH;
+      const dataLength = length + (version === 1 ? 0 : CHECKSUM_LENGTH);
+      if (payload.length !== headerLength + dataLength) throw new Error("This share was cut off.");
       return {
-        checksum: payload.slice(10, 14),
-        data: payload.slice(14),
+        checksum: version === 1 ? payload.slice(10, 14) : null,
+        data: payload.slice(headerLength),
         id: base64UrlEncode(payload.slice(4, 10)),
         index,
         length,
+        version,
       };
     };
     const combineShares = (firstInput, secondInput) => {
       const first = parseShare(firstInput);
       const second = parseShare(secondInput);
+      if (first.version !== second.version) throw new Error("These two cards use different formats.");
       if (first.id !== second.id || first.length !== second.length) throw new Error("These two cards are from different sets. Match the ID on both cards.");
       if (first.index === second.index) throw new Error("Use two different cards from the same set.");
-      const output = new Uint8Array(first.length);
+      const output = new Uint8Array(first.data.length);
       const denominator = first.index ^ second.index;
-      for (let index = 0; index < first.length; index++) {
+      for (let index = 0; index < output.length; index++) {
         const left = gfMul(first.data[index], gfDiv(second.index, denominator));
         const right = gfMul(second.data[index], gfDiv(first.index, denominator));
         output[index] = left ^ right;
       }
-      const expectedChecksum = checksumBytes(output);
-      for (let i = 0; i < expectedChecksum.length; i++) {
-        if (expectedChecksum[i] !== first.checksum[i] || expectedChecksum[i] !== second.checksum[i]) {
-          throw new Error("These shares did not reconstruct a valid secret.");
-        }
-      }
+      const secretBytes = output.slice(0, first.length);
+      const expectedChecksum = checksumBytes(secretBytes);
+      const checksumMatches = first.version === 1
+        ? expectedChecksum.every((byte, index) => byte === first.checksum[index] && byte === second.checksum[index])
+        : expectedChecksum.every((byte, index) => byte === output[first.length + index]);
+      if (!checksumMatches) throw new Error("These shares did not reconstruct a valid secret.");
       try {
-        return new TextDecoder("utf-8", { fatal: true }).decode(output);
+        return new TextDecoder("utf-8", { fatal: true }).decode(secretBytes);
       } catch {
         throw new Error("These shares did not reconstruct readable text.");
       }

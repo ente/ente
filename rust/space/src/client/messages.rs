@@ -18,7 +18,7 @@ use crate::transport::{
     ConversationsResponse, CreateMessageRequest, LikeMessageResponse, MessagePage, MessageResponse,
     SpaceActorResponse,
 };
-use ente_core::crypto::{decode_b64, encode_b64};
+use ente_core::b64;
 
 impl AccountSpaceCtx {
     pub async fn list_conversations(&self, space_id: &str) -> Result<ConversationsResponse> {
@@ -180,10 +180,10 @@ impl AccountSpaceCtx {
             return Err(SpaceError::InvalidInput("message is deleted".into()));
         }
         let identity = self.space_identity_for(space_id).await?;
-        let sealed_key = decode_b64(&message.encrypted_message_key)?;
+        let sealed_key = b64::decode(&message.encrypted_message_key)?;
         let message_key =
             open_with_keypair(&sealed_key, &identity.public_key, &identity.secret_key)?;
-        let packed_message = decode_b64(&message.message_cipher)?;
+        let packed_message = b64::decode(&message.message_cipher)?;
         let plaintext = decrypt_secretbox_payload(&message_key, &packed_message)?;
         let payload: MessagePayload = serde_json::from_slice(&plaintext)
             .map_err(|err| SpaceError::InvalidInput(format!("invalid message payload: {err}")))?;
@@ -257,7 +257,7 @@ impl AccountSpaceCtx {
         reply_message_id: Option<&str>,
     ) -> Result<CreateMessageRequest> {
         let identity = self.space_identity_for(sender_space_id).await?;
-        let recipient_public_key = decode_b64(recipient_public_key)?;
+        let recipient_public_key = b64::decode(recipient_public_key)?;
         let message_key = generate_key();
         let plaintext = serde_json::to_vec(payload)
             .map_err(|err| SpaceError::InvalidInput(format!("invalid message payload: {err}")))?;
@@ -266,9 +266,9 @@ impl AccountSpaceCtx {
         let recipient_key = seal_with_public_key(&message_key, &recipient_public_key)?;
         Ok(CreateMessageRequest {
             message_id: None,
-            message_cipher: encode_b64(&encrypt_secretbox_payload(&message_key, &plaintext)?),
-            sender_encrypted_message_key: encode_b64(&sender_key),
-            recipient_encrypted_message_key: encode_b64(&recipient_key),
+            message_cipher: b64::encode(&encrypt_secretbox_payload(&message_key, &plaintext)?),
+            sender_encrypted_message_key: b64::encode(&sender_key),
+            recipient_encrypted_message_key: b64::encode(&recipient_key),
             reply_message_id: reply_message_id.map(ToOwned::to_owned),
         })
     }

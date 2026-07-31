@@ -37,10 +37,9 @@ const run = (cmd) => {
     execSync(cmd, { stdio: "inherit" });
 };
 
-run(
-    "npm rebuild --ignore-scripts=false ffmpeg-static onnxruntime-node electron-winstaller",
-);
+run("npm rebuild --ignore-scripts=false ffmpeg-static electron-winstaller");
 run("npm exec -- electron-builder install-app-deps");
 run("node scripts/vips.js");
+run("node scripts/ort.js");
 
 writeFileSync(stamp, treeHash());

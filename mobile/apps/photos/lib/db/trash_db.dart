@@ -14,7 +14,7 @@ import 'package:sqflite/sqflite.dart';
 // during restore, all file attributes will be fetched & stored as required.
 class TrashDB {
   static const _databaseName = "ente.trash.db";
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
   static final Logger _logger = Logger("TrashDB");
   static const tableName = 'trash';
 
@@ -28,6 +28,7 @@ class TrashDB {
   static const columnFileDecryptionHeader = 'file_decryption_header';
   static const columnThumbnailDecryptionHeader = 'thumbnail_decryption_header';
   static const columnUpdationTime = 'updation_time';
+  static const columnFileSize = 'file_size';
 
   static const columnCreationTime = 'creation_time';
   static const columnLocalID = 'local_id';
@@ -54,6 +55,7 @@ class TrashDB {
           $columnFileDecryptionHeader TEXT,
           $columnThumbnailDecryptionHeader TEXT,
           $columnUpdationTime INTEGER,
+          $columnFileSize INTEGER DEFAULT NULL,
           $columnLocalID TEXT,
           $columnCreationTime INTEGER NOT NULL,
           $columnFileMetadata TEXT DEFAULT '{}',
@@ -66,6 +68,14 @@ class TrashDB {
       CREATE INDEX IF NOT EXISTS delete_by_time_index ON $tableName($columnTrashDeleteBy);
       CREATE INDEX IF NOT EXISTS updated_at_time_index ON $tableName($columnTrashUpdatedAt);
       ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE $tableName ADD COLUMN $columnFileSize INTEGER DEFAULT NULL',
+      );
+    }
   }
 
   TrashDB._privateConstructor();
@@ -91,6 +101,7 @@ class TrashDB {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -173,16 +184,10 @@ class TrashDB {
       orderBy: '$columnCreationTime ' + order,
       limit: limit,
     );
-    final files = _convertToFiles(results);
+    final files = results
+        .map((row) => _getTrashFromRow(row))
+        .toList(growable: true);
     return FileLoadResult(files, files.length == limit);
-  }
-
-  List<TrashFile> _convertToFiles(List<Map<String, dynamic>> results) {
-    final List<TrashFile> trashedFiles = [];
-    for (final result in results) {
-      trashedFiles.add(_getTrashFromRow(result));
-    }
-    return trashedFiles;
   }
 
   TrashFile _getTrashFromRow(Map<String, dynamic> row) {
@@ -205,6 +210,7 @@ class TrashDB {
     final fileMetadata = row[columnFileMetadata] ?? '{}';
     trashFile.applyMetadata(jsonDecode(fileMetadata));
     trashFile.localID = row[columnLocalID];
+    trashFile.fileSize = row[columnFileSize];
 
     trashFile.mMdVersion = row[columnMMdVersion] ?? 0;
     trashFile.mMdEncodedJson = row[columnMMdEncodedJson] ?? '{}';
@@ -234,6 +240,7 @@ class TrashDB {
     row[columnFileDecryptionHeader] = trash.fileDecryptionHeader;
     row[columnThumbnailDecryptionHeader] = trash.thumbnailDecryptionHeader;
     row[columnUpdationTime] = trash.updationTime;
+    row[columnFileSize] = trash.fileSize;
 
     row[columnLocalID] = trash.localID;
     row[columnCreationTime] = trash.creationTime;

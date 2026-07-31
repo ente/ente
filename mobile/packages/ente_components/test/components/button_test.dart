@@ -18,6 +18,25 @@ void main() {
     expect(tester.getSize(find.byType(AnimatedContainer)).height, 52);
   });
 
+  testWidgets("Compact ButtonComponent uses 48px geometry and body type", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        ButtonComponent(
+          label: "Save",
+          density: ButtonComponentDensity.compact,
+          onTap: () {},
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byType(AnimatedContainer)).height, 48);
+    final style = tester.widget<Text>(find.text("Save")).style!;
+    expect(style.fontWeight, TextStyles.body.fontWeight);
+    expect(style.fontSize, TextStyles.body.fontSize);
+  });
+
   testWidgets("ButtonComponent calls onTap when tapped", (tester) async {
     var tapCount = 0;
 
@@ -470,6 +489,49 @@ void main() {
     );
 
     expect(tester.getSize(find.byType(AnimatedContainer)).height, 52);
+  });
+
+  testWidgets("Tertiary critical buttons retain the standard typography", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        ButtonComponent(
+          label: "Remove access",
+          variant: ButtonComponentVariant.tertiaryCritical,
+          size: ButtonComponentSize.small,
+          onTap: () {},
+        ),
+      ),
+    );
+
+    final style = tester.widget<Text>(find.text("Remove access")).style!;
+    expect(style.fontFamily, TextStyles.bodyBold.fontFamily);
+    expect(style.fontSize, 14);
+    expect(style.height, 20 / 14);
+    expect(style.fontWeight, TextStyles.bodyBold.fontWeight);
+    expect(style.decoration, TextDecoration.underline);
+    expect(style.color, ColorTokens.light.warning);
+  });
+
+  testWidgets("Compact tertiary critical buttons use Body Link typography", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        ButtonComponent(
+          label: "Remove access",
+          variant: ButtonComponentVariant.tertiaryCritical,
+          density: ButtonComponentDensity.compact,
+          onTap: () {},
+        ),
+      ),
+    );
+
+    final style = tester.widget<Text>(find.text("Remove access")).style!;
+    expect(style.fontFamily, TextStyles.body.fontFamily);
+    expect(style.fontWeight, TextStyles.body.fontWeight);
+    expect(style.decoration, TextDecoration.underline);
   });
 
   testWidgets("Secondary button states follow Figma fill and text tokens", (

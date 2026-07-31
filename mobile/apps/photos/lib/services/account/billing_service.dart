@@ -10,7 +10,7 @@ import 'package:photos/gateways/billing/models/billing_plan.dart';
 import 'package:photos/gateways/billing/models/subscription.dart';
 import 'package:photos/models/user_details.dart';
 import "package:photos/service_locator.dart";
-import "package:photos/services/account/purchase_update_listener.dart";
+import "package:photos/services/account/store_purchase_integration.dart";
 import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/utils/dialog_util.dart';
 

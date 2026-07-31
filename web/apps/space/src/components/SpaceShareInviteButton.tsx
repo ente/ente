@@ -2,30 +2,7 @@ import { Share08Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, type SxProps, type Theme } from "@mui/material";
 import React from "react";
-
-type ShareInviteResult = "shared" | "copied" | "dismissed";
-type ShareInvitePhase = "idle" | "sharing" | "copied";
-
-const copiedLabelDurationMs = 1400;
-
-const shareSpaceInviteLink = async (
-    profileLink: string,
-): Promise<ShareInviteResult> => {
-    if (typeof navigator.share == "function") {
-        try {
-            await navigator.share({ url: profileLink });
-            return "shared";
-        } catch (error) {
-            if (error instanceof DOMException && error.name == "AbortError") {
-                return "dismissed";
-            }
-            throw error;
-        }
-    }
-
-    await navigator.clipboard.writeText(profileLink);
-    return "copied";
-};
+import { openSpaceShareLinkDialog } from "services/spaceShareLink";
 
 export const SpaceShareIcon: React.FC<{ strokeWidth?: number }> = ({
     strokeWidth = 1.8,
@@ -34,7 +11,9 @@ export const SpaceShareIcon: React.FC<{ strokeWidth?: number }> = ({
 interface SpaceShareInviteButtonProps {
     className?: string;
     iconStrokeWidth?: number;
+    label?: string;
     profileLink?: string;
+    showIcon?: boolean;
     sharing?: boolean;
     sx?: SxProps<Theme>;
     onShareComplete?: () => void;
@@ -46,7 +25,9 @@ interface SpaceShareInviteButtonProps {
 export const SpaceShareInviteButton: React.FC<SpaceShareInviteButtonProps> = ({
     className,
     iconStrokeWidth,
+    label,
     profileLink,
+    showIcon = true,
     sharing,
     sx,
     onShareComplete,
@@ -54,65 +35,21 @@ export const SpaceShareInviteButton: React.FC<SpaceShareInviteButtonProps> = ({
     onShareStart,
     onSharingChange,
 }) => {
-    const [phase, setPhase] = React.useState<ShareInvitePhase>("idle");
-    const copiedResetTimeoutRef = React.useRef<number | undefined>(undefined);
-    const shareInFlightRef = React.useRef(false);
-    const isSharing = sharing ?? phase == "sharing";
+    const isSharing = sharing ?? false;
     const isDisabled = isSharing || !profileLink;
-    const buttonLabel =
-        phase == "copied"
-            ? "Invite link copied"
-            : isSharing
-              ? "Sharing invite..."
-              : "Share invite";
+    const buttonLabel = label ?? "Share profile";
 
-    const setSharing = (nextSharing: boolean) => {
-        if (sharing === undefined) setPhase(nextSharing ? "sharing" : "idle");
-        onSharingChange?.(nextSharing);
-    };
-
-    const clearCopiedResetTimeout = React.useCallback(() => {
-        if (copiedResetTimeoutRef.current === undefined) return;
-        window.clearTimeout(copiedResetTimeoutRef.current);
-        copiedResetTimeoutRef.current = undefined;
-    }, []);
-
-    React.useEffect(
-        () => () => {
-            clearCopiedResetTimeout();
-        },
-        [clearCopiedResetTimeout],
-    );
-
-    const shareInvite = async () => {
-        if (isDisabled || shareInFlightRef.current || !profileLink) return;
-
-        shareInFlightRef.current = true;
-        clearCopiedResetTimeout();
-        setPhase("idle");
+    const shareInvite = () => {
+        if (isDisabled || !profileLink) return;
         onShareStart?.();
-
         try {
-            if (typeof navigator.share == "function") setSharing(true);
-            const result = await shareSpaceInviteLink(profileLink);
-            if (result == "shared") onShareComplete?.();
-            if (result == "copied") {
-                setPhase("copied");
-                copiedResetTimeoutRef.current = window.setTimeout(() => {
-                    setPhase("idle");
-                    copiedResetTimeoutRef.current = undefined;
-                    onShareComplete?.();
-                }, copiedLabelDurationMs);
-            }
+            onSharingChange?.(true);
+            openSpaceShareLinkDialog("invite");
+            onShareComplete?.();
         } catch (error) {
-            if (onShareError) {
-                onShareError(error);
-            } else {
-                throw error;
-            }
+            onShareError?.(error);
         } finally {
-            shareInFlightRef.current = false;
-            if (typeof navigator.share == "function") setSharing(false);
+            onSharingChange?.(false);
         }
     };
 
@@ -122,10 +59,10 @@ export const SpaceShareInviteButton: React.FC<SpaceShareInviteButtonProps> = ({
             component="button"
             type="button"
             disabled={isDisabled}
-            onClick={() => void shareInvite()}
+            onClick={shareInvite}
             sx={sx}
         >
-            <SpaceShareIcon strokeWidth={iconStrokeWidth} />
+            {showIcon && <SpaceShareIcon strokeWidth={iconStrokeWidth} />}
             {buttonLabel}
         </Box>
     );

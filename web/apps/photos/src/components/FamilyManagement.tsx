@@ -44,6 +44,7 @@ import {
 } from "ente-new/photos/services/avatar";
 import {
     familyUsage,
+    isFamilyAdmin,
     isSubscriptionActivePaid,
     leaveFamily,
     pullUserDetails,
@@ -85,9 +86,7 @@ export const FamilyManagement: React.FC<FamilyManagementProps> = ({
         },
     );
 
-    const isAdmin = members.some(
-        (member) => member.status == "SELF" && member.isAdmin,
-    );
+    const isAdmin = userDetails ? isFamilyAdmin(userDetails) : false;
 
     const confirmRemove = (member: FamilyMember) => {
         const invited = member.status == "INVITED";

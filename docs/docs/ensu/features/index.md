@@ -50,7 +50,7 @@ The image is resized to the model's input size on your device before the model s
 
 Tap the microphone in the chat composer and speak your prompt. Ensu transcribes your voice locally and inserts the text into the composer, where you can edit before sending.
 
-On iOS and Android, the first use of voice input downloads the Parakeet transcription model and the Silero VAD model from `models.ente.io` if they are not already cached. After that, transcription works fully offline. Your voice is never sent to Ente or any cloud transcription service.
+On iOS and Android, the first use of voice input downloads the Parakeet transcription model and the Silero VAD model from `models.ente.com` if they are not already cached. After that, transcription works fully offline. Your voice is never sent to Ente or any cloud transcription service.
 
 Voice input is not available on desktop or the web version.
 
@@ -116,7 +116,7 @@ The in-app **What's new** dialog shows the latest changelog entries on each plat
 - No account is required.
 - No analytics, no telemetry, and no tracking of your prompts.
 - Chats, attachments, and voice input never leave your device.
-- Model downloads are the only chat-related network traffic: chat models download from Hugging Face, and voice input on iOS and Android downloads the Parakeet and Silero VAD transcription models from `models.ente.io` if they are not cached.
+- Model downloads are the only chat-related network traffic: chat models download from Hugging Face, and voice input on iOS and Android downloads the Parakeet and Silero VAD transcription models from `models.ente.com` if they are not cached.
 
 Learn more in [How it works](/ensu/how-it-works).
 

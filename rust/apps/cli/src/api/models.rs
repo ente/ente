@@ -16,9 +16,9 @@ pub struct SrpAttributes {
     #[serde(rename = "srpSalt")]
     pub srp_salt: String,
     #[serde(rename = "memLimit")]
-    pub mem_limit: i32,
+    pub mem_limit: u32,
     #[serde(rename = "opsLimit")]
-    pub ops_limit: i32,
+    pub ops_limit: u32,
     #[serde(rename = "kekSalt")]
     pub kek_salt: String,
     #[serde(rename = "isEmailMFAEnabled", default = "default_email_mfa_enabled")]
@@ -67,8 +67,8 @@ pub struct KeyAttributes {
     pub public_key: String,
     pub encrypted_secret_key: String,
     pub secret_key_decryption_nonce: String,
-    pub mem_limit: i32,
-    pub ops_limit: i32,
+    pub mem_limit: u32,
+    pub ops_limit: u32,
     pub master_key_encrypted_with_recovery_key: Option<String>,
     pub master_key_decryption_nonce: Option<String>,
     pub recovery_key_encrypted_with_master_key: Option<String>,

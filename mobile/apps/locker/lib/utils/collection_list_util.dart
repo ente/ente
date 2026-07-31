@@ -1,30 +1,21 @@
 import 'package:locker/services/collections/models/collection.dart';
 
 /// Returns a list of collections with duplicate IDs removed while preserving
-/// order. Stops at the first uncategorized collection encountered.
+/// order.
 List<Collection> uniqueCollectionsById(List<Collection> collections) {
   final seenIds = <int>{};
-  final unique = <Collection>[];
-
-  bool uncategorizedSeen = false;
-
-  for (final collection in collections) {
-    final isUncategorizedCollection = _isUncategorized(collection);
-
-    if (seenIds.add(collection.id)) {
-      if (isUncategorizedCollection) {
-        if (uncategorizedSeen) {
-          continue;
-        }
-        uncategorizedSeen = true;
-      }
-      unique.add(collection);
-    }
-  }
-
-  return unique;
+  return collections.where((collection) => seenIds.add(collection.id)).toList();
 }
 
-bool _isUncategorized(Collection collection) {
-  return collection.type == CollectionType.uncategorized;
+Collection? findUserUncategorizedCollection(
+  Iterable<Collection> collections,
+  int userID,
+) {
+  for (final collection in collections) {
+    if (collection.type == CollectionType.uncategorized &&
+        collection.isOwner(userID)) {
+      return collection;
+    }
+  }
+  return null;
 }

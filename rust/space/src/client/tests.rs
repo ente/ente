@@ -106,8 +106,8 @@ async fn ensure_entity_key_uses_generic_split_key_endpoint() {
         .match_body(Matcher::JsonString(
             json!({
                 "type": "space",
-                "encryptedKey": encode_b64(&encrypted_key),
-                "header": encode_b64(&header),
+                "encryptedKey": b64::encode(&encrypted_key),
+                "header": b64::encode(&header),
             })
             .to_string(),
         ))
@@ -116,8 +116,8 @@ async fn ensure_entity_key_uses_generic_split_key_endpoint() {
             json!({
                 "userID": 1,
                 "type": "space",
-                "encryptedKey": encode_b64(&encrypted_key),
-                "header": encode_b64(&header),
+                "encryptedKey": b64::encode(&encrypted_key),
+                "header": b64::encode(&header),
                 "createdAt": 123,
             })
             .to_string(),
@@ -129,13 +129,13 @@ async fn ensure_entity_key_uses_generic_split_key_endpoint() {
         .ensure_entity_key(
             "space",
             &EntityKeyPayload {
-                encrypted_key: encode_b64(&combined),
+                encrypted_key: b64::encode(&combined),
             },
         )
         .await
         .expect("entity key");
 
-    assert_eq!(payload.encrypted_key, encode_b64(&combined));
+    assert_eq!(payload.encrypted_key, b64::encode(&combined));
     ensure.assert_async().await;
 }
 
@@ -145,12 +145,12 @@ async fn account_space_key_resolution_is_cached_within_context() {
     let space_root_key = generate_key();
     let ctx = test_account_ctx_with_space_root_key(&server.url(), space_root_key.clone());
     let friend_space_key = generate_key();
-    let encrypted_profile = encode_b64(
+    let encrypted_profile = b64::encode(
         &encrypt_secretbox_payload(&friend_space_key, b"friend-profile").expect("profile wrap"),
     );
     let sealed_share =
         seal_with_public_key(&friend_space_key, &test_public_key(&ctx)).expect("friend share seal");
-    let friend_sealed_space_key = encode_b64(&sealed_share);
+    let friend_sealed_space_key = b64::encode(&sealed_share);
 
     let spaces = server
         .mock("GET", "/account/space")
@@ -551,7 +551,7 @@ async fn account_download_profile_avatar_uses_asset_key_version() {
         .with_body(
             json!([{
                 "version": 2,
-                "wrappedPrevKey": encode_b64(
+                "wrappedPrevKey": b64::encode(
                     &encrypt_secretbox_payload(&space_key_v2, &space_key_v1)
                         .expect("previous key wrap")
                 ),
@@ -641,9 +641,11 @@ async fn create_space_with_key_sends_encrypted_space_and_profile_payloads() {
     assert_eq!(created.space_id, "space_owner_main");
     assert_eq!(created.space_slug, "owner-main");
     assert_eq!(created.key_version, 1);
-    let profile_plaintext =
-        decrypt_secretbox_payload(&space_key, &decode_b64(&created.encrypted_profile).unwrap())
-            .expect("created profile should decrypt");
+    let profile_plaintext = decrypt_secretbox_payload(
+        &space_key,
+        &b64::decode(&created.encrypted_profile).unwrap(),
+    )
+    .expect("created profile should decrypt");
     assert_eq!(profile_plaintext, b"profile-json");
     create_space.assert_async().await;
 }
@@ -765,7 +767,7 @@ async fn create_space_updates_loaded_owned_space_cache() {
         .expect("owned space cache should remain usable");
     let cached_profile = decrypt_secretbox_payload(
         &space_key,
-        &decode_b64(&cached[0].encrypted_profile).unwrap(),
+        &b64::decode(&cached[0].encrypted_profile).unwrap(),
     )
     .expect("cached profile should decrypt");
     assert_eq!(cached_profile.as_slice(), b"profile-json-2");
@@ -773,6 +775,102 @@ async fn create_space_updates_loaded_owned_space_cache() {
     list_spaces.assert_async().await;
     create_space.assert_async().await;
     update_profile.assert_async().await;
+}
+
+#[tokio::test]
+async fn list_owned_spaces_uses_initial_cache() {
+    let server = Server::new_async().await;
+    let expected = SpaceKeyResponse {
+        space_id: "space_owner_main".to_owned(),
+        space_slug: "owner-main".to_owned(),
+        root_wrapped_space_key: "wrapped-key".to_owned(),
+        public_key: "public-key".to_owned(),
+        encrypted_secret_key: "encrypted-secret-key".to_owned(),
+        encrypted_profile: "encrypted-profile".to_owned(),
+        key_version: 3,
+    };
+    let ctx = AccountSpaceCtx::open(OpenAccountSpaceCtxInput {
+        base_url: server.url(),
+        space_session_token: Some("space-session-token".to_owned()),
+        space_root_key: generate_key(),
+        initial_owned_spaces: Some(vec![expected.clone()]),
+        user_agent: None,
+        client_package: None,
+        client_version: None,
+    })
+    .expect("account space ctx should open");
+
+    let spaces = ctx
+        .list_owned_spaces()
+        .await
+        .expect("seeded space list should load");
+
+    assert_eq!(spaces.len(), 1);
+    assert_eq!(spaces[0].space_id, expected.space_id);
+    assert_eq!(
+        spaces[0].root_wrapped_space_key,
+        expected.root_wrapped_space_key
+    );
+}
+
+#[tokio::test]
+async fn newer_key_version_refreshes_initial_owned_cache() {
+    let mut server = Server::new_async().await;
+    let space_root_key = generate_key();
+    let old_space_key = generate_key();
+    let current_space_key = generate_key();
+    let list_spaces = server
+        .mock("GET", "/account/space")
+        .match_header("x-space-session-token", "space-session-token")
+        .with_status(200)
+        .with_body(owned_space_response(
+            &space_root_key,
+            &current_space_key,
+            "space_owner_main",
+            "owner-main",
+            3,
+        ))
+        .expect(1)
+        .create_async()
+        .await;
+    let cached = SpaceKeyResponse {
+        space_id: "space_owner_main".to_owned(),
+        space_slug: "owner-main".to_owned(),
+        root_wrapped_space_key: b64::encode(
+            &encrypt_secretbox_payload(&space_root_key, &old_space_key)
+                .expect("old space key wrap"),
+        ),
+        public_key: String::new(),
+        encrypted_secret_key: String::new(),
+        encrypted_profile: String::new(),
+        key_version: 2,
+    };
+    let ctx = AccountSpaceCtx::open(OpenAccountSpaceCtxInput {
+        base_url: server.url(),
+        space_session_token: Some("space-session-token".to_owned()),
+        space_root_key,
+        initial_owned_spaces: Some(vec![cached]),
+        user_agent: None,
+        client_package: None,
+        client_version: None,
+    })
+    .expect("account space ctx should open");
+
+    let resolved = ctx
+        .resolve_space_key_for_version("space_owner_main", Some(3))
+        .await
+        .expect("current space key should resolve")
+        .expect("current space key should exist");
+
+    assert_eq!(resolved, current_space_key);
+    assert_eq!(
+        ctx.list_owned_spaces()
+            .await
+            .expect("refreshed owned spaces")[0]
+            .key_version,
+        3
+    );
+    list_spaces.assert_async().await;
 }
 
 #[tokio::test]
@@ -831,7 +929,7 @@ async fn create_post_includes_space_key_version() {
                 json!([{
                     "spaceId": "space_owner_main",
                     "spaceSlug": "owner-main",
-                    "rootWrappedSpaceKey": encode_b64(&encrypt_secretbox_payload(&space_root_key, &space_key).expect("space key wrap")),
+                    "rootWrappedSpaceKey": b64::encode(&encrypt_secretbox_payload(&space_root_key, &space_key).expect("space key wrap")),
                     "encryptedProfile": "",
                     "keyVersion": 3
                 }])
@@ -997,7 +1095,7 @@ async fn get_space_profile_decrypted_loads_and_decrypts_profile() {
     let ctx = test_account_ctx_with_space_root_key(&server.url(), space_root_key.clone());
     let space_key = generate_key();
     let encrypted_profile =
-        encode_b64(&encrypt_secretbox_payload(&space_key, b"profile-json").expect("profile wrap"));
+        b64::encode(&encrypt_secretbox_payload(&space_key, b"profile-json").expect("profile wrap"));
     let profile = server
         .mock("GET", "/spaces/space_owner_main/profile")
         .match_header("x-space-session-token", "space-session-token")
@@ -1186,7 +1284,7 @@ async fn message_actions_use_message_endpoints() {
                 "friend": {
                     "spaceId": "space_friend",
                     "spaceSlug": "friend",
-                    "publicKey": encode_b64(&friend_public_key),
+                    "publicKey": b64::encode(&friend_public_key),
                     "keyVersion": 2
                 },
                 "shareKeyVersion": 2,
@@ -1324,6 +1422,51 @@ async fn list_space_friends_uses_space_friends_endpoint() {
 }
 
 #[tokio::test]
+async fn sent_friend_request_actions_use_request_endpoints() {
+    let mut server = Server::new_async().await;
+    let ctx = test_account_ctx(&server.url());
+    let list = server
+        .mock("GET", "/spaces/space_owner_main/friends/requests/sent")
+        .match_header("x-space-session-token", "space-session-token")
+        .with_status(200)
+        .with_body(
+            json!([{
+                "requestId": 42,
+                "target": {
+                    "spaceId": "space_target",
+                    "spaceSlug": "target",
+                    "publicKey": "target-public-key",
+                    "keyVersion": 1
+                },
+                "createdAt": "2026-04-16T00:00:00Z"
+            }])
+            .to_string(),
+        )
+        .create_async()
+        .await;
+    let cancel = server
+        .mock("DELETE", "/spaces/space_owner_main/friends/requests/42")
+        .match_header("x-space-session-token", "space-session-token")
+        .with_status(200)
+        .create_async()
+        .await;
+
+    let response = ctx
+        .list_sent_friend_requests("space_owner_main")
+        .await
+        .expect("sent friend requests should load");
+    ctx.delete_friend_request("space_owner_main", 42)
+        .await
+        .expect("sent friend request should cancel");
+
+    assert_eq!(response.len(), 1);
+    assert_eq!(response[0].request_id, 42);
+    assert_eq!(response[0].target.space_id, "space_target");
+    list.assert_async().await;
+    cancel.assert_async().await;
+}
+
+#[tokio::test]
 async fn get_relationship_uses_relationship_endpoint() {
     let mut server = Server::new_async().await;
     let ctx = test_account_ctx(&server.url());
@@ -1364,7 +1507,7 @@ async fn refresh_friend_shares_accepts_empty_server_response() {
                 json!([{
                     "spaceId": "space_owner_main",
                     "spaceSlug": "owner-main",
-                    "rootWrappedSpaceKey": encode_b64(&encrypt_secretbox_payload(&space_root_key, &space_key).expect("space key wrap")),
+                    "rootWrappedSpaceKey": b64::encode(&encrypt_secretbox_payload(&space_root_key, &space_key).expect("space key wrap")),
                     "encryptedProfile": "",
                     "keyVersion": 3
                 }])
@@ -1381,7 +1524,7 @@ async fn refresh_friend_shares_accepts_empty_server_response() {
                 "friend": {
                     "spaceId": "space_viewer",
                     "spaceSlug": "viewer",
-                    "publicKey": encode_b64(&friend_public_key),
+                    "publicKey": b64::encode(&friend_public_key),
                     "keyVersion": 2
                 },
                 "shareKeyVersion": 2,
@@ -1417,6 +1560,13 @@ async fn refresh_friend_shares_accepts_empty_server_response() {
 async fn list_feed_uses_space_feed_endpoint() {
     let mut server = Server::new_async().await;
     let ctx = test_account_ctx(&server.url());
+    let shares = server
+        .mock("GET", "/spaces/space_owner_main/friends/shares")
+        .match_header("x-space-session-token", "space-session-token")
+        .with_status(200)
+        .with_body("[]")
+        .create_async()
+        .await;
     let feed = server
         .mock("GET", "/spaces/space_owner_main/feed")
         .match_header("x-space-session-token", "space-session-token")
@@ -1457,6 +1607,7 @@ async fn list_feed_uses_space_feed_endpoint() {
     assert_eq!(page.items.len(), 1);
     assert_eq!(page.items[0].post_id, 42);
     assert_eq!(page.next_cursor, "cursor-2");
+    shares.assert_async().await;
     feed.assert_async().await;
 }
 
@@ -1530,7 +1681,7 @@ async fn fetch_post_decrypted_uses_post_by_id_endpoint() {
                 json!([{
                     "spaceId": "space_owner_gallery",
                     "spaceSlug": "owner-gallery",
-                    "rootWrappedSpaceKey": encode_b64(&encrypt_secretbox_payload(&space_root_key, &space_key).expect("space key wrap")),
+                    "rootWrappedSpaceKey": b64::encode(&encrypt_secretbox_payload(&space_root_key, &space_key).expect("space key wrap")),
                     "encryptedProfile": "",
                     "keyVersion": 3
                 }])
@@ -1551,8 +1702,8 @@ async fn fetch_post_decrypted_uses_post_by_id_endpoint() {
                         "spaceId": "space_owner_gallery",
                         "spaceSlug": "owner-gallery"
                     },
-                    "encryptedPostKey": encode_b64(&encrypt_secretbox_payload(&space_key, &post_key).expect("post key wrap")),
-                    "captionCipher": encode_b64(&encrypt_secretbox_payload(&post_key, caption).expect("caption wrap")),
+                    "encryptedPostKey": b64::encode(&encrypt_secretbox_payload(&space_key, &post_key).expect("post key wrap")),
+                    "captionCipher": b64::encode(&encrypt_secretbox_payload(&post_key, caption).expect("caption wrap")),
                     "keyVersion": 3,
                     "objects": [],
                     "createdAt": "2026-04-16T00:00:00Z",
@@ -1595,7 +1746,7 @@ async fn hydrate_space_keys_loads_owned_and_friends_spaces() {
             json!([{
                 "spaceId": "space_owner_main",
                 "spaceSlug": "owner-main",
-                "rootWrappedSpaceKey": encode_b64(&encrypt_secretbox_payload(&space_root_key, &owned_space_key).expect("owned wrap")),
+                "rootWrappedSpaceKey": b64::encode(&encrypt_secretbox_payload(&space_root_key, &owned_space_key).expect("owned wrap")),
                 "encryptedProfile": "",
                 "keyVersion": 1
             }])
@@ -1612,7 +1763,7 @@ async fn hydrate_space_keys_loads_owned_and_friends_spaces() {
                 "friend": "owner",
                 "spaceId": "space_shared_gallery",
                 "spaceSlug": "shared-gallery",
-                "friendSealedSpaceKey": encode_b64(&sealed_share),
+                "friendSealedSpaceKey": b64::encode(&sealed_share),
                 "encryptedProfile": "",
                 "keyVersion": 4
             }])
@@ -1644,12 +1795,12 @@ fn build_history_walks_back_versions() {
     let versions = vec![
         SpaceKeyVersionResponse {
             version: 3,
-            wrapped_prev_key: encode_b64(&encrypt_secretbox_payload(&v3, &v2).expect("wrap v2")),
+            wrapped_prev_key: b64::encode(&encrypt_secretbox_payload(&v3, &v2).expect("wrap v2")),
             created_at: "2026-01-03T00:00:00Z".to_owned(),
         },
         SpaceKeyVersionResponse {
             version: 2,
-            wrapped_prev_key: encode_b64(&encrypt_secretbox_payload(&v2, &v1).expect("wrap v1")),
+            wrapped_prev_key: b64::encode(&encrypt_secretbox_payload(&v2, &v1).expect("wrap v1")),
             created_at: "2026-01-02T00:00:00Z".to_owned(),
         },
     ];

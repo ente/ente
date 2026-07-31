@@ -52,13 +52,6 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget> {
 
   @override
   void dispose() {
-    if (_hasPendingCaptionEdit) {
-      editFileCaption(
-        null,
-        widget.file,
-        editedCaption!,
-      ).then((isSuccess) => _onEditFileFinish(isSuccess));
-    }
     _textController.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -79,7 +72,6 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget> {
             maxLines: 10,
             textCapitalization: TextCapitalization.sentences,
             keyboardType: TextInputType.multiline,
-            onSubmit: (value) => _onDoneClick(context),
             onChanged: (value) {
               setState(() {
                 editedCaption = value;

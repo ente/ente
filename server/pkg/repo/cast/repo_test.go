@@ -44,6 +44,42 @@ func TestRevokeForGivenDeviceIDOnlyDeletesUserDevice(t *testing.T) {
 	}
 }
 
+func TestInsertCastDataReturnsDeviceID(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() {
+		testutil.ResetTables(t, db)
+	})
+	repository := &Repository{DB: db}
+	deviceID := uuid.New()
+	_, err := db.Exec(
+		`INSERT INTO casting (id, code, public_key, ip) VALUES ($1, $2, $3, $4)`,
+		deviceID,
+		"ABC123",
+		"public-key",
+		"127.0.0.1",
+	)
+	if err != nil {
+		t.Fatalf("failed to insert casting row: %v", err)
+	}
+
+	gotDeviceID, err := repository.InsertCastData(
+		t.Context(),
+		1,
+		"abc123",
+		42,
+		"cast-token",
+		"encrypted-payload",
+	)
+	if err != nil {
+		t.Fatalf("InsertCastData() error = %v", err)
+	}
+	if gotDeviceID != deviceID {
+		t.Fatalf("InsertCastData() device ID = %s, want %s", gotDeviceID, deviceID)
+	}
+}
+
 func getCastDeviceIsDeleted(t *testing.T, db *sql.DB, deviceID uuid.UUID) bool {
 	t.Helper()
 	var isDeleted bool

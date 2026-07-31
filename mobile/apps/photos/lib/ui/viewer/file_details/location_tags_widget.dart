@@ -16,6 +16,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/states/location_screen_state.dart";
 import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/map/image_marker.dart";
 import "package:photos/ui/map/map_screen.dart";
 import "package:photos/ui/map/map_view.dart";
@@ -34,19 +35,23 @@ class LocationTagsWidget extends StatefulWidget {
 }
 
 class _LocationTagsWidgetState extends State<LocationTagsWidget> {
+  String? title;
   late Future<List<Widget>> locationTagChips;
   late StreamSubscription<LocationTagUpdatedEvent> _locTagUpdateListener;
+  bool _loadedLocationTags = false;
 
   @override
   void initState() {
-    locationTagChips = _getLocationTags();
+    locationTagChips = _getLocationTags().then((value) {
+      _loadedLocationTags = true;
+      return value;
+    });
     _locTagUpdateListener = Bus.instance.on<LocationTagUpdatedEvent>().listen((
       event,
     ) {
-      setState(() {
-        locationTagChips = _getLocationTags();
-      });
+      locationTagChips = _getLocationTags();
     });
+
     super.initState();
   }
 
@@ -63,55 +68,95 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(AppLocalizations.of(context).location, style: TextStyles.h2),
+        Text(
+          title ?? AppLocalizations.of(context).location,
+          style: TextStyles.h2,
+        ),
         const SizedBox(height: Spacing.lg),
         FutureBuilder<List<Widget>>(
           future: locationTagChips,
           builder: (context, snapshot) {
-            final placeChips = snapshot.data ?? const <Widget>[];
-            return Wrap(
-              spacing: Spacing.sm,
-              runSpacing: Spacing.sm,
-              children: [
-                ...placeChips,
-                IconButtonComponent(
-                  icon: HugeIcon(
-                    icon: HugeIcons.strokeRoundedPlusSign,
-                    size: IconSizes.small,
-                    color: colors.textBase,
-                  ),
-                  variant: IconButtonComponentVariant.circular,
-                  shouldSurfaceExecutionStates: false,
-                  onTap: () =>
-                      showAddLocationSheet(context, widget.file.location!),
-                ),
-              ],
+            final Widget child;
+            if (snapshot.hasData) {
+              child = Wrap(
+                spacing: Spacing.sm,
+                runSpacing: Spacing.sm,
+                children: snapshot.data!,
+              );
+            } else {
+              child = EnteLoadingWidget(
+                padding: 3,
+                size: 11,
+                color: colors.strokeFaint,
+                alignment: Alignment.centerLeft,
+              );
+            }
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeInOutExpo,
+              child: child,
             );
           },
         ),
-        InfoMap(widget.file),
+        if (_loadedLocationTags) InfoMap(widget.file),
       ],
     );
   }
 
   Future<List<Widget>> _getLocationTags() async {
+    // await Future.delayed(const Duration(seconds: 1));
     final locationTags = await locationService.enclosingLocationTags(
       widget.file.location!,
     );
-    return locationTags
-        .map(
-          (locationTagEntity) => FilterChipComponent(
-            label: locationTagEntity.item.name,
-            onChanged: (_) => routeToPage(
-              context,
-              LocationScreenStateProvider(
-                locationTagEntity,
-                const LocationScreen(),
-              ),
+    if (locationTags.isEmpty) {
+      if (mounted) {
+        setState(() {
+          title = AppLocalizations.of(context).location;
+        });
+      }
+      if (!mounted) return const [];
+      return [
+        FilterChipComponent(
+          label: AppLocalizations.of(context).addLocation,
+          onChanged: (_) =>
+              showAddLocationSheet(context, widget.file.location!),
+        ),
+      ];
+    } else {
+      if (mounted) {
+        setState(() {
+          title = AppLocalizations.of(context).location;
+        });
+      }
+      final result = locationTags
+          .map<Widget>(
+            (locationTagEntity) => FilterChipComponent(
+              label: locationTagEntity.item.name,
+              onChanged: (_) {
+                routeToPage(
+                  context,
+                  LocationScreenStateProvider(
+                    locationTagEntity,
+                    const LocationScreen(),
+                  ),
+                );
+              },
             ),
+          )
+          .toList();
+      result.add(
+        IconButtonComponent(
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedPlusSign,
+            size: IconSizes.small,
           ),
-        )
-        .toList();
+          variant: IconButtonComponentVariant.circular,
+          shouldSurfaceExecutionStates: false,
+          onTap: () => showAddLocationSheet(context, widget.file.location!),
+        ),
+      );
+      return result;
+    }
   }
 }
 
