@@ -1706,6 +1706,10 @@
       "slug": "oracle_cloud"
     },
     {
+      "title": "Palform",
+      "slug": "palform"
+    },
+    {
       "title": "Pangolin",
       "slug": "pangolin"
     },
@@ -2483,6 +2487,10 @@
       "altNames": [
         "Venice.ai"
       ]
+    },
+    {
+      "title": "VGen",
+      "slug": "vgen",
     },
     {
       "title": "VGN",
