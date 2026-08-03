@@ -235,7 +235,7 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
             itemBuilder: (context, itemIndex) {
               if (hasNotificationsPermissions == false && itemIndex == 0) {
                 return CraftMemories(
-                  width: _memoryWidth * 0.75,
+                  width: _memoryheight * 0.5,
                   height: _memoryheight,
                   onNotificationsPermissionGranted: () {
                     if (!mounted) return;
