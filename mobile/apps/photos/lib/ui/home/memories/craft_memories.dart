@@ -42,6 +42,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.all(MemoryCoverWidget.gap / 2.0),
       child: SizedBox(
@@ -50,13 +51,14 @@ class _CraftMemoriesState extends State<CraftMemories> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () async {
-              if (await NotificationService.instance.requestPermissions(
-                    context,
-                  ) &&
-                  mounted) {
-                widget.onNotificationsPermissionGranted?.call();
+              final permissionGranted = await NotificationService.instance
+                  .requestPermissions(context);
+              if (!mounted || !permissionGranted) {
+                return;
               }
+              widget.onNotificationsPermissionGranted?.call();
             },
             child: Stack(
               children: [
@@ -70,13 +72,13 @@ class _CraftMemoriesState extends State<CraftMemories> {
                           fit: rive.Fit.cover,
                         );
                       }
+
                       return const SizedBox.shrink();
                     },
                   ),
                 ),
-
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(widget.width * 0.125),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,21 +107,29 @@ class _CraftMemoriesState extends State<CraftMemories> {
                       const SizedBox(height: 6),
                       DecoratedBox(
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(128),
+                          color: Colors.white.withAlpha(74),
                           borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(64),
+                              offset: const Offset(0, 4),
+                              blurRadius: 10,
+                              spreadRadius: 1,
+                            ),
+                          ],
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: widget.width * 0.125,
+                            vertical: widget.width * 0.075,
                           ),
                           child: Text(
                             l10n.notifyMe,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: TextStyles.outfitFontFamily,
                               package: TextStyles.fontPackage,
                               color: Colors.white,
-                              fontSize: 11,
+                              fontSize: widget.width * 0.11,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
