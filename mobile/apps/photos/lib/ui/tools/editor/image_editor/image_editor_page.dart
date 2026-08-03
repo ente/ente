@@ -20,7 +20,6 @@ import "package:photos/events/local_photos_updated_event.dart";
 import 'package:photos/models/file/file.dart' as ente;
 import "package:photos/models/location/location.dart";
 import "package:photos/module/metadata/local_file.dart";
-import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
@@ -70,20 +69,14 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       quality: 95,
       format: CompressFormat.jpeg,
     );
-    if (flagService.internalUser) {
-      try {
-        final image = img.decodePng(bytes);
-        if (image != null) {
-          await copyEXIF(
-            widget.originalFile,
-            image,
-            copyRenderingFields: false,
-          );
-          result = img.encodeJpg(image, quality: 95);
-        }
-      } catch (e, s) {
-        _logger.warning("Image Editor: copyEXIF failed", e, s);
+    try {
+      final image = img.decodePng(bytes);
+      if (image != null) {
+        await copyEXIF(widget.originalFile, image, copyRenderingFields: false);
+        result = img.encodeJpg(image, quality: 95);
       }
+    } catch (e, s) {
+      _logger.warning("Image Editor: copyEXIF failed", e, s);
     }
     return result;
   }
@@ -96,9 +89,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     bool hasStoppedChangeNotify = false;
 
     try {
-      final losslessTransform = flagService.internalUser
-          ? getLosslessTransform(editorState)
-          : null;
+      final losslessTransform = getLosslessTransform(editorState);
       final losslessBytes = losslessTransform == null
           ? null
           : await tryTransformFileLossless(

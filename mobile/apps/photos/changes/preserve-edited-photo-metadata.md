@@ -1,0 +1,1 @@
+- Edited photos now keep their EXIF metadata, with lossless rotation and flip edits when possible.
