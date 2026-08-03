@@ -2516,7 +2516,6 @@
   "ritualShareUnavailable": "Momentálně nelze sdílet. Zkuste to prosím znovu.",
   "ritualNotificationMessage": "Vyfotit nyní",
   "ritualCameraNotFound": "Na tomto zařízení nebyl nalezen žádný fotoaparát.",
-  "ritualCameraStartError": "Nelze spustit fotoaparát. Zkontrolujte oprávnění.",
   "ritualCaptureError": "Nelze pořídit fotografii. Zkuste to prosím znovu.",
   "ritualPhotoLimit": "Můžete přidat až {maxPhotos, plural, one {# fotografii.} few {# fotografie.} many {# fotografií.} other {# fotografií.}}",
   "@ritualPhotoLimit": {

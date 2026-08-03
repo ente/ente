@@ -189,7 +189,7 @@
   "admins": "Administradores",
   "addAdmin": "Adicionar administrador",
   "addMoreAdmins": "Adicionar mais administradores",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Administradores e colaboradores podem adicionar fotos. E somente administradores pode gerenciar fotos e participantes.",
+  "adminsAndCollaboratorsCanAddPhotosDescription": "Os administradores e contribuidores podem adicionar fotos. E administradores podem gerenciar fotos e membros.",
   "addANewEmail": "Adicionar um novo e-mail",
   "orPickAnExistingOne": "Ou escolha um existente",
   "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Colaboradores podem adicionar fotos e vídeos ao álbum compartilhado.",
@@ -262,7 +262,7 @@
   "after1Month": "Após 1 mês",
   "after1Year": "Após 1 ano",
   "manageParticipants": "Gerenciar",
-  "albumParticipantsCount": "{count, plural, =0 {Nenhum participante} one {{count} participante} other {{count} participantes}}",
+  "albumParticipantsCount": "{count, plural, =0 {Nenhum membro} one {{count} membro} other {{count} membros}}",
   "@albumParticipantsCount": {
     "placeholders": {
       "count": {
@@ -1153,6 +1153,7 @@
     "type": "text"
   },
   "backupFailed": "Falhou ao fazer backup",
+  "backupPausedFreeUpDeviceStorage": "O backup está pausado. Libere espaço neste dispositivo para continuar.",
   "sorryBackupFailedDesc": "Desculpe, mas no momento, não podemos fazer backup deste arquivo, tentaremos mais tarde.",
   "couldNotBackUpTryLater": "Não foi possível fazer backup dos seus dados.\nTentaremos novamente mais tarde.",
   "enteCanEncryptAndPreserveFilesOnlyIfYouGrant": "Ente pode criptografar e preservar arquivos apenas se você conceder acesso a eles",
@@ -1426,6 +1427,44 @@
   "authToViewYourMemories": "Autentique-se para ver suas memórias",
   "unlock": "Desbloquear",
   "freeUpSpace": "Liberar espaço",
+  "reclaimSpace": "Reivindicar {sizeInMBorGB}",
+  "@reclaimSpace": {
+    "description": "Heading that shows how much device storage can be reclaimed",
+    "placeholders": {
+      "sizeInMBorGB": {
+        "example": "2.28 GB",
+        "type": "String"
+      }
+    }
+  },
+  "filesSafelyOnEnte": "{count, plural, one {Este item já possui backup no Ente, exclua a cópia do dispositivo para liberar espaço.} other {Todos os {formattedNumber} itens já possuem backup no Ente, exclua as cópias do dispositivo para liberar espaço.}}",
+  "@filesSafelyOnEnte": {
+    "description": "Explains that device copies can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
+  "filesInAlbumSafelyOnEnte": "{count, plural, one {Este item no álbum já possui backup no Ente, exclua a cópia do dispositivo para liberar espaço sem perdê-lo.} other {Todos os {formattedNumber} itens no álbum já possuem backup no Ente, exclua as cópias do dispositivo para liberar espaço sem perdê-los.}}",
+  "@filesInAlbumSafelyOnEnte": {
+    "description": "Explains that device copies for files in an album can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
   "freeUpSpaceSaving": "{count, plural, one {Ele pode ser excluído do dispositivo para liberar {formattedSize}} other {Eles podem ser excluídos do dispositivo para liberar {formattedSize}}}",
   "filesBackedUpInAlbum": "{count, plural, one {{formattedNumber} arquivo deste álbum possui} other {{formattedNumber} arquivos deste álbum possuem}} um backup feito",
   "@filesBackedUpInAlbum": {
@@ -1792,6 +1831,9 @@
   "photos": "Fotos",
   "videos": "Vídeos",
   "camera": "Câmera",
+  "cameraPermissionRequired": "O acesso à câmera é necessário para tirar fotos.",
+  "cameraPermissionSettings": "O acesso à câmera está desativado. Ative-o nas Configurações para continuar.",
+  "cameraPermissionRestricted": "O acesso à câmera está restrito neste dispositivo.",
   "livePhotos": "Fotos animadas",
   "searchHint1": "busca rápida no dispositivo",
   "searchHint2": "Descrições e data das fotos",
@@ -1981,11 +2023,11 @@
   "@addToPerson": {
     "description": "Action label to add selected files to an existing person."
   },
-  "pleaseNamePersonInPeopleSectionFirst": "Nomeie primeiramente uma pessoa na seção Pessoas",
+  "pleaseNamePersonInPeopleSectionFirst": "Primeiro, nomeie uma pessoa na seção de pessoas",
   "@pleaseNamePersonInPeopleSectionFirst": {
     "description": "Shown when manual tagging requires at least one named person."
   },
-  "onlyUploadedFilesCanBeAddedToPerson": "Somente arquivos enviados podem ser adicionados a uma pessoa",
+  "onlyUploadedFilesCanBeAddedToPerson": "Apenas arquivos enviados podem ser adicionados a uma pessoa",
   "@onlyUploadedFilesCanBeAddedToPerson": {
     "description": "Shown when user tries to manually tag files that are not uploaded yet."
   },
@@ -2034,7 +2076,7 @@
       }
     }
   },
-  "mergeWithPersonDescription": "Todas as fotos de ambos os grupos de rostos serão mesclados em {name}.",
+  "mergeWithPersonDescription": "Todas as fotos de ambos grupos de rostos serão mesclados em {name}.",
   "@mergeWithPersonDescription": {
     "description": "Description for confirming a merge with an existing person.",
     "placeholders": {
@@ -2058,8 +2100,8 @@
   "extraPhotosFound": "Fotos adicionais encontradas",
   "configuration": "Configuração",
   "localIndexing": "Processamento local",
-  "offlineLocalIndexingDisabledDescription": "O dispositivo mantém o processamento desativado por padrão para reduzir consumo de memória.",
-  "offlineLocalIndexingDisabledCardDescription": "O dispositivo mantém o processamento desativado por padrão para reduzir consumo de memória. Ative-o nas opções se deseja rostos offline e busca inteligente.",
+  "offlineLocalIndexingDisabledDescription": "Este dispositivo mantém o processamento local desativado por padrão para reduzir o consumo de memória.",
+  "offlineLocalIndexingDisabledCardDescription": "Este dispositivo mantém o processamento local desativado por padrão para reduzir o consumo de memória. Ative-o nas Configurações se deseja os rostos offline e a busca mágica.",
   "processed": "Processado(s)",
   "resetPerson": "Remover",
   "areYouSureYouWantToResetThisPerson": "Deseja redefinir esta pessoa?",
@@ -2071,7 +2113,7 @@
   "machineLearningBannerSubtitle": "Para busca mágica e reconhecimento facial",
   "searchDiscoverEmptySection": "As imagens serão exibidas aqui quando o processamento e sincronização for concluído",
   "searchPersonsEmptySection": "As pessoas serão exibidas aqui quando o processamento e sincronização for concluído",
-  "viewersSuccessfullyAdded": "{count, plural, =0 {Adicionado 0 visualizadores} one {Adicionado {count} visualizador} other {Adicionado {count} visualizadores}}",
+  "viewersSuccessfullyAdded": "{count, plural, =0 {Nenhum visualizador adicionado} one {{count} visualizador adicionado} other {{count} visualizadores adicionados}}",
   "@viewersSuccessfullyAdded": {
     "placeholders": {
       "count": {
@@ -2081,7 +2123,7 @@
     },
     "description": "Number of viewers that were successfully added to an album."
   },
-  "collaboratorsSuccessfullyAdded": "{count, plural, =0 {Adicionado 0 contribuidores} one {Adicionado {count} contribuidor} other {Adicionado {count} contribuidores}}",
+  "collaboratorsSuccessfullyAdded": "{count, plural, =0 {Nenhum contribuidor adicionado} one {{count} contribuidor adicionado} other {{count} contribuidores adicionados}}",
   "@collaboratorsSuccessfullyAdded": {
     "placeholders": {
       "count": {
@@ -2111,7 +2153,7 @@
     },
     "description": "Button text to add admins"
   },
-  "adminsCanManagePhotosAndParticipants": "Administradores podem gerenciar fotos e membros.",
+  "adminsCanManagePhotosAndParticipants": "Os administradores podem gerenciar fotos e membros.",
   "suggestDeletion": "Sugerir exclusão",
   "suggestDeletionDescription": "As fotos selecionadas serão removidas do álbum. Os proprietários das fotos também receberão uma sugestão para revisar e excluir as fotos.",
   "deleteSuggestionSent": "Sugestão de exclusão enviada",
@@ -2462,7 +2504,7 @@
   "failed": "Falhou",
   "playStream": "Reproduzir transmissão",
   "playOriginal": "Reproduzir original",
-  "joinAlbumConfirmationDialogBody": "Unir-se ao álbum fará que seu e-mail seja visível a todos do álbum.",
+  "joinAlbumConfirmationDialogBody": "Ao juntar-se ao álbum fará que seu e-mail seja visível a todos no álbum.",
   "pleaseWaitThisWillTakeAWhile": "Aguarde um pouco, isso talvez leve um tempo.",
   "editTime": "Editar tempo",
   "selectTime": "Selecionar tempo",
@@ -2498,11 +2540,11 @@
   "embracingThem": "Abraçando {name}",
   "partyWithThem": "Festejando com {name}",
   "hikingWithThem": "Caminhando com {name}",
-  "feastingWithThem": "Tendo banquete com {name}",
-  "selfiesWithThem": "Tirando selfies com {name}",
-  "posingWithThem": "Fazendo pose com {name}",
+  "feastingWithThem": "Banquete com {name}",
+  "selfiesWithThem": "Selfies com {name}",
+  "posingWithThem": "Posando com {name}",
   "backgroundWithThem": "Vistas bonitas com {name}",
-  "sportsWithThem": "Jogando esportes com {name}",
+  "sportsWithThem": "Esportes com {name}",
   "roadtripWithThem": "Viajando de carro com {name}",
   "spotlightOnYourself": "Seus destaques",
   "spotlightOnThem": "Destaques em {name}",
@@ -2532,10 +2574,10 @@
   "albumsWidgetDesc": "Selecione os álbuns que deseja ver na tela inicial.",
   "memoriesWidgetDesc": "Selecione as memórias que deseja ver na tela inicial.",
   "smartMemories": "Memórias inteligentes",
-  "pastYearsMemories": "Memórias dos anos passados",
+  "pastYearsMemories": "Memórias dos últimos anos",
   "deleteMultipleAlbumsQuestion": "Excluir estes álbuns?",
   "deleteMultipleAlbumDialog": "E também excluir todas as fotos (e vídeos) presente dentro desses {count} álbuns e de <bold>todos</bold> os álbuns que eles fazem parte?",
-  "addParticipants": "Adicionar participante",
+  "addParticipants": "Adicionar membros",
   "selectedAlbums": "{count} selecionado(s)",
   "actionNotSupportedOnFavouritesAlbum": "Ação não suportada em álbum favorito",
   "onThisDayMemories": "Memórias deste dia",
@@ -2874,7 +2916,7 @@
   "ritualShareUnavailable": "Não foi possível compartilhar. Tente novamente.",
   "ritualNotificationMessage": "Tire uma foto agora",
   "ritualCameraNotFound": "Nenhuma câmera encontrada no dispositivo.",
-  "ritualCameraStartError": "Não foi possível abrir a câmera. Por favor, verifique as permissões.",
+  "ritualCameraStartError": "Não foi possível iniciar a câmera. Por favor, tente novamente.",
   "ritualCaptureError": "Não foi possível tirar foto. Tente novamente.",
   "ritualPhotoLimit": "Você pode adicionar até {maxPhotos, plural, one {# foto.} other {# fotos.}}",
   "@ritualPhotoLimit": {

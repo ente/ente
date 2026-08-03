@@ -2373,7 +2373,6 @@
   "ritualShareUnavailable": "No se puede compartir ahora. Por favor, inténtalo de nuevo.",
   "ritualNotificationMessage": "Tomar una foto ahora",
   "ritualCameraNotFound": "No se ha encontrado ninguna cámara en este dispositivo.",
-  "ritualCameraStartError": "No se puede iniciar la cámara. Por favor, comprueba los permisos.",
   "ritualCaptureError": "No se puede capturar la foto. Por favor, inténtalo de nuevo.",
   "ritualPhotoLimit": "Puedes añadir hasta {maxPhotos, plural, one {# foto.} other {# fotos.}}",
   "@ritualPhotoLimit": {

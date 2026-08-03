@@ -2226,7 +2226,6 @@
   "ritualShareUnavailable": "Hazırda paylaşmaq mümkün deyil. Zəhmət olmasa, yenidən cəhd edin.",
   "ritualNotificationMessage": "İndi şəkil çək",
   "ritualCameraNotFound": "Bu cihazda kamera tapılmadı.",
-  "ritualCameraStartError": "Kameranı başlatmaq mümkün olmadı. Zəhmət olmasa, icazələri yoxlayın.",
   "ritualCaptureError": "Şəkil çəkmək mümkün olmadı. Zəhmət olmasa, yenidən cəhd edin.",
   "ritualPhotoLimit": "Ən çox {maxPhotos, plural, one {# şəkil.} other {# şəkil.}} əlavə edə bilərsiniz",
   "@ritualPhotoLimit": {

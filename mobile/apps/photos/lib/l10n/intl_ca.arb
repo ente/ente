@@ -2035,7 +2035,6 @@
   "ritualShareUnavailable": "No es pot compartir ara mateix. Si us plau, torna-ho a provar.",
   "ritualNotificationMessage": "Fes una foto ara",
   "ritualCameraNotFound": "No s'ha trobat càmera en aquest dispositiu.",
-  "ritualCameraStartError": "No s'ha pogut iniciar la càmera. Si us plau, comprova els permisos.",
   "ritualCaptureError": "No s'ha pogut capturar la foto. Si us plau, torna-ho a provar.",
   "ritualPhotoLimit": "Pots afegir fins a {maxPhotos, plural, one {# foto.} other {# fotos.}}",
   "@ritualPhotoLimit": {

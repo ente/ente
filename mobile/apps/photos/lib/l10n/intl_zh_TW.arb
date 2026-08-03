@@ -2870,7 +2870,6 @@
   "ritualShareUnavailable": "目前無法分享。請稍後再試。",
   "ritualNotificationMessage": "現在拍一張照片",
   "ritualCameraNotFound": "此裝置上沒有相機。",
-  "ritualCameraStartError": "無法啟動相機。請檢查權限。",
   "ritualCaptureError": "無法拍攝照片。請再試一次。",
   "ritualPhotoLimit": "您最多可以新增 {maxPhotos, plural, one {# 張照片。} other {# 張照片。}}",
   "@ritualPhotoLimit": {

@@ -2853,7 +2853,6 @@
   "ritualShareUnavailable": "Не удалось поделиться. Пожалуйста, попробуйте еще раз.",
   "ritualNotificationMessage": "Сделать фото сейчас",
   "ritualCameraNotFound": "Не найдено камер на этом устройстве.",
-  "ritualCameraStartError": "Не удалось запустить камеру. Пожалуйста, проверьте разрешения.",
   "ritualCaptureError": "Не удалось сфотографировать. Пожалуйста, попробуйте еще раз.",
   "ritualPhotoLimit": "Вы можете добавить до {maxPhotos, plural, one {# фото.}  other {# фотографий.}}",
   "@ritualPhotoLimit": {

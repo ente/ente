@@ -2763,11 +2763,73 @@
   },
   "festivities": "Allievo festivo",
   "snowAdventures": "Avventure invernali",
+  "waterfalls": "A caccia di cascate",
+  "wildlife": "Nelle terre selvagge",
   "flowers": "Bellezze floreali",
+  "nightLights": "Notti al neon",
+  "architecture": "Icone dell'architettura",
+  "autumnColors": "Splendore d'autunno",
+  "desertDreams": "Sogni dal deserto",
+  "stargazing": "Sotto le stelle",
   "lakeside": "Calma in riva al lago",
   "rainyDays": "Sensazioni di un giorno di pioggia",
+  "sportsAction": "Pronti al gioco",
+  "streetArt": "Storie d'arte urbana",
   "familyMoments": "Tempo in famiglia",
+  "fireworks": "Gran finale pirotecnico",
+  "historicSites": "Echi della storia",
+  "tropicalParadise": "Fughe tropicali",
+  "forestTrails": "Passeggiate nel bosco",
+  "citySunsets": "Tramonti in città",
+  "colorfulMarkets": "Mercati vivaci",
   "cozyCafes": "Locali accoglienti",
+  "vintageVibes": "Atmosfere vintage",
+  "aerialViews": "Prospettive aeree",
+  "artisticPortraits": "Ritratti artistici",
+  "streetFood": "Gusti di strada",
+  "riverCruises": "Panorami dal fiume",
+  "facesTimelineBannerTitle": "Volti nel tempo",
+  "@facesTimelineBannerTitle": {
+    "description": "Title for the Memory Lane suggestion banner shown on a person's page"
+  },
+  "facesTimelineBannerSubtitle": "Vedi le foto di {name} negli anni",
+  "@facesTimelineBannerSubtitle": {
+    "description": "Subtitle for Memory Lane banner describing the timeline for a person",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "The display name of the person"
+      }
+    }
+  },
+  "facesTimelineAppBarTitle": "Volti nel tempo",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineCaptionYearsOld": "{name} {count, plural, one {{count} anno fa} other {{count} anni fa}}",
+  "@facesTimelineCaptionYearsOld": {
+    "description": "Caption for frames when birthdate is known, describing the person's age",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      },
+      "count": {
+        "type": "int",
+        "description": "Number of years old"
+      }
+    }
+  },
+  "facesTimelineCaptionYearsAgo": "{count, plural, one {# anno fa} other {# anni fa}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
+  },
   "facesTimelineShareComingSoon": "Condivisione video in arrivo tra poco",
   "@facesTimelineShareComingSoon": {
     "description": "Message shown when the share action is not yet available"
@@ -2797,6 +2859,8 @@
   "candidLaughter": "Scoppio di risata",
   "groupSelfies": "Noi tutti",
   "birthdayJoy": "Gioia di compleanno",
+  "weddingMoments": "La magia delle nozze",
+  "goldenHourPortraits": "Ritratti nell'ora dorata",
   "concertNights": "Notti di concerto",
   "poolDays": "Giornate di piscina",
   "picnicDays": "Ricordi picnic",
@@ -2810,13 +2874,387 @@
   "ritualShareUnavailable": "Impossibile condividere in questo momento. Per favore riprova.",
   "ritualNotificationMessage": "Scatta una foto ora",
   "ritualCameraNotFound": "Nessuna fotocamera trovata su questo dispositivo.",
-  "ritualCameraStartError": "Impossibile avviare la fotocamera. Controlla i permessi.",
+  "ritualCaptureError": "Impossibile scattare la foto. Per favore riprova.",
+  "ritualPhotoLimit": "Puoi aggiungere fino a {maxPhotos, plural, one {# foto.} other {# foto.}}",
+  "@ritualPhotoLimit": {
+    "placeholders": {
+      "maxPhotos": {
+        "type": "int",
+        "description": "Maximum number of photos allowed"
+      }
+    }
+  },
+  "ritualCaptureAtLeastOne": "Cattura prima almeno una foto.",
+  "ritualAlbumMissing": "Album del rituale mancante. Modifica il rituale per impostare un album.",
+  "ritualAddedToAlbum": "Aggiunto all'album",
+  "ritualAddedToAlbumWithName": "Aggiunto da {albumName}",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAddToAlbumFailure": "Impossibile aggiungere foto all'album: {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
+  },
+  "ritualBackToList": "Torna ai rituali",
+  "ritualNoPhotosYet": "Ancora nessuna foto",
+  "ritualSetAlbumToLaunchCamera": "Impostare un album per questo rituale per avviare la fotocamera.",
+  "ritualDefaultCameraTitle": "Scatta una foto",
+  "ritualBadgeMessage7": "7 giorni di scadenza! La coerenza ti sembra buona. Continua ad andare!",
+  "ritualBadgeMessage14": "14 giorni dentro! Il tuo rituale sta diventando un'abitudine. Incredibile!",
+  "ritualBadgeMessage30": "30 giorni di fila! Consistenza leggendaria. Prendi un arco!",
+  "ritualBadgeMessageDefault": "Stai andando alla grande!",
+  "ritualBadgeNewTitle": "Nuovo traguardo",
+  "ritualBadgePreparing": "Preparazione...",
   "ritualStreaksLabel": "Serie",
+  "ritualCreateYourOwn": "Crea il tuo rituale",
+  "ritualGetDailyReminders": "Ottieni promemoria giornalieri",
+  "ritualAlbumNotSet": "Album non impostato",
+  "ritualOpenCameraTooltip": "Apri fotocamera del rituale",
+  "ritualEditorLabel": "Editor del rituale",
+  "ritualNew": "Crea nuovo rituale",
+  "ritualCreateNewTitle": "Crea nuovo rituale",
+  "ritualEdit": "Modifica rituale",
+  "ritualEnterPrompt": "Inserisci il tuo rituale",
+  "ritualEnterDescription": "Per favore inserisci una descrizione",
+  "ritualChooseDaysLabel": "Scegli giorni per il rituale",
+  "ritualDayLabel": "Giorno",
+  "ritualNotificationsOffHint": "Le notifiche sono disattivate. Tocca un giorno per attivarle.",
+  "ritualTimeLabel": "Orario",
+  "ritualAlbumLabel": "Album",
   "ritualSave": "Salva rituale",
+  "ritualCreateAction": "Crea nuovo rituale",
+  "ritualUpdate": "Aggiorna rituale",
   "ritualSelectAlbumTitle": "Seleziona album",
+  "ritualChooseAlbumLabel": "Scegli un album",
   "ritualSendReminderLabel": "Invia promemoria",
   "ritualSearchOrCreate": "Cerca o crea nuovo",
+  "ritualNoAlbumsYet": "Ancora nessun album",
+  "ritualNoMatchingAlbums": "Nessun album corrispondente",
+  "ritualCreateAlbumWithName": "Crea \"{albumName}\"",
+  "@ritualCreateAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "Album name typed by the user"
+      }
+    }
+  },
+  "ritualCreateNew": "Crea nuovo",
+  "ritualAlbumSelectionPlaceholder": "Seleziona album",
+  "ritualPickEmojiTitle": "Scegli un’emoji",
+  "ritualCustomKeyboardLabel": "Personalizzato (tastiera)",
+  "ritualEmojiKeyboardHint": "Premi per aprire la tastiera emoji",
+  "ritualEmojiUseAction": "Usa",
   "ritualSearchEmpty": "Crea un rituale per mantenere la tua abitudine fotografica.",
+  "feed": "Feed",
+  "newCommentNotificationTitle": "Hai un commento",
+  "@newCommentNotificationTitle": {
+    "description": "Notification title when someone comments or replies on a shared photo."
+  },
+  "newLikeNotificationTitle": "Hai ricevuto un mi piace",
+  "@newLikeNotificationTitle": {
+    "description": "Notification title when someone likes a shared photo or comment."
+  },
+  "likedYourPhoto": "Ha messo mi piace a una tua foto",
+  "@likedYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAPhoto": "hai messo mi piace a una foto",
+  "@likedAPhoto": {
+    "description": "Social action text shown after a person's name, for example 'John liked a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourVideo": "ha messo mi piace al tuo video",
+  "@likedYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAVideo": "hai messo mi piace a un video",
+  "@likedAVideo": {
+    "description": "Social action text shown after a person's name, for example 'John liked a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourPhoto": "ha commentato la tua foto",
+  "@commentedOnYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAPhoto": "hai commentato una foto",
+  "@commentedOnAPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourVideo": "ha commentato sul tuo video",
+  "@commentedOnYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAVideo": "hai commentato un video",
+  "@commentedOnAVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToYourComment": "ha risposto al tuo commento",
+  "@repliedToYourComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToAComment": "hai risposto a un commento",
+  "@repliedToAComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourComment": "ha messo mi piace a un tuo commento",
+  "@likedYourComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAComment": "hai messo mi piace a un commento",
+  "@likedAComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourReply": "è piaciuta la risposta",
+  "@likedYourReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked your reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAReply": "piaciuta una risposta",
+  "@likedAReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked a reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "addedAMemoryTo": "ha aggiunto una memoria a {albumName}",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedNMemoriesTo": "ha aggiunto memorie {count} a {albumName}",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedAlbumWithYou": "ha condiviso {albumName} con te",
+  "@sharedAlbumWithYou": {
+    "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "and1Other": "e 1 altro",
+  "andXOthers": "e {count} altri",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noActivityYet": "Nessuna attività",
+  "nothingHereYet": "Non c'e ancora niente qui",
+  "shareAnAlbumWithSomeoneYouLove": "Condividi un album con qualcuno che ami",
+  "seeTheLoveYourPhotosGet": "Vedi l'amore che le tue foto ottengono",
+  "yourConversationsAttachedToTheMoment": "Le tue conversazioni, allegate al momento",
+  "stayConnectedWithThePeopleYouShareWith": "Rimani connesso con le persone con cui condividi",
+  "shareAnAlbum": "Condividi album",
+  "seeWhatYourPeopleAreUpTo": "Guarda cosa sono le tue persone",
+  "signUpToShareMomentsPrivately": "Iscriviti per condividere i momenti in privato",
+  "reactToTheMomentsThatMatter": "Reagire ai momenti che contano",
+  "leaveANoteOnTheMomentsSharedWithYou": "Lascia una nota sui momenti condivisi con te",
+  "like": "Mi piace",
+  "comments": "Commenti",
+  "commentHint": "Di' qualcosa di bello!",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "reply": "Rispondi",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "areYouSure": "Sei sicuro?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "deleteComment": "Cancella commento",
+  "@deleteComment": {
+    "description": "Delete comment button label"
+  },
+  "deleteCommentConfirmation": "Il tuo commento \"{comment}\" verrà eliminato definitivamente",
+  "@deleteCommentConfirmation": {
+    "description": "Confirmation message when deleting a comment",
+    "placeholders": {
+      "comment": {
+        "type": "String"
+      }
+    }
+  },
+  "likesCount": "{count, plural, one{{count} mi piace} other{{count} mi piace}}",
+  "@likesCount": {
+    "description": "Number of likes with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noLikesYet": "Ancora nessun mi piace",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "couldNotLoadLikes": "Impossibile caricare mi piace",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "failedToUpdateLike": "Impossibile aggiornare mi piace",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToLikeAlbums": "{count, plural, one{Impossibile salvare {count} file offline} other{Impossibile salvare {count} file offline}}",
+  "@failedToLikeAlbums": {
+    "description": "Error when liking albums fails",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "couldNotLoadAlbums": "Impossibile caricare gli album",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "couldNotLoadSelectedPhoto": "Impossibile caricare la foto selezionata",
+  "@couldNotLoadSelectedPhoto": {
+    "description": "Toast when the selected contact photo cannot be loaded"
+  },
+  "albumsCount": "{count, plural, one{{count} album} other{{count} album}}",
+  "@albumsCount": {
+    "description": "Number of albums with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "likeAll": "Metti mi piace a tutto",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "selectAlbumToLikeVideo": "Seleziona l'album per mettere mi piace alla foto",
+  "@selectAlbumToLikeVideo": {
+    "description": "Instruction for liking video"
+  },
+  "selectAlbumToLikePhoto": "Seleziona l'album per mettere mi piace alla foto",
+  "@selectAlbumToLikePhoto": {
+    "description": "Instruction for liking photo"
+  },
+  "failedToLikeComment": "Impossibile mettere mi piace al commento",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
+  "failedToDeleteComment": "Cancellazione commento non riuscita",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
+  },
+  "deletedComment": "(eliminato)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
+  },
+  "replyingToYou": "Rispondendo a te",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
+  "replyingTo": "Risposta a {name}",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "commentsCount": "{count, plural, =0{Nessun commento} one{{count} commento} other{{count} commenti}}",
+  "@commentsCount": {
+    "description": "Number of comments with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchSettings": "Impostazioni di ricerca",
+  "suggestions": "Suggerimenti",
+  "smartSuggestions": "Suggerimenti intelligenti",
+  "cleanupHiddenFiles": "Pulisci i file nascosti",
+  "cleanupHiddenFilesDescription": "Alcuni file in album nascosti esistono ancora in album non nascosti, rendendoli visibili al di fuori della sezione nascosta. La pulizia li rimuoverà dagli album non nascosti.",
+  "cleanupComplete": "Pulizia completata",
+  "deleteHiddenFilesFromDevice": "Elimina i file nascosti dal dispositivo",
+  "deleteHiddenFilesFromDeviceDescription": "Elimina le copie locali dei file nascosti dal tuo dispositivo",
+  "deleteOnDeviceFiles": "Elimina sui file del dispositivo",
   "noHiddenFilesOnDevice": "Nessun file nascosto sul dispositivo",
-  "grantPermission": "Concedi il permesso"
+  "grantGalleryPermissionTitle": "Troviamo i tuoi preferiti",
+  "grantGalleryPermissionDesc": "Concedi il permesso di accedere e organizzare le foto con riconoscimento facciale. Tutte le elaborazioni avvengono sul tuo dispositivo.",
+  "grantPermission": "Concedi il permesso",
+  "privateAI": "IA Privata",
+  "privateAIDescription": "Ente utilizza AI sul dispositivo per analizzare le tue foto per volti, oggetti, posizioni e testo. Questi dati vengono utilizzati per alimentare funzioni come riconoscimento facciale e ricerca intelligente. Tutto è elaborato e memorizzato localmente sul tuo dispositivo — niente è mai caricato sui nostri server.",
+  "byAgreeing": "Continuando, accetti i <terms>termini di servizio </terms> e alla <policy> privacy policy </policy>",
+  "moreThanJustAGallery": "Più di una semplice galleria.",
+  "encryptedBackupDescription": "Backup crittografato, ricerca intelligente, link condivisibili e sincronizzazione senza soluzione di continuità su tutti i tuoi dispositivi.",
+  "getStarted": "Inizia adesso",
+  "offlineHomeSignupBannerTitle": "Proteggi i tuoi ricordi per sempre",
+  "offlineHomeSignupBannerDescription": "Backup crittografati in 3 posizioni per proteggere i tuoi ricordi.",
+  "offlineHomeSignupBannerAction": "Esegui backup ora",
+  "unlockSmartFeatures": "Sblocca funzioni intelligenti",
+  "enableOnDeviceMLDescription": "Abilita ML sul dispositivo per cercare per volti, luoghi e altro ancora. Le tue foto non lasciano mai il tuo dispositivo.",
+  "offlineEnableSharingTitle": "La condivisione inizia qui",
+  "offlineEnableSharingDesc": "Iscriviti per condividere le foto con tutti - anche quelli non su Ente",
+  "offlineEnableBackupTitle": "Gli album salvati in backup appariranno qui",
+  "offlineEnableBackupDesc": "Iscriviti per conservare i tuoi ricordi con Ente.",
+  "offlineEnableBackupTagLabel": "10 GB GRATIS!",
+  "offlineEnableBackupAction": "Inizia con 10 GB GRATIS",
+  "organizeYourMemories": "Organizza i tuoi ricordi",
+  "groupPhotosTheWayYouThinkAboutThem": "Raggruppa le tue foto nel modo in cui le pensi",
+  "endToEndEncryptedOnlyYourPeopleCanSeeIt": "Crittografato end-to-end, in modo che solo le persone possano vederlo",
+  "backedUpSafelyAcrossDevices": "Backup sicuro eseguito su tutti i tuoi dispositivi",
+  "smartAlbumsOrganizePhotosForYou": "Gli album intelligenti organizzano le foto per te",
+  "createAlbum": "Crea un album",
+  "createASmartAlbum": "Crea un album intelligente",
+  "offlineSettingsBannerTitle": "Non possiamo vedere le tue foto. Mai.",
+  "offlineSettingsBannerDesc": "Crittografia Zero-knowledge significa che le tue memorie rimangono tue.",
+  "alreadyHaveAnAccount": "Ho già un account?",
+  "dontHaveAnAccount": "Non hai un account?",
+  "loginToEnte": "Accedi a Ente",
+  "mlProgressBannerTitle": "Tieniti forte!",
+  "mlProgressBannerDescription": "Le tue foto sono in fase di elaborazione sul dispositivo per rilevare volti, oggetti e altro ancora.",
+  "mlProgressBannerStatus": "{indexed} di {total} foto elaborate",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineFacesBannerTitle": "Vuoi salvare questi volti?",
+  "offlineFacesBannerSubtitle": "Iscriviti per etichettare le persone e facilmente trovarle più tardi.",
+  "offlineNameFaceBannerTitle": "Dai un nome a questa faccia",
+  "offlineNameFaceBannerSubtitle": "Iscriviti per etichettarli e trovare facilmente le loro foto più tardi.",
+  "signUp": "Registrati",
+  "dog": "Cane",
+  "cat": "Gatto",
+  "archiveCollectionName": "Archivia",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  }
 }

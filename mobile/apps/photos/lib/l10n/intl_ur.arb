@@ -2727,7 +2727,6 @@
   "ritualShareUnavailable": "ابھی شیئر کرنے سے قاصر. براہ کرم دوبارہ کوشش کریں.",
   "ritualNotificationMessage": "ابھی تصویر لیں",
   "ritualCameraNotFound": "اس ڈیوائس پر کوئی کیمرہ نہیں ملا.",
-  "ritualCameraStartError": "کیمرہ شروع کرنے سے قاصر. براہ کرم اجازتیں چیک کریں.",
   "ritualCaptureError": "تصویر لینے سے قاصر. براہ کرم دوبارہ کوشش کریں.",
   "ritualPhotoLimit": "آپ {maxPhotos, plural, one {# تصویر} other {# تصاویر}} تک شامل کر سکتے ہیں.",
   "@ritualPhotoLimit": {

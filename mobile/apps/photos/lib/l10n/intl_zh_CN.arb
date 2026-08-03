@@ -2100,7 +2100,6 @@
   "ritualShareUnavailable": "暂时无法分享，请稍后重试。",
   "ritualNotificationMessage": "立即拍照",
   "ritualCameraNotFound": "在此设备上未找到相机。",
-  "ritualCameraStartError": "无法启动相机，请检查权限。",
   "ritualCaptureError": "无法拍摄照片。请重试。",
   "ritualPhotoLimit": "您最多可以添加 {maxPhotos, plural, other {# 张照片。}}",
   "@ritualPhotoLimit": {

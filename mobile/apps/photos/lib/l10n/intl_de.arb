@@ -1426,6 +1426,44 @@
   "authToViewYourMemories": "Bitte authentifizieren, um deine Erinnerungsstücke anzusehen",
   "unlock": "Jetzt freischalten",
   "freeUpSpace": "Speicherplatz freigeben",
+  "reclaimSpace": "{sizeInMBorGB} zurückgewinnen",
+  "@reclaimSpace": {
+    "description": "Heading that shows how much device storage can be reclaimed",
+    "placeholders": {
+      "sizeInMBorGB": {
+        "example": "2.28 GB",
+        "type": "String"
+      }
+    }
+  },
+  "filesSafelyOnEnte": "{count, plural, one {Dieses Element ist bei Ente gesichert. Lösche die Kopie auf dem Gerät, um Speicherplatz freizugeben, ohne es zu verlieren.} other {Alle {formattedNumber} Elemente sind bei Ente gesichert. Lösche die Kopien auf dem Gerät, um Speicherplatz freizugeben, ohne sie zu verlieren.}}",
+  "@filesSafelyOnEnte": {
+    "description": "Explains that device copies can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
+  "filesInAlbumSafelyOnEnte": "{count, plural, one {Dieses Element im Album ist bei Ente gesichert. Lösche die Kopie auf dem Gerät, um Speicherplatz freizugeben, ohne es zu verlieren.} other {Alle {formattedNumber} Elemente im Album sind bei Ente gesichert. Lösche die Kopien auf dem Gerät, um Speicherplatz freizugeben, ohne sie zu verlieren.}}",
+  "@filesInAlbumSafelyOnEnte": {
+    "description": "Explains that device copies for files in an album can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
   "freeUpSpaceSaving": "{count, plural, one {Es kann vom Gerät gelöscht werden, um {formattedSize} freizugeben} other {Sie können vom Gerät gelöscht werden, um {formattedSize} freizugeben}}",
   "filesBackedUpInAlbum": "{count, plural, one {1 Datei} other {{formattedNumber} Dateien}} in diesem Album wurde(n) sicher gespeichert",
   "@filesBackedUpInAlbum": {
@@ -1792,6 +1830,9 @@
   "photos": "Fotos",
   "videos": "Videos",
   "camera": "Kamera",
+  "cameraPermissionRequired": "Kamerazugriff ist erforderlich, um Fotos aufzunehmen.",
+  "cameraPermissionSettings": "Kamerazugriff ist deaktiviert. Aktiviere ihn in den Einstellungen, um fortzufahren.",
+  "cameraPermissionRestricted": "Kamerazugriff ist auf diesem Gerät eingeschränkt.",
   "livePhotos": "Live-Fotos",
   "searchHint1": "Schnell auf dem Gerät suchen",
   "searchHint2": "Fotodaten, Beschreibungen",
@@ -2874,7 +2915,7 @@
   "ritualShareUnavailable": "Momentan kann nicht geteilt werden. Bitte versuche es erneut.",
   "ritualNotificationMessage": "Jetzt ein Foto machen",
   "ritualCameraNotFound": "Keine Kamera auf diesem Gerät gefunden.",
-  "ritualCameraStartError": "Kamera kann nicht gestartet werden. Bitte überprüfe die Berechtigungen.",
+  "ritualCameraStartError": "Kamera konnte nicht gestartet werden. Bitte versuche es erneut.",
   "ritualCaptureError": "Foto konnte nicht aufgenommen werden. Bitte versuche es erneut.",
   "ritualPhotoLimit": "Du kannst bis zu {maxPhotos, plural, one {einem Foto} other {# Fotos}} hinzufügen.",
   "@ritualPhotoLimit": {

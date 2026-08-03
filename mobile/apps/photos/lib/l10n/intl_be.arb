@@ -1880,7 +1880,6 @@
   "ritualShareUnavailable": "Немагчыма абагуліць зараз. Калі ласка, паспрабуйце яшчэ раз.",
   "ritualNotificationMessage": "Сфатаграфуйце зараз",
   "ritualCameraNotFound": "На гэтай прыладзе камера не знойдзена.",
-  "ritualCameraStartError": "Немагчыма ўключыць камеру. Праверце дазволы.",
   "ritualCaptureError": "Не атрымалася зрабіць фатаграфію. Паўтарыце спробу.",
   "ritualPhotoLimit": "Вы можаце дадаць да {maxPhotos, plural, one {# photo.} other {# photos.}}",
   "@ritualPhotoLimit": {

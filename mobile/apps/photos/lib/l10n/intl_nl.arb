@@ -2281,7 +2281,6 @@
   "ritualShareUnavailable": "Delen momenteel niet mogelijk. Probeer het opnieuw.",
   "ritualNotificationMessage": "Neem nu een foto",
   "ritualCameraNotFound": "Geen camera gevonden op dit apparaat.",
-  "ritualCameraStartError": "Camera starten mislukt. Controleer de machtigingen.",
   "ritualCaptureError": "Kan foto niet maken. Probeer het opnieuw.",
   "ritualAddedToAlbum": "Toegevoegd aan album",
   "ritualAddedToAlbumWithName": "Toegevoegd aan {albumName}",
