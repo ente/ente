@@ -1,6 +1,6 @@
 [package]
 name = "ensu-desktop"
-version = "0.1.18-beta"
+version = "0.1.18"
 edition = "2024"
 
 [build-dependencies]
