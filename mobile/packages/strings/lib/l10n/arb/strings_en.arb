@@ -1041,7 +1041,7 @@
   "deleteSharedAlbumDialogBody": "The album will be deleted for everyone\n\nYou will lose access to shared photos in this album that are owned by others",
   "deleteShareLinkConfirmation": "People with this link will no longer be able to access the item.",
   "deleteSuggestions": "Delete suggestions",
-  "deleteSuggestionsDesc": "Review files that have been suggested for deletion.",
+  "deleteSuggestionsDesc": "View items suggested for deletion",
   "deleteSuggestionSent": "Delete suggestion sent",
   "deleteTagMessage": "Are you sure you want to delete this tag? This action is irreversible.",
   "deleteTagTitle": "Delete tag?",
@@ -1776,8 +1776,8 @@
       "count": {}
     }
   },
-  "freeUpDeviceSpaceDesc": "Save space on your device by clearing files that have already been backed up.",
-  "freeUpDeviceSpaceDescICloud": "Files in iCloud shared albums cannot be cleared.",
+  "freeUpDeviceSpaceDesc": "Remove backed up items",
+  "freeUpDeviceSpaceDescICloud": "Files in iCloud shared albums cannot be cleared",
   "@freeUpDeviceSpaceDescICloud": {
     "description": "Here 'cleared' means 'deleted' from the device"
   },
@@ -2282,7 +2282,7 @@
   },
   "manage": "Manage",
   "manageDeviceStorage": "Manage device cache",
-  "manageDeviceStorageDesc": "Review and clear local cache storage.",
+  "manageDeviceStorageDesc": "Review and clear local storage",
   "manageFamily": "Manage family",
   "manageLink": "Manage link",
   "manageParticipants": "Manage",
@@ -3155,8 +3155,8 @@
     "description": "Description for remove contact confirmation dialog"
   },
   "removeContactPhoto": "Remove contact photo",
-  "removeDuplicates": "Remove duplicates",
-  "removeDuplicatesDesc": "Review and remove files that are exact duplicates.",
+  "removeDuplicates": "Duplicates",
+  "removeDuplicatesDesc": "Remove exact duplicates",
   "removeFromAlbum": "Remove from album",
   "removeFromAlbumTitle": "Remove from album?",
   "removeFromFamily": "Remove from family",
@@ -4085,6 +4085,7 @@
   },
   "totalSize": "Total size",
   "trash": "Trash",
+  "restoreOrPermanentlyDeleteItems": "Restore or permanently delete items",
   "trashClearedSuccessfully": "Trash cleared successfully",
   "trashCode": "Trash code?",
   "trashCodeMessage": "Are you sure you want to trash code for {account}?",
@@ -4314,7 +4315,7 @@
   "useAsCover": "Use as cover",
   "usedSpace": "Used space",
   "usedYourCode": "used your code",
-  "useMLToFindSimilarImages": "Review and remove images that look similar to each other.",
+  "useMLToFindSimilarImages": "Remove items that look similar",
   "useOffline": "Use without backups",
   "useRecoveryKey": "Use recovery key",
   "@useRecoveryKey": {
@@ -4393,7 +4394,7 @@
     "description": "Number of viewers that were successfully added."
   },
   "viewLargeFiles": "Large files",
-  "viewLargeFilesDesc": "View files that are consuming the most amount of storage.",
+  "viewLargeFilesDesc": "Identify items using the most space",
   "viewLogs": "View logs",
   "@viewLogs": {
     "description": "Button to view logs"

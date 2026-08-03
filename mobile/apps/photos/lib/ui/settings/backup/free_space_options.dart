@@ -6,6 +6,7 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/duplicate_files.dart";
 import "package:photos/models/freeable_space_info.dart";
 import "package:photos/service_locator.dart";
@@ -14,6 +15,7 @@ import "package:photos/services/deduplication_service.dart";
 import "package:photos/services/files_service.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/notification/toast.dart";
+import "package:photos/ui/settings/components/settings_item.dart";
 import "package:photos/ui/settings/components/settings_page_scaffold.dart";
 import "package:photos/ui/tools/debug/app_storage_viewer.dart";
 import "package:photos/ui/tools/deduplicate_page.dart";
@@ -21,6 +23,7 @@ import "package:photos/ui/tools/free_space_page.dart";
 import "package:photos/ui/tools/similar_images_page.dart";
 import "package:photos/ui/viewer/gallery/delete_suggestions_page.dart";
 import "package:photos/ui/viewer/gallery/large_files_page.dart";
+import "package:photos/ui/viewer/gallery/trash_page.dart";
 import "package:photos/utils/dialog_util.dart";
 
 class FreeUpSpaceOptionsScreen extends StatefulWidget {
@@ -45,91 +48,96 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
       title: l10n.freeUpSpace,
       children: [
         _buildFreeSpaceOption(
-          context,
-          title: l10n.freeUpDeviceSpace,
-          onTap: () async => _onFreeUpDeviceSpaceTapped(),
-        ),
-        _description(
-          l10n.freeUpDeviceSpaceDesc +
-              (Platform.isIOS ? " ${l10n.freeUpDeviceSpaceDescICloud}" : ""),
-        ),
-        _buildFreeSpaceOption(
-          context,
-          title: l10n.removeDuplicates,
-          onTap: () async => _onRemoveDuplicatesTapped(),
-        ),
-        _description(l10n.removeDuplicatesDesc),
-        if (flagService.enableVectorDb) ...[
-          _buildFreeSpaceOption(
-            context,
-            title: l10n.similarImages,
-            onTap: () async {
-              await routeToPage(
-                context,
-                const SimilarImagesPage(debugScreen: kDebugMode),
-              );
-            },
-          ),
-          _description(l10n.useMLToFindSimilarImages),
-        ],
-        _buildFreeSpaceOption(
-          context,
-          title: l10n.viewLargeFiles,
+          title: l10n.trash,
+          subtitle: l10n.restoreOrPermanentlyDeleteItems,
+          icon: HugeIcons.strokeRoundedDelete01,
           onTap: () async {
-            await routeToPage(context, LargeFilesPagePage());
+            await routeToPage(context, TrashPage());
           },
         ),
-        _description(l10n.viewLargeFilesDesc),
+        const SizedBox(height: Spacing.sm),
         _buildFreeSpaceOption(
-          context,
-          title: l10n.deleteSuggestions,
-          onTap: () async => _onDeleteSuggestionsTapped(),
+          title: l10n.freeUpDeviceSpace,
+          subtitle:
+              l10n.freeUpDeviceSpaceDesc +
+              (Platform.isIOS ? ". ${l10n.freeUpDeviceSpaceDescICloud}" : ""),
+          icon: HugeIcons.strokeRoundedSmartPhone01,
+          onTap: () async => _onFreeUpDeviceSpaceTapped(),
         ),
-        _description(l10n.deleteSuggestionsDesc),
+        const SizedBox(height: Spacing.lg),
+        Text(
+          l10n.review,
+          style: TextStyles.display3.copyWith(
+            color: context.componentColors.textBase,
+          ),
+        ),
+        const SizedBox(height: Spacing.sm),
+        _buildReviewOptions(context, l10n),
+        const SizedBox(height: Spacing.lg),
         _buildFreeSpaceOption(
-          context,
           title: l10n.manageDeviceStorage,
+          subtitle: l10n.manageDeviceStorageDesc,
+          icon: HugeIcons.strokeRoundedDatabase,
           onTap: () async {
             await routeToPage(context, const AppStorageViewer());
           },
         ),
-        _description(l10n.manageDeviceStorageDesc),
       ],
     );
   }
 
-  Widget _description(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: Spacing.lg,
-        right: Spacing.lg,
-        top: Spacing.sm,
-        bottom: Spacing.lg,
-      ),
-      child: Text(
-        text,
-        style: TextStyles.mini.copyWith(
-          color: context.componentColors.textLight,
+  Widget _buildReviewOptions(BuildContext context, StringsLocalizations l10n) {
+    final options = <Widget>[
+      if (flagService.enableVectorDb)
+        _buildFreeSpaceOption(
+          title: l10n.similarImages,
+          subtitle: l10n.useMLToFindSimilarImages,
+          icon: HugeIcons.strokeRoundedImageCrop,
+          onTap: () async {
+            await routeToPage(
+              context,
+              const SimilarImagesPage(debugScreen: kDebugMode),
+            );
+          },
         ),
+      _buildFreeSpaceOption(
+        title: l10n.removeDuplicates,
+        subtitle: l10n.removeDuplicatesDesc,
+        icon: HugeIcons.strokeRoundedCopy01,
+        onTap: () async => _onRemoveDuplicatesTapped(),
       ),
-    );
+      _buildFreeSpaceOption(
+        title: l10n.viewLargeFiles,
+        subtitle: l10n.viewLargeFilesDesc,
+        icon: HugeIcons.strokeRoundedFile02,
+        onTap: () async {
+          await routeToPage(context, LargeFilesPagePage());
+        },
+      ),
+      _buildFreeSpaceOption(
+        title: l10n.deleteSuggestions,
+        subtitle: l10n.deleteSuggestionsDesc,
+        icon: HugeIcons.strokeRoundedDelete01,
+        onTap: () async => _onDeleteSuggestionsTapped(),
+      ),
+    ];
+
+    return MenuGroupComponent(items: options);
   }
 
-  MenuComponent _buildFreeSpaceOption(
-    BuildContext context, {
+  SettingsItem _buildFreeSpaceOption({
     required String title,
+    required String subtitle,
+    required List<List<dynamic>> icon,
     required Future<void> Function() onTap,
   }) {
-    final colors = context.componentColors;
-    return MenuComponent(
+    return SettingsItem(
       title: title,
-      trailing: Icon(
-        Icons.chevron_right_outlined,
-        color: colors.textLight,
-        size: IconSizes.medium,
-      ),
+      subtitle: subtitle,
+      icon: icon,
       showOnlyLoadingState: true,
       onTap: onTap,
+      subtitleMaxLines: 2,
     );
   }
 
