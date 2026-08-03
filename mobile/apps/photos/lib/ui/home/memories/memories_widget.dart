@@ -227,7 +227,7 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
     return FutureBuilder<bool>(
       future: _shouldShowBanner,
       builder: (context, snapshot) {
-        final shouldShowBanner = snapshot.data ?? true;
+        final shouldShowBanner = snapshot.data ?? false;
         return SizedBox(
           height: _memoryheight + MemoryCoverWidget.outerStrokeWidth * 2,
           child: ListView.builder(

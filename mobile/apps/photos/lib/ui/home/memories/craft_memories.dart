@@ -1,6 +1,8 @@
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/services/notification_service.dart";
 import "package:photos/ui/home/memories/memory_cover_widget.dart";
 import "package:rive/rive.dart" as rive;
@@ -50,96 +52,120 @@ class _CraftMemoriesState extends State<CraftMemories> {
         height: widget.height,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () async {
-              final permissionGranted = await NotificationService.instance
-                  .requestPermissions(context);
-              if (!mounted || !permissionGranted) {
-                return;
-              }
-              widget.onNotificationsPermissionGranted?.call();
-            },
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: rive.RiveWidgetBuilder(
-                    fileLoader: _riveFileLoader,
-                    builder: (BuildContext context, rive.RiveState state) {
-                      if (state is rive.RiveLoaded) {
-                        return rive.RiveWidget(
-                          controller: state.controller,
-                          fit: rive.Fit.cover,
-                        );
-                      }
+          child: Stack(
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  final permissionGranted = await NotificationService.instance
+                      .requestPermissions(context);
+                  if (!mounted || !permissionGranted) {
+                    return;
+                  }
+                  widget.onNotificationsPermissionGranted?.call();
+                },
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: rive.RiveWidgetBuilder(
+                        fileLoader: _riveFileLoader,
+                        builder: (BuildContext context, rive.RiveState state) {
+                          if (state is rive.RiveLoaded) {
+                            return rive.RiveWidget(
+                              controller: state.controller,
+                              fit: rive.Fit.cover,
+                            );
+                          }
 
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(widget.width * 0.125),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.craftingMemoriesFirstHalf,
-                        style: TextStyle(
-                          fontFamily: TextStyles.outfitFontFamily,
-                          package: TextStyles.fontPackage,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: widget.width * 0.115,
-                          height: 1,
-                        ),
+                          return const SizedBox.shrink();
+                        },
                       ),
-                      Text(
-                        l10n.craftingMemoriesSecondHalf,
-                        style: TextStyle(
-                          fontFamily: "Gochi Hand",
-                          package: TextStyles.fontPackage,
-                          color: Colors.white,
-                          fontSize: widget.width * 0.175,
-                          height: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(74),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(64),
-                              offset: const Offset(0, 4),
-                              blurRadius: 10,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: widget.width * 0.125,
-                            vertical: widget.width * 0.075,
-                          ),
-                          child: Text(
-                            l10n.notifyMe,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.all(widget.width * 0.125),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.craftingMemoriesFirstHalf,
                             style: TextStyle(
                               fontFamily: TextStyles.outfitFontFamily,
                               package: TextStyles.fontPackage,
                               color: Colors.white,
-                              fontSize: widget.width * 0.11,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w700,
+                              fontSize: widget.width * 0.115,
+                              height: 1,
                             ),
                           ),
-                        ),
+                          Text(
+                            l10n.craftingMemoriesSecondHalf,
+                            style: TextStyle(
+                              fontFamily: "Gochi Hand",
+                              package: TextStyles.fontPackage,
+                              color: Colors.white,
+                              fontSize: widget.width * 0.175,
+                              height: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(74),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(64),
+                                  offset: const Offset(0, 4),
+                                  blurRadius: 10,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: widget.width * 0.125,
+                                vertical: widget.width * 0.075,
+                              ),
+                              child: Text(
+                                l10n.notifyMe,
+                                style: TextStyle(
+                                  fontFamily: TextStyles.outfitFontFamily,
+                                  package: TextStyles.fontPackage,
+                                  color: Colors.white,
+                                  fontSize: widget.width * 0.11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    await localSettings.setCraftingMemoriesBannerDismissed();
+                    if (!mounted) return;
+                    widget.onNotificationsPermissionGranted?.call();
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCancel01,
+                      size: IconSizes.small,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
