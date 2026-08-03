@@ -115,7 +115,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
             _exifData["exposureTime"] != null ||
             _exifData["ISO"] != null;
       });
-    } else if (flagService.internalUser && widget.file.isVideo) {
+    } else if (widget.file.isVideo) {
       getMediaInfo();
     }
     getExif(widget.file).then((exif) {
@@ -300,11 +300,10 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
             _exifData,
             _currentUserID,
           ),
-        if (flagService.internalUser)
-          ValueListenableBuilder(
-            valueListenable: _videoMetadataNotifier,
-            builder: (context, value, _) => VideoExifRowItem(file, value),
-          ),
+        ValueListenableBuilder(
+          valueListenable: _videoMetadataNotifier,
+          builder: (context, value, _) => VideoExifRowItem(file, value),
+        ),
       ];
       if (items.isNotEmpty) {
         fileDetailsTiles.addAll([

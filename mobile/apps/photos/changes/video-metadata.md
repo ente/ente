@@ -1,0 +1,1 @@
+- Made video metadata available in file details for everyone.
