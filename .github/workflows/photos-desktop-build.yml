@@ -88,6 +88,9 @@ jobs:
             RELEASE_TAG: ${{ needs.build-metadata.outputs.release_tag }}
             IS_RC: ${{ startsWith(github.ref_name, 'release/') }}
             RELEASE_BODY: ${{ needs.build-metadata.outputs.release_body }}
+            # Zig 0.14 defaults GNU targets to glibc 2.28.
+            ZIG_VERSION: "0.14.1"
+            CARGO_ZIGBUILD_VERSION: "0.23.0"
 
         defaults:
             run:
@@ -114,6 +117,16 @@ jobs:
               with:
                   workspaces: rust
                   shared-key: rust-desktop
+
+            - name: Setup Zig
+              if: startsWith(matrix.os, 'ubuntu')
+              uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+              with:
+                  version: ${{ env.ZIG_VERSION }}
+
+            - name: Install cargo-zigbuild
+              if: startsWith(matrix.os, 'ubuntu')
+              run: cargo install cargo-zigbuild --version "${CARGO_ZIGBUILD_VERSION}" --locked
 
             - name: Fetch binary dependencies and rebuild native modules
               run: npm run postinstall
@@ -166,10 +179,19 @@ jobs:
 
                   platform=${{ startsWith(matrix.os, 'macos') && 'mac' || startsWith(matrix.os, 'windows') && 'windows' || 'linux' }}
 
+                  case "${RUNNER_OS}" in
+                      Linux)
+                          export ENTE_NAPI_CROSS_COMPILE=1
+                          architectures=(--x64 --arm64)
+                          ;;
+                      macOS) architectures=(--universal) ;;
+                      Windows) architectures=(--x64 --arm64) ;;
+                  esac
+
                   if [ "${IS_RC}" = "true" ]; then
-                      npm exec -- electron-builder --$platform --publish always "-c.releaseInfo.releaseNotes=${RELEASE_BODY}"
+                      npm exec -- electron-builder --$platform "${architectures[@]}" --publish always "-c.releaseInfo.releaseNotes=${RELEASE_BODY}"
                   else
-                      npm exec -- electron-builder --$platform --publish never
+                      npm exec -- electron-builder --$platform "${architectures[@]}" --publish never
                   fi
               env:
                   GH_TOKEN: ${{ steps.nightly_token.outputs.token }}

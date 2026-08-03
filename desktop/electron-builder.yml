@@ -11,9 +11,7 @@ protocols:
     - name: Ente
       schemes: ["ente"]
 win:
-    target:
-        - target: nsis
-          arch: [x64, arm64]
+    target: nsis
     azureSignOptions:
         publisherName: ENTE TECHNOLOGIES, INC.
         endpoint: https://eus.codesigning.azure.net/
@@ -23,22 +21,12 @@ win:
 nsis:
     deleteAppDataOnUninstall: true
 linux:
-    target:
-        - target: AppImage
-          arch: [x64, arm64]
-        - target: deb
-          arch: [x64, arm64]
-        - target: rpm
-          arch: [x64, arm64]
-        - target: pacman
-          arch: [x64, arm64]
+    target: [AppImage, deb, rpm, pacman]
     category: Photography
     icon: ./build/icon.icns
 mac:
     minimumSystemVersion: "13.3"
-    target:
-        target: default
-        arch: [universal]
+    target: default
     category: public.app-category.photography
     hardenedRuntime: true
     mergeASARs: false

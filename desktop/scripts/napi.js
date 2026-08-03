@@ -82,8 +82,9 @@ const ensureRustTarget = (target, appDir) => {
  *
  * The build always runs so that edits to the Rust sources cannot be missed
  * when packaging; Cargo's incremental compilation makes this cheap when
- * nothing has changed. Linux always uses napi-cli's cross toolchain, including
- * for the host architecture, to keep the addon's glibc requirement at 2.17.
+ * nothing has changed. Linux release CI opts into cargo-zigbuild so its native
+ * dependencies use Zig's modern compiler and glibc 2.28 compatibility
+ * baseline. Local development and packaging use the native toolchain.
  */
 const buildNapiAddon = async (appDir, platform, arch) => {
     if (arch != process.arch)
@@ -105,7 +106,10 @@ const buildNapiAddon = async (appDir, platform, arch) => {
         ...(platform == "linux" || arch != process.arch
             ? [
                   `--target ${rustTriple(platform, arch)}`,
-                  ...(platform == "linux" ? ["--use-napi-cross"] : []),
+                  ...(platform == "linux" &&
+                  process.env.ENTE_NAPI_CROSS_COMPILE == "1"
+                      ? ["--cross-compile"]
+                      : []),
               ]
             : []),
     ].join(" ");
