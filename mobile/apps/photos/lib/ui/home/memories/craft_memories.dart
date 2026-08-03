@@ -92,6 +92,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
                           children: [
                             Text(
                               l10n.craftingMemoriesFirstHalf,
+                              textScaler: .noScaling,
                               style: TextStyle(
                                 fontFamily: TextStyles.outfitFontFamily,
                                 package: TextStyles.fontPackage,
@@ -103,6 +104,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
                             ),
                             Text(
                               l10n.craftingMemoriesSecondHalf,
+                              textScaler: .noScaling,
                               style: TextStyle(
                                 fontFamily: "Gochi Hand",
                                 package: TextStyles.fontPackage,
@@ -132,6 +134,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
                                 ),
                                 child: Text(
                                   l10n.notifyMe,
+                                  textScaler: .noScaling,
                                   style: TextStyle(
                                     fontFamily: TextStyles.outfitFontFamily,
                                     package: TextStyles.fontPackage,
@@ -150,8 +153,8 @@ class _CraftMemoriesState extends State<CraftMemories> {
                 ),
               ),
               Positioned(
-                right: 8,
-                top: 8,
+                right: widget.width * 0.02,
+                top: widget.width * 0.02,
                 child: Tooltip(
                   message: l10n.close,
                   child: GestureDetector(
@@ -161,19 +164,22 @@ class _CraftMemoriesState extends State<CraftMemories> {
                       if (!mounted) return;
                       widget.onNotificationsPermissionGranted?.call();
                     },
-                    child: SizedBox.square(
-                      dimension: 20,
-                      child: DecoratedBox(
-                        decoration: const BoxDecoration(
-                          color: Color(0x4AFFFFFF),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Transform.scale(
-                          scale: 0.75,
-                          child: const HugeIcon(
-                            icon: HugeIcons.strokeRoundedCancel01,
-                            color: Colors.white,
-                            strokeWidth: 1.0 / 0.75,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: SizedBox.square(
+                        dimension: 20,
+                        child: DecoratedBox(
+                          decoration: const BoxDecoration(
+                            color: Color(0x4AFFFFFF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Transform.scale(
+                            scale: 0.75,
+                            child: const HugeIcon(
+                              icon: HugeIcons.strokeRoundedCancel01,
+                              color: Colors.white,
+                              strokeWidth: 1.0 / 0.75,
+                            ),
                           ),
                         ),
                       ),
