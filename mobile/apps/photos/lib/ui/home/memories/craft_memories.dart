@@ -1,3 +1,5 @@
+import "dart:ui" as ui;
+
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -5,7 +7,18 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/notification_service.dart";
 import "package:photos/ui/home/memories/memory_cover_widget.dart";
-import "package:rive/rive.dart" as rive;
+
+Future<ui.FragmentProgram>? _craftMemoriesProgram;
+final ui.ImageFilter _craftMemoriesBlur = ui.ImageFilter.blur(
+  sigmaX: 0.01,
+  sigmaY: 0.01,
+);
+
+Future<ui.FragmentProgram> _loadCraftMemoriesProgram() {
+  return _craftMemoriesProgram ??= ui.FragmentProgram.fromAsset(
+    "shaders/craft_memories.frag",
+  );
+}
 
 class CraftMemories extends StatefulWidget {
   final double width;
@@ -24,23 +37,6 @@ class CraftMemories extends StatefulWidget {
 }
 
 class _CraftMemoriesState extends State<CraftMemories> {
-  late final rive.FileLoader _riveFileLoader;
-
-  @override
-  void initState() {
-    super.initState();
-    _riveFileLoader = rive.FileLoader.fromAsset(
-      "assets/memories.riv",
-      riveFactory: rive.Factory.rive,
-    );
-  }
-
-  @override
-  void dispose() {
-    _riveFileLoader.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -70,19 +66,9 @@ class _CraftMemoriesState extends State<CraftMemories> {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: rive.RiveWidgetBuilder(
-                          fileLoader: _riveFileLoader,
-                          builder:
-                              (BuildContext context, rive.RiveState state) {
-                                if (state is rive.RiveLoaded) {
-                                  return rive.RiveWidget(
-                                    controller: state.controller,
-                                    fit: rive.Fit.cover,
-                                  );
-                                }
-
-                                return const SizedBox.shrink();
-                              },
+                        child: ImageFiltered(
+                          imageFilter: _craftMemoriesBlur,
+                          child: const _CraftMemoriesBackground(),
                         ),
                       ),
                       Padding(
@@ -187,5 +173,75 @@ class _CraftMemoriesState extends State<CraftMemories> {
         ),
       ),
     );
+  }
+}
+
+class _CraftMemoriesBackground extends StatefulWidget {
+  const _CraftMemoriesBackground();
+
+  @override
+  State<_CraftMemoriesBackground> createState() =>
+      _CraftMemoriesBackgroundState();
+}
+
+class _CraftMemoriesBackgroundState extends State<_CraftMemoriesBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animation;
+  late final Future<ui.FragmentProgram> _program;
+
+  @override
+  void initState() {
+    super.initState();
+    _animation = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+    _program = _loadCraftMemoriesProgram();
+  }
+
+  @override
+  void dispose() {
+    _animation.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<ui.FragmentProgram>(
+      future: _program,
+      builder: (context, snapshot) {
+        if (snapshot.data case final program?) {
+          return CustomPaint(
+            painter: _CraftMemoriesPainter(
+              animation: _animation,
+              shader: program.fragmentShader(),
+            ),
+          );
+        }
+        return const ColoredBox(color: Color(0xFF1A451F));
+      },
+    );
+  }
+}
+
+class _CraftMemoriesPainter extends CustomPainter {
+  _CraftMemoriesPainter({required this.animation, required this.shader})
+    : super(repaint: animation);
+
+  final Animation<double> animation;
+  final ui.FragmentShader shader;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    shader
+      ..setFloat(0, size.width)
+      ..setFloat(1, size.height)
+      ..setFloat(2, animation.value * 10);
+    canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
+  }
+
+  @override
+  bool shouldRepaint(_CraftMemoriesPainter oldDelegate) {
+    return oldDelegate.shader != shader || oldDelegate.animation != animation;
   }
 }

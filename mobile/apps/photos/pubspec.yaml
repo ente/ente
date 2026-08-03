@@ -330,6 +330,8 @@ flutter_native_splash:
 
 # The following section is specific to Flutter.
 flutter:
+  shaders:
+    - shaders/craft_memories.frag
   assets:
     - assets/
     - assets/rituals/
