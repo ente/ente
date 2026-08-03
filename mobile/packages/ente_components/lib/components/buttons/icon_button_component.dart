@@ -18,6 +18,8 @@ enum IconButtonComponentVariant {
   circular,
 }
 
+enum IconButtonComponentSize { medium, small }
+
 /// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2207-42075&m=dev
 /// Section: Buttons / Icon Button
 /// Specs: 36px square, compact icon affordance with default, hover, pressed,
@@ -32,6 +34,7 @@ class IconButtonComponent extends StatefulWidget {
     this.shouldSurfaceExecutionStates = true,
     this.shouldShowSuccessConfirmation = false,
     this.tooltip,
+    this.size = .medium,
   });
 
   final Widget icon;
@@ -41,6 +44,7 @@ class IconButtonComponent extends StatefulWidget {
   final bool shouldSurfaceExecutionStates;
   final bool shouldShowSuccessConfirmation;
   final String? tooltip;
+  final IconButtonComponentSize size;
 
   @override
   State<IconButtonComponent> createState() => _IconButtonComponentState();
@@ -83,6 +87,11 @@ class _IconButtonComponentState extends State<IconButtonComponent>
     super.dispose();
   }
 
+  double get _buttonSize => switch (widget.size) {
+    .medium => 36.0,
+    .small => 16.0,
+  };
+
   @override
   Widget build(BuildContext context) {
     final enabled = _canHandleGestures;
@@ -120,7 +129,10 @@ class _IconButtonComponentState extends State<IconButtonComponent>
                 borderRadius: radius,
               ),
               child: Padding(
-                padding: const EdgeInsets.all(Spacing.sm),
+                padding: switch (widget.size) {
+                  .medium => const EdgeInsets.all(Spacing.sm),
+                  .small => EdgeInsets.zero,
+                },
                 child: AnimatedSwitcher(
                   duration: Motion.quick,
                   switchInCurve: Curves.easeOutCubic,
@@ -427,7 +439,6 @@ class _IconButtonComponentState extends State<IconButtonComponent>
   }
 }
 
-const double _buttonSize = 36;
 const double _iconSize = IconSizes.small;
 
 class _ResolvedIconButtonColors {
