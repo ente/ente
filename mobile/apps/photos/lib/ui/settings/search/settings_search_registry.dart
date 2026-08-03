@@ -569,6 +569,20 @@ class SettingsSearchRegistry {
 
       items.addAll([
         SettingsSearchItem(
+          title: l10n.trash,
+          subtitle: l10n.freeUpSpace,
+          sectionPath: l10n.freeUpSpace,
+          icon: HugeIcons.strokeRoundedDelete01,
+          routeBuilder: (_) => const FreeUpSpaceOptionsScreen(),
+          isSubPage: true,
+          keywords: [
+            "trash",
+            "recently deleted",
+            "restore",
+            "permanently delete",
+          ],
+        ),
+        SettingsSearchItem(
           title: l10n.freeUpDeviceSpace,
           subtitle: l10n.freeUpSpace,
           sectionPath: l10n.freeUpSpace,
