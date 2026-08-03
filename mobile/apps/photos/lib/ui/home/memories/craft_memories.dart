@@ -150,21 +150,33 @@ class _CraftMemoriesState extends State<CraftMemories> {
                 ),
               ),
               Positioned(
-                right: 0,
-                top: 0,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () async {
-                    await localSettings.setCraftingMemoriesBannerDismissed();
-                    if (!mounted) return;
-                    widget.onNotificationsPermissionGranted?.call();
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedCancel01,
-                      size: IconSizes.small,
-                      color: Colors.white,
+                right: 8,
+                top: 8,
+                child: Tooltip(
+                  message: l10n.close,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () async {
+                      await localSettings.setCraftingMemoriesBannerDismissed();
+                      if (!mounted) return;
+                      widget.onNotificationsPermissionGranted?.call();
+                    },
+                    child: SizedBox.square(
+                      dimension: 20,
+                      child: DecoratedBox(
+                        decoration: const BoxDecoration(
+                          color: Color(0x4AFFFFFF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Transform.scale(
+                          scale: 0.75,
+                          child: const HugeIcon(
+                            icon: HugeIcons.strokeRoundedCancel01,
+                            color: Colors.white,
+                            strokeWidth: 1.0 / 0.75,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
