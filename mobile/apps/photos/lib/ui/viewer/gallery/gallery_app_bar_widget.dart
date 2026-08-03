@@ -72,6 +72,7 @@ class GalleryAppBarWidget extends StatefulWidget {
     Future<void> Function()? onDisableDeviceFolderBackup,
     Collection? collection,
     List<EnteFile>? files,
+    PreferredSizeWidget? bottom,
   }) {
     return GalleryAppBarConfig(
       sliverBuilder: (_) => GalleryAppBarWidget._(
@@ -84,24 +85,31 @@ class GalleryAppBarWidget extends StatefulWidget {
         onDisableDeviceFolderBackup: onDisableDeviceFolderBackup,
         collection: collection,
         files: files,
+        bottom: bottom,
       ),
-      geometryBuilder: (context) =>
-          _resolveSliverGeometry(context, subtitle: subtitle),
+      geometryBuilder: (context) => _resolveSliverGeometry(
+        context,
+        subtitle: subtitle,
+        customBottomHeight: bottom?.preferredSize.height,
+      ),
     );
   }
 
   static HeaderAppBarGeometry _resolveSliverGeometry(
     BuildContext context, {
     String? subtitle,
+    double? customBottomHeight,
   }) {
     final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
       context,
     );
     final isHierarchicalSearchable =
         inheritedSearchFilterData?.isHierarchicalSearchable ?? false;
-    final bottomHeight = isHierarchicalSearchable
-        ? AppBarFilterChips.preferredHeight(context)
-        : 0.0;
+    final bottomHeight =
+        customBottomHeight ??
+        (isHierarchicalSearchable
+            ? AppBarFilterChips.preferredHeight(context)
+            : 0.0);
     return SliverAppBarComponent.resolveGeometry(
       context,
       subtitle: subtitle,
@@ -121,6 +129,7 @@ class GalleryAppBarWidget extends StatefulWidget {
   final Future<void> Function()? onDisableDeviceFolderBackup;
   final Collection? collection;
   final List<EnteFile>? files;
+  final PreferredSizeWidget? bottom;
 
   const GalleryAppBarWidget._(
     this.type,
@@ -132,6 +141,7 @@ class GalleryAppBarWidget extends StatefulWidget {
     this.onDisableDeviceFolderBackup,
     this.collection,
     this.files,
+    this.bottom,
   });
 
   @override
@@ -251,6 +261,15 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
     if (galleryType == GalleryType.homepage) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+
+    if (widget.bottom != null) {
+      return _GallerySliverAppBar(
+        title: _appBarTitle,
+        subtitle: widget.subtitle,
+        actions: _getDefaultActions(context),
+        bottom: widget.bottom,
+      );
     }
 
     if (!isHierarchicalSearchable) {
@@ -525,6 +544,10 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     final bool isHidden = widget.collection?.isHidden() ?? false;
 
     if (!_hasOverflowMenuActions(userId, isArchived, isHidden)) {
+      return actions;
+    }
+
+    if (galleryType == GalleryType.trash) {
       return actions;
     }
 
@@ -859,13 +882,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
           AlbumPopupAction.downloadAlbum,
           strings.download,
           galleryAppBarMenuIcon(HugeIcons.strokeRoundedDownload01, iconColor),
-        ),
-      if (galleryType == GalleryType.trash)
-        _menuOption(
-          AlbumPopupAction.emptyTrash,
-          strings.deleteAll,
-          galleryAppBarMenuIcon(HugeIcons.strokeRoundedDelete01, warningColor),
-          labelColor: warningColor,
         ),
     ];
   }
