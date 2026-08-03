@@ -119,6 +119,7 @@ dependencies:
   saf_util: 2.0.0
   scoped_dir_access:
     path: ../../packages/scoped_dir_access
+  screen_retriever: 0.2.1
   sentry: 9.6.0
   sentry_flutter: 9.6.0
   share_plus: 12.0.0

@@ -403,6 +403,8 @@
   "doubleTapToViewHiddenCode": "You can double tap on an entry to view code",
   "focusOnSearchBar": "Focus search on app start",
   "minimizeToTrayOnClose": "Minimize to tray on close",
+  "menubarMode": "Menubar mode",
+  "restartAppToApplyChanges": "Restart the app to apply this change",
   "confirmUpdatingkey": "Are you sure you want to update the secret key?",
   "minimizeAppOnCopy": "Minimize app on copy",
   "editCodeAuthMessage": "Authenticate to edit code",
