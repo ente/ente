@@ -60,7 +60,7 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
           title: l10n.freeUpDeviceSpace,
           subtitle:
               l10n.freeUpDeviceSpaceDesc +
-              (Platform.isIOS ? ". ${l10n.freeUpDeviceSpaceDescICloud}" : ""),
+              (Platform.isIOS ? " ${l10n.freeUpDeviceSpaceDescICloud}" : ""),
           icon: HugeIcons.strokeRoundedSmartPhone01,
           onTap: () async => _onFreeUpDeviceSpaceTapped(),
         ),

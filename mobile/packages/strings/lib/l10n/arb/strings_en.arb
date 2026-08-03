@@ -1776,7 +1776,7 @@
       "count": {}
     }
   },
-  "freeUpDeviceSpaceDesc": "Remove backed up items",
+  "freeUpDeviceSpaceDesc": "Remove backed up items.",
   "freeUpDeviceSpaceDescICloud": "Files in iCloud shared albums cannot be cleared",
   "@freeUpDeviceSpaceDescICloud": {
     "description": "Here 'cleared' means 'deleted' from the device"
