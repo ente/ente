@@ -23,7 +23,6 @@ class CraftMemories extends StatefulWidget {
 
 class _CraftMemoriesState extends State<CraftMemories> {
   late final rive.FileLoader _riveFileLoader;
-  bool _isButtonPressed = false;
 
   @override
   void initState() {
@@ -45,96 +44,91 @@ class _CraftMemoriesState extends State<CraftMemories> {
     final l10n = context.strings;
     return Padding(
       padding: const EdgeInsets.all(MemoryCoverWidget.gap / 2.0),
-      child: GestureDetector(
-        onTap: () async {
-          if (await NotificationService.instance.requestPermissions(context) &&
-              mounted) {
-            widget.onNotificationsPermissionGranted?.call();
-          }
-        },
-        onTapDown: (_) => setState(() => _isButtonPressed = true),
-        onTapUp: (_) => setState(() => _isButtonPressed = false),
-        onTapCancel: () => setState(() => _isButtonPressed = false),
-        child: AnimatedScale(
-          scale: _isButtonPressed ? 0.98 : 1,
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOutCubic,
-          child: SizedBox(
-            width: widget.width,
-            height: widget.height,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: rive.RiveWidgetBuilder(
-                      fileLoader: _riveFileLoader,
-                      builder: (BuildContext context, rive.RiveState state) {
-                        if (state is rive.RiveLoaded) {
-                          return rive.RiveWidget(
-                            controller: state.controller,
-                            fit: rive.Fit.cover,
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
+      child: SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: GestureDetector(
+            onTap: () async {
+              if (await NotificationService.instance.requestPermissions(
+                    context,
+                  ) &&
+                  mounted) {
+                widget.onNotificationsPermissionGranted?.call();
+              }
+            },
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: rive.RiveWidgetBuilder(
+                    fileLoader: _riveFileLoader,
+                    builder: (BuildContext context, rive.RiveState state) {
+                      if (state is rive.RiveLoaded) {
+                        return rive.RiveWidget(
+                          controller: state.controller,
+                          fit: rive.Fit.cover,
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.craftingMemoriesFirstHalf,
-                          style: TextStyle(
-                            fontFamily: TextStyles.outfitFontFamily,
-                            package: TextStyles.fontPackage,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: widget.width * 0.115,
-                            height: 1,
-                          ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.craftingMemoriesFirstHalf,
+                        style: TextStyle(
+                          fontFamily: TextStyles.outfitFontFamily,
+                          package: TextStyles.fontPackage,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: widget.width * 0.115,
+                          height: 1,
                         ),
-                        Text(
-                          l10n.craftingMemoriesSecondHalf,
-                          style: TextStyle(
-                            fontFamily: "Gochi Hand",
-                            package: TextStyles.fontPackage,
-                            color: Colors.white,
-                            fontSize: widget.width * 0.175,
-                            height: 1,
-                          ),
+                      ),
+                      Text(
+                        l10n.craftingMemoriesSecondHalf,
+                        style: TextStyle(
+                          fontFamily: "Gochi Hand",
+                          package: TextStyles.fontPackage,
+                          color: Colors.white,
+                          fontSize: widget.width * 0.175,
+                          height: 1,
                         ),
-                        const SizedBox(height: 6),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(128),
-                            borderRadius: BorderRadius.circular(14),
+                      ),
+                      const SizedBox(height: 6),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(128),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            child: Text(
-                              l10n.notifyMe,
-                              style: const TextStyle(
-                                fontFamily: TextStyles.outfitFontFamily,
-                                package: TextStyles.fontPackage,
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
+                          child: Text(
+                            l10n.notifyMe,
+                            style: const TextStyle(
+                              fontFamily: TextStyles.outfitFontFamily,
+                              package: TextStyles.fontPackage,
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
