@@ -87,13 +87,15 @@ class MLIndexStatusService {
       for (final key in event.fileKeys) {
         if (baseline.pendingFileKeys.remove(key)) {
           removedAny = true;
-        } else {
+        } else if (!baseline.allFileKeys.contains(key)) {
           unknownKey = true;
         }
       }
       if (unknownKey) {
-        // A file we didn't consider pending got indexed, so the baseline has
-        // drifted (e.g. indexes were wiped and are being rebuilt).
+        // A file outside the baseline's library snapshot got indexed (e.g.
+        // newly uploaded or synced in), so the baseline is stale. Known but
+        // non-pending keys are ignored: those were indexed while the baseline
+        // itself was being computed.
         _logger.info("Baseline drift detected, scheduling recompute");
         _markDirty();
         return;

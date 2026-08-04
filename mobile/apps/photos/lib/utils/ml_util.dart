@@ -54,17 +54,19 @@ class IndexStatus {
 /// [_getOnlineFilesForMlIndexingCandidates] and
 /// [getLocalGalleryFilesForMlIndexing].
 class MLIndexBaseline {
-  final int total;
-
-  /// uploadedFileIDs in online mode, local int IDs in local gallery mode.
+  /// All eligible file keys: uploadedFileIDs in online mode, local int IDs in
+  /// local gallery mode. [pendingFileKeys] is a subset.
+  final Set<int> allFileKeys;
   final Set<int> pendingFileKeys;
   final bool isLocalGallery;
 
   MLIndexBaseline({
-    required this.total,
+    required this.allFileKeys,
     required this.pendingFileKeys,
     required this.isLocalGallery,
   });
+
+  int get total => allFileKeys.length;
 }
 
 class FileMLInstruction {
@@ -177,7 +179,7 @@ Future<MLIndexBaseline> computeMLIndexBaseline() async {
       "ML index baseline: total ${seen.length}, pending ${pending.length} (localGallery: $localGallery, petActive: $petActive)",
     );
     return MLIndexBaseline(
-      total: seen.length,
+      allFileKeys: seen,
       pendingFileKeys: pending,
       isLocalGallery: localGallery,
     );
