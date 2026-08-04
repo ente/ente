@@ -59,15 +59,24 @@ class MLIndexBaseline {
   final Set<int> allFileKeys;
   final Set<int> pendingFileKeys;
   final bool isLocalGallery;
+  final bool petActive;
 
   MLIndexBaseline({
     required this.allFileKeys,
     required this.pendingFileKeys,
     required this.isLocalGallery,
+    required this.petActive,
   });
 
   int get total => allFileKeys.length;
 }
+
+/// Whether pet indexing is currently active and thus required for a file to
+/// count as fully indexed.
+bool isPetIndexingActive() =>
+    flagService.petEnabled &&
+    localSettings.petRecognitionEnabled &&
+    (isLocalGalleryMode || localSettings.isMLLocalIndexingEnabled);
 
 class FileMLInstruction {
   final EnteFile file;
@@ -124,10 +133,7 @@ Future<MLIndexBaseline> computeMLIndexBaseline() async {
     final mlDataDB = localGallery
         ? MLDataDB.localGalleryInstance
         : MLDataDB.instance;
-    final bool petActive =
-        flagService.petEnabled &&
-        localSettings.petRecognitionEnabled &&
-        (localGallery || localSettings.isMLLocalIndexingEnabled);
+    final bool petActive = isPetIndexingActive();
     final Set<int> faceIndexed = await mlDataDB.getFaceIndexedFileIDs();
     final Set<int> clipIndexed = await mlDataDB.getClipIndexedFileIDs();
     final Set<int> petIndexed = petActive
@@ -182,6 +188,7 @@ Future<MLIndexBaseline> computeMLIndexBaseline() async {
       allFileKeys: seen,
       pendingFileKeys: pending,
       isLocalGallery: localGallery,
+      petActive: petActive,
     );
   } catch (e, s) {
     _logger.severe('Error computing ML index baseline', e, s);

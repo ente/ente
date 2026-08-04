@@ -479,7 +479,7 @@ class MLStatusWidgetState extends State<MLStatusWidget> {
 
   Future<void> _fetchInitialStatus() async {
     try {
-      final status = await mlIndexStatusService.getStatus(refresh: true);
+      final status = await mlIndexStatusService.getStatus();
       if (mounted) setState(() => _status = status);
     } catch (_) {}
   }

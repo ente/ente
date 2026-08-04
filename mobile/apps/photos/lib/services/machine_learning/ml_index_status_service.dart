@@ -36,11 +36,20 @@ class MLIndexStatusService {
 
   Future<IndexStatus> getStatus({bool refresh = false}) {
     final baseline = _baseline;
-    if (!refresh && !_dirty && baseline != null) {
+    if (!refresh &&
+        !_dirty &&
+        baseline != null &&
+        _baselineConfigCurrent(baseline)) {
       return Future.value(_statusFromBaseline(baseline));
     }
     return _refresh();
   }
+
+  /// The baseline bakes in the ML configuration it was computed under; a
+  /// change to that configuration makes it stale without any event firing.
+  bool _baselineConfigCurrent(MLIndexBaseline baseline) =>
+      baseline.isLocalGallery == isLocalGalleryMode &&
+      baseline.petActive == isPetIndexingActive();
 
   IndexStatus _statusFromBaseline(MLIndexBaseline baseline) {
     return IndexStatus(
@@ -81,6 +90,10 @@ class MLIndexStatusService {
     return _lock.synchronized(() {
       final baseline = _baseline;
       if (baseline == null || _dirty) return;
+      if (!_baselineConfigCurrent(baseline)) {
+        _markDirty();
+        return;
+      }
       if (event.isLocalGallery != baseline.isLocalGallery) return;
       bool removedAny = false;
       bool unknownKey = false;
