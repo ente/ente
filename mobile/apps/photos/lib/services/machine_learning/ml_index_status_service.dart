@@ -8,6 +8,7 @@ import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/utils/ml_util.dart";
 import "package:photos/utils/network_util.dart";
+import "package:synchronized/synchronized.dart";
 
 /// Tracks ML indexing progress without polling: a baseline is computed once
 /// from the DBs and afterwards updated in memory from [FilesMLIndexedEvent]s,
@@ -15,6 +16,7 @@ import "package:photos/utils/network_util.dart";
 class MLIndexStatusService {
   final _logger = Logger("MLIndexStatusService");
   final _statusController = StreamController<IndexStatus>.broadcast();
+  final _lock = Lock();
 
   MLIndexBaseline? _baseline;
   bool _dirty = true;
@@ -34,16 +36,10 @@ class MLIndexStatusService {
 
   Future<IndexStatus> getStatus({bool refresh = false}) {
     final baseline = _baseline;
-    if (!refresh && !_dirty && baseline != null && !_configChanged(baseline)) {
+    if (!refresh && !_dirty && baseline != null) {
       return Future.value(_statusFromBaseline(baseline));
     }
     return _refresh();
-  }
-
-  bool _configChanged(MLIndexBaseline baseline) {
-    return baseline.isLocalGallery != isLocalGalleryMode ||
-        baseline.petActive !=
-            mlPetIndexingActive(localGallery: isLocalGalleryMode);
   }
 
   IndexStatus _statusFromBaseline(MLIndexBaseline baseline) {
@@ -60,41 +56,52 @@ class MLIndexStatusService {
     });
   }
 
-  Future<IndexStatus> _doRefresh() async {
-    // Cleared before reading so invalidations that race the recompute are
-    // not lost.
-    _dirty = false;
-    _hasWifi = await canUseHighBandwidth();
-    final baseline = await computeMLIndexBaseline();
-    _baseline = baseline;
-    final status = _statusFromBaseline(baseline);
-    _statusController.add(status);
-    return status;
+  Future<IndexStatus> _doRefresh() {
+    return _lock.synchronized(() async {
+      // Cleared before reading so invalidations that race the recompute are
+      // not lost; restored on failure so stale data is not treated as fresh.
+      _dirty = false;
+      try {
+        _hasWifi = await canUseHighBandwidth();
+        final baseline = await computeMLIndexBaseline();
+        _baseline = baseline;
+        final status = _statusFromBaseline(baseline);
+        _statusController.add(status);
+        return status;
+      } catch (e) {
+        _dirty = true;
+        rethrow;
+      }
+    });
   }
 
-  void _onFilesIndexed(FilesMLIndexedEvent event) {
-    final baseline = _baseline;
-    if (baseline == null || _dirty) return;
-    if (event.isLocalGallery != baseline.isLocalGallery) return;
-    bool removedAny = false;
-    bool unknownKey = false;
-    for (final key in event.fileKeys) {
-      if (baseline.pendingFileKeys.remove(key)) {
-        removedAny = true;
-      } else {
-        unknownKey = true;
+  Future<void> _onFilesIndexed(FilesMLIndexedEvent event) {
+    // The lock ensures an in-flight baseline compute finishes before the
+    // event is applied, so files indexed during the compute are not lost.
+    return _lock.synchronized(() {
+      final baseline = _baseline;
+      if (baseline == null || _dirty) return;
+      if (event.isLocalGallery != baseline.isLocalGallery) return;
+      bool removedAny = false;
+      bool unknownKey = false;
+      for (final key in event.fileKeys) {
+        if (baseline.pendingFileKeys.remove(key)) {
+          removedAny = true;
+        } else {
+          unknownKey = true;
+        }
       }
-    }
-    if (unknownKey) {
-      // A file we didn't consider pending got indexed, so the baseline has
-      // drifted (e.g. indexes were wiped and are being rebuilt).
-      _logger.info("Baseline drift detected, scheduling recompute");
-      _markDirty();
-      return;
-    }
-    if (removedAny) {
-      _statusController.add(_statusFromBaseline(baseline));
-    }
+      if (unknownKey) {
+        // A file we didn't consider pending got indexed, so the baseline has
+        // drifted (e.g. indexes were wiped and are being rebuilt).
+        _logger.info("Baseline drift detected, scheduling recompute");
+        _markDirty();
+        return;
+      }
+      if (removedAny) {
+        _statusController.add(_statusFromBaseline(baseline));
+      }
+    });
   }
 
   void _markDirty() {

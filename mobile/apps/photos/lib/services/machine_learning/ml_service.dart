@@ -913,6 +913,7 @@ class MLService {
       }
       _logger.info("ML result for fileID ${result.fileId} stored remote+local");
       indexedOrSkipped = true;
+      _fireFilesMLIndexedEvent(instruction);
       return actuallyRanML;
     } catch (e, s) {
       final String format = instruction.file.displayName.split('.').last;
@@ -960,6 +961,7 @@ class MLService {
           "Stored empty ML result markers for fileID ${instruction.fileKey}: ${storedMarkers.join(', ')}",
         );
         indexedOrSkipped = true;
+        _fireFilesMLIndexedEvent(instruction);
         return true;
       }
       _logger.severe(
@@ -975,11 +977,6 @@ class MLService {
       return false;
     } finally {
       if (indexedOrSkipped) {
-        Bus.instance.fire(
-          FilesMLIndexedEvent([
-            instruction.fileKey,
-          ], isLocalGallery: instruction.isLocalGallery),
-        );
         if (pathToDeleteAfterMLProcessing != null) {
           try {
             await File(pathToDeleteAfterMLProcessing).delete();
@@ -994,6 +991,14 @@ class MLService {
         await _evictRemoteCacheAfterMLProcessing(instruction.file);
       }
     }
+  }
+
+  void _fireFilesMLIndexedEvent(FileMLInstruction instruction) {
+    Bus.instance.fire(
+      FilesMLIndexedEvent([
+        instruction.fileKey,
+      ], isLocalGallery: instruction.isLocalGallery),
+    );
   }
 
   bool _shouldDeleteAfterMLProcessing(EnteFile file) {

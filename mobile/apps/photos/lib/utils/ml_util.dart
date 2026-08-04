@@ -59,13 +59,11 @@ class MLIndexBaseline {
   /// uploadedFileIDs in online mode, local int IDs in local gallery mode.
   final Set<int> pendingFileKeys;
   final bool isLocalGallery;
-  final bool petActive;
 
   MLIndexBaseline({
     required this.total,
     required this.pendingFileKeys,
     required this.isLocalGallery,
-    required this.petActive,
   });
 }
 
@@ -118,18 +116,16 @@ class _OnlineMLIndexingCandidates {
   });
 }
 
-bool mlPetIndexingActive({required bool localGallery}) =>
-    flagService.petEnabled &&
-    localSettings.petRecognitionEnabled &&
-    (localGallery || localSettings.isMLLocalIndexingEnabled);
-
 Future<MLIndexBaseline> computeMLIndexBaseline() async {
   try {
     final bool localGallery = isLocalGalleryMode;
     final mlDataDB = localGallery
         ? MLDataDB.localGalleryInstance
         : MLDataDB.instance;
-    final bool petActive = mlPetIndexingActive(localGallery: localGallery);
+    final bool petActive =
+        flagService.petEnabled &&
+        localSettings.petRecognitionEnabled &&
+        (localGallery || localSettings.isMLLocalIndexingEnabled);
     final Set<int> faceIndexed = await mlDataDB.getFaceIndexedFileIDs();
     final Set<int> clipIndexed = await mlDataDB.getClipIndexedFileIDs();
     final Set<int> petIndexed = petActive
@@ -184,7 +180,6 @@ Future<MLIndexBaseline> computeMLIndexBaseline() async {
       total: seen.length,
       pendingFileKeys: pending,
       isLocalGallery: localGallery,
-      petActive: petActive,
     );
   } catch (e, s) {
     _logger.severe('Error computing ML index baseline', e, s);

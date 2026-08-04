@@ -23,29 +23,26 @@ class MLProgressBanner extends StatefulWidget {
 class _MLProgressBannerState extends State<MLProgressBanner> {
   IndexStatus? _indexStatus;
   bool _dismissed = false;
-  late final StreamSubscription<IndexStatus> _statusSubscription;
-  late final StreamSubscription<NotificationEvent> _notificationSubscription;
+  StreamSubscription<IndexStatus>? _statusSubscription;
+  StreamSubscription<NotificationEvent>? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
+    if (localSettings.isMLProgressBannerDismissed) {
+      return;
+    }
     _statusSubscription = mlIndexStatusService.statusStream.listen((status) {
-      if (mounted) {
-        setState(() {
-          _indexStatus = status;
-        });
-      }
+      if (mounted) setState(() => _indexStatus = status);
     });
     _notificationSubscription = Bus.instance.on<NotificationEvent>().listen((
       _,
     ) {
       // ML consent or related settings may have changed.
-      if (mounted) {
-        setState(() {});
-      }
-      _fetchStatusIfEligible();
+      if (mounted) setState(() {});
+      unawaited(_fetchStatusIfEligible());
     });
-    _fetchStatusIfEligible();
+    unawaited(_fetchStatusIfEligible());
   }
 
   bool get _isEligible =>
@@ -54,26 +51,24 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
       !localSettings.isMLProgressBannerDismissed &&
       !(isLocalGalleryMode && !localSettings.isMLLocalIndexingEnabled);
 
-  void _fetchStatusIfEligible() {
+  Future<void> _fetchStatusIfEligible() async {
     if (!_isEligible) return;
-    unawaited(
-      mlIndexStatusService
-          .getStatus()
-          .then((status) {
-            if (mounted) {
-              setState(() {
-                _indexStatus = status;
-              });
-            }
-          })
-          .catchError((_) {}),
-    );
+    try {
+      final status = await mlIndexStatusService.getStatus();
+      if (mounted) setState(() => _indexStatus = status);
+    } catch (_) {}
+  }
+
+  void _cancelSubscriptions() {
+    _statusSubscription?.cancel();
+    _statusSubscription = null;
+    _notificationSubscription?.cancel();
+    _notificationSubscription = null;
   }
 
   @override
   void dispose() {
-    _statusSubscription.cancel();
-    _notificationSubscription.cancel();
+    _cancelSubscriptions();
     super.dispose();
   }
 
@@ -202,6 +197,7 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
     setState(() {
       _dismissed = true;
     });
+    _cancelSubscriptions();
     localSettings.setMLProgressBannerDismissed(true);
   }
 }

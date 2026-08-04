@@ -1,12 +1,10 @@
 import "dart:async";
 
-import "package:connectivity_plus/connectivity_plus.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/event_bus.dart";
-import "package:photos/events/device_health_changed_event.dart";
 import "package:photos/events/notification_event.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
@@ -460,58 +458,36 @@ class MLStatusWidget extends StatefulWidget {
 }
 
 class MLStatusWidgetState extends State<MLStatusWidget> {
+  Timer? _timer;
   IndexStatus? _status;
   bool _isDeviceHealthy = computeController.isDeviceHealthy;
   StreamSubscription<IndexStatus>? _statusSubscription;
-  StreamSubscription<DeviceHealthChangedEvent>? _healthSubscription;
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
-    MLService.instance.triggerML();
     _statusSubscription = mlIndexStatusService.statusStream.listen((status) {
-      if (mounted) {
-        setState(() {
-          _status = status;
-        });
-      }
+      if (mounted) setState(() => _status = status);
     });
-    unawaited(
-      mlIndexStatusService
-          .getStatus(refresh: true)
-          .then((status) {
-            if (mounted) {
-              setState(() {
-                _status = status;
-              });
-            }
-          })
-          .catchError((_) {}),
-    );
-    _healthSubscription = Bus.instance.on<DeviceHealthChangedEvent>().listen((
-      event,
-    ) {
-      if (mounted) {
-        setState(() {
-          _isDeviceHealthy = event.isHealthy;
-        });
-      }
-    });
-    // While this screen forces ML on, a run that stopped for lack of wifi is
-    // not restarted by anything else, so kick it when connectivity changes.
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      _,
-    ) {
+    unawaited(_fetchInitialStatus());
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       MLService.instance.triggerML();
+      _isDeviceHealthy = computeController.isDeviceHealthy;
+      if (mounted) setState(() {});
     });
+  }
+
+  Future<void> _fetchInitialStatus() async {
+    try {
+      final status = await mlIndexStatusService.getStatus(refresh: true);
+      if (mounted) setState(() => _status = status);
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _statusSubscription?.cancel();
-    _healthSubscription?.cancel();
-    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
