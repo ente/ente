@@ -14,7 +14,6 @@ const Page: React.FC = () => {
     const router = useRouter();
 
     useEffect(() => {
-        /** Go back to pairing page */
         const pair = () => void router.push("/");
 
         let stop = false;
@@ -25,9 +24,7 @@ const Page: React.FC = () => {
                 while (!stop) {
                     const { value: url, done } = await urlGenerator.next();
                     if (done == true || !url) {
-                        // No items in this callection can be shown.
                         setIsEmpty(true);
-                        // Go back to pairing screen after 5 seconds.
                         setTimeout(pair, 5000);
                         return;
                     }
@@ -97,7 +94,6 @@ const NoItems: React.FC = () => {
 };
 
 interface SlideViewProps {
-    /** The URL of the image to show. */
     url: string;
 }
 
@@ -118,20 +114,9 @@ const SlideView_ = styled("div")`
     background-blend-mode: multiply;
     background-color: rgba(0, 0, 0, 0.5);
 
-    /* Smooth out the transition a bit.
-     *
-     * For the img itself, we set decoding="sync" to have it switch seamlessly.
-     * But there does not seem to be a way of setting decoding sync for the
-     * background image, and for large (multi-MB) images the background image
-     * switch is still visually non-atomic.
-     *
-     * As a workaround, add a long transition so that the background image
-     * transitions in a more "fade-to" manner. This effect might or might not be
-     * visually the best though.
-     *
-     * Does not work in Firefox, but that's fine, this is only a slight tweak,
-     * not a functional requirement.
-     */
+    /* The img gets decoding="sync" to switch seamlessly, but there is no
+     * equivalent for the background image, so for large images its switch is
+     * visibly non-atomic. The long transition masks this. */
     transition: all 2s;
 
     img {
@@ -142,15 +127,8 @@ const SlideView_ = styled("div")`
     }
 `;
 
-/**
- * Variant of {@link SlideView} for use when we're running on Chromecast.
- *
- * Chromecast devices have trouble with
- *
- *     backdrop-filter: blur(10px);
- *
- * So emulate a cheaper approximation for use on Chromecast.
- */
+// Chromecast devices have trouble with backdrop-filter blur; this variant
+// approximates it more cheaply.
 const SlideViewChromecast: React.FC<SlideViewProps> = ({ url }) => {
     return (
         <SlideViewChromecast_>
@@ -163,7 +141,6 @@ const SlideViewChromecast: React.FC<SlideViewProps> = ({ url }) => {
 const SlideViewChromecast_ = styled("div")`
     height: 100vh;
 
-    /* We can't set opacity of background-image, so use a wrapper */
     position: relative;
     overflow: hidden;
 

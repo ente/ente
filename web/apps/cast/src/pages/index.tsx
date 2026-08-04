@@ -46,18 +46,11 @@ const Page: React.FC = () => {
                     privateKey,
                     pairingCode,
                 });
-                if (!data) {
-                    // No one has connected yet.
-                    return;
-                }
+                if (!data) return;
 
                 storeCastData(data);
                 await router.push("/slideshow");
             } catch (e) {
-                // The pairing code becomes invalid after an hour, which will cause
-                // `getCastData` to fail. There might be other reasons this might
-                // fail too, but in all such cases, it is a reasonable idea to start
-                // again from the beginning.
                 log.warn("Failed to get cast data", e);
                 setPairingCode(undefined);
             }

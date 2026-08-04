@@ -20,64 +20,19 @@ import { shuffled } from "ente-utils/array";
 import { wait } from "ente-utils/promise";
 import { isChromecast } from "./chromecast-receiver";
 
-/**
- * An async generator function that loops through all the files in the
- * collection, returning renderable image URLs to each that can be displayed in
- * a slideshow.
- *
- * Each time it resolves with a (data) URL for the slideshow image to show next.
- *
- * If there are no renderable image in the collection, the sequence ends by
- * yielding `{done: true}`.
- *
- * Otherwise when the generator reaches the end of the collection, it starts
- * from the beginning again. So the sequence will continue indefinitely for
- * non-empty collections.
- *
- * The generator ignores errors in the fetching and decoding of individual
- * images in the collection, skipping the erroneous ones and moving onward to
- * the next one.
- *
- * - It will however throw if there are errors when getting the collection
- *   itself. This can happen both the first time, or when we are about to loop
- *   around to the start of the collection.
- *
- * - It will also throw if three consecutive image fail.
- *
- * @param castData The collection to show and credentials to fetch the files
- * within it.
- */
 export const imageURLGenerator = async function* (castData: CastData) {
     const { collectionKey, castToken } = castData;
 
-    /**
-     * Keep a FIFO queue of the URLs that we've vended out recently so that we
-     * can revoke those that are not being shown anymore.
-     */
     const previousURLs: string[] = [];
 
-    /** Number of milliseconds to keep the slide on the screen. */
-    const slideDuration = 12000; /* 12 s */
+    const slideDuration = 12000;
 
-    /**
-     * Time when we last yielded.
-     *
-     * We use this to keep an roughly periodic spacing between yields that
-     * accounts for the time we spend fetching and processing the images.
-     */
     let lastYieldTime = Date.now();
 
-    // The first time around regress the lastYieldTime into the past so that
-    // we don't wait around too long for the first slide (we do want to wait a
-    // bit, for the user to see the checkmark animation as reassurance).
-    lastYieldTime -= slideDuration - 2500; /* wait at most 2.5 s */
+    // Wait at most 2.5 s for the first slide, enough for the user to see the
+    // checkmark animation as reassurance.
+    lastYieldTime -= slideDuration - 2500;
 
-    /**
-     * Number of time we have caught an exception while trying to generate an
-     * image URL for individual files.
-     *
-     * When this happens three times consecutively, we throw.
-     */
     let consecutiveFailures = 0;
 
     while (true) {
@@ -99,30 +54,17 @@ export const imageURLGenerator = async function* (castData: CastData) {
                 haveEligibleFiles = true;
             } catch (e) {
                 consecutiveFailures += 1;
-                // 1, 2, bang!
                 if (consecutiveFailures == 3) throw e;
 
-                if (isHTTP401Error(e)) {
-                    // The token has expired. This can happen, e.g., if the user
-                    // opens the dialog to cast again, causing the client to
-                    // invalidate existing tokens.
-                    //
-                    //  Rethrow the error, which will bring us back to the
-                    // pairing page.
-                    throw e;
-                }
+                if (isHTTP401Error(e)) throw e;
 
-                // On all other errors (including temporary network issues),
                 log.error("Skipping unrenderable file", e);
-                await wait(100); /* Breathe */
+                await wait(100);
                 continue;
             }
 
-            // The last element of previousURLs is the URL that is currently
-            // being shown on screen.
-            //
-            // The last to last element is the one that was shown prior to that,
-            // and now can be safely revoked.
+            // The last entry is the URL currently on screen; only revoke the
+            // ones before it.
             if (previousURLs.length > 1)
                 URL.revokeObjectURL(previousURLs.shift()!);
 
@@ -136,24 +78,10 @@ export const imageURLGenerator = async function* (castData: CastData) {
             yield url;
         }
 
-        // This collection does not have any files that we can show.
         if (!haveEligibleFiles) return;
     }
 };
 
-/**
- * Fetch all the {@link RemoteEnteFile}s present in the collection corresponding
- * to the given {@link castToken}.
- *
- * The remote files are not decrypted or otherwise used at this point, we will
- * decrypt and use them on demand when they need to be displayed.
- *
- * @param castToken A token used both for authentication, and also identifying
- * the collection corresponding to the cast session.
- *
- * @returns All the files in the collection in an arbitrary order. Since we are
- * anyways going to be shuffling these files, the order has no bearing.
- */
 export const getRemoteCastCollectionFiles = async (
     castToken: string,
 ): Promise<RemoteEnteFile[]> => {
@@ -182,13 +110,10 @@ const isFileEligible = (file: EnteFile) => {
 
     if ((file.info?.fileSize ?? 0) > 100 * 1024 * 1024) return false;
 
-    // This check is fast but potentially incorrect because in practice we do
-    // encounter files that are incorrectly named and have a misleading
-    // extension. To detect the actual type, we need to sniff the MIME type, but
-    // that requires downloading and decrypting the file first.
+    // The extension is a fast but unreliable check (files can be misnamed);
+    // the accurate MIME sniff needs a download and decrypt first.
     const [, extension] = nameAndExtension(fileFileName(file));
     if (extension && needsJPEGConversion(extension)) {
-        // On the web, we only support HEIC conversion.
         return isHEICExtension(extension);
     }
 
@@ -199,13 +124,6 @@ const isImageOrLivePhoto = (file: EnteFile) =>
     file.metadata.fileType == FileType.image ||
     file.metadata.fileType == FileType.livePhoto;
 
-/**
- * Create and return a new data URL that can be used to show the given
- * {@link file} in our slideshow image viewer.
- *
- * Once we're done showing the file, the URL should be revoked using
- * {@link URL.revokeObjectURL} to free up browser resources.
- */
 const createRenderableURL = async (castToken: string, file: EnteFile) => {
     const imageBlob = await renderableImageBlob(castToken, file);
     return URL.createObjectURL(imageBlob);
@@ -226,9 +144,6 @@ const renderableImageBlob = async (castToken: string, file: EnteFile) => {
         blob = new Blob([imageData]);
     }
 
-    // We cannot rely on the file's extension to detect the file type, some
-    // files are incorrectly named. So use a MIME type sniffer first, but if
-    // that fails than fallback to the extension.
     const mimeType = await detectMediaMIMEType(new File([blob], fileName));
     if (!mimeType)
         throw new Error(`Could not detect MIME type for file ${fileName}`);
@@ -251,7 +166,6 @@ const downloadFile = async (
 
     const getFile = () => {
         if (customOrigin) {
-            // See: [Note: Passing credentials for self-hosted file fetches]
             const params = new URLSearchParams({ castToken });
             const baseURL = shouldUseThumbnail
                 ? `${customOrigin}/cast/files/preview/${file.id}`

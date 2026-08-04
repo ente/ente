@@ -2,26 +2,26 @@ import { styled } from "@mui/material";
 import React from "react";
 
 const colors = [
-    "#87CEFA", // Light Blue
-    "#90EE90", // Light Green
-    "#F08080", // Light Coral
-    "#FFFFE0", // Light Yellow
-    "#FFB6C1", // Light Pink
-    "#E0FFFF", // Light Cyan
-    "#FAFAD2", // Light Goldenrod
-    "#87CEFA", // Light Sky Blue
-    "#D3D3D3", // Light Gray
-    "#B0C4DE", // Light Steel Blue
-    "#FFA07A", // Light Salmon
-    "#20B2AA", // Light Sea Green
-    "#778899", // Light Slate Gray
-    "#AFEEEE", // Light Turquoise
-    "#7A58C1", // Light Violet
-    "#FFA500", // Light Orange
-    "#A0522D", // Light Brown
-    "#9370DB", // Light Purple
-    "#008080", // Light Teal
-    "#808000", // Light Olive
+    "#87CEFA",
+    "#90EE90",
+    "#F08080",
+    "#FFFFE0",
+    "#FFB6C1",
+    "#E0FFFF",
+    "#FAFAD2",
+    "#87CEFA",
+    "#D3D3D3",
+    "#B0C4DE",
+    "#FFA07A",
+    "#20B2AA",
+    "#778899",
+    "#AFEEEE",
+    "#7A58C1",
+    "#FFA500",
+    "#A0522D",
+    "#9370DB",
+    "#008080",
+    "#808000",
 ];
 
 interface PairingCodeProps {
@@ -35,9 +35,7 @@ export const PairingCode: React.FC<PairingCodeProps> = ({ code }) => {
                 <span
                     key={i}
                     style={{
-                        // Alternating background.
                         backgroundColor: i % 2 === 0 ? "#2e2e2e" : "#5e5e5e",
-                        // Varying colors.
                         color: colors[i % colors.length],
                     }}
                 >
@@ -58,14 +56,8 @@ const PairingCode_ = styled("div")`
 
     line-height: 1.2;
 
-    /*
-     * -  We want them to be spans so that when the text is copy pasted, there
-     *    is no extra whitespace inserted.
-     *
-     * -  But we also want them to have a block level padding.
-     *
-     * To achieve both these goals, make them inline-blocks
-     */
+    /* inline-block: no extra whitespace when the code is copy pasted, while
+     * still getting block level padding. */
     span {
         display: inline-block;
         padding: 0.5rem;
