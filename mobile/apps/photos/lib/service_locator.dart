@@ -32,6 +32,7 @@ import "package:photos/services/filedata/filedata_service.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_feedback_service.dart";
+import "package:photos/services/machine_learning/ml_index_status_service.dart";
 import "package:photos/services/magic_cache_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
@@ -219,6 +220,12 @@ MemoriesCacheService? _memoriesCacheService;
 MemoriesCacheService get memoriesCacheService {
   _memoriesCacheService ??= MemoriesCacheService(ServiceLocator.instance.prefs);
   return _memoriesCacheService!;
+}
+
+MLIndexStatusService? _mlIndexStatusService;
+MLIndexStatusService get mlIndexStatusService {
+  _mlIndexStatusService ??= MLIndexStatusService();
+  return _mlIndexStatusService!;
 }
 
 SmartMemoriesService? _smartMemoriesService;

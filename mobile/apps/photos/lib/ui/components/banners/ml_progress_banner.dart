@@ -6,9 +6,7 @@ import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:photos/core/event_bus.dart";
-import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/events/notification_event.dart";
-import "package:photos/events/tab_changed_event.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -23,100 +21,59 @@ class MLProgressBanner extends StatefulWidget {
 }
 
 class _MLProgressBannerState extends State<MLProgressBanner> {
-  static const int _searchTabIndex = 3;
-
   IndexStatus? _indexStatus;
-  Timer? _timer;
   bool _dismissed = false;
-  bool _indexingComplete = false;
-  bool _isOnSearchTab = true;
-  late final StreamSubscription<TabChangedEvent> _tabChangedSubscription;
-  late final StreamSubscription<LocalPhotosUpdatedEvent>
-  _localPhotosUpdatedSubscription;
+  late final StreamSubscription<IndexStatus> _statusSubscription;
   late final StreamSubscription<NotificationEvent> _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
-    _tabChangedSubscription = Bus.instance.on<TabChangedEvent>().listen((
-      event,
-    ) {
-      final wasOnSearchTab = _isOnSearchTab;
-      _isOnSearchTab = event.selectedIndex == _searchTabIndex;
-      if (_isOnSearchTab && !wasOnSearchTab) {
-        _ensurePolling();
-      } else if (!_isOnSearchTab && wasOnSearchTab) {
-        _stopPolling();
-      }
-    });
-    _localPhotosUpdatedSubscription = Bus.instance
-        .on<LocalPhotosUpdatedEvent>()
-        .listen((_) {
-          _indexStatus = null;
-          _indexingComplete = false;
-          _ensurePolling();
-        });
-    _notificationSubscription = Bus.instance.on<NotificationEvent>().listen((
-      _,
-    ) {
-      _indexingComplete = false;
-      _ensurePolling();
-    });
-    _ensurePolling();
-  }
-
-  void _startPolling() {
-    if (!_shouldPoll) return;
-    _fetchStatus();
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
-      _fetchStatus();
-    });
-  }
-
-  void _stopPolling() {
-    _timer?.cancel();
-    _timer = null;
-  }
-
-  void _ensurePolling() {
-    if (!_isOnSearchTab) return;
-    if (!_shouldPoll) {
-      _stopPolling();
-      return;
-    }
-    if (_timer != null) return;
-    _startPolling();
-  }
-
-  bool get _shouldPoll =>
-      !_dismissed &&
-      hasGrantedMLConsent &&
-      !localSettings.isMLProgressBannerDismissed &&
-      !(isLocalGalleryMode && !localSettings.isMLLocalIndexingEnabled) &&
-      !_indexingComplete;
-
-  Future<void> _fetchStatus() async {
-    try {
-      final status = await getIndexStatus();
+    _statusSubscription = mlIndexStatusService.statusStream.listen((status) {
       if (mounted) {
         setState(() {
           _indexStatus = status;
         });
-        if (status.pendingItems <= 0) {
-          _indexingComplete = true;
-          _stopPolling();
-        }
       }
-    } catch (_) {}
+    });
+    _notificationSubscription = Bus.instance.on<NotificationEvent>().listen((
+      _,
+    ) {
+      // ML consent or related settings may have changed.
+      if (mounted) {
+        setState(() {});
+      }
+      _fetchStatusIfEligible();
+    });
+    _fetchStatusIfEligible();
+  }
+
+  bool get _isEligible =>
+      !_dismissed &&
+      hasGrantedMLConsent &&
+      !localSettings.isMLProgressBannerDismissed &&
+      !(isLocalGalleryMode && !localSettings.isMLLocalIndexingEnabled);
+
+  void _fetchStatusIfEligible() {
+    if (!_isEligible) return;
+    unawaited(
+      mlIndexStatusService
+          .getStatus()
+          .then((status) {
+            if (mounted) {
+              setState(() {
+                _indexStatus = status;
+              });
+            }
+          })
+          .catchError((_) {}),
+    );
   }
 
   @override
   void dispose() {
-    _tabChangedSubscription.cancel();
-    _localPhotosUpdatedSubscription.cancel();
+    _statusSubscription.cancel();
     _notificationSubscription.cancel();
-    _timer?.cancel();
     super.dispose();
   }
 
@@ -245,7 +202,6 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
     setState(() {
       _dismissed = true;
     });
-    _stopPolling();
     localSettings.setMLProgressBannerDismissed(true);
   }
 }

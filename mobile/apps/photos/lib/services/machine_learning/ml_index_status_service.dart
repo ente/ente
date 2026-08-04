@@ -1,0 +1,118 @@
+import "dart:async";
+
+import "package:connectivity_plus/connectivity_plus.dart";
+import "package:logging/logging.dart";
+import "package:photos/core/event_bus.dart";
+import "package:photos/events/files_ml_indexed_event.dart";
+import "package:photos/events/local_photos_updated_event.dart";
+import "package:photos/service_locator.dart";
+import "package:photos/utils/ml_util.dart";
+import "package:photos/utils/network_util.dart";
+
+/// Tracks ML indexing progress without polling: a baseline is computed once
+/// from the DBs and afterwards updated in memory from [FilesMLIndexedEvent]s,
+/// with a full recompute only when the library itself changes.
+class MLIndexStatusService {
+  final _logger = Logger("MLIndexStatusService");
+  final _statusController = StreamController<IndexStatus>.broadcast();
+
+  MLIndexBaseline? _baseline;
+  bool _dirty = true;
+  bool _hasWifi = true;
+  Timer? _refreshDebounce;
+  Future<IndexStatus>? _inflightRefresh;
+
+  MLIndexStatusService() {
+    Bus.instance.on<FilesMLIndexedEvent>().listen(_onFilesIndexed);
+    Bus.instance.on<LocalPhotosUpdatedEvent>().listen((_) => _markDirty());
+    Connectivity().onConnectivityChanged.listen((_) {
+      unawaited(_onConnectivityChanged());
+    });
+  }
+
+  Stream<IndexStatus> get statusStream => _statusController.stream;
+
+  Future<IndexStatus> getStatus({bool refresh = false}) {
+    final baseline = _baseline;
+    if (!refresh && !_dirty && baseline != null && !_configChanged(baseline)) {
+      return Future.value(_statusFromBaseline(baseline));
+    }
+    return _refresh();
+  }
+
+  bool _configChanged(MLIndexBaseline baseline) {
+    return baseline.isLocalGallery != isLocalGalleryMode ||
+        baseline.petActive !=
+            mlPetIndexingActive(localGallery: isLocalGalleryMode);
+  }
+
+  IndexStatus _statusFromBaseline(MLIndexBaseline baseline) {
+    return IndexStatus(
+      baseline.total - baseline.pendingFileKeys.length,
+      baseline.pendingFileKeys.length,
+      _hasWifi,
+    );
+  }
+
+  Future<IndexStatus> _refresh() {
+    return _inflightRefresh ??= _doRefresh().whenComplete(() {
+      _inflightRefresh = null;
+    });
+  }
+
+  Future<IndexStatus> _doRefresh() async {
+    // Cleared before reading so invalidations that race the recompute are
+    // not lost.
+    _dirty = false;
+    _hasWifi = await canUseHighBandwidth();
+    final baseline = await computeMLIndexBaseline();
+    _baseline = baseline;
+    final status = _statusFromBaseline(baseline);
+    _statusController.add(status);
+    return status;
+  }
+
+  void _onFilesIndexed(FilesMLIndexedEvent event) {
+    final baseline = _baseline;
+    if (baseline == null || _dirty) return;
+    if (event.isLocalGallery != baseline.isLocalGallery) return;
+    bool removedAny = false;
+    bool unknownKey = false;
+    for (final key in event.fileKeys) {
+      if (baseline.pendingFileKeys.remove(key)) {
+        removedAny = true;
+      } else {
+        unknownKey = true;
+      }
+    }
+    if (unknownKey) {
+      // A file we didn't consider pending got indexed, so the baseline has
+      // drifted (e.g. indexes were wiped and are being rebuilt).
+      _logger.info("Baseline drift detected, scheduling recompute");
+      _markDirty();
+      return;
+    }
+    if (removedAny) {
+      _statusController.add(_statusFromBaseline(baseline));
+    }
+  }
+
+  void _markDirty() {
+    _dirty = true;
+    if (!_statusController.hasListener || !hasGrantedMLConsent) return;
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(seconds: 3), () {
+      if (_dirty) _refresh().ignore();
+    });
+  }
+
+  Future<void> _onConnectivityChanged() async {
+    final hasWifi = await canUseHighBandwidth();
+    if (hasWifi == _hasWifi) return;
+    _hasWifi = hasWifi;
+    final baseline = _baseline;
+    if (baseline != null && !_dirty) {
+      _statusController.add(_statusFromBaseline(baseline));
+    }
+  }
+}

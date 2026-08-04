@@ -1,5 +1,5 @@
 import "dart:io" show File, Platform;
-import "dart:math" as math show min, max;
+import "dart:math" as math show min;
 
 import "package:dio/dio.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
@@ -10,6 +10,7 @@ import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/ml/filedata.dart";
 import "package:photos/db/offline_files_db.dart";
+import "package:photos/events/files_ml_indexed_event.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
@@ -33,7 +34,6 @@ import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
-import "package:photos/utils/network_util.dart";
 
 final _logger = Logger("MlUtil");
 const _kMlStaleCleanupMaxIds = 5;
@@ -44,9 +44,29 @@ enum MLMode { enteGallery, localGallery }
 
 class IndexStatus {
   final int indexedItems, pendingItems;
-  final bool? hasWifiEnabled;
+  final bool hasWifiEnabled;
 
-  IndexStatus(this.indexedItems, this.pendingItems, [this.hasWifiEnabled]);
+  IndexStatus(this.indexedItems, this.pendingItems, this.hasWifiEnabled);
+}
+
+/// Snapshot of ML indexing progress over the files the indexer would actually
+/// process. The eligibility rules must stay in sync with
+/// [_getOnlineFilesForMlIndexingCandidates] and
+/// [getLocalGalleryFilesForMlIndexing].
+class MLIndexBaseline {
+  final int total;
+
+  /// uploadedFileIDs in online mode, local int IDs in local gallery mode.
+  final Set<int> pendingFileKeys;
+  final bool isLocalGallery;
+  final bool petActive;
+
+  MLIndexBaseline({
+    required this.total,
+    required this.pendingFileKeys,
+    required this.isLocalGallery,
+    required this.petActive,
+  });
 }
 
 class FileMLInstruction {
@@ -98,34 +118,76 @@ class _OnlineMLIndexingCandidates {
   });
 }
 
-Future<IndexStatus> getIndexStatus() async {
+bool mlPetIndexingActive({required bool localGallery}) =>
+    flagService.petEnabled &&
+    localSettings.petRecognitionEnabled &&
+    (localGallery || localSettings.isMLLocalIndexingEnabled);
+
+Future<MLIndexBaseline> computeMLIndexBaseline() async {
   try {
-    final MLMode mode = isLocalGalleryMode
-        ? MLMode.localGallery
-        : MLMode.enteGallery;
-    final mlDataDB = mode == MLMode.localGallery
+    final bool localGallery = isLocalGalleryMode;
+    final mlDataDB = localGallery
         ? MLDataDB.localGalleryInstance
         : MLDataDB.instance;
-    final int indexableFiles = await _getIndexableFileCount(mode: mode);
-    final int facesIndexedFiles = await mlDataDB.getFaceIndexedFileCount();
-    final int clipIndexedFiles = await mlDataDB.getClipIndexedFileCount();
-    int indexedFiles = math.min(facesIndexedFiles, clipIndexedFiles);
-    if (flagService.petEnabled &&
-        localSettings.petRecognitionEnabled &&
-        localSettings.isMLLocalIndexingEnabled) {
-      final int petIndexedFiles = await mlDataDB.getPetIndexedFileCount();
-      indexedFiles = math.min(indexedFiles, petIndexedFiles);
-    }
+    final bool petActive = mlPetIndexingActive(localGallery: localGallery);
+    final Set<int> faceIndexed = await mlDataDB.getFaceIndexedFileIDs();
+    final Set<int> clipIndexed = await mlDataDB.getClipIndexedFileIDs();
+    final Set<int> petIndexed = petActive
+        ? await mlDataDB.getPetIndexedFileIDs()
+        : const <int>{};
+    bool isIndexed(int fileKey) =>
+        faceIndexed.contains(fileKey) &&
+        clipIndexed.contains(fileKey) &&
+        (!petActive || petIndexed.contains(fileKey));
 
-    final showIndexedFiles = math.min(indexedFiles, indexableFiles);
-    final showPendingFiles = math.max(indexableFiles - indexedFiles, 0);
-    final hasWifiEnabled = await canUseHighBandwidth();
+    final Set<int> seen = {};
+    final Set<int> pending = {};
+    final enteFiles = await SearchService.instance.getAllFilesForSearch();
+    if (localGallery) {
+      final localIds = <String>[];
+      for (final EnteFile enteFile in enteFiles) {
+        if (enteFile.fileType == FileType.other) {
+          continue;
+        }
+        if ((enteFile.localID ?? '').isEmpty ||
+            (enteFile.uploadedFileID != null &&
+                enteFile.uploadedFileID != -1)) {
+          continue;
+        }
+        localIds.add(enteFile.localID!);
+      }
+      final localIdToIntId = await OfflineFilesDB.instance.ensureLocalIntIds(
+        localIds,
+      );
+      for (final localIntId in localIdToIntId.values) {
+        if (!seen.add(localIntId)) continue;
+        if (!isIndexed(localIntId)) pending.add(localIntId);
+      }
+    } else {
+      final hiddenFiles = await SearchService.instance.getHiddenFiles();
+      for (final EnteFile enteFile in [...enteFiles, ...hiddenFiles]) {
+        if (enteFile.skipIndex) {
+          continue;
+        }
+        final id = enteFile.uploadedFileID;
+        if (id == null || id == -1) {
+          continue;
+        }
+        if (!seen.add(id)) continue;
+        if (!isIndexed(id)) pending.add(id);
+      }
+    }
     _logger.info(
-      "Shown IndexStatus: indexedFiles: $showIndexedFiles, pendingFiles: $showPendingFiles, hasWifiEnabled: $hasWifiEnabled, ifOffline: $isLocalGalleryMode. Real values: indexedFiles: $indexedFiles (faces: $facesIndexedFiles, clip: $clipIndexedFiles), indexableFiles: $indexableFiles",
+      "ML index baseline: total ${seen.length}, pending ${pending.length} (localGallery: $localGallery, petActive: $petActive)",
     );
-    return IndexStatus(showIndexedFiles, showPendingFiles, hasWifiEnabled);
+    return MLIndexBaseline(
+      total: seen.length,
+      pendingFileKeys: pending,
+      isLocalGallery: localGallery,
+      petActive: petActive,
+    );
   } catch (e, s) {
-    _logger.severe('Error getting ML status', e, s);
+    _logger.severe('Error computing ML index baseline', e, s);
     rethrow;
   }
 }
@@ -565,6 +627,7 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
       ? await _fetchFilesDataForMlHydrationWithRecovery(pendingIndex)
       : await fileDataService.getFilesData(ids);
   _logger.info("embeddingResponse ${res.debugLog()}");
+  final idsPendingAfterFetch = pendingIndex.keys.toSet();
   final List<Face> faces = [];
   final List<ClipEmbedding> clipEmbeddings = [];
   for (final fileMl in res.data.values) {
@@ -601,6 +664,14 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
 
   await mlDataDB.bulkInsertFaces(faces);
   await mlDataDB.putClip(clipEmbeddings);
+  final hydratedIds = idsPendingAfterFetch.difference(
+    pendingIndex.keys.toSet(),
+  );
+  if (hydratedIds.isNotEmpty) {
+    Bus.instance.fire(
+      FilesMLIndexedEvent(hydratedIds.toList(), isLocalGallery: false),
+    );
+  }
   return pendingIndex.values
       .where((instruction) => instruction.pendingML)
       .toList();
@@ -672,21 +743,6 @@ bool _shouldDiscardRemoteEmbedding(FileDataEntity fileML) {
 
 Future<int> getIndexableFileCount() async {
   return FilesDB.instance.remoteFileCount();
-}
-
-Future<int> _getIndexableFileCount({required MLMode mode}) async {
-  if (mode == MLMode.localGallery) {
-    final files = await SearchService.instance.getAllFilesForSearch();
-    return files
-        .where(
-          (file) =>
-              (file.localID ?? '').isNotEmpty &&
-              (file.uploadedFileID == null || file.uploadedFileID == -1) &&
-              file.fileType != FileType.other,
-        )
-        .length;
-  }
-  return getIndexableFileCount();
 }
 
 Future<String> getImagePathForML(EnteFile enteFile) async {

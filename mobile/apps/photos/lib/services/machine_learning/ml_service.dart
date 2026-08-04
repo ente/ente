@@ -12,6 +12,7 @@ import "package:photos/db/ml/db.dart";
 import "package:photos/db/ml/db_pet_model_mappers.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/compute_control_event.dart";
+import "package:photos/events/files_ml_indexed_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/main.dart";
 import "package:photos/models/file/file.dart";
@@ -974,6 +975,11 @@ class MLService {
       return false;
     } finally {
       if (indexedOrSkipped) {
+        Bus.instance.fire(
+          FilesMLIndexedEvent([
+            instruction.fileKey,
+          ], isLocalGallery: instruction.isLocalGallery),
+        );
         if (pathToDeleteAfterMLProcessing != null) {
           try {
             await File(pathToDeleteAfterMLProcessing).delete();

@@ -14,6 +14,7 @@ abstract class IMLDataDB<T> {
   Future<void> updateFaceIdToClusterId(Map<String, String> faceIDToClusterID);
   Future<Map<int, int>> faceIndexedFileIds({int minimumMlVersion});
   Future<int> getFaceIndexedFileCount({int minimumMlVersion});
+  Future<Set<int>> getFaceIndexedFileIDs({int minimumMlVersion});
   Future<Map<String, int>> clusterIdToFaceCount();
   Future<Set<String>> getBadFaceSingletonClusterIDs();
   Future<Set<String>> getClustersWithThreeOrMoreNotPersonFeedback();
@@ -124,11 +125,13 @@ abstract class IMLDataDB<T> {
   Future<List<EmbeddingVector>> getAllClipVectors();
   Future<Map<int, int>> clipIndexedFileWithVersion();
   Future<int> getClipIndexedFileCount({int minimumMlVersion});
+  Future<Set<int>> getClipIndexedFileIDs({int minimumMlVersion});
   Future<void> putClip(List<ClipEmbedding> embeddings);
   Future<void> deleteClipEmbeddings(List<T> fileIDs);
   Future<void> deleteClipIndexes();
 
   Future<Map<int, int>> petIndexedFileIds({int minimumMlVersion});
   Future<int> getPetIndexedFileCount({int minimumMlVersion});
+  Future<Set<int>> getPetIndexedFileIDs({int minimumMlVersion});
   Future<void> deletePetDataForFiles(List<int> fileIDs);
 }

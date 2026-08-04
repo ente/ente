@@ -1,10 +1,12 @@
 import "dart:async";
 
+import "package:connectivity_plus/connectivity_plus.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/events/device_health_changed_event.dart";
 import "package:photos/events/notification_event.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
@@ -458,26 +460,58 @@ class MLStatusWidget extends StatefulWidget {
 }
 
 class MLStatusWidgetState extends State<MLStatusWidget> {
-  Timer? _timer;
+  IndexStatus? _status;
   bool _isDeviceHealthy = computeController.isDeviceHealthy;
+  StreamSubscription<IndexStatus>? _statusSubscription;
+  StreamSubscription<DeviceHealthChangedEvent>? _healthSubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      MLService.instance.triggerML();
-      _isDeviceHealthy = computeController.isDeviceHealthy;
-      setState(() {});
+    MLService.instance.triggerML();
+    _statusSubscription = mlIndexStatusService.statusStream.listen((status) {
+      if (mounted) {
+        setState(() {
+          _status = status;
+        });
+      }
     });
-  }
-
-  Future<IndexStatus> _getIndexStatus() async {
-    final status = await getIndexStatus();
-    return status;
+    unawaited(
+      mlIndexStatusService
+          .getStatus(refresh: true)
+          .then((status) {
+            if (mounted) {
+              setState(() {
+                _status = status;
+              });
+            }
+          })
+          .catchError((_) {}),
+    );
+    _healthSubscription = Bus.instance.on<DeviceHealthChangedEvent>().listen((
+      event,
+    ) {
+      if (mounted) {
+        setState(() {
+          _isDeviceHealthy = event.isHealthy;
+        });
+      }
+    });
+    // While this screen forces ML on, a run that stopped for lack of wifi is
+    // not restarted by anything else, so kick it when connectivity changes.
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      _,
+    ) {
+      MLService.instance.triggerML();
+    });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _statusSubscription?.cancel();
+    _healthSubscription?.cancel();
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
@@ -497,74 +531,71 @@ class MLStatusWidgetState extends State<MLStatusWidget> {
           ),
         ),
         const SizedBox(height: 8),
-        FutureBuilder(
-          future: _getIndexStatus(),
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              final int indexedFiles = snapshot.data!.indexedItems;
-              final int pendingFiles = snapshot.data!.pendingItems;
-              final int total = indexedFiles + pendingFiles;
-              final bool hasWifi = snapshot.data!.hasWifiEnabled!;
+        _status == null
+            ? const EnteLoadingWidget()
+            : _buildStatusContent(context, _status!),
+      ],
+    );
+  }
 
-              if (!_isDeviceHealthy && pendingFiles > 0) {
-                return Text(
-                  context.strings.indexingPausedStatusDescription,
-                  style: TextStyles.mini.copyWith(color: colors.textLight),
-                );
-              }
+  Widget _buildStatusContent(BuildContext context, IndexStatus status) {
+    final colors = context.componentColors;
+    final int indexedFiles = status.indexedItems;
+    final int pendingFiles = status.pendingItems;
+    final int total = indexedFiles + pendingFiles;
+    final bool hasWifi = status.hasWifiEnabled;
 
-              return Column(
-                children: [
-                  MenuComponent(
-                    key: ValueKey("pending_items_$pendingFiles"),
-                    title: context.strings.processed,
-                    leading: const HugeIcon(
-                      icon: HugeIcons.strokeRoundedClock01,
-                      size: IconSizes.small,
-                    ),
-                    trailing: Text(
-                      total < 1
-                          ? 'NA'
-                          : pendingFiles == 0
-                          ? '100%'
-                          : '${(indexedFiles * 100.0 / total * 1.0).toStringAsFixed(2)}%',
-                      style: TextStyles.mini.copyWith(color: colors.textLight),
-                    ),
-                  ),
-                  if (MLService.instance.showClusteringIsHappening)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: MenuComponent(
-                        title: context.strings.clusteringProgress,
-                        leading: const HugeIcon(
-                          icon: HugeIcons.strokeRoundedSparkles,
-                          size: IconSizes.small,
-                        ),
-                        trailing: Text(
-                          context.strings.currentlyRunning,
-                          style: TextStyles.mini.copyWith(
-                            color: colors.textLight,
-                          ),
-                        ),
-                      ),
-                    )
-                  else if (!hasWifi && pendingFiles > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: MenuComponent(
-                        title: context.strings.waitingForWifi,
-                        leading: const HugeIcon(
-                          icon: HugeIcons.strokeRoundedWifi02,
-                          size: IconSizes.small,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            }
-            return const EnteLoadingWidget();
-          },
+    if (!_isDeviceHealthy && pendingFiles > 0) {
+      return Text(
+        context.strings.indexingPausedStatusDescription,
+        style: TextStyles.mini.copyWith(color: colors.textLight),
+      );
+    }
+
+    return Column(
+      children: [
+        MenuComponent(
+          key: ValueKey("pending_items_$pendingFiles"),
+          title: context.strings.processed,
+          leading: const HugeIcon(
+            icon: HugeIcons.strokeRoundedClock01,
+            size: IconSizes.small,
+          ),
+          trailing: Text(
+            total < 1
+                ? 'NA'
+                : pendingFiles == 0
+                ? '100%'
+                : '${(indexedFiles * 100.0 / total * 1.0).toStringAsFixed(2)}%',
+            style: TextStyles.mini.copyWith(color: colors.textLight),
+          ),
         ),
+        if (MLService.instance.showClusteringIsHappening)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: MenuComponent(
+              title: context.strings.clusteringProgress,
+              leading: const HugeIcon(
+                icon: HugeIcons.strokeRoundedSparkles,
+                size: IconSizes.small,
+              ),
+              trailing: Text(
+                context.strings.currentlyRunning,
+                style: TextStyles.mini.copyWith(color: colors.textLight),
+              ),
+            ),
+          )
+        else if (!hasWifi && pendingFiles > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: MenuComponent(
+              title: context.strings.waitingForWifi,
+              leading: const HugeIcon(
+                icon: HugeIcons.strokeRoundedWifi02,
+                size: IconSizes.small,
+              ),
+            ),
+          ),
       ],
     );
   }
