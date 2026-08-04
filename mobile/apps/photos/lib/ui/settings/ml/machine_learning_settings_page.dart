@@ -531,7 +531,6 @@ class MLStatusWidgetState extends State<MLStatusWidget> {
     return Column(
       children: [
         MenuComponent(
-          key: ValueKey("pending_items_$pendingFiles"),
           title: context.strings.processed,
           leading: const HugeIcon(
             icon: HugeIcons.strokeRoundedClock01,
