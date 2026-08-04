@@ -490,18 +490,6 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   }
 
   @override
-  Future<Set<int>> getFaceIndexedFileIDs({
-    int minimumMlVersion = faceMlVersion,
-  }) async {
-    final db = await asyncDB;
-    final maps = await db.getAll(
-      'SELECT DISTINCT $fileIDColumn FROM $facesTable WHERE $mlVersionColumn >= ?',
-      [minimumMlVersion],
-    );
-    return maps.map((map) => map[fileIDColumn] as int).toSet();
-  }
-
-  @override
   Future<Map<String, int>> clusterIdToFaceCount() async {
     final db = await asyncDB;
     final List<Map<String, dynamic>> maps = await db.getAll(
@@ -2450,18 +2438,6 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     return maps.first['count'] as int;
   }
 
-  @override
-  Future<Set<int>> getClipIndexedFileIDs({
-    int minimumMlVersion = clipMlVersion,
-  }) async {
-    final db = await asyncDB;
-    final maps = await db.getAll(
-      'SELECT DISTINCT $fileIDColumn FROM $clipTable WHERE $mlVersionColumn >= ?',
-      [minimumMlVersion],
-    );
-    return maps.map((map) => map[fileIDColumn] as int).toSet();
-  }
-
   Future<int> getClipVectorizableFileCount({
     int minimumMlVersion = clipMlVersion,
   }) async {
@@ -2508,18 +2484,6 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       minimumMlVersion,
     ]);
     return maps.first['count'] as int;
-  }
-
-  @override
-  Future<Set<int>> getPetIndexedFileIDs({
-    int minimumMlVersion = petMlVersion,
-  }) async {
-    final db = await asyncDB;
-    final maps = await db.getAll(
-      'SELECT DISTINCT $fileIDColumn FROM $petFacesTable WHERE $mlVersionColumn >= ?',
-      [minimumMlVersion],
-    );
-    return maps.map((map) => map[fileIDColumn] as int).toSet();
   }
 
   @override
