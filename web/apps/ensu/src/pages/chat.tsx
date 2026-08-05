@@ -1853,6 +1853,19 @@ const Page: React.FC = () => {
         [],
     );
 
+    const handleRenameSession = useCallback(
+        async (sessionUuid: string, title: string) => {
+            if (!chatKey) return;
+            try {
+                await updateSessionTitle(sessionUuid, title, chatKey);
+                updateSessionTitleInState(sessionUuid, title.trim());
+            } catch (error) {
+                onGenericError(error);
+            }
+        },
+        [chatKey, onGenericError, updateSessionTitleInState],
+    );
+
     const maybeGenerateSessionTitle = useCallback(
         async ({
             sessionUuid,
@@ -3890,6 +3903,7 @@ const Page: React.FC = () => {
             groupedSessions={groupedSessions}
             currentSessionId={currentSessionId}
             handleSelectSession={handleSelectSession}
+            renameSession={handleRenameSession}
             requestDeleteSession={requestDeleteSession}
             openSettingsModal={openSettingsModal}
         />
