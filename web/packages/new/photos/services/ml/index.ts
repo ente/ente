@@ -856,9 +856,11 @@ export const renameCGroup = async (cgroup: CGroup, name: string) => {
  * Delete an existing person.
  *
  * @param cgroup The existing cgroup underlying the person.
+ * @param skipSync If true, skip syncing the changes to remote. Defaults to false.
  */
-export const deleteCGroup = async ({ id }: CGroup) => {
+export const deleteCGroup = async ({ id }: CGroup, skipSync = false) => {
     await deleteUserEntity(id);
+    if (!skipSync) return mlSync();
     return mlSync("delete-cgroup");
 };
 
@@ -1000,8 +1002,9 @@ export const applyPersonSuggestionUpdates = async (
  * setting the hidden flag so that it is not surfaced in the UI.
  *
  * @param cluster The {@link FaceCluster} to hide.
+ * @param skipSync If true, skip syncing the changes to remote. Defaults to false.
  */
-export const ignoreCluster = async (cluster: FaceCluster) => {
+export const ignoreCluster = async (cluster: FaceCluster, skipSync = false) => {
     await addUserEntity(
         "cgroup",
         {
@@ -1013,5 +1016,6 @@ export const ignoreCluster = async (cluster: FaceCluster) => {
         },
         await ensureMasterKeyFromSession(),
     );
+    if (!skipSync) return mlSync();
     return mlSync("ignore-cluster");
 };
