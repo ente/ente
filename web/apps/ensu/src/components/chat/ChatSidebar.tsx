@@ -314,10 +314,13 @@ export const ChatSidebar = memo(
                                     <ListItemButton
                                         key={session.sessionUuid}
                                         selected={
-                                        session.sessionUuid === currentSessionId
+                                            session.sessionUuid ===
+                                            currentSessionId
                                         }
                                         onClick={() =>
-                                        handleSelectSession(session.sessionUuid)
+                                            handleSelectSession(
+                                                session.sessionUuid,
+                                            )
                                         }
                                         sx={{
                                             alignItems: "flex-start",
@@ -333,13 +336,15 @@ export const ChatSidebar = memo(
                                                     pointerEvents: "auto",
                                                 },
                                             "&:hover": {
-                                            backgroundColor: "fill.faintHover",
+                                                backgroundColor:
+                                                    "fill.faintHover",
                                             },
                                             "&.Mui-selected": {
                                                 backgroundColor: "fill.faint",
                                             },
                                             "&.Mui-selected:hover": {
-                                            backgroundColor: "fill.faintHover",
+                                                backgroundColor:
+                                                    "fill.faintHover",
                                             },
                                         }}
                                     >
@@ -401,9 +406,12 @@ export const ChatSidebar = memo(
                                                             variant="small"
                                                             sx={{
                                                                 fontWeight: 600,
-                                                        fontFamily: "inherit",
-                                                        whiteSpace: "nowrap",
-                                                        overflow: "hidden",
+                                                                fontFamily:
+                                                                    "inherit",
+                                                                whiteSpace:
+                                                                    "nowrap",
+                                                                overflow:
+                                                                    "hidden",
                                                                 textOverflow:
                                                                     "ellipsis",
                                                             }}
@@ -419,7 +427,8 @@ export const ChatSidebar = memo(
                                                         fontFamily: "inherit",
                                                         display: "-webkit-box",
                                                         WebkitLineClamp: 1,
-                                                        WebkitBoxOrient: "vertical",
+                                                        WebkitBoxOrient:
+                                                            "vertical",
                                                         overflow: "hidden",
                                                     }}
                                                 >
@@ -492,7 +501,9 @@ export const ChatSidebar = memo(
                                 borderColor: "divider",
                                 bgcolor: "background.paper",
                                 boxShadow: "0px 10px 24px rgba(0, 0, 0, 0.08)",
-                            "&:hover": { backgroundColor: "fill.faintHover" },
+                                "&:hover": {
+                                    backgroundColor: "fill.faintHover",
+                                },
                             }}
                         >
                             <Typography
