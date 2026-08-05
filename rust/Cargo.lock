@@ -2294,7 +2294,7 @@ checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 
 [[package]]
 name = "ensu-desktop"
-version = "0.1.19-beta"
+version = "0.1.19"
 dependencies = [
  "ente-assets",
  "ente-core",

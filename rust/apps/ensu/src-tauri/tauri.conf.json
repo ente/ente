@@ -1,7 +1,7 @@
 {
     "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
     "productName": "Ensu",
-    "version": "0.1.19-beta",
+    "version": "0.1.19",
     "identifier": "io.ente.ensu",
     "mainBinaryName": "Ensu",
     "build": {
