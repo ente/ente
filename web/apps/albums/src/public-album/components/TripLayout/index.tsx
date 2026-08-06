@@ -137,12 +137,12 @@ export const TripLayout: React.FC<TripLayoutProps> = ({
         handleOpenFileViewer(cluster, info.fileID);
     };
 
-    const handleCloseFileViewerWithCleanup = () => {
+    const handleCloseFileViewerWithCleanup = useCallback(() => {
         setInitialSidebar(undefined);
         setHighlightCommentID(undefined);
         setInitialAnonUserNames(undefined);
         handleCloseFileViewer();
-    };
+    }, [handleCloseFileViewer]);
 
     const downloadAllFiles = () => {
         if (!collection) return;
