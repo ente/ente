@@ -1,7 +1,7 @@
 use crate::ml::{
     error::{MlError, MlResult},
     onnx,
-    postprocess::MAX_DETECTIONS_PER_IMAGE,
+    postprocess::{NmsDetection, greedy_non_max_suppression},
     preprocess::{YOLO_INPUT_SIZE, YoloInput},
     runtime::MlRuntimeView,
     types::FaceDetection,
@@ -9,6 +9,16 @@ use crate::ml::{
 
 const IOU_THRESHOLD: f32 = 0.4;
 const MIN_SCORE_THRESHOLD: f32 = 0.5;
+
+impl NmsDetection for FaceDetection {
+    fn score(&self) -> f32 {
+        self.score
+    }
+
+    fn box_xyxy(&self) -> &[f32; 4] {
+        &self.box_xyxy
+    }
+}
 
 pub(crate) fn run_face_detection(
     runtime: &MlRuntimeView<'_>,
@@ -104,60 +114,11 @@ fn postprocess_face_tensor<T: onnx::FloatTensorData>(
     Ok(greedy_non_max_suppression(detections, IOU_THRESHOLD))
 }
 
-fn greedy_non_max_suppression(
-    mut detections: Vec<FaceDetection>,
-    iou_threshold: f32,
-) -> Vec<FaceDetection> {
-    detections.sort_by(|a, b| b.score.total_cmp(&a.score));
-
-    let mut retained = Vec::with_capacity(detections.len().min(MAX_DETECTIONS_PER_IMAGE));
-    for detection in detections {
-        if retained
-            .iter()
-            .any(|existing| calculate_iou(existing, &detection) >= iou_threshold)
-        {
-            continue;
-        }
-
-        retained.push(detection);
-        if retained.len() == MAX_DETECTIONS_PER_IMAGE {
-            break;
-        }
-    }
-
-    retained
-}
-
-fn calculate_iou(a: &FaceDetection, b: &FaceDetection) -> f32 {
-    let area_a =
-        (a.box_xyxy[2] - a.box_xyxy[0]).max(0.0) * (a.box_xyxy[3] - a.box_xyxy[1]).max(0.0);
-    let area_b =
-        (b.box_xyxy[2] - b.box_xyxy[0]).max(0.0) * (b.box_xyxy[3] - b.box_xyxy[1]).max(0.0);
-
-    let intersection_min_x = a.box_xyxy[0].max(b.box_xyxy[0]);
-    let intersection_min_y = a.box_xyxy[1].max(b.box_xyxy[1]);
-    let intersection_max_x = a.box_xyxy[2].min(b.box_xyxy[2]);
-    let intersection_max_y = a.box_xyxy[3].min(b.box_xyxy[3]);
-
-    let intersection_width = intersection_max_x - intersection_min_x;
-    let intersection_height = intersection_max_y - intersection_min_y;
-    if intersection_width < 0.0 || intersection_height < 0.0 {
-        return 0.0;
-    }
-
-    let intersection_area = intersection_width * intersection_height;
-    let union_area = area_a + area_b - intersection_area;
-    if union_area <= 0.0 {
-        return 0.0;
-    }
-    intersection_area / union_area
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        FaceDetection, IOU_THRESHOLD, MAX_DETECTIONS_PER_IMAGE, greedy_non_max_suppression,
-    };
+    use crate::ml::postprocess::MAX_DETECTIONS_PER_IMAGE;
+
+    use super::{FaceDetection, IOU_THRESHOLD, greedy_non_max_suppression};
 
     #[test]
     fn face_nms_retains_the_highest_scoring_hundred_detections() {

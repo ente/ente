@@ -1,7 +1,7 @@
 use crate::ml::{
     error::{MlError, MlResult},
     onnx,
-    postprocess::MAX_DETECTIONS_PER_IMAGE,
+    postprocess::{NmsDetection, greedy_non_max_suppression},
     preprocess::{YOLO_INPUT_SIZE, YoloInput},
     runtime::MlRuntimeView,
     types::{PetBodyDetection, PetFaceDetection},
@@ -15,6 +15,34 @@ const PET_FACE_MIN_SCORE: f32 = 0.3;
 
 const BODY_IOU_THRESHOLD: f32 = 0.5;
 const BODY_MIN_SCORE: f32 = 0.3;
+
+impl NmsDetection for PetFaceDetection {
+    fn score(&self) -> f32 {
+        self.score
+    }
+
+    fn box_xyxy(&self) -> &[f32; 4] {
+        &self.box_xyxy
+    }
+
+    fn same_class(&self, other: &Self) -> bool {
+        self.class_id == other.class_id
+    }
+}
+
+impl NmsDetection for PetBodyDetection {
+    fn score(&self) -> f32 {
+        self.score
+    }
+
+    fn box_xyxy(&self) -> &[f32; 4] {
+        &self.box_xyxy
+    }
+
+    fn same_class(&self, other: &Self) -> bool {
+        self.coco_class == other.coco_class
+    }
+}
 
 // Species IDs used across both Rust and Dart:
 //   0 = dog (face detection class_id=0, COCO_DOG=16)
@@ -165,7 +193,10 @@ fn postprocess_pet_face_tensor<T: onnx::FloatTensorData>(
         });
     }
 
-    Ok(greedy_nms_pet_face(detections, PET_FACE_IOU_THRESHOLD))
+    Ok(greedy_non_max_suppression(
+        detections,
+        PET_FACE_IOU_THRESHOLD,
+    ))
 }
 
 pub(crate) fn run_pet_body_detection(
@@ -236,7 +267,7 @@ fn postprocess_pet_body_tensor<T: onnx::FloatTensorData>(
         });
     }
 
-    Ok(greedy_nms_pet_body(detections, BODY_IOU_THRESHOLD))
+    Ok(greedy_non_max_suppression(detections, BODY_IOU_THRESHOLD))
 }
 
 fn winning_pet_body_class<T: onnx::FloatTensorData>(
@@ -274,80 +305,14 @@ fn winning_pet_body_class<T: onnx::FloatTensorData>(
     Some((best_cls, best_logit * obj_conf))
 }
 
-fn calculate_iou_4(a: &[f32; 4], b: &[f32; 4]) -> f32 {
-    let area_a = (a[2] - a[0]).max(0.0) * (a[3] - a[1]).max(0.0);
-    let area_b = (b[2] - b[0]).max(0.0) * (b[3] - b[1]).max(0.0);
-
-    let ix1 = a[0].max(b[0]);
-    let iy1 = a[1].max(b[1]);
-    let ix2 = a[2].min(b[2]);
-    let iy2 = a[3].min(b[3]);
-
-    let iw = ix2 - ix1;
-    let ih = iy2 - iy1;
-    if iw < 0.0 || ih < 0.0 {
-        return 0.0;
-    }
-
-    let inter = iw * ih;
-    let union = area_a + area_b - inter;
-    if union <= 0.0 { 0.0 } else { inter / union }
-}
-
-fn greedy_nms_pet_face(
-    mut detections: Vec<PetFaceDetection>,
-    iou_threshold: f32,
-) -> Vec<PetFaceDetection> {
-    detections.sort_by(|a, b| b.score.total_cmp(&a.score));
-
-    let mut retained = Vec::with_capacity(detections.len().min(MAX_DETECTIONS_PER_IMAGE));
-    for detection in detections {
-        if retained.iter().any(|existing: &PetFaceDetection| {
-            existing.class_id == detection.class_id
-                && calculate_iou_4(&existing.box_xyxy, &detection.box_xyxy) >= iou_threshold
-        }) {
-            continue;
-        }
-
-        retained.push(detection);
-        if retained.len() == MAX_DETECTIONS_PER_IMAGE {
-            break;
-        }
-    }
-
-    retained
-}
-
-fn greedy_nms_pet_body(
-    mut detections: Vec<PetBodyDetection>,
-    iou_threshold: f32,
-) -> Vec<PetBodyDetection> {
-    detections.sort_by(|a, b| b.score.total_cmp(&a.score));
-
-    let mut retained = Vec::with_capacity(detections.len().min(MAX_DETECTIONS_PER_IMAGE));
-    for detection in detections {
-        if retained.iter().any(|existing: &PetBodyDetection| {
-            existing.coco_class == detection.coco_class
-                && calculate_iou_4(&existing.box_xyxy, &detection.box_xyxy) >= iou_threshold
-        }) {
-            continue;
-        }
-
-        retained.push(detection);
-        if retained.len() == MAX_DETECTIONS_PER_IMAGE {
-            break;
-        }
-    }
-
-    retained
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::ml::postprocess::{MAX_DETECTIONS_PER_IMAGE, greedy_non_max_suppression};
+
     use super::{
-        BODY_IOU_THRESHOLD, BODY_MIN_SCORE, COCO_CAT, COCO_DOG, MAX_DETECTIONS_PER_IMAGE,
-        PET_FACE_IOU_THRESHOLD, PET_SPECIES_CAT, PET_SPECIES_DOG, PetBodyDetection,
-        PetFaceDetection, greedy_nms_pet_body, greedy_nms_pet_face, winning_pet_body_class,
+        BODY_IOU_THRESHOLD, BODY_MIN_SCORE, COCO_CAT, COCO_DOG, PET_FACE_IOU_THRESHOLD,
+        PET_SPECIES_CAT, PET_SPECIES_DOG, PetBodyDetection, PetFaceDetection,
+        winning_pet_body_class,
     };
 
     #[test]
@@ -368,8 +333,8 @@ mod tests {
             })
             .collect();
 
-        let retained_faces = greedy_nms_pet_face(faces, PET_FACE_IOU_THRESHOLD);
-        let retained_bodies = greedy_nms_pet_body(bodies, BODY_IOU_THRESHOLD);
+        let retained_faces = greedy_non_max_suppression(faces, PET_FACE_IOU_THRESHOLD);
+        let retained_bodies = greedy_non_max_suppression(bodies, BODY_IOU_THRESHOLD);
 
         assert_eq!(retained_faces.len(), MAX_DETECTIONS_PER_IMAGE);
         assert_eq!(retained_faces.first().unwrap().score, 100.0);
@@ -381,7 +346,7 @@ mod tests {
 
     #[test]
     fn pet_nms_only_suppresses_overlaps_within_the_same_class() {
-        let retained_faces = greedy_nms_pet_face(
+        let retained_faces = greedy_non_max_suppression(
             vec![
                 PetFaceDetection {
                     score: 0.8,
@@ -404,7 +369,7 @@ mod tests {
             ],
             PET_FACE_IOU_THRESHOLD,
         );
-        let retained_bodies = greedy_nms_pet_body(
+        let retained_bodies = greedy_non_max_suppression(
             vec![
                 PetBodyDetection {
                     score: 0.8,
