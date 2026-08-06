@@ -532,7 +532,7 @@ class TimeMemoriesCalculator {
       } else if (almostYearEnd) {
         final altDiff = fileDate
             .copyWith(year: currentYear + 1)
-            .difference(currentTime);
+            .difference(startPoint);
         if (!altDiff.isNegative && altDiff < diffThreshold) {
           daysToMemories
               .putIfAbsent(altDiff.inDays, () => [])

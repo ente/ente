@@ -197,4 +197,29 @@ void main() {
       },
     );
   });
+
+  group("On This Day dates", () {
+    test("On This Day keeps cross-year dates aligned after midnight", () async {
+      final currentTime = DateTime(2026, 12, 30, 12);
+      final files = <EnteFile>[
+        for (int i = 0; i < 3; i++)
+          _file(id: i + 1, createdAt: DateTime(2024, 1, 1, 9 + i)),
+        for (int i = 0; i < 2; i++)
+          _file(id: i + 4, createdAt: DateTime(2025, 1, 1, 9 + i)),
+      ];
+
+      final memories = await TimeMemoriesCalculator.computeOnThisDayMemories(
+        files,
+        currentTime,
+        seenTimes: const <int, int>{},
+        collectionIDsToExclude: const <int>{},
+      );
+
+      expect(memories, hasLength(1));
+      expect(
+        DateTime.fromMicrosecondsSinceEpoch(memories.single.firstDateToShow),
+        DateTime(2027),
+      );
+    });
+  });
 }
