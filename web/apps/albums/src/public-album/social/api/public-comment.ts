@@ -1,4 +1,4 @@
-import { decryptBox, encryptBox } from "ente-base/crypto";
+import { encryptBox } from "ente-base/crypto";
 import {
     authenticatedPublicAlbumsRequestHeaders,
     ensureOk,
@@ -7,19 +7,6 @@ import {
 import { apiURL } from "ente-base/origins";
 import { z } from "zod";
 import { type AnonIdentity, getStoredAnonIdentity } from "./public-reaction";
-
-export interface PublicComment {
-    id: string;
-    collectionID: number;
-    fileID?: number;
-    parentCommentID?: string;
-    userID: number;
-    anonUserID?: string;
-    text: string;
-    isDeleted: boolean;
-    createdAt: number;
-    updatedAt: number;
-}
 
 export const addPublicComment = async (
     credentials: PublicAlbumsCredentials,
@@ -88,83 +75,4 @@ export const deletePublicComment = async (
     ensureOk(res);
 };
 
-export const getPublicFileComments = async (
-    credentials: PublicAlbumsCredentials,
-    fileID: number,
-    collectionKey: string,
-): Promise<PublicComment[]> => {
-    const res = await fetch(
-        await apiURL("/public-collection/comments/diff", {
-            fileID,
-            sinceTime: 0,
-            limit: 1000,
-        }),
-        { headers: authenticatedPublicAlbumsRequestHeaders(credentials) },
-    );
-    ensureOk(res);
-    const { comments } = GetPublicCommentsResponse.parse(await res.json());
-
-    const decryptedComments: PublicComment[] = [];
-    for (const comment of comments) {
-        if (comment.isDeleted || !comment.cipher || !comment.nonce) {
-            decryptedComments.push({
-                id: comment.id,
-                collectionID: comment.collectionID,
-                fileID: comment.fileID ?? undefined,
-                parentCommentID: comment.parentCommentID ?? undefined,
-                userID: comment.userID,
-                anonUserID: comment.anonUserID ?? undefined,
-                text: "",
-                isDeleted: comment.isDeleted,
-                createdAt: comment.createdAt,
-                updatedAt: comment.updatedAt,
-            });
-            continue;
-        }
-        try {
-            const decryptedB64 = await decryptBox(
-                { encryptedData: comment.cipher, nonce: comment.nonce },
-                collectionKey,
-            );
-            const text = new TextDecoder().decode(
-                Uint8Array.from(atob(decryptedB64), (c) => c.charCodeAt(0)),
-            );
-            decryptedComments.push({
-                id: comment.id,
-                collectionID: comment.collectionID,
-                fileID: comment.fileID ?? undefined,
-                parentCommentID: comment.parentCommentID ?? undefined,
-                userID: comment.userID,
-                anonUserID: comment.anonUserID ?? undefined,
-                text,
-                isDeleted: comment.isDeleted,
-                createdAt: comment.createdAt,
-                updatedAt: comment.updatedAt,
-            });
-        } catch {
-            // Skip comments that fail to decrypt
-        }
-    }
-    return decryptedComments;
-};
-
 const CreateCommentResponse = z.object({ id: z.string() });
-
-const RemotePublicComment = z.object({
-    id: z.string(),
-    collectionID: z.number(),
-    fileID: z.number().nullish(),
-    parentCommentID: z.string().nullish(),
-    userID: z.number(),
-    anonUserID: z.string().nullish(),
-    cipher: z.string().nullish(),
-    nonce: z.string().nullish(),
-    isDeleted: z.boolean(),
-    createdAt: z.number(),
-    updatedAt: z.number(),
-});
-
-const GetPublicCommentsResponse = z.object({
-    comments: z.array(RemotePublicComment),
-    hasMore: z.boolean(),
-});

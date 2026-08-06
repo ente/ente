@@ -1,4 +1,5 @@
 import { downloadManager } from "@/public-album/download/services/download-manager";
+import log from "ente-base/log";
 import type { EnteFile } from "ente-media/file";
 import {
     fileCreationPhotoSortTime,
@@ -33,27 +34,22 @@ export const processPhotosData = ({
     }
 
     for (const file of files) {
-        try {
-            const location = fileLocation(file);
+        const location = fileLocation(file);
+        if (!location) continue;
 
-            if (location) {
-                const cachedLocation = locationDataRef.current.get(file.id);
-                const finalName = cachedLocation?.name || fileFileName(file);
-                const finalCountry = cachedLocation?.country || "Unknown";
+        const cachedLocation = locationDataRef.current.get(file.id);
+        const finalName = cachedLocation?.name || fileFileName(file);
+        const finalCountry = cachedLocation?.country || "Unknown";
 
-                photoData.push({
-                    lat: location.latitude,
-                    lng: location.longitude,
-                    name: finalName,
-                    country: finalCountry,
-                    timestamp: fileCreationPhotoSortTime(file),
-                    image: "",
-                    fileId: file.id,
-                });
-            }
-        } catch {
-            // Silently ignore processing errors for individual files
-        }
+        photoData.push({
+            lat: location.latitude,
+            lng: location.longitude,
+            name: finalName,
+            country: finalCountry,
+            timestamp: fileCreationPhotoSortTime(file),
+            image: "",
+            fileId: file.id,
+        });
     }
 
     photoData.sort((a, b) => a.timestamp - b.timestamp);
@@ -89,22 +85,17 @@ export const fetchLocationNames = async ({
         const representativePhoto = cluster[0];
         if (!representativePhoto) return null;
 
-        try {
-            const locationInfo = await getLocationName(
-                representativePhoto.lat,
-                representativePhoto.lng,
-            );
-            return { cluster, locationInfo };
-        } catch {
-            // Return null on error, will be filtered out
-            return null;
-        }
+        const locationInfo = await getLocationName(
+            representativePhoto.lat,
+            representativePhoto.lng,
+        );
+        return { cluster, locationInfo };
     });
 
     const results = await Promise.all(geocodingPromises);
 
     results.forEach((result) => {
-        if (!result) return; // Skip failed requests
+        if (!result) return;
 
         const { cluster, locationInfo } = result;
         cluster.forEach((photo) => {
@@ -196,8 +187,11 @@ export const generateNeededThumbnails = async ({
                 if (thumbnailUrl) {
                     thumbnailUpdates.set(file.id, thumbnailUrl);
                 }
-            } catch {
-                // Silently ignore thumbnail generation errors
+            } catch (error) {
+                log.warn(
+                    `Failed to generate trip thumbnail for file ${file.id}`,
+                    error,
+                );
             }
         });
 
@@ -246,9 +240,12 @@ export const loadCoverImage = async ({
         if (sourceURLs.type === "image") {
             return sourceURLs.imageURL;
         }
-    } catch {
-        // Keep using thumbnail if high quality fails
+    } catch (error) {
+        log.warn("Failed to load the full-quality trip cover", error);
     }
 
-    return null;
+    return (
+        journeyData.find((photo) => photo.fileId === coverFile.id)?.image ||
+        null
+    );
 };

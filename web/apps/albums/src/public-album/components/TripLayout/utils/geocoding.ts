@@ -1,3 +1,5 @@
+import log from "ente-base/log";
+
 interface StadiaMapsGeocodingResponse {
     features?: {
         properties?: {
@@ -85,8 +87,8 @@ export const getLocationName = async (
         }
 
         return result;
-    } catch {
-        // Fallback on error
+    } catch (error) {
+        log.warn("Failed to reverse-geocode trip location", error);
         return { place: "Unknown", country: "Unknown" };
     }
 };

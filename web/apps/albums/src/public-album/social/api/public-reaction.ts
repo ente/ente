@@ -4,6 +4,7 @@ import {
     ensureOk,
     type PublicAlbumsCredentials,
 } from "ente-base/http";
+import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";
 import { z } from "zod";
 
@@ -23,6 +24,12 @@ export interface AnonIdentity {
     expiresAt: number;
 }
 
+const AnonIdentityResponse = z.object({
+    anonUserID: z.string(),
+    token: z.string(),
+    expiresAt: z.number(),
+});
+
 const ANON_IDENTITY_STORAGE_KEY_PREFIX = "ente_anon_identity";
 
 const getStorageKey = (collectionID: number): string =>
@@ -35,7 +42,7 @@ export const getStoredAnonIdentity = (
     const stored = localStorage.getItem(getStorageKey(collectionID));
     if (!stored) return undefined;
     try {
-        const identity = JSON.parse(stored) as AnonIdentity;
+        const identity = AnonIdentityResponse.parse(JSON.parse(stored));
         // expiresAt is in microseconds.
         const nowMicroseconds = Date.now() * 1000;
         if (identity.expiresAt && nowMicroseconds > identity.expiresAt) {
@@ -44,6 +51,7 @@ export const getStoredAnonIdentity = (
         }
         return identity;
     } catch {
+        clearAnonIdentity(collectionID);
         return undefined;
     }
 };
@@ -87,12 +95,6 @@ export const createAnonIdentity = async (
 
     return identity;
 };
-
-const AnonIdentityResponse = z.object({
-    anonUserID: z.string(),
-    token: z.string(),
-    expiresAt: z.number(),
-});
 
 export const addPublicReaction = async (
     credentials: PublicAlbumsCredentials,
@@ -212,53 +214,6 @@ export interface PublicReaction {
     updatedAt: number;
 }
 
-export const getPublicFileReactions = async (
-    credentials: PublicAlbumsCredentials,
-    fileID: number,
-    collectionKey: string,
-): Promise<PublicReaction[]> => {
-    const res = await fetch(
-        await apiURL("/public-collection/reactions/diff", {
-            fileID,
-            sinceTime: 0,
-            limit: 100,
-        }),
-        { headers: authenticatedPublicAlbumsRequestHeaders(credentials) },
-    );
-    ensureOk(res);
-    const { reactions } = GetPublicReactionsResponse.parse(await res.json());
-
-    const decryptedReactions: PublicReaction[] = [];
-    for (const reaction of reactions) {
-        if (reaction.isDeleted || !reaction.cipher || !reaction.nonce) continue;
-        try {
-            const decryptedB64 = await decryptBox(
-                { encryptedData: reaction.cipher, nonce: reaction.nonce },
-                collectionKey,
-            );
-            const reactionType = unpadReaction(
-                new TextDecoder().decode(
-                    Uint8Array.from(atob(decryptedB64), (c) => c.charCodeAt(0)),
-                ),
-            );
-            decryptedReactions.push({
-                id: reaction.id,
-                fileID: reaction.fileID ?? fileID,
-                commentID: reaction.commentID ?? undefined,
-                reactionType,
-                userID: reaction.userID,
-                anonUserID: reaction.anonUserID ?? undefined,
-                isDeleted: reaction.isDeleted,
-                createdAt: reaction.createdAt,
-                updatedAt: reaction.updatedAt,
-            });
-        } catch {
-            // Skip reactions that fail to decrypt
-        }
-    }
-    return decryptedReactions;
-};
-
 const RemotePublicReaction = z.object({
     id: z.string(),
     collectionID: z.number(),
@@ -271,11 +226,6 @@ const RemotePublicReaction = z.object({
     isDeleted: z.boolean(),
     createdAt: z.number(),
     updatedAt: z.number(),
-});
-
-const GetPublicReactionsResponse = z.object({
-    reactions: z.array(RemotePublicReaction),
-    hasMore: z.boolean(),
 });
 
 export interface AnonProfile {
@@ -307,8 +257,11 @@ export const getPublicAnonProfiles = async (
             if (userName) {
                 anonUserNames.set(profile.anonUserID, userName);
             }
-        } catch {
-            // Skip profiles that fail to decrypt
+        } catch (e) {
+            log.error(
+                `Failed to decrypt public album profile ${profile.anonUserID}`,
+                e,
+            );
         }
     }
     return anonUserNames;
@@ -432,8 +385,11 @@ export const getPublicSocialDiff = async (
                 createdAt: comment.createdAt,
                 updatedAt: comment.updatedAt,
             });
-        } catch {
-            // Skip comments that fail to decrypt
+        } catch (e) {
+            log.error(
+                `Failed to decrypt public album comment ${comment.id}`,
+                e,
+            );
         }
     }
 
@@ -461,8 +417,11 @@ export const getPublicSocialDiff = async (
                 createdAt: reaction.createdAt,
                 updatedAt: reaction.updatedAt,
             });
-        } catch {
-            // Skip reactions that fail to decrypt
+        } catch (e) {
+            log.error(
+                `Failed to decrypt public album reaction ${reaction.id}`,
+                e,
+            );
         }
     }
 
@@ -561,8 +520,11 @@ export const getPublicAlbumFeed = async (
                 updatedAt: comment.updatedAt,
                 isReply,
             });
-        } catch {
-            // Skip comments that fail to decrypt
+        } catch (e) {
+            log.error(
+                `Failed to decrypt public album comment ${comment.id}`,
+                e,
+            );
         }
     }
 
@@ -597,8 +559,11 @@ export const getPublicAlbumFeed = async (
                 createdAt: reaction.createdAt,
                 updatedAt: reaction.updatedAt,
             });
-        } catch {
-            // Skip reactions that fail to decrypt
+        } catch (e) {
+            log.error(
+                `Failed to decrypt public album reaction ${reaction.id}`,
+                e,
+            );
         }
     }
 

@@ -920,8 +920,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                         }
                         return next;
                     });
-                } catch {
-                    // Names are optional enrichment.
+                } catch (e) {
+                    log.warn("Failed to fetch public album display names", e);
                 }
 
                 try {
@@ -936,8 +936,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                         }
                         return next;
                     });
-                } catch {
-                    // Names are optional enrichment.
+                } catch (e) {
+                    log.warn("Failed to fetch public album participants", e);
                 }
             } catch (e) {
                 log.error("Failed to fetch public social data", e);
@@ -1043,8 +1043,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                     }
                     return next;
                 });
-            } catch {
-                // Names are optional enrichment.
+            } catch (e) {
+                log.warn("Failed to refresh public album display names", e);
             }
             // Masked participant emails are stable enough to fetch only on open.
         } catch (e) {

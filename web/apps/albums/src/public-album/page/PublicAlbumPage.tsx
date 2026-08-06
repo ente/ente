@@ -1575,7 +1575,11 @@ const preloadImage = async (url: string) => {
     });
     image.src = url;
     await loadPromise;
-    await image.decode().catch(() => undefined);
+    try {
+        await image.decode();
+    } catch {
+        // Continue; onload already confirmed the image is renderable.
+    }
 };
 
 const mobileMasonryCoverImageGradient =
