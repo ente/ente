@@ -210,7 +210,7 @@ If you've granted permission but Ente still can't access photos, try:
 
 If the app shows it is preserving one photo or memory but never completes, the file is likely stuck in a retry loop.
 
-Share debug logs with [support@ente.com](mailto:support@ente.com) so we can identify the specific file. Open `Settings > Help & Support > Export logs` and attach to email.
+Share debug logs with [support@ente.com](mailto:support@ente.com) so we can identify the specific file. Open `Settings > Help & Support > Report an issue` and attach to email.
 
 A common cause on iOS is that "Optimize iPhone Storage" is enabled and the original file has not been downloaded from iCloud to your device.
 
