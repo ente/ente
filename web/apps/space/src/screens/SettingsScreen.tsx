@@ -34,7 +34,7 @@ const rowBackground = "#FFFFFF";
 const dangerColor = "#F63A3A";
 const iconMuted = "#8C8C8C";
 const textLight = "#969696";
-const supportMailURL = "mailto:support@ente.com";
+const supportMailURL = "mailto:space@ente.com";
 const spaceLinks = [
     {
         label: "Discord",

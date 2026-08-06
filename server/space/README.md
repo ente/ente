@@ -10,7 +10,7 @@ This module is the top-level home for space functionality in `server`.
 - `space/models`: space request/response and module-local types
 
 The Rust space client lives alongside the rest of the Ente Rust crates at
-`../rust/space`, not inside `server/space`.
+`rust/crates/space`, not inside `server/space`.
 
 The space root key bootstrap remains on the existing `/user-entity/key` endpoint via `userentity.Space`.
 

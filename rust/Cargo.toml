@@ -20,8 +20,8 @@ members = [
     "crates/image",
     "crates/paste",
     "crates/photos",
+    "crates/space",
     "crates/test-support",
-    "space",
 ]
 
 [workspace.dependencies]
@@ -33,7 +33,7 @@ ente-ensu = { path = "crates/ensu" }
 ente-image = { path = "crates/image" }
 ente-paste = { path = "crates/paste" }
 ente-photos = { path = "crates/photos" }
-ente-space = { path = "space" }
+ente-space = { path = "crates/space" }
 ente-test-support = { path = "crates/test-support" }
 flutter_rust_bridge = "=2.12.0"
 flutter_rust_bridge_codegen = "=2.12.0"
