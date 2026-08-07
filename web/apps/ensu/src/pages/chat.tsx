@@ -664,6 +664,8 @@ const Page: React.FC = () => {
         previousSelection?: string | null;
     } | null>(null);
     const sessionSummaryInFlightRef = useRef(false);
+    const manuallyRenamedSessionIdsRef = useRef(new Set<string>());
+    const sessionTitleUpdateQueueRef = useRef(new Map<string, Promise<void>>());
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const attachmentPreviewUrlsRef = useRef<Record<string, string>>({});
     const pendingPreviewUrlsRef = useRef<Record<string, string>>({});
@@ -1853,18 +1855,61 @@ const Page: React.FC = () => {
         [],
     );
 
-    const handleRenameSession = useCallback(
-        async (sessionUuid: string, title: string) => {
-            if (!chatKey) return;
+    const queueSessionTitleUpdate = useCallback(
+        async (sessionUuid: string, update: () => Promise<void>) => {
+            const previous =
+                sessionTitleUpdateQueueRef.current.get(sessionUuid) ??
+                Promise.resolve();
+            const task = previous.catch(() => undefined).then(update);
+            const queueEntry = task.then(
+                () => undefined,
+                () => undefined,
+            );
+            sessionTitleUpdateQueueRef.current.set(sessionUuid, queueEntry);
+
             try {
-                const safeTitle = sessionTitleFromText(title, "New chat");
-                await updateSessionTitle(sessionUuid, safeTitle, chatKey);
-                updateSessionTitleInState(sessionUuid, safeTitle);
-            } catch (error) {
-                onGenericError(error);
+                await task;
+            } finally {
+                if (
+                    sessionTitleUpdateQueueRef.current.get(sessionUuid) ===
+                    queueEntry
+                ) {
+                    sessionTitleUpdateQueueRef.current.delete(sessionUuid);
+                }
             }
         },
-        [chatKey, onGenericError, updateSessionTitleInState],
+        [],
+    );
+
+    const handleRenameSession = useCallback(
+        async (sessionUuid: string, title: string) => {
+            if (!chatKey) return false;
+            try {
+                const safeTitle = sessionTitleFromText(title, "New chat");
+                const currentSession = sessions.find(
+                    (session) => session.sessionUuid === sessionUuid,
+                );
+                if (currentSession?.title === safeTitle) return true;
+
+                manuallyRenamedSessionIdsRef.current.add(sessionUuid);
+                await queueSessionTitleUpdate(sessionUuid, async () => {
+                    await updateSessionTitle(sessionUuid, safeTitle, chatKey);
+                    updateSessionTitleInState(sessionUuid, safeTitle);
+                });
+                return true;
+            } catch (error) {
+                manuallyRenamedSessionIdsRef.current.delete(sessionUuid);
+                onGenericError(error);
+                return false;
+            }
+        },
+        [
+            chatKey,
+            onGenericError,
+            queueSessionTitleUpdate,
+            sessions,
+            updateSessionTitleInState,
+        ],
     );
 
     const maybeGenerateSessionTitle = useCallback(
@@ -1913,8 +1958,24 @@ const Page: React.FC = () => {
                     ? sessionTitleFromText(summarySeed, fallbackTitle)
                     : fallbackTitle;
 
-                await updateSessionTitle(sessionUuid, title, chatKey);
-                updateSessionTitleInState(sessionUuid, title);
+                await queueSessionTitleUpdate(sessionUuid, async () => {
+                    if (manuallyRenamedSessionIdsRef.current.has(sessionUuid)) {
+                        return;
+                    }
+
+                    const latestSession = (await listSessions(chatKey)).find(
+                        (session) => session.sessionUuid === sessionUuid,
+                    );
+                    if (
+                        manuallyRenamedSessionIdsRef.current.has(sessionUuid) ||
+                        latestSession?.title.toLowerCase() !== "new chat"
+                    ) {
+                        return;
+                    }
+
+                    await updateSessionTitle(sessionUuid, title, chatKey);
+                    updateSessionTitleInState(sessionUuid, title);
+                });
             } catch (error) {
                 log.error("Failed to generate session title", error);
             } finally {
@@ -1924,6 +1985,7 @@ const Page: React.FC = () => {
         [
             chatKey,
             generateSessionSummary,
+            queueSessionTitleUpdate,
             trimToWords,
             updateSessionTitleInState,
         ],

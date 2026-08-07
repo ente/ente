@@ -21,7 +21,7 @@ import {
     Typography,
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
-import React, { memo, useState } from "react";
+import React, { memo, useRef, useState } from "react";
 
 type IconProps = { size: number; strokeWidth: number };
 
@@ -43,7 +43,7 @@ export interface ChatSidebarProps {
     groupedSessions: Array<[string, ChatSession[]]>;
     currentSessionId?: string;
     handleSelectSession: (sessionId: string) => void;
-    renameSession: (sessionId: string, title: string) => Promise<void>;
+    renameSession: (sessionId: string, title: string) => Promise<boolean>;
     requestDeleteSession: (sessionId: string) => void;
     openSettingsModal: () => void;
 }
@@ -73,26 +73,37 @@ export const ChatSidebar = memo(
     }: ChatSidebarProps) => {
         const [editingSessionId, setEditingSessionId] = useState<string>();
         const [editingTitle, setEditingTitle] = useState("");
+        const editingSessionIdRef = useRef<string | undefined>(undefined);
 
         const startRename = (sessionId: string, title: string) => {
+            editingSessionIdRef.current = sessionId;
             setEditingSessionId(sessionId);
             setEditingTitle(title);
         };
 
-        const cancelRename = () => {
+        const cancelRename = (sessionId?: string) => {
+            if (
+                sessionId !== undefined &&
+                editingSessionIdRef.current !== sessionId
+            ) {
+                return;
+            }
+            editingSessionIdRef.current = undefined;
             setEditingSessionId(undefined);
             setEditingTitle("");
         };
 
         const saveRename = async () => {
-            if (!editingSessionId) return;
+            const sessionId = editingSessionId;
+            if (!sessionId) return;
             const title = editingTitle.trim();
             if (!title) {
-                cancelRename();
+                cancelRename(sessionId);
                 return;
             }
-            await renameSession(editingSessionId, title);
-            cancelRename();
+            if (await renameSession(sessionId, title)) {
+                cancelRename(sessionId);
+            }
         };
 
         return (

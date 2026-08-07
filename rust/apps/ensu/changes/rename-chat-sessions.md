@@ -1,0 +1,1 @@
+- Rename chats from the sidebar in Desktop.
