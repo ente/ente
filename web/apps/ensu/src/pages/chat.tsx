@@ -1857,8 +1857,9 @@ const Page: React.FC = () => {
         async (sessionUuid: string, title: string) => {
             if (!chatKey) return;
             try {
-                await updateSessionTitle(sessionUuid, title, chatKey);
-                updateSessionTitleInState(sessionUuid, title.trim());
+                const safeTitle = sessionTitleFromText(title, "New chat");
+                await updateSessionTitle(sessionUuid, safeTitle, chatKey);
+                updateSessionTitleInState(sessionUuid, safeTitle);
             } catch (error) {
                 onGenericError(error);
             }
