@@ -1,0 +1,1 @@
+- Stop showing the Hidden section after leaving the app or locking the phone while viewing Hidden.

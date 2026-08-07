@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:collection/collection.dart";
+import "package:ente_lock_screen/lock_screen_settings.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
@@ -19,6 +20,7 @@ import "package:photos/ui/collections/album/horizontal_list.dart";
 import "package:photos/ui/collections/collection_list_page.dart";
 import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/empty_state_component.dart";
+import "package:photos/ui/tabs/home_widget.dart";
 import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/gallery/cleanup_hidden_files_widget.dart";
 import "package:photos/ui/viewer/gallery/cleanup_hidden_from_device_widget.dart";
@@ -27,6 +29,18 @@ import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
+
+Future<void> _enableScreenCoverForHidden() async {
+  if (!LockScreenSettings.instance.getShouldHideAppContent()) {
+    await LockScreenSettings.instance.setHideAppContent(true, persist: false);
+  }
+}
+
+Future<void> _restoreScreenCoverPreference() async {
+  if (!LockScreenSettings.instance.getShouldHideAppContent()) {
+    await LockScreenSettings.instance.setHideAppContent(false, persist: false);
+  }
+}
 
 class HiddenPage extends StatefulWidget {
   final String tagPrefix;
@@ -44,11 +58,37 @@ class HiddenPage extends StatefulWidget {
   State<HiddenPage> createState() => _HiddenPageState();
 }
 
-class _HiddenPageState extends State<HiddenPage> {
+class _HiddenExitHome extends StatefulWidget {
+  const _HiddenExitHome();
+
+  @override
+  State<_HiddenExitHome> createState() => _HiddenExitHomeState();
+}
+
+class _HiddenExitHomeState extends State<_HiddenExitHome> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        Future<void>.delayed(
+          const Duration(milliseconds: 100),
+          _restoreScreenCoverPreference,
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const HomeWidget();
+}
+
+class _HiddenPageState extends State<HiddenPage> with WidgetsBindingObserver {
   int? _defaultHiddenCollectionId;
   final _hiddenCollectionsExcludingDefault = <Collection>[];
   bool _hasFilesNeedingCleanup = false;
   bool _hasHiddenFilesOnDevice = false;
+  bool _isExitingAfterBackgrounding = false;
   late StreamSubscription<CollectionUpdatedEvent>
   _collectionUpdatesSubscription;
   late StreamSubscription<AlbumSortOrderChangeEvent> _albumSortOrderChangeEvent;
@@ -56,6 +96,8 @@ class _HiddenPageState extends State<HiddenPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_enableScreenCoverForHidden());
     _collectionUpdatesSubscription = Bus.instance
         .on<CollectionUpdatedEvent>()
         .listen((event) {
@@ -71,6 +113,27 @@ class _HiddenPageState extends State<HiddenPage> {
     unawaited(_refreshHiddenCollections());
     _checkForCleanupNeeded();
     _checkForDeviceCleanupNeeded();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final hasLeftForeground =
+        state == AppLifecycleState.hidden || state == AppLifecycleState.paused;
+    if (!hasLeftForeground || !mounted || _isExitingAfterBackgrounding) {
+      return;
+    }
+    _isExitingAfterBackgrounding = true;
+    Navigator.of(context)
+        .pushAndRemoveUntil<void>(
+          PageRouteBuilder<void>(
+            opaque: true,
+            pageBuilder: (_, _, _) => const _HiddenExitHome(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+          (_) => false,
+        )
+        .ignore();
   }
 
   Future<void> _checkForCleanupNeeded() async {
@@ -117,6 +180,10 @@ class _HiddenPageState extends State<HiddenPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (!_isExitingAfterBackgrounding) {
+      unawaited(_restoreScreenCoverPreference());
+    }
     _collectionUpdatesSubscription.cancel();
     _albumSortOrderChangeEvent.cancel();
     super.dispose();
