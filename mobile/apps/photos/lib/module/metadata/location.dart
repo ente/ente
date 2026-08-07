@@ -24,7 +24,7 @@ Future<void> updateLocationFromEmbeddedMetadata(
     }
   }
   if (!file.hasLocation && file.isVideo) {
-    final videoLocation = (await getVideoProps(sourceFile))?.location;
+    final videoLocation = (await getVideoProps(sourceFile.path))?.location;
     if (videoLocation != null) {
       file.location = videoLocation;
     }
