@@ -264,7 +264,7 @@ class FileBottomBarState extends State<FileBottomBar> {
             ),
             onPressed: () async {
               final trashedFile = <TrashFile>[];
-              trashedFile.add(widget.file as TrashFile);
+              trashedFile.add(widget.file.asTrashFile!);
               if (await deleteFromTrash(context, trashedFile) == true) {
                 if (!mounted) return;
                 Navigator.pop(context);

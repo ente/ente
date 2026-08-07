@@ -29,7 +29,7 @@ class _CreationTimeItemState extends State<CreationTimeItem> {
         (widget.file.ownerID == null ||
             widget.file.ownerID == widget.currentUserID) &&
         widget.file.uploadedFileID != null &&
-        !widget.file.isTrash;
+        widget.file.asTrashFile == null;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
