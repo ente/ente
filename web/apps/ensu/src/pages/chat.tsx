@@ -1963,16 +1963,6 @@ const Page: React.FC = () => {
                         return;
                     }
 
-                    const latestSession = (await listSessions(chatKey)).find(
-                        (session) => session.sessionUuid === sessionUuid,
-                    );
-                    if (
-                        manuallyRenamedSessionIdsRef.current.has(sessionUuid) ||
-                        latestSession?.title.toLowerCase() !== "new chat"
-                    ) {
-                        return;
-                    }
-
                     await updateSessionTitle(sessionUuid, title, chatKey);
                     updateSessionTitleInState(sessionUuid, title);
                 });
