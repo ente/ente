@@ -7,7 +7,7 @@
         "ente-accounts-rs": "*",
         "ente-base": "*",
         "ente-wasm": "*",
-        "pdfjs-dist": "5.7.284",
+        "pdfjs-dist": "6.2.108",
         "qr": "0.6.0",
         "zod": "4.4.3"
     },
