@@ -1942,6 +1942,10 @@ const Page: React.FC = () => {
                 );
                 if (!firstUser) return;
 
+                const automaticFallbackTitle = sessionTitleFromText(
+                    firstUser.text,
+                    "New chat",
+                );
                 const userText = parseDocumentBlocks(firstUser.text).text;
                 const assistantText = stripHiddenPartsText(firstAssistant.text);
 
@@ -1960,6 +1964,17 @@ const Page: React.FC = () => {
 
                 await queueSessionTitleUpdate(sessionUuid, async () => {
                     if (manuallyRenamedSessionIdsRef.current.has(sessionUuid)) {
+                        return;
+                    }
+
+                    const latestSession = (await listSessions(chatKey)).find(
+                        (session) => session.sessionUuid === sessionUuid,
+                    );
+                    if (
+                        manuallyRenamedSessionIdsRef.current.has(sessionUuid) ||
+                        !latestSession ||
+                        latestSession.title !== automaticFallbackTitle
+                    ) {
                         return;
                     }
 

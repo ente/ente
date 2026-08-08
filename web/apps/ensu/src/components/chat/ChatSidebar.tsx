@@ -1,4 +1,4 @@
-import type { ChatSession } from "@/services/chat/store";
+import { sessionTitleFromText, type ChatSession } from "@/services/chat/store";
 import {
     ArrowLeft01Icon,
     ArrowRight01Icon,
@@ -73,36 +73,72 @@ export const ChatSidebar = memo(
     }: ChatSidebarProps) => {
         const [editingSessionId, setEditingSessionId] = useState<string>();
         const [editingTitle, setEditingTitle] = useState("");
-        const editingSessionIdRef = useRef<string | undefined>(undefined);
+        const [savingRenameToken, setSavingRenameToken] = useState<number>();
+        const activeRenameRef = useRef<
+            | { sessionId: string; originalTitle: string; token: number }
+            | undefined
+        >(undefined);
+        const nextRenameTokenRef = useRef(0);
+        const savingRenameTokensRef = useRef(new Set<number>());
 
         const startRename = (sessionId: string, title: string) => {
-            editingSessionIdRef.current = sessionId;
+            activeRenameRef.current = {
+                sessionId,
+                originalTitle: sessionTitleFromText(title, "New chat"),
+                token: ++nextRenameTokenRef.current,
+            };
             setEditingSessionId(sessionId);
             setEditingTitle(title);
         };
 
-        const cancelRename = (sessionId?: string) => {
+        const cancelRename = (sessionId?: string, token?: number) => {
+            const activeRename = activeRenameRef.current;
             if (
                 sessionId !== undefined &&
-                editingSessionIdRef.current !== sessionId
+                activeRename?.sessionId !== sessionId
             ) {
                 return;
             }
-            editingSessionIdRef.current = undefined;
+            if (token !== undefined && activeRename?.token !== token) return;
+
+            activeRenameRef.current = undefined;
             setEditingSessionId(undefined);
             setEditingTitle("");
         };
 
         const saveRename = async () => {
-            const sessionId = editingSessionId;
-            if (!sessionId) return;
-            const title = editingTitle.trim();
-            if (!title) {
-                cancelRename(sessionId);
+            const activeRename = activeRenameRef.current;
+            if (
+                !editingSessionId ||
+                activeRename?.sessionId !== editingSessionId ||
+                savingRenameTokensRef.current.has(activeRename.token)
+            ) {
                 return;
             }
-            if (await renameSession(sessionId, title)) {
-                cancelRename(sessionId);
+
+            const { sessionId, originalTitle, token } = activeRename;
+            if (!editingTitle.trim()) {
+                cancelRename(sessionId, token);
+                return;
+            }
+
+            const title = sessionTitleFromText(editingTitle, "New chat");
+            if (title === originalTitle) {
+                cancelRename(sessionId, token);
+                return;
+            }
+
+            savingRenameTokensRef.current.add(token);
+            setSavingRenameToken(token);
+            try {
+                if (await renameSession(sessionId, title)) {
+                    cancelRename(sessionId, token);
+                }
+            } finally {
+                savingRenameTokensRef.current.delete(token);
+                setSavingRenameToken((currentToken) =>
+                    currentToken === token ? undefined : currentToken,
+                );
             }
         };
 
@@ -372,6 +408,15 @@ export const ChatSidebar = memo(
                                                 session.sessionUuid ? (
                                                     <InputBase
                                                         autoFocus
+                                                        disabled={
+                                                            savingRenameToken ===
+                                                            activeRenameRef
+                                                                .current?.token
+                                                        }
+                                                        inputProps={{
+                                                            "aria-label":
+                                                                "Chat title",
+                                                        }}
                                                         value={editingTitle}
                                                         onChange={(event) =>
                                                             setEditingTitle(
