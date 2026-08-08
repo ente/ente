@@ -26,51 +26,33 @@ class ClipMemoriesCalculator {
         dev.log("No vector for clipMemoryType $clipMemoryType");
         return null;
       }
-      final Map<int, double> similarities = {};
-      for (final entry in fileIDToImageEmbedding.entries) {
-        similarities[entry.key] = entry.value.vector.dot(activityVector);
-      }
-      w?.log('comparing embeddings for clipMemoryType $clipMemoryType');
-      final List<EnteFile> clipFiles = [];
+      final scoredFiles = <({EnteFile file, int fileID, double similarity})>[];
       for (final file in allFiles) {
-        final memoryFileID = SmartMemoriesService._memoryFileId(
-          file,
-          isLocalGalleryMode: isLocalGalleryMode,
-        );
-        if (memoryFileID == null) continue;
-        final similarity = similarities[memoryFileID];
-        if (similarity == null) continue;
-        if (similarity > SmartMemoriesService._clipMemoryTypeQueryThreshold) {
-          clipFiles.add(file);
-        }
-      }
-      if (clipFiles.length < 10) return null;
-      clipFiles.sort((a, b) {
-        final int bFileID = SmartMemoriesService._memoryFileId(
-          b,
-          isLocalGalleryMode: isLocalGalleryMode,
-        )!;
-        final int aFileID = SmartMemoriesService._memoryFileId(
-          a,
-          isLocalGalleryMode: isLocalGalleryMode,
-        )!;
-        return similarities[bFileID]!.compareTo(similarities[aFileID]!);
-      });
-      final int limit = min(clipFiles.length, 50);
-      final List<EnteFile> topCandidates = clipFiles.take(limit).toList();
-      topCandidates.shuffle(Random());
-      final List<EnteFile> selected = [];
-      final selectedFileIDs = <int>[];
-      final selectedCreationTimes = <int>[];
-      int skipped = 0;
-      for (final file in topCandidates) {
-        if (selected.length >= 10) break;
         final fileID = SmartMemoriesService._memoryFileId(
           file,
           isLocalGalleryMode: isLocalGalleryMode,
         );
         if (fileID == null) continue;
-        final creationTime = file.creationTime;
+        final embedding = fileIDToImageEmbedding[fileID];
+        if (embedding == null) continue;
+        final similarity = embedding.vector.dot(activityVector);
+        if (similarity > SmartMemoriesService._clipMemoryTypeQueryThreshold) {
+          scoredFiles.add((file: file, fileID: fileID, similarity: similarity));
+        }
+      }
+      w?.log('comparing embeddings for clipMemoryType $clipMemoryType');
+      if (scoredFiles.length < 10) return null;
+      scoredFiles.sort((a, b) => b.similarity.compareTo(a.similarity));
+      final int limit = min(scoredFiles.length, 50);
+      final topCandidates = scoredFiles.take(limit).toList();
+      topCandidates.shuffle(Random());
+      final selected = <({EnteFile file, int fileID, double similarity})>[];
+      final selectedFileIDs = <int>[];
+      final selectedCreationTimes = <int>[];
+      int skipped = 0;
+      for (final candidate in topCandidates) {
+        if (selected.length >= 10) break;
+        final creationTime = candidate.file.creationTime;
         if (SmartMemoriesService._isTooCloseInTime(
           creationTime,
           selectedCreationTimes,
@@ -79,7 +61,7 @@ class ClipMemoriesCalculator {
           continue;
         }
         if (SmartMemoriesService._isNearDuplicate(
-              fileID,
+              candidate.fileID,
               selectedFileIDs,
               fileIDToImageEmbedding,
             ) &&
@@ -87,25 +69,17 @@ class ClipMemoriesCalculator {
           skipped++;
           continue;
         }
-        selected.add(file);
-        selectedFileIDs.add(fileID);
+        selected.add(candidate);
+        selectedFileIDs.add(candidate.fileID);
         if (creationTime != null) {
           selectedCreationTimes.add(creationTime);
         }
       }
-      selected.sort((a, b) {
-        final int bFileID = SmartMemoriesService._memoryFileId(
-          b,
-          isLocalGalleryMode: isLocalGalleryMode,
-        )!;
-        final int aFileID = SmartMemoriesService._memoryFileId(
-          a,
-          isLocalGalleryMode: isLocalGalleryMode,
-        )!;
-        return similarities[bFileID]!.compareTo(similarities[aFileID]!);
-      });
+      selected.sort((a, b) => b.similarity.compareTo(a.similarity));
       return ClipMemory(
-        selected.map((f) => Memory.fromFile(f, seenTimes)).toList(),
+        selected
+            .map((candidate) => Memory.fromFile(candidate.file, seenTimes))
+            .toList(),
         nowInMicroseconds,
         windowEnd,
         clipMemoryType,

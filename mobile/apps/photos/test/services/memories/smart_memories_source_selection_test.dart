@@ -196,5 +196,49 @@ void main() {
         expect(depletedClipMemories, isEmpty);
       },
     );
+
+    test(
+      "ClipMemoriesCalculator selects only from the top 50 matches",
+      () async {
+        final currentTime = DateTime.utc(2026, 4, 10);
+        final files = <EnteFile>[
+          for (int i = 0; i < 60; i++)
+            _file(
+              id: i + 1,
+              createdAt: DateTime.utc(2024, 1, 1).add(Duration(hours: i)),
+            ),
+        ];
+        final selectedClipType = ClipMemoryType.values.first;
+        final embeddings = <int, EmbeddingVector>{
+          for (final file in files)
+            file.uploadedFileID!: EmbeddingVector(
+              fileID: file.uploadedFileID!,
+              embedding: <double>[file.uploadedFileID! / 60],
+            ),
+          for (int id = 1000; id < 1100; id++)
+            id: EmbeddingVector(fileID: id, embedding: const <double>[1]),
+        };
+
+        final memories = await ClipMemoriesCalculator.compute(
+          files,
+          currentTime,
+          <ClipShownLog>[],
+          surfaceAll: true,
+          isLocalGalleryMode: false,
+          seenTimes: const <int, int>{},
+          fileIDToImageEmbedding: embeddings,
+          clipMemoryTypeVectors: <ClipMemoryType, Vector>{
+            selectedClipType: Vector.fromList(const <double>[1]),
+          },
+        );
+
+        expect(memories, hasLength(1));
+        expect(memories.first.memories, hasLength(10));
+        expect(
+          memories.first.memories.map((memory) => memory.file.uploadedFileID),
+          everyElement(greaterThan(10)),
+        );
+      },
+    );
   });
 }
