@@ -488,13 +488,18 @@ class _BodyState extends State<_Body> {
                     .startTextSelectionAt(file, details.globalPosition)
               : null,
         );
-        return GestureDetector(
+        final page = GestureDetector(
           onTap: () {
             file.fileType != FileType.video
                 ? InheritedDetailPageState.of(context).toggleFullScreenByUser()
                 : null;
           },
           child: fileContent,
+        );
+        return ValueListenableBuilder(
+          valueListenable: _selectedIndexNotifier,
+          builder: (context, selectedIndex, _) =>
+              HeroMode(enabled: index == selectedIndex, child: page),
         );
       },
       onPageChanged: (index) {
