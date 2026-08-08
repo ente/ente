@@ -96,8 +96,19 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
                 onLoadStart: (controller, navigationAction) async {
                   _logger.info("onLoadStart $navigationAction");
                 },
-                onReceivedError: (controller, navigationAction, code) async {
-                  _logger.severe("onLoadError $navigationAction $code");
+                onReceivedError: (controller, navigationAction, error) async {
+                  _logger.severe("onLoadError $navigationAction $error");
+                  if (navigationAction.isForMainFrame == true &&
+                      error.type != WebResourceErrorType.CANCELLED) {
+                    if (!mounted) return;
+                    final navigator = Navigator.of(context);
+                    navigator.pop(false);
+                    if (!navigator.mounted) return;
+                    await showGenericErrorDialog(
+                      context: navigator.context,
+                      error: error,
+                    );
+                  }
                 },
                 onReceivedHttpError:
                     (controller, navigationAction, code) async {

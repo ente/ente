@@ -1,0 +1,1 @@
+- Native handling of network disconnections in payment webview. (@r4khul)
