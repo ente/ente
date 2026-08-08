@@ -4,7 +4,6 @@ import 'package:archive/archive_io.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/ui/components/dialog_widget.dart';
-import 'package:ente_auth/ui/tools/debug/log_file_viewer.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/directory_utils.dart' as auth_dir;
 import 'package:ente_auth/utils/share_utils.dart' as auth_share;
@@ -13,6 +12,7 @@ import 'package:ente_logging/logging.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/buttons/button_widget.dart';
 import 'package:ente_ui/components/buttons/models/button_type.dart';
+import 'package:ente_ui/pages/log_file_viewer.dart';
 import 'package:ente_utils/ente_utils.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
@@ -59,20 +59,15 @@ Future<void> sendLogs(
           }
         },
       ),
-      //isInAlert is false here as we don't want to the dialog to dismiss
-      //on pressing this button
       ButtonWidget(
         buttonType: ButtonType.secondary,
         labelText: l10n.viewLogsAction,
         buttonAction: ButtonAction.second,
         onTap: () async {
-          await showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return LogFileViewer(SuperLogging.logFile!);
-            },
-            barrierColor: Colors.black87,
-            barrierDismissible: false,
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => LogFileViewer(SuperLogging.logFile!),
+            ),
           );
         },
       ),

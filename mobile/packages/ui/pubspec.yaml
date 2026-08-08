@@ -27,6 +27,7 @@ dependencies:
   hugeicons: 1.1.7
   modal_bottom_sheet: 3.0.0
   package_info_plus: 8.3.1
+  scrollable_positioned_list: 0.3.8
   url_launcher: 6.3.2
 
 dev_dependencies:
