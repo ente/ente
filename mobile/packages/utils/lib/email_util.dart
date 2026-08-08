@@ -62,22 +62,15 @@ Future<void> sendLogs(
           }
         },
       ),
-      //isInAlert is false here as we don't want to the dialog to dismiss
-      //on pressing this button
       ButtonWidget(
         buttonType: ButtonType.secondary,
         labelText: context.strings.viewLogs,
         buttonAction: ButtonAction.second,
         onTap: () async {
-          // ignore: unawaited_futures
-          showDialog(
-            useRootNavigator: false,
-            context: context,
-            builder: (BuildContext context) {
-              return LogFileViewer(SuperLogging.logFile!);
-            },
-            barrierColor: Colors.black87,
-            barrierDismissible: false,
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => LogFileViewer(SuperLogging.logFile!),
+            ),
           );
         },
       ),
