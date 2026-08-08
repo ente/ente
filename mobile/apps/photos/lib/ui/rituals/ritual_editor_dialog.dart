@@ -541,7 +541,8 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                       ),
                                       onPressed: canSave
                                           ? () async {
-                                              if (sendReminderEnabled &&
+                                              if (!allDaysOff &&
+                                                  sendReminderEnabled &&
                                                   !await NotificationService
                                                       .instance
                                                       .hasGrantedPermissions() &&
