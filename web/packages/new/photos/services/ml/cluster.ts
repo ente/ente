@@ -176,7 +176,7 @@ const sortFacesNewestOnesFirst = (
 
 const isBadFace = (face: Face) =>
     face.blur < 50 ||
-    (face.blur < 200 && face.blur < 0.85) ||
+    (face.blur < 200 && face.score < 0.85) ||
     isSidewaysFace(face);
 
 const isSidewaysFace = (face: Face) =>
