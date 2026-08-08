@@ -327,7 +327,9 @@ export const Upload: React.FC<UploadProps> = ({
                 setHasLivePhotos,
                 setUploadProgressView,
             },
-            onUploadFile,
+            (file) => {
+                if (!watcher.isUploadRunning()) onUploadFile(file);
+            },
         );
 
         if (uploadManager.isUploadRunning()) {
@@ -1007,6 +1009,18 @@ export const Upload: React.FC<UploadProps> = ({
         collections: Collection[],
         opts?: UploadFilesOptions,
     ) => {
+        const isFolderWatchUpload = isDesktop && watcher.isUploadRunning();
+        const handleResult = async (result: UploadBatchResult) => {
+            await handlePostUploadBatchResult(
+                result,
+                opts?.postUploadTargetCollection,
+            );
+            await handleTakeoutFavoritesPostUpload(
+                result,
+                opts?.postUploadTargetCollection,
+                opts?.importTakeoutFavorites ?? true,
+            );
+        };
         try {
             retrySharedAlbumUploadTarget.current =
                 opts?.postUploadTargetCollection;
@@ -1039,20 +1053,16 @@ export const Upload: React.FC<UploadProps> = ({
                     skipDuplicateAddToUploadCollection:
                         !!opts?.postUploadTargetCollection,
                     includePartnerSharedFiles: opts?.includePartnerSharedFiles,
+                    onChunkResult: isFolderWatchUpload
+                        ? handleResult
+                        : undefined,
                 },
             );
             if (!batchResult.processedAny) closeUploadProgress();
-            await handlePostUploadBatchResult(
-                batchResult,
-                opts?.postUploadTargetCollection,
-            );
-            await handleTakeoutFavoritesPostUpload(
-                batchResult,
-                opts?.postUploadTargetCollection,
-                opts?.importTakeoutFavorites ?? true,
-            );
+            if (!isFolderWatchUpload || batchResult.itemResults.length)
+                await handleResult(batchResult);
             if (isDesktop) {
-                if (watcher.isUploadRunning()) {
+                if (isFolderWatchUpload) {
                     await watcher.allFileUploadsDone(uploadItemsWithCollection);
                 } else if (watcher.isSyncPaused()) {
                     // Resume the watch upload displaced by this user upload.

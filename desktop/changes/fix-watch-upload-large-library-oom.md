@@ -1,0 +1,1 @@
+- Fix the desktop app crashing during large folder-watch uploads by bounding renderer memory and refreshing gallery state after watcher completion.
