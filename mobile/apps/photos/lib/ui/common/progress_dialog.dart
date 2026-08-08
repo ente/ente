@@ -1,5 +1,3 @@
-import "dart:async";
-
 import 'package:flutter/material.dart';
 
 enum ProgressDialogType { normal, download }
@@ -15,7 +13,7 @@ Alignment _progressWidgetAlignment = Alignment.centerLeft;
 TextDirection _direction = TextDirection.ltr;
 
 bool _isShowing = false;
-BuildContext? _context, _dismissingContext;
+_Body? _activeDialog;
 ProgressDialogType? _progressDialogType;
 bool _barrierDismissible = true, _showLogs = false;
 Color? _barrierColor;
@@ -42,9 +40,19 @@ Widget _progressWidget = Image.asset(
 );
 
 class ProgressDialog {
+  final BuildContext _context;
   _Body? _dialog;
+  Future<void>? _dialogPopped;
+  ModalRoute<void>? _dialogRoute;
+  NavigatorState? _navigator;
 
-  bool get _isThisDialogShowing => _isShowing && _dialog != null;
+  bool get _isThisDialogShowing {
+    final dialogRoute = _dialogRoute;
+    return _isShowing &&
+        _dialog != null &&
+        identical(_activeDialog, _dialog) &&
+        (dialogRoute == null || dialogRoute.isActive);
+  }
 
   ProgressDialog(
     BuildContext context, {
@@ -54,8 +62,7 @@ class ProgressDialog {
     TextDirection? textDirection,
     Widget? customBody,
     Color? barrierColor,
-  }) {
-    _context = context;
+  }) : _context = context {
     _progressDialogType = type ?? ProgressDialogType.normal;
     _barrierDismissible = isDismissible ?? true;
     _showLogs = showLogs ?? false;
@@ -125,27 +132,44 @@ class ProgressDialog {
   }
 
   bool isShowing() {
-    return _isShowing;
+    return _isThisDialogShowing;
   }
 
   Future<bool> hide() async {
+    if (_dialog == null) {
+      if (_showLogs) debugPrint('ProgressDialog already dismissed');
+      return false;
+    }
+
+    var dismissed = false;
     try {
-      if (_isThisDialogShowing) {
-        _isShowing = false;
-        if (_dismissingContext != null) {
-          Navigator.of(_dismissingContext!).pop();
+      final navigator = _navigator;
+      if (navigator != null) {
+        final dialogRoute = _dialogRoute;
+        if (dialogRoute != null) {
+          if (dialogRoute.isActive) {
+            if (dialogRoute.isCurrent) {
+              navigator.pop();
+            } else {
+              navigator.removeRoute(dialogRoute);
+            }
+            dismissed = true;
+          }
+          await dialogRoute.completed;
+        } else {
+          navigator.pop();
+          dismissed = true;
+          await _dialogPopped;
         }
-        _dialog = null;
-        if (_showLogs) debugPrint('ProgressDialog dismissed');
-        return Future.value(true);
-      } else {
-        if (_showLogs) debugPrint('ProgressDialog already dismissed');
-        return Future.value(false);
       }
+      if (_showLogs && dismissed) debugPrint('ProgressDialog dismissed');
+      return dismissed;
     } catch (err) {
       debugPrint('Seems there is an issue hiding dialog');
       debugPrint(err.toString());
-      return Future.value(false);
+      return false;
+    } finally {
+      _clearDialogState();
     }
   }
 
@@ -154,31 +178,31 @@ class ProgressDialog {
       if (!_isShowing) {
         _isShowing = true;
         _dialog = _Body();
-        unawaited(
-          showDialog<dynamic>(
-            context: _context!,
-            barrierDismissible: _barrierDismissible,
-            barrierColor: _barrierColor,
-            useRootNavigator: false,
-            builder: (BuildContext context) {
-              _dismissingContext = context;
-              return PopScope(
-                canPop: _barrierDismissible,
-                child: Dialog(
-                  backgroundColor: _backgroundColor,
-                  insetAnimationCurve: _insetAnimCurve,
-                  insetAnimationDuration: const Duration(milliseconds: 100),
-                  elevation: _dialogElevation,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(_borderRadius),
-                    ),
+        _activeDialog = _dialog;
+        _navigator = Navigator.of(_context);
+        _dialogPopped = showDialog<void>(
+          context: _context,
+          barrierDismissible: _barrierDismissible,
+          barrierColor: _barrierColor,
+          useRootNavigator: false,
+          builder: (context) {
+            _dialogRoute = ModalRoute.of<void>(context);
+            return PopScope(
+              canPop: _barrierDismissible,
+              child: Dialog(
+                backgroundColor: _backgroundColor,
+                insetAnimationCurve: _insetAnimCurve,
+                insetAnimationDuration: const Duration(milliseconds: 100),
+                elevation: _dialogElevation,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(_borderRadius),
                   ),
-                  child: _dialog,
                 ),
-              );
-            },
-          ),
+                child: _dialog,
+              ),
+            );
+          },
         );
         // Delaying the function for 200 milliseconds
         // [Default transitionDuration of DialogRoute]
@@ -190,12 +214,22 @@ class ProgressDialog {
         return false;
       }
     } catch (err) {
-      _isShowing = false;
-      _dialog = null;
+      _clearDialogState();
       debugPrint('Exception while showing the dialog');
       debugPrint(err.toString());
       return false;
     }
+  }
+
+  void _clearDialogState() {
+    if (identical(_activeDialog, _dialog)) {
+      _isShowing = false;
+      _activeDialog = null;
+    }
+    _dialog = null;
+    _dialogPopped = null;
+    _dialogRoute = null;
+    _navigator = null;
   }
 }
 
@@ -222,7 +256,10 @@ class _BodyState extends State<_Body> {
 
   @override
   void dispose() {
-    _isShowing = false;
+    if (identical(_activeDialog, widget)) {
+      _isShowing = false;
+      _activeDialog = null;
+    }
     if (_showLogs) debugPrint('ProgressDialog dismissed by back button');
     super.dispose();
   }

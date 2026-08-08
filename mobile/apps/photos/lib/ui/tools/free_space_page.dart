@@ -7,8 +7,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/models/freeable_space_info.dart';
+import "package:photos/services/files_service.dart";
+import "package:photos/services/free_space/deletion_batch_runner.dart";
 import "package:photos/ui/notification/toast.dart";
 import 'package:photos/utils/delete_file_util.dart';
+
+final _logger = Logger("FreeSpacePage");
+bool _isFreeSpaceDeletionInProgress = false;
 
 class FreeSpacePage extends StatefulWidget {
   final FreeableSpaceInfo status;
@@ -25,6 +30,8 @@ class FreeSpacePage extends StatefulWidget {
 }
 
 class _FreeSpacePageState extends State<FreeSpacePage> {
+  bool _isFreeingSpace = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,10 +53,8 @@ class _FreeSpacePageState extends State<FreeSpacePage> {
   }
 
   Widget _getBody(FreeableSpaceInfo status) {
-    Logger(
-      "FreeSpacePage",
-    ).info("Number of uploaded files: " + status.localIDs.length.toString());
-    Logger("FreeSpacePage").info("Space consumed: " + status.size.toString());
+    _logger.info("Number of uploaded files: ${status.localIDs.length}");
+    _logger.info("Space consumed: ${status.size}");
     final count = status.localIDs.length;
     final formattedCount = NumberFormat().format(count);
     final formattedSize = formatBytes(status.size);
@@ -90,6 +95,7 @@ class _FreeSpacePageState extends State<FreeSpacePage> {
             const SizedBox(height: 32),
             ButtonComponent(
               shouldSurfaceExecutionStates: false,
+              isDisabled: _isFreeingSpace,
               onTap: () async {
                 await _showConfirmFreeSpaceSheet(context, status);
               },
@@ -102,29 +108,62 @@ class _FreeSpacePageState extends State<FreeSpacePage> {
   }
 
   Future<void> _freeStorage(FreeableSpaceInfo status) async {
-    bool isSuccess = await deleteLocalFiles(context, status.localIDs);
-
-    if (isSuccess == false) {
-      if (!mounted) return;
-      isSuccess = await deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
-        context,
-        status.localIDs,
-      );
+    if (_isFreeSpaceDeletionInProgress) {
+      return;
+    }
+    _isFreeSpaceDeletionInProgress = true;
+    if (mounted) {
+      setState(() => _isFreeingSpace = true);
     }
 
-    if (isSuccess == false && Platform.isAndroid) {
-      if (!mounted) return;
-      isSuccess = await retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
-        context,
-      );
-    }
+    try {
+      late final Set<String> currentLocalIDs;
+      try {
+        final refreshedStatus = await FilesService.instance
+            .getFreeableSpaceInfo();
+        currentLocalIDs = retainOriginalDeletionCandidates(
+          refreshedLocalIDs: refreshedStatus.localIDs,
+          originalLocalIDs: status.localIDs,
+        );
+      } catch (e, s) {
+        _logger.severe("Could not refresh free-up-space candidates", e, s);
+        if (mounted) {
+          showToast(context, context.strings.couldNotFreeUpSpace);
+        }
+        return;
+      }
 
-    if (isSuccess) {
       if (!mounted) return;
-      Navigator.of(context).pop(true);
-    } else {
+      final currentLocalIDList = currentLocalIDs.toList();
+      var result = await deleteLocalFiles(context, currentLocalIDList);
+
+      if (result.shouldTryNextFallback) {
+        if (!mounted) return;
+        result = await deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
+          context,
+          currentLocalIDList,
+        );
+      }
+
+      if (result.shouldTryNextFallback && Platform.isAndroid) {
+        if (!mounted) return;
+        result = await retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
+          context,
+          originalLocalIDs: currentLocalIDs,
+        );
+      }
+
       if (!mounted) return;
-      showToast(context, context.strings.couldNotFreeUpSpace);
+      if (result.isCompleted) {
+        Navigator.of(context).pop(true);
+      } else if (!result.isCancelled) {
+        showToast(context, context.strings.couldNotFreeUpSpace);
+      }
+    } finally {
+      _isFreeSpaceDeletionInProgress = false;
+      if (mounted) {
+        setState(() => _isFreeingSpace = false);
+      }
     }
   }
 

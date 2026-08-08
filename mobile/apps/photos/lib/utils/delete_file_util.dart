@@ -23,11 +23,13 @@ import 'package:photos/models/selected_files.dart';
 import 'package:photos/module/download/file.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/files_service.dart";
+import "package:photos/services/free_space/deletion_batch_runner.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import 'package:photos/services/sync/remote_sync_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
 import "package:photos/settings/local_settings.dart";
 import 'package:photos/ui/common/linear_progress_dialog.dart';
+import 'package:photos/ui/common/progress_dialog.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart'
     show ButtonAction;
 import 'package:photos/ui/notification/toast.dart';
@@ -380,92 +382,51 @@ Future<bool> emptyTrash(BuildContext context) async {
   }
 }
 
-Future<bool> deleteLocalFiles(
+Future<LocalDeletionResult> deleteLocalFiles(
   BuildContext context,
   List<String> localIDs,
 ) async {
-  _logger.info("Trying to delete local files ");
-  final List<String> deletedIDs = [];
-  final List<String> localAssetIDs = [];
-  final List<String> localSharedMediaIDs = [];
+  _logger.info("Trying to delete local files");
+  final localAssetIDs = <String>[];
+  final localSharedMediaIDs = <String>[];
 
-  // Keep large platform asset deletes in smaller batches. Shared-media sandbox
-  // IDs are deleted separately above, and only platform asset IDs are sent to
-  // PhotoManager.editor.deleteWithIds. Android 11+ routes those IDs through
-  // MediaStore.createDeleteRequest, where our target SDK has a 2000 URI cap:
-  // https://developer.android.com/reference/android/provider/MediaStore#createDeleteRequest(android.content.ContentResolver,%20java.util.Collection%3Candroid.net.Uri%3E)
-  // Smaller batches are also safer for large iOS Photos deletes.
-  const largeCountThreshold = 1900;
   try {
-    for (String id in localIDs) {
+    for (final id in localIDs.toSet()) {
       if (id.startsWith(sharedMediaIdentifier)) {
         localSharedMediaIDs.add(id);
       } else {
         localAssetIDs.add(id);
       }
     }
-    deletedIDs.addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
 
-    final tooManyAssets = localAssetIDs.length > largeCountThreshold;
-    final bool shouldDeleteInBatches =
-        await isAndroidSDKVersionLowerThan(android11SDKINT) || tooManyAssets;
+    final sharedMediaResult = await _deleteAndCheckpointSharedMediaFiles(
+      localSharedMediaIDs,
+    );
+    if (sharedMediaResult.isTerminalFailure) {
+      return sharedMediaResult;
+    }
     if (!context.mounted) {
       _logger.info(
         "Skipping platform asset deletion after the initiating page was disposed",
       );
-    } else if (shouldDeleteInBatches) {
-      if (tooManyAssets) {
-        _logger.info(
-          "Too many assets (${localAssetIDs.length}) to delete in one shot, deleting in batches",
-        );
-        await _recursivelyReduceBatchSizeAndRetryDeletion(
-          batchSize: largeCountThreshold,
-          context: context,
-          localIDs: localAssetIDs,
-          deletedIDs: deletedIDs,
-        );
-      } else {
-        _logger.info("Deleting in batches");
-        deletedIDs.addAll(
-          await deleteLocalFilesInBatches(context, localAssetIDs),
-        );
-      }
-    } else {
-      _logger.info("Deleting in one shot");
-      deletedIDs.addAll(
-        await _deleteLocalFilesInOneShot(context, localAssetIDs),
-      );
-    }
-    if (deletedIDs.isEmpty && Platform.isIOS) {
-      _logger.warning(
-        "Deletion failed in deleteLocalFiles for ${localAssetIDs.length} files, on iOS",
+      return LocalDeletionResult(
+        status: LocalDeletionStatus.failed,
+        deletedIDs: sharedMediaResult.deletedIDs,
       );
     }
 
-    if (deletedIDs.isNotEmpty) {
-      final deletedFiles = await FilesDB.instance.getLocalFiles(deletedIDs);
-      await FilesDB.instance.deleteLocalFiles(deletedIDs);
-      _logger.info(deletedFiles.length.toString() + " files deleted locally");
-      Bus.instance.fire(
-        LocalPhotosUpdatedEvent(deletedFiles, source: "deleteLocal"),
-      );
-      return true;
-    } else {
-      //On android 10, even if files were deleted, deletedIDs is empty.
-      //This is a workaround so that users are not shown an error message on
-      //android 10
-      if (!await isAndroidSDKVersionLowerThan(android11SDKINT)) {
-        return false;
-      }
-      return true;
-    }
+    final platformResult = await _deletePlatformAssets(context, localAssetIDs);
+    return combineDeletionResults(sharedMediaResult, platformResult);
   } catch (e, s) {
     _logger.severe("Could not delete local files", e, s);
-    return false;
+    return const LocalDeletionResult(
+      status: LocalDeletionStatus.failed,
+      shouldTryNextFallback: true,
+    );
   }
 }
 
-Future<bool> deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
+Future<LocalDeletionResult> deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
   BuildContext context,
   List<String> localIDs,
 ) async {
@@ -473,21 +434,41 @@ Future<bool> deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
     "Trying to delete local files after removing already deleted IDs",
   );
 
-  final List<String> deletedIDs = [];
-  final List<String> localAssetIDs = [];
-  final List<String> localSharedMediaIDs = [];
-  final List<String> alreadyDeletedIDs = []; // to ignore already deleted files
+  final localAssetIDs = <String>[];
+  final localSharedMediaIDs = <String>[];
+  final alreadyDeletedIDs = <String>{};
+  late LocalDeletionResult sharedMediaResult;
 
   final dialog = createProgressDialog(context, "Loading...");
   await dialog.show();
   try {
+    late final PermissionState permissionState;
+    try {
+      permissionState = await permissionService.getPermissionState();
+    } catch (e, s) {
+      _logger.severe(
+        "Could not verify gallery permission for stale-ID recovery",
+        e,
+        s,
+      );
+      return const LocalDeletionResult(status: LocalDeletionStatus.failed);
+    }
+    // Restricted gallery access can make an existing asset appear missing, so
+    // only use failed lookups as evidence of stale IDs with full access.
+    if (permissionState != PermissionState.authorized) {
+      _logger.warning(
+        "Skipping stale-ID recovery because gallery permission is "
+        "$permissionState",
+      );
+      return const LocalDeletionResult(status: LocalDeletionStatus.failed);
+    }
+
     final files = await FilesDB.instance.getLocalFiles(
       localIDs,
       dedupeByLocalID: true,
     );
     for (final file in files) {
       if (!(await _localFileExist(file))) {
-        _logger.warning("Already deleted ${file.tag}");
         alreadyDeletedIDs.add(file.localID!);
       } else if (file.localID!.startsWith(sharedMediaIdentifier)) {
         localSharedMediaIDs.add(file.localID!);
@@ -495,64 +476,56 @@ Future<bool> deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
         localAssetIDs.add(file.localID!);
       }
     }
-    deletedIDs.addAll(alreadyDeletedIDs);
-    deletedIDs.addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
-
-    await dialog.hide();
-
-    final bool shouldDeleteInBatches = await isAndroidSDKVersionLowerThan(
-      android11SDKINT,
+    _logger.info(
+      "Stale-ID recovery found ${alreadyDeletedIDs.length} missing files",
     );
-    if (!context.mounted) {
-      _logger.info(
-        "Skipping platform asset deletion after the initiating page was disposed",
-      );
-    } else if (shouldDeleteInBatches) {
-      _logger.info("Deleting in batches");
-      deletedIDs.addAll(
-        await deleteLocalFilesInBatches(context, localAssetIDs),
-      );
-    } else {
-      _logger.info("Deleting in one shot");
-      deletedIDs.addAll(
-        await _deleteLocalFilesInOneShot(context, localAssetIDs),
-      );
+
+    try {
+      await _checkpointRemovedLocalIDs(alreadyDeletedIDs);
+    } catch (e, s) {
+      _logger.severe("Could not checkpoint already-missing files", e, s);
+      return const LocalDeletionResult(status: LocalDeletionStatus.failed);
     }
 
-    if (deletedIDs.isEmpty && Platform.isIOS) {
-      _logger.warning(
-        "Deletion failed in deleteLocalFilesAfterRemovingAlreadyDeletedIDs for ${localAssetIDs.length} files, on iOS",
+    sharedMediaResult = await _deleteAndCheckpointSharedMediaFiles(
+      localSharedMediaIDs,
+    );
+    if (sharedMediaResult.isTerminalFailure) {
+      return LocalDeletionResult(
+        status: LocalDeletionStatus.failed,
+        deletedIDs: sharedMediaResult.deletedIDs,
       );
-    }
-
-    if (deletedIDs.isNotEmpty) {
-      final deletedFiles = await FilesDB.instance.getLocalFiles(deletedIDs);
-      await FilesDB.instance.deleteLocalFiles(deletedIDs);
-      _logger.info(deletedFiles.length.toString() + " files deleted locally");
-      Bus.instance.fire(
-        LocalPhotosUpdatedEvent(deletedFiles, source: "deleteLocal"),
-      );
-      return true;
-    } else {
-      //On android 10, even if files were deleted, deletedIDs is empty.
-      //This is a workaround so that users are not shown an error message on
-      //android 10
-      if (!await isAndroidSDKVersionLowerThan(android11SDKINT)) {
-        return false;
-      }
-      return true;
     }
   } catch (e, s) {
     _logger.severe("Could not delete local files", e, s);
-    await dialog.hide();
-    return false;
+    return const LocalDeletionResult(
+      status: LocalDeletionStatus.failed,
+      shouldTryNextFallback: true,
+    );
+  } finally {
+    await _hideProgressDialog(dialog);
   }
+
+  if (!context.mounted) {
+    _logger.info(
+      "Skipping platform asset deletion after the initiating page was disposed",
+    );
+    return LocalDeletionResult(
+      status: LocalDeletionStatus.failed,
+      deletedIDs: sharedMediaResult.deletedIDs,
+    );
+  }
+
+  final platformResult = await _deletePlatformAssets(context, localAssetIDs);
+  return combineDeletionResults(sharedMediaResult, platformResult);
 }
 
 /// Only to be used on Android
-Future<bool> retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
-  BuildContext context,
-) async {
+Future<LocalDeletionResult>
+retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
+  BuildContext context, {
+  required Iterable<String> originalLocalIDs,
+}) async {
   _logger.info(
     "Retrying free up space after removing assets non-existing in disk",
   );
@@ -561,6 +534,10 @@ Future<bool> retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
     context,
     context.strings.pleaseWaitThisWillTakeAWhile,
   );
+  final localAssetIDs = <String>[];
+  final localSharedMediaIDs = <String>[];
+  late LocalDeletionResult sharedMediaResult;
+
   await dialog.show();
   try {
     final stopwatch = Stopwatch()..start();
@@ -573,185 +550,220 @@ Future<bool> retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
     );
     await LocalSyncService.instance.sync();
 
-    late final FreeableSpaceInfo status;
-    final List<String> deletedIDs = [];
-    final List<String> localAssetIDs = [];
-    final List<String> localSharedMediaIDs = [];
-    status = await FilesService.instance.getFreeableSpaceInfo();
+    final FreeableSpaceInfo status = await FilesService.instance
+        .getFreeableSpaceInfo();
 
-    for (String localID in status.localIDs) {
+    final scopedLocalIDs = retainOriginalDeletionCandidates(
+      refreshedLocalIDs: status.localIDs,
+      originalLocalIDs: originalLocalIDs,
+    );
+    for (final localID in scopedLocalIDs) {
       if (localID.startsWith(sharedMediaIdentifier)) {
         localSharedMediaIDs.add(localID);
       } else {
         localAssetIDs.add(localID);
       }
     }
-    deletedIDs.addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
-
-    await dialog.hide();
-
-    final bool shouldDeleteInBatches = await isAndroidSDKVersionLowerThan(
-      android11SDKINT,
+    sharedMediaResult = await _deleteAndCheckpointSharedMediaFiles(
+      localSharedMediaIDs,
     );
-    if (!context.mounted) {
-      _logger.info(
-        "Skipping platform asset deletion after the initiating page was disposed",
-      );
-    } else if (shouldDeleteInBatches) {
-      _logger.info("Deleting in batches");
-      deletedIDs.addAll(
-        await deleteLocalFilesInBatches(context, localAssetIDs),
-      );
-    } else {
-      _logger.info("Deleting in one shot");
-      deletedIDs.addAll(
-        await _deleteLocalFilesInOneShot(context, localAssetIDs),
+    if (sharedMediaResult.isTerminalFailure) {
+      return LocalDeletionResult(
+        status: LocalDeletionStatus.failed,
+        deletedIDs: sharedMediaResult.deletedIDs,
       );
     }
-
-    if (deletedIDs.isNotEmpty) {
-      final deletedFiles = await FilesDB.instance.getLocalFiles(deletedIDs);
-      await FilesDB.instance.deleteLocalFiles(deletedIDs);
-      _logger.info(deletedFiles.length.toString() + " files deleted locally");
-      Bus.instance.fire(
-        LocalPhotosUpdatedEvent(deletedFiles, source: "deleteLocal"),
-      );
-      return true;
-    } else {
-      //On android 10, even if files were deleted, deletedIDs is empty.
-      //This is a workaround so that users are not shown an error message on
-      //android 10
-      if (!await isAndroidSDKVersionLowerThan(android11SDKINT)) {
-        return false;
-      }
-      return true;
-    }
-  } catch (e) {
-    await dialog.hide();
-    return false;
+  } catch (e, s) {
+    _logger.severe("Could not complete MediaStore recovery", e, s);
+    return const LocalDeletionResult(status: LocalDeletionStatus.failed);
+  } finally {
+    await _hideProgressDialog(dialog);
   }
+
+  if (!context.mounted) {
+    _logger.info(
+      "Skipping final platform deletion after the initiating page was disposed",
+    );
+    return LocalDeletionResult(
+      status: LocalDeletionStatus.failed,
+      deletedIDs: sharedMediaResult.deletedIDs,
+    );
+  }
+
+  final platformResult = await _deletePlatformAssets(context, localAssetIDs);
+  final result = combineDeletionResults(sharedMediaResult, platformResult);
+  return LocalDeletionResult(
+    status: result.status,
+    deletedIDs: result.deletedIDs,
+  );
 }
 
-Future<List<String>> _deleteLocalFilesInOneShot(
+Future<LocalDeletionResult> _deletePlatformAssets(
+  BuildContext context,
+  List<String> localIDs,
+) async {
+  final uniqueLocalIDs = localIDs.toSet().toList();
+  if (uniqueLocalIDs.isEmpty) {
+    return const LocalDeletionResult(status: LocalDeletionStatus.completed);
+  }
+  if (!context.mounted) {
+    return const LocalDeletionResult(status: LocalDeletionStatus.failed);
+  }
+
+  // Keep Android 11+ requests below MediaStore's 2000 URI limit. The same
+  // threshold also avoids oversized Photos requests on iOS.
+  const largeCountThreshold = 1900;
+  final isLegacyAndroid =
+      Platform.isAndroid && await isAndroidSDKVersionLowerThan(android11SDKINT);
+  if (!context.mounted) {
+    return const LocalDeletionResult(status: LocalDeletionStatus.failed);
+  }
+  if (isLegacyAndroid) {
+    _logger.info("Deleting platform assets in legacy Android batches");
+    return deleteLocalFilesInBatches(
+      context,
+      uniqueLocalIDs,
+      emptyResultMeansCompleted: true,
+    );
+  }
+  if (uniqueLocalIDs.length > largeCountThreshold) {
+    _logger.info(
+      "Deleting ${uniqueLocalIDs.length} platform assets in bounded batches",
+    );
+    return deleteLocalFilesInBatches(
+      context,
+      uniqueLocalIDs,
+      minimumParts: 1,
+      maximumBatchSize: largeCountThreshold,
+    );
+  }
+  return _deleteLocalFilesInOneShot(context, uniqueLocalIDs);
+}
+
+Future<LocalDeletionResult> _deleteLocalFilesInOneShot(
   BuildContext context,
   List<String> localIDs,
 ) async {
   _logger.info('starting _deleteLocalFilesInOneShot for ${localIDs.length}');
-  final List<String> deletedIDs = [];
   final dialog = createProgressDialog(
     context,
     "Deleting " + localIDs.length.toString() + " backed up files...",
   );
   await dialog.show();
   try {
-    deletedIDs.addAll(await PhotoManager.editor.deleteWithIds(localIDs));
-  } catch (e, s) {
-    _logger.severe("Could not delete files ", e, s);
+    final result = await executeDeletionBatches(
+      localIDs: localIDs,
+      batchSize: localIDs.length,
+      deleteBatch: PhotoManager.editor.deleteWithIds,
+      checkpoint: _checkpointRemovedLocalIDs,
+    );
+    _logger.info(
+      '_deleteLocalFilesInOneShot deleted ${result.deletedIDs.length} out '
+      'of ${localIDs.length}',
+    );
+    return result;
+  } finally {
+    await _hideProgressDialog(dialog);
   }
-  _logger.info(
-    '_deleteLocalFilesInOneShot deleted ${deletedIDs.length} out '
-    'of ${localIDs.length}',
-  );
-  await dialog.hide();
-  return deletedIDs;
 }
 
-Future<List<String>> deleteLocalFilesInBatches(
+Future<LocalDeletionResult> deleteLocalFilesInBatches(
   BuildContext context,
   List<String> localIDs, {
   int minimumParts = 10,
   int minimumBatchSize = 1,
   int maximumBatchSize = 100,
+  bool emptyResultMeansCompleted = false,
 }) async {
   final dialogKey = GlobalKey<LinearProgressDialogState>();
   final dialog = LinearProgressDialog(
     "Deleting " + localIDs.length.toString() + " backed up files...",
     key: dialogKey,
   );
-  // ignore: unawaited_futures
-  showDialog(
+  ModalRoute<void>? dialogRoute;
+  final dialogPopped = showDialog<void>(
     useRootNavigator: false,
     context: context,
     builder: (context) {
+      dialogRoute = ModalRoute.of<void>(context);
       return dialog;
     },
     barrierColor: Colors.black.withValues(alpha: 0.85),
   );
+  await WidgetsBinding.instance.endOfFrame;
   final batchSize = min(
     max(minimumBatchSize, (localIDs.length / minimumParts).round()),
     maximumBatchSize,
   );
-  _logger.info("Batch size: $batchSize");
-  final List<String> deletedIDs = [];
-  for (int index = 0; index < localIDs.length; index += batchSize) {
-    if (dialogKey.currentState != null) {
-      dialogKey.currentState!.setProgress(index / localIDs.length);
-    }
-    final ids = localIDs
-        .getRange(index, min(localIDs.length, index + batchSize))
-        .toList();
-    _logger.info("Trying to delete ${ids.length} files");
-    final int countBefore = deletedIDs.length;
-    try {
-      deletedIDs.addAll(await PhotoManager.editor.deleteWithIds(ids));
-      _logger.info(
-        "Deleted ${deletedIDs.length - countBefore} of ${ids.length} files",
-      );
-    } catch (e, s) {
-      _logger.severe("Could not delete batch of ${ids.length} files", e, s);
-      for (final id in ids) {
-        try {
-          deletedIDs.addAll(await PhotoManager.editor.deleteWithIds([id]));
-          _logger.info("Deleted " + id);
-        } catch (e, s) {
-          _logger.severe("Could not delete file " + id, e, s);
-        }
-      }
+  try {
+    return await executeDeletionBatches(
+      localIDs: localIDs,
+      batchSize: batchSize,
+      deleteBatch: PhotoManager.editor.deleteWithIds,
+      checkpoint: _checkpointRemovedLocalIDs,
+      emptyResultMeansCompleted: emptyResultMeansCompleted,
+      onProgress: (completed, total) {
+        dialogKey.currentState?.setProgress(completed / total);
+      },
+    );
+  } finally {
+    final dialogContext = dialogKey.currentContext;
+    if (dialogContext != null && dialogContext.mounted) {
+      Navigator.of(dialogContext).pop();
+      await (dialogRoute?.completed ?? dialogPopped);
     }
   }
-  Navigator.of(dialogKey.currentContext!).pop('dialog');
-  return deletedIDs;
 }
 
-Future<void> _recursivelyReduceBatchSizeAndRetryDeletion({
-  required int batchSize,
-  required BuildContext context,
-  required List<String> localIDs,
-  required List<String> deletedIDs,
-  int minimumBatchSizeThresholdToStopRetry = 1900,
-}) async {
-  // TODO: Revisit whether this recursive retry is still needed. The batch
-  // helper already falls back to single-ID deletes when a batch fails.
-  if (batchSize < minimumBatchSizeThresholdToStopRetry) {
-    _logger.warning(
-      "Batch size is too small ($batchSize), stopping further retries.",
-    );
-    throw Exception(
-      "Batch size is too small ($batchSize), stopping further retries.",
+Future<void> _checkpointRemovedLocalIDs(Iterable<String> localIDs) async {
+  final uniqueLocalIDs = localIDs.toSet();
+  if (uniqueLocalIDs.isEmpty) {
+    return;
+  }
+  final ids = uniqueLocalIDs.toList();
+  final deletedFiles = await FilesDB.instance.getLocalFiles(ids);
+  await FilesDB.instance.deleteLocalFiles(ids);
+  _logger.info("${deletedFiles.length} files deleted locally");
+  if (deletedFiles.isNotEmpty) {
+    Bus.instance.fire(
+      LocalPhotosUpdatedEvent(deletedFiles, source: "deleteLocal"),
     );
   }
+}
+
+Future<LocalDeletionResult> _deleteAndCheckpointSharedMediaFiles(
+  List<String> localIDs,
+) async {
+  final requestedIDs = localIDs.toSet();
+  if (requestedIDs.isEmpty) {
+    return const LocalDeletionResult(status: LocalDeletionStatus.completed);
+  }
+  final deletedIDs = (await _tryDeleteSharedMediaFiles(
+    requestedIDs.toList(),
+  )).toSet().intersection(requestedIDs);
   try {
-    deletedIDs.addAll(
-      await deleteLocalFilesInBatches(
-        context,
-        localIDs,
-        minimumBatchSize: 1,
-        maximumBatchSize: batchSize,
-        minimumParts: 1,
-      ),
-    );
-  } catch (e) {
-    _logger.warning(
-      "Failed to delete local files in batches of $batchSize. Reducing batch size and retrying.",
-      e,
-    );
-    if (!context.mounted) return;
-    await _recursivelyReduceBatchSizeAndRetryDeletion(
-      batchSize: (batchSize / 2).floor(),
-      context: context,
-      localIDs: localIDs,
+    await _checkpointRemovedLocalIDs(deletedIDs);
+  } catch (e, s) {
+    _logger.severe("Could not checkpoint deleted shared-media files", e, s);
+    return LocalDeletionResult(
+      status: LocalDeletionStatus.failed,
       deletedIDs: deletedIDs,
     );
+  }
+  return LocalDeletionResult(
+    status: deletedIDs.length == requestedIDs.length
+        ? LocalDeletionStatus.completed
+        : LocalDeletionStatus.failed,
+    deletedIDs: deletedIDs,
+    shouldTryNextFallback: deletedIDs.length != requestedIDs.length,
+  );
+}
+
+Future<void> _hideProgressDialog(ProgressDialog dialog) async {
+  try {
+    await dialog.hide();
+  } catch (e, s) {
+    _logger.warning("Could not hide deletion progress dialog", e, s);
   }
 }
 
