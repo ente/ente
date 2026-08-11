@@ -29,7 +29,7 @@ class FileUrl {
       return null;
     }
 
-    final response = await dio.get<Map<String, dynamic>>(
+    final response = await dio.get<Object?>(
       _v3Path(fileID, type),
       options: Options(
         headers: headers,
@@ -43,7 +43,7 @@ class FileUrl {
       _v3RetryAfter = DateTime.now().add(_v3RetryDelay);
       return null;
     }
-    return response.data!["url"] as String;
+    return (response.data as Map<String, dynamic>)["url"] as String;
   }
 
   static String getLegacyUrl(int fileID, FileUrlType type) {
