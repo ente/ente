@@ -456,7 +456,7 @@ SPEC CHECKSUMS:
   ente_cast: a25feb3127397e5fc6aff03a12120916707757d4
   ente_mail: 90753dd584f49ee092759a32d4143ca51db69641
   ente_panorama_viewer: 87bb22e7868c3005314f80c05ee0787aa07edcd8
-  ente_photos_platform: 9a5d62b4008563bdfefe6a42cc4297c5c19bf70c
+  ente_photos_platform: 2dff4c0778eae769b133dd0ae3260eafec0011d4
   ente_photos_rust: 2db1f31cbe3f13ef0f52909a52b1f885b880a6ec
   ente_qr: 86beaf5d2644705db9b565b32dd8b82c05fb36af
   ente_rust: d0197ebd5460e8f67576579452b073d698404abe

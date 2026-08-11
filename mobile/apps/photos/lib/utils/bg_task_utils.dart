@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:io";
 
 import "package:ente_pure_utils/ente_pure_utils.dart";
@@ -7,6 +8,8 @@ import "package:permission_handler/permission_handler.dart";
 import "package:photos/db/upload_locks_db.dart";
 import "package:photos/main.dart";
 import "package:photos/module/upload/service/file_uploader.dart";
+import "package:photos/services/machine_learning/ml_run_control.dart";
+import "package:photos/services/process_activity_service.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:workmanager/workmanager.dart" as workmanager;
 
@@ -15,31 +18,45 @@ void callbackDispatcher() {
   workmanager.Workmanager().executeTask((taskName, inputData) async {
     final TimeLogger tlog = TimeLogger();
     Future<bool> result = Future.error("Task didn't run");
-    final prefs = await SharedPreferences.getInstance();
-
-    await runWithLogs(() async {
-      try {
-        BgTaskUtils.$.info('Task started $tlog');
-        await runBackgroundTask(taskName, tlog).timeout(
-          Platform.isIOS ? kBGTaskTimeout : const Duration(hours: 1),
-          onTimeout: () async {
-            BgTaskUtils.$.warning(
-              "TLE, committing seppuku for taskID: $taskName",
-            );
-            await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
-          },
-        );
-        BgTaskUtils.$.info('Task run successful $tlog');
-        result = Future.value(true);
-      } catch (e) {
-        BgTaskUtils.$.warning('Task error: $e');
-        await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
-        result = Future.error(e.toString());
-      }
-    }, prefix: "[bg]").onError((_, _) {
-      result = Future.error("Didn't finished correctly!");
-      return;
-    });
+    final runControl = MlRunControl();
+    final selfStopTimer = Timer(
+      Platform.isIOS
+          ? const Duration(seconds: 25)
+          : const Duration(minutes: 55),
+      () => runControl.requestStop(MlStopReason.backgroundDeadline),
+    );
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await runWithLogs(() async {
+        try {
+          BgTaskUtils.$.info('Task started $tlog');
+          await runBackgroundTask(
+            taskName,
+            tlog,
+            runControl: runControl,
+          ).timeout(
+            Platform.isIOS ? kBGTaskTimeout : const Duration(hours: 1),
+            onTimeout: () async {
+              BgTaskUtils.$.warning(
+                "TLE, committing seppuku for taskID: $taskName",
+              );
+              await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
+            },
+          );
+          BgTaskUtils.$.info('Task run successful $tlog');
+          result = Future.value(true);
+        } catch (e) {
+          BgTaskUtils.$.warning('Task error: $e');
+          await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
+          result = Future.error(e.toString());
+        }
+      }, prefix: "[bg]").onError((_, _) {
+        result = Future.error("Didn't finished correctly!");
+        return;
+      });
+    } finally {
+      selfStopTimer.cancel();
+    }
 
     return result;
   });
@@ -56,7 +73,7 @@ class BgTaskUtils {
       ProcessType.background.toString(),
       DateTime.now().microsecondsSinceEpoch,
     );
-    await prefs.remove(kLastBGTaskHeartBeatTime);
+    await prefs.remove(lastBackgroundTaskHeartbeatKey);
   }
 
   static Future configureWorkmanager() async {

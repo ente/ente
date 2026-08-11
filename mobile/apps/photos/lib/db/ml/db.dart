@@ -2,6 +2,7 @@ import 'dart:async';
 import "dart:math";
 
 import "package:collection/collection.dart";
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import 'package:logging/logging.dart';
@@ -27,7 +28,9 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
 import 'package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart';
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
+import "package:photos/services/process_activity_service.dart";
 import "package:photos/utils/ml_util.dart";
 import 'package:sqlite_async/sqlite_async.dart';
 import "package:synchronized/synchronized.dart";
@@ -1985,7 +1988,26 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
         await Future.delayed(idlePollDelay);
       }
       _logger.info("Starting ClusterCentroidVectorDB rebuild from SQLite");
-      await checkMigrateFillClusterCentroidVectorDB(force: true);
+      if (ProcessActivityService.instance.isBackgroundProcess &&
+          await ProcessActivityService.instance.isForegroundRecentlyActive()) {
+        _logger.info(
+          "Deferring ClusterCentroidVectorDB rebuild while foreground is active",
+        );
+        return;
+      }
+      final rebuilt = await MlProcessLock.instance.runExclusive(
+        origin: ProcessActivityService.instance.isBackgroundProcess
+            ? MlProcessLockOrigin.background
+            : MlProcessLockOrigin.foreground,
+        operation: MlProcessOperation.vectorMaintenance,
+        body: () => checkMigrateFillClusterCentroidVectorDB(force: true),
+      );
+      if (!rebuilt) {
+        _logger.info(
+          "Deferring ClusterCentroidVectorDB rebuild while another ML operation is active",
+        );
+        return;
+      }
       _logger.info("ClusterCentroidVectorDB rebuild from SQLite completed");
     } catch (e, s) {
       _logger.severe(
@@ -2406,7 +2428,26 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
         await Future.delayed(idlePollDelay);
       }
       _logger.info("Starting ClipVectorDB rebuild from SQLite");
-      await checkMigrateFillClipVectorDB(force: true);
+      if (ProcessActivityService.instance.isBackgroundProcess &&
+          await ProcessActivityService.instance.isForegroundRecentlyActive()) {
+        _logger.info(
+          "Deferring ClipVectorDB rebuild while foreground is active",
+        );
+        return;
+      }
+      final rebuilt = await MlProcessLock.instance.runExclusive(
+        origin: ProcessActivityService.instance.isBackgroundProcess
+            ? MlProcessLockOrigin.background
+            : MlProcessLockOrigin.foreground,
+        operation: MlProcessOperation.vectorMaintenance,
+        body: () => checkMigrateFillClipVectorDB(force: true),
+      );
+      if (!rebuilt) {
+        _logger.info(
+          "Deferring ClipVectorDB rebuild while another ML operation is active",
+        );
+        return;
+      }
       _logger.info("ClipVectorDB rebuild from SQLite completed");
     } catch (e, s) {
       _logger.severe("ClipVectorDB rebuild from SQLite failed", e, s);

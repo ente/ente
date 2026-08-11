@@ -7,6 +7,7 @@ public final class PhotosPlatformPlugin: NSObject, @preconcurrency FlutterPlugin
     private let eventChannel: FlutterEventChannel
     private let healthService = DeviceHealthService()
     private var eventSink: FlutterEventSink?
+    private let pluginInstanceID = UUID().uuidString
 
     private init(registrar: FlutterPluginRegistrar) {
         methodChannel = FlutterMethodChannel(
@@ -33,20 +34,88 @@ public final class PhotosPlatformPlugin: NSObject, @preconcurrency FlutterPlugin
             result(healthService.snapshot().channelValue)
         case "deviceHealth.getMemorySnapshot":
             result(healthService.memorySnapshot().memoryChannelValue)
+        case "mlLock.tryAcquire":
+            tryAcquireMlLock(call, result: result)
+        case "mlLock.release":
+            releaseMlLock(call, result: result)
+        case "mlLock.state":
+            result(MlProcessLockRegistry.shared.state()?.channelValue)
+        case "mlLock.resetForInstance":
+            result(MlProcessLockRegistry.shared.reset(for: pluginInstanceID))
         default:
             result(FlutterMethodNotImplemented)
         }
     }
 
     public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
+        MlProcessLockRegistry.shared.reset(for: pluginInstanceID)
         eventSink = nil
         healthService.stopObserving()
         methodChannel.setMethodCallHandler(nil)
         eventChannel.setStreamHandler(nil)
     }
 
+    private func tryAcquireMlLock(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard
+            let arguments = call.arguments as? [String: Any],
+            let token = nonEmptyString(arguments["token"]),
+            let origin = nonEmptyString(arguments["origin"]),
+            let operation = nonEmptyString(arguments["operation"])
+        else {
+            result(FlutterError(
+                code: "invalid_argument",
+                message: "token, origin, and operation must be non-empty strings",
+                details: nil
+            ))
+            return
+        }
+        let acquireResult = MlProcessLockRegistry.shared.tryAcquire(
+            pluginInstanceID: pluginInstanceID,
+            token: token,
+            origin: origin,
+            operation: operation
+        )
+        result([
+            "acquired": acquireResult.acquired,
+            "holder": acquireResult.holder.channelValue,
+        ])
+    }
+
+    private func releaseMlLock(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard
+            let arguments = call.arguments as? [String: Any],
+            let token = nonEmptyString(arguments["token"])
+        else {
+            result(FlutterError(
+                code: "invalid_argument",
+                message: "token must be a non-empty string",
+                details: nil
+            ))
+            return
+        }
+        result(MlProcessLockRegistry.shared.release(pluginInstanceID: pluginInstanceID, token: token))
+    }
+
+    private func nonEmptyString(_ value: Any?) -> String? {
+        guard let value = value as? String, !value.isEmpty else {
+            return nil
+        }
+        return value
+    }
+
     private static let methodChannelName = "io.ente.photos.platform"
     private static let eventChannelName = "io.ente.photos.platform/device_health_events"
+}
+
+private extension MlProcessLockState {
+    var channelValue: [String: Any] {
+        let now = DispatchTime.now().uptimeNanoseconds
+        return [
+            "origin": origin,
+            "operation": operation,
+            "heldDurationMs": Int64(now >= acquiredAtUptimeNanoseconds ? (now - acquiredAtUptimeNanoseconds) / 1_000_000 : 0),
+        ]
+    }
 }
 
 extension PhotosPlatformPlugin: @preconcurrency FlutterStreamHandler {

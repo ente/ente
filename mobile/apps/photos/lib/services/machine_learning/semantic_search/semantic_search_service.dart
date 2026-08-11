@@ -1,5 +1,6 @@
 import "dart:async" show Timer, unawaited;
 
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/cache/lru_map.dart";
@@ -15,6 +16,7 @@ import "package:photos/models/ml/ml_versions.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/machine_learning/ml_computer.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/services/search_service.dart";
@@ -117,7 +119,17 @@ class SemanticSearchService {
         await Future.delayed(_vectorDbMigrationDelay);
         if (!_shouldUseVectorDbApproximateSearch) return;
         if (!flagService.hasGrantedMLConsent) return;
-        await _mlDataDB.checkMigrateFillClipVectorDB();
+        final migrated = await MlProcessLock.instance.runExclusive(
+          origin: MlProcessLockOrigin.foreground,
+          operation: MlProcessOperation.vectorMaintenance,
+          body: _mlDataDB.checkMigrateFillClipVectorDB,
+        );
+        if (!migrated) {
+          _logger.info(
+            "Skipping ClipVectorDB migration while another ML operation is active",
+          );
+          return;
+        }
       }
       if (await _vectorDB.checkIfMigrationDone()) {
         await _vectorDB.warmupApproxSearch();
@@ -163,7 +175,15 @@ class SemanticSearchService {
   }
 
   Future<void> clearIndexes() async {
-    await _mlDataDB.deleteClipIndexes();
+    final cleared = await MlProcessLock.instance.runExclusive(
+      origin: MlProcessLockOrigin.foreground,
+      operation: MlProcessOperation.vectorMaintenance,
+      retryFor: const Duration(seconds: 30),
+      body: _mlDataDB.deleteClipIndexes,
+    );
+    if (!cleared) {
+      throw StateError("ML is busy; Clip indexes were not cleared");
+    }
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove("sync_time_embeddings_v3");
     _logger.info("Indexes cleared");
@@ -271,7 +291,7 @@ class SemanticSearchService {
     _logger.info(results.length.toString() + " results");
 
     if (deletedEntries.isNotEmpty) {
-      unawaited(_mlDataDB.deleteClipEmbeddings(deletedEntries));
+      unawaited(_deleteStaleClipEmbeddings(deletedEntries));
     }
 
     return results;
@@ -313,7 +333,7 @@ class SemanticSearchService {
     }
 
     if (deletedEntries.isNotEmpty) {
-      unawaited(_mlDataDB.deleteClipEmbeddings(deletedEntries));
+      unawaited(_deleteStaleClipEmbeddings(deletedEntries));
     }
 
     return results;
@@ -383,6 +403,19 @@ class SemanticSearchService {
   Future<void> storeEmptyClipImageResult(EnteFile entefile) async {
     final embedding = ClipEmbedding.empty(entefile.uploadedFileID!);
     await _mlDataDB.putClip([embedding]);
+  }
+
+  Future<void> _deleteStaleClipEmbeddings(List<int> fileIDs) async {
+    final deleted = await MlProcessLock.instance.runExclusive(
+      origin: MlProcessLockOrigin.foreground,
+      operation: MlProcessOperation.vectorMaintenance,
+      body: () => _mlDataDB.deleteClipEmbeddings(fileIDs),
+    );
+    if (!deleted) {
+      _logger.info(
+        "Skipping stale ClipVectorDB cleanup while another ML operation is active",
+      );
+    }
   }
 
   Future<List<double>> _getTextEmbedding(String query) async {

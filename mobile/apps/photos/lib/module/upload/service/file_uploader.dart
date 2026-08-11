@@ -20,7 +20,7 @@ import "package:photos/events/file_uploaded_event.dart";
 import 'package:photos/events/files_updated_event.dart';
 import 'package:photos/events/local_photos_updated_event.dart';
 import "package:photos/gateways/files/file_upload_gateway.dart";
-import "package:photos/main.dart" show isProcessBg, kLastBGTaskHeartBeatTime;
+import "package:photos/main.dart" show isProcessBg;
 import "package:photos/models/backup/backup_item.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
@@ -38,6 +38,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/account/user_service.dart";
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/file_magic_service.dart';
+import "package:photos/services/process_activity_service.dart";
 import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
 import "package:photos/utils/device_storage_error.dart";
@@ -106,7 +107,7 @@ class FileUploader {
     if (!isBackground) {
       await _prefs.reload();
       final lastBGTaskHeartBeatTime =
-          _prefs.getInt(kLastBGTaskHeartBeatTime) ?? 0;
+          _prefs.getInt(lastBackgroundTaskHeartbeatKey) ?? 0;
       final isBGTaskDead =
           lastBGTaskHeartBeatTime < (currentTime - kBGTaskDeathTimeout);
       if (isBGTaskDead) {

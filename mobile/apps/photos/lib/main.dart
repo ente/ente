@@ -46,12 +46,14 @@ import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/favorites_service.dart';
 import 'package:photos/services/home_widget_service.dart';
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import 'package:photos/services/machine_learning/ml_run_control.dart';
 import 'package:photos/services/machine_learning/ml_service.dart';
 import 'package:photos/services/machine_learning/semantic_search/semantic_search_service.dart';
 import 'package:photos/services/memory_lane/memory_lane_service.dart';
 import 'package:photos/services/memory_share_service.dart';
 import "package:photos/services/notification_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
+import 'package:photos/services/process_activity_service.dart';
 import 'package:photos/services/push_service.dart';
 import 'package:photos/services/search_service.dart';
 import 'package:photos/services/social_notification_coordinator.dart';
@@ -70,15 +72,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 final _logger = Logger("main");
 
-const kLastBGTaskHeartBeatTime = "bg_task_hb_time";
-const kLastFGTaskHeartBeatTime = "fg_task_hb_time";
-const kHeartBeatFrequency = Duration(seconds: 1);
 const kFGSyncFrequency = Duration(minutes: 5);
 const kFGHomeWidgetSyncFrequency = Duration(minutes: 15);
 const kBGTaskTimeout = Duration(seconds: 28);
 const kBGPushTimeout = Duration(seconds: 28);
-const kFGTaskDeathTimeoutInMicroseconds = 5000000;
-bool isProcessBg = true;
+bool get isProcessBg => ProcessActivityService.instance.isBackgroundProcess;
+set isProcessBg(bool value) =>
+    ProcessActivityService.instance.isBackgroundProcess = value;
 bool _stopHearBeat = false;
 bool _isSyncInitialized = false;
 bool _isRustInitialized = false;
@@ -241,11 +241,13 @@ Future<void> runBackgroundTask(
   String taskId,
   TimeLogger tlog, {
   String mode = 'normal',
+  MlRunControl? runControl,
 }) async {
   // Check if foreground is recently active to avoid conflicts
-  final isRunningInFG = await _isRunningInForeground();
+  final isRunningInFG = await ProcessActivityService.instance
+      .isForegroundRecentlyActive();
 
-  // If FG was active in last 30 seconds, skip BG work
+  // If FG was active in the last five seconds, skip BG work.
   if (isRunningInFG) {
     _logger.info(
       "[BG TASK] Foreground recently active, skipping background work",
@@ -259,10 +261,14 @@ Future<void> runBackgroundTask(
 
   // Mark BG as active
 
-  await _runMinimally(taskId, tlog);
+  await _runMinimally(taskId, tlog, runControl: runControl);
 }
 
-Future<void> _runMinimally(String taskId, TimeLogger tlog) async {
+Future<void> _runMinimally(
+  String taskId,
+  TimeLogger tlog, {
+  MlRunControl? runControl,
+}) async {
   try {
     final PackageInfo packageInfo = await PackageInfo.fromPlatform();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -344,24 +350,13 @@ Future<void> _runMinimally(String taskId, TimeLogger tlog) async {
     if ((isLocalGalleryMode || flagService.enableMLInBackground) &&
         hasGrantedMLConsent) {
       await controller.init();
-      final canRunML = controller.requestCompute(ml: true);
-      if (!canRunML) {
-        _logger.info(
-          "[BG TASK] skipping ML, compute requirements not satisfied",
-        );
-      } else {
-        bool mlRunStarted = false;
-        try {
-          await MLService.instance.init();
-          PersonService.init(entityService, MLDataDB.instance, prefs);
-          mlRunStarted = true;
-          await MLService.instance.runAllML(force: false);
-        } finally {
-          if (!mlRunStarted) {
-            controller.releaseCompute(ml: true);
-          }
-        }
-      }
+      await MLService.instance.init();
+      PersonService.init(entityService, MLDataDB.instance, prefs);
+      final disposition = await MLService.instance.runAllML(
+        force: false,
+        runControl: runControl,
+      );
+      _logger.info("[BG TASK] ML finished with ${disposition.name}");
     }
     _logger.info("[BG TASK] smart albums sync");
     await smartAlbumsService.syncSmartAlbums();
@@ -656,10 +651,12 @@ Future<void> _scheduleHeartBeat(
   bool isBackground,
 ) async {
   await prefs.setInt(
-    isBackground ? kLastBGTaskHeartBeatTime : kLastFGTaskHeartBeatTime,
+    isBackground
+        ? lastBackgroundTaskHeartbeatKey
+        : lastForegroundTaskHeartbeatKey,
     DateTime.now().microsecondsSinceEpoch,
   );
-  Future.delayed(kHeartBeatFrequency, () async {
+  Future.delayed(processHeartbeatFrequency, () async {
     // ignore: unawaited_futures
     _scheduleHeartBeat(prefs, isBackground);
   });
@@ -685,19 +682,9 @@ Future<void> _scheduleFGSync(String caller) async {
   });
 }
 
-Future<bool> _isRunningInForeground() async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.reload();
-  final currentTime = DateTime.now().microsecondsSinceEpoch;
-  final lastFGHeartBeatTime = DateTime.fromMicrosecondsSinceEpoch(
-    prefs.getInt(kLastFGTaskHeartBeatTime) ?? 0,
-  );
-  return lastFGHeartBeatTime.microsecondsSinceEpoch >
-      (currentTime - kFGTaskDeathTimeoutInMicroseconds);
-}
-
 Future<void> _handleBackgroundPush(Object message) async {
-  final bool isRunningInFG = await _isRunningInForeground(); // hb
+  final bool isRunningInFG = await ProcessActivityService.instance
+      .isForegroundRecentlyActive();
   final bool isInForeground = AppLifecycleService.instance.isForeground;
   if (isRunningInFG) {
     _logger.info(
@@ -716,7 +703,7 @@ Future<void> _handleBackgroundPush(Object message) async {
       // Mark BG as active before starting
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(
-        kLastBGTaskHeartBeatTime,
+        lastBackgroundTaskHeartbeatKey,
         DateTime.now().microsecondsSinceEpoch,
       );
 
@@ -733,9 +720,11 @@ Future<void> _handleBackgroundPush(Object message) async {
 }
 
 Future<void> _logFGHeartBeatInfo(SharedPreferences prefs) async {
-  final bool isRunningInFG = await _isRunningInForeground();
+  final bool isRunningInFG = await ProcessActivityService.instance
+      .isForegroundRecentlyActive();
   await prefs.reload();
-  final lastFGTaskHeartBeatTime = prefs.getInt(kLastFGTaskHeartBeatTime) ?? 0;
+  final lastFGTaskHeartBeatTime =
+      prefs.getInt(lastForegroundTaskHeartbeatKey) ?? 0;
   final String lastRun = lastFGTaskHeartBeatTime == 0
       ? 'never'
       : DateTime.fromMicrosecondsSinceEpoch(lastFGTaskHeartBeatTime).toString();

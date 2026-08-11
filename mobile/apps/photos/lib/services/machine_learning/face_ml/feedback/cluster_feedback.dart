@@ -3,6 +3,7 @@ import 'dart:developer' as dev show log;
 import "dart:math" show Random, min;
 
 import "package:computer/computer.dart";
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
@@ -20,6 +21,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/search_service.dart";
 
@@ -1507,8 +1509,18 @@ class ClusterFeedbackService<T> {
       if (!flagService.usearchForSuggestions) return;
       if (!flagService.hasGrantedMLConsent) return;
       if (!await _clusterCentroidVectorDB.checkIfMigrationDone()) {
-        await _mlDataDBForCentroidVectorDb
-            .checkMigrateFillClusterCentroidVectorDB();
+        final migrated = await MlProcessLock.instance.runExclusive(
+          origin: MlProcessLockOrigin.foreground,
+          operation: MlProcessOperation.vectorMaintenance,
+          body: _mlDataDBForCentroidVectorDb
+              .checkMigrateFillClusterCentroidVectorDB,
+        );
+        if (!migrated) {
+          _logger.info(
+            "Skipping centroid vector migration while another ML operation is active",
+          );
+          return;
+        }
       }
       if (await _clusterCentroidVectorDB.checkIfMigrationDone()) {
         await _clusterCentroidVectorDB.warmupApproxSearch();

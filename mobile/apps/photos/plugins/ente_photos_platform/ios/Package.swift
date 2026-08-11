@@ -13,7 +13,13 @@ let package = Package(
             name: "PhotosPlatformCore",
             path: "Classes",
             exclude: ["PhotosPlatformPlugin.swift"]
-        )
+        ),
+        .target(name: "MlProcessLockCore"),
+        .testTarget(
+            name: "PhotosPlatformCoreTests",
+            dependencies: ["MlProcessLockCore"],
+            path: "Tests/PhotosPlatformCoreTests"
+        ),
     ],
     swiftLanguageVersions: [.v5]
 )

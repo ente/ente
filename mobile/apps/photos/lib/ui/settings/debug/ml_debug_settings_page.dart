@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -15,6 +16,7 @@ import "package:photos/services/machine_learning/face_ml/face_clustering/face_cl
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -46,6 +48,16 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
   late double _defaultClusteringDistance;
   late bool _persistAutoMergeThreshold;
   late bool _persistDefaultClusteringDistance;
+
+  Future<void> _runVectorMaintenance(Future<void> Function() body) async {
+    final completed = await MlProcessLock.instance.runExclusive(
+      origin: MlProcessLockOrigin.foreground,
+      operation: MlProcessOperation.vectorMaintenance,
+      retryFor: const Duration(seconds: 30),
+      body: body,
+    );
+    if (!completed) throw StateError("ML is busy; action did not run");
+  }
 
   @override
   void initState() {
@@ -766,8 +778,9 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
   Future<void> _onTriggerRunML(BuildContext context) async {
     try {
       MLService.instance.debugIndexingDisabled = false;
-      unawaited(MLService.instance.runAllML());
-      showShortToast(context, "ML started");
+      final disposition = await MLService.instance.runAllML(force: true);
+      if (!context.mounted) return;
+      _showMlDisposition(context, disposition, "ML");
     } catch (e, s) {
       logger.warning('indexAndClusterAll failed ', e, s);
       await showGenericErrorDialog(context: context, error: e);
@@ -777,12 +790,11 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
   Future<void> _onTriggerRunIndexing(BuildContext context) async {
     try {
       MLService.instance.debugIndexingDisabled = false;
-      unawaited(
-        MLService.instance.fetchAndIndexAllImages(
-          mode: isLocalGalleryMode ? MLMode.localGallery : MLMode.enteGallery,
-        ),
+      final disposition = await MLService.instance.fetchAndIndexAllImages(
+        mode: isLocalGalleryMode ? MLMode.localGallery : MLMode.enteGallery,
       );
-      showShortToast(context, "Indexing started");
+      if (!context.mounted) return;
+      _showMlDisposition(context, disposition, "Indexing");
     } catch (e, s) {
       logger.warning('indexing failed ', e, s);
       await showGenericErrorDialog(context: context, error: e);
@@ -793,15 +805,30 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
     try {
       await PersonService.instance.fetchRemoteClusterFeedback();
       MLService.instance.debugIndexingDisabled = false;
-      await MLService.instance.clusterAllImages();
-      Bus.instance.fire(PeopleChangedEvent());
+      final disposition = await MLService.instance.clusterAllImages();
       if (!context.mounted) return;
-      showShortToast(context, "Done");
+      _showMlDisposition(context, disposition, "Clustering");
+      if (disposition != MlRunDisposition.completed) return;
+      Bus.instance.fire(PeopleChangedEvent());
     } catch (e, s) {
       logger.warning('clustering failed ', e, s);
       if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
+  }
+
+  void _showMlDisposition(
+    BuildContext context,
+    MlRunDisposition disposition,
+    String operation,
+  ) {
+    final message = switch (disposition) {
+      MlRunDisposition.completed => "$operation completed",
+      MlRunDisposition.denied => "ML is busy; $operation did not start",
+      MlRunDisposition.stopped => "$operation stopped",
+      MlRunDisposition.failed => "$operation failed",
+    };
+    showShortToast(context, message);
   }
 
   Future<void> _onUpdateDiscover(BuildContext context) async {
@@ -909,7 +936,9 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
           for (final PersonEntity p in persons) {
             await PersonService.instance.deletePerson(p.remoteID);
           }
-          await mlDataDB.dropClustersAndPersonTable();
+          await _runVectorMaintenance(
+            () => mlDataDB.dropClustersAndPersonTable(),
+          );
           Bus.instance.fire(PeopleChangedEvent());
           if (!context.mounted) return;
           showShortToast(context, "Done");
@@ -931,7 +960,9 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       firstButtonLabel: "Yes, confirm",
       firstButtonOnTap: () async {
         try {
-          await mlDataDB.dropClustersAndPersonTable(faces: true);
+          await _runVectorMaintenance(
+            () => mlDataDB.dropClustersAndPersonTable(faces: true),
+          );
           Bus.instance.fire(PeopleChangedEvent());
           if (!context.mounted) return;
           showShortToast(context, "Done");
@@ -977,7 +1008,7 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
           final vectorDB = isLocalGalleryMode
               ? ClipVectorDB.localGalleryInstance
               : ClipVectorDB.instance;
-          await vectorDB.deleteIndexFile();
+          await _runVectorMaintenance(vectorDB.deleteIndexFile);
           if (!context.mounted) return;
           showShortToast(context, "Done");
           if (mounted) {

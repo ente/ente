@@ -1,6 +1,7 @@
 import "dart:io" show File;
 import "dart:math" show max;
 
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart"
@@ -13,6 +14,7 @@ import 'package:photos/models/file/file.dart';
 import "package:photos/models/similar_files.dart";
 import "package:photos/services/favorites_service.dart";
 import "package:photos/services/machine_learning/ml_computer.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/utils/cache_util.dart";
@@ -59,7 +61,15 @@ class SimilarImagesService {
     final w = (kDebugMode ? EnteWatch('getSimilarFiles') : null)?..start();
     final mlDataDB = MLDataDB.instance;
     _logger.info("Checking migration and filling clip vector DB");
-    await mlDataDB.checkMigrateFillClipVectorDB();
+    final migrated = await MlProcessLock.instance.runExclusive(
+      origin: MlProcessLockOrigin.foreground,
+      operation: MlProcessOperation.vectorMaintenance,
+      retryFor: const Duration(seconds: 30),
+      body: mlDataDB.checkMigrateFillClipVectorDB,
+    );
+    if (!migrated) {
+      throw StateError("ML is busy; similar-image index is not ready");
+    }
     w?.log("checkMigrateFillClipVectorDB");
 
     // Get all files with CLIP embeddings first to avoid caching unindexed files

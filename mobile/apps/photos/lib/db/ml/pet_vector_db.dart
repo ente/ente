@@ -8,6 +8,7 @@ import "package:path/path.dart";
 import "package:path_provider/path_provider.dart";
 import "package:photos/db/ml/clip_vector_db.dart" show VectorDbStats;
 import "package:photos/db/ml/schema.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/src/rust/api/usearch_api.dart";
 import "package:sqlite_async/sqlite_async.dart";
 import "package:synchronized/synchronized.dart";
@@ -239,6 +240,9 @@ class PetVectorDB {
   Future<void> _runWriteOperation(
     Future<void> Function(VectorDb db) operation,
   ) async {
+    await MlProcessLock.instance.debugLogUnpermittedVectorMutation(
+      _databaseName,
+    );
     final db = await _vectorDB;
     await _writeLock.synchronized(() async {
       await operation(db);
@@ -363,6 +367,9 @@ class PetVectorDB {
   }
 
   Future<void> deleteIndex() async {
+    await MlProcessLock.instance.debugLogUnpermittedVectorMutation(
+      "$_databaseName.deleteIndex",
+    );
     final db = await _vectorDB;
     try {
       await _writeLock.synchronized(() async {
@@ -376,6 +383,9 @@ class PetVectorDB {
   }
 
   Future<void> deleteIndexFile() async {
+    await MlProcessLock.instance.debugLogUnpermittedVectorMutation(
+      "$_databaseName.deleteIndexFile",
+    );
     await _writeLock.synchronized(() async {
       try {
         final documentsDirectory = await getApplicationDocumentsDirectory();

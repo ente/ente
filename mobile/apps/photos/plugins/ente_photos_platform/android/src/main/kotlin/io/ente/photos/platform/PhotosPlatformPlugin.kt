@@ -11,6 +11,7 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.util.UUID
 
 class PhotosPlatformPlugin :
     FlutterPlugin,
@@ -20,6 +21,7 @@ class PhotosPlatformPlugin :
     private lateinit var eventChannel: EventChannel
     private lateinit var healthService: DeviceHealthService
     private var eventSink: EventChannel.EventSink? = null
+    private val pluginInstanceId = UUID.randomUUID().toString()
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         healthService = DeviceHealthService(binding.applicationContext)
@@ -34,6 +36,11 @@ class PhotosPlatformPlugin :
             "deviceHealth.getSnapshot" -> result.success(healthService.snapshot().toChannelMap())
             "deviceHealth.getMemorySnapshot" ->
                 result.success(healthService.memorySnapshot().toMemoryChannelMap())
+            "mlLock.tryAcquire" -> tryAcquireMlLock(call, result)
+            "mlLock.release" -> releaseMlLock(call, result)
+            "mlLock.state" -> result.success(MlProcessLockRegistry.state()?.toChannelMap())
+            "mlLock.resetForInstance" ->
+                result.success(MlProcessLockRegistry.resetForInstance(pluginInstanceId))
             else -> result.notImplemented()
         }
     }
@@ -51,11 +58,56 @@ class PhotosPlatformPlugin :
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        MlProcessLockRegistry.resetForInstance(pluginInstanceId)
         eventSink = null
         healthService.stopObserving()
         methodChannel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
     }
+
+    private fun tryAcquireMlLock(call: MethodCall, result: MethodChannel.Result) {
+        val token = call.nonEmptyStringArgument("token", result) ?: return
+        val origin = call.nonEmptyStringArgument("origin", result) ?: return
+        val operation = call.nonEmptyStringArgument("operation", result) ?: return
+        val acquireResult =
+            MlProcessLockRegistry.tryAcquire(
+                pluginInstanceId = pluginInstanceId,
+                token = token,
+                origin = origin,
+                operation = operation,
+            )
+        result.success(
+            mapOf(
+                "acquired" to acquireResult.acquired,
+                "holder" to acquireResult.holder.toChannelMap(),
+            ),
+        )
+    }
+
+    private fun releaseMlLock(call: MethodCall, result: MethodChannel.Result) {
+        val token = call.nonEmptyStringArgument("token", result) ?: return
+        result.success(MlProcessLockRegistry.release(pluginInstanceId, token))
+    }
+
+    private fun MethodCall.nonEmptyStringArgument(
+        name: String,
+        result: MethodChannel.Result,
+    ): String? {
+        val value = argument<String>(name)
+        if (value.isNullOrBlank()) {
+            result.error("invalid_argument", "$name must be a non-empty string", null)
+            return null
+        }
+        return value
+    }
+
+    private fun MlProcessLockState.toChannelMap(): Map<String, Any> =
+        mapOf(
+            "origin" to origin,
+            "operation" to operation,
+            "heldDurationMs" to
+                ((System.nanoTime() - acquiredAtNanos).coerceAtLeast(0L) / 1_000_000L),
+        )
 
     private fun DeviceHealthSnapshot.toChannelMap(): Map<String, Any?> =
         mapOf(

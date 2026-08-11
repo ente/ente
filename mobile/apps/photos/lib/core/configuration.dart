@@ -8,6 +8,7 @@ import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_contacts/contacts.dart';
 import "package:ente_crypto/ente_crypto.dart";
 import 'package:ente_lock_screen/lock_screen_host.dart';
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/services.dart";
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -43,9 +44,12 @@ import 'package:photos/services/favorites_service.dart';
 import "package:photos/services/home_widget_service.dart";
 import 'package:photos/services/ignored_files_service.dart';
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
+import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/similar_images_service.dart";
 import "package:photos/services/memory_share_service.dart";
 import "package:photos/services/notification_service.dart";
+import "package:photos/services/process_activity_service.dart";
 import 'package:photos/services/search_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
 import 'package:photos/services/video_preview_service.dart';
@@ -193,6 +197,21 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
 
   @override
   Future<void> logout({bool autoLogout = false}) async {
+    MLService.instance.pauseIndexingAndClustering();
+    final completed = await MlProcessLock.instance.runExclusive(
+      origin: ProcessActivityService.instance.isBackgroundProcess
+          ? MlProcessLockOrigin.background
+          : MlProcessLockOrigin.foreground,
+      operation: MlProcessOperation.vectorMaintenance,
+      retryFor: const Duration(seconds: 30),
+      body: () => _logoutWithMlPermit(autoLogout: autoLogout),
+    );
+    if (!completed) {
+      throw StateError("ML is busy; logout did not start");
+    }
+  }
+
+  Future<void> _logoutWithMlPermit({required bool autoLogout}) async {
     _logger.info("Logging out, autoLogout: $autoLogout");
     if (!autoLogout) {
       if (flagService.stopStreamProcess) {

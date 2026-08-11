@@ -6,6 +6,7 @@ import "package:logging/logging.dart";
 import "package:path/path.dart";
 import "package:path_provider/path_provider.dart";
 import "package:photos/models/ml/vector.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/src/rust/api/usearch_api.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -111,6 +112,9 @@ class ClipVectorDB {
   Future<void> _runWriteOperation(
     Future<void> Function(VectorDb db) operation,
   ) async {
+    await MlProcessLock.instance.debugLogUnpermittedVectorMutation(
+      _databaseName,
+    );
     final db = await _vectorDB;
     await _writeLock.synchronized(() async {
       await operation(db);
@@ -407,6 +411,9 @@ class ClipVectorDB {
   }
 
   Future<void> deleteIndex() async {
+    await MlProcessLock.instance.debugLogUnpermittedVectorMutation(
+      "$_databaseName.deleteIndex",
+    );
     await invalidateMigrationState();
     final db = await _vectorDB;
     try {
@@ -422,6 +429,9 @@ class ClipVectorDB {
   }
 
   Future<void> deleteIndexFile() async {
+    await MlProcessLock.instance.debugLogUnpermittedVectorMutation(
+      "$_databaseName.deleteIndexFile",
+    );
     await _writeLock.synchronized(() async {
       try {
         final documentsDirectory = await getApplicationDocumentsDirectory();

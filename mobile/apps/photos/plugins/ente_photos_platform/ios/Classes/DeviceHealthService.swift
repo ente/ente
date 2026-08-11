@@ -1,4 +1,5 @@
 import Foundation
+#if canImport(UIKit)
 import UIKit
 
 @MainActor
@@ -152,3 +153,4 @@ public final class DeviceHealthService {
         }
     }
 }
+#endif

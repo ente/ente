@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
@@ -10,7 +11,7 @@ import "package:photos/events/people_changed_event.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
-import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
@@ -41,6 +42,16 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
   late double _defaultClusteringDistance;
   late bool _persistAutoMergeThreshold;
   late bool _persistDefaultClusteringDistance;
+
+  Future<void> _runVectorMaintenance(Future<void> Function() body) async {
+    final completed = await MlProcessLock.instance.runExclusive(
+      origin: MlProcessLockOrigin.foreground,
+      operation: MlProcessOperation.vectorMaintenance,
+      retryFor: const Duration(seconds: 30),
+      body: body,
+    );
+    if (!completed) throw StateError("ML is busy; action did not run");
+  }
 
   @override
   void initState() {
@@ -179,9 +190,11 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
   Future<void> deleteEmptyIndices(BuildContext context) async {
     try {
       final Set<int> emptyFileIDs = await mlDataDB.getErroredFileIDs();
-      await mlDataDB.deleteFaceIndexForFiles(emptyFileIDs.toList());
-      await mlDataDB.deleteClipEmbeddings(emptyFileIDs.toList());
-      await mlDataDB.deletePetDataForFiles(emptyFileIDs.toList());
+      await _runVectorMaintenance(() async {
+        await mlDataDB.deleteFaceIndexForFiles(emptyFileIDs.toList());
+        await mlDataDB.deleteClipEmbeddings(emptyFileIDs.toList());
+        await mlDataDB.deletePetDataForFiles(emptyFileIDs.toList());
+      });
       if (!context.mounted) return;
       showShortToast(context, "Deleted ${emptyFileIDs.length} entries");
     } catch (e) {
@@ -193,8 +206,10 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
 
   Future<void> deleteAllLocalML(BuildContext context) async {
     try {
-      await mlDataDB.dropClustersAndPersonTable(faces: true);
-      await SemanticSearchService.instance.clearIndexes();
+      await _runVectorMaintenance(() async {
+        await mlDataDB.dropClustersAndPersonTable(faces: true);
+        await mlDataDB.deleteClipIndexes();
+      });
       Bus.instance.fire(PeopleChangedEvent());
       if (!context.mounted) return;
       showShortToast(context, "All local ML cleared");
