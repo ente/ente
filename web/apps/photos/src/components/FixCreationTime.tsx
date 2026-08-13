@@ -315,12 +315,12 @@ const updateFileDate = async (
     let newDate: ParsedMetadataDate | undefined;
 
     if (fixOption == "custom") {
-        newDate = {
-            dateTime: customDate!.dateTime,
+        newDate = customDate && {
+            dateTime: customDate.dateTime,
             // The picker reports this computer's offset, not the photo's, so
             // leave the offset unset.
             offset: undefined,
-            timestamp: customDate!.timestamp,
+            timestamp: customDate.timestamp,
         };
     } else if (fixOption == "file-name") {
         const editedTime = tryParseEpochMicrosecondsFromFileName(
