@@ -67,7 +67,7 @@ fn find_quad_from_orientation_with_adaptive_threshold(
         let closed = cv::morphology_close(&bin, &kernel)?;
 
         if let Some(quad) = find_quad_from_orientation(&closed, original_size)?
-            && is_valid_quad(&quad, original_size)
+            && is_valid_quad(&quad)
         {
             let score = score_quad_against_probmap(&quad, &prob_float, 0.02)?;
             if score > best_score {
@@ -80,12 +80,10 @@ fn find_quad_from_orientation_with_adaptive_threshold(
     Ok(best_quad)
 }
 
-/// Quirk, deliberately preserved: the quad is in MASK coordinates but the
-/// bounds come from the ORIGINAL image size.
-pub(crate) fn is_valid_quad(quad: &[Point], original_size: ImageSize) -> bool {
-    quad.iter().all(|p| {
-        p.x >= 0.0 && p.x <= original_size.width && p.y >= 0.0 && p.y <= original_size.height
-    })
+/// Deliberately no upper bound: fitted corners past the mask edge are
+/// legitimate when the document touches or extends beyond the frame.
+pub(crate) fn is_valid_quad(quad: &[Point]) -> bool {
+    quad.iter().all(|p| p.x >= 0.0 && p.y >= 0.0)
 }
 
 /// Contour points are scaled up to original-image size, the quad is fitted
