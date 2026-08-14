@@ -121,7 +121,9 @@ jobs:
 
             - run: flutter pub get --enforce-lockfile
 
-            - run: cargo codegen frb shared
+            - run: |
+                  cargo codegen frb shared
+                  cargo codegen frb locker
               working-directory: rust
 
             - name: Prepare whatsnew
@@ -241,7 +243,9 @@ jobs:
             - name: Set up Rive iOS binaries
               run: dart run rive_native:setup --clean --platform ios
 
-            - run: cargo codegen frb shared
+            - run: |
+                  cargo codegen frb shared
+                  cargo codegen frb locker
               working-directory: rust
 
             - name: Install iOS pods
