@@ -285,3 +285,50 @@ fn select_dominant_segments(
     selected.sort_by_key(|s| s.start);
     selected
 }
+
+#[cfg(test)]
+mod tests {
+    use super::find_quad_from_contour_orientation;
+    use crate::scan::geometry::{Point, norm};
+
+    #[test]
+    fn contour_orientation_recovers_a_rotated_rectangle() {
+        // Dense sampling of a slightly rotated rectangle outline; the four fitted
+        // sides must intersect back at the corners.
+        let corners = [
+            Point::new(40.0, 30.0),
+            Point::new(220.0, 50.0),
+            Point::new(200.0, 190.0),
+            Point::new(20.0, 170.0),
+        ];
+        let mut contour = Vec::new();
+        for i in 0..4 {
+            let a = corners[i];
+            let b = corners[(i + 1) % 4];
+            let steps = 60;
+            for s in 0..steps {
+                let t = s as f64 / steps as f64;
+                contour.push(Point::new(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t));
+            }
+        }
+        let quad =
+            find_quad_from_contour_orientation(&contour).expect("quad from contour orientation");
+        assert_eq!(quad.len(), 4);
+        for corner in corners {
+            let best = quad
+                .iter()
+                .map(|p| norm(*p, corner))
+                .fold(f64::INFINITY, f64::min);
+            assert!(
+                best < 1.0,
+                "corner {corner:?} not recovered (min dist {best})"
+            );
+        }
+    }
+
+    #[test]
+    fn contour_orientation_rejects_short_contours() {
+        let contour: Vec<Point> = (0..19).map(|i| Point::new(i as f64, 0.0)).collect();
+        assert!(find_quad_from_contour_orientation(&contour).is_none());
+    }
+}

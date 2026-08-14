@@ -213,3 +213,50 @@ pub(crate) fn extract_document(
     let enhanced = enhance_captured_image(&resized, color_mode)?;
     cv::rotate_u8(&enhanced, rotation_degrees)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::min_area_rect;
+
+    fn assert_close(a: f64, b: f64, eps: f64) {
+        assert!((a - b).abs() <= eps, "expected {a} ~= {b} (eps {eps})");
+    }
+
+    #[test]
+    fn min_area_rect_of_axis_aligned_box() {
+        let polygon = vec![(10, 20), (60, 20), (60, 90), (10, 90), (35, 55)];
+        let rect = min_area_rect(&polygon, 256, 256).expect("rect");
+        assert_eq!(rect.len(), 4);
+        let xs: Vec<f64> = rect.iter().map(|p| p.x).collect();
+        let ys: Vec<f64> = rect.iter().map(|p| p.y).collect();
+        assert_close(xs.iter().cloned().fold(f64::INFINITY, f64::min), 10.0, 1e-9);
+        assert_close(
+            xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
+            60.0,
+            1e-9,
+        );
+        assert_close(ys.iter().cloned().fold(f64::INFINITY, f64::min), 20.0, 1e-9);
+        assert_close(
+            ys.iter().cloned().fold(f64::NEG_INFINITY, f64::max),
+            90.0,
+            1e-9,
+        );
+    }
+
+    #[test]
+    fn min_area_rect_clips_to_image_bounds() {
+        let polygon = vec![(-30, -30), (500, -30), (500, 500), (-30, 500)];
+        let rect = min_area_rect(&polygon, 256, 256).expect("rect");
+        for p in &rect {
+            assert!((0.0..=255.0).contains(&p.x), "x out of bounds: {p:?}");
+            assert!((0.0..=255.0).contains(&p.y), "y out of bounds: {p:?}");
+        }
+    }
+
+    #[test]
+    fn min_area_rect_rejects_degenerate_input() {
+        assert!(min_area_rect(&[(0, 0), (1, 1)], 256, 256).is_none());
+        // Collinear points bound no area.
+        assert!(min_area_rect(&[(0, 0), (5, 5), (10, 10)], 256, 256).is_none());
+    }
+}

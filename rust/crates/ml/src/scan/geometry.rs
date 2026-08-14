@@ -135,3 +135,68 @@ pub(crate) fn create_quad(vertices: &[Point]) -> Quad {
         bottom_left: sorted[3],
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{ImageSize, Point, Quad, create_quad, norm};
+
+    fn assert_close(a: f64, b: f64, eps: f64) {
+        assert!((a - b).abs() <= eps, "expected {a} ~= {b} (eps {eps})");
+    }
+
+    #[test]
+    fn create_quad_orders_corners_by_angle_from_centroid() {
+        // Screen coordinates (y down): atan2 ascending starts at the top-left.
+        let vertices = vec![
+            Point::new(100.0, 100.0),
+            Point::new(0.0, 100.0),
+            Point::new(0.0, 0.0),
+            Point::new(100.0, 0.0),
+        ];
+        let quad = create_quad(&vertices);
+        assert_eq!(quad.top_left, Point::new(0.0, 0.0));
+        assert_eq!(quad.top_right, Point::new(100.0, 0.0));
+        assert_eq!(quad.bottom_right, Point::new(100.0, 100.0));
+        assert_eq!(quad.bottom_left, Point::new(0.0, 100.0));
+    }
+
+    #[test]
+    fn create_quad_is_idempotent() {
+        let quad = create_quad(&[
+            Point::new(10.0, 12.0),
+            Point::new(90.0, 8.0),
+            Point::new(95.0, 70.0),
+            Point::new(5.0, 74.0),
+        ]);
+        let again = create_quad(&quad.corners());
+        assert_eq!(quad.top_left, again.top_left);
+        assert_eq!(quad.top_right, again.top_right);
+        assert_eq!(quad.bottom_right, again.bottom_right);
+        assert_eq!(quad.bottom_left, again.bottom_left);
+    }
+
+    #[test]
+    fn scaled_to_maps_mask_space_to_image_space() {
+        let quad = Quad {
+            top_left: Point::new(0.0, 0.0),
+            top_right: Point::new(128.0, 0.0),
+            bottom_right: Point::new(128.0, 256.0),
+            bottom_left: Point::new(0.0, 256.0),
+        };
+        let scaled = quad.scaled_to(256.0, 256.0, 1024.0, 512.0);
+        assert_close(scaled.top_right.x, 512.0, 1e-9);
+        assert_close(scaled.bottom_right.y, 512.0, 1e-9);
+    }
+
+    #[test]
+    fn norm_matches_hypot() {
+        assert_close(norm(Point::new(0.0, 0.0), Point::new(3.0, 4.0)), 5.0, 1e-12);
+    }
+
+    #[test]
+    fn image_size_keeps_doubles() {
+        let size = ImageSize::new(1024.0, 768.0);
+        assert_close(size.width, 1024.0, 0.0);
+        assert_close(size.height, 768.0, 0.0);
+    }
+}

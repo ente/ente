@@ -84,6 +84,3 @@ pub async fn ensure_segmentation_model(
 /// Internal result type: pipeline stages fail with a plain message, which
 /// [`ScannerSession`] maps onto [`ScanError`].
 pub(crate) use crate::cv::OpResult;
-
-#[cfg(test)]
-mod tests;

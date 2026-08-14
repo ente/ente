@@ -251,3 +251,89 @@ pub(crate) fn estimate_real_dimensions(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{EstimatedDimensions, estimate_real_dimensions};
+    use crate::scan::geometry::{Point, Quad};
+
+    fn assert_close(a: f64, b: f64, eps: f64) {
+        assert!((a - b).abs() <= eps, "expected {a} ~= {b} (eps {eps})");
+    }
+
+    fn rect_quad(w: f64, h: f64) -> Quad {
+        Quad {
+            top_left: Point::new(0.0, 0.0),
+            top_right: Point::new(w, 0.0),
+            bottom_right: Point::new(w, h),
+            bottom_left: Point::new(0.0, h),
+        }
+    }
+
+    #[test]
+    fn estimate_real_dimensions_falls_back_for_parallel_sides() {
+        // A perfect rectangle has both vanishing points at infinity, so the
+        // average-sides fallback applies.
+        let quad = rect_quad(400.0, 300.0);
+        let dims = estimate_real_dimensions(&quad, 1000, 800, None);
+        assert_eq!(
+            dims,
+            EstimatedDimensions::Ratio {
+                width: 400.0,
+                height: 300.0
+            }
+        );
+    }
+
+    #[test]
+    fn estimate_real_dimensions_falls_back_for_weak_perspective() {
+        // Barely trapezoidal: f exceeds max(w,h)*1.2, so the fallback applies.
+        let quad = Quad {
+            top_left: Point::new(100.0, 100.0),
+            top_right: Point::new(900.0, 100.0),
+            bottom_right: Point::new(899.0, 700.0),
+            bottom_left: Point::new(101.0, 700.0),
+        };
+        let dims = estimate_real_dimensions(&quad, 1000, 800, None);
+        match dims {
+            EstimatedDimensions::Ratio { width, height } => {
+                assert_close(width, 799.0, 1e-9);
+                assert_close(height, 600.0008333, 1e-6);
+            }
+            other => panic!("expected Ratio, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn snap_to_standard_format_is_a_noop_for_ratio() {
+        let dims = EstimatedDimensions::Ratio {
+            width: 210.0,
+            height: 297.0,
+        };
+        assert_eq!(dims.snap_to_standard_format(), dims);
+    }
+
+    #[test]
+    fn snap_to_standard_format_snaps_physical_to_a4() {
+        let dims = EstimatedDimensions::Physical {
+            width_mm: 208.0,
+            height_mm: 294.0,
+        };
+        assert_eq!(
+            dims.snap_to_standard_format(),
+            EstimatedDimensions::Physical {
+                width_mm: 210.0,
+                height_mm: 297.0
+            }
+        );
+    }
+
+    #[test]
+    fn to_pixel_dimensions_preserves_area_and_ratio() {
+        let quad = rect_quad(400.0, 300.0);
+        let dims = estimate_real_dimensions(&quad, 1000, 800, None).snap_to_standard_format();
+        let (w, h) = dims.to_pixel_dimensions(&quad);
+        assert_close(w * h, 400.0 * 300.0, 1e-6);
+        assert_close(h / w, 300.0 / 400.0, 1e-12);
+    }
+}
