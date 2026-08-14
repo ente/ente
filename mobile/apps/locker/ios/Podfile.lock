@@ -105,7 +105,7 @@ DEPENDENCIES:
   - ente_mail (from `.symlinks/plugins/ente_mail/ios`)
   - ente_rust (from `.symlinks/plugins/ente_rust/ios`)
   - ente_screen_cover (from `.symlinks/plugins/ente_screen_cover/ios`)
-  - EnteOnnxRuntime (from `../../../native/apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec`)
+  - EnteOnnxRuntime (from `../../../../apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec`)
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - file_saver (from `.symlinks/plugins/file_saver/ios`)
   - Flutter (from `Flutter`)
@@ -151,7 +151,7 @@ EXTERNAL SOURCES:
   ente_screen_cover:
     :path: ".symlinks/plugins/ente_screen_cover/ios"
   EnteOnnxRuntime:
-    :podspec: "../../../native/apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec"
+    :podspec: "../../../../apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec"
   file_picker:
     :path: ".symlinks/plugins/file_picker/ios"
   file_saver:
@@ -223,6 +223,6 @@ SPEC CHECKSUMS:
   ua_client_hints: 92fe0d139619b73ec9fcb46cc7e079a26178f586
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
-PODFILE CHECKSUM: f7bfbaf706284726264a8ecbf82ecf1f1a9c8f67
+PODFILE CHECKSUM: 2947c7fa25adf6d6b41264b7fa7f0e0441c93773
 
 COCOAPODS: 1.17.0
