@@ -5,6 +5,7 @@ members = [
     "apps/codegen",
     "apps/ensu/src-tauri",
     "bindings/frb/ente-rust",
+    "bindings/frb/locker",
     "bindings/frb/log",
     "bindings/frb/photos",
     "bindings/napi/photos",

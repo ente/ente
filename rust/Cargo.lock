@@ -2528,6 +2528,7 @@ dependencies = [
  "ort",
  "plsfix",
  "quick-xml",
+ "rayon",
  "regex",
  "serde",
  "serde_json",
@@ -2657,6 +2658,16 @@ dependencies = [
  "log",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "ente_locker_rust"
+version = "0.0.0"
+dependencies = [
+ "ente-assets",
+ "ente-frb-log",
+ "ente-photos",
+ "flutter_rust_bridge",
 ]
 
 [[package]]

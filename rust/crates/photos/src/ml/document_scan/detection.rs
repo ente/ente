@@ -1,0 +1,198 @@
+//! Document quad detection from the segmentation mask, and page extraction.
+
+use super::OpResult;
+use super::color::ColorMode;
+use super::contour_orientation::find_quad_from_contour_orientation;
+use super::geometry::{ImageSize, Point, Quad, create_quad};
+use super::image::{Contour, ImageRef, ImageU8};
+use super::mask::Mask;
+use super::min_area_rect::min_area_rect;
+use super::ops;
+use super::perspective::{OpticalMeasures, estimate_real_dimensions};
+use super::postprocess::enhance_captured_image;
+use super::quad_score::score_quad_against_probmap;
+
+/// Adaptive thresholds for still captures; live analysis uses one for speed.
+const THRESHOLDS: [f64; 7] = [0.5, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95];
+const LIVE_THRESHOLDS: [f64; 1] = [0.9];
+
+/// `cv::Size(double, double)` truncates toward zero; every size computed from
+/// doubles goes through this.
+pub(crate) fn size_trunc(width: f64, height: f64) -> (i32, i32) {
+    (width as i32, height as i32)
+}
+
+/// The returned quad is in MASK coordinates.
+pub(crate) fn detect_document_quad(
+    mask: &Mask,
+    original_size: ImageSize,
+    is_live_analysis: bool,
+) -> OpResult<Option<Quad>> {
+    let mask_image = mask.to_image()?;
+    let thresholds: &[f64] = if is_live_analysis {
+        &LIVE_THRESHOLDS
+    } else {
+        &THRESHOLDS
+    };
+
+    let mut vertices =
+        find_quad_from_orientation_with_adaptive_threshold(&mask_image, original_size, thresholds)?;
+
+    if vertices.is_none() && !is_live_analysis {
+        // Fallback: minimum-area bounding rectangle of the biggest contour.
+        if let Some(biggest) = biggest_contour(&mask_image)? {
+            let polygon: Vec<Point> = biggest
+                .points
+                .iter()
+                .map(|&(x, y)| Point::new(x as f64, y as f64))
+                .collect();
+            vertices = min_area_rect(&polygon, Some(mask.width), Some(mask.height));
+        }
+    }
+
+    Ok(match vertices {
+        Some(v) if v.len() == 4 => Some(create_quad(&v)),
+        _ => None,
+    })
+}
+
+fn find_quad_from_orientation_with_adaptive_threshold(
+    mask_image: &ImageU8,
+    original_size: ImageSize,
+    thresholds: &[f64],
+) -> OpResult<Option<Vec<Point>>> {
+    // The 0/255 binary mask is treated as the probability map here; the
+    // alpha=255 scaling saturates it straight back to 0/255.
+    let probmap_u8 = ops::u8_saturating_scale(mask_image, 255.0)?;
+    let probmap_smooth = ops::gaussian_blur_u8(&probmap_u8, 3)?;
+
+    let mut best_quad: Option<Vec<Point>> = None;
+    let mut best_score = 0.0f64;
+
+    for &thr in thresholds {
+        let bin = ops::threshold_binary_u8(&probmap_smooth, thr * 255.0, 255.0)?;
+        let kernel = ops::get_structuring_element_ellipse(5)?;
+        let closed = ops::morphology_close(&bin, &kernel)?;
+
+        if let Some(quad) = find_quad_from_orientation(&closed, original_size)?
+            && is_valid_quad(&quad, original_size)
+        {
+            let prob_float = ops::u8_to_f32(mask_image)?;
+            let score = score_quad_against_probmap(&quad, &prob_float, 0.02)?;
+            if score > best_score {
+                best_score = score;
+                best_quad = Some(quad);
+            }
+        }
+    }
+
+    Ok(best_quad)
+}
+
+/// Quirk, deliberately preserved: the quad is in MASK coordinates but the
+/// bounds come from the ORIGINAL image size.
+pub(crate) fn is_valid_quad(quad: &[Point], original_size: ImageSize) -> bool {
+    quad.iter().all(|p| {
+        p.x >= 0.0 && p.x <= original_size.width && p.y >= 0.0 && p.y <= original_size.height
+    })
+}
+
+/// Contour points are scaled up to original-image size, the quad is fitted
+/// there, and the corners are scaled back down.
+fn find_quad_from_orientation(
+    mask_image: &ImageU8,
+    original_size: ImageSize,
+) -> OpResult<Option<Vec<Point>>> {
+    let Some(contour) = biggest_contour(mask_image)? else {
+        return Ok(None);
+    };
+
+    let scale_x = original_size.width / mask_image.width as f64;
+    let scale_y = original_size.height / mask_image.height as f64;
+
+    let scaled: Vec<Point> = contour
+        .points
+        .iter()
+        .map(|&(x, y)| Point::new(x as f64 * scale_x, y as f64 * scale_y))
+        .collect();
+
+    Ok(find_quad_from_contour_orientation(&scaled).map(|corners| {
+        corners
+            .iter()
+            .map(|p| Point::new(p.x / scale_x, p.y / scale_y))
+            .collect()
+    }))
+}
+
+pub(crate) fn biggest_contour(image: &ImageU8) -> OpResult<Option<Contour>> {
+    let refined = refine_mask(image)?;
+    let blurred = ops::gaussian_blur_u8(&refined, 5)?;
+    let edges = ops::canny(&blurred, 75.0, 200.0)?;
+    let contours = ops::find_contours(&edges)?;
+
+    let mut biggest: Option<Contour> = None;
+    let mut max_area = 0.0f64;
+    for contour in contours {
+        let area = contour.area.abs();
+        if area > max_area {
+            max_area = area;
+            biggest = Some(contour);
+        }
+    }
+    Ok(biggest)
+}
+
+fn refine_mask(original: &ImageU8) -> OpResult<ImageU8> {
+    let binary_mask = ops::threshold_binary_u8(original, 128.0, 255.0)?;
+    let kernel_close = ops::get_structuring_element_ellipse(5)?;
+    let closed = ops::morphology_close(&binary_mask, &kernel_close)?;
+    let kernel_open = ops::get_structuring_element_ellipse(5)?;
+    ops::morphology_open(&closed, &kernel_open)
+}
+
+pub(crate) fn resize_for_max_pixels(img: &ImageU8, max_pixels: f64) -> OpResult<ImageU8> {
+    let orig_pixels = img.width as i64 * img.height as i64;
+    if orig_pixels as f64 <= max_pixels {
+        return Ok(img.clone());
+    }
+    let scale = (max_pixels / orig_pixels as f64).sqrt();
+    let (width, height) = size_trunc(img.width as f64 * scale, img.height as f64 * scale);
+    ops::resize_inter_area(ImageRef::U8(img), width, height)?.into_u8()
+}
+
+/// Warp, downscale to the pixel budget, enhance, rotate. The target size
+/// comes from `estimate_real_dimensions`, so a capture with camera metadata
+/// is warped to a different size than one without.
+pub(crate) fn extract_document(
+    input: &ImageU8,
+    quad: &Quad,
+    rotation_degrees: i32,
+    color_mode: ColorMode,
+    max_pixels: f64,
+    optical_measures: Option<OpticalMeasures>,
+) -> OpResult<ImageU8> {
+    let estimated = estimate_real_dimensions(quad, input.width, input.height, optical_measures)
+        .snap_to_standard_format();
+    let (target_width, target_height) = estimated.to_pixel_dimensions(quad);
+
+    let corners = quad.corners();
+    let src_corners = [
+        (corners[0].x, corners[0].y),
+        (corners[1].x, corners[1].y),
+        (corners[2].x, corners[2].y),
+        (corners[3].x, corners[3].y),
+    ];
+    let dst_corners = [
+        (0.0, 0.0),
+        (target_width, 0.0),
+        (target_width, target_height),
+        (0.0, target_height),
+    ];
+
+    let (out_width, out_height) = size_trunc(target_width, target_height);
+    let warped = ops::warp_perspective(input, src_corners, dst_corners, out_width, out_height)?;
+
+    let resized = resize_for_max_pixels(&warped, max_pixels)?;
+    let enhanced = enhance_captured_image(&resized, color_mode)?;
+    ops::rotate_u8(&enhanced, rotation_degrees)
+}
