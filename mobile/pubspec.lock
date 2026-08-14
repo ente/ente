@@ -611,6 +611,13 @@ packages:
       url: "https://github.com/ente/ente_crypto_dart.git"
     source: git
     version: "1.0.0"
+  ente_locker_rust:
+    dependency: transitive
+    description:
+      path: "apps/locker/rust_builder"
+      relative: true
+    source: path
+    version: "0.0.1"
   ente_photos_rust:
     dependency: transitive
     description:

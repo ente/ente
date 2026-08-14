@@ -11,6 +11,8 @@ dependencies:
   adaptive_theme: 3.7.2
   app_links: 6.4.1
   bip39: 1.0.6
+  camera: 0.11.2+1
+  camera_android_camerax: 0.6.30
   collection: 1.19.1
   convert: 3.1.2
   crypto: 3.0.7
@@ -44,6 +46,8 @@ dependencies:
     path: ../../packages/legacy
   ente_lock_screen:
     path: ../../packages/lock_screen
+  ente_locker_rust:
+    path: rust_builder
   ente_logging:
     path: ../../packages/logging
   ente_network:
@@ -70,6 +74,7 @@ dependencies:
   flutter_displaymode: 0.6.0
   flutter_localizations:
     sdk: flutter
+  flutter_rust_bridge: 2.12.0
   flutter_svg: 2.3.0
   hugeicons: 1.1.7
   intl: 0.20.2

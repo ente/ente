@@ -1,0 +1,572 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:camera/camera.dart';
+import 'package:ente_components/ente_components.dart';
+import 'package:ente_strings/ente_strings.dart';
+import 'package:ente_ui/utils/toast_util.dart';
+import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:locker/services/scanner/scan_geometry.dart';
+import 'package:locker/services/scanner/scan_session_controller.dart';
+import 'package:locker/services/scanner/scanner_models.dart';
+import 'package:locker/ui/pages/scanner/scan_quad_overlay.dart';
+import 'package:locker/ui/pages/scanner/scanner_review_page.dart';
+import 'package:logging/logging.dart';
+
+enum _CameraStatus { starting, ready, permissionDenied, error }
+
+/// Camera screen of the document scanner. Pops with `true` when the scan was
+/// saved, otherwise the caller treats the flow as cancelled.
+class ScannerCapturePage extends StatefulWidget {
+  const ScannerCapturePage({super.key, required this.onUploadFiles});
+
+  final Future<bool> Function(List<File> files) onUploadFiles;
+
+  @override
+  State<ScannerCapturePage> createState() => _ScannerCapturePageState();
+}
+
+class _ScannerCapturePageState extends State<ScannerCapturePage>
+    with WidgetsBindingObserver {
+  final _logger = Logger('ScannerCapturePage');
+  final _session = ScanSessionController();
+  final _stabilizer = QuadStabilizer();
+
+  CameraController? _camera;
+  _CameraStatus _status = _CameraStatus.starting;
+  ScanQuad? _stableQuad;
+  bool _analysisInFlight = false;
+  bool _takingPicture = false;
+  bool _torchOn = false;
+  bool _scannerInitFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _session.addListener(_onSessionChanged);
+    unawaited(_initScanner());
+    unawaited(_startCamera());
+  }
+
+  Future<void> _initScanner() async {
+    if (_scannerInitFailed) setState(() => _scannerInitFailed = false);
+    try {
+      await _session.init();
+      if (mounted) setState(() {});
+    } catch (_) {
+      if (mounted) setState(() => _scannerInitFailed = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _session.removeListener(_onSessionChanged);
+    unawaited(_camera?.dispose());
+    unawaited(_session.disposeSession());
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final camera = _camera;
+    if (state == AppLifecycleState.inactive) {
+      if (camera != null) {
+        _camera = null;
+        unawaited(camera.dispose());
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_camera == null && _status != _CameraStatus.starting) {
+        unawaited(_startCamera());
+      }
+    }
+  }
+
+  void _onSessionChanged() {
+    if (!mounted) return;
+    final error = _session.takeLastError();
+    if (error != null) {
+      showShortToast(context, context.strings.somethingWentWrong);
+    }
+  }
+
+  Future<void> _startCamera() async {
+    setState(() {
+      _status = _CameraStatus.starting;
+      _stableQuad = null;
+    });
+    _stabilizer.reset();
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        setState(() => _status = _CameraStatus.error);
+        return;
+      }
+      final back = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+      final controller = CameraController(
+        back,
+        // Lower presets cap still-capture resolution at preview-like sizes;
+        // `max` is required for full-resolution captures.
+        ResolutionPreset.max,
+        enableAudio: false,
+        imageFormatGroup: Platform.isIOS
+            ? ImageFormatGroup.bgra8888
+            : ImageFormatGroup.yuv420,
+      );
+      await controller.initialize();
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+      await controller.startImageStream(_onFrame);
+      _torchOn = false;
+      setState(() {
+        _camera = controller;
+        _status = _CameraStatus.ready;
+      });
+    } on CameraException catch (e) {
+      _logger.warning('Camera unavailable: ${e.code}', e);
+      if (!mounted) return;
+      setState(() {
+        _status = e.code.startsWith('CameraAccessDenied')
+            ? _CameraStatus.permissionDenied
+            : _CameraStatus.error;
+      });
+    } catch (e, s) {
+      _logger.severe('Failed to start camera', e, s);
+      if (mounted) setState(() => _status = _CameraStatus.error);
+    }
+  }
+
+  Future<void> _pauseCamera() async {
+    final camera = _camera;
+    if (camera == null) return;
+    setState(() {
+      _camera = null;
+      _stableQuad = null;
+    });
+    _stabilizer.reset();
+    await camera.dispose();
+  }
+
+  // One analysis frame in flight at a time; newer frames are dropped until
+  // the current one finishes.
+  void _onFrame(CameraImage image) {
+    if (_analysisInFlight || _takingPicture || !_session.isServiceReady) {
+      return;
+    }
+    _analysisInFlight = true;
+    unawaited(_analyze(image));
+  }
+
+  Future<void> _analyze(CameraImage image) async {
+    try {
+      final rotation = _camera?.description.sensorOrientation ?? 0;
+      ScanQuad? raw;
+      if (image.planes.length >= 3) {
+        raw = await _session.detectLiveYuv(
+          y: image.planes[0].bytes,
+          u: image.planes[1].bytes,
+          v: image.planes[2].bytes,
+          yRowStride: image.planes[0].bytesPerRow,
+          uvRowStride: image.planes[1].bytesPerRow,
+          uvPixelStride: image.planes[1].bytesPerPixel ?? 1,
+          width: image.width,
+          height: image.height,
+          rotationDegrees: rotation,
+        );
+      } else if (image.planes.isNotEmpty) {
+        raw = await _session.detectLiveBgra(
+          image.planes[0].bytes,
+          image.planes[0].bytesPerRow,
+          image.width,
+          image.height,
+          rotation,
+        );
+      }
+      final stable = _stabilizer.update(raw);
+      if (mounted) setState(() => _stableQuad = stable);
+    } catch (_) {
+      // Dropped frames are fine; the next one will do.
+    } finally {
+      _analysisInFlight = false;
+    }
+  }
+
+  Future<void> _capture() async {
+    final camera = _camera;
+    if (camera == null || _takingPicture) return;
+    setState(() {
+      _takingPicture = true;
+      _stableQuad = null;
+    });
+    _stabilizer.reset();
+    try {
+      final shot = await camera.takePicture();
+      final bytes = await shot.readAsBytes();
+      unawaited(_deleteQuietly(File(shot.path)));
+      _session.addCapture(bytes);
+    } catch (e, s) {
+      _logger.severe('Capture failed', e, s);
+      if (mounted) {
+        showShortToast(context, context.strings.somethingWentWrong);
+      }
+    } finally {
+      if (mounted) setState(() => _takingPicture = false);
+    }
+  }
+
+  static Future<void> _deleteQuietly(File file) async {
+    try {
+      if (await file.exists()) await file.delete();
+    } catch (_) {}
+  }
+
+  Future<void> _toggleTorch() async {
+    final camera = _camera;
+    if (camera == null) return;
+    final next = !_torchOn;
+    try {
+      await camera.setFlashMode(next ? FlashMode.torch : FlashMode.off);
+      setState(() => _torchOn = next);
+    } on CameraException catch (e) {
+      _logger.warning('Torch unavailable: ${e.code}');
+    }
+  }
+
+  Future<void> _openReview() async {
+    if (_session.pageCount == 0 && !_session.isProcessing) return;
+    final navigator = Navigator.of(context);
+    await _pauseCamera();
+    final saved = await navigator.push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ScannerReviewPage(
+          session: _session,
+          onUploadFiles: widget.onUploadFiles,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (saved == true) {
+      navigator.pop(true);
+    } else {
+      unawaited(_startCamera());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          _buildPreview(colors),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(Spacing.lg),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _ChromeButton(
+                        icon: HugeIcons.strokeRoundedCancel01,
+                        onTap: () => Navigator.of(context).pop(false),
+                        tooltip: context.strings.close,
+                      ),
+                      _ChromeButton(
+                        icon: _torchOn
+                            ? HugeIcons.strokeRoundedFlash
+                            : HugeIcons.strokeRoundedFlashOff,
+                        onTap: _camera == null ? null : _toggleTorch,
+                        tooltip: _torchOn
+                            ? context.strings.scannerTorchOff
+                            : context.strings.scannerTorchOn,
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    height: 88,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        _ShutterButton(
+                          enabled:
+                              _status == _CameraStatus.ready &&
+                              !_takingPicture &&
+                              _session.isServiceReady,
+                          onTap: _capture,
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: ListenableBuilder(
+                            listenable: _session,
+                            builder: (context, _) => _DoneButton(
+                              session: _session,
+                              accent: colors.primary,
+                              onTap: _openReview,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreview(ColorTokens colors) {
+    if (_scannerInitFailed) {
+      return _CameraMessage(
+        message: context.strings.somethingWentWrong,
+        onRetry: _initScanner,
+      );
+    }
+    switch (_status) {
+      case _CameraStatus.starting:
+        return Center(
+          child: CircularProgressIndicator(color: colors.specialWhite),
+        );
+      case _CameraStatus.permissionDenied:
+        return _CameraMessage(
+          message: context.strings.cameraPermissionSettings,
+          onRetry: _startCamera,
+        );
+      case _CameraStatus.error:
+        return _CameraMessage(
+          message: context.strings.somethingWentWrong,
+          onRetry: _startCamera,
+        );
+      case _CameraStatus.ready:
+        final camera = _camera;
+        if (camera == null || !camera.value.isInitialized) {
+          return Center(
+            child: CircularProgressIndicator(color: colors.specialWhite),
+          );
+        }
+        return Center(
+          child: AspectRatio(
+            aspectRatio: 1 / camera.value.aspectRatio,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CameraPreview(camera),
+                ScanQuadOverlay(
+                  quad: _takingPicture ? null : _stableQuad,
+                  color: colors.primary,
+                ),
+              ],
+            ),
+          ),
+        );
+    }
+  }
+}
+
+class _CameraMessage extends StatelessWidget {
+  const _CameraMessage({required this.message, required this.onRetry});
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyles.body.copyWith(color: colors.specialWhite),
+            ),
+            const SizedBox(height: Spacing.xl),
+            ButtonComponent(
+              label: context.strings.retry,
+              size: ButtonComponentSize.small,
+              onTap: onRetry,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChromeButton extends StatelessWidget {
+  const _ChromeButton({required this.icon, required this.onTap, this.tooltip});
+
+  final List<List<dynamic>> icon;
+  final VoidCallback? onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    final button = GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.4),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: HugeIcon(
+            icon: icon,
+            color: onTap == null
+                ? colors.specialWhite.withValues(alpha: 0.4)
+                : colors.specialWhite,
+            size: 22,
+          ),
+        ),
+      ),
+    );
+    if (tooltip == null) return button;
+    return Tooltip(message: tooltip!, child: button);
+  }
+}
+
+class _ShutterButton extends StatelessWidget {
+  const _ShutterButton({required this.enabled, required this.onTap});
+
+  final bool enabled;
+  final Future<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    final white = colors.specialWhite;
+    return GestureDetector(
+      onTap: enabled ? () => onTap() : null,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 150),
+        opacity: enabled ? 1 : 0.5,
+        child: Container(
+          width: 76,
+          height: 76,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: white, width: 4),
+          ),
+          child: Center(
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: white),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Prominent "done capturing" button: filled accent circle with a checkmark
+/// and a page-count badge. Animates in when the first page arrives.
+class _DoneButton extends StatelessWidget {
+  const _DoneButton({
+    required this.session,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final ScanSessionController session;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    final visible = session.pageCount > 0 || session.isProcessing;
+    return IgnorePointer(
+      ignoring: !visible,
+      child: AnimatedScale(
+        scale: visible ? 1 : 0,
+        duration: Motion.standard,
+        curve: visible ? Curves.easeOutBack : Curves.easeIn,
+        child: Tooltip(
+          message: context.strings.done,
+          child: GestureDetector(
+            onTap: onTap,
+            child: SizedBox(
+              width: 62,
+              height: 62,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accent,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: session.isProcessing
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: colors.specialWhite,
+                                ),
+                              )
+                            : HugeIcon(
+                                icon: HugeIcons.strokeRoundedTick02,
+                                color: colors.specialWhite,
+                                size: 30,
+                              ),
+                      ),
+                    ),
+                  ),
+                  if (session.pageCount > 0)
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(Spacing.xs),
+                        constraints: const BoxConstraints(minWidth: 22),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: colors.specialWhite,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${session.pageCount}',
+                            style: TextStyles.mini.copyWith(color: accent),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -762,7 +762,10 @@ class _HomePageState extends UploaderPageState<HomePage>
           right: Spacing.xl,
           bottom: scrollBottomPadding,
         ),
-        child: SaveToLockerEmptyStateWidget(onUploadDocument: addFile),
+        child: SaveToLockerEmptyStateWidget(
+          onUploadDocument: addFile,
+          onUploadFiles: uploadFiles,
+        ),
       );
     }
     return SizedBox.expand(
@@ -840,6 +843,10 @@ class _HomePageState extends UploaderPageState<HomePage>
   }
 
   void _openSavePage() {
-    showSaveBottomSheet(context, onUploadDocument: addFile);
+    showSaveBottomSheet(
+      context,
+      onUploadDocument: addFile,
+      onUploadFiles: uploadFiles,
+    );
   }
 }

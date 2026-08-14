@@ -150,6 +150,10 @@
       "storageAmount": {}
     }
   },
+  "addPage": "Add page",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
   "addParticipants": "Add participants",
   "addPeopleWidgetPrompt": "Add a people widget to your home screen to customize it here.",
   "addPerson": "Add person",
@@ -180,6 +184,7 @@
   },
   "addYourPhotosNow": "Add your photos now",
   "adjust": "Adjust",
+  "adjustCrop": "Adjust crop",
   "admin": "Admin",
   "admins": "Admins",
   "adminsAndCollaboratorsCanAddPhotosDescription": "Admins and collaborators can add photos. Admins can also manage photos & participants.",
@@ -3389,8 +3394,8 @@
   "saveCollage": "Save collage",
   "saveContact": "Save contact",
   "saveCopy": "Save copy",
-  "saveDocumentDescription": "Upload important docs.",
-  "saveDocumentTitle": "Document",
+  "saveFileDescription": "Upload important files.",
+  "saveFileTitle": "File",
   "saveKey": "Save key",
   "@saveKey": {
     "description": "Save key button label"
@@ -3404,6 +3409,7 @@
     "description": "Description text asking user if they want to save to storage or share with other apps"
   },
   "savePerson": "Save person",
+  "saveToEnte": "Save to Ente",
   "saveToLocker": "Save to Locker",
   "saveYourRecoveryKeyIfYouHaventAlready": "Save your recovery key if you haven't already",
   "saving": "Saving...",
@@ -3413,8 +3419,30 @@
   "scanACode": "Scan a code",
   "scanAQrCode": "Scan a QR code",
   "scanCode": "Scan code",
+  "scanDocumentDescription": "Scan important docs.",
+  "scanDocumentTitle": "Document",
+  "scanFilenamePrefix": "Scan",
+  "@scanFilenamePrefix": {
+    "description": "Prefix of the default filename for a scanned document PDF, e.g. 'Scan 13 Aug 2026, 14.30.pdf'"
+  },
+  "scannerNotSupportedOnDevice": "Document scanning is not supported on this device",
   "scannerTorchOff": "Turn off torch",
   "scannerTorchOn": "Turn on torch",
+  "scanPageOfTotal": "Page {current} of {total}",
+  "@scanPageOfTotal": {
+    "description": "Page position indicator in the document scanner review screen",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "scanSaved": "Scan saved",
   "scanThisBarcodeWithnyourAuthenticatorApp": "Scan this barcode with\nyour authenticator app",
   "scheduleShare": "Schedule share",
   "search": "Search",

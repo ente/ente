@@ -9,3 +9,6 @@ lib/l10n/untranslated_messages.json
 
 # Generated localization files
 lib/l10n/app_localizations*.dart
+
+# Generated Flutter Rust Bridge bindings
+lib/src/rust/*

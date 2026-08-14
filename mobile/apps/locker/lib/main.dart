@@ -37,6 +37,8 @@ import 'package:locker/services/files/offline/offline_files_service.dart';
 import 'package:locker/services/local_settings.dart';
 import 'package:locker/services/trash/trash_service.dart';
 import 'package:locker/services/update_service.dart';
+import 'package:locker/src/rust/api/log.dart' as locker_rust_log;
+import 'package:locker/src/rust/frb_generated.dart';
 import 'package:locker/ui/pages/home_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -47,6 +49,7 @@ final _logger = Logger("main");
 bool _isRustInitialized = false;
 Future<void>? _rustInitFuture;
 late final LogSinkGuard _rustLogSinkGuard;
+late final locker_rust_log.LogSinkGuard _lockerRustLogSinkGuard;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -116,7 +119,7 @@ Future<void> _ensureRustInitialized() async {
     await inFlightInit;
     return;
   }
-  final initFuture = EnteRust.init();
+  final initFuture = Future.wait([EnteLockerRust.init(), EnteRust.init()]);
   _rustInitFuture = initFuture;
   try {
     await initFuture;
@@ -131,16 +134,24 @@ void _attachRustLogStream() {
   final logger = Logger("rust");
   _rustLogSinkGuard = LogSinkGuard();
   _rustLogSinkGuard.attachLogStream().listen((entry) {
-    final message = "[${entry.target}] ${entry.message}";
-    switch (entry.level) {
-      case LogLevel.error:
-        logger.severe(message);
-      case LogLevel.warn:
-        logger.warning(message);
-      case LogLevel.info:
-        logger.info(message);
-    }
+    _logRustEntry(logger, entry.level.name, entry.target, entry.message);
   });
+  _lockerRustLogSinkGuard = locker_rust_log.LogSinkGuard();
+  _lockerRustLogSinkGuard.attachLogStream().listen((entry) {
+    _logRustEntry(logger, entry.level.name, entry.target, entry.message);
+  });
+}
+
+void _logRustEntry(Logger logger, String level, String target, String body) {
+  final message = "[$target] $body";
+  switch (level) {
+    case "error":
+      logger.severe(message);
+    case "warn":
+      logger.warning(message);
+    case "info":
+      logger.info(message);
+  }
 }
 
 ThemeMode _themeMode(AdaptiveThemeMode? savedThemeMode) {

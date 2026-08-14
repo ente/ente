@@ -12,6 +12,25 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Ente's custom prebuilt ONNX Runtime AAR is resolved straight from its
+// GitHub release through an Ivy repository; its SHA-256 is pinned in
+// gradle/verification-metadata.xml.
+repositories {
+    exclusiveContent {
+        forRepository {
+            ivy {
+                name = 'enteOnnxRuntimePackaging'
+                url = 'https://github.com/ente/ort-packaging/releases/download'
+                patternLayout {
+                    artifact 'ort-[revision]/[artifact]-[revision].[ext]'
+                }
+                metadataSources { artifact() }
+            }
+        }
+        filter { includeGroup 'io.ente.onnxruntime' }
+    }
+}
+
 android {
     namespace = "io.ente.locker"
     compileSdk = 36
@@ -95,4 +114,7 @@ flutter {
 dependencies {
     // Needed at runtime for Tink since R8 strips these annotations otherwise.
     implementation 'com.google.errorprone:error_prone_annotations:2.24.0'
+    // Custom WebGPU/XNNPACK build required by the Rust document scanner,
+    // which dynamically loads libonnxruntime.so.
+    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.28.0-r3@aar'
 }
