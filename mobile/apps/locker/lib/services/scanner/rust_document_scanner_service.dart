@@ -150,7 +150,6 @@ class RustDocumentScannerService implements DocumentScannerService {
         options: const RustScanOptions(
           maxPixels: _maxPixels,
           rotationDegrees: 0,
-          outputFormat: RustOutputFormat.jpeg,
         ),
       );
       final id = '${DateTime.now().microsecondsSinceEpoch}_${_counter++}';
