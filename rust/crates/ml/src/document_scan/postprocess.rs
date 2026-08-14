@@ -15,7 +15,7 @@ pub(crate) fn enhance_captured_image(img: &ImageU8, color_mode: ColorMode) -> Op
 }
 
 fn multi_scale_retinex_on_l(bgr: &ImageU8) -> OpResult<ImageU8> {
-    let lab = ops::cvt_color_bgr_lab(bgr)?;
+    let lab = ops::bgr_to_lab(bgr)?;
     let mut lab_channels = ops::split_u8(&lab)?;
     let l = lab_channels[0].clone();
 
@@ -29,8 +29,7 @@ fn multi_scale_retinex_on_l(bgr: &ImageU8) -> OpResult<ImageU8> {
     let small_h = l_float.height as f64 / scale_factor;
     let (small_cols, small_rows) = size_trunc(small_w, small_h);
 
-    let l_small =
-        ops::resize_inter_area(ImageRef::F32(&l_float), small_cols, small_rows)?.into_f32()?;
+    let l_small = ops::resize_area(ImageRef::F32(&l_float), small_cols, small_rows)?.into_f32()?;
 
     // log(L) once, on the small image.
     let log_l_small = ops::log_f32(&l_small)?;
@@ -62,7 +61,7 @@ fn multi_scale_retinex_on_l(bgr: &ImageU8) -> OpResult<ImageU8> {
             ops::multiply_f32_scalar(&retinex_norm_small, [1.0 / range, 0.0, 0.0, 0.0])?;
     }
 
-    let retinex_norm = ops::resize_inter_cubic(
+    let retinex_norm = ops::resize_bicubic(
         ImageRef::F32(&retinex_norm_small),
         l_float.width,
         l_float.height,
@@ -99,7 +98,7 @@ fn multi_scale_retinex_on_l(bgr: &ImageU8) -> OpResult<ImageU8> {
     lab_channels[0] = ops::f32_to_u8(&clamped)?;
 
     let merged = ops::merge_u8(&lab_channels)?;
-    ops::cvt_color_lab_bgr(&merged)
+    ops::lab_to_bgr(&merged)
 }
 
 /// Histogram percentile over 256 bins on [0,256): values outside that range
@@ -119,7 +118,7 @@ pub(crate) fn percentile_l(l: &ImageF32, p: f64) -> OpResult<f64> {
 
 fn enhance_grayscale_image(img: &ImageU8) -> OpResult<ImageU8> {
     let gray = match img.channels {
-        3 => ops::cvt_color_bgr_to_gray(img)?,
+        3 => ops::bgr_to_gray(img)?,
         1 => img.clone(),
         other => {
             return Err(format!(
@@ -153,10 +152,8 @@ fn enhance_grayscale_image(img: &ImageU8) -> OpResult<ImageU8> {
 
     let retinex_exp = ops::exp_f32(&retinex)?;
 
-    let sorted = ops::sort_pixels_ascending_f32(&retinex_exp)?;
-    let n = sorted.len() as f64;
-    let p_low = sorted[(n * 0.004) as usize] as f64;
-    let p_high = sorted[(n * 0.99) as usize] as f64;
+    let p_low = ops::percentile_f32(&retinex_exp, 0.004)? as f64;
+    let p_high = ops::percentile_f32(&retinex_exp, 0.99)? as f64;
 
     let normalized = ops::subtract_f32_scalar(&retinex_exp, p_low)?;
     let scale = if p_high > p_low {
@@ -184,10 +181,8 @@ fn enhance_grayscale_image(img: &ImageU8) -> OpResult<ImageU8> {
     let stretched8u = if mode_val >= 254 {
         // Retinex over-amplified: normalize the ORIGINAL grayscale instead.
         let gray_f = ops::u8_to_f32(&gray)?;
-        let gray_sorted = ops::sort_pixels_ascending_f32(&gray_f)?;
-        let g_n = gray_sorted.len() as f64;
-        let g_low = gray_sorted[(g_n * 0.01) as usize] as f64;
-        let g_high = gray_sorted[(g_n * 0.99) as usize] as f64;
+        let g_low = ops::percentile_f32(&gray_f, 0.01)? as f64;
+        let g_high = ops::percentile_f32(&gray_f, 0.99)? as f64;
 
         let shifted = ops::subtract_f32_scalar(&gray_f, g_low)?;
         let scaled =
@@ -205,5 +200,5 @@ fn enhance_grayscale_image(img: &ImageU8) -> OpResult<ImageU8> {
     };
 
     let denoised = ops::bilateral_filter_u8(&stretched8u, 9, 20.0, 10.0)?;
-    ops::cvt_color_gray_to_bgr(&denoised)
+    ops::gray_to_bgr(&denoised)
 }

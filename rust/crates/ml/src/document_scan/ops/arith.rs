@@ -1,9 +1,6 @@
-//! Pointwise float arithmetic.
-//!
-//! Working precision follows OpenCV's `arithm_op`: array-array operations run
-//! in the source depth (`float`), add/subtract/min/max against a scalar also
-//! run in `float` (the scalar is narrowed), while multiply against a scalar
-//! and `addWeighted` promote to `double` and narrow the result.
+//! Pointwise float arithmetic. Array-array operations and scalar
+//! add/subtract/min/max run in f32; scalar multiply and the weighted sum
+//! promote to f64 and narrow the result.
 
 use rayon::prelude::*;
 
@@ -79,7 +76,7 @@ fn map2(
     ImageF32::new(a.width, a.height, a.channels, data)
 }
 
-/// Per-channel scalar as OpenCV unrolls it: `Scalar(v)` fills only `val[0]`.
+/// Per-channel scalar: channel `c` of every pixel sees `scalar[c]`.
 fn map_scalar(
     a: &ImageF32,
     scalar: [f64; 4],
@@ -145,14 +142,14 @@ pub(crate) fn max_f32_scalar(a: &ImageF32, scalar: f64) -> OpResult<ImageF32> {
 }
 
 pub(crate) fn log_f32(a: &ImageF32) -> OpResult<ImageF32> {
-    map1(a, |v| (v as f64).ln() as f32)
+    map1(a, f32::ln)
 }
 
 pub(crate) fn exp_f32(a: &ImageF32) -> OpResult<ImageF32> {
-    map1(a, |v| (v as f64).exp() as f32)
+    map1(a, f32::exp)
 }
 
-/// `cv::magnitude`: `sqrt(x*x + y*y)` in `float`.
+/// `sqrt(x*x + y*y)` in f32.
 pub(crate) fn magnitude_f32(x: &ImageF32, y: &ImageF32) -> OpResult<ImageF32> {
     map2(x, y, "magnitude_f32", |a, b| (a * a + b * b).sqrt())
 }

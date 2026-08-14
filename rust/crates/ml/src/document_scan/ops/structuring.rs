@@ -1,15 +1,12 @@
-//! `cv::getStructuringElement(MORPH_ELLIPSE, Size(k, k))`.
+//! Elliptical structuring elements for the morphology ops.
 
-use super::saturate_i32_f64;
 use crate::document_scan::OpResult;
 use crate::document_scan::image::ImageU8;
 
-/// Element values are 0/1, and a 1x1 element degrades to `MORPH_RECT`.
-pub(crate) fn get_structuring_element_ellipse(ksize: i32) -> OpResult<ImageU8> {
+/// A k x k 0/1 ellipse; a 1x1 element degrades to a filled square.
+pub(crate) fn ellipse_kernel(ksize: i32) -> OpResult<ImageU8> {
     if ksize <= 0 {
-        return Err(format!(
-            "get_structuring_element_ellipse: invalid ksize {ksize}"
-        ));
+        return Err(format!("ellipse_kernel: invalid ksize {ksize}"));
     }
     let mut element = ImageU8::zeros(ksize, ksize, 1)?;
     let rect = ksize == 1;
@@ -28,7 +25,8 @@ pub(crate) fn get_structuring_element_ellipse(ksize: i32) -> OpResult<ImageU8> {
         } else {
             let dy = i - r;
             if dy.abs() <= r {
-                let dx = saturate_i32_f64(c as f64 * (((r * r - dy * dy) as f64) * inv_r2).sqrt());
+                let dx = (c as f64 * (((r * r - dy * dy) as f64) * inv_r2).sqrt()).round_ties_even()
+                    as i32;
                 j1 = (c - dx).max(0);
                 j2 = (c + dx + 1).min(ksize);
             }

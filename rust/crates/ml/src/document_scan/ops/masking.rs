@@ -1,14 +1,13 @@
 //! Thresholding, masking and the boolean/counting operations.
 
-use super::{cv_floor_f64, saturate_i32_f64};
 use crate::document_scan::OpResult;
 use crate::document_scan::image::{ImageF32, ImageU8};
 
-/// `threshold(THRESH_BINARY)` on 8U. OpenCV floors the threshold to an integer
-/// and rounds `maxval`, then compares strictly greater.
+/// Binary threshold on u8: the threshold is floored to an integer and the
+/// comparison is strictly greater.
 pub(crate) fn threshold_binary_u8(src: &ImageU8, thresh: f64, maxval: f64) -> OpResult<ImageU8> {
-    let ithresh = cv_floor_f64(thresh);
-    let imaxval = saturate_i32_f64(maxval).clamp(0, 255) as u8;
+    let ithresh = thresh.floor() as i64;
+    let imaxval = maxval.round_ties_even().clamp(0.0, 255.0) as u8;
     ImageU8::new(
         src.width,
         src.height,
@@ -20,8 +19,8 @@ pub(crate) fn threshold_binary_u8(src: &ImageU8, thresh: f64, maxval: f64) -> Op
     )
 }
 
-/// `threshold(THRESH_BINARY)` on 32F: the bounds are narrowed to `float` and
-/// the comparison is strictly greater, so NaN maps to 0.
+/// Binary threshold on f32: the bounds are narrowed to `f32` and the
+/// comparison is strictly greater, so NaN maps to 0.
 pub(crate) fn threshold_binary_f32(src: &ImageF32, thresh: f64, maxval: f64) -> OpResult<ImageF32> {
     let t = thresh as f32;
     let m = maxval as f32;
@@ -36,45 +35,25 @@ pub(crate) fn threshold_binary_f32(src: &ImageF32, thresh: f64, maxval: f64) -> 
     )
 }
 
-/// `cv::inRange` with scalar bounds: inclusive on both ends. The bounds are
-/// rounded to `int` first; a range that cannot contain any value of the source
-/// type is replaced by an empty one.
+/// 255 where `lower <= v <= upper` (bounds rounded to integers), else 0.
 pub(crate) fn in_range_u8(src: &ImageU8, lower: f64, upper: f64) -> OpResult<ImageU8> {
-    let cn = src.channels as usize;
-    if cn > 4 {
-        return Err("in_range_u8: at most 4 channels are supported".to_string());
+    if src.channels != 1 {
+        return Err("in_range_u8: expected a single-channel image".to_string());
     }
-    // `Scalar(v)` sets only val[0]; the remaining channels get 0.
-    let mut lo = [0u8; 4];
-    let mut hi = [0u8; 4];
-    for c in 0..cn {
-        let (mut l, mut u) = if c == 0 {
-            (saturate_i32_f64(lower), saturate_i32_f64(upper))
-        } else {
-            (0, 0)
-        };
-        if l > u || l > 255 || u < 0 {
-            l = 1;
-            u = 0;
-        }
-        lo[c] = l.clamp(0, 255) as u8;
-        hi[c] = u.clamp(0, 255) as u8;
-    }
-    let data: Vec<u8> = src
-        .data
-        .chunks_exact(cn)
-        .map(|px| {
-            let inside = px
-                .iter()
-                .enumerate()
-                .all(|(c, &v)| lo[c] <= v && v <= hi[c]);
-            if inside { 255u8 } else { 0u8 }
-        })
-        .collect();
-    ImageU8::new(src.width, src.height, 1, data)
+    let lo = lower.round_ties_even().clamp(0.0, 255.0) as u8;
+    let hi = upper.round_ties_even().clamp(0.0, 255.0) as u8;
+    ImageU8::new(
+        src.width,
+        src.height,
+        1,
+        src.data
+            .iter()
+            .map(|&v| if lo <= v && v <= hi { 255 } else { 0 })
+            .collect(),
+    )
 }
 
-/// `cv::bitwise_and` without a mask: byte-wise AND.
+/// Byte-wise AND of two same-shaped images.
 pub(crate) fn bitwise_and_u8(a: &ImageU8, b: &ImageU8) -> OpResult<ImageU8> {
     if !a.same_geometry(b) {
         return Err("bitwise_and_u8: operands have different geometry".to_string());
@@ -91,7 +70,7 @@ pub(crate) fn bitwise_and_u8(a: &ImageU8, b: &ImageU8) -> OpResult<ImageU8> {
     )
 }
 
-/// `cv::countNonZero`: single-channel only, counts elements that are not 0.
+/// Number of non-zero elements of a single-channel image.
 pub(crate) fn count_non_zero(src: &ImageU8) -> OpResult<i32> {
     if src.channels != 1 {
         return Err(format!(
@@ -102,8 +81,8 @@ pub(crate) fn count_non_zero(src: &ImageU8) -> OpResult<i32> {
     Ok(src.data.iter().filter(|&&v| v != 0).count() as i32)
 }
 
-/// `Mat::copyTo(dst, mask)`: copy where the mask is non-zero, leave the rest
-/// of `dst` untouched.
+/// Copies `src` over `dst` where the mask is non-zero, leaving the rest of
+/// `dst` untouched.
 pub(crate) fn copy_to_masked(src: &ImageU8, dst: &ImageU8, mask: &ImageU8) -> OpResult<ImageU8> {
     if !src.same_geometry(dst) {
         return Err("copy_to_masked: source and destination geometry differ".to_string());

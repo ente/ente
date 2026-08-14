@@ -1,24 +1,16 @@
-//! `cv::Canny(src, dst, threshold1, threshold2, 3, false)` — aperture 3, L1
-//! gradient.
+//! Canny edge detection with a 3x3 Sobel aperture and L1 gradient
+//! magnitude.
 //!
-//! Beyond the textbook algorithm:
+//! The 75/200 thresholds used downstream are calibrated against this exact
+//! gradient scaling: integer `|dx| + |dy|` of the separable `[-1,0,1]` /
+//! `[1,2,1]` filter pair with replicated borders, thresholds floored, and
+//! the low threshold compared strictly (`m > low`).
 //!
-//! * gradients are `cv::Sobel(..., CV_16S, 3, 1, 0, BORDER_REPLICATE)` — the
-//!   separable pair `[-1,0,1]` / `[1,2,1]` applied as a correlation — and the
-//!   magnitude is the L1 norm `|dx| + |dy|` in `int`;
-//! * both thresholds are floored (and swapped if given the wrong way round),
-//!   and the low one is compared strictly (`m > low`);
-//! * the direction test is integer: `TG22 = 13573` at shift 15, with `>` on
-//!   one side and `>=` on the other for the horizontal and vertical sectors
-//!   but `>` on both for the diagonal one — asymmetries that decide which of
-//!   two equal neighbours survives;
-//! * the working map uses 0 = might be an edge, 1 = cannot be, 2 = is one,
-//!   with a one-pixel frame, and hysteresis is a stack-based 8-connected
-//!   flood over the 0s.
-//!
-//! Deliberate deviation: OpenCV splits the image into stripes and recomputes
-//! the Sobel per stripe, so its own output depends on the thread count near
-//! the seams. This is the single-stripe (one-thread) result.
+//! Non-maximum suppression is the integer direction test (`TG22` at shift
+//! 15) whose `>` / `>=` asymmetries decide which of two equal neighbours
+//! survives; the working map uses 0 = might be an edge, 1 = cannot be,
+//! 2 = is one, with a one-pixel frame, and hysteresis is a stack-based
+//! 8-connected flood over the 0s.
 
 use crate::document_scan::OpResult;
 use crate::document_scan::image::ImageU8;
@@ -68,7 +60,7 @@ fn sobel_planes(src: &[u8], w: usize, h: usize, cn: usize, c: usize) -> (Vec<i16
     (dx, dy)
 }
 
-/// `cvFloor(t)` clamped to the range the magnitudes live in.
+/// Floor, clamped to the range the magnitudes live in.
 fn floor_threshold(t: f64) -> i32 {
     t.floor().clamp(i32::MIN as f64, i32::MAX as f64) as i32
 }
@@ -85,8 +77,7 @@ pub(crate) fn canny(src: &ImageU8, threshold1: f64, threshold2: f64) -> OpResult
     let low = floor_threshold(low_thresh);
     let high = floor_threshold(high_thresh);
 
-    // Per-pixel gradient of the channel with the largest magnitude, which is
-    // what OpenCV keeps when cn > 1.
+    // Per-pixel gradient of the channel with the largest magnitude.
     let (mut dx, mut dy) = sobel_planes(&src.data, w, h, cn, 0);
     let mut norm: Vec<i32> = dx
         .iter()

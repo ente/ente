@@ -3,7 +3,7 @@
 use crate::document_scan::OpResult;
 use crate::document_scan::image::ImageU8;
 
-// 15-bit fixed-point BT.601 luma weights (OpenCV `color.simd_helpers.hpp`).
+// 15-bit fixed-point BT.601 luma weights.
 const GRAY_SHIFT: i32 = 15;
 const RY15: i32 = 9798;
 const GY15: i32 = 19235;
@@ -19,9 +19,9 @@ fn require_channels(src: &ImageU8, channels: i32, op: &str) -> OpResult<()> {
     Ok(())
 }
 
-/// `COLOR_BGR2RGB`: reverse the channel order.
-pub(crate) fn cvt_color_bgr_rgb(src: &ImageU8) -> OpResult<ImageU8> {
-    require_channels(src, 3, "cvt_color_bgr_rgb")?;
+/// Reverses the channel order.
+pub(crate) fn bgr_to_rgb(src: &ImageU8) -> OpResult<ImageU8> {
+    require_channels(src, 3, "bgr_to_rgb")?;
     let mut data = vec![0u8; src.data.len()];
     super::pointwise(&mut data, 3, &src.data, 3, |data, srcd| {
         for (out, px) in data.chunks_exact_mut(3).zip(srcd.chunks_exact(3)) {
@@ -33,9 +33,9 @@ pub(crate) fn cvt_color_bgr_rgb(src: &ImageU8) -> OpResult<ImageU8> {
     ImageU8::new(src.width, src.height, 3, data)
 }
 
-/// `COLOR_GRAY2BGR`: replicate the single channel.
-pub(crate) fn cvt_color_gray_to_bgr(src: &ImageU8) -> OpResult<ImageU8> {
-    require_channels(src, 1, "cvt_color_gray_to_bgr")?;
+/// Replicates the single channel across B, G and R.
+pub(crate) fn gray_to_bgr(src: &ImageU8) -> OpResult<ImageU8> {
+    require_channels(src, 1, "gray_to_bgr")?;
     let mut data = vec![0u8; src.data.len() * 3];
     super::pointwise(&mut data, 3, &src.data, 1, |data, srcd| {
         for (out, &v) in data.chunks_exact_mut(3).zip(srcd.iter()) {
@@ -47,9 +47,9 @@ pub(crate) fn cvt_color_gray_to_bgr(src: &ImageU8) -> OpResult<ImageU8> {
     ImageU8::new(src.width, src.height, 3, data)
 }
 
-/// `COLOR_BGR2GRAY`: `CV_DESCALE(b*BY15 + g*GY15 + r*RY15, 15)`.
-pub(crate) fn cvt_color_bgr_to_gray(src: &ImageU8) -> OpResult<ImageU8> {
-    require_channels(src, 3, "cvt_color_bgr_to_gray")?;
+/// BT.601 luma: `(b*BY15 + g*GY15 + r*RY15) >> 15`, rounded.
+pub(crate) fn bgr_to_gray(src: &ImageU8) -> OpResult<ImageU8> {
+    require_channels(src, 3, "bgr_to_gray")?;
     let round = 1i32 << (GRAY_SHIFT - 1);
     let mut data = vec![0u8; src.data.len() / 3];
     super::pointwise(&mut data, 1, &src.data, 3, |data, srcd| {
@@ -61,7 +61,7 @@ pub(crate) fn cvt_color_bgr_to_gray(src: &ImageU8) -> OpResult<ImageU8> {
     ImageU8::new(src.width, src.height, 1, data)
 }
 
-/// `cv::split`.
+/// Splits an interleaved image into single-channel planes.
 pub(crate) fn split_u8(src: &ImageU8) -> OpResult<Vec<ImageU8>> {
     let cn = src.channels as usize;
     let mut planes = Vec::with_capacity(cn);
@@ -77,7 +77,7 @@ pub(crate) fn split_u8(src: &ImageU8) -> OpResult<Vec<ImageU8>> {
     Ok(planes)
 }
 
-/// `cv::merge`.
+/// Interleaves single-channel planes into one image.
 pub(crate) fn merge_u8(channels: &[ImageU8]) -> OpResult<ImageU8> {
     let first = channels
         .first()

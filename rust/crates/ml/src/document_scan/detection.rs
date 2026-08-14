@@ -6,7 +6,6 @@ use super::contour_orientation::find_quad_from_contour_orientation;
 use super::geometry::{ImageSize, Point, Quad, create_quad};
 use super::image::{Contour, ImageRef, ImageU8};
 use super::mask::Mask;
-use super::min_area_rect::min_area_rect;
 use super::ops;
 use super::perspective::{OpticalMeasures, estimate_real_dimensions};
 use super::postprocess::enhance_captured_image;
@@ -16,8 +15,7 @@ use super::quad_score::score_quad_against_probmap;
 const THRESHOLDS: [f64; 7] = [0.5, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95];
 const LIVE_THRESHOLDS: [f64; 1] = [0.9];
 
-/// `cv::Size(double, double)` truncates toward zero; every size computed from
-/// doubles goes through this.
+/// Pixel sizes computed from doubles truncate toward zero.
 pub(crate) fn size_trunc(width: f64, height: f64) -> (i32, i32) {
     (width as i32, height as i32)
 }
@@ -41,12 +39,7 @@ pub(crate) fn detect_document_quad(
     if vertices.is_none() && !is_live_analysis {
         // Fallback: minimum-area bounding rectangle of the biggest contour.
         if let Some(biggest) = biggest_contour(&mask_image)? {
-            let polygon: Vec<Point> = biggest
-                .points
-                .iter()
-                .map(|&(x, y)| Point::new(x as f64, y as f64))
-                .collect();
-            vertices = min_area_rect(&polygon, Some(mask.width), Some(mask.height));
+            vertices = min_area_rect(&biggest.points, mask.width, mask.height);
         }
     }
 
@@ -61,23 +54,21 @@ fn find_quad_from_orientation_with_adaptive_threshold(
     original_size: ImageSize,
     thresholds: &[f64],
 ) -> OpResult<Option<Vec<Point>>> {
-    // The 0/255 binary mask is treated as the probability map here; the
-    // alpha=255 scaling saturates it straight back to 0/255.
-    let probmap_u8 = ops::u8_saturating_scale(mask_image, 255.0)?;
-    let probmap_smooth = ops::gaussian_blur_u8(&probmap_u8, 3)?;
+    // The 0/255 binary mask stands in for the probability map here.
+    let probmap_smooth = ops::gaussian_blur_u8(mask_image, 3)?;
 
+    let kernel = ops::ellipse_kernel(5)?;
+    let prob_float = ops::u8_to_f32(mask_image)?;
     let mut best_quad: Option<Vec<Point>> = None;
     let mut best_score = 0.0f64;
 
     for &thr in thresholds {
         let bin = ops::threshold_binary_u8(&probmap_smooth, thr * 255.0, 255.0)?;
-        let kernel = ops::get_structuring_element_ellipse(5)?;
         let closed = ops::morphology_close(&bin, &kernel)?;
 
         if let Some(quad) = find_quad_from_orientation(&closed, original_size)?
             && is_valid_quad(&quad, original_size)
         {
-            let prob_float = ops::u8_to_f32(mask_image)?;
             let score = score_quad_against_probmap(&quad, &prob_float, 0.02)?;
             if score > best_score {
                 best_score = score;
@@ -124,6 +115,33 @@ fn find_quad_from_orientation(
     }))
 }
 
+/// Minimum-area (not axis-aligned) bounding rectangle of `points`, clamped
+/// into the mask bounds. `None` for degenerate input that cannot bound a
+/// non-empty area.
+pub(crate) fn min_area_rect(points: &[(i32, i32)], width: i32, height: i32) -> Option<Vec<Point>> {
+    if points.len() < 3 {
+        return None;
+    }
+    let pts: Vec<imageproc::point::Point<i32>> = points
+        .iter()
+        .map(|&(x, y)| imageproc::point::Point::new(x, y))
+        .collect();
+    let rect = imageproc::geometry::min_area_rect(&pts);
+    if imageproc::geometry::contour_area(&rect) == 0.0 {
+        return None;
+    }
+    Some(
+        rect.iter()
+            .map(|p| {
+                Point::new(
+                    (p.x as f64).clamp(0.0, width as f64 - 1.0),
+                    (p.y as f64).clamp(0.0, height as f64 - 1.0),
+                )
+            })
+            .collect(),
+    )
+}
+
 pub(crate) fn biggest_contour(image: &ImageU8) -> OpResult<Option<Contour>> {
     let refined = refine_mask(image)?;
     let blurred = ops::gaussian_blur_u8(&refined, 5)?;
@@ -144,10 +162,9 @@ pub(crate) fn biggest_contour(image: &ImageU8) -> OpResult<Option<Contour>> {
 
 fn refine_mask(original: &ImageU8) -> OpResult<ImageU8> {
     let binary_mask = ops::threshold_binary_u8(original, 128.0, 255.0)?;
-    let kernel_close = ops::get_structuring_element_ellipse(5)?;
-    let closed = ops::morphology_close(&binary_mask, &kernel_close)?;
-    let kernel_open = ops::get_structuring_element_ellipse(5)?;
-    ops::morphology_open(&closed, &kernel_open)
+    let kernel = ops::ellipse_kernel(5)?;
+    let closed = ops::morphology_close(&binary_mask, &kernel)?;
+    ops::morphology_open(&closed, &kernel)
 }
 
 pub(crate) fn resize_for_max_pixels(img: &ImageU8, max_pixels: f64) -> OpResult<ImageU8> {
@@ -157,7 +174,7 @@ pub(crate) fn resize_for_max_pixels(img: &ImageU8, max_pixels: f64) -> OpResult<
     }
     let scale = (max_pixels / orig_pixels as f64).sqrt();
     let (width, height) = size_trunc(img.width as f64 * scale, img.height as f64 * scale);
-    ops::resize_inter_area(ImageRef::U8(img), width, height)?.into_u8()
+    ops::resize_area(ImageRef::U8(img), width, height)?.into_u8()
 }
 
 /// Warp, downscale to the pixel budget, enhance, rotate. The target size

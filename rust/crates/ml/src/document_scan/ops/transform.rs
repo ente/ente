@@ -1,10 +1,10 @@
-//! `cv::rotate` for the four right-angle cases.
+//! Right-angle rotation of an interleaved image.
 
 use crate::document_scan::OpResult;
 use crate::document_scan::image::ImageU8;
 
-/// `ROTATE_90_CLOCKWISE` is transpose + horizontal flip, `ROTATE_180` is a
-/// double flip and `ROTATE_90_COUNTERCLOCKWISE` is transpose + vertical flip.
+/// 90 degrees is transpose + horizontal flip, 180 a double flip, and 270
+/// transpose + vertical flip.
 pub(crate) fn rotate_u8(src: &ImageU8, degrees: i32) -> OpResult<ImageU8> {
     let cn = src.channels as usize;
     let (w, h) = (src.width as usize, src.height as usize);

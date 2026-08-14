@@ -1,6 +1,6 @@
 //! ONNX segmentation: BGR image -> 256x256 u8 probability map.
 //!
-//! Preprocessing contract: BGR -> RGB -> resize 256x256 (INTER_LINEAR) ->
+//! Preprocessing contract: BGR -> RGB -> bilinear resize 256x256 ->
 //! f32 (x-127.5)/127.5 -> NHWC [1,256,256,3] -> model -> clip [0,1] ->
 //! round(p*255) u8.
 
@@ -51,9 +51,8 @@ impl Segmenter {
 
     /// Returns the 256x256 u8 probability map, row-major.
     pub(crate) fn probability_map_u8(&self, bgr: &ImageU8) -> OpResult<Vec<u8>> {
-        let rgb = ops::cvt_color_bgr_rgb(bgr)?;
-        let resized =
-            ops::resize_inter_linear(ImageRef::U8(&rgb), MASK_SIDE, MASK_SIDE)?.into_u8()?;
+        let rgb = ops::bgr_to_rgb(bgr)?;
+        let resized = ops::resize_bilinear(ImageRef::U8(&rgb), MASK_SIDE, MASK_SIDE)?.into_u8()?;
 
         let input: Vec<f32> = resized
             .data

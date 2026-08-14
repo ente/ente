@@ -77,8 +77,7 @@ impl Quad {
 
     /// Rotates the four corners by `iterations` quarter turns inside
     /// `image_size` and re-sorts them through `create_quad`. A negative
-    /// `iterations` deliberately falls into the identity branch (truncating
-    /// `%` semantics preserved from the ported implementation).
+    /// `iterations` falls into the identity branch (truncating `%`).
     pub(crate) fn rotate90(&self, iterations: i32, image_size: ImageSize) -> Quad {
         let rotate = |p: Point| -> Point {
             match iterations % 4 {

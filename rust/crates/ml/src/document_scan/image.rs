@@ -146,7 +146,7 @@ impl Image {
     }
 }
 
-/// One connected contour with the area OpenCV's `contourArea` reports for it.
+/// One connected contour with its shoelace area.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Contour {
     pub points: Vec<(i32, i32)>,

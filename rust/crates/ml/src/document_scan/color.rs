@@ -27,7 +27,7 @@ pub(crate) fn auto_color_mode(img: &ImageU8, mask: &Mask, quad: &Quad) -> OpResu
     let doc_mask = document_mask(mask, quad, img.size(), work_size)?;
     let white_balanced = apply_gray_world_to_document(&resized_img, &doc_mask)?;
 
-    let lab = ops::cvt_color_bgr_lab(&white_balanced)?;
+    let lab = ops::bgr_to_lab(&white_balanced)?;
     let channels = ops::split_u8(&lab)?;
     let luminance = &channels[0];
     let a = &channels[1];
@@ -80,12 +80,10 @@ fn erode_border(mask: &ImageU8, quad: &Quad) -> OpResult<ImageU8> {
         k += 1;
     }
 
-    let kernel = ops::get_structuring_element_ellipse(k)?;
+    let kernel = ops::ellipse_kernel(k)?;
     ops::morphology_erode(mask, &kernel)
 }
 
-/// The mask is resized from mask space up to the work size with INTER_AREA
-/// (an upscale — deliberate, matching the ported behavior).
 fn document_mask(
     mask: &Mask,
     quad: &Quad,
@@ -94,7 +92,7 @@ fn document_mask(
 ) -> OpResult<ImageU8> {
     let mask_image = mask.to_image()?;
     let resized_mask =
-        ops::resize_inter_area(ImageRef::U8(&mask_image), work_size.0, work_size.1)?.into_u8()?;
+        ops::resize_area(ImageRef::U8(&mask_image), work_size.0, work_size.1)?.into_u8()?;
 
     let resized_quad = quad.scaled_to(
         orig_size.0 as f64,
@@ -111,7 +109,7 @@ fn document_mask(
         .iter()
         .map(|p| (p.x as i32, p.y as i32))
         .collect();
-    let quad_mask = ops::fill_convex_poly(eroded_mask.width, eroded_mask.height, &pts, 255.0)?;
+    let quad_mask = ops::fill_poly(eroded_mask.width, eroded_mask.height, &pts, 255.0)?;
 
     ops::bitwise_and_u8(&eroded_mask, &quad_mask)
 }

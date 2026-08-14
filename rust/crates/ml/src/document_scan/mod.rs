@@ -11,7 +11,6 @@ mod detection;
 mod geometry;
 mod image;
 mod mask;
-mod min_area_rect;
 mod ops;
 mod perspective;
 mod postprocess;
