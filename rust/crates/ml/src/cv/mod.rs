@@ -1,7 +1,8 @@
-//! The image operations the scanner pipeline is built from: pointwise
+//! The crate's computer-vision toolkit: pixel-buffer types, pointwise
 //! arithmetic, filters, morphology, color conversions, and wrappers around
 //! `fast_image_resize`/`imageproc` for resizing, rasterization, contour
-//! tracing and warping.
+//! tracing and warping. Self-contained — nothing here depends on the
+//! scanner pipeline.
 
 mod arith;
 mod bilateral;
@@ -11,6 +12,7 @@ mod contours;
 mod convert;
 mod draw;
 mod filter;
+pub(crate) mod image;
 mod lab;
 mod masking;
 mod morph;
@@ -22,8 +24,11 @@ mod warp;
 
 use rayon::prelude::*;
 
-use super::OpResult;
-use super::image::{Image, ImageRef};
+use self::image::{Image, ImageRef};
+
+/// Operations fail with a plain message; callers wrap it into their own
+/// error type.
+pub(crate) type OpResult<T> = Result<T, String>;
 
 pub(crate) use arith::{
     add_f32_scalar, add_weighted_f32, exp_f32, log_f32, magnitude_f32, max_f32_scalar,

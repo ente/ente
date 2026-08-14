@@ -2,12 +2,12 @@ use std::any::Any;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use ente_assets::AssetStore;
-use ente_ml::document_scan;
+use ente_ml::scan;
 use flutter_rust_bridge::frb;
 
 #[frb(sync)]
 pub fn mask_side() -> i32 {
-    document_scan::MASK_SIDE
+    scan::MASK_SIDE
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -137,7 +137,7 @@ pub struct RustScanError {
 /// preview stream and capture processing.
 #[frb(opaque)]
 pub struct ScannerSession {
-    inner: document_scan::ScannerSession,
+    inner: scan::ScannerSession,
 }
 
 impl ScannerSession {
@@ -145,14 +145,14 @@ impl ScannerSession {
     /// `assets_dir` (downloading it on first use) and loads it.
     pub async fn create(assets_dir: String) -> Result<ScannerSession, RustScanError> {
         let store = AssetStore::new(assets_dir);
-        let model_path = document_scan::ensure_segmentation_model(&store)
+        let model_path = scan::ensure_segmentation_model(&store)
             .await
             .map_err(|error| RustScanError {
                 kind: RustScanErrorKind::ModelLoad,
                 message: error.to_string(),
             })?;
         catch_panic(|| {
-            let inner = document_scan::ScannerSession::new(&model_path.to_string_lossy())?;
+            let inner = scan::ScannerSession::new(&model_path.to_string_lossy())?;
             Ok(ScannerSession { inner })
         })
     }
@@ -325,22 +325,20 @@ fn bgra_to_rgba(
     Ok(rgba)
 }
 
-impl From<document_scan::ScanError> for RustScanError {
-    fn from(value: document_scan::ScanError) -> Self {
+impl From<scan::ScanError> for RustScanError {
+    fn from(value: scan::ScanError) -> Self {
         let (kind, message) = match value {
-            document_scan::ScanError::InvalidInput(message) => {
-                (RustScanErrorKind::InvalidInput, message)
-            }
-            document_scan::ScanError::ModelLoad(message) => (RustScanErrorKind::ModelLoad, message),
-            document_scan::ScanError::Codec(message) => (RustScanErrorKind::Codec, message),
-            document_scan::ScanError::Pipeline(message) => (RustScanErrorKind::Pipeline, message),
+            scan::ScanError::InvalidInput(message) => (RustScanErrorKind::InvalidInput, message),
+            scan::ScanError::ModelLoad(message) => (RustScanErrorKind::ModelLoad, message),
+            scan::ScanError::Codec(message) => (RustScanErrorKind::Codec, message),
+            scan::ScanError::Pipeline(message) => (RustScanErrorKind::Pipeline, message),
         };
         RustScanError { kind, message }
     }
 }
 
-fn to_plane_layout(layout: RustPlaneLayout) -> document_scan::PlaneLayout {
-    document_scan::PlaneLayout {
+fn to_plane_layout(layout: RustPlaneLayout) -> scan::PlaneLayout {
+    scan::PlaneLayout {
         width: layout.width,
         height: layout.height,
         y_row_stride: layout.y_row_stride,
@@ -349,8 +347,8 @@ fn to_plane_layout(layout: RustPlaneLayout) -> document_scan::PlaneLayout {
     }
 }
 
-fn to_scan_options(options: &RustScanOptions) -> document_scan::ScanOptions {
-    document_scan::ScanOptions {
+fn to_scan_options(options: &RustScanOptions) -> scan::ScanOptions {
+    scan::ScanOptions {
         color_mode_override: options.color_mode_override.map(to_color_mode),
         max_pixels: options.max_pixels,
         rotation_degrees: options.rotation_degrees,
@@ -359,8 +357,8 @@ fn to_scan_options(options: &RustScanOptions) -> document_scan::ScanOptions {
     }
 }
 
-fn to_reprocess_options(options: &RustReprocessOptions) -> document_scan::ReprocessOptions {
-    document_scan::ReprocessOptions {
+fn to_reprocess_options(options: &RustReprocessOptions) -> scan::ReprocessOptions {
+    scan::ReprocessOptions {
         quad: to_quad(options.quad),
         rotation_degrees: options.rotation_degrees,
         color_mode: to_color_mode(options.color_mode),
@@ -370,37 +368,37 @@ fn to_reprocess_options(options: &RustReprocessOptions) -> document_scan::Reproc
     }
 }
 
-fn to_color_mode(mode: RustColorMode) -> document_scan::ColorMode {
+fn to_color_mode(mode: RustColorMode) -> scan::ColorMode {
     match mode {
-        RustColorMode::Color => document_scan::ColorMode::Color,
-        RustColorMode::Grayscale => document_scan::ColorMode::Grayscale,
+        RustColorMode::Color => scan::ColorMode::Color,
+        RustColorMode::Grayscale => scan::ColorMode::Grayscale,
     }
 }
 
-fn to_api_color_mode(mode: document_scan::ColorMode) -> RustColorMode {
+fn to_api_color_mode(mode: scan::ColorMode) -> RustColorMode {
     match mode {
-        document_scan::ColorMode::Color => RustColorMode::Color,
-        document_scan::ColorMode::Grayscale => RustColorMode::Grayscale,
+        scan::ColorMode::Color => RustColorMode::Color,
+        scan::ColorMode::Grayscale => RustColorMode::Grayscale,
     }
 }
 
-fn to_output_format(format: RustOutputFormat) -> document_scan::OutputFormat {
+fn to_output_format(format: RustOutputFormat) -> scan::OutputFormat {
     match format {
-        RustOutputFormat::Png => document_scan::OutputFormat::Png,
-        RustOutputFormat::Jpeg => document_scan::OutputFormat::Jpeg,
+        RustOutputFormat::Png => scan::OutputFormat::Png,
+        RustOutputFormat::Jpeg => scan::OutputFormat::Jpeg,
     }
 }
 
-fn to_api_output_format(format: document_scan::OutputFormat) -> RustOutputFormat {
+fn to_api_output_format(format: scan::OutputFormat) -> RustOutputFormat {
     match format {
-        document_scan::OutputFormat::Png => RustOutputFormat::Png,
-        document_scan::OutputFormat::Jpeg => RustOutputFormat::Jpeg,
+        scan::OutputFormat::Png => RustOutputFormat::Png,
+        scan::OutputFormat::Jpeg => RustOutputFormat::Jpeg,
     }
 }
 
-fn to_optical_measures(measures: RustOpticalMeasures) -> document_scan::OpticalMeasures {
-    document_scan::OpticalMeasures {
-        camera_intrinsics: document_scan::CameraIntrinsics {
+fn to_optical_measures(measures: RustOpticalMeasures) -> scan::OpticalMeasures {
+    scan::OpticalMeasures {
+        camera_intrinsics: scan::CameraIntrinsics {
             focal_length_mm: measures.camera_intrinsics.focal_length_mm,
             sensor_width_mm: measures.camera_intrinsics.sensor_width_mm,
         },
@@ -408,8 +406,8 @@ fn to_optical_measures(measures: RustOpticalMeasures) -> document_scan::OpticalM
     }
 }
 
-fn to_quad(quad: RustQuad) -> document_scan::Quad {
-    document_scan::Quad {
+fn to_quad(quad: RustQuad) -> scan::Quad {
+    scan::Quad {
         top_left: to_point(quad.top_left),
         top_right: to_point(quad.top_right),
         bottom_right: to_point(quad.bottom_right),
@@ -417,14 +415,14 @@ fn to_quad(quad: RustQuad) -> document_scan::Quad {
     }
 }
 
-fn to_point(point: RustPoint) -> document_scan::Point {
-    document_scan::Point {
+fn to_point(point: RustPoint) -> scan::Point {
+    scan::Point {
         x: point.x,
         y: point.y,
     }
 }
 
-fn to_api_quad(quad: document_scan::Quad) -> RustQuad {
+fn to_api_quad(quad: scan::Quad) -> RustQuad {
     RustQuad {
         top_left: to_api_point(quad.top_left),
         top_right: to_api_point(quad.top_right),
@@ -433,14 +431,14 @@ fn to_api_quad(quad: document_scan::Quad) -> RustQuad {
     }
 }
 
-fn to_api_point(point: document_scan::Point) -> RustPoint {
+fn to_api_point(point: scan::Point) -> RustPoint {
     RustPoint {
         x: point.x,
         y: point.y,
     }
 }
 
-fn to_api_scan_result(result: document_scan::ScanResult) -> RustScanResult {
+fn to_api_scan_result(result: scan::ScanResult) -> RustScanResult {
     RustScanResult {
         quad: result.quad.map(to_api_quad),
         color_mode: to_api_color_mode(result.color_mode),

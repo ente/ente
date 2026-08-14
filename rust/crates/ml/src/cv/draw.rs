@@ -5,8 +5,8 @@ use imageproc::drawing::draw_polygon_mut;
 use imageproc::point::Point;
 
 use super::saturate_u8_f64;
-use crate::document_scan::OpResult;
-use crate::document_scan::image::ImageU8;
+use crate::cv::OpResult;
+use crate::cv::image::ImageU8;
 
 /// Renders `polygon` filled with `value` onto a zeroed single-channel mask.
 /// Degenerate inputs (under three distinct vertices) rasterize the vertices

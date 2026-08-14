@@ -3,8 +3,8 @@
 use ente_image::decode::decode_image_from_bytes;
 use ente_image::image_compression::{EncodedImageFormat, encode_rgb};
 
-use super::image::ImageU8;
 use super::scanner::ScanError;
+use crate::cv::image::ImageU8;
 
 /// Decodes any container `ente_image` understands (JPEG, PNG, HEIC, ...),
 /// with EXIF orientation applied, into packed BGR.

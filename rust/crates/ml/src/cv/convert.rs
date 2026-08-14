@@ -1,8 +1,8 @@
 //! Conversions between 8-bit and 32-bit float planes.
 
 use super::saturate_u8_f32;
-use crate::document_scan::OpResult;
-use crate::document_scan::image::{ImageF32, ImageU8};
+use crate::cv::OpResult;
+use crate::cv::image::{ImageF32, ImageU8};
 
 /// Widening cast to f32.
 pub(crate) fn u8_to_f32(src: &ImageU8) -> OpResult<ImageF32> {

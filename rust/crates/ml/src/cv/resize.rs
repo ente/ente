@@ -10,8 +10,8 @@ use fast_image_resize::{
     images::{Image as FirImage, ImageRef as FirImageRef},
 };
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::{Image, ImageF32, ImageRef, ImageU8};
+use crate::cv::OpResult;
+use crate::cv::image::{Image, ImageF32, ImageRef, ImageU8};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Interp {

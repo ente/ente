@@ -4,12 +4,12 @@ use super::OpResult;
 use super::color::ColorMode;
 use super::contour_orientation::find_quad_from_contour_orientation;
 use super::geometry::{ImageSize, Point, Quad, create_quad};
-use super::image::{Contour, ImageRef, ImageU8};
 use super::mask::Mask;
-use super::ops;
 use super::perspective::{OpticalMeasures, estimate_real_dimensions};
 use super::postprocess::enhance_captured_image;
 use super::quad_score::score_quad_against_probmap;
+use crate::cv;
+use crate::cv::image::{Contour, ImageRef, ImageU8};
 
 /// Adaptive thresholds for still captures; live analysis uses one for speed.
 const THRESHOLDS: [f64; 7] = [0.5, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95];
@@ -55,16 +55,16 @@ fn find_quad_from_orientation_with_adaptive_threshold(
     thresholds: &[f64],
 ) -> OpResult<Option<Vec<Point>>> {
     // The 0/255 binary mask stands in for the probability map here.
-    let probmap_smooth = ops::gaussian_blur_u8(mask_image, 3)?;
+    let probmap_smooth = cv::gaussian_blur_u8(mask_image, 3)?;
 
-    let kernel = ops::ellipse_kernel(5)?;
-    let prob_float = ops::u8_to_f32(mask_image)?;
+    let kernel = cv::ellipse_kernel(5)?;
+    let prob_float = cv::u8_to_f32(mask_image)?;
     let mut best_quad: Option<Vec<Point>> = None;
     let mut best_score = 0.0f64;
 
     for &thr in thresholds {
-        let bin = ops::threshold_binary_u8(&probmap_smooth, thr * 255.0, 255.0)?;
-        let closed = ops::morphology_close(&bin, &kernel)?;
+        let bin = cv::threshold_binary_u8(&probmap_smooth, thr * 255.0, 255.0)?;
+        let closed = cv::morphology_close(&bin, &kernel)?;
 
         if let Some(quad) = find_quad_from_orientation(&closed, original_size)?
             && is_valid_quad(&quad, original_size)
@@ -144,9 +144,9 @@ pub(crate) fn min_area_rect(points: &[(i32, i32)], width: i32, height: i32) -> O
 
 pub(crate) fn biggest_contour(image: &ImageU8) -> OpResult<Option<Contour>> {
     let refined = refine_mask(image)?;
-    let blurred = ops::gaussian_blur_u8(&refined, 5)?;
-    let edges = ops::canny(&blurred, 75.0, 200.0)?;
-    let contours = ops::find_contours(&edges)?;
+    let blurred = cv::gaussian_blur_u8(&refined, 5)?;
+    let edges = cv::canny(&blurred, 75.0, 200.0)?;
+    let contours = cv::find_contours(&edges)?;
 
     let mut biggest: Option<Contour> = None;
     let mut max_area = 0.0f64;
@@ -161,10 +161,10 @@ pub(crate) fn biggest_contour(image: &ImageU8) -> OpResult<Option<Contour>> {
 }
 
 fn refine_mask(original: &ImageU8) -> OpResult<ImageU8> {
-    let binary_mask = ops::threshold_binary_u8(original, 128.0, 255.0)?;
-    let kernel = ops::ellipse_kernel(5)?;
-    let closed = ops::morphology_close(&binary_mask, &kernel)?;
-    ops::morphology_open(&closed, &kernel)
+    let binary_mask = cv::threshold_binary_u8(original, 128.0, 255.0)?;
+    let kernel = cv::ellipse_kernel(5)?;
+    let closed = cv::morphology_close(&binary_mask, &kernel)?;
+    cv::morphology_open(&closed, &kernel)
 }
 
 pub(crate) fn resize_for_max_pixels(img: &ImageU8, max_pixels: f64) -> OpResult<ImageU8> {
@@ -174,7 +174,7 @@ pub(crate) fn resize_for_max_pixels(img: &ImageU8, max_pixels: f64) -> OpResult<
     }
     let scale = (max_pixels / orig_pixels as f64).sqrt();
     let (width, height) = size_trunc(img.width as f64 * scale, img.height as f64 * scale);
-    ops::resize_area(ImageRef::U8(img), width, height)?.into_u8()
+    cv::resize_area(ImageRef::U8(img), width, height)?.into_u8()
 }
 
 /// Warp, downscale to the pixel budget, enhance, rotate. The target size
@@ -207,9 +207,9 @@ pub(crate) fn extract_document(
     ];
 
     let (out_width, out_height) = size_trunc(target_width, target_height);
-    let warped = ops::warp_perspective(input, src_corners, dst_corners, out_width, out_height)?;
+    let warped = cv::warp_perspective(input, src_corners, dst_corners, out_width, out_height)?;
 
     let resized = resize_for_max_pixels(&warped, max_pixels)?;
     let enhanced = enhance_captured_image(&resized, color_mode)?;
-    ops::rotate_u8(&enhanced, rotation_degrees)
+    cv::rotate_u8(&enhanced, rotation_degrees)
 }

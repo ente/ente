@@ -2,13 +2,13 @@
 
 use super::OpResult;
 use super::geometry::Point;
-use super::image::{ImageF32, ImageU8};
-use super::ops;
+use crate::cv;
+use crate::cv::image::{ImageF32, ImageU8};
 
 /// The polygon vertices are truncated to int before rasterisation.
 pub(crate) fn make_polygon_mask(width: i32, height: i32, polygon: &[Point]) -> OpResult<ImageU8> {
     let pts: Vec<(i32, i32)> = polygon.iter().map(|p| (p.x as i32, p.y as i32)).collect();
-    ops::fill_poly(width, height, &pts, 1.0)
+    cv::fill_poly(width, height, &pts, 1.0)
 }
 
 /// `probmap` here is the 0/255 binary mask converted to f32, i.e. values are
@@ -19,11 +19,11 @@ pub(crate) fn score_quad_against_probmap(
     min_quad_area_ratio: f64,
 ) -> OpResult<f64> {
     let mask = make_polygon_mask(probmap.width, probmap.height, quad)?;
-    let mask_float = ops::u8_to_f32(&mask)?;
-    let masked = ops::multiply_f32(probmap, &mask_float)?;
+    let mask_float = cv::u8_to_f32(&mask)?;
+    let masked = cv::multiply_f32(probmap, &mask_float)?;
 
-    let sum_masked = ops::sum_f32(&masked)?;
-    let sum_mask = ops::sum_f32(&mask_float)?;
+    let sum_masked = cv::sum_f32(&masked)?;
+    let sum_mask = cv::sum_f32(&mask_float)?;
     let mean_prob = sum_masked / sum_mask;
     let area_ratio = sum_mask / (probmap.height * probmap.width) as f64;
 

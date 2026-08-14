@@ -4,8 +4,8 @@
 
 use rayon::prelude::*;
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::ImageF32;
+use crate::cv::OpResult;
+use crate::cv::image::ImageF32;
 
 /// Below this many elements the rayon split costs more than the work it saves.
 const PARALLEL_MIN_ELEMS: usize = 200_000;

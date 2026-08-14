@@ -12,8 +12,8 @@
 //! 2 = is one, with a one-pixel frame, and hysteresis is a stack-based
 //! 8-connected flood over the 0s.
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::ImageU8;
+use crate::cv::OpResult;
+use crate::cv::image::ImageU8;
 
 const CANNY_SHIFT: i32 = 15;
 /// `(int)(tan(22.5 deg) * (1 << CANNY_SHIFT) + 0.5)`.

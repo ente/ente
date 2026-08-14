@@ -6,8 +6,8 @@
 use rayon::prelude::*;
 
 use super::reflect101;
-use crate::document_scan::OpResult;
-use crate::document_scan::image::ImageU8;
+use crate::cv::OpResult;
+use crate::cv::image::ImageU8;
 
 pub(crate) fn bilateral_filter_u8(
     src: &ImageU8,

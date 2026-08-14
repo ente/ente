@@ -3,8 +3,8 @@
 use image::{Rgb, RgbImage};
 use imageproc::geometric_transformations::{Interpolation, Projection, warp_into};
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::ImageU8;
+use crate::cv::OpResult;
+use crate::cv::image::ImageU8;
 
 /// Maps the `src_corners` quad onto `dst_corners` and renders the
 /// `width` x `height` destination with bilinear sampling; pixels mapping

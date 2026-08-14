@@ -1,7 +1,7 @@
 pub mod assets;
 mod clip;
+mod cv;
 mod diagnostics;
-pub mod document_scan;
 pub mod error;
 pub mod face;
 pub mod indexing;
@@ -13,6 +13,7 @@ mod pet;
 mod postprocess;
 mod preprocess;
 mod runtime;
+pub mod scan;
 pub mod types;
 #[cfg(feature = "usearch")]
 pub mod vector_db;

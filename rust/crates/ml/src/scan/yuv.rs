@@ -15,7 +15,7 @@
 //! U and V planes are two views into one interleaved buffer. Both are handled
 //! by indexing with the strides the caller reports.
 
-use super::image::ImageU8;
+use crate::cv::image::ImageU8;
 
 // Q6 fixed-point BT.601 limited-range coefficients.
 const YG: i32 = 18997; // round(1.164 * 64 * 256 * 256 / 257)

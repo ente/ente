@@ -1,7 +1,7 @@
 //! Thresholding, masking and the boolean/counting operations.
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::{ImageF32, ImageU8};
+use crate::cv::OpResult;
+use crate::cv::image::{ImageF32, ImageU8};
 
 /// Binary threshold on u8: the threshold is floored to an integer and the
 /// comparison is strictly greater.

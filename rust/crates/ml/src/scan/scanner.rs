@@ -12,12 +12,12 @@ use super::codec;
 use super::color::{ColorMode, auto_color_mode, quad_to_image};
 use super::detection::{detect_document_quad, extract_document, resize_for_max_pixels};
 use super::geometry::{ImageSize, Quad};
-use super::image::ImageU8;
 use super::mask::Mask;
-use super::ops;
 use super::perspective::{EstimatedDimensions, OpticalMeasures, estimate_real_dimensions};
 use super::segmentation::{MASK_SIDE, Segmenter};
 use super::yuv::{PlaneLayout, rgba_to_bgr, yuv420_to_bgr};
+use crate::cv;
+use crate::cv::image::ImageU8;
 
 /// Default pixel budget of the processed page.
 const DEFAULT_MAX_PIXELS: u32 = 2_000_000;
@@ -259,7 +259,7 @@ impl ScannerSession {
             // the color mode keeps its Color initial value.
             let resized = resize_for_max_pixels(&bgr, max_pixels).map_err(ScanError::Pipeline)?;
             let page =
-                ops::rotate_u8(&resized, options.rotation_degrees).map_err(ScanError::Pipeline)?;
+                cv::rotate_u8(&resized, options.rotation_degrees).map_err(ScanError::Pipeline)?;
             return finish(
                 None,
                 ColorMode::Color,

@@ -7,8 +7,8 @@
 
 use std::sync::OnceLock;
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::ImageU8;
+use crate::cv::OpResult;
+use crate::cv::image::ImageU8;
 
 const LAB_SHIFT: i32 = 12;
 const LAB_SHIFT2: i32 = 15;

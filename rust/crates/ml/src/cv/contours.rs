@@ -3,8 +3,8 @@
 
 use image::GrayImage;
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::{Contour, ImageU8};
+use crate::cv::OpResult;
+use crate::cv::image::{Contour, ImageU8};
 
 pub(crate) fn find_contours(src: &ImageU8) -> OpResult<Vec<Contour>> {
     if src.channels != 1 {

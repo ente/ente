@@ -1,7 +1,7 @@
 //! Channel-layout color conversions and channel split/merge.
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::ImageU8;
+use crate::cv::OpResult;
+use crate::cv::image::ImageU8;
 
 // 15-bit fixed-point BT.601 luma weights.
 const GRAY_SHIFT: i32 = 15;

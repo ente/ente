@@ -1,7 +1,7 @@
 //! Binarized segmentation mask.
 
 use super::OpResult;
-use super::image::ImageU8;
+use crate::cv::image::ImageU8;
 
 /// The u8 probability map quantized (`round(p*255)`) and binarized at
 /// `>= 128` into a 0/255 single-channel image.

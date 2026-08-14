@@ -9,9 +9,7 @@ mod color;
 mod contour_orientation;
 mod detection;
 mod geometry;
-mod image;
 mod mask;
-mod ops;
 mod perspective;
 mod postprocess;
 mod quad_score;
@@ -85,7 +83,7 @@ pub async fn ensure_segmentation_model(
 
 /// Internal result type: pipeline stages fail with a plain message, which
 /// [`ScannerSession`] maps onto [`ScanError`].
-pub(crate) type OpResult<T> = Result<T, String>;
+pub(crate) use crate::cv::OpResult;
 
 #[cfg(test)]
 mod tests;

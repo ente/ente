@@ -3,8 +3,8 @@
 //! kernels. Both extend the border by mirroring without repeating the edge
 //! pixel.
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::{ImageF32, ImageU8};
+use crate::cv::OpResult;
+use crate::cv::image::{ImageF32, ImageU8};
 
 use super::reflect101;
 

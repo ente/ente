@@ -5,7 +5,7 @@
 
 use std::io::Cursor;
 
-use ente_ml::document_scan::{
+use ente_ml::scan::{
     ColorMode, OutputFormat, PlaneLayout, Quad, ReprocessOptions, ScanOptions, ScannerSession,
 };
 use image::{ImageFormat, Rgb, RgbImage};
@@ -48,10 +48,7 @@ fn encode(img: &RgbImage, format: ImageFormat) -> Vec<u8> {
     bytes.into_inner()
 }
 
-fn assert_document_result(
-    result: &ente_ml::document_scan::ScanResult,
-    expected_format: OutputFormat,
-) {
+fn assert_document_result(result: &ente_ml::scan::ScanResult, expected_format: OutputFormat) {
     let quad = result.quad.expect("the synthetic document should be found");
     for p in quad.corners() {
         assert!(p.x >= 0.0 && p.x <= result.source_width as f64, "{quad:?}");
@@ -182,7 +179,7 @@ fn rejects_undecodable_bytes_with_a_codec_error() {
     let error = session
         .process_capture(b"not an image", &ScanOptions::default())
         .expect_err("garbage must not decode");
-    assert!(matches!(error, ente_ml::document_scan::ScanError::Codec(_)));
+    assert!(matches!(error, ente_ml::scan::ScanError::Codec(_)));
 }
 
 fn quad_max_delta(a: &Quad, b: &Quad) -> f64 {

@@ -4,9 +4,9 @@
 use super::OpResult;
 use super::detection::resize_for_max_pixels;
 use super::geometry::{Quad, norm};
-use super::image::{ImageF32, ImageRef, ImageU8};
 use super::mask::Mask;
-use super::ops;
+use crate::cv;
+use crate::cv::image::{ImageF32, ImageRef, ImageU8};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ColorMode {
@@ -27,24 +27,24 @@ pub(crate) fn auto_color_mode(img: &ImageU8, mask: &Mask, quad: &Quad) -> OpResu
     let doc_mask = document_mask(mask, quad, img.size(), work_size)?;
     let white_balanced = apply_gray_world_to_document(&resized_img, &doc_mask)?;
 
-    let lab = ops::bgr_to_lab(&white_balanced)?;
-    let channels = ops::split_u8(&lab)?;
+    let lab = cv::bgr_to_lab(&white_balanced)?;
+    let channels = cv::split_u8(&lab)?;
     let luminance = &channels[0];
     let a = &channels[1];
     let b = &channels[2];
 
     let chroma = chroma(a, b)?;
 
-    let color_mask_f = ops::threshold_binary_f32(&chroma, CHROMA_THRESHOLD, 255.0)?;
-    let color_mask = ops::f32_to_u8(&color_mask_f)?;
+    let color_mask_f = cv::threshold_binary_f32(&chroma, CHROMA_THRESHOLD, 255.0)?;
+    let color_mask = cv::f32_to_u8(&color_mask_f)?;
 
-    let luminance_mask = ops::in_range_u8(luminance, LUMINANCE_MIN, LUMINANCE_MAX)?;
+    let luminance_mask = cv::in_range_u8(luminance, LUMINANCE_MIN, LUMINANCE_MAX)?;
 
-    let tmp = ops::bitwise_and_u8(&color_mask, &luminance_mask)?;
-    let restricted_mask = ops::bitwise_and_u8(&tmp, &doc_mask)?;
+    let tmp = cv::bitwise_and_u8(&color_mask, &luminance_mask)?;
+    let restricted_mask = cv::bitwise_and_u8(&tmp, &doc_mask)?;
 
-    let colored_pixels = ops::count_non_zero(&restricted_mask)?;
-    let total_pixels = ops::count_non_zero(&doc_mask)?;
+    let colored_pixels = cv::count_non_zero(&restricted_mask)?;
+    let total_pixels = cv::count_non_zero(&doc_mask)?;
 
     if total_pixels == 0 {
         return Ok(ColorMode::Grayscale);
@@ -58,11 +58,11 @@ pub(crate) fn auto_color_mode(img: &ImageU8, mask: &Mask, quad: &Quad) -> OpResu
 }
 
 fn chroma(a: &ImageU8, b: &ImageU8) -> OpResult<ImageF32> {
-    let a_float = ops::u8_to_f32(a)?;
-    let b_float = ops::u8_to_f32(b)?;
-    let a_shifted = ops::subtract_f32_scalar(&a_float, 128.0)?;
-    let b_shifted = ops::subtract_f32_scalar(&b_float, 128.0)?;
-    ops::magnitude_f32(&a_shifted, &b_shifted)
+    let a_float = cv::u8_to_f32(a)?;
+    let b_float = cv::u8_to_f32(b)?;
+    let a_shifted = cv::subtract_f32_scalar(&a_float, 128.0)?;
+    let b_shifted = cv::subtract_f32_scalar(&b_float, 128.0)?;
+    cv::magnitude_f32(&a_shifted, &b_shifted)
 }
 
 /// Kernel size from the shortest quad edge: `round(minDim*0.02)` clamped to
@@ -80,8 +80,8 @@ fn erode_border(mask: &ImageU8, quad: &Quad) -> OpResult<ImageU8> {
         k += 1;
     }
 
-    let kernel = ops::ellipse_kernel(k)?;
-    ops::morphology_erode(mask, &kernel)
+    let kernel = cv::ellipse_kernel(k)?;
+    cv::morphology_erode(mask, &kernel)
 }
 
 fn document_mask(
@@ -92,7 +92,7 @@ fn document_mask(
 ) -> OpResult<ImageU8> {
     let mask_image = mask.to_image()?;
     let resized_mask =
-        ops::resize_area(ImageRef::U8(&mask_image), work_size.0, work_size.1)?.into_u8()?;
+        cv::resize_area(ImageRef::U8(&mask_image), work_size.0, work_size.1)?.into_u8()?;
 
     let resized_quad = quad.scaled_to(
         orig_size.0 as f64,
@@ -109,21 +109,21 @@ fn document_mask(
         .iter()
         .map(|p| (p.x as i32, p.y as i32))
         .collect();
-    let quad_mask = ops::fill_poly(eroded_mask.width, eroded_mask.height, &pts, 255.0)?;
+    let quad_mask = cv::fill_poly(eroded_mask.width, eroded_mask.height, &pts, 255.0)?;
 
-    ops::bitwise_and_u8(&eroded_mask, &quad_mask)
+    cv::bitwise_and_u8(&eroded_mask, &quad_mask)
 }
 
 /// Gray-world white balance applied only inside the document mask.
 pub(crate) fn apply_gray_world_to_document(img: &ImageU8, doc_mask: &ImageU8) -> OpResult<ImageU8> {
     assert_eq!(img.channels, 3, "gray-world expects an 8UC3 image");
 
-    let non_zero = ops::count_non_zero(doc_mask)?;
+    let non_zero = cv::count_non_zero(doc_mask)?;
     if non_zero == 0 {
         return Ok(img.clone());
     }
 
-    let mean = ops::mean_u8c3_masked(img, doc_mask)?;
+    let mean = cv::mean_u8c3_masked(img, doc_mask)?;
     let eps = 1e-6;
     let mean_b = if mean[0] < eps { eps } else { mean[0] };
     let mean_g = if mean[1] < eps { eps } else { mean[1] };
@@ -137,11 +137,11 @@ pub(crate) fn apply_gray_world_to_document(img: &ImageU8, doc_mask: &ImageU8) ->
         0.0,
     ];
 
-    let img_f = ops::u8_to_f32(img)?;
-    let scaled_f = ops::multiply_f32_scalar(&img_f, scales)?;
-    let scaled8 = ops::f32_to_u8(&scaled_f)?;
+    let img_f = cv::u8_to_f32(img)?;
+    let scaled_f = cv::multiply_f32_scalar(&img_f, scales)?;
+    let scaled8 = cv::f32_to_u8(&scaled_f)?;
 
-    ops::copy_to_masked(&scaled8, img, doc_mask)
+    cv::copy_to_masked(&scaled8, img, doc_mask)
 }
 
 /// Mask-space quad to original-image coordinates.

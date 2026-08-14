@@ -6,8 +6,8 @@
 
 use rayon::prelude::*;
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::ImageU8;
+use crate::cv::OpResult;
+use crate::cv::image::ImageU8;
 
 /// Below this many pixels the rayon split costs more than the work it saves.
 const PARALLEL_MIN_PIXELS: usize = 200_000;

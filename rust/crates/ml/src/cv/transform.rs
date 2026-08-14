@@ -1,7 +1,7 @@
 //! Right-angle rotation of an interleaved image.
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::ImageU8;
+use crate::cv::OpResult;
+use crate::cv::image::ImageU8;
 
 /// 90 degrees is transpose + horizontal flip, 180 a double flip, and 270
 /// transpose + vertical flip.

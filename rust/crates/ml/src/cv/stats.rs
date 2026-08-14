@@ -1,7 +1,7 @@
 //! Reductions, histograms and percentiles.
 
-use crate::document_scan::OpResult;
-use crate::document_scan::image::{ImageF32, ImageU8};
+use crate::cv::OpResult;
+use crate::cv::image::{ImageF32, ImageU8};
 
 fn sum_channel0(src: &ImageF32) -> f64 {
     let cn = src.channels as usize;

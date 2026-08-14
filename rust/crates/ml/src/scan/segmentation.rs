@@ -12,9 +12,9 @@ use ort::session::builder::GraphOptimizationLevel;
 use ort::value::TensorRef;
 
 use super::OpResult;
-use super::image::{ImageRef, ImageU8};
-use super::ops;
 use super::scanner::ScanError;
+use crate::cv;
+use crate::cv::image::{ImageRef, ImageU8};
 
 pub const MASK_SIDE: i32 = 256;
 
@@ -51,8 +51,8 @@ impl Segmenter {
 
     /// Returns the 256x256 u8 probability map, row-major.
     pub(crate) fn probability_map_u8(&self, bgr: &ImageU8) -> OpResult<Vec<u8>> {
-        let rgb = ops::bgr_to_rgb(bgr)?;
-        let resized = ops::resize_bilinear(ImageRef::U8(&rgb), MASK_SIDE, MASK_SIDE)?.into_u8()?;
+        let rgb = cv::bgr_to_rgb(bgr)?;
+        let resized = cv::resize_bilinear(ImageRef::U8(&rgb), MASK_SIDE, MASK_SIDE)?.into_u8()?;
 
         let input: Vec<f32> = resized
             .data
