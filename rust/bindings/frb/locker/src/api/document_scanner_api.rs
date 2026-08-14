@@ -5,11 +5,6 @@ use ente_assets::AssetStore;
 use ente_ml::scan;
 use flutter_rust_bridge::frb;
 
-#[frb(sync)]
-pub fn mask_side() -> i32 {
-    scan::MASK_SIDE
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct RustPoint {
     pub x: f64,
@@ -31,30 +26,6 @@ pub enum RustColorMode {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum RustOutputFormat {
-    Png,
-    Jpeg,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct RustDimensionsMm {
-    pub width_mm: f64,
-    pub height_mm: f64,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct RustCameraIntrinsics {
-    pub focal_length_mm: f32,
-    pub sensor_width_mm: f32,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct RustOpticalMeasures {
-    pub camera_intrinsics: RustCameraIntrinsics,
-    pub subject_distance_mm: Option<f32>,
-}
-
-#[derive(Clone, Copy, Debug)]
 pub struct RustPlaneLayout {
     pub width: i32,
     pub height: i32,
@@ -69,8 +40,6 @@ pub struct RustScanOptions {
     pub max_pixels: Option<u32>,
     /// Must be a multiple of 90.
     pub rotation_degrees: i32,
-    pub output_format: RustOutputFormat,
-    pub optical_measures: Option<RustOpticalMeasures>,
 }
 
 #[derive(Clone, Debug)]
@@ -81,9 +50,7 @@ pub struct RustReprocessOptions {
     /// Must be a multiple of 90.
     pub rotation_degrees: i32,
     pub color_mode: RustColorMode,
-    pub optical_measures: Option<RustOpticalMeasures>,
     pub max_pixels: Option<u32>,
-    /// Reprocess output is always JPEG.
     pub jpeg_quality: Option<u8>,
 }
 
@@ -99,10 +66,8 @@ pub struct RustScanResult {
     /// The size `quad` is relative to.
     pub source_width: u32,
     pub source_height: u32,
-    /// `Some` only when optical measures carry a subject distance.
-    pub estimated_dims_mm: Option<RustDimensionsMm>,
+    /// JPEG-encoded.
     pub processed_image: Vec<u8>,
-    pub processed_format: RustOutputFormat,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -144,27 +109,10 @@ impl ScannerSession {
         })
     }
 
-    /// `rgba` is tightly packed (`width * height * 4` bytes). The returned
-    /// quad is in mask space ([`mask_side`] squared), already rotated by
-    /// `rotation_degrees`: rotate the overlay quad, not the frame.
-    pub fn live_detect_rgba(
-        &self,
-        rgba: Vec<u8>,
-        width: u32,
-        height: u32,
-        rotation_degrees: i32,
-    ) -> Result<Option<RustQuad>, RustScanError> {
-        catch_panic(AssertUnwindSafe(|| {
-            let quad = self
-                .inner
-                .live_detect_rgba(&rgba, width, height, rotation_degrees)?;
-            Ok(quad.map(to_api_quad))
-        }))
-    }
-
     /// Takes an iOS BGRA8888 frame with `row_stride` bytes per row, so Dart
-    /// passes the camera buffer through unchanged. Quad semantics as in
-    /// [`Self::live_detect_rgba`].
+    /// passes the camera buffer through unchanged. The returned quad is in
+    /// mask space (256x256), already rotated by `rotation_degrees`: rotate
+    /// the overlay quad, not the frame.
     pub fn live_detect_bgra(
         &self,
         bgra: Vec<u8>,
@@ -184,7 +132,7 @@ impl ScannerSession {
 
     /// Accepts both planar I420 (`uv_pixel_stride == 1`) and interleaved
     /// NV21/NV12 (`uv_pixel_stride == 2`) YUV_420_888 planes. Quad semantics
-    /// as in [`Self::live_detect_rgba`].
+    /// as in [`Self::live_detect_bgra`].
     pub fn live_detect_yuv420(
         &self,
         y: Vec<u8>,
@@ -218,7 +166,7 @@ impl ScannerSession {
         }))
     }
 
-    /// No inference runs; the output is always JPEG.
+    /// No inference runs.
     pub fn reprocess(
         &self,
         source_bytes: Vec<u8>,
@@ -328,8 +276,6 @@ fn to_scan_options(options: &RustScanOptions) -> scan::ScanOptions {
         color_mode_override: options.color_mode_override.map(to_color_mode),
         max_pixels: options.max_pixels,
         rotation_degrees: options.rotation_degrees,
-        output_format: to_output_format(options.output_format),
-        optical_measures: options.optical_measures.map(to_optical_measures),
     }
 }
 
@@ -338,7 +284,6 @@ fn to_reprocess_options(options: &RustReprocessOptions) -> scan::ReprocessOption
         quad: to_quad(options.quad),
         rotation_degrees: options.rotation_degrees,
         color_mode: to_color_mode(options.color_mode),
-        optical_measures: options.optical_measures.map(to_optical_measures),
         max_pixels: options.max_pixels,
         jpeg_quality: options.jpeg_quality,
     }
@@ -355,30 +300,6 @@ fn to_api_color_mode(mode: scan::ColorMode) -> RustColorMode {
     match mode {
         scan::ColorMode::Color => RustColorMode::Color,
         scan::ColorMode::Grayscale => RustColorMode::Grayscale,
-    }
-}
-
-fn to_output_format(format: RustOutputFormat) -> scan::OutputFormat {
-    match format {
-        RustOutputFormat::Png => scan::OutputFormat::Png,
-        RustOutputFormat::Jpeg => scan::OutputFormat::Jpeg,
-    }
-}
-
-fn to_api_output_format(format: scan::OutputFormat) -> RustOutputFormat {
-    match format {
-        scan::OutputFormat::Png => RustOutputFormat::Png,
-        scan::OutputFormat::Jpeg => RustOutputFormat::Jpeg,
-    }
-}
-
-fn to_optical_measures(measures: RustOpticalMeasures) -> scan::OpticalMeasures {
-    scan::OpticalMeasures {
-        camera_intrinsics: scan::CameraIntrinsics {
-            focal_length_mm: measures.camera_intrinsics.focal_length_mm,
-            sensor_width_mm: measures.camera_intrinsics.sensor_width_mm,
-        },
-        subject_distance_mm: measures.subject_distance_mm,
     }
 }
 
@@ -422,11 +343,6 @@ fn to_api_scan_result(result: scan::ScanResult) -> RustScanResult {
         output_height: result.output_height,
         source_width: result.source_width,
         source_height: result.source_height,
-        estimated_dims_mm: result.estimated_dims_mm.map(|dims| RustDimensionsMm {
-            width_mm: dims.width_mm,
-            height_mm: dims.height_mm,
-        }),
         processed_image: result.processed_image,
-        processed_format: to_api_output_format(result.processed_format),
     }
 }

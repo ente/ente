@@ -20,7 +20,7 @@ pub(crate) fn decode_bgr(bytes: &[u8]) -> Result<ImageU8, ScanError> {
     ImageU8::new(width, height, 3, bgr).map_err(ScanError::Codec)
 }
 
-fn encode(image: &ImageU8, format: EncodedImageFormat) -> Result<Vec<u8>, ScanError> {
+pub(crate) fn encode_jpeg(image: &ImageU8, quality: u8) -> Result<Vec<u8>, ScanError> {
     if image.channels != 3 {
         return Err(ScanError::Codec(format!(
             "cannot encode a {}-channel image",
@@ -31,14 +31,11 @@ fn encode(image: &ImageU8, format: EncodedImageFormat) -> Result<Vec<u8>, ScanEr
     for px in rgb.chunks_exact_mut(3) {
         px.swap(0, 2);
     }
-    encode_rgb(&rgb, image.width as u32, image.height as u32, format)
-        .map_err(|err| ScanError::Codec(err.to_string()))
-}
-
-pub(crate) fn encode_jpeg(image: &ImageU8, quality: u8) -> Result<Vec<u8>, ScanError> {
-    encode(image, EncodedImageFormat::Jpeg { quality })
-}
-
-pub(crate) fn encode_png(image: &ImageU8) -> Result<Vec<u8>, ScanError> {
-    encode(image, EncodedImageFormat::Png)
+    encode_rgb(
+        &rgb,
+        image.width as u32,
+        image.height as u32,
+        EncodedImageFormat::Jpeg { quality },
+    )
+    .map_err(|err| ScanError::Codec(err.to_string()))
 }

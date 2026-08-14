@@ -13,11 +13,7 @@ mod yuv;
 
 pub use color::ColorMode;
 pub use geometry::{Point, Quad};
-pub use perspective::{CameraIntrinsics, OpticalMeasures};
-pub use scanner::{
-    DimensionsMm, OutputFormat, ReprocessOptions, ScanError, ScanOptions, ScanResult,
-    ScannerSession,
-};
+pub use scanner::{ReprocessOptions, ScanError, ScanOptions, ScanResult, ScannerSession};
 pub use segmentation::MASK_SIDE;
 pub use yuv::PlaneLayout;
 

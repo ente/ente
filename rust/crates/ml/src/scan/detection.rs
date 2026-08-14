@@ -3,7 +3,7 @@ use super::color::ColorMode;
 use super::contour_orientation::find_quad_from_contour_orientation;
 use super::geometry::{ImageSize, Point, Quad, create_quad};
 use super::mask::Mask;
-use super::perspective::{OpticalMeasures, estimate_real_dimensions};
+use super::perspective::estimate_real_dimensions;
 use super::postprocess::enhance_captured_image;
 use super::quad_score::score_quad_against_probmap;
 use crate::cv;
@@ -165,18 +165,14 @@ pub(crate) fn resize_for_max_pixels(img: &ImageU8, max_pixels: f64) -> OpResult<
     cv::resize_area(ImageRef::U8(img), width, height)?.into_u8()
 }
 
-/// The warp target size comes from `estimate_real_dimensions`, so optical
-/// measures change the output size.
 pub(crate) fn extract_document(
     input: &ImageU8,
     quad: &Quad,
     rotation_degrees: i32,
     color_mode: ColorMode,
     max_pixels: f64,
-    optical_measures: Option<OpticalMeasures>,
 ) -> OpResult<ImageU8> {
-    let estimated = estimate_real_dimensions(quad, input.width, input.height, optical_measures)
-        .snap_to_standard_format();
+    let estimated = estimate_real_dimensions(quad, input.width, input.height);
     let (target_width, target_height) = estimated.to_pixel_dimensions(quad);
 
     let corners = quad.corners();

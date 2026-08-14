@@ -3,9 +3,7 @@
 
 use std::io::Cursor;
 
-use ente_ml::scan::{
-    ColorMode, OutputFormat, PlaneLayout, Quad, ReprocessOptions, ScanOptions, ScannerSession,
-};
+use ente_ml::scan::{ColorMode, PlaneLayout, Quad, ReprocessOptions, ScanOptions, ScannerSession};
 use image::{ImageFormat, Rgb, RgbImage};
 
 const MODEL_ENV: &str = "ENTE_DOC_SEGMENTATION_MODEL";
@@ -44,7 +42,7 @@ fn encode(img: &RgbImage, format: ImageFormat) -> Vec<u8> {
     bytes.into_inner()
 }
 
-fn assert_document_result(result: &ente_ml::scan::ScanResult, expected_format: OutputFormat) {
+fn assert_document_result(result: &ente_ml::scan::ScanResult) {
     let quad = result.quad.expect("the synthetic document should be found");
     for p in quad.corners() {
         assert!(p.x >= 0.0 && p.x <= result.source_width as f64, "{quad:?}");
@@ -53,9 +51,14 @@ fn assert_document_result(result: &ente_ml::scan::ScanResult, expected_format: O
     assert_eq!(result.source_width, 640);
     assert_eq!(result.source_height, 480);
     assert!(result.output_width > 100 && result.output_height > 100);
-    assert_eq!(result.processed_format, expected_format);
-    assert!(!result.processed_image.is_empty());
-    assert!(result.estimated_dims_mm.is_none());
+    assert_jpeg(&result.processed_image);
+}
+
+fn assert_jpeg(bytes: &[u8]) {
+    assert_eq!(
+        image::guess_format(bytes).expect("recognizable output"),
+        ImageFormat::Jpeg
+    );
 }
 
 #[test]
@@ -64,17 +67,11 @@ fn processes_a_png_capture() {
     let bytes = encode(&synthetic_document(), ImageFormat::Png);
 
     let result = session
-        .process_capture(
-            &bytes,
-            &ScanOptions {
-                output_format: OutputFormat::Png,
-                ..ScanOptions::default()
-            },
-        )
+        .process_capture(&bytes, &ScanOptions::default())
         .expect("process_capture");
-    assert_document_result(&result, OutputFormat::Png);
+    assert_document_result(&result);
 
-    let decoded = image::load_from_memory(&result.processed_image).expect("valid PNG output");
+    let decoded = image::load_from_memory(&result.processed_image).expect("valid JPEG output");
     assert_eq!(decoded.width(), result.output_width);
     assert_eq!(decoded.height(), result.output_height);
 }
@@ -87,7 +84,7 @@ fn processes_a_jpeg_capture_and_reprocesses_it() {
     let result = session
         .process_capture(&bytes, &ScanOptions::default())
         .expect("process_capture");
-    assert_document_result(&result, OutputFormat::Jpeg);
+    assert_document_result(&result);
     image::load_from_memory(&result.processed_image).expect("valid JPEG output");
 
     let reprocessed = session
@@ -97,14 +94,13 @@ fn processes_a_jpeg_capture_and_reprocesses_it() {
                 quad: result.quad.expect("quad"),
                 rotation_degrees: 90,
                 color_mode: ColorMode::Grayscale,
-                optical_measures: None,
                 max_pixels: Some(500_000),
                 jpeg_quality: Some(60),
             },
         )
         .expect("reprocess");
     assert_eq!(reprocessed.color_mode, ColorMode::Grayscale);
-    assert_eq!(reprocessed.processed_format, OutputFormat::Jpeg);
+    assert_jpeg(&reprocessed.processed_image);
     assert!(reprocessed.output_width < reprocessed.output_height);
     image::load_from_memory(&reprocessed.processed_image).expect("valid JPEG output");
 }
