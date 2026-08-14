@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:locker/services/scanner/auto_capture_controller.dart';
 import 'package:locker/services/scanner/scan_geometry.dart';
 import 'package:locker/services/scanner/scan_session_controller.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
@@ -32,6 +35,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
   final _logger = Logger('ScannerCapturePage');
   final _session = ScanSessionController();
   final _stabilizer = QuadStabilizer();
+  final _autoCapture = AutoCaptureController();
 
   CameraController? _camera;
   _CameraStatus _status = _CameraStatus.starting;
@@ -39,6 +43,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
   bool _analysisInFlight = false;
   bool _takingPicture = false;
   bool _torchOn = false;
+  bool _autoMode = false;
   bool _scannerInitFailed = false;
 
   @override
@@ -77,6 +82,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
         _camera = null;
         unawaited(camera.dispose());
       }
+      _autoCapture.reset();
     } else if (state == AppLifecycleState.resumed) {
       if (_camera == null && _status != _CameraStatus.starting) {
         unawaited(_startCamera());
@@ -98,6 +104,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
       _stableQuad = null;
     });
     _stabilizer.reset();
+    _autoCapture.reset();
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
@@ -151,6 +158,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
       _stableQuad = null;
     });
     _stabilizer.reset();
+    _autoCapture.reset();
     await camera.dispose();
   }
 
@@ -190,7 +198,20 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
         );
       }
       final stable = _stabilizer.update(raw);
-      if (mounted) setState(() => _stableQuad = stable);
+      var fire = false;
+      if (_autoMode) {
+        fire = _autoCapture.onFrame(
+          stable,
+          captureBusy: _takingPicture || _session.isProcessing,
+        );
+      }
+      if (mounted) {
+        setState(() => _stableQuad = stable);
+        if (fire) {
+          unawaited(HapticFeedback.lightImpact());
+          unawaited(_capture());
+        }
+      }
     } catch (_) {
       // Dropped frames are fine; the next one will do.
     } finally {
@@ -201,6 +222,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
   Future<void> _capture() async {
     final camera = _camera;
     if (camera == null || _takingPicture) return;
+    _autoCapture.notifyCaptureStarted();
     setState(() {
       _takingPicture = true;
       _stableQuad = null;
@@ -225,6 +247,11 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
     try {
       if (await file.exists()) await file.delete();
     } catch (_) {}
+  }
+
+  void _toggleAutoMode() {
+    setState(() => _autoMode = !_autoMode);
+    _autoCapture.reset();
   }
 
   Future<void> _toggleTorch() async {
@@ -303,7 +330,16 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
                               _status == _CameraStatus.ready &&
                               !_takingPicture &&
                               _session.isServiceReady,
+                          armingProgress: _autoMode ? _autoCapture.progress : 0,
+                          armingColor: colors.primary,
                           onTap: _capture,
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: _AutoToggle(
+                            active: _autoMode,
+                            onTap: _toggleAutoMode,
+                          ),
                         ),
                         Align(
                           alignment: Alignment.centerRight,
@@ -445,9 +481,18 @@ class _ChromeButton extends StatelessWidget {
 }
 
 class _ShutterButton extends StatelessWidget {
-  const _ShutterButton({required this.enabled, required this.onTap});
+  const _ShutterButton({
+    required this.enabled,
+    required this.armingProgress,
+    required this.armingColor,
+    required this.onTap,
+  });
 
   final bool enabled;
+
+  /// Auto-capture arming progress in [0, 1]; drawn as an arc over the ring.
+  final double armingProgress;
+  final Color armingColor;
   final Future<void> Function() onTap;
 
   @override
@@ -459,19 +504,120 @@ class _ShutterButton extends StatelessWidget {
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 150),
         opacity: enabled ? 1 : 0.5,
-        child: Container(
+        child: SizedBox(
           width: 76,
           height: 76,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: white, width: 4),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: white, width: 4),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: white,
+                    ),
+                  ),
+                ),
+              ),
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: armingProgress.clamp(0.0, 1.0)),
+                duration: Motion.quick,
+                builder: (context, value, _) => CustomPaint(
+                  painter: _ArmingArcPainter(
+                    progress: value,
+                    color: armingColor,
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: Center(
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: white),
-            ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArmingArcPainter extends CustomPainter {
+  const _ArmingArcPainter({required this.progress, required this.color});
+
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0 || size.isEmpty) return;
+    canvas.drawArc(
+      // Centered on the button's 4px ring, which is inset in the same box.
+      Rect.fromCircle(
+        center: size.center(Offset.zero),
+        radius: size.shortestSide / 2 - 2,
+      ),
+      -math.pi / 2,
+      progress * 2 * math.pi,
+      false,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ArmingArcPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.color != color;
+}
+
+/// Auto/manual capture-mode toggle: pill with the auto-camera glyph and the
+/// current mode's label, filled with the accent color while auto is on.
+class _AutoToggle extends StatelessWidget {
+  const _AutoToggle({required this.active, required this.onTap});
+
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Tooltip(
+      message: active
+          ? context.strings.scannerAutoCaptureOff
+          : context.strings.scannerAutoCaptureOn,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: Motion.standard,
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+          decoration: BoxDecoration(
+            color: active
+                ? colors.primary
+                : Colors.black.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedCameraAutomatically01,
+                color: colors.specialWhite,
+                size: 20,
+              ),
+              const SizedBox(width: Spacing.xs),
+              Text(
+                active
+                    ? context.strings.scannerCaptureModeAuto
+                    : context.strings.scannerCaptureModeManual,
+                style: TextStyles.mini.copyWith(color: colors.specialWhite),
+              ),
+            ],
           ),
         ),
       ),

@@ -3425,6 +3425,16 @@
   "@scanFilenamePrefix": {
     "description": "Prefix of the default filename for a scanned document PDF, e.g. 'Scan 13 Aug 2026, 14.30.pdf'"
   },
+  "scannerAutoCaptureOff": "Turn off automatic capture",
+  "scannerAutoCaptureOn": "Turn on automatic capture",
+  "scannerCaptureModeAuto": "Auto",
+  "@scannerCaptureModeAuto": {
+    "description": "Label on the scanner capture-mode toggle while automatic capture is on"
+  },
+  "scannerCaptureModeManual": "Manual",
+  "@scannerCaptureModeManual": {
+    "description": "Label on the scanner capture-mode toggle while capture is manual (automatic capture off)"
+  },
   "scannerNotSupportedOnDevice": "Document scanning is not supported on this device",
   "scannerTorchOff": "Turn off torch",
   "scannerTorchOn": "Turn on torch",
