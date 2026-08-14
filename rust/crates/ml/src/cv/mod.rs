@@ -1,9 +1,3 @@
-//! The crate's computer-vision toolkit: pixel-buffer types, pointwise
-//! arithmetic, filters, morphology, color conversions, and wrappers around
-//! `fast_image_resize`/`imageproc` for resizing, rasterization, contour
-//! tracing and warping. Self-contained — nothing here depends on the
-//! scanner pipeline.
-
 mod arith;
 mod bilateral;
 mod canny;
@@ -26,8 +20,6 @@ use rayon::prelude::*;
 
 use self::image::{Image, ImageRef};
 
-/// Operations fail with a plain message; callers wrap it into their own
-/// error type.
 pub(crate) type OpResult<T> = Result<T, String>;
 
 pub(crate) use arith::{
@@ -68,17 +60,9 @@ pub(crate) fn resize_bicubic(src: ImageRef<'_>, width: i32, height: i32) -> OpRe
     resize::resize(src, width, height, Interp::Bicubic)
 }
 
-/// Below this many pixels the rayon split costs more than the work it saves.
 const PARALLEL_MIN_PIXELS: usize = 65_536;
-/// Pixels per parallel chunk. Chunk boundaries land on pixel boundaries, so a
-/// chunk's first element is always channel 0.
 const PIXELS_PER_CHUNK: usize = 65_536;
 
-/// Runs a pointwise fill over `out` in parallel for large planes.
-///
-/// `out_stride` and `src_stride` are elements per pixel on each side. Every
-/// caller computes output pixel `i` from input pixel `i` alone, so splitting
-/// the buffers on a pixel boundary cannot change a single result.
 pub(crate) fn pointwise<T: Sync, U: Send>(
     out: &mut [U],
     out_stride: usize,
@@ -95,7 +79,6 @@ pub(crate) fn pointwise<T: Sync, U: Send>(
         .for_each(|(o, s)| f(o, s));
 }
 
-/// [`pointwise`] with two aligned inputs.
 pub(crate) fn pointwise3<T: Sync, V: Sync, U: Send>(
     out: &mut [U],
     out_stride: usize,
@@ -115,19 +98,16 @@ pub(crate) fn pointwise3<T: Sync, V: Sync, U: Send>(
         .for_each(|((o, a), b)| f(o, a, b));
 }
 
-/// Round half to even, then clamp into u8.
 pub(crate) fn saturate_u8_f32(v: f32) -> u8 {
     v.round_ties_even().clamp(0.0, 255.0) as u8
 }
 
-/// Round half to even, then clamp into u8.
 pub(crate) fn saturate_u8_f64(v: f64) -> u8 {
     v.round_ties_even().clamp(0.0, 255.0) as u8
 }
 
-/// Maps an out-of-range coordinate back inside `[0, len)` by mirroring
-/// without repeating the edge pixel — the border rule of every filter in
-/// this module.
+/// Mirrors an out-of-range coordinate back into `[0, len)` without repeating
+/// the edge pixel.
 pub(crate) fn reflect101(mut p: i64, len: i32) -> i64 {
     let len = len as i64;
     if p >= 0 && p < len {

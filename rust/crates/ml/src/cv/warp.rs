@@ -1,14 +1,9 @@
-//! Perspective extraction of the page, via imageproc's projective warp.
-
 use image::{Rgb, RgbImage};
 use imageproc::geometric_transformations::{Interpolation, Projection, warp_into};
 
 use crate::cv::OpResult;
 use crate::cv::image::ImageU8;
 
-/// Maps the `src_corners` quad onto `dst_corners` and renders the
-/// `width` x `height` destination with bilinear sampling; pixels mapping
-/// outside the source come out black.
 pub(crate) fn warp_perspective(
     src: &ImageU8,
     src_corners: [(f64, f64); 4],

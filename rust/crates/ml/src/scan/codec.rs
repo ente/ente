@@ -1,13 +1,10 @@
-//! Image bytes in and out of the pipeline's BGR buffers, via `ente_image`.
-
 use ente_image::decode::decode_image_from_bytes;
 use ente_image::image_compression::{EncodedImageFormat, encode_rgb};
 
 use super::scanner::ScanError;
 use crate::cv::image::ImageU8;
 
-/// Decodes any container `ente_image` understands (JPEG, PNG, HEIC, ...),
-/// with EXIF orientation applied, into packed BGR.
+/// EXIF orientation comes pre-applied by the decoder.
 pub(crate) fn decode_bgr(bytes: &[u8]) -> Result<ImageU8, ScanError> {
     let decoded = decode_image_from_bytes(bytes)
         .map_err(|err| ScanError::Codec(format!("failed to decode image: {err}")))?;

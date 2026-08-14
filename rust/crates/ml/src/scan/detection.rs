@@ -1,5 +1,3 @@
-//! Document quad detection from the segmentation mask, and page extraction.
-
 use super::OpResult;
 use super::color::ColorMode;
 use super::contour_orientation::find_quad_from_contour_orientation;
@@ -11,16 +9,14 @@ use super::quad_score::score_quad_against_probmap;
 use crate::cv;
 use crate::cv::image::{Contour, ImageRef, ImageU8};
 
-/// Adaptive thresholds for still captures; live analysis uses one for speed.
 const THRESHOLDS: [f64; 7] = [0.5, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95];
 const LIVE_THRESHOLDS: [f64; 1] = [0.9];
 
-/// Pixel sizes computed from doubles truncate toward zero.
 pub(crate) fn size_trunc(width: f64, height: f64) -> (i32, i32) {
     (width as i32, height as i32)
 }
 
-/// The returned quad is in MASK coordinates.
+/// The returned quad is in mask coordinates.
 pub(crate) fn detect_document_quad(
     mask: &Mask,
     original_size: ImageSize,
@@ -37,7 +33,7 @@ pub(crate) fn detect_document_quad(
         find_quad_from_orientation_with_adaptive_threshold(&mask_image, original_size, thresholds)?;
 
     if vertices.is_none() && !is_live_analysis {
-        // Fallback: minimum-area bounding rectangle of the biggest contour.
+        // Fallback: min-area rectangle of the biggest contour.
         if let Some(biggest) = biggest_contour(&mask_image)? {
             vertices = min_area_rect(&biggest.points, mask.width, mask.height);
         }
@@ -54,7 +50,6 @@ fn find_quad_from_orientation_with_adaptive_threshold(
     original_size: ImageSize,
     thresholds: &[f64],
 ) -> OpResult<Option<Vec<Point>>> {
-    // The 0/255 binary mask stands in for the probability map here.
     let probmap_smooth = cv::gaussian_blur_u8(mask_image, 3)?;
 
     let kernel = cv::ellipse_kernel(5)?;
@@ -80,14 +75,12 @@ fn find_quad_from_orientation_with_adaptive_threshold(
     Ok(best_quad)
 }
 
-/// Deliberately no upper bound: fitted corners past the mask edge are
-/// legitimate when the document touches or extends beyond the frame.
+/// Deliberately no upper bound: corners past the mask edge are legitimate
+/// for edge-touching documents.
 pub(crate) fn is_valid_quad(quad: &[Point]) -> bool {
     quad.iter().all(|p| p.x >= 0.0 && p.y >= 0.0)
 }
 
-/// Contour points are scaled up to original-image size, the quad is fitted
-/// there, and the corners are scaled back down.
 fn find_quad_from_orientation(
     mask_image: &ImageU8,
     original_size: ImageSize,
@@ -113,9 +106,6 @@ fn find_quad_from_orientation(
     }))
 }
 
-/// Minimum-area (not axis-aligned) bounding rectangle of `points`, clamped
-/// into the mask bounds. `None` for degenerate input that cannot bound a
-/// non-empty area.
 pub(crate) fn min_area_rect(points: &[(i32, i32)], width: i32, height: i32) -> Option<Vec<Point>> {
     if points.len() < 3 {
         return None;
@@ -175,9 +165,8 @@ pub(crate) fn resize_for_max_pixels(img: &ImageU8, max_pixels: f64) -> OpResult<
     cv::resize_area(ImageRef::U8(img), width, height)?.into_u8()
 }
 
-/// Warp, downscale to the pixel budget, enhance, rotate. The target size
-/// comes from `estimate_real_dimensions`, so a capture with camera metadata
-/// is warped to a different size than one without.
+/// The warp target size comes from `estimate_real_dimensions`, so optical
+/// measures change the output size.
 pub(crate) fn extract_document(
     input: &ImageU8,
     quad: &Quad,
@@ -254,7 +243,6 @@ mod tests {
     #[test]
     fn min_area_rect_rejects_degenerate_input() {
         assert!(min_area_rect(&[(0, 0), (1, 1)], 256, 256).is_none());
-        // Collinear points bound no area.
         assert!(min_area_rect(&[(0, 0), (5, 5), (10, 10)], 256, 256).is_none());
     }
 }

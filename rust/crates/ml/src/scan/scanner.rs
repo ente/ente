@@ -1,11 +1,3 @@
-//! The public document-scanning API.
-//!
-//! Everything a call needs hangs off the [`ScannerSession`] handle; there is
-//! no global mutable state. All methods take `&self` and the session is
-//! `Send + Sync`, so a bridge can share one handle across threads. Errors are
-//! the closed [`ScanError`] enum; panics are not caught here (an FFI bridge
-//! wanting panic isolation wraps these calls itself).
-
 use thiserror::Error;
 
 use super::codec;
@@ -19,57 +11,40 @@ use super::yuv::{PlaneLayout, rgba_to_bgr, yuv420_to_bgr};
 use crate::cv;
 use crate::cv::image::ImageU8;
 
-/// Default pixel budget of the processed page.
 const DEFAULT_MAX_PIXELS: u32 = 2_000_000;
-/// Default JPEG quality of the processed page.
 const DEFAULT_JPEG_QUALITY: u8 = 75;
 
-/// Everything that can go wrong, as a closed set a caller can switch on.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ScanError {
-    /// A caller-supplied buffer, size or parameter is not usable.
     #[error("invalid input: {0}")]
     InvalidInput(String),
-    /// The ONNX model could not be loaded.
     #[error("model load: {0}")]
     ModelLoad(String),
-    /// The image bytes could not be decoded, or the result not encoded.
     #[error("codec: {0}")]
     Codec(String),
-    /// Inference or an image operation failed.
     #[error("pipeline: {0}")]
     Pipeline(String),
 }
 
-/// Container the processed image is returned in. `Jpeg` is what the app
-/// stores; `Png` is lossless.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutputFormat {
     Png,
     Jpeg,
 }
 
-/// Physical page size, in millimetres.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DimensionsMm {
     pub width_mm: f64,
     pub height_mm: f64,
 }
 
-/// Options for [`ScannerSession::process_capture`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScanOptions {
-    /// `None` means "let the pipeline decide".
     pub color_mode_override: Option<ColorMode>,
-    /// `None` means the default budget of 2 000 000 pixels.
     pub max_pixels: Option<u32>,
-    /// Applied to the extracted page as the last step. Must be a multiple of
-    /// 90.
+    /// Must be a multiple of 90.
     pub rotation_degrees: i32,
     pub output_format: OutputFormat,
-    /// `None` reproduces a capture with no camera metadata (e.g. a gallery
-    /// import). With a subject distance present, the result carries a
-    /// physical page size estimate.
     pub optical_measures: Option<OpticalMeasures>,
 }
 
@@ -85,57 +60,46 @@ impl Default for ScanOptions {
     }
 }
 
-/// Options for [`ScannerSession::reprocess`]. The caller already knows the
-/// quad and the color mode; no inference happens on this path.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReprocessOptions {
-    /// In the coordinate space of the decoded source image — the same space
-    /// [`ScanResult::quad`] is reported in.
+    /// Same coordinate space as [`ScanResult::quad`]: the decoded source
+    /// image.
     pub quad: Quad,
     /// Must be a multiple of 90.
     pub rotation_degrees: i32,
     pub color_mode: ColorMode,
     pub optical_measures: Option<OpticalMeasures>,
-    /// `None` means the default budget of 2 000 000 pixels.
     pub max_pixels: Option<u32>,
-    /// `None` means the default quality of 75. Reprocess output is always
-    /// JPEG.
+    /// Reprocess output is always JPEG.
     pub jpeg_quality: Option<u8>,
 }
 
-/// The processed page and everything the caller needs to reason about it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScanResult {
-    /// Corners in the coordinate space of the decoded source image (after
-    /// EXIF orientation, before `rotation_degrees`). `None` when nothing was
-    /// detected, in which case the whole frame is returned instead.
+    /// In decoded-source coordinates (EXIF applied, before
+    /// `rotation_degrees`); `None` when nothing was detected and the whole
+    /// frame was returned.
     pub quad: Option<Quad>,
     pub color_mode: ColorMode,
     pub output_width: u32,
     pub output_height: u32,
-    /// Size of the decoded source image, after EXIF orientation and before
-    /// `rotation_degrees` — the coordinate space [`ScanResult::quad`] lives
-    /// in.
+    /// The size [`ScanResult::quad`] is relative to.
     pub source_width: u32,
     pub source_height: u32,
-    /// `Some` only when the estimate resolves to a physical size, which
-    /// requires optical measures including a subject distance. Already
-    /// snapped to a standard paper format and still in the unrotated source
-    /// frame, so a caller applying a 90/270 degree rotation must swap the two
-    /// values.
+    /// `Some` only when optical measures carry a subject distance. Snapped to
+    /// a standard paper format, in the unrotated source frame: a 90/270
+    /// rotation swaps the two values.
     pub estimated_dims_mm: Option<DimensionsMm>,
     pub processed_image: Vec<u8>,
     pub processed_format: OutputFormat,
 }
 
-/// A loaded segmentation model plus the pipeline built around it.
 pub struct ScannerSession {
     segmenter: Segmenter,
 }
 
 impl ScannerSession {
-    /// Loads the segmentation model from `model_path`. The caller is expected
-    /// to have verified the file against
+    /// The caller is expected to have verified the model file against
     /// [`SEGMENTATION_MODEL_SHA256`](super::SEGMENTATION_MODEL_SHA256).
     pub fn new(model_path: &str) -> Result<Self, ScanError> {
         let start = std::time::Instant::now();
@@ -170,12 +134,9 @@ impl ScannerSession {
         Ok(Mask::from_probmap(&probmap, MASK_SIDE, MASK_SIDE))
     }
 
-    /// Live document detection on a tightly packed RGBA preview frame
-    /// (`width * height * 4` bytes).
-    ///
-    /// The returned quad is in **mask space** (256x256), already rotated by
+    /// The returned quad is in mask space (256x256), already rotated by
     /// `rotation_degrees`: the caller rotates the overlay quad, not the
-    /// frame, and the mask is square so the rotation stays inside it.
+    /// frame.
     pub fn live_detect_rgba(
         &self,
         rgba: &[u8],
@@ -188,11 +149,6 @@ impl ScannerSession {
         self.live_detect(&bgr, rotation_degrees)
     }
 
-    /// Live document detection on YUV_420_888 camera planes. Both planar I420
-    /// (`uv_pixel_stride == 1`) and interleaved NV21/NV12
-    /// (`uv_pixel_stride == 2`, where `u` and `v` are two views into one
-    /// buffer) layouts are accepted.
-    ///
     /// Quad semantics as in [`Self::live_detect_rgba`].
     pub fn live_detect_yuv420(
         &self,
@@ -215,9 +171,6 @@ impl ScannerSession {
         Ok(quad_in_mask.map(|q| q.rotate90(rotation_degrees / 90, mask_size)))
     }
 
-    /// The full capture pipeline on a captured or imported still: decode
-    /// (EXIF applied), segment, detect the quad, pick the color mode,
-    /// extract, enhance, encode.
     pub fn process_capture(
         &self,
         image_bytes: &[u8],
@@ -255,8 +208,6 @@ impl ScannerSession {
             detect_document_quad(&mask, original_size, false).map_err(ScanError::Pipeline)?;
 
         let Some(quad_in_mask) = quad_in_mask else {
-            // Nothing detected: the whole frame is resized and rotated, and
-            // the color mode keeps its Color initial value.
             let resized = resize_for_max_pixels(&bgr, max_pixels).map_err(ScanError::Pipeline)?;
             let page =
                 cv::rotate_u8(&resized, options.rotation_degrees).map_err(ScanError::Pipeline)?;
@@ -295,9 +246,7 @@ impl ScannerSession {
         )
     }
 
-    /// Re-renders a page from its source bytes with a known quad and color
-    /// mode — the manual corner-adjustment and export path. Runs no
-    /// inference; the output is always JPEG.
+    /// No inference runs; the output is always JPEG.
     pub fn reprocess(
         &self,
         source_bytes: &[u8],
@@ -357,8 +306,6 @@ fn to_i32(value: u32) -> Result<i32, ScanError> {
         .map_err(|_| ScanError::InvalidInput(format!("{value} does not fit in i32")))
 }
 
-/// Resolves to a physical size only when the optical measures carry a subject
-/// distance.
 fn physical_dims(
     quad: &Quad,
     source: &ImageU8,

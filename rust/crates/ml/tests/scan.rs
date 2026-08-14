@@ -1,7 +1,5 @@
-//! End-to-end document scanner tests against the real segmentation model.
-//!
-//! The model is not committed; point `ENTE_DOC_SEGMENTATION_MODEL` at the
-//! model file to run these. Without it every test skips cleanly.
+//! Point `ENTE_DOC_SEGMENTATION_MODEL` at the model file; without it every
+//! test skips.
 
 use std::io::Cursor;
 
@@ -20,8 +18,6 @@ fn session() -> Option<ScannerSession> {
     Some(ScannerSession::new(&path).expect("model should load"))
 }
 
-/// A bright "document" rectangle with dark text-like lines on a dark
-/// background — enough structure for the segmentation model to find a page.
 fn synthetic_document() -> RgbImage {
     let (width, height) = (640u32, 480u32);
     let mut img = RgbImage::from_pixel(width, height, Rgb([40, 45, 50]));
@@ -94,7 +90,6 @@ fn processes_a_jpeg_capture_and_reprocesses_it() {
     assert_document_result(&result, OutputFormat::Jpeg);
     image::load_from_memory(&result.processed_image).expect("valid JPEG output");
 
-    // Re-render from source with the detected quad; no inference runs here.
     let reprocessed = session
         .reprocess(
             &bytes,
@@ -110,7 +105,6 @@ fn processes_a_jpeg_capture_and_reprocesses_it() {
         .expect("reprocess");
     assert_eq!(reprocessed.color_mode, ColorMode::Grayscale);
     assert_eq!(reprocessed.processed_format, OutputFormat::Jpeg);
-    // The 90 degree rotation swaps the page orientation.
     assert!(reprocessed.output_width < reprocessed.output_height);
     image::load_from_memory(&reprocessed.processed_image).expect("valid JPEG output");
 }
@@ -124,8 +118,8 @@ fn live_detect_rgba_and_yuv_agree_on_a_grayscale_frame() {
     let mut rgba = Vec::with_capacity((width * height * 4) as usize);
     let mut y_plane = Vec::with_capacity((width * height) as usize);
     for px in doc.pixels() {
-        // Grey frame built so that the limited-range BT.601 YUV round trip
-        // is exact: value = 1.164 * (y - 16), chroma neutral.
+        // value = 1.164 * (y - 16), chroma neutral, so the limited-range YUV
+        // round trip is exact.
         let y = 16 + (px.0[0] as i32 * 219 / 255) as u8;
         let value = (((y as i32 - 16) * 1164 + 500) / 1000).clamp(0, 255) as u8;
         rgba.extend_from_slice(&[value, value, value, 255]);
@@ -162,8 +156,6 @@ fn live_detect_rgba_and_yuv_agree_on_a_grayscale_frame() {
         "RGBA and YUV quads diverge by {max_delta} in mask space:\n{from_rgba:?}\n{from_yuv:?}"
     );
 
-    // Rotation happens in mask space: rotating by 180 must keep every corner
-    // inside the 256x256 mask.
     let rotated = session
         .live_detect_rgba(&rgba, width as u32, height as u32, 180)
         .expect("live_detect_rgba rotated")

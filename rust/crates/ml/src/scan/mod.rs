@@ -1,9 +1,3 @@
-//! Document scanning: segmentation-model-driven quad detection, perspective
-//! extraction, and enhancement of document photos.
-//!
-//! The pipeline works on interleaved BGR buffers internally; image bytes enter
-//! and leave through [`ScannerSession`], which is the entire public surface.
-
 mod codec;
 mod color;
 mod contour_orientation;
@@ -32,8 +26,8 @@ use std::path::PathBuf;
 use ente_assets::download::CancellationToken;
 use ente_assets::{Asset, AssetFile, AssetStore};
 
-/// SHA-256 of the pinned segmentation model file. Downloads are verified
-/// against this before the path is handed to [`ScannerSession::new`].
+/// Downloads are verified against this before the path reaches
+/// [`ScannerSession::new`].
 pub const SEGMENTATION_MODEL_SHA256: &str =
     "36b8eeadd42592af496bf2e125a6aad9bebcbca1bda2ac19fa22e108574217a3";
 
@@ -53,8 +47,6 @@ fn segmentation_model_asset() -> Asset {
     .expect("valid segmentation model asset")
 }
 
-/// Returns the path of a verified segmentation model in `store`, downloading
-/// it first when the store has no copy.
 pub async fn ensure_segmentation_model(
     store: &AssetStore,
 ) -> Result<PathBuf, ente_assets::download::Error> {
@@ -81,6 +73,4 @@ pub async fn ensure_segmentation_model(
         .expect("segmentation model file"))
 }
 
-/// Internal result type: pipeline stages fail with a plain message, which
-/// [`ScannerSession`] maps onto [`ScanError`].
 pub(crate) use crate::cv::OpResult;

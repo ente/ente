@@ -1,5 +1,4 @@
-//! Real-dimension estimation from the quad's vanishing-point geometry,
-//! optionally improved by camera intrinsics.
+//! Real-dimension estimation from the quad's vanishing points.
 
 use super::geometry::{Point, Quad, norm};
 
@@ -40,7 +39,6 @@ impl Vector3D {
     }
 }
 
-/// Camera intrinsics as the platform camera API reports them.
 /// `focal_length_in_pixels` deliberately evaluates in f32 before widening.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CameraIntrinsics {
@@ -57,7 +55,6 @@ impl CameraIntrinsics {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct OpticalMeasures {
     pub camera_intrinsics: CameraIntrinsics,
-    /// Millimetres; `None` when the capture carries no calibrated distance.
     pub subject_distance_mm: Option<f32>,
 }
 
@@ -67,7 +64,6 @@ pub(crate) enum EstimatedDimensions {
     Ratio { width: f64, height: f64 },
 }
 
-/// Standard paper formats, in this exact match order.
 const PAPER_FORMATS: [(f64, f64); 5] = [
     (210.0, 297.0), // A4
     (215.9, 279.4), // Letter
@@ -87,7 +83,6 @@ impl EstimatedDimensions {
         }
     }
 
-    /// Returns `self` unchanged for `Ratio`.
     pub(crate) fn snap_to_standard_format(self) -> EstimatedDimensions {
         self.snap_to_standard_format_with(0.04, 0.20)
     }
@@ -272,8 +267,6 @@ mod tests {
 
     #[test]
     fn estimate_real_dimensions_falls_back_for_parallel_sides() {
-        // A perfect rectangle has both vanishing points at infinity, so the
-        // average-sides fallback applies.
         let quad = rect_quad(400.0, 300.0);
         let dims = estimate_real_dimensions(&quad, 1000, 800, None);
         assert_eq!(
@@ -287,7 +280,7 @@ mod tests {
 
     #[test]
     fn estimate_real_dimensions_falls_back_for_weak_perspective() {
-        // Barely trapezoidal: f exceeds max(w,h)*1.2, so the fallback applies.
+        // f exceeds max(w,h)*1.2, so the fallback applies.
         let quad = Quad {
             top_left: Point::new(100.0, 100.0),
             top_right: Point::new(900.0, 100.0),

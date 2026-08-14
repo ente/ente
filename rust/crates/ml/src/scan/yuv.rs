@@ -1,19 +1,9 @@
 //! YUV_420_888 camera planes -> packed BGR.
 //!
-//! Uses libyuv's **limited-range BT.601** fixed-point matrix (Y spans 16..235,
-//! U/V span 16..240) — not the full-range JPEG matrix — because that is what
-//! Android camera stacks apply when converting analysis frames to RGBA, so a
-//! quad detected on a YUV frame matches one detected on the equivalent RGBA
-//! frame. The constants are libyuv's own Q6 fixed-point encoding, including
-//! its `UB` clamp to -2.0 (see the constant comments below); reproducing the
-//! arithmetic rather than the textbook matrix keeps the conversion identical
-//! to what a device produces.
-//!
-//! `YUV_420_888` is a family, not a layout: the chroma planes carry a row
-//! stride *and* a pixel stride. `uv_pixel_stride == 1` is fully planar
-//! (I420), `uv_pixel_stride == 2` is the interleaved NV21/NV12 case where the
-//! U and V planes are two views into one interleaved buffer. Both are handled
-//! by indexing with the strides the caller reports.
+//! Reproduces libyuv's limited-range BT.601 fixed-point arithmetic — not the
+//! textbook full-range matrix — because that is what Android camera stacks
+//! apply when converting frames to RGBA, so YUV and RGBA frames yield the
+//! same quad.
 
 use crate::cv::image::ImageU8;
 
@@ -25,12 +15,11 @@ const UG: i32 = 25; // round(0.391 * 64)
 const VG: i32 = 52; // round(0.813 * 64)
 const VR: i32 = -102; // round(-1.596 * 64)
 
-// Bias terms, which also fold in the -128 offset of U and V.
+// Bias terms; fold in the -128 U/V offset.
 const BB: i32 = UB * 128 + YGB;
 const BG: i32 = UG * 128 + VG * 128 + YGB;
 const BR: i32 = VR * 128 + YGB;
 
-/// Chroma is subsampled 2x in each direction, rounding up on odd sizes.
 fn ceil_half(value: i32) -> i32 {
     (value + 1) / 2
 }
@@ -39,12 +28,10 @@ fn clamp_u8(value: i32) -> u8 {
     value.clamp(0, 255) as u8
 }
 
-/// One pixel of BT.601 limited-range YUV -> (B, G, R).
 #[inline]
 pub(crate) fn yuv_to_bgr(y: u8, u: u8, v: u8) -> (u8, u8, u8) {
     let (y, u, v) = (y as i32, u as i32, v as i32);
-    // The `* 0x0101` is the 8-to-16-bit replication that keeps the luma
-    // multiply in 32 bits.
+    // 0x0101 replicates 8 bits to 16, keeping the luma multiply in 32 bits.
     let y1 = ((y as u32 * 0x0101 * YG as u32) >> 16) as i32;
     let b = clamp_u8((-(u * UB) + y1 + BB) >> 6);
     let g = clamp_u8((-(u * UG + v * VG) + y1 + BG) >> 6);
@@ -52,7 +39,6 @@ pub(crate) fn yuv_to_bgr(y: u8, u: u8, v: u8) -> (u8, u8, u8) {
     (b, g, r)
 }
 
-/// Geometry of a YUV_420_888 frame as the platform camera API reports it.
 #[derive(Clone, Copy, Debug)]
 pub struct PlaneLayout {
     pub width: i32,
@@ -69,7 +55,6 @@ fn required_len(rows: i32, row_stride: i32, last_row_bytes: i32) -> usize {
     (rows - 1) as usize * row_stride as usize + last_row_bytes as usize
 }
 
-/// Packed BGR, top-left origin.
 pub(crate) fn yuv420_to_bgr(
     y_plane: &[u8],
     u_plane: &[u8],
@@ -147,7 +132,6 @@ pub(crate) fn yuv420_to_bgr(
     ImageU8::new(width, height, 3, out)
 }
 
-/// RGBA -> BGR: alpha dropped, channels reversed.
 pub(crate) fn rgba_to_bgr(rgba: &[u8], width: i32, height: i32) -> Result<ImageU8, String> {
     if width <= 0 || height <= 0 {
         return Err(format!("invalid frame size {width}x{height}"));
@@ -172,11 +156,8 @@ pub(crate) fn rgba_to_bgr(rgba: &[u8], width: i32, height: i32) -> Result<ImageU
 mod tests {
     use super::*;
 
-    /// A floating-point BT.601 limited-range conversion, evaluated
-    /// independently of the fixed-point path under test. `ub` is a parameter
-    /// because libyuv's effective blue coefficient (-2.0, from the `UB`
-    /// clamp) differs from the documented one (-2.018); see the sweep
-    /// assertions below.
+    /// `ub` is a parameter: libyuv's effective blue coefficient (-2.0, from
+    /// the `UB` clamp) differs from the documented -2.018.
     fn reference_yuv_to_bgr(y: u8, u: u8, v: u8, ub: f64) -> (u8, u8, u8) {
         let yf = (y as f64 - 16.0) * 1.164;
         let uf = u as f64 - 128.0;
@@ -188,8 +169,6 @@ mod tests {
         (to_u8(b), to_u8(g), to_u8(r))
     }
 
-    /// Worst per-channel deviation of the implementation from the reference
-    /// over the given (Y, U, V) triples.
     fn worst_deviation(triples: impl Iterator<Item = (u8, u8, u8)>, ub: f64) -> [i32; 3] {
         let mut worst = [0i32; 3];
         for (y, u, v) in triples {
@@ -209,13 +188,11 @@ mod tests {
             .flat_map(|(y, u)| (0..=255u8).map(move |v| (y, u, v)))
     }
 
-    /// Deterministic strided subsample of the full cube (~87k triples).
     fn strided_triples() -> impl Iterator<Item = (u8, u8, u8)> {
         let axis = |step: usize| (0..=255u8).step_by(step).chain(std::iter::once(255));
         axis(6).flat_map(move |y| axis(7).flat_map(move |u| axis(11).map(move |v| (y, u, v))))
     }
 
-    /// xorshift64*, so the corpus is reproducible without a dependency.
     struct Rng(u64);
 
     impl Rng {
@@ -231,18 +208,15 @@ mod tests {
 
     #[test]
     fn anchor_values_match_the_reference_matrix() {
-        // Black, white, and mid grey at the limited-range end points.
         assert_eq!(yuv_to_bgr(16, 128, 128), (0, 0, 0));
         assert_eq!(yuv_to_bgr(235, 128, 128), (255, 255, 255));
         assert_eq!(yuv_to_bgr(0, 128, 128), (0, 0, 0));
         assert_eq!(yuv_to_bgr(255, 128, 128), (255, 255, 255));
-        // Limited range: Y=126 is the mid point of 16..235.
+        // Y=126 is the mid point of the limited range 16..235.
         let (b, g, r) = yuv_to_bgr(126, 128, 128);
         assert_eq!((b, g, r), (128, 128, 128));
     }
 
-    /// Subsampled check against the coefficients libyuv actually uses; the
-    /// exhaustive sweeps below cover the full cube but are `#[ignore]`d.
     #[test]
     fn fixed_point_matches_the_effective_matrix_on_a_subsample() {
         let worst = worst_deviation(strided_triples(), -2.0);
@@ -252,8 +226,6 @@ mod tests {
         );
     }
 
-    /// Against the effective matrix, the fixed-point path is a rounding
-    /// artefact away from exact over the whole 2^24 input space.
     #[test]
     #[ignore = "exhaustive 2^24 sweep; run explicitly"]
     fn fixed_point_matches_the_effective_matrix_exhaustively() {
@@ -265,8 +237,6 @@ mod tests {
         );
     }
 
-    /// Against the *documented* matrix, blue is off by up to 3 LSB — entirely
-    /// from the `UB` clamp, and identically so on a real device.
     #[test]
     #[ignore = "exhaustive 2^24 sweep; run explicitly"]
     fn documented_matrix_differs_only_in_blue_by_the_ub_clamp() {
@@ -290,8 +260,6 @@ mod tests {
         }
     }
 
-    /// Pack a color image into planar (I420) and interleaved (NV21-style)
-    /// plane sets and check both decode identically.
     fn planes_from_pixels(
         width: i32,
         height: i32,
@@ -341,9 +309,8 @@ mod tests {
         )
         .expect("planar conversion");
 
-        // NV21: one interleaved V,U,V,U buffer. Android exposes it as two
-        // planes that are views one byte apart into that same buffer, both
-        // with pixel stride 2 — which is exactly how it arrives here.
+        // Android exposes NV21 as two plane views one byte apart into one
+        // interleaved buffer, both with pixel stride 2.
         let cw = ceil_half(width);
         let ch = ceil_half(height);
         let mut vu = vec![0u8; (cw * ch * 2) as usize];
@@ -366,8 +333,6 @@ mod tests {
         .expect("interleaved conversion");
         assert_eq!(planar, interleaved);
 
-        // NV12 is the same buffer with U and V swapped; swapping the two
-        // views back must reproduce the planar result too.
         let mut uv = vec![0u8; (cw * ch * 2) as usize];
         for i in 0..(cw * ch) as usize {
             uv[i * 2] = u_plane[i];
@@ -413,7 +378,6 @@ mod tests {
         )
         .expect("tight conversion");
 
-        // Same content, wider strides, garbage in the padding.
         let (y_stride, uv_stride) = (width + 7, ceil_half(width) + 3);
         let cw = ceil_half(width);
         let ch = ceil_half(height);
@@ -471,7 +435,6 @@ mod tests {
             )
             .is_err()
         );
-        // 1x1 is the smallest legal frame and must not divide by zero.
         assert!(
             yuv420_to_bgr(
                 &[128u8],

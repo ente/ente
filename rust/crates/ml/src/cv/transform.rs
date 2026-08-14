@@ -1,10 +1,6 @@
-//! Right-angle rotation of an interleaved image.
-
 use crate::cv::OpResult;
 use crate::cv::image::ImageU8;
 
-/// 90 degrees is transpose + horizontal flip, 180 a double flip, and 270
-/// transpose + vertical flip.
 pub(crate) fn rotate_u8(src: &ImageU8, degrees: i32) -> OpResult<ImageU8> {
     let cn = src.channels as usize;
     let (w, h) = (src.width as usize, src.height as usize);
@@ -20,9 +16,8 @@ pub(crate) fn rotate_u8(src: &ImageU8, degrees: i32) -> OpResult<ImageU8> {
     };
 
     let mut data = vec![0u8; src.data.len()];
-    // `copy_from_slice` on one pixel is a `memcpy` call per pixel, which costs
-    // more than the whole rotation; the channel counts this pipeline uses are
-    // spelled out instead.
+    // A per-pixel `copy_from_slice` is a `memcpy` call per pixel; the common
+    // channel counts are spelled out instead.
     let move_px = |dst: &mut [u8], d: usize, s: usize| match cn {
         1 => dst[d] = src.data[s],
         3 => {

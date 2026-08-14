@@ -1,8 +1,3 @@
-//! Edge-preserving bilateral denoise of the grayscale page.
-//!
-//! Circular window of diameter `d`, Gaussian space weights, Gaussian color
-//! weights from a 256-entry lookup table, mirrored border.
-
 use rayon::prelude::*;
 
 use super::reflect101;
@@ -29,7 +24,6 @@ pub(crate) fn bilateral_filter_u8(
     .max(1) as usize;
     let (w, h) = (src.width as usize, src.height as usize);
 
-    // Border-extended copy, `radius` pixels on every side.
     let stride = w + 2 * radius;
     let mut temp = vec![0u8; stride * (h + 2 * radius)];
     let cols: Vec<usize> = (0..stride)
@@ -49,7 +43,6 @@ pub(crate) fn bilateral_filter_u8(
         .map(|i| ((i * i) as f64 * color_coeff).exp() as f32)
         .collect();
 
-    // Taps inside the circle of `radius`, with their space weights.
     let ir = radius as i64;
     let mut taps = Vec::new();
     for i in -ir..=ir {

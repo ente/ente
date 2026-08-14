@@ -1,5 +1,3 @@
-//! Reductions, histograms and percentiles.
-
 use crate::cv::OpResult;
 use crate::cv::image::{ImageF32, ImageU8};
 
@@ -12,17 +10,14 @@ fn sum_channel0(src: &ImageF32) -> f64 {
     }
 }
 
-/// Sum of channel 0, in f64.
 pub(crate) fn sum_f32(src: &ImageF32) -> OpResult<f64> {
     Ok(sum_channel0(src))
 }
 
-/// Mean of channel 0, in f64.
 pub(crate) fn mean_f32(src: &ImageF32) -> OpResult<f64> {
     Ok(sum_channel0(src) / src.pixels() as f64)
 }
 
-/// Per-channel mean of a 3-channel image over the non-zero mask pixels.
 pub(crate) fn mean_u8c3_masked(src: &ImageU8, mask: &ImageU8) -> OpResult<[f64; 3]> {
     if src.channels != 3 {
         return Err(format!(
@@ -49,8 +44,6 @@ pub(crate) fn mean_u8c3_masked(src: &ImageU8, mask: &ImageU8) -> OpResult<[f64; 
     Ok(sums.map(|s| s as f64 / count as f64))
 }
 
-/// Minimum and maximum value. Strict comparisons starting from +/-infinity,
-/// so NaN never becomes the extremum.
 pub(crate) fn min_max_loc_f32(src: &ImageF32) -> OpResult<(f64, f64)> {
     let mut min_val = f32::INFINITY;
     let mut max_val = f32::NEG_INFINITY;
@@ -65,7 +58,6 @@ pub(crate) fn min_max_loc_f32(src: &ImageF32) -> OpResult<(f64, f64)> {
     Ok((min_val as f64, max_val as f64))
 }
 
-/// 256 uniform bins over channel 0.
 pub(crate) fn hist_256_u8(src: &ImageU8) -> OpResult<Vec<f64>> {
     let cn = src.channels as usize;
     let mut bins = [0u32; 256];
@@ -75,8 +67,6 @@ pub(crate) fn hist_256_u8(src: &ImageU8) -> OpResult<Vec<f64>> {
     Ok(bins.iter().map(|&c| c as f64).collect())
 }
 
-/// 256 uniform bins over [0,256) on channel 0; values outside that range are
-/// dropped rather than clamped.
 pub(crate) fn hist_256_f32(src: &ImageF32) -> OpResult<Vec<f64>> {
     let cn = src.channels as usize;
     let mut bins = [0u32; 256];
@@ -89,8 +79,6 @@ pub(crate) fn hist_256_f32(src: &ImageF32) -> OpResult<Vec<f64>> {
     Ok(bins.iter().map(|&c| c as f64).collect())
 }
 
-/// The value at rank `(len * p)` of the plane sorted ascending (`total_cmp`
-/// order), found in O(n) without sorting the plane.
 pub(crate) fn percentile_f32(src: &ImageF32, p: f64) -> OpResult<f32> {
     let mut values = src.data.clone();
     if values.is_empty() {

@@ -1,14 +1,9 @@
-//! Separable neighbourhood filters: small fixed-tap Gaussian blur on the
-//! mask, and an O(1)-per-pixel sliding box mean for the large retinex
-//! kernels. Both extend the border by mirroring without repeating the edge
-//! pixel.
-
 use crate::cv::OpResult;
 use crate::cv::image::{ImageF32, ImageU8};
 
 use super::reflect101;
 
-/// Fixed-point Gaussian taps summing to 256 (8 fractional bits).
+/// Taps sum to 256 (8 fractional bits).
 fn gaussian_taps(n: i32) -> OpResult<&'static [u32]> {
     Ok(match n {
         1 => &[256],
@@ -19,8 +14,6 @@ fn gaussian_taps(n: i32) -> OpResult<&'static [u32]> {
     })
 }
 
-/// Gaussian blur with a k x k kernel on a single-channel image. An axis of
-/// length 1 collapses its kernel instead of filtering across the border.
 pub(crate) fn gaussian_blur_u8(src: &ImageU8, ksize: i32) -> OpResult<ImageU8> {
     if src.channels != 1 {
         return Err("gaussian_blur_u8: expected a single-channel image".to_string());
@@ -67,8 +60,6 @@ pub(crate) fn gaussian_blur_u8(src: &ImageU8, ksize: i32) -> OpResult<ImageU8> {
     ImageU8::new(src.width, src.height, 1, out)
 }
 
-/// Mean over a `kw` x `kh` window on a single-channel float image, computed
-/// with sliding sums in f64.
 pub(crate) fn box_filter_f32(src: &ImageF32, kw: i32, kh: i32) -> OpResult<ImageF32> {
     if kw <= 0 || kh <= 0 {
         return Err(format!("box_filter_f32: invalid kernel {kw}x{kh}"));
@@ -80,7 +71,6 @@ pub(crate) fn box_filter_f32(src: &ImageF32, kw: i32, kh: i32) -> OpResult<Image
     let (ax, ay) = ((kw / 2) as i64, (kh / 2) as i64);
     let scale = 1.0 / (kw as f64 * kh as f64);
 
-    // Horizontal sliding sum of each row over its mirrored extension.
     let mut hsum = vec![0.0f64; w * h];
     let ext_idx: Vec<usize> = (0..w + kw as usize - 1)
         .map(|j| reflect101(j as i64 - ax, src.width) as usize)
@@ -100,7 +90,6 @@ pub(crate) fn box_filter_f32(src: &ImageF32, kw: i32, kh: i32) -> OpResult<Image
         }
     }
 
-    // Vertical sliding sum over the mirrored row range.
     let mut out = vec![0.0f32; w * h];
     let mut col = vec![0.0f64; w];
     for t in 0..kh as usize - 1 {

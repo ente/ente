@@ -1,9 +1,7 @@
-//! 8-bit BGR <-> Lab conversion.
+//! 8-bit BGR <-> Lab, as fixed-point dot products over precomputed tables.
 //!
-//! L, a and b are all scaled onto 0..255 (a and b biased by 128). The
-//! pipeline's chroma and luminance thresholds are calibrated in these units,
-//! so the scaling is part of the contract. Both directions run as fixed-point
-//! dot products over precomputed lookup tables.
+//! L, a and b are all scaled onto 0..255 (a and b biased by 128); the
+//! pipeline's chroma and luminance thresholds are calibrated in these units.
 
 use std::sync::OnceLock;
 
@@ -41,7 +39,6 @@ const GAMMA_LOW_SCALE: f64 = 323.0 / 25.0;
 const GAMMA_POWER: f64 = 12.0 / 5.0;
 const GAMMA_XSHIFT: f64 = 11.0 / 200.0;
 
-/// Round-to-nearest fixed-point descale by `n` bits (arithmetic shift).
 #[inline]
 fn descale(x: i32, n: i32) -> i32 {
     (x + (1 << (n - 1))) >> n
@@ -79,10 +76,9 @@ struct LabTabs {
     srgb_inv_gamma: Box<[u16]>,
     lab_to_yf: [u16; 512],
     ab_to_xz: Box<[i32]>,
-    /// Forward coefficients, ordered so a BGR pixel is consumed in storage
-    /// order.
+    /// Ordered so a BGR pixel is consumed in storage order.
     fwd_coeffs: [i32; 9],
-    /// Inverse coefficients; rows are R, G, B.
+    /// Rows are R, G, B.
     inv_coeffs: [i32; 9],
 }
 
@@ -132,8 +128,7 @@ fn build_tabs() -> LabTabs {
         lab_to_yf[i as usize * 2 + 1] = ify as u16;
     }
 
-    // Integer division truncates toward zero, which matters: `i` starts
-    // negative.
+    // Integer division truncates toward zero; `i` starts negative.
     let mut ab_to_xz = vec![0i32; AB_TO_XZ_LEN];
     let bias = LAB_BASE * 16 / 116 * 108 / 841;
     for (k, out) in ab_to_xz.iter_mut().enumerate() {

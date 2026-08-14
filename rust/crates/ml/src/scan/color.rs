@@ -1,6 +1,3 @@
-//! Automatic color-mode selection: gray-world white balance inside the
-//! document mask, then Lab chroma analysis.
-
 use super::OpResult;
 use super::detection::resize_for_max_pixels;
 use super::geometry::{Quad, norm};
@@ -65,9 +62,6 @@ fn chroma(a: &ImageU8, b: &ImageU8) -> OpResult<ImageF32> {
     cv::magnitude_f32(&a_shifted, &b_shifted)
 }
 
-/// Kernel size from the shortest quad edge: `round(minDim*0.02)` clamped to
-/// [3,15], then forced odd. The rounding is floor(x + 0.5), not
-/// round-half-to-even.
 fn erode_border(mask: &ImageU8, quad: &Quad) -> OpResult<ImageU8> {
     let min_dim = quad
         .edges()
@@ -103,7 +97,6 @@ fn document_mask(
 
     let eroded_mask = erode_border(&resized_mask, &resized_quad)?;
 
-    // Corner coordinates are truncated to int.
     let pts: Vec<(i32, i32)> = resized_quad
         .corners()
         .iter()
@@ -114,7 +107,6 @@ fn document_mask(
     cv::bitwise_and_u8(&eroded_mask, &quad_mask)
 }
 
-/// Gray-world white balance applied only inside the document mask.
 pub(crate) fn apply_gray_world_to_document(img: &ImageU8, doc_mask: &ImageU8) -> OpResult<ImageU8> {
     assert_eq!(img.channels, 3, "gray-world expects an 8UC3 image");
 
@@ -144,7 +136,6 @@ pub(crate) fn apply_gray_world_to_document(img: &ImageU8, doc_mask: &ImageU8) ->
     cv::copy_to_masked(&scaled8, img, doc_mask)
 }
 
-/// Mask-space quad to original-image coordinates.
 pub(crate) fn quad_to_image(quad: &Quad, mask: &Mask, image_size: (i32, i32)) -> Quad {
     quad.scaled_to(
         mask.width as f64,

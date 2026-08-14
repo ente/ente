@@ -1,6 +1,3 @@
-//! Border following on the binary edge map, via imageproc, with the shoelace
-//! area carried alongside each contour.
-
 use image::GrayImage;
 
 use crate::cv::OpResult;

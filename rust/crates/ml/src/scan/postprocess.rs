@@ -1,6 +1,3 @@
-//! Enhancement of the extracted page: multi-scale retinex on L for color,
-//! a separate retinex + normalization path for grayscale.
-
 use super::OpResult;
 use super::color::ColorMode;
 use super::detection::size_trunc;
@@ -23,15 +20,13 @@ fn multi_scale_retinex_on_l(bgr: &ImageU8) -> OpResult<ImageU8> {
     let l_float = cv::add_f32_scalar(&l_float_raw, 1.0)?;
 
     let scale_factor = 2.0;
-    // The small size keeps its untruncated components: the resize truncates
-    // them, but `max_dim_small` below uses the untruncated values.
+    // `max_dim_small` deliberately uses the untruncated sizes.
     let small_w = l_float.width as f64 / scale_factor;
     let small_h = l_float.height as f64 / scale_factor;
     let (small_cols, small_rows) = size_trunc(small_w, small_h);
 
     let l_small = cv::resize_area(ImageRef::F32(&l_float), small_cols, small_rows)?.into_f32()?;
 
-    // log(L) once, on the small image.
     let log_l_small = cv::log_f32(&l_small)?;
 
     let max_dim_small = small_w.max(small_h);
@@ -45,7 +40,6 @@ fn multi_scale_retinex_on_l(bgr: &ImageU8) -> OpResult<ImageU8> {
     let mut retinex_small = ImageF32::zeros(l_small.width, l_small.height, 1)?;
 
     for ks in kernel_sizes {
-        // Odd-kernel forcing happens ONLY in the color path.
         let k = (ks as i32).max(3) | 1;
         let blur_log = cv::box_filter_f32(&log_l_small, k, k)?;
         let diff = cv::subtract_f32(&log_l_small, &blur_log)?;
@@ -101,8 +95,8 @@ fn multi_scale_retinex_on_l(bgr: &ImageU8) -> OpResult<ImageU8> {
     cv::lab_to_bgr(&merged)
 }
 
-/// Histogram percentile over 256 bins on [0,256): values outside that range
-/// are NOT counted, but the denominator stays the full pixel count.
+/// Values outside [0,256) are not counted, but the denominator stays the
+/// full pixel count.
 pub(crate) fn percentile_l(l: &ImageF32, p: f64) -> OpResult<f64> {
     let hist = cv::hist_256_f32(l)?;
     let total = l.pixels() as f64;
@@ -133,15 +127,13 @@ fn enhance_grayscale_image(img: &ImageU8) -> OpResult<ImageU8> {
     let img_float = cv::add_f32_scalar(&img_float_raw, 1.0)?;
     let log_img = cv::log_f32(&img_float)?;
 
-    // Kernel sizes stay f64 and are truncated; NO odd forcing here, unlike
-    // the color path.
+    // Unlike the color path, no odd-kernel forcing.
     let kernel_sizes = [max_dim / 6.0, max_dim / 50.0];
     let weight = 1.0 / kernel_sizes.len() as f64;
     let mut retinex = ImageF32::zeros(gray.width, gray.height, 1)?;
 
     for kernel_size in kernel_sizes {
-        // The grayscale path blurs the LINEAR image and logs afterwards; the
-        // color path blurs the log image.
+        // Unlike the color path, blurs the linear image and logs afterwards.
         let (kw, kh) = size_trunc(kernel_size, kernel_size);
         let blur_raw = cv::box_filter_f32(&img_float, kw, kh)?;
         let blur = cv::add_f32_scalar(&blur_raw, 1.0)?;
@@ -167,7 +159,7 @@ fn enhance_grayscale_image(img: &ImageU8) -> OpResult<ImageU8> {
 
     let result8u = cv::f32_to_u8(&clamped)?;
 
-    // Histogram mode in [180,255] as the background level estimate.
+    // The mode over [180,255] estimates the background level.
     let hist = cv::hist_256_u8(&result8u)?;
     let mut mode_val = 220usize;
     let mut mode_count = 0.0f64;
@@ -179,7 +171,7 @@ fn enhance_grayscale_image(img: &ImageU8) -> OpResult<ImageU8> {
     }
 
     let stretched8u = if mode_val >= 254 {
-        // Retinex over-amplified: normalize the ORIGINAL grayscale instead.
+        // Retinex over-amplified; normalize the original grayscale instead.
         let gray_f = cv::u8_to_f32(&gray)?;
         let g_low = cv::percentile_f32(&gray_f, 0.01)? as f64;
         let g_high = cv::percentile_f32(&gray_f, 0.99)? as f64;
@@ -191,7 +183,6 @@ fn enhance_grayscale_image(img: &ImageU8) -> OpResult<ImageU8> {
         let max_clamped = cv::max_f32_scalar(&min_clamped, 0.0)?;
         cv::f32_to_u8(&max_clamped)?
     } else {
-        // Only the upper clamp is applied in this branch.
         let stretched_f = cv::u8_to_f32(&result8u)?;
         let multiplied =
             cv::multiply_f32_scalar(&stretched_f, [255.0 / mode_val as f64, 0.0, 0.0, 0.0])?;

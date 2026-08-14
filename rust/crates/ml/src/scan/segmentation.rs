@@ -1,9 +1,3 @@
-//! ONNX segmentation: BGR image -> 256x256 u8 probability map.
-//!
-//! Preprocessing contract: BGR -> RGB -> bilinear resize 256x256 ->
-//! f32 (x-127.5)/127.5 -> NHWC [1,256,256,3] -> model -> clip [0,1] ->
-//! round(p*255) u8.
-
 use std::sync::Mutex;
 
 use ort::ep::CPU;
@@ -19,15 +13,13 @@ use crate::cv::image::{ImageRef, ImageU8};
 pub const MASK_SIDE: i32 = 256;
 
 pub(crate) struct Segmenter {
-    // `Session::run` needs `&mut self`; the lock keeps the scanner session
-    // usable through `&self` and Send + Sync.
+    // `Session::run` needs `&mut self`.
     session: Mutex<Session>,
 }
 
 impl Segmenter {
-    /// Loads the segmentation model with a plain CPU execution provider: the
-    /// model is tiny (256x256 input) and CPU execution keeps the discontinuous
-    /// downstream pipeline deterministic across devices.
+    /// CPU-only on purpose: the model is tiny and the thresholded downstream
+    /// pipeline needs deterministic output across devices.
     pub(crate) fn new(model_path: &str) -> Result<Self, ScanError> {
         let build = || -> Result<Session, ort::Error> {
             Session::builder()?
@@ -49,7 +41,6 @@ impl Segmenter {
         })
     }
 
-    /// Returns the 256x256 u8 probability map, row-major.
     pub(crate) fn probability_map_u8(&self, bgr: &ImageU8) -> OpResult<Vec<u8>> {
         let rgb = cv::bgr_to_rgb(bgr)?;
         let resized = cv::resize_bilinear(ImageRef::U8(&rgb), MASK_SIDE, MASK_SIDE)?.into_u8()?;
@@ -85,8 +76,7 @@ impl Segmenter {
         };
         let data = run()?;
 
-        // clip(p, 0, 1) with NO sigmoid, then round(p*255) with
-        // round-half-to-even semantics.
+        // The model outputs probabilities directly; no sigmoid.
         Ok(data
             .iter()
             .map(|&v| (v.clamp(0.0, 1.0) * 255.0).round_ties_even() as u8)

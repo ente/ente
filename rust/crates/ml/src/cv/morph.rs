@@ -1,15 +1,8 @@
-//! Morphological erode/dilate/open/close on single-channel images with an
-//! arbitrary 0/1 structuring element anchored at its centre.
-//!
-//! Erode pads with 255 and dilate with 0 — the identity of each reduction —
-//! so neither operation eats into the image from the border.
-
 use rayon::prelude::*;
 
 use crate::cv::OpResult;
 use crate::cv::image::ImageU8;
 
-/// Below this many pixels the rayon split costs more than the work it saves.
 const PARALLEL_MIN_PIXELS: usize = 200_000;
 
 fn morph(src: &ImageU8, kernel: &ImageU8, erode: bool) -> OpResult<ImageU8> {
@@ -23,8 +16,6 @@ fn morph(src: &ImageU8, kernel: &ImageU8, erode: bool) -> OpResult<ImageU8> {
     let (w, h) = (src.width as usize, src.height as usize);
     let (kw, kh) = (kernel.width as usize, kernel.height as usize);
 
-    // Pad the source by the kernel extent so the tap loop needs no bounds
-    // checks; taps become plain offsets into the padded rows.
     let pw = w + kw - 1;
     let mut padded = vec![pad; pw * (h + kh - 1)];
     for y in 0..h {
@@ -41,8 +32,7 @@ fn morph(src: &ImageU8, kernel: &ImageU8, erode: bool) -> OpResult<ImageU8> {
     }
 
     let mut out = vec![0u8; w * h];
-    // Tap-major: each tap contributes one contiguous source slice per row,
-    // which keeps the min/max folds vectorizable.
+    // Tap-major keeps the min/max folds vectorizable.
     let row = |y: usize, dst: &mut [u8]| {
         let base = y * pw;
         dst.copy_from_slice(&padded[base + offsets[0]..base + offsets[0] + w]);

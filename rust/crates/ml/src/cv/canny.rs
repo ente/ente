@@ -1,16 +1,6 @@
-//! Canny edge detection with a 3x3 Sobel aperture and L1 gradient
-//! magnitude.
-//!
 //! The 75/200 thresholds used downstream are calibrated against this exact
-//! gradient scaling: integer `|dx| + |dy|` of the separable `[-1,0,1]` /
-//! `[1,2,1]` filter pair with replicated borders, thresholds floored, and
-//! the low threshold compared strictly (`m > low`).
-//!
-//! Non-maximum suppression is the integer direction test (`TG22` at shift
-//! 15) whose `>` / `>=` asymmetries decide which of two equal neighbours
-//! survives; the working map uses 0 = might be an edge, 1 = cannot be,
-//! 2 = is one, with a one-pixel frame, and hysteresis is a stack-based
-//! 8-connected flood over the 0s.
+//! gradient scaling: integer `|dx| + |dy|` of a 3x3 Sobel with replicated
+//! borders, thresholds floored, the low one compared strictly.
 
 use crate::cv::OpResult;
 use crate::cv::image::ImageU8;
@@ -23,11 +13,6 @@ const MAYBE: u8 = 0;
 const NO: u8 = 1;
 const EDGE: u8 = 2;
 
-/// One channel's `Sobel(dx=1,dy=0)` and `Sobel(dx=0,dy=1)` planes.
-///
-/// Both are separable and share their intermediate rows: `h_diff` is the
-/// horizontal `[-1,0,1]`, `h_smooth` the horizontal `[1,2,1]`, each with
-/// replicated columns; the vertical taps then combine whole rows.
 fn sobel_planes(src: &[u8], w: usize, h: usize, cn: usize, c: usize) -> (Vec<i16>, Vec<i16>) {
     let mut h_diff = vec![0i16; w * h];
     let mut h_smooth = vec![0i16; w * h];
@@ -60,7 +45,6 @@ fn sobel_planes(src: &[u8], w: usize, h: usize, cn: usize, c: usize) -> (Vec<i16
     (dx, dy)
 }
 
-/// Floor, clamped to the range the magnitudes live in.
 fn floor_threshold(t: f64) -> i32 {
     t.floor().clamp(i32::MIN as f64, i32::MAX as f64) as i32
 }
@@ -77,7 +61,6 @@ pub(crate) fn canny(src: &ImageU8, threshold1: f64, threshold2: f64) -> OpResult
     let low = floor_threshold(low_thresh);
     let high = floor_threshold(high_thresh);
 
-    // Per-pixel gradient of the channel with the largest magnitude.
     let (mut dx, mut dy) = sobel_planes(&src.data, w, h, cn, 0);
     let mut norm: Vec<i32> = dx
         .iter()
@@ -96,8 +79,7 @@ pub(crate) fn canny(src: &ImageU8, threshold1: f64, threshold2: f64) -> OpResult
         }
     }
 
-    // Magnitude and map both carry a one-pixel frame: zero magnitude outside
-    // the image, `NO` in the map so hysteresis cannot leave it.
+    // The one-pixel `NO` frame keeps the unguarded hysteresis flood inside.
     let step = w + 2;
     let mut mag = vec![0i32; step * (h + 2)];
     for y in 0..h {

@@ -1,5 +1,3 @@
-//! Quad fitting from a contour's smoothed orientation profile.
-
 use super::geometry::{Point, average};
 
 const SMOOTH_WINDOW: i32 = 5;
@@ -194,7 +192,6 @@ fn find_best_start_index(angles: &[f64]) -> usize {
     best_index
 }
 
-/// Sliding circular window over cos/sin.
 fn compute_smoothed_angles(contour: &[Point], window: i32) -> Vec<f64> {
     let n = contour.len();
     let ni = n as i32;
@@ -293,8 +290,6 @@ mod tests {
 
     #[test]
     fn contour_orientation_recovers_a_rotated_rectangle() {
-        // Dense sampling of a slightly rotated rectangle outline; the four fitted
-        // sides must intersect back at the corners.
         let corners = [
             Point::new(40.0, 30.0),
             Point::new(220.0, 50.0),

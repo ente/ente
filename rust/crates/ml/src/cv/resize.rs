@@ -1,9 +1,5 @@
-//! Resizing, backed by `fast_image_resize`.
-//!
-//! `area` uses a box filter when shrinking (every source pixel contributes)
-//! and plain bilinear when growing; `bilinear` and `bicubic` sample without
-//! low-pass filtering, which is what the segmentation model input and the
-//! smooth retinex map expect.
+//! The `Interpolation` algs sample without low-pass filtering; downstream
+//! calibration depends on that.
 
 use fast_image_resize::{
     FilterType, PixelType, ResizeAlg, ResizeOptions, Resizer,

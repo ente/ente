@@ -1,5 +1,3 @@
-//! Channel-layout color conversions and channel split/merge.
-
 use crate::cv::OpResult;
 use crate::cv::image::ImageU8;
 
@@ -19,7 +17,6 @@ fn require_channels(src: &ImageU8, channels: i32, op: &str) -> OpResult<()> {
     Ok(())
 }
 
-/// Reverses the channel order.
 pub(crate) fn bgr_to_rgb(src: &ImageU8) -> OpResult<ImageU8> {
     require_channels(src, 3, "bgr_to_rgb")?;
     let mut data = vec![0u8; src.data.len()];
@@ -33,7 +30,6 @@ pub(crate) fn bgr_to_rgb(src: &ImageU8) -> OpResult<ImageU8> {
     ImageU8::new(src.width, src.height, 3, data)
 }
 
-/// Replicates the single channel across B, G and R.
 pub(crate) fn gray_to_bgr(src: &ImageU8) -> OpResult<ImageU8> {
     require_channels(src, 1, "gray_to_bgr")?;
     let mut data = vec![0u8; src.data.len() * 3];
@@ -47,7 +43,6 @@ pub(crate) fn gray_to_bgr(src: &ImageU8) -> OpResult<ImageU8> {
     ImageU8::new(src.width, src.height, 3, data)
 }
 
-/// BT.601 luma: `(b*BY15 + g*GY15 + r*RY15) >> 15`, rounded.
 pub(crate) fn bgr_to_gray(src: &ImageU8) -> OpResult<ImageU8> {
     require_channels(src, 3, "bgr_to_gray")?;
     let round = 1i32 << (GRAY_SHIFT - 1);
@@ -61,7 +56,6 @@ pub(crate) fn bgr_to_gray(src: &ImageU8) -> OpResult<ImageU8> {
     ImageU8::new(src.width, src.height, 1, data)
 }
 
-/// Splits an interleaved image into single-channel planes.
 pub(crate) fn split_u8(src: &ImageU8) -> OpResult<Vec<ImageU8>> {
     let cn = src.channels as usize;
     let mut planes = Vec::with_capacity(cn);
@@ -77,7 +71,6 @@ pub(crate) fn split_u8(src: &ImageU8) -> OpResult<Vec<ImageU8>> {
     Ok(planes)
 }
 
-/// Interleaves single-channel planes into one image.
 pub(crate) fn merge_u8(channels: &[ImageU8]) -> OpResult<ImageU8> {
     let first = channels
         .first()

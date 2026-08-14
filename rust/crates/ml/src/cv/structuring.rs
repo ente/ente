@@ -1,9 +1,6 @@
-//! Elliptical structuring elements for the morphology ops.
-
 use crate::cv::OpResult;
 use crate::cv::image::ImageU8;
 
-/// A k x k 0/1 ellipse; a 1x1 element degrades to a filled square.
 pub(crate) fn ellipse_kernel(ksize: i32) -> OpResult<ImageU8> {
     if ksize <= 0 {
         return Err(format!("ellipse_kernel: invalid ksize {ksize}"));

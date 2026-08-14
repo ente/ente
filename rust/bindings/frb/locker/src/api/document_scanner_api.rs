@@ -51,11 +51,9 @@ pub struct RustCameraIntrinsics {
 #[derive(Clone, Copy, Debug)]
 pub struct RustOpticalMeasures {
     pub camera_intrinsics: RustCameraIntrinsics,
-    /// Millimetres; `None` when the capture carries no calibrated distance.
     pub subject_distance_mm: Option<f32>,
 }
 
-/// Geometry of a YUV_420_888 frame as the platform camera API reports it.
 #[derive(Clone, Copy, Debug)]
 pub struct RustPlaneLayout {
     pub width: i32,
@@ -67,50 +65,41 @@ pub struct RustPlaneLayout {
 
 #[derive(Clone, Debug)]
 pub struct RustScanOptions {
-    /// `None` means "let the pipeline decide".
     pub color_mode_override: Option<RustColorMode>,
-    /// `None` means the default budget of 2 000 000 pixels.
     pub max_pixels: Option<u32>,
-    /// Applied to the extracted page as the last step. Must be a multiple of
-    /// 90.
+    /// Must be a multiple of 90.
     pub rotation_degrees: i32,
     pub output_format: RustOutputFormat,
-    /// `None` reproduces a capture with no camera metadata (e.g. a gallery
-    /// import).
     pub optical_measures: Option<RustOpticalMeasures>,
 }
 
 #[derive(Clone, Debug)]
 pub struct RustReprocessOptions {
-    /// In the coordinate space of the decoded source image — the same space
-    /// `RustScanResult.quad` is reported in.
+    /// Same coordinate space as `RustScanResult.quad`: the decoded source
+    /// image.
     pub quad: RustQuad,
     /// Must be a multiple of 90.
     pub rotation_degrees: i32,
     pub color_mode: RustColorMode,
     pub optical_measures: Option<RustOpticalMeasures>,
-    /// `None` means the default budget of 2 000 000 pixels.
     pub max_pixels: Option<u32>,
-    /// `None` means the default quality of 75. Reprocess output is always
-    /// JPEG.
+    /// Reprocess output is always JPEG.
     pub jpeg_quality: Option<u8>,
 }
 
 #[derive(Clone, Debug)]
 pub struct RustScanResult {
-    /// Corners in the coordinate space of the decoded source image (after
-    /// EXIF orientation, before `rotation_degrees`). `None` when nothing was
-    /// detected, in which case the whole frame is returned instead.
+    /// In decoded-source coordinates (EXIF applied, before
+    /// `rotation_degrees`); `None` when nothing was detected and the whole
+    /// frame was returned.
     pub quad: Option<RustQuad>,
     pub color_mode: RustColorMode,
     pub output_width: u32,
     pub output_height: u32,
-    /// Size of the decoded source image — the coordinate space `quad` lives
-    /// in.
+    /// The size `quad` is relative to.
     pub source_width: u32,
     pub source_height: u32,
-    /// `Some` only when optical measures with a subject distance let the
-    /// estimate resolve to a physical size.
+    /// `Some` only when optical measures carry a subject distance.
     pub estimated_dims_mm: Option<RustDimensionsMm>,
     pub processed_image: Vec<u8>,
     pub processed_format: RustOutputFormat,
@@ -122,7 +111,7 @@ pub enum RustScanErrorKind {
     ModelLoad,
     Codec,
     Pipeline,
-    /// A panic inside the scanner, caught at the FFI boundary.
+    /// A panic caught at the FFI boundary.
     Internal,
 }
 
@@ -132,17 +121,15 @@ pub struct RustScanError {
     pub message: String,
 }
 
-/// A loaded segmentation model plus the pipeline built around it. `Send +
-/// Sync`; all methods take `&self`, so one session serves both the live
-/// preview stream and capture processing.
+/// `Send + Sync`: one session serves both the live preview stream and
+/// capture processing.
 #[frb(opaque)]
 pub struct ScannerSession {
     inner: scan::ScannerSession,
 }
 
 impl ScannerSession {
-    /// Ensures a verified segmentation model in the asset store rooted at
-    /// `assets_dir` (downloading it on first use) and loads it.
+    /// Downloads the model into the asset store at `assets_dir` on first use.
     pub async fn create(assets_dir: String) -> Result<ScannerSession, RustScanError> {
         let store = AssetStore::new(assets_dir);
         let model_path = scan::ensure_segmentation_model(&store)
@@ -157,11 +144,9 @@ impl ScannerSession {
         })
     }
 
-    /// Live document detection on a tightly packed RGBA preview frame
-    /// (`width * height * 4` bytes).
-    ///
-    /// The returned quad is in mask space ([`mask_side`] squared), already
-    /// rotated by `rotation_degrees`: rotate the overlay quad, not the frame.
+    /// `rgba` is tightly packed (`width * height * 4` bytes). The returned
+    /// quad is in mask space ([`mask_side`] squared), already rotated by
+    /// `rotation_degrees`: rotate the overlay quad, not the frame.
     pub fn live_detect_rgba(
         &self,
         rgba: Vec<u8>,
@@ -177,11 +162,9 @@ impl ScannerSession {
         }))
     }
 
-    /// Live document detection on an iOS BGRA8888 preview frame with
-    /// `row_stride` bytes per row. The frame is repacked to RGBA here; Dart
-    /// passes the camera buffer through unchanged.
-    ///
-    /// Quad semantics as in [`Self::live_detect_rgba`].
+    /// Takes an iOS BGRA8888 frame with `row_stride` bytes per row, so Dart
+    /// passes the camera buffer through unchanged. Quad semantics as in
+    /// [`Self::live_detect_rgba`].
     pub fn live_detect_bgra(
         &self,
         bgra: Vec<u8>,
@@ -199,11 +182,9 @@ impl ScannerSession {
         }))
     }
 
-    /// Live document detection on YUV_420_888 camera planes. Both planar I420
-    /// (`uv_pixel_stride == 1`) and interleaved NV21/NV12
-    /// (`uv_pixel_stride == 2`) layouts are accepted.
-    ///
-    /// Quad semantics as in [`Self::live_detect_rgba`].
+    /// Accepts both planar I420 (`uv_pixel_stride == 1`) and interleaved
+    /// NV21/NV12 (`uv_pixel_stride == 2`) YUV_420_888 planes. Quad semantics
+    /// as in [`Self::live_detect_rgba`].
     pub fn live_detect_yuv420(
         &self,
         y: Vec<u8>,
@@ -224,9 +205,6 @@ impl ScannerSession {
         }))
     }
 
-    /// The full capture pipeline on a captured or imported still: decode
-    /// (EXIF applied), segment, detect the quad, pick the color mode,
-    /// extract, enhance, encode.
     pub fn process_capture(
         &self,
         image_bytes: Vec<u8>,
@@ -240,9 +218,7 @@ impl ScannerSession {
         }))
     }
 
-    /// Re-renders a page from its source bytes with a known quad and color
-    /// mode — the manual corner-adjustment and export path. Runs no
-    /// inference; the output is always JPEG.
+    /// No inference runs; the output is always JPEG.
     pub fn reprocess(
         &self,
         source_bytes: Vec<u8>,

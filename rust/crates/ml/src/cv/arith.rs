@@ -1,17 +1,13 @@
-//! Pointwise float arithmetic. Array-array operations and scalar
-//! add/subtract/min/max run in f32; scalar multiply and the weighted sum
-//! promote to f64 and narrow the result.
+//! Scalar multiply and the weighted sum deliberately promote to f64; the
+//! rest stays in f32.
 
 use rayon::prelude::*;
 
 use crate::cv::OpResult;
 use crate::cv::image::ImageF32;
 
-/// Below this many elements the rayon split costs more than the work it saves.
 const PARALLEL_MIN_ELEMS: usize = 200_000;
 
-/// Fills `out` from `src` chunk by chunk, in parallel for large planes. Every
-/// operation here is pointwise, so the split cannot change a single result.
 fn fill<T: Send + Sync + Copy>(
     out: &mut [f32],
     src: &[T],
@@ -27,7 +23,6 @@ fn fill<T: Send + Sync + Copy>(
     }
 }
 
-/// Chunk length that keeps a chunk's first element on channel 0.
 fn chunk_len(channels: i32) -> usize {
     65536 * channels as usize
 }
@@ -49,7 +44,6 @@ fn map1(a: &ImageF32, f: impl Fn(f32) -> f32 + Send + Sync) -> OpResult<ImageF32
     ImageF32::new(a.width, a.height, a.channels, data)
 }
 
-/// Two operands of identical geometry, elementwise.
 fn map2(
     a: &ImageF32,
     b: &ImageF32,
@@ -76,7 +70,6 @@ fn map2(
     ImageF32::new(a.width, a.height, a.channels, data)
 }
 
-/// Per-channel scalar: channel `c` of every pixel sees `scalar[c]`.
 fn map_scalar(
     a: &ImageF32,
     scalar: [f64; 4],
@@ -149,7 +142,6 @@ pub(crate) fn exp_f32(a: &ImageF32) -> OpResult<ImageF32> {
     map1(a, f32::exp)
 }
 
-/// `sqrt(x*x + y*y)` in f32.
 pub(crate) fn magnitude_f32(x: &ImageF32, y: &ImageF32) -> OpResult<ImageF32> {
     map2(x, y, "magnitude_f32", |a, b| (a * a + b * b).sqrt())
 }

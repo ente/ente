@@ -1,18 +1,15 @@
-//! Scoring a candidate quad against the probability map.
-
 use super::OpResult;
 use super::geometry::Point;
 use crate::cv;
 use crate::cv::image::{ImageF32, ImageU8};
 
-/// The polygon vertices are truncated to int before rasterisation.
 pub(crate) fn make_polygon_mask(width: i32, height: i32, polygon: &[Point]) -> OpResult<ImageU8> {
     let pts: Vec<(i32, i32)> = polygon.iter().map(|p| (p.x as i32, p.y as i32)).collect();
     cv::fill_poly(width, height, &pts, 1.0)
 }
 
-/// `probmap` here is the 0/255 binary mask converted to f32, i.e. values are
-/// 0..255, NOT normalized.
+/// `probmap` values are 0..255 (the binarized mask as f32), not normalized
+/// probabilities.
 pub(crate) fn score_quad_against_probmap(
     quad: &[Point],
     probmap: &ImageF32,

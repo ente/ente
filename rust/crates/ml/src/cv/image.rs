@@ -1,10 +1,7 @@
-//! Backend-neutral image buffers.
-//!
-//! Layout is row-major, channel-interleaved, fully packed (no row padding).
+//! Row-major, channel-interleaved, fully packed (no row padding).
 
 use super::OpResult;
 
-/// Interleaved 8-bit buffer (1 or 3 channels in this pipeline).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ImageU8 {
     pub width: i32,
@@ -13,7 +10,6 @@ pub(crate) struct ImageU8 {
     pub data: Vec<u8>,
 }
 
-/// Interleaved 32-bit float buffer.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ImageF32 {
     pub width: i32,
@@ -107,14 +103,12 @@ impl ImageF32 {
     }
 }
 
-/// Borrowed operand for the dtype-generic resize ops.
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum ImageRef<'a> {
     U8(&'a ImageU8),
     F32(&'a ImageF32),
 }
 
-/// Owned result of a dtype-generic op.
 #[derive(Clone, Debug)]
 pub(crate) enum Image {
     U8(ImageU8),
@@ -146,7 +140,7 @@ impl Image {
     }
 }
 
-/// One connected contour with its shoelace area.
+/// `area` is the shoelace area.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Contour {
     pub points: Vec<(i32, i32)>,
