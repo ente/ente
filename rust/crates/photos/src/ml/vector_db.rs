@@ -117,6 +117,15 @@ impl VectorDB {
     }
 
     pub fn bulk_add_vectors(&mut self, keys: Vec<u64>, vectors: &[Vec<f32>]) -> Result<(), String> {
+        self.bulk_add_vectors_unsaved(keys, vectors)?;
+        self.save_index()
+    }
+
+    pub fn bulk_add_vectors_unsaved(
+        &mut self,
+        keys: Vec<u64>,
+        vectors: &[Vec<f32>],
+    ) -> Result<(), String> {
         self.ensure_capacity(keys.len())?;
         for (key, vector) in keys.iter().zip(vectors.iter()) {
             if self.contains_vector(*key) {
@@ -128,6 +137,10 @@ impl VectorDB {
                 .add(*key, vector)
                 .map_err(|e| format!("Failed to bulk add vector for key {key}: {e}"))?;
         }
+        Ok(())
+    }
+
+    pub fn save(&self) -> Result<(), String> {
         self.save_index()
     }
 
@@ -455,6 +468,29 @@ impl VectorDB {
 #[cfg(test)]
 mod tests {
     use super::VectorDB;
+
+    #[test]
+    fn bulk_add_vectors_unsaved_persists_only_after_save() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let index_path = temp_dir.path().join("vectors.usearch");
+        let path_str = index_path.to_str().unwrap();
+
+        let mut db = VectorDB::new(path_str, 3).unwrap();
+        db.bulk_add_vectors_unsaved(vec![1], &[vec![1.0, 0.0, 0.0]])
+            .unwrap();
+        drop(db);
+
+        let mut db = VectorDB::new(path_str, 3).unwrap();
+        assert!(!db.contains_vector(1));
+
+        db.bulk_add_vectors_unsaved(vec![1], &[vec![1.0, 0.0, 0.0]])
+            .unwrap();
+        db.save().unwrap();
+        drop(db);
+
+        let db = VectorDB::new(path_str, 3).unwrap();
+        assert!(db.contains_vector(1));
+    }
 
     #[test]
     fn bulk_search_keys_preserves_contained_key_order_and_result_alignment() {

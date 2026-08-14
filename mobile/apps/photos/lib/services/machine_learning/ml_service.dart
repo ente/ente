@@ -375,6 +375,7 @@ class MLService {
       if (!_canRunMLFunction(function: "AllML") && !force) return;
       if (!force && !computeController.requestCompute(ml: true)) return;
       _isRunningML = true;
+      await mlDataDB.reconcileClipVectorDbOnce();
       await sync();
       if (_hasModeChanged(mode)) {
         _logger.info("App mode changed during ML run, stopping");
@@ -425,6 +426,8 @@ class MLService {
     } finally {
       _logger.info("ML finished running");
       _isRunningML = false;
+      await MLDataDB.instance.flushClipVectorDB();
+      await MLDataDB.localGalleryInstance.flushClipVectorDB();
       computeController.releaseCompute(ml: true);
       if (!isProcessBg) {
         VideoPreviewService.instance.queueFiles();

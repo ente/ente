@@ -40,6 +40,11 @@ class ClipVectorDB {
   Future<void>? _warmupFuture;
   final Lock _writeLock = Lock();
 
+  static const int _maxUnsavedVectors = 5000;
+  static const Duration _maxUnsavedDuration = Duration(seconds: 30);
+  int _unsavedVectorCount = 0;
+  final Stopwatch _unsavedWatch = Stopwatch();
+
   Future<VectorDb> get _vectorDB async {
     _vectorDbFuture ??= _initVectorDB();
     return _vectorDbFuture!;
@@ -121,14 +126,10 @@ class ClipVectorDB {
     required int fileID,
     required List<double> embedding,
   }) async {
-    try {
-      await _runWriteOperation((db) async {
-        await db.addVector(key: BigInt.from(fileID), vector: embedding);
-      });
-    } catch (e, s) {
-      _logger.severe("Error inserting embedding", e, s);
-      rethrow;
-    }
+    await bulkInsertEmbeddings(
+      fileIDs: [fileID],
+      embeddings: [Float32List.fromList(embedding)],
+    );
   }
 
   Future<void> bulkInsertEmbeddings({
@@ -141,12 +142,42 @@ class ClipVectorDB {
     final bigKeys = Uint64List.fromList(fileIDs);
     try {
       await _runWriteOperation((db) async {
-        await db.bulkAddVectors(keys: bigKeys, vectors: embeddings);
+        await db.bulkAddVectorsUnsaved(keys: bigKeys, vectors: embeddings);
+        _unsavedVectorCount += fileIDs.length;
+        if (!_unsavedWatch.isRunning) {
+          _unsavedWatch.start();
+        }
+        if (_unsavedVectorCount >= _maxUnsavedVectors ||
+            _unsavedWatch.elapsed >= _maxUnsavedDuration) {
+          await db.save();
+          _resetUnsavedState();
+        }
       });
     } catch (e, s) {
       _logger.severe("Error bulk inserting embeddings", e, s);
       rethrow;
     }
+  }
+
+  Future<void> flush() async {
+    try {
+      await _writeLock.synchronized(() async {
+        if (_unsavedVectorCount == 0) return;
+        final db = await _vectorDB;
+        await db.save();
+        _resetUnsavedState();
+      });
+    } catch (e, s) {
+      _logger.severe("Error flushing unsaved embeddings", e, s);
+      rethrow;
+    }
+  }
+
+  void _resetUnsavedState() {
+    _unsavedVectorCount = 0;
+    _unsavedWatch
+      ..stop()
+      ..reset();
   }
 
   Future<List<EmbeddingVector>> getEmbeddings(List<int> fileIDs) async {
@@ -175,6 +206,7 @@ class ClipVectorDB {
         deletedCount = await db.bulkRemoveVectors(
           keys: Uint64List.fromList(fileIDs),
         );
+        _resetUnsavedState();
       });
       _logger.info(
         "Deleted $deletedCount embeddings, from ${fileIDs.length} keys",
@@ -190,6 +222,7 @@ class ClipVectorDB {
     try {
       await _runWriteOperation((db) async {
         await db.resetIndex();
+        _resetUnsavedState();
       });
     } catch (e, s) {
       _logger.severe("Error deleting all embeddings", e, s);
@@ -414,6 +447,7 @@ class ClipVectorDB {
         await db.deleteIndex();
         _vectorDbFuture = null;
         _warmupFuture = null;
+        _resetUnsavedState();
       });
     } catch (e, s) {
       _logger.severe("Error deleting index", e, s);
@@ -434,6 +468,7 @@ class ClipVectorDB {
         _logger.info("Deleted index file on disk");
         _vectorDbFuture = null;
         _warmupFuture = null;
+        _resetUnsavedState();
         await invalidateMigrationState();
       } catch (e, s) {
         _logger.severe("Error deleting index file on disk", e, s);

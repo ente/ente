@@ -48,6 +48,7 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   final Lock _clipVectorRecoveryLock = Lock();
   final Lock _clipVectorMigrationLock = Lock();
   bool _clipVectorDbRecoveryRequested = false;
+  Future<void>? _clipVectorReconcileFuture;
   Future<void>? _clusterCentroidVectorDbRecoveryFuture;
   final Lock _clusterCentroidVectorRecoveryLock = Lock();
   final Lock _clusterCentroidVectorMigrationLock = Lock();
@@ -2210,6 +2211,7 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
         _logger.info(
           "migrated all vectorizable clip embeddings from $totalCount SQLite rows to ClipVectorDB in ${stopwatch.elapsed.inMilliseconds} ms; skipped $emptyCount empty and $malformedCount malformed embeddings",
         );
+        await _clipVectorDB.flush();
         await _clipVectorDB.setMigrationDone();
         _logger.info("ClipVectorDB migration done");
         try {
@@ -2244,6 +2246,37 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
         computeController.unblockCompute(blocker: migrationKey);
       }
     });
+  }
+
+  Future<void> flushClipVectorDB() {
+    return _withClipVectorWriteRecovery(
+      operation: "flushClipVectorDB",
+      writeOperation: () => _clipVectorDB.flush(),
+    ).catchError((Object _) {});
+  }
+
+  Future<void> reconcileClipVectorDbOnce() {
+    return _clipVectorReconcileFuture ??= _reconcileClipVectorDb();
+  }
+
+  Future<void> _reconcileClipVectorDb() async {
+    if (!flagService.enableVectorDb) return;
+    if (!await _clipVectorDB.checkIfMigrationDone()) return;
+    try {
+      final int sqliteCount = await getClipVectorizableFileCount(
+        minimumMlVersion: 0,
+      );
+      final vectorStats = await _clipVectorDB.getIndexStats();
+      if (vectorStats.size == sqliteCount) return;
+      _logger.warning(
+        "ClipVectorDB out of sync with SQLite (index: ${vectorStats.size}, "
+        "sqlite: $sqliteCount), scheduling rebuild",
+      );
+      await _clipVectorDB.invalidateMigrationState();
+      unawaited(_scheduleClipVectorDbRecovery());
+    } catch (e, s) {
+      _logger.warning("ClipVectorDB reconciliation check failed", e, s);
+    }
   }
 
   Future<void> _withClipVectorWriteRecovery({

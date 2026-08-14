@@ -152,8 +152,8 @@ class FileDataService {
         await _prefs.setInt("fd.lastSyncTime", maxUpdatedAt);
         _logger.info('found ${result.length} fd entries');
         hasMoreData = result.isNotEmpty;
-        previewIds = await MLDataDB.instance.getFileIDsVidPreview();
       } while (hasMoreData);
+      previewIds = await MLDataDB.instance.getFileIDsVidPreview();
     } catch (e) {
       if (previewIds.isEmpty) {
         previewIds = await MLDataDB.instance.getFileIDsVidPreview();

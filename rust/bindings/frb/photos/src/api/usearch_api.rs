@@ -278,6 +278,18 @@ impl VectorDB {
         self.inner.bulk_add_vectors(keys, vectors)
     }
 
+    pub fn bulk_add_vectors_unsaved(
+        &mut self,
+        keys: Vec<u64>,
+        vectors: &[Vec<f32>],
+    ) -> Result<(), String> {
+        self.inner.bulk_add_vectors_unsaved(keys, vectors)
+    }
+
+    pub fn save(&self) -> Result<(), String> {
+        self.inner.save()
+    }
+
     pub fn search_vectors(
         &self,
         query: &[f32],

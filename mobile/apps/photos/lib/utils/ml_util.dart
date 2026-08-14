@@ -464,6 +464,7 @@ Future<RemoteMLHydrationSummary> hydrateOwnedRemoteMLData({
   required MLDataDB mlDataDB,
   int? skipHydrationIfCandidateFileCountAtMost,
 }) async {
+  await mlDataDB.reconcileClipVectorDbOnce();
   final candidateSplit = await _getOnlineFilesForMlIndexingCandidates();
   final ownedCandidates = candidateSplit.matched.where((instruction) {
     return instruction.file.isOwner &&
@@ -505,6 +506,7 @@ Future<RemoteMLHydrationSummary> hydrateOwnedRemoteMLData({
         pendingAfterHydration.where((i) => i.shouldRunClip).length;
     remainingLocalMl += pendingAfterHydration.length;
   }
+  await mlDataDB.flushClipVectorDB();
 
   return RemoteMLHydrationSummary(
     candidateFiles: ownedCandidates.length,
