@@ -307,12 +307,12 @@ cargo codegen native
 Then, for example, to run the Ensu Android app:
 
 ```sh
-cd mobile/native/android/apps/ensu
+cd android/apps/ensu
 ./gradlew :app:installDebug
 adb shell am start -n io.ente.ensu.debug/io.ente.ensu.MainActivity
 ```
 
-Or, if you have Android Studio, you can just open `mobile/native/android/apps/ensu` and run. Same goes for opening `mobile/native/apple/apps/ensu` in Xcode and running.
+Or, if you have Android Studio, you can just open `android/apps/ensu` and run. Same goes for opening `apple/apps/ensu` in Xcode and running.
 
 ## That's all folks.
 

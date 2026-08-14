@@ -1,4 +1,4 @@
-use ente_photos::ml::{
+use ente_ml::{
     ModelPaths as SharedModelPaths, assets, error::MlError, indexing as shared_indexing,
     types as shared_types,
 };

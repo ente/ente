@@ -157,6 +157,10 @@ export const GalleryBarAndListHeader: React.FC<
         return !!group && !isSaveComplete(group) && !isSaveCancelled(group);
     }, [saveGroups, activeCollectionID]);
 
+    const albumDescription =
+        activeCollection?.pubMagicMetadata?.data.caption?.trim();
+    const [descriptionHeight, setDescriptionHeight] = useState(0);
+
     useEffect(() => {
         if (shouldHide) return;
 
@@ -187,6 +191,7 @@ export const GalleryBarAndListHeader: React.FC<
                     onCollectionCast={showCollectionCast}
                     onEditAlbumDetails={onEditAlbumDetails}
                     hasActiveFileSelection={hasActiveFileSelection}
+                    onDescriptionHeightChange={setDescriptionHeight}
                 />
             ) : mode != "people" && collectionSummary ? (
                 <GalleryItemsHeaderAdapter>
@@ -203,7 +208,7 @@ export const GalleryBarAndListHeader: React.FC<
             ) : (
                 <></>
             ),
-            height: 68,
+            height: 68 + (albumDescription ? descriptionHeight : 0),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -223,6 +228,8 @@ export const GalleryBarAndListHeader: React.FC<
         onAddSaveGroup,
         onShowMap,
         onEditAlbumDetails,
+        albumDescription,
+        descriptionHeight,
         // TODO: Cluster
         // This causes a loop since it is an array dep
         // people,

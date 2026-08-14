@@ -1,6 +1,0 @@
-# Copy to key.properties and fill in values.
-# Use an absolute or relative path from mobile/native/android/apps/ensu
-storeFile=../ensu-release.keystore
-storePassword=YOUR_STORE_PASSWORD
-keyAlias=ensu
-keyPassword=YOUR_KEY_PASSWORD

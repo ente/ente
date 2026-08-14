@@ -2496,20 +2496,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ente-paste"
-version = "0.0.0"
-dependencies = [
- "ente-core",
- "mockito",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "url",
-]
-
-[[package]]
-name = "ente-photos"
+name = "ente-ml"
 version = "0.0.0"
 dependencies = [
  "anyhow",
@@ -2527,7 +2514,6 @@ dependencies = [
  "once_cell",
  "ort",
  "plsfix",
- "quick-xml",
  "rayon",
  "regex",
  "serde",
@@ -2538,6 +2524,27 @@ dependencies = [
  "tokio",
  "url",
  "usearch",
+]
+
+[[package]]
+name = "ente-paste"
+version = "0.0.0"
+dependencies = [
+ "ente-core",
+ "mockito",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "ente-photos"
+version = "0.0.0"
+dependencies = [
+ "quick-xml",
+ "tempfile",
 ]
 
 [[package]]
@@ -2666,7 +2673,7 @@ version = "0.0.0"
 dependencies = [
  "ente-assets",
  "ente-frb-log",
- "ente-photos",
+ "ente-ml",
  "flutter_rust_bridge",
 ]
 
@@ -2675,7 +2682,7 @@ name = "ente_photos_napi"
 version = "0.0.0"
 dependencies = [
  "ente-assets",
- "ente-photos",
+ "ente-ml",
  "log",
  "napi",
  "napi-build",
@@ -2690,6 +2697,7 @@ dependencies = [
  "ente-cast",
  "ente-frb-log",
  "ente-image",
+ "ente-ml",
  "ente-photos",
  "flutter_rust_bridge",
 ]

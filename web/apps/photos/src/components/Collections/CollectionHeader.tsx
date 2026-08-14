@@ -86,12 +86,16 @@ export interface CollectionHeaderProps {
     hasActiveFileSelection: boolean;
     onAddSaveGroup: AddSaveGroup;
     onShowMap: () => void;
+    onDescriptionHeightChange?: (height: number) => void;
 }
 
 export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
-    const { collectionSummary } = props;
+    const { activeCollection, collectionSummary, onDescriptionHeightChange } =
+        props;
 
     const { name, type, attributes, fileCount } = collectionSummary;
+    const description =
+        activeCollection?.pubMagicMetadata?.data.caption?.trim();
 
     const EndIcon = () => {
         if (attributes.has("archived")) return <ArchiveOutlinedIcon />;
@@ -112,8 +116,11 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
             <SpacedRow>
                 <GalleryItemsSummary
                     name={name}
+                    description={description}
+                    descriptionMaxWidth={480}
                     fileCount={fileCount}
                     endIcon={<EndIcon />}
+                    onDescriptionHeightChange={onDescriptionHeightChange}
                 />
                 {shouldShowOptions(type) && (
                     <CollectionHeaderOptions {...props} />

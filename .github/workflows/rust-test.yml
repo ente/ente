@@ -52,7 +52,7 @@ jobs:
                   save-if: false
                   cache-directories: rust/.cache
 
-            - run: cargo test --locked --features museum,ente-photos/ml-assets
+            - run: cargo test --locked --features museum,ente-ml/ml-assets
               # postgresql_embedded downloads its binaries from GitHub.
               # GITHUB_TOKEN raises the API rate limit for those downloads.
               env:

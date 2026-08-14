@@ -2,7 +2,7 @@
 
 This directory contains the ML indexing parity framework for desktop, Android, iOS, and Python ground truth.
 
-The desktop runner smoke-tests the desktop-specific N-API bindings and pinned ONNX Runtime library. Deep validation of the shared Rust pipeline lives in the `ente-photos` crate's `ml_indexing` integration test.
+The desktop runner smoke-tests the desktop-specific N-API bindings and pinned ONNX Runtime library. Deep validation of the shared Rust pipeline lives in the `ente-ml` crate's `ml_indexing` integration test.
 
 ## Layout
 
@@ -49,14 +49,14 @@ Optional mobile reuse env vars:
 
 ## Rust ML Indexing Cargo Test
 
-The Rust-only ML indexing test lives at `rust/crates/photos/tests/ml_indexing.rs`.
-It is gated by the `ente-photos/ml-assets` Cargo feature so ordinary local
+The Rust-only ML indexing test lives at `rust/crates/ml/tests/ml_indexing.rs`.
+It is gated by the `ente-ml/ml-assets` Cargo feature so ordinary local
 `cargo test --workspace` runs do not download ML assets or execute indexing.
 
 From `rust/`:
 
 ```sh
-cargo test -p ente-photos --test ml_indexing --features ml-assets -- --nocapture
+cargo test -p ente-ml --test ml_indexing --features ml-assets -- --nocapture
 ```
 
 By default the test downloads the external fixture manifest, fixture images,

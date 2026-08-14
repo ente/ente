@@ -2,8 +2,11 @@ import {
     MenuItem,
     Select,
     type SelectChangeEvent,
+    type SxProps,
+    type Theme,
     Typography,
 } from "@mui/material";
+import { isSxArray } from "ente-base/components/utils/sx";
 
 export interface DropdownOption<T> {
     label: string;
@@ -15,6 +18,7 @@ interface DropdownInputProps<T> {
     selected: T | undefined;
     onSelect: (selectedValue: T) => void;
     placeholder?: string;
+    sx?: SxProps<Theme>;
 }
 
 export const DropdownInput = <T extends string>({
@@ -22,6 +26,7 @@ export const DropdownInput = <T extends string>({
     selected,
     onSelect,
     placeholder,
+    sx,
 }: DropdownInputProps<T>) => (
     <Select
         value={selected}
@@ -58,10 +63,15 @@ export const DropdownInput = <T extends string>({
                 },
             },
         }}
-        sx={{
-            ".MuiOutlinedInput-notchedOutline": { borderColor: "transparent" },
-            ".MuiSelect-select": { backgroundColor: "fill.faint" },
-        }}
+        sx={[
+            {
+                ".MuiOutlinedInput-notchedOutline": {
+                    borderColor: "transparent",
+                },
+                ".MuiSelect-select": { backgroundColor: "fill.faint" },
+            },
+            ...(sx ? (isSxArray(sx) ? sx : [sx]) : []),
+        ]}
     >
         {options.map(({ value, label }) => (
             <MenuItem key={value} value={value}>

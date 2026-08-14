@@ -306,7 +306,7 @@ jobs:
 
         defaults:
             run:
-                working-directory: mobile/native/android/apps/ensu
+                working-directory: android/apps/ensu
 
         steps:
             - name: Checkout
@@ -383,7 +383,7 @@ jobs:
                   tag: ${{ env.RELEASE_TAG }}
                   name: ${{ env.RELEASE_TAG }}
                   body: ${{ env.RELEASE_BODY }}
-                  artifacts: mobile/native/android/apps/ensu/artifacts/${{ env.ANDROID_APK_NAME }}
+                  artifacts: android/apps/ensu/artifacts/${{ env.ANDROID_APK_NAME }}
                   prerelease: true
                   makeLatest: false
                   allowUpdates: true
@@ -397,7 +397,7 @@ jobs:
                   name: ${{ env.RELEASE_TAG }}
                   body: ${{ env.RELEASE_BODY }}
                   commit: ${{ env.COMMIT_SHA }}
-                  artifacts: mobile/native/android/apps/ensu/artifacts/${{ env.ANDROID_APK_NAME }}
+                  artifacts: android/apps/ensu/artifacts/${{ env.ANDROID_APK_NAME }}
                   draft: true
                   allowUpdates: true
                   updateOnlyUnreleased: true
@@ -407,9 +407,9 @@ jobs:
               with:
                   serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
                   packageName: io.ente.ensu
-                  releaseFiles: mobile/native/android/apps/ensu/app/build/outputs/bundle/release/app-release.aab
+                  releaseFiles: android/apps/ensu/app/build/outputs/bundle/release/app-release.aab
                   tracks: internal
-                  whatsNewDirectory: mobile/native/android/apps/ensu/whatsnew
+                  whatsNewDirectory: android/apps/ensu/whatsnew
 
     build-ios:
         needs: build-metadata
@@ -420,7 +420,7 @@ jobs:
 
         defaults:
             run:
-                working-directory: mobile/native/apple/apps/ensu
+                working-directory: apple/apps/ensu
 
         steps:
             - name: Checkout

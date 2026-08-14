@@ -9,7 +9,8 @@ crate-type = ["cdylib", "staticlib"]
 ente-cast.workspace = true
 ente-frb-log.workspace = true
 ente-image.workspace = true
-ente-photos = { workspace = true, features = ["usearch"] }
+ente-ml = { workspace = true, features = ["usearch"] }
+ente-photos.workspace = true
 flutter_rust_bridge.workspace = true
 
 [lints.rust]

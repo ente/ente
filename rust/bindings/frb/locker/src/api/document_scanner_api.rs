@@ -2,7 +2,7 @@ use std::any::Any;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use ente_assets::AssetStore;
-use ente_photos::ml::document_scan;
+use ente_ml::document_scan;
 use flutter_rust_bridge::frb;
 
 #[frb(sync)]

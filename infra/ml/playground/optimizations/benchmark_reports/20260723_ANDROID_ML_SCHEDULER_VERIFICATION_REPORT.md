@@ -142,7 +142,7 @@ Ranked by expected value for production Android indexing:
    with the per-image target duration; this is the sanctioned mechanism for
    exactly this bursty-workload/DVFS problem and replaces any affinity hack.
 4. **Drop the `rayon` feature from `fast_image_resize` in
-   `rust/crates/photos`** (keep `heic_decoder`'s own rayon parallelism for
+   `rust/crates/ml`** (keep `heic_decoder`'s own rayon parallelism for
    decode). The resize fan-out never pays for itself — B was net *faster*
    on pre-processing without it — and it stops paying the 2-5 ms barrier
    per dispatch. Small, safe, immediate.

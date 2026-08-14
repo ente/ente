@@ -1,0 +1,1 @@
+- Improved the account deletion flow with clearer steps and a summary of the data that will be deleted.

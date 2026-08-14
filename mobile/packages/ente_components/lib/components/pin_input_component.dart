@@ -345,7 +345,7 @@ class _PinInputBox extends StatelessWidget {
     }
     if (obscureText && obscuringCharacter == '•') {
       return Container(
-        key: ValueKey(character),
+        key: ValueKey(obscuringCharacter),
         width: 8,
         height: 8,
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
@@ -353,7 +353,7 @@ class _PinInputBox extends StatelessWidget {
     }
     return Text(
       obscureText ? obscuringCharacter : character!,
-      key: ValueKey(character),
+      key: ValueKey(obscureText ? obscuringCharacter : character),
       style: TextStyles.h1.copyWith(color: color),
     );
   }
