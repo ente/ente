@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.14)
 set(PROJECT_NAME "ente_locker_rust")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
-include("../cargokit/cmake/cargokit.cmake")
+include("../../../photos/rust_builder/cargokit/cmake/cargokit.cmake")
 apply_cargokit(${PROJECT_NAME} ../../../../../../../../../rust/bindings/frb/locker ente_locker_rust "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.

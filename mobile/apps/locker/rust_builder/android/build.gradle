@@ -49,7 +49,7 @@ android {
     }
 }
 
-apply from: "../cargokit/gradle/plugin.gradle"
+apply from: "../../../photos/rust_builder/cargokit/gradle/plugin.gradle"
 cargokit {
     manifestDir = "../../../../../rust/bindings/frb/locker"
     libname = "ente_locker_rust"

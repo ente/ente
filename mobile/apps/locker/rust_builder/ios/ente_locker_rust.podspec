@@ -47,7 +47,7 @@ A new Flutter FFI plugin project.
         exit 1
       fi
       unset ORT_IOS_XCFWK_PATH ORT_IOS_XCFWK_LOCATION
-      sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/locker ente_locker_rust
+      sh "$(cd -P "$PODS_TARGET_SRCROOT" && pwd)/../../../photos/rust_builder/cargokit/build_pod.sh" ../../../../../rust/bindings/frb/locker ente_locker_rust
     SCRIPT
     :execution_position => :before_compile,
     :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
