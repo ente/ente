@@ -7,10 +7,11 @@ import {
 } from "electron";
 import { allowWindowClose } from "../main";
 import { forceCheckForAppUpdates } from "./services/app-update";
-import { setShouldHideDockIcon, shouldHideDockIcon } from "./services/store";
+import { setShouldHideDockIcon, shouldHideDockIcon, shouldDisableAutoUpdate, setDisableAutoUpdate } from "./services/store";
 
 export const createApplicationMenu = (mainWindow: BrowserWindow) => {
     let hideDockIcon = shouldHideDockIcon();
+    let disableAutoUpdate = shouldDisableAutoUpdate();
 
     const macOSOnly = (options: MenuItemConstructorOptions[]) =>
         process.platform == "darwin" ? options : [];
@@ -20,6 +21,11 @@ export const createApplicationMenu = (mainWindow: BrowserWindow) => {
     const toggleHideDockIcon = () => {
         setShouldHideDockIcon(!hideDockIcon);
         hideDockIcon = !hideDockIcon;
+    };
+
+    const toggleDisableAutoUpdate = () => {
+        setDisableAutoUpdate(!disableAutoUpdate);
+        disableAutoUpdate = !disableAutoUpdate;
     };
 
     const handleHelp = () =>
@@ -32,6 +38,12 @@ export const createApplicationMenu = (mainWindow: BrowserWindow) => {
                 ...macOSOnly([{ label: "About Ente", role: "about" }]),
                 { type: "separator" },
                 { label: "Check for Updates...", click: handleCheckForUpdates },
+                {
+                    label: "Disable Auto Update",
+                    type: "checkbox",
+                    checked: disableAutoUpdate,
+                    click: toggleDisableAutoUpdate,
+                },
                 { type: "separator" },
 
                 ...macOSOnly([

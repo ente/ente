@@ -2,6 +2,7 @@ import { compareVersions } from "compare-versions";
 import { default as electronLog } from "electron-log";
 import { autoUpdater } from "electron-updater";
 import { app, BrowserWindow } from "electron/main";
+import { spawnSync } from "node:child_process";
 import { allowWindowClose } from "../../main";
 import { AppUpdate } from "../../types/ipc";
 import log from "../log";
@@ -24,7 +25,41 @@ export const setupAutoUpdater = (mainWindow: BrowserWindow) => {
     void checkForUpdatesAndNotify(mainWindow);
 };
 
+const hasLinuxPackageManagerInstalled = (): boolean => {
+    if (process.platform !== "linux") return false;
+    try {
+        // Check if AUR package is installed (aur/ente-desktop-bin or aur/ente-desktop-git)
+        const aurResult = spawnSync(
+            "sh",
+            ["-c", "pacman -Qe | grep -F 'ente-desktop'"],
+            { encoding: "utf8" }
+        );
+        if (aurResult.status === 0) return true;
+      
+        // Check if Nix package is installed (nixpkgs/ente-desktop)
+        const nixEnvResult = spawnSync(
+            "nix-env",
+            ["-q", "--installed", "ente-desktop"],
+            { encoding: "utf8" }
+        );
+        if (nixEnvResult.status === 0) return true;
+        const nixFlakeResult = spawnSync(
+            "sh",
+            ["-c", "nix profile list | grep -F 'ente-desktop'"],
+            { encoding: "utf8" }
+        );
+        if (nixFlakeResult.status === 0) return true;
+      
+        return false;
+    } catch {
+        return false;
+    }
+  
+};
+
 export const forceCheckForAppUpdates = (mainWindow: BrowserWindow) => {
+    if (userPreferences.get("disableAutoUpdate") || hasLinuxPackageManagerInstalled())
+        return;
     userPreferences.delete("skipAppVersion");
     userPreferences.delete("muteUpdateNotificationVersion");
     void checkForUpdatesAndNotify(mainWindow, { notifyImmediately: true });
@@ -80,7 +115,7 @@ const checkForUpdatesAndNotify = async (
         );
     });
 
-    autoUpdater.on("error", (error) => {
+    autoUpdater.on("error", (error: Error) => {
         clearTimeout(timeout);
         log.error("Auto update failed", error);
         showUpdateDialog({ autoUpdatable: false, version });
