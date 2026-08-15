@@ -27,15 +27,18 @@ class SaveOption {
   final String description;
 }
 
+const bool docScannerEnabled = false;
+
 List<SaveOption> saveOptions(BuildContext context) {
   final l10n = context.strings;
   return [
-    SaveOption(
-      type: SaveOptionType.scanDocument,
-      icon: HugeIcons.strokeRoundedFileScan,
-      title: l10n.scanDocumentTitle,
-      description: l10n.scanDocumentDescription,
-    ),
+    if (docScannerEnabled)
+      SaveOption(
+        type: SaveOptionType.scanDocument,
+        icon: HugeIcons.strokeRoundedFileScan,
+        title: l10n.scanDocumentTitle,
+        description: l10n.scanDocumentDescription,
+      ),
     SaveOption(
       type: SaveOptionType.file,
       icon: HugeIcons.strokeRoundedFile01,
