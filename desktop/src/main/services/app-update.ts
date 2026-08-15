@@ -9,22 +9,6 @@ import log from "../log";
 import { userPreferences } from "../stores/user-preferences";
 import { isDev } from "../utils/electron";
 
-export const setupAutoUpdater = (mainWindow: BrowserWindow) => {
-    autoUpdater.logger = electronLog;
-    autoUpdater.autoDownload = false;
-    autoUpdater.disableWebInstaller = true;
-    // Differential downloads currently break some Windows NSIS updates.
-    // https://github.com/electron-userland/electron-builder/issues/9181
-    autoUpdater.disableDifferentialDownload = true;
-    // Dev builds use dev-app-update.yml for manual checks, but never poll.
-    autoUpdater.forceDevUpdateConfig = isDev;
-    if (isDev) return;
-
-    const oneDay = 1 * 24 * 60 * 60 * 1000;
-    setInterval(() => void checkForUpdatesAndNotify(mainWindow), oneDay);
-    void checkForUpdatesAndNotify(mainWindow);
-};
-
 const hasLinuxPackageManagerInstalled = (): boolean => {
     if (process.platform !== "linux") return false;
     try {
@@ -54,12 +38,31 @@ const hasLinuxPackageManagerInstalled = (): boolean => {
     } catch {
         return false;
     }
-  
+};
+
+const shouldNotUpdate = (): boolean => {
+  return (userPreferences.get("disableAutoUpdate") || hasLinuxPackageManagerInstalled());
+};
+
+export const setupAutoUpdater = (mainWindow: BrowserWindow) => {
+    if (shouldNotUpdate()) return;
+    autoUpdater.logger = electronLog;
+    autoUpdater.autoDownload = false;
+    autoUpdater.disableWebInstaller = true;
+    // Differential downloads currently break some Windows NSIS updates.
+    // https://github.com/electron-userland/electron-builder/issues/9181
+    autoUpdater.disableDifferentialDownload = true;
+    // Dev builds use dev-app-update.yml for manual checks, but never poll.
+    autoUpdater.forceDevUpdateConfig = isDev;
+    if (isDev) return;
+
+    const oneDay = 1 * 24 * 60 * 60 * 1000;
+    setInterval(() => void checkForUpdatesAndNotify(mainWindow), oneDay);
+    void checkForUpdatesAndNotify(mainWindow);
 };
 
 export const forceCheckForAppUpdates = (mainWindow: BrowserWindow) => {
-    if (userPreferences.get("disableAutoUpdate") || hasLinuxPackageManagerInstalled())
-        return;
+    if (shouldNotUpdate()) return;
     userPreferences.delete("skipAppVersion");
     userPreferences.delete("muteUpdateNotificationVersion");
     void checkForUpdatesAndNotify(mainWindow, { notifyImmediately: true });
@@ -73,6 +76,7 @@ const checkForUpdatesAndNotify = async (
     mainWindow: BrowserWindow,
     opts?: CheckForUpdatesAndNotifyOpts,
 ) => {
+    if (shouldNotUpdate()) return;
     const updateCheckResult = await autoUpdater.checkForUpdates();
     if (!updateCheckResult) {
         log.error("Failed to check for updates");
