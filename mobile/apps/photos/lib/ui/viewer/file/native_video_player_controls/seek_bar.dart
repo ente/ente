@@ -28,6 +28,10 @@ class NativeVideoProgressControls extends StatefulWidget {
 class _NativeVideoProgressControlsState
     extends State<NativeVideoProgressControls>
     with SingleTickerProviderStateMixin {
+  static const _seekReleaseDelay = Duration(milliseconds: 500);
+  static const _staleEventWindow = Duration(milliseconds: 1000);
+  static const _staleDeltaThreshold = Duration(milliseconds: 1500);
+
   late final AnimationController _animationController;
   int _elapsedMilliseconds = 0;
   final _debouncer = Debouncer(
@@ -107,7 +111,11 @@ class _NativeVideoProgressControlsState
               _elapsedMilliseconds = _positionInMilliseconds(value) ?? 0;
               _animationController.value = value;
               _seekTo(value);
-              widget.isSeeking.value = false;
+              Future.delayed(_seekReleaseDelay, () {
+                if (mounted) {
+                  widget.isSeeking.value = false;
+                }
+              });
             },
             allowedInteraction: SliderInteraction.tapAndSlide,
           ),
@@ -123,11 +131,14 @@ class _NativeVideoProgressControlsState
     );
   }
 
+  DateTime? _lastSeekTime;
+
   void _seekTo(double value) {
     _debouncer.run(() async {
       final position = _positionInMilliseconds(value);
       if (position == null) return;
-      unawaited(widget.controller.seekTo(Duration(milliseconds: position)));
+      _lastSeekTime = DateTime.now();
+      await widget.controller.seekTo(Duration(milliseconds: position));
     });
   }
 
@@ -169,12 +180,20 @@ class _NativeVideoProgressControlsState
   }
 
   void _onPlaybackPositionChanged() async {
+    if (widget.isSeeking.value) return;
+
+    final target = widget.controller.playbackPosition.inMilliseconds;
+    final duration = widget.controller.videoInfo?.durationInMilliseconds;
+
     if (widget.controller.playbackStatus == PlaybackStatus.paused ||
         (widget.controller.playbackStatus == PlaybackStatus.stopped &&
             widget.controller.playbackPosition.inSeconds != 0)) {
+      if (duration != null && duration > 0) {
+        _elapsedMilliseconds = target;
+        _animationController.value = (target / duration).clamp(0.0, 1.0);
+      }
       return;
     }
-    final target = widget.controller.playbackPosition.inMilliseconds;
 
     // The position event after zero arrives about 350 ms late.
     if (target == 0) {
@@ -184,13 +203,29 @@ class _NativeVideoProgressControlsState
       return;
     }
 
+    if (_lastSeekTime != null &&
+        DateTime.now().difference(_lastSeekTime!).inMilliseconds <
+            _staleEventWindow.inMilliseconds) {
+      if ((target - _elapsedMilliseconds).abs() >
+          _staleDeltaThreshold.inMilliseconds) {
+        return;
+      }
+    }
+
+    final previousMilliseconds = _elapsedMilliseconds;
     _elapsedMilliseconds = target;
-    final duration = widget.controller.videoInfo?.durationInMilliseconds;
+
     final double fractionTarget = duration == null || duration <= 0
         ? 0
         : target / duration;
 
     final nudge = _durationNudge();
+
+    if ((target - previousMilliseconds).abs() >
+        _staleDeltaThreshold.inMilliseconds) {
+      _animationController.value = fractionTarget.clamp(0.0, 1.0);
+    }
+
     unawaited(
       _animationController.animateTo(
         (fractionTarget + nudge).clamp(0.0, 1.0),

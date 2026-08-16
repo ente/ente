@@ -34,6 +34,7 @@ import "package:photos/ui/viewer/file/native_video_player_controls/play_pause_bu
 import "package:photos/ui/viewer/file/native_video_player_controls/seek_bar.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
+import "package:photos/ui/viewer/file/video_double_tap_seek.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/zoomable_video_viewer.dart";
 import "package:photos/utils/dialog_util.dart";
@@ -356,9 +357,20 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                     widget.file.caption?.isNotEmpty ?? false,
                               ),
                             ),
-                          GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-                            onTap: widget.isFromMemories
+                          DoubleTapSeekOverlay(
+                            enabled: () => !widget.isFromMemories,
+                            position: () =>
+                                _controller?.playbackPosition ?? Duration.zero,
+                            duration: () => Duration(
+                              milliseconds:
+                                  _controller
+                                      ?.videoInfo
+                                      ?.durationInMilliseconds ??
+                                  0,
+                            ),
+                            seekTo: (duration) => _controller?.seekTo(duration),
+                            onSeekInteraction: () => _showControls.value = true,
+                            onSingleTap: widget.isFromMemories
                                 ? null
                                 : () {
                                     _showControls.value = !_showControls.value;
@@ -369,27 +381,24 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                       );
                                     }
                                   },
-                            onLongPress: () {
-                              if (widget.isFromMemories) {
-                                widget.playbackCallback?.call(
-                                  false,
-                                  FullScreenRequestReason.userInteraction,
-                                );
-                                _controller?.pause();
-                              }
-                            },
-                            onLongPressUp: () {
-                              if (widget.isFromMemories) {
-                                widget.playbackCallback?.call(
-                                  true,
-                                  FullScreenRequestReason.userInteraction,
-                                );
-                                _controller?.play();
-                              }
-                            },
-                            child: Container(
-                              constraints: const BoxConstraints.expand(),
-                            ),
+                            onLongPress: widget.isFromMemories
+                                ? () {
+                                    widget.playbackCallback?.call(
+                                      false,
+                                      FullScreenRequestReason.userInteraction,
+                                    );
+                                    _controller?.pause();
+                                  }
+                                : null,
+                            onLongPressUp: widget.isFromMemories
+                                ? () {
+                                    widget.playbackCallback?.call(
+                                      true,
+                                      FullScreenRequestReason.userInteraction,
+                                    );
+                                    _controller?.play();
+                                  }
+                                : null,
                           ),
                           if (!widget.isFromMemories && isPlaybackReady)
                             Positioned.fill(

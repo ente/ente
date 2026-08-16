@@ -9,6 +9,7 @@ import "package:photos/models/file/file.dart";
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
+import "package:photos/ui/viewer/file/video_double_tap_seek.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/zoomable_video_viewer.dart";
 
@@ -107,6 +108,46 @@ class _VideoWidgetState extends State<VideoWidget> {
                 child: videoWidget,
               )
             : videoWidget,
+        DoubleTapSeekOverlay(
+          enabled: () => !widget.isFromMemories,
+          position: () => widget.controller.player.state.position,
+          duration: () => widget.controller.player.state.duration,
+          seekTo: (duration) => widget.controller.player.seek(duration),
+          onSeekInteraction: () => showControlsNotifier.value = true,
+          onSingleTap: widget.isFromMemories
+              ? null
+              : () {
+                  showControlsNotifier.value = !showControlsNotifier.value;
+                  if (widget.playbackCallback != null) {
+                    widget.playbackCallback!(
+                      !showControlsNotifier.value,
+                      FullScreenRequestReason.userInteraction,
+                    );
+                  }
+                },
+          onLongPress: widget.isFromMemories
+              ? () {
+                  widget.playbackCallback?.call(
+                    false,
+                    FullScreenRequestReason.userInteraction,
+                  );
+                  if (widget.controller.player.state.playing) {
+                    widget.controller.player.pause();
+                  }
+                }
+              : null,
+          onLongPressUp: widget.isFromMemories
+              ? () {
+                  widget.playbackCallback?.call(
+                    true,
+                    FullScreenRequestReason.userInteraction,
+                  );
+                  if (!widget.controller.player.state.playing) {
+                    widget.controller.player.play();
+                  }
+                }
+              : null,
+        ),
         ValueListenableBuilder(
           valueListenable: showControlsNotifier,
           builder: (context, value, _) {
@@ -121,46 +162,6 @@ class _VideoWidgetState extends State<VideoWidget> {
                     VideoBottomScrim(
                       hasCaption: widget.file.caption?.isNotEmpty ?? false,
                     ),
-                  GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: widget.isFromMemories
-                        ? null
-                        : () {
-                            showControlsNotifier.value =
-                                !showControlsNotifier.value;
-                            if (widget.playbackCallback != null) {
-                              widget.playbackCallback!(
-                                !showControlsNotifier.value,
-                                FullScreenRequestReason.userInteraction,
-                              );
-                            }
-                          },
-                    onLongPress: () {
-                      if (widget.isFromMemories) {
-                        widget.playbackCallback?.call(
-                          false,
-                          FullScreenRequestReason.userInteraction,
-                        );
-                        if (widget.controller.player.state.playing) {
-                          widget.controller.player.pause();
-                        }
-                      }
-                    },
-                    onLongPressUp: () {
-                      if (widget.isFromMemories) {
-                        widget.playbackCallback?.call(
-                          true,
-                          FullScreenRequestReason.userInteraction,
-                        );
-                        if (!widget.controller.player.state.playing) {
-                          widget.controller.player.play();
-                        }
-                      }
-                    },
-                    child: Container(
-                      constraints: const BoxConstraints.expand(),
-                    ),
-                  ),
                   widget.isFromMemories
                       ? const SizedBox.shrink()
                       : IgnorePointer(
