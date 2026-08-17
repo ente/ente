@@ -4,7 +4,7 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_screen_brightness/ente_screen_brightness.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
+import "package:flutter_svg/flutter_svg.dart";
 import "package:intl/intl.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
@@ -56,94 +56,71 @@ class _LargeBackupScreenState extends State<LargeBackupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: darkThemeData,
-      child: Builder(
-        builder: (context) {
-          final colors = context.componentColors;
-          return SettingsPageScaffold(
-            title: pendingTranslation("Backup mode"),
-            bottomNavigationBar: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  Spacing.lg,
-                  Spacing.sm,
-                  Spacing.lg,
-                  Spacing.lg,
-                ),
-                child: ButtonComponent(
-                  key: const ValueKey("start-large-backup-mode"),
-                  label: pendingTranslation("Start backup mode"),
-                  shouldSurfaceExecutionStates: false,
-                  onTap: _startStandby,
-                ),
-              ),
-            ),
-            children: [
-              const SizedBox(height: Spacing.xl),
-              Center(
-                child: SizedBox(
-                  height: 128,
-                  child: rive.RiveWidgetBuilder(
-                    fileLoader: _animationLoader,
-                    builder: (context, state) {
-                      if (state is rive.RiveLoaded) {
-                        return rive.RiveWidget(
-                          controller: state.controller,
-                          fit: rive.Fit.contain,
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: Spacing.xl),
-              Text(
-                pendingTranslation("Finish your backup"),
-                textAlign: TextAlign.center,
-                style: TextStyles.display1.copyWith(color: colors.textBase),
-              ),
-              const SizedBox(height: Spacing.md),
-              Text(
-                pendingTranslation(
-                  "Keep Ente open while your backup finishes. The screen will dim and your iPhone will stay awake.",
-                ),
-                textAlign: TextAlign.center,
-                style: TextStyles.body.copyWith(color: colors.textLight),
-              ),
-              const SizedBox(height: Spacing.xxl),
-              Text(
-                pendingTranslation("Good to know"),
-                style: TextStyles.h2.copyWith(color: colors.textBase),
-              ),
-              const SizedBox(height: Spacing.lg),
-              _InstructionItem(
-                icon: HugeIcons.strokeRoundedSmartPhone01,
-                text: pendingTranslation(
-                  "Leave Ente open. Keep your iPhone unlocked.",
-                ),
-              ),
-              const SizedBox(height: Spacing.xl),
-              _InstructionItem(
-                icon: HugeIcons.strokeRoundedMoon02,
-                text: pendingTranslation(
-                  "The screen will dim. Tap it when you want to return.",
-                ),
-              ),
-              const SizedBox(height: Spacing.xl),
-              _InstructionItem(
-                icon: HugeIcons.strokeRoundedPlug01,
-                text: pendingTranslation(
-                  "Keep your iPhone plugged in so your backup can continue.",
-                ),
-              ),
-              const SizedBox(height: Spacing.xxl),
-            ],
-          );
-        },
+    final colors = context.componentColors;
+    return SettingsPageScaffold(
+      title: pendingTranslation("Backup mode"),
+      padding: const EdgeInsets.fromLTRB(32, 0, 32, Spacing.lg),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.lg,
+            Spacing.sm,
+            Spacing.lg,
+            Spacing.lg,
+          ),
+          child: ButtonComponent(
+            key: const ValueKey("start-large-backup-mode"),
+            label: pendingTranslation("Start backup mode"),
+            shouldSurfaceExecutionStates: false,
+            onTap: _startStandby,
+          ),
+        ),
       ),
+      children: [
+        const SizedBox(height: 80),
+        Center(
+          child: SizedBox(
+            width: 185,
+            height: 205,
+            child: rive.RiveWidgetBuilder(
+              fileLoader: _animationLoader,
+              builder: (context, state) {
+                if (state is rive.RiveLoaded) {
+                  return rive.RiveWidget(
+                    controller: state.controller,
+                    fit: rive.Fit.contain,
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: Spacing.xl),
+        Text(
+          pendingTranslation("Finish your backup"),
+          textAlign: TextAlign.center,
+          style: TextStyles.display2.copyWith(color: colors.textBase),
+        ),
+        const SizedBox(height: Spacing.lg),
+        _InstructionItem(
+          text: pendingTranslation(
+            "Stay in Ente. Switching apps pauses your backup.",
+          ),
+        ),
+        const SizedBox(height: Spacing.md),
+        _InstructionItem(
+          text: pendingTranslation(
+            "The screen dims to save battery. Tap it anytime to come back.",
+          ),
+        ),
+        const SizedBox(height: Spacing.md),
+        _InstructionItem(
+          text: pendingTranslation("Plug in your phone. Backups use battery."),
+        ),
+        const SizedBox(height: Spacing.xxl),
+      ],
     );
   }
 
@@ -252,54 +229,55 @@ class _LargeBackupStandbyScreenState extends State<_LargeBackupStandbyScreen>
   Widget build(BuildContext context) {
     return Theme(
       data: darkThemeData,
-      child: Builder(
-        builder: (context) {
-          final colors = context.componentColors;
-          return GestureDetector(
-            key: const ValueKey("large-backup-standby-screen"),
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _close(_StandbyResult.returnedToInstructions),
-            child: Scaffold(
-              backgroundColor: colors.fillDark,
-              body: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListenableBuilder(
-                      listenable: widget.sessionTracker,
-                      builder: (context, _) {
-                        final completed = widget.sessionTracker.completedCount;
-                        final total = widget.sessionTracker.totalCount;
-                        final statusText = switch ((completed, total)) {
-                          (0, 1) => context.strings.uploadingSingleMemory,
-                          (0, > 1) => context.strings.uploadingMultipleMemories(
-                            count: _countFormatter.format(total),
-                          ),
-                          (_, > 0) => context.strings.syncProgress(
-                            completed: _countFormatter.format(completed),
-                            total: _countFormatter.format(total),
-                          ),
-                          _ => pendingTranslation("Finding more memories…"),
-                        };
-                        return Text(
-                          statusText,
-                          style: TextStyles.large.copyWith(
-                            color: colors.textBase,
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 17),
-                    Text(
-                      pendingTranslation("Tap to return"),
-                      style: TextStyles.body.copyWith(color: colors.textLight),
-                    ),
-                  ],
+      child: GestureDetector(
+        key: const ValueKey("large-backup-standby-screen"),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _close(_StandbyResult.returnedToInstructions),
+        child: Scaffold(
+          backgroundColor: fillBaseLight,
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SvgPicture.asset(
+                  "assets/backup_mode_moon.svg",
+                  width: 32,
+                  height: 33,
                 ),
-              ),
+                const SizedBox(height: 28),
+                ListenableBuilder(
+                  listenable: widget.sessionTracker,
+                  builder: (context, _) {
+                    final completed = widget.sessionTracker.completedCount;
+                    final total = widget.sessionTracker.totalCount;
+                    final statusText = switch ((completed, total)) {
+                      (0, 1) => context.strings.uploadingSingleMemory,
+                      (0, > 1) => context.strings.uploadingMultipleMemories(
+                        count: _countFormatter.format(total),
+                      ),
+                      (_, > 0) => context.strings.syncProgress(
+                        completed: _countFormatter.format(completed),
+                        total: _countFormatter.format(total),
+                      ),
+                      _ => pendingTranslation("Finding more memories…"),
+                    };
+                    return Text(
+                      statusText,
+                      style: TextStyles.large.copyWith(
+                        color: specialWhiteLight,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 17),
+                Text(
+                  pendingTranslation("Tap to wake the screen"),
+                  style: TextStyles.body.copyWith(color: textLightestLight),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -386,9 +364,8 @@ class _LargeBackupStandbyScreenState extends State<_LargeBackupStandbyScreen>
 }
 
 class _InstructionItem extends StatelessWidget {
-  const _InstructionItem({required this.icon, required this.text});
+  const _InstructionItem({required this.text});
 
-  final List<List<dynamic>> icon;
   final String text;
 
   @override
@@ -398,12 +375,25 @@ class _InstructionItem extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        HugeIcon(icon: icon, color: colors.textBase, size: 24),
-        const SizedBox(width: Spacing.lg),
+        SizedBox(
+          width: 5,
+          height: 20,
+          child: Align(
+            alignment: Alignment.center,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const SizedBox.square(dimension: 4),
+            ),
+          ),
+        ),
+        const SizedBox(width: Spacing.md),
         Expanded(
           child: Text(
             text,
-            style: TextStyles.body.copyWith(color: colors.textBase),
+            style: TextStyles.body.copyWith(color: colors.textLight),
           ),
         ),
       ],

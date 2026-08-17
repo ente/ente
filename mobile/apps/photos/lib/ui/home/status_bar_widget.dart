@@ -164,9 +164,17 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
     return _bannerPadding(
       BannerComponent(
         key: const ValueKey("large-backup-standby-banner"),
-        leadingIcon: HugeIcons.strokeRoundedMoon02,
-        title: pendingTranslation("Finish your backup"),
-        subtitle: pendingTranslation("Keep Ente open with the screen dimmed"),
+        leadingWidget: SvgPicture.asset(
+          "assets/backup_mode_moon.svg",
+          colorFilter: ColorFilter.mode(
+            context.componentColors.primaryDark,
+            BlendMode.srcIn,
+          ),
+        ),
+        title: pendingTranslation("Keep the app open"),
+        subtitle: pendingTranslation(
+          "Screen will dim automatically to save battery",
+        ),
         state: BannerComponentState.success,
         onTap: () async {
           if (!_largeBackupSession.isActive) {
