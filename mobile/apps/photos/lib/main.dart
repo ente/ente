@@ -76,11 +76,13 @@ const kHeartBeatFrequency = Duration(seconds: 1);
 const kFGSyncFrequency = Duration(minutes: 5);
 const kFGHomeWidgetSyncFrequency = Duration(minutes: 15);
 const kBGTaskTimeout = Duration(seconds: 28);
+const kBGProcessingTaskTimeout = Duration(minutes: 4);
 const kBGPushTimeout = Duration(seconds: 28);
-// ML self-stops before the platform hard-kills the BG engine (kBGTaskTimeout
-// on iOS, the ~10-minute WorkManager system stop on Android), leaving margin
-// to drain in-flight work and release the process lock cleanly.
+// ML self-stops before the platform hard-kills the BG engine (the task
+// timeouts above on iOS, the ~10-minute WorkManager system stop on Android),
+// leaving margin to drain in-flight work and release the process lock cleanly.
 const kBGTaskMLSelfStopIOS = Duration(seconds: 26);
+const kBGProcessingTaskMLSelfStopIOS = Duration(minutes: 3, seconds: 45);
 const kBGTaskMLSelfStopAndroid = Duration(minutes: 9);
 bool isProcessBg = true;
 bool _stopHearBeat = false;
@@ -245,12 +247,14 @@ Future<void> runBackgroundTask(
   String taskId,
   TimeLogger tlog, {
   String mode = 'normal',
+  Duration? mlSelfStop,
 }) async {
   // Created at task start so a stop that fires before ML begins stays
   // latched for the whole task.
   final mlRunControl = MlRunControl();
   final mlSelfStopTimer = Timer(
-    Platform.isIOS ? kBGTaskMLSelfStopIOS : kBGTaskMLSelfStopAndroid,
+    mlSelfStop ??
+        (Platform.isIOS ? kBGTaskMLSelfStopIOS : kBGTaskMLSelfStopAndroid),
     () => mlRunControl.requestStop(MlStopReason.backgroundDeadline),
   );
 
@@ -669,10 +673,18 @@ Future<void> _scheduleHeartBeat(
   SharedPreferences prefs,
   bool isBackground,
 ) async {
-  await prefs.setInt(
-    isBackground ? kLastBGTaskHeartBeatTime : kLastFGTaskHeartBeatTime,
-    DateTime.now().microsecondsSinceEpoch,
-  );
+  // iOS launches the full app (running main) for background task wake-ups, so
+  // the main engine being alive doesn't imply the app is actually in use.
+  final bool skipFGWrite =
+      !isBackground &&
+      Platform.isIOS &&
+      WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed;
+  if (!skipFGWrite) {
+    await prefs.setInt(
+      isBackground ? kLastBGTaskHeartBeatTime : kLastFGTaskHeartBeatTime,
+      DateTime.now().microsecondsSinceEpoch,
+    );
+  }
   Future.delayed(kHeartBeatFrequency, () async {
     // ignore: unawaited_futures
     _scheduleHeartBeat(prefs, isBackground);

@@ -19,6 +19,8 @@ import "package:photos/service_locator.dart";
 import 'package:photos/services/app_lifecycle_service.dart';
 import "package:photos/services/app_navigation_service.dart";
 import "package:photos/services/home_widget_service.dart";
+import "package:photos/services/machine_learning/ml_run_control.dart";
+import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/memory_home_widget_service.dart";
 import "package:photos/services/people_home_widget_service.dart";
 import 'package:photos/services/sync/sync_service.dart';
@@ -262,8 +264,16 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
       }
       unawaited(_reloadCachesUpdatedInBackground(lastAppOpenTime));
       SyncService.instance.sync();
+      if (Platform.isIOS) {
+        MLService.instance.triggerML();
+      }
     } else {
       AppLifecycleService.instance.onAppInBackground(stateChangeReason);
+      if (Platform.isIOS && state == AppLifecycleState.paused) {
+        // Stop before suspension freezes the run mid-flight, so the ML lock
+        // is free for background-task engines while the app stays suspended.
+        MLService.instance.stopActiveRun(MlStopReason.appPaused);
+      }
     }
   }
 

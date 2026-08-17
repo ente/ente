@@ -23,8 +23,19 @@ void callbackDispatcher() {
     await runWithLogs(() async {
       try {
         BgTaskUtils.$.info('Task started $tlog');
-        await runBackgroundTask(taskName, tlog).timeout(
-          Platform.isIOS ? kBGTaskTimeout : const Duration(hours: 1),
+        if (Platform.isIOS &&
+            taskName == BgTaskUtils.iOSBackgroundProcessingTask) {
+          // Re-arm at task start, mirroring the plugin's native resubmit for
+          // periodic tasks: a window that closes early never runs end-of-task
+          // code, so rescheduling there would break the chain.
+          await BgTaskUtils.scheduleIOSBackgroundProcessingTask();
+        }
+        await runBackgroundTask(
+          taskName,
+          tlog,
+          mlSelfStop: BgTaskUtils.mlSelfStopFor(taskName),
+        ).timeout(
+          BgTaskUtils.taskTimeoutFor(taskName),
           onTimeout: () async {
             BgTaskUtils.$.warning(
               "TLE, committing seppuku for taskID: $taskName",
@@ -55,6 +66,26 @@ void callbackDispatcher() {
 class BgTaskUtils {
   static final $ = Logger("BgTaskUtils");
 
+  static const iOSBackgroundAppRefreshTask =
+      "io.ente.frame.iOSBackgroundAppRefresh";
+  static const iOSBackgroundProcessingTask =
+      "io.ente.frame.iOSBackgroundProcessing";
+  static const androidPeriodicTask = "io.ente.photos.androidPeriodicTask";
+
+  static Duration taskTimeoutFor(String taskName) {
+    if (!Platform.isIOS) return const Duration(hours: 1);
+    return taskName == iOSBackgroundProcessingTask
+        ? kBGProcessingTaskTimeout
+        : kBGTaskTimeout;
+  }
+
+  static Duration mlSelfStopFor(String taskName) {
+    if (!Platform.isIOS) return kBGTaskMLSelfStopAndroid;
+    return taskName == iOSBackgroundProcessingTask
+        ? kBGProcessingTaskMLSelfStopIOS
+        : kBGTaskMLSelfStopIOS;
+  }
+
   static Future<void> releaseResourcesForKill(
     String taskId,
     SharedPreferences prefs,
@@ -67,23 +98,25 @@ class BgTaskUtils {
   }
 
   static Future configureWorkmanager() async {
-    if (Platform.isIOS) {
-      final status = await Permission.backgroundRefresh.status;
-      if (status != PermissionStatus.granted) {
-        $.warning(
-          "Background refresh permission is not granted. Please grant it to start the background service.",
-        );
-        return;
-      }
-    }
-    $.warning("Configuring Work Manager for background tasks");
-    const iOSBackgroundAppRefresh = "io.ente.frame.iOSBackgroundAppRefresh";
-    const androidPeriodicTask = "io.ente.photos.androidPeriodicTask";
-    final backgroundTaskIdentifier = Platform.isIOS
-        ? iOSBackgroundAppRefresh
-        : androidPeriodicTask;
     try {
       await workmanager.Workmanager().initialize(callbackDispatcher);
+      if (Platform.isIOS) {
+        // The processing task is scheduled regardless of the background
+        // refresh setting: that setting reliably gates app refresh tasks,
+        // while processing tasks may still be granted overnight windows.
+        await scheduleIOSBackgroundProcessingTask();
+        final status = await Permission.backgroundRefresh.status;
+        if (status != PermissionStatus.granted) {
+          $.warning(
+            "Background refresh permission is not granted. Please grant it to start the background app refresh task.",
+          );
+          return;
+        }
+      }
+      $.warning("Configuring Work Manager for background tasks");
+      final backgroundTaskIdentifier = Platform.isIOS
+          ? iOSBackgroundAppRefreshTask
+          : androidPeriodicTask;
       await workmanager.Workmanager().registerPeriodicTask(
         backgroundTaskIdentifier,
         backgroundTaskIdentifier,
@@ -114,6 +147,26 @@ class BgTaskUtils {
       }
     } catch (e) {
       $.warning("Failed to configure WorkManager: $e");
+    }
+  }
+
+  // BGProcessingTask requests are one-shot: the plugin resubmits app refresh
+  // tasks natively but not processing tasks, so each run schedules the next
+  // one and every foreground launch re-arms the chain after a force-quit.
+  static Future<void> scheduleIOSBackgroundProcessingTask() async {
+    try {
+      await workmanager.Workmanager().registerProcessingTask(
+        iOSBackgroundProcessingTask,
+        iOSBackgroundProcessingTask,
+        initialDelay: kDebugMode ? Duration.zero : const Duration(minutes: 30),
+        constraints: workmanager.Constraints(
+          networkType: workmanager.NetworkType.connected,
+          requiresCharging: true,
+        ),
+      );
+      $.info("Scheduled iOS background processing task");
+    } catch (e) {
+      $.warning("Failed to schedule iOS background processing task: $e");
     }
   }
 }
