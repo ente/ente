@@ -93,10 +93,8 @@ class BackupSettingsScreen extends StatelessWidget {
         if (Platform.isIOS) ...[
           const SizedBox(height: 24),
           SettingsItem(
-            title: pendingTranslation("Backup mode"),
-            subtitle: pendingTranslation(
-              "Keep the app open to finish your backup",
-            ),
+            title: l10n.backupMode,
+            subtitle: l10n.backupModeSettingsDescription,
             icon: HugeIcons.strokeRoundedMoon02,
             showOnlyLoadingState: true,
             onTap: () {

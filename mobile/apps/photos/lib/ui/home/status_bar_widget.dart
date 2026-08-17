@@ -168,10 +168,8 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
             BlendMode.srcIn,
           ),
         ),
-        title: pendingTranslation("Keep the app open"),
-        subtitle: pendingTranslation(
-          "Screen will dim automatically to save battery",
-        ),
+        title: context.strings.backupModeKeepAppOpen,
+        subtitle: context.strings.backupModeScreenWillDim,
         state: BannerComponentState.success,
         onTap: () async {
           if (!_largeBackupSession.isActive) {

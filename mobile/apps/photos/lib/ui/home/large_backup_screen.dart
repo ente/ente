@@ -14,7 +14,6 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/sync/large_backup_session_tracker.dart";
 import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
-import "package:rive/rive.dart" as rive;
 
 Future<void> showLargeBackupScreen(
   BuildContext context,
@@ -37,28 +36,12 @@ class LargeBackupScreen extends StatefulWidget {
 }
 
 class _LargeBackupScreenState extends State<LargeBackupScreen> {
-  late final rive.FileLoader _animationLoader;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationLoader = rive.FileLoader.fromAsset(
-      "assets/home_tab.riv",
-      riveFactory: rive.Factory.flutter,
-    );
-  }
-
-  @override
-  void dispose() {
-    _animationLoader.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
+    final l10n = context.strings;
     return SettingsPageScaffold(
-      title: pendingTranslation("Backup mode"),
+      title: l10n.backupMode,
       padding: const EdgeInsets.fromLTRB(32, 0, 32, Spacing.lg),
       bottomNavigationBar: SafeArea(
         top: false,
@@ -71,7 +54,7 @@ class _LargeBackupScreenState extends State<LargeBackupScreen> {
           ),
           child: ButtonComponent(
             key: const ValueKey("start-large-backup-mode"),
-            label: pendingTranslation("Start backup mode"),
+            label: l10n.backupModeStart,
             shouldSurfaceExecutionStates: false,
             onTap: _startStandby,
           ),
@@ -80,45 +63,24 @@ class _LargeBackupScreenState extends State<LargeBackupScreen> {
       children: [
         const SizedBox(height: 80),
         Center(
-          child: SizedBox(
+          child: Image.asset(
+            "assets/backup_mode_ducky.png",
             width: 185,
             height: 205,
-            child: rive.RiveWidgetBuilder(
-              fileLoader: _animationLoader,
-              builder: (context, state) {
-                if (state is rive.RiveLoaded) {
-                  return rive.RiveWidget(
-                    controller: state.controller,
-                    fit: rive.Fit.contain,
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
           ),
         ),
         const SizedBox(height: Spacing.xl),
         Text(
-          pendingTranslation("Finish your backup"),
+          l10n.backupModeFinishYourBackup,
           textAlign: TextAlign.center,
           style: TextStyles.display2.copyWith(color: colors.textBase),
         ),
         const SizedBox(height: Spacing.lg),
-        _InstructionItem(
-          text: pendingTranslation(
-            "Stay in Ente. Switching apps pauses your backup.",
-          ),
-        ),
+        _InstructionItem(text: l10n.backupModeStayInEnte),
         const SizedBox(height: Spacing.md),
-        _InstructionItem(
-          text: pendingTranslation(
-            "The screen dims to save battery. Tap it anytime to come back.",
-          ),
-        ),
+        _InstructionItem(text: l10n.backupModeScreenDimmingDescription),
         const SizedBox(height: Spacing.md),
-        _InstructionItem(
-          text: pendingTranslation("Plug in your phone. Backups use battery."),
-        ),
+        _InstructionItem(text: l10n.backupModePlugInPhone),
         const SizedBox(height: Spacing.xxl),
       ],
     );
@@ -128,10 +90,8 @@ class _LargeBackupScreenState extends State<LargeBackupScreen> {
     if (!widget.sessionTracker.isUploading) {
       await showAlertBottomSheet<void>(
         context,
-        title: pendingTranslation("No backup in progress"),
-        message: pendingTranslation(
-          "Start a backup, then return to backup mode.",
-        ),
+        title: context.strings.backupModeNoBackupInProgress,
+        message: context.strings.backupModeNoBackupInProgressDescription,
       );
       return;
     }
@@ -235,44 +195,65 @@ class _LargeBackupStandbyScreenState extends State<_LargeBackupStandbyScreen>
         onTap: () => _close(_StandbyResult.returnedToInstructions),
         child: Scaffold(
           backgroundColor: fillBaseLight,
-          body: Center(
+          body: SafeArea(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                SvgPicture.asset(
-                  "assets/backup_mode_moon.svg",
-                  width: 32,
-                  height: 33,
+                Expanded(
+                  child: Align(
+                    alignment: const Alignment(0, 0.65),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SvgPicture.asset(
+                          "assets/backup_mode_upload.svg",
+                          width: 48,
+                          height: 35,
+                          colorFilter: ColorFilter.mode(
+                            context.componentColors.primary,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        const SizedBox(height: Spacing.xxl),
+                        Text(
+                          context.strings.backupModePreservingYourMemories,
+                          style: TextStyles.large.copyWith(
+                            color: specialWhiteLight,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ListenableBuilder(
+                          listenable: widget.sessionTracker,
+                          builder: (context, _) {
+                            final total = widget.sessionTracker.totalCount;
+                            final statusText = total > 0
+                                ? context.strings.backupModeBackingUpItems(
+                                    count: total,
+                                    formattedCount: _countFormatter.format(
+                                      total,
+                                    ),
+                                  )
+                                : context
+                                      .strings
+                                      .backupModeCheckingForMoreItems;
+                            return Text(
+                              statusText,
+                              textAlign: TextAlign.center,
+                              style: TextStyles.body.copyWith(
+                                color: context.componentColors.primary,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 28),
-                ListenableBuilder(
-                  listenable: widget.sessionTracker,
-                  builder: (context, _) {
-                    final completed = widget.sessionTracker.completedCount;
-                    final total = widget.sessionTracker.totalCount;
-                    final statusText = switch ((completed, total)) {
-                      (0, 1) => context.strings.uploadingSingleMemory,
-                      (0, > 1) => context.strings.uploadingMultipleMemories(
-                        count: _countFormatter.format(total),
-                      ),
-                      (_, > 0) => context.strings.syncProgress(
-                        completed: _countFormatter.format(completed),
-                        total: _countFormatter.format(total),
-                      ),
-                      _ => pendingTranslation("Finding more memories…"),
-                    };
-                    return Text(
-                      statusText,
-                      style: TextStyles.large.copyWith(
-                        color: specialWhiteLight,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 17),
-                Text(
-                  pendingTranslation("Tap to wake the screen"),
-                  style: TextStyles.body.copyWith(color: textLightestLight),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Spacing.sm),
+                  child: Text(
+                    context.strings.backupModeTapToWakeScreen,
+                    style: TextStyles.body.copyWith(color: specialWhiteLight),
+                  ),
                 ),
               ],
             ),
