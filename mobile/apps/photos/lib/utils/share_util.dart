@@ -227,26 +227,6 @@ Future<List<EnteFile>> convertPicketAssets(
   return localFiles;
 }
 
-DateTime? parseDateFromFileNam1e(String fileName) {
-  if (fileName.startsWith('IMG-') || fileName.startsWith('VID-')) {
-    // Whatsapp media files
-    return DateTime.tryParse(fileName.split('-')[1]);
-  } else if (fileName.startsWith("Screenshot_")) {
-    // Screenshots on droid
-    return DateTime.tryParse(
-      (fileName).replaceAll('Screenshot_', '').replaceAll('-', 'T'),
-    );
-  } else {
-    return DateTime.tryParse(
-      (fileName)
-          .replaceAll("IMG_", "")
-          .replaceAll("VID_", "")
-          .replaceAll("DCIM_", "")
-          .replaceAll("_", " "),
-    );
-  }
-}
-
 void shareSelected(
   BuildContext context,
   GlobalKey shareButtonKey,

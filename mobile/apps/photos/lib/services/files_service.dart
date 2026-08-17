@@ -5,7 +5,6 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:latlong2/latlong.dart";
 import 'package:logging/logging.dart';
-import 'package:path/path.dart';
 import 'package:photo_manager/photo_manager.dart' hide LatLng;
 import 'package:photos/core/configuration.dart';
 import "package:photos/db/device_files_db.dart";
@@ -218,57 +217,6 @@ class FilesService {
     }
   }
 
-  // Note: this method is not used anywhere, but it is kept for future
-  // reference when we add bulk EditTime feature
-  Future<void> bulkEditTime(List<EnteFile> files, EditTimeSource source) async {
-    final ListMatch<EnteFile> result = files.splitMatch(
-      (element) => element.isUploaded,
-    );
-    final List<EnteFile> uploadedFiles = result.matched;
-    final List<EnteFile> localOnlyFiles = result.unmatched;
-    for (EnteFile localFile in localOnlyFiles) {
-      final timeResult = _parseTime(localFile, source);
-      if (timeResult != null) {
-        localFile.creationTime = timeResult;
-      }
-    }
-    await _filesDB.insertMultiple(localOnlyFiles);
-
-    final List<EnteFile> remoteFilesToUpdate = [];
-    final Map<int, Map<String, int>> fileIDToUpdateMetadata = {};
-    for (EnteFile remoteFile in uploadedFiles) {
-      if (remoteFile.ownerID != _config.getUserID()! ||
-          fileIDToUpdateMetadata.containsKey(remoteFile.uploadedFileID!)) {
-        continue;
-      }
-      final timeResult = _parseTime(remoteFile, source);
-      if (timeResult != null) {
-        remoteFilesToUpdate.add(remoteFile);
-        fileIDToUpdateMetadata[remoteFile.uploadedFileID!] = {
-          editTimeKey: timeResult,
-        };
-      }
-    }
-    if (remoteFilesToUpdate.isNotEmpty) {
-      await FileMagicService.instance.updatePublicMagicMetadata(
-        remoteFilesToUpdate,
-        null,
-        metadataUpdateMap: fileIDToUpdateMetadata,
-      );
-    }
-  }
-
-  int? _parseTime(EnteFile file, EditTimeSource source) {
-    assert(
-      source == EditTimeSource.fileName,
-      "edit source ${source.name} is not supported yet",
-    );
-    final timeResult = parseDateTimeFromFileNameV2(
-      basenameWithoutExtension(file.title ?? ""),
-    );
-    return timeResult?.microsecondsSinceEpoch;
-  }
-
   Future<void> removeIgnoredFiles(Future<FileLoadResult> result) async {
     final ignoredIDs = await IgnoredFilesService.instance.idToIgnoreReasonMap;
     (await result).files.removeWhere(
@@ -278,5 +226,3 @@ class FilesService {
     );
   }
 }
-
-enum EditTimeSource { fileName, exif, manualFix, manualAdjusted }

@@ -11,6 +11,7 @@ blake2b_simd = "1.0"
 crypto_secretbox = { version = "0.1", default-features = false, features = ["alloc", "salsa20"] }
 crypto_secretstream = "=0.2.0"
 getrandom = { version = "0.4", features = ["wasm_js"] }
+hpke = { version = "0.14", default-features = false, features = ["alloc", "chacha", "getrandom", "mlkem", "x25519"] }
 log.workspace = true
 md-5.workspace = true
 rand_core_06 = { package = "rand_core", version = "0.6", features = ["getrandom"] }
@@ -20,6 +21,9 @@ serde.workspace = true
 serde_json.workspace = true
 subtle = "2"
 thiserror.workspace = true
+# Remove when hpke fix for accidentally not enabling xwing zeroize is released.
+# https://github.com/rozbb/rust-hpke/issues/110
+x-wing = { version = "0.1", default-features = false, features = ["zeroize"] }
 x25519-dalek = { version = "3.0", features = ["static_secrets"] }
 zeroize.workspace = true
 

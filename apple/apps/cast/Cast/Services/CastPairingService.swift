@@ -68,7 +68,10 @@ class RealCastPairingService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let requestBody = ["publicKey": receiver.publicKey()]
+        let requestBody = [
+            "publicKey": receiver.publicKey(),
+            "pqPublicKey": receiver.pqPublicKey(),
+        ]
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         
         let (data, response) = try await URLSession.shared.data(for: request)

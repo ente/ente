@@ -39,6 +39,7 @@ Enable **Hide content** to hide Ente Photos content in the app switcher (and dis
 
 - [Account overview](/photos/features/account/)
 - [Passkeys](/photos/features/account/passkeys)
+- [Guest view](/photos/features/utilities/guest-view) - Let someone browse specific photos without app lock
 
 ## Related FAQs
 

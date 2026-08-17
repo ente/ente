@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:isolate";
 import "dart:math";
 
 import "package:computer/computer.dart";
@@ -13,9 +12,9 @@ import "package:latlong2/latlong.dart";
 import "package:logging/logging.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/location/location.dart";
+import "package:photos/src/rust/api/map_cluster_api.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/map/image_marker.dart";
-import "package:photos/ui/map/map_isolate.dart";
 import "package:photos/ui/map/map_pull_up_gallery.dart";
 import "package:photos/ui/map/map_view.dart";
 import "package:photos/ui/notification/toast.dart";
@@ -50,10 +49,7 @@ class _MapScreenState extends State<MapScreen> {
   double minZoom = 2.8;
   LatLng? center;
   final Logger _logger = Logger("_MapScreenState");
-  ReceivePort? _mapWorkerReceivePort;
-  StreamSubscription? _mapWorkerSubscription;
-  SendPort? _mapWorkerSendPort;
-  Isolate? _mapWorkerIsolate;
+  MapClusterer? _mapClusterer;
   static const bottomSheetDraggableAreaHeight = 32.0;
   List<int>? _previousVisibleIndexes;
   int _viewportRequestID = 0;
@@ -72,9 +68,6 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _viewportDebouncer.cancelDebounceTimer();
-    unawaited(_mapWorkerSubscription?.cancel());
-    _mapWorkerReceivePort?.close();
-    _mapWorkerIsolate?.kill();
     unawaited(visibleImages.close());
     super.dispose();
   }
@@ -128,7 +121,7 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
 
-    await _startMapWorker(mapPoints);
+    _mapClusterer = await createMapClusterer(points: mapPoints);
     if (!mounted) return;
     setState(() {
       hasLocationData = true;
@@ -140,37 +133,6 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  Future<void> _startMapWorker(List<MapPoint> mapPoints) async {
-    final receivePort = ReceivePort();
-    final sendPortCompleter = Completer<SendPort>();
-    final subscription = receivePort.listen((message) {
-      if (message is SendPort) {
-        if (!sendPortCompleter.isCompleted) {
-          sendPortCompleter.complete(message);
-        }
-      } else if (message is MapViewportResult) {
-        _applyViewportResult(message);
-      }
-    });
-    final isolate = await Isolate.spawn(
-      mapWorker,
-      MapWorkerInit(points: mapPoints, sendPort: receivePort.sendPort),
-    );
-    final sendPort = await sendPortCompleter.future;
-
-    if (!mounted) {
-      await subscription.cancel();
-      receivePort.close();
-      isolate.kill();
-      return;
-    }
-
-    _mapWorkerReceivePort = receivePort;
-    _mapWorkerSubscription = subscription;
-    _mapWorkerSendPort = sendPort;
-    _mapWorkerIsolate = isolate;
-  }
-
   void _updateViewport(MapCamera camera) {
     final requestID = ++_viewportRequestID;
     _viewportDebouncer.run(() async {
@@ -179,24 +141,44 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _sendViewportRequest(MapCamera camera, int requestID) {
-    final sendPort = _mapWorkerSendPort;
-    if (sendPort == null) return;
+    final clusterer = _mapClusterer;
+    if (clusterer == null) return;
     final pixelBounds = camera.pixelBounds;
-    sendPort.send(
-      MapViewportRequest(
-        id: requestID,
-        bounds: camera.visibleBounds,
-        zoom: camera.zoom,
-        markerMinX: pixelBounds.left - _markerViewportPaddingPixels,
-        markerMinY: pixelBounds.top - _markerViewportPaddingPixels,
-        markerMaxX: pixelBounds.right + _markerViewportPaddingPixels,
-        markerMaxY: pixelBounds.bottom + _markerViewportPaddingPixels,
+    final bounds = camera.visibleBounds;
+    unawaited(
+      _clusterViewport(
+        clusterer,
+        MapViewport(
+          north: bounds.north,
+          south: bounds.south,
+          east: bounds.east,
+          west: bounds.west,
+          zoom: camera.zoom,
+          markerMinX: pixelBounds.left - _markerViewportPaddingPixels,
+          markerMinY: pixelBounds.top - _markerViewportPaddingPixels,
+          markerMaxX: pixelBounds.right + _markerViewportPaddingPixels,
+          markerMaxY: pixelBounds.bottom + _markerViewportPaddingPixels,
+        ),
+        requestID,
       ),
     );
   }
 
-  void _applyViewportResult(MapViewportResult result) {
-    if (!mounted || result.id != _viewportRequestID) return;
+  Future<void> _clusterViewport(
+    MapClusterer clusterer,
+    MapViewport viewport,
+    int requestID,
+  ) async {
+    try {
+      final result = await clusterer.cluster(viewport: viewport);
+      _applyViewportResult(result, requestID);
+    } catch (e, s) {
+      _logger.severe("Rust map clustering failed", e, s);
+    }
+  }
+
+  void _applyViewportResult(MapViewportResult result, int requestID) {
+    if (!mounted || requestID != _viewportRequestID) return;
 
     final visibleIndexes = result.visibleImageIndexes;
     if (!_sameIndexes(visibleIndexes, _previousVisibleIndexes)) {
@@ -218,7 +200,14 @@ class _MapScreenState extends State<MapScreen> {
               latitude: group.latitude,
               longitude: group.longitude,
               imageCount: group.imageCount,
-              clusterBounds: group.imageCount > 1 ? group.bounds : null,
+              clusterBounds: group.imageCount > 1
+                  ? LatLngBounds.unsafe(
+                      north: group.north,
+                      south: group.south,
+                      east: group.east,
+                      west: group.west,
+                    )
+                  : null,
             ),
           )
           .toList(growable: false);

@@ -169,12 +169,11 @@ class TrashDB {
     bool? asc,
   }) async {
     final db = await instance.database;
-    final order = (asc ?? false ? 'ASC' : 'DESC');
     final results = await db.query(
       tableName,
       where: '$columnCreationTime >= ? AND $columnCreationTime <= ?',
       whereArgs: [startTime, endTime],
-      orderBy: '$columnCreationTime ' + order,
+      orderBy: '$columnTrashDeleteBy DESC',
       limit: limit,
     );
     final files = results

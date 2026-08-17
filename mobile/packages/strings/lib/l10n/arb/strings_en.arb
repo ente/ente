@@ -1687,6 +1687,16 @@
     }
   },
   "fileSavedToGallery": "File saved to gallery",
+  "filesCanBeRestoredFromTrash": "{count, plural, one{Item not backed up. It can be restored from Trash.} other{Items not backed up. They can be restored from Trash.}}",
+  "@filesCanBeRestoredFromTrash": {
+    "description": "Delete confirmation message for device-only items that will be moved to trash.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "filesDeleted": "Files deleted",
   "filesDeletedPermanently": "{count, plural, one{{count} item deleted permanently} other{{count} items deleted permanently}}",
   "@filesDeletedPermanently": {
@@ -2189,6 +2199,108 @@
       }
     }
   },
+  "librarySharingAllCurrentAlbumsShared": "All your current albums are shared",
+  "librarySharingBannerDescription": "Share all your albums",
+  "librarySharingEnableDescription": "Your existing albums and any albums you create in the future will be automatically shared with {recipient}.",
+  "@librarySharingEnableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "librarySharingEnableTitle": "Enable library sharing?",
+  "librarySharingFailedAlbumCount": "{count, plural, one{Could not update {count} album.} other{Could not update {count} albums.}}",
+  "@librarySharingFailedAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingFailedDescription": "Could not update the selected albums.",
+  "librarySharingFailedTitle": "Sharing failed",
+  "librarySharingHiddenAlbumsDescription": "Hidden albums will not be shared. You can stop sharing any album at any time.",
+  "librarySharingMemberSubtitle": "{count, plural, =0{No albums shared • {storageUsage}} one{{count} album shared • {storageUsage}} other{{count} albums shared • {storageUsage}}}",
+  "@librarySharingMemberSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "storageUsage": {
+        "type": "String",
+        "example": "2 GB"
+      }
+    }
+  },
+  "librarySharingMixed": "Mixed",
+  "librarySharingNoAlbumsToShare": "No albums to share yet",
+  "librarySharingPreviouslyUnsharedDescription": "{count, plural, one{Sharing was stopped for this album earlier, so it wasn't shared again.} other{Sharing was stopped for these albums earlier, so they weren't shared again.}}",
+  "@librarySharingPreviouslyUnsharedDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingPreviouslyUnsharedTitle": "{count, plural, one{{count} album wasn't shared} other{{count} albums weren't shared}}",
+  "@librarySharingPreviouslyUnsharedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingRetryFailedAlbums": "Retry failed albums",
+  "librarySharingRole": "Role",
+  "librarySharingRoles": "Roles",
+  "librarySharingShareAlbumCount": "{count, plural, one{Share {count} album} other{Share {count} albums}}",
+  "@librarySharingShareAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingShareAlbums": "Share albums",
+  "librarySharingSharedAlbumCount": "{count, plural, =0{No albums shared} one{{count} album shared} other{{count} albums shared}}",
+  "@librarySharingSharedAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingShareWith": "Share with",
+  "librarySharingSharingWith": "Sharing with",
+  "librarySharingStopSharing": "Stop sharing",
+  "librarySharingStopSharingDescription": "{count, plural, one{They'll lose this album, and any photos they added leave with them. You can share again later.} other{They'll lose these albums, and any photos they added leave with them. You can share again later.}}",
+  "@librarySharingStopSharingDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingStopSharingTitle": "{count, plural, one{Stop sharing {count} album?} other{Stop sharing {count} albums?}}",
+  "@librarySharingStopSharingTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingTitle": "Library sharing",
+  "librarySharingUpdateRoles": "Update roles",
   "limit": "Limit",
   "linkCopiedToClipboard": "Link copied to clipboard",
   "linkDeletedSuccessfully": "Link deleted successfully",

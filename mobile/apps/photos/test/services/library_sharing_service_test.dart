@@ -9,9 +9,9 @@ import 'package:photos/models/metadata/common_keys.dart';
 import 'package:photos/models/user_details.dart';
 import 'package:photos/services/account/user_service.dart';
 import 'package:photos/services/collections_service.dart';
-import 'package:photos/services/library_sharing_local_store.dart';
+import 'package:photos/services/entity_service.dart';
 import 'package:photos/services/library_sharing_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:photos/services/library_sharing_store.dart';
 
 import '../ui/sharing/library_sharing_test_helpers.dart';
 
@@ -101,6 +101,21 @@ void main() {
     },
   );
 
+  test('does not reconcile after a concurrent remote disable', () async {
+    final album = librarySharingTestAlbum(1);
+    final fixture = await _Fixture.create([album]);
+    fixture.store._config = LibrarySharingConfig(
+      recipientUserID: librarySharingTestRecipient.userID,
+      enabled: true,
+      defaultRole: CollectionParticipantRole.viewer,
+    );
+    fixture.store.disableOnNextWrite = true;
+
+    await fixture.service.reconcile();
+
+    expect(album.sharees, isEmpty);
+  });
+
   test('stops bulk sharing on a recipient identity mismatch', () async {
     final albums = [
       for (var id = 1; id <= 101; id++) librarySharingTestAlbum(id),
@@ -175,7 +190,7 @@ class _Fixture {
 
   final LibrarySharingService service;
   final _FakeCollectionsService collectionsService;
-  final LibrarySharingLocalStore store;
+  final _MemoryLibrarySharingStore store;
   final _FakeUserService userService;
 
   static Future<_Fixture> create(
@@ -184,21 +199,19 @@ class _Fixture {
     Set<int>? activeFamilyMemberUserIDs,
     Object? shareError,
   }) async {
-    SharedPreferences.setMockInitialValues({});
-    final preferences = await SharedPreferences.getInstance();
     final collectionsService = _FakeCollectionsService(
       albums,
       blockedIDs,
       shareError,
     );
-    final store = LibrarySharingLocalStore(preferences);
+    final store = _MemoryLibrarySharingStore();
     final userService = _FakeUserService(activeFamilyMemberUserIDs);
     return _Fixture(
       LibrarySharingService(
         collectionsService: collectionsService,
         userService: userService,
         configuration: _FakeConfiguration(),
-        localStore: store,
+        store: store,
       ),
       collectionsService,
       store,
@@ -206,12 +219,48 @@ class _Fixture {
     );
   }
 
-  Future<LibrarySharingLocalConfig> readConfig() async =>
+  Future<LibrarySharingConfig> readConfig() async =>
       (await store.read(1, librarySharingTestRecipient.userID))!;
 
   Future<bool> isAutomaticSharingEnabled() =>
       service.isAutomaticSharingEnabled(librarySharingTestRecipient.userID);
 }
+
+class _MemoryLibrarySharingStore extends LibrarySharingEntityStore {
+  _MemoryLibrarySharingStore() : super(_MockEntityService());
+
+  LibrarySharingConfig? _config;
+  bool disableOnNextWrite = false;
+
+  @override
+  Future<void> sync() async {}
+
+  @override
+  Future<LibrarySharingConfig?> read(
+    int ownerUserID,
+    int recipientUserID,
+  ) async => _config?.recipientUserID == recipientUserID ? _config : null;
+
+  @override
+  Future<List<LibrarySharingConfig>> readAll(int ownerUserID) async => [
+    ?_config,
+  ];
+
+  @override
+  Future<LibrarySharingConfig> write(
+    int ownerUserID,
+    LibrarySharingConfig config,
+  ) async {
+    if (disableOnNextWrite) {
+      config = config.copyWith(enabled: false);
+      disableOnNextWrite = false;
+    }
+    _config = config;
+    return config;
+  }
+}
+
+class _MockEntityService extends Mock implements EntityService {}
 
 class _FakeCollectionsService extends Mock implements CollectionsService {
   _FakeCollectionsService(this.albums, this.blockedIDs, this.shareError);

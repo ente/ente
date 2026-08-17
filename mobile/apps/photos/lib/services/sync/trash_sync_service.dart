@@ -260,16 +260,11 @@ class TrashSyncService {
   }
 
   Future<void> emptyTrash() async {
-    try {
-      await _gateway.emptyTrash(_getSyncTime());
-      await _trashDB.clearTable();
-      unawaited(syncTrash());
-      Bus.instance.fire(TrashUpdatedEvent());
-      Bus.instance.fire(ForceReloadTrashPageEvent());
-    } catch (e, s) {
-      _logger.severe("failed to empty trash", e, s);
-      rethrow;
-    }
+    await _gateway.emptyTrash(_getSyncTime());
+    await _trashDB.clearTable();
+    unawaited(syncTrash());
+    Bus.instance.fire(TrashUpdatedEvent());
+    Bus.instance.fire(ForceReloadTrashPageEvent());
   }
 }
 

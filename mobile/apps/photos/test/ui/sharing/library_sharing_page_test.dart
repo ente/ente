@@ -104,7 +104,7 @@ void main() {
     expect(find.text('Enable library sharing?'), findsOneWidget);
     expect(
       find.text(
-        'Your existing albums, and the ones you create in the future will be automatically shared with Friend.',
+        'Your existing albums and any albums you create in the future will be automatically shared with Friend.',
       ),
       findsOneWidget,
     );

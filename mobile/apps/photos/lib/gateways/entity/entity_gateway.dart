@@ -59,8 +59,9 @@ class EntityGateway {
     EntityType type,
     String id,
     String encryptedData,
-    String header,
-  ) async {
+    String header, {
+    int? expectedUpdatedAt,
+  }) async {
     final response = await _enteDio.put(
       "/user-entity/entity",
       data: {
@@ -68,6 +69,7 @@ class EntityGateway {
         "encryptedData": encryptedData,
         "header": header,
         "type": type.name,
+        "expectedUpdatedAt": ?expectedUpdatedAt,
       },
     );
     return EntityData.fromMap(response.data);

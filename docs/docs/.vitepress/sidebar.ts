@@ -238,6 +238,10 @@ export const sidebar = [
                                 link: "/photos/features/utilities/detect-text",
                             },
                             {
+                                text: "Guest view",
+                                link: "/photos/features/utilities/guest-view",
+                            },
+                            {
                                 text: "QR codes in photos",
                                 link: "/photos/features/utilities/qr-codes-in-photos",
                             },

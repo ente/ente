@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/models/collection/collection.dart';
@@ -12,7 +13,6 @@ import 'package:photos/ui/sharing/library_sharing/library_sharing_controller.dar
 import 'package:photos/ui/sharing/library_sharing/library_sharing_role_badge.dart';
 import 'package:photos/ui/sharing/library_sharing/library_sharing_selection_sheet.dart';
 import 'package:photos/ui/sharing/library_sharing/library_sharing_sheets.dart';
-import 'package:photos/ui/sharing/library_sharing/library_sharing_strings.dart';
 
 class LibrarySharingPage extends StatefulWidget {
   const LibrarySharingPage({
@@ -127,14 +127,14 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
     return AppBarComponent(
       title: _recipient.label,
       eyebrow: _controller.isAddingAlbums
-          ? LibrarySharingStrings.shareWith
-          : LibrarySharingStrings.sharingWith,
+          ? context.strings.librarySharingShareWith
+          : context.strings.librarySharingSharingWith,
       controller: _scrollController,
       onBack: () => Navigator.of(context).maybePop(),
       actions: [
         if (!_controller.isFirstTime && !_controller.isSelecting)
           IconButtonComponent(
-            tooltip: LibrarySharingStrings.shareAlbums,
+            tooltip: context.strings.librarySharingShareAlbums,
             variant: IconButtonComponentVariant.primary,
             shouldSurfaceExecutionStates: false,
             icon: const HugeIcon(
@@ -170,13 +170,13 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  LibrarySharingStrings.loadFailed,
+                  context.strings.couldNotLoadAlbums,
                   style: TextStyles.h2,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: Spacing.lg),
                 ButtonComponent(
-                  label: LibrarySharingStrings.retryLoading,
+                  label: context.strings.tryAgain,
                   onTap: _controller.load,
                 ),
               ],
@@ -203,8 +203,8 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
                 ? 'assets/ducky_full_library.png'
                 : 'assets/ducky_share.png',
             title: isSharingFullLibrary
-                ? LibrarySharingStrings.allCurrentAlbumsShared
-                : LibrarySharingStrings.noAlbumsToShare,
+                ? context.strings.librarySharingAllCurrentAlbumsShared
+                : context.strings.librarySharingNoAlbumsToShare,
             textWidth: isSharingFullLibrary ? 257 : 285,
             alignment: isSharingFullLibrary
                 ? Alignment.topCenter
@@ -251,8 +251,8 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
         child: MenuGroupComponent(
           items: [
             MenuComponent(
-              title: LibrarySharingStrings.librarySharing,
-              subtitle: LibrarySharingStrings.shareAllYourAlbums,
+              title: context.strings.librarySharingTitle,
+              subtitle: context.strings.librarySharingBannerDescription,
               onTap: _toggleLibrarySharing,
               showOnlyLoadingState: true,
               trailing: IgnorePointer(

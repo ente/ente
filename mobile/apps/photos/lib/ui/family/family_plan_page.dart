@@ -32,7 +32,6 @@ import 'package:photos/ui/family/invite_members_page.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/payment/subscription.dart';
 import 'package:photos/ui/sharing/library_sharing/library_sharing_page.dart';
-import 'package:photos/ui/sharing/library_sharing/library_sharing_strings.dart';
 import 'package:photos/ui/viewer/search/result/edit_contact_page.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/person_contact_linking_util.dart';
@@ -61,7 +60,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
   late UserDetails _userDetails = widget.initialUserDetails;
   late final LibrarySharingService _librarySharingService =
-      LibrarySharingService();
+      librarySharingService;
   final Map<int, contacts.ContactRecord?> _contactsByUserId = {};
   final Map<int, Uint8List?> _profilePictureBytesByUserId = {};
   Map<int, int> _sharedAlbumCountsByUserId = const {};
@@ -573,8 +572,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     final actionLabel = switch (action) {
       FamilyMemberAction.saveContact => l10n.saveContact,
       FamilyMemberAction.editContact => l10n.editContact,
-      FamilyMemberAction.shareAlbums =>
-        LibrarySharingStrings.internalShareAlbums,
+      FamilyMemberAction.shareAlbums => l10n.librarySharingShareAlbums,
       FamilyMemberAction.editStorageLimit => l10n.editStorageLimit,
       FamilyMemberAction.removeMember => l10n.removeFromFamily,
       FamilyMemberAction.resendInvite => l10n.resendInvite,
@@ -598,7 +596,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       FamilyMemberAction.shareAlbums =>
         sharedAlbumCount == null
             ? null
-            : LibrarySharingStrings.sharedAlbumCount(sharedAlbumCount),
+            : l10n.librarySharingSharedAlbumCount(count: sharedAlbumCount),
       FamilyMemberAction.editStorageLimit =>
         member.storageLimit == null
             ? l10n.noLimitSet

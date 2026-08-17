@@ -288,7 +288,8 @@ class FileAppBarState extends State<FileAppBar> {
         ),
       );
     }
-    if (!isFileUploaded && !isLocalGalleryMode) {
+
+    if (!isFileUploaded && !widget.file.isTrash && !isLocalGalleryMode) {
       _actions.add(
         UploadIconWidget(file: widget.file, key: ValueKey(widget.file.tag)),
       );

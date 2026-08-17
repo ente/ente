@@ -58,7 +58,7 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
                   l10n.authToViewTrashedFiles,
                 );
             if (!hasAuthenticated || !context.mounted) return;
-            await routeToPage(context, TrashPage());
+            await showTrashPage(context);
           },
         ),
         const SizedBox(height: Spacing.sm),
