@@ -95,7 +95,7 @@ class BackupSettingsScreen extends StatelessWidget {
           SettingsItem(
             title: pendingTranslation("Backup mode"),
             subtitle: pendingTranslation(
-              "Keep Ente awake while your backup finishes",
+              "Keep the app open to finish your backup",
             ),
             icon: HugeIcons.strokeRoundedMoon02,
             showOnlyLoadingState: true,
