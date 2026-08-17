@@ -87,6 +87,9 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   bool _isCompletelyVisible = false;
   final _showControls = ValueNotifier(true);
   final _isSeeking = ValueNotifier(false);
+  final _lastSeekTime = ValueNotifier<DateTime?>(null);
+  final _lastSeekTargetMs = ValueNotifier<int?>(null);
+  Timer? _doubleTapSeekReleaseTimer;
   final _debouncer = Debouncer(const Duration(milliseconds: 2000));
   StreamSubscription<PlaybackEvent>? _subscription;
   StreamSubscription<StreamSwitchedEvent>? _streamSwitchedSubscription;
@@ -271,6 +274,9 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     _showControls.dispose();
     _isSeeking.removeListener(_seekListener);
     _isSeeking.dispose();
+    _doubleTapSeekReleaseTimer?.cancel();
+    _lastSeekTime.dispose();
+    _lastSeekTargetMs.dispose();
     _debouncer.cancelDebounceTimer();
     _transformationController.dispose();
     wakeLockService.updateWakeLock(
@@ -368,7 +374,18 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                       ?.durationInMilliseconds ??
                                   0,
                             ),
-                            seekTo: (duration) => _controller?.seekTo(duration),
+                            seekTo: (duration) {
+                              _lastSeekTime.value = DateTime.now();
+                              _lastSeekTargetMs.value = duration.inMilliseconds;
+                              _controller?.seekTo(duration);
+                              _doubleTapSeekReleaseTimer?.cancel();
+                              _doubleTapSeekReleaseTimer = Timer(
+                                const Duration(milliseconds: 500),
+                                () {
+                                  if (mounted) _seekListener();
+                                },
+                              );
+                            },
                             onSeekInteraction: () => _showControls.value = true,
                             onSingleTap: widget.isFromMemories
                                 ? null
@@ -439,6 +456,8 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                             duration: duration,
                                             showControls: _showControls,
                                             isSeeking: _isSeeking,
+                                            lastSeekTime: _lastSeekTime,
+                                            lastSeekTargetMs: _lastSeekTargetMs,
                                           )
                                         : const SizedBox.shrink(),
                                   ),
@@ -859,12 +878,16 @@ class _VideoProgressControls extends StatelessWidget {
   final String? duration;
   final ValueNotifier<bool> showControls;
   final ValueNotifier<bool> isSeeking;
+  final ValueNotifier<DateTime?> lastSeekTime;
+  final ValueNotifier<int?> lastSeekTargetMs;
 
   const _VideoProgressControls({
     required this.controller,
     required this.duration,
     required this.showControls,
     required this.isSeeking,
+    required this.lastSeekTime,
+    required this.lastSeekTargetMs,
   });
 
   @override
@@ -882,6 +905,8 @@ class _VideoProgressControls extends StatelessWidget {
               controller,
               durationToSeconds(duration),
               isSeeking,
+              lastSeekTime: lastSeekTime,
+              lastSeekTargetMs: lastSeekTargetMs,
             ),
           ),
         );

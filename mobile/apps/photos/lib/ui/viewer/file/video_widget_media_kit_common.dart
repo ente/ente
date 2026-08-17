@@ -44,6 +44,7 @@ class _VideoWidgetState extends State<VideoWidget> {
   final showControlsNotifier = ValueNotifier<bool>(true);
   final _hideControlsDebouncer = Debouncer(const Duration(milliseconds: 2000));
   final _isSeekingNotifier = ValueNotifier<bool>(false);
+  Timer? _doubleTapSeekReleaseTimer;
   late final StreamSubscription<bool> _isPlayingStreamSubscription;
 
   @override
@@ -67,6 +68,7 @@ class _VideoWidgetState extends State<VideoWidget> {
 
   @override
   void dispose() {
+    _doubleTapSeekReleaseTimer?.cancel();
     showControlsNotifier.dispose();
     _isPlayingStreamSubscription.cancel();
     _hideControlsDebouncer.cancelDebounceTimer();
@@ -112,7 +114,16 @@ class _VideoWidgetState extends State<VideoWidget> {
           enabled: () => !widget.isFromMemories,
           position: () => widget.controller.player.state.position,
           duration: () => widget.controller.player.state.duration,
-          seekTo: (duration) => widget.controller.player.seek(duration),
+          seekTo: (duration) {
+            widget.controller.player.seek(duration);
+            _doubleTapSeekReleaseTimer?.cancel();
+            _doubleTapSeekReleaseTimer = Timer(
+              const Duration(milliseconds: 500),
+              () {
+                if (mounted) isSeekingListener();
+              },
+            );
+          },
           onSeekInteraction: () => showControlsNotifier.value = true,
           onSingleTap: widget.isFromMemories
               ? null

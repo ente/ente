@@ -12,11 +12,15 @@ class NativeVideoProgressControls extends StatefulWidget {
   final NativeVideoPlayerController controller;
   final int? duration;
   final ValueNotifier<bool> isSeeking;
+  final ValueNotifier<DateTime?>? lastSeekTime;
+  final ValueNotifier<int?>? lastSeekTargetMs;
 
   const NativeVideoProgressControls(
     this.controller,
     this.duration,
     this.isSeeking, {
+    this.lastSeekTime,
+    this.lastSeekTargetMs,
     super.key,
   });
 
@@ -134,12 +138,17 @@ class _NativeVideoProgressControlsState
   }
 
   DateTime? _lastSeekTime;
+  int? _lastSeekTargetMs;
 
   void _seekTo(double value) {
     _debouncer.run(() async {
       final position = _positionInMilliseconds(value);
       if (position == null) return;
-      _lastSeekTime = DateTime.now();
+      final now = DateTime.now();
+      _lastSeekTime = now;
+      _lastSeekTargetMs = position;
+      widget.lastSeekTime?.value = now;
+      widget.lastSeekTargetMs?.value = null;
       await widget.controller.seekTo(Duration(milliseconds: position));
     });
   }
@@ -205,11 +214,15 @@ class _NativeVideoProgressControlsState
       return;
     }
 
-    if (_lastSeekTime != null &&
-        DateTime.now().difference(_lastSeekTime!).inMilliseconds <
+    final lastSeek = widget.lastSeekTime?.value ?? _lastSeekTime;
+    if (lastSeek != null &&
+        DateTime.now().difference(lastSeek).inMilliseconds <
             _staleEventWindow.inMilliseconds) {
-      if ((target - _elapsedMilliseconds).abs() >
-          _staleDeltaThreshold.inMilliseconds) {
+      final referenceMs =
+          widget.lastSeekTargetMs?.value ??
+          _lastSeekTargetMs ??
+          _elapsedMilliseconds;
+      if ((target - referenceMs).abs() > _staleDeltaThreshold.inMilliseconds) {
         return;
       }
     }
