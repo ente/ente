@@ -1590,8 +1590,6 @@
   "ocrModelsNetworkRequiredError": "Wymagane połączenie sieciowe do pobrania modeli OCR przy pierwszym użyciu",
   "ocrModelsPrepareFailed": "Nie udało się przygotować modeli OCR",
   "ocrNoTextDetected": "Nie wykryto tekstu",
-  "ocrProcessingOverlayMessage": "Wykrywanie tekstu...",
-  "ocrSelectionHint": "Przesuń palcem lub dwukrotnie dotknij, aby zaznaczyć, to co potrzebujesz",
   "offlineModeWarning": "Zdecydowano się kontynuować bez kopii zapasowych. Prosimy wykonywać ręczne kopie zapasowe, aby upewnić się, że Twoje kody są bezpieczne.",
   "offlineSettingsBannerTitle": "Nie możemy zobaczyć Twoich zdjęć. Nigdy.",
   "oneLineAboutTheIssue": "Problem w jednej linijce",

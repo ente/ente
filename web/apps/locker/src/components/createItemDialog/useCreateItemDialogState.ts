@@ -20,7 +20,7 @@ import {
     isUncategorizedCollection,
     visibleLockerCollections,
 } from "@/types";
-import { savedLocalUser } from "ente-accounts-rs/services/accounts-db";
+import { savedLocalUser } from "ente-accounts/services/accounts-db";
 import log from "ente-base/log";
 import { t } from "i18next";
 import type { ChangeEvent } from "react";

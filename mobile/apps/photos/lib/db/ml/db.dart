@@ -18,6 +18,7 @@ import "package:photos/db/ml/pet_vector_db.dart";
 import 'package:photos/db/ml/schema.dart';
 import "package:photos/events/embedding_updated_event.dart";
 import "package:photos/generated/protos/ente/common/vector.pb.dart";
+import "package:photos/main.dart" show isProcessBg;
 import "package:photos/models/ml/clip.dart";
 import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/face/face_with_embedding.dart";
@@ -27,6 +28,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
 import 'package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart';
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/utils/ml_util.dart";
 import 'package:sqlite_async/sqlite_async.dart';
@@ -35,6 +37,9 @@ import "package:synchronized/synchronized.dart";
 class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   static final Logger _logger = Logger("MLDataDB");
   static const int _maxSqlBindParamsPerQuery = 10000;
+  // Migrations are opportunistic and retried by their callers; logout's
+  // clearData intentionally waits unbounded because it must complete.
+  static const _kMigrationLockWaitDeadline = Duration(minutes: 2);
 
   static Logger get logger => _logger;
 
@@ -573,7 +578,10 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   }
 
   @override
-  Future<void> clearTable() async {
+  Future<void> clearTable() =>
+      _runMlOperationExclusive(MlOperation.clearData, _clearTable);
+
+  Future<void> _clearTable() async {
     final db = await asyncDB;
 
     await db.execute(deleteFacesTable);
@@ -1809,6 +1817,19 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   Future<void> checkMigrateFillClusterCentroidVectorDB({
     bool force = false,
   }) async {
+    if (!force && await _clusterCentroidVectorDB.checkIfMigrationDone()) {
+      return;
+    }
+    await _runMlOperationExclusive(
+      MlOperation.clusterCentroidVectorMigration,
+      () => _checkMigrateFillClusterCentroidVectorDB(force: force),
+      waitDeadline: _kMigrationLockWaitDeadline,
+    );
+  }
+
+  Future<void> _checkMigrateFillClusterCentroidVectorDB({
+    required bool force,
+  }) async {
     await _clusterCentroidVectorMigrationLock.synchronized(() async {
       final migrationDone = await _clusterCentroidVectorDB
           .checkIfMigrationDone();
@@ -2106,6 +2127,17 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   }
 
   Future<void> checkMigrateFillClipVectorDB({bool force = false}) async {
+    if (!force && await _clipVectorDB.checkIfMigrationDone()) {
+      return;
+    }
+    await _runMlOperationExclusive(
+      MlOperation.clipVectorMigration,
+      () => _checkMigrateFillClipVectorDB(force: force),
+      waitDeadline: _kMigrationLockWaitDeadline,
+    );
+  }
+
+  Future<void> _checkMigrateFillClipVectorDB({required bool force}) async {
     await _clipVectorMigrationLock.synchronized(() async {
       final migrationDone = await _clipVectorDB.checkIfMigrationDone();
       if (migrationDone && !force) {
@@ -2204,7 +2236,6 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
             _logger.info("All embeddings migrated, breaking out of while loop");
             break;
           }
-          // Allow some time for any GC to finish
           _logger.info("Waiting for 100ms out of precaution, for GC to finish");
           await Future.delayed(const Duration(milliseconds: 100));
         }
@@ -2276,6 +2307,26 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       unawaited(_scheduleClipVectorDbRecovery());
     } catch (e, s) {
       _logger.warning("ClipVectorDB reconciliation check failed", e, s);
+    }
+  }
+
+  Future<void> _runMlOperationExclusive(
+    MlOperation operation,
+    Future<void> Function() body, {
+    Duration? waitDeadline,
+  }) async {
+    final attempt = await MlProcessLock.instance.tryRunExclusive(
+      operation,
+      body,
+      background: isProcessBg,
+      waitForAvailability: true,
+      waitDeadline: waitDeadline,
+    );
+    if (attempt != MlLockAttempt.ran) {
+      throw StateError(
+        "${operation.name} could not acquire the ML process lock "
+        "(${attempt.name})",
+      );
     }
   }
 

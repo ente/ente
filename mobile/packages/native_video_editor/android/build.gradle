@@ -60,13 +60,11 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
     testImplementation 'junit:junit:4.13.2'
 
-    // Media3 Transformer for efficient video operations
     implementation "androidx.media3:media3-transformer:$media3_version"
     implementation "androidx.media3:media3-common:$media3_version"
     implementation "androidx.media3:media3-effect:$media3_version"
     implementation "androidx.media3:media3-extractor:$media3_version"
     implementation "androidx.media3:media3-inspector-frame:$media3_version"
 
-    // Guava for ImmutableList
     implementation "com.google.guava:guava:31.1-android"
 }

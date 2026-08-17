@@ -77,7 +77,7 @@ Future<List<EnteFile>> deleteFilesFromEverywhere(
   _logger.info("Trying to deleteFilesFromEverywhere " + files.toString());
   final List<String> localAssetIDs = [];
   final List<String> localSharedMediaIDs = [];
-  final List<String> alreadyDeletedIDs = []; // Files already missing from disk.
+  final List<String> alreadyDeletedIDs = [];
   bool hasLocalOnlyFiles = false;
   for (final file in files) {
     if (file.localID != null) {
@@ -103,7 +103,6 @@ Future<List<EnteFile>> deleteFilesFromEverywhere(
   final List<EnteFile> deletedFiles = [];
   for (final file in files) {
     if (file.localID != null) {
-      // Handle only files deleted, moved to trash, or already missing.
       if (removedIDs.contains(file.localID) ||
           alreadyDeletedIDs.contains(file.localID)) {
         deletedFiles.add(file);
@@ -229,7 +228,7 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
   _logger.info("Trying to deleteFilesOnDeviceOnly" + files.toString());
   final List<String> localAssetIDs = [];
   final List<String> localSharedMediaIDs = [];
-  final List<String> alreadyDeletedIDs = []; // Files already missing from disk.
+  final List<String> alreadyDeletedIDs = [];
   final localOnlyIDs = <String?>{};
   for (final file in files) {
     if (file.localID != null) {
@@ -253,7 +252,6 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
   final List<EnteFile> deletedFiles = [];
   final List<int> uploadedFileIDsToClear = [];
   for (final file in files) {
-    // Handle only files deleted, moved to trash, or already missing.
     if (removedIDs.contains(file.localID) ||
         alreadyDeletedIDs.contains(file.localID)) {
       deletedFiles.add(file);
@@ -310,29 +308,25 @@ Future<bool> deleteFromTrash(BuildContext context, List<EnteFile> files) async {
         ButtonComponent(
           label: l10n.yesDelete,
           variant: ButtonComponentVariant.critical,
-          onTap: () => _runDeleteAction(
-            sheetContext,
-            ButtonAction.first,
-            () async {
-              try {
-                didDeletionStart = true;
-                await trashSyncService.deleteFromTrash(trashFiles);
-                Bus.instance.fire(
-                  FilesUpdatedEvent(
-                    trashFiles,
-                    type: EventType.deletedFromEverywhere,
-                    source: "deleteFromTrash",
-                  ),
-                );
-                //the FilesUpdateEvent is not reloading trash on permanently removing
-                //files, so need to fire ForceReloadTrashPageEvent
-                Bus.instance.fire(ForceReloadTrashPageEvent());
-              } catch (e, s) {
-                _logger.info("failed to delete from trash", e, s);
-                rethrow;
-              }
-            },
-          ),
+          onTap: () =>
+              _runDeleteAction(sheetContext, ButtonAction.first, () async {
+                try {
+                  didDeletionStart = true;
+                  await trashSyncService.deleteFromTrash(trashFiles);
+                  Bus.instance.fire(
+                    FilesUpdatedEvent(
+                      trashFiles,
+                      type: EventType.deletedFromEverywhere,
+                      source: "deleteFromTrash",
+                    ),
+                  );
+                  // FilesUpdatedEvent does not reload Trash here.
+                  Bus.instance.fire(ForceReloadTrashPageEvent());
+                } catch (e, s) {
+                  _logger.info("failed to delete from trash", e, s);
+                  rethrow;
+                }
+              }),
         ),
       ],
     ),
@@ -523,7 +517,7 @@ Future<LocalDeletionResult> deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
   return combineDeletionResults(sharedMediaResult, platformResult);
 }
 
-/// Only to be used on Android
+// Only use on Android.
 Future<LocalDeletionResult>
 retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
   BuildContext context, {
@@ -1206,7 +1200,6 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
         ),
       ),
       actions: [
-        // Expanded target choices
         AnimatedSize(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
@@ -1269,9 +1262,7 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
                       ),
                     ],
                   )
-                :
-                  // Preferred target shortcut
-                  ButtonComponent(
+                : ButtonComponent(
                     label: switch (deletePreference) {
                       DeletePreference.DeleteFromRemoteOnly =>
                         l10n.deleteFromEnte,
@@ -1293,7 +1284,6 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
                   ),
           ),
         ),
-        // Preference control
         if (widget.isLocal && widget.isRemote)
           ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 48),

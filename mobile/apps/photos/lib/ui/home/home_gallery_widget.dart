@@ -50,10 +50,7 @@ class _HomeGalleryWidgetState extends State<HomeGalleryWidget> {
   _hideSharedFilesFromHomeSubscription;
   bool _shouldHideSharedItems = localSettings.hideSharedItemsFromHomeGallery;
 
-  /// This deboucner is to delay the UI update of the shared items toggle
-  /// since it's expensive (a new differnt key is used for the gallery
-  /// widget when hide is toggled), without which, causes the toggle button used
-  /// for it in settings to have janky animation.
+  // Delay the gallery rebuild so the settings toggle stays smooth.
   final _hideSharedItemsToggleDebouncer = Debouncer(
     const Duration(milliseconds: 500),
   );

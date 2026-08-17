@@ -1719,8 +1719,6 @@
   "ocrModelsNetworkRequiredError": "Netwerkverbinding vereist om OCR-modellen voor het eerst te gebruiken",
   "ocrModelsPrepareFailed": "Kan OCR-modellen niet voorbereiden",
   "ocrNoTextDetected": "Geen tekst gevonden",
-  "ocrProcessingOverlayMessage": "Tekst aan het detecteren...",
-  "ocrSelectionHint": "Veeg of dubbeltik om precies te selecteren wat je nodig hebt",
   "of_": "van",
   "offlineEnableBackupTagLabel": "10 GB GRATIS!",
   "offlineFacesBannerTitle": "Wil je deze gezichten opslaan?",

@@ -138,6 +138,9 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		}
 	}
 
+	if response.InternalUser {
+		response.ServerApiFlag |= ente.LibrarySharing
+	}
 	if response.InternalUser ||
 		rollout.IsInPercentageRollout(userID, videoStreamingRolloutNonce, videoStreamingRolloutPercentage) {
 		response.ServerApiFlag |= ente.VideoStreaming

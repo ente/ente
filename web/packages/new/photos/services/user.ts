@@ -1,4 +1,4 @@
-import { ensureSavedKeyAttributes } from "ente-accounts-rs/services/user";
+import { ensureSavedKeyAttributes } from "ente-accounts/services/user";
 import { boxSealOpenBytes, decryptBox } from "ente-base/crypto";
 import type { KeyPair } from "ente-base/crypto/types";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
@@ -46,6 +46,27 @@ const DeleteChallengeResponse = z.object({
     allowDelete: z.boolean(),
     encryptedChallenge: z.string().nullish().transform(nullToUndefined),
 });
+
+export interface AccountDeletionSummary {
+    photosAndVideosCount: number;
+    authenticatorCodesCount: number;
+    lockerRecordsCount: number;
+}
+
+const AccountDeletionSummary = z.object({
+    photosAndVideosCount: z.number().int(),
+    authenticatorCodesCount: z.number().int(),
+    lockerRecordsCount: z.number().int(),
+});
+
+export const getAccountDeletionSummary =
+    async (): Promise<AccountDeletionSummary> => {
+        const res = await fetch(await apiURL("/users/deletion-summary"), {
+            headers: await authenticatedRequestHeaders(),
+        });
+        ensureOk(res);
+        return AccountDeletionSummary.parse(await res.json());
+    };
 
 export const getAccountDeleteChallenge = async () => {
     const res = await fetch(await apiURL("/users/delete-challenge"), {

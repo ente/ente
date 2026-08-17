@@ -47,9 +47,6 @@ class MLModelDownloadService {
     return isLocalGalleryMode || await canUseHighBandwidth();
   }
 
-  /// Invalidate the download cache so the next ML run re-enters
-  /// [ensureModelsDownloaded], which checks consent, local indexing, bandwidth,
-  /// and downloads any newly required models.
   void invalidateModelDownloadCache({bool includeNonIndexingModels = false}) {
     _areIndexingModelsDownloaded = false;
     if (includeNonIndexingModels) {

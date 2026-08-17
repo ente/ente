@@ -6,7 +6,7 @@
         "@mui/material": "9.3.1",
         "@mui/x-date-pickers": "9.8.0",
         "dayjs": "1.11.21",
-        "ente-accounts-rs": "*",
+        "ente-accounts": "*",
         "ente-base": "*",
         "ente-gallery": "*",
         "ente-utils": "*",

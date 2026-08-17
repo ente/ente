@@ -4,15 +4,13 @@
     android:layout_height="match_parent"
     android:id="@+id/widget_container">
 
-    <!-- Main Image (if available) -->
     <ImageView
         android:id="@+id/widget_img"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:visibility="gone" />  <!-- Initially hidden -->
+        android:visibility="gone" />
 
-    <!-- Gradient Overlay for Text Readability -->
     <LinearLayout
         android:id="@+id/widget_overlay"
         android:layout_width="match_parent"
@@ -24,9 +22,8 @@
         android:paddingBottom="16dp"
         android:paddingTop="4dp"
         android:background="@layout/gradient_overlay"
-        android:visibility="gone"> <!-- Initially hidden, shown when image is available -->
+        android:visibility="gone">
 
-        <!-- Title -->
         <TextView
             android:id="@+id/widget_title"
             android:layout_width="wrap_content"
@@ -39,7 +36,6 @@
             android:ellipsize="end"
             android:visibility="gone"/>
 
-        <!-- Subtitle -->
         <TextView
             android:id="@+id/widget_subtitle"
             android:layout_width="wrap_content"
@@ -52,7 +48,6 @@
             android:visibility="gone"/>
     </LinearLayout>
 
-    <!-- Placeholder View (when no image available) -->
     <LinearLayout
         android:id="@+id/widget_placeholder_container"
         android:layout_width="match_parent"

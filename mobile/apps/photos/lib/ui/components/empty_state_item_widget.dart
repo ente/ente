@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "package:photos/theme/ente_theme.dart";
 
-///https://www.figma.com/file/SYtMyLBs5SAOkTbfMMzhqt/ente-Visual-Design?node-id=11379%3A67490&t=VI5KulbW3HMM5MVz-4
+// https://www.figma.com/file/SYtMyLBs5SAOkTbfMMzhqt/ente-Visual-Design?node-id=11379%3A67490&t=VI5KulbW3HMM5MVz-4
 
 class EmptyStateItemWidget extends StatelessWidget {
   final String textContent;

@@ -145,7 +145,7 @@ class __BodyState extends State<_Body> {
                 Text(
                   widget.labelText,
                   textAlign: TextAlign.center,
-                  //textTheme in [getWidthOfLongestWord] should be same as this
+                  // Keep this style in sync with getWidthOfWidestWord.
                   style: getEnteTextTheme(context).miniMuted,
                 ),
               ],
@@ -187,7 +187,7 @@ class __BodyState extends State<_Body> {
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
-    //buffer of 8 added as width is shorter than actual text width
+    // Add 8 points because TextPainter under-measures this label.
     return textPainter.size.width + 8;
   }
 }

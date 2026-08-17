@@ -20,7 +20,7 @@ import "package:photos/events/file_uploaded_event.dart";
 import 'package:photos/events/files_updated_event.dart';
 import 'package:photos/events/local_photos_updated_event.dart';
 import "package:photos/gateways/files/file_upload_gateway.dart";
-import "package:photos/main.dart" show isProcessBg, kLastBGTaskHeartBeatTime;
+import "package:photos/main.dart" show isProcessBg;
 import "package:photos/models/backup/backup_item.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
@@ -38,6 +38,8 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/account/user_service.dart";
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/file_magic_service.dart';
+import "package:photos/services/process_activity.dart"
+    show isBackgroundEngineActive;
 import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
 import "package:photos/utils/device_storage_error.dart";
@@ -46,7 +48,6 @@ import "package:photos/utils/network_util.dart";
 import 'package:shared_preferences/shared_preferences.dart';
 import "package:uuid/uuid.dart";
 
-/// Coordinates encryption, transfer, persistence, and retries for file uploads.
 class FileUploader {
   static const kMaximumConcurrentUploads = 4;
   static const kMaximumConcurrentVideoUploads = 2;
@@ -70,13 +71,10 @@ class FileUploader {
   );
   final _existingUploadResolver = ExistingUploadResolver.forApp();
   final kSafeBufferForLockExpiry = const Duration(hours: 4).inMicroseconds;
-  final kBGTaskDeathTimeout = const Duration(seconds: 5).inMicroseconds;
   Map<String, BackupItem> get allBackups => _queue.backupItems;
 
-  /// Returns true if any file uploads are currently in progress
   bool get isUploading => _queue.isUploading;
 
-  /// Returns true if an upload is queued, running, or waiting in background.
   bool get hasPendingUploads => _queue.hasPendingUploads;
   late ProcessType _processType;
   late SharedPreferences _prefs;
@@ -104,11 +102,7 @@ class FileUploader {
       currentTime - kSafeBufferForLockExpiry,
     );
     if (!isBackground) {
-      await _prefs.reload();
-      final lastBGTaskHeartBeatTime =
-          _prefs.getInt(kLastBGTaskHeartBeatTime) ?? 0;
-      final isBGTaskDead =
-          lastBGTaskHeartBeatTime < (currentTime - kBGTaskDeathTimeout);
+      final isBGTaskDead = !await isBackgroundEngineActive();
       if (isBGTaskDead) {
         await _uploadLocks.releaseLocksAcquiredByOwnerBefore(
           ProcessType.background.toString(),
@@ -116,9 +110,7 @@ class FileUploader {
         );
         _logger.info("BG task was found dead, cleared all locks");
       } else {
-        _logger.info(
-          "BG task is alive, not clearing locks ${DateTime.fromMicrosecondsSinceEpoch(lastBGTaskHeartBeatTime)}",
-        );
+        _logger.info("BG task is alive, not clearing locks");
       }
       if (!_hasStartedBackgroundUploadPolling) {
         _hasStartedBackgroundUploadPolling = true;
@@ -168,8 +160,6 @@ class FileUploader {
         });
   }
 
-  // upload future will return null as File when the file entry is deleted
-  // locally because it's already present in the destination collection.
   Future<EnteFile> upload(EnteFile file, int collectionID) {
     if (file.localID == null || file.localID!.isEmpty) {
       return Future.error(Exception("file's localID can not be null or empty"));
@@ -179,8 +169,6 @@ class FileUploader {
       _pollQueue();
       return request.item.completer.future;
     }
-    // If the file exists in the queue for a matching collectionID,
-    // return the existing future
     if (request.disposition == UploadQueueDisposition.sameCollection) {
       return request.item.completer.future;
     }
@@ -188,8 +176,6 @@ class FileUploader {
       "Wait on another upload on same local ID to finish before "
       "adding it to new collection",
     );
-    // Else wait for the existing upload to complete,
-    // and add it to the relevant collection
     return request.item.completer.future.then((uploadedFile) async {
       _logger.info(
         "original upload completer resolved, try adding the file to another "
@@ -212,8 +198,6 @@ class FileUploader {
     _queue.clear(reason);
   }
 
-  /// Validates that the user can upload before starting expensive encryption.
-  /// Throws on 402 (no subscription) or 426 (storage exceeded).
   Future<void> validateUploadEligibility() async {
     try {
       await _gateway.validateUploadEligibility();
@@ -300,8 +284,6 @@ class FileUploader {
       _uploadArtifactLifecycle.removeStaleFiles();
 
   Future<void> checkNetworkForUpload({bool isForceUpload = false}) async {
-    // Note: We don't support force uploading currently. During force upload,
-    // network check is skipped completely
     if (isForceUpload) {
       return;
     }
@@ -316,15 +298,12 @@ class FileUploader {
     if (Platform.isAndroid) {
       final bool hasPermission = await Permission.accessMediaLocation.isGranted;
       if (!hasPermission) {
-        // In background isolate, we can't request permissions (no UI available)
-        // Throw an error to properly handle this scenario
         if (isProcessBg) {
           _logger.severe(
             "Media location access not granted in background isolate - cannot request permission",
           );
           throw NoMediaLocationAccessError();
         }
-        // Only request permission in foreground
         final permissionStatus = await Permission.accessMediaLocation.request();
         if (!permissionStatus.isGranted) {
           _logger.severe(
@@ -437,9 +416,6 @@ class FileUploader {
     try {
       mediaUploadData = await getUploadDataFromEnteFile(file);
     } catch (e) {
-      // This additional try catch block is added because for resumable upload,
-      // we need to compute the hash before the next step. Previously, this
-      // was done in during the upload itself.
       if (e is InvalidFileError) {
         _logger.severe("File upload ignored for " + file.toString(), e);
         await _onInvalidFileError(file, e);
@@ -465,8 +441,6 @@ class FileUploader {
     late final int encThumbSize;
 
     var uploadCompleted = false;
-    // This flag is used to decide whether to clear the iOS origin file cache
-    // or not.
     var uploadHardFailure = false;
 
     try {
@@ -500,7 +474,7 @@ class FileUploader {
           debugPrint(
             "File success mapped to existing uploaded ${file.toString()}",
           );
-          // treat as completed so _onUploadDone clears the source export
+          // Treat as completed so _onUploadDone clears the source export.
           uploadCompleted = true;
           return mappedFile;
         }
@@ -508,8 +482,7 @@ class FileUploader {
 
       final encryptedFileExists = File(encryptedFilePath).existsSync();
 
-      // If the multipart entry exists but the encrypted file doesn't, it means
-      // that we'll have to re-upload as the nonce is lost
+      // A missing encrypted file cannot be resumed because its nonce is lost.
       if (hasExistingMultiPart) {
         if (!encryptedFileExists) {
           throw MultiPartFileMissingError(
@@ -524,15 +497,12 @@ class FileUploader {
           throw MultiPartError('multiPart update resumed with differentKey');
         }
       } else if (encryptedFileExists) {
-        // otherwise just delete the file for singlepart upload
         _logger.severe('File exists without multipart entry, deleting file');
         await File(encryptedFilePath).delete();
       }
       await _checkIfWithinStorageLimit(mediaUploadData.sourceFile);
       final encryptedFile = File(encryptedFilePath);
 
-      // Calculate the number of parts to determine if we need MD5
-      // Use source length to estimate encrypted size for part count decision
       final estimatedEncSize = CryptoUtil.estimateEncryptedSize(sourceLength);
       final estimatedCount = _multiPartUploader.calculatePartCount(
         estimatedEncSize,
@@ -583,7 +553,6 @@ class FileUploader {
       encThumbSize = await encryptedThumbnailFile.length();
       final thumbnailMd5 = await computeMd5(encryptedThumbnailPath);
 
-      // Calculate the number of parts for the file.
       final count = _multiPartUploader.calculatePartCount(encFileSize);
 
       late String fileObjectKey;
@@ -654,10 +623,7 @@ class FileUploader {
             onSendProgress: onSendProgress,
           );
         }
-        // in case of multipart, upload the thumbnail towards the end to avoid
-        // re-uploading the thumbnail in case of failure.
-        // In regular upload, always upload the thumbnail first to keep existing behaviour
-        //
+        // Send the thumbnail last so multipart retries do not re-upload it.
         thumbnailObjectKey = await _uploadTransport!.uploadSinglePart(
           encryptedThumbnailFile,
           encThumbSize,
@@ -714,8 +680,6 @@ class FileUploader {
       );
       EnteFile remoteFile;
       if (isUpdatedFile) {
-        // Verify that the encrypted file can be decrypted before uploading
-        // For updates, we need to verify with the existing file key
         await CryptoUtil.decryptVerify(
           encryptedFilePath,
           fileDecryptionHeader,
@@ -728,7 +692,6 @@ class FileUploader {
           file: file,
           data: commitData,
         );
-        // Update across all collections
         await FilesDB.instance.updateUploadedFileAcrossCollections(remoteFile);
         // The update response does not carry public magic metadata, so derived values
         // (width/height, mediaType, exif, camera) that change when the file is
@@ -824,7 +787,7 @@ class FileUploader {
           e is FileTooLargeForPlanError ||
           e is NoActiveSubscriptionError ||
           e is InvalidFileError)) {
-        // file upload can not be retried in such cases without user intervention
+        // These failures cannot be retried without user intervention.
         uploadHardFailure = true;
       }
       if ((isMultipartUpload || hasExistingMultiPart) &&
@@ -900,15 +863,8 @@ class FileUploader {
     await _uploadLocks.releaseLock(lockKey, _processType.toString());
   }
 
-  /*
-  _checkIfWithinStorageLimit verifies if the file size for encryption and upload
-   is within the storage limit. It throws StorageLimitExceededError if the limit
-    is exceeded. This check is best effort and may not be completely accurate
-    due to UserDetail cache. It prevents infinite loops when clients attempt to
-    upload files that exceed the server's storage limit + buffer.
-    Note: Local storageBuffer is 20MB, server storageBuffer is 50MB, and an
-    additional 30MB is reserved for thumbnails and encryption overhead.
-   */
+  // Keep the client buffer 30 MB below the server buffer for thumbnail and
+  // encryption overhead. Cached user details make this check best-effort.
   Future<void> _checkIfWithinStorageLimit(File fileToBeUploaded) async {
     try {
       final UserDetails? userDetails = UserService.instance
@@ -916,7 +872,6 @@ class FileUploader {
       if (userDetails == null) {
         return;
       }
-      // add k20MBStorageBuffer to the free storage
       final num freeStorage = userDetails.getFreeStorage() + k20MBStorageBuffer;
       final int fileSize = await fileToBeUploaded.length();
       if (fileSize > freeStorage) {
@@ -956,8 +911,6 @@ class FileUploader {
           file.deviceFolder != null &&
           file.title != null &&
           !file.isSharedMediaToAppSandbox;
-      // If the file is not uploaded yet and either it can not be ignored or the
-      // err is related to live photo media, delete the local entry
       final bool deleteEntry =
           !file.isUploaded && (!canIgnoreFile || e.reason.isLivePhotoErr);
 
@@ -978,8 +931,6 @@ class FileUploader {
     }
   }
 
-  // _pollBackgroundUploadStatus polls the background uploads to check if the
-  // upload is completed or failed.
   Future<void> _pollBackgroundUploadStatus() async {
     final blockedUploads = _queue.backgroundItems;
     for (final upload in blockedUploads) {
@@ -1009,9 +960,8 @@ class FileUploader {
               "Background upload failure detected ${file.tag}: "
               "$persistedState",
             );
-            // The upload status is marked as in background, but the file is not locked
-            // by the background process. Release any lock taken by the foreground process
-            // and complete the completer with error.
+            // The upload is marked as in background but has no background lock.
+            // Release any foreground lock and complete it with an error.
             final releasedForegroundLocks = await _uploadLocks.releaseLock(
               file.localID!,
               ProcessType.foreground.toString(),

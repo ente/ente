@@ -4,7 +4,7 @@ import {
     type FamilyInviteInfo,
 } from "@/services/family";
 import { Box, Stack, Typography } from "@mui/material";
-import { AccountsPageContents } from "ente-accounts-rs/components/layouts/centered-paper";
+import { AccountsPageContents } from "ente-accounts/components/layouts/centered-paper";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";

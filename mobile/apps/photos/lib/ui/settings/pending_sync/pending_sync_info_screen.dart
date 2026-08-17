@@ -6,28 +6,6 @@ import "package:photos/service_locator.dart";
 import "package:photos/ui/components/menu_section_title.dart";
 import "package:photos/ui/settings/pending_sync/path_info_storage_viewer.dart";
 
-// Preview Video related items -> pv
-// final String tempDir = Configuration.instance.getTempDirectory();
-// final String prefix = "${tempDir}_${enteFile.uploadedFileID}_${newID("pv")}";
-//
-// Recovery Key -> ente-recovery-key.txt
-// Configuration.instance.getTempDirectory() + "ente-recovery-key.txt",
-//
-// Encrypted files (upload), decrypted files (download) -> .encrypted & .decrypted
-//   final String tempDir = Configuration.instance.getTempDirectory();
-//   final String encryptedFilePath = "$tempDir${file.uploadedFileID}.encrypted";
-//   final String decryptedFilePath = "$tempDir${file.uploadedFileID}.decrypted";
-//
-// Live photo compressed version -> .elp
-// final livePhotoPath = tempPath + uniqueId + "_${file.generatedID}.elp";
-//
-// Explicit uploads -> _file.encrpyted & _thumb.encrypted
-// final encryptedFilePath = multipartEntryExists
-//     ? '$tempDirectory$existingMultipartEncFileName'
-//     : '$tempDirectory$uploadTempFilePrefix${uniqueID}_file.encrypted';
-// final encryptedThumbnailPath =
-//     '$tempDirectory$uploadTempFilePrefix${uniqueID}_thumb.encrypted';
-
 class PendingSyncInfoScreen extends StatefulWidget {
   const PendingSyncInfoScreen({super.key});
 

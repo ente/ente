@@ -302,9 +302,7 @@ class LockScreenSettings {
     return _preferences.setBool(keyShouldShowLockScreen, value);
   }
 
-  // If the app was uninstalled (without logging out if it was used with
-  // backups), keychain items of the app persist in the keychain. To avoid using
-  // old keychain items, we delete them on reinstall.
+  // Keychain entries survive uninstall, so clear them after a reinstall.
   Future<void> _clearLsDataInKeychainIfFreshInstall(
     bool hasOptedForOfflineMode,
   ) async {

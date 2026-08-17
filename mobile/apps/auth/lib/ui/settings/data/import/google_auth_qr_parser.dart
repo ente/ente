@@ -42,18 +42,14 @@ GoogleAuthMigration parseGoogleAuthMigration(String qrCodeData) {
       base64Decoded,
     );
     for (var otpParameter in mPayload.otpParameters) {
-      // Build the OTP URL
       String otpUrl;
       String issuer = otpParameter.issuer;
       String account = otpParameter.name;
       var counter = otpParameter.counter;
-      // Create a list of bytes from the list of integers.
       Uint8List bytes = Uint8List.fromList(otpParameter.secret);
 
-      // Encode the bytes to base 32.
       String base32String = base32.encode(bytes);
       String secret = base32String;
-      // identify digit count
       int digits = 6;
       int timer = 30; // default timer, no field in Google Auth
       Algorithm algorithm = Algorithm.sha1;

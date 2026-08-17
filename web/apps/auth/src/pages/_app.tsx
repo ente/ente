@@ -1,8 +1,8 @@
 import "@fontsource-variable/inter";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import { savedLocalUser } from "ente-accounts-rs/services/accounts-db";
-import { accountLogout } from "ente-accounts-rs/services/logout";
+import { savedLocalUser } from "ente-accounts/services/accounts-db";
+import { accountLogout } from "ente-accounts/services/logout";
 import { staticAppTitle } from "ente-base/app";
 import { CustomHead } from "ente-base/components/Head";
 import {

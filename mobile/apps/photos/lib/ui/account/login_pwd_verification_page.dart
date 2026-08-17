@@ -13,11 +13,6 @@ import "package:photos/ui/components/buttons/button_widget.dart"
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/email_util.dart";
 
-// LoginPasswordVerificationPage is a page that allows the user to enter their password to verify their identity.
-// If the password is correct, then the user is either directed to
-// PasswordReentryPage (if the user has not yet set up 2FA) or TwoFactorAuthenticationPage (if the user has set up 2FA).
-// In the PasswordReentryPage, the password is auto-filled based on the
-// volatile password.
 class LoginPasswordVerificationPage extends StatefulWidget {
   final SrpAttributes srpAttributes;
 
@@ -207,7 +202,6 @@ class _LoginPasswordVerificationPageState
       await dialog.hide();
       if (e is LoginKeyDerivationError) {
         _logger.severe('loginKey derivation error', e, s);
-        // LoginKey err, perform regular login via ott verification
         if (!context.mounted) return;
         await UserService.instance.sendOtt(
           context,
@@ -216,7 +210,7 @@ class _LoginPasswordVerificationPageState
         );
         return;
       } else if (e is KeyDerivationError) {
-        // device is not powerful enough to perform derive key
+        // This device is not powerful enough to derive the key.
         if (!context.mounted) return;
         final dialogChoice = await showChoiceDialog(
           context,

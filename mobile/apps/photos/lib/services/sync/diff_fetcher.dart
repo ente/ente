@@ -87,7 +87,7 @@ class DiffFetcher {
             );
           }
 
-          // To avoid local file to be used as thumbnail or full file.
+          // Do not use local media for public collection files.
           file.localID = null;
 
           sharedFiles.add(file);

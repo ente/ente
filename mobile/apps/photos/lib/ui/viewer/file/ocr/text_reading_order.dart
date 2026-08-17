@@ -14,12 +14,8 @@ class TextReadingOrderBlock {
   final String text;
 }
 
-/// Orders OCR blocks in visual reading order.
-///
-/// When blocks form overlapping vertical columns, each column is read from
-/// top to bottom before advancing horizontally. Blocks spanning most of the
-/// page width split the columns into vertical bands, which keeps headings and
-/// footers in their expected positions.
+// Read each column top to bottom. Wide headings and footers split columns into
+// vertical bands.
 List<int> orderTextBlocksForReading(Iterable<TextReadingOrderBlock> source) {
   final blocks = source
       .where((block) => block.bounds.width > 0 && block.bounds.height > 0)

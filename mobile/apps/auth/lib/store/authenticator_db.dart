@@ -147,7 +147,6 @@ class AuthenticatorDB extends EnteBaseDatabase {
     return _convertRows(rows);
   }
 
-  // removeSyncedData will remove all the data which is synced with the server
   Future<int> removeSyncedData() async {
     final db = await instance.database;
     return await db.delete(
@@ -157,7 +156,6 @@ class AuthenticatorDB extends EnteBaseDatabase {
     );
   }
 
-  // getCount of entries which are not synced with the server
   Future<int> getNeedSyncCount() async {
     final db = await instance.database;
     final rows = await db.rawQuery(
@@ -166,7 +164,6 @@ class AuthenticatorDB extends EnteBaseDatabase {
     return Sqflite.firstIntValue(rows)!;
   }
 
-  // deleteByID will prefer generated id if both ids are passed during deletion
   Future<void> deleteByIDs({List<int>? generatedIDs, List<String>? ids}) async {
     final db = await instance.database;
     final batch = db.batch();

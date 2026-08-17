@@ -6,7 +6,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import {
     isSavedUserTokenMismatch,
     savedLocalUser,
-} from "ente-accounts-rs/services/accounts-db";
+} from "ente-accounts/services/accounts-db";
 import {
     LoadingIndicator,
     TranslucentLoadingOverlay,

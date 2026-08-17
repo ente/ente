@@ -129,7 +129,7 @@ class PickCenterPointWidget extends StatelessWidget {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 428),
                     child: Padding(
-                      //inner stroke of 1pt + 15 pts of top padding = 16 pts
+                      // The 1 pixel inner stroke completes the 16 pixel inset.
                       padding: const EdgeInsets.fromLTRB(16, 15, 16, 8),
                       child: ValueListenableBuilder(
                         valueListenable: isFileSelected,

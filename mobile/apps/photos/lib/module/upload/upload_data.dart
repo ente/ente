@@ -32,7 +32,6 @@ import "package:photos/utils/image_util.dart";
 
 final _logger = Logger("UploadData");
 
-/// Builds the source, thumbnail, hashes, and embedded metadata for an upload.
 Future<MediaUploadData> getUploadDataFromEnteFile(EnteFile file) async {
   if (file.isSharedMediaToAppSandbox) {
     return await _getMediaUploadDataFromAppCache(file);
@@ -41,7 +40,6 @@ Future<MediaUploadData> getUploadDataFromEnteFile(EnteFile file) async {
   }
 }
 
-/// Computes the content hash used to decide whether a local file changed.
 Future<String> getFileContentIdentity(EnteFile file) async {
   if (file.isSharedMediaToAppSandbox) {
     final sourceFile = File(getSharedMediaFilePath(file));
@@ -94,7 +92,6 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(EnteFile file) async {
         cameraModel = extractPrintableExifValue(exifData['Image Model']);
       }
     }
-    // h4ck to fetch location data if missing (thank you Android Q+) lazily only during uploads
     await _decorateEnteFileData(file, asset, sourceFile, exifData);
     fileHash = CryptoUtil.bin2base64(await CryptoUtil.getHash(sourceFile));
 
@@ -221,7 +218,6 @@ Future<Uint8List?> _getThumbnailForUpload(
       quality: thumbnailQuality,
     );
     if (thumbnailData == null) {
-      // allow videos to be uploaded without thumbnails
       if (asset.type == AssetType.video) {
         return null;
       }
@@ -238,7 +234,6 @@ Future<Uint8List?> _getThumbnailForUpload(
     final String errMessage =
         "thumbErr for ${file.fileType}, ${extension(file.displayName)} ${file.tag}";
     _logger.warning(errMessage, e);
-    // allow videos to be uploaded without thumbnails
     if (asset.type == AssetType.video) {
       return null;
     }
@@ -246,8 +241,7 @@ Future<Uint8List?> _getThumbnailForUpload(
   }
 }
 
-// check if the assetType is still the same. This can happen for livePhotos
-// if the user turns off the video using native photos app
+// iOS Photos can turn a Live Photo into a regular image after import.
 void _assertFileType(AssetEntity asset, EnteFile file) {
   final assetType = fileTypeFromAsset(asset);
   if (assetType == file.fileType) {
@@ -279,7 +273,7 @@ Future<void> _decorateEnteFileData(
   File sourceFile,
   Map<String, IfdTag>? exifData,
 ) async {
-  // h4ck to fetch location data if missing (thank you Android Q+) lazily only during uploads
+  // Fetch missing Android Q+ location data lazily during upload.
   if (!file.hasLocation) {
     final latLong = await asset.latlngAsync();
     if (latLong != null) {

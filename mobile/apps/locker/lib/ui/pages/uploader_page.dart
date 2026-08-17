@@ -72,7 +72,6 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
         return false;
       }
 
-      // Navigate to upload screen to get collection selection
       final uploadResult = await Navigator.of(context)
           .push<FileUploadScreenResult>(
             MaterialPageRoute(
@@ -84,7 +83,6 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
             ),
           );
 
-      // Handle both regular collections and uncategorized (empty set)
       final isUncategorizedUpload =
           uploadResult != null && uploadResult.selectedCollections.isEmpty;
       final isRegularUpload =
@@ -93,7 +91,6 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
       if (isUncategorizedUpload || isRegularUpload) {
         didUpload = true;
         if (isUncategorizedUpload) {
-          // Get the uncategorized collection for upload
           final uncategorizedCollection = await CollectionService.instance
               .getOrCreateUncategorizedCollection();
           uploadResult.selectedCollections.add(uncategorizedCollection);
@@ -135,7 +132,6 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
                 }
 
                 final postUploadFutures = <Future<dynamic>>[];
-                // Add to additional collections if multiple were selected
                 for (
                   int cIndex = 1;
                   cIndex < uploadResult.selectedCollections.length;

@@ -24,8 +24,7 @@ import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart"
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 
 class MagicResultScreen extends StatefulWidget {
-  ///This widget expects [files] to be sorted by most relelvant first to the
-  ///magic search query.
+  // Files must be ordered from most to least relevant.
   final List<EnteFile> files;
   final String name;
   final String heroTag;

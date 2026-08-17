@@ -1,7 +1,3 @@
-//
-//  EnteMemoryWidget.swift
-//  EnteMemoryWidget
-
 import SwiftUI
 import UIKit
 import WidgetKit
@@ -36,7 +32,6 @@ struct Provider: TimelineProvider {
     func getTimeline(in _: Context, completion: @escaping (Timeline<Entry>) -> Void) {
         var entries: [FileEntry] = []
 
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
         let currentDate = Calendar.current.nextDate(
             after: Date(), matching: DateComponents(second: 0), matchingPolicy: .nextTime,
             direction: .backward
@@ -79,9 +74,6 @@ struct Provider: TimelineProvider {
         completion(timeline)
     }
 
-    //    func relevances() async -> WidgetRelevances<Void> {
-    //        // Generate a list containing the contexts this widget is relevant in.
-    //    }
 }
 
 struct FileEntry: TimelineEntry {
@@ -131,7 +123,7 @@ struct EnteMemoryWidgetEntryView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(entry.title ?? "").font(
                                             .custom("Inter", size: 14, relativeTo: .caption)
-                                        )  // Custom with fallback
+                                        )
                                         .bold()
                                         .foregroundStyle(.white)
                                         .shadow(radius: 20)
@@ -175,7 +167,7 @@ struct EnteMemoryWidgetEntryView: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(entry.title ?? "").font(
                                                 .custom("Inter", size: 14, relativeTo: .caption)
-                                            )  // Custom with fallback
+                                            )
                                             .bold()
                                             .foregroundStyle(.white)
                                             .shadow(radius: 20)
@@ -212,7 +204,7 @@ struct EnteMemoryWidgetEntryView: View {
 
                         Text("Click to customise")
                             .font(.custom("Inter", size: 12, relativeTo: .caption2))
-                            .foregroundStyle(.white)  // Tint-aware color
+                            .foregroundStyle(.white)
                             .multilineTextAlignment(.center)
                             .padding(.bottom, 12)
                             .padding(.horizontal, 8)

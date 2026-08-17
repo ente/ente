@@ -13,7 +13,6 @@ import "package:photos/ui/viewer/file/panorama_view_data.dart";
 
 final _logger = Logger("PanoramaViewerScreen");
 
-/// Extracts XMP attributes from the file at [filePath].
 typedef XmpExtractor = Future<Map<String, String>> Function(String filePath);
 typedef MotionAvailabilityChecker = Future<bool> Function();
 
@@ -29,7 +28,6 @@ class PanoramaViewerScreen extends StatefulWidget {
   final File file;
   final Uint8List? thumbnail;
 
-  /// Overridable for tests. Defaults to the Rust XMP extractor.
   final XmpExtractor? xmpExtractor;
   final MotionAvailabilityChecker? motionAvailabilityChecker;
 

@@ -20,7 +20,7 @@ import {
     Typography,
     type ModalProps,
 } from "@mui/material";
-import type { LocalUser } from "ente-accounts-rs/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
 import { SpacedRow } from "ente-base/components/containers";
 import { InlineErrorIndicator } from "ente-base/components/ErrorIndicator";

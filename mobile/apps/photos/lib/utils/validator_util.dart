@@ -31,7 +31,6 @@ void validatePreVerificationStateCheck(
   if (keyAttr.memLimit! <= 0 || keyAttr.opsLimit! <= 0) {
     throw ArgumentError("Key mem/OpsLimit can not be <0");
   }
-  // check password encoding issues
   try {
     final Uint8List passwordL = utf8.encode(password!);
     try {

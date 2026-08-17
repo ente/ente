@@ -76,32 +76,24 @@ class Gallery extends StatefulWidget {
   final GalleryType? galleryType;
   final bool showGallerySettingsCTA;
 
-  /// Returns eligible additions, or null when the gallery must reload.
+  // Return null to force a full reload.
   final NewLocalFilesResolver? newLocalFilesResolver;
 
-  /// When true, selection will be limited to one item. Tapping on any item
-  /// will select even when no other item is selected.
+  // Single-selection mode also selects on the first tap.
   final bool limitSelectionToOne;
 
   final bool addHeaderOrFooterEmptyState;
 
-  /// When true, the gallery will be in selection mode. Tapping on any item
-  /// will select it even when no other item is selected. This is only used to
-  /// make selection possible without long pressing. If a gallery has selected
-  /// files, it's not necessary that this will be true.
+  // Enables tap-to-select; it does not indicate whether files are selected.
   final bool inSelectionMode;
   final bool showSelectAll;
 
-  // add a Function variable to get sort value in bool
   final SortAscFn? sortAsyncFn;
 
-  /// Pass value to override default group type.
   final GroupType? groupType;
   final bool disablePinnedGroupHeader;
   final bool disableVerticalPaddingForScrollbar;
 
-  /// File to jump to when gallery is loaded. The gallery will scroll to the
-  /// group containing this file.
   final EnteFile? fileToJumpTo;
 
   const Gallery({
@@ -185,7 +177,7 @@ class GalleryState extends State<Gallery> {
     _automationScrollIdentifier = _buildAutomationScrollIdentifier(
       widget.tagPrefix,
     );
-    // end the tag with x to avoid `.` in the end if logger name
+    // Keep the logger name from ending in a dot.
     _logTag =
         "Gallery_${widget.tagPrefix}${kDebugMode ? "_" + widget.albumName! : ""}_x";
     _logger = Logger(_logTag);
@@ -236,8 +228,6 @@ class GalleryState extends State<Gallery> {
             : _debouncer;
 
         targetDebouncer.run(() async {
-          // In soft refresh, setState is called for entire gallery only when
-          // number of child change
           _logger.info(
             "${isPriorityEvent ? 'Priority' : 'Soft'} refresh on ${event.reason}",
           );
@@ -286,7 +276,6 @@ class GalleryState extends State<Gallery> {
       _onFilesLoaded(widget.initialFiles!);
     }
 
-    // First load
     _loadFiles(limit: kInitialLoadLimit).then((result) async {
       _setFilesAndReload(result.files);
       if (result.hasMore) {
@@ -325,7 +314,6 @@ class GalleryState extends State<Gallery> {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // To set the initial value of scrollbar bottom padding
       _selectedFilesListener();
       try {
         final headerRenderBox = await miscUtil
@@ -395,33 +383,14 @@ class GalleryState extends State<Gallery> {
     );
     galleryGroups = groups;
 
-    // Cache the list with dummies
+    // Keep dummy cells in the swipe index so it matches the rendered grid.
     _allFilesWithDummies = groups.allFilesWithDummies;
-
-    // Always update SwipeHelper when cache is updated
     _updateSwipeHelper();
 
     if (callSetState) {
       setState(() {});
     }
   }
-
-  // void _setScrollController({required bool allFilesLoaded}) {
-  //   if (widget.fileToJumpScrollTo != null && allFilesLoaded) {
-  //     final fileOffset =
-  //         galleryGroups.getOffsetOfFile(widget.fileToJumpScrollTo!);
-  //     if (fileOffset == null) {
-  //       _logger.warning(
-  //         "File offset is null, cannot set initial scroll controller",
-  //       );
-  //     }
-
-  //     _scrollController?.jumpTo(fileOffset ?? 0);
-  //   } else {
-  //     _scrollController = ScrollController();
-  //   }
-  //   setState(() {});
-  // }
 
   void _selectedFilesListener() {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
@@ -454,7 +423,6 @@ class GalleryState extends State<Gallery> {
     if (event.source == 'uploadCompleted') {
       final Map<int, EnteFile> genIDToUploadedFiles = {};
       for (int i = 0; i < event.updatedFiles.length; i++) {
-        // matching happens on generatedID and localID
         if (event.updatedFiles[i].generatedID == null) {
           return true;
         }
@@ -489,8 +457,6 @@ class GalleryState extends State<Gallery> {
     return shouldReloadFromDB;
   }
 
-  // Handle event when an local file was already uploaded and we have now
-  // added localID link link to the remote file
   bool _shouldReloadOnFileMissingLocal(FilesUpdatedEvent event) {
     bool shouldReloadFromDB = true;
     if (event.source != 'fileMissingLocal' ||
@@ -502,8 +468,6 @@ class GalleryState extends State<Gallery> {
     }
     final Map<int, EnteFile> genIDToUploadedFiles = {};
     for (int i = 0; i < event.updatedFiles.length; i++) {
-      // the file should have generatedID, localID and should not be uploaded for
-      // following logic to work
       if (event.updatedFiles[i].generatedID == null ||
           event.updatedFiles[i].localID == null ||
           event.updatedFiles[i].isUploaded) {
@@ -615,11 +579,7 @@ class GalleryState extends State<Gallery> {
 
   void _updateSwipeHelper() {
     if (widget.selectedFiles != null && _allFilesWithDummies.isNotEmpty) {
-      // Dispose existing helper if present
       _swipeHelper?.dispose();
-      // Use allFilesWithDummies to match the rendered grid structure.
-      // This allows SwipeHelper to track pointer position through dummy
-      // placeholders while filtering them from selection operations.
       _swipeHelper = SwipeToSelectHelper(
         allFiles: _allFilesWithDummies,
         selectedFiles: widget.selectedFiles!,
@@ -648,7 +608,6 @@ class GalleryState extends State<Gallery> {
             "ms",
       );
 
-      /// To curate filters when a gallery is first opened.
       if (!result.hasMore) {
         if (!mounted) {
           return result;
@@ -677,7 +636,6 @@ class GalleryState extends State<Gallery> {
 
   @override
   void dispose() {
-    // Clear scroll controller reference
     _boundariesProvider?.setScrollController(null);
 
     _reloadEventSubscription?.cancel();
@@ -734,14 +692,12 @@ class GalleryState extends State<Gallery> {
     final appBarPinnedHeight = appBarGeometry?.minExtent ?? 0;
     final appBarCollapseExtent = appBarGeometry?.collapseExtent ?? 0;
 
-    // Share scroll controller with boundaries provider after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _boundariesProvider?.setScrollController(_scrollController);
       }
     });
 
-    // Jump to date logic
     if (widget.fileToJumpTo != null &&
         !_completedJumpToDate &&
         _allFilesLoaded &&
@@ -841,7 +797,6 @@ class GalleryState extends State<Gallery> {
       );
     }
 
-    // Check if width changed due to orientation change and update gallery groups
     if (groups.widthAvailable != widthAvailable) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -1087,20 +1042,15 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
         widget.headerHeightNotifier.value!;
     if (normalizedScrollOffset < 0) {
       _setBaseTopBoundary();
-      // No change in group ID, no need to call setState
       if (currentGroupId == null) return;
       currentGroupId = null;
     } else {
       final groupScrollOffsets = widget.galleryGroups.groupScrollOffsets;
 
-      // Binary search to find the index of the largest scrollOffset in
-      // groupScrollOffsets which is <= scrollPosition
       int low = 0;
       int high = groupScrollOffsets.length - 1;
       int floorIndex = 0;
 
-      // Handle the case where scrollPosition is smaller than the first key.
-      // In this scenario, we associate it with the first heading.
       if (normalizedScrollOffset < groupScrollOffsets.first) {
         return;
       }
@@ -1110,14 +1060,9 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
         final midValue = groupScrollOffsets[mid];
 
         if (midValue <= normalizedScrollOffset) {
-          // This key is less than or equal to the target scrollPosition.
-          // It's a potential floor. Store its index and try searching higher
-          // for a potentially closer floor value.
           floorIndex = mid;
           low = mid + 1;
         } else {
-          // This key is greater than the target scrollPosition.
-          // The floor must be in the lower half.
           high = mid - 1;
         }
       }
@@ -1125,7 +1070,6 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
           widget
               .galleryGroups
               .scrollOffsetToGroupIdMap[groupScrollOffsets[floorIndex]]) {
-        // No change in group ID, no need to call setState
         return;
       }
       currentGroupId = widget
@@ -1295,11 +1239,9 @@ class GalleryIndexUpdatedEvent {
   GalleryIndexUpdatedEvent(this.tag, this.index);
 }
 
-/// Custom scroll physics that extends [BouncingScrollPhysics] to provide
-/// exponential bouncing behavior for scrollable widgets.
-///
-/// TODO: Revert this PR https://github.com/ente/ente/pull/8401 after Jan 1, 2026.
-/// This was implemented temporarily for the Christmas banner and should be removed afterwards.
+// TODO: Revert this PR https://github.com/ente/ente/pull/8401 after Jan 1,
+// 2026. This was implemented temporarily for the Christmas banner and should
+// be removed afterwards.
 class ExponentialBouncingScrollPhysics extends BouncingScrollPhysics {
   const ExponentialBouncingScrollPhysics({super.parent});
 

@@ -12,7 +12,6 @@ class NoActiveSubscriptionError extends Error {}
 
 class FileLimitReachedError extends Error {}
 
-// error when file size + current usage >= storage plan limit + buffer
 class FileTooLargeForPlanError extends Error {}
 
 class WiFiUnavailableError extends Error {}

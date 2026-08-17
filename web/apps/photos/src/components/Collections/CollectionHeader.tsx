@@ -12,7 +12,6 @@ import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditIcon from "@mui/icons-material/Edit";
-import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import LinkIcon from "@mui/icons-material/Link";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
@@ -54,8 +53,6 @@ import {
     findDefaultHiddenCollectionIDs,
     isHiddenCollection,
     leaveSharedCollection,
-    renameCollection,
-    updateCollectionDescription,
     updateCollectionOrder,
     updateCollectionSortOrder,
     updateCollectionVisibility,
@@ -75,10 +72,6 @@ import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import React, { useCallback, useRef } from "react";
 import { Trans } from "react-i18next";
-import {
-    EditAlbumDetailsDialog,
-    type AlbumDetails,
-} from "./EditAlbumDetailsDialog";
 
 export interface CollectionHeaderProps {
     collectionSummary: CollectionSummary;
@@ -89,17 +82,20 @@ export interface CollectionHeaderProps {
     onCollectionShare: () => void;
     onCollectionManageLink: () => void;
     onCollectionCast: () => void;
-    canSetAlbumCover: boolean;
-    onSetAlbumCover: () => void;
+    onEditAlbumDetails: () => void;
     hasActiveFileSelection: boolean;
     onAddSaveGroup: AddSaveGroup;
     onShowMap: () => void;
+    onDescriptionHeightChange?: (height: number) => void;
 }
 
 export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
-    const { collectionSummary } = props;
+    const { activeCollection, collectionSummary, onDescriptionHeightChange } =
+        props;
 
     const { name, type, attributes, fileCount } = collectionSummary;
+    const description =
+        activeCollection?.pubMagicMetadata?.data.caption?.trim();
 
     const EndIcon = () => {
         if (attributes.has("archived")) return <ArchiveOutlinedIcon />;
@@ -120,8 +116,11 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
             <SpacedRow>
                 <GalleryItemsSummary
                     name={name}
+                    description={description}
+                    descriptionMaxWidth={480}
                     fileCount={fileCount}
                     endIcon={<EndIcon />}
+                    onDescriptionHeightChange={onDescriptionHeightChange}
                 />
                 {shouldShowOptions(type) && (
                     <CollectionHeaderOptions {...props} />
@@ -142,8 +141,7 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
     onCollectionShare,
     onCollectionManageLink,
     onCollectionCast,
-    canSetAlbumCover,
-    onSetAlbumCover,
+    onEditAlbumDetails,
     hasActiveFileSelection,
     onAddSaveGroup,
     isActiveCollectionDownloadInProgress,
@@ -156,10 +154,6 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
 
     const { show: showSortOrderMenu, props: sortOrderMenuVisibilityProps } =
         useModalVisibility();
-    const {
-        show: showEditAlbumDetails,
-        props: editAlbumDetailsVisibilityProps,
-    } = useModalVisibility();
 
     const { type: collectionSummaryType, fileCount } = collectionSummary;
     const isQuickLinkAlbum =
@@ -182,34 +176,6 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
             return (): void => void wrapped();
         },
         [showLoadingBar, hideLoadingBar, onGenericError, onRemotePull],
-    );
-
-    const handleEditAlbumDetails = useCallback(
-        async ({ name, description }: AlbumDetails) => {
-            if (!activeCollection) return;
-
-            let didAttemptWrite = false;
-            try {
-                if (activeCollection.name != name) {
-                    didAttemptWrite = true;
-                    await renameCollection(activeCollection, name);
-                }
-                if (
-                    (
-                        activeCollection.pubMagicMetadata?.data.caption ?? ""
-                    ).trim() != description
-                ) {
-                    didAttemptWrite = true;
-                    await updateCollectionDescription(
-                        activeCollection,
-                        description,
-                    );
-                }
-            } finally {
-                if (didAttemptWrite) void onRemotePull({ silent: true });
-            }
-        },
-        [activeCollection, onRemotePull],
     );
 
     const hasAlbumFiles = fileCount > 0;
@@ -608,19 +574,10 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
                 activeCollection && (
                     <OverflowMenuOption
                         key="edit-details"
-                        onClick={showEditAlbumDetails}
+                        onClick={onEditAlbumDetails}
                         startIcon={<EditIcon />}
                     >
                         {t("edit_details")}
-                    </OverflowMenuOption>
-                ),
-                canSetAlbumCover && (
-                    <OverflowMenuOption
-                        key="set-cover"
-                        onClick={onSetAlbumCover}
-                        startIcon={<ImageOutlinedIcon />}
-                    >
-                        {t("set_cover")}
                     </OverflowMenuOption>
                 ),
                 <OverflowMenuOption
@@ -756,17 +713,6 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
                 onAscClick={changeSortOrderAsc}
                 onDescClick={changeSortOrderDesc}
             />
-            {activeCollection && editAlbumDetailsVisibilityProps.open && (
-                <EditAlbumDetailsDialog
-                    key={activeCollection.id}
-                    {...editAlbumDetailsVisibilityProps}
-                    initialName={activeCollection.name}
-                    initialDescription={
-                        activeCollection.pubMagicMetadata?.data.caption ?? ""
-                    }
-                    onSubmit={handleEditAlbumDetails}
-                />
-            )}
         </Box>
     );
 };

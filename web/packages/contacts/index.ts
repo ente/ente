@@ -1,7 +1,7 @@
-import { savedKeyAttributes } from "ente-accounts-rs/services/accounts-db";
-import { getUserRecoveryKey } from "ente-accounts-rs/services/recovery-key";
-import { masterKeyFromSession } from "ente-accounts-rs/services/session-storage";
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { savedKeyAttributes } from "ente-accounts/services/accounts-db";
+import { getUserRecoveryKey } from "ente-accounts/services/recovery-key";
+import { masterKeyFromSession } from "ente-accounts/services/session-storage";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { clientPackageName, desktopAppVersion, isDesktop } from "ente-base/app";
 import { ensureArrayBufferBacked } from "ente-base/bytes";
 import { retryAsyncOperation } from "ente-base/http";

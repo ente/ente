@@ -37,7 +37,7 @@ import {
     useSpaceAppState,
     type OnboardingEntrySource,
 } from "state/spaceAppState";
-import { profilePostGroupsFromPosts } from "utils/spacePostDisplay";
+import { profilePostItemsFromPosts } from "utils/spacePostDisplay";
 import { spaceRoutes } from "utils/spaceRoutes";
 import { useSpaceRouter } from "utils/spaceRouteTransitions";
 
@@ -333,8 +333,8 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
     const [pendingInviteIntent, setPendingInviteIntent] =
         useState<SpaceInviteIntent>();
     const [isAddingFriend, setIsAddingFriend] = useState(false);
-    const publicPostGroups = useMemo(
-        () => profilePostGroupsFromPosts(publicPosts),
+    const publicPostItems = useMemo(
+        () => profilePostItemsFromPosts(publicPosts),
         [publicPosts],
     );
 
@@ -652,7 +652,7 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
                             onBack={() => window.location.assign("/")}
                             onCreateSpace={createSpace}
                             onLoadPostImage={publicLink.loadPostImage}
-                            postGroups={publicPostGroups}
+                            postItems={publicPostItems}
                             postsCount={publicLink.postsCount}
                             profile={publicLink.profile}
                             publicNotificationControl={

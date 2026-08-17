@@ -22,10 +22,6 @@ import "package:photos/utils/gallery_save_title.dart";
 
 final _logger = Logger("file_download_util");
 
-/// Use this instead of `file.displayName` directly for skip toasts.
-///
-/// Rationale:
-/// 1. We prefer the original title for stable, filename-like copy in the toast.
 String getDownloadSkipToastFileName(EnteFile file) {
   final title = (file.title ?? "").trim();
   final displayName = file.displayName.trim();
@@ -95,12 +91,9 @@ Future<void> downloadToGallery(
     }
     final galleryTitle = _getGallerySaveTitle(file, fileToSave.path);
     final mediaStoreTitle = await getMediaStoreCompatibleTitle(galleryTitle);
-    // We use a lock to prevent synchronisation to occur while it is downloading
-    // as this introduces wrong entry in FilesDB due to race condition
-    // This is a fix for https://github.com/ente/ente/issues/4296
+    // Keep sync from seeing the saved asset before it is inserted into FilesDB.
+    // https://github.com/ente/ente/issues/4296
     await LocalSyncService.instance.getLock().synchronized(() async {
-      //Disabling notifications for assets changing to insert the file into
-      //files db before triggering a sync.
       await PhotoManager.stopChangeNotify();
       if (type == FileType.image) {
         savedAsset = await PhotoManager.editor.saveImageWithPath(

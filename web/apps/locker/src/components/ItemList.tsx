@@ -40,7 +40,7 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material";
-import { savedLocalUser } from "ente-accounts-rs/services/accounts-db";
+import { savedLocalUser } from "ente-accounts/services/accounts-db";
 import {
     OverflowMenu,
     OverflowMenuOption,

@@ -74,6 +74,7 @@ import type { EnteFile } from "ente-media/file";
 import { fileCreationTime, fileFileName } from "ente-media/file-metadata";
 import { FileType } from "ente-media/file-type";
 import {
+    AlbumDescription,
     GalleryItemsHeaderAdapter,
     GalleryItemsSummary,
 } from "ente-new/photos/components/gallery/ListHeader";
@@ -598,11 +599,18 @@ export default function PublicAlbumPage() {
     const isMobileHeaderLayout = useMediaQuery("(width < 720px)");
     const showMobileMasonryCover =
         isMobileHeaderLayout && publicAlbumLayout === "masonry";
-    const fileListHeaderHeightForViewport = isMobileHeaderLayout
-        ? showMobileMasonryCover
-            ? mobileMasonryFileListHeaderHeight(viewportWidth)
-            : fileListHeaderHeightMobile
-        : fileListHeaderHeight;
+    const albumDescription =
+        publicCollection?.pubMagicMetadata?.data.caption?.trim();
+    const hasSummaryDescription = !!albumDescription && !showMobileMasonryCover;
+    const [descriptionHeight, setDescriptionHeight] = useState(0);
+
+    const fileListHeaderHeightForViewport =
+        (isMobileHeaderLayout
+            ? showMobileMasonryCover
+                ? mobileMasonryFileListHeaderHeight(viewportWidth)
+                : fileListHeaderHeightMobile
+            : fileListHeaderHeight) +
+        (hasSummaryDescription ? descriptionHeight : 0);
 
     const fileListHeader = useMemo<FileListHeaderOrFooter | undefined>(
         () =>
@@ -623,6 +631,7 @@ export default function PublicAlbumPage() {
                                   hasSelection,
                                   showMobileMasonryCover,
                               }}
+                              onDescriptionHeightChange={setDescriptionHeight}
                           />
                       ),
                       height: fileListHeaderHeightForViewport,
@@ -1110,6 +1119,7 @@ interface FileListHeaderProps {
     addPhotosDisabled: boolean;
     hasSelection: boolean;
     showMobileMasonryCover: boolean;
+    onDescriptionHeightChange?: (height: number) => void;
 }
 
 const fileListHeaderHeight = 84;
@@ -1126,8 +1136,11 @@ const FileListHeader: React.FC<FileListHeaderProps> = ({
     addPhotosDisabled,
     hasSelection,
     showMobileMasonryCover,
+    onDescriptionHeightChange,
 }) => {
     const [showCopiedMessage, setShowCopiedMessage] = useState(false);
+    const albumDescription =
+        publicCollection.pubMagicMetadata?.data.caption?.trim();
 
     const memoriesDateRange = useMemo(() => {
         return quickLinkDateRangeForFiles(publicFiles);
@@ -1214,6 +1227,7 @@ const FileListHeader: React.FC<FileListHeaderProps> = ({
                     <PublicAlbumCoverHero
                         coverFile={coverFile}
                         title={publicCollection.name}
+                        description={albumDescription}
                         fileCount={publicFiles.length}
                         dateRange={
                             isQuickLinkAlbum ? undefined : memoriesDateRange
@@ -1242,6 +1256,10 @@ const FileListHeader: React.FC<FileListHeaderProps> = ({
                         >
                             <GalleryItemsSummary
                                 name={publicCollection.name}
+                                description={albumDescription}
+                                onDescriptionHeightChange={
+                                    onDescriptionHeightChange
+                                }
                                 fileCount={publicFiles.length}
                                 endIcon={
                                     !isQuickLinkAlbum && memoriesDateRange ? (
@@ -1388,6 +1406,7 @@ const actionButtonSx = (variant: "default" | "cover") =>
 interface PublicAlbumCoverHeroProps {
     coverFile: EnteFile | undefined;
     title: string;
+    description?: string;
     fileCount: number;
     dateRange?: string;
     actions?: React.ReactNode;
@@ -1396,6 +1415,7 @@ interface PublicAlbumCoverHeroProps {
 const PublicAlbumCoverHero: React.FC<PublicAlbumCoverHeroProps> = ({
     coverFile,
     title,
+    description,
     fileCount,
     dateRange,
     actions,
@@ -1517,6 +1537,10 @@ const PublicAlbumCoverHero: React.FC<PublicAlbumCoverHeroProps> = ({
             <MobileMasonryCoverGradient $isPlaceholder={isPlaceholder} />
             <MobileMasonryCoverContent>
                 <MobileMasonryCoverTitle>{title}</MobileMasonryCoverTitle>
+                <AlbumDescription
+                    description={description}
+                    sx={{ maxWidth: "100%", mt: "-6px", opacity: 0.8 }}
+                />
                 <Typography
                     variant="small"
                     sx={{

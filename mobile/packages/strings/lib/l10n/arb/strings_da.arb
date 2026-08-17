@@ -743,8 +743,6 @@
   "ocrModelsNetworkRequiredError": "Netværksforbindelse påkrævet for at downloade OCR-modeller ved første brug",
   "ocrModelsPrepareFailed": "Kunne ikke forberede OCR modeller",
   "ocrNoTextDetected": "Ingen tekst registreret",
-  "ocrProcessingOverlayMessage": "Registrerer tekst...",
-  "ocrSelectionHint": "Stryg eller dobbelttryk for at vælge, hvad du har brug for",
   "offlineModeWarning": "Du har valgt at fortsætte uden sikkerhedskopier. Tag venligst en manuel sikkerhedskopi for at sikre dine koders sikkerhed.",
   "oops": "Ups",
   "@oops": {

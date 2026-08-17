@@ -34,10 +34,7 @@ public class DirUtilsPlugin: NSObject, FlutterPlugin {
         }
     }
 
-    // MARK: - Bookmark Creation
-
-    /// Creates a security-scoped bookmark from a path that was obtained from a file picker.
-    /// This must be called while the app still has access (during the same session as the picker).
+    // Must run while picker access is still active.
     private func handleCreateBookmarkFromPath(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let path = args["path"] as? String else {
@@ -70,8 +67,6 @@ public class DirUtilsPlugin: NSObject, FlutterPlugin {
             ))
         }
     }
-
-    // MARK: - Security-Scoped Access
 
     private func handleStartAccess(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
@@ -137,8 +132,6 @@ public class DirUtilsPlugin: NSObject, FlutterPlugin {
             ))
         }
     }
-
-    // MARK: - File Operations
 
     private func handleWriteFile(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],

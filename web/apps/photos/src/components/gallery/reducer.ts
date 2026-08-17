@@ -1,4 +1,4 @@
-import type { LocalUser } from "ente-accounts-rs/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import {
     groupFilesByCollectionID,
     sortFiles,

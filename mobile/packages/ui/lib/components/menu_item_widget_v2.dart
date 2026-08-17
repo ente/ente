@@ -15,7 +15,6 @@ class MenuItemWidgetV2 extends StatefulWidget {
 
   final Widget? leadingIconWidget;
 
-  // leadIconSize deafult value is 24.
   final double leadingIconSize;
 
   final IconData? trailingIcon;
@@ -30,10 +29,6 @@ class MenuItemWidgetV2 extends StatefulWidget {
   final Color? menuItemColor;
   final bool alignCaptionedTextToLeft;
 
-  // singleBorderRadius is applied to the border when it's a standalone menu item.
-  // Widget will apply singleBorderRadius if value of both isTopBorderRadiusRemoved
-  // and isBottomBorderRadiusRemoved is false. Otherwise, multipleBorderRadius will
-  // be applied
   final double singleBorderRadius;
   final double multipleBorderRadius;
   final Color? pressedColor;
@@ -309,7 +304,6 @@ class LeadingWidgetV2 extends StatelessWidget {
   final Color? leadingIconColor;
 
   final Widget? leadingIconWidget;
-  // leadIconSize deafult value is 24.
   final double leadingIconSize;
   const LeadingWidgetV2({
     super.key,

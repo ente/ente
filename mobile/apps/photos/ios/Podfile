@@ -36,7 +36,7 @@ target 'Runner' do
   # Ente's custom prebuilt ONNX Runtime static libraries (download + SHA-256
   # verification handled by CocoaPods). Consumed by the ente_photos_rust
   # build phase, which points the Rust `ort` crate at the platform slice.
-  pod 'EnteOnnxRuntime', :podspec => '../../../native/apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec'
+  pod 'EnteOnnxRuntime', :podspec => '../../../../apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec'
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 

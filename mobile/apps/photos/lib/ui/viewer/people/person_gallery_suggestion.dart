@@ -182,7 +182,6 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
   Future<void> _precomputeNextSuggestions([int? expectedLoadID]) async {
     final loadID = expectedLoadID ?? _suggestionLoadID;
     try {
-      // Precompute face crops for next two suggestions
       const maxPrecompute = 2;
       final endIndex = (currentSuggestionIndex + maxPrecompute).clamp(
         0,
@@ -357,7 +356,6 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
         ),
       );
       if (result == null || result == false) {
-        // Animate back in and reset processing state
         unawaited(_animateIn());
         if (mounted) {
           setState(() {
@@ -366,7 +364,6 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
         }
         return;
       }
-      // Wait for animation to complete before hiding widget
       await Future.delayed(const Duration(milliseconds: 300));
       if (mounted) {
         setState(() {
@@ -388,14 +385,11 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
   Future<void> _prepareNextSuggestion() async {
     if (!mounted) return;
 
-    // Move to next suggestion
     currentSuggestionIndex++;
 
-    // Check if we have more suggestions
     if (currentSuggestionIndex < allSuggestions.length) {
       person = allSuggestions[currentSuggestionIndex].person;
       try {
-        // Get face crops for next suggestion (from precomputed or generate new)
         Map<int, Uint8List?> nextCrops;
         if (precomputedFaceCrops.containsKey(currentSuggestionIndex)) {
           nextCrops = precomputedFaceCrops[currentSuggestionIndex]!;
@@ -427,7 +421,6 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
         }
       }
     } else {
-      // No more suggestions available - stay hidden
       if (mounted) {
         setState(() {
           isProcessing = false;

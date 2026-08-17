@@ -6,33 +6,19 @@ import "package:photos/models/file/file.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
-/// Displays a grid of shared photos with different layouts based on count.
-///
-/// Layouts:
-/// - 1 photo: Full width, aspect ratio based on image
-/// - 2 photos: Vertical stack (two rows)
-/// - 3 photos: 2 on top, 1 on bottom spanning full width
-/// - 4+ photos: 2x2 grid with "+N" overlay on last cell if more than 4
 class SharedPhotosGrid extends StatefulWidget {
-  /// List of file IDs to display.
   final List<int> fileIDs;
 
-  /// Collection ID for loading files.
   final int collectionID;
 
-  /// Called when user taps on the grid.
   final VoidCallback? onTap;
 
-  /// Called when user taps an individual photo thumbnail.
   final ValueChanged<int>? onPhotoTap;
 
-  /// Called when user taps the +N extra-count badge.
   final VoidCallback? onExtraCountTap;
 
-  /// Prefix used for Hero tags while opening shared photos.
   final String heroTagPrefix;
 
-  /// Size of the grid (width). Height is calculated based on layout.
   final double gridSize;
 
   const SharedPhotosGrid({
@@ -72,7 +58,6 @@ class _SharedPhotosGridState extends State<SharedPhotosGrid> {
   Future<void> _loadFiles() async {
     setState(() => _isLoading = true);
 
-    // Load up to 4 files for display using batch query
     final filesToLoad = widget.fileIDs.take(4).toList();
     final files = await FilesDB.instance.getUploadedFilesBatch(
       filesToLoad,
@@ -187,7 +172,6 @@ class _SharedPhotosGridState extends State<SharedPhotosGrid> {
 
     return Column(
       children: [
-        // Top row: 2 photos
         Row(
           children: [
             SizedBox(
@@ -204,7 +188,6 @@ class _SharedPhotosGridState extends State<SharedPhotosGrid> {
           ],
         ),
         const SizedBox(height: gap),
-        // Bottom row: 1 photo spanning full width
         SizedBox(
           height: itemHeight,
           width: widget.gridSize,
@@ -221,7 +204,6 @@ class _SharedPhotosGridState extends State<SharedPhotosGrid> {
 
     return Column(
       children: [
-        // Top row
         Row(
           children: [
             SizedBox(
@@ -238,7 +220,6 @@ class _SharedPhotosGridState extends State<SharedPhotosGrid> {
           ],
         ),
         const SizedBox(height: gap),
-        // Bottom row
         Row(
           children: [
             SizedBox(
@@ -247,7 +228,6 @@ class _SharedPhotosGridState extends State<SharedPhotosGrid> {
               child: _buildSharedPhotoThumbnail(files[2]),
             ),
             const SizedBox(width: gap),
-            // Fourth photo with optional +N overlay
             SizedBox(
               height: itemHeight,
               width: itemWidth,

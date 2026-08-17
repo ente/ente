@@ -19,7 +19,7 @@ void main() {
 
       await runZonedGuarded(
         () async {
-          ///Ignore exceptions thrown by the app for the test to pass
+          // Ignore exceptions thrown by the app for the test to pass.
           WidgetsFlutterBinding.ensureInitialized();
           FlutterError.onError = (FlutterErrorDetails errorDetails) {
             FlutterError.dumpErrorToConsole(errorDetails);
@@ -37,7 +37,6 @@ void main() {
 
           final emailInputField = find.byType(TextFormField);
           final logInButton = find.byKey(const ValueKey("logInButton"));
-          //Fill email id here
           await tester.enterText(emailInputField, "enter email here");
           await tester.pumpAndSettle(const Duration(seconds: 1));
           await tester.tap(logInButton);
@@ -49,7 +48,6 @@ void main() {
           final verifyPasswordButton = find.byKey(
             const ValueKey("verifyPasswordButton"),
           );
-          //Fill password here
           await tester.enterText(passwordInputField, "enter password here");
           await tester.pumpAndSettle(const Duration(seconds: 1));
           await tester.tap(verifyPasswordButton);
@@ -66,7 +64,6 @@ void main() {
           await tester.pumpAndSettle(const Duration(seconds: 1));
           await tester.pumpAndSettle(const Duration(seconds: 3));
 
-          //Automatically skips backup
           final skipBackupButton = find.byKey(
             const ValueKey("skipBackupButton"),
           );
@@ -74,7 +71,6 @@ void main() {
           await tester.pumpAndSettle(const Duration(seconds: 2));
 
           await binding.traceAction(() async {
-            //scroll gallery
             final scrollablePositionedList = find.byType(
               ScrollablePositionedList,
             );

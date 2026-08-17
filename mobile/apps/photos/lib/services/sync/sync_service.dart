@@ -106,8 +106,7 @@ class SyncService {
     });
   }
 
-  // Note: Do not use this future for anything except log out.
-  // This is prone to bugs due to any potential race conditions
+  // Only logout may wait on this future; other uses are prone to sync races.
   Future<bool> existingSync() async {
     return _existingSync?.future ?? Future.value(true);
   }

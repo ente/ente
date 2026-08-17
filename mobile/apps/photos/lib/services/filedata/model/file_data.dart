@@ -86,8 +86,6 @@ class FileDataEntity {
 class RemoteFaceEmbedding {
   final List<Face> faces;
   final int version;
-
-  // packageName/version
   final String client;
   final int height;
   final int width;

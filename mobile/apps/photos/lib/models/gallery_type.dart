@@ -5,15 +5,13 @@ enum GalleryType {
   homepage,
   archive,
   uncategorized,
-  // hidden section shows all the files that are present in the defaultHidden
-  // collections.
+  // Files from every default-hidden collection.
   hiddenSection,
   hiddenOwnedCollection,
   favorite,
   trash,
   deleteSuggestions,
   localFolder,
-  // indicator for gallery view of collections shared with the user
   sharedCollection,
   ownedCollection,
   searchResults,
@@ -81,8 +79,6 @@ extension GalleyTypeExtension on GalleryType {
     }
   }
 
-  // showDeleteTopOption indicates whether we should show
-  // delete icon as iconButton
   bool showDeleteIconOption() {
     switch (this) {
       case GalleryType.ownedCollection:

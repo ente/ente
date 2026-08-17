@@ -10,11 +10,7 @@ import 'package:photos/ui/components/buttons/button_widget.dart';
 
 enum ActionSheetType { defaultActionSheet, iconOnly }
 
-/// Compatibility adapter for legacy Photos action sheets.
-///
-/// Preserves existing [ButtonWidget]/[ButtonResult] behavior while rendering
-/// through [BottomSheetComponent]. Prefer [BottomSheetComponent] directly for
-/// new sheets.
+// Legacy adapter; use BottomSheetComponent for new sheets.
 Future<ButtonResult?> showActionSheet({
   required BuildContext context,
   required List<ButtonWidget> buttons,

@@ -54,6 +54,9 @@ export const EmbedFileListWithViewer: React.FC<
         [onRemotePull],
     );
 
+    const albumDescription =
+        publicCollection.pubMagicMetadata?.data.caption?.trim();
+
     const header = useMemo(
         () => (
             <GalleryItemsHeaderAdapter
@@ -62,6 +65,7 @@ export const EmbedFileListWithViewer: React.FC<
                 <SpacedRow>
                     <GalleryItemsSummary
                         name={publicCollection.name}
+                        description={albumDescription}
                         fileCount={files.length}
                     />
                     <Typography
@@ -95,7 +99,7 @@ export const EmbedFileListWithViewer: React.FC<
                 </SpacedRow>
             </GalleryItemsHeaderAdapter>
         ),
-        [publicCollection.name, files.length],
+        [publicCollection.name, albumDescription, files.length],
     );
 
     return (

@@ -1,7 +1,7 @@
 import { Box, Stack, Typography, styled } from "@mui/material";
-import { LoginContents } from "ente-accounts-rs/components/LoginContents";
-import { SignUpContents } from "ente-accounts-rs/components/SignUpContents";
-import { savedPartialLocalUser } from "ente-accounts-rs/services/accounts-db";
+import { LoginContents } from "ente-accounts/components/LoginContents";
+import { SignUpContents } from "ente-accounts/components/SignUpContents";
+import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
 import { CenteredFill, CenteredRow } from "ente-base/components/containers";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";

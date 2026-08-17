@@ -70,7 +70,6 @@ class ButtonWidget extends StatelessWidget {
         ? lightTextTheme
         : getEnteTextTheme(context, inverse: true);
     final buttonStyle = CustomButtonStyle(
-      //Dummy default values since we need to keep these properties non-nullable
       defaultButtonColor: Colors.transparent,
       defaultBorderColor: Colors.transparent,
       defaultIconColor: Colors.transparent,
@@ -357,7 +356,7 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
                         color: checkIconColor,
                       ),
                     )
-                  : const SizedBox.shrink(), //fallback
+                  : const SizedBox.shrink(),
             ),
           ),
         ),
@@ -428,11 +427,7 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
         setState(() {});
       }
 
-      // when the time taken by widget.onTap is approximately equal to the debounce
-      // time, the callback is getting executed when/after the if condition
-      // below is executing/executed which results in execution state stuck at
-      // idle state. This Future is for delaying the execution of the if
-      // condition so that the calback in the debouncer finishes execution before.
+      // Let the debounced callback finish before checking its execution state.
       await Future.delayed(const Duration(milliseconds: 5));
     }
     if (!mounted) {
@@ -510,8 +505,7 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop(ButtonResult(widget.buttonAction, exception));
     } else if (exception != null) {
-      //This is to show the execution was unsuccessful if the dialog is manually
-      //closed before the execution completes.
+      // Surface failures even if the dialog was dismissed mid-operation.
       showGenericErrorDialog(context: context, error: exception);
     }
   }

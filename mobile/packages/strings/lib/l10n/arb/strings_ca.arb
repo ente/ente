@@ -1308,8 +1308,6 @@
   "ocrModelsNetworkRequiredError": "Es requereix connexió a la xarxa per descarregar els models OCR en el primer ús",
   "ocrModelsPrepareFailed": "No s'han pogut preparar els models OCR",
   "ocrNoTextDetected": "No s'ha detectat text",
-  "ocrProcessingOverlayMessage": "Detectant text...",
-  "ocrSelectionHint": "Llisca o fes doble toc per seleccionar només el que necessites",
   "offlineModeWarning": "Has triat procedir sense còpies de seguretat. Realitza còpies manuals per garantir la seguretat dels teus codis.",
   "onEnte": "A <branding>ente</branding>",
   "@onEnte": {

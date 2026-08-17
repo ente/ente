@@ -1,4 +1,4 @@
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
 import { assertionFailed } from "ente-base/assert";
 import { decryptBlobBytes, encryptBlob } from "ente-base/crypto";

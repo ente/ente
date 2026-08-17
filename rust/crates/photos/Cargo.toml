@@ -2,86 +2,8 @@
 name = "ente-photos"
 edition = "2024"
 
-[features]
-default = []
-ml-assets = []
-
 [dependencies]
-ente-assets.workspace = true
-ente-image.workspace = true
-fast_image_resize = { version = "5.5.0", features = ["image", "rayon"] }
-half = "2.1"
-html-escape = "0.2.13"
-image = { version = "0.25.5", default-features = true }
-imageproc = "0.25.0"
-log.workspace = true
-nalgebra = "0.33.2"
-once_cell = "1.20.2"
-plsfix = "0.1.8"
 quick-xml = "0.41"
-regex = "1.11.1"
-thiserror.workspace = true
-# The FRB photos bridge calls the SimSIMD symbol exported by usearch 2.21.x.
-# Newer usearch releases switched that implementation to numkong symbols.
-usearch = { version = "=2.21.4", optional = true }
-
-# Cargokit sets ORT_LIB_PATH to Ente's verified iOS archive.
-[target.'cfg(target_os = "ios")'.dependencies]
-ort = { workspace = true, features = [
-    "std",
-    "ndarray",
-    "half",
-    "coreml",
-    "api-28",
-] }
-
-[target.'cfg(target_os = "android")'.dependencies]
-ash = { version = "0.38", default-features = false, features = ["loaded"] }
-ort = { workspace = true, features = [
-    "ndarray",
-    "half",
-    "api-28",
-    "load-dynamic",
-    "copy-dylibs",
-    "webgpu",
-    "xnnpack",
-] }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-ort = { workspace = true, features = [
-    "ndarray",
-    "half",
-    "coreml",
-    "api-28",
-    "load-dynamic",
-    "copy-dylibs",
-] }
-
-[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
-ort = { workspace = true, features = [
-    "ndarray",
-    "half",
-    "api-28",
-    "load-dynamic",
-    "copy-dylibs",
-    "webgpu",
-] }
-
-[target.'cfg(not(any(target_os = "ios", target_os = "android", target_os = "macos", target_os = "linux", target_os = "windows")))'.dependencies]
-ort = { workspace = true, features = [
-    "ndarray",
-    "half",
-    "api-28",
-    "load-dynamic",
-    "copy-dylibs",
-] }
 
 [dev-dependencies]
-anyhow = "1"
-flate2 = "1.1"
-serde = { version = "1", features = ["derive"] }
-serde_json.workspace = true
-tar = "0.4"
 tempfile = "3.12"
-tokio = { version = "1", features = ["macros", "rt"] }
-url.workspace = true

@@ -117,7 +117,7 @@ class SocialSyncService {
       final response = await _api.fetchSocialDiff(
         collectionID: collectionID,
         fileID: fileID,
-        // Always get all data for the file (no sinceTime = fetch all)
+        // Omitting sinceTime fetches the file's complete social history.
       );
 
       if (response.comments.isNotEmpty) {

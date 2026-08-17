@@ -33,7 +33,6 @@ final lightThemeData = ThemeData(
     iconTheme: const IconThemeData(color: Colors.black),
     elevation: 0,
   ),
-  //https://api.flutter.dev/flutter/material/TextTheme-class.html
   textTheme: _buildTextTheme(const Color.fromRGBO(0, 0, 0, 1)),
   primaryTextTheme: const TextTheme().copyWith(
     bodyMedium: const TextStyle(color: Colors.yellow),
@@ -41,7 +40,7 @@ final lightThemeData = ThemeData(
   ),
   cardColor: const Color.fromRGBO(250, 250, 250, 1.0),
   dialogTheme: const DialogThemeData().copyWith(
-    backgroundColor: const Color.fromRGBO(250, 250, 250, 1.0), //
+    backgroundColor: const Color.fromRGBO(250, 250, 250, 1.0),
     titleTextStyle: const TextStyle(
       color: Colors.black,
       fontSize: 24,
@@ -318,8 +317,7 @@ extension CustomColorScheme on ColorScheme {
       ? const Color.fromRGBO(0, 0, 0, 1)
       : const Color.fromRGBO(48, 48, 48, 1);
 
-  Color get dynamicFABTextColor =>
-      const Color.fromRGBO(255, 255, 255, 1); //same for both themes
+  Color get dynamicFABTextColor => const Color.fromRGBO(255, 255, 255, 1);
 
   // todo: use brightness == Brightness.light for changing color for dark/light theme
   ButtonStyle? get optionalActionButtonStyle => buildElevatedButtonThemeData(
@@ -474,9 +472,9 @@ OutlinedButtonThemeData buildOutlinedButtonThemeData({
 }
 
 ElevatedButtonThemeData buildElevatedButtonThemeData({
-  required Color onPrimary, // text button color
+  required Color onPrimary,
   required Color primary,
-  double elevation = 2, // background color of button
+  double elevation = 2,
 }) {
   return ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(

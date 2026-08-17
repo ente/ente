@@ -9,7 +9,7 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import type { LocalUser } from "ente-accounts-rs/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
 import { ut } from "ente-base/i18n";

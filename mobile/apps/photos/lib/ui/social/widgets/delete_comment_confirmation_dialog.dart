@@ -4,8 +4,6 @@ import "package:flutter/material.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/buttons/icon_button_widget.dart";
 
-/// Shows a bottom sheet confirmation dialog for deleting a comment.
-/// Returns true if confirmed, null if cancelled.
 Future<bool?> showDeleteCommentConfirmationDialog(
   BuildContext context, {
   required String commentText,

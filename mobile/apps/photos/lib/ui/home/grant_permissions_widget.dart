@@ -275,8 +275,6 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
     await permissionService.onUpdatePermission(state);
     await backupPreferenceService.setOnboardingPermissionSkipped(false);
     if (shouldMarkLimitedFolders && state == PermissionState.limited) {
-      // when limited permission is granted, by default mark all folders for
-      // backup
       await backupPreferenceService.setSelectAllFoldersForBackup(true);
     }
     SyncService.instance.onPermissionGranted().ignore();

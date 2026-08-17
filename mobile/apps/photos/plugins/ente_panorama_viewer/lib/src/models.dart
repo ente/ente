@@ -1,16 +1,15 @@
 import "dart:ui";
 
-/// Position and zoom of the panorama camera.
 class PanoramaView {
   const PanoramaView({this.longitude = 0, this.latitude = 0, this.zoom = 1});
 
-  /// Horizontal camera angle in degrees.
+  // Horizontal angle in degrees.
   final double longitude;
 
-  /// Vertical camera angle in degrees.
+  // Vertical angle in degrees.
   final double latitude;
 
-  /// Magnification relative to the viewer's base field of view.
+  // Relative to the viewer's base field of view.
   final double zoom;
 
   PanoramaView copyWith({double? longitude, double? latitude, double? zoom}) {
@@ -33,7 +32,6 @@ class PanoramaView {
   int get hashCode => Object.hash(longitude, latitude, zoom);
 }
 
-/// Placement of the source image on its full equirectangular canvas.
 class PanoramaGeometry {
   PanoramaGeometry({required this.fullSize, required this.croppedArea}) {
     final values = [
@@ -61,10 +59,10 @@ class PanoramaGeometry {
     : fullSize = const Size(1, 1),
       croppedArea = const Rect.fromLTWH(0, 0, 1, 1);
 
-  /// Pixel dimensions of the complete equirectangular canvas.
+  // Complete equirectangular canvas dimensions in pixels.
   final Size fullSize;
 
-  /// Pixel rectangle occupied by the source image on [fullSize].
+  // Source image bounds within fullSize, in pixels.
   final Rect croppedArea;
   Rect get normalizedCrop => Rect.fromLTRB(
     croppedArea.left / fullSize.width,

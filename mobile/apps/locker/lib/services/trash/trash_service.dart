@@ -203,7 +203,6 @@ class TrashService {
     await _enteDio.post("/trash/delete", data: params);
     await _db.deleteTrashFiles(uniqueFileIds);
     await _db.deleteFilesByUploadedFileIDs(uniqueFileIds);
-    // no need to await on syncing trash from remote
     unawaited(syncTrash());
   }
 
@@ -252,7 +251,6 @@ class TrashService {
     }
     await _enteDio.post("/collections/restore-files", data: params);
     await _db.deleteTrashFiles(files.map((e) => e.uploadedFileID!).toList());
-    // Refresh collections so restored files are immediately available in UI
     await CollectionService.instance.sync();
     Bus.instance.fire(CollectionsUpdatedEvent("file_restore"));
     Bus.instance.fire(UserDetailsRefreshEvent());

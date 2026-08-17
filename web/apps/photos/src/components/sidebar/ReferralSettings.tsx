@@ -699,6 +699,7 @@ const InviteShareButton: React.FC<InviteShareButtonProps> = ({
 }) => {
     const { onGenericError } = useBaseContext();
     const [copied, setCopied] = useState(false);
+    const shareInProgress = useRef(false);
     const copiedTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
         undefined,
     );
@@ -717,12 +718,16 @@ const InviteShareButton: React.FC<InviteShareButtonProps> = ({
         });
 
         if (typeof navigator.share == "function") {
+            if (shareInProgress.current) return;
+            shareInProgress.current = true;
             try {
                 await navigator.share({ text });
             } catch (e) {
                 if ((e as Error).name == "AbortError") return;
                 log.error("Failed to share referral invite", e);
                 onGenericError(e);
+            } finally {
+                shareInProgress.current = false;
             }
             return;
         }

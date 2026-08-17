@@ -21,8 +21,6 @@ class DeviceFolderRowItem extends StatelessWidget {
 
   const DeviceFolderRowItem(
     this.deviceCollection, {
-
-    ///120 is default for the 'on device' scrollview in albums section
     this.sideOfThumbnail = 120,
     super.key,
   });

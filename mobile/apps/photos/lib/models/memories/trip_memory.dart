@@ -7,7 +7,6 @@ class TripMemory extends SmartMemory {
   final Location location;
   final String? tripKey;
 
-  // Stuff for the title
   String? locationName;
   int? tripYear;
 

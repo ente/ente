@@ -20,7 +20,7 @@ import { styled, ThemeProvider } from "@mui/material/styles";
 import {
     isLocalStorageAndIndexedDBMismatch,
     savedLocalUser,
-} from "ente-accounts-rs/services/accounts-db";
+} from "ente-accounts/services/accounts-db";
 import { isDesktop, staticAppTitle } from "ente-base/app";
 import { CenteredRow } from "ente-base/components/containers";
 import { CustomHeadPhotos } from "ente-base/components/Head";

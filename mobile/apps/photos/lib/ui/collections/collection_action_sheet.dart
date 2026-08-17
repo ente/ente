@@ -298,7 +298,6 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
           future: _getCollections(),
           builder: (context, snapshot) {
             if (snapshot.hasError) {
-              //Need to show an error on the UI here
               return const SizedBox.shrink();
             } else if (snapshot.hasData) {
               final collections = snapshot.data as List<Collection>;
@@ -306,23 +305,19 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
               final shouldShowCreateAlbum =
                   widget.showOptionToCreateNewAlbum && _searchQuery.isEmpty;
 
-              // Get recently used collections (only when not searching)
               List<Collection> recentCollections = [];
               if (_searchQuery.isEmpty && !_showOnlyHiddenCollections) {
                 recentCollections = CollectionsService.instance
                     .getRecentlyUsedCollections()
                     .where((c) => !c.isQuickLinkCollection())
                     .toList();
-                // Remove recent collections from the main list to avoid duplicates
                 final recentIds = recentCollections.map((c) => c.id).toSet();
                 collections.removeWhere((c) => recentIds.contains(c.id));
               }
 
-              // Get shared collections for move action
               List<Collection> sharedCollections = [];
               if (widget.actionType == CollectionActionType.moveFiles) {
                 sharedCollections = _getSharedCollections();
-                // Filter shared collections by search query
                 if (_searchQuery.isNotEmpty) {
                   sharedCollections = sharedCollections
                       .where(
@@ -389,12 +384,10 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
 
   List<Collection> _getSharedCollections() {
     final userID = Configuration.instance.getUserID()!;
-    // Get collections where user is collaborator/admin (can add files)
     final allCollections = CollectionsService.instance.getCollectionsForUI(
       includeCollab: true,
       includeUncategorized: false,
     );
-    // Filter to only non-owner collections (incoming shared albums)
     final sharedCollections = allCollections
         .where(
           (c) =>
@@ -434,13 +427,12 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
       });
       return recentlyCreated + hidden;
     } else {
-      final List<Collection>
-      collections = CollectionsService.instance.getCollectionsForUI(
-        // in collections where user is a collaborator, only addTo and remove
-        // action can to be performed
-        includeCollab: widget.actionType == CollectionActionType.addFiles,
-        includeUncategorized: true,
-      );
+      final List<Collection> collections = CollectionsService.instance
+          .getCollectionsForUI(
+            // Collaborators can only add or remove files.
+            includeCollab: widget.actionType == CollectionActionType.addFiles,
+            includeUncategorized: true,
+          );
       collections.sort((first, second) {
         return compareAsciiLowerCaseNatural(
           first.displayName,
@@ -451,7 +443,6 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
       final List<Collection> unpinned = [];
       final List<Collection> recentlyCreated = [];
       final userID = Configuration.instance.getUserID()!;
-      // show uncategorized collection only for restore files action
       Collection? uncategorized;
       for (final collection in collections) {
         if (collection.isQuickLinkCollection() ||

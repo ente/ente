@@ -58,29 +58,24 @@ class EnteColorScheme extends ThemeExtension<EnteColorScheme> {
           );
   }
 
-  // Background Colors
   final Color backgroundBase;
   final Color backgroundElevated;
   final Color backgroundElevated2;
 
-  // Backdrop Colors
   final Color backdropBase;
   final Color backdropBaseMute;
   final Color backdropFaint;
 
-  // Text Colors
   final Color textBase;
   final Color textMuted;
   final Color textFaint;
 
-  // Fill Colors
   final Color fillBase;
   final Color fillBasePressed;
   final Color fillMuted;
   final Color fillFaint;
   final Color fillFaintPressed;
 
-  // Stroke Colors
   final Color strokeBase;
   final Color strokeMuted;
   final Color strokeFaint;
@@ -89,7 +84,6 @@ class EnteColorScheme extends ThemeExtension<EnteColorScheme> {
   final Color blurStrokeFaint;
   final Color blurStrokePressed;
 
-  // Fixed Colors
   final Color primary700;
   final Color primary500;
   final Color primary400;
@@ -104,11 +98,9 @@ class EnteColorScheme extends ThemeExtension<EnteColorScheme> {
 
   final Color caution500;
 
-  // Gradient Button
   final Color gradientButtonBgColor;
   final List<Color> gradientButtonBgColors;
 
-  // Additional colors from ente_theme_data
   final Color fabForegroundColor;
   final Color fabBackgroundColor;
   final Color boxSelectColor;
@@ -143,10 +135,8 @@ class EnteColorScheme extends ThemeExtension<EnteColorScheme> {
   final Color primaryColor;
   final Color surface;
 
-  //other colors
   final List<Color> avatarColors;
 
-  //golden colors
   final Color golden700;
   final Color golden500;
 
@@ -601,7 +591,6 @@ const EnteColorScheme darkScheme = EnteColorScheme(
   avatarDark,
 );
 
-// Background Colors
 const Color backgroundBaseLight = Color.fromRGBO(250, 250, 250, 1);
 const Color backgroundElevatedLight = Color.fromRGBO(0, 0, 0, 0.04);
 const Color backgroundElevated2Light = Color.fromRGBO(250, 250, 250, 1);
@@ -610,7 +599,6 @@ const Color backgroundBaseDark = Color.fromRGBO(0, 0, 0, 1);
 const Color backgroundElevatedDark = Color.fromRGBO(255, 255, 255, 0.04);
 const Color backgroundElevated2Dark = Color.fromRGBO(26, 26, 26, 1);
 
-// Backdrop Colors
 const Color backdropBaseLight = Color.fromRGBO(255, 255, 255, 0.92);
 const Color backdropMutedLight = Color.fromRGBO(255, 255, 255, 0.75);
 const Color backdropFaintLight = Color.fromRGBO(255, 255, 255, 0.30);
@@ -619,7 +607,6 @@ const Color backdropBaseDark = Color.fromRGBO(33, 33, 33, 1);
 const Color backdropMutedDark = Color.fromRGBO(0, 0, 0, 0.65);
 const Color backdropFaintDark = Color.fromRGBO(0, 0, 0, 0.20);
 
-// Text Colors
 const Color textBaseLight = Color.fromRGBO(0, 0, 0, 1);
 const Color textMutedLight = Color.fromRGBO(0, 0, 0, 0.6);
 const Color textFaintLight = Color.fromRGBO(0, 0, 0, 0.5);
@@ -628,7 +615,6 @@ const Color textBaseDark = Color.fromRGBO(255, 255, 255, 1);
 const Color textMutedDark = Color.fromRGBO(255, 255, 255, 0.7);
 const Color textFaintDark = Color.fromRGBO(255, 255, 255, 0.5);
 
-// Fill Colors
 const Color fillBaseLight = Color.fromRGBO(0, 0, 0, 1);
 const Color fillBasePressedLight = Color.fromRGBO(0, 0, 0, 0.87);
 const Color fillMutedLight = Color.fromRGBO(0, 0, 0, 0.12);
@@ -641,7 +627,6 @@ const Color fillMutedDark = Color.fromRGBO(255, 255, 255, 0.16);
 const Color fillFaintDark = Color.fromRGBO(255, 255, 255, 0.12);
 const Color fillFaintPressedDark = Color.fromRGBO(255, 255, 255, 0.06);
 
-// Stroke Colors
 const Color strokeBaseLight = Color.fromRGBO(0, 0, 0, 1);
 const Color strokeMutedLight = Color.fromRGBO(0, 0, 0, 0.24);
 const Color strokeFaintLight = Color.fromRGBO(0, 0, 0, 0.04);
@@ -658,23 +643,19 @@ const Color blurStrokeBaseDark = Color.fromRGBO(255, 255, 255, 0.90);
 const Color blurStrokeFaintDark = Color.fromRGBO(255, 255, 255, 0.06);
 const Color blurStrokePressedDark = Color.fromRGBO(255, 255, 255, 0.50);
 
-// Default Primary Colors
 const Color _defaultPrimary700 = Color.fromRGBO(0, 122, 255, 1);
 const Color _defaultPrimary500 = Color.fromRGBO(52, 152, 255, 1);
 const Color _defaultPrimary400 = Color.fromRGBO(102, 178, 255, 1);
 const Color _defaultPrimary300 = Color.fromRGBO(153, 204, 255, 1);
 
-// Default Gradient Colors
 const Color _defaultGradientButtonBgColor = Color.fromRGBO(0, 122, 255, 1);
 const List<Color> _defaultGradientButtonBgColors = [
   Color.fromRGBO(0, 122, 255, 1),
   Color.fromRGBO(52, 152, 255, 1),
 ];
 
-// Default Icon Button Color
 const Color _defaultIconButtonColor = Color.fromRGBO(0, 122, 255, 1);
 
-// Warning Colors
 const Color _warning700 = Color.fromRGBO(245, 52, 52, 1);
 const Color _warning500 = Color.fromRGBO(255, 101, 101, 1);
 const Color _warning800 = Color(0xFFF53434);
@@ -682,31 +663,23 @@ const Color warning500 = Color.fromRGBO(255, 101, 101, 1);
 // ignore: unused_element
 const Color _warning400 = Color.fromRGBO(255, 111, 111, 1);
 
-// Caution Colors
 const Color _caution500 = Color.fromRGBO(255, 194, 71, 1);
 
-// Additional default colors from ente_theme_data
 const Color _defaultPrimaryColor = Color(0xFF9610D6);
 
-// FAB Colors - based on brightness-dependent logic from ente_theme_data
 const Color _defaultFabForegroundColor = Color.fromRGBO(255, 255, 255, 1);
 const Color _defaultFabBackgroundColor = Color.fromRGBO(40, 40, 40, 1);
 
-// Box selection colors
 const Color _defaultBoxSelectColor = Color.fromRGBO(67, 186, 108, 1);
 const Color _defaultBoxUnSelectColor = Color.fromRGBO(240, 240, 240, 1);
 
-// Alternative color
 const Color _defaultAlternativeColor = Color.fromARGB(255, 152, 77, 244);
 
-// Dynamic FAB colors
 const Color _defaultDynamicFABBackgroundColor = Color.fromRGBO(0, 0, 0, 1);
 const Color _defaultDynamicFABTextColor = Color.fromRGBO(255, 255, 255, 1);
 
-// Recovery key box color
 const Color _defaultRecoveryKeyBoxColor = Color.fromARGB(51, 150, 0, 220);
 
-// Frosty blur backdrop filter color
 const Color _defaultFrostyBlurBackdropFilterColor = Color.fromRGBO(
   238,
   238,
@@ -714,16 +687,12 @@ const Color _defaultFrostyBlurBackdropFilterColor = Color.fromRGBO(
   0.5,
 );
 
-// Default Icon Color
 const Color _defaultIconColor = Color.fromRGBO(0, 0, 0, 0.75);
 
-// Default Background Color For Questions
 const Color _defaultBgColorForQuestions = Color.fromRGBO(255, 255, 255, 1);
 
-// Default Green Text Color
 const Color _defaultGreenText = Color.fromARGB(255, 40, 190, 113);
 
-// Default Cupertino Picker Top Color
 const Color _defaultCupertinoPickerTopColor = Color.fromARGB(
   255,
   238,
@@ -731,7 +700,6 @@ const Color _defaultCupertinoPickerTopColor = Color.fromARGB(
   238,
 );
 
-// Default Step Progress Unselected Color
 const Color _defaultStepProgressUnselectedColor = Color.fromRGBO(
   196,
   196,
@@ -739,13 +707,11 @@ const Color _defaultStepProgressUnselectedColor = Color.fromRGBO(
   0.6,
 );
 
-// Default Navigation Colors
 const Color _defaultGNavBackgroundColor = Color.fromRGBO(196, 196, 196, 0.6);
 const Color _defaultGNavBarActiveColor = Color.fromRGBO(255, 255, 255, 0.6);
 const Color _defaultGNavIconColor = Color.fromRGBO(0, 0, 0, 0.8);
 const Color _defaultGNavActiveIconColor = Color.fromRGBO(0, 0, 0, 0.8);
 
-// Default Gallery Thumb Colors
 const Color _defaultGalleryThumbBackgroundColor = Color.fromRGBO(
   240,
   240,
@@ -754,24 +720,18 @@ const Color _defaultGalleryThumbBackgroundColor = Color.fromRGBO(
 );
 const Color _defaultGalleryThumbDrawColor = Color.fromRGBO(0, 0, 0, 0.8);
 
-// Default Backup Enabled Background Color
 const Color _defaultBackupEnabledBgColor = Color.fromRGBO(230, 230, 230, 0.95);
 
-// Default Dots Indicator Colors
 const Color _defaultDotsIndicatorActiveColor = Color.fromRGBO(0, 0, 0, 0.5);
 const Color _defaultDotsIndicatorInactiveColor = Color.fromRGBO(0, 0, 0, 0.12);
 
-// Default Toast Colors
 const Color _defaultToastTextColor = Color.fromRGBO(255, 255, 255, 1);
 const Color _defaultToastBackgroundColor = Color.fromRGBO(24, 24, 24, 0.95);
 
-// Default Sub Text Color
 const Color _defaultSubTextColor = Color.fromRGBO(180, 180, 180, 1);
 
-// Default Theme Switch Inactive Icon Color
 const Color _defaultThemeSwitchInactiveIconColor = Color.fromRGBO(0, 0, 0, 0.5);
 
-// Default Search Results Colors
 const Color _defaultSearchResultsColor = Color.fromRGBO(245, 245, 245, 1.0);
 const Color _defaultMutedTextColor = Color.fromRGBO(80, 80, 80, 1);
 const Color _defaultSearchResultsBackgroundColor = Color.fromRGBO(
@@ -781,7 +741,6 @@ const Color _defaultSearchResultsBackgroundColor = Color.fromRGBO(
   0.32,
 );
 
-// Default Code Card Background Color
 const Color _defaultCodeCardBackgroundColor = Color.fromRGBO(246, 246, 246, 1);
 
 const Color _golden700 = Color(0xFFFDB816);
@@ -791,7 +750,6 @@ class ColorSchemeBuilder {
   static ({EnteColorScheme light, EnteColorScheme dark}) fromPrimaryColor(
     Color primaryColor,
   ) {
-    // Calculate different shades of the primary color
     final HSLColor hsl = HSLColor.fromColor(primaryColor);
 
     final primary700 = hsl
@@ -805,7 +763,6 @@ class ColorSchemeBuilder {
         .withLightness((hsl.lightness + 0.2).clamp(0.0, 1.0))
         .toColor();
 
-    // Create gradient colors from the primary color
     final gradientColors = [primary700, primary500];
 
     final lightScheme = EnteColorScheme.light(
@@ -875,14 +832,14 @@ const List<Color> avatarLight = [
   Color.fromRGBO(148, 180, 159, 1),
   Color.fromRGBO(135, 162, 251, 1),
   Color.fromRGBO(198, 137, 198, 1),
-  Color.fromRGBO(147, 125, 194, 1), // Fixed duplicate
+  Color.fromRGBO(147, 125, 194, 1),
   Color.fromRGBO(50, 82, 136, 1),
   Color.fromRGBO(133, 180, 224, 1),
   Color.fromRGBO(193, 163, 163, 1),
-  Color.fromRGBO(225, 160, 89, 1), // Fixed duplicate
+  Color.fromRGBO(225, 160, 89, 1),
   Color.fromRGBO(66, 97, 101, 1),
-  Color.fromRGBO(107, 119, 178, 1), // Fixed duplicate
-  Color.fromRGBO(149, 127, 239, 1), // Fixed duplicate
+  Color.fromRGBO(107, 119, 178, 1),
+  Color.fromRGBO(149, 127, 239, 1),
   Color.fromRGBO(221, 157, 226, 1),
   Color.fromRGBO(130, 171, 139, 1),
   Color.fromRGBO(155, 187, 232, 1),

@@ -18,7 +18,6 @@ extension FilePropsExtn on EnteFile {
 
   bool get hasDims => height > 0 && width > 0;
 
-  // return true if the file can be a panorama image, null if the dimensions are not available
   bool? isPanorama() {
     if (fileType != FileType.image) {
       return false;
@@ -51,7 +50,6 @@ extension FilePropsExtn on EnteFile {
   DeviceTrashFile? get asDeviceTrashFile =>
       (this is DeviceTrashFile) ? this as DeviceTrashFile : null;
 
-  // Return true if the file was uploaded via collect photos workflow
   bool get isCollect => uploaderName != null;
 
   String? get uploaderName => pubMagicMetadata?.uploaderName;

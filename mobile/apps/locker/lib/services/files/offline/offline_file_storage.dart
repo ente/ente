@@ -170,7 +170,7 @@ Future<void> _deleteCachedFileCopies(
   Set<int>? ids, {
   Duration olderThan = Duration.zero,
 }) async {
-  // The cache directory is shared; only Locker's ID-keyed working files belong here.
+  // The cache is shared; only Locker's ID-keyed working files belong here.
   final cacheDirectory = Directory(Configuration.instance.getCacheDirectory());
   await _deleteMatchingFiles(
     cacheDirectory,

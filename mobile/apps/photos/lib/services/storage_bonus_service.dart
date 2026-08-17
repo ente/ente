@@ -16,7 +16,6 @@ class StorageBonusService {
     debugPrint("StorageBonusService constructor");
   }
 
-  // returns true if _showStorageBonusTapCount value is less than minTapCountBeforeHidingBanner
   bool shouldShowStorageBonus() {
     final tapCount = prefs.getInt(_showStorageBonusTapCount) ?? 0;
     return tapCount <= minTapCountBeforeHidingBanner;

@@ -1,5 +1,5 @@
 import { proxy, transfer } from "comlink";
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
 import { blobCache } from "ente-base/blob-cache";
 import { ensureElectron } from "ente-base/electron";

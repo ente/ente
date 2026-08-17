@@ -54,7 +54,6 @@ enum SectionType {
   wrapped,
   location,
   album,
-  // People section shows the files shared by other persons
   contacts,
   fileTypesAndExtension,
 }
@@ -217,7 +216,7 @@ extension SectionTypeExtensions on SectionType {
                 final Collection c = await CollectionsService.instance
                     .createAlbum(text);
 
-                // Close the dialog now so that it does not flash when leaving the album again.
+                // Close now so it does not flash when returning from the album.
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
 

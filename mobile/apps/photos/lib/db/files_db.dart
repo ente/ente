@@ -1091,7 +1091,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // Remove queued rows whose local IDs also have uploaded rows.
   Future<int> removeQueuedLocalFiles(Set<String> localIDs, int ownerID) async {
     if (localIDs.isEmpty) {
       _logger.finest("No local IDs provided for removal");
@@ -1248,10 +1247,6 @@ class FilesDB with SqlDbBase {
     );
   }
 
-  /*
-    This method should only return localIDs which are not uploaded yet
-    and can be mapped to incoming remote entry
-   */
   Future<List<EnteFile>> getUnlinkedLocalMatchesForRemoteFile(
     int ownerID,
     String localID,
@@ -1398,7 +1393,6 @@ class FilesDB with SqlDbBase {
   Future<void> deleteLocalFile(EnteFile file) async {
     final db = await instance.sqliteAsyncDB;
     if (file.localID != null) {
-      // Delete every queued row with the same local ID.
       unawaited(
         db.execute(
           'DELETE FROM $filesTable WHERE $columnLocalID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
@@ -2080,7 +2074,6 @@ class FilesDB with SqlDbBase {
     return results.isNotEmpty;
   }
 
-  // Clear every collection row for each uploaded file.
   Future<void> clearLocalIDsForUploadedFileIDs(
     List<int> uploadedFileIDs,
   ) async {

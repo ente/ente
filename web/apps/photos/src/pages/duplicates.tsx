@@ -18,7 +18,7 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material";
-import { useRedirectIfNeedsCredentials } from "ente-accounts-rs/components/utils/use-redirect";
+import { useRedirectIfNeedsCredentials } from "ente-accounts/components/utils/use-redirect";
 import { CenteredFill, SpacedRow } from "ente-base/components/containers";
 import { ActivityErrorIndicator } from "ente-base/components/ErrorIndicator";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";

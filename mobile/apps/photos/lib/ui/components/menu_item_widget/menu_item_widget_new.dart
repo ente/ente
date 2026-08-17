@@ -5,11 +5,6 @@ import 'package:photos/models/typedefs.dart';
 import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/components/menu_item_widget/menu_item_child_widgets.dart';
 
-/// A menu item widget with the new design system.
-/// Features:
-/// - 20px border radius
-/// - 16px horizontal padding
-/// - Background color: Light #FFFFFF, Dark #212121
 class MenuItemWidgetNew extends StatefulWidget {
   final String title;
   final String? subText;
@@ -18,52 +13,38 @@ class MenuItemWidgetNew extends StatefulWidget {
   final TextStyle? subTextStyle;
   final double titleToSubTextSpacing;
 
-  /// Color for the title text
   final Color? titleColor;
 
-  /// leading icon can be passed without specifing size of icon,
-  /// this component sets size to 20x20 irrespective of passed icon's size
   final IconData? leadingIcon;
   final Color? leadingIconColor;
 
   final Widget? leadingIconWidget;
 
-  // leadIconSize default value is 20.
   final double leadingIconSize;
 
-  /// trailing icon can be passed without size as default size set by
-  /// flutter is what this component expects
   final IconData? trailingIcon;
   final Color? trailingIconColor;
   final Widget? trailingWidget;
   final bool trailingIconIsMuted;
 
-  /// If provided, add this much extra spacing to the right of the trailing icon.
   final double trailingExtraMargin;
   final FutureVoidCallback? onTap;
   final VoidCallback? onDoubleTap;
   final VoidCallback? onLongPress;
   final Color? menuItemColor;
 
-  /// Border radius for the menu item, defaults to 20
   final double borderRadius;
 
-  /// Inner padding for the menu item.
   final EdgeInsetsGeometry padding;
 
   final Color? pressedColor;
 
-  /// disable gesture detector if not used
   final bool isGestureDetectorDisabled;
 
-  /// Success state will not be shown if this flag is set to true, only idle and
-  /// loading state
   final bool showOnlyLoadingState;
 
   final bool surfaceExecutionStates;
 
-  /// To show success state even when execution time < debounce time, set this
-  /// flag to true.
   final bool alwaysShowSuccessState;
 
   const MenuItemWidgetNew({
@@ -154,7 +135,6 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
     final circularRadius = Radius.circular(widget.borderRadius);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Figma colors: Light #FFFFFF, Dark #212121
     final defaultMenuItemColor = isDarkMode
         ? const Color(0xFF212121)
         : const Color(0xFFFFFFFF);
@@ -279,8 +259,6 @@ class _MenuItemWidgetNewState extends State<MenuItemWidgetNew> {
       if (widget.pressedColor == null) {
         if (hasPassedGestureCallbacks()) {
           final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-          // Pressed color: Light #F5F5F5, Dark #2C2C2C
-          // These are the result of overlaying fillFaintPressed on the base color
           menuItemColor = isDarkMode
               ? const Color(0xFF2C2C2C)
               : const Color(0xFFF5F5F5);

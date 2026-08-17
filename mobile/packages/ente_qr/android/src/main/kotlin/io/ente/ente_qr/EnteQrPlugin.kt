@@ -16,7 +16,6 @@ import io.flutter.plugin.common.MethodChannel.Result
 import java.io.File
 import java.util.concurrent.Executors
 
-/** EnteQrPlugin */
 class EnteQrPlugin: FlutterPlugin, MethodCallHandler {
   private lateinit var channel : MethodChannel
   private val executor = Executors.newSingleThreadExecutor()
@@ -82,19 +81,13 @@ class EnteQrPlugin: FlutterPlugin, MethodCallHandler {
     }
   }
 
-  /**
-   * Load a bitmap with efficient downsampling and EXIF orientation correction.
-   * Uses two-pass decoding: first get dimensions, then load at target size.
-   */
   private fun loadBitmap(imagePath: String, maxDimension: Int? = 1024): Bitmap? {
-    // Pass 1: get dimensions without loading pixels
     val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(imagePath, opts)
     val rawW = opts.outWidth
     val rawH = opts.outHeight
     if (rawW <= 0 || rawH <= 0) return null
 
-    // Pass 2: load with downsampling
     var sampleSize = 1
     if (maxDimension != null) {
       while (rawW / (sampleSize * 2) >= maxDimension ||
@@ -109,7 +102,6 @@ class EnteQrPlugin: FlutterPlugin, MethodCallHandler {
       null
     } ?: return null
 
-    // Apply EXIF orientation
     return try {
       val exif = ExifInterface(imagePath)
       val orientation = exif.getAttributeInt(
@@ -145,7 +137,6 @@ class EnteQrPlugin: FlutterPlugin, MethodCallHandler {
       }
     }
 
-    // Fallback: try GlobalHistogram binarizer
     options.binarizer = Binarizer.GLOBAL_HISTOGRAM
     val fallbackResults = ZxingCpp.readBitmap(
       bitmap, 0, 0, bitmap.width, bitmap.height, 0, options
@@ -170,8 +161,6 @@ class EnteQrPlugin: FlutterPlugin, MethodCallHandler {
       binarizer = Binarizer.LOCAL_AVERAGE
     }
   }
-
-  // ── Main scan methods ─────────────────────────────────────────────
 
   private fun scanQrCode(
     imagePath: String,
@@ -236,7 +225,6 @@ class EnteQrPlugin: FlutterPlugin, MethodCallHandler {
         }
       }
 
-      // Fallback: try GlobalHistogram binarizer
       options.binarizer = Binarizer.GLOBAL_HISTOGRAM
       val fallbackResults = ZxingCpp.readBitmap(
         bitmap, 0, 0, bitmap.width, bitmap.height, 0, options
@@ -287,7 +275,6 @@ class EnteQrPlugin: FlutterPlugin, MethodCallHandler {
         if (py > maxY) maxY = py
       }
 
-      // Add padding around finder patterns
       val padX = (maxX - minX) * 0.15f
       val padY = (maxY - minY) * 0.15f
       minX = (minX - padX).coerceAtLeast(0f)

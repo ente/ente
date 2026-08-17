@@ -589,7 +589,6 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
               period: period,
             );
 
-      // Verify the validity of the code
       getOTP(newCode);
       if (!mounted) return;
       Navigator.of(context).pop(newCode);

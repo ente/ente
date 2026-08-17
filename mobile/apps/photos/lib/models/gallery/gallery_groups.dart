@@ -309,7 +309,7 @@ class GalleryGroups {
   void _buildGroups() {
     final stopwatch = Stopwatch()..start();
 
-    final yearsInGroups = <int>{}; //Only relevant for time grouping
+    final yearsInGroups = <int>{};
     List<EnteFile> groupFiles = [];
     final allFilesLength = allFiles.length;
 

@@ -273,8 +273,7 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
       return;
     }
     if (widget.face.score <= kMinimumQualityFaceScore) {
-      // The face score is too low for automatic clustering,
-      // assigning a manual new clusterID so that the user can cluster it manually
+      // Low-quality faces need their own cluster before manual assignment.
       final String clusterID = newClusterID();
       await mlDataDB.updateFaceIdToClusterId({widget.face.faceID: clusterID});
       if (!mounted) return;

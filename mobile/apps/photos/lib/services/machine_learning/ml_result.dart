@@ -16,8 +16,8 @@ class MLResult {
   List<PetFaceResult>? petFaces;
   List<PetBodyResult>? petBodies;
 
-  /// Bitmask attached to the remotely stored embeddings, describing the
-  /// runtime and execution providers used to produce this result.
+  // Bitmask attached to remotely stored embeddings, describing the runtime and
+  // execution providers used to produce this result.
   int remoteFlags;
 
   Dimensions decodedImageSize;

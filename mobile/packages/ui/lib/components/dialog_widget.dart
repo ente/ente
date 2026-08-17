@@ -140,11 +140,7 @@ class Actions extends StatelessWidget {
       children: addSeparators(
         buttons,
         const SizedBox(
-          // In figma this white space is of height 8pts. But the Button
-          // component has 1pts of invisible border by default in code. So two
-          // 1pts borders will visually make the whitespace 8pts.
-          // Height of button component in figma = 48, in code = 50 (2pts for
-          // top + bottom border)
+          // Two 1-point button borders complete the 8-point visual gap.
           height: 6,
         ),
       ),
@@ -194,7 +190,7 @@ class TextInputDialog extends StatefulWidget {
 }
 
 class _TextInputDialogState extends State<TextInputDialog> {
-  //the value of this ValueNotifier has no significance
+  // Only changes matter; the boolean value has no meaning.
   final _submitNotifier = ValueNotifier(false);
 
   @override

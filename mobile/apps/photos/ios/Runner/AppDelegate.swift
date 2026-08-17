@@ -36,17 +36,14 @@ import workmanager_apple
       GeneratedPluginRegistrant.register(with: registry)
     }
     var freqInMinutes = 30 * 60
-    // Register a periodic task in iOS 13+
     WorkmanagerPlugin.registerPeriodicTask(
       withIdentifier: "io.ente.frame.iOSBackgroundAppRefresh",
       frequency: NSNumber(value: freqInMinutes))
 
-    // Retrieve the link from parameters
     if let url = AppLinks.shared.getLink(launchOptions: launchOptions) {
       // only accept non-homewidget urls for AppLinks
       if !url.absoluteString.contains("homeWidget") {
         AppLinks.shared.handleLink(url: url)
-        // link is handled, stop propagation
         return true
       }
     }

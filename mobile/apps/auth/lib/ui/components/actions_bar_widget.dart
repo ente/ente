@@ -25,7 +25,6 @@ class _ActionBarWidgetState extends State<ActionBarWidget> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
         child: Column(
-          // left align the text
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (widget.code.note.isNotEmpty)

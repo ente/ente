@@ -92,12 +92,6 @@ class PickPersonCoverPhotoWidget extends StatelessWidget {
 
                               return result;
                             },
-                        // reloadEvent: Bus.instance
-                        //     .on<CollectionUpdatedEvent>()
-                        //     .where(
-                        //       (event) =>
-                        //           event.collectionID == collection.id,
-                        //     ),
                         tagPrefix: "pick_center_point_gallery",
                         selectedFiles: selectedFiles,
                         limitSelectionToOne: true,
@@ -123,7 +117,6 @@ class PickPersonCoverPhotoWidget extends StatelessWidget {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 428),
                     child: Padding(
-                      //inner stroke of 1pt + 15 pts of top padding = 16 pts
                       padding: const EdgeInsets.fromLTRB(16, 15, 16, 8),
                       child: ValueListenableBuilder(
                         valueListenable: isFileSelected,

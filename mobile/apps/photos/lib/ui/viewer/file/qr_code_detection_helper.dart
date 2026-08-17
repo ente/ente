@@ -81,7 +81,6 @@ class QrCodeDetectionHelper {
     }
   }
 
-  /// Only notify listeners when the value actually changes.
   void _clearDetections() {
     if (qrDetectionsNotifier.value != null) {
       qrDetectionsNotifier.value = null;

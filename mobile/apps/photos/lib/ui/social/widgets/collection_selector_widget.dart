@@ -4,7 +4,6 @@ import "package:photos/models/file/file.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
-/// Holds collection info with comment count for the collection selector
 class CollectionCommentInfo {
   final Collection collection;
   final int commentCount;
@@ -17,7 +16,6 @@ class CollectionCommentInfo {
   });
 }
 
-/// Holds collection info with like count for the likes bottom sheet
 class CollectionLikeInfo {
   final Collection collection;
   final int likeCount;

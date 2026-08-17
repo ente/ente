@@ -22,9 +22,6 @@ class Collection {
   final int updationTime;
   final bool isDeleted;
 
-  // decryptedPath will be null for collections now owned by user, deleted
-  // collections, && collections which don't have a path. The path is used
-  // to map local on-device album on mobile to remote collection on ente.
   String? decryptedPath;
   String? mMdEncodedJson;
   String? mMdPubEncodedJson;
@@ -81,13 +78,10 @@ class Collection {
         sharedMagicMetadata.visibility == archiveVisibility;
   }
 
-  // hasLink returns true if there's any link attached to the collection
-  // including expired links
   bool get hasLink => publicURLs.isNotEmpty;
 
   bool get hasCover => (pubMagicMetadata.coverID ?? 0) > 0;
 
-  // hasSharees returns true if the collection is shared with other ente users
   bool get hasSharees => sharees.isNotEmpty;
 
   bool get isPinned => (magicMetadata.order ?? 0) != 0;

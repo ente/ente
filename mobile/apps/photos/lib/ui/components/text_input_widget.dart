@@ -10,8 +10,6 @@ import 'package:photos/models/typedefs.dart';
 import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/utils/separators_util.dart';
 
-///To show wrong password state, throw an exception with the message
-///"Incorrect password" in onSubmit.
 class TextInputWidget extends StatefulWidget {
   final String? label;
   final String? message;
@@ -23,12 +21,8 @@ class TextInputWidget extends StatefulWidget {
   final int? maxLength;
   final double borderRadius;
 
-  ///TextInputWidget will listen to this notifier and executes onSubmit when
-  ///notified. Value of this notifier is irrelevant.
   final ValueNotifier? submitNotifier;
 
-  ///TextInputWidget will listen to this notifier and clears and unfocuses the
-  ///textFiled when notified.
   final ValueNotifier? cancelNotifier;
   final bool alwaysShowSuccessState;
   final bool showOnlyLoadingState;
@@ -38,10 +32,9 @@ class TextInputWidget extends StatefulWidget {
   final bool shouldSurfaceExecutionStates;
   final TextCapitalization? textCapitalization;
 
-  /// WARNING: Do not use this widget for password input. Create a separate PasswordInputWidget. This widget is becoming bloated and hard to maintain, so will create a PasswordInputWidget and remove this field from this widget in future
+  // Do not extend password handling here; split it into a dedicated widget.
   final bool isPasswordInput;
 
-  ///Clear comes in the form of a suffix icon. It is unrelated to onCancel.
   final bool isClearable;
   final bool shouldUnfocusOnClearOrSubmit;
   final FocusNode? focusNode;
@@ -99,8 +92,6 @@ class _TextInputWidgetState extends State<TextInputWidget> {
   VoidCallback? _onChangeListener;
   VoidCallback? _isEmptyListener;
 
-  ///This is to pass if the TextInputWidget is in a dialog and an error is
-  ///thrown in executing onSubmit by passing it as arg in Navigator.pop()
   Exception? _exception;
   bool _incorrectPassword = false;
 
@@ -288,6 +279,7 @@ class _TextInputWidgetState extends State<TextInputWidget> {
       executionState = ExecutionState.error;
       _debouncer.cancelDebounceTimer();
       _exception = e is Exception ? e : Exception(e.toString());
+      // "Incorrect password" triggers the inline error state.
       if (e.toString().contains("Incorrect password")) {
         _logger.warning("Incorrect password");
         executionState = ExecutionState.idle;
@@ -306,11 +298,7 @@ class _TextInputWidgetState extends State<TextInputWidget> {
       setState(() {});
     }
 
-    // when the time taken by widget.onSubmit is approximately equal to the debounce
-    // time, the callback is getting executed when/after the if condition
-    // below is executing/executed which results in execution state stuck at
-    // idle state. This Future is for delaying the execution of the if
-    // condition so that the calback in the debouncer finishes execution before.
+    // Let the debounced callback run before checking its execution state.
     await Future.delayed(const Duration(milliseconds: 5));
     if (executionState == ExecutionState.inProgress ||
         executionState == ExecutionState.error) {
@@ -437,7 +425,7 @@ class _TextInputWidgetState extends State<TextInputWidget> {
   }
 }
 
-//todo: Add clear and custom icon for suffic icon
+// TODO: Add clear and custom suffix icons.
 class SuffixIconWidget extends StatelessWidget {
   final ExecutionState executionState;
   final bool shouldSurfaceExecutionStates;

@@ -147,7 +147,6 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
                           child: widget.fadeInTrailingIcons
                               ? Icon(
                                   Icons.more_vert_outlined,
-                                  // color: colorScheme.blurStrokeBase,
                                   color: componentColors.textLighter,
                                 ).animate().fadeIn(
                                   duration: const Duration(
@@ -165,7 +164,6 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
                                 )
                               : Icon(
                                   Icons.more_vert_outlined,
-                                  // color: colorScheme.blurStrokeBase,
                                   color: componentColors.textLighter,
                                 ),
                         ),
@@ -180,7 +178,6 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
 
   void _selectedFilesListener() {
     if (widget.selectedFiles == null) return;
-    // Filter out dummy files before checking selection state
     final nonDummyFiles = widget.filesInGroup
         .where((file) => file is! DummyFile)
         .toSet();
@@ -212,7 +209,6 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
   }
 
   bool _areAllFromGroupSelected() {
-    // Filter out dummy files before checking selection state
     final nonDummyFiles = widget.filesInGroup
         .where((file) => file is! DummyFile)
         .toSet();

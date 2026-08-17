@@ -1,29 +1,24 @@
 import 'package:flutter/material.dart';
 
 class EnteColorScheme {
-  // Background Colors
   final Color backgroundBase;
   final Color backgroundElevated;
   final Color backgroundElevated2;
 
-  // Backdrop Colors
   final Color backdropBase;
   final Color backdropBaseMute;
   final Color backdropFaint;
 
-  // Text Colors
   final Color textBase;
   final Color textMuted;
   final Color textFaint;
 
-  // Fill Colors
   final Color fillBase;
   final Color fillBasePressed;
   final Color fillMuted;
   final Color fillFaint;
   final Color fillFaintPressed;
 
-  // Stroke Colors
   final Color strokeBase;
   final Color strokeMuted;
   final Color strokeFaint;
@@ -32,7 +27,6 @@ class EnteColorScheme {
   final Color blurStrokeFaint;
   final Color blurStrokePressed;
 
-  // Fixed Colors
   final Color primaryGreen;
   final Color primary700;
   final Color primary500;
@@ -49,7 +43,6 @@ class EnteColorScheme {
   final Color caution500;
   final List<Color> avatarColors;
 
-  // Tags
   final Color tagChipSelectedColor;
   final Color tagChipUnselectedColor;
   final List<Color> tagChipSelectedGradient;
@@ -58,7 +51,6 @@ class EnteColorScheme {
   final Color deleteTagIconColor;
   final Color deleteTagTextColor;
 
-  // Code Widget
   final Color errorCodeProgressColor;
   final Color infoIconColor;
   final Color errorCardTextColor;
@@ -66,7 +58,6 @@ class EnteColorScheme {
   final List<BoxShadow> pinnedCardBoxShadow;
   final Color pinnedBgColor;
 
-  // Gradient Button
   final Color gradientButtonBgColor;
   final List<Color> gradientButtonBgColors;
 
@@ -186,10 +177,8 @@ const EnteColorScheme darkScheme = EnteColorScheme(
 
 const accentColor = Color(0xFF8F33D6);
 
-// QR code container background
 const Color qrBoxColor = Color.fromRGBO(245, 245, 247, 1);
 
-// Background Colors
 const Color backgroundBaseLight = Color.fromRGBO(255, 255, 255, 1);
 const Color backgroundElevatedLight = Color.fromRGBO(255, 255, 255, 1);
 const Color backgroundElevated2Light = Color.fromRGBO(251, 251, 251, 1);
@@ -198,7 +187,6 @@ const Color backgroundBaseDark = Color.fromRGBO(0, 0, 0, 1);
 const Color backgroundElevatedDark = Color.fromRGBO(27, 27, 27, 1);
 const Color backgroundElevated2Dark = Color.fromRGBO(37, 37, 37, 1);
 
-// Backdrop Colors
 const Color backdropBaseLight = Color.fromRGBO(255, 255, 255, 0.92);
 const Color backdropMutedLight = Color.fromRGBO(255, 255, 255, 0.75);
 const Color backdropFaintLight = Color.fromRGBO(255, 255, 255, 0.30);
@@ -207,7 +195,6 @@ const Color backdropBaseDark = Color.fromRGBO(0, 0, 0, 0.90);
 const Color backdropMutedDark = Color.fromRGBO(0, 0, 0, 0.65);
 const Color backdropFaintDark = Color.fromRGBO(0, 0, 0, 0.20);
 
-// Text Colors
 const Color textBaseLight = Color.fromRGBO(0, 0, 0, 1);
 const Color textMutedLight = Color.fromRGBO(0, 0, 0, 0.6);
 const Color textFaintLight = Color.fromRGBO(0, 0, 0, 0.5);
@@ -216,7 +203,6 @@ const Color textBaseDark = Color.fromRGBO(255, 255, 255, 1);
 const Color textMutedDark = Color.fromRGBO(255, 255, 255, 0.7);
 const Color textFaintDark = Color.fromRGBO(255, 255, 255, 0.5);
 
-// Fill Colors
 const Color fillBaseLight = Color.fromRGBO(0, 0, 0, 1);
 const Color fillBasePressedLight = Color.fromRGBO(0, 0, 0, 0.87);
 const Color fillMutedLight = Color.fromRGBO(0, 0, 0, 0.12);
@@ -229,7 +215,6 @@ const Color fillMutedDark = Color.fromRGBO(255, 255, 255, 0.16);
 const Color fillFaintDark = Color.fromRGBO(255, 255, 255, 0.12);
 const Color fillFaintPressedDark = Color.fromRGBO(255, 255, 255, 0.06);
 
-// Stroke Colors
 const Color strokeBaseLight = Color.fromRGBO(0, 0, 0, 1);
 const Color strokeMutedLight = Color.fromRGBO(0, 0, 0, 0.24);
 const Color strokeFaintLight = Color.fromRGBO(0, 0, 0, 0.04);
@@ -245,8 +230,6 @@ const Color strokeFainterDark = Color.fromRGBO(255, 255, 255, 0.08);
 const Color blurStrokeBaseDark = Color.fromRGBO(255, 255, 255, 0.90);
 const Color blurStrokeFaintDark = Color.fromRGBO(255, 255, 255, 0.06);
 const Color blurStrokePressedDark = Color.fromRGBO(255, 255, 255, 0.50);
-
-// Fixed Colors
 
 const Color _primaryGreen = Color.fromRGBO(29, 185, 84, 1);
 
@@ -319,7 +302,6 @@ const List<Color> avatarDark = [
   Color.fromRGBO(120, 181, 167, 1),
 ];
 
-// Tags
 const Color _tagChipUnselectedColorLight = Color(0xFFFCF5FF);
 const Color _tagChipUnselectedColorDark = Color(0xFF1C0F22);
 const List<Color> _tagChipUnselectedGradientLight = [
@@ -343,7 +325,6 @@ const Color _tagTextUnselectedColor = Color(0xFF8232E1);
 const Color _deleteTagIconColor = Color(0xFFF53434);
 const Color _deleteTagTextColor = Color(0xFFF53434);
 
-// Code Widget
 const Color _pinnedBgColorLight = Color(0xFFF9ECFF);
 const Color _pinnedBgColorDark = Color(0xFF390C4F);
 const Color _errorCodeProgressColor = Color(0xFFF53434);
@@ -357,7 +338,6 @@ const List<BoxShadow> _pinnedCardBoxShadow = [
   BoxShadow(color: Color(0x2E000000), blurRadius: 1, offset: Offset(0, 0)),
 ];
 
-// Gradient Button
 const Color _gradientButtonBgColor = Color(0xFF531DAB);
 const List<Color> _gradientButtonBgColors = [
   Color(0xFFB37FEB),

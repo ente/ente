@@ -13,7 +13,6 @@ void showToast(
   iOSDismissOnTap = true,
   double mobileBottomMargin = 16,
 }) async {
-  // If on mobile render toast above the keyboard using FToast.
   final bool isMobile = PlatformDetector.isMobile();
 
   if (isMobile) {
@@ -68,7 +67,6 @@ void showToast(
     return;
   }
 
-  // Default path (desktop)
   try {
     if (!context.mounted) return;
     await Fluttertoast.cancel();

@@ -114,15 +114,19 @@ func (t *TrashRepository) GetFilesWithVersion(userID int64, updateAtTime int64, 
 	return convertRowsToTrash(rows)
 }
 
-func (t *TrashRepository) TrashFiles(fileIDs []int64, userID int64, trash ente.TrashRequest) error {
+func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash ente.TrashRequest) error {
+	fileIDs := make([]int64, 0, len(trash.TrashItems))
+	for _, item := range trash.TrashItems {
+		fileIDs = append(fileIDs, item.FileID)
+	}
 	updationTime := time.Microseconds()
-	ctx := context.Background()
 	tx, err := t.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	rows, err := tx.QueryContext(ctx, `SELECT DISTINCT collection_id FROM 
-		collection_files WHERE file_id = ANY($1) AND is_deleted = $2`, pq.Array(fileIDs), false)
+			collection_files WHERE file_id = ANY($1) AND is_deleted = $2`, pq.Array(fileIDs), false)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -136,32 +140,24 @@ func (t *TrashRepository) TrashFiles(fileIDs []int64, userID int64, trash ente.T
 		cIDs = append(cIDs, cID)
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE collection_files 
-		SET is_deleted = $1, updation_time = $2 WHERE file_id = ANY($3)`,
+			SET is_deleted = $1, updation_time = $2 WHERE file_id = ANY($3)`,
 		true, updationTime, pq.Array(fileIDs))
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
-		WHERE collection_id = ANY ($2)`, updationTime, pq.Array(cIDs))
+			WHERE collection_id = ANY ($2)`, updationTime, pq.Array(cIDs))
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	err = t.InsertItems(ctx, tx, userID, trash.TrashItems)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
-	err = tx.Commit()
-
-	if err == nil {
-		removeLinkErr := t.FileLinkRepo.DisableLinkForFiles(ctx, fileIDs)
-		if removeLinkErr != nil {
-			return stacktrace.Propagate(removeLinkErr, "failed to disable file links for files being trashed")
-		}
+	if err = t.FileLinkRepo.DisableLinkForFilesTx(ctx, tx, fileIDs); err != nil {
+		return stacktrace.Propagate(err, "failed to disable file links for files being trashed")
 	}
-	return stacktrace.Propagate(err, "")
+	return stacktrace.Propagate(tx.Commit(), "")
 }
 
 func (t *TrashRepository) CleanUpDeletedFilesFromCollection(ctx context.Context, fileIDs []int64, userID int64) error {

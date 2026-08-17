@@ -14,10 +14,8 @@ class DownloadManager {
 
   final Dio _dio;
 
-  // In-memory storage for download tasks
   final Map<int, DownloadTask> _tasks = {};
 
-  // Active downloads with their completers and streams
   final Map<int, Completer<DownloadResult>> _completers = {};
   final Map<int, StreamController<DownloadTask>> _streams = {};
   final Map<int, CancelToken> _cancelTokens = {};
@@ -40,7 +38,6 @@ class DownloadManager {
     String filename,
     int totalBytes,
   ) async {
-    // If already downloading, return existing future
     if (_completers.containsKey(fileId)) {
       return _completers[fileId]!.future;
     }
@@ -48,18 +45,14 @@ class DownloadManager {
     final completer = Completer<DownloadResult>();
     _completers[fileId] = completer;
 
-    // Get or create task
     final existingTask = _tasks[fileId];
     var task =
         existingTask ??
         DownloadTask(id: fileId, filename: filename, totalBytes: totalBytes);
 
-    // Store task in memory
     _tasks[fileId] = task;
 
-    // Don't restart if already completed
     if (task.isCompleted) {
-      // ensure that the file exists
       final filePath = task.filePath;
       if (filePath == null || !(await File(filePath).exists())) {
         _logger.warning(
@@ -97,7 +90,6 @@ class DownloadManager {
       _updateTask(task.copyWith(status: DownloadStatus.paused));
     }
 
-    // Clean up streams if no listeners
     final stream = _streams[fileId];
     if (stream != null && !stream.hasListener) {
       await stream.close();
@@ -138,7 +130,6 @@ class DownloadManager {
       final directory = Configuration.instance.getTempDirectory();
       final basePath = '$directory${task.id}.encrypted';
 
-      // Check existing chunks and calculate progress
       final totalChunks = (task.totalBytes / downloadChunkSize).ceil();
       final existingChunks = await _validateExistingChunks(
         basePath,
@@ -186,7 +177,6 @@ class DownloadManager {
       }
     } catch (e) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
-        // Complete future with current task state (paused or cancelled)
         final currentTask = _tasks[task.id];
         if (currentTask != null && !completer.isCompleted) {
           completer.complete(DownloadResult(currentTask, false));
@@ -284,7 +274,6 @@ class DownloadManager {
         _notifyProgress(updatedTask);
       },
     );
-    // Update progress after chunk completion
     final chunkFileSize = await File(chunkPath).length();
     task = task.copyWith(
       bytesDownloaded: (chunkIndex) * downloadChunkSize + chunkFileSize,
@@ -354,7 +343,6 @@ class DownloadManager {
       final finalFile = File(basePath);
       if (await finalFile.exists()) await finalFile.delete();
 
-      // Delete chunk files
       final totalChunks = (task.totalBytes / downloadChunkSize).ceil();
       for (int i = 1; i <= totalChunks; i++) {
         final chunkFile = File(_getChunkPath(basePath, i));

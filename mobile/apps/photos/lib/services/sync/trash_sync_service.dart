@@ -112,12 +112,10 @@ class TrashSyncService {
         .getAllOwnedCollectionIDs();
     for (final item in trashRequestItems) {
       if (!includedFileIDs.contains(item.fileID)) {
-        // Check if the collectionID in the request is owned by the user
         if (ownedCollectionIDs.contains(item.collectionID)) {
           uniqueItems.add(item);
           includedFileIDs.add(item.fileID);
         } else {
-          // If not owned, use a different owned collectionID
           final fileCollectionIDs = await FilesDB.instance
               .getAllCollectionIDsOfFile(item.fileID);
           bool foundAnotherOwnedCollection = false;
@@ -258,7 +256,6 @@ class TrashSyncService {
         rethrow;
       }
     }
-    // no need to await on syncing trash from remote
     unawaited(syncTrash());
   }
 

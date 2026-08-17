@@ -32,37 +32,16 @@ class RustCorruptModelException implements Exception {
 }
 
 enum IsolateOperation {
-  /// [MLIndexingIsolate]
   analyzeImage,
-
-  /// [MLIndexingIsolate]
   prepareRustMlRuntime,
-
-  /// [MLIndexingIsolate]
   releaseRustMlRuntime,
-
-  /// [MLComputer]
   generateFaceThumbnails,
-
-  /// [MLComputer]
   runClipText,
-
-  /// [MLComputer]
   computeBulkSimilarities,
-
-  /// [MLComputer]
   computeBulkSimilaritiesWithRust,
-
-  /// [MLComputer]
   bulkVectorSearch,
-
-  /// [MLComputer]
   bulkVectorSearchWithKeys,
-
-  /// [FaceClusteringService]
   linearIncrementalClustering,
-
-  /// Cache operations
   cacheImageEmbeddings,
   setIsolateCache,
   clearIsolateCache,
@@ -76,9 +55,9 @@ class _CachedImageEmbeddings {
   rust_usearch.SemanticSearchExactCache? rustExactCache;
 }
 
-/// WARNING: Only return primitives unless you know the method is only going
-/// to be used on regular isolates as opposed to DartUI and Flutter isolates
-///  https://api.flutter.dev/flutter/dart-isolate/SendPort/send.html
+// Return only primitives unless this operation only runs on regular Dart
+// isolates rather than Dart UI or Flutter isolates.
+// https://api.flutter.dev/flutter/dart-isolate/SendPort/send.html
 Future<dynamic> isolateFunction(
   IsolateOperation function,
   Map<String, dynamic> args,
@@ -106,9 +85,6 @@ Future<dynamic> isolateFunction(
         exact: exact,
       );
 
-    /// Cases for MLIndexingIsolate start here
-
-    /// MLIndexingIsolate
     case IsolateOperation.analyzeImage:
       await _ensureRustLoaded();
       final MLResult result;
@@ -119,22 +95,15 @@ Future<dynamic> isolateFunction(
       }
       return result.toJsonString();
 
-    /// MLIndexingIsolate
     case IsolateOperation.prepareRustMlRuntime:
       await _ensureRustLoaded();
       await _ensureRustRuntimePrepared(args);
       return true;
 
-    /// MLIndexingIsolate
     case IsolateOperation.releaseRustMlRuntime:
       await _releaseRustRuntime();
       return true;
 
-    /// Cases for MLIndexingIsolate stop here
-
-    /// Cases for MLComputer start here
-
-    /// MLComputer
     case IsolateOperation.generateFaceThumbnails:
       final imagePath = args['imagePath'] as String;
       final faceBoxesJson = args['faceBoxesList'] as List<Map<String, dynamic>>;
@@ -159,7 +128,6 @@ Future<dynamic> isolateFunction(
           );
       return List.from(results);
 
-    /// MLComputer
     case IsolateOperation.runClipText:
       await _ensureRustLoaded();
       final text = args["text"] as String;
@@ -198,7 +166,6 @@ Future<dynamic> isolateFunction(
       }
       return List<double>.from(result.embedding, growable: false);
 
-    /// MLComputer
     case IsolateOperation.computeBulkSimilarities:
       final cachedEmbeddings = _getCachedImageEmbeddings();
       final textEmbedding =
@@ -225,7 +192,6 @@ Future<dynamic> isolateFunction(
       }
       return result;
 
-    /// MLComputer
     case IsolateOperation.computeBulkSimilaritiesWithRust:
       await _ensureRustLoaded();
       final cachedEmbeddings = _getCachedImageEmbeddings();
@@ -254,20 +220,10 @@ Future<dynamic> isolateFunction(
       }
       return result;
 
-    /// Cases for MLComputer end here
-
-    /// Cases for FaceClusteringService start here
-
-    /// FaceClusteringService
     case IsolateOperation.linearIncrementalClustering:
       final ClusteringResult result = runLinearClustering(args);
       return result;
 
-    /// Cases for FaceClusteringService end here
-
-    /// Cases for Caching start here
-
-    /// Caching
     case IsolateOperation.cacheImageEmbeddings:
       final embeddings = args['embeddings'] as List<EmbeddingVector>;
       final cacheRustExact = args['cacheRustExact'] as bool? ?? false;
@@ -283,7 +239,6 @@ Future<dynamic> isolateFunction(
       _isolateCache[imageEmbeddingsKey] = cachedEmbeddings;
       return true;
 
-    /// Caching
     case IsolateOperation.setIsolateCache:
       final key = args['key'] as String;
       final value = args['value'];
@@ -291,14 +246,12 @@ Future<dynamic> isolateFunction(
       _isolateCache[key] = value;
       return true;
 
-    /// Caching
     case IsolateOperation.clearIsolateCache:
       final key = args['key'] as String;
       final removedValue = _isolateCache.remove(key);
       _disposeIsolateCacheValue(removedValue);
       return true;
 
-    /// Caching
     case IsolateOperation.clearAllIsolateCache:
       await _ensureRustDisposed();
       for (final value in _isolateCache.values) {
@@ -306,8 +259,6 @@ Future<dynamic> isolateFunction(
       }
       _isolateCache.clear();
       return true;
-
-    /// Cases for Caching stop here
   }
 }
 

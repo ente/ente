@@ -1,4 +1,4 @@
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import log from "ente-base/log";
 import { ensureMasterKeyFromSession } from "ente-base/session";
 import { ComlinkWorker } from "ente-base/worker/comlink-worker";

@@ -42,7 +42,6 @@ void main(List<String> args) {
 }
 EOF
 
-# Create alias for `shasum` if it does not exist and `sha1sum` exists
 if ! [ -x "$(command -v shasum)" ] && [ -x "$(command -v sha1sum)" ]; then
   shopt -s expand_aliases
   alias shasum="sha1sum"
@@ -70,7 +69,6 @@ if [ -f "$PACKAGE_HASH_FILE" ]; then
     fi
 fi
 
-# Run pub get if needed.
 if [ ! -f "$PACKAGE_HASH_FILE" ]; then
     "$DART" pub get --no-precompile
     "$DART" compile kernel bin/build_tool_runner.dart

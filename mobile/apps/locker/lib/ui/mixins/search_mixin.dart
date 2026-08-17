@@ -212,7 +212,6 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
   bool handleKeyEvent(KeyEvent event) {
     if (event is KeyDownEvent) {
-      // Clear search or close search on ESC
       if (event.logicalKey == LogicalKeyboardKey.escape) {
         if (_isSearchActive) {
           if (_searchQuery.isNotEmpty) {
@@ -222,9 +221,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
           }
           return true;
         }
-      }
-      // Activate search on Ctrl+F (Cmd+F on Mac)
-      else if (event.logicalKey == LogicalKeyboardKey.keyF &&
+      } else if (event.logicalKey == LogicalKeyboardKey.keyF &&
           (HardwareKeyboard.instance.isMetaPressed ||
               HardwareKeyboard.instance.isControlPressed)) {
         if (!_isSearchActive) {
@@ -253,7 +250,6 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
     onSearchStateChanged(true);
     unawaited(_performSearch(query));
 
-    // Focus the search field after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.requestFocus();
     });

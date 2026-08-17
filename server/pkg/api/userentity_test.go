@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -168,6 +169,50 @@ func TestCreateSmartAlbumEntityRestoresDeletedEntry(t *testing.T) {
 	}
 	if entity.Header == nil || *entity.Header != "new-header" {
 		t.Fatalf("unexpected header: got %v want %q", entity.Header, "new-header")
+	}
+}
+
+func TestUpdateLibraryShareEntityRejectsStaleWrite(t *testing.T) {
+	handler, db := setupUserEntityHandlerTest(t)
+
+	userID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       205,
+		Email:        "library-share-update@ente.io",
+		CreationTime: 1,
+	})
+	ctx := context.Background()
+	if err := handler.Controller.Repo.CreateKey(ctx, userID, model.EntityKeyRequest{
+		Type:         model.LibraryShare,
+		EncryptedKey: "encrypted-key",
+		Header:       "key-header",
+	}); err != nil {
+		t.Fatalf("failed to create entity key: %v", err)
+	}
+
+	id := "ls_205_206"
+	if _, err := handler.Controller.Repo.Create(ctx, userID, model.EntityDataRequest{
+		ID:            &id,
+		Type:          model.LibraryShare,
+		EncryptedData: "initial-data",
+		Header:        "initial-header",
+	}); err != nil {
+		t.Fatalf("failed to create entity: %v", err)
+	}
+	created, err := handler.Controller.Repo.Get(ctx, userID, id)
+	if err != nil {
+		t.Fatalf("failed to fetch created entity: %v", err)
+	}
+
+	staleUpdatedAt := created.UpdatedAt - 1
+	err = handler.Controller.Repo.Update(ctx, userID, model.UpdateEntityDataRequest{
+		ID:                id,
+		Type:              model.LibraryShare,
+		EncryptedData:     "updated-data",
+		Header:            "updated-header",
+		ExpectedUpdatedAt: &staleUpdatedAt,
+	})
+	if !errors.Is(err, ente.ErrVersionMismatch) {
+		t.Fatalf("stale update error = %v, want %v", err, ente.ErrVersionMismatch)
 	}
 }
 

@@ -428,7 +428,6 @@ const PrimaryColorTokens bluePrimaryTokensDark = PrimaryColorTokens(
   primaryDarker: blueDarkerDark,
 );
 
-// Green Colors
 const Color greenLightLight = Color.fromRGBO(221, 238, 223, 1);
 const Color greenLightDark = Color.fromRGBO(41, 41, 41, 1);
 
@@ -450,7 +449,6 @@ const Color greenDarkDark = Color.fromRGBO(6, 157, 30, 1);
 const Color greenDarkerLight = Color.fromRGBO(5, 124, 24, 1);
 const Color greenDarkerDark = Color.fromRGBO(5, 124, 24, 1);
 
-// Purple Colors
 const Color purpleLightLight = Color.fromRGBO(244, 231, 252, 1);
 const Color purpleLightDark = Color.fromRGBO(39, 28, 50, 1);
 
@@ -472,7 +470,6 @@ const Color purpleDarkDark = Color.fromRGBO(122, 12, 174, 1);
 const Color purpleDarkerLight = Color.fromRGBO(93, 8, 132, 1);
 const Color purpleDarkerDark = Color.fromRGBO(93, 8, 132, 1);
 
-// Blue Colors
 const Color blueLightLight = Color.fromRGBO(231, 239, 250, 1);
 const Color blueLightDark = Color.fromRGBO(41, 41, 41, 1);
 
@@ -494,7 +491,6 @@ const Color blueDarkDark = Color.fromRGBO(14, 95, 217, 1);
 const Color blueDarkerLight = Color.fromRGBO(11, 76, 173, 1);
 const Color blueDarkerDark = Color.fromRGBO(11, 76, 173, 1);
 
-// Warning Colors
 const Color warningLightLight = Color.fromRGBO(250, 235, 235, 1);
 const Color warningLightDark = Color.fromRGBO(41, 41, 41, 1);
 
@@ -507,14 +503,12 @@ const Color warningDarkDark = Color.fromRGBO(221, 52, 52, 1);
 const Color warningDarkerLight = Color.fromRGBO(197, 46, 46, 1);
 const Color warningDarkerDark = Color.fromRGBO(197, 46, 46, 1);
 
-// Caution Colors
 const Color cautionLightLight = Color.fromRGBO(250, 244, 235, 1);
 const Color cautionLightDark = Color.fromRGBO(41, 41, 41, 1);
 
 const Color cautionDefaultLight = Color.fromRGBO(240, 138, 30, 1);
 const Color cautionDefaultDark = Color.fromRGBO(240, 138, 30, 1);
 
-// Text Colors
 const Color textLightLight = Color.fromRGBO(102, 102, 102, 1);
 const Color textLightDark = Color.fromRGBO(153, 153, 153, 1);
 
@@ -536,15 +530,12 @@ const Color textLightestDark = Color.fromRGBO(65, 65, 65, 1);
 const Color textReverseLight = Color.fromRGBO(255, 255, 255, 1);
 const Color textReverseDark = Color.fromRGBO(0, 0, 0, 1);
 
-// Icon Colors
 const Color iconColorLight = Color.fromRGBO(0, 0, 0, 0.75);
 const Color iconColorDark = Color.fromRGBO(255, 255, 255, 1);
 
-// Background Colors
 const Color backgroundBaseLight = Color.fromRGBO(244, 244, 244, 1);
 const Color backgroundBaseDark = Color.fromRGBO(22, 22, 22, 1);
 
-// Fill Colors
 const Color fillLightLight = Color.fromRGBO(255, 255, 255, 1);
 const Color fillLightDark = Color.fromRGBO(33, 33, 33, 1);
 
@@ -560,14 +551,12 @@ const Color fillDarkerDark = Color.fromRGBO(20, 20, 20, 1);
 const Color fillDarkestLight = Color.fromRGBO(210, 210, 210, 1);
 const Color fillDarkestDark = Color.fromRGBO(41, 41, 41, 1);
 
-// Stroke Colors
 const Color strokeDarkLight = Color.fromRGBO(224, 224, 224, 1);
 const Color strokeDarkDark = Color.fromRGBO(62, 62, 62, 1);
 
 const Color strokeFaintLight = Color.fromRGBO(235, 235, 235, 1);
 const Color strokeFaintDark = Color.fromRGBO(42, 42, 42, 1);
 
-// Accent Colors
 const Color accentOrangeLightLight = Color.fromRGBO(255, 247, 244, 1);
 const Color accentOrangeLightDark = Color.fromRGBO(41, 41, 41, 1);
 
@@ -586,7 +575,6 @@ const Color accentPinkDefaultDark = Color.fromRGBO(223, 97, 187, 1);
 const Color accentTealDefaultLight = Color.fromRGBO(95, 183, 187, 1);
 const Color accentTealDefaultDark = Color.fromRGBO(95, 183, 187, 1);
 
-// Special Colors
 const Color specialContentReverseLight = Color.fromRGBO(255, 255, 255, 1);
 const Color specialContentReverseDark = Color.fromRGBO(0, 0, 0, 1);
 

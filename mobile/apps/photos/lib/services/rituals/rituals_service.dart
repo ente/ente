@@ -445,7 +445,6 @@ class RitualsService {
     if (isNew || albumChanged) {
       await refresh();
     } else {
-      // No ritual completion data changes; just update rituals in state.
       stateNotifier.value = stateNotifier.value.copyWith(
         rituals: rituals,
         loading: false,

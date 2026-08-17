@@ -101,7 +101,6 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
   }
 
   Future<List<Widget>> _getLocationTags() async {
-    // await Future.delayed(const Duration(seconds: 1));
     final locationTags = await locationService.enclosingLocationTags(
       widget.file.location!,
     );
@@ -209,7 +208,7 @@ class _InfoMapState extends State<InfoMap> {
                       key: ValueKey(_hasEnabledMap),
                       children: [
                         MapView(
-                          updateVisibleImages: () {},
+                          updateViewport: (_) {},
                           imageMarkers: [
                             ImageMarker(
                               imageFile: widget.file,
@@ -254,7 +253,7 @@ class _InfoMapState extends State<InfoMap> {
                                 clipBehavior: Clip.none,
                                 children: [
                                   MapView(
-                                    updateVisibleImages: () {},
+                                    updateViewport: (_) {},
                                     imageMarkers: const [],
                                     controller: _mapController,
                                     center: const LatLng(13.041599, 77.594566),

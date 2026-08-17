@@ -9,8 +9,8 @@ import {
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import { Box, Stack, Typography, useTheme } from "@mui/material";
-import { RecoveryKey } from "ente-accounts-rs/components/RecoveryKey";
-import { openAccountsManagePasskeysPage } from "ente-accounts-rs/services/passkey";
+import { RecoveryKey } from "ente-accounts/components/RecoveryKey";
+import { openAccountsManagePasskeysPage } from "ente-accounts/services/passkey";
 import { useBaseContext } from "ente-base/context";
 import { t } from "i18next";
 import { useRouter } from "next/router";

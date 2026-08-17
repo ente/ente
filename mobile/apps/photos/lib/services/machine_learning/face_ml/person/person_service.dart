@@ -65,7 +65,6 @@ class PersonService {
        _currentUserIDProvider =
            currentUserIDProvider ?? Configuration.instance.getUserID;
 
-  // instance
   static PersonService? _instance;
   static const double kDefaultAutoMergeThreshold = 0.24;
   static double autoMergeThreshold = kDefaultAutoMergeThreshold;
@@ -120,7 +119,6 @@ class PersonService {
       .map((person) => person.data.email)
       .whereType<String>();
 
-  /// Prefers an account ID link, then supports legacy email-only person links.
   PersonEntity? getCachedPersonForUser(int? userID, String email) {
     final requestedUserID = userID != null && userID > 0 ? userID : null;
     final userIdMatch = requestedUserID == null
@@ -165,7 +163,8 @@ class PersonService {
     return null;
   }
 
-  // Pre-userID Person entities are email-only; only positive IDs block fallback.
+  // When an account ID was requested, email fallback is limited to legacy
+  // persons without one.
   static bool _canUseEmailFallback(PersonEntity person, int? requestedUserID) {
     return requestedUserID == null || (person.data.userID ?? 0) <= 0;
   }
@@ -527,7 +526,6 @@ class PersonService {
   }) async {
     final personData = person.data;
 
-    // Remove faces from clusters
     final List<String> emptiedClusters = [];
     for (final cluster in personData.assigned) {
       cluster.faces.removeWhere((faceID) => faceIDs.contains(faceID));
@@ -536,7 +534,6 @@ class PersonService {
       }
     }
 
-    // Safety check to make sure we haven't created an empty cluster now, if so delete it
     for (final emptyClusterID in emptiedClusters) {
       personData.assigned.removeWhere(
         (element) => element.id == emptyClusterID,
@@ -547,7 +544,6 @@ class PersonService {
       );
     }
 
-    // Add removed faces to rejected faces
     personData.rejectedFaceIDs.addAll(faceIDs);
 
     await _addOrUpdateEntity(
@@ -590,11 +586,9 @@ class PersonService {
       }
     }
 
-    // fire PeopleChangeEvent
     Bus.instance.fire(PeopleChangedEvent());
   }
 
-  // Returns true when remote changes were downloaded or newly applied locally.
   Future<bool> _pullAndApplyRemotePersons({
     bool skipClusterUpdateIfNoChange = true,
   }) async {
@@ -644,7 +638,6 @@ class PersonService {
       }
       int faceCount = 0;
 
-      // Locally store the assignment of faces to clusters and people
       for (var cluster in personData.assigned) {
         faceCount += cluster.faces.length;
         for (var faceId in cluster.faces) {
@@ -697,7 +690,6 @@ class PersonService {
           );
 
           if (assignedAndRejectedFaceIDs.isNotEmpty) {
-            // Check that we don't have any empty clusters now
             final dbPersonClusterInfo = dbPeopleClusterInfo[e.id]!;
             final faceToClusterToRemove = <String, String>{};
             for (final clusterIdToFaceIDs in dbPersonClusterInfo.entries) {
@@ -727,7 +719,6 @@ class PersonService {
                 faceToClusterToRemove.addAll(foundRejectedFacesToCluster);
               }
             }
-            // Remove the clusterID for the remaining conflicting faces
             await faceMLDataDB.removeFaceIdToClusterId(faceToClusterToRemove);
           }
         }
@@ -991,7 +982,6 @@ class PersonService {
     }
   }
 
-  /// Wrapper method for entityService.addOrUpdate that handles cache refresh
   Future<LocalEntityData> _addOrUpdateEntity(
     EntityType type,
     Map<String, dynamic> jsonMap, {

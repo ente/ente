@@ -46,17 +46,14 @@ Map<int, String> _days = {
 final currentYear = int.parse(DateTime.now().year.toString());
 const searchStartYear = 1970;
 
-//Jun 2022
 String getMonthAndYear(DateTime dateTime) {
   return "${_months[dateTime.month]!} ${dateTime.year}";
 }
 
-//Thu, 30 Jun
 String getDayAndMonth(DateTime dateTime) {
   return "${_days[dateTime.weekday]!}, ${dateTime.day} ${_months[dateTime.month]!}";
 }
 
-//30 Jun, 2022
 String getDateAndMonthAndYear(DateTime dateTime) {
   return "${dateTime.day} ${_months[dateTime.month]!}, ${dateTime.year}";
 }
@@ -77,7 +74,6 @@ String getAbbreviationOfYear(DateTime dateTime) {
   return (dateTime.year % 100).toString();
 }
 
-//14:32
 String getTime(DateTime dateTime) {
   final hours = dateTime.hour > 9
       ? dateTime.hour.toString()
@@ -88,17 +84,14 @@ String getTime(DateTime dateTime) {
   return "$hours:$minutes";
 }
 
-//11:22 AM
 String getTimeIn12hrFormat(DateTime dateTime) {
   return DateFormat.jm().format(dateTime);
 }
 
-//Thu, Jun 30, 2022 - 14:32
 String getFormattedTime(DateTime dateTime) {
   return "${getDay(dateTime)}, ${getMonth(dateTime)} ${dateTime.day}, ${dateTime.year} - ${getTime(dateTime)}";
 }
 
-//30 Jun'22
 String getFormattedDate(DateTime dateTime) {
   return "${dateTime.day} ${getMonth(dateTime)}'${getAbbreviationOfYear(dateTime)}";
 }

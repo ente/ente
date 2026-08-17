@@ -56,7 +56,7 @@ class _SimilarImagesPageState extends State<SimilarImagesPage> {
   bool _isDisposed = false;
 
   SimilarImagesPageState _pageState = SimilarImagesPageState.setup;
-  double _distanceThreshold = 0.04; // Default value
+  double _distanceThreshold = 0.04;
   List<SimilarFiles> _similarFilesList = [];
 
   SortKey _sortKey = SortKey.size;
@@ -141,7 +141,6 @@ class _SimilarImagesPageState extends State<SimilarImagesPage> {
     return Stack(
       children: [
         content,
-        // Progress overlay
         ValueListenableBuilder(
           valueListenable: _deleteProgress,
           builder: (context, value, child) {
@@ -777,8 +776,7 @@ class _SimilarImagesPageState extends State<SimilarImagesPage> {
 
               return Wrap(
                 spacing: crossAxisSpacing,
-                runSpacing:
-                    0, // No additional vertical spacing - items have internal bottom padding
+                runSpacing: 0,
                 children: similarFiles.files.asMap().entries.map((entry) {
                   return SizedBox(
                     width: itemWidth,
@@ -794,7 +792,7 @@ class _SimilarImagesPageState extends State<SimilarImagesPage> {
               );
             },
           ),
-          const SizedBox(height: 16), // Add spacing between groups
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -1097,7 +1095,6 @@ class _SimilarImagesPageState extends State<SimilarImagesPage> {
         if (!mounted) {
           return;
         }
-        // Check permission before attempting to add symlinks
         final collection = CollectionsService.instance.getCollectionByID(
           collectionID,
         );
@@ -1140,7 +1137,6 @@ class _SimilarImagesPageState extends State<SimilarImagesPage> {
     if (!mounted) return;
     await deleteFilesFromRemoteOnly(context, allDeleteFiles.toList());
 
-    // Show congratulations popup
     if (allDeleteFiles.length > 100 && mounted && showUIFeedback) {
       final int totalSize = allDeleteFiles.fold<int>(
         0,
@@ -1285,7 +1281,6 @@ class _LoadingScreenState extends State<_LoadingScreen> {
             _currentTextIndex++;
           });
         }
-        // Stop the timer when we reach the last text
         if (_currentTextIndex >= _loadingTexts.length - 1) {
           timer.cancel();
         }

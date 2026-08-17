@@ -113,20 +113,16 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
     return _galleryType == GalleryType.homepage
         ? _body()
         : PopScope(
-            // iOS pop gesture get's blocked if we do canPop false, so always pop on iOS
+            // canPop=false disables iOS's back gesture.
             canPop: Platform.isIOS,
             onPopInvokedWithResult: (didPop, _) {
-              // for iOS return and don't run anything
               if (didPop) return;
 
-              // Android specific block
-              // if nothing is selected then pop the page
               if (widget.selectedFiles.files.isEmpty) {
                 Navigator.of(context).pop();
                 return;
               }
 
-              // clear all selections if something is selected
               widget.selectedFiles.clearAll();
             },
             child: _body(),
@@ -185,13 +181,10 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
   }
 
   void _boundaryUpdateListener() {
-    // Update boundary after animation completes
     Future.delayed(_FileSelectionOverlayBarState.animationDuration, () {
       final isEmpty = widget.selectedFiles.files.isEmpty;
 
-      // Only report boundary on empty ↔ non-empty transitions
       if (_wasEmpty != isEmpty) {
-        // Report boundary - will set to null if widget is not visible
         reportBoundary(BoundaryPosition.bottom);
         _wasEmpty = isEmpty;
       }
@@ -203,12 +196,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
     _updateGalleryTypeIfRequired();
   }
 
-  /// This method is used to update the GalleryType if the initial filter is
-  /// removed from the applied filters. As long as the inital filter is present
-  /// in the applied filters, the gallery type will remain the same as the type
-  /// initally passed in the widget constructor. Once the inital filter is
-  /// removed, the gallery type will be updated to GalleryType.searchResults
-  /// and never be updated again.
+  // Once the initial filter is removed, this remains a search-results gallery.
   void _updateGalleryTypeIfRequired() {
     if (_galleryInitialFilterStillApplied != null &&
         !_galleryInitialFilterStillApplied!) {

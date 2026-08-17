@@ -2340,8 +2340,6 @@
   "ocrModelsNetworkRequiredError": "Connessione di rete necessaria per scaricare i modelli OCR al primo utilizzo",
   "ocrModelsPrepareFailed": "Impossibile preparare i modelli OCR",
   "ocrNoTextDetected": "Nessun testo rilevato",
-  "ocrProcessingOverlayMessage": "Rilevamento testo...",
-  "ocrSelectionHint": "Scorri o doppio tocco per selezionare solo ciò che ti serve",
   "of_": "di",
   "offlineEnableBackupTagLabel": "10 GB GRATIS!",
   "offlineFacesBannerSubtitle": "Iscriviti per etichettare le persone e facilmente trovarle più tardi.",

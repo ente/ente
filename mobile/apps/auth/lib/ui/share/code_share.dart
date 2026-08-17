@@ -129,11 +129,9 @@ class _ShareCodeDialogState extends State<ShareCodeDialog> {
 
   Uint8List _generate256BitKey() {
     final random = Random.secure();
-    final bytes = Uint8List(32); // 32 bytes = 32 * 8 bits = 256 bits
+    final bytes = Uint8List(32);
     for (int i = 0; i < bytes.length; i++) {
-      bytes[i] = random.nextInt(
-        256,
-      ); // Generates a random number between 0 and 255 (1 byte)
+      bytes[i] = random.nextInt(256);
     }
     return bytes;
   }

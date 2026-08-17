@@ -1,4 +1,4 @@
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { blobCache } from "ente-base/blob-cache";
 import {
     boxSeal,
@@ -968,11 +968,6 @@ export const updateCollectionSortOrder = async (
     asc: boolean,
 ) => updateCollectionPublicMagicMetadata(collection, { asc });
 
-export const updateCollectionCover = async (
-    collection: Collection,
-    coverID: number,
-) => updateCollectionPublicMagicMetadata(collection, { coverID });
-
 const albumDescriptionSegmenter =
     typeof Intl !== "undefined" && "Segmenter" in Intl
         ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
@@ -983,22 +978,26 @@ export const albumDescriptionGraphemeCount = (description: string) =>
         ? Array.from(albumDescriptionSegmenter.segment(description)).length
         : Array.from(description).length;
 
-export const updateCollectionDescription = async (
+export const updateCollectionDetails = async (
     collection: Collection,
-    description: string,
+    { description, coverID }: { description?: string; coverID?: number },
 ) => {
-    const normalizedDescription = description.trim();
-    if (
-        albumDescriptionGraphemeCount(normalizedDescription) >
-        maxAlbumDescriptionLength
-    ) {
-        throw new Error(
-            `Album descriptions cannot exceed ${maxAlbumDescriptionLength} characters`,
-        );
+    const updates: CollectionPublicMagicMetadataData = {};
+    if (description !== undefined) {
+        const normalizedDescription = description.trim();
+        if (
+            albumDescriptionGraphemeCount(normalizedDescription) >
+            maxAlbumDescriptionLength
+        ) {
+            throw new Error(
+                `Album descriptions cannot exceed ${maxAlbumDescriptionLength} characters`,
+            );
+        }
+        updates.caption = normalizedDescription;
     }
-    return updateCollectionPublicMagicMetadata(collection, {
-        caption: normalizedDescription,
-    });
+    if (coverID !== undefined) updates.coverID = coverID;
+
+    return updateCollectionPublicMagicMetadata(collection, updates);
 };
 
 export const updateCollectionLayout = async (

@@ -184,7 +184,7 @@ Future<void> exportLogs(
 ]) async {
   if (!isSharing) {
     final DateTime now = DateTime.now().toUtc();
-    final String shortMonthName = DateFormat('MMM').format(now); // Short month
+    final String shortMonthName = DateFormat('MMM').format(now);
     final String logFileName =
         'ente-logs-${now.year}-$shortMonthName-${now.day}-${now.hour}-${now.minute}';
 

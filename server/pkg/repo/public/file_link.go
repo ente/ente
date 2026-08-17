@@ -19,6 +19,10 @@ type FileLinkRepository struct {
 	lockerHost string
 }
 
+type fileLinkUpdater interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
 func NewFileLinkRepo(db *sql.DB) *FileLinkRepository {
 	albumHost := viper.GetString("apps.public-albums")
 	if albumHost == "" {
@@ -173,11 +177,19 @@ func (pcr *FileLinkRepository) GetFileUrls(ctx context.Context, userID int64, si
 }
 
 func (pcr *FileLinkRepository) DisableLinkForFiles(ctx context.Context, fileIDs []int64) error {
+	return disableLinkForFiles(ctx, pcr.DB, fileIDs)
+}
+
+func (pcr *FileLinkRepository) DisableLinkForFilesTx(ctx context.Context, tx *sql.Tx, fileIDs []int64) error {
+	return disableLinkForFiles(ctx, tx, fileIDs)
+}
+
+func disableLinkForFiles(ctx context.Context, updater fileLinkUpdater, fileIDs []int64) error {
 	if len(fileIDs) == 0 {
 		return nil
 	}
-	query := `UPDATE public_file_tokens SET is_disabled = TRUE WHERE file_id = ANY($1)`
-	_, err := pcr.DB.ExecContext(ctx, query, pq.Array(fileIDs))
+	query := `UPDATE public_file_tokens SET is_disabled = TRUE WHERE file_id = ANY($1) AND is_disabled IS FALSE`
+	_, err := updater.ExecContext(ctx, query, pq.Array(fileIDs))
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to disable public file links")
 	}

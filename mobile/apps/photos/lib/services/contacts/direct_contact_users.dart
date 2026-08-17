@@ -4,9 +4,6 @@ import "package:photos/models/collection/collection.dart";
 import "package:photos/models/user_details.dart";
 import "package:photos/utils/contact_string_util.dart";
 
-/// Builds entries shown in Contacts.
-///
-/// Each user has a positive ID and a known, non-placeholder email address.
 List<User> buildDirectContactUsers({
   required int ownerUserId,
   required String ownerEmail,

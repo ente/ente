@@ -4,7 +4,7 @@
     "private": true,
     "dependencies": {
         "@noble/hashes": "2.2.0",
-        "ente-accounts-rs": "*",
+        "ente-accounts": "*",
         "ente-base": "*",
         "otpauth": "9.5.1"
     },

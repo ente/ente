@@ -1,4 +1,3 @@
-// Constants for computing smart memories
 const kMemoriesUpdateFrequencyDays = 3;
 const kMemoriesUpdateFrequency = Duration(days: kMemoriesUpdateFrequencyDays);
 const kMemoriesMargin = Duration(days: 1);

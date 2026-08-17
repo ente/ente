@@ -23,6 +23,7 @@ members = [
     "crates/core",
     "crates/ensu",
     "crates/image",
+    "crates/ml",
     "crates/paste",
     "crates/photos",
     "crates/space",
@@ -38,6 +39,7 @@ ente-core = { path = "crates/core" }
 ente-ensu = { path = "crates/ensu" }
 ente-frb-log = { path = "bindings/frb/log" }
 ente-image = { path = "crates/image" }
+ente-ml = { path = "crates/ml" }
 ente-paste = { path = "crates/paste" }
 ente-photos = { path = "crates/photos" }
 ente-space = { path = "crates/space" }

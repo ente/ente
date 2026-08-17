@@ -43,6 +43,8 @@ import 'package:photos/services/favorites_service.dart';
 import "package:photos/services/home_widget_service.dart";
 import 'package:photos/services/ignored_files_service.dart';
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import "package:photos/services/machine_learning/ml_run_control.dart";
+import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/similar_images_service.dart";
 import "package:photos/services/memory_share_service.dart";
 import "package:photos/services/notification_service.dart";
@@ -94,7 +96,9 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       );
       _documentsDirectory = (await getApplicationDocumentsDirectory()).path;
       final appSupportDirectory = await getApplicationSupportDirectory();
-      // Exclude Documents (SQLite, thumbnails, decrypted media) and Application Support (ML models) from backups since they’re server-derivable or must remain within the device’s E2EE boundary.
+      // Exclude Documents (SQLite, thumbnails, decrypted media) and Application
+      // Support (ML models) from backups. They are server-derivable or must
+      // remain within the device's E2EE boundary.
       await excludeFromBackup(_documentsDirectory);
       await excludeFromBackup(appSupportDirectory.path);
       _tempDocumentsDirPath = _documentsDirectory + "/temp/";
@@ -136,10 +140,8 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       _logger.info('User ID: ${getUserID()}');
     } catch (e, s) {
       _logger.severe("Configuration init failed", e, s);
-      /*
-      Check if it's a known is related to reading secret from secure storage
-      on android https://github.com/mogol/flutter_secure_storage/issues/541
-       */
+      // BadPaddingException can mean Android secure storage is inaccessible.
+      // https://github.com/mogol/flutter_secure_storage/issues/541
       if (e is PlatformException) {
         final PlatformException error = e;
         final bool isBadPaddingError =
@@ -155,10 +157,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     }
   }
 
-  // _cleanUpStaleFiles deletes all files in the temp directory that are older
-  // than kTempFolderDeletionTimeBuffer except the the temp encrypted files for upload.
-  // Those file are deleted by file uploader after the upload is complete or those
-  // files are not being used / tracked.
+  // Leave upload artifacts for FileUploader to resume or delete.
   Future<void> _cleanUpStaleFiles(Directory tempDocumentsDir) async {
     try {
       final currentTime = DateTime.now().microsecondsSinceEpoch;
@@ -194,6 +193,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   @override
   Future<void> logout({bool autoLogout = false}) async {
     _logger.info("Logging out, autoLogout: $autoLogout");
+    MLService.instance.stopActiveRun(MlStopReason.logout);
     if (!autoLogout) {
       if (flagService.stopStreamProcess) {
         VideoPreviewService.instance.stop('logout');
@@ -212,7 +212,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
 
     await _clearTempFolderOnLogout();
 
-    // Clear preferences and secure storage
     await _preferences.clear();
     await _secureStorage.deleteAll();
     _key = null;
@@ -220,12 +219,10 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     _secretKey = null;
     _volatilePassword = null;
 
-    // Clear all scheduled notifications (ritual reminders, memories, etc.)
     await NotificationService.instance.clearAllScheduledNotifications(
       logLines: false,
     );
 
-    // Clear all database tables
     await FilesDB.instance.clearTable();
     await GalleryDownloadsDB.instance.clearTable();
     await CollectionsDB.instance.clearTable();
@@ -237,31 +234,26 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     await ContactsDatabase().clearTable();
     await SocialDB.instance.clearAllData();
 
-    // Clear all in-memory caches
     ThumbnailInMemoryLruCache.clearAll();
     FileLruCache.clearAll();
 
-    // Clear image cache
     try {
       await DefaultCacheManager().emptyCache();
     } catch (e) {
       _logger.warning("Failed to clear image cache", e);
     }
 
-    // Clear video cache
     try {
       await VideoCacheManager.instance.emptyCache();
     } catch (e) {
       _logger.warning("Failed to clear video cache", e);
     }
 
-    // Clear all service caches
     await SimilarImagesService.instance.clearCache();
     await IgnoredFilesService.instance.reset();
     unawaited(HomeWidgetService.instance.clearWidget(autoLogout));
     MemoryShareService.instance.clearCache();
 
-    // Clear additional caches (safe to call even if not initialized)
     try {
       await magicCacheService.clearMagicCache();
     } catch (e) {
@@ -277,7 +269,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       );
     }
 
-    // Reset Ente Rewind caches and services
     try {
       wrappedService.resetForLogout();
     } catch (e) {
@@ -290,7 +281,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     }
 
     if (!autoLogout) {
-      // Following services won't be initialized if it's the case of autoLogout
+      // Auto logout can run before these services are initialized.
       CollectionsService.instance.clearCache();
       FavoritesService.instance.clearCache();
       SearchService.instance.clearCache();
@@ -330,18 +321,10 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   }
 
   Future<KeyGenResult> generateKey(String password) async {
-    // Create a master key
     final masterKey = CryptoUtil.generateKey();
-
-    // Create a recovery key
     final recoveryKey = CryptoUtil.generateKey();
-
-    // Encrypt master key and recovery key with each other
     final encryptedMasterKey = CryptoUtil.encryptSync(masterKey, recoveryKey);
     final encryptedRecoveryKey = CryptoUtil.encryptSync(recoveryKey, masterKey);
-
-    // Derive a key from the password that will be used to encrypt and
-    // decrypt the master key
     final kekSalt = CryptoUtil.getSaltToDeriveKey();
     final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
       utf8.encode(password),
@@ -349,13 +332,11 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     );
     final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
 
-    // Encrypt the key with this derived key
     final encryptedKeyData = CryptoUtil.encryptSync(
       masterKey,
       derivedKeyResult.key,
     );
 
-    // Generate a public-private keypair and encrypt the latter
     final keyPair = await CryptoUtil.generateKeyPair();
     final encryptedSecretKeyData = CryptoUtil.encryptSync(
       keyPair.sk,
@@ -387,11 +368,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   Future<Tuple2<KeyAttributes, Uint8List>> getAttributesForNewPassword(
     String password,
   ) async {
-    // Get master key
     final masterKey = getKey();
-
-    // Derive a key from the password that will be used to encrypt and
-    // decrypt the master key
     final kekSalt = CryptoUtil.getSaltToDeriveKey();
     final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
       utf8.encode(password),
@@ -399,7 +376,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     );
     final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
 
-    // Encrypt the key with this derived key
     final encryptedKeyData = CryptoUtil.encryptSync(
       masterKey!,
       derivedKeyResult.key,
@@ -417,10 +393,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     return Tuple2(updatedAttributes, loginKey);
   }
 
-  // decryptSecretsAndGetLoginKey decrypts the master key and recovery key
-  // with the given password and save them in local secure storage.
-  // This method also returns the keyEncKey that can be used for performing
-  // SRP setup for existing users.
   Future<Uint8List> decryptSecretsAndGetKeyEncKey(
     String password,
     KeyAttributes attributes, {
@@ -431,8 +403,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       password,
       getEncryptedToken(),
     );
-    // Derive key-encryption-key from the entered password and existing
-    // mem and ops limits
     keyEncryptionKey ??= await CryptoUtil.deriveKey(
       utf8.encode(password),
       CryptoUtil.base642bin(attributes.kekSalt),
@@ -442,7 +412,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
 
     Uint8List key;
     try {
-      // Decrypt the master key with the derived key
       key = CryptoUtil.decryptSync(
         CryptoUtil.base642bin(attributes.encryptedKey),
         keyEncryptionKey,
@@ -472,10 +441,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     final masterKey = getKey()!;
     final existingAttributes = getKeyAttributes();
 
-    // Create a recovery key
     final recoveryKey = CryptoUtil.generateKey();
-
-    // Encrypt master key and recovery key with each other
     final encryptedMasterKey = CryptoUtil.encryptSync(masterKey, recoveryKey);
     final encryptedRecoveryKey = CryptoUtil.encryptSync(recoveryKey, masterKey);
 
@@ -499,19 +465,16 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     // Legacy users will have recoveryKey in the form of a hex string, while
     // newer users will have it as a mnemonic code
     if (recoveryKey.contains(' ')) {
-      // Check if user has entered a mnemonic code
       if (recoveryKey.split(' ').length != mnemonicKeyWordCount) {
         throw AssertionError(
           'recovery code should have $mnemonicKeyWordCount words',
         );
       }
-      // Convert mnemonic code to hex
       recoveryKey = bip39.mnemonicToEntropy(recoveryKey);
     }
     final attributes = getKeyAttributes();
     Uint8List masterKey;
     try {
-      // Decrypt the master key that was earlier encrypted with the recovery key
       masterKey = await CryptoUtil.decrypt(
         CryptoUtil.base642bin(attributes!.masterKeyEncryptedWithRecoveryKey!),
         CryptoUtil.hex2bin(recoveryKey),
@@ -604,7 +567,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   Future<void> setKey(String? key) async {
     _key = key;
     if (key == null) {
-      // Used to clear key from secure storage
       await _secureStorage.delete(key: keyKey);
     } else {
       await _secureStorage.write(key: keyKey, value: key);
@@ -614,7 +576,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   Future<void> setSecretKey(String? secretKey) async {
     _secretKey = secretKey;
     if (secretKey == null) {
-      // Used to clear secret key from secure storage
       await _secureStorage.delete(key: secretKeyKey);
     } else {
       await _secureStorage.write(key: secretKeyKey, value: secretKey);

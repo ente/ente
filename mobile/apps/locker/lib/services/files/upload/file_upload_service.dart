@@ -51,18 +51,11 @@ class FileUploader {
 
   LinkedHashMap<String, BackupItem> get allBackups => _allBackups;
 
-  // Maintains the count of files in the current upload session.
-  // Upload session is the period between the first entry into the _queue and last entry out of the _queue
   int _totalCountInUploadSession = 0;
 
-  // _uploadCounter indicates number of uploads which are currently in progress
   int _uploadCounter = 0;
   late SharedPreferences _prefs;
 
-  // _hasInitiatedForceUpload is used to track if user attempted force upload
-  // where files are uploaded directly (without adding them to DB). In such
-  // cases, we don't want to clear the stale upload files. See #removeStaleFiles
-  // as it can result in clearing files which are still being force uploaded.
   final bool _hasInitiatedForceUpload = false;
 
   FileUploader._privateConstructor();
@@ -104,10 +97,8 @@ class FileUploader {
 
       _checkIfWithinFileCountLimit();
 
-      // Generate a file key for encryption
       final fileKey = CryptoUtil.generateKey();
 
-      // Create metadata for the info file
       final Map<String, dynamic> metadata = infoFile.metadata;
       final encryptedMetadataResult = await CryptoUtil.encryptData(
         utf8.encode(jsonEncode(metadata)),
@@ -121,7 +112,6 @@ class FileUploader {
         encryptedMetadataResult.header!,
       );
 
-      // Encrypt the file key with collection key
       final encryptedFileKeyData = CryptoUtil.encryptSync(
         fileKey,
         CryptoHelper.instance.getCollectionKey(collection),
@@ -137,7 +127,6 @@ class FileUploader {
         'info': infoFile.pubMagicMetadata.info,
       }, fileKey);
 
-      // Upload as metadata-only file (no file content or thumbnail)
       final uploadedFile = await _uploadInfoFileMetadata(
         infoFile,
         collection.id,
@@ -205,7 +194,6 @@ class FileUploader {
 
   void _pollQueue() {
     if (_queue.isEmpty) {
-      // Upload session completed
       _totalCountInUploadSession = 0;
       return;
     }
@@ -274,8 +262,6 @@ class FileUploader {
     }
     try {
       final String dir = Configuration.instance.getTempDirectory();
-      // delete all files in the temp directory that start with upload_ and
-      // ends with .encrypted. Fetch files in async manner
       final files = await Directory(dir).list().toList();
       final filesToDelete = files.where((file) {
         return file.path.contains(uploadTempFilePrefix) &&
@@ -316,8 +302,6 @@ class FileUploader {
     late final int encFileSize;
 
     var uploadCompleted = false;
-    // This flag is used to decide whether to clear the iOS origin file cache
-    // or not.
     var uploadHardFailure = false;
     try {
       _logger.info('starting ${forcedUpload ? 'forced' : ''} upload');
@@ -326,11 +310,9 @@ class FileUploader {
       final encryptedFileExists = File(encryptedFilePath).existsSync();
 
       if (encryptedFileExists) {
-        // otherwise just delete the file for singlepart upload
         await File(encryptedFilePath).delete();
       }
 
-      // Validate source file before encryption
       final sourceFileSize = await file.length();
       if (sourceFileSize == 0) {
         throw Exception('Source file is empty (0 bytes)');
@@ -362,7 +344,6 @@ class FileUploader {
       );
       final encThumbSize = await encryptedThumbnailFile.length();
 
-      // Validate file sizes before upload
       if (encFileSize == 0) {
         throw Exception('Encrypted file size is 0');
       }
@@ -370,11 +351,9 @@ class FileUploader {
         throw Exception('Encrypted thumbnail size is 0');
       }
 
-      // Calculate MD5 hashes for checksum verification
       final thumbnailMd5 = await computeMd5(encryptedThumbnailPath);
       final fileMd5 = fileAttributes.fileMd5;
 
-      // Validate that MD5 was calculated during encryption
       if (fileMd5 == null || fileMd5.isEmpty) {
         throw Exception('File MD5 hash is null or empty');
       }
@@ -476,7 +455,6 @@ class FileUploader {
           e is FileTooLargeForPlanError ||
           e is NoActiveSubscriptionError ||
           e is FileLimitReachedError)) {
-        // file upload can not be retried in such cases without user intervention
         uploadHardFailure = true;
       }
       rethrow;
@@ -503,7 +481,6 @@ class FileUploader {
       jsonToUpdate[key] = value;
     });
 
-    // update the local information so that it's reflected on UI
     file.pubMmdEncodedJson = jsonEncode(jsonToUpdate);
     file.pubMagicMetadata = PubMagicMetadata.fromJson(jsonToUpdate);
     final encryptedMMd = await CryptoUtil.encryptData(
@@ -525,7 +502,6 @@ class FileUploader {
     String encryptedFilePath,
     String encryptedThumbnailPath,
   ) async {
-    // Note: Consider removing source file if upload has completed / failed
     if (File(encryptedFilePath).existsSync()) {
       await File(encryptedFilePath).delete();
     }
@@ -534,13 +510,6 @@ class FileUploader {
     }
   }
 
-  /*
-  _checkIfWithinFileCountLimit verifies if the user has reached their file count
-   limit. It throws FileLimitReachedError if the limit is reached. For family
-   plan users, it checks the combined family file count against the shared limit.
-   This check is best effort and may not be completely accurate due to UserDetail
-   cache.
-   */
   void _checkIfWithinFileCountLimit() {
     try {
       final userDetails = UserService.instance.getCachedUserDetails();
@@ -576,22 +545,14 @@ class FileUploader {
     return currentLimit;
   }
 
-  /*
-  _checkIfWithinStorageLimit verifies if the file size for encryption and upload
-   is within the storage limit. It throws StorageLimitExceededError if the limit
-    is exceeded. This check is best effort and may not be completely accurate
-    due to UserDetail cache. It prevents infinite loops when clients attempt to
-    upload files that exceed the server's storage limit + buffer.
-    Note: Local storageBuffer is 20MB, server storageBuffer is 50MB, and an
-    additional 30MB is reserved for thumbnails and encryption overhead.
-   */
+  // Keep the client buffer 30 MB below the server buffer for thumbnail and
+  // encryption overhead. Cached user details make this check best-effort.
   Future<void> _checkIfWithinStorageLimit(File fileToBeUploaded) async {
     try {
       final userDetails = UserService.instance.getCachedUserDetails();
       if (userDetails == null) {
         return;
       }
-      // add k20MBStorageBuffer to the free storage
       final num freeStorage = userDetails.getFreeStorage() + k20MBStorageBuffer;
       final num fileSize = await fileToBeUploaded.length();
       if (fileSize > freeStorage) {
@@ -680,7 +641,6 @@ class FileUploader {
       } else if (statusCode == 426) {
         _onStorageLimitExceeded();
       } else if (attempt < kMaximumUploadAttempts && statusCode == -1) {
-        // retry when DioException contains no response/status code
         _logger.info("Upload failed, will retry in 3 seconds");
         await Future.delayed(const Duration(seconds: 3));
         return _uploadFile(
@@ -706,7 +666,6 @@ class FileUploader {
     }
   }
 
-  // Fetch a fresh upload URL for each file with content length and MD5
   Future<UploadURL> _getUploadURL({
     required int contentLength,
     required String md5,

@@ -423,10 +423,8 @@ abstract class BaseConfiguration {
       _secretKey = await _secureStorage.read(key: secretKeyKey);
     } catch (e, s) {
       _logger.severe("Configuration init failed", e, s);
-      /*
-      Check if it's a known is related to reading secret from secure storage
-      on android https://github.com/mogol/flutter_secure_storage/issues/541
-       */
+      // BadPaddingException can mean Android secure storage is inaccessible.
+      // https://github.com/mogol/flutter_secure_storage/issues/541
       if (e is PlatformException) {
         final PlatformException error = e;
         final bool isBadPaddingError =

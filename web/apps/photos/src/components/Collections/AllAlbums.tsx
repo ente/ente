@@ -44,7 +44,7 @@ import {
     type SxProps,
     type Theme,
 } from "@mui/material";
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { FilledIconButton } from "ente-base/components/mui";
 import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import { useModalVisibility } from "ente-base/components/utils/modal";

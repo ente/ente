@@ -161,8 +161,6 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       );
     }
 
-    // Wrap the app with MediaQuery to control text scaling and ensure
-    // consistent font sizes across Android and iOS
     return MediaQuery.withClampedTextScaling(
       minScaleFactor: 0.8,
       maxScaleFactor: 1.3,

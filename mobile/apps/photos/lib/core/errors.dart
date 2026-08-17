@@ -52,7 +52,6 @@ class StorageLimitExceededError extends Error implements LocallyHandledError {}
 
 class DeviceStorageFullError extends Error implements LocallyHandledError {}
 
-// error when file size + current usage >= storage plan limit + buffer
 class FileTooLargeForPlanError extends Error {}
 
 class SilentlyCancelUploadsError extends Error {}

@@ -186,7 +186,6 @@ Future _runWithLogs(Function() function, {String prefix = ""}) async {
 
 void _registerWindowsProtocol() {
   const kWindowsScheme = 'enteauth';
-  // Register our protocol only on Windows platform
   if (!kIsWeb && Platform.isWindows) {
     WindowsProtocolHandler().register(
       kWindowsScheme,

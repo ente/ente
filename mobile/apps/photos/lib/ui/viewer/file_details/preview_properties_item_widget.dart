@@ -70,7 +70,6 @@ class _PreviewPropertiesItemWidgetState
     if ((widget.file.fileType == FileType.video) &&
         (widget.file.localID != null || widget.file.duration != 0) &&
         data.size != null) {
-      // show bitrate, i.e. size * 8 / duration formatted
       final result = FFProbeProps.formatBitrate(
         data.size! * 8 / widget.file.duration!,
         "b/s",

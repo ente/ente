@@ -1,6 +1,6 @@
 // TODO: Audit this file
 // TODO: Too many null assertions in this file. The types need reworking.
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
 import { createComlinkCryptoWorker } from "ente-base/crypto";
 import type { CryptoWorker } from "ente-base/crypto/worker";

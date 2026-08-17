@@ -30,12 +30,9 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_animate: 4.5.2
-  # Do not upgrade this package unless this issue is resolved:
-  # https://github.com/juliansteenbakker/flutter_secure_storage/issues/870
-  # On v9.2.4, keys related to lockscreen persist even after reintsall. For context see:
+  # Version 9.2.4 leaves lock-screen keys behind after an app reinstall.
+  # Upgrade only after this is fixed or with a migration.
   # https://github.com/juliansteenbakker/flutter_secure_storage/issues/870#issuecomment-2777447937
-  # Let's wait till the issue is resolved by the package maintainer.
-  # If not resolved and we need to upgrade, write a migration script.
   flutter_secure_storage: 9.0.0
   flutter_svg: 2.3.0
   local_auth: 3.0.1

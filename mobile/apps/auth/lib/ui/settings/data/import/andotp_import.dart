@@ -55,18 +55,15 @@ Future<int?> _processAndOTPFile(
 ) async {
   List<dynamic> entries;
 
-  // Try to detect if file is encrypted or plain text
-  // Plain text files are valid JSON arrays, encrypted files are binary
+  // Valid JSON arrays are plain text; binary files need decryption.
   final Uint8List fileBytes = await readPickedImportFileAsBytes(path);
 
   try {
-    // Try to parse as JSON (plain text format)
     final jsonString = utf8.decode(fileBytes);
     entries = jsonDecode(jsonString) as List<dynamic>;
     await dialog.show();
   } catch (e) {
     if (!context.mounted) return null;
-    // If JSON parsing fails, assume it's encrypted
     String? password;
     try {
       password = await promptForImportPassword(
@@ -107,7 +104,6 @@ Future<int?> _processAndOTPFile(
         ? (label.isNotEmpty ? '$issuer ($label)' : issuer)
         : label;
 
-    // Skip unsupported types (e.g., MOTP)
     if (type != 'TOTP' && type != 'HOTP' && type != 'STEAM') {
       _logger.warning('Skipping unsupported OTP type: $type for $displayName');
       continue;
@@ -166,41 +162,34 @@ String _decryptAndOTPBackup(_DecryptParams params) {
     throw Exception('Invalid andOTP encrypted file: file too small');
   }
 
-  // Extract iterations (4 bytes, big-endian)
   final ByteData byteData = ByteData.sublistView(fileBytes, 0, intLength);
   final int iterations = byteData.getInt32(0, Endian.big);
 
-  // Extract salt (12 bytes)
   final Uint8List salt = Uint8List.sublistView(
     fileBytes,
     intLength,
     intLength + saltLength,
   );
 
-  // Extract encrypted payload (IV + ciphertext + auth tag)
   final Uint8List encryptedPayload = Uint8List.sublistView(
     fileBytes,
     intLength + saltLength,
   );
 
-  // Extract IV from encrypted payload (first 12 bytes)
   final Uint8List iv = Uint8List.sublistView(encryptedPayload, 0, ivLength);
 
-  // Extract ciphertext + auth tag (remaining bytes)
   final Uint8List ciphertextWithTag = Uint8List.sublistView(
     encryptedPayload,
     ivLength,
   );
 
-  // Derive key using PBKDF2 with HMAC-SHA1
-  const int keyLength = 32; // 256 bits
+  const int keyLength = 32;
   final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA1Digest(), 64));
   pbkdf2.init(Pbkdf2Parameters(salt, iterations, keyLength));
 
   final Uint8List derivedKey = Uint8List(keyLength);
   pbkdf2.deriveKey(Uint8List.fromList(utf8.encode(password)), 0, derivedKey, 0);
 
-  // Decrypt using AES-GCM
   final cipher = GCMBlockCipher(AESEngine())
     ..init(
       false,

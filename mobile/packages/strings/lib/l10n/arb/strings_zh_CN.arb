@@ -1471,8 +1471,6 @@
   "ocrModelsNetworkRequiredError": "首次使用时需要连接网络才能下载 OCR 模型",
   "ocrModelsPrepareFailed": "无法准备 OCR 模型",
   "ocrNoTextDetected": "未检测到文本",
-  "ocrProcessingOverlayMessage": "正在检测文本……",
-  "ocrSelectionHint": "滑动或双击即可选择所需内容",
   "offlineModeWarning": "您已选择在不进行备份的情况下继续操作。请手动备份以确保您的代码安全。",
   "onboardingDesc": "保存你的照片和视频。每一份回忆，尽在一处。",
   "onboardingTitle": "用于你不想忘记的一切",

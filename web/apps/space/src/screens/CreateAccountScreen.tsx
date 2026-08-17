@@ -4,7 +4,7 @@ import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
 import {
     estimatePasswordStrength,
     type PasswordStrength,
-} from "ente-accounts-rs/utils/password";
+} from "ente-accounts/utils/password";
 import React, { useId, useMemo, useState } from "react";
 import { spaceTouchTargetSize } from "styles/touchTargets";
 

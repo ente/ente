@@ -5,8 +5,8 @@ import "package:photos/utils/contact_string_util.dart";
 
 typedef ResolvedUserIdentity = ({String displayName, String? knownEmail});
 
-/// Precedence: saved contact name → linked person name / local label →
-/// known email → "Someone".
+// Precedence: saved contact name → linked person name or local label → known
+// email → "Someone".
 ResolvedUserIdentity resolveSuggestionIdentity(UserSuggestion suggestion) {
   final contact = PhotosContactsService.instance.getCachedContact(
     contactUserId: suggestion.userID,

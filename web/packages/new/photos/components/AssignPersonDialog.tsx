@@ -59,13 +59,13 @@ export const AssignPersonDialog: React.FC<AssignPersonDialogProps> = ({
                         fullWidth
                         type="search"
                         size="small"
-                        placeholder={t("search")}
+                        placeholder={`${t("people_search_hint")}...`}
                         value={searchTerm}
                         onChange={(event) => setSearchTerm(event.target.value)}
                         autoFocus
                         slotProps={{
                             htmlInput: {
-                                "aria-label": `${t("search")} ${t("people")}`,
+                                "aria-label": t("people_search_hint"),
                             },
                             input: {
                                 startAdornment: (

@@ -24,7 +24,7 @@ import {
     removeCachedSpaceFeedPostsBySpace,
 } from "services/spaceFeedCache";
 import { useSpaceAppState } from "state/spaceAppState";
-import { profilePostGroupsFromPosts } from "utils/spacePostDisplay";
+import { profilePostItemsFromPosts } from "utils/spacePostDisplay";
 import { spaceDefaultCoverImagePath } from "utils/spacePostImage";
 import { spaceRoutes } from "utils/spaceRoutes";
 import {
@@ -51,8 +51,8 @@ export const AuthenticatedFriendProfile: React.FC<
     const [openProfileImage, setOpenProfileImage] = React.useState<
         "avatar" | "cover" | null
     >(null);
-    const postGroups = React.useMemo(
-        () => profilePostGroupsFromPosts(posts),
+    const postItems = React.useMemo(
+        () => profilePostItemsFromPosts(posts),
         [posts],
     );
     const cachedFriendProfile = friends.find(
@@ -191,7 +191,7 @@ export const AuthenticatedFriendProfile: React.FC<
                 onUnfriendComplete={() =>
                     window.location.replace(spaceRoutes.friends)
                 }
-                postGroups={postGroups}
+                postItems={postItems}
                 profile={displayedProfile}
                 showPostLoadingIndicator={false}
             />

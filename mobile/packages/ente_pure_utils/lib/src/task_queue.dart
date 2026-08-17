@@ -70,13 +70,14 @@ class TaskQueue<T> {
 
   final _runningTasks = <T>{};
 
+  // Most recently updated tasks run first.
   TaskQueue({
     this.maxConcurrentTasks = 1,
     this.taskTimeout = const Duration(minutes: 5),
     this.maxQueueSize = 100,
   }) : _priorityQueue = HeapPriorityQueue<_QueueItem>(
          (a, b) => b.lastUpdated.compareTo(a.lastUpdated),
-       ); // Reversed for most recent first
+       );
 
   Future<void> addTask(T id, Future<void> Function() task) {
     if (_taskMap.containsKey(id)) {

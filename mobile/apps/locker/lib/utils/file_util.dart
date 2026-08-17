@@ -272,8 +272,6 @@ class FileUtil {
     }
 
     try {
-      // Use system file picker on both Android and iOS to let user
-      // choose where to save the file.
       final fileBytes = await decryptedFile.readAsBytes();
       final baseName = _baseNameWithoutExtension(targetFileName);
       final savedPath = await _saveFile(

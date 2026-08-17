@@ -65,7 +65,6 @@ class CollectionActions {
     return null;
   }
 
-  // Shows a dialog to edit/rename a collection
   static Future<void> editCollection(
     BuildContext context,
     Collection collection, {
@@ -97,10 +96,8 @@ class CollectionActions {
             showToast(context, l10n.collectionRenamedSuccessfully);
           }
 
-          // Update the collection name locally
           collection.setName(newName);
 
-          // Call success callback if provided
           onSuccess?.call();
         } catch (error) {
           await progressDialog.hide();
@@ -258,7 +255,6 @@ class CollectionActions {
           showToast(context, l10n.collectionDeletedSuccessfully);
         }
 
-        // Call success callback if provided
         onSuccess?.call();
       } catch (error) {
         await progressDialog?.hide();
@@ -293,8 +289,6 @@ class CollectionActions {
     }
 
     try {
-      // If deleteFromAllCollections is true → keepFiles should be false (move files to trash)
-      // If deleteFromAllCollections is false → keepFiles should be true (keep files in other collections)
       await CollectionService.instance.trashCollection(
         context.mounted ? context : null,
         collection,
@@ -307,7 +301,6 @@ class CollectionActions {
         showToast(context, l10n.collectionDeletedSuccessfully);
       }
 
-      // Call success callback if provided
       onSuccess?.call();
     } catch (error) {
       await progressDialog?.hide();
@@ -483,8 +476,6 @@ class CollectionActions {
       }
       return false;
     }
-    // getPublicKey can return null when no user is associated with given
-    // email id
     if (publicKey == null || publicKey == '') {
       // todo: neeraj replace this as per the design where a new screen
       // is used for error. Do this change along with handling of network errors
@@ -497,7 +488,6 @@ class CollectionActions {
     }
   }
 
-  // addEmailToCollection returns true if add operation was successful
   Future<bool> addEmailToCollection(
     BuildContext? context,
     Collection collection,
@@ -552,8 +542,6 @@ class CollectionActions {
       }
       return false;
     }
-    // getPublicKey can return null when no user is associated with given
-    // email id
     if (publicKey == null || publicKey == '') {
       await dialog?.hide();
       if (context != null && context.mounted) {
@@ -588,7 +576,6 @@ class CollectionActions {
     }
   }
 
-  // removeParticipant remove the user from a share album
   Future<bool> removeParticipant(
     BuildContext context,
     Collection collection,

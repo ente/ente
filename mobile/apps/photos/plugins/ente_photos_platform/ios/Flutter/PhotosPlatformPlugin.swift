@@ -4,9 +4,11 @@ import Foundation
 @MainActor
 public final class PhotosPlatformPlugin: NSObject, @preconcurrency FlutterPlugin {
     private let deviceHealthAdapter: DeviceHealthChannelAdapter
+    private let processLockAdapter: ProcessLockChannelAdapter
 
     private init(registrar: FlutterPluginRegistrar) {
         deviceHealthAdapter = DeviceHealthChannelAdapter(registrar: registrar)
+        processLockAdapter = ProcessLockChannelAdapter(registrar: registrar)
         super.init()
     }
 
@@ -16,5 +18,6 @@ public final class PhotosPlatformPlugin: NSObject, @preconcurrency FlutterPlugin
 
     public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
         deviceHealthAdapter.detach()
+        processLockAdapter.detach()
     }
 }

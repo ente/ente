@@ -2,11 +2,9 @@ import 'dart:convert';
 
 import "package:photos/models/metadata/common_keys.dart";
 
-// Collection SubType Constants
 const subTypeDefaultHidden = 1;
 const subTypeSharedFilesCollection = 2;
 
-// key for collection subType
 const subTypeKey = 'subType';
 
 const muteKey = "mute";
@@ -17,20 +15,13 @@ const albumDescriptionKey = "caption";
 const maxAlbumDescriptionLength = 200;
 
 class CollectionMagicMetadata {
-  // 0 -> visible
-  // 1 -> archived
-  // 2 -> hidden
+  // 0 = visible, 1 = archived, 2 = hidden.
   int visibility;
 
-  // null/0 value -> no subType
-  // 1 -> DEFAULT_HIDDEN COLLECTION for files hidden individually
-  // 2 -> Collections created for sharing selected files
+  // null/0 = none; other values use the subType constants above.
   int? subType;
 
-  /* order is initially just used for pinned collections.
-  Later it can be used for custom sort order for if needed.
-  Higher the value, higher the preference of the collection to show up first.
-  */
+  // Higher values give a collection higher display priority.
   int? order;
 
   CollectionMagicMetadata({required this.visibility, this.subType, this.order});
@@ -62,16 +53,13 @@ class CollectionMagicMetadata {
 }
 
 class CollectionPubMagicMetadata {
-  // sort order while showing collection
   bool? asc;
 
-  // cover photo id for the collection
   int? coverID;
 
   // layout for public link sharing (masonry, grouped, continuous, trip)
   String? layout;
 
-  // description shown below the album name
   String? description;
 
   CollectionPubMagicMetadata({
@@ -112,17 +100,12 @@ class CollectionPubMagicMetadata {
 }
 
 class ShareeMagicMetadata {
-  // 0 -> visible
-  // 1 -> archived
-  // 2 -> hidden etc?
+  // 0 = visible, 1 = archived, 2 = hidden.
   int visibility;
 
-  // null/false value -> no mute
   bool? mute;
 
-  /* order is used for pinned collections for sharees.
-  Higher the value, higher the preference of the collection to show up first.
-  */
+  // Higher values give a collection higher display priority.
   int? order;
 
   ShareeMagicMetadata({required this.visibility, this.mute, this.order});

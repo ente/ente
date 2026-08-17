@@ -204,8 +204,7 @@ class ProgressDialog {
             );
           },
         );
-        // Delaying the function for 200 milliseconds
-        // [Default transitionDuration of DialogRoute]
+        // Wait for DialogRoute's default transition.
         await Future.delayed(const Duration(milliseconds: 200));
         if (_showLogs) debugPrint('ProgressDialog shown');
         return true;
@@ -316,7 +315,6 @@ class _BodyState extends State<_Body> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              // row body
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[

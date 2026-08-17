@@ -11,6 +11,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
 import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
+import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/services/remote_assets_service.dart";
@@ -185,7 +186,7 @@ class _MachineLearningSettingsPageState
     memoriesCacheService.queueUpdateCache();
     Bus.instance.fire(NotificationEvent());
     if (!mlConsent) {
-      MLService.instance.pauseIndexingAndClustering();
+      MLService.instance.stopActiveRun(MlStopReason.manual);
       unawaited(MLIndexingIsolate.instance.cleanupLocalIndexingModels());
       if (oldMlEnabled && !newMlEnabled) {
         await memoriesCacheService.purgeMlOnlyMemoriesFromCache();
@@ -313,7 +314,7 @@ class _MachineLearningSettingsPageState
               if (localIndexing) {
                 unawaited(MLService.instance.runAllML(force: true));
               } else {
-                MLService.instance.pauseIndexingAndClustering();
+                MLService.instance.stopActiveRun(MlStopReason.manual);
                 unawaited(
                   MLIndexingIsolate.instance.cleanupLocalIndexingModels(),
                 );
@@ -426,7 +427,6 @@ class _ModelLoadingStateState extends State<ModelLoadingState> {
             );
           },
         ),
-        // show the progress map if in debug mode
         ..._progressMap.entries.map((entry) {
           return Padding(
             padding: const EdgeInsets.only(top: 8),

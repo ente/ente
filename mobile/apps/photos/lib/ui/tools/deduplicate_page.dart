@@ -125,7 +125,7 @@ class _DeduplicatePageState extends State<DeduplicatePage> {
                         return Padding(
                           padding: const EdgeInsets.all(4),
                           child: Text(
-                            value, // Show the value
+                            value,
                             style: getEnteTextTheme(context).bodyMuted,
                           ),
                         );
@@ -358,7 +358,6 @@ class _DeduplicatePageState extends State<DeduplicatePage> {
           child: GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            // to disable GridView's scrolling
             itemBuilder: (context, index) {
               return _buildFile(context, duplicates.files[index], itemIndex);
             },
@@ -412,7 +411,6 @@ class _DeduplicatePageState extends State<DeduplicatePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            //the numerator will give the width of the screen excuding the whitespaces in the the grid row
             height:
                 (MediaQuery.of(context).size.width -
                     (crossAxisSpacing * crossAxisCount)) /

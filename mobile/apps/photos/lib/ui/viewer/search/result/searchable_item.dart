@@ -28,10 +28,7 @@ class SearchableItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //The "searchable_item" tag is to remove hero animation between section
-    //examples and searchableItems in 'view all'. Animation should exist between
-    //searchableItems and SearchResultPages, so passing the extra prefix to
-    //SearchResultPage
+    // Use separate hero tags for section examples and "view all" items.
     const additionalPrefix = "searchable_item";
     final heroTagPrefix = additionalPrefix + searchResult.heroTag();
     final colors = context.componentColors;

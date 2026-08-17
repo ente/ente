@@ -1,10 +1,4 @@
-enum FileType {
-  image,
-  video,
-  livePhoto,
-  other,
-  info, // New type for information files
-}
+enum FileType { image, video, livePhoto, other, info }
 
 int getInt(FileType fileType) {
   switch (fileType) {

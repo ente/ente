@@ -1,5 +1,5 @@
-/// This is copied from Cargokit (which is the official way to use it currently)
-/// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
+// This is copied from Cargokit (which is the official way to use it currently)
+// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
 
 import 'dart:io';
 
@@ -97,7 +97,6 @@ class Target {
         .toList(growable: false);
   }
 
-  /// Returns buildable targets on current host platform ignoring Android targets.
   static List<Target> buildableTargets() {
     if (Platform.isLinux) {
       // Right now we don't support cross-compiling on Linux. So we just return

@@ -202,7 +202,6 @@ extension DeviceFiles on FilesDB {
         UPDATE device_collections SET name = ? WHERE id = ?;
       ''', parameterSetsForUpdate);
 
-      // add the mappings for localIDs
       if (pathIDToLocalIDsMap.isNotEmpty) {
         await insertPathIDToLocalIDMapping(pathIDToLocalIDsMap);
       }
@@ -257,7 +256,6 @@ extension DeviceFiles on FilesDB {
           hasUpdated = true;
         }
       }
-      // delete existing pathIDs which are missing on device
       existingPathIds.removeAll(devicePathInfo.map((e) => e.item1.id).toSet());
       if (existingPathIds.isNotEmpty) {
         _logger.info(
@@ -265,11 +263,7 @@ extension DeviceFiles on FilesDB {
           '$existingPathIds',
         );
         for (String pathID in existingPathIds) {
-          // do not delete device collection entries for paths which are
-          // marked for backup. This is to handle "Free up space"
-          // feature, where we delete files which are backed up. Deleting such
-          // entries here result in us losing out on the information that
-          // those folders were marked for automatic backup.
+          // Keep folder backup settings after Free up space deletes their files.
           final deletedRows = await db.execute(
             '''
             DELETE FROM device_collections WHERE id = ? AND should_backup = $_sqlBoolFalse
@@ -293,8 +287,6 @@ extension DeviceFiles on FilesDB {
     }
   }
 
-  // getDeviceSyncCollectionIDs returns the collectionIDs for the
-  // deviceCollections which are marked for auto-backup
   Future<Set<int>> getDeviceSyncCollectionIDs() async {
     final db = await sqliteAsyncDB;
     final rows = await db.getAll('''

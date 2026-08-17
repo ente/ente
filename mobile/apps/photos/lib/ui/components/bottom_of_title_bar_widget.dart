@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/components/title_bar_title_widget.dart';
 
-///https://www.figma.com/file/SYtMyLBs5SAOkTbfMMzhqt/ente-Visual-Design?node-id=7309%3A29088&t=ReeZ2Big8xSsemZb-4
+// https://www.figma.com/file/SYtMyLBs5SAOkTbfMMzhqt/ente-Visual-Design?node-id=7309%3A29088&t=ReeZ2Big8xSsemZb-4
 class BottomOfTitleBarWidget extends StatelessWidget {
   final TitleBarTitleWidget? title;
   final String? caption;

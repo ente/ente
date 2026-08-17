@@ -1,4 +1,4 @@
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { newID } from "ente-base/id";
 import type { EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";

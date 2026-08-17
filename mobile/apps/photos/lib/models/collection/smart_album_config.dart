@@ -1,13 +1,10 @@
 typedef PersonInfo = ({int updatedAt, Set<int> addedFiles});
 
 class SmartAlbumConfig {
-  // A nullable remote ID for syncing purposes
   final String? id;
 
   final int collectionId;
-  // person ids
   final Set<String> personIDs;
-  // person id mapped with updatedat, file ids
   final Map<String, PersonInfo> infoMap;
   final int updatedAt;
 
@@ -24,12 +21,10 @@ class SmartAlbumConfig {
     final toRemove = personIDs.difference(newPersonsIds);
     final newInfoMap = Map<String, PersonInfo>.from(infoMap);
 
-    // Remove whats not needed
     for (final personId in toRemove) {
       newInfoMap.remove(personId);
     }
 
-    // Add files which are needed
     for (final personId in toAdd) {
       newInfoMap[personId] = (updatedAt: 0, addedFiles: <int>{});
     }
@@ -73,7 +68,6 @@ class SmartAlbumConfig {
     );
   }
 
-  // toJson and fromJson methods
   Map<String, dynamic> toJson() {
     return {
       "collection_id": collectionId,

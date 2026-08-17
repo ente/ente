@@ -352,7 +352,6 @@ class UploadLocksDB {
       partsURLs: partsURLs,
     );
 
-    // Retrieve MD5 data
     final String? fileMd5 = row[_trackUploadTable.columnFileMd5] as String?;
     List<String>? partMd5s;
     if (row[_trackUploadTable.columnPartMd5s] != null) {
@@ -374,7 +373,6 @@ class UploadLocksDB {
     );
   }
 
-  // validateResume checks if the cached links are valid for resuming upload
   void _validateResume(
     List<Map<String, Object?>> rows,
     String localId,
@@ -541,7 +539,6 @@ class UploadLocksDB {
     );
   }
 
-  // getFileNameToLastAttemptedAtMap returns a map of encrypted file name to last attempted at time
   Future<Map<String, int>> getFileNameToLastAttemptedAtMap() {
     return database.then((db) async {
       final rows = await db.query(
@@ -590,7 +587,6 @@ class UploadLocksDB {
     });
   }
 
-  // Stream Queue Management Methods
   Future<void> addToStreamQueue(
     int uploadedFileID,
     String queueType, // 'create' or 'recreate'

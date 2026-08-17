@@ -43,8 +43,8 @@ extension SetMatrixValues on Matrix {
         endColumn > columnCount) {
       throw Exception('Range must be within matrix');
     }
-    final tempList = asFlattenedList
-        .toList(); // You need `.toList()` here to make sure the list is growable, otherwise `replaceRange` will throw an error
+    // replaceRange requires a growable list.
+    final tempList = asFlattenedList.toList();
     for (var i = startRow; i < endRow; i++) {
       tempList.replaceRange(
         i * columnCount + startColumn,
@@ -72,8 +72,8 @@ extension SetMatrixValues on Matrix {
       throw Exception('Range must be within matrix');
     }
 
-    final tempList = asFlattenedList
-        .toList(); // You need `.toList()` here to make sure the list is growable, otherwise `replaceRange` will throw an error
+    // replaceRange requires a growable list.
+    final tempList = asFlattenedList.toList();
     var index = 0;
     for (var i = startRow; i < endRow; i++) {
       for (var j = startColumn; j < endColumn; j++) {

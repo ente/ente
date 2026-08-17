@@ -1,11 +1,11 @@
 import LockIcon from "@mui/icons-material/Lock";
 import { CircularProgress, Stack, Typography } from "@mui/material";
-import { sessionExpiredDialogAttributes } from "ente-accounts-rs/components/utils/dialog";
-import { updateSavedLocalUser } from "ente-accounts-rs/services/accounts-db";
+import { sessionExpiredDialogAttributes } from "ente-accounts/components/utils/dialog";
+import { updateSavedLocalUser } from "ente-accounts/services/accounts-db";
 import {
     disableTwoFactor,
     getTwoFactorStatus,
-} from "ente-accounts-rs/services/user";
+} from "ente-accounts/services/user";
 import {
     RowButton,
     RowButtonGroup,

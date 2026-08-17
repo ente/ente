@@ -36,7 +36,7 @@ class SmartAlbumsService {
     final lastRemoteSyncTimeValue = lastRemoteSyncTime();
     if (_lastCacheRefreshTime != lastRemoteSyncTimeValue) {
       _lastCacheRefreshTime = lastRemoteSyncTimeValue;
-      _cachedConfigsFuture = null; // Invalidate cache
+      _cachedConfigsFuture = null;
     }
     _cachedConfigsFuture ??= _fetchAndCacheSaConfigs();
     return _cachedConfigsFuture!;
@@ -253,7 +253,7 @@ class SmartAlbumsService {
       addWithCustomID: addWithCustomID,
     );
 
-    _lastCacheRefreshTime = 0; // Invalidate cache
+    _lastCacheRefreshTime = 0;
     return result;
   }
 
@@ -264,6 +264,6 @@ class SmartAlbumsService {
     _logger.fine("Deleting entry for collection ($collectionId)");
     final id = getId(collectionId: collectionId, userId: userId);
     await entityService.deleteEntry(id);
-    _lastCacheRefreshTime = 0; // Invalidate cache
+    _lastCacheRefreshTime = 0;
   }
 }

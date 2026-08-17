@@ -11,11 +11,7 @@ import "package:photos/ui/components/models/button_type.dart";
 const _loadingSurfaceDelay = Duration(milliseconds: 300);
 const _successDisplayDuration = Duration(seconds: 1);
 
-/// Compatibility bridge from legacy Photos [ButtonWidget] actions to
-/// ente_components [ButtonComponent].
-///
-/// Used by legacy dialog/action-sheet adapters. Prefer [ButtonComponent]
-/// directly for new bottom sheet actions.
+// Legacy adapter; use ButtonComponent for new bottom sheet actions.
 class ButtonComponentAdapter extends StatelessWidget {
   const ButtonComponentAdapter({required this.button, super.key});
 

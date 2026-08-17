@@ -19,8 +19,6 @@ class IsolatedFfmpegService {
     return await Isolate.run<Map>(() => _ffmpegRun(command, rootIsolateToken));
   }
 
-  /// Run FFmpeg with session ID callback for cancellation support.
-  /// Uses a completion port registered on the root isolate.
   Future<Map> runFfmpegCancellable(
     String command,
     void Function(int sessionId) onSessionStarted,

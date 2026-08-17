@@ -16,7 +16,7 @@ import {
     type IconButtonProps,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";

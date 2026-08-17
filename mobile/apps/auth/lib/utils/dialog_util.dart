@@ -106,7 +106,6 @@ String parseErrorForUI(
         }
       }
     }
-    // return generic error if the user is not internal and the error is not in debug mode
     if (!kDebugMode) {
       return genericError;
     }
@@ -375,7 +374,6 @@ Future<ButtonResult?> showConfettiDialog<T>({
                 blastDirection: pi / 2,
                 emissionFrequency: 0,
                 numberOfParticles: 100,
-                // a lot of particles at once
                 gravity: 1,
                 blastDirectionality: BlastDirectionality.explosive,
               ),
@@ -392,7 +390,7 @@ Future<ButtonResult?> showConfettiDialog<T>({
   );
 }
 
-//Can return ButtonResult? from ButtonWidget or Exception? from TextInputDialog
+// Returns null after submit, ButtonResult on cancel, and Exception on failure.
 Future<dynamic> showTextInputDialog(
   BuildContext context, {
   required String title,

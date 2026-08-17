@@ -13,7 +13,6 @@ class FileIconConfig {
 }
 
 class FileIconUtils {
-  // Centralized configuration - change icons and colors here only
   static const Map<String, FileIconConfig> _fileTypeConfigs = {
     'pdf': FileIconConfig(
       extensions: {'.pdf'},
@@ -48,7 +47,7 @@ class FileIconUtils {
     final lastDotIndex = lowerFileName.lastIndexOf('.');
 
     if (lastDotIndex == -1) {
-      return _defaultConfig; // No extension found
+      return _defaultConfig;
     }
 
     final extension = lowerFileName.substring(lastDotIndex);

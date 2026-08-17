@@ -6,7 +6,6 @@ import "package:photos/theme/ente_theme.dart";
 import 'package:photos/theme/text_style.dart';
 import 'package:photos/ui/components/buttons/icon_button_widget.dart';
 
-// CreateNotificationType enum
 enum NotificationType { warning, banner, greenBanner, goldenBanner, notice }
 
 class NotificationWidget extends StatelessWidget {
@@ -121,7 +120,6 @@ class NotificationWidget extends StatelessWidget {
                             begin: const Offset(0.9, 0.9),
                             end: const Offset(1.1, 1.1),
                             delay: 1600.ms,
-                            // curve: Curves.easeInOut,
                           )
                     : Icon(
                         startIcon,

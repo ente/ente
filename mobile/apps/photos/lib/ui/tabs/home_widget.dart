@@ -111,7 +111,6 @@ class _HomeWidgetState extends State<HomeWidget> {
   final ValueNotifier<bool> _christmasPullReleasedNotifier =
       ValueNotifier<bool>(false);
 
-  // for receiving media files
   // ignore: unused_field
   StreamSubscription? _intentDataStreamSubscription;
   List<SharedMediaFile>? _sharedFiles;
@@ -210,7 +209,6 @@ class _HomeWidgetState extends State<HomeWidget> {
     ) {
       _startWithoutAccount = false;
       setState(() {});
-      // fetch user flags on login
       if (!isLocalGalleryMode) {
         flagService.flags;
       }
@@ -249,9 +247,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     ) async {
       if (mounted && event.status == SyncStatus.completedFirstGalleryImport) {
         Duration delayInRefresh = const Duration(milliseconds: 0);
-        // Loading page will redirect to BackupFolderSelectionPage.
-        // To avoid showing folder hook in middle during routing,
-        // delay state refresh for home page
+        // Let navigation to BackupFolderSelectionPage finish before rebuilding.
         if (!permissionService.hasGrantedLimitedPermissions()) {
           delayInRefresh = const Duration(milliseconds: 250);
         }
@@ -284,10 +280,8 @@ class _HomeWidgetState extends State<HomeWidget> {
       });
     });
 
-    // Initialize deep link subscription for public albums on both iOS and Android
     _initDeepLinkSubscriptionForPublicAlbums();
 
-    // For sharing images coming from outside the app
     _initMediaShareSubscription();
     _scheduleChangeLogCheck(delay: const Duration(seconds: 1));
 
@@ -389,7 +383,6 @@ class _HomeWidgetState extends State<HomeWidget> {
         return;
       }
 
-      // Check for action=join parameter to show join dialog
       final shouldShowJoinDialog =
           uri.queryParameters['action'] == 'join' &&
           Configuration.instance.isLoggedIn();
@@ -572,7 +565,6 @@ class _HomeWidgetState extends State<HomeWidget> {
   }
 
   void _initMediaShareSubscription() {
-    // For sharing images/public links coming from outside the app while the app is in the memory
     _intentDataStreamSubscription = ReceiveSharingIntent.instance
         .getMediaStream()
         .listen(
@@ -583,7 +575,6 @@ class _HomeWidgetState extends State<HomeWidget> {
             _logger.severe("getIntentDataStream error: $err");
           },
         );
-    // For sharing images/public links coming from outside the app while the app is closed
     ReceiveSharingIntent.instance.getInitialMedia().then((
       List<SharedMediaFile> value,
     ) {
@@ -596,7 +587,6 @@ class _HomeWidgetState extends State<HomeWidget> {
       return;
     }
 
-    // Check if this is a public album link
     if (_isPublicAlbumUrl(value[0].path)) {
       final uri = Uri.parse(value[0].path);
       unawaited(_handlePublicAlbumLink(uri, "sharedIntent.getMediaStream"));
@@ -669,7 +659,6 @@ class _HomeWidgetState extends State<HomeWidget> {
     if (!mounted) {
       return;
     }
-    // Check if this is a public album link
     if (value.isNotEmpty && _isPublicAlbumUrl(value[0].path)) {
       final uri = Uri.parse(value[0].path);
       unawaited(_handlePublicAlbumLink(uri, "sharedIntent.getInitialMedia"));
@@ -751,11 +740,6 @@ class _HomeWidgetState extends State<HomeWidget> {
   Future<void> _initDeepLinkSubscriptionForPublicAlbums() async {
     final appLinks = AppLinks();
 
-    // Handle public album deep links:
-    // - iOS: Universal Links (https://albums.ente.io/... or
-    //   https://albums.ente.com/...)
-    // - Android: App Links (https://albums...) or custom scheme
-    //   (ente://albums...)
     try {
       final initialUri = await appLinks.getInitialLink();
       if (initialUri != null) {
@@ -878,7 +862,6 @@ class _HomeWidgetState extends State<HomeWidget> {
           key: _scaffoldKey,
           drawerScrimColor: getEnteColorScheme(context).strokeFainter,
           drawerEnableOpenDragGesture: false,
-          //using a hack instead of enabling this as enabling this will create other problems
           drawer: enableDrawer
               ? ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 430),
@@ -935,8 +918,7 @@ class _HomeWidgetState extends State<HomeWidget> {
             ],
           ),
 
-          ///To fix the status bar not adapting it's color when switching
-          ///screens the have different appbar colours.
+          // Keep an AppBar so the status bar color follows the current screen.
           appBar: isOnOnlineGrantPermissionScreen
               ? null
               : PreferredSize(
@@ -1020,9 +1002,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     if (_sharedFiles != null &&
         _sharedFiles!.isNotEmpty &&
         _shouldRenderCreateCollectionSheet) {
-      //The gallery is getting rebuilt for some reason when the keyboard is up.
-      //So to stop showing multiple CreateCollectionSheets, this flag
-      //needs to be set to false the first time it is rendered.
+      // Clear this before opening so rebuilds cannot open duplicate sheets.
       _shouldRenderCreateCollectionSheet = false;
       ReceiveSharingIntent.instance.reset();
       Future.delayed(const Duration(milliseconds: 10), () {
@@ -1039,9 +1019,15 @@ class _HomeWidgetState extends State<HomeWidget> {
       children: [
         Builder(
           builder: (context) {
-            return ValueListenableBuilder(
-              valueListenable: _swipeToSelectInProgressNotifier,
-              builder: (context, inProgress, child) {
+            return ListenableBuilder(
+              listenable: Listenable.merge([
+                _swipeToSelectInProgressNotifier,
+                _selectedAlbums,
+              ]),
+              builder: (context, child) {
+                final isPageScrollLocked =
+                    _swipeToSelectInProgressNotifier.value ||
+                    _selectedAlbums.albums.isNotEmpty;
                 return ValueListenableBuilder<int>(
                   valueListenable: _selectedTabIndexNotifier,
                   builder: (context, selectedTabIndex, _) {
@@ -1053,7 +1039,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                       },
                       controller: _pageController,
                       openDrawer: Scaffold.of(context).openDrawer,
-                      physics: inProgress
+                      physics: isPageScrollLocked
                           ? const NeverScrollableScrollPhysics()
                           : const BouncingScrollPhysics(),
                       children: [
@@ -1170,12 +1156,9 @@ class _HomeWidgetState extends State<HomeWidget> {
   }
 
   Future<bool> _initDeepLinks() async {
-    // Platform messages may fail, so we use a try/catch PlatformException.
     final appLinks = AppLinks();
     try {
       final initialLink = await appLinks.getInitialLink();
-      // Parse the link and warn the user, if it is not correct,
-      // but keep in mind it could be `null`.
       if (initialLink != null) {
         _logger.info("Initial link received: host ${initialLink.host}");
         if (!mounted) return false;
@@ -1185,12 +1168,9 @@ class _HomeWidgetState extends State<HomeWidget> {
         _logger.info("No initial link received.");
       }
     } on PlatformException {
-      // Handle exception by warning the user their action did not succeed
-      // return?
       _logger.severe("PlatformException thrown while getting initial link");
     }
 
-    // Attach a listener to the stream
     _authDeepLinkSubscription = appLinks.uriLinkStream.listen(
       (link) {
         _logger.info("Link received: host ${link.host}");
@@ -1239,7 +1219,6 @@ class _HomeWidgetState extends State<HomeWidget> {
         context: context,
         builder: (context) => const ChangeLogPage(),
       );
-      // Do not show change dialog again
       await updateService.hideChangeLog();
       if (!mounted) {
         return;

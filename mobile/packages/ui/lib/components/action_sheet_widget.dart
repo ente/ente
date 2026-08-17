@@ -158,9 +158,7 @@ class ContentContainerWidget extends StatelessWidget {
             ? const SizedBox.shrink()
             : Text(
                 title!,
-                style: textTheme.largeBold.copyWith(
-                  color: textBaseDark,
-                ), //constant color
+                style: textTheme.largeBold.copyWith(color: textBaseDark),
               ),
         title == null || bodyMissing
             ? const SizedBox.shrink()
@@ -174,7 +172,7 @@ class ContentContainerWidget extends StatelessWidget {
                             body!,
                             style: textTheme.body.copyWith(
                               color: textMutedDark,
-                            ), //constant color
+                            ),
                           ))
             : Icon(
                 Icons.check_outlined,
@@ -189,9 +187,7 @@ class ContentContainerWidget extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 19.0),
                 child: Text(
                   bodyHighlight!,
-                  style: textTheme.body.copyWith(
-                    color: textBaseDark,
-                  ), //constant color
+                  style: textTheme.body.copyWith(color: textBaseDark),
                 ),
               )
             : const SizedBox.shrink(),
@@ -209,9 +205,7 @@ class ActionButtons extends StatelessWidget {
     final actionButtonsWithSeparators = actionButtons;
     return Column(
       children:
-          //Separator height is 8pts in figma. -2pts here as the action
-          //buttons are 2pts extra in height in code compared to figma because
-          //of the border(1pt top + 1pt bottom) of action buttons.
+          // Two 1-point button borders complete the 8-point visual gap.
           addSeparators(actionButtonsWithSeparators, const SizedBox(height: 6)),
     );
   }

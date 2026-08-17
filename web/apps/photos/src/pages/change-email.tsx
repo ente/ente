@@ -1,1 +1,1 @@
-export { default } from "ente-accounts-rs/pages/change-email";
+export { default } from "ente-accounts/pages/change-email";

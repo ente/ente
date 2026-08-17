@@ -1,5 +1,5 @@
-import { updateSavedLocalUser } from "ente-accounts-rs/services/accounts-db";
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { updateSavedLocalUser } from "ente-accounts/services/accounts-db";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { getKV, setKV } from "ente-base/kv";

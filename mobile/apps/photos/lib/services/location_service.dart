@@ -519,7 +519,7 @@ Map<City, List<EnteFile>> getCityResults(Map args) {
 
     final Map<City, List<EnteFile>> results = {};
     for (final file in files) {
-      if (!file.hasLocation) continue; // Skip files without location
+      if (!file.hasLocation) continue;
       final fileLocation = file.location!;
       for (final city in matchingCities) {
         final x = city.lat - fileLocation.latitude!;
@@ -539,7 +539,7 @@ Map<City, List<EnteFile>> getCityResults(Map args) {
   final bool hasQuery = query.isNotEmpty;
   final Map<City, List<EnteFile>> results = {};
   for (final file in files) {
-    if (!file.hasLocation) continue; // Skip files without location
+    if (!file.hasLocation) continue;
     final fileLocation = file.location!;
     final fileLat = fileLocation.latitude!;
     final fileLng = fileLocation.longitude!;

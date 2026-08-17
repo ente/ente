@@ -24,10 +24,9 @@ class _CodeTimerProgressState extends State<CodeTimerProgress> {
   late final ValueNotifier<double> _progress;
   late final int _periodInMilii;
 
-  // Reduce update frequency
   final int _updateIntervalMs = (Platform.isAndroid || Platform.isIOS)
       ? 16
-      : 500; // approximately 60 FPS
+      : 500;
 
   @override
   void initState() {
@@ -43,7 +42,6 @@ class _CodeTimerProgressState extends State<CodeTimerProgress> {
   }
 
   void _updateTimeRemaining(int currentMilliSeconds) {
-    // More efficient time calculation using modulo
     final elapsed =
         (currentMilliSeconds + widget.timeOffsetInMilliseconds) %
         _periodInMilii;
@@ -76,7 +74,7 @@ class _CodeTimerProgressState extends State<CodeTimerProgress> {
         valueListenable: _progress,
         builder: (context, progress, _) {
           return CustomPaint(
-            key: Key(progress.toString()), // Add key here
+            key: Key(progress.toString()),
             painter: _ProgressPainter(
               progress: progress,
               color: progress > 0.4

@@ -56,9 +56,7 @@ class _ClusterBreakupPageState extends State<ClusterBreakupPage> {
                             child: NoThumbnailWidget(addBorder: false),
                           ),
                   ),
-                  const SizedBox(
-                    width: 8.0,
-                  ), // Add some spacing between the thumbnail and the text
+                  const SizedBox(width: 8.0),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0),

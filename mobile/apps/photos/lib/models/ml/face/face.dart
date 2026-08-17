@@ -92,8 +92,8 @@ class Face {
     );
   }
 
-  // Note: Keep the information in toJson minimum. Keep in sync with desktop.
-  // Derive fields like fileID from other values whenever possible
+  // Keep toJson minimal and in sync with desktop. Derive fields such as fileID
+  // from the serialized values.
   Map<String, dynamic> toJson() => {
     'faceID': faceID,
     'embedding': embedding,

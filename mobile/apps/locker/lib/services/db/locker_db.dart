@@ -499,7 +499,6 @@ class LockerDB extends EnteBaseDatabase {
 
     final Map<int, List<EnteFile>> collectionToFilesMap = {};
 
-    // Query to get all collection mappings for the given file IDs
     final placeholders = List.filled(uploadedFileIDs.length, '?').join(',');
     final result = await _db.rawQuery('''
       SELECT
@@ -510,7 +509,6 @@ class LockerDB extends EnteBaseDatabase {
       WHERE cf.uploaded_file_id IN ($placeholders)
     ''', uploadedFileIDs);
 
-    // Group files by collection ID
     for (final row in result) {
       final collectionId = row['mapping_collection_id'] as int;
       final file = await _mapFromRow(row)

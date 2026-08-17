@@ -16,7 +16,6 @@ final _logger = Logger('PanoramaUtil');
 Future<Map<String, dynamic>> readXmp(File file) =>
     extractXmp(filePath: file.path);
 
-/// Check if the file is a panorama image.
 Future<bool> _isPanorama(EnteFile enteFile) async {
   if (enteFile.fileType != FileType.image) {
     return false;
@@ -49,7 +48,6 @@ bool isPanoramaFromXmp(Map<String, dynamic> xmpData) {
   return projectionType == "cylindrical" || projectionType == "equirectangular";
 }
 
-/// Detects and persists panorama metadata if it has not been checked yet.
 Future<void> guardedCheckPanorama(EnteFile file) async {
   if (!file.canEditMetaInfo || file.isPanorama() != null) {
     return;
@@ -59,7 +57,6 @@ Future<void> guardedCheckPanorama(EnteFile file) async {
   );
   final isPanorama = await _isPanorama(file);
 
-  // Update the metadata if it is not updated
   if (file.canEditMetaInfo && file.isPanorama() == null) {
     final mediaType =
         (file.pubMagicMetadata?.mediaType ?? 0) | (isPanorama ? 1 : 0);

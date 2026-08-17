@@ -1,7 +1,5 @@
 import "package:flutter/material.dart";
 
-/// A container for grouped settings items.
-/// Uses 20px border radius and the standard card colors.
 class SettingsGroupedCard extends StatelessWidget {
   final List<Widget> children;
 
@@ -11,7 +9,6 @@ class SettingsGroupedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Card background: Light #FFFFFF, Dark #212121
     final cardColor = isDarkMode
         ? const Color(0xFF212121)
         : const Color(0xFFFFFFFF);

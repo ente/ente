@@ -1,6 +1,6 @@
 import "package:ente_photos_platform/ente_photos_platform.dart";
 
-/// The total amount of RAM in the device in MB
+// Total device RAM in MB.
 int? deviceTotalRAM;
 
 bool get enoughRamForLocalIndexing =>
@@ -12,7 +12,6 @@ bool get hasLessThan5GBRAM =>
 bool get enoughRamForLocalGalleryLocalIndexing =>
     deviceTotalRAM == null || deviceTotalRAM! > 3 * 1024;
 
-/// Return the total amount of RAM in the device in MB
 Future<int?> checkDeviceTotalRAM() async {
   if (deviceTotalRAM != null) return deviceTotalRAM;
   try {

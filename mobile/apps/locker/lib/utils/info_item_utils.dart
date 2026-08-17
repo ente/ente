@@ -14,7 +14,6 @@ class InfoIconConfig {
 }
 
 class InfoItemUtils {
-  // Centralized configuration - change icons and colors here only
   static const Map<InfoType, InfoIconConfig> _infoTypeConfigs = {
     InfoType.note: InfoIconConfig(
       icon: HugeIcons.strokeRoundedNote,

@@ -56,7 +56,6 @@ void main() async {
   await _runInForeground();
   if (Platform.isAndroid) {
     FlutterDisplayMode.setHighRefreshRate().ignore();
-    // Make the navigation bar transparent so the app theme can take over
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         systemNavigationBarColor: Color(0x00000000),

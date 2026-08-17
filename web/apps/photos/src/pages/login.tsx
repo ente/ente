@@ -1,1 +1,1 @@
-export { default } from "ente-accounts-rs/pages/login";
+export { default } from "ente-accounts/pages/login";

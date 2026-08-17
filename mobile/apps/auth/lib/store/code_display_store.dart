@@ -16,7 +16,6 @@ class CodeDisplayStore {
   final ValueNotifier<bool> isSelectionModeActive = ValueNotifier(false);
   final ValueNotifier<Set<String>> selectedCodeIds = ValueNotifier(<String>{});
 
-  // toggles the selection status of a code
   void toggleSelection(String codeId) {
     final newSelection = Set<String>.from(selectedCodeIds.value);
 
@@ -26,12 +25,10 @@ class CodeDisplayStore {
       newSelection.add(codeId);
     }
 
-    selectedCodeIds.value =
-        newSelection; //if we selected atleast one code, then we're in selection mode.. else: exit selection mode
+    selectedCodeIds.value = newSelection;
     isSelectionModeActive.value = newSelection.isNotEmpty;
   }
 
-  //method to clear the entire selection
   void clearSelection() {
     selectedCodeIds.value = <String>{};
     isSelectionModeActive.value = false;
@@ -44,7 +41,6 @@ class CodeDisplayStore {
       return;
     }
 
-    // Build lookup structures in a single pass - O(n)
     final validKeys = <String>{};
     final keyRemapping = <String, String>{};
 
@@ -56,7 +52,6 @@ class CodeDisplayStore {
       final key = code.selectionKey;
       validKeys.add(key);
 
-      // Map old keys to current key to handle transitions
       keyRemapping[code.rawData] = key;
       final generatedID = code.generatedID;
       if (generatedID != null) {
@@ -64,7 +59,6 @@ class CodeDisplayStore {
       }
     }
 
-    // Update selection in one pass - O(m)
     final updatedSelection = currentSelection
         .map(
           (oldKey) =>
@@ -73,7 +67,6 @@ class CodeDisplayStore {
         .whereType<String>()
         .toSet();
 
-    // Only update if selection changed
     if (updatedSelection != currentSelection) {
       selectedCodeIds.value = updatedSelection;
       isSelectionModeActive.value = updatedSelection.isNotEmpty;
@@ -114,7 +107,6 @@ class CodeDisplayStore {
       firstButtonLabel: l10n.delete,
       isCritical: true,
       firstButtonOnTap: () async {
-        // traverse through all the codes and edit this tag's value
         final relevantCodes = await _getCodesByTag(tag);
 
         final tasks = <Future<AddResult>>[];
@@ -166,7 +158,6 @@ class CodeDisplayStore {
   }
 
   Future<void> editTag(String previousTag, String updatedTag) async {
-    // traverse through all the codes and edit this tag's value
     final relevantCodes = await _getCodesByTag(previousTag);
 
     final tasks = <Future<AddResult>>[];

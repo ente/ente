@@ -1,5 +1,5 @@
-/// This is copied from Cargokit (which is the official way to use it currently)
-/// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
+// This is copied from Cargokit (which is the official way to use it currently)
+// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
 
 import 'dart:io';
 
@@ -16,10 +16,8 @@ import 'rustup.dart';
 import 'target.dart';
 
 class Artifact {
-  /// File system location of the artifact.
   final String path;
 
-  /// Actual file name that the artifact should have in destination folder.
   final String finalFileName;
 
   AritifactType get type {

@@ -22,7 +22,6 @@ appId: io.ente.locker
 
 - tapOn: Important
 - tapOn: Save
-# Wait till home screen it not visible
 - extendedWaitUntil:
     visible: Add item
     timeout: 10000

@@ -1,6 +1,6 @@
 import { Paper, Stack, styled } from "@mui/material";
-import { LoginContents } from "ente-accounts-rs/components/LoginContents";
-import { savedPartialLocalUser } from "ente-accounts-rs/services/accounts-db";
+import { LoginContents } from "ente-accounts/components/LoginContents";
+import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
 import { CenteredFill } from "ente-base/components/containers";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { LoadingIndicator } from "ente-base/components/loaders";

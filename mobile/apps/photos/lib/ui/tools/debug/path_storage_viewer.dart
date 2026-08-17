@@ -44,7 +44,6 @@ class _PathStorageViewerState extends State<PathStorageViewer> {
   @override
   void didUpdateWidget(PathStorageViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Refresh the future when the widget updates (key changes)
     if (oldWidget.item.path != widget.item.path ||
         oldWidget.key != widget.key) {
       _statFuture = getDirectoryStat(Directory(widget.item.path));

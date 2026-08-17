@@ -340,7 +340,8 @@ class FFProbeProps {
   static final _durationSmPattern = RegExp(r'(\d+)(.\d+)');
   static final _locationPattern = RegExp(r'([+-][.0-9]+)');
 
-  // format ISO 6709 input, e.g. '+37.5090+127.0243/' (Samsung), '+51.3328-000.7053+113.474/' (Apple)
+  // ISO 6709 examples: '+37.5090+127.0243/' (Samsung) and
+  // '+51.3328-000.7053+113.474/' (Apple).
   static Location? _formatLocation(String? value) {
     if (value == null) return null;
     final matches = _locationPattern.allMatches(value);

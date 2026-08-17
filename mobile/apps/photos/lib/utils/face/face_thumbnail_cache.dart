@@ -134,7 +134,7 @@ Future<void> checkRemoveCachedFaceIDForPersonOrClusterId(
   }
 }
 
-/// Careful to only use [personOrClusterID] if all [faces] are from the same person or cluster.
+// Pass personOrClusterID only when every face belongs to that person or cluster.
 Future<Map<String, Uint8List>?> getCachedFaceCrops(
   EnteFile enteFile,
   Iterable<Face> faces, {
@@ -408,11 +408,7 @@ Future<Map<String, Uint8List>?> _getFaceCrops(
     faceBoxes.add(e.value);
   }
   final List<Uint8List> faceCrop = await FaceThumbnailGenerator.instance
-      .generateFaceThumbnails(
-        // await generateJpgFaceThumbnails(
-        imagePath,
-        faceBoxes,
-      );
+      .generateFaceThumbnails(imagePath, faceBoxes);
   final Map<String, Uint8List> result = {};
   for (int i = 0; i < faceCrop.length; i++) {
     result[faceIds[i]] = faceCrop[i];

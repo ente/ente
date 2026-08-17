@@ -72,7 +72,6 @@ class CollectionPage extends StatelessWidget {
               limit: limit,
               asc: asc,
             );
-        // hide ignored files from home page UI
         final ignoredIDs =
             await IgnoredFilesService.instance.idToIgnoreReasonMap;
         result.files.removeWhere(

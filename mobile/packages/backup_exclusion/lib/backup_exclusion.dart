@@ -8,7 +8,6 @@ final _logger = Logger('BackupExclusion');
 const _channel = MethodChannel('io.ente.backup_exclusion');
 
 // Reapply on every app init: device restores recreate directories without it.
-// The operation is idempotent and cheap.
 Future<void> excludeFromBackup(String path) async {
   if (!Platform.isIOS) return;
   await _invokeExcludeFromBackup(path);

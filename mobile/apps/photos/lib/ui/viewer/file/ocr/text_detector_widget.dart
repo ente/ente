@@ -11,7 +11,6 @@ import 'package:photos/ui/viewer/file/ocr/text_overlay_widget.dart';
 
 const double _enteSelectionHighlightOpacity = 0.28;
 
-/// Controller that surfaces imperative actions for [TextDetectorWidget].
 class TextDetectorController extends ChangeNotifier {
   _TextDetectorWidgetState? _state;
 
@@ -36,13 +35,8 @@ class TextDetectorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Whether text detection is currently running.
   bool get isProcessing => _state?._isProcessing ?? false;
-
-  /// Indicates if there is text that can be selected.
   bool get hasSelectableText => _state?._hasSelectableText ?? false;
-
-  /// Whether the user has explicitly interacted (e.g. long press).
   bool get userAttemptedInteraction =>
       _state?._userAttemptedInteraction ?? false;
 
@@ -69,7 +63,6 @@ class TextDetectorController extends ChangeNotifier {
   }
 }
 
-/// Detects text and renders the Photos OCR selection overlay.
 class TextDetectorWidget extends StatefulWidget {
   final String imagePath;
   final VoidCallback? onTextCopied;
@@ -258,7 +251,6 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
     try {
       await _ensureModelsReady();
       if (_errorMessage != null) {
-        // Model-prep error; the finally block rebuilds to show the banner.
         return;
       }
 

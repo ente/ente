@@ -115,7 +115,7 @@ String getLocalizedTitleForL10n(StringsLocalizations l10n, String title) {
     case 'Greenery':
       return l10n.discover_greenery;
     default:
-      return title; // If no match, return the original string
+      return title;
   }
 }
 

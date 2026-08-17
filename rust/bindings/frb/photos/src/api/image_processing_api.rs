@@ -2,7 +2,7 @@ use ente_image::{
     decode::decode_image_from_path,
     image_compression::{EncodedImageFormat, encode_rgb},
 };
-use ente_photos::ml::face::thumbnail::{
+use ente_ml::face::thumbnail::{
     FaceBox, generate_face_thumbnails as generate_face_thumbnails_impl,
 };
 

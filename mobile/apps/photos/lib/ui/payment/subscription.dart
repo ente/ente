@@ -15,10 +15,7 @@ StatefulWidget getSubscriptionPage({bool isOnBoarding = false}) {
   }
 }
 
-// return true if the user was created after we added support for stripe payment
-// on frame. We do this check to avoid showing Stripe payment option for earlier
-// users who might have paid via playStore. This method should be removed once
-// we have better handling for active play/app store subscription & stripe plans.
+// Older users may have an active Play/App Store subscription.
 bool _isUserCreatedPostStripeSupport() {
   return Configuration.instance.getUserID()! > 1580559962386460;
 }

@@ -34,8 +34,7 @@ class _InheritedSearchFilterDataWrapperState
   }
 }
 
-/// Use [InheritedSearchFilterDataWrapper] instead if using
-/// [InheritedSearchFilterData] as a parent widget
+// Prefer InheritedSearchFilterDataWrapper so the provider is disposed.
 class InheritedSearchFilterData extends InheritedWidget {
   const InheritedSearchFilterData({
     super.key,
@@ -43,7 +42,6 @@ class InheritedSearchFilterData extends InheritedWidget {
     required super.child,
   });
 
-  /// Pass null if gallery doesn't need hierarchical search
   final SearchFilterDataProvider? searchFilterDataProvider;
 
   bool get isHierarchicalSearchable =>

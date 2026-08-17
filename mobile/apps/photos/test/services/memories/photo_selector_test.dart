@@ -11,14 +11,8 @@ import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/services/memories/photo_selector.dart";
 
-// ---------------------------------------------------------------------------
-// Test helpers
-// ---------------------------------------------------------------------------
-
-/// Dimension of the fake CLIP embedding vectors used in tests.
 const _embDim = 16;
 
-/// Creates a minimal [EnteFile] with the given properties.
 EnteFile _file({
   required int uploadedFileID,
   required int creationTime,
@@ -34,12 +28,10 @@ EnteFile _file({
   return f;
 }
 
-/// Shorthand: wraps an [EnteFile] into a [Memory] with unseen state.
 Memory _mem(EnteFile f) => Memory(f, -1);
 
-/// Creates a deterministic "random" embedding for the given [fileID].
-/// Vectors created with distinct seeds will have low cosine similarity;
-/// vectors with the same seed will be identical (similarity = 1).
+// Equal seeds produce identical vectors; distinct seeds have low cosine
+// similarity.
 EmbeddingVector _emb(int fileID, {int? seed}) {
   final s = seed ?? fileID;
   final rng = Random(s);
@@ -52,10 +44,9 @@ EmbeddingVector _emb(int fileID, {int? seed}) {
   );
 }
 
-/// Creates an embedding that is *nearly identical* to [base] (similarity > 0.80).
+// Produces an embedding above the 0.80 near-duplicate threshold.
 EmbeddingVector _nearDuplicateEmb(int fileID, EmbeddingVector base) {
   final baseList = base.vector.toList();
-  // Add a tiny perturbation – keeps cosine similarity > 0.99.
   final perturbed = baseList
       .map((v) => v + (Random(fileID).nextDouble() - 0.5) * 0.01)
       .toList();
@@ -66,37 +57,27 @@ EmbeddingVector _nearDuplicateEmb(int fileID, EmbeddingVector base) {
   );
 }
 
-/// A unit vector used as the "positive text vector" for nostalgia scoring.
 Vector get _positiveTextVector {
   final raw = List<double>.generate(_embDim, (i) => (i + 1).toDouble());
   final norm = Vector.fromList(raw).norm();
   return Vector.fromList(raw.map((v) => v / norm).toList());
 }
 
-/// Microseconds per hour – handy for spacing creation times.
 const _hour = 3600 * 1000 * 1000;
 
-/// Base timestamp: 2023-06-15 12:00 UTC in microseconds since epoch.
 final _baseTime = DateTime.utc(2023, 6, 15, 12).microsecondsSinceEpoch;
 
-/// Returns a creation time [hours] after [_baseTime], in the given [year].
 int _timeInYear(int year, {int hours = 0}) {
   return DateTime.utc(year, 6, 15, 12 + hours).microsecondsSinceEpoch;
 }
 
-/// Builds the standard embedding map from a list of [EmbeddingVector]s.
 Map<int, EmbeddingVector> _embMap(List<EmbeddingVector> embeddings) {
   return {for (final e in embeddings) e.fileID: e};
 }
 
-/// Creates a simple [FaceWithoutEmbedding] for testing.
 FaceWithoutEmbedding _face(String faceID, int fileID) {
   return FaceWithoutEmbedding(faceID, fileID, 0.9, Detection.empty(), 50.0);
 }
-
-// ---------------------------------------------------------------------------
-// Utility function tests
-// ---------------------------------------------------------------------------
 
 void main() {
   group('PhotoSelector utilities', () {
@@ -125,20 +106,18 @@ void main() {
 
     test('isTooCloseInTime detects gap < 10 minutes', () {
       expect(
-        PhotoSelector.isTooCloseInTime(
-          _baseTime,
-          [_baseTime + 5 * 60 * 1000000], // 5 minutes apart
-        ),
+        PhotoSelector.isTooCloseInTime(_baseTime, [
+          _baseTime + 5 * 60 * 1000000,
+        ]),
         isTrue,
       );
     });
 
     test('isTooCloseInTime allows gap >= 10 minutes', () {
       expect(
-        PhotoSelector.isTooCloseInTime(
-          _baseTime,
-          [_baseTime + 15 * 60 * 1000000], // 15 minutes apart
-        ),
+        PhotoSelector.isTooCloseInTime(_baseTime, [
+          _baseTime + 15 * 60 * 1000000,
+        ]),
         isFalse,
       );
     });
@@ -179,7 +158,7 @@ void main() {
       final ids = result.map((m) => m.file.uploadedFileID).toList();
       expect(ids, contains(1));
       expect(ids, contains(3));
-      expect(ids, isNot(contains(2))); // near-duplicate of 1
+      expect(ids, isNot(contains(2)));
     });
 
     test('filterByTimeSpacing removes memories too close in time', () {
@@ -187,7 +166,7 @@ void main() {
         _mem(_file(uploadedFileID: 1, creationTime: _baseTime)),
         _mem(
           _file(uploadedFileID: 2, creationTime: _baseTime + 5 * 60 * 1000000),
-        ), // 5 min later
+        ),
         _mem(_file(uploadedFileID: 3, creationTime: _baseTime + _hour)),
       ];
       final result = PhotoSelector.filterByTimeSpacing(memories);
@@ -195,10 +174,6 @@ void main() {
       expect(ids, equals([1, 3]));
     });
   });
-
-  // -------------------------------------------------------------------------
-  // bestSelection – single-year path
-  // -------------------------------------------------------------------------
 
   group('PhotoSelector.bestSelection (single year)', () {
     test('returns input when count <= targetSize', () async {
@@ -219,12 +194,10 @@ void main() {
         fileIDToImageEmbedding: _embMap(embeddings),
         clipPositiveTextVector: _positiveTextVector,
       );
-      // Should return all 5 as-is (5 <= default target of 10).
       expect(result.length, equals(5));
     });
 
     test('limits output to targetSize', () async {
-      // 20 photos, all same year, target = 10
       final memories = List.generate(20, (i) {
         return _mem(
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
@@ -272,9 +245,7 @@ void main() {
     });
 
     test('no two selected photos are within minimumMemoryTimeGap', () async {
-      // Create 30 photos, some very close in time
       final memories = List.generate(30, (i) {
-        // Alternate: some 1 minute apart, some 1 hour apart
         final offset = (i.isEven ? i * _hour : (i - 1) * _hour + 60000000);
         return _mem(_file(uploadedFileID: i, creationTime: _baseTime + offset));
       });
@@ -334,13 +305,11 @@ void main() {
     );
 
     test('prioritizes files with named faces', () async {
-      // 20 photos, file 0 has a named face, others don't
       final memories = List.generate(20, (i) {
         return _mem(
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      // All files get the same CLIP embedding so CLIP score is equal
       final sharedEmb = _emb(0, seed: 42);
       final embeddings = memories.map((m) {
         return EmbeddingVector(
@@ -348,7 +317,6 @@ void main() {
           embedding: sharedEmb.vector.toList(),
         );
       }).toList();
-      // File 0 has a named face
       final fileIdToFaces = <int, List<FaceWithoutEmbedding>>{
         0: [_face('face_0', 0)],
       };
@@ -362,7 +330,6 @@ void main() {
         fileIDToImageEmbedding: _embMap(embeddings),
         clipPositiveTextVector: _positiveTextVector,
       );
-      // File 0 should be in the result because named faces are heavily prioritized
       expect(
         result.any((m) => m.file.uploadedFileID == 0),
         isTrue,
@@ -371,7 +338,6 @@ void main() {
     });
 
     test('excludes near-duplicate photos', () async {
-      // 20 photos: file 0 and file 1 are near-duplicates
       final e0 = _emb(0, seed: 100);
       final e1 = _nearDuplicateEmb(1, e0);
       final embeddings = <EmbeddingVector>[e0, e1];
@@ -392,7 +358,6 @@ void main() {
         fileIDToImageEmbedding: _embMap(embeddings),
         clipPositiveTextVector: _positiveTextVector,
       );
-      // Both 0 and 1 should not both be in the result
       final hasZero = result.any((m) => m.file.uploadedFileID == 0);
       final hasOne = result.any((m) => m.file.uploadedFileID == 1);
       expect(
@@ -403,13 +368,8 @@ void main() {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // bestSelection – multi-year path
-  // -------------------------------------------------------------------------
-
   group('PhotoSelector.bestSelection (multi year)', () {
     test('represents each year', () async {
-      // 3 years, 10 photos each
       final memories = <Memory>[];
       final embeddings = <EmbeddingVector>[];
       int id = 0;
@@ -445,7 +405,6 @@ void main() {
     });
 
     test('adjusts targetSize for many years', () async {
-      // 7 years (7*2 = 14 > 10), so targetSize becomes 7*3 = 21
       final memories = <Memory>[];
       final embeddings = <EmbeddingVector>[];
       int id = 0;
@@ -463,7 +422,6 @@ void main() {
           embeddings.add(_emb(fileID));
         }
       }
-      // 35 photos, 7 years. targetSize should be 21 when prefferedSize is null.
       final result = await PhotoSelector.bestSelection(
         memories,
         isLocalGalleryMode: false,
@@ -473,14 +431,12 @@ void main() {
         fileIDToImageEmbedding: _embMap(embeddings),
         clipPositiveTextVector: _positiveTextVector,
       );
-      // Should select more than default 10 since targetSize was raised
       expect(result.length, greaterThan(10));
     });
 
     test(
       'still filters close-in-time photos when expanded target matches count',
       () async {
-        // 7 years x 3 photos triggers the expanded targetSize of 21 exactly.
         final memories = <Memory>[];
         final embeddings = <EmbeddingVector>[];
         final fileIdToFaces = <int, List<FaceWithoutEmbedding>>{};
@@ -572,7 +528,6 @@ void main() {
     test(
       'round 0 does not filter duplicates (ensures year coverage)',
       () async {
-        // 2 years, 6 photos each. All photos are near-duplicates of each other.
         final base = _emb(0, seed: 42);
         final memories = <Memory>[];
         final embeddings = <EmbeddingVector>[];
@@ -600,8 +555,6 @@ void main() {
           fileIDToImageEmbedding: _embMap(embeddings),
           clipPositiveTextVector: _positiveTextVector,
         );
-        // Despite all being near-duplicates, both years should be represented
-        // because round 0 skips the duplicate check.
         final yearsRepresented = result.map((m) {
           return DateTime.fromMicrosecondsSinceEpoch(m.file.creationTime!).year;
         }).toSet();
@@ -617,7 +570,6 @@ void main() {
       for (final year in [2020, 2021, 2022]) {
         for (int i = 0; i < 10; i++) {
           final fileID = id++;
-          // Alternate close-in-time and spread
           final offset = i.isEven ? i * _hour : (i - 1) * _hour + 60000000;
           memories.add(
             _mem(
@@ -655,10 +607,6 @@ void main() {
       }
     });
   });
-
-  // -------------------------------------------------------------------------
-  // bestSelectionPeople
-  // -------------------------------------------------------------------------
 
   group('PhotoSelector.bestSelectionPeople', () {
     test('returns input when count <= targetSize', () async {
@@ -764,7 +712,6 @@ void main() {
     });
 
     test('distributes selection across the time range', () async {
-      // 30 photos spanning 30 hours
       final memories = List.generate(30, (i) {
         return _mem(
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
@@ -779,7 +726,6 @@ void main() {
         fileIDToImageEmbedding: _embMap(embeddings),
         clipPositiveTextVector: _positiveTextVector,
       );
-      // Check that selected photos span at least 80% of the original time range
       final times = result.map((m) => m.file.creationTime!).toList()..sort();
       final selectedRange = times.last - times.first;
       const totalRange = 29 * _hour;
@@ -791,8 +737,6 @@ void main() {
     });
 
     test('prefers geographically diverse photos', () async {
-      // 30 photos: 20 in New York, 10 in Tokyo. Target = 10.
-      // The algorithm should include some Tokyo photos for diversity.
       const nyLoc = Location(latitude: 40.7128, longitude: -74.0060);
       const tokyoLoc = Location(latitude: 35.6762, longitude: 139.6503);
       final memories = <Memory>[];
@@ -841,12 +785,12 @@ void main() {
     });
 
     test('handles photos without embeddings (littleEmbeddings path)', () async {
-      // 20 photos, but only 3 have embeddings (< 50% threshold)
       final memories = List.generate(20, (i) {
         return _mem(
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
+      // Three embeddings keep this below the 50% threshold.
       final embeddings = [_emb(0), _emb(5), _emb(15)];
       final result = await PhotoSelector.bestSelectionPeople(
         memories,
@@ -854,7 +798,6 @@ void main() {
         fileIDToImageEmbedding: _embMap(embeddings),
         clipPositiveTextVector: _positiveTextVector,
       );
-      // Should still produce a result (doesn't crash or return empty)
       expect(result.length, greaterThan(0));
       expect(result.length, lessThanOrEqualTo(10));
     });
@@ -862,7 +805,6 @@ void main() {
     test('filters memories without creationTime', () async {
       final memories = <Memory>[
         _mem(_file(uploadedFileID: 0, creationTime: _baseTime)),
-        // This one has no creation time
         _mem(
           EnteFile()
             ..uploadedFileID = 1
@@ -887,14 +829,9 @@ void main() {
         fileIDToImageEmbedding: _embMap(embeddings),
         clipPositiveTextVector: _positiveTextVector,
       );
-      // File 1 (no creationTime) should not be in result
       expect(result.any((m) => m.file.uploadedFileID == 1), isFalse);
     });
   });
-
-  // -------------------------------------------------------------------------
-  // Deterministic equivalence tests – verify exact output for fixed input
-  // -------------------------------------------------------------------------
 
   group('Deterministic equivalence (bestSelection)', () {
     test('single-year: produces same output on repeated calls', () async {
@@ -1025,10 +962,6 @@ void main() {
     );
   });
 
-  // -------------------------------------------------------------------------
-  // Unified select() API tests
-  // -------------------------------------------------------------------------
-
   group('PhotoSelector.select (unified API)', () {
     test('returns input when count <= targetSize', () async {
       final memories = List.generate(5, (i) {
@@ -1063,7 +996,6 @@ void main() {
             .map((m) => _emb(m.file.uploadedFileID!))
             .toList();
         final embMap = _embMap(embeddings);
-        // Score = fileID (so higher IDs are preferred)
         final scores = {
           for (final m in memories)
             m.file.uploadedFileID!: m.file.uploadedFileID!.toDouble(),
@@ -1081,7 +1013,6 @@ void main() {
           ),
         );
         expect(result.length, lessThanOrEqualTo(10));
-        // Should prefer higher-scored files
         expect(
           result.any((m) => m.file.uploadedFileID == 19),
           isTrue,
@@ -1117,14 +1048,12 @@ void main() {
         ),
       );
       expect(result.length, lessThanOrEqualTo(10));
-      // Check reverse chronological sort
       for (int i = 1; i < result.length; i++) {
         expect(
           result[i].file.creationTime!,
           lessThanOrEqualTo(result[i - 1].file.creationTime!),
         );
       }
-      // Check time spread
       final times = result.map((m) => m.file.creationTime!).toList()..sort();
       if (times.length > 1) {
         final selectedRange = times.last - times.first;

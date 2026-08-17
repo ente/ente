@@ -18,7 +18,6 @@ class FileUpdationDB {
 
   static const modificationTimeUpdated = 'modificationTimeUpdated';
 
-  // SQL code to create the database table
   static List<String> _createTable() {
     return [
       '''
@@ -52,16 +51,13 @@ class FileUpdationDB {
 
   static final FileUpdationDB instance = FileUpdationDB._privateConstructor();
 
-  // only have a single app-wide reference to the database
   static Future<Database>? _dbFuture;
 
   Future<Database> get database async {
-    // lazily instantiate the db the first time it is accessed
     _dbFuture ??= _initDatabase();
     return _dbFuture!;
   }
 
-  // this opens the database (and creates it if it doesn't exist)
   Future<Database> _initDatabase() async {
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();
@@ -117,7 +113,6 @@ class FileUpdationDB {
     ''');
   }
 
-  // check if entry existing for given localID and reason
   Future<bool> isExisting(String localID, String reason) async {
     final db = await instance.database;
     final String whereClause =
@@ -140,7 +135,6 @@ class FileUpdationDB {
     return result;
   }
 
-  // delete entries for given list of reasons
   Future<void> deleteByReasons(List<String> reasons) async {
     if (reasons.isEmpty) {
       return;

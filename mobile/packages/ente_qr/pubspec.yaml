@@ -18,9 +18,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-# The following section is specific to Flutter packages.
 flutter:
-  # This section identifies this Flutter project as a plugin project.
   plugin:
     platforms:
       android:

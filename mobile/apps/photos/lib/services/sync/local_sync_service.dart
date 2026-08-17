@@ -99,9 +99,8 @@ class LocalSyncService {
     _existingSync = Completer<void>();
     final int ownerID = Configuration.instance.getUserIDV2();
 
-    // We use a lock to prevent synchronisation to occur while it is downloading
-    // as this introduces wrong entry in FilesDB due to race condition
-    // This is a fix for https://github.com/ente/ente/issues/4296
+    // Local sync must not race downloads; that can create incorrect FilesDB
+    // rows.
     await _lock.synchronized(() async {
       final existingLocalFileIDs = await _db.getExistingLocalFileIDs(ownerID);
       _logger.info("${existingLocalFileIDs.length} localIDs were discovered");
@@ -116,7 +115,6 @@ class LocalSyncService {
           toTime: syncStartTime,
         );
       } else {
-        // Load from 0 - 01.01.2010
         Bus.instance.fire(
           SyncStatusUpdate(SyncStatus.startedFirstGalleryImport),
         );
@@ -176,8 +174,7 @@ class LocalSyncService {
       result,
       shouldBackup: backupPreferenceService.hasSelectedAllFoldersForBackup,
     );
-    // do not fire UI update event during first sync. Otherwise the next screen
-    // to shop the backup folder is skipped
+    // Firing this during first sync skips the backup-folder screen.
     if (hasUpdated && !isFirstSync) {
       Bus.instance.fire(BackupFoldersUpdatedEvent());
     }
@@ -306,8 +303,7 @@ class LocalSyncService {
       return;
     }
     if (Platform.isIOS && error.reason == InvalidReason.sourceFileMissing) {
-      // ignoreSourceFileMissing error on iOS as the file fetch from iCloud might have failed,
-      // but the file might be available later
+      // Do not persist this failure; iCloud may make the asset available later.
       return;
     }
     final reason = error.reason == InvalidReason.photosResourceUnavailable
@@ -330,9 +326,7 @@ class LocalSyncService {
     return _prefs.getBool(kHasCompletedFirstImportKey) ?? false;
   }
 
-  /// Treat the first import as "done" when flag-driven flows intentionally
-  /// bypass it (e.g., onboarding skipped or only-new backup). Falls back to the
-  /// stored completion value otherwise.
+  // Onboarding skips and only-new backup intentionally bypass the first import.
   bool hasCompletedFirstImportOrBypassed() {
     if (!isLocalGalleryMode &&
         Configuration.instance.hasConfiguredAccount() &&
@@ -356,8 +350,6 @@ class LocalSyncService {
 
     final List<EnteFile> files = result.item2;
     if (files.isNotEmpty) {
-      // Update the mapping for device path_id to local file id. Also, keep track
-      // of newly discovered device paths
       await FilesDB.instance.insertLocalAssets(
         result.item1,
         shouldAutoBackup:
@@ -371,10 +363,8 @@ class LocalSyncService {
             DateTime.fromMicrosecondsSinceEpoch(toTime).toString(),
       );
       await _trackUpdatedFiles(files, existingLocalDs);
-      // keep reference of all Files for firing LocalPhotosUpdatedEvent
       final List<EnteFile> allFiles = [];
       allFiles.addAll(files);
-      // remove existing files and insert newly imported files in the table
       files.removeWhere((file) => existingLocalDs.contains(file.localID));
       await _db.insertMultiple(
         files,
@@ -496,8 +486,7 @@ class LocalSyncService {
     }
     _isChangeCallbackRegistered = true;
     _changeCallbackDebouncer = Debouncer(const Duration(milliseconds: 500));
-    // In case of iOS limit permission, this call back is fired immediately
-    // after file selection dialog is dismissed.
+    // iOS fires this immediately after the limited-access picker closes.
     PhotoManager.addChangeCallback((value) async {
       _logger.info("Something changed on disk");
       _changeCallbackDebouncer.run(() async {

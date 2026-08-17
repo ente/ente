@@ -149,7 +149,6 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
     );
 
     Future<FileLoadResult> filterFiles() async {
-      //waiting for allFilesWithLocation to be initialized
       await fileLoadResult;
       final stopWatch = Stopwatch()..start();
       final filesInLocation = allFilesWithLocation;
@@ -171,7 +170,6 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
     }
 
     return FutureBuilder(
-      //rebuild gallery only when there is change in radius or center point
       key: ValueKey("$centerPoint$selectedRadius"),
       builder: (context, snapshot) {
         if (snapshot.hasData) {

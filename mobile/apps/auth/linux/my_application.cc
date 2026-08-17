@@ -51,7 +51,6 @@ static gboolean should_prefer_dark_theme()
   return g_strcmp0(color_scheme, "prefer-dark") == 0;
 }
 
-// Implements GApplication::activate.
 static void my_application_activate(GApplication *application)
 {
   MyApplication *self = MY_APPLICATION(application);
@@ -66,13 +65,6 @@ static void my_application_activate(GApplication *application)
   GtkWindow *window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
-  // Use a header bar when running in GNOME as this is the common style used
-  // by applications and is the setup most users will be using (e.g. Ubuntu
-  // desktop).
-  // If running on X and not using GNOME then just use a traditional title bar
-  // in case the window manager does more exotic layout, e.g. tiling.
-  // If running on Wayland assume the header bar will work (may need changing
-  // if future cases occur).
   gboolean use_header_bar = TRUE;
 
 #ifdef GDK_WINDOWING_X11
@@ -90,8 +82,6 @@ static void my_application_activate(GApplication *application)
 #ifdef GDK_WINDOWING_WAYLAND
   GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET(window));
   if (GDK_IS_WAYLAND_DISPLAY(display)) {
-    // Check the XDG_CURRENT_DESKTOP environment variable to determine the
-    // desktop environment.
     const gchar* current_desktop = g_getenv("XDG_CURRENT_DESKTOP");
     if (current_desktop != NULL && g_str_has_prefix(current_desktop, "GNOME")) {
       use_header_bar = TRUE;
@@ -137,11 +127,9 @@ static void my_application_activate(GApplication *application)
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
-// Implements GApplication::local_command_line.
 static gboolean my_application_local_command_line(GApplication *application, gchar ***arguments, int *exit_status)
 {
   MyApplication *self = MY_APPLICATION(application);
-  // Strip out the first argument as it is the binary name.
   self->dart_entrypoint_arguments = g_strdupv(*arguments + 1);
 
   g_autoptr(GError) error = nullptr;
@@ -158,27 +146,16 @@ static gboolean my_application_local_command_line(GApplication *application, gch
   return FALSE;
 }
 
-// Implements GApplication::startup.
 static void my_application_startup(GApplication *application)
 {
-  // MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application startup.
-
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
 
-// Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication *application)
 {
-  // MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application shutdown.
-
   G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
 }
 
-// Implements GObject::dispose.
 static void my_application_dispose(GObject *object)
 {
   MyApplication *self = MY_APPLICATION(object);
@@ -199,10 +176,7 @@ static void my_application_init(MyApplication *self) {}
 
 MyApplication *my_application_new()
 {
-  // Set the program name to the application ID, which helps various systems
-  // like GTK and desktop environments map this running application to its
-  // corresponding .desktop file. This ensures better integration by allowing
-  // the application to be recognized beyond its binary name.
+  // Match the running process to its desktop file.
   g_set_prgname(APPLICATION_ID);
 
   return MY_APPLICATION(g_object_new(my_application_get_type(),

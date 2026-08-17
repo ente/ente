@@ -146,7 +146,6 @@ class EnteAlbumsWidgetProvider : HomeWidgetProvider() {
                                                                 subText
                                                         )
                                                 } else {
-                                                        // Open App on Widget Click
                                                         val deepLinkUri =
                                                                 Uri.parse(
                                                                         "albumwidget://configure?homeWidget"

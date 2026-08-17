@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-// Used to store layout information for a section (group) in a gallery
-
 class FixedExtentSectionLayout {
   final double tileHeight, mainAxisStride;
   final int firstIndex, lastIndex, bodyFirstIndex;

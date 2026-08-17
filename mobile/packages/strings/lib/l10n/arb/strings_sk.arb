@@ -528,8 +528,6 @@
   "ocrModelsNetworkRequiredError": "Na prvé použitie je potrebné internetové pripojenie na stiahnutie OCR modelov",
   "ocrModelsPrepareFailed": "Nepodarilo sa pripraviť OCR modely",
   "ocrNoTextDetected": "Žiadny text nebol rozpoznaný",
-  "ocrProcessingOverlayMessage": "Rozpoznávanie textu…",
-  "ocrSelectionHint": "Potiahnite prstom alebo dvojitým klepnutím vyberte iba to, čo potrebujete",
   "offlineModeWarning": "Rozhodli ste sa pokračovať bez zálohovania. Prosím, vykonávajte pravidelné manuálne zálohy aby ste mali istotu, že kódy nestratíte.",
   "oops": "Ups",
   "@oops": {

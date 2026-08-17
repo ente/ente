@@ -3,7 +3,6 @@ import "package:photos/models/gallery_type.dart";
 import "package:photos/ui/viewer/gallery/component/group/type.dart";
 
 class GalleryContextState extends InheritedWidget {
-  ///Sorting by creation time
   final bool sortOrderAsc;
   final bool inSelectionMode;
   final GroupType type;

@@ -26,7 +26,6 @@ class ReplyPreviewWidget extends StatelessWidget {
     final textTheme = getEnteTextTheme(context);
 
     return Container(
-      // padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
       padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
       decoration: const BoxDecoration(
         color: Colors.transparent,

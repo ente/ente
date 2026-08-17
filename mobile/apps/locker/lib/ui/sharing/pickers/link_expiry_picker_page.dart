@@ -42,7 +42,6 @@ class ItemsWidget extends StatefulWidget {
 }
 
 class _ItemsWidgetState extends State<ItemsWidget> {
-  // index, title, milliseconds in future post which link should expire (when >0)
   late final List<Tuple2<String, int>> _expiryOptions = [
     Tuple2(context.strings.never, 0),
     Tuple2(context.strings.after1Hour, const Duration(hours: 1).inMicroseconds),
@@ -81,7 +80,6 @@ class _ItemsWidgetState extends State<ItemsWidget> {
       onTap: () async {
         int newValidTill = -1;
         final int expireAfterInMicroseconds = expiryOption.item2;
-        // need to manually select time
         if (expireAfterInMicroseconds < 0) {
           final now = DateTime.now();
           final DateTime? picked = await showDateTimePickerSheet(
@@ -94,7 +92,6 @@ class _ItemsWidgetState extends State<ItemsWidget> {
             newValidTill = timeInMicrosecondsFromEpoch;
           }
         } else if (expireAfterInMicroseconds == 0) {
-          // no expiry
           newValidTill = 0;
         } else {
           newValidTill =

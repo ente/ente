@@ -106,7 +106,6 @@ class Configuration extends BaseConfiguration
     await _preferences.setBool(hasOptedForOfflineModeKey, true);
   }
 
-  // Backup password methods
   Future<String?> getBackupPassword() async {
     return _secureStorage.read(key: autoBackupPasswordKey);
   }

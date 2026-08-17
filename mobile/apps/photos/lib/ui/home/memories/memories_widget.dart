@@ -29,9 +29,7 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
   late double _memoryheight;
   late double _memoryWidth;
 
-  // Cover-warming: delay the first pass so we don't contend with home-screen
-  // first-frame work, and restart whenever a new memory set arrives. The
-  // generation counter makes any stale timer's eventual fire a no-op.
+  // Delay cover warming past startup; generations invalidate stale work.
   Timer? _warmTimer;
   int _warmGeneration = 0;
   String? _lastWarmSignature;
@@ -149,8 +147,7 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
     );
   }
 
-  // Orders the memories for the strip: unseen first, then seen. Shared between
-  // the prefetch pass and the UI so they agree on each visual slot.
+  // Keep prefetch and UI on the same unseen-first ordering.
   List<SmartMemory> _orderForStrip(List<SmartMemory> memories) {
     final List<SmartMemory> orderedMemories = [];
     final List<SmartMemory> seen = [];
@@ -210,11 +207,7 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
         .join(',');
   }
 
-  // Kill any pending or in-flight warm pass: cancels the delay timer, bumps
-  // the generation so a running warmMemoryCovers loop exits at its next
-  // stillActive check, clears pending video work, and clears the last-warmed
-  // marker so a subsequent dataset re-schedules even if it's the same
-  // reference as before.
+  // Invalidate in-flight work and allow the same dataset to be scheduled again.
   void _cancelPendingWarm() {
     _warmTimer?.cancel();
     _warmTimer = null;

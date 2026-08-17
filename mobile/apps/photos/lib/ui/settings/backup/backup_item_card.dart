@@ -32,7 +32,6 @@ class _BackupItemCardState extends State<BackupItemCard> {
     super.initState();
     folderName = widget.item.file.deviceFolder ?? '';
 
-    // Delay rendering of the thumbnail for 0.5 seconds
     Timer(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
@@ -88,9 +87,7 @@ class _BackupItemCardState extends State<BackupItemCard> {
                         widget.item.file,
                         shouldShowSyncStatus: false,
                       )
-                    : Container(
-                        color: colorScheme.fillFaint, // Placeholder color
-                      ),
+                    : Container(color: colorScheme.fillFaint),
               ),
             ),
             const SizedBox(width: 12),

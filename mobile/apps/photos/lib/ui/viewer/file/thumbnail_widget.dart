@@ -33,7 +33,6 @@ class ThumbnailWidget extends StatefulWidget {
   final EnteFile file;
   final BoxFit fit;
 
-  /// Returns ThumbnailWidget without any overlay icons if true.
   final bool rawThumbnail;
   final bool shouldShowSyncStatus;
   final bool showFavForAlbumOnly;
@@ -47,8 +46,6 @@ class ThumbnailWidget extends StatefulWidget {
   final bool shouldShowFavoriteIcon;
   final Color? placeholderColor;
 
-  ///On video thumbnails, shows the video duration if true. If false,
-  ///shows a centered play icon.
   final bool shouldShowVideoDuration;
   final bool shouldShowVideoOverlayIcon;
 
@@ -113,7 +110,6 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
           smallLocalThumbnailQueue.removeTask(_localThumbnailQueueTaskId!);
         }
       }
-      // Cancel request only if the widget has been unmounted
       if (!mounted && widget.file.isRemoteOnlyFile && !_hasLoadedThumbnail) {
         removePendingGetThumbnailRequestIfAny(widget.file);
       }
@@ -165,8 +161,6 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
     );
   }
 
-  ///Assigned dimension will be the size of a grid item. The size will be
-  ///assigned to the side which is smaller in dimension.
   void assignOptimizedImageDimensions() {
     if (widget.file.width == 0 || widget.file.height == 0) {
       return;
@@ -377,7 +371,6 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
         .catchError((e) {
           _errorLoadingLocalThumbnail = true;
           if (e is WidgetUnmountedException) {
-            // Widget was unmounted - this is expected behavior
             _logger.fine(
               "Thumbnail loading cancelled: widget unmounted for localID: ${widget.file.localID}",
             );
@@ -396,13 +389,11 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
       try {
         return await _getLocalThumbnailUsingHeapPriorityQueue();
       } catch (e) {
-        // only retry for specific exceptions
         if (e is! TaskQueueTimeoutException &&
             e is! TaskQueueOverflowException &&
             e is! TaskQueueCancelledException) {
           rethrow;
         }
-        //Do not retry if the widget is not mounted
         if (!mounted) {
           throw WidgetUnmountedException(
             "Thumbnail loading cancelled: widget unmounted",
@@ -418,7 +409,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
             "Error getting local thumbnail for ${widget.file.displayName} (localID: ${widget.file.localID}) due to ${e.runtimeType}, retrying (attempt $retryAttempts) in ${backoff.inMilliseconds} ms",
             e,
           );
-          await Future.delayed(backoff); // Exponential backoff
+          await Future.delayed(backoff);
         } else {
           rethrow;
         }

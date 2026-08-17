@@ -30,11 +30,8 @@ Future<void> showVerifyIdentitySheet(
 }
 
 class _VerifyIdentitySheetContent extends StatefulWidget {
-  // email id of the user who's verification ID is being displayed for
-  // verification
   final String email;
 
-  // self is true when the user is viewing their own verification ID
   final bool self;
 
   _VerifyIdentitySheetContent({required this.self, this.email = ''}) {
@@ -129,7 +126,6 @@ class _VerifyIdentitySheetContentState
       widget.email,
     );
     if (userPublicKey == null) {
-      // user not found
       return "";
     }
     return userPublicKey;

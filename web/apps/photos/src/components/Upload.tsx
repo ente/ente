@@ -22,7 +22,7 @@ import {
 import watcher from "@/services/watch";
 import DiscFullIcon from "@mui/icons-material/DiscFull";
 import { Dialog, type DialogProps } from "@mui/material";
-import type { LocalUser } from "ente-accounts-rs/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
 import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import {

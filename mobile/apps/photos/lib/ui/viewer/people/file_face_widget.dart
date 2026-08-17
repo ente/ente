@@ -17,7 +17,6 @@ final _logger = Logger("FaceWidget");
 class FileFaceWidget extends StatefulWidget {
   final EnteFile file;
 
-  // Data to find the right face, in order of preference
   final Uint8List? faceCrop;
   final Face? face;
   final String? clusterID;
@@ -25,14 +24,7 @@ class FileFaceWidget extends StatefulWidget {
   final bool useFullFile;
   final bool thumbnailFallback;
 
-  /// Physical pixel width for image decoding optimization.
-  ///
-  /// When provided and > 0, the image will be decoded at this width, with height
-  /// computed to preserve aspect ratio. This reduces memory usage for small displays.
-  ///
-  /// Typically calculated as: `(logicalWidth * MediaQuery.devicePixelRatioOf(context)).toInt()`
-  ///
-  /// If null or <= 0, the image is decoded at full resolution.
+  // Physical pixels; null or non-positive decodes at full resolution.
   final int? cachedPixelWidth;
 
   const FileFaceWidget(
@@ -79,9 +71,8 @@ class _FileFaceWidgetState extends State<FileFaceWidget> {
       future: faceCropFuture,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          // Only cacheWidth (not cacheHeight) to preserve aspect ratio.
-          // Face crops are typically portrait, so constraining width ensures
-          // sufficient height for BoxFit.cover without upscaling.
+          // Decode by width only so portrait crops retain enough height for
+          // BoxFit.cover without upscaling.
           final shouldOptimize =
               widget.cachedPixelWidth != null && widget.cachedPixelWidth! > 0;
           final ImageProvider imageProvider = shouldOptimize

@@ -18,7 +18,6 @@ Uint8List _unGzipUInt8List(Uint8List compressedData) {
   return Uint8List.fromList(decompressedList);
 }
 
-// gzipUInt8List
 Uint8List _gzipUInt8List(Uint8List data) {
   final codec = GZipCodec();
   final compressedData = codec.encode(data);
@@ -55,7 +54,6 @@ Map<String, dynamic> decryptAndUnzipJsonSync(
   return jsonDecode(json);
 }
 
-// zipJsonAndEncryptSync performs all operations synchronously, on a single isolate.
 ChaChaEncryptionResult gzipAndEncryptJsonSync(
   Map<String, dynamic> jsonData,
   Uint8List key,

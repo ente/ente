@@ -8,9 +8,7 @@ class FreeableSpaceInfo {
 class FreeableFileIDs {
   final List<String> localIDs;
   final List<int> uploadedIDs;
-  // localSize indicates the approximate size of the files on the device.
-  // The size may not be exact because the remoteFile is encrypted before
-  // uploaded
+  // Approximate device size; the stored size is for the encrypted upload.
   final int localSize;
 
   FreeableFileIDs(this.localIDs, this.uploadedIDs, this.localSize);

@@ -2142,6 +2142,7 @@
       }
     }
   },
+  "menubarMode": "Chế độ thanh menu",
   "message": "Nội dung tin nhắn",
   "minimizeAppOnCopy": "Thu nhỏ khi sao chép",
   "minimizeToTrayOnClose": "Thu nhỏ xuống khay khi đóng",
@@ -2342,8 +2343,6 @@
   "ocrModelsNetworkRequiredError": "Cần có kết nối mạng để tải xuống các mô hình OCR khi sử dụng lần đầu",
   "ocrModelsPrepareFailed": "Không thể chuẩn bị các mô hình OCR",
   "ocrNoTextDetected": "Không phát hiện văn bản",
-  "ocrProcessingOverlayMessage": "Đang phát hiện văn bản...",
-  "ocrSelectionHint": "Vuốt hoặc nhấn đúp để chọn chính xác những gì bạn cần",
   "offlineEnableBackupTagLabel": "10 GB MIỄN PHÍ!",
   "offlineFacesBannerSubtitle": "Đăng ký để gắn thẻ mọi người và dễ dàng tìm họ sau.",
   "offlineFacesBannerTitle": "Muốn lưu những khuôn mặt này?",
@@ -2935,6 +2934,7 @@
     "description": "Reset password title"
   },
   "resetToDefault": "Đặt lại mặc định",
+  "restartAppToApplyChanges": "Khởi động lại ứng dụng để áp dụng thay đổi",
   "@resetToDefault": {
     "description": "Button text to reset cover photo to default"
   },
@@ -3838,6 +3838,7 @@
   },
   "unpinPerson": "Bỏ ghim người này",
   "unpinText": "Bỏ ghim",
+  "unsavedChangesDescription": "Bạn có thay đổi chưa lưu. Nếu quay lại bây giờ, chúng sẽ bị mất.",
   "unsavedNoteChangesDescription": "Ban co thay doi chua luu trong ghi chu nay. Neu quay lai bay gio, chung se bi mat.",
   "unsavedNoteChangesTitle": "Huy bo thay doi?",
   "unselectAll": "Bỏ chọn tất cả",

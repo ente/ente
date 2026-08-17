@@ -72,35 +72,6 @@ class _MagicSectionState extends State<MagicSection> {
   @override
   Widget build(BuildContext context) {
     if (_magicSearchResults.isEmpty) {
-      // final textTheme = getEnteTextTheme(context);
-      // return Padding(
-      //   padding: const EdgeInsets.only(left: 12, right: 8),
-      //   child: Row(
-      //     children: [
-      //       Expanded(
-      //         child: Column(
-      //           crossAxisAlignment: CrossAxisAlignment.start,
-      //           children: [
-      //             Text(
-      //               SectionType.magic.sectionTitle(context),
-      //               style: textTheme.largeBold,
-      //             ),
-      //             const SizedBox(height: 24),
-      //             Padding(
-      //               padding: const EdgeInsets.only(left: 4),
-      //               child: Text(
-      //                 SectionType.magic.getEmptyStateText(context),
-      //                 style: textTheme.smallMuted,
-      //               ),
-      //             ),
-      //           ],
-      //         ),
-      //       ),
-      //       const SizedBox(width: 8),
-      //       const SearchSectionEmptyCTAIcon(SectionType.magic),
-      //     ],
-      //   ),
-      // );
       return const SizedBox.shrink();
     } else {
       final visibleResults = _magicSearchResults

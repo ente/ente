@@ -2,18 +2,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-/// A widget that detects when a touch pointer crosses its boundaries during a drag.
-///
-/// This widget solves the problem where on touch platforms, only the widget that
-/// receives the initial touch gets subsequent drag events. TouchCrossDetector uses
-/// a global listener to track all pointer movements and performs hit testing to
-/// determine when pointers enter or exit widget boundaries.
-///
-/// Note: onEnter, onHover and onPointerDown callbacks are not only triggered
-/// when the pointer is dragged into the widget, but also when the pointer
-/// is initially pressed down within the widget's bounds. Same applies for onExit
-/// when the pointer is released within the widget's bounds.
-
+// Flutter sends a drag only to the widget where it began. Track the pointer
+// globally so widgets can detect it crossing their boundaries.
+// Pressing inside reports enter and hover; releasing inside reports exit.
 class TouchCrossDetector extends SingleChildRenderObjectWidget {
   const TouchCrossDetector({
     super.key,
@@ -117,7 +108,6 @@ class RenderTouchCrossDetector extends RenderProxyBox {
     if (isInside) {
       _activePointers.add(event.pointer);
       _onPointerDown?.call(event);
-      // Also trigger enter event for initial touch
       _onEnter?.call(
         PointerEnterEvent(
           position: event.position,
@@ -188,7 +178,6 @@ class RenderTouchCrossDetector extends RenderProxyBox {
   }
 }
 
-/// Global tracker for RenderObject-based implementation
 class _TouchCrossRenderTracker {
   _TouchCrossRenderTracker._() {
     GestureBinding.instance.pointerRouter.addGlobalRoute(_handlePointerEvent);
@@ -210,7 +199,6 @@ class _TouchCrossRenderTracker {
   void _handlePointerEvent(PointerEvent event) {
     if (event is PointerDownEvent) {
       _activePointers.add(event.pointer);
-      // Handle pointer down to initialize swipe selection
       for (final renderObject in _trackedRenderObjects) {
         renderObject.handlePointerDown(event);
       }
@@ -220,7 +208,6 @@ class _TouchCrossRenderTracker {
         if (event is PointerUpEvent) {
           renderObject.handlePointerUp(event);
         } else if (event is PointerCancelEvent) {
-          // Also handle cancel events to ensure cleanup
           renderObject.handlePointerCancel(event);
         }
       }

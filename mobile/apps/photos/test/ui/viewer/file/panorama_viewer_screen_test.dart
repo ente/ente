@@ -154,7 +154,6 @@ void main() {
       expect(pano.initialView!.longitude, closeTo(125.81, 0.01));
       expect(pano.initialView!.latitude, closeTo(13.09, 0.01));
 
-      // Let the auto-hide timer fire and dispose the screen.
       await tester.pump(const Duration(seconds: 6));
       await tester.pumpWidget(const SizedBox());
     },

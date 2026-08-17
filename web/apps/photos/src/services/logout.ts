@@ -2,7 +2,7 @@ import exportService from "@/services/export";
 import {
     accountLogout,
     logoutClearStateAgain,
-} from "ente-accounts-rs/services/logout";
+} from "ente-accounts/services/logout";
 import log from "ente-base/log";
 import { resetSaveGroups } from "ente-gallery/components/utils/save-groups";
 import { logoutFileViewerDataSource } from "ente-gallery/components/viewer/data-source";

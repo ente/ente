@@ -1,7 +1,3 @@
-#
-# To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
-# Run `pod lib lint ente_rust.podspec` to validate before publishing.
-#
 Pod::Spec.new do |s|
   s.name             = 'ente_rust'
   s.version          = '0.0.1'

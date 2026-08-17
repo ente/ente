@@ -19,10 +19,8 @@ enum FilterTypeNames {
 }
 
 abstract class HierarchicalSearchFilter {
-  //These matches should be from list of all files in db and not just all files
-  //in gallery since this is used as cache for faster filtering when
-  //adding/removing applied filters.
   final String filterTypeName;
+  // Match every database file so removing another filter can restore results.
   final Set<int> matchedUploadedIDs;
   bool isApplied = false;
 

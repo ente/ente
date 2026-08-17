@@ -19,9 +19,8 @@ typedef _LivePhotoVideoData = ({File file, String fileHash});
 
 final _logger = Logger('LivePhotoUpload');
 
-/// Uploads may prepare several files concurrently. Keep this per-file pipeline
-/// sequential to limit duplicate reads and I/O pressure. If Live Photo imports
-/// become a bottleneck, profile the shared worker queue before parallelizing it.
+// Uploads may prepare several files concurrently. Keep this per-file pipeline
+// sequential to limit duplicate reads and I/O pressure.
 Future<LivePhotoUploadData> prepareLivePhotoForUpload(
   EnteFile file,
   File imageFile,

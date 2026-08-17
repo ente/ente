@@ -49,14 +49,12 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
   late final Logger _logger = Logger('_PersonClustersState');
   late final mlDataDB = MLDataDB.instance;
 
-  // Declare a variable for the future
   late Future<List<ClusterSuggestion>> futureClusterSuggestions;
   StreamSubscription<PeopleChangedEvent>? _peopleChangedEvent;
 
   @override
   void initState() {
     super.initState();
-    // Initialize the future in initState
     _fetchClusterSuggestions();
   }
 
@@ -277,11 +275,9 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
     bool yesOrNo,
     int numberOfSuggestions,
   ) async {
-    // Perform the action based on clusterID, e.g., assignClusterToPerson or captureNotPersonFeedback
     if (!canGiveFeedback) {
       return;
     }
-    // Store the feedback in case the user wants to revert
     pastUserFeedback.add(
       SuggestionUserFeedback(yesOrNo, allSuggestions[currentSuggestionIndex]),
     );
@@ -292,17 +288,14 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
         clusterID: clusterID,
       );
       _notifySuggestionReviewed();
-      // Increment the suggestion index
       if (mounted) {
         setState(() => currentSuggestionIndex++);
       }
 
-      // Check if we need to fetch new data
       if (currentSuggestionIndex >= (numberOfSuggestions)) {
         setState(() {
           currentSuggestionIndex = 0;
-          futureBuilderKeySuggestions =
-              UniqueKey(); // Reset to trigger FutureBuilder
+          futureBuilderKeySuggestions = UniqueKey();
           futureBuilderKeyFaceThumbnails = UniqueKey();
           _fetchClusterSuggestions();
         });
@@ -325,11 +318,9 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
       clusterID: clusterID,
     );
     _notifySuggestionReviewed();
-    // Recalculate the suggestions when a suggestion is rejected
     setState(() {
       currentSuggestionIndex = 0;
-      futureBuilderKeySuggestions =
-          UniqueKey(); // Reset to trigger FutureBuilder
+      futureBuilderKeySuggestions = UniqueKey();
       futureBuilderKeyFaceThumbnails = UniqueKey();
       _fetchClusterSuggestions();
     });
@@ -387,7 +378,6 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
     }
   }
 
-  // Method to fetch cluster suggestions
   void _fetchClusterSuggestions() {
     debugPrint("Fetching suggestions for ${widget.person.data.name}");
     futureClusterSuggestions = ClusterFeedbackService.instance
@@ -419,7 +409,6 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
         const SizedBox(height: 24.0),
       ],
     );
-    // Precompute face thumbnails for next suggestions, in case there are
     precomputeFaceCrops();
     return widgetToReturn;
   }
@@ -460,7 +449,6 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
             ],
           );
         } else if (snapshot.hasError) {
-          // log the error
           return Center(child: Text(context.strings.error));
         } else {
           canGiveFeedback = false;

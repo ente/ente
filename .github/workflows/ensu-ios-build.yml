@@ -3,8 +3,8 @@ name: "Build (Ensu iOS)"
 on:
     pull_request:
         paths:
-            - "mobile/native/apple/apps/ensu/**"
-            - "mobile/native/apple/packages/EnteOnnxRuntime/**"
+            - "apple/apps/ensu/**"
+            - "apple/packages/EnteOnnxRuntime/**"
             - "rust/apps/codegen/**"
             - "rust/crates/core/**"
             - "rust/crates/ensu/**"
@@ -42,5 +42,5 @@ jobs:
 
             # PRs lack inference fixtures, so this only tests build and startup.
             - name: Build and test Ensu
-              working-directory: mobile/native/apple/apps/ensu
+              working-directory: apple/apps/ensu
               run: xcodebuild test -scheme Ensu -destination 'platform=iOS Simulator,name=iPhone 17'

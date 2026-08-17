@@ -8,7 +8,6 @@ class WebPage extends StatefulWidget {
   final String title;
   final String url;
 
-  // if true, show open in browser  icon in appBar
   final bool canOpenInBrowser;
 
   const WebPage(
@@ -30,7 +29,7 @@ class _WebPageState extends State<WebPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // force dark theme for appBar till website/family plans add supports for light theme
+        // Keep the app bar dark until the website supports a light theme.
         backgroundColor: const Color.fromRGBO(10, 20, 20, 1.0),
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),

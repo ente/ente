@@ -41,7 +41,7 @@ impl SrpSession {
         let client = ClientG4096::<Sha256>::new();
 
         let mut a_private = vec![0u8; 64];
-        getrandom::getrandom(&mut a_private)
+        getrandom::fill(&mut a_private)
             .map_err(|e| Error::Srp(format!("Failed to generate random bytes: {}", e)))?;
 
         let a_public = client.compute_public_ephemeral(&a_private);
@@ -266,7 +266,6 @@ mod tests {
 
     #[test]
     fn test_sensitive_buffers_zeroized_after_compute_m1() {
-        use rand_core::RngCore;
         use srp::ServerG4096;
 
         let srp_user_id = "test-user-id";
@@ -278,7 +277,7 @@ mod tests {
 
         let server = ServerG4096::<Sha256>::new();
         let mut b = [0u8; 64];
-        rand_core::OsRng.fill_bytes(&mut b);
+        getrandom::fill(&mut b).unwrap();
         let b_pub = server.compute_public_ephemeral(&b, &verifier);
 
         let mut session = SrpSession::new(srp_user_id, &srp_salt, &login_key).unwrap();
@@ -290,7 +289,6 @@ mod tests {
 
     #[test]
     fn test_m1_and_k_zeroized_via_drop_impl() {
-        use rand_core::RngCore;
         use srp::ServerG4096;
         use zeroize::Zeroize;
 
@@ -303,7 +301,7 @@ mod tests {
 
         let server = ServerG4096::<Sha256>::new();
         let mut b = [0u8; 64];
-        rand_core::OsRng.fill_bytes(&mut b);
+        getrandom::fill(&mut b).unwrap();
         let b_pub = server.compute_public_ephemeral(&b, &verifier);
 
         let mut session = SrpSession::new(srp_user_id, &srp_salt, &login_key).unwrap();

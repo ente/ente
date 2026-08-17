@@ -43,7 +43,6 @@ class PublicURL {
 
   bool get hasExpiry => validTill != 0;
 
-  // isExpired indicates whether the link has expired or not
   bool get isExpired =>
       hasExpiry && validTill < DateTime.now().microsecondsSinceEpoch;
 

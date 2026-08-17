@@ -13,18 +13,15 @@ class TextEmbeddingsCacheService {
     final mlDataDB = isLocalGalleryMode
         ? MLDataDB.localGalleryInstance
         : MLDataDB.instance;
-    // 1. Check database cache
     final dbResult = await mlDataDB.getRepeatedTextEmbeddingCache(query);
     if (dbResult != null) {
       _logger.info('Text embedding cache hit for query');
       return dbResult;
     }
 
-    // 2. Compute new embedding
     _logger.info('Computing new text embedding for query');
     final embedding = await MLComputer.instance.runClipText(query);
 
-    // 3. Store in database cache
     await mlDataDB.putRepeatedTextEmbeddingCache(query, embedding);
 
     return embedding;

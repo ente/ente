@@ -417,10 +417,8 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     }
   }
 
-  // todo: In the new design, clicking on free up space will directly open
-  // the free up space page and show loading indicator while calculating
-  // the space which can be claimed up. This code duplication should be removed
-  // whenever we move to the new design for free up space.
+  // TODO: Remove this duplicate flow when the new design opens the
+  // free-up-space page directly and calculates there.
   Future<dynamic> _deleteBackedUpFiles(BuildContext context) async {
     final dialog = createProgressDialog(context, context.strings.calculating);
     await dialog.show();
@@ -479,7 +477,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
   List<Widget> _getDefaultActions(BuildContext context) {
     final List<Widget> actions = <Widget>[];
-    // If the user has selected files, don't show any actions
     if (widget.selectedFiles.files.isNotEmpty ||
         !Configuration.instance.hasConfiguredAccount()) {
       return actions;
@@ -1051,7 +1048,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
   }
 
   Future<void> _trashCollection() async {
-    // Fetch the count by-passing the cache to avoid any stale data
     final int count = await CollectionsService.instance.getFileCount(
       widget.collection!,
       useCache: false,
@@ -1217,13 +1213,10 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
   Future<void> _onGalleryGuestViewClick() async {
     if (await LocalAuthentication().isDeviceSupported()) {
-      // Get all files from the collection with proper sort order
       late final List<EnteFile> collectionFiles;
       if (widget.files != null) {
-        // If files are already provided, use them
         collectionFiles = widget.files!;
       } else if (widget.collection != null) {
-        // Fetch all files from the collection
         final filesResult = await FilesDB.instance.getFilesInCollection(
           widget.collection!.id,
           galleryLoadStartTime,
@@ -1243,7 +1236,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         return;
       }
 
-      // Use the same logic as selected files guest view
       final page = DetailPage(
         DetailPageConfiguration(
           collectionFiles,

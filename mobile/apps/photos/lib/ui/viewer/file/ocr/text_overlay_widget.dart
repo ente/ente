@@ -18,7 +18,6 @@ const double _kHighlightVerticalPadding = 1.6;
 const double _kHighlightCornerRadius = 4.0;
 const double _kHighlightLineToleranceFactor = 0.7;
 
-/// Controller that surfaces imperative actions for [TextOverlayWidget].
 class TextOverlayController {
   _TextOverlayWidgetState? _state;
 
@@ -34,8 +33,6 @@ class TextOverlayController {
 
   bool get hasActiveSelection => _state?._hasActiveSelection ?? false;
 
-  /// Queue a position to auto-select when the overlay is ready.
-  /// The selection happens after block visuals are computed.
   Offset? _pendingAutoSelectPosition;
 
   void selectTextAtPosition(Offset globalPosition) {
@@ -43,7 +40,6 @@ class TextOverlayController {
     if (state != null && state._blockVisuals.isNotEmpty) {
       state._selectTextAtGlobalPosition(globalPosition);
     } else {
-      // Block visuals aren't ready yet; store for later.
       _pendingAutoSelectPosition = globalPosition;
     }
   }
@@ -72,7 +68,6 @@ class TextOverlayController {
   }
 }
 
-/// Renders selectable OCR text over the image displayed by the Photos viewer.
 class TextOverlayWidget extends StatefulWidget {
   final Size imageSize;
   final List<TextBlock> textBlocks;
@@ -193,9 +188,8 @@ class _TextOverlayWidgetState extends State<TextOverlayWidget> {
         _scheduleMetricsRebuild(constraints);
         final Widget? copyButton = _buildCopyHandleButton(constraints);
 
-        // All visual content shares the same KeyedSubtree so coordinates
-        // are consistent. Text boundaries are in IgnorePointer; selection
-        // handles and copy button are outside it so they can be touched.
+        // Keep all visuals in one coordinate space. Text ignores pointers;
+        // handles and the copy button remain interactive.
         final Widget visualLayer = KeyedSubtree(
           key: _overlayCoordinateKey,
           child: Stack(
@@ -214,9 +208,6 @@ class _TextOverlayWidgetState extends State<TextOverlayWidget> {
           ),
         );
 
-        // Gesture layer: only intercepts touches on text regions
-        // or selection handles. Uses a custom RenderBox that returns
-        // false from hitTest unless the position passes the check.
         final Widget gestureLayer = _TextRegionHitTestBox(
           hitTest: _isPositionOnGestureLayer,
           child: RawGestureDetector(
@@ -1955,8 +1946,6 @@ class _TextOverlayWidgetState extends State<TextOverlayWidget> {
     return true;
   }
 
-  /// Select the word at [globalPosition] if there is text there.
-  /// Falls back to the nearest text block if the exact position has no text.
   bool _selectTextAtGlobalPosition(Offset globalPosition) {
     final scenePoint = _sceneFromGlobal(globalPosition);
     if (scenePoint == null) {
@@ -2486,10 +2475,7 @@ class _EditableBlockPainter extends CustomPainter {
   }
 }
 
-/// A [SingleChildRenderObjectWidget] whose render object only reports a hit
-/// when the touch position passes the provided [hitTest] callback. This lets
-/// the overlay be invisible to Flutter's hit-test tree for most of the screen
-/// area, so the underlying PageView / PhotoView receives swipes and taps.
+// Reject hits outside text so PageView and PhotoView receive the gesture.
 class _TextRegionHitTestBox extends SingleChildRenderObjectWidget {
   final bool Function(Offset globalPosition) hitTest;
 
@@ -2524,9 +2510,7 @@ class _RenderTextRegionHitTestBox extends RenderProxyBox {
   }
 }
 
-/// A [LongPressGestureRecognizer] that only accepts when the press
-/// position is on a text region. If not on text, it rejects so that
-/// competing recognizers (e.g. motion photo playback) can win.
+// Reject long presses outside text so motion-photo playback can win.
 class _TextRegionLongPressRecognizer extends LongPressGestureRecognizer {
   bool Function(Offset globalPosition) hitTestBlock;
 

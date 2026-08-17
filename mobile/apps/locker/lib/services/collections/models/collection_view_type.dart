@@ -34,7 +34,6 @@ extension CollectionViewTypeActions on CollectionViewType {
 
 CollectionViewType getCollectionViewType(Collection c, int userID) {
   if (!c.isOwner(userID)) {
-    // Check if user is collaborator or viewer
     final role = c.getRole(userID);
     if (role == CollectionParticipantRole.collaborator) {
       return CollectionViewType.sharedCollectionCollaborator;

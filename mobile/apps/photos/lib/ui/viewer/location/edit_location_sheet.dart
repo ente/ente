@@ -52,9 +52,7 @@ class EditLocationSheet extends StatefulWidget {
 }
 
 class _EditLocationSheetState extends State<EditLocationSheet> {
-  //The value of these notifiers has no significance.
-  //When memoriesCountNotifier is null, we show the loading widget in the
-  //memories count section which also means the gallery is loading.
+  // null means the gallery is still loading.
   final ValueNotifier<int?> _memoriesCountNotifier = ValueNotifier(null);
   final ValueNotifier<bool> _submitNotifer = ValueNotifier(false);
   final ValueNotifier<bool> _cancelNotifier = ValueNotifier(false);

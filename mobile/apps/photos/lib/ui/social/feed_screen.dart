@@ -80,9 +80,6 @@ class FeedNavigationTarget {
   }
 }
 
-/// Screen that displays the user's activity feed.
-///
-/// Shows likes, comments, and replies on the user's photos and comments.
 class FeedScreen extends StatefulWidget {
   final FeedNavigationTarget? initialTarget;
   final bool showBackButton;
@@ -116,7 +113,6 @@ class _FeedScreenState extends State<FeedScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _navigationTargetItemKey = GlobalKey();
 
-  /// Map of collectionID -> (anonUserID -> displayName)
   Map<int, Map<String, String>> _anonDisplayNamesByCollection = {};
 
   @override
@@ -175,12 +171,10 @@ class _FeedScreenState extends State<FeedScreen> {
       _hasMore = true;
     });
 
-    // Load local data first
     final items = await FeedDataProvider.instance.getFeedItems(
       limit: _currentLimit,
     );
 
-    // Load anon display names for all collections in feed
     final anonNames = await _loadAnonDisplayNames(items);
 
     if (mounted) {
@@ -194,7 +188,6 @@ class _FeedScreenState extends State<FeedScreen> {
     }
     _tryOpenNavigationTarget();
 
-    // Sync in background and refresh
     unawaited(_syncAndRefresh());
   }
 
@@ -223,12 +216,10 @@ class _FeedScreenState extends State<FeedScreen> {
       if (!mounted) return;
       if (!hasNewSocialData) return;
 
-      // Reload feed items after sync
       final freshItems = await FeedDataProvider.instance.getFeedItems(
         limit: _currentLimit,
       );
 
-      // Reload anon display names for new items
       final freshAnonNames = await _loadAnonDisplayNames(freshItems);
 
       if (mounted) {
@@ -708,7 +699,6 @@ class _FeedScreenState extends State<FeedScreen> {
     }
 
     if (collection == null || !mounted) {
-      // Fallback to shared-photos viewer if collection metadata isn't available.
       await _openSharedPhotos(
         item,
         initialFileID: jumpToFileID,
@@ -755,7 +745,6 @@ class _FeedScreenState extends State<FeedScreen> {
     return sharedFileIDs.first;
   }
 
-  /// Opens the photo viewer for the feed item, then shows the comments sheet.
   Future<void> _openComments(
     FeedItem item, {
     String? heroTagPrefix,
@@ -824,7 +813,6 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
-  /// Opens the photo viewer for the feed item.
   Future<void> _openPhoto(FeedItem item, {String? heroTagPrefix}) async {
     var fileID = item.fileID;
 
@@ -854,7 +842,6 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  /// Opens a gallery view of the shared photos.
   Future<void> _openSharedPhotos(
     FeedItem item, {
     int? initialFileID,
@@ -863,7 +850,6 @@ class _FeedScreenState extends State<FeedScreen> {
     final fileIDs = item.sharedFileIDs;
     if (fileIDs == null || fileIDs.isEmpty) return;
 
-    // Load all files using batch query
     final loadedFiles = await FilesDB.instance.getUploadedFilesBatch(
       fileIDs,
       item.collectionID,

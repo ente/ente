@@ -22,7 +22,7 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
 import { Box, Checkbox, Fab, Typography, styled } from "@mui/material";
-import type { LocalUser } from "ente-accounts-rs/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import { assertionFailed } from "ente-base/assert";
 import { Overlay } from "ente-base/components/containers";
 import { formattedDateRelative } from "ente-base/i18n-date";

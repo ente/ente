@@ -6,10 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:photos/models/ignored_file.dart';
 import 'package:sqflite/sqflite.dart';
 
-// Keeps track of localIDs which should be not uploaded to ente without
-// user's intervention.
-// Common use case:
-// when a user deletes a file just from ente on current or different device.
+// Prevent files deleted from Ente from being reuploaded without user action.
 class IgnoredFilesDB {
   static const _databaseName = "ente.ignored_files.db";
   static const _databaseVersion = 1;
@@ -39,16 +36,13 @@ class IgnoredFilesDB {
 
   static final IgnoredFilesDB instance = IgnoredFilesDB._privateConstructor();
 
-  // only have a single app-wide reference to the database
   static Future<Database>? _dbFuture;
 
   Future<Database> get database async {
-    // lazily instantiate the db the first time it is accessed
     _dbFuture ??= _initDatabase();
     return _dbFuture!;
   }
 
-  // this opens the database (and creates it if it doesn't exist)
   Future<Database> _initDatabase() async {
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();

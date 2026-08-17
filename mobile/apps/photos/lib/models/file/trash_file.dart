@@ -5,8 +5,7 @@ sealed class TrashFile extends EnteFile {
 
   TrashFile.from(super.file, {required this.deleteBy}) : super.from();
 
-  // time after which will will be deleted from trash & user's storage usage
-  // will go down
+  // Time when deletion frees the user's storage.
   late int deleteBy;
 }
 
@@ -20,11 +19,10 @@ class EnteTrashFile extends TrashFile {
     required this.updateAt,
   }) : super.from();
 
-  // time when file was put in the trash for first time
+  // Time first moved to Trash.
   late int createdAt;
 
-  // for non-deleted trash items, updateAt is usually equal to the latest time
-  // when the file was moved to trash
+  // Most recent move to Trash for active entries.
   late int updateAt;
 }
 

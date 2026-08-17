@@ -91,9 +91,7 @@ class BackupPreferenceService {
     await _prefs.remove(_keyOnlyNewSinceEpoch);
   }
 
-  /// Auto-selects all device folders when the user hasn't made any manual
-  /// selection yet. This is used in onboarding flows to quickly opt into
-  /// backing up everything visible to the app.
+  // Onboarding auto-selects all folders unless the user chose folders manually.
   Future<void> _ensureDefaultFolderSelection() async {
     if (hasManualFolderSelection || hasSelectedAnyBackupFolder) {
       return;

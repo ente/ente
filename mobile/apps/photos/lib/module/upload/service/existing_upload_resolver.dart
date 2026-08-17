@@ -25,11 +25,6 @@ typedef LinkExistingUpload =
     });
 typedef EmitLocalPhotosUpdated = void Function(LocalPhotosUpdatedEvent event);
 
-/// Resolves a pending upload to an already-uploaded file with the same hash.
-///
-/// Resolution priority and side effects intentionally match the legacy upload
-/// flow: same local file in the target collection, missing local ID, same local
-/// file in another collection, then no mapping.
 class ExistingUploadResolver {
   ExistingUploadResolver({
     required FindUploadedFiles findUploadedFiles,
@@ -71,7 +66,6 @@ class ExistingUploadResolver {
   final LinkExistingUpload _linkExistingUpload;
   final EmitLocalPhotosUpdated _emitLocalPhotosUpdated;
 
-  /// Returns the mapped file, or `null` when the caller should upload it.
   Future<EnteFile?> resolve({
     required String fileHash,
     required EnteFile fileToUpload,
@@ -98,7 +92,8 @@ class ExistingUploadResolver {
       return null;
     }
 
-    // Case a: the same local file is already in the target collection.
+    // Resolution order matters because branches can delete or relink the
+    // pending row.
     final sameLocalSameCollection = existingUploadedFiles.firstWhereOrNull(
       (file) =>
           file.collectionID == targetCollectionID &&
@@ -116,7 +111,6 @@ class ExistingUploadResolver {
       return sameLocalSameCollection;
     }
 
-    // Case b: reuse an uploaded file whose local ID is not known yet.
     final fileMissingLocal = existingUploadedFiles.firstWhereOrNull(
       (file) => file.localID == null,
     );
@@ -137,7 +131,6 @@ class ExistingUploadResolver {
       return fileMissingLocal;
     }
 
-    // Case c: link the same local file from another collection.
     final fileInDifferentCollection = existingUploadedFiles.firstWhereOrNull(
       (file) =>
           file.collectionID != targetCollectionID &&
@@ -155,7 +148,6 @@ class ExistingUploadResolver {
       );
     }
 
-    // Case d: the hash belongs to a different local file, so upload this one.
     final matchLocalIDs = existingUploadedFiles
         .where((file) => file.localID != null)
         .map((file) => file.localID!)

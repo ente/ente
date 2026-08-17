@@ -62,7 +62,6 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
         }
       } else if (event.source == TabChangedEventSource.tabBar &&
           currentTabIndex == event.selectedIndex) {
-        // user tapped on the currently selected index on the tapBar
         Bus.instance.fire(TabDoubleTapEvent(currentTabIndex));
       }
     });

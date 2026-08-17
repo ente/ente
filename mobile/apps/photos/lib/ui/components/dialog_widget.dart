@@ -9,11 +9,7 @@ import 'package:photos/models/typedefs.dart';
 import "package:photos/ui/components/buttons/button_component_adapter.dart";
 import 'package:photos/ui/components/buttons/button_widget.dart';
 
-/// Compatibility adapter for legacy Photos dialogs.
-///
-/// Preserves existing [ButtonWidget]/[ButtonResult] behavior while rendering
-/// through [BottomSheetComponent]. Prefer [BottomSheetComponent] directly for
-/// new sheets.
+// Legacy adapter; use BottomSheetComponent for new sheets.
 Future<ButtonResult?> showDialogWidget({
   required BuildContext context,
   required String title,

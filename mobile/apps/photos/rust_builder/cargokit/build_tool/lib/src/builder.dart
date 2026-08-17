@@ -1,5 +1,5 @@
-/// This is copied from Cargokit (which is the official way to use it currently)
-/// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
+// This is copied from Cargokit (which is the official way to use it currently)
+// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
 
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
@@ -124,7 +124,6 @@ class RustBuilder {
 
   String get _toolchain => _buildOptions?.toolchain.name ?? 'stable';
 
-  /// Returns the path of directory containing build artifacts.
   Future<String> build() async {
     final extraArgs = _buildOptions?.flags ?? [];
     final manifestPath = path.join(environment.manifestDir, 'Cargo.toml');

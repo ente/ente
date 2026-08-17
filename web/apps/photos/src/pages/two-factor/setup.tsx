@@ -1,1 +1,1 @@
-export { default } from "ente-accounts-rs/pages/two-factor/setup";
+export { default } from "ente-accounts/pages/two-factor/setup";

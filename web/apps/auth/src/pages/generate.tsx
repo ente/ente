@@ -1,1 +1,1 @@
-export { default } from "ente-accounts-rs/pages/generate";
+export { default } from "ente-accounts/pages/generate";

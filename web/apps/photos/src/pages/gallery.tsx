@@ -9,8 +9,11 @@ import {
     type CollectionSelectorAttributes,
 } from "@/components/CollectionSelector";
 import { CollectionMapDialog } from "@/components/Collections/CollectionMapDialog";
+import {
+    EditAlbumDetailsDialog,
+    type AlbumDetails,
+} from "@/components/Collections/EditAlbumDetailsDialog";
 import { GalleryBarAndListHeader } from "@/components/Collections/GalleryBarAndListHeader";
-import { PickCoverPhotoDialog } from "@/components/Collections/PickCoverPhotoDialog";
 import { Export } from "@/components/Export";
 import { FamilyManagement } from "@/components/FamilyManagement";
 import type { FileListHeaderOrFooter } from "@/components/FileList";
@@ -56,14 +59,14 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import MenuIcon from "@mui/icons-material/Menu";
 import { IconButton, Link, Stack, Typography } from "@mui/material";
-import { sessionExpiredDialogAttributes } from "ente-accounts-rs/components/utils/dialog";
+import { sessionExpiredDialogAttributes } from "ente-accounts/components/utils/dialog";
 import {
     getAndClearIsFirstLogin,
     getAndClearJustSignedUp,
-} from "ente-accounts-rs/services/accounts-db";
-import { stashRedirect } from "ente-accounts-rs/services/redirect";
-import { isSessionInvalid } from "ente-accounts-rs/services/session";
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+} from "ente-accounts/services/accounts-db";
+import { stashRedirect } from "ente-accounts/services/redirect";
+import { isSessionInvalid } from "ente-accounts/services/session";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
 import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import { NavbarBase } from "ente-base/components/Navbar";
@@ -92,7 +95,7 @@ import { FullScreenDropZone } from "ente-gallery/components/FullScreenDropZone";
 import type { UploadTypeSelectorIntent } from "ente-gallery/components/Upload";
 import { useSaveGroups } from "ente-gallery/components/utils/save-groups";
 import type { FileViewerInitialSidebar } from "ente-gallery/components/viewer/FileViewer";
-import { CollectionSubType, type Collection } from "ente-media/collection";
+import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
 import { ItemVisibility, metadataHash } from "ente-media/file-metadata";
 import { AssignPersonDialog } from "ente-new/photos/components/AssignPersonDialog";
@@ -112,7 +115,8 @@ import {
     createQuickLinkCollection,
     removeFromCollection,
     removeFromFavoritesCollection,
-    updateCollectionCover,
+    renameCollection,
+    updateCollectionDetails,
 } from "ente-new/photos/services/collection";
 import {
     haveOnlySystemCollections,
@@ -282,8 +286,8 @@ const Page: React.FC = () => {
     const { show: showEditLocation, props: editLocationVisibilityProps } =
         useModalVisibility();
     const {
-        show: showPickCoverPhotoDialog,
-        props: pickCoverPhotoDialogVisibilityProps,
+        show: showEditAlbumDetails,
+        props: editAlbumDetailsVisibilityProps,
     } = useModalVisibility();
     const { show: showCollectionMap, props: collectionMapVisibilityProps } =
         useModalVisibility();
@@ -412,29 +416,6 @@ const Page: React.FC = () => {
             }, new Map<number, number[]>()),
         [state.collectionFiles],
     );
-
-    const isOwnedAlbumEligibleForCover = useMemo(() => {
-        if (
-            isInSearchMode ||
-            !activeCollection ||
-            !activeCollectionSummary ||
-            !user
-        )
-            return false;
-
-        if (activeCollection.owner.id != user.id) return false;
-        if (
-            activeCollection.magicMetadata?.data.subType ==
-            CollectionSubType.quicklink
-        ) {
-            return false;
-        }
-
-        return (
-            activeCollectionSummary.attributes.has("album") ||
-            activeCollectionSummary.attributes.has("folder")
-        );
-    }, [isInSearchMode, activeCollection, activeCollectionSummary, user]);
 
     const activeCollectionFiles = useMemo(() => {
         if (!activeCollection) return [];
@@ -714,7 +695,7 @@ const Page: React.FC = () => {
             exportVisibilityProps.open ||
             authenticateUserVisibilityProps.open ||
             albumNameInputVisibilityProps.open ||
-            pickCoverPhotoDialogVisibilityProps.open ||
+            editAlbumDetailsVisibilityProps.open ||
             isFileViewerOpen
         ) {
             return;
@@ -1507,34 +1488,39 @@ const Page: React.FC = () => {
         [favoriteFileIDs, selected],
     );
 
-    const handleUpdateCollectionCover = useCallback(
-        async (coverID: number) => {
-            if (!activeCollection || !isOwnedAlbumEligibleForCover)
-                return false;
+    const handleEditAlbumDetails = useCallback(
+        async ({ name, description, coverID }: AlbumDetails) => {
+            if (!activeCollection) return;
 
-            showLoadingBar();
+            let didAttemptWrite = false;
             try {
-                await updateCollectionCover(activeCollection, coverID);
-                await remotePull({
-                    silent: true,
-                    source: "update-collection-cover",
-                });
-                return true;
-            } catch (e) {
-                onGenericError(e);
-                return false;
+                if (activeCollection.name != name) {
+                    didAttemptWrite = true;
+                    await renameCollection(activeCollection, name);
+                }
+                const descriptionChanged =
+                    (
+                        activeCollection.pubMagicMetadata?.data.caption ?? ""
+                    ).trim() != description;
+                if (descriptionChanged || coverID !== undefined) {
+                    didAttemptWrite = true;
+                    await updateCollectionDetails(activeCollection, {
+                        description: descriptionChanged
+                            ? description
+                            : undefined,
+                        coverID,
+                    });
+                }
             } finally {
-                hideLoadingBar();
+                if (didAttemptWrite) {
+                    await remotePull({
+                        silent: true,
+                        source: "update-album-details",
+                    });
+                }
             }
         },
-        [
-            activeCollection,
-            isOwnedAlbumEligibleForCover,
-            showLoadingBar,
-            remotePull,
-            onGenericError,
-            hideLoadingBar,
-        ],
+        [activeCollection, remotePull],
     );
 
     const handleContextMenuAction = useCallback(
@@ -1718,21 +1704,6 @@ const Page: React.FC = () => {
             selectedCount,
             selectedOwnCount,
         ],
-    );
-
-    const handleOpenPickCoverPhotoDialog = useCallback(() => {
-        if (!isOwnedAlbumEligibleForCover) return;
-        showPickCoverPhotoDialog();
-    }, [isOwnedAlbumEligibleForCover, showPickCoverPhotoDialog]);
-
-    const handleUseSelectedCoverPhoto = useCallback(
-        async (file: EnteFile) => handleUpdateCollectionCover(file.id),
-        [handleUpdateCollectionCover],
-    );
-
-    const handleResetCollectionCover = useCallback(
-        async () => handleUpdateCollectionCover(0),
-        [handleUpdateCollectionCover],
     );
 
     const handleCloseCollectionSelector = useCallback(
@@ -1942,8 +1913,7 @@ const Page: React.FC = () => {
                     saveGroups,
                     canCreateAlbum: !isInArchiveSection,
                     onAddSaveGroup,
-                    canSetAlbumCover: isOwnedAlbumEligibleForCover,
-                    onSetAlbumCover: handleOpenPickCoverPhotoDialog,
+                    onEditAlbumDetails: showEditAlbumDetails,
                     onShowMap: handleShowCollectionMap,
                 }}
                 mode={barMode}
@@ -2110,18 +2080,15 @@ const Page: React.FC = () => {
                     onSelectPerson={handleSelectPerson}
                 />
             )}
-            {activeCollection && (
-                <PickCoverPhotoDialog
-                    {...pickCoverPhotoDialogVisibilityProps}
+            {activeCollection && editAlbumDetailsVisibilityProps.open && (
+                <EditAlbumDetailsDialog
+                    key={activeCollection.id}
+                    {...editAlbumDetailsVisibilityProps}
                     collection={activeCollection}
                     files={activeCollectionFiles}
+                    initialCoverFile={activeCollectionSummary?.coverFile}
                     user={user}
-                    canResetToDefault={
-                        (activeCollection.pubMagicMetadata?.data.coverID ?? 0) >
-                        0
-                    }
-                    onUseSelectedPhoto={handleUseSelectedCoverPhoto}
-                    onResetToDefault={handleResetCollectionCover}
+                    onSubmit={handleEditAlbumDetails}
                 />
             )}
             <Export {...exportVisibilityProps} {...{ collectionNameByID }} />

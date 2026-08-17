@@ -331,7 +331,7 @@ ProgressDialog createProgressDialog(
   return dialog;
 }
 
-//Can return ButtonResult? from ButtonWidget or Exception? from TextInputDialog
+// Returns null after submit, ButtonResult on cancel, and Exception on failure.
 Future<dynamic> showTextInputDialog(
   BuildContext context, {
   required String title,

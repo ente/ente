@@ -95,14 +95,6 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
       return const EmptyState();
     }
 
-    // Calculate item count:
-    // - Create new album (optional)
-    // - Recent header (if recent collections exist)
-    // - Recent collections
-    // - Divider (if recent collections exist and regular collections exist)
-    // - All collections
-    // - Shared header (if shared collections exist)
-    // - Shared collections
     final createAlbumOffset = widget.shouldShowCreateAlbum ? 1 : 0;
     final recentHeaderOffset = hasRecentCollections ? 1 : 0;
     final recentItemsCount = widget.recentCollections.length;
@@ -123,19 +115,16 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
     return ListView.separated(
       controller: widget.scrollController,
       itemBuilder: (context, index) {
-        // Create new album button
         if (index == 0 && widget.shouldShowCreateAlbum) {
           return _getNewAlbumWidget(context, filesCount);
         }
 
         final adjustedIndex = index - createAlbumOffset;
 
-        // Recent header
         if (hasRecentCollections && adjustedIndex == 0) {
           return _buildSectionHeader(context, context.strings.recent);
         }
 
-        // Recent collections
         final recentStartIndex = recentHeaderOffset;
         if (hasRecentCollections &&
             adjustedIndex >= recentStartIndex &&
@@ -145,13 +134,11 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
           return _buildCollectionItem(context, item);
         }
 
-        // Divider between recent and regular collections
         final dividerIndex = recentStartIndex + recentItemsCount;
         if (showDivider && adjustedIndex == dividerIndex) {
           return _buildDivider(context);
         }
 
-        // Regular collections
         final collectionsStartIndex =
             recentStartIndex + recentItemsCount + dividerOffset;
         final collectionsEndIndex =
@@ -163,13 +150,11 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
           return _buildCollectionItem(context, item);
         }
 
-        // Shared header
         final sharedHeaderIndex = collectionsEndIndex;
         if (hasSharedCollections && adjustedIndex == sharedHeaderIndex) {
           return _buildSectionHeader(context, "Shared with you");
         }
 
-        // Shared collections
         final sharedStartIndex = sharedHeaderIndex + sharedHeaderOffset;
         if (hasSharedCollections && adjustedIndex >= sharedStartIndex) {
           final sharedIndex = adjustedIndex - sharedStartIndex;

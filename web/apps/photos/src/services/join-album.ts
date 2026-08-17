@@ -1,4 +1,4 @@
-import { savedKeyAttributes } from "ente-accounts-rs/services/accounts-db";
+import { savedKeyAttributes } from "ente-accounts/services/accounts-db";
 import { boxSeal, fromB64 } from "ente-base/crypto";
 import { authenticatedRequestHeaders } from "ente-base/http";
 import {

@@ -85,11 +85,8 @@ class FaceClusteringService extends SuperIsolate {
   @override
   bool get shouldAutomaticDispose => true;
 
-  // singleton pattern
   FaceClusteringService._privateConstructor();
 
-  /// Use this instance to access the FaceClustering service.
-  /// e.g. `FaceLinearClustering.instance.predict(dataset)`
   static final instance = FaceClusteringService._privateConstructor();
   factory FaceClusteringService() => instance;
 
@@ -100,9 +97,6 @@ class FaceClusteringService extends SuperIsolate {
     }
   }
 
-  /// Runs the clustering algorithm [runLinearClustering] on the given [input], in an isolate.
-  ///
-  /// Returns the clustering result, which is a list of clusters, where each cluster is a list of indices of the dataset.
   Future<ClusteringResult?> predictLinearIsolate(
     Set<FaceDbInfoForClustering> input, {
     Map<int, int>? fileIDToCreationTime,
@@ -133,13 +127,10 @@ class FaceClusteringService extends SuperIsolate {
 
     isRunning = true;
     try {
-      // Clustering inside the isolate
       _logger.info(
         "Start clustering on ${input.length} embeddings inside computer isolate",
       );
       final stopwatchClustering = Stopwatch()..start();
-      // final Map<String, int> faceIdToCluster =
-      //     await _runLinearClusteringInComputer(input);
       final ClusteringResult faceIdToCluster =
           await runInIsolate(IsolateOperation.linearIncrementalClustering, {
             'input': input,
@@ -151,7 +142,6 @@ class FaceClusteringService extends SuperIsolate {
             'offset': offset,
             'oldClusterSummaries': oldClusterSummaries,
           });
-      // return _runLinearClusteringInComputer(input);
       _logger.info(
         'predictLinear Clustering executed in ${stopwatchClustering.elapsed.inSeconds} seconds',
       );
@@ -213,7 +203,6 @@ class FaceClusteringService extends SuperIsolate {
     }
   }
 
-  /// Runs the clustering algorithm [runLinearClustering] on the given [input], in computer, without any dynamic thresholding
   Future<ClusteringResult> _predictLinearComputer(
     Map<String, Uint8List> input, {
     Map<int, int>? fileIDToCreationTime,
@@ -229,7 +218,6 @@ class FaceClusteringService extends SuperIsolate {
       return ClusteringResult.empty();
     }
 
-    // Clustering inside the isolate
     _logger.info(
       "Start Linear clustering on ${input.length} embeddings inside computer isolate",
     );
@@ -277,9 +265,7 @@ class FaceClusteringService extends SuperIsolate {
     }
   }
 
-  /// Runs the clustering algorithm [_runCompleteClustering] on the given [input], in computer.
-  ///
-  /// WARNING: Only use on small datasets, as it is not optimized for large datasets.
+  // Only use on small datasets; this is not optimized for large datasets.
   Future<ClusteringResult> _predictCompleteComputer(
     Map<String, Uint8List> input, {
     Map<int, int>? fileIDToCreationTime,
@@ -296,7 +282,6 @@ class FaceClusteringService extends SuperIsolate {
       return ClusteringResult.empty();
     }
 
-    // Clustering inside the isolate
     _logger.info(
       "Start Complete clustering on ${input.length} embeddings inside computer isolate",
     );
@@ -331,7 +316,6 @@ class FaceClusteringService extends SuperIsolate {
 final _logger = Logger("FaceLinearClustering");
 
 ClusteringResult runLinearClustering(Map args) {
-  // final input = args['input'] as Map<String, (int?, Uint8List)>;
   final input = args['input'] as Set<FaceDbInfoForClustering>;
   final fileIDToCreationTime = args['fileIDToCreationTime'] as Map<int, int>?;
   final distanceThreshold = args['distanceThreshold'] as double;
@@ -344,7 +328,6 @@ ClusteringResult runLinearClustering(Map args) {
 
   _logger.info("Copied to isolate ${input.length} faces");
 
-  // Organize everything into a list of FaceInfo objects
   final List<FaceInfo> faceInfos = [];
   for (final face in input) {
     faceInfos.add(
@@ -369,7 +352,6 @@ ClusteringResult runLinearClustering(Map args) {
     );
   }
 
-  // Assert that the embeddings are normalized
   for (final faceInfo in faceInfos) {
     if (faceInfo.vEmbedding != null) {
       final norm = faceInfo.vEmbedding!.norm();
@@ -381,7 +363,6 @@ ClusteringResult runLinearClustering(Map args) {
     _sortFaceInfosOnCreationTime(faceInfos);
   }
 
-  // Sort the faceInfos such that the ones with null clusterId are at the end
   final List<FaceInfo> facesWithClusterID = <FaceInfo>[];
   final List<FaceInfo> facesWithoutClusterID = <FaceInfo>[];
   for (final FaceInfo faceInfo in faceInfos) {
@@ -403,21 +384,17 @@ ClusteringResult runLinearClustering(Map args) {
   final int totalFaces = sortedFaceInfos.length;
   int dynamicThresholdCount = 0;
 
-  // Start actual clustering
   _logger.info(
     "[ClusterIsolate] ${DateTime.now()} Processing $totalFaces faces ($newToClusterCount new, $alreadyClusteredCount already done) in total in this round ${offset != null ? "on top of ${offset + facesWithClusterID.length} earlier processed faces" : ""}",
   );
   String clusterID = newClusterID();
   if (facesWithClusterID.isEmpty) {
-    // assign a clusterID to the first face
     sortedFaceInfos[0].clusterId = clusterID;
     clusterID = newClusterID();
   }
   final stopwatchClustering = Stopwatch()..start();
   for (int i = 1; i < totalFaces; i++) {
-    // Incremental clustering, so we can skip faces that already have a clusterId
     if (sortedFaceInfos[i].clusterId != null) {
-      // clusterID = max(clusterID, sortedFaceInfos[i].clusterId!);
       continue;
     }
 
@@ -437,7 +414,7 @@ ClusteringResult runLinearClustering(Map args) {
     if (i % 250 == 0) {
       _logger.info("Processed ${offset != null ? i + offset : i} faces");
     }
-    // WARNING: The loop below is now O(n^2) so be very careful with anything you put in there!
+    // This loop makes clustering O(n²); keep its body cheap.
     for (int j = i - 1; j >= 0; j--) {
       final double distance =
           1 -
@@ -461,7 +438,6 @@ ClusteringResult runLinearClustering(Map args) {
 
     if (closestDistance < thresholdValue) {
       if (sortedFaceInfos[closestIdx].clusterId == null) {
-        // Ideally this should never happen, but just in case log it
         _logger.severe(
           "Found new cluster $clusterID, but closest face has no clusterId",
         );
@@ -475,14 +451,12 @@ ClusteringResult runLinearClustering(Map args) {
     }
   }
 
-  // Finally, assign the new clusterId to the faces
   final Map<String, String> newFaceIdToCluster = {};
   final newClusteredFaceInfos = sortedFaceInfos.sublist(alreadyClusteredCount);
   for (final faceInfo in newClusteredFaceInfos) {
     newFaceIdToCluster[faceInfo.faceID] = faceInfo.clusterId!;
   }
 
-  // Create a map of clusterId to faceIds
   final Map<String, List<String>> clusterIdToFaceIds = {};
   for (final entry in newFaceIdToCluster.entries) {
     final clusterID = entry.value;
@@ -503,14 +477,10 @@ ClusteringResult runLinearClustering(Map args) {
     );
   }
 
-  // Now calculate the mean of the embeddings for each cluster and update the cluster summaries
   final newClusterSummaries = _updateClusterSummaries(
     newFaceInfos: newClusteredFaceInfos,
     oldSummary: oldClusterSummaries,
   );
-
-  // analyze the results
-  // FaceClusteringService._analyzeClusterResults(sortedFaceInfos);
 
   return ClusteringResult(
     newFaceIdToCluster: newFaceIdToCluster,
@@ -531,7 +501,6 @@ ClusteringResult _runCompleteClustering(Map args) {
     "[CompleteClustering] ${DateTime.now()} Copied to isolate ${input.length} faces for clustering",
   );
 
-  // Organize everything into a list of FaceInfo objects
   final List<FaceInfo> faceInfos = [];
   for (final entry in input.entries) {
     faceInfos.add(
@@ -556,14 +525,12 @@ ClusteringResult _runCompleteClustering(Map args) {
   }
   final int totalFaces = faceInfos.length;
 
-  // Start actual clustering
   log(
     "[CompleteClustering] ${DateTime.now()} Processing $totalFaces faces in one single round of complete clustering",
   );
 
   String clusterID = newClusterID();
 
-  // Start actual clustering
   final Map<String, String> newFaceIdToCluster = {};
   final stopwatchClustering = Stopwatch()..start();
   for (int i = 0; i < totalFaces; i++) {
@@ -595,7 +562,6 @@ ClusteringResult _runCompleteClustering(Map args) {
     }
   }
 
-  // Now calculate the mean of the embeddings for each cluster
   final Map<String, List<FaceInfo>> clusterIdToFaceInfos = {};
   for (final faceInfo in faceInfos) {
     if (clusterIdToFaceInfos.containsKey(faceInfo.clusterId)) {
@@ -618,7 +584,6 @@ ClusteringResult _runCompleteClustering(Map args) {
     );
   }
 
-  // Now merge the clusters that are close to each other, based on mean embedding
   final List<(String, String)> mergedClustersList = [];
   final List<String> clusterIds = clusterIdToMeanEmbeddingAndWeight.keys
       .toList();
@@ -669,7 +634,6 @@ ClusteringResult _runCompleteClustering(Map args) {
     ' [CompleteClustering] ${DateTime.now()} ${mergedClustersList.length} clusters merged',
   );
 
-  // Now assign the new clusterId to the faces
   for (final faceInfo in faceInfos) {
     for (final mergedClusters in mergedClustersList) {
       if (faceInfo.clusterId == mergedClusters.$2) {
@@ -678,7 +642,6 @@ ClusteringResult _runCompleteClustering(Map args) {
     }
   }
 
-  // Finally, assign the new clusterId to the faces
   for (final faceInfo in faceInfos) {
     newFaceIdToCluster[faceInfo.faceID] = faceInfo.clusterId!;
   }
@@ -693,7 +656,6 @@ ClusteringResult _runCompleteClustering(Map args) {
     }
   }
 
-  // Now calculate the mean of the embeddings for each cluster and update the cluster summaries
   final newClusterSummaries = _updateClusterSummaries(
     newFaceInfos: faceInfos,
     oldSummary: oldClusterSummaries,
@@ -711,7 +673,6 @@ ClusteringResult _runCompleteClustering(Map args) {
   );
 }
 
-/// Sort the faceInfos based on fileCreationTime, in descending order, so newest faces are first
 void _sortFaceInfosOnCreationTime(List<FaceInfo> faceInfos) {
   faceInfos.sort((b, a) {
     if (a.fileCreationTime == null && b.fileCreationTime == null) {

@@ -51,9 +51,7 @@ class _TrailingWidgetState extends State<TrailingWidget> {
   @override
   void didUpdateWidget(covariant TrailingWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Handle showExecutionStates flag changes
     if (oldWidget.showExecutionStates && !widget.showExecutionStates) {
-      // Was true, now false: remove listener and reset to icon
       if (_listenerAdded) {
         oldWidget.executionStateNotifier.removeListener(
           _executionStateListener,
@@ -62,11 +60,9 @@ class _TrailingWidgetState extends State<TrailingWidget> {
       }
       _setTrailingIcon();
     } else if (!oldWidget.showExecutionStates && widget.showExecutionStates) {
-      // Was false, now true: add listener
       widget.executionStateNotifier.addListener(_executionStateListener);
       _listenerAdded = true;
     } else if (!widget.showExecutionStates) {
-      // Still false: update the trailing icon if props changed
       _setTrailingIcon();
     }
   }
@@ -171,7 +167,6 @@ class LeadingWidget extends StatelessWidget {
   final Color? leadingIconColor;
 
   final Widget? leadingIconWidget;
-  // leadIconSize default value is 20.
   final double leadingIconSize;
   const LeadingWidget({
     required this.leadingIconSize,

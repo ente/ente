@@ -85,7 +85,6 @@ class _LargeFilesPagePageState extends State<LargeFilesPagePage> {
             }
           }
         }
-        // sort by file size descending
         filesWithSize.sort((a, b) => b.fileSize!.compareTo(a.fileSize!));
         final FileLoadResult result = FileLoadResult(filesWithSize, false);
         return result;

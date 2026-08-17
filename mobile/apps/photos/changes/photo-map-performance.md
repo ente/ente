@@ -1,0 +1,1 @@
+- Improved map responsiveness for large photo libraries.

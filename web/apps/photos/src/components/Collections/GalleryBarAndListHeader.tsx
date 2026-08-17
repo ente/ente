@@ -63,11 +63,7 @@ type GalleryBarAndListHeaderProps = Omit<
     canCreateAlbum: boolean;
 } & Pick<
         CollectionHeaderProps,
-        | "onRemotePull"
-        | "onAddSaveGroup"
-        | "canSetAlbumCover"
-        | "onSetAlbumCover"
-        | "onShowMap"
+        "onRemotePull" | "onAddSaveGroup" | "onEditAlbumDetails" | "onShowMap"
     > &
     Pick<
         CollectionShareProps,
@@ -97,8 +93,7 @@ export const GalleryBarAndListHeader: React.FC<
     emailByUserID,
     shareSuggestionEmails,
     onRemotePull,
-    canSetAlbumCover,
-    onSetAlbumCover,
+    onEditAlbumDetails,
     onAddSaveGroup,
     onShowMap,
     setFileListHeader,
@@ -162,6 +157,10 @@ export const GalleryBarAndListHeader: React.FC<
         return !!group && !isSaveComplete(group) && !isSaveCancelled(group);
     }, [saveGroups, activeCollectionID]);
 
+    const albumDescription =
+        activeCollection?.pubMagicMetadata?.data.caption?.trim();
+    const [descriptionHeight, setDescriptionHeight] = useState(0);
+
     useEffect(() => {
         if (shouldHide) return;
 
@@ -190,9 +189,9 @@ export const GalleryBarAndListHeader: React.FC<
                     onCollectionShare={openCollectionShare}
                     onCollectionManageLink={openCollectionManageLink}
                     onCollectionCast={showCollectionCast}
-                    canSetAlbumCover={canSetAlbumCover}
-                    onSetAlbumCover={onSetAlbumCover}
+                    onEditAlbumDetails={onEditAlbumDetails}
                     hasActiveFileSelection={hasActiveFileSelection}
+                    onDescriptionHeightChange={setDescriptionHeight}
                 />
             ) : mode != "people" && collectionSummary ? (
                 <GalleryItemsHeaderAdapter>
@@ -209,7 +208,7 @@ export const GalleryBarAndListHeader: React.FC<
             ) : (
                 <></>
             ),
-            height: 68,
+            height: 68 + (albumDescription ? descriptionHeight : 0),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -228,8 +227,9 @@ export const GalleryBarAndListHeader: React.FC<
         onRemotePull,
         onAddSaveGroup,
         onShowMap,
-        canSetAlbumCover,
-        onSetAlbumCover,
+        onEditAlbumDetails,
+        albumDescription,
+        descriptionHeight,
         // TODO: Cluster
         // This causes a loop since it is an array dep
         // people,

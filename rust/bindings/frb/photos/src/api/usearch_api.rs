@@ -1,4 +1,4 @@
-use ente_photos::ml::vector_db;
+use ente_ml::vector_db;
 use flutter_rust_bridge::frb;
 
 type SearchMatch = (Vec<u64>, Vec<f32>);

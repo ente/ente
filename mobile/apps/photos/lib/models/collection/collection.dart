@@ -17,8 +17,7 @@ class Collection {
   // Deprecated but required for old accounts. Use collectionName.
   String? name;
 
-  // encryptedName & nameDecryptionNonce will be null for collections
-  // created before we started encrypting collection name
+  // Collections created before public launch may have only the plaintext name.
   final String? encryptedName;
   final String? nameDecryptionNonce;
   final CollectionType type;
@@ -29,14 +28,10 @@ class Collection {
   final int? sharedAt;
   final bool isDeleted;
 
-  // In early days before public launch, we used to store collection name
-  // un-encrypted. decryptName will be value either decrypted value for
-  // encryptedName or name itself.
+  // Falls back to name for those pre-launch collections.
   String? decryptedName;
 
-  // decryptedPath will be null for collections now owned by user, deleted
-  // collections, && collections which don't have a path. The path is used
-  // to map local on-device album on mobile to remote collection on ente.
+  // Links a user-owned remote collection to its on-device album.
   String? decryptedPath;
   String? mMdEncodedJson;
   String? mMdPubEncodedJson;
@@ -74,7 +69,7 @@ class Collection {
     return decryptedName ?? name ?? "Unnamed Album";
   }
 
-  // set the value for both name and decryptedName till we finish migration
+  // Keep the legacy name in sync until its migration is complete.
   void setName(String newName) {
     // ignore: deprecated_member_use_from_same_package
     name = newName;

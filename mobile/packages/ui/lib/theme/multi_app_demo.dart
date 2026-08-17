@@ -1,6 +1,3 @@
-// Demo: Complete working example showing multi-app theme compatibility
-// This file demonstrates how the reusable theme system works for different apps
-
 import 'package:ente_ui/theme/colors.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:ente_ui/theme/ente_theme_data.dart';
@@ -74,7 +71,7 @@ class GamingApp {
       Color(0xFFFF9800),
       Color(0xFFFFB74D),
     ],
-    warning500: const Color(0xFFF44336), // Custom warning for gaming
+    warning500: const Color(0xFFF44336),
   );
 
   static final customDarkScheme = EnteColorScheme.dark(
@@ -189,7 +186,6 @@ class DemoHomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // App Selector
             Text(
               'Switch App Theme:',
               style: TextStyle(
@@ -221,7 +217,6 @@ class DemoHomePage extends StatelessWidget {
             ),
             const SizedBox(height: 32),
 
-            // UI Components Demo
             Text(
               'UI Components:',
               style: TextStyle(
@@ -232,7 +227,6 @@ class DemoHomePage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Background colors demo
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -265,7 +259,6 @@ class DemoHomePage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Buttons demo
             Row(
               children: [
                 Expanded(
@@ -294,7 +287,6 @@ class DemoHomePage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Gradient button demo
             Container(
               width: double.infinity,
               height: 48,
@@ -319,7 +311,6 @@ class DemoHomePage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Warning demo
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -342,7 +333,6 @@ class DemoHomePage extends StatelessWidget {
             ),
             const SizedBox(height: 32),
 
-            // Color palette display
             Text(
               'Color Palette:',
               style: TextStyle(
@@ -410,7 +400,6 @@ class DemoHomePage extends StatelessWidget {
   }
 }
 
-// Example of how to use this in main.dart:
 void main() {
   runApp(const MultiAppThemeDemo());
 }

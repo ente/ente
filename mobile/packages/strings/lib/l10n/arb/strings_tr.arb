@@ -1456,8 +1456,6 @@
   "ocrModelsNetworkRequiredError": "OCR modellerini ilk kez kullanmak için ağ bağlantısı gereklidir",
   "ocrModelsPrepareFailed": "OCR modelleri hazırlanamadı",
   "ocrNoTextDetected": "Yazı algılanmadı",
-  "ocrProcessingOverlayMessage": "Metin algılanıyor...",
-  "ocrSelectionHint": "İhtiyacınız olanı seçmek için kaydırın veya iki kez dokunun",
   "offlineModeWarning": "Yedekleme yapmadan devam etmeyi seçtiniz. Kodlarınızın güvende olduğundan emin olmak için lütfen manuel yedekleme yapın.",
   "oneLineAboutTheIssue": "Sorunu açıklayan bir satır",
   "onEnte": "<branding>ente</branding> üzerinde",

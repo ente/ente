@@ -43,7 +43,7 @@ class CollectionsAndSavedFileFilter extends Filter {
       return true;
     }
     if (_ignoredUploadIDs!.contains(file.uploadedFileID!)) {
-      return false; // this file should be filtered out
+      return false;
     }
     if (ignoreSavedFiles &&
         file.ownerID != ownerID &&
