@@ -44,6 +44,8 @@ class _VideoWidgetState extends State<VideoWidget> {
   final showControlsNotifier = ValueNotifier<bool>(true);
   final _hideControlsDebouncer = Debouncer(const Duration(milliseconds: 2000));
   final _isSeekingNotifier = ValueNotifier<bool>(false);
+  final _lastSeekTime = ValueNotifier<DateTime?>(null);
+  final _lastSeekTargetMs = ValueNotifier<int?>(null);
   Timer? _doubleTapSeekReleaseTimer;
   late final StreamSubscription<bool> _isPlayingStreamSubscription;
 
@@ -74,6 +76,8 @@ class _VideoWidgetState extends State<VideoWidget> {
     _hideControlsDebouncer.cancelDebounceTimer();
     _isSeekingNotifier.removeListener(isSeekingListener);
     _isSeekingNotifier.dispose();
+    _lastSeekTime.dispose();
+    _lastSeekTargetMs.dispose();
     super.dispose();
   }
 
@@ -115,6 +119,8 @@ class _VideoWidgetState extends State<VideoWidget> {
           position: () => widget.controller.player.state.position,
           duration: () => widget.controller.player.state.duration,
           seekTo: (duration) {
+            _lastSeekTime.value = DateTime.now();
+            _lastSeekTargetMs.value = duration.inMilliseconds;
             widget.controller.player.seek(duration);
             _doubleTapSeekReleaseTimer?.cancel();
             _doubleTapSeekReleaseTimer = Timer(
@@ -124,7 +130,10 @@ class _VideoWidgetState extends State<VideoWidget> {
               },
             );
           },
-          onSeekInteraction: () => showControlsNotifier.value = true,
+          onSeekInteraction: () {
+            showControlsNotifier.value = true;
+            _hideControlsDebouncer.cancelDebounceTimer();
+          },
           onSingleTap: widget.isFromMemories
               ? null
               : () {
@@ -194,6 +203,8 @@ class _VideoWidgetState extends State<VideoWidget> {
                               child: _MediaKitVideoProgressControls(
                                 controller: widget.controller,
                                 isSeekingNotifier: _isSeekingNotifier,
+                                lastSeekTime: _lastSeekTime,
+                                lastSeekTargetMs: _lastSeekTargetMs,
                               ),
                             ),
                           ),
@@ -314,10 +325,14 @@ class _PlayPauseButtonState extends State<PlayPauseButtonMediaKit> {
 class _MediaKitVideoProgressControls extends StatefulWidget {
   final VideoController controller;
   final ValueNotifier<bool> isSeekingNotifier;
+  final ValueNotifier<DateTime?> lastSeekTime;
+  final ValueNotifier<int?> lastSeekTargetMs;
 
   const _MediaKitVideoProgressControls({
     required this.controller,
     required this.isSeekingNotifier,
+    required this.lastSeekTime,
+    required this.lastSeekTargetMs,
   });
 
   @override
@@ -327,12 +342,15 @@ class _MediaKitVideoProgressControls extends StatefulWidget {
 
 class _MediaKitVideoProgressControlsState
     extends State<_MediaKitVideoProgressControls> {
+  static const _staleEventWindow = Duration(milliseconds: 1000);
+  static const _staleDeltaThreshold = Duration(milliseconds: 1500);
+
   double _sliderValue = 0.0;
   Duration _elapsedTime = Duration.zero;
   late final StreamSubscription<Duration> _positionStreamSubscription;
   final _debouncer = Debouncer(
-    const Duration(milliseconds: 300),
-    executionInterval: const Duration(milliseconds: 300),
+    const Duration(milliseconds: 100),
+    executionInterval: const Duration(milliseconds: 325),
   );
   @override
   void initState() {
@@ -340,6 +358,18 @@ class _MediaKitVideoProgressControlsState
     _positionStreamSubscription = widget.controller.player.stream.position
         .listen((event) {
           if (widget.isSeekingNotifier.value) return;
+
+          final lastSeek = widget.lastSeekTime.value;
+          if (lastSeek != null &&
+              DateTime.now().difference(lastSeek) < _staleEventWindow) {
+            final referenceMs =
+                widget.lastSeekTargetMs.value ?? _elapsedTime.inMilliseconds;
+            if ((event.inMilliseconds - referenceMs).abs() >
+                _staleDeltaThreshold.inMilliseconds) {
+              return;
+            }
+          }
+
           if (mounted) {
             setState(() {
               _elapsedTime = event;
@@ -400,6 +430,9 @@ class _MediaKitVideoProgressControlsState
               _elapsedTime = _positionAt(value);
             });
           }
+
+          widget.lastSeekTime.value = DateTime.now();
+          widget.lastSeekTargetMs.value = _elapsedTime.inMilliseconds;
 
           _debouncer.run(() async {
             await widget.controller.player.seek(_positionAt(value));

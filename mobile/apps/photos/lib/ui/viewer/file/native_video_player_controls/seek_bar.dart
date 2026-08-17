@@ -148,7 +148,7 @@ class _NativeVideoProgressControlsState
       _lastSeekTime = now;
       _lastSeekTargetMs = position;
       widget.lastSeekTime?.value = now;
-      widget.lastSeekTargetMs?.value = null;
+      widget.lastSeekTargetMs?.value = position;
       await widget.controller.seekTo(Duration(milliseconds: position));
     });
   }
@@ -196,6 +196,19 @@ class _NativeVideoProgressControlsState
     final target = widget.controller.playbackPosition.inMilliseconds;
     final duration = widget.controller.videoInfo?.durationInMilliseconds;
 
+    final lastSeek = widget.lastSeekTime?.value ?? _lastSeekTime;
+    if (lastSeek != null &&
+        DateTime.now().difference(lastSeek).inMilliseconds <
+            _staleEventWindow.inMilliseconds) {
+      final referenceMs =
+          widget.lastSeekTargetMs?.value ??
+          _lastSeekTargetMs ??
+          _elapsedMilliseconds;
+      if ((target - referenceMs).abs() > _staleDeltaThreshold.inMilliseconds) {
+        return;
+      }
+    }
+
     if (widget.controller.playbackStatus == PlaybackStatus.paused ||
         (widget.controller.playbackStatus == PlaybackStatus.stopped &&
             widget.controller.playbackPosition.inSeconds != 0)) {
@@ -212,19 +225,6 @@ class _NativeVideoProgressControlsState
     }
     if (!mounted) {
       return;
-    }
-
-    final lastSeek = widget.lastSeekTime?.value ?? _lastSeekTime;
-    if (lastSeek != null &&
-        DateTime.now().difference(lastSeek).inMilliseconds <
-            _staleEventWindow.inMilliseconds) {
-      final referenceMs =
-          widget.lastSeekTargetMs?.value ??
-          _lastSeekTargetMs ??
-          _elapsedMilliseconds;
-      if ((target - referenceMs).abs() > _staleDeltaThreshold.inMilliseconds) {
-        return;
-      }
     }
 
     final previousMilliseconds = _elapsedMilliseconds;

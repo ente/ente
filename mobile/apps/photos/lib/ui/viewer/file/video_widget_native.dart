@@ -386,7 +386,10 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                 },
                               );
                             },
-                            onSeekInteraction: () => _showControls.value = true,
+                            onSeekInteraction: () {
+                              _showControls.value = true;
+                              _debouncer.cancelDebounceTimer();
+                            },
                             onSingleTap: widget.isFromMemories
                                 ? null
                                 : () {
