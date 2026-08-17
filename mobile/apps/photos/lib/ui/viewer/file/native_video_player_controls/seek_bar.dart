@@ -40,6 +40,7 @@ class _NativeVideoProgressControlsState
   );
   StreamSubscription<void>? _eventsSubscription;
   StreamSubscription<SeekbarTriggeredEvent>? _seekbarSubscription;
+  Timer? _seekReleaseTimer;
 
   @override
   void initState() {
@@ -69,6 +70,7 @@ class _NativeVideoProgressControlsState
 
   @override
   void dispose() {
+    _seekReleaseTimer?.cancel();
     _seekbarSubscription?.cancel();
     _eventsSubscription?.cancel();
     _animationController.dispose();
@@ -99,6 +101,7 @@ class _NativeVideoProgressControlsState
             max: 1.0,
             value: _animationController.value,
             onChangeStart: (value) {
+              _seekReleaseTimer?.cancel();
               widget.isSeeking.value = true;
             },
             onChanged: (value) {
@@ -111,10 +114,9 @@ class _NativeVideoProgressControlsState
               _elapsedMilliseconds = _positionInMilliseconds(value) ?? 0;
               _animationController.value = value;
               _seekTo(value);
-              Future.delayed(_seekReleaseDelay, () {
-                if (mounted) {
-                  widget.isSeeking.value = false;
-                }
+              _seekReleaseTimer?.cancel();
+              _seekReleaseTimer = Timer(_seekReleaseDelay, () {
+                if (mounted) widget.isSeeking.value = false;
               });
             },
             allowedInteraction: SliderInteraction.tapAndSlide,
