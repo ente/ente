@@ -1,3 +1,4 @@
+pub mod cast_api;
 pub mod image_processing_api;
 pub mod init;
 #[cfg(any(feature = "flutter", frb_expand))]

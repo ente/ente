@@ -47,7 +47,7 @@ func (c *CollectionController) Create(collection ente.Collection, ownerID int64)
 	if err := validateOwnedCollectionKey(collection.EncryptedKey, collection.KeyDecryptionNonce); err != nil {
 		return ente.Collection{}, err
 	}
-	// The key attribute check is to ensure that user does not end up uploading any files before actually setting the key attributes.
+	// Do not allow uploads before the user has configured key attributes.
 	if _, keyErr := c.UserRepo.GetKeyAttributes(ownerID); keyErr != nil {
 		return ente.Collection{}, stacktrace.Propagate(keyErr, "Unable to get keyAttributes")
 	}
@@ -169,7 +169,6 @@ func (c *CollectionController) TrashV3(ctx *gin.Context, req ente.TrashCollectio
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to revoke cast token")
 	}
-	// Continue with current delete flow till. This disables sharing for this collection and then queue it up for deletion
 	err = c.CollectionRepo.ScheduleDelete(cID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:log_viewer/src/core/log_models.dart';
 
-/// Individual log item widget
 class LogListTile extends StatelessWidget {
   final LogEntry log;
   final VoidCallback onTap;

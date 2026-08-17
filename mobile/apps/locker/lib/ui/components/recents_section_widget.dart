@@ -45,7 +45,6 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
     super.initState();
     _originalCollectionOrder = List.from(widget.collections);
     _availableCollections = List.from(widget.collections);
-    // Update notifier with initial displayed files after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateDisplayedFilesNotifier();
     });
@@ -71,7 +70,6 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
         }
       });
       _updateFilteredFiles();
-      // Update notifier when source files change and no filters are active
       if (!_hasActiveFilters) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _updateDisplayedFilesNotifier();
@@ -253,7 +251,6 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
         _availableCollections = List.from(widget.collections);
       });
 
-      // Update notifier when filters are cleared
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _updateDisplayedFilesNotifier();
       });
@@ -309,7 +306,6 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
       _availableCollections = availableCollections;
     });
 
-    // Update notifier with the new displayed files
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateDisplayedFilesNotifier();
     });
@@ -329,7 +325,6 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
 
       if (refresh) {
         _fileCollectionsCache.remove(fileId);
-        // Drop any in-flight request so a fresh fetch is triggered.
         final _ = _fileCollectionsRequests.remove(fileId);
       }
 

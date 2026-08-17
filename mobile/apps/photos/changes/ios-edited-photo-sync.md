@@ -1,0 +1,1 @@
+- Fixed edited iOS photos sometimes not syncing after their originals were fetched.

@@ -4,18 +4,7 @@ import 'package:ente_components/theme/spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=7255-38447&m=dev
-/// Section: Snack bar states
-/// Specs: bottom-anchored toast built on [BannerComponent] (failure /
-/// informative / success / warning / neutral), slide-up + fade, auto-dismiss,
-/// tap to dismiss.
-///
-/// Backed by [FToast], so a new toast replaces any currently-visible one
-/// (latest wins, no overlap) and it survives route changes. Only [message] is
-/// required; [state] sets the accent + default leading icon (defaults to
-/// neutral), [subtitle] adds a second line, [leadingWidget] / [trailingWidget]
-/// override the default leading icon / close affordance (trailing shows nothing
-/// when omitted), and [duration] sets how long it stays.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=7255-38447&m=dev
 void showToastComponent(
   BuildContext context,
   String message, {

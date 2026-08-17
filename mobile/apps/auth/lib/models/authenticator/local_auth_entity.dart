@@ -6,19 +6,16 @@ import 'package:flutter/material.dart';
 class LocalAuthEntity {
   final int generatedID;
 
-  // id can be null if a code has been scanned locally but it's yet to be
-  // synced with the remote server.
+  // Null for scanned codes that have not reached the server.
   final String? id;
   final String encryptedData;
   final String header;
 
-  // createdAt and updateAt will be equal to local time of creation or updation
-  // till remote sync is completed.
+  // Local timestamps until remote sync completes.
   final int createdAt;
   final int updatedAt;
 
-  // shouldSync indicates that the entry was locally created or updated. The
-  // app should try to sync it to the server during next sync
+  // True for local changes awaiting remote sync.
   final bool shouldSync;
 
   LocalAuthEntity(
@@ -59,7 +56,6 @@ class LocalAuthEntity {
       'header': header,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
-      // sqlite doesn't support bool type. map true to 1 and false to 0
       'shouldSync': shouldSync ? 1 : 0,
     };
   }

@@ -170,8 +170,7 @@ export const releaseMLRuntime = () => {
 
 export interface MLWorkerAnalyzeImageRequest {
     fileID: number;
-    path?: string | undefined;
-    bytes?: Uint8Array | undefined;
+    bytes: Uint8Array;
     runFaces: boolean;
     runClip: boolean;
     runPets: boolean;
@@ -217,15 +216,6 @@ const analyzeImageOnce = async (
     native: MLNative,
     req: MLWorkerAnalyzeImageRequest,
 ) => {
-    let source;
-    if (req.path !== undefined) {
-        source = { imagePath: req.path };
-    } else if (req.bytes) {
-        source = { imageBytes: uint8ArrayToBuffer(req.bytes) };
-    } else {
-        throw new Error("The analyze request has neither a path nor bytes");
-    }
-
     const modelPaths = await indexingModelPaths(
         req.runFaces,
         req.runClip,
@@ -234,7 +224,7 @@ const analyzeImageOnce = async (
     ensureMLRuntime(native, modelPaths);
     return await native.analyzeImage({
         fileId: req.fileID,
-        ...source,
+        imageBytes: uint8ArrayToBuffer(req.bytes),
         runFaces: req.runFaces,
         runClip: req.runClip,
         runPets: req.runPets,

@@ -45,7 +45,6 @@ Future<int?> _processLastpassExportFile(
     var secret = item['secret'];
     var account = item['userName'];
 
-    // Build the OTP URL
     String otpUrl =
         'otpauth://totp/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=$algorithm&digits=$digits&period=$timer';
     parsedCodes.add(Code.fromOTPAuthUrl(otpUrl));

@@ -1,21 +1,5 @@
-// S3 service style operations for Wasabi specific compliance functionality.
-//
-// This file contains various service operations for interacting with the Wasabi
-// compliance functions. These are based on standard operations templates taken
-// from the source code in the AWS S3 Go SDK (v1), and modified to use the
-// custom payloads expected by Wasabi.
-//
-// # Wasabi Compliance
-//
-// Wasabi supports a compliance policy that prevents the deletion of objects.
-//
-// Compliance is different from the object lock setting for a bucket, and is
-// mutually exclusive with it - a particular bucket can have only one of these
-// enabled at a time.
-//
-// There are compliance settings on a bucket level, which apply the policy that
-// is applied to all objects added to that bucket. In addition, there are also
-// compliance settings at the object level.
+// These operations follow AWS SDK v1 service templates with Wasabi-specific
+// payloads. Wasabi compliance and S3 Object Lock are mutually exclusive.
 package wasabi
 
 import (
@@ -180,52 +164,23 @@ type PutBucketComplianceInput struct {
 type BucketComplianceConfiguration struct {
 	_ struct{} `type:"structure"`
 
-	// The compliance state of the bucket.
-	//
-	// Either "enabled" or "disabled" to turn compliance on and off,
-	// respectively. Enabling will immediately apply to all objects in the
-	// bucket.
+	// Enabling compliance applies it immediately to every object in the bucket.
 	Status *string `type:"string" enum:"BucketComplianceStatus"`
 
-	// The time at which the compliance settings are "locked".
-	//
-	// The time at which the compliance settings are "locked"— the settings
-	// cannot be reduced by any API call. Once the settings are locked, they
-	// cannot be unlocked without the intervention of Wasabi Customer Support.
-	// The lock time allows you to support two use cases:
-	//
-	// 1) testing that your software works properly before locking the
-	//    compliance feature; or
-	//
-	// 2) never locking which means that data can be deleted with an additional
-	//    step of an administrator turning compliance off.
-	//
-	// The lock time parameter may be:
-	//
-	// - an ISO date (for example, 2016-11-07T15:08:05Z),
-	//
-	// - the string "now" to force immediate locking, or
-	//
-	// - the string "off" to not lock the compliance settings. This is the default.
+	// "now" locks immediately, "off" leaves settings unlocked, and an ISO time
+	// schedules the lock. Once locked, settings cannot be reduced without Wasabi
+	// support.
 	LockTime *string `type:"string"`
 
-	// An integer for the minimum number of days that objects are always
-	// retained after their creation date or release from conditional hold. You
-	// can extend the retention date for any individual object, but may not
-	// shorten the date. This parameter is always required.
+	// Required minimum retention after creation or release from conditional hold.
+	// Per-object retention may be extended, but not shortened.
 	RetentionDays *int64 `type:"integer"`
 
-	// A Boolean value indicating if newly created objects are placed on
-	// conditional hold, meaning that they cannot be deleted until the
-	// con­ditional hold is explicitly turned off. The default is false if this
-	// parameter is not given. Note that this setting may be changed even after
-	// the settings are locked.
+	// Places new objects on hold. Defaults to false and may be changed after the
+	// settings are locked.
 	ConditionalHold *bool `type:"boolean"`
 
-	// A Boolean value indicating if the object should be deleted automatically
-	// at the end of the retention period. The default is to not delete objects
-	// after the reten­tion period. Note that this setting may be changed even
-	// after the settings are locked.
+	// Defaults to false and may be changed after the settings are locked.
 	DeleteAfterRetention *bool `type:"boolean"`
 }
 
@@ -473,22 +428,14 @@ type PutObjectComplianceInput struct {
 type ObjectComplianceConfiguration struct {
 	_ struct{} `type:"structure"`
 
-	// An ISO time giving a new retention time for the object in which the
-	// object cannot be deleted before this time. Note that the new retention
-	// time must be past the reten­tion period given by the bucket policy or an
-	// error is returned.
+	// Must be later than the retention required by the bucket policy.
 	RetentionTime *string `type:"string"`
 
-	// A Boolean value "false" to release the object from the conditional hold
-	// setting in the bucket policy. The retention period in days is started
-	// from the point when the con­ditional hold is released. Once the
-	// conditional hold is set false, it may not be returned to conditional
-	// hold.
+	// Setting this to false releases the hold, starts the retention period, and
+	// cannot be reversed.
 	ConditionalHold *bool `type:"boolean"`
 
-	// A Boolean value "true" or "false" to set the legal hold status. When an
-	// object has a legal hold status of true, the object cannot be deleted
-	// regardless of the retention period.
+	// A legal hold prevents deletion regardless of the retention period.
 	LegalHold *bool `type:"boolean"`
 }
 

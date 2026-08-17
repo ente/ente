@@ -9,7 +9,6 @@ import 'package:ente_ui/components/buttons/models/button_result.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showDialogWidget({
   required BuildContext context,
   required String title,

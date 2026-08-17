@@ -237,7 +237,6 @@ func (r *MemoryShareRepository) GetByUserID(ctx context.Context, userID int64) (
 	return shares, nil
 }
 
-// Delete soft-deletes a memory share owned by the given user.
 func (r *MemoryShareRepository) Delete(ctx context.Context, shareID int64, userID int64) error {
 	result, err := r.DB.ExecContext(ctx, `
 		UPDATE memory_shares SET is_deleted = true, updated_at = $1

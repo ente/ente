@@ -4,7 +4,7 @@ import {
     readCastData,
     storeCastData,
 } from "@/services/cast-data";
-import { getCastPayload, register } from "@/services/pair";
+import { getCastPayload, register, type Registration } from "@/services/pair";
 import { Box, Stack, styled, Typography } from "@mui/material";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
@@ -14,19 +14,14 @@ import React, { useEffect, useState } from "react";
 import { advertiseOnChromecast } from "../services/chromecast-receiver";
 
 const Page: React.FC = () => {
-    const [publicKey, setPublicKey] = useState<string | undefined>();
-    const [privateKey, setPrivateKey] = useState<string | undefined>();
-    const [pairingCode, setPairingCode] = useState<string | undefined>();
+    const [registration, setRegistration] = useState<Registration>();
+    const pairingCode = registration?.pairingCode;
 
     const router = useRouter();
 
     useEffect(() => {
         if (!pairingCode) {
-            void register().then((r) => {
-                setPublicKey(r.publicKey);
-                setPrivateKey(r.privateKey);
-                setPairingCode(r.pairingCode);
-            });
+            void register().then(setRegistration);
         } else {
             clearCastData();
             advertiseOnChromecast(
@@ -37,28 +32,24 @@ const Page: React.FC = () => {
     }, [pairingCode]);
 
     useEffect(() => {
-        if (!publicKey || !privateKey || !pairingCode) return;
+        if (!registration) return;
 
         const pollTick = async () => {
             try {
-                const data = await getCastPayload({
-                    publicKey,
-                    privateKey,
-                    pairingCode,
-                });
+                const data = await getCastPayload(registration);
                 if (!data) return;
 
                 storeCastData(data);
                 await router.push("/slideshow");
             } catch (e) {
                 log.warn("Failed to get cast data", e);
-                setPairingCode(undefined);
+                setRegistration(undefined);
             }
         };
 
         const interval = setInterval(pollTick, 2000);
         return () => clearInterval(interval);
-    }, [publicKey, privateKey, pairingCode, router]);
+    }, [registration, router]);
 
     return (
         <Container>

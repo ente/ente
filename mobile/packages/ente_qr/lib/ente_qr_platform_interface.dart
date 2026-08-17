@@ -1,7 +1,6 @@
 import 'package:ente_qr/ente_qr_method_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-/// The result of QR code scanning
 class QrScanResult {
   final String? content;
   final String? error;
@@ -18,21 +17,16 @@ class QrScanResult {
   }
 }
 
-/// A single detected QR code with its content and normalized bounding box.
+// Bounding boxes use normalized 0..1 coordinates.
 class QrDetection {
-  /// The decoded QR code content.
   final String content;
 
-  /// Normalized x coordinate of the bounding box (0.0 to 1.0).
   final double x;
 
-  /// Normalized y coordinate of the bounding box (0.0 to 1.0).
   final double y;
 
-  /// Normalized width of the bounding box (0.0 to 1.0).
   final double width;
 
-  /// Normalized height of the bounding box (0.0 to 1.0).
   final double height;
 
   const QrDetection({
@@ -54,7 +48,6 @@ class QrDetection {
   }
 }
 
-/// The result of scanning for multiple QR codes.
 class QrScanResults {
   final List<QrDetection> detections;
   final String? error;
@@ -76,21 +69,14 @@ class QrScanResults {
 }
 
 abstract class EnteQrPlatform extends PlatformInterface {
-  /// Constructs a EnteQrPlatform.
   EnteQrPlatform() : super(token: _token);
 
   static final Object _token = Object();
 
   static EnteQrPlatform _instance = MethodChannelEnteQr();
 
-  /// The default instance of [EnteQrPlatform] to use.
-  ///
-  /// Defaults to [MethodChannelEnteQr].
   static EnteQrPlatform get instance => _instance;
 
-  /// Platform-specific implementations should set this with their own
-  /// platform-specific class that extends [EnteQrPlatform] when
-  /// they register themselves.
   static set instance(EnteQrPlatform instance) {
     PlatformInterface.verifyToken(instance, _token);
     _instance = instance;
@@ -100,8 +86,6 @@ abstract class EnteQrPlatform extends PlatformInterface {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
 
-  /// Scans a QR code from an image file at the given path.
-  /// Returns the QR code content as a string if successful, null otherwise.
   Future<QrScanResult> scanQrFromImage(
     String imagePath, {
     bool tryOriginalResolution = false,
@@ -109,8 +93,6 @@ abstract class EnteQrPlatform extends PlatformInterface {
     throw UnimplementedError('scanQrFromImage() has not been implemented.');
   }
 
-  /// Scans all QR codes from an image file at the given path.
-  /// Returns a list of detections with content and bounding boxes.
   Future<QrScanResults> scanAllQrFromImage(String imagePath) {
     throw UnimplementedError('scanAllQrFromImage() has not been implemented.');
   }

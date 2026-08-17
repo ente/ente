@@ -138,10 +138,7 @@ class VideoPreviewService {
     }
   }
 
-  // Clear queue - will be rebuilt from DB when processing resumes
   void clearQueue() {
-    // Fire events for all items being cleared so UI can reset
-    // Use paused status when flag is enabled (items will resume), otherwise uploaded
     final status = flagService.stopStreamProcess
         ? PreviewItemStatus.paused
         : PreviewItemStatus.uploaded;
@@ -152,7 +149,6 @@ class VideoPreviewService {
     _items.clear();
   }
 
-  /// Stop streaming immediately, cancels FFmpeg and network requests.
   void stop(String reason) {
     if (_items.isEmpty) return;
 
@@ -170,7 +166,6 @@ class VideoPreviewService {
     }
   }
 
-  // Stop streaming process if ffmpeg not started or if ffmpeg progress < 75%
   Future<void> stopSafely(String reason) async {
     if (!flagService.stopStreamProcess) return;
 
@@ -194,7 +189,6 @@ class VideoPreviewService {
         ? "${(progress * 100).toStringAsFixed(1)}%"
         : "N/A";
 
-    // Don't interrupt upload or compression >= 75%, but clear queue
     if (status == PreviewItemStatus.uploading ||
         (status == PreviewItemStatus.compressing &&
             progress != null &&
@@ -213,26 +207,21 @@ class VideoPreviewService {
     Bus.instance.fire(VideoPreviewStateChangedEvent(fileId, status));
   }
 
-  // Return value indicates file was successfully added to queue or not
   Future<bool> addToManualQueue(EnteFile file, String queueType) async {
     if (file.uploadedFileID == null) return false;
 
-    // Check if already in queue
     final bool alreadyInQueue = await uploadLocksDB.isInStreamQueue(
       file.uploadedFileID!,
     );
     if (alreadyInQueue) {
-      // File is already queued, but trigger processing in case it was stalled
       if (uploadingFileId < 0) {
         queueFiles(duration: Duration.zero, isManual: true, forceProcess: true);
       }
-      return false; // Indicates file was already in queue
+      return false;
     }
 
-    // Add to persistent database queue
     await uploadLocksDB.addToStreamQueue(file.uploadedFileID!, queueType);
 
-    // Start processing if not already processing
     if (uploadingFileId < 0) {
       queueFiles(duration: Duration.zero, isManual: true);
     } else {
@@ -255,7 +244,6 @@ class VideoPreviewService {
   bool isCurrentlyProcessing(int? uploadedFileID) {
     if (uploadedFileID == null) return false;
 
-    // Also check if file is in queue or other processing states
     final item = _items[uploadedFileID];
     if (item != null) {
       switch (item.status) {
@@ -279,8 +267,7 @@ class VideoPreviewService {
     if (file.uploadedFileID == null) return false;
 
     try {
-      // Check database directly instead of relying on in-memory _manualQueueFiles
-      // which might not be populated yet
+      // The in-memory manual queue may not be initialized yet.
       final manualQueueFiles = await uploadLocksDB.getStreamQueue();
       final queueType = manualQueueFiles[file.uploadedFileID!];
       return queueType == 'recreate';
@@ -290,7 +277,6 @@ class VideoPreviewService {
   }
 
   Future<void> _ensurePreviewIdsInitialized() async {
-    // Ensure fileDataService previewIds is initialized before using it
     if (fileDataService.previewIds.isEmpty) {
       await fileDataService.syncFDStatus();
     }
@@ -332,29 +318,20 @@ class VideoPreviewService {
     List<EnteFile> files,
     Map<int, PreviewInfo> previewIds,
   ) async {
-    // This is the total video files that have streams
     final Set<int> processed = previewIds.keys.toSet();
-    // Total: Total Remote video files owned - skipped video files
-    //         + processed videos (any platform)
     final Set<int> total = {...processed};
 
     for (final file in files) {
-      // skipped -> don't add
       if (file.pubMagicMetadata?.sv == 1) {
         continue;
       }
-      // Include the file to total set
       total.add(file.uploadedFileID!);
     }
 
-    // If total is empty then mark all as processed else compute the ratio
-    // of processed files and total remote video files
-    // netProcessedItems = processed / total
     final double netProcessedItems = total.isEmpty
         ? 1
         : (processed.length / total.length).clamp(0, 1);
 
-    // Store the data and return it
     final status = netProcessedItems;
     return status;
   }
@@ -363,9 +340,6 @@ class VideoPreviewService {
     try {
       await _ensurePreviewIdsInitialized();
 
-      // This will get us all the video files that are present on remote
-      // and also that could be / have been skipped due to device
-      // limitations
       final files = await _getFiles(
         beginDate: null,
         onlyFilesWithLocalId: false,
@@ -381,16 +355,12 @@ class VideoPreviewService {
   Future<void> chunkAndUploadVideo(
     BuildContext? ctx,
     EnteFile enteFile, {
-
-    /// Indicates this function is an continuation of a chunking thread
     bool continuation = false,
-    // not used currently
     bool forceUpload = false,
   }) async {
     if (_items.isEmpty) return;
     _streamingCancelToken ??= CancelToken();
 
-    // Check if file upload is happening before processing video for streaming
     if (flagService.stopStreamProcess && FileUploader.instance.isUploading) {
       stop("upload in progress");
       return;
@@ -409,7 +379,6 @@ class VideoPreviewService {
         return;
       }
       try {
-        // check if playlist already exist, but skip this check for 'recreate' operations
         final isRecreateOperation = await _isRecreateOperation(enteFile);
         if (!isRecreateOperation && await getPlaylist(enteFile) != null) {
           if (ctx != null && ctx.mounted) {
@@ -420,7 +389,6 @@ class VideoPreviewService {
         }
       } catch (e, s) {
         if (e is DioException && e.response?.statusCode == 404) {
-          // 404 is expected when checking if preview exists
           _logger.fine(
             "No preview found for ${enteFile.displayName}, will create one",
           );
@@ -433,7 +401,6 @@ class VideoPreviewService {
       _logger.info(
         "Starting video preview generation for ${enteFile.displayName}",
       );
-      // elimination case for <=10 MB with H.264
       final isManual = await uploadLocksDB.isInStreamQueue(
         enteFile.uploadedFileID!,
       );
@@ -446,7 +413,6 @@ class VideoPreviewService {
         return;
       }
 
-      // check if there is already a preview in processing
       if (!continuation && uploadingFileId >= 0) {
         if (uploadingFileId == enteFile.uploadedFileID) return;
 
@@ -466,7 +432,6 @@ class VideoPreviewService {
         return;
       }
 
-      // everything is fine, let's process
       uploadingFileId = enteFile.uploadedFileID!;
       _items[enteFile.uploadedFileID!] = PreviewItem(
         status: PreviewItemStatus.compressing,
@@ -481,7 +446,6 @@ class VideoPreviewService {
         PreviewItemStatus.compressing,
       );
 
-      // get file
       file ??= await getFile(enteFile, isOrigin: true);
       if (_items.isEmpty) return;
       if (file == null) {
@@ -489,7 +453,6 @@ class VideoPreviewService {
         return;
       }
 
-      // check metadata for bitrate, codec, color space
       props ??= await getVideoProps(file);
       final fileSize = enteFile.fileSize ?? file.lengthSync();
 
@@ -526,7 +489,6 @@ class VideoPreviewService {
           colorTransfer != null &&
           (colorTransfer == "smpte2084" || colorTransfer == "arib-std-b67");
 
-      // create temp file & directory for preview generation
       final String tempDir = config.getTempDirectory();
       final String prefix =
           "${tempDir}_${enteFile.uploadedFileID}_${newID("pv")}";
@@ -559,18 +521,14 @@ class VideoPreviewService {
         final videoFilters = <String>[];
 
         if (rescaleVideo || needsTonemap) {
-          // scale smaller dimension to 720p (or keep original if less than 720p)
-          // portrait: scale width to min(720,iw), landscape: scale height to min(720,ih)
           videoFilters.add(
             "scale='if(lt(iw,ih),min(720,iw),-2)':'if(lt(iw,ih),-2,min(720,ih))'",
           );
 
-          // reduce fps to 30 if it is more than 30
           if (applyFPS) videoFilters.add("fps=30");
         }
 
         if (needsTonemap) {
-          // apply tonemapping for HDR videos
           videoFilters.addAll([
             'zscale=transfer=linear',
             'tonemap=tonemap=hable:desat=0',
@@ -584,13 +542,9 @@ class VideoPreviewService {
       }
 
       final command =
-          // scaling, fps, tonemapping
           '$filters'
-          // video encoding with maxrate cap at 2000kbps to preserve smaller bitrates
           '${reencodeVideo ? '-c:v libx264 -maxrate 2000k -bufsize 4000k ' : '-c:v copy '}'
-          // audio encoding
           '-c:a aac -b:a 128k '
-          // hls options
           '-f hls -hls_flags single_file '
           '-hls_list_size 0 -hls_key_info_file ${keyinfo.path} ';
 
@@ -640,7 +594,6 @@ class VideoPreviewService {
           objectId = result.$1;
           objectSize = result.$2;
 
-          // Fetch resolution of generated stream by decrypting a single frame
           final playlistFrameResult = await ffmpegService
               .runFfmpeg(
                 '-allowed_extensions ALL -i "$prefix/output.m3u8" -frames:v 1 -c copy "$prefix/frame.ts"',
@@ -694,7 +647,6 @@ class VideoPreviewService {
       }
 
       if (error == null) {
-        // update previewIds
         fileDataService.appendPreview(
           enteFile.uploadedFileID!,
           objectId!,
@@ -721,20 +673,16 @@ class VideoPreviewService {
         _removeFile(enteFile);
         _removeFromLocks(enteFile).ignore();
       }
-      // Check if we should stop processing due to network errors
       final bool shouldStopProcessing = _isNetworkError(error);
 
       if (fileQueue.isNotEmpty && !shouldStopProcessing) {
-        // If there was an error, add a delay before processing next file
         if (error != null) {
           _logger.info(
             "[chunk] Error occurred, waiting before processing next item. Queue size: ${fileQueue.length}",
           );
-          // Add a small delay before processing next file after an error
           await Future.delayed(const Duration(seconds: 2));
         }
 
-        // process next file
         _logger.info("[chunk] Processing ${_items.length} items for streaming");
         final entry = fileQueue.entries.first;
         final file = entry.value;
@@ -745,7 +693,6 @@ class VideoPreviewService {
           await chunkAndUploadVideo(null, file, continuation: true);
         }
       } else {
-        // Release compute when queue is empty or network is unavailable
         stop(shouldStopProcessing ? "network error" : "nothing to process");
       }
     }
@@ -773,14 +720,12 @@ class VideoPreviewService {
   void _removeFile(EnteFile enteFile) {
     final fileId = enteFile.uploadedFileID!;
     _items.remove(fileId);
-    // Note: Using 'uploaded' status as there's no 'removed' status in PreviewItemStatus
-    // This indicates the item has been successfully processed and removed from queue
+    // There is no removed status; uploaded also clears the item from the UI.
     _fireVideoPreviewStateChange(fileId, PreviewItemStatus.uploaded);
   }
 
   bool _isNetworkError(Object? error) {
     if (error is DioException) {
-      // Check for any network-related error
       return error.type == DioExceptionType.connectionError ||
           error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.unknown ||
@@ -791,7 +736,6 @@ class VideoPreviewService {
   }
 
   void _retryFile(EnteFile enteFile, Object error) {
-    // Check if it's a network error that should not be retried immediately
     bool shouldRetry = true;
     if (_isNetworkError(error)) {
       _logger.fine(
@@ -1158,7 +1102,6 @@ class VideoPreviewService {
     double totalDuration = 0.0;
     for (final line in lines) {
       if (line.startsWith("#EXTINF:")) {
-        // Extract duration value (e.g., "#EXTINF:2.400000," → "2.400000")
         final durationStr = line.substring(8, line.length - 1);
         final duration = double.tryParse(durationStr);
         if (duration != null) {
@@ -1262,8 +1205,6 @@ class VideoPreviewService {
     return (props, skipFile, file);
   }
 
-  // generate stream for all files after cutoff date
-  // returns false if it fails to launch chuncking function
   Future<bool> _putFilesForPreviewCreation() async {
     if (!isVideoStreamingEnabled || !await canUseHighBandwidth()) return false;
 
@@ -1275,24 +1216,20 @@ class VideoPreviewService {
 
       manualQueueFiles = await uploadLocksDB.getStreamQueue();
 
-      // handle case when failures are already previewed
       for (final failure in _failureFiles!) {
         if (_items.containsKey(failure)) {
           uploadLocksDB.deleteStreamUploadErrorEntry(failure).ignore();
         }
       }
 
-      // handle case when manual queue items are already previewed (for 'create' type only)
       for (final queueItem in manualQueueFiles.keys) {
         final queueType = manualQueueFiles[queueItem];
         final hasPreview = fileDataService.previewIds[queueItem] != null;
         if (hasPreview && queueType == 'create') {
-          // Remove from queue only if it's a 'create' type and preview exists
           await uploadLocksDB.removeFromStreamQueue(queueItem);
         }
       }
 
-      // Refresh manual queue after cleanup
       manualQueueFiles = await uploadLocksDB.getStreamQueue();
     } catch (_) {}
 
@@ -1306,12 +1243,10 @@ class VideoPreviewService {
       "[init] Found ${files.length} files in last 60 days, ${manualQueueFiles.length} manual queue files: ${manualQueueFiles.keys.toList()}",
     );
 
-    // Add manual queue files first (they have priority)
     for (final queueFileId in manualQueueFiles.keys) {
       final queueType = manualQueueFiles[queueFileId] ?? 'create';
       final hasPreview = previewIds[queueFileId] != null;
 
-      // For create, only add if no preview exists
       if (queueType == 'create' && hasPreview) {
         _logger.info(
           "[manual-queue] Skipping file $queueFileId (type=$queueType, hasPreview=$hasPreview)",
@@ -1319,12 +1254,10 @@ class VideoPreviewService {
         continue;
       }
 
-      // First try to find the file in the 60-day list
       var queueFile = files.firstWhereOrNull(
         (f) => f.uploadedFileID == queueFileId,
       );
 
-      // If not found in 60-day list, fetch it individually
       queueFile ??= await filesDB
           .getAnyUploadedFile(queueFileId)
           .catchError((e) => null);
@@ -1348,7 +1281,6 @@ class VideoPreviewService {
       fileQueue[queueFile.uploadedFileID!] = queueFile;
     }
 
-    // Then add regular files that need processing
     final allFiles = files
         .where(
           (file) =>
@@ -1357,7 +1289,6 @@ class VideoPreviewService {
         )
         .toList();
 
-    // set all video status to in queue
     var n = allFiles.length, i = 0;
     while (i < n) {
       final enteFile = allFiles[i];
@@ -1409,7 +1340,6 @@ class VideoPreviewService {
       "[init] Processing $totalFiles items for streaming (${manualQueueFiles.length} manual requested, ${fileQueue.length} queued, ${allFiles.length} regular)",
     );
 
-    // take first file and put it for stream generation
     final entry = fileQueue.entries.first;
     final file = entry.value;
     fileQueue.remove(entry.key);
@@ -1431,7 +1361,6 @@ class VideoPreviewService {
         );
   }
 
-  /// To check if it's enabled, device is healthy and running streaming
   bool _isPermissionGranted() {
     return isVideoStreamingEnabled &&
         computeController.computeState == ComputeRunState.generatingStream &&
@@ -1444,10 +1373,9 @@ class VideoPreviewService {
     bool forceProcess = false,
   }) {
     Future.delayed(duration, () async {
-      _streamingCancelToken = null; // Reset for new session
+      _streamingCancelToken = null;
       if (_hasQueuedFile && !forceProcess) return;
 
-      // Don't start streaming if file uploads are in progress
       if (flagService.stopStreamProcess && FileUploader.instance.isUploading) {
         _logger.info("Skipping stream queue - file upload in progress");
         return;
@@ -1458,7 +1386,6 @@ class VideoPreviewService {
 
       await _ensurePreviewIdsInitialized();
       final result = await _putFilesForPreviewCreation();
-      // Cannot proceed to stream generation, would have to release compute ASAP
       if (!result) {
         computeController.releaseCompute(stream: true);
       }

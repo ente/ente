@@ -30,8 +30,9 @@ import "package:photos/services/machine_learning/face_ml/face_alignment/alignmen
 import "package:photos/services/machine_learning/face_ml/face_detection/detection.dart";
 import "package:photos/services/machine_learning/ml_exceptions.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
+import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/search_service.dart";
-import "package:photos/services/sync/local_sync_service.dart";
+import "package:photos/services/sync/origin_fetch_tracker.dart";
 import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
 import "package:photos/utils/network_util.dart";
 
@@ -98,9 +99,7 @@ class _OnlineMLIndexingCandidates {
   });
 }
 
-/// Counts indexing progress using the same eligibility predicates as the
-/// indexing candidate enumeration below, so the shown number always matches
-/// what the indexer would actually process.
+// Keep these eligibility rules in sync with candidate enumeration below.
 Future<IndexStatus> getIndexStatus() async {
   try {
     final bool localGallery = isLocalGalleryMode;
@@ -171,16 +170,14 @@ Future<IndexStatus> getIndexStatus() async {
   }
 }
 
-// _lastFetchTimeForOthersIndexed indicates the last time we tried to
-// fetch embeddings for files that are owned by others. This is only used
-// when local indexing is disabled.
+// Throttles remote embedding checks for files owned by others when local
+// indexing is disabled.
 int _lastFetchTimeForOthersIndexed = 0;
 
 Future<_OnlineMLIndexingCandidates>
 _getOnlineFilesForMlIndexingCandidates() async {
   final mlDataDB = MLDataDB.instance;
   final time = DateTime.now();
-  // Get indexed fileIDs for each ML service
   final Map<int, int> faceIndexedFileIDs = await mlDataDB.faceIndexedFileIds();
   final Map<int, int> clipIndexedFileIDs = await mlDataDB
       .clipIndexedFileWithVersion();
@@ -197,11 +194,9 @@ _getOnlineFilesForMlIndexingCandidates() async {
     type: DataType.mlData,
   );
 
-  // Get all regular files and all hidden files
   final enteFiles = await SearchService.instance.getAllFilesForSearch();
   final hiddenFiles = await SearchService.instance.getHiddenFiles();
 
-  // Sort out what should be indexed and in what order
   final List<FileMLInstruction> filesWithLocalID = [];
   final List<FileMLInstruction> filesWithoutLocalID = [];
   final List<FileMLInstruction> hiddenFilesToIndex = [];
@@ -301,7 +296,6 @@ _getOnlineFilesForMlIndexingCandidates() async {
   );
 }
 
-/// Return a list of file instructions for files that should be indexed for ML
 Future<List<FileMLInstruction>> getFilesForMlIndexing() async {
   _logger.info('getFilesForMlIndexing called');
   final candidateSplit = await _getOnlineFilesForMlIndexingCandidates();
@@ -453,7 +447,6 @@ Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
       }
     }
   }
-  // Yield any remaining instructions
   if (batchToYield.isNotEmpty) {
     _logger.info("queueing indexing for  ${batchToYield.length}");
     yield batchToYield;
@@ -462,6 +455,7 @@ Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
 
 Future<RemoteMLHydrationSummary> hydrateOwnedRemoteMLData({
   required MLDataDB mlDataDB,
+  MlRunControl? control,
   int? skipHydrationIfCandidateFileCountAtMost,
 }) async {
   final candidateSplit = await _getOnlineFilesForMlIndexingCandidates();
@@ -489,6 +483,9 @@ Future<RemoteMLHydrationSummary> hydrateOwnedRemoteMLData({
     start < ownedCandidates.length;
     start += embeddingFetchLimit
   ) {
+    if (control?.stopRequested ?? false) {
+      break;
+    }
     final end = math.min(start + embeddingFetchLimit, ownedCandidates.length);
     final chunk = ownedCandidates.sublist(start, end);
     final facePendingBefore = chunk.where((i) => i.shouldRunFaces).length;
@@ -614,7 +611,7 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
       continue;
     }
     final facesFromRemoteEmbedding = _getFacesFromRemoteEmbedding(fileMl);
-    // Note: always do null check; an empty value means no face was found.
+    // A non-null result is compatible remote data, even when no face was found.
     if (facesFromRemoteEmbedding != null) {
       faces.addAll(facesFromRemoteEmbedding);
       existingInstruction.shouldRunFaces = false;
@@ -647,8 +644,6 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
       .toList();
 }
 
-// Returns a list of faces from the given remote fileML. null if the version is less than the current version
-// or if the remote faceEmbedding is null.
 List<Face>? _getFacesFromRemoteEmbedding(FileDataEntity fileMl) {
   final RemoteFaceEmbedding? remoteFaceEmbedding = fileMl.faceEmbedding;
   if (_shouldDiscardRemoteEmbedding(fileMl)) {
@@ -679,7 +674,6 @@ bool _shouldDiscardRemoteEmbedding(FileDataEntity fileML) {
     );
     return true;
   }
-  // are all landmarks equal?
   bool allLandmarksEqual = true;
   if (faceEmbedding.faces.isEmpty) {
     allLandmarksEqual = false;
@@ -733,15 +727,17 @@ Future<String> getImagePathForML(EnteFile enteFile) async {
       throw ThumbnailRetrievalException(e.toString(), s);
     }
   } else {
-    // Don't process the file if it's too large (more than 100MB)
     if (enteFile.fileSize != null && enteFile.fileSize! > maxFileDownloadSize) {
       throw Exception(
         "FileSizeTooLargeForMobileIndexing: size is ${enteFile.fileSize}",
       );
     }
     try {
-      if (Platform.isIOS && enteFile.localID != null) {
-        trackOriginFetchForUploadOrML.put(enteFile.localID!, true);
+      if (Platform.isIOS) {
+        originFetchTracker.record(
+          localID: enteFile.localID,
+          modificationTime: enteFile.modificationTime,
+        );
       }
       file = await getFile(enteFile, isOrigin: true);
     } catch (e, s) {
@@ -919,9 +915,8 @@ Future<MLResult> analyzeImageRust(Map args) async {
       height: rustResult.decodedImageSize.height,
     );
 
-    // Nullify faces/clip when their pipelines were not requested so that
-    // facesRan/clipRan correctly report false and processImage does not
-    // overwrite existing remote embeddings with empty payloads.
+    // Null means the pipeline did not run; an empty result would overwrite
+    // remote embeddings.
     if (!runFaces) result.faces = null;
 
     if (runFaces) {
@@ -978,7 +973,7 @@ Future<MLResult> analyzeImageRust(Map args) async {
                     .toList(growable: false),
               );
               final alignment = AlignmentResult(
-                // Pet alignment is done in Rust; no Dart-side affine matrix needed.
+                // Rust already aligned pet faces; no Dart matrix is needed.
                 affineMatrix: const [],
                 center: face.alignment.center.toList(growable: false),
                 size: face.alignment.cropSize,

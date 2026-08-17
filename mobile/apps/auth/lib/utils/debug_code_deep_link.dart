@@ -9,11 +9,8 @@ class DebugCodeDeepLink {
   final String codeUri;
 }
 
-/// Parses debug-only code links used by offline UI automation.
-///
-/// iOS may route `otpauth://` links to the system Passwords app, even when
-/// Ente Auth is installed. Wrapping the URI in Ente Auth's own scheme keeps
-/// deterministic Maestro setup and visual previews out of release builds.
+// iOS may route otpauth:// to Passwords, so debug automation wraps it in Ente
+// Auth's own scheme.
 DebugCodeDeepLink? parseDebugCodeDeepLink(String link) {
   if (!kDebugMode) return null;
 

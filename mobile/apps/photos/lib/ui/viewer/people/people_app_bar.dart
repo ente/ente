@@ -275,7 +275,6 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     final bool hideFromMemories = person.data.hideFromMemories;
     final bool hasAssignedCluster = person.data.assigned.isNotEmpty;
     final List<Widget> actions = <Widget>[];
-    // If the user has selected files, don't show any actions
     if (widget.selectedFiles.files.isNotEmpty ||
         !Configuration.instance.hasConfiguredAccount()) {
       return actions;

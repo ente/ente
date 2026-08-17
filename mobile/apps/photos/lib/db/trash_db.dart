@@ -8,10 +8,7 @@ import 'package:photos/models/file/trash_file.dart';
 import 'package:photos/models/file_load_result.dart';
 import 'package:sqflite/sqflite.dart';
 
-// The TrashDB doesn't need to flatten and store all attributes of a file.
-// Before adding any other column, we should evaluate if we need to query on that
-// column or not while showing trashed items. Even if we miss storing any new attributes,
-// during restore, all file attributes will be fetched & stored as required.
+// Store only fields needed to query trash. Restore fetches the full file.
 class TrashDB {
   static const _databaseName = "ente.trash.db";
   static const _databaseVersion = 2;
@@ -33,7 +30,6 @@ class TrashDB {
   static const columnCreationTime = 'creation_time';
   static const columnLocalID = 'local_id';
 
-  // standard file metadata, which isn't editable
   static const columnFileMetadata = 'file_metadata';
 
   static const columnMMdEncodedJson = 'mmd_encoded_json';
@@ -82,16 +78,13 @@ class TrashDB {
 
   static final TrashDB instance = TrashDB._privateConstructor();
 
-  // only have a single app-wide reference to the database
   static Future<Database>? _dbFuture;
 
   Future<Database> get database async {
-    // lazily instantiate the db the first time it is accessed
     _dbFuture ??= _initDatabase();
     return _dbFuture!;
   }
 
-  // this opens the database (and creates it if it doesn't exist)
   Future<Database> _initDatabase() async {
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();
@@ -118,12 +111,12 @@ class TrashDB {
     return count ?? 0;
   }
 
-  Future<void> insertMultiple(List<TrashFile> trashFiles) async {
+  Future<void> insertMultiple(List<EnteTrashFile> trashFiles) async {
     final startTime = DateTime.now();
     final db = await instance.database;
     var batch = db.batch();
     int batchCounter = 0;
-    for (TrashFile trash in trashFiles) {
+    for (final trash in trashFiles) {
       if (batchCounter == 400) {
         await batch.commit(noResult: true);
         batch = db.batch();
@@ -159,7 +152,7 @@ class TrashDB {
     );
   }
 
-  Future<int> update(TrashFile file) async {
+  Future<int> update(EnteTrashFile file) async {
     final db = await instance.database;
     return await db.update(
       tableName,
@@ -190,12 +183,12 @@ class TrashDB {
     return FileLoadResult(files, files.length == limit);
   }
 
-  TrashFile _getTrashFromRow(Map<String, dynamic> row) {
-    final trashFile = TrashFile();
+  EnteTrashFile _getTrashFromRow(Map<String, dynamic> row) {
+    final trashFile = EnteTrashFile();
     trashFile.updateAt = row[columnTrashUpdatedAt];
     trashFile.deleteBy = row[columnTrashDeleteBy];
     trashFile.uploadedFileID = row[columnUploadedFileID];
-    // dirty hack to ensure that the file_downloads & cache mechanism works
+    // Trash rows need a synthetic generatedID for download and cache keys.
     trashFile.generatedID = -1 * trashFile.uploadedFileID!;
     trashFile.ownerID = row[columnOwnerID];
     trashFile.collectionID = row[columnCollectionID] == -1
@@ -228,7 +221,7 @@ class TrashDB {
     return trashFile;
   }
 
-  Map<String, dynamic> _getRowForTrash(TrashFile trash) {
+  Map<String, dynamic> _getRowForTrash(EnteTrashFile trash) {
     final row = <String, dynamic>{};
     row[columnTrashUpdatedAt] = trash.updateAt;
     row[columnTrashDeleteBy] = trash.deleteBy;

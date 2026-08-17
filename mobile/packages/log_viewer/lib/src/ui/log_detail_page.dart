@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:log_viewer/src/core/log_models.dart';
 
-/// Detailed view of a single log entry
 class LogDetailPage extends StatelessWidget {
   final LogEntry log;
 
@@ -126,7 +125,6 @@ class LogDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Log metadata
             Container(
               width: double.infinity,
               color: theme.appBarTheme.backgroundColor,
@@ -156,14 +154,12 @@ class LogDetailPage extends StatelessWidget {
               ),
             ),
 
-            // Message section
             _buildSection(
               context: context,
               title: 'MESSAGE',
               content: log.message,
             ),
 
-            // Error section (if present)
             if (log.error != null)
               _buildSection(
                 context: context,
@@ -171,7 +167,6 @@ class LogDetailPage extends StatelessWidget {
                 content: log.error!,
               ),
 
-            // Stack trace section (if present)
             if (log.stackTrace != null)
               _buildSection(
                 context: context,

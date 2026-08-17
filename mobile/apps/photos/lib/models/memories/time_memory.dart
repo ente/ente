@@ -6,7 +6,6 @@ import "package:photos/models/memories/smart_memory.dart";
 enum TimeMemoryKind { day, month, week, lastWeek, lastMonth }
 
 class TimeMemory extends SmartMemory {
-  // For computing the title
   final TimeMemoryKind kind;
   DateTime? day;
   DateTime? month;

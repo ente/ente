@@ -66,7 +66,6 @@ func (c *StripeController) GetCheckoutSession(productID string, userID int64, re
 	}
 	subscription, err := c.BillingRepo.GetUserSubscription(userID)
 	if err != nil {
-		// error sql.ErrNoRows not possible as user must at least have a free subscription
 		return "", stacktrace.Propagate(err, "")
 	}
 	hasActivePaidSubscription := billing.IsActivePaidPlan(subscription)
@@ -163,9 +162,6 @@ func (c *StripeController) HandleINNotification(payload []byte, header string) e
 }
 
 func (c *StripeController) handleWebhookEvent(event stripe.Event, country ente.StripeAccountCountry) error {
-	// The event body would already have been logged by the upper layers by the
-	// time we get here, so we can only handle the events that we care about. In
-	// case we receive an unexpected event, we do log an error though.
 	handler := c.findHandlerForEvent(event)
 	if handler == nil {
 		log.Error("Received an unexpected webhook from stripe:", event.Type)
@@ -176,11 +172,8 @@ func (c *StripeController) handleWebhookEvent(event stripe.Event, country ente.S
 		return stacktrace.Propagate(err, "")
 	}
 	if eventLog.UserID == 0 {
-		// Do not try to log if we do not have an associated user. This can
-		// happen, e.g. with out of order webhooks.
-		// Or in case of offer application, where events are logged by the Storage Bonus Repo
-		//
-		// See: Ignore webhooks received before user has been created
+		// Out-of-order events may have no user. Offer events are logged by
+		// StorageBonusRepo instead.
 		return nil
 	}
 	err = c.BillingRepo.LogStripePush(eventLog)
@@ -265,18 +258,12 @@ func (c *StripeController) handleCheckoutSessionCompleted(event stripe.Event, co
 	return ente.StripeEventLog{}, nil
 }
 
-// Stripe fires this when a subscription starts or changes. For example,
-// renewing a subscription, adding a coupon, applying a discount, adding an
-// invoice item, and changing plans all trigger this event. In our case, we use
-// this only to track plan changes and renewal failures resulting in
-// subscriptions going past due.
 func (c *StripeController) handleCustomerSubscriptionUpdated(event stripe.Event, country ente.StripeAccountCountry) (ente.StripeEventLog, error) {
 	var stripeSubscription stripe.Subscription
 	json.Unmarshal(event.Data.Raw, &stripeSubscription)
 	currentSubscription, err := c.BillingRepo.GetSubscriptionForTransaction(stripeSubscription.ID, ente.Stripe)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// See: Ignore webhooks received before user has been created
 			log.Warn("Webhook is reporting an event for un-verified subscription stripeSubscriptionID:", stripeSubscription.ID)
 			return ente.StripeEventLog{}, nil
 		}
@@ -287,9 +274,7 @@ func (c *StripeController) handleCustomerSubscriptionUpdated(event stripe.Event,
 	if err != nil {
 		return ente.StripeEventLog{}, stacktrace.Propagate(err, "")
 	}
-	// If the customer has changed the plan, we update state in the database. If
-	// the plan has not changed, we will ignore this webhook and rely on other
-	// events to update the state
+	// Other events update subscription state when the product is unchanged.
 	if currentSubscription.ProductID != newSubscription.ProductID {
 		c.BillingRepo.ReplaceSubscription(currentSubscription.ID, newSubscription)
 	}
@@ -321,7 +306,6 @@ func (c *StripeController) handleInvoicePaid(event stripe.Event, country ente.St
 	currentSubscription, err := c.BillingRepo.GetSubscriptionForTransaction(stripeSubscriptionID, ente.Stripe)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// See: Ignore webhooks received before user has been created
 			if invoice.BillingReason != stripe.InvoiceBillingReasonSubscriptionCreate {
 				c.notifyIgnoredPaidStripeWebhook(event.Type, country, stripeSubscriptionID, invoice.Customer.ID)
 			}
@@ -341,7 +325,6 @@ func (c *StripeController) handleInvoicePaid(event stripe.Event, country ente.St
 
 	newExpiryTime := stripeSubscription.CurrentPeriodEnd * 1000 * 1000
 	if currentSubscription.ExpiryTime == newExpiryTime {
-		//outdated invoice
 		log.Warn("Webhook is reporting an outdated purchase that was already verified stripeSubscriptionID:", stripeSubscription.ID)
 		return ente.StripeEventLog{UserID: userID, StripeSubscription: *stripeSubscription, Event: event}, nil
 	}
@@ -353,17 +336,13 @@ func (c *StripeController) handleInvoicePaid(event stripe.Event, country ente.St
 	return ente.StripeEventLog{UserID: userID, StripeSubscription: *stripeSubscription, Event: event}, nil
 }
 
-// Event used to handle failures for payment methods whose subscription updates
-// use allow_incomplete (currently SEPA and UPI). Other subscription update
-// modes are handled synchronously in UpdateSubscription and
-// customer.subscription.updated.
+// SEPA and UPI failures are handled here because their updates use
+// allow_incomplete.
 func (c *StripeController) handlePaymentIntentFailed(event stripe.Event, country ente.StripeAccountCountry) (ente.StripeEventLog, error) {
 	var paymentIntent stripe.PaymentIntent
 	json.Unmarshal(event.Data.Raw, &paymentIntent)
 	paymentMethodType := getPaymentIntentErrorPaymentMethodType(paymentIntent)
 	if !usesAllowIncompleteSubscriptionUpdate(paymentMethodType) {
-		// Ignore events for payment methods that are already handled
-		// synchronously.
 		log.Info("Ignoring payment intent failed event for payment method handled synchronously")
 		return ente.StripeEventLog{}, nil
 	}
@@ -379,7 +358,6 @@ func (c *StripeController) handlePaymentIntentFailed(event stripe.Event, country
 	currentSubscription, err := c.BillingRepo.GetSubscriptionForTransaction(stripeSubscriptionID, ente.Stripe)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// See: Ignore webhooks received before user has been created
 			log.Warn("Webhook is reporting an event for un-verified subscription stripeSubscriptionID:", stripeSubscriptionID)
 		}
 		return ente.StripeEventLog{}, stacktrace.Propagate(err, "")
@@ -397,15 +375,10 @@ func (c *StripeController) handlePaymentIntentFailed(event stripe.Event, country
 	}
 
 	productID := stripeSubscription.Items.Data[0].Price.ID
-	// If the current subscription is not the same as the one in the webhook,
-	// then ignore
 	if currentSubscription.ProductID != productID {
-		// no-op
 		log.Warn("Webhook is reporting un-verified subscription update", stripeSubscription.ID, "invoiceID:", invoiceID)
 		return ente.StripeEventLog{UserID: userID, StripeSubscription: *stripeSubscription, Event: event}, nil
 	}
-	// If the current subscription is the same as the one in the webhook, then
-	// we need to expire the subscription, and send an email to the user.
 	newExpiryTime := time.Now().UnixMicro()
 	err = c.BillingRepo.UpdateSubscriptionExpiryTime(
 		currentSubscription.ID, newExpiryTime)
@@ -514,7 +487,6 @@ func (c *StripeController) UpdateSubscription(stripeID string, userID int64) (en
 func (c *StripeController) UpdateSubscriptionCancellationStatus(userID int64, shouldCancel bool) (ente.Subscription, error) {
 	subscription, err := c.BillingRepo.GetUserSubscription(userID)
 	if err != nil {
-		// error sql.ErrNoRows not possible as user must at least have a free subscription
 		return ente.Subscription{}, stacktrace.Propagate(err, "")
 	}
 	if subscription.PaymentProvider != ente.Stripe {
@@ -522,7 +494,6 @@ func (c *StripeController) UpdateSubscriptionCancellationStatus(userID int64, sh
 	}
 
 	if subscription.Attributes.IsCancelled == shouldCancel {
-		// no-op
 		return subscription, nil
 	}
 

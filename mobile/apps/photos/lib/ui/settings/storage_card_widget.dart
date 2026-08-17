@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/core/constants.dart';
+import "package:photos/core/errors.dart";
 import 'package:photos/models/user_details.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/states/user_details_state.dart';
@@ -57,38 +58,37 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
   @override
   Widget build(BuildContext context) {
     final inheritedUserDetails = InheritedUserDetails.of(context);
-    final userDetails = inheritedUserDetails?.userDetails;
-
     if (inheritedUserDetails == null) {
-      _logger.severe((InheritedUserDetails).toString() + 'is null');
-      throw Error();
-    } else {
-      return GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () async {
-          final isFamilyMember =
-              (userDetails?.isPartOfFamily() ?? false) &&
-              !((userDetails?.currentFamilyMember()?.isAdmin) ?? false);
-          if (isFamilyMember) {
-            await billingService.launchFamilyPortal(
-              context,
-              userDetails!,
-              refreshOnOpen: false,
-            );
-            return;
-          }
-          // ignore: unawaited_futures
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return getSubscriptionPage();
-              },
-            ),
-          );
-        },
-        child: containerForUserDetails(userDetails),
-      );
+      final msg = (InheritedUserDetails).toString() + 'is null';
+      _logger.severe(msg);
+      throw InvalidStateError(msg);
     }
+    final userDetails = inheritedUserDetails.userDetails;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () async {
+        final isFamilyMember =
+            (userDetails?.isPartOfFamily() ?? false) &&
+            !((userDetails?.currentFamilyMember()?.isAdmin) ?? false);
+        if (isFamilyMember) {
+          await billingService.launchFamilyPortal(
+            context,
+            userDetails!,
+            refreshOnOpen: false,
+          );
+          return;
+        }
+        // ignore: unawaited_futures
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return getSubscriptionPage();
+            },
+          ),
+        );
+      },
+      child: containerForUserDetails(userDetails),
+    );
   }
 
   Widget containerForUserDetails(UserDetails? userDetails) {
@@ -105,16 +105,24 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
             colors: [Color(0xFF212121), Color(0xFF434343)],
           ),
         ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(painter: _DotsPainter(), size: Size.infinite),
-            ),
-            userDetails is UserDetails
-                ? _userDetails(userDetails)
-                : const Center(child: EnteLoadingWidget(color: strokeBaseDark)),
-          ],
-        ),
+        child: userDetails != null
+            ? Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _DotsPainter(),
+                      size: Size.infinite,
+                    ),
+                  ),
+                  _userDetails(userDetails),
+                ],
+              )
+            : const SizedBox(
+                height: 130,
+                child: Stack(
+                  children: [EnteLoadingWidget(color: strokeBaseDark)],
+                ),
+              ),
       ),
     );
   }
@@ -202,7 +210,7 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
               ),
               showFamilyBreakup
                   ? StorageProgressWidget(
-                      color: const Color(0xFFF4D93B), // Family: yellow
+                      color: const Color(0xFFF4D93B),
                       fractionOfStorage:
                           ((usedStorageInBytes) / totalStorageInBytes),
                     )
@@ -296,7 +304,6 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
     late num currentUsage, totalStorage;
     late String currentUsageUnit, totalStorageUnit;
 
-    // Determine the appropriate usage and units
     if (shouldShowUsedStorageInTBs) {
       currentUsage = usedStorageInTB;
       currentUsageUnit = "TB";
@@ -308,7 +315,6 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
       currentUsageUnit = "GB";
     }
 
-    // Determine the appropriate total storage and units
     if (shouldShowTotalStorageInTBs) {
       totalStorage = totalStorageInTB;
       totalStorageUnit = "TB";

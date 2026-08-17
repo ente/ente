@@ -38,7 +38,6 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
   @override
   void initState() {
     super.initState();
-    // Initialize processing state safely in initState
     isCurrentlyProcessing = VideoPreviewService.instance.isCurrentlyProcessing(
       widget.file.uploadedFileID,
     );
@@ -49,7 +48,6 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
       final fileId = event.fileId;
       final status = event.status;
 
-      // Handle different states - will be false for different files or non-processing states
       final newProcessingState =
           widget.file.uploadedFileID == fileId &&
           switch (status) {
@@ -60,7 +58,6 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
             _ => false,
           };
 
-      // Only update state if value changed
       if (isCurrentlyProcessing != newProcessingState) {
         isCurrentlyProcessing = newProcessingState;
         setState(() {});
@@ -92,7 +89,6 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
         widget.file.uploadedFileID != null &&
         (fileDataService.previewIds.containsKey(widget.file.uploadedFileID));
 
-    // Get the current processing status for more specific messaging
     final processingStatus = widget.file.uploadedFileID != null
         ? VideoPreviewService.instance.getProcessingStatus(
             widget.file.uploadedFileID!,

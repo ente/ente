@@ -1,24 +1,24 @@
-import { boxSealOpenBytes, generateKeyPair } from "ente-base/crypto";
 import { ensureOk, publicRequestHeaders } from "ente-base/http";
 import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";
+import type { CastReceiver } from "ente-cast-wasm";
 import { wait } from "ente-utils/promise";
 import { nullToUndefined } from "ente-utils/transform";
 import { z } from "zod";
 
 export interface Registration {
     pairingCode: string;
-    publicKey: string;
-    privateKey: string;
+    receiver: CastReceiver;
 }
 
 export const register = async (): Promise<Registration> => {
-    const { publicKey, privateKey } = await generateKeyPair();
+    const { CastReceiver } = await import("ente-cast-wasm");
+    const receiver = new CastReceiver();
 
     let pairingCode: string | undefined;
     while (true) {
         try {
-            pairingCode = await registerDevice(publicKey);
+            pairingCode = await registerDevice(receiver.publicKey);
         } catch (e) {
             log.error("Failed to register public key with server", e);
         }
@@ -26,7 +26,7 @@ export const register = async (): Promise<Registration> => {
         await wait(10000);
     }
 
-    return { pairingCode, publicKey, privateKey };
+    return { pairingCode, receiver };
 };
 
 const registerDevice = async (publicKey: string) => {
@@ -40,26 +40,26 @@ const registerDevice = async (publicKey: string) => {
         .deviceCode;
 };
 
-const CastPayload = z.object({
-    castToken: z.string(),
-    collectionID: z.number(),
-    collectionKey: z.string(),
-});
-
-export type CastPayload = z.infer<typeof CastPayload>;
+export interface CastPayload {
+    castToken: string;
+    collectionID: number;
+    collectionKey: string;
+}
 
 export const getCastPayload = async (
     registration: Registration,
 ): Promise<CastPayload | undefined> => {
-    const { pairingCode, publicKey, privateKey } = registration;
+    const { pairingCode, receiver } = registration;
 
     const encryptedCastData = await getEncryptedCastData(pairingCode);
     if (!encryptedCastData) return undefined;
 
-    const jsonString = new TextDecoder().decode(
-        await boxSealOpenBytes(encryptedCastData, { publicKey, privateKey }),
-    );
-    return CastPayload.parse(JSON.parse(jsonString));
+    const payload = receiver.openPayload(encryptedCastData);
+    return {
+        castToken: payload.castToken,
+        collectionID: Number(payload.collectionID),
+        collectionKey: payload.collectionKey,
+    };
 };
 
 const getEncryptedCastData = async (code: string) => {

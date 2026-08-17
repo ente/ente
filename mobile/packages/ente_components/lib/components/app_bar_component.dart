@@ -24,13 +24,7 @@ class HeaderAppBarTitleState {
   final double height;
 }
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=11439-5036&m=dev
-/// Section: Appbar/header / Header v2
-/// Specs: Scroll view with a pinned header app bar that animates between
-/// expanded and collapsed states.
-///
-/// Use this for normal screens. It owns the scroll view, adds the pinned header,
-/// and provides enough scroll extent for short content to collapse cleanly.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=11439-5036&m=dev
 class AppBarComponent extends StatefulWidget {
   const AppBarComponent({
     super.key,
@@ -61,11 +55,9 @@ class AppBarComponent extends StatefulWidget {
 
   final String title;
 
-  /// Context shown above [title] when expanded and inline when collapsed.
   final String? eyebrow;
   final HeaderAppBarTitleBuilder? titleBuilder;
 
-  /// Vertical space reserved for [titleBuilder] in both header states.
   final double? titleBuilderHeight;
   final VoidCallback? onTitleTap;
   final VoidCallback? onTitleDoubleTap;
@@ -287,10 +279,8 @@ class _AppBarCollapseSpacer extends StatelessWidget {
   }
 }
 
-/// Low-level sliver for custom scroll compositions.
-///
-/// Prefer [AppBarComponent] for normal screens so short content gets the
-/// correct collapse extent and settle behavior automatically.
+// Use AppBarComponent unless composing a custom scroll view; it handles the
+// collapse extent for short content.
 class SliverAppBarComponent extends StatelessWidget {
   const SliverAppBarComponent({
     super.key,
@@ -331,9 +321,6 @@ class SliverAppBarComponent extends StatelessWidget {
   final List<Widget> actions;
   final PreferredSizeWidget? bottom;
 
-  /// Optional content shown above [bottom] in the expanded header. It fades
-  /// and gives up its height as the header collapses, while [bottom] remains
-  /// pinned.
   final PreferredSizeWidget? collapsibleBottom;
   final double? expandedHeight;
   final double collapsedHeight;
@@ -838,7 +825,7 @@ const _headerSnapTolerance = 1.0;
 const _headerSnapDuration = Duration(milliseconds: 160);
 const _titleTooltipShowDuration = Duration(seconds: 3);
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=21089-125212&m=dev
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=21089-125212&m=dev
 const _collapsedEyebrowGap = 6.0;
 const _minimumCollapsedTitleWidth = 24.0;
 

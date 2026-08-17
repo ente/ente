@@ -6,7 +6,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import { useBaseContext } from "ente-base/context";
 import React, { useMemo, useState } from "react";
 import {

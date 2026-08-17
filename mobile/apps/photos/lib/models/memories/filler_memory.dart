@@ -3,7 +3,6 @@ import "package:photos/models/memories/memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
 
 class FillerMemory extends SmartMemory {
-  // For creating the title
   int yearsAgo;
   FillerMemory(
     List<Memory> memories,

@@ -20,7 +20,6 @@ import 'package:flutter/material.dart';
 
 typedef DialogBuilder = DialogWidget Function(BuildContext context);
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showErrorDialog(
   BuildContext context,
   String title,
@@ -106,7 +105,6 @@ String parseErrorForUI(
   }
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showGenericErrorDialog({
   required BuildContext context,
   bool isDismissible = true,
@@ -224,7 +222,6 @@ DialogWidget choiceDialog({
   return DialogWidget(title: title, body: body, buttons: buttons, icon: icon);
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showChoiceDialog(
   BuildContext context, {
   required String title,
@@ -268,7 +265,6 @@ Future<ButtonResult?> showChoiceDialog(
   );
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showChoiceActionSheet(
   BuildContext context, {
   required String title,
@@ -335,7 +331,7 @@ ProgressDialog createProgressDialog(
   return dialog;
 }
 
-//Can return ButtonResult? from ButtonWidget or Exception? from TextInputDialog
+// Returns null after submit, ButtonResult on cancel, and Exception on failure.
 Future<dynamic> showTextInputDialog(
   BuildContext context, {
   required String title,

@@ -35,11 +35,8 @@ class SearchWidgetState extends State<SearchWidget> {
   static final ValueNotifier<Stream<List<SearchResult>>?>
   searchResultsStreamNotifier = ValueNotifier(null);
 
-  ///This stores the query that is being searched for. When going to other tabs
-  ///when searching, this state gets disposed and when coming back to the
-  ///search tab, this query is used to populate the search bar.
+  // The search widget is disposed when switching tabs. Preserve its query.
   static String query = "";
-  //Debouncing + querying
   static final isLoading = ValueNotifier(false);
   final _searchService = SearchService.instance;
   final _debouncer = Debouncer(const Duration(milliseconds: 314));
@@ -84,8 +81,6 @@ class SearchWidgetState extends State<SearchWidget> {
 
     textController.addListener(textControllerListener);
 
-    //Populate the serach tab with the latest query when coming back
-    //to the serach tab.
     textController.text = query;
     _syncSearchBackNotifier();
 

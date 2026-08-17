@@ -148,7 +148,6 @@ class _PasskeyPageState extends State<PasskeyPage> {
 
   Future<bool> _initDeepLinks() async {
     final appLinks = AppLinks();
-    // Attach a listener to the stream
     appLinks.stringLinkStream.listen(
       _handleDeeplink,
       onError: (err) {

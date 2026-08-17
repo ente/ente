@@ -16,14 +16,10 @@ enum AlbumViewType { grid, list }
 
 enum PeopleSortKey { mostPhotos, name, lastUpdated }
 
-/// Bit positions for per-widget-type "hide text" flags stored as a single
-/// integer. The same integer is mirrored to the home_widget plugin's data
-/// store so the native (Android/iOS) widget providers can read it directly.
-/// IMPORTANT: Never reorder or remove values. Only append new values at the end.
+// Stored as bit positions. Append only; never reorder or remove values.
 enum WidgetHideTextFlag { memory, album, people }
 
-/// Bit positions for local-gallery boolean flags stored as a single integer.
-/// IMPORTANT: Never reorder or remove values. Only append new values at the end.
+// Stored as bit positions. Append only; never reorder or remove values.
 enum LocalGalleryFlag {
   mlConsent,
   mapEnabled,
@@ -117,9 +113,7 @@ class LocalSettings {
 
   static const _kWidgetHideTextFlags = "ls.widget_hide_text_flags";
 
-  /// Key used by the native (Android/iOS) widget providers to read the
-  /// mirrored copy of the widget hide-text bitmask from the home_widget
-  /// data store. Must stay in sync with the native code.
+  // Must match the key read by the native widget providers.
   static const _kWidgetHideTextFlagsNativeKey = "widgetHideTitleFlags";
 
   static const _kLocalGalleryFlags = "ls.offline_flags";
@@ -136,16 +130,10 @@ class LocalSettings {
 
   AppMode? _cachedAppMode;
 
-  /// True only for the session in which the user just enabled local-gallery
-  /// mode during onboarding. Intentionally not persisted, so it resets to
-  /// false on the next app launch. Used to defer the get-started banner to
-  /// the second app open (after onboarding).
+  // Session-only so the get-started banner waits until the next launch.
   bool localGalleryModeEnabledThisSession = false;
 
-  /// Set after the first local-gallery import completes before an account is
-  /// configured. When the user later signs in or signs up, the online flow
-  /// replays first-import completion once so backup-folder selection can run
-  /// against the imported local rows, then clears this marker.
+  // Carries first-import completion from local-gallery mode into account setup.
   bool get isFromLocalGalleryToEnte =>
       _prefs.getBool(_kIsFromLocalGalleryToEnte) ?? false;
 
@@ -293,8 +281,6 @@ class LocalSettings {
     }
   }
 
-  // getEstimatedInstallTimeInMs returns the time when the app was installed
-  // The time is stored in shared preferences and will be reset on logout
   DateTime getInstallDateTime() {
     if (_prefs.containsKey('ls.install_time')) {
       return DateTime.fromMillisecondsSinceEpoch(
@@ -418,7 +404,6 @@ class LocalSettings {
     return value;
   }
 
-  /// toggleFaceIndexing toggles the face indexing setting and returns the new value
   Future<bool> toggleLocalMLIndexing() async {
     final nextValue =
         !(_prefs.getBool(_mlLocalIndexingKey) ??
@@ -487,8 +472,6 @@ class LocalSettings {
     await _prefs.setBool(_hasConfiguredLinksInAppPermissionKey, value);
   }
 
-  /// This is only relevant for fdorid and independent builds since in them,
-  /// user has to manually allow the app to open public links in-app
   bool hasConfiguredInAppLinkPermissions() {
     final result = _prefs.getBool(_hasConfiguredLinksInAppPermissionKey);
     return result ?? false;
@@ -530,9 +513,6 @@ class LocalSettings {
     await _prefs.setBool(_kBGDebugNotificationsEnabled, value);
   }
 
-  /// User's explicit override for the Cloudflare upload proxy toggle.
-  /// `null` means the user has not chosen — callers should fall back to
-  /// `flagService.cloudflareUploadWorker` (the rollout default).
   bool? get cfUploadProxyEnabled => _prefs.getBool(_kCFUploadProxyEnabled);
 
   Future<void> setCFUploadProxyEnabled(bool value) async {

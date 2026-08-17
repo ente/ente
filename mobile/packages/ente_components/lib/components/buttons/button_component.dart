@@ -25,10 +25,7 @@ enum ButtonComponentSize { small, large }
 
 enum ButtonComponentDensity { regular, compact }
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2207-41578&m=dev
-/// Section: Buttons / Button Small
-/// Specs: 52px height, 20px radius, 24px horizontal padding.
-/// States: default, hover, pressed, disabled, loading, success.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2207-41578&m=dev
 class ButtonComponent extends StatefulWidget {
   const ButtonComponent({
     super.key,
@@ -58,10 +55,7 @@ class ButtonComponent extends StatefulWidget {
   final ValueListenable<String>? progressStatus;
   final Widget? leading;
 
-  /// Dismisses the current modal route after [onTap] completes without throwing.
-  ///
-  /// This only applies to popup routes such as dialogs and bottom sheets. Normal
-  /// page routes are not dismissed.
+  // Only popup routes such as dialogs and sheets are dismissed.
   final bool dismissModalOnSuccess;
 
   @override

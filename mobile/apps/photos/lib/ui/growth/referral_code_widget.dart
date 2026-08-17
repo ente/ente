@@ -25,17 +25,13 @@ class ReferralCodeWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
 
-    // The edit button is 24px (6px padding + 12px icon + 6px padding)
-    // Plus 12px tap padding on each side = 48px total tap area
-    // We need extra space at bottom-right for the overlapping button
     const editButtonSize = 24.0;
     const tapPadding = 12.0;
-    const overlapAmount = editButtonSize / 2; // How much it overlaps the box
+    const overlapAmount = editButtonSize / 2;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Add padding to the code box to make room for the edit button in layout
         Padding(
           padding: EdgeInsets.only(
             bottom: shouldShowEdit ? overlapAmount + tapPadding : 0,

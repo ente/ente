@@ -23,8 +23,6 @@ String _getTemporaryDecryptedFilePath(EnteFile file) {
   return "$tempDir${file.uploadedFileID}_$safeDisplayName";
 }
 
-/// Returns the encrypted offline blob for this device, downloading it only when
-/// a usable local copy does not already exist.
 Future<File> ensureEncryptedOfflineCopy(
   EnteFile file, {
   ProgressCallback? progressCallback,

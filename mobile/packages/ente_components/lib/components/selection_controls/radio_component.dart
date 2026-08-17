@@ -2,9 +2,7 @@ import 'package:ente_components/theme/motion.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2513-47857&m=dev
-/// Section: Radio buttons, toggles and checkboxes / Radio Button
-/// Specs: 16px radio, selected and disabled variants.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2513-47857&m=dev
 class RadioComponent extends StatelessWidget {
   const RadioComponent({
     super.key,

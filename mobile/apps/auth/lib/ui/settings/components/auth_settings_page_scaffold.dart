@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 
-/// Applies Auth's left-aligned desktop content width to the shared scaffold.
 class AuthSettingsPageScaffold extends StatelessWidget {
   const AuthSettingsPageScaffold({
     super.key,

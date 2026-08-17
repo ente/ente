@@ -3,9 +3,7 @@ import type { ChatMessage } from "./store";
 export const ROOT_SELECTION_KEY = "__root__";
 export const STREAMING_SELECTION_KEY = "__streaming__";
 
-export interface BranchSelections {
-    [selectionKey: string]: string;
-}
+export type BranchSelections = Record<string, string>;
 
 export interface BranchSwitcher {
     selectionKey: string;
@@ -84,7 +82,7 @@ export const buildSelectedPath = (
         const rawKids = children.get(current.messageUuid) ?? [];
         const kids = dedupeSiblingDuplicates(rawKids);
 
-        if (streaming && streaming.parentMessageUuid === current.messageUuid) {
+        if (streaming?.parentMessageUuid === current.messageUuid) {
             const targets = [
                 ...kids.map((msg) => msg.messageUuid),
                 STREAMING_SELECTION_KEY,

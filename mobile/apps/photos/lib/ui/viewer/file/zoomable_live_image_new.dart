@@ -85,8 +85,6 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
     });
   }
 
-  /// Check if a local position (relative to this widget) falls within any
-  /// detected QR code bounding box.
   bool _isPositionInQrRegion(Offset localPosition) {
     final detections = widget.qrDetectionsNotifier?.value?.forFile(
       widget.enteFile,
@@ -113,7 +111,6 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
     final offsetX = (size.width - displayW) / 2;
     final offsetY = (size.height - displayH) / 2;
 
-    // Normalize the tap position to image coordinates (0-1)
     final normX = (localPosition.dx - offsetX) / displayW;
     final normY = (localPosition.dy - offsetY) / displayH;
 
@@ -129,8 +126,6 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
   }
 
   bool _isLongPressInVisibleQrRegion(Offset localPosition) {
-    // If pressing within a QR code region, let the QR overlay handle it,
-    // but only when the overlay is actually visible (not in fullscreen mode).
     final isQrOverlayVisible =
         !(InheritedDetailPageState.maybeOf(
               context,
@@ -271,9 +266,8 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
   }
 
   Future<MotionPhotoAvailability> _loadLiveVideoOnce() async {
-    // For non-live photo, with fileType as Image, we still call _getMotionPhoto
-    // to check if it is a motion photo. This is needed to handle earlier
-    // uploads and upload from desktop.
+    // Older and desktop uploads can be motion photos without the live-photo
+    // file type.
     final _MotionPhotoVideoResult result;
     if (_enteFile.isLivePhoto) {
       result = _MotionPhotoVideoResult(
@@ -345,7 +339,6 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
     if (imageFile != null) {
       final index = await getMotionVideoIndex(filePath: imageFile.path);
       if (index != null) {
-        // Update the metadata if it is not updated
         if (!_enteFile.isMotionPhoto && _enteFile.canEditMetaInfo) {
           FileMagicService.instance
               .updatePublicMagicMetadata(
@@ -409,7 +402,6 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       return;
     }
 
-    // If long-press has already ended by this point, don't keep playback running.
     if (!_showVideo) {
       await _player.pause();
     }

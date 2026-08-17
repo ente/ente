@@ -235,7 +235,6 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
       final KeyAttributes attributes = widget.attributes;
       Uint8List? masterKey;
       try {
-        // Decrypt the master key that was earlier encrypted with the recovery key
         masterKey = await CryptoUtil.decrypt(
           CryptoUtil.base642bin(attributes.masterKeyEncryptedWithRecoveryKey!),
           CryptoUtil.hex2bin(widget.recoveryKey),
@@ -246,15 +245,12 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
         rethrow;
       }
 
-      // Derive a key from the password that will be used to encrypt and
-      // decrypt the master key
       final kekSalt = CryptoUtil.getSaltToDeriveKey();
       final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
         utf8.encode(password),
         kekSalt,
       );
       final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
-      // Encrypt the key with this derived key
       final encryptedKeyData = CryptoUtil.encryptSync(
         masterKey,
         derivedKeyResult.key,

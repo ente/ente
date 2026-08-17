@@ -369,10 +369,18 @@ export const FileViewer: React.FC<FileViewerProps> = ({
 
     const haveUser = false;
 
+    const requestGuestLikeIdentity = useCallback(() => {
+        if (enableJoin) {
+            setOpenPublicLikeModal(true);
+        } else {
+            setOpenAddNameModal(true);
+        }
+    }, [enableJoin]);
+
     const handleLikeClick = useCallback(() => {
         const file = activeAnnotatedFileRef.current?.file;
         if (!file || !publicAlbumsCredentials) {
-            setOpenPublicLikeModal(true);
+            requestGuestLikeIdentity();
             return;
         }
 
@@ -461,9 +469,9 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 }
             })();
         } else {
-            setOpenPublicLikeModal(true);
+            requestGuestLikeIdentity();
         }
-    }, [publicAlbumsCredentials, collectionKey]);
+    }, [publicAlbumsCredentials, collectionKey, requestGuestLikeIdentity]);
 
     const handlePublicLikeModalClose = useCallback(
         () => setOpenPublicLikeModal(false),

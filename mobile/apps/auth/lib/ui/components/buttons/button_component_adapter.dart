@@ -11,7 +11,7 @@ import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 const _loadingSurfaceDelay = Duration(milliseconds: 300);
 const _successDisplayDuration = Duration(seconds: 1);
 
-/// Preserves legacy Auth button behavior while rendering an Ente component.
+// Legacy adapter for existing ButtonWidget callers.
 class ButtonComponentAdapter extends StatelessWidget {
   const ButtonComponentAdapter({required this.button, super.key});
 

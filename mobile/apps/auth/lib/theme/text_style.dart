@@ -86,7 +86,6 @@ class EnteTextTheme {
   final TextStyle brandSmall;
   final TextStyle brandMedium;
 
-  // textMuted variants
   final TextStyle h1Muted;
   final TextStyle h2Muted;
   final TextStyle h3Muted;
@@ -97,7 +96,6 @@ class EnteTextTheme {
   final TextStyle miniBoldMuted;
   final TextStyle tinyMuted;
 
-  // textFaint variants
   final TextStyle h1Faint;
   final TextStyle h2Faint;
   final TextStyle h3Faint;

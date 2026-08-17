@@ -1,6 +1,5 @@
 import "package:flutter/material.dart";
 
-/// Standard Locker illustrations shown at the top of bottom sheets.
 class LockerBottomSheetIllustration extends StatelessWidget {
   const LockerBottomSheetIllustration._(this.assetPath);
 

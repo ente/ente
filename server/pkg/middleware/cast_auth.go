@@ -35,7 +35,6 @@ func (m *CastMiddleware) CastAuthMiddleware() gin.HandlerFunc {
 			c.Set(auth.CastContext, *castCtx)
 		} else {
 			c.Set(auth.CastContext, cachedCastCtx)
-			// validate async validate that the token is still active
 			go func() {
 				_, err := m.CastCtrl.GetCollectionAndCasterIDForToken(c, token)
 				if err != nil {

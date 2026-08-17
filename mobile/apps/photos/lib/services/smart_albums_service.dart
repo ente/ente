@@ -36,7 +36,7 @@ class SmartAlbumsService {
     final lastRemoteSyncTimeValue = lastRemoteSyncTime();
     if (_lastCacheRefreshTime != lastRemoteSyncTimeValue) {
       _lastCacheRefreshTime = lastRemoteSyncTimeValue;
-      _cachedConfigsFuture = null; // Invalidate cache
+      _cachedConfigsFuture = null;
     }
     _cachedConfigsFuture ??= _fetchAndCacheSaConfigs();
     return _cachedConfigsFuture!;
@@ -128,7 +128,6 @@ class SmartAlbumsService {
 
       final infoMap = config.infoMap;
 
-      // Person Id key mapped to updatedAt value
       final updatedAtMap = await entityService.getUpdatedAts(
         EntityType.cgroup,
         config.personIDs.toList(),
@@ -139,7 +138,6 @@ class SmartAlbumsService {
 
       var newConfig = config;
       for (final personId in config.personIDs) {
-        // compares current updateAt with last added file's updatedAt
         if (updatedAtMap[personId] == null ||
             infoMap[personId] != null &&
                 (updatedAtMap[personId]! <= infoMap[personId]!.updatedAt)) {
@@ -203,8 +201,6 @@ class SmartAlbumsService {
     final infoMap = Map<String, PersonInfo>.from(config?.infoMap ?? {});
 
     for (final personId in personIDs) {
-      // skip if personId already exists in infoMap
-      // only relevant when config exists before
       if (infoMap.containsKey(personId)) continue;
       infoMap[personId] = (updatedAt: 0, addedFiles: {});
     }
@@ -241,7 +237,6 @@ class SmartAlbumsService {
   String getId({required int collectionId, required int userId}) =>
       "sa_${userId}_$collectionId";
 
-  /// Wrapper method for entityService.addOrUpdate that handles cache refresh
   Future<LocalEntityData> _addOrUpdateEntity(
     EntityType type,
     Map<String, dynamic> jsonMap, {
@@ -258,7 +253,7 @@ class SmartAlbumsService {
       addWithCustomID: addWithCustomID,
     );
 
-    _lastCacheRefreshTime = 0; // Invalidate cache
+    _lastCacheRefreshTime = 0;
     return result;
   }
 
@@ -269,6 +264,6 @@ class SmartAlbumsService {
     _logger.fine("Deleting entry for collection ($collectionId)");
     final id = getId(collectionId: collectionId, userId: userId);
     await entityService.deleteEntry(id);
-    _lastCacheRefreshTime = 0; // Invalidate cache
+    _lastCacheRefreshTime = 0;
   }
 }

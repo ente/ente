@@ -31,11 +31,9 @@ class UpdateService {
   }
 
   Future<bool> shouldShowChangeLog() async {
-    // fetch the change log version which was last shown to user.
     final lastShownAtVersion = _prefs.getInt(changeLogVersionKey);
     if (lastShownAtVersion == null) {
-      // Fresh install: the key was never set, so the user has no previous
-      // version to show a "What's New" for. Silently mark as seen.
+      // Fresh installs have no earlier version whose changelog should be shown.
       await hideChangeLog();
       return false;
     }

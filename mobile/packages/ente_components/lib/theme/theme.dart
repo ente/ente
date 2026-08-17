@@ -2,9 +2,7 @@ import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/text_styles.dart';
 import 'package:flutter/material.dart';
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=57-6281&m=dev
-/// Section: Design system / Theme helpers
-/// Specs: Light and dark theme mapping for Ente component tokens.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=57-6281&m=dev
 class ComponentTheme {
   const ComponentTheme._();
 

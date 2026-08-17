@@ -70,6 +70,7 @@ class FilesService {
   }
 
   Future<FreeableSpaceInfo> getFreeableSpaceInfo({String? pathID}) async {
+    // PhotoManager cannot delete iCloud shared-album assets.
     final excludeLocalIDs = await _getICloudSharedAlbumAssetIDs();
     FreeableFileIDs ids;
     final bool hasMigratedSize = await FilesService.instance.hasMigratedSizes();
@@ -94,8 +95,6 @@ class FilesService {
     return FreeableSpaceInfo(ids.localIDs, size);
   }
 
-  /// Returns iCloud shared album paths on iOS.
-  /// Returns empty list on non-iOS platforms.
   Future<List<AssetPathEntity>> _getICloudSharedAlbumPaths() async {
     if (!Platform.isIOS) return [];
     return PhotoManager.getAssetPathList(
@@ -110,9 +109,6 @@ class FilesService {
     );
   }
 
-  /// Returns local asset IDs that belong to iCloud shared albums on iOS.
-  /// These assets cannot be deleted via PhotoManager and must be excluded
-  /// from the free-up-space operation.
   Future<Set<String>> _getICloudSharedAlbumAssetIDs() async {
     final paths = await _getICloudSharedAlbumPaths();
     final Set<String> sharedIDs = {};
@@ -127,8 +123,6 @@ class FilesService {
     return sharedIDs;
   }
 
-  /// Returns path IDs of iCloud shared albums on iOS.
-  /// Returns empty set on non-iOS platforms.
   Future<Set<String>> getICloudSharedAlbumPathIDs() async {
     final paths = await _getICloudSharedAlbumPaths();
     return paths.map((p) => p.id).toSet();
@@ -203,8 +197,6 @@ class FilesService {
     LatLng location,
   ) async {
     for (EnteFile remoteFile in uploadedFiles) {
-      // discard files not owned by user and also dedupe already processed
-      // files
       if (remoteFile.ownerID != _config.getUserID()! ||
           fileIDToUpdateMetadata.containsKey(remoteFile.uploadedFileID!)) {
         continue;
@@ -233,7 +225,6 @@ class FilesService {
       (element) => element.isUploaded,
     );
     final List<EnteFile> uploadedFiles = result.matched;
-    // editTime For LocalFiles
     final List<EnteFile> localOnlyFiles = result.unmatched;
     for (EnteFile localFile in localOnlyFiles) {
       final timeResult = _parseTime(localFile, source);
@@ -246,8 +237,6 @@ class FilesService {
     final List<EnteFile> remoteFilesToUpdate = [];
     final Map<int, Map<String, int>> fileIDToUpdateMetadata = {};
     for (EnteFile remoteFile in uploadedFiles) {
-      // discard files not owned by user and also dedupe already processed
-      // files
       if (remoteFile.ownerID != _config.getUserID()! ||
           fileIDToUpdateMetadata.containsKey(remoteFile.uploadedFileID!)) {
         continue;
@@ -290,15 +279,4 @@ class FilesService {
   }
 }
 
-enum EditTimeSource {
-  // parse the time from fileName
-  fileName,
-  // parse the time from exif data of file.
-  exif,
-  // use the which user provided as input
-  manualFix,
-  // adjust the time of selected photos by +/- time.
-  // required for cases when the original device in which photos were taken
-  // had incorrect time (quite common with physical cameras)
-  manualAdjusted,
-}
+enum EditTimeSource { fileName, exif, manualFix, manualAdjusted }

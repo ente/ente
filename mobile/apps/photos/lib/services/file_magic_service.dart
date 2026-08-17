@@ -56,7 +56,6 @@ class FileMagicService {
     final Map<String, dynamic> update = {magicKeyVisibility: visibility};
     await _updateMagicData(files, update);
     if (visibility == visibleVisibility) {
-      // Force reload home gallery to pull in the now unarchived files
       Bus.instance.fire(ForceReloadHomeGalleryEvent("unarchivedFiles"));
       Bus.instance.fire(
         LocalPhotosUpdatedEvent(
@@ -124,15 +123,12 @@ class FileMagicService {
       await _gateway.updatePublicMagicMetadata(
         updates.map((update) => update.request).toList(),
       );
-      // Remote has accepted these versions; commit the same state locally.
       for (final update in updates) {
         update.file
           ..pubMmdEncodedJson = update.encodedJson
           ..pubMagicMetadata = update.decodedMetadata
           ..pubMmdVersion = update.nextVersion;
       }
-      // update the state of the selected file. Same file in other collection
-      // should be eventually synced after remote sync has completed
       await _filesDB.insertMultiple(files);
       RemoteSyncService.instance.sync(silently: true).ignore();
     } on DioException catch (e) {
@@ -180,7 +176,6 @@ class FileMagicService {
         await _gateway.updateMagicMetadata(
           updates.map((update) => update.request).toList(),
         );
-        // Each batch is committed locally only after its remote transaction.
         for (final update in updates) {
           update.file
             ..mMdEncodedJson = update.encodedJson
@@ -190,8 +185,6 @@ class FileMagicService {
         await _filesDB.insertMultiple(batch);
       }
 
-      // update the state of the selected file. Same file in other collection
-      // should be eventually synced after remote sync has completed
       RemoteSyncService.instance.sync(silently: true).ignore();
     } on DioException catch (e) {
       if (e.response != null && e.response!.statusCode == 409) {

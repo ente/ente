@@ -38,16 +38,12 @@ class CommentBubbleWidget extends StatefulWidget {
   final User Function(Comment) userResolver;
   final VoidCallback? onCommentDeleted;
 
-  /// Whether this comment should be visually highlighted.
   final bool isHighlighted;
 
-  /// Callback invoked when auto-highlight animation completes (dismissed).
   final VoidCallback? onAutoHighlightDismissed;
 
-  /// Callback invoked when the user taps on the parent quote preview.
   final VoidCallback? onParentQuoteTap;
 
-  /// Callback invoked when the user taps the visible author header.
   final VoidCallback? onAuthorTap;
 
   const CommentBubbleWidget({
@@ -125,7 +121,6 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
     _loadData();
     _measureContent();
 
-    // Trigger auto-highlight if widget is created with isHighlighted = true
     if (widget.isHighlighted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -148,7 +143,6 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
       _measureContent();
     }
 
-    // Trigger auto-highlight when isHighlighted becomes true
     if (widget.isHighlighted && !oldWidget.isHighlighted) {
       _triggerAutoHighlight();
     }
@@ -170,14 +164,12 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
   }
 
   Future<void> _loadData() async {
-    // Load parent if reply
     if (widget.comment.isReply && widget.onFetchParent != null) {
       setState(() => _isLoadingParent = true);
       _parentComment = await widget.onFetchParent!();
       if (mounted) setState(() => _isLoadingParent = false);
     }
 
-    // Load reactions
     setState(() => _isLoadingReactions = true);
     _reactions = await widget.onFetchReactions();
     _isLiked = _reactions.any(
@@ -235,7 +227,6 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
       return;
     }
 
-    // Refresh reactions after successful toggle (best-effort, no rollback if fails)
     _reactions = await widget.onFetchReactions();
     if (mounted) {
       setState(() {
@@ -246,7 +237,7 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
 
   void _showHighlight() {
     if (_isAutoHighlight) {
-      return; // Don't allow long-press during auto-highlight
+      return;
     }
     HapticFeedback.mediumImpact();
     setState(() => _dragOffset = 0.0);
@@ -265,7 +256,6 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
     _overlayController.show();
     _overlayAnimationController.forward();
 
-    // Auto-dismiss after 700ms
     Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted && _isAutoHighlight) {
         _hideAutoHighlight();
@@ -416,7 +406,6 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
             _overlayAnimationController.status == AnimationStatus.reverse;
         return Stack(
           children: [
-            // Full-screen barrier with black opacity
             GestureDetector(
               onTap: _isAutoHighlight ? _hideAutoHighlight : _hideHighlight,
               child: Builder(
@@ -431,7 +420,6 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
                 },
               ),
             ),
-            // Highlighted comment + popup menu
             CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,

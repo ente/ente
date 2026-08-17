@@ -1,25 +1,16 @@
 import 'dart:typed_data';
 
-/// Resolves the logged-in user's existing top-level account key on demand.
 typedef AccountKeyProvider = Future<Uint8List> Function();
 
-/// Session input for opening contacts.
-///
-/// `accountKey` means the logged-in user's existing top-level account key.
-/// It is the same conceptual key that Photos currently exposes via
-/// `Configuration.instance.getKey()`. It is not a contacts-specific key.
-///
-/// The contacts package uses this key only to unwrap or create the per-user
-/// root contact key stored under `/user-entity/key?type=contact`.
+// accountKey is the existing top-level account key. Contacts uses it only to
+// unwrap or create the per-user contact root key.
 class ContactsSession {
   final String baseUrl;
   final String authToken;
   final int userId;
 
-  /// The logged-in user's existing top-level account key.
   final Uint8List? accountKey;
 
-  /// Lazy resolver for the logged-in user's existing top-level account key.
   final AccountKeyProvider? accountKeyProvider;
   final String? userAgent;
   final String? clientPackage;

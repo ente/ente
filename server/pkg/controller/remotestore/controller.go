@@ -103,9 +103,7 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 	response := &ente.FeatureFlagResponse{
 		EnableStripe:    true,
 		DisableCFWorker: false,
-		// When true, users will see an option to enable multiple part upload in the app
-		// Changing it to false will hide the option and disable multi part upload for everyone
-		// except internal user.rt
+		// Disabling this still leaves multipart enabled for internal users.
 		EnableMobMultiPart: true,
 		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions | ente.CastSessionsV2 | ente.DeferredMultipartChecksums,
 		CastUrl:            viper.GetString("apps.cast"),

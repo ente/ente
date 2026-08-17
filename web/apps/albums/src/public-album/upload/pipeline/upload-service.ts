@@ -151,16 +151,12 @@ export default uploadService;
 
 export const uploadItemFileName = (uploadItem: UploadItem) => uploadItem.name;
 
-export type ExternalParsedMetadata = ParsedMetadata & {
-    creationTime?: number | undefined;
-};
-
 export interface UploadAsset {
     isLivePhoto?: boolean;
     livePhotoAssets?: LivePhotoAssets;
     uploadItem?: UploadItem;
     pathPrefix: UploadPathPrefix | undefined;
-    externalParsedMetadata?: ExternalParsedMetadata;
+    externalParsedMetadata?: ParsedMetadata;
 }
 
 interface ThumbnailedFile {
@@ -338,7 +334,9 @@ const uploadItemCreationDate = async (
         );
     }
 
-    return parsedMetadata?.creationDate?.timestamp;
+    return (
+        parsedMetadata?.creationDate?.timestamp ?? parsedMetadata?.creationTime
+    );
 };
 
 export const uploadCancelledErrorMessage = "Upload cancelled";
@@ -678,7 +676,7 @@ const extractLivePhotoMetadata = async (
 const extractImageOrVideoMetadata = async (
     uploadItem: UploadItem,
     pathPrefix: UploadPathPrefix | undefined,
-    externalParsedMetadata: ExternalParsedMetadata | undefined,
+    externalParsedMetadata: ParsedMetadata | undefined,
     fileType: FileType,
     lastModifiedMs: number,
     collectionID: number,
@@ -687,7 +685,7 @@ const extractImageOrVideoMetadata = async (
 ) => {
     const fileName = uploadItemFileName(uploadItem);
 
-    let parsedMetadata: (ParsedMetadata & ExternalParsedMetadata) | undefined;
+    let parsedMetadata: ParsedMetadata | undefined;
     if (fileType == FileType.image) {
         parsedMetadata = await tryExtractImageMetadata(uploadItem);
     } else if (fileType == FileType.video) {

@@ -44,7 +44,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
   late ProgressDialog _dialog;
   late UserDetails _userDetails;
 
-  // indicates if user's subscription plan is still active
   late bool _hasActiveSubscription;
   bool _hideCurrentPlanSelection = false;
   late FreePlan _freePlan;
@@ -97,7 +96,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     });
   }
 
-  // _filterPlansForUI is used for initializing initState & plan toggle states
   Future<void> _filterStripeForUI() async {
     final billingPlans = await _billingService.getBillingPlans();
     _freePlan = billingPlans.freePlan;
@@ -115,7 +113,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
   }
 
   FutureOr onWebPaymentGoBack(dynamic value) async {
-    // refresh subscription
     await _dialog.show();
     try {
       await _fetchSub();
@@ -125,7 +122,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     }
     await _dialog.hide();
 
-    // verify user has subscribed before redirecting to main page
     if (widget.isOnboarding &&
         _currentSubscription != null &&
         _currentSubscription!.isValid() &&
@@ -303,7 +299,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       );
     }
 
-    // only active subscription can be renewed/canceled
     if (_hasActiveSubscription && _isStripeSubscriber) {
       widgets.add(
         Padding(
@@ -323,8 +318,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     );
   }
 
-  // _redirectToPaymentPortal action allows the user to update
-  // their stripe payment details
   void _redirectToPaymentPortal() async {
     final String paymentProvider = _currentSubscription!.paymentProvider;
     switch (_currentSubscription!.paymentProvider) {
@@ -426,8 +419,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     );
   }
 
-  // toggleStripeSubscription, based on current auto renew status, will
-  // toggle the auto renew status of the user's subscription
   Future<void> toggleStripeSubscription(bool isAutoRenewDisabled) async {
     await _dialog.show();
     try {
@@ -454,7 +445,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
         alwaysShowSuccessState: true,
         textCapitalization: TextCapitalization.words,
         onSubmit: (String text) async {
-          // indicates user cancelled the rename request
           if (text == "" || text.trim().isEmpty) {
             return;
           }
@@ -514,8 +504,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
             if (isActive) {
               return;
             }
-            // prompt user to cancel their active subscription form other
-            // payment providers
             if (!_isStripeSubscriber &&
                 _hasActiveSubscription &&
                 _currentSubscription!.productID != freeProductID) {
@@ -547,7 +535,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
             }
             String stripPurChaseAction = 'buy';
             if (_isStripeSubscriber && _hasActiveSubscription) {
-              // confirm if user wants to change plan or not
               final result = await showChoiceDialog(
                 context,
                 title: context.strings.confirmPlanChange,

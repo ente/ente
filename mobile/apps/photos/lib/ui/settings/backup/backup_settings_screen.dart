@@ -230,7 +230,6 @@ class _BackupOnlyNewPhotosToggle extends StatelessWidget {
     final hasAllFoldersSelected =
         backupPreferenceService.hasSelectedAllFoldersForBackup;
 
-    // Hide "Continue anyway" if user skipped permission and first import not done
     final allowContinueAnyway =
         !backupPreferenceService.hasSkippedOnboardingPermission ||
         LocalSyncService.instance.hasCompletedFirstImport();

@@ -2,9 +2,9 @@ import {
     boxSealOpenBytes,
     decryptBox,
     toB64URLSafe,
-} from "ente-accounts-rs/services/crypto";
-import type { SRPSetupAttributes } from "ente-accounts-rs/services/srp";
-import type { KeyAttributes } from "ente-accounts-rs/services/user";
+} from "ente-accounts/services/crypto";
+import type { SRPSetupAttributes } from "ente-accounts/services/srp";
+import type { KeyAttributes } from "ente-accounts/services/user";
 import { ensureOk, publicRequestHeaders } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
 import { loadEnteWasm } from "ente-wasm/load";

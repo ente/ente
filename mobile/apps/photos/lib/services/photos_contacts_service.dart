@@ -7,7 +7,7 @@ import "package:photos/events/contacts_changed_event.dart";
 import "package:photos/events/user_logged_out_event.dart";
 import "package:photos/service_locator.dart";
 
-/// Photos-specific session and event adapter for the shared contact directory.
+// Photos-specific session and event adapter for the shared contact directory.
 class PhotosContactsService {
   PhotosContactsService._privateConstructor()
     : _store = contacts.ContactDirectory(

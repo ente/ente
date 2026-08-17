@@ -34,9 +34,7 @@ android {
     ndkVersion "28.2.13676358"
 
     compileOptions {
-        // Flag to enable support for the new language APIs
         coreLibraryDesugaringEnabled true
-        // Sets Java compatibility to Java 8
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
@@ -57,8 +55,6 @@ android {
 
     defaultConfig {
         applicationId "io.ente.auth"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion 24
         targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
@@ -142,6 +138,5 @@ flutter {
 }
 
 dependencies {
-    // For AGP 7.4+
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

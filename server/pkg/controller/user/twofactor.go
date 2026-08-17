@@ -133,7 +133,6 @@ func (c *UserController) VerifyTwoFactor(context *gin.Context, sessionID string,
 		return ente.TwoFactorAuthorizationResponse{}, stacktrace.Propagate(ente.ErrIncorrectTOTP, "")
 	}
 
-	// Try to record OTP atomically - this will fail if already used
 	hashData := fmt.Sprintf("%d:%s", userID, otp)
 	hash := sha256.Sum256([]byte(hashData))
 	otpHash := hex.EncodeToString(hash[:])
@@ -143,7 +142,6 @@ func (c *UserController) VerifyTwoFactor(context *gin.Context, sessionID string,
 		log.WithError(err).Error("Failed to record used OTP code")
 		// Continue anyway to not break authentication
 	} else if !wasNew {
-		// Code was already used - replay attack
 		msg := fmt.Sprintf("Replay attack detected for userID: %d - OTP code reused", userID)
 		log.Warn(msg)
 		go c.DiscordController.NotifyPotentialAbuse(msg)

@@ -1,6 +1,5 @@
 import "package:flutter/services.dart";
 
-/// Hides app content from screenshots/recents (Android) and the app switcher (iOS).
 class EnteScreenCover {
   EnteScreenCover._();
 

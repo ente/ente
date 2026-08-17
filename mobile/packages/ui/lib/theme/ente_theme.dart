@@ -64,19 +64,16 @@ EnteTextTheme getEnteTextTheme(BuildContext context, {bool inverse = false}) {
       : Theme.of(context).colorScheme.enteTheme.textTheme;
 }
 
-/// Get theme-aware shadow for floating elements (dialogs, modals, etc.)
 List<BoxShadow> getEnteShadowFloat(BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   return isDark ? shadowFloatDark : shadowFloatLight;
 }
 
-/// Get theme-aware shadow for menu elements
 List<BoxShadow> getEnteShadowMenu(BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   return isDark ? shadowMenuDark : shadowMenuLight;
 }
 
-/// Get theme-aware shadow for button elements
 List<BoxShadow> getEnteShadowButton(BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   return isDark ? shadowButtonDark : shadowButtonLight;

@@ -188,6 +188,30 @@ class UploadQueue {
     );
   }
 
+  void updateBackupProgress(
+    Object owner,
+    String localID,
+    int bytesSent,
+    int totalBytes,
+  ) {
+    final item = _backupItems[localID];
+    if (!identical(_backupOwners[localID], owner) ||
+        item == null ||
+        item.status != BackupItemStatus.uploading ||
+        totalBytes <= 0) {
+      return;
+    }
+    final progressPercent = ((bytesSent * 100) ~/ totalBytes)
+        .clamp(0, 99)
+        .toInt();
+    if (progressPercent <= (item.progressPercent ?? 0)) {
+      return;
+    }
+    final updatedItem = item.withUploadProgress(progressPercent);
+    _backupItems[localID] = updatedItem;
+    _notifyBackupItemsChanged(upserts: {localID: updatedItem});
+  }
+
   List<UploadQueueItem> get backgroundItems => _items.values
       .where((item) => item._status == _UploadStatus.inBackground)
       .toList();
@@ -250,10 +274,7 @@ class UploadQueue {
     if (!identical(_backupOwners[localID], owner)) {
       return null;
     }
-    final updatedItem = _backupItems[localID]!.copyWith(
-      status: status,
-      error: error,
-    );
+    final updatedItem = _backupItems[localID]!.withStatus(status, error: error);
     _backupItems[localID] = updatedItem;
     return updatedItem;
   }

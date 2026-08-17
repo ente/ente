@@ -117,6 +117,10 @@ class SubFaqWidget extends StatelessWidget {
             backgroundColor: Theme.of(context).colorScheme.bgColorForQuestions,
             barrierColor: Colors.black87,
             context: context,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            clipBehavior: Clip.antiAlias,
             builder: (context) {
               return const SafeArea(child: BillingQuestionsWidget());
             },

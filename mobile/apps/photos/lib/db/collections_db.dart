@@ -231,8 +231,6 @@ class CollectionsDB {
     return collections;
   }
 
-  // getActiveCollectionIDsAndUpdationTime returns map of collectionID to
-  // updationTime for non-deleted collections
   Future<Map<int, int>> getActiveIDsAndRemoteUpdateTime() async {
     final db = await instance.database;
     final rows = await db.query(
@@ -319,7 +317,6 @@ class CollectionsDB {
             ),
       int.parse(row[columnUpdationTime]),
       sharedAt: _parseNullableInt(row[columnSharedAt]),
-      // default to False is columnIsDeleted is not set
       isDeleted: (row[columnIsDeleted] ?? _sqlBoolFalse) == _sqlBoolTrue,
     );
     result.mMdVersion = row[columnMMdVersion] ?? 0;

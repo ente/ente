@@ -7,7 +7,6 @@ import "package:path_provider/path_provider.dart";
 import "package:photos/services/wrapped/models.dart";
 import "package:synchronized/synchronized.dart";
 
-/// Persists Wrapped results to disk so we can avoid recomputing on every boot.
 class WrappedCacheService {
   WrappedCacheService._();
 

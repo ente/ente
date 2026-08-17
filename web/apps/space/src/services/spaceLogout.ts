@@ -1,4 +1,4 @@
-import { accountLogout } from "ente-accounts-rs/services/logout";
+import { accountLogout } from "ente-accounts/services/logout";
 import log from "ente-base/log";
 import {
     clearSpaceBrowserSession,

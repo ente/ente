@@ -1,3 +1,5 @@
+import "dart:io";
+
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
@@ -75,7 +77,9 @@ class _AlbumSelectionActionWidgetState
       items.add(
         SelectionActionButton(
           labelText: context.strings.share,
-          hugeIcon: HugeIcons.strokeRoundedShare03,
+          hugeIcon: Platform.isIOS
+              ? HugeIcons.strokeRoundedShare03
+              : HugeIcons.strokeRoundedShare08,
           onTap: _shareCollection,
         ),
       );
@@ -115,7 +119,6 @@ class _AlbumSelectionActionWidgetState
     }
 
     if (widget.sectionType == UISectionType.archivedCollections) {
-      // For archived albums: show unarchive and delete
       items.add(
         SelectionActionButton(
           labelText: context.strings.unarchive,
@@ -132,7 +135,6 @@ class _AlbumSelectionActionWidgetState
         ),
       );
     } else if (widget.sectionType == UISectionType.hiddenCollections) {
-      // For hidden albums: show unhide and delete
       items.add(
         SelectionActionButton(
           labelText: context.strings.unhide,
@@ -159,8 +161,6 @@ class _AlbumSelectionActionWidgetState
     }
 
     if (widget.sectionType == UISectionType.incomingCollections) {
-      // Pin/Unpin options for incoming collections (uses sharee metadata)
-      // Behind feature flag
       if (flagService.enableShareePin) {
         final hasShareePinnedAlbum = widget.selectedAlbums.albums.any(
           (album) => album.hasShareePinned(),
@@ -188,7 +188,6 @@ class _AlbumSelectionActionWidgetState
         );
       }
 
-      // Hide option for incoming collections (uses sharee metadata)
       items.add(
         SelectionActionButton(
           labelText: context.strings.hide,
@@ -363,7 +362,6 @@ class _AlbumSelectionActionWidgetState
       return;
     }
 
-    // Determine if we're hiding or unhiding based on first collection
     final isUnhiding = collections.first.isHidden();
     if (!await prepareSharedAlbumsForHiding(
       context,
@@ -436,7 +434,6 @@ class _AlbumSelectionActionWidgetState
       return;
     }
 
-    // Determine if we're archiving or unarchiving based on first collection
     final isUnarchiving =
         widget.sectionType == UISectionType.incomingCollections
         ? collections.first.hasShareeArchived()

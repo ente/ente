@@ -34,7 +34,6 @@ services:
       POSTGRES_USER: pguser
       POSTGRES_PASSWORD: pgpass
       POSTGRES_DB: ente_db
-    # Wait for postgres to accept connections before starting museum.
     healthcheck:
       test: pg_isready -q -d ente_db -U pguser
       start_period: 40s
@@ -56,8 +55,6 @@ services:
     post_start:
       - command: |
           sh -c '
-          #!/bin/sh
-
           while ! mc alias set h0 http://minio:3200 changeme changeme1234 2>/dev/null
           do
             echo "Waiting for minio..."

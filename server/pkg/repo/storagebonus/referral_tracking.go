@@ -11,8 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TrackReferralAndInviteeBonus inserts an entry in the referral_tracking table for given invitee,invitor and planType and insert a storage surplus for the invitee
-// in a single txn
 func (r *Repository) TrackReferralAndInviteeBonus(ctx context.Context, invitee, codeOwnerId int64, planType storagebonus.PlanType) error {
 	if invitee == codeOwnerId {
 		return stacktrace.Propagate(ente.ErrBadRequest, "invitee %d and invitor %d are same", invitee, codeOwnerId)
@@ -46,9 +44,6 @@ func (r *Repository) TrackReferralAndInviteeBonus(ctx context.Context, invitee, 
 	return nil
 }
 
-// TrackUpgradeAndInvitorBonus invitee upgrade to paid plan from non-paid plan by modifying invitee_on_paid_plan from false to true.
-// and insert a storage surplus for the invitor with  InvitorBonusOnInviteeUpgrade in
-// a single transaction. Verify that the update is happening from non-paid plan to paid plan for the given invitee and invitor
 func (r *Repository) TrackUpgradeAndInvitorBonus(ctx context.Context, invitee, invitor int64, planType storagebonus.PlanType) error {
 	if invitee == invitor {
 		return stacktrace.Propagate(ente.ErrBadRequest, "invitee %d and invitor %d are same", invitee, invitor)

@@ -112,18 +112,13 @@ abstract class BaseConfiguration {
   }
 
   Future<KeyGenResult> generateKey(String password) async {
-    // Create a master key
     final masterKey = CryptoUtil.generateKey();
 
-    // Create a recovery key
     final recoveryKey = CryptoUtil.generateKey();
 
-    // Encrypt master key and recovery key with each other
     final encryptedMasterKey = CryptoUtil.encryptSync(masterKey, recoveryKey);
     final encryptedRecoveryKey = CryptoUtil.encryptSync(recoveryKey, masterKey);
 
-    // Derive a key from the password that will be used to encrypt and
-    // decrypt the master key
     final kekSalt = CryptoUtil.getSaltToDeriveKey();
     final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
       utf8.encode(password),
@@ -131,13 +126,11 @@ abstract class BaseConfiguration {
     );
     final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
 
-    // Encrypt the key with this derived key
     final encryptedKeyData = CryptoUtil.encryptSync(
       masterKey,
       derivedKeyResult.key,
     );
 
-    // Generate a public-private keypair and encrypt the latter
     final keyPair = CryptoUtil.generateKeyPair();
     final encryptedSecretKeyData = CryptoUtil.encryptSync(
       keyPair.secretKey,
@@ -169,11 +162,8 @@ abstract class BaseConfiguration {
   Future<Tuple2<KeyAttributes, Uint8List>> getAttributesForNewPassword(
     String password,
   ) async {
-    // Get master key
     final masterKey = getKey();
 
-    // Derive a key from the password that will be used to encrypt and
-    // decrypt the master key
     final kekSalt = CryptoUtil.getSaltToDeriveKey();
     final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
       utf8.encode(password),
@@ -181,7 +171,6 @@ abstract class BaseConfiguration {
     );
     final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
 
-    // Encrypt the key with this derived key
     final encryptedKeyData = CryptoUtil.encryptSync(
       masterKey!,
       derivedKeyResult.key,
@@ -199,10 +188,6 @@ abstract class BaseConfiguration {
     return Tuple2(updatedAttributes, loginKey);
   }
 
-  // decryptSecretsAndGetLoginKey decrypts the master key and recovery key
-  // with the given password and save them in local secure storage.
-  // This method also returns the keyEncKey that can be used for performing
-  // SRP setup for existing users.
   Future<Uint8List> decryptSecretsAndGetKeyEncKey(
     String password,
     KeyAttributes attributes, {
@@ -271,7 +256,6 @@ abstract class BaseConfiguration {
   }
 
   Future<void> recover(String recoveryKey) async {
-    // check if user has entered mnemonic code
     if (recoveryKey.contains(' ')) {
       final split = recoveryKey.split(' ');
       if (split.length != mnemonicKeyWordCount) {
@@ -326,9 +310,6 @@ abstract class BaseConfiguration {
     return savedEndpoint;
   }
 
-  // isEnteProduction checks if the current endpoint is the default production
-  // endpoint. This is used to determine if the app is in production mode or
-  // not. The default production endpoint is set in the environment variable
   bool isEnteProduction() {
     return getHttpEndpoint() == kDefaultProductionEndpoint;
   }
@@ -426,7 +407,7 @@ abstract class BaseConfiguration {
     );
   }
 
-  // Caution: This directory is cleared on app start
+  // This directory is cleared on app start.
   String getTempDirectory() {
     return _tempDocumentsDirPath;
   }
@@ -465,10 +446,8 @@ abstract class BaseConfiguration {
       _secretKey = await _secureStorage.read(key: secretKeyKey);
     } catch (e, s) {
       _logger.severe("Configuration init failed", e, s);
-      /*
-      Check if it's a known is related to reading secret from secure storage
-      on android https://github.com/mogol/flutter_secure_storage/issues/541
-       */
+      // BadPaddingException can mean Android secure storage is inaccessible.
+      // https://github.com/mogol/flutter_secure_storage/issues/541
       if (e is PlatformException) {
         final PlatformException error = e;
         final bool isBadPaddingError =

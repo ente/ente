@@ -99,7 +99,6 @@ class _DeleteEmptyAlbumsState extends State<DeleteEmptyAlbums> {
     final idToFileTimeStamp = await FilesDB.instance
         .getCollectionIDToMaxCreationTime();
 
-    // remove collections which are not empty or can't be deleted
     collections.removeWhere(
       (c) => !c.type.canDelete || idToFileTimeStamp.containsKey(c.id),
     );

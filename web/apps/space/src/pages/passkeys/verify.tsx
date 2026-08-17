@@ -1,7 +1,7 @@
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
-import { savedPartialLocalUser } from "ente-accounts-rs/services/accounts-db";
-import { openPasskeyVerificationURL } from "ente-accounts-rs/services/passkey";
+import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
+import { openPasskeyVerificationURL } from "ente-accounts/services/passkey";
 import log from "ente-base/log";
 import React, { useEffect, useState } from "react";
 import {

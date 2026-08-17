@@ -5,10 +5,7 @@ import "package:photos/models/file/file.dart";
 class GalleryFilesState extends InheritedWidget {
   GalleryFilesState({super.key, required super.child});
 
-  ///Should be assigned later in gallery when files are loaded.
-  ///Note: EnteFiles in this list should be references of the same EnteFiles
-  ///that are grouped in gallery, so that when files are added/deleted,
-  ///both lists are in sync.
+  // Keep the same file objects used by galleryGroups so mutations stay in sync.
   List<EnteFile>? _galleryFiles;
 
   set setGalleryFiles(List<EnteFile> galleryFiles) {

@@ -28,6 +28,7 @@ import {
     stashedRedirect,
     unstashRedirect,
 } from "ente-accounts/services/redirect";
+import { clearSessionStorage } from "ente-accounts/services/session-storage";
 import {
     getAndSaveSRPAttributes,
     getSRPAttributes,
@@ -47,7 +48,6 @@ import {
 import { useBaseContext } from "ente-base/context";
 import { isHTTPErrorWithStatus } from "ente-base/http";
 import log from "ente-base/log";
-import { clearSessionStorage } from "ente-base/session";
 import { saveAuthToken } from "ente-base/token";
 import { t } from "i18next";
 import { useRouter } from "next/router";

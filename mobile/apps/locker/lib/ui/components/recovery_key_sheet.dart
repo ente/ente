@@ -36,7 +36,6 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
 
   @override
   void dispose() {
-    // Clean up temp file if it exists
     if (_recoveryKeyFile.existsSync()) {
       _recoveryKeyFile.deleteSync();
     }
@@ -47,7 +46,6 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
 
-    // Convert recovery key to mnemonic words
     final String recoveryKeyMnemonic = bip39.entropyToMnemonic(
       widget.recoveryKey,
     );

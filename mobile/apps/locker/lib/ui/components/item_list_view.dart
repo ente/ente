@@ -269,7 +269,6 @@ class _FileListItem extends _ListItem {
 
   @override
   String get name {
-    // For info files, try to extract the title from the info data
     if (_file.fileType == FileType.info) {
       return InfoFileService.instance.getFileTitleFromFile(_file) ??
           _file.displayName;

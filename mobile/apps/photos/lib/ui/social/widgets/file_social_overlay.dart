@@ -43,14 +43,13 @@ Duration _motionDuration(BuildContext context, int milliseconds) {
       : Duration(milliseconds: milliseconds);
 }
 
-/// Social content for a file. The host owns placement and visibility effects.
 class FileSocialOverlay extends StatefulWidget {
   final EnteFile file;
   final int? currentUserID;
 
-  /// The collection the viewer was opened from, or null when there is no
-  /// opening collection context. Memories must not pass a deduped file row's
-  /// collection ID here.
+  // The collection the viewer was opened from, or null when there is no
+  // opening collection context. Memories must not pass a deduped file row's
+  // collection ID here.
   final int? openingCollectionID;
   final VoidCallback? onInteractionStart;
   final VoidCallback? onInteractionEnd;

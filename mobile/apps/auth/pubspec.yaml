@@ -65,7 +65,7 @@ dependencies:
   expandable: 5.0.1
   ffi: 2.2.0
   figma_squircle: 0.6.3
-  file_picker: 10.3.10
+  file_picker: 11.0.3
   file_saver: 0.3.1
   fixnum: 1.1.1
   flutter:
@@ -78,12 +78,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_native_splash: 2.4.7
-  # Do not upgrade this package unless this issue is resolved:
-  # https://github.com/juliansteenbakker/flutter_secure_storage/issues/870
-  # On v9.2.4, keys related to lockscreen persist even after reintsall. For context see:
+  # Version 9.2.4 leaves lock-screen keys behind after an app reinstall.
+  # Upgrade only after this is fixed or with a migration.
   # https://github.com/juliansteenbakker/flutter_secure_storage/issues/870#issuecomment-2777447937
-  # Let's wait till the issue is resolved by the package maintainer.
-  # If not resolved and we need to upgrade, write a migration script.
   flutter_secure_storage: 9.0.0
   flutter_speed_dial: 7.0.0
   flutter_staggered_grid_view: 0.7.0
@@ -120,6 +117,7 @@ dependencies:
   saf_util: 2.0.0
   scoped_dir_access:
     path: ../../packages/scoped_dir_access
+  screen_retriever: 0.2.1
   sentry: 9.6.0
   sentry_flutter: 9.6.0
   share_plus: 12.0.0
@@ -146,12 +144,10 @@ dev_dependencies:
   qr: 3.0.2
   shared_preferences_platform_interface: 2.4.2
 
-# The following section is specific to Flutter.
 flutter:
   uses-material-design: true
   generate: true
 
-  # https://docs:flutter:dev/development/ui/assets-and-images:
   assets:
     - assets/
     - assets/icons/
@@ -178,7 +174,6 @@ flutter:
       fonts:
         - asset: fonts/Montserrat-Bold.ttf
 
-# run "dart run flutter_launcher_icons" to generate icons
 flutter_launcher_icons:
   image_path: "assets/generation-icons/icon-light.png"
 
@@ -213,23 +208,8 @@ flutter_native_splash:
   ios: true
   web: false
   android_12:
-    # The image parameter sets the splash screen icon image.  If this parameter is not specified,
-    # the app's launcher icon will be used instead.
-    # Please note that the splash screen will be clipped to a circle on the center of the screen.
-    # App icon with an icon background: This should be 960×960 pixels, and fit within a circle
-    # 640 pixels in diameter.
-    # App icon without an icon background: This should be 1152×1152 pixels, and fit within a circle
-    # 768 pixels in diameter.
     image: "assets/generation-icons/splash-icon-ios-padded.png"
-
-    # Splash screen background color.
     color: "#A75CFF"
-
-    # App icon background color.
     icon_background_color: "#A75CFF"
-
-    # The image_dark, color_dark, icon_background_color_dark, and branding_dark set values that
-    # apply when the device is in dark mode. If they are not specified, the app will use the
-    # parameters from above.
     color_dark: "#A75CFF"
     icon_background_color_dark: "#A75CFF"

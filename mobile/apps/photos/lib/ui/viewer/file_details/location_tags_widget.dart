@@ -101,7 +101,6 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
   }
 
   Future<List<Widget>> _getLocationTags() async {
-    // await Future.delayed(const Duration(seconds: 1));
     final locationTags = await locationService.enclosingLocationTags(
       widget.file.location!,
     );

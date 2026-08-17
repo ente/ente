@@ -1,8 +1,3 @@
-/// Cross-platform directory utilities with persistent access support.
-///
-/// - iOS: Uses security-scoped bookmarks for persistent directory access
-/// - Android: Uses Storage Access Framework (SAF) via saf_util/saf_stream
-/// - Other platforms: Uses standard file system access via file_picker
 library;
 
 import 'dart:io';
@@ -16,25 +11,19 @@ import 'package:saf_util/saf_util.dart';
 
 final _logger = Logger('DirUtils');
 
-/// Represents a picked directory with platform-specific access credentials.
 class PickedDirectory {
   const PickedDirectory({required this.path, this.bookmark, this.treeUri});
 
-  /// The display path of the directory.
   final String path;
 
-  /// iOS security-scoped bookmark (base64 encoded). Null on other platforms.
   final String? bookmark;
 
-  /// Android SAF tree URI. Null on other platforms.
   final String? treeUri;
 
-  /// Returns true if this directory has a security-scoped bookmark (iOS or macOS).
   bool get hasBookmark => bookmark != null;
   bool get isAndroid => treeUri != null;
 }
 
-/// Result from starting security-scoped access on iOS.
 class AccessResult {
   const AccessResult({
     required this.success,
@@ -47,7 +36,6 @@ class AccessResult {
   final bool isStale;
 }
 
-/// Information about a file in a directory.
 class FileInfo {
   const FileInfo({
     required this.name,
@@ -62,31 +50,15 @@ class FileInfo {
   final bool isDirectory;
   final DateTime lastModified;
 
-  /// Android SAF URI (for deletion). Null on other platforms.
   final String? uri;
 }
 
-/// Cross-platform directory utilities.
 class DirUtils {
   DirUtils._();
 
   static final DirUtils instance = DirUtils._();
   static const _channel = MethodChannel('io.ente.scoped_dir_access');
 
-  // ============================================================
-  // Directory Picker
-  // ============================================================
-
-  /// Pick a directory with persistent access.
-  ///
-  /// On iOS, this opens the native document picker and creates a security-scoped
-  /// bookmark for persistent access across app launches.
-  ///
-  /// On Android, this opens SAF directory picker with persistent permissions.
-  ///
-  /// On other platforms, this uses file_picker.
-  ///
-  /// Returns null if the user cancels.
   Future<PickedDirectory?> pickDirectory() async {
     if (Platform.isIOS) {
       return _pickDirectoryIos();
@@ -139,12 +111,10 @@ class DirUtils {
 
   Future<PickedDirectory?> _pickDirectoryMacOS() async {
     try {
-      // Use file_picker to pick the directory
-      final path = await FilePicker.platform.getDirectoryPath();
+      final path = await FilePicker.getDirectoryPath();
       if (path == null) return null;
 
-      // Create a security-scoped bookmark from the picked path
-      // This must be done while we still have access (same session as picker)
+      // Create the bookmark while picker access is still active.
       final result = await _channel.invokeMethod<Map<dynamic, dynamic>>(
         'createBookmarkFromPath',
         {'path': path},
@@ -173,7 +143,7 @@ class DirUtils {
 
   Future<PickedDirectory?> _pickDirectoryOther() async {
     try {
-      final path = await FilePicker.platform.getDirectoryPath();
+      final path = await FilePicker.getDirectoryPath();
       if (path == null) return null;
 
       return PickedDirectory(path: path);
@@ -183,14 +153,7 @@ class DirUtils {
     }
   }
 
-  // ============================================================
-  // Security-Scoped Access (iOS/macOS)
-  // ============================================================
-
-  /// Start accessing a security-scoped resource (iOS/macOS).
-  ///
-  /// You MUST call [stopAccess] when done to balance this call.
-  /// On platforms without bookmark support, this is a no-op that returns success.
+  // Each successful call must be balanced with stopAccess.
   Future<AccessResult?> startAccess(PickedDirectory dir) async {
     if (!Platform.isIOS && !Platform.isMacOS) {
       return AccessResult(success: true, path: dir.path, isStale: false);
@@ -221,9 +184,6 @@ class DirUtils {
     }
   }
 
-  /// Stop accessing a security-scoped resource (iOS/macOS).
-  ///
-  /// On platforms without bookmark support, this is a no-op.
   Future<bool> stopAccess(PickedDirectory dir) async {
     if (!Platform.isIOS && !Platform.isMacOS) return true;
 
@@ -245,10 +205,6 @@ class DirUtils {
     }
   }
 
-  /// Execute a function with security-scoped access.
-  ///
-  /// Automatically calls startAccess before and stopAccess after.
-  /// On platforms without bookmark support, just executes the function directly.
   Future<T?> withAccess<T>(
     PickedDirectory dir,
     Future<T> Function(String path) action,
@@ -266,16 +222,6 @@ class DirUtils {
     }
   }
 
-  // ============================================================
-  // File Operations
-  // ============================================================
-
-  /// Write a file to the directory.
-  ///
-  /// [dir] - The picked directory
-  /// [fileName] - Name of the file to create
-  /// [content] - File content as bytes
-  /// [subPath] - Optional subdirectory path within the directory
   Future<bool> writeFile(
     PickedDirectory dir,
     String fileName,
@@ -352,7 +298,6 @@ class DirUtils {
     }
   }
 
-  /// List files in a directory.
   Future<List<FileInfo>> listFiles(
     PickedDirectory dir, {
     String? subPath,
@@ -444,10 +389,6 @@ class DirUtils {
     }
   }
 
-  /// Delete a file.
-  ///
-  /// For Android SAF, pass the file's URI as [filePathOrUri].
-  /// For other platforms, pass the file path.
   Future<bool> deleteFile(PickedDirectory dir, FileInfo file) async {
     if (Platform.isAndroid && file.uri != null) {
       return _deleteFileAndroid(file.uri!, file.isDirectory);

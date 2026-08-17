@@ -29,10 +29,6 @@ func (repo *TaskLockRepository) AcquireLock(name string, lockUntil int64, locked
 	return rowsAffected == 1, nil
 }
 
-// ExtendLock updates the locked_at and locked_until of an existing lock (held
-// by `lockedBy`).
-//
-// Returns false if there is no such existing lock.
 func (repo *TaskLockRepository) ExtendLock(name string, lockUntil int64, lockedBy string) (bool, error) {
 	result, err := repo.DB.Exec(
 		`UPDATE task_lock SET locked_at = $1, lock_until = $2
@@ -50,10 +46,8 @@ func (repo *TaskLockRepository) ExtendLock(name string, lockUntil int64, lockedB
 	return rowsAffected == 1, nil
 }
 
-// LastLockedAt returns the time (epoch microseconds) at which the lock with
-// `name` was last acquired or refreshed.
-//
-// If there is no such lock, it'll return sql.ErrNoRows.
+// The timestamp is in epoch microseconds.
+// Missing locks return sql.ErrNoRows.
 func (repo *TaskLockRepository) LastLockedAt(name string) (int64, error) {
 	row := repo.DB.QueryRow(
 		`SELECT locked_at FROM task_lock WHERE task_name = $1`, name)

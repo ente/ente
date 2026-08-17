@@ -34,18 +34,9 @@ class PersonFaceWidget extends StatefulWidget {
   final VoidCallback? onErrorCallback;
   final bool keepAlive;
 
-  /// Physical pixel width for image decoding optimization.
-  ///
-  /// When provided and > 0, the image will be decoded at this width, with height
-  /// computed to preserve aspect ratio. This reduces memory usage for small displays.
-  ///
-  /// Typically calculated as: `(logicalWidth * MediaQuery.devicePixelRatioOf(context)).toInt()`
-  ///
-  /// If null or <= 0, the image is decoded at full resolution.
+  // Physical pixels; null or non-positive decodes at full resolution.
   final int? cachedPixelWidth;
 
-  // PersonFaceWidget constructor checks that both personId and clusterID are not null
-  // and that the file is not null
   const PersonFaceWidget({
     this.personId,
     this.clusterID,
@@ -147,17 +138,14 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
 
   @override
   Widget build(BuildContext context) {
-    super.build(
-      context,
-    ); // Calling super.build for AutomaticKeepAliveClientMixin
+    super.build(context);
 
     return FutureBuilder<Uint8List?>(
       future: faceCropFuture,
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data != null) {
-          // Only cacheWidth (not cacheHeight) to preserve aspect ratio.
-          // Face crops are typically portrait, so constraining width ensures
-          // sufficient height for BoxFit.cover without upscaling.
+          // Decode by width only so portrait crops retain enough height for
+          // BoxFit.cover without upscaling.
           final shouldOptimize =
               widget.cachedPixelWidth != null && widget.cachedPixelWidth! > 0;
           final ImageProvider imageProvider = shouldOptimize

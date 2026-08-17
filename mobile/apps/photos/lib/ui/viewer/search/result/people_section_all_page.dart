@@ -531,7 +531,6 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
       results.removeWhere((element) => element.params[kPersonParamID] == null);
 
       if (init) {
-        // sort widget.selectedPeople first
         results.sort((a, b) {
           final aIndex =
               widget.selectedPeople?.personIds.contains(

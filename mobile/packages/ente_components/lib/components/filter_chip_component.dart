@@ -11,9 +11,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 enum FilterChipComponentState { selected, unselected, disabled }
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=9524-4352&m=dev
-/// Section: Filter Chip
-/// Specs: 40px minimum height, pill radius, selected/unselected/disabled states with icon and avatar slots.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=9524-4352&m=dev
 class FilterChipComponent extends StatelessWidget {
   const FilterChipComponent({
     super.key,

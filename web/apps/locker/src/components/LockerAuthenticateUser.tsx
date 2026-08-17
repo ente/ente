@@ -1,11 +1,11 @@
-import { VerifyMasterPasswordForm } from "ente-accounts-rs/components/VerifyMasterPasswordForm";
-import { checkSessionValidity } from "ente-accounts-rs/services/session";
+import { VerifyMasterPasswordForm } from "ente-accounts/components/VerifyMasterPasswordForm";
+import { checkSessionValidity } from "ente-accounts/services/session";
 import {
     ensureLocalUser,
     ensureSavedKeyAttributes,
     type KeyAttributes,
     type LocalUser,
-} from "ente-accounts-rs/services/user";
+} from "ente-accounts/services/user";
 import {
     TitledMiniDialog,
     type MiniDialogAttributes,

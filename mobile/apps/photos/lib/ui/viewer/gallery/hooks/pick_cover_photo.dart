@@ -82,7 +82,6 @@ class _PickCoverPhotoWidgetState extends State<PickCoverPhotoWidget> {
                           limit: limit,
                           asc: asc,
                         );
-                    // Hide ignored files from the picker.
                     final ignoredIDs =
                         await IgnoredFilesService.instance.idToIgnoreReasonMap;
                     result.files.removeWhere(

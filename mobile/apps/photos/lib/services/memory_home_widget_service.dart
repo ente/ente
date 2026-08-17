@@ -11,7 +11,6 @@ import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MemoryHomeWidgetService {
-  // Constants
   static const String SELECTED_LAST_YEAR_MEMORIES_KEY =
       "selectedLastYearMemoriesHW";
   static const String SELECTED_ML_MEMORIES_KEY = "selectedMLMemoriesHW";
@@ -24,16 +23,13 @@ class MemoryHomeWidgetService {
   static const String TOTAL_MEMORIES_KEY = "totalMemories";
   static const int MAX_MEMORIES_LIMIT = 50;
 
-  // Singleton pattern
   static final MemoryHomeWidgetService instance =
       MemoryHomeWidgetService._privateConstructor();
   MemoryHomeWidgetService._privateConstructor();
 
-  // Properties
   final Logger _logger = Logger((MemoryHomeWidgetService).toString());
   SharedPreferences get _prefs => ServiceLocator.instance.prefs;
 
-  // Preference getters and setters
   bool? hasLastYearMemoriesSelected() {
     return _prefs.getBool(SELECTED_LAST_YEAR_MEMORIES_KEY);
   }
@@ -58,7 +54,6 @@ class MemoryHomeWidgetService {
     await _prefs.setBool(SELECTED_ON_THIS_DAY_MEMORIES_KEY, selectedMemories);
   }
 
-  // Public methods
   Future<void> initMemoryHomeWidget() async {
     await HomeWidgetService.instance.computeLock.synchronized(() async {
       if (await _hasAnyBlockers()) {
@@ -152,16 +147,13 @@ class MemoryHomeWidgetService {
     await _refreshMemoriesWidget();
   }
 
-  // Private methods
   Future<bool> _hasAnyBlockers() async {
-    // Check if first import is completed
     final hasCompletedFirstImport = LocalSyncService.instance
         .hasCompletedFirstImportOrBypassed();
     if (!hasCompletedFirstImport) {
       return true;
     }
 
-    // Check if memories are enabled
     final areMemoriesShown = memoriesCacheService.showAnyMemories;
     if (!areMemoriesShown) {
       return true;
@@ -171,20 +163,15 @@ class MemoryHomeWidgetService {
   }
 
   Future<void> _refreshMemoriesWidget() async {
-    // only refresh if widget was synced without issues
     if (await countHomeWidgets() == 0) return;
     await _refreshWidget(message: "Refreshing from existing memory set");
   }
 
   Future<bool> _shouldUpdateWidgetCache() async {
-    // Update widget cache when memories were changed
     if (isMemoryChanged() == true) return true;
 
     final memoriesStatus = getMemoriesStatus();
 
-    // update widget cache if
-    // - memories not synced
-    // - memories synced partially but now home widget is present
     return memoriesStatus == WidgetStatus.notSynced ||
         memoriesStatus == WidgetStatus.syncedPartially &&
             await countHomeWidgets() > 0;
@@ -196,7 +183,6 @@ class MemoryHomeWidgetService {
     bool? lastYearValue = hasLastYearMemoriesSelected();
     bool? onThisDayValue = getOnThisDayMemoriesSelected();
 
-    // If ML is enabled then we use Smart memories by default, otherwise date based memories
     if (isMLEnabled) {
       lastYearValue ??= false;
       onThisDayValue ??= false;
@@ -258,7 +244,6 @@ class MemoryHomeWidgetService {
     await HomeWidgetService.instance.setData(TOTAL_MEMORIES_KEY, total);
   }
 
-  // _updateMemoriesWidgetCache will return false if no memories were cached
   Future<bool> _updateMemoriesWidgetCache() async {
     // TODO: Can update the method to fetch directly max limit random memories
     final memoriesWithFiles = await _getMemoriesWithFiles();
@@ -306,7 +291,6 @@ class MemoryHomeWidgetService {
           });
 
       if (renderResult != null) {
-        // Check for blockers again before continuing
         if (await _hasAnyBlockers()) {
           await clearWidget();
           return true;
@@ -314,7 +298,6 @@ class MemoryHomeWidgetService {
 
         await _setTotalMemories(renderedCount);
 
-        // Show update toast after first item is rendered
         if (renderedCount == 1) {
           await _refreshWidget(
             message: "First memory fetched, updating widget",

@@ -3,7 +3,6 @@ import "package:flutter/material.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/viewer/search/search_map_navigation.dart";
 
-//Used for empty state of location section
 class GoToMap extends StatelessWidget {
   const GoToMap({super.key});
 

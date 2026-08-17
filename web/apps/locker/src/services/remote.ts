@@ -4,11 +4,11 @@ import type {
     LockerItem,
     LockerItemType,
 } from "@/types";
-import { deriveInteractiveKey } from "ente-accounts-rs/services/crypto";
+import { deriveInteractiveKey } from "ente-accounts/services/crypto";
 import {
     ensureLocalUser,
     ensureUserKeyPair,
-} from "ente-accounts-rs/services/user";
+} from "ente-accounts/services/user";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";

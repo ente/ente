@@ -35,36 +35,10 @@ const extractCodeText = (node: React.ReactNode): string => {
 const CodeBlock = ({ children, node: _node, ...rest }: PreProps) => {
     const codeText = extractCodeText(children).replace(/\n$/, "");
 
-    const handleCopy = useCallback(() => {
-        if (
-            typeof navigator === "undefined" ||
-            typeof document === "undefined"
-        ) {
-            return;
-        }
-
-        const clipboard = navigator.clipboard;
-        if (clipboard && typeof clipboard.writeText === "function") {
-            void clipboard.writeText(codeText);
-            return;
-        }
-
-        const textarea = document.createElement("textarea");
-        textarea.value = codeText;
-        textarea.setAttribute("readonly", "true");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        textarea.style.pointerEvents = "none";
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-            document.execCommand("copy");
-        } catch {
-            // The legacy copy path has no failure recourse.
-        } finally {
-            document.body.removeChild(textarea);
-        }
-    }, [codeText]);
+    const handleCopy = useCallback(
+        () => void navigator.clipboard.writeText(codeText),
+        [codeText],
+    );
 
     return (
         <Box className="markdown-code-block" sx={{ position: "relative" }}>

@@ -21,11 +21,9 @@ import (
 )
 
 const (
-	Srp4096Params = 4096
-	// MaxUnverifiedSessionInAnHour is the number of unverified sessions in the last hour
+	Srp4096Params                = 4096
 	MaxUnverifiedSessionInAnHour = 10
-	// FakeVerifier is a realistic-looking base64 verifier used for non-existent users
-	// to prevent timing attacks and user enumeration
+	// Used for nonexistent users to preserve SRP timing and prevent enumeration.
 	FakeVerifier = "RNYLOgdzKsbhRWN8OoD05kNpfbqb9uASHYpaLrYLYVemCV0pf4fBgo+25jeu8SaVMQhlkyIF2BgGXX4uzy8Pmwq1ocqt8DsGk0DrlOE1AV9ogaY3myoTjXTQG5dU/hTywylKJYdpWSEyzMMLbWcuO8ldS6uzYXqK+jbfEDDj8k4PqLx1715BPgigNydCbD7/VtwaMhQ8MEygiW/2PbieeqUzuCqEWfwu0uytPM9LiuHH7DT3k2fELFOoPWs3KQAhk6rmM17JOLm8Qvt+xGU6nJZKzTNPxw9o4H4FvlGmsEYUdTP+WPdWpzcton6BowCXKN9G3hZx10OUzBuePHFNKjDlaSLpJXVclLWmza6aDBpjKahayW2UvdQw1tSonyFUjJOanocrPEoHthHUjUGXkeRqcaU4CV9KLQFaHqnHTYc9uJKuYl/tcYoWXuHrZ0cFYRpc6qf/gBCuuwkhTXXsJxTlepe5x0gqgQb7mD5y+dvINks/gpO/3x4T4RkQcyoonsOZv2uLIBr3D6Ede9/aJstIkMh3dTEpDWdw8tEaO7ZjqEwKXVA+/fquJ7P8B3fcIvPy8UZOpwAYtWSPh3OYzijG7WFXu+ajPBqkVI1OBSCYOlTQlPXyrv7myiD8/FXJep5IDPeuJsmGrLPJXBZjPKWR0ISBWol5KTYWE2EllYQ="
 )
 
@@ -90,7 +88,7 @@ func (c *UserController) UpdateSrpAndKeyAttributes(context *gin.Context,
 
 	if shouldClearTokens {
 		token := auth.GetToken(context)
-		err = c.UserAuthRepo.RemoveAllOtherTokens(userID, token)
+		err = c.RemoveAllOtherTokens(userID, token)
 		if err != nil {
 			return nil, err
 		}
@@ -165,8 +163,6 @@ func (c *UserController) VerifySRPSession(context *gin.Context, req ente.VerifyS
 	srpAuthEntity, err := c.UserAuthRepo.GetSRPAuthEntityBySRPUserID(context, req.SRPUserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// For non-existent users, try to verify against the fake session
-			// This will always fail but maintains consistent timing and error responses
 			_, verifyErr := c.verifySRPSession(context, FakeVerifier, req.SessionID, req.SRPM1)
 			return nil, verifyErr
 		}
@@ -261,20 +257,18 @@ func (c *UserController) verifySRPSession(ctx context.Context,
 	}
 	srpSession, err := c.UserAuthRepo.GetSrpSessionEntity(ctx, sessionID)
 	if err != nil {
-		// Session not found - return invalid password to avoid revealing non-existence
+		// Do not reveal whether the session exists.
 		if errors.Is(err, sql.ErrNoRows) {
-			// Add small delay to simulate processing
+			// Match normal verification timing.
 			time.Sleep(time.Duration(10+mathRand.Intn(20)) * time.Millisecond)
 			return nil, stacktrace.Propagate(ente.ErrInvalidPassword, "session not found")
 		}
 		return nil, stacktrace.Propagate(err, "")
 	}
 
-	// Handle fake sessions - always fail with invalid password
 	if srpSession.IsFake {
-		// Simulate realistic timing for fake session verification
+		// Match real-session timing and attempt bookkeeping.
 		time.Sleep(time.Duration(20+mathRand.Intn(30)) * time.Millisecond)
-		// Increment attempt count for fake sessions too
 		_ = c.UserAuthRepo.IncrementSrpSessionAttemptCount(ctx, sessionID)
 		return nil, stacktrace.Propagate(ente.ErrInvalidPassword, "fake session verification")
 	}
@@ -344,10 +338,8 @@ func fSrpAttributes(email string, hashKey []byte) (*ente.GetSRPAttributesRespons
 	kekSaltMaker.Write(hashKey)
 	kekSaltHash := kekSaltMaker.Sum(nil)
 
-	// Generate UUIDv4 from first 16 bytes of hash
 	uuidBytes := make([]byte, 16)
 	copy(uuidBytes, emailHash[:16])
-	// Set version bits (4) and variant bits (RFC 4122)
 	uuidBytes[6] = (uuidBytes[6] & 0x0f) | 0x40 // Version 4
 	uuidBytes[8] = (uuidBytes[8] & 0x3f) | 0x80 // Variant RFC 4122
 	uuidStr := fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
@@ -386,27 +378,24 @@ func (c *UserController) fCreateSession(srpUserID string, srpA string) (*ente.Cr
 		return nil, ente.NewBadRequestWithMessage("Invalid length for srpA")
 	}
 
-	// Simulate realistic timing with variable delay (30-80ms)
-	// This matches the timing variance of real SRP operations
+	// Match the timing variance of a real SRP exchange.
 	baseDelay := 30
 	variableDelay := mathRand.Intn(50)
 	time.Sleep(time.Duration(baseDelay+variableDelay) * time.Millisecond)
 
-	// Generate realistic fake SRP data
-	serverSecret := make([]byte, 64) // Same size as real srp.GenKey()
+	// Match real SRP key and response sizes.
+	serverSecret := make([]byte, 64)
 	rand.Read(serverSecret)
 
-	// Generate fake SRP B value (512 bytes like real)
 	srpBBytes := make([]byte, 512)
 	rand.Read(srpBBytes)
 
-	// Parse srpUserID as UUID
 	userUUID, err := uuid.Parse(srpUserID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to parse srpUserID")
 	}
 
-	// Store the fake session in the database (adds natural DB timing variance)
+	// Persist fake sessions so verification follows the normal database path.
 	sessionID, err := c.UserAuthRepo.AddFakeSRPSession(userUUID, convertBytesToString(serverSecret), srpA)
 	if err != nil {
 		// If storage fails, still return a response to avoid revealing system errors

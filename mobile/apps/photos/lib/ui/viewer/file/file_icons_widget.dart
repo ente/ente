@@ -210,26 +210,16 @@ class FileOverlayText extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 5),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.titleSmall!.copyWith(
-          color: Colors.white,
-        ), //same for both themes
+        style: Theme.of(
+          context,
+        ).textTheme.titleSmall!.copyWith(color: Colors.white),
       ),
     );
   }
 }
 
-// Base variations
-
-/// Icon overlay in the bottom left.
-///
-/// This usually indicates ente specific state of a file, e.g. if it is
-/// favorited/archived.
 class _BottomLeftOverlayIcon extends StatelessWidget {
   final IconData icon;
-
-  /// Overriddable default size. This is just the initial hint, the actual size
-  /// is dynamic based on the widget's width (so that we show smaller icons in
-  /// smaller thumbnails).
   final double baseSize;
 
   const _BottomLeftOverlayIcon(this.icon, {this.baseSize = 24});
@@ -277,16 +267,8 @@ class _BottomLeftOverlayIcon extends StatelessWidget {
   }
 }
 
-/// Icon overlay in the bottom right.
-///
-/// This usually indicates information about the file itself, e.g. whether it is
-/// a live photo, or the duration of the video.
 class _BottomRightOverlayIcon extends StatelessWidget {
   final IconData icon;
-
-  /// Overriddable default size. This is just the initial hint, the actual size
-  /// is dynamic based on the widget's width (so that we show smaller icons in
-  /// smaller thumbnails).
   final double baseSize;
 
   const _BottomRightOverlayIcon(this.icon, {this.baseSize = 24});

@@ -1,12 +1,9 @@
-import { CollectionMapDialog } from "@/components/Collections/CollectionMapDialog";
 import type { RemotePullOpts } from "@/components/gallery";
 import { downloadAndSaveFiles } from "@/services/save";
 import { uploadManager } from "@/services/upload-manager";
 import { fileTimelineDateString } from "@/utils/file";
 import { IconButton, Tooltip, styled } from "@mui/material";
 import { useColorScheme, useTheme } from "@mui/material/styles";
-import { useModalVisibility } from "ente-base/components/utils/modal";
-import { useBaseContext } from "ente-base/context";
 import type { AddSaveGroup } from "ente-gallery/components/utils/save-groups";
 import {
     FileViewer,
@@ -16,11 +13,9 @@ import {
 import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
 import { fileFileName } from "ente-media/file-metadata";
-import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import { moveToTrash } from "ente-new/photos/services/collection";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
-import { updateMapEnabled } from "ente-new/photos/services/settings";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -33,21 +28,13 @@ import {
 
 export type FileListWithViewerProps = {
     files: EnteFile[];
-    mapFileSource?: {
-        collectionFiles: EnteFile[];
-        favoriteFileIDs: Set<number>;
-        hiddenFileIDs: Set<number>;
-        archivedFileIDs: Set<number>;
-        tempDeletedFileIDs: Set<number>;
-        tempHiddenFileIDs: Set<number>;
-    };
+    onShowMap?: () => void;
     enableDownload?: boolean;
     enableImageEditing?: boolean;
     onMarkTempDeleted?: (files: EnteFile[]) => void;
     onSetOpenFileViewer?: (open: boolean) => void;
     onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
     activeCollectionSummary?: CollectionSummary;
-    activeCollection?: Collection;
     pendingFileIndex?: number;
     pendingFileSidebar?: FileViewerInitialSidebar;
     pendingHighlightCommentID?: string;
@@ -118,7 +105,6 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     activeCollectionID,
     activePersonID,
     activeCollectionSummary,
-    activeCollection,
     favoriteFileIDs,
     emailByUserID,
     listBorderRadius,
@@ -154,7 +140,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     pendingFileSidebar,
     pendingHighlightCommentID,
     onPendingNavigationConsumed,
-    mapFileSource,
+    onShowMap,
 }) => {
     const [openFileViewer, setOpenFileViewer] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -164,11 +150,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     const [highlightCommentID, setHighlightCommentID] = useState<
         string | undefined
     >(undefined);
-    const { show: showMapDialog, props: mapDialogVisibilityProps } =
-        useModalVisibility();
-    const { onGenericError } = useBaseContext();
     const { showNotification } = usePhotosAppContext();
-    const { mapEnabled } = useSettingsSnapshot();
     const { mode: colorSchemeMode, systemMode } = useColorScheme();
     const theme = useTheme();
     const resolvedMode =
@@ -259,22 +241,10 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     }, [enableImageEditing, showNotification]);
 
     const shouldShowMapButton =
+        !!onShowMap &&
         modePlus !== "search" &&
         activeCollectionSummary?.type === "all" &&
         (activeCollectionSummary.fileCount > 0 || files.length > 0);
-
-    const handleShowMap = useCallback(async () => {
-        if (!activeCollectionSummary) return;
-        if (!mapEnabled) {
-            try {
-                await updateMapEnabled(true);
-            } catch (e) {
-                onGenericError(e);
-                return;
-            }
-        }
-        showMapDialog();
-    }, [activeCollectionSummary, mapEnabled, onGenericError, showMapDialog]);
 
     const headerWithMap = useMemo(() => {
         if (!shouldShowMapButton || !header) return header;
@@ -288,7 +258,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                             className="map-button"
                             size="small"
                             aria-label={t("map")}
-                            onClick={handleShowMap}
+                            onClick={onShowMap}
                         >
                             <MapIcon
                                 src="/images/gallery-globe/globe.svg"
@@ -301,7 +271,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                 </HeaderWithMap>
             ),
         };
-    }, [header, handleShowMap, isDarkMode, shouldShowMapButton]);
+    }, [header, isDarkMode, onShowMap, shouldShowMapButton]);
 
     return (
         <Container>
@@ -376,28 +346,6 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                 onAddFileToCollection={onAddFileToCollection}
                 activeCollectionID={activeCollectionID}
             />
-            {shouldShowMapButton && (
-                <CollectionMapDialog
-                    {...mapDialogVisibilityProps}
-                    collectionSummary={activeCollectionSummary}
-                    activeCollection={activeCollection}
-                    files={files}
-                    mapFileSource={mapFileSource}
-                    onRemotePull={onRemotePull}
-                    {...{
-                        onAddSaveGroup,
-                        onMarkTempDeleted,
-                        onAddFileToCollection,
-                        onRemoteFilesPull,
-                        onVisualFeedback,
-                        fileNormalCollectionIDs,
-                        collectionNameByID,
-                        emailByUserID,
-                        onSelectCollection,
-                        onSelectPerson,
-                    }}
-                />
-            )}
         </Container>
     );
 };

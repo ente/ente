@@ -55,7 +55,6 @@ extension SuperLogRecord on LogRecord {
         }
         final responseData = e.response?.data;
         if (responseData != null) {
-          // Skip logging response data if it exceeds 100KB
           final contentLength = int.tryParse(
             e.response?.headers.value('content-length') ?? '',
           );
@@ -85,65 +84,21 @@ extension SuperLogRecord on LogRecord {
 }
 
 class LogConfig {
-  /// The DSN for a Sentry app.
-  /// This can be obtained from the Sentry apps's "settings > Client Keys (DSN)" page.
-  ///
-  /// Only logs containing errors are sent to sentry.
-  /// Errors can be caught using a try-catch block, like so:
-  ///
-  /// ```
-  /// final logger = Logger("main");
-  ///
-  /// try {
-  ///   // do something dangerous here
-  /// } catch(e, trace) {
-  ///   logger.info("Huston, we have a problem", e, trace);
-  /// }
-  /// ```
-  ///
-  /// If this is [null], Sentry logger is completely disabled (default).
   String? sentryDsn;
 
   String? tunnel;
 
-  /// A built-in retry mechanism for sending errors to sentry.
-  ///
-  /// This parameter defines the time to wait for, before retrying.
   Duration sentryRetryDelay;
 
-  /// Path of the directory where log files will be stored.
-  ///
-  /// If this is [null], file logging is completely disabled (default).
-  ///
-  /// If this is an empty string (['']),
-  /// then a 'logs' directory will be created in [getTemporaryDirectory()].
-  ///
-  /// A non-empty string will be treated as an explicit path to a directory.
-  ///
-  /// The chosen directory can be accessed using [SuperLogging.logFile.parent].
+  // Null disables file logging; empty uses the default directory.
   String? logDirPath;
 
-  /// The maximum number of log files inside [logDirPath].
-  ///
-  /// One log file is created per day.
-  /// Older log files are deleted automatically.
   int maxLogFiles;
 
-  /// Whether to enable super logging features in debug mode.
-  ///
-  /// Sentry and file logging are typically not needed in debug mode,
-  /// where a complete logcat is available.
   bool enableInDebugMode;
 
-  /// If provided, super logging will invoke this function, and
-  /// any uncaught errors during its execution will be reported.
-  ///
-  /// Works by using [FlutterError.onError] and [runZoned].
   FutureOrVoidCallback? body;
 
-  /// The date format for storing log files.
-  ///
-  /// `DateFormat('y-M-d')` by default.
   DateFormat? dateFmt;
 
   String prefix;
@@ -164,14 +119,12 @@ class LogConfig {
 }
 
 class SuperLogging {
-  /// The logger for SuperLogging
   static final $ = Logger('ente_logging');
 
   static final String _loggerPrefixDefine = const String.fromEnvironment(
     'ENTE_LOGGER_PREFIX',
   ).trim().toLowerCase();
 
-  /// The current super logging configuration
   static late LogConfig config;
 
   static late SharedPreferences _preferences;
@@ -265,12 +218,10 @@ class SuperLogging {
               options,
             );
           }
-          // Filter out errors that should not be sent to Sentry
           options.beforeSend = (SentryEvent event, Hint hint) async {
-            // Check if the error should be skipped
             final dynamic error = event.throwable;
             if (error != null && _shouldSkipSentry(error)) {
-              return null; // Returning null drops the event
+              return null;
             }
             return event;
           };
@@ -336,8 +287,6 @@ class SuperLogging {
     return result;
   }
 
-  /// Send an error to sentry, if enabled.
-  /// // note: stack is not reported currently
   static Future<void> _sendErrorToSentry(
     Object error,
     StackTrace? stack, {
@@ -352,7 +301,6 @@ class SuperLogging {
         return;
       }
 
-      // Determine execution context from prefix
       final executionContext = _getExecutionContext();
 
       if (rec != null) {
@@ -402,7 +350,6 @@ class SuperLogging {
     }());
   }
 
-  /// Determine execution context from prefix
   static String _getExecutionContext() {
     final prefix = config.prefix.trim();
     if (prefix.isEmpty) return 'foreground';
@@ -438,7 +385,6 @@ class SuperLogging {
   }
 
   static Future onLogRecord(LogRecord rec) async {
-    // log misc info if it changed
     String? extraLines = "app version: '$appVersion'\n";
     if (extraLines != _lastExtraLines) {
       _lastExtraLines = extraLines;
@@ -448,7 +394,6 @@ class SuperLogging {
 
     final str = (config.prefix) + " " + rec.toPrettyString(extraLines);
 
-    // write to stdout
     if (shouldPrintLogRecord(rec)) {
       printLog(str);
     }
@@ -462,7 +407,6 @@ class SuperLogging {
     LogRecord? rec,
     StackTrace? stackTrace,
   }) {
-    // push to log queue
     if (fileIsEnabled) {
       fileQueueEntries.add(str + '\n');
       if (fileQueueEntries.length == 1) {
@@ -470,7 +414,6 @@ class SuperLogging {
       }
     }
 
-    // add error to sentry queue
     if (sentryIsEnabled && error != null) {
       _sendErrorToSentry(
         error,
@@ -496,8 +439,8 @@ class SuperLogging {
     }
   }
 
-  // Logs on must be chunked or they get truncated otherwise
-  // See https://github.com/flutter/flutter/issues/22665
+  // Chunk long logs to avoid truncation.
+  // https://github.com/flutter/flutter/issues/22665
   static var logChunkSize = 800;
 
   static void printLog(String text) {
@@ -507,10 +450,8 @@ class SuperLogging {
     }
   }
 
-  /// A queue to be consumed by [setupSentry].
   static final sentryQueueControl = StreamController<Error>();
 
-  /// Whether sentry logging is currently enabled or not.
   static bool sentryIsEnabled = false;
 
   static Future<void> setupSentry() async {
@@ -538,7 +479,7 @@ class SuperLogging {
     if (_preferences.containsKey(keyShouldReportCrashes)) {
       return _preferences.getBool(keyShouldReportCrashes)!;
     } else {
-      return true; // Report crashes by default
+      return true;
     }
   }
 
@@ -546,29 +487,24 @@ class SuperLogging {
     return _preferences.setBool(keyShouldReportCrashes, value);
   }
 
-  /// The log file currently in use.
   static File? logFile;
 
-  /// Whether file logging is currently enabled or not.
   static bool fileIsEnabled = false;
 
   static Future<void> setupLogDir() async {
     var dirPath = config.logDirPath;
 
-    // choose [logDir]
     if (dirPath == null || dirPath.isEmpty) {
       final root = await getExternalStorageDirectory();
       dirPath = '${root!.path}/logs';
     }
 
-    // create [logDir]
     final dir = Directory(dirPath);
     await dir.create(recursive: true);
 
     final files = <File>[];
     final dates = <File, DateTime>{};
 
-    // collect all log files with valid names
     await for (final file in dir.list()) {
       try {
         final date = config.dateFmt!.parse(basename(file.path));
@@ -578,9 +514,7 @@ class SuperLogging {
     }
     final nowTime = DateTime.now();
 
-    // delete old log files, if [maxLogFiles] is exceeded.
     if (files.length > config.maxLogFiles) {
-      // sort files based on ascending order of date (older first)
       files.sort(
         (a, b) => (dates[a] ?? nowTime).compareTo((dates[b] ?? nowTime)),
       );
@@ -599,9 +533,6 @@ class SuperLogging {
     logFile = File("$dirPath/${config.dateFmt!.format(DateTime.now())}.log");
   }
 
-  /// Current app version, obtained from package_info plugin.
-  ///
-  /// See: [getAppVersion]
   static String? appVersion;
 
   static Future<String> getAppVersion() async {
@@ -618,8 +549,6 @@ class SuperLogging {
     return pkgName.startsWith("io.ente.photos.fdroid");
   }
 
-  /// Show the log viewer page
-  /// This is the main integration point for accessing the log viewer
   static void showLogViewer(BuildContext context) {
     Navigator.push(
       context,

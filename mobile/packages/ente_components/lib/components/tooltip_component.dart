@@ -7,9 +7,7 @@ import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=11025-18810&m=dev
-/// Section: Tooltip
-/// Specs: fill/light rounded tooltip bubble with a top pointer.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=11025-18810&m=dev
 class TooltipBubbleComponent extends StatelessWidget {
   const TooltipBubbleComponent({
     super.key,

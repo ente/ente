@@ -687,8 +687,6 @@ List<HierarchicalSearchFilter> getRecommendedFiltersForAppBar(
   int index = 0;
   final totalRecommendations = recommendations.length;
 
-  // Add the most relevant filter from each type available in the first half of
-  // the recommendations list
   for (final filter in recommendations) {
     if (mostRelevantFilterFromEachType.every(
       (element) => element.runtimeType != filter.runtimeType,

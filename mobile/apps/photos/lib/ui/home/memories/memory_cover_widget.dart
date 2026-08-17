@@ -36,8 +36,7 @@ class MemoryCoverWidget extends StatefulWidget {
 class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
   @override
   Widget build(BuildContext context) {
-    //memories will be empty if all memories are deleted and setState is called
-    //after FullScreenMemory screen is popped
+    // The list can be empty after deleting every memory and returning here.
     final memories = widget.smartMemory.memories;
     if (memories.isEmpty) {
       return const SizedBox.shrink();

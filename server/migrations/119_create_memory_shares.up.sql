@@ -1,4 +1,3 @@
--- Memory share table - stores shared memory metadata
 CREATE TABLE IF NOT EXISTS memory_shares (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(user_id),
@@ -14,7 +13,6 @@ CREATE TABLE IF NOT EXISTS memory_shares (
     updated_at BIGINT NOT NULL
 );
 
--- Memory share files - tracks files in each memory share with their owners
 CREATE TABLE IF NOT EXISTS memory_share_files (
     id BIGSERIAL PRIMARY KEY,
     memory_share_id BIGINT NOT NULL REFERENCES memory_shares(id) ON DELETE CASCADE,

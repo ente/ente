@@ -32,13 +32,12 @@ class FaceWithoutEmbedding {
       fileID,
       parseIntOrDoubleAsDouble(json['score'])!,
       Detection.fromJson(json['detection'] as Map<String, dynamic>),
-      // high value means t
       parseIntOrDoubleAsDouble(json['blur']) ?? kLapacianDefault,
     );
   }
 
-  // Note: Keep the information in toJson minimum. Keep in sync with desktop.
-  // Derive fields like fileID from other values whenever possible
+  // Keep toJson minimal and in sync with desktop. Derive fields such as fileID
+  // from the serialized values.
   Map<String, dynamic> toJson() => {
     'faceID': faceID,
     'detection': detection.toJson(),

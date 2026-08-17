@@ -158,7 +158,7 @@ export class LlmProvider {
 
     public async initialize() {
         if (this.initialized) return;
-        await this.backend.initBackend();
+        await this.backend.initBackend?.();
         await this.resolveDefaultModelForDevice();
         this.initialized = true;
     }
@@ -363,7 +363,7 @@ export class LlmProvider {
         try {
             await ensurePromise;
         } finally {
-            if (this.ensureInFlight?.promise === ensurePromise) {
+            if (this.ensureInFlight.promise === ensurePromise) {
                 this.ensureInFlight = undefined;
             }
         }
@@ -444,7 +444,7 @@ export class LlmProvider {
             return;
         }
         const total = event.total ?? 0;
-        const loaded = event.loaded ?? 0;
+        const loaded = event.loaded;
         const percent = total
             ? Math.min(99, Math.round((loaded / total) * 100))
             : 0;

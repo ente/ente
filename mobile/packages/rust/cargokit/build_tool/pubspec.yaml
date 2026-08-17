@@ -9,7 +9,6 @@ version: 1.0.0
 environment:
   sdk: ">=3.10.0 <4.0.0"
 
-# Add regular dependencies here.
 dependencies:
   # these are pinned on purpose because the bundle_tool_runner doesn't have
   # pubspec.lock. See run_build_tool.sh

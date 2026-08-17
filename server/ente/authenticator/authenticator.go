@@ -36,7 +36,7 @@ type UpdateEntityRequest struct {
 }
 
 type GetEntityDiffRequest struct {
-	// SinceTime *int64. Pointer allows us to pass 0 value otherwise binding fails for zero Value.
+	// Keep this a pointer so binding accepts zero.
 	SinceTime *int64 `form:"sinceTime" binding:"required"`
 	Limit     int16  `form:"limit" binding:"required"`
 }

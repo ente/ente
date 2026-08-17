@@ -80,15 +80,14 @@ type FileLinkRow struct {
 }
 
 type FileUrl struct {
-	LinkID          string `json:"linkID" binding:"required"`
-	URL             string `json:"url" binding:"required"`
-	OwnerID         int64  `json:"ownerID" binding:"required"`
-	FileID          int64  `json:"fileID" binding:"required"`
-	IsDisabled      bool   `json:"isDisabled"`
-	ValidTill       int64  `json:"validTill"`
-	DeviceLimit     int    `json:"deviceLimit"`
-	PasswordEnabled bool   `json:"passwordEnabled"`
-	// Nonce contains the nonce value for the password if the link is password protected.
+	LinkID                string  `json:"linkID" binding:"required"`
+	URL                   string  `json:"url" binding:"required"`
+	OwnerID               int64   `json:"ownerID" binding:"required"`
+	FileID                int64   `json:"fileID" binding:"required"`
+	IsDisabled            bool    `json:"isDisabled"`
+	ValidTill             int64   `json:"validTill"`
+	DeviceLimit           int     `json:"deviceLimit"`
+	PasswordEnabled       bool    `json:"passwordEnabled"`
 	Nonce                 *string `json:"nonce,omitempty"`
 	MemLimit              *int64  `json:"memLimit,omitempty"`
 	OpsLimit              *int64  `json:"opsLimit,omitempty"`

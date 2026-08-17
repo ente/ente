@@ -12,11 +12,6 @@ import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/theme/text_style.dart';
 import 'package:photos/ui/components/models/text_input_type_v2.dart';
 
-/// A styled text input widget with built-in support for submission states,
-/// password visibility toggling, clearable input, and validation messages.
-///
-/// To show a wrong-password state, throw an exception containing
-/// "Incorrect password" in [onSubmit].
 class TextInputWidgetV2 extends StatefulWidget {
   final String? label;
   final String? message;
@@ -25,12 +20,8 @@ class TextInputWidgetV2 extends StatefulWidget {
   final bool? autoFocus;
   final int? maxLength;
 
-  /// The widget listens to this notifier and executes [onSubmit] when notified.
-  /// The value of this notifier is irrelevant.
   final ValueNotifier? submitNotifier;
 
-  /// The widget listens to this notifier and clears and unfocuses the
-  /// text field when notified.
   final ValueNotifier? cancelNotifier;
   final bool alwaysShowSuccessState;
   final bool showOnlyLoadingState;
@@ -41,7 +32,6 @@ class TextInputWidgetV2 extends StatefulWidget {
   final TextCapitalization? textCapitalization;
   final bool isPasswordInput;
 
-  /// Shows a clear (x) icon as a trailing widget. Unrelated to [onCancel].
   final bool isClearable;
   final bool shouldUnfocusOnClearOrSubmit;
   final FocusNode? focusNode;
@@ -132,8 +122,6 @@ class _TextInputWidgetV2State extends State<TextInputWidgetV2>
   bool _isFocused = false;
   bool _incorrectPassword = false;
 
-  /// Stored so it can be passed via Navigator.pop() when the widget is used
-  /// inside a dialog and [popNavAfterSubmission] is true.
   Exception? _exception;
 
   @override
@@ -543,6 +531,7 @@ class _TextInputWidgetV2State extends State<TextInputWidgetV2>
       _executionState = ExecutionState.error;
       _debouncer.cancelDebounceTimer();
       _exception = e is Exception ? e : Exception(e.toString());
+      // "Incorrect password" triggers the inline error state.
       if (e.toString().contains('Incorrect password')) {
         _logger.warning('Incorrect password');
         _executionState = ExecutionState.idle;
@@ -565,10 +554,7 @@ class _TextInputWidgetV2State extends State<TextInputWidgetV2>
       _syncLoadingController();
     }
 
-    // When onSubmit takes roughly as long as the debounce duration, the
-    // debounce callback can fire during or after the checks below, leaving
-    // the state stuck at idle. This short delay lets the debouncer finish
-    // first.
+    // Let the debounced callback run before checking its execution state.
     await Future.delayed(const Duration(milliseconds: 5));
 
     if (_executionState == ExecutionState.inProgress ||

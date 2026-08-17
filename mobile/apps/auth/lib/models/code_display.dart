@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
-/// Used to store the display settings of a code.
 class CodeDisplay {
   final bool pinned;
   final bool trashed;
@@ -29,7 +28,6 @@ class CodeDisplay {
 
   bool get isCustomIcon => (iconSrc != '' && iconID != '');
 
-  // copyWith
   CodeDisplay copyWith({
     bool? pinned,
     bool? trashed,
@@ -81,9 +79,6 @@ class CodeDisplay {
     );
   }
 
-  /// Converts the [CodeDisplay] to a json object.
-  /// When [safeParsing] is true, the json will be parsed safely.
-  /// If we fail to parse the json, we will return an empty [CodeDisplay].
   static CodeDisplay? fromUri(Uri uri, {bool safeParsing = false}) {
     if (!uri.queryParameters.containsKey("codeDisplay")) return null;
     final String codeDisplay = uri.queryParameters['codeDisplay']!.replaceAll(
@@ -101,7 +96,7 @@ class CodeDisplay {
       Logger(
         "CodeDisplay",
       ).severe("Could not parse code display from json", e, s);
-      // (ng/prateek) Handle the case where we have fragment in the rawDataUrl
+      // Ignore legacy codeDisplay JSON followed by an unescaped URL fragment.
       if (!json.endsWith("}") && json.contains("}#")) {
         Logger("CodeDisplay").warning("ignoring code display as it's invalid");
         return CodeDisplay();

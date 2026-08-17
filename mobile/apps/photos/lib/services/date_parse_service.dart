@@ -215,12 +215,9 @@ class DateParseService {
 
       if (year < _MIN_YEAR || year > _MAX_YEAR) return PartialDate.empty;
 
-      // Try dd/mm/yyyy or dd-mm-yyyy
       if (p1 >= 1 && p1 <= 31 && p2 >= 1 && p2 <= 12) {
         return PartialDate(day: p1, month: p2, year: year);
-      }
-      // Try mm/dd/yyyy or mm-dd-yyyy
-      else if (p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
+      } else if (p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
         return PartialDate(day: p2, month: p1, year: year);
       }
       return PartialDate.empty;
@@ -303,10 +300,8 @@ class DateParseService {
       month = _monthMap[monthNames.first];
     }
 
-    // Handle cases like "23 03" or "24 04 2024"
     if (numbers.isNotEmpty) {
       if (numbers.length == 3) {
-        // Assume dd mm yyyy if month name isn't present
         final potentialDay = numbers[0];
         final potentialMonth = numbers[1];
         final potentialYear = numbers[2];
@@ -322,7 +317,6 @@ class DateParseService {
           }
         }
       } else if (numbers.length == 2) {
-        // Assume dd mm
         final potentialDay = numbers[0];
         final potentialMonth = numbers[1];
 
@@ -351,7 +345,6 @@ class DateParseService {
       }
     }
 
-    // If month was found by name, and we have numbers remaining
     if (month != null && numbers.isNotEmpty) {
       if (numbers.length == 2) {
         final n1 = numbers[0];

@@ -5,8 +5,8 @@ import type { ZipItem } from "ente-base/types/ipc";
 import { exportMetadataDirectoryName } from "ente-gallery/export-dirs";
 import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
+import type { ParsedMetadata } from "ente-media/file-metadata";
 import { tryParseTakeoutAlbumNameMetadataJSON } from "./metadata-json";
-import type { ExternalParsedMetadata } from "./upload-service";
 
 class UploadState {
     shouldDisableCFUploadProxy = false;
@@ -119,7 +119,7 @@ export interface ClusteredUploadItem {
     isLivePhoto: boolean;
     uploadItem?: UploadItem;
     pathPrefix: UploadPathPrefix | undefined;
-    externalParsedMetadata?: ExternalParsedMetadata;
+    externalParsedMetadata?: ParsedMetadata;
     // TODO: Tie this to the isLivePhoto flag using a discriminated union.
     livePhotoAssets?: LivePhotoAssets;
 }

@@ -19,7 +19,6 @@ class IgnoredFilesService {
   Future<Map<String, String>>? _idsToReasonMap;
 
   Future<Map<String, String>> get idToIgnoreReasonMap async {
-    // lazily instantiate the db the first time it is accessed
     _idsToReasonMap ??= _loadIDsToReasonMap();
     return _idsToReasonMap!;
   }
@@ -35,11 +34,7 @@ class IgnoredFilesService {
     return _db.insertMultiple(ignoredFiles);
   }
 
-  // shouldSkipUpload takes IDs to ignore and file for which it will return
-  // whether either true or false. This helper method takes ignoredIDs as input
-  // to avoid making it async in nature.
-  // This syntax is intentional as we want to ensure that ignoredIDs are loaded
-  // from the DB before calling this method.
+  // The caller supplies a fully loaded map so this remains synchronous.
   bool shouldSkipUpload(Map<String, String> idToReasonMap, EnteFile file) {
     final id = _getIgnoreID(file.localID, file.deviceFolder, file.title);
     if (id != null && id.isNotEmpty) {
@@ -64,19 +59,14 @@ class IgnoredFilesService {
     return shouldSkipUpload(ignoredID, file);
   }
 
-  // removeIgnoredMappings is used to remove the ignore mapping for the given
-  // set of files so that they can be uploaded.
   Future<void> removeIgnoredMappings(List<EnteFile> files) async {
     final List<IgnoredFile> ignoredFiles = [];
     final Set<String> idsToRemoveFromCache = {};
     final Map<String, String> currentlyIgnoredIDs = await idToIgnoreReasonMap;
     for (final file in files) {
-      // check if upload is not skipped for file. If not, no need to remove
-      // any mapping
       if (!shouldSkipUpload(currentlyIgnoredIDs, file)) {
         continue;
       }
-      // _shouldSkipUpload checks for null ignoreID
       final id = _getIgnoreID(file.localID, file.deviceFolder, file.title)!;
       idsToRemoveFromCache.add(id);
       ignoredFiles.add(
@@ -106,8 +96,7 @@ class IgnoredFilesService {
       if (id != null) {
         if (Platform.isIOS &&
             iFile.reason == InvalidReason.sourceFileMissing.name) {
-          // ignoreSourceFileMissing error on iOS as the file fetch from iCloud might have failed,
-          // but the file might be available later
+          // An unavailable iCloud file may become available later.
           continue;
         }
         result[id] = iFile.reason;
@@ -128,14 +117,7 @@ class IgnoredFilesService {
     return _getIgnoreID(file.localID, file.deviceFolder, file.title);
   }
 
-  // _getIgnoreID will return null if don't have sufficient information
-  // to ignore the file based on the platform. Uploads from web or files shared to
-  // end usually don't have local id.
-  // For Android: It returns deviceFolder-title as ID for Android.
-  // For iOS, it returns localID as localID is uuid and the title or deviceFolder (aka
-  // album name) can be missing due to various reasons.
   String? _getIgnoreID(String? localID, String? deviceFolder, String? title) {
-    // file was not uploaded from mobile device
     if (localID == null || localID.isEmpty) {
       return null;
     }

@@ -9,6 +9,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/events/memory_lane_changed_event.dart";
+import "package:photos/events/ml_consent_changed_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
@@ -28,7 +29,7 @@ typedef _TimelineComputationResult = ({
 });
 
 class MemoryLaneService {
-  MemoryLaneService._internal();
+  MemoryLaneService._internal() : _enabledForSession = hasGrantedMLConsent;
 
   static final MemoryLaneService instance = MemoryLaneService._internal();
 
@@ -63,12 +64,15 @@ class MemoryLaneService {
   final Map<String, _PendingRecomputeRequest> _pendingRequests = {};
   final Set<String> _cropReadinessInFlight = {};
 
+  bool _enabledForSession;
   bool _initialized = false;
 
   StreamSubscription<PeopleChangedEvent>? _peopleChangedSubscription;
+  StreamSubscription<MLConsentChangedEvent>? _mlConsentChangedSubscription;
   Timer? _startupBackfillTimer;
 
-  bool get isFeatureEnabled => flagService.facesTimeline;
+  bool get isFeatureEnabled =>
+      _enabledForSession && flagService.facesTimeline && hasGrantedMLConsent;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -78,14 +82,25 @@ class MemoryLaneService {
     _peopleChangedSubscription = Bus.instance.on<PeopleChangedEvent>().listen(
       _handlePeopleChange,
     );
+    _mlConsentChangedSubscription = Bus.instance
+        .on<MLConsentChangedEvent>()
+        .listen(_handleMlConsentChange);
     _scheduleStartupBackfill();
     _initialized = true;
   }
 
   Future<void> dispose() async {
     await _peopleChangedSubscription?.cancel();
+    await _mlConsentChangedSubscription?.cancel();
     _startupBackfillTimer?.cancel();
     readyPersonIds.dispose();
+  }
+
+  void _handleMlConsentChange(MLConsentChangedEvent event) {
+    if (event.enabled) return;
+    _enabledForSession = false;
+    _startupBackfillTimer?.cancel();
+    _startupBackfillTimer = null;
   }
 
   Future<void> queueFullRecompute({

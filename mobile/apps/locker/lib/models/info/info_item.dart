@@ -1,10 +1,7 @@
 import 'dart:convert';
 
-// Enum for different information types
 enum InfoType { note, physicalRecord, accountCredential, emergencyContact }
 
-// Extension to convert enum to string and vice versa.
-//
 // Locker file metadata currently uses the enum's camelCase name on the wire.
 // Keep parsing tolerant of the older hyphenated representation so any
 // previously serialized JSON can still be read safely.
@@ -41,7 +38,6 @@ extension InfoTypeExtension on InfoType {
   }
 }
 
-// Base class for all information data
 abstract class InfoData {
   Map<String, dynamic> toJson();
 
@@ -59,7 +55,6 @@ abstract class InfoData {
   }
 }
 
-// Personal Note Data Model
 class PersonalNoteData extends InfoData {
   final String title;
   final String content;
@@ -79,7 +74,6 @@ class PersonalNoteData extends InfoData {
   }
 }
 
-// Physical Record Data Model
 class PhysicalRecordData extends InfoData {
   final String name;
   final String location;
@@ -105,7 +99,6 @@ class PhysicalRecordData extends InfoData {
   }
 }
 
-// Account Credential Data Model
 class AccountCredentialData extends InfoData {
   final String name;
   final String username;
@@ -139,7 +132,6 @@ class AccountCredentialData extends InfoData {
   }
 }
 
-// Emergency Contact Data Model
 class EmergencyContactData extends InfoData {
   final String name;
   final String contactDetails;
@@ -169,7 +161,6 @@ class EmergencyContactData extends InfoData {
   }
 }
 
-// Main Information Item wrapper
 class InfoItem {
   final InfoType type;
   final InfoData data;
@@ -212,7 +203,6 @@ class InfoItem {
     return InfoItem.fromJson(jsonDecode(jsonString));
   }
 
-  // Create a copy with updated data
   InfoItem copyWith({
     InfoType? type,
     InfoData? data,
@@ -227,7 +217,6 @@ class InfoItem {
     );
   }
 
-  // Update with new data and timestamp
   InfoItem update(InfoData newData) {
     return copyWith(data: newData, updatedAt: DateTime.now());
   }

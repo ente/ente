@@ -1,4 +1,3 @@
-use rand_core::{OsRng, RngCore};
 use subtle::ConstantTimeEq;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -12,7 +11,7 @@ impl Key {
 
     pub fn generate() -> Self {
         let mut bytes = [0u8; Self::BYTES];
-        OsRng.fill_bytes(&mut bytes);
+        fill_random(&mut bytes);
         Self(bytes)
     }
 
@@ -64,7 +63,7 @@ impl Nonce {
 
     pub fn generate() -> Self {
         let mut bytes = [0u8; Self::BYTES];
-        OsRng.fill_bytes(&mut bytes);
+        fill_random(&mut bytes);
         Self(bytes)
     }
 
@@ -94,7 +93,7 @@ impl Salt {
 
     pub fn generate() -> Self {
         let mut bytes = [0u8; Self::BYTES];
-        OsRng.fill_bytes(&mut bytes);
+        fill_random(&mut bytes);
         Self(bytes)
     }
 
@@ -172,7 +171,7 @@ impl SecretKey {
 
     pub fn generate() -> Self {
         let mut bytes = [0u8; Self::BYTES];
-        OsRng.fill_bytes(&mut bytes);
+        fill_random(&mut bytes);
         Self(bytes)
     }
 
@@ -216,8 +215,12 @@ impl Eq for SecretKey {}
 
 pub fn random_bytes(len: usize) -> Vec<u8> {
     let mut buf = vec![0u8; len];
-    OsRng.fill_bytes(&mut buf);
+    fill_random(&mut buf);
     buf
+}
+
+pub(crate) fn fill_random(buf: &mut [u8]) {
+    getrandom::fill(buf).expect("failed to generate random bytes");
 }
 
 #[cfg(test)]

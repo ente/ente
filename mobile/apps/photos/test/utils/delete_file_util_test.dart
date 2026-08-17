@@ -9,6 +9,7 @@ import 'package:photos/ente_theme_data.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
+import 'package:photos/models/file/trash_file.dart';
 import 'package:photos/models/files_split.dart';
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/settings/local_settings.dart';
@@ -41,7 +42,12 @@ void main() {
 
   group('deleteFromTrash', () {
     testWidgets('uses the migrated warning delete sheet', (tester) async {
-      final file = _file(generatedID: 21, uploadedID: 31);
+      final file = EnteTrashFile.from(
+        _file(generatedID: 21, uploadedID: 31),
+        deleteBy: 0,
+        createdAt: 0,
+        updateAt: 0,
+      );
       bool? result;
 
       await tester.pumpWidget(

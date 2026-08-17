@@ -189,7 +189,6 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         autocorrect: false,
                         keyboardType: TextInputType.emailAddress,
-                        //initialValue: _email,
                         autofocus: true,
                       ),
                       const SizedBox(height: 24),

@@ -67,7 +67,6 @@ const double _kStoryControlHorizontalMarginFromEdge =
     _kStoryCardOuterHorizontalInset + _kStoryCardInnerHorizontalPadding;
 const double _kStoryControlBottomMarginFromEdge = _kStoryCardOuterVerticalInset;
 
-/// Basic viewer for the stats-only Ente Rewind experience.
 class WrappedViewerPage extends StatefulWidget {
   const WrappedViewerPage({required this.initialState, super.key});
 

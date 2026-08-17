@@ -145,7 +145,7 @@ fn row_to_account(row: &Row) -> rusqlite::Result<Account> {
         "photos" => App::Photos,
         "locker" => App::Locker,
         "auth" => App::Auth,
-        _ => App::Photos, // Default fallback
+        _ => App::Photos,
     };
 
     Ok(Account {

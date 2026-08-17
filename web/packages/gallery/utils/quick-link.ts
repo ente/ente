@@ -18,6 +18,20 @@ const shortMonths = [
     "Dec",
 ];
 
+const possibleSingleFileQuickLinkOffsets = [-12 * 60, 0, 14 * 60];
+
+export const isPossibleSingleFileQuickLinkName = (
+    name: string,
+    creationTime: number,
+) =>
+    possibleSingleFileQuickLinkOffsets.some((offsetMinutes) => {
+        const date = new Date(creationTime / 1000 + offsetMinutes * 60 * 1000);
+        return (
+            name ===
+            `${shortMonths[date.getUTCMonth() + 1]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`
+        );
+    });
+
 // Keep date formatting in sync with mobile.
 export const quickLinkDateRangeForCreationTimes = (
     firstCreationTime: number,

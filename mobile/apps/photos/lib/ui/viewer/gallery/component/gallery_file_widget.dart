@@ -175,7 +175,7 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
                   child: SelectAllStatusIcon(
                     isSelected: true,
                     size: 16,
-                    selectedFillColor: selectionColor, //same for both themes
+                    selectedFillColor: selectionColor,
                     selectedTickCutsOut: true,
                   ),
                 ),
@@ -256,13 +256,11 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
       _routeToDetailPage(file, context);
     } else {
       _toggleFileSelection(file);
-      // Notify SwipeSelectableFileWidget if it exists
       _handleLongPressForSwipe();
     }
   }
 
   void _handleLongPressForSwipe() {
-    // Use local state to determine if swipe should start
     final swipeHelper = GallerySwipeHelper.of(context);
     if (_currentPointerId != null &&
         _isPointerInside &&

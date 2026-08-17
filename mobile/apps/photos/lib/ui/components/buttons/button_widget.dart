@@ -28,36 +28,19 @@ class ButtonWidget extends StatelessWidget {
   final bool isDisabled;
   final ButtonSize buttonSize;
 
-  ///Setting this flag to true will show a success confirmation as a 'check'
-  ///icon once the onTap(). This is expected to be used only if time taken to
-  ///execute onTap() takes less than debouce time.
   final bool shouldShowSuccessConfirmation;
 
-  ///Setting this flag to false will restrict the loading and success states of
-  ///the button from surfacing on the UI. The ExecutionState of the button will
-  ///change irrespective of the value of this flag. Only that it won't be
-  ///surfaced on the UI
   final bool shouldSurfaceExecutionStates;
 
-  /// iconColor should only be specified when we do not want to honor the default
-  /// iconColor based on buttonType. Most of the items, default iconColor is what
-  /// we need unless we want to pop out the icon in a non-primary button type
   final Color? iconColor;
 
-  ///Button action will only work if isInAlert is true
+  // buttonAction is returned only when isInAlert is true.
   final ButtonAction? buttonAction;
 
-  ///setting this flag to true will make the button appear like how it would
-  ///on dark theme irrespective of the app's theme.
   final bool shouldStickToDarkTheme;
 
-  ///isInAlert is to dismiss the alert if the action on the button is completed.
-  ///This should be set to true if the alert which uses this button needs to
-  ///return the Button's action.
   final bool isInAlert;
 
-  /// progressStatus can be used to display information about the action
-  /// progress when ExecutionState is in Progress.
   final ValueNotifier<String>? progressStatus;
 
   const ButtonWidget({
@@ -93,7 +76,6 @@ class ButtonWidget extends StatelessWidget {
         ? lightTextTheme
         : getEnteTextTheme(context, inverse: true);
     final buttonStyle = CustomButtonStyle(
-      //Dummy default values since we need to keep these properties non-nullable
       defaultButtonColor: Colors.transparent,
       defaultBorderColor: Colors.transparent,
       defaultIconColor: Colors.transparent,
@@ -209,8 +191,7 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
   late Color loadingIconColor;
   ValueNotifier<String>? progressStatus;
 
-  ///This is used to store the width of the button in idle state (small button)
-  ///to be used as width for the button when the loading/succes states comes.
+  // Keep the idle width while showing loading and success states.
   double? widthOfButton;
   final _debouncer = Debouncer(const Duration(milliseconds: 300));
   Timer? _successResetTimer;
@@ -388,7 +369,7 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
                         color: checkIconColor,
                       ),
                     )
-                  : const SizedBox.shrink(), //fallback
+                  : const SizedBox.shrink(),
             ),
           ),
         ),
@@ -468,11 +449,7 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
         setState(() {});
       }
 
-      // when the time taken by widget.onTap is approximately equal to the debounce
-      // time, the callback is getting executed when/after the if condition
-      // below is executing/executed which results in execution state stuck at
-      // idle state. This Future is for delaying the execution of the if
-      // condition so that the calback in the debouncer finishes execution before.
+      // Let the debounced callback run before checking its execution state.
       await Future.delayed(const Duration(milliseconds: 5));
     }
     if (executionState == ExecutionState.inProgress ||
@@ -550,8 +527,6 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
           navigator.canPop()) {
         navigator.pop(ButtonResult(buttonAction, exception));
       } else if (exception != null) {
-        //This is to show the execution was unsuccessful if the dialog is manually
-        //closed before the execution completes.
         showGenericErrorDialog(context: context, error: exception).ignore();
       }
     }

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-// Used to store layout information for a section (group) in a gallery
-
 class FixedExtentSectionLayout {
   final double tileHeight, mainAxisStride;
   final int firstIndex, lastIndex, bodyFirstIndex;
@@ -48,5 +46,43 @@ class FixedExtentSectionLayout {
       return firstIndex;
     }
     return bodyFirstIndex + (scrollOffset / mainAxisStride).ceil() - 1;
+  }
+}
+
+extension FixedExtentSectionLayoutList on List<FixedExtentSectionLayout> {
+  FixedExtentSectionLayout? sectionForIndex(int index) {
+    if (isEmpty) return null;
+    int low = 0;
+    int high = length - 1;
+    while (low <= high) {
+      final int mid = (low + high) >>> 1;
+      final FixedExtentSectionLayout section = this[mid];
+      if (index < section.firstIndex) {
+        high = mid - 1;
+      } else if (index > section.lastIndex) {
+        low = mid + 1;
+      } else {
+        return section;
+      }
+    }
+    return null;
+  }
+
+  FixedExtentSectionLayout? sectionForOffset(double scrollOffset) {
+    if (isEmpty) return null;
+    int low = 0;
+    int high = length - 1;
+    while (low <= high) {
+      final int mid = (low + high) >>> 1;
+      final FixedExtentSectionLayout section = this[mid];
+      if (scrollOffset < section.minOffset) {
+        high = mid - 1;
+      } else if (scrollOffset > section.maxOffset) {
+        low = mid + 1;
+      } else {
+        return section;
+      }
+    }
+    return last;
   }
 }

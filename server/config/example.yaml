@@ -1,13 +1,6 @@
-# Copy this file to museum.yaml in the same directory in which this file is present
+# Copy to museum.yaml beside config/compose.yaml.
 
-# This section is meant for configuration of database.
-# Museum uses these values and credentials for connecting
-# to the database.
-# Set a strong password and if using PostgreSQL Docker container
-# provided in Docker Compose file, ensure db.password is same
-# as POSTGRES_PASSWORD
-# Similarly ensure db.user and db.name are same as POSTGRES_USER and
-# POSTGRES_DB respectively
+# These must match the POSTGRES_* values in .env when using the bundled Postgres service.
 db:
     host: postgres
     port: 5432
@@ -15,12 +8,11 @@ db:
     user: pguser
     password: <password>
 
-# This section is for configuring storage buckets. Omit this section if
-# you only intend to use Ente Auth
+# Omit s3 when using only Ente Auth.
 s3:
-    # Change this to false if enabling SSL
+    # Set false for HTTPS endpoints.
     are_local_buckets: true
-    # Only path-style URL works if disabling are_local_buckets with MinIO
+    # MinIO requires path-style URLs when are_local_buckets is false.
     use_path_style_urls: true
     b2-eu-cen:
       # Uncomment the below configuration to override the top-level configuration
@@ -49,7 +41,7 @@ s3:
       region: eu-central-2
       bucket: scw-eu-fr-v3
 
-# Specify the base endpoints for various web apps you're running.
+# Base endpoints for the web apps you run.
 apps:
     public-albums: http://localhost:3002
     embed-albums: http://localhost:3006
@@ -73,16 +65,13 @@ space:
         # Bare email address. webpush-go adds the mailto: prefix.
         subscriber:
 
-# Key used for encrypting customer emails before storing them in DB
+# Replace these fixed development secrets before storing real data.
 #
 # To make it easy to get started, some randomly generated (but fixed) values are
 # provided here. But if you're really going to be using museum, please generate
-# new keys. You can use `go run tools/gen-random-keys/main.go` for that.
-#
-# Replace values in key and JWT for security
+# new keys using `go run tools/gen-random-keys/main.go`.
 key:
     encryption: yvmG/RnzKrbCb9L3mgsmoxXr9H7i2Z4qlbT0mL3ln4w=
     hash: KXYiG07wC7GIgvCSdg+WmyWdXDAn6XKYJtp/wkEU7x573+byBRAYtpTP0wwvi8i/4l37uicX1dVTUzwH3sLZyw==
-# JWT secrets
 jwt:
     secret: i2DecQmfGreG6q1vBj5tCokhlN41gcfS2cjOs9Po-u8=

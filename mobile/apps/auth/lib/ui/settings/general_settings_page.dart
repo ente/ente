@@ -101,6 +101,19 @@ class GeneralSettingsPage extends StatelessWidget {
                       !PreferenceService.instance.shouldMinimizeToTrayOnClose(),
                     ),
               ),
+            if (Platform.isMacOS)
+              _toggleItem(
+                title: l10n.menubarMode,
+                value: PreferenceService.instance.isMenubarModeEnabled,
+                onChanged: () async {
+                  await PreferenceService.instance.setMenubarModeEnabled(
+                    !PreferenceService.instance.isMenubarModeEnabled(),
+                  );
+                  if (context.mounted) {
+                    showToast(context, l10n.restartAppToApplyChanges);
+                  }
+                },
+              ),
             _toggleItem(
               title: l10n.crashAndErrorReporting,
               value: SuperLogging.shouldReportErrors,

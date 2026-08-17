@@ -8,7 +8,7 @@ museum = []
 [dependencies]
 bip39 = { version = "2", default-features = false, features = ["std"] }
 ente-core.workspace = true
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.4", features = ["wasm_js"] }
 hex = "0.4"
 serde.workspace = true
 serde_json.workspace = true
@@ -24,6 +24,5 @@ zeroize.workspace = true
 ente-test-support.workspace = true
 hmac = "0.13"
 mockito.workspace = true
-rand_core = { version = "0.6", features = ["getrandom"] }
 sha1 = "0.11"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }

@@ -16,18 +16,17 @@ type QueueRepository struct {
 	DB *sql.DB
 }
 
-// itemDeletionDelayInMinMap tracks the delay (in min) after which an item is ready to be processed.
-// -ve entry indicates that the item should be processed immediately, without any delay.
+// Negative delays make items immediately eligible.
 var itemDeletionDelayInMinMap = map[string]int64{
-	DropFileEncMedataQueue:    -1 * 24 * 60, // -ve value to ensure attributes are immediately removed
-	DeleteObjectQueue:         45 * 24 * 60, // 45 days in minutes
-	DeleteEmbeddingsQueue:     -1 * 24 * 60, // -ve value to ensure embeddings are immediately removed
-	OutdatedObjectsQueue:      -1 * 24 * 60, // -ve value to process replaced objects without delay
+	DropFileEncMedataQueue:    -1 * 24 * 60,
+	DeleteObjectQueue:         45 * 24 * 60,
+	DeleteEmbeddingsQueue:     -1 * 24 * 60,
+	OutdatedObjectsQueue:      -1 * 24 * 60,
 	DeleteOutdatedObjectQueue: 24 * 24 * 60, // old replaced objects may exist in compliance-protected replicas
-	TrashCollectionQueueV3:    -1 * 24 * 60, // -ve value to ensure collections are immediately marked as trashed
-	TrashEmptyQueue:           -1 * 24 * 60, // -ve value to ensure empty trash request are processed in next cron run
-	TrashEmptyLockerQueue:     -1 * 24 * 60, // -ve value to ensure empty trash request for locker are processed in next cron run
-	RemoveComplianceHoldQueue: -1 * 24 * 60, // -ve value to ensure compliance hold is removed in next cron run
+	TrashCollectionQueueV3:    -1 * 24 * 60,
+	TrashEmptyQueue:           -1 * 24 * 60,
+	TrashEmptyLockerQueue:     -1 * 24 * 60,
+	RemoveComplianceHoldQueue: -1 * 24 * 60,
 }
 
 const (

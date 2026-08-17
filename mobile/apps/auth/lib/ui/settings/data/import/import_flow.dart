@@ -86,7 +86,7 @@ Future<void> pickAndProcessImportFile({
   bool showProgressBeforeProcessing = true,
   String Function(BuildContext context, Object error)? errorMessage,
 }) async {
-  final result = await FilePicker.platform.pickFiles(
+  final result = await FilePicker.pickFiles(
     dialogTitle: dialogTitle,
     allowMultiple: false,
     type: type,

@@ -32,7 +32,6 @@ func (t *TrashController) GetDiff(userID int64, sinceTime int64, app ente.App) (
 	if err != nil {
 		return nil, false, err
 	}
-	// hide private metadata before returning files info in diff
 	for _, trashFile := range trashFilesDiff {
 		if trashFile.IsDeleted {
 			trashFile.File.MagicMetadata = nil
@@ -44,36 +43,21 @@ func (t *TrashController) GetDiff(userID int64, sinceTime int64, app ente.App) (
 	return trashFilesDiff, hasMore, err
 }
 
-// GetDiff returns the diff in user's trash since a timestamp, along with hasMore bool flag.
-// The function will never return partial result for a version. To maintain this promise, it will not be able to honor
-// the limit parameter. Based on the db state, compared to the limit, the diff length can be
-// less (case 1), more (case 2), or same (case 3, 4)
-// Example: Assume we have 11 files with following versions: v0, v1, v1, v1, v1, v1, v1, v1, v2, v2, v2 (count = 7 v1, 3 v2)
-// client has synced up till version v0.
-// case 1: ( sinceTime: v0, limit = 8):
-// The method will discard the entries with version v2 and return only 7 entries with version v1.
-// case 2: (sinceTime: v0, limit 5):
-// Instead of returning 5 entries with version V1, method will return all 7 entries with version v1.
-// case 3: (sinceTime: v0, limit 7):
-// The method will return all 7 entries with version V1.
-// case 4: (sinceTime: v0, limit >=10):
-// The method will all 10 entries in the diff
+// Never split a version across pages. Results may be smaller or larger than
+// limit so every row with the boundary timestamp stays together.
 func (t *TrashController) getDiff(userID int64, sinceTime int64, limit int, app ente.App) ([]ente.Trash, bool, error) {
-	// request for limit +1 files
 	diffLimitPlusOne, err := t.TrashRepo.GetDiff(userID, sinceTime, limit+1, app)
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "")
 	}
 	if len(diffLimitPlusOne) <= limit {
-		// case 4: all files changed after sinceTime are included.
 		return diffLimitPlusOne, false, nil
 	}
 	lastFileVersion := diffLimitPlusOne[limit].UpdatedAt
 	filteredDiffs := t.removeFilesWithVersion(diffLimitPlusOne, lastFileVersion)
-	if len(filteredDiffs) > 0 { // case 1 or case 3
+	if len(filteredDiffs) > 0 {
 		return filteredDiffs, true, nil
 	}
-	// case 2
 	diff, err := t.TrashRepo.GetFilesWithVersion(userID, lastFileVersion, app)
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "")
@@ -81,7 +65,6 @@ func (t *TrashController) getDiff(userID int64, sinceTime int64, limit int, app 
 	return diff, true, nil
 }
 
-// Delete files permanently, queues up the file for deletion & free up the space based on file's object size
 func (t *TrashController) Delete(ctx context.Context, request ente.DeleteTrashFilesRequest) error {
 	err := t.TrashRepo.Delete(ctx, request.OwnerID, request.FileIDs)
 	if err != nil {
@@ -198,13 +181,11 @@ func (t *TrashController) DeleteAgedTrashedFiles() {
 	}
 }
 
-// removeFilesWithVersion returns filtered list of trashedFiles are removing all files with given version.
-// Important: The method assumes that trashedFiles are sorted by increasing order of Trash.UpdatedAt
+// trashedFiles must be sorted by increasing UpdatedAt.
 func (t *TrashController) removeFilesWithVersion(trashedFiles []ente.Trash, version int64) []ente.Trash {
 	var i = len(trashedFiles) - 1
 	for ; i >= 0; i-- {
 		if trashedFiles[i].UpdatedAt != version {
-			// found index (from end) where file's version is different from given version
 			break
 		}
 	}
@@ -224,7 +205,8 @@ func (t *TrashController) trashCollection(item repo.QueueItem, queueName string,
 		"queue":         queueName,
 		"flow":          "trash_collection",
 	})
-	// to avoid race conditions while finding exclusive files, lock at user level, instead of individual collection
+	// File exclusivity spans collections, so lock the user rather than one
+	// collection.
 	lockName := fmt.Sprintf("CollectionTrash:%d", collection.Owner.ID)
 	lockStatus, err := t.TaskLockRepo.AcquireLock(lockName, time.MicrosecondsAfterHours(1), t.HostName)
 	if err != nil || !lockStatus {

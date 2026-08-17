@@ -18,7 +18,7 @@ class Code {
   final Algorithm algorithm;
   final Type type;
 
-  /// otpauth url in the code
+  // Original otpauth URL.
   final String rawData;
   final int counter;
   bool? hasSynced;
@@ -33,18 +33,7 @@ class Code {
   final Object? err;
   bool get hasError => err != null;
 
-  /// Stable identifier for UI selection state and other transient UI features.
-  ///
-  /// This key ensures selection consistency across sync operations and local changes:
-  /// - Uses [generatedID] when available (after code is persisted to database)
-  /// - Falls back to [rawData] for unpersisted codes (before first save)
-  ///
-  /// The fallback strategy ensures that:
-  /// 1. Selections survive the transition from local-only to synced codes
-  /// 2. Each persisted code has a unique, stable identifier
-  /// 3. UI state reconciliation can map old keys to new keys during sync
-  ///
-  /// See [CodeDisplayStore.reconcileSelections] for selection state management.
+  // Unsaved codes use rawData until the first save assigns generatedID.
   String get selectionKey => generatedID?.toString() ?? rawData;
 
   String get issuerAccount =>
@@ -165,8 +154,7 @@ class Code {
       );
       return code;
     } catch (e) {
-      // if account name contains # without encoding,
-      // rest of the url are treated as url fragment
+      // Retry after encoding an unescaped # in the account name.
       if (rawData.contains("#")) {
         return Code.fromOTPAuthUrl(
           rawData.replaceAll("#", '%23'),
@@ -187,18 +175,13 @@ class Code {
       if (path.startsWith("/")) {
         path = path.substring(1, path.length);
       }
-      // Parse account name from documented auth URI
-      // otpauth://totp/ACCOUNT?secret=SUPERSECRET&issuer=SERVICE
       if (uri.queryParameters.containsKey("issuer") && !path.contains(":")) {
         return path;
       }
-      // handle case where issuer name contains colon
       if (path.startsWith('$issuer:')) {
         return path.substring(issuer.length + 1);
       }
-      return path.substring(
-        path.indexOf(':') + 1,
-      ); // return data after first colon
+      return path.substring(path.indexOf(':') + 1);
     } catch (e, s) {
       Logger('_getAccount').severe('Error while parsing account', e, s);
       return "";
@@ -282,7 +265,7 @@ class Code {
         return Algorithm.sha512;
       }
     } catch (e) {
-      // nothing
+      // Fall back to SHA-1.
     }
     return Algorithm.sha1;
   }

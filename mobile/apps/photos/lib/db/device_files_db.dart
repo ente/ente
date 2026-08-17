@@ -133,6 +133,27 @@ extension DeviceFiles on FilesDB {
     return names.toList(growable: false);
   }
 
+  Future<Set<String>> getLocalIDsInBackupFolders(
+    Set<String> localIDs,
+    Set<int> excludedCollectionIDs,
+  ) async {
+    if (localIDs.isEmpty) return {};
+
+    final db = await sqliteAsyncDB;
+    final localIDPlaceholders = List.filled(localIDs.length, '?').join(',');
+    final rows = await db.getAll('''
+      SELECT DISTINCT df.id, dc.collection_id
+      FROM device_files df
+      INNER JOIN device_collections dc ON dc.id = df.path_id
+      WHERE dc.should_backup = $_sqlBoolTrue
+        AND df.id IN ($localIDPlaceholders)
+      ''', localIDs.toList(growable: false));
+    return rows
+        .where((row) => !excludedCollectionIDs.contains(row['collection_id']))
+        .map((row) => row['id'] as String)
+        .toSet();
+  }
+
   Future<Set<String>> getDevicePathIDs() async {
     final db = await sqliteAsyncDB;
     final rows = await db.getAll('''
@@ -181,7 +202,6 @@ extension DeviceFiles on FilesDB {
         UPDATE device_collections SET name = ? WHERE id = ?;
       ''', parameterSetsForUpdate);
 
-      // add the mappings for localIDs
       if (pathIDToLocalIDsMap.isNotEmpty) {
         await insertPathIDToLocalIDMapping(pathIDToLocalIDsMap);
       }
@@ -205,71 +225,53 @@ extension DeviceFiles on FilesDB {
         final String localID = tup.item2;
         final int modifiedAt =
             pathEntity.lastModified?.microsecondsSinceEpoch ?? 0;
-        final bool shouldUpdate = existingPathIds.contains(pathEntity.id);
-        if (shouldUpdate) {
-          final rowUpdated = await db.writeTransaction((tx) async {
-            await tx.execute(
-              "UPDATE device_collections SET name = ?, cover_id = ?, count"
-              " = ?, modified_at = ? where id = ? AND (name != ? OR "
-              "cover_id != ? OR count != ? OR modified_at != ?)",
-              [
-                pathEntity.name,
-                localID,
-                assetCount,
-                modifiedAt,
-                pathEntity.id,
-                pathEntity.name,
-                localID,
-                assetCount,
-                modifiedAt,
-              ],
-            );
-            final result = await tx.get("SELECT changes();");
-            return result["changes()"] as int;
-          });
-
-          if (rowUpdated > 0) {
-            _logger.info("Updated $rowUpdated rows for ${pathEntity.name}");
-            hasUpdated = true;
-          }
-        } else {
-          hasUpdated = true;
-          await db.execute(
-            '''
+        final updatedRows = await db.execute(
+          '''
             INSERT INTO device_collections (id, name, count, cover_id, modified_at, should_backup)
-            VALUES (?, ?, ?, ?, ?, ?);
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              name = excluded.name,
+              count = excluded.count,
+              cover_id = excluded.cover_id,
+              modified_at = excluded.modified_at
+            WHERE device_collections.name IS NOT excluded.name
+              OR device_collections.count IS NOT excluded.count
+              OR device_collections.cover_id IS NOT excluded.cover_id
+              OR device_collections.modified_at IS NOT excluded.modified_at
+            RETURNING id;
           ''',
-            [
-              pathEntity.id,
-              pathEntity.name,
-              assetCount,
-              localID,
-              modifiedAt,
-              shouldBackup ? _sqlBoolTrue : _sqlBoolFalse,
-            ],
+          [
+            pathEntity.id,
+            pathEntity.name,
+            assetCount,
+            localID,
+            modifiedAt,
+            shouldBackup ? _sqlBoolTrue : _sqlBoolFalse,
+          ],
+        );
+        if (updatedRows.isNotEmpty) {
+          _logger.info(
+            "Updated ${updatedRows.length} rows for ${pathEntity.name}",
           );
+          hasUpdated = true;
         }
       }
-      // delete existing pathIDs which are missing on device
       existingPathIds.removeAll(devicePathInfo.map((e) => e.item1.id).toSet());
       if (existingPathIds.isNotEmpty) {
-        hasUpdated = true;
         _logger.info(
           'Deleting non-backed up pathIds from local '
           '$existingPathIds',
         );
         for (String pathID in existingPathIds) {
-          // do not delete device collection entries for paths which are
-          // marked for backup. This is to handle "Free up space"
-          // feature, where we delete files which are backed up. Deleting such
-          // entries here result in us losing out on the information that
-          // those folders were marked for automatic backup.
-          await db.execute(
+          // Keep folder backup settings after Free up space deletes their files.
+          final deletedRows = await db.execute(
             '''
-            DELETE FROM device_collections WHERE id = ? AND should_backup = $_sqlBoolFalse;
+            DELETE FROM device_collections WHERE id = ? AND should_backup = $_sqlBoolFalse
+            RETURNING id;
           ''',
             [pathID],
           );
+          hasUpdated |= deletedRows.isNotEmpty;
           await db.execute(
             '''
             DELETE FROM device_files WHERE path_id = ?;
@@ -285,8 +287,6 @@ extension DeviceFiles on FilesDB {
     }
   }
 
-  // getDeviceSyncCollectionIDs returns the collectionIDs for the
-  // deviceCollections which are marked for auto-backup
   Future<Set<int>> getDeviceSyncCollectionIDs() async {
     final db = await sqliteAsyncDB;
     final rows = await db.getAll('''

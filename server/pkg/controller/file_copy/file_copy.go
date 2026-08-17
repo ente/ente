@@ -81,7 +81,7 @@ func (fc *FileCopyController) CopyFiles(c *gin.Context, req ente.CopyFileSyncReq
 	if err != nil {
 		return nil, err
 	}
-	// note: this assumes that preview existingFilesToCopy for videos are not tracked inside the object_keys table
+	// Video previews are not tracked in object_keys.
 	if len(s3ObjectsToCopy) != 2*len(fileIDs) {
 		return nil, ente.NewInternalError(fmt.Sprintf("expected %d objects, got %d", 2*len(fileIDs), len(s3ObjectsToCopy)))
 	}
@@ -92,7 +92,7 @@ func (fc *FileCopyController) CopyFiles(c *gin.Context, req ente.CopyFileSyncReq
 	}
 	logger.WithField("totalSize", totalSize).Info("total size of existingFilesToCopy to copy")
 
-	// request the uploadUrls using existing method. This is to ensure that orphan objects are automatically cleaned up
+	// Reuse upload URLs so abandoned copies are cleaned up as orphan objects.
 	// todo:(neeraj) optimize this method by removing the need for getting a signed url for each object
 	uploadUrls, err := fc.FileController.GetUploadURLs(c, userID, len(s3ObjectsToCopy), app, true)
 	if err != nil {

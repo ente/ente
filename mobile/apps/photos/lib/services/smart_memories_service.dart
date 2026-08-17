@@ -140,7 +140,6 @@ class SmartMemoriesService {
     );
   }
 
-  // One general method to get all memories, which calls on internal methods for each separate memory type
   Future<MemoriesResult> calcSmartMemories(
     DateTime now,
     MemoriesCache oldCache, {
@@ -918,14 +917,13 @@ class SmartMemoriesService {
       dev.log('arguments from indirect data calculated $t');
       dev.log('starting actual memory calculations ${DateTime.now()}');
       dev.log("All files length at start: ${allFileIdsToFile.length} $t");
-      // Keep one canonical file store and track cross-category deduction by
-      // file ID so full-source memories do not require a second file set.
+      // Some memory types need every file, so track used files by ID instead of
+      // removing them from the source map.
       final fullSourceFiles = allFileIdsToFile.values;
       final usedMemoryFileIds = <int>{};
 
       final List<SmartMemory> memories = [];
 
-      // On this day memories
       final onThisDayFiles = _collectAvailableFiles(
         allFileIdsToFile,
         usedMemoryFileIds,
@@ -947,7 +945,6 @@ class SmartMemoriesService {
         "${_remainingFilesCount(allFileIdsToFile, usedMemoryFileIds)} $t",
       );
 
-      // People memories (ML only)
       if (mlEnabled) {
         final peopleMemories = await _getPeopleResults(
           allFileIdsToFile,
@@ -981,7 +978,6 @@ class SmartMemoriesService {
         dev.log('ML disabled, skipping people memories $t');
       }
 
-      // Trip memories
       final (tripMemories, bases) = await _getTripsResults(
         tripSourceFiles: fullSourceFiles,
         allFileIdsToFile: allFileIdsToFile,
@@ -1009,7 +1005,6 @@ class SmartMemoriesService {
         "${_remainingFilesCount(allFileIdsToFile, usedMemoryFileIds)} $t",
       );
 
-      // Clip memories (ML only)
       if (mlEnabled) {
         final clipMemories = await _getClipResults(
           fullSourceFiles,
@@ -1035,7 +1030,6 @@ class SmartMemoriesService {
         dev.log('ML disabled, skipping clip memories $t');
       }
 
-      // Time memories
       final timeFiles = _collectAvailableFiles(
         allFileIdsToFile,
         usedMemoryFileIds,
@@ -1063,7 +1057,6 @@ class SmartMemoriesService {
         "${_remainingFilesCount(allFileIdsToFile, usedMemoryFileIds)} $t",
       );
 
-      // Filler memories
       final fillerFiles = _collectAvailableFiles(
         allFileIdsToFile,
         usedMemoryFileIds,
@@ -1111,7 +1104,6 @@ class SmartMemoriesService {
 
     final List<SmartMemory> memories = [];
 
-    // On this day memories
     final onThisDayFiles = _collectAvailableFiles(
       allFileIdsToFile,
       usedMemoryFileIds,
@@ -1131,7 +1123,6 @@ class SmartMemoriesService {
       ], isLocalGalleryMode: isLocalGalleryMode);
     }
 
-    // Filler memories
     final fillerFiles = _collectAvailableFiles(
       allFileIdsToFile,
       usedMemoryFileIds,
@@ -1334,7 +1325,6 @@ class SmartMemoriesService {
     }
     final collections = CollectionsService.instance.getCollectionsForUI();
 
-    // Names of collections to exclude
     const excludedNames = {
       'screenshot',
       'whatsapp',

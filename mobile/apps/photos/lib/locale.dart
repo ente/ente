@@ -1,7 +1,6 @@
 import "package:flutter/widgets.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
-// list of locales which are enabled for photos app.
 // Add more language to the list only when at least 90% of the strings are
 // translated in the corresponding language.
 const List<Locale> appSupportedLocales = <Locale>[
@@ -52,15 +51,10 @@ Locale localResolutionCallBack(
   return autoDetectedLocale ?? const Locale('en');
 }
 
-// This is used to get locale that should be used for various formatting
-// operations like date, time, number etc. For common languages like english, different
-// locale might have different formats. For example, en_US and en_GB have different
-// formats for date and time. Use this method to find the best locale for formatting
-// operations. This is not used for displaying text in the app.
+// Preserve the device region for dates, times, and numbers.
 Future<Locale> getFormatLocale() async {
   final Locale locale = (await getLocale())!;
   Locale? firstLanguageMatch;
-  // see if exact matche is present in the device locales
   for (Locale deviceLocale in _onDeviceLocales) {
     if (deviceLocale.languageCode == locale.languageCode &&
         deviceLocale.countryCode == locale.countryCode) {

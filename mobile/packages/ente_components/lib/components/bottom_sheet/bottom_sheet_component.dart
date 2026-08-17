@@ -9,10 +9,7 @@ import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4809-7992&m=dev
-/// Section: Bottom sheet / Bottom Sheet Header
-/// Specs: H2 title, optional 36px circular close action, and optional centered
-/// illustration for warning and error sheets.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4809-7992&m=dev
 class _BottomSheetHeaderComponent extends StatelessWidget {
   const _BottomSheetHeaderComponent({
     this.title,
@@ -28,9 +25,6 @@ class _BottomSheetHeaderComponent extends StatelessWidget {
   final String? title;
   final Widget? illustration;
 
-  /// Called when the close button is pressed, before the sheet is dismissed.
-  ///
-  /// Barrier taps, drag dismissals, and system back dismissals do not call this.
   final FutureOr<void> Function()? onClose;
   final Object? closeResult;
   final bool showCloseButton;
@@ -94,10 +88,7 @@ class _BottomSheetHeaderComponent extends StatelessWidget {
   }
 }
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4809-8027&m=dev
-/// Section: Bottom sheet / Bottom sheet template
-/// Specs: 20px top radius, 20px padding, 16px content gap, stacked 12px
-/// action gap.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4809-8027&m=dev
 class BottomSheetComponent extends StatelessWidget {
   const BottomSheetComponent({
     super.key,
@@ -132,9 +123,7 @@ class BottomSheetComponent extends StatelessWidget {
   final Widget? content;
   final List<Widget> actions;
 
-  /// Called when the close button is pressed, before the sheet is dismissed.
-  ///
-  /// Barrier taps, drag dismissals, and system back dismissals do not call this.
+  // Called only by the close button, not other dismissal paths.
   final FutureOr<void> Function()? onClose;
   final Object? closeResult;
   final bool showCloseButton;
@@ -146,20 +135,16 @@ class BottomSheetComponent extends StatelessWidget {
   final double? actionsTopSpacing;
   final Color? backgroundColor;
 
-  /// Optional outline for sheet designs that specify a bordered surface.
-  /// Source: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4809-8027&m=dev
+  // Source: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4809-8027&m=dev
   final BorderSide? borderSide;
 
   final bool isKeyboardAware;
   final bool isScrollable;
 
-  /// Initial sheet height fraction when [isScrollable] is true.
   final double initialChildSize;
 
-  /// Whether the sheet snaps to [snapSizes] when [isScrollable] is true.
   final bool snap;
 
-  /// Sheet height fractions to snap to when [isScrollable] and [snap] are true.
   final List<double>? snapSizes;
 
   @override
@@ -283,8 +268,6 @@ class BottomSheetComponent extends StatelessWidget {
   }
 }
 
-/// Shows [BottomSheetComponent] as a centered dialog on desktop and a modal
-/// bottom sheet on mobile.
 Future<T?> showBottomSheetComponent<T>({
   required BuildContext context,
   required WidgetBuilder builder,
@@ -450,7 +433,6 @@ class _BottomSheetCloseButton extends StatelessWidget {
     required this.tooltip,
   });
 
-  /// Called when the close button is pressed, before the sheet is dismissed.
   final FutureOr<void> Function()? onClose;
   final Object? closeResult;
   final String tooltip;

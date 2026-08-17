@@ -1,11 +1,6 @@
 import "dart:async";
 import "dart:collection";
 
-// SimpleTaskQueue is a simple task queue that allows you to add tasks
-// and run them concurrently up to a specified limit. It doesn't support
-// task cancellation or timeout, but it can be used for simple
-// asynchronous task management.
-// See [TaskQueue] for a more advanced implementation with
 class SimpleTaskQueue {
   final int maxConcurrent;
   final Queue<Future<void> Function()> _queue = Queue();

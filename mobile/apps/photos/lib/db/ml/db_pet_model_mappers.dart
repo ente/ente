@@ -2,9 +2,6 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:photos/db/ml/schema.dart";
 import "package:photos/models/ml/ml_versions.dart";
 
-// ── Pet Face DB Mapper ──
-
-/// Represents a row in the [petFacesTable].
 class DBPetFace {
   final int fileId;
   final String petFaceId;
@@ -43,8 +40,7 @@ class DBPetFace {
     };
   }
 
-  /// Creates a dummy entry to mark a file as pet-indexed when no pets were
-  /// found, matching how [Face.empty] works for human face detection.
+  // Sentinel rows mark files with no pet results.
   factory DBPetFace.empty(int fileId, {bool error = false}) {
     return DBPetFace(
       fileId: fileId,
@@ -74,9 +70,6 @@ class DBPetFace {
   }
 }
 
-// ── Detected Object DB Mapper ──
-
-/// Represents a row in the [petBodiesTable].
 class DBPetBody {
   final int fileId;
   final String petBodyId;

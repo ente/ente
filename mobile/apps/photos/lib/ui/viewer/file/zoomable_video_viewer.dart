@@ -1,19 +1,10 @@
 import "package:flutter/widgets.dart";
 
-/// Threshold for considering the view as "zoomed in".
-/// Using 1.01 instead of 1.0 to account for floating-point precision.
+// Keep above 1 to ignore floating-point noise.
 const double kZoomThreshold = 1.01;
 
-/// A widget that wraps [InteractiveViewer] with multi-touch detection.
-///
-/// This widget solves a gesture arena race condition: when pinch-to-zoom
-/// is attempted on a video inside a PageView, the PageView's drag gesture
-/// recognizer can claim single-finger touches before InteractiveViewer's
-/// scale gesture recognizer detects the second finger.
-///
-/// By using a low-level [Listener], we detect multi-touch at the pointer
-/// level (before gesture arena processing) and immediately disable the
-/// parent PageView's scrolling.
+// Lock the parent PageView as soon as a second pointer arrives. Waiting for the
+// gesture arena lets PageView steal the pinch before InteractiveViewer sees it.
 class ZoomableVideoViewer extends StatefulWidget {
   final TransformationController transformationController;
   final ValueChanged<bool>? onInteractionLockChanged;

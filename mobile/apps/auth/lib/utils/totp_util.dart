@@ -58,8 +58,6 @@ String getNextTotp(Code code) {
   );
 }
 
-// generateFutureTotpCodes generates future TOTP codes based on the current time.
-// It returns the start time and a list of future codes.
 (int, List<String>) generateFutureTotpCodes(Code code, int count) {
   final int startTime =
       ((millisecondsSinceEpoch() ~/ 1000) ~/ code.period) * code.period * 1000;

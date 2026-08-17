@@ -105,8 +105,7 @@ Future<void> changeCollectionVisibility(
         update,
       );
     }
-    // Force reload home gallery to pull in/remove the now visibility changed
-    // files
+    // Reload so the home gallery adds or removes the collection's files.
     Bus.instance.fire(
       ForceReloadHomeGalleryEvent(
         "CollectionVisibilityChange: $visibilityAction",
@@ -246,8 +245,7 @@ Future<void> updateShareeOrder(
   }
 }
 
-// changeCoverPhoto is used to change cover photo for a collection. To reset to
-// default cover photo, pass uploadedFileID as 0
+// Pass 0 to restore the default cover.
 Future<void> changeCoverPhoto(
   BuildContext context,
   Collection collection,

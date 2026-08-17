@@ -85,12 +85,7 @@ Future<bool?> _handleFirstImportFlow(BuildContext context) async {
     return null;
   }
 
-  // Trigger local sync before showing the loading widget.
-  // The skip flag was cleared above, so sync will now proceed with first import.
-  // We use LocalSyncService.sync() directly because:
-  // 1. It has its own _existingSync guard - returns existing future if already running
-  // 2. It's all we need for first import (fires completedFirstGalleryImport event)
-  // 3. Avoids race conditions with SyncService._doSync() calling syncAll()
+  // Start only the local import; SyncService also runs syncAll.
   _logger.info("Triggering local sync for first import from backup flow");
   unawaited(LocalSyncService.instance.sync());
 

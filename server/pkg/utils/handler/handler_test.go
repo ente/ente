@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -166,6 +167,21 @@ func TestErrorLogsUnexpectedErrors(t *testing.T) {
 	require.NotNil(t, entry)
 	require.Equal(t, log.ErrorLevel, entry.Level)
 	require.Equal(t, "Request failed", entry.Message)
+}
+
+func TestErrorDoesNotReportCanceledRequestAsServerFailure(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	recorder, ctx := testContext()
+	requestContext, cancel := context.WithCancel(ctx.Request.Context())
+	ctx.Request = ctx.Request.WithContext(requestContext)
+	cancel()
+	hook := testLogHook(t)
+
+	Error(ctx, errors.New("database query canceled"))
+
+	require.Equal(t, statusClientClosedRequest, recorder.Code)
+	require.Empty(t, hook.AllEntries())
 }
 
 func TestErrorPreservesNotFoundAPIErrorResponse(t *testing.T) {

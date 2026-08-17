@@ -104,7 +104,6 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                         if (currentConfig == null) {
                           final infoMap = <String, PersonInfo>{};
 
-                          // Add files which are needed
                           for (final personId in _selectedPeople.personIds) {
                             infoMap[personId] = (updatedAt: 0, addedFiles: {});
                           }

@@ -26,7 +26,6 @@ import "package:photos/ui/social/widgets/comment_input_widget.dart";
 
 final _commentDraftStore = CommentDraftStore.instance;
 
-/// Shows the file comments bottom sheet
 Future<void> showFileCommentsBottomSheet(
   BuildContext context, {
   required int collectionID,
@@ -112,17 +111,12 @@ class FileCommentsBottomSheet extends StatefulWidget {
   final int fileID;
   final List<Collection>? sharedCollections;
 
-  /// Optional comment ID to scroll to and highlight.
   final String? highlightCommentID;
 
-  /// Whether an unsent draft in another collection may override
-  /// [collectionID] when the sheet opens.
   final bool preferDraftCollection;
 
-  /// Scroll controller for the drag handle (from DraggableScrollableSheet).
   final ScrollController dragController;
 
-  /// Controller to programmatically expand/collapse the sheet.
   final DraggableScrollableController sheetController;
 
   const FileCommentsBottomSheet({
@@ -229,7 +223,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
           includeHidden: _isOpenedFromHiddenCollection(),
         );
 
-    // Fetch data in parallel
     final sharedCollections = await Future.wait(
       sharedCollectionsList.map((collection) async {
         final commentCount = await SocialDataProvider.instance
@@ -282,7 +275,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
   Future<void> _loadInitialComments() async {
     setState(() => _isLoading = true);
 
-    // Load local data first for immediate display
     final results = await Future.wait([
       SocialDataProvider.instance.getCommentsForFilePaginated(
         widget.fileID,
@@ -307,10 +299,8 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     });
     unawaited(_syncMissingAnonDisplayNamesFor(comments));
 
-    // Scroll to highlighted comment if specified
     _scrollToHighlightedComment();
 
-    // Sync in background and refresh if there are changes
     unawaited(_syncAndRefresh());
   }
 
@@ -323,7 +313,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
 
       if (!mounted) return;
 
-      // Reload comments and any already-synced anonymous names after sync.
       final results = await Future.wait([
         SocialDataProvider.instance.getCommentsForFilePaginated(
           widget.fileID,
@@ -418,7 +407,7 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
 
-      // Phase 1: Jump to approximate position to bring item into view
+      // Jump close enough to build the item before using ensureVisible.
       const estimatedItemHeight = 120.0;
       final maxScroll = _scrollController.position.maxScrollExtent;
       final scrollPosition = (index * estimatedItemHeight).clamp(
@@ -428,7 +417,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
 
       _scrollController.jumpTo(scrollPosition);
 
-      // Phase 2: After item is built, use ensureVisible for precise positioning
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final context = _highlightedCommentKey?.currentContext;
@@ -444,10 +432,9 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
   }
 
   Future<void> _scrollToParentComment(String parentCommentID) async {
-    _scrollTargetCommentID =
-        parentCommentID; // Set immediately for race detection
+    // Set before loading so another tap can cancel this scroll.
+    _scrollTargetCommentID = parentCommentID;
 
-    // Check if already loaded
     int index = _comments.indexWhere((c) => c.id == parentCommentID);
 
     if (index != -1) {
@@ -455,14 +442,12 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
       return;
     }
 
-    // Parent not in loaded comments - need to load more
     while (_hasMoreComments) {
       await _loadMoreComments();
 
-      // Check if user tapped a different parent (race condition)
       if (_scrollTargetCommentID != null &&
           _scrollTargetCommentID != parentCommentID) {
-        return; // Abort, another scroll is in progress
+        return;
       }
 
       index = _comments.indexWhere((c) => c.id == parentCommentID);
@@ -471,8 +456,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
         return;
       }
     }
-
-    // Parent not found (deleted) - do nothing silently
   }
 
   void _performScrollToIndex(int index, String commentID) {
@@ -483,7 +466,7 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
 
-      // Phase 1: Jump to approximate position
+      // Jump close enough to build the item before using ensureVisible.
       const estimatedItemHeight = 120.0;
       final maxScroll = _scrollController.position.maxScrollExtent;
       final scrollPosition = (index * estimatedItemHeight).clamp(
@@ -492,7 +475,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
       );
       _scrollController.jumpTo(scrollPosition);
 
-      // Phase 2: Precise scroll with ensureVisible
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final context = _scrollTargetKey?.currentContext;
@@ -503,7 +485,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
             curve: Curves.easeOutExpo,
           );
         }
-        // Clear scroll target and trigger highlight
         _scrollTargetCommentID = null;
         _scrollTargetKey = null;
         if (mounted) {
@@ -561,10 +542,9 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     final collectionID = _selectedCollectionID;
     final replyingTo = _replyingTo;
 
-    // Mark as sending internally (blocks duplicate sends) but don't show UI yet
+    // Block duplicate sends immediately; show progress only after 400 ms.
     _sendState = SendButtonState.sending;
 
-    // Only show loading indicator after 400ms delay
     _sendLoadingTimer = Timer(const Duration(milliseconds: 400), () {
       if (mounted && _sendState == SendButtonState.sending) {
         setState(() {});
@@ -586,7 +566,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
         return;
       }
 
-      // Update UI only after successful persistence
       _clearDraftForCollection(collectionID);
       if (mounted) {
         setState(() {
@@ -598,7 +577,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
             }
           }
 
-          // Update comment count in shared collections list
           final index = _sharedCollections.indexWhere(
             (c) => c.collection.id == collectionID,
           );
@@ -615,7 +593,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
           _textController.clear();
         }
 
-        // Scroll to the newly added comment (position 0 in reversed list)
         if (_selectedCollectionID == collectionID &&
             _scrollController.hasClients) {
           unawaited(
@@ -650,7 +627,6 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     setState(() {
       _comments.removeWhere((c) => c.id == commentId);
 
-      // Decrement comment count in shared collections list
       final index = _sharedCollections.indexWhere(
         (c) => c.collection.id == _selectedCollectionID,
       );
@@ -811,8 +787,8 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
                             final isHighlighted =
                                 comment.id == _highlightedCommentID ||
                                 comment.id == _scrollTargetHighlightID;
-                            // Use widget.highlightCommentID (not state) to keep key stable after dismiss
-                            // Priority: highlightCommentID (deep link) > scrollTargetCommentID (tap)
+                            // Keep the deep-link key stable after its highlight
+                            // is dismissed.
                             final key =
                                 (comment.id == widget.highlightCommentID)
                                 ? (_highlightedCommentKey ??= GlobalKey())
@@ -853,7 +829,7 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
                                       _scrollTargetHighlightID = null;
                                     }
                                   });
-                                  // Don't clear _highlightedCommentKey - prevents avatar flicker
+                                  // Keep the key to prevent avatar flicker.
                                 }
                               },
                               onParentQuoteTap: comment.isReply

@@ -13,28 +13,20 @@ export PATH=${NEW_PATH%?} # remove trailing :
 
 env
 
-# Platform name (macosx, iphoneos, iphonesimulator)
 export CARGOKIT_DARWIN_PLATFORM_NAME=$PLATFORM_NAME
 
-# Arctive architectures (arm64, armv7, x86_64), space separated.
 export CARGOKIT_DARWIN_ARCHS=$ARCHS
 
-# Current build configuration (Debug, Release)
 export CARGOKIT_CONFIGURATION=$CONFIGURATION
 
-# Path to directory containing Cargo.toml.
 export CARGOKIT_MANIFEST_DIR=$PODS_TARGET_SRCROOT/$1
 
-# Temporary directory for build artifacts.
 export CARGOKIT_TARGET_TEMP_DIR=$TARGET_TEMP_DIR
 
-# Output directory for final artifacts.
 export CARGOKIT_OUTPUT_DIR=$PODS_CONFIGURATION_BUILD_DIR/$PRODUCT_NAME
 
-# Directory to store built tool artifacts.
 export CARGOKIT_TOOL_TEMP_DIR=$TARGET_TEMP_DIR/build_tool
 
-# Directory inside root project. Not necessarily the top level directory of root project.
 export CARGOKIT_ROOT_PROJECT_DIR=$SRCROOT
 
 FLUTTER_EXPORT_BUILD_ENVIRONMENT=(

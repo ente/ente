@@ -2,9 +2,7 @@ import 'package:ente_qr/ente_qr_platform_interface.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-/// An implementation of [EnteQrPlatform] that uses method channels.
 class MethodChannelEnteQr extends EnteQrPlatform {
-  /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('ente_qr');
 
@@ -34,7 +32,6 @@ class MethodChannelEnteQr extends EnteQrPlatform {
         return QrScanResult.error('Failed to scan QR code');
       }
 
-      // Convert to Map<String, dynamic> safely
       final Map<String, dynamic> resultMap = Map<String, dynamic>.from(
         result as Map,
       );

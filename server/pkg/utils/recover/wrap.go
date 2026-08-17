@@ -15,7 +15,6 @@ func Int64ToInt64RecoverWrapper(
 ) (err error) {
 	defer func() {
 		if x := recover(); x != nil {
-			// we need to use named params if we want to return panic as err
 			err = stacktrace.Propagate(fmt.Errorf("%+v", x), "panic during GoInt64ToInt64Data")
 		}
 	}()

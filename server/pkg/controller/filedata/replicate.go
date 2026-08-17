@@ -73,8 +73,6 @@ func (c *Controller) replicate(i int) {
 	for {
 		err := c.tryReplicate()
 		if err != nil {
-			// Sleep in proportion to the (arbitrary) index to space out the
-			// workers further.
 			time.Sleep(time.Duration(i+1) * time.Minute)
 		}
 	}

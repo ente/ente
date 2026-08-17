@@ -60,21 +60,19 @@ class FilesDB with SqlDbBase {
   static const columnMetadataDecryptionHeader = 'metadata_decryption_header';
   static const columnFileSize = 'file_size';
 
-  // MMD -> Magic Metadata
+  // MMD is magic metadata.
   static const columnMMdEncodedJson = 'mmd_encoded_json';
   static const columnMMdVersion = 'mmd_ver';
 
   static const columnPubMMdEncodedJson = 'pub_mmd_encoded_json';
   static const columnPubMMdVersion = 'pub_mmd_ver';
 
-  // part of magic metadata
-  // Only parse & store selected fields from JSON in separate columns if
-  // we need to write query based on that field
+  // JSON fields become columns only when needed for queries.
   static const columnMMdVisibility = 'mmd_visibility';
 
-  //If adding or removing a new column, make sure to update the `_columnNames` list
-  //and update `_generateColumnsAndPlaceholdersForInsert` and
-  //`_generateUpdateAssignmentsWithPlaceholders`
+  // When columns change, also update _columnNames,
+  // _generateColumnsAndPlaceholdersForInsert, and
+  // _generateUpdateAssignmentsWithPlaceholders.
   static final _migrationScripts = [
     ...createTable(filesTable),
     ...alterDeviceFolderToAllowNULL(),
@@ -124,21 +122,17 @@ class FilesDB with SqlDbBase {
     columnAddedTime,
   ];
 
-  // make this a singleton class
   FilesDB._privateConstructor();
 
   static final FilesDB instance = FilesDB._privateConstructor();
 
-  // only have a single app-wide reference to the database
   static Future<SqliteDatabase>? _sqliteAsyncDBFuture;
 
   Future<SqliteDatabase> get sqliteAsyncDB async {
-    // lazily instantiate the db the first time it is accessed
     _sqliteAsyncDBFuture ??= _initSqliteAsyncDatabase();
     return _sqliteAsyncDBFuture!;
   }
 
-  // this opens the database (and creates it if it doesn't exist)
   Future<SqliteDatabase> _initSqliteAsyncDatabase() async {
     final Directory documentsDirectory =
         await getApplicationDocumentsDirectory();
@@ -149,7 +143,6 @@ class FilesDB with SqlDbBase {
     return database;
   }
 
-  // SQL code to create the database table
   static List<String> createTable(String tableName) {
     return [
       '''
@@ -451,7 +444,6 @@ class FilesDB with SqlDbBase {
         .where((column) => column != columnGeneratedID)
         .toList();
 
-    // Sort files into appropriate parameter sets
     for (final file in files) {
       if (file.generatedID == null) {
         withoutIdParams.add(_getParameterSetForFile(file));
@@ -479,7 +471,6 @@ class FilesDB with SqlDbBase {
       }
     }
 
-    // Insert any remaining files
     if (withIdParams.isNotEmpty) {
       await _insertBatch(
         conflictAlgorithm,
@@ -584,10 +575,6 @@ class FilesDB with SqlDbBase {
     return ids;
   }
 
-  /// Checks which (fileID, collectionID) pairs exist in the database.
-  ///
-  /// Returns a map keyed by collection ID, with each value containing
-  /// the existing file IDs for that collection.
   Future<Map<int, Set<int>>> getExistingFileIDsByCollection(
     Set<(int fileID, int collectionID)> pairs,
   ) async {
@@ -711,7 +698,7 @@ class FilesDB with SqlDbBase {
     args.add(visibility);
 
     if (filterOptions?.ignoreSharedItems ?? false) {
-      subQueries.add(' AND $columnOwnerID = ?');
+      subQueries.add(' AND ($columnOwnerID IS NULL OR $columnOwnerID = ?)');
       args.add(ownerID);
     }
 
@@ -756,7 +743,7 @@ class FilesDB with SqlDbBase {
     );
 
     if (filterOptions.ignoreSharedItems) {
-      subQueries.add(' AND $columnOwnerID = ?');
+      subQueries.add(' AND ($columnOwnerID IS NULL OR $columnOwnerID = ?)');
       args.add(ownerID);
     }
 
@@ -858,10 +845,6 @@ class FilesDB with SqlDbBase {
     return files;
   }
 
-  /// Gets multiple uploaded files by their IDs in a single query.
-  ///
-  /// Returns files in the same order as [fileIDs], with null for missing files.
-  /// More efficient than calling [getUploadedFile] multiple times.
   Future<List<EnteFile?>> getUploadedFilesBatch(
     List<int> fileIDs,
     int collectionID,
@@ -880,7 +863,6 @@ class FilesDB with SqlDbBase {
     final results = await db.getAll(query, [...fileIDs, collectionID]);
     final files = convertToFiles(results);
 
-    // Build a map for O(1) lookup
     final fileMap = <int, EnteFile>{};
     for (final file in files) {
       if (file.uploadedFileID != null) {
@@ -892,12 +874,6 @@ class FilesDB with SqlDbBase {
     return fileIDs.map((id) => fileMap[id]).toList();
   }
 
-  /// Gets files added by other users to user's collections.
-  ///
-  /// Returns files where owner_id != currentUserID, ordered by added_time DESC.
-  /// Used to populate the feed with shared photo items.
-  /// Hidden collections are filtered downstream in _filterFeedItems.
-  /// Offset is supported for paged fetches while aggregating feed groups.
   Future<List<EnteFile>> getRecentlySharedFiles({
     required int currentUserID,
     int limit = 100,
@@ -1003,8 +979,6 @@ class FilesDB with SqlDbBase {
     );
   }
 
-  // Files which user added to a collection manually but they are not
-  // uploaded yet or files belonging to a collection which is marked for backup
   Future<List<EnteFile>> getFilesPendingForUpload() async {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll(
@@ -1015,8 +989,6 @@ class FilesDB with SqlDbBase {
       'ORDER BY $columnCreationTime DESC',
     );
     final files = convertToFiles(results);
-    // future-safe filter just to ensure that the query doesn't end up  returning files
-    // which should not be backed up
     files.removeWhere(
       (e) =>
           e.collectionID == null ||
@@ -1119,9 +1091,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // remove references for local files which are either already uploaded
-  // or queued for upload but not yet uploaded
-  // Remove queued local files that have duplicate uploaded entries with same localID
   Future<int> removeQueuedLocalFiles(Set<String> localIDs, int ownerID) async {
     if (localIDs.isEmpty) {
       _logger.finest("No local IDs provided for removal");
@@ -1140,7 +1109,6 @@ class FilesDB with SqlDbBase {
       final batch = localIDsList.sublist(i, endIndex);
       final placeholders = List.filled(batch.length, '?').join(',');
 
-      // Find localIDs that already have uploaded entries
       final result = await db.execute('''
       SELECT DISTINCT $columnLocalID
       FROM $filesTable
@@ -1159,15 +1127,13 @@ class FilesDB with SqlDbBase {
           '?',
         ).join(',');
 
-        // Delete queued entries for localIDs that already have uploaded versions
         final deleteResult = await db.execute('''
         DELETE FROM $filesTable
         WHERE $columnLocalID IN ($localIdPlaceholder)
         AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)
       ''', alreadyUploadedLocalIDs);
 
-        final removedCount =
-            deleteResult.length; // or however your DB returns affected rows
+        final removedCount = deleteResult.length;
         if (removedCount > 0) {
           _logger.warning(
             "Batch ${(i ~/ batchSize) + 1}: Removed $removedCount queued duplicates",
@@ -1202,8 +1168,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // Sets the collectionID for the files with given LocalIDs if the
-  // corresponding file entries are not already mapped to some other collection
   Future<void> setCollectionIDForUnMappedLocalFiles(
     int collectionID,
     Set<String> localIDs,
@@ -1283,10 +1247,6 @@ class FilesDB with SqlDbBase {
     );
   }
 
-  /*
-    This method should only return localIDs which are not uploaded yet
-    and can be mapped to incoming remote entry
-   */
   Future<List<EnteFile>> getUnlinkedLocalMatchesForRemoteFile(
     int ownerID,
     String localID,
@@ -1433,7 +1393,6 @@ class FilesDB with SqlDbBase {
   Future<void> deleteLocalFile(EnteFile file) async {
     final db = await instance.sqliteAsyncDB;
     if (file.localID != null) {
-      // delete all files with same local ID
       unawaited(
         db.execute(
           'DELETE FROM $filesTable WHERE $columnLocalID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
@@ -1601,8 +1560,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // getCollectionLatestFileTime returns map of collectionID to the max
-  // creationTime of the files in the collection.
   Future<Map<int, int>> getCollectionIDToMaxCreationTime() async {
     final enteWatch = EnteWatch("getCollectionIDToMaxCreationTime")..start();
     final db = await instance.sqliteAsyncDB;
@@ -1638,8 +1595,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // getCollectionFileFirstOrLast returns the first or last uploaded file in
-  // the collection based on the given collectionID and the order.
   Future<EnteFile?> getCollectionFileFirstOrLast(
     int collectionID,
     bool sortAsc,
@@ -1843,7 +1798,7 @@ class FilesDB with SqlDbBase {
     }
   }
 
-  ///Each collectionIDs in list aren't necessarily unique
+  // Collection IDs may repeat.
   Future<List<int>> getAllCollectionIDsOfFiles(
     List<int> uploadedFileIDs,
   ) async {
@@ -1861,8 +1816,6 @@ class FilesDB with SqlDbBase {
     return collectionIDsOfFiles;
   }
 
-  /// Returns only uploaded file IDs from given collections.
-  /// If [ownerID] is provided, only returns files owned by that user.
   Future<List<int>> getUploadedFileIDsInCollections(
     Set<int> collectionIds, {
     int? ownerID,
@@ -1891,8 +1844,6 @@ class FilesDB with SqlDbBase {
     return results.map((row) => row[columnUploadedFileID] as int).toList();
   }
 
-  /// Returns only collection IDs that contain any of the given uploaded file
-  /// IDs.
   Future<Set<int>> getCollectionIDsForUploadedFileIDs(
     List<int> uploadedFileIds,
   ) async {
@@ -1926,7 +1877,6 @@ class FilesDB with SqlDbBase {
     return files;
   }
 
-  // For a given userID, return unique uploadedFileId for the given userID
   Future<List<int>> getUploadIDsWithMissingSize(int userId) async {
     final db = await instance.sqliteAsyncDB;
     final rows = await db.getAll(
@@ -1943,8 +1893,6 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  // updateSizeForUploadIDs takes a map of upploadedFileID and fileSize and
-  // update the fileSize for the given uploadedFileID
   Future<void> updateSizeForUploadIDs(
     Map<int, int> uploadedFileIDToSize,
   ) async {
@@ -2079,10 +2027,6 @@ class FilesDB with SqlDbBase {
     return ids.length;
   }
 
-  /// Returns hidden files that have local copies on the device.
-  /// Only returns files owned by [ownerID] from the specified
-  /// [hiddenCollectionIds].
-  /// Results are deduplicated by uploadedFileID
   Future<List<EnteFile>> getHiddenFilesWithLocalCopy(
     Set<int> hiddenCollectionIds,
     int ownerID,
@@ -2107,7 +2051,6 @@ class FilesDB with SqlDbBase {
     return convertToFiles(results);
   }
 
-  /// Returns true if there are any hidden files with local copies on the device.
   Future<bool> hasHiddenFilesWithLocalCopy(
     Set<int> hiddenCollectionIds,
     int ownerID,
@@ -2131,9 +2074,6 @@ class FilesDB with SqlDbBase {
     return results.isNotEmpty;
   }
 
-  /// Clears localID for all rows matching any of the given uploadedFileIDs.
-  /// This is used when deleting files from device to ensure all collection
-  /// entries for the same file have their localID cleared.
   Future<void> clearLocalIDsForUploadedFileIDs(
     List<int> uploadedFileIDs,
   ) async {
@@ -2149,7 +2089,6 @@ class FilesDB with SqlDbBase {
       ''');
   }
 
-  ///Returns "columnName1 = ?, columnName2 = ?, ..."
   String _generateUpdateAssignmentsWithPlaceholders({
     required int? fileGenId,
     bool omitCollectionId = false,
@@ -2231,9 +2170,6 @@ class FilesDB with SqlDbBase {
       longitude,
       getInt(file.fileType),
       file.modificationTime,
-      // encrypted_key/key_decryption_nonce are per-collection (the file key
-      // wrapped with that collection's key), so they must be omitted from a
-      // cross-collection update to avoid overwriting sibling rows.
       if (!omitKeyMaterial) file.encryptedKey,
       if (!omitKeyMaterial) file.keyDecryptionNonce,
       file.fileDecryptionHeader,

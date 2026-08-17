@@ -51,7 +51,6 @@ class EnteFile {
 
   set magicMetadata(MagicMetadata? val) => _mmd = val;
 
-  // public magic metadata is shared if during file/album sharing
   String? _pubMmdEncodedJson;
   String? get pubMmdEncodedJson => _pubMmdEncodedJson;
 
@@ -78,6 +77,40 @@ class EnteFile {
   static final _logger = Logger('File');
 
   EnteFile();
+
+  EnteFile.from(EnteFile file) {
+    generatedID = file.generatedID;
+    uploadedFileID = file.uploadedFileID;
+    ownerID = file.ownerID;
+    collectionID = file.collectionID;
+    localID = file.localID;
+    title = file.title;
+    deviceFolder = file.deviceFolder;
+    creationTime = file.creationTime;
+    modificationTime = file.modificationTime;
+    updationTime = file.updationTime;
+    addedTime = file.addedTime;
+    location = file.location;
+    fileType = file.fileType;
+    fileSubType = file.fileSubType;
+    duration = file.duration;
+    exif = file.exif;
+    hash = file.hash;
+    metadataVersion = file.metadataVersion;
+    encryptedKey = file.encryptedKey;
+    keyDecryptionNonce = file.keyDecryptionNonce;
+    fileDecryptionHeader = file.fileDecryptionHeader;
+    thumbnailDecryptionHeader = file.thumbnailDecryptionHeader;
+    metadataDecryptionHeader = file.metadataDecryptionHeader;
+    fileSize = file.fileSize;
+    mMdEncodedJson = file.mMdEncodedJson;
+    mMdVersion = file.mMdVersion;
+    magicMetadata = file.magicMetadata;
+    pubMmdEncodedJson = file.pubMmdEncodedJson;
+    pubMmdVersion = file.pubMmdVersion;
+    pubMagicMetadata = file.pubMagicMetadata;
+    debugCaption = file.debugCaption;
+  }
 
   Future<AssetEntity?> get getAsset {
     if (localID == null) {
@@ -109,7 +142,6 @@ class EnteFile {
         fileType == FileType.livePhoto &&
         metadata.containsKey('imageHash') &&
         metadata.containsKey('videoHash')) {
-      // convert to imgHash:vidHash
       hash =
           '${metadata['imageHash']}$kLivePhotoHashSeparator${metadata['videoHash']}';
     }
@@ -162,7 +194,6 @@ class EnteFile {
     return title ?? '';
   }
 
-  // return 0 if the height is not available
   int get height {
     return pubMagicMetadata?.h ?? 0;
   }
@@ -197,10 +228,7 @@ class EnteFile {
       ownerID: $ownerID, collectionID: $collectionID, updationTime: $updationTime)''';
   }
 
-  /// Mutates this file in place with upload-result fields from [uploadedFile].
-  /// Used by the gallery's soft refresh path so that all existing references
-  /// (GalleryGroups sub-lists, GalleryFileWidget.widget.file, etc.) see the
-  /// updated state without needing to rebuild GalleryGroups.
+  // Soft refreshes mutate in place because gallery groups retain this object.
   void applyUploadedData(EnteFile uploadedFile) {
     uploadedFileID = uploadedFile.uploadedFileID;
     collectionID = uploadedFile.collectionID;

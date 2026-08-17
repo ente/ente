@@ -201,7 +201,9 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       }
     } else {
       await widget.file.getAsset.then((asset) async {
-        if (asset == null || !(await asset.exists)) {
+        // Android trash assets may report that they do not exist.
+        if (asset == null ||
+            !(await asset.exists || widget.file.isDeviceTrash)) {
           if (widget.file.uploadedFileID != null) {
             _loadNetworkVideo(update);
           }
@@ -249,8 +251,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       _logger.info("Clearing cache");
       final file = File(_filePath!);
 
-      /// Checking if exists to avoid observed PathNotFoundException. Didn't find
-      /// root cause.
+      // Avoid an observed PathNotFoundException.
       if (file.existsSync()) {
         file.delete().then((value) {
           _logger.info("Cache cleared");
@@ -302,8 +303,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
           }
         },
         child: GestureDetector(
-          // Keep recognizer out of the arena during multi-touch/zoom to avoid
-          // it stealing pinch gestures with predominantly vertical movement.
+          // During zoom, keep this recognizer out of multi-touch gesture arenas.
           onVerticalDragUpdate: _isGuestView || _isZooming
               ? null
               : (d) {
@@ -321,8 +321,8 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                 duration: const Duration(milliseconds: 750),
                 switchOutCurve: Curves.easeOutExpo,
                 switchInCurve: Curves.easeInExpo,
-                //Loading two high-res potrait videos together causes one to
-                //go blank. So only loading video when it is completely visible.
+                // Two high-resolution portrait videos can blank one another.
+                // Load only the completely visible one.
                 child: !_isCompletelyVisible || _filePath == null
                     ? _getLoadingWidget()
                     : Stack(
@@ -581,7 +581,6 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   }
 
   void _onError(String errorMessage) {
-    //This doesn't work all the time
     _logger.severe(
       "Error in native video player controller for file gen id: ${widget.file.generatedID}",
     );
@@ -768,8 +767,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       return;
     }
     if (Platform.isIOS) {
-      // FFprobe in ffmpeg_kit can crash on certain iOS media files.
-      // On iOS, use lightweight metadata probing via AVPlayer.
+      // FFprobe can crash on some iOS media; use AVPlayer metadata instead.
       if (widget.file.hasDimensions) {
         aspectRatio = widget.file.width / widget.file.height;
       } else {
@@ -812,10 +810,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       await metadataController.initialize().timeout(const Duration(seconds: 4));
       final value = metadataController.value;
       final probeAspectRatio = value.aspectRatio;
-      // Always prefer the probed aspect ratio over file metadata dimensions,
-      // because AVPlayer correctly accounts for video rotation metadata.
-      // Raw file width/height may not reflect rotation (e.g. a portrait video
-      // stored as 1920x1080 with 90° rotation).
+      // AVPlayer's aspect ratio includes rotation; stored dimensions may not.
       if (probeAspectRatio > 0) {
         aspectRatio = probeAspectRatio;
       }

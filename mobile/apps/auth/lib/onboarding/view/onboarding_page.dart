@@ -311,7 +311,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
       return;
     }
 
-    // Check if user is manually scrolling
     // userScrollDirection is idle during programmatic scrolling (animateToPage)
     // but becomes forward/reverse when user manually drags
     if (_pageController.position.userScrollDirection != ScrollDirection.idle) {
@@ -423,19 +422,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (Configuration.instance.getEncryptedToken() == null) {
       page = EmailEntryPage(Configuration.instance);
     } else {
-      // No key
       if (Configuration.instance.getKeyAttributes() == null) {
-        // Never had a key
         page = PasswordEntryPage(
           Configuration.instance,
           PasswordEntryMode.set,
           const HomePage(),
         );
       } else if (Configuration.instance.getKey() == null) {
-        // Yet to decrypt the key
         page = PasswordReentryPage(Configuration.instance, const HomePage());
       } else {
-        // All is well, user just has not subscribed
         page = const HomePage();
       }
     }
@@ -453,20 +448,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (Configuration.instance.getEncryptedToken() == null) {
       page = LoginPage(Configuration.instance);
     } else {
-      // No key
       if (Configuration.instance.getKeyAttributes() == null) {
-        // Never had a key
         page = PasswordEntryPage(
           Configuration.instance,
           PasswordEntryMode.set,
           const HomePage(),
         );
       } else if (Configuration.instance.getKey() == null) {
-        // Yet to decrypt the key
         page = PasswordReentryPage(Configuration.instance, const HomePage());
       } else {
-        // All is well, user just has not subscribed
-        // page = getSubscriptionPage(isOnBoarding: true);
         page = const HomePage();
       }
     }

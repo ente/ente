@@ -5,8 +5,6 @@ import "package:photos/models/search/hierarchical/hierarchical_search_filter.dar
 class AlbumFilter extends HierarchicalSearchFilter {
   final int collectionID;
   final String albumName;
-
-  ///Number of files in the gallery that are from [collectionID]
   final int occurrence;
 
   AlbumFilter({

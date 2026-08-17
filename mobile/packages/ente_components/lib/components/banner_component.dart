@@ -8,11 +8,8 @@ import 'package:hugeicons/hugeicons.dart';
 
 enum BannerComponentState { failure, informative, success, warning, neutral }
 
-/// Layout Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=14590-125265&m=dev
-/// State Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=7255-38447&m=dev
-/// Section: Home gallery banners / Snack bar states
-/// Specs: 351px wide, 66px min height, 20px radius, 24px leading icon,
-/// body/mini text, and an optional trailing action.
+// Layout Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=14590-125265&m=dev
+// State Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=7255-38447&m=dev
 class BannerComponent extends StatelessWidget {
   const BannerComponent({
     required this.title,

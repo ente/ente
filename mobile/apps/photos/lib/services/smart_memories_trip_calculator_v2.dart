@@ -85,22 +85,17 @@ class _TripSurfaceCandidate {
 }
 
 class TripMemoriesCalculatorV2 {
-  // Temporal gap to split photos into separate time windows.
   static const _maxTemporalGapDays = 15;
 
-  // Spatial radius for clustering photos within a temporal block.
+  // Spatial distance constants in this class use kilometers.
   static const _tripClusterRadius = 25.0;
 
-  // Max hop distance for chaining clusters into road trips.
   static const _chainHopDistance = 800.0;
 
-  // Base location overlap check radius.
   static const _baseOverlapRadius = 10.0;
 
-  // Secondary merge radius for nearby home clusters.
   static const _baseMergeRadius = 1.5;
 
-  // Base evidence thresholds.
   static const _minBasePhotos = 10;
   static const _minBaseActiveDays = 10;
   static const _minBaseActiveWeeks = 6;
@@ -109,23 +104,16 @@ class TripMemoriesCalculatorV2 {
   static const _baseDensityWindowDays = 120;
   static const _minBaseActiveDaysInWindow = 12;
 
-  // Trip duration bounds (in days).
   static const _minTripDays = 2;
   static const _maxTripDays = 30;
 
-  // Minimum photos for a valid trip.
   static const _minTripPhotos = 20;
 
-  // Minimum photos for a cluster to participate in chain merging.
-  // Smaller clusters are kept as standalone candidates (and typically
-  // filtered out by _isValidTrip), preventing stray photos from being
-  // absorbed into legitimate trips.
+  // Keep small clusters separate so stray photos cannot join valid trips.
   static const _minChainClusterPhotos = 5;
 
-  // Max temporal gap (in days) for merging clusters or trips.
   static const _mergeWindowDays = 2;
 
-  // Max spatial distance (in km) for merging trips across temporal blocks.
   static const _mergeMaxDistance = 25.0;
 
   static const _tripDisplayDuration = Duration(days: 10);
@@ -155,8 +143,6 @@ class TripMemoriesCalculatorV2 {
         .microsecondsSinceEpoch;
     final cutOffTime = currentTime.subtract(const Duration(days: 365));
 
-    // ── Phase 1: Base location detection ──
-
     final baseLocations = _detectBaseLocations(
       allFiles,
       isLocalGalleryMode: isLocalGalleryMode,
@@ -168,8 +154,6 @@ class TripMemoriesCalculatorV2 {
       seenTimes,
     );
 
-    // ── Phase 2: Trip detection ──
-
     final filesWithLocation = allFiles.where((f) => f.hasLocation).toList()
       ..sort((a, b) => a.creationTime!.compareTo(b.creationTime!));
 
@@ -177,15 +161,12 @@ class TripMemoriesCalculatorV2 {
       return (<TripMemory>[], baseLocations);
     }
 
-    // Step 2a: Filter base photos out of the trip stream before
-    // temporal segmentation, so repeated visits to the same place remain
-    // separated by time spent back at base.
+    // Returning to a base separates otherwise nearby trips.
     final temporalBlocks = _segmentAwayFilesByTime(
       filesWithLocation,
       baseLocations,
     );
 
-    // Step 2b: Spatial clustering + chain merging within each block
     final tripCandidates = <TripMemory>[];
     for (final block in temporalBlocks) {
       var spatialClusters = _clusterByLocation(
@@ -219,10 +200,8 @@ class TripMemoriesCalculatorV2 {
       }
     }
 
-    // Step 2c: Merge trips across temporal blocks (same location, close time)
     final mergedTrips = _mergeNearbyTrips(tripCandidates);
 
-    // Step 2d: Final validation
     final validTrips = mergedTrips
         .where(
           (t) =>
@@ -231,8 +210,6 @@ class TripMemoriesCalculatorV2 {
         )
         .map(_ensureTripKey)
         .toList();
-
-    // ── Phase 3: Surface selection ──
 
     final List<TripMemory> memoryResults = [];
 
@@ -275,8 +252,6 @@ class TripMemoriesCalculatorV2 {
       cities: cities,
     );
   }
-
-  // ── Base location detection ──
 
   static List<BaseLocation> _detectBaseLocations(
     Iterable<EnteFile> allFiles, {
@@ -323,8 +298,6 @@ class TripMemoriesCalculatorV2 {
     return baseLocations;
   }
 
-  // ── Temporal segmentation ──
-
   static List<List<EnteFile>> _segmentAwayFilesByTime(
     List<EnteFile> sortedFiles,
     List<BaseLocation> baseLocations,
@@ -366,8 +339,6 @@ class TripMemoriesCalculatorV2 {
     }
     return blocks;
   }
-
-  // ── Spatial clustering within a temporal block ──
 
   static List<_LocationCluster> _clusterByLocation(
     Iterable<EnteFile> files, {
@@ -417,10 +388,6 @@ class TripMemoriesCalculatorV2 {
     return mergedClusters;
   }
 
-  // ── Chain merge for road trips ──
-
-  /// Merges spatial clusters within the same temporal block if they form
-  /// a chronological chain with hops <= [_chainHopDistance].
   static List<_LocationCluster> _mergeChainedClusters(
     List<_LocationCluster> clusters,
   ) {
@@ -473,8 +440,6 @@ class TripMemoriesCalculatorV2 {
 
     return [...merged, ...tooSmall];
   }
-
-  // ── Trip validation ──
 
   static bool _isValidTrip(
     List<EnteFile> files,
@@ -548,8 +513,6 @@ class TripMemoriesCalculatorV2 {
     }
     return false;
   }
-
-  // ── Merge trips across temporal blocks ──
 
   static List<TripMemory> _mergeNearbyTrips(List<TripMemory> trips) {
     final sortedTrips = List<TripMemory>.from(trips)
@@ -870,8 +833,6 @@ class TripMemoriesCalculatorV2 {
     return b.trip.averageCreationTime().compareTo(a.trip.averageCreationTime());
   }
 
-  // ── Surface all (debug mode) ──
-
   static Future<(List<TripMemory>, List<BaseLocation>)> _surfaceAll(
     List<TripMemory> memoryResults,
     List<BaseLocation> baseLocations,
@@ -943,8 +904,6 @@ class TripMemoriesCalculatorV2 {
     }
     return (memoryResults, baseLocations);
   }
-
-  // ── Surface scheduled (production mode) ──
 
   static Future<(List<TripMemory>, List<BaseLocation>)> _surfaceScheduled(
     List<TripMemory> memoryResults,

@@ -4,10 +4,6 @@ import 'package:ente_components/theme/radii.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
 
-/// Groups related menu rows into one rounded surface.
-///
-/// The group owns the shared surface and applies first/middle/last row shapes,
-/// while each item remains responsible for its own content and interaction.
 class MenuGroupComponent extends StatelessWidget {
   const MenuGroupComponent({
     super.key,

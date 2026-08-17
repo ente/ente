@@ -229,15 +229,11 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
     if (Configuration.instance.getEncryptedToken() == null) {
       page = const EmailEntryPage();
     } else {
-      // No key
       if (Configuration.instance.getKeyAttributes() == null) {
-        // Never had a key
         page = const PasswordEntryPage(mode: PasswordEntryMode.set);
       } else if (Configuration.instance.getKey() == null) {
-        // Yet to decrypt the key
         page = const PasswordReentryPage();
       } else {
-        // All is well, user just has not subscribed
         page = getSubscriptionPage(isOnBoarding: true);
       }
     }
@@ -258,15 +254,11 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
     if (Configuration.instance.getEncryptedToken() == null) {
       page = const LoginPage();
     } else {
-      // No key
       if (Configuration.instance.getKeyAttributes() == null) {
-        // Never had a key
         page = const PasswordEntryPage(mode: PasswordEntryMode.set);
       } else if (Configuration.instance.getKey() == null) {
-        // Yet to decrypt the key
         page = const PasswordReentryPage();
       } else {
-        // All is well, user just has not subscribed
         page = getSubscriptionPage(isOnBoarding: true);
       }
     }

@@ -23,9 +23,6 @@ class BackupFolderSelectionPage extends StatefulWidget {
   final bool isFirstBackup;
   final bool isOnboarding;
 
-  /// When true, skip the "only new backup" warning dialog.
-  /// This is used when coming from the "backup only new photos" toggle
-  /// to prevent recursive navigation back to backup settings.
   final bool fromOnlyNewPhotosToggle;
 
   const BackupFolderSelectionPage({

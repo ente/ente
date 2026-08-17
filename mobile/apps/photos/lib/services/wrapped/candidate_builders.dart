@@ -59,7 +59,6 @@ List<int> buildMetaUploadedIDs(List<int> candidates, int desiredCount) {
   return candidates.take(limit).toList(growable: false);
 }
 
-/// Provides basic context details for candidate builders.
 @immutable
 class WrappedEngineContext {
   WrappedEngineContext({
@@ -113,7 +112,6 @@ class WrappedEngineContext {
   }
 }
 
-/// Contract for producing Wrapped candidate cards for a specific domain.
 abstract class WrappedCandidateBuilder {
   const WrappedCandidateBuilder();
 
@@ -122,7 +120,6 @@ abstract class WrappedCandidateBuilder {
   Future<List<WrappedCard>> build(WrappedEngineContext context);
 }
 
-/// Registry of all candidate builders invoked by the engine.
 const List<WrappedCandidateBuilder> wrappedCandidateBuilders =
     <WrappedCandidateBuilder>[
       StatsCandidateBuilder(),

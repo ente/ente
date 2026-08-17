@@ -140,8 +140,7 @@ export interface ElectronMLWorker {
 
 export interface MLWorkerAnalyzeImageRequest {
     fileID: number;
-    path?: string | undefined;
-    bytes?: Uint8Array | undefined;
+    bytes: Uint8Array;
     runFaces: boolean;
     runClip: boolean;
     runPets: boolean;

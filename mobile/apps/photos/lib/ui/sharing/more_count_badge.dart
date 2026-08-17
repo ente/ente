@@ -60,11 +60,7 @@ class MoreCountWidget extends StatelessWidget {
           backgroundColor: decorationColor,
           child: Transform.scale(
             scale: 0.85,
-            child: Text(
-              displayChar.toUpperCase(),
-              // fixed color
-              style: textStyle,
-            ),
+            child: Text(displayChar.toUpperCase(), style: textStyle),
           ),
         ),
       ),

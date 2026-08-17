@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-/// StatefulWidget that wraps InheritedSettingsState
 class SettingsStateContainer extends StatefulWidget {
   const SettingsStateContainer({super.key, required this.child});
   final Widget child;
@@ -35,16 +34,6 @@ class _SettingsState extends State<SettingsStateContainer> {
   }
 }
 
-/// Keep track of the number of expanded sections in an entire menu tree.
-///
-/// Since this is an InheritedWidget, subsections can obtain it from the context
-/// and use the current expansion state to style themselves differently if
-/// needed.
-///
-/// Example usage:
-///
-///     InheritedSettingsState.of(context).increment()
-///
 class InheritedSettingsState extends InheritedWidget {
   final int expandedSectionCount;
   final void Function() increment;

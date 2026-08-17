@@ -30,7 +30,6 @@ class _VideoCropPageState extends State<VideoCropPage> {
       return;
     }
 
-    // Find which crop value matches the current ratio
     for (final value in CropValue.values) {
       if (value == CropValue.original || value == CropValue.free) continue;
 

@@ -16,8 +16,12 @@ class BillingQuestionsWidget extends StatelessWidget {
           .get("https://static.ente.com/faq.json")
           .then((response) {
             final faqItems = <FaqItem>[];
-            for (final item in response.data as List) {
-              faqItems.add(FaqItem.fromMap(item));
+            if (response.data is List) {
+              for (final item in response.data as List) {
+                if (item is Map<String, dynamic>) {
+                  faqItems.add(FaqItem.fromMap(item));
+                }
+              }
             }
             return faqItems;
           }),
@@ -33,7 +37,7 @@ class BillingQuestionsWidget extends StatelessWidget {
               ),
             ),
           );
-          for (final faq in snapshot.data) {
+          for (final faq in snapshot.data as List<FaqItem>) {
             faqs.add(FaqWidget(faq: faq));
           }
           faqs.add(const Padding(padding: EdgeInsets.all(16)));
@@ -49,7 +53,7 @@ class BillingQuestionsWidget extends StatelessWidget {
 class FaqWidget extends StatelessWidget {
   const FaqWidget({super.key, required this.faq});
 
-  final FaqItem? faq;
+  final FaqItem faq;
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +63,15 @@ class FaqWidget extends StatelessWidget {
       borderRadius: BorderRadius.all(Radius.circular(8)),
     );
 
+    final question = faq.q ?? '';
+    final answer = faq.a ?? '';
+
     return Padding(
       padding: const EdgeInsets.all(2),
       child: ExpansionTile(
-        key: PageStorageKey(faq!.q),
-        title: Text(faq!.q!),
+        key: PageStorageKey(question),
+        clipBehavior: Clip.antiAlias,
+        title: Text(question),
         tilePadding: const EdgeInsets.symmetric(horizontal: 18),
         textColor: expandedColor,
         collapsedTextColor: theme.textTheme.titleMedium?.color,
@@ -76,7 +84,7 @@ class FaqWidget extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-            child: Text(faq!.a!, style: const TextStyle(height: 1.5)),
+            child: Text(answer, style: const TextStyle(height: 1.5)),
           ),
         ],
       ),
@@ -98,7 +106,10 @@ class FaqItem {
   }
 
   factory FaqItem.fromMap(Map<String, dynamic> map) {
-    return FaqItem(q: map['q'] ?? 'q', a: map['a'] ?? 'a');
+    return FaqItem(
+      q: map['q']?.toString() ?? '',
+      a: map['a']?.toString() ?? '',
+    );
   }
 
   String toJson() => json.encode(toMap());

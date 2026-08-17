@@ -96,7 +96,6 @@ class _HomePageState extends State<HomePage> {
   final Logger _logger = Logger("HomePage");
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Used to request focus on the search box when clicked the search icon
   late FocusNode searchBoxFocusNode;
 
   final TextEditingController _textController = TextEditingController();
@@ -327,12 +326,10 @@ class _HomePageState extends State<HomePage> {
     if (codesToUpdate.isEmpty) return;
 
     try {
-      // Determine the state of the current selection (pinned/unpinned)
       final bool allArePinned = codesToUpdate.every((code) => code.isPinned);
       final updatedCodes = <Code>[];
 
       if (allArePinned) {
-        // if all are pinned, unpin all
         for (final code in codesToUpdate) {
           updatedCodes.add(
             code.copyWith(display: code.display.copyWith(pinned: false)),
@@ -356,7 +353,6 @@ class _HomePageState extends State<HomePage> {
         int pinnedCount = 0;
         for (final code in codesToUpdate) {
           if (!code.isPinned) {
-            // Only pin the codes that are currently unpinned
             updatedCodes.add(
               code.copyWith(display: code.display.copyWith(pinned: true)),
             );
@@ -402,7 +398,6 @@ class _HomePageState extends State<HomePage> {
       final updatedCodes = <Code>[];
       for (final code in codesToUpdate) {
         if (code.isPinned) {
-          // only unpin the codes that are currently pinned
           updatedCodes.add(
             code.copyWith(display: code.display.copyWith(pinned: false)),
           );
@@ -722,7 +717,6 @@ class _HomePageState extends State<HomePage> {
               !allArePinned && !selectedCodes.every((code) => !code.isPinned);
 
           if (isMixed) {
-            // Mixed state: when selection contains both pinned and unpinned codes
             return Row(
               children: [
                 _buildActionButton(
@@ -766,7 +760,6 @@ class _HomePageState extends State<HomePage> {
               ],
             );
           } else {
-            // When selection contains either only pinned OR only unpinned codes
             return Row(
               children: [
                 _buildActionButton(
@@ -994,7 +987,6 @@ class _HomePageState extends State<HomePage> {
   bool _handleKeyEvent(KeyEvent event) {
     if (!mounted) return false;
 
-    // Always keep our pressed key state in sync.
     if (event is KeyDownEvent) {
       _pressedKeys.add(event.logicalKey);
     } else if (event is KeyUpEvent) {
@@ -1153,10 +1145,8 @@ class _HomePageState extends State<HomePage> {
   void _applyFilteringAndRefresh() {
     if (_searchText.isNotEmpty && _showSearchBox && _allCodes != null) {
       final String val = _searchText.toLowerCase();
-      // Prioritize issuer match above account for better UX while searching
-      // for a specific TOTP for email providers. Searching for "emailProvider" like (gmail, proton) should
-      // show the email provider first instead of other accounts where protonmail
-      // is the account name.
+      // Show issuer matches first so searches for an email provider rank its
+      // codes above accounts whose names happen to match.
       final List<Code> issuerMatch = [];
       final List<Code> accountMatch = [];
       final List<Code> noteMatch = [];
@@ -1246,7 +1236,6 @@ class _HomePageState extends State<HomePage> {
         break;
     }
     if (sortKey != CodeSortKey.manual) {
-      // move pinned codes to the using
       int insertIndex = 0;
       for (int i = 0; i < codes.length; i++) {
         if (codes[i].isPinned) {
@@ -1301,7 +1290,6 @@ class _HomePageState extends State<HomePage> {
         return;
       }
       await CodeStore.instance.addCode(newCode, shouldSync: false);
-      // Focus the new code by searching
       if (_shouldFocusAddedCode) {
         _focusNewCode(newCode);
       }
@@ -1342,7 +1330,6 @@ class _HomePageState extends State<HomePage> {
         code,
         shouldSync: result.fromGallery ? false : true,
       );
-      // Focus the new code by searching
       if (_shouldFocusAddedCode) {
         _focusNewCode(code);
       }
@@ -1515,7 +1502,6 @@ class _HomePageState extends State<HomePage> {
         },
         onSubmitted: (_) {
           if (_filteredCodes.isNotEmpty) {
-            // Move focus to the first item in the grid
             _firstItemFocusNode.requestFocus();
           }
         },
@@ -1982,7 +1968,6 @@ class _HomePageState extends State<HomePage> {
   late final AppLinks _appLinks = AppLinks();
 
   Future<bool> _initDeepLinks() async {
-    // Platform messages may fail, so we use a try/catch PlatformException.
     bool hadInitialLink = false;
     try {
       if (!mounted) return false;
@@ -1998,7 +1983,6 @@ class _HomePageState extends State<HomePage> {
       _logger.severe("PlatformException thrown while getting initial link");
     }
 
-    // Always attach a listener for future deep links
     if (!kIsWeb && !Platform.isLinux) {
       _deepLinkSubscription = _appLinks.stringLinkStream.listen(
         (link) {

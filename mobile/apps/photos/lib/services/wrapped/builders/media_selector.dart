@@ -1,7 +1,5 @@
 part of "package:photos/services/wrapped/candidate_builders.dart";
 
-/// Shared helper that picks a diverse, people-forward set of media for
-/// Wrapped cards while filtering obvious screenshots/documents.
 class WrappedMediaSelector {
   const WrappedMediaSelector._();
 

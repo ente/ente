@@ -9,9 +9,6 @@ import 'package:photos/models/social/comment.dart';
 import 'package:photos/models/social/reaction.dart';
 import 'package:photos/services/social_service.dart';
 
-/// Service for syncing social data (comments and reactions) with the server.
-///
-/// Handles diff-based sync, encryption/decryption, and local storage.
 class SocialSyncService {
   SocialSyncService._();
   static final instance = SocialSyncService._();
@@ -26,9 +23,6 @@ class SocialSyncService {
 
   bool _isSyncing = false;
 
-  /// Syncs social data for a single collection.
-  ///
-  /// Uses diff-based sync with separate sinceTime for comments and reactions.
   Future<void> syncCollection(int collectionID) async {
     int normalizeSinceTime(int syncTime) => syncTime > 0 ? syncTime - 1 : 0;
     int commentsSinceTime = normalizeSinceTime(
@@ -45,7 +39,6 @@ class SocialSyncService {
       bool hasMoreComments = true;
       bool hasMoreReactions = true;
 
-      // Sync using unified endpoint with separate since times
       while (hasMoreComments || hasMoreReactions) {
         final response = await _api.fetchSocialDiff(
           collectionID: collectionID,
@@ -53,7 +46,6 @@ class SocialSyncService {
           reactionsSinceTime: reactionsSinceTime,
         );
 
-        // Process comments
         if (response.comments.isNotEmpty) {
           final comments = _decryptComments(response.comments, collectionID);
           await _db.upsertComments(comments);
@@ -65,7 +57,6 @@ class SocialSyncService {
           }
         }
 
-        // Process reactions
         if (response.reactions.isNotEmpty) {
           final reactions = _decryptReactions(response.reactions, collectionID);
           await _db.upsertReactions(reactions);
@@ -84,12 +75,10 @@ class SocialSyncService {
           break;
         }
 
-        // Update since times for pagination
         commentsSinceTime = maxCommentsUpdatedAt;
         reactionsSinceTime = maxReactionsUpdatedAt;
       }
 
-      // Update sync times
       if (maxCommentsUpdatedAt > await _db.getCommentsSyncTime(collectionID)) {
         await _db.setCommentsSyncTime(collectionID, maxCommentsUpdatedAt);
       }
@@ -105,9 +94,6 @@ class SocialSyncService {
     }
   }
 
-  /// Syncs reactions for a specific file in a collection.
-  ///
-  /// Useful for on-demand sync when viewing a file.
   Future<void> syncFileReactions(int collectionID, int fileID) async {
     try {
       final response = await _api.fetchReactionsDiff(
@@ -126,15 +112,12 @@ class SocialSyncService {
     }
   }
 
-  /// Syncs both comments and reactions for a specific file in a collection.
-  ///
-  /// Useful for on-demand sync when opening comments screen.
   Future<void> syncFileSocialData(int collectionID, int fileID) async {
     try {
       final response = await _api.fetchSocialDiff(
         collectionID: collectionID,
         fileID: fileID,
-        // Always get all data for the file (no sinceTime = fetch all)
+        // Omitting sinceTime fetches the file's complete social history.
       );
 
       if (response.comments.isNotEmpty) {
@@ -154,11 +137,6 @@ class SocialSyncService {
     }
   }
 
-  /// Syncs social data for all collections that have new updates.
-  ///
-  /// Called during background sync to keep social data up to date.
-  /// Uses the /comments-reactions/updated-at endpoint to determine which
-  /// collections actually need syncing, avoiding unnecessary API calls.
   Future<bool> syncAllSharedCollections() async {
     if (_isSyncing) {
       _logger.info('Sync already in progress, skipping');
@@ -173,7 +151,6 @@ class SocialSyncService {
         return false;
       }
 
-      // Get latest update timestamps from server
       final latestUpdates = await _api.fetchLatestUpdates();
 
       if (latestUpdates.updates.isEmpty) {
@@ -229,7 +206,6 @@ class SocialSyncService {
             hasNewReactions = hasNewReactions || needsReactionsSync;
           }
 
-          // Sync anon profiles if needed
           if (update.anonProfilesUpdatedAt != null) {
             final localAnonSyncTime = await _db.getAnonProfilesSyncTime(
               update.collectionID,
@@ -248,7 +224,6 @@ class SocialSyncService {
 
       _logger.info('Synced $syncedCount collections with new updates');
 
-      // Fire event if any data was synced
       if (syncedCount > 0) {
         Bus.instance.fire(
           SocialDataUpdatedEvent(
@@ -292,7 +267,6 @@ class SocialSyncService {
     return false;
   }
 
-  /// Syncs anonymous profiles for a collection.
   Future<void> syncAnonProfiles(int collectionID) async {
     try {
       final response = await _api.fetchAnonProfiles(collectionID);
@@ -343,7 +317,6 @@ class SocialSyncService {
     }
   }
 
-  /// Decrypts API comment responses to local Comment models.
   List<Comment> _decryptComments(
     List<CommentApiResponse> apiComments,
     int collectionID,
@@ -377,7 +350,6 @@ class SocialSyncService {
     return comments;
   }
 
-  /// Decrypts API reaction responses to local Reaction models.
   List<Reaction> _decryptReactions(
     List<ReactionApiResponse> apiReactions,
     int collectionID,

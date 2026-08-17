@@ -1,6 +1,5 @@
 import "package:flutter/material.dart";
 
-/// White dot grid that pulses in a radial wave from center outward.
 class OcrDotWaveOverlay extends StatefulWidget {
   final Color backgroundColor;
   final Color dotColor;

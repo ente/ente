@@ -20,8 +20,8 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { savedLocalUser } from "ente-accounts-rs/services/accounts-db";
-import { masterKeyFromSession } from "ente-accounts-rs/services/session-storage";
+import { savedLocalUser } from "ente-accounts/services/accounts-db";
+import { masterKeyFromSession } from "ente-accounts/services/session-storage";
 import {
     OverflowMenu,
     OverflowMenuOption,

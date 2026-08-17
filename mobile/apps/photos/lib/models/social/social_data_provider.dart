@@ -6,10 +6,6 @@ import "package:photos/models/social/reaction.dart";
 import "package:photos/services/social_service.dart";
 import "package:photos/services/social_sync_service.dart";
 
-/// Provider for social data (comments and reactions).
-///
-/// Orchestrates between local database and remote API.
-/// Query methods read from local DB, mutation methods call API then update DB.
 class SocialDataProvider {
   SocialDataProvider._();
   static final instance = SocialDataProvider._();
@@ -18,14 +14,10 @@ class SocialDataProvider {
   final _db = SocialDB.instance;
   final _api = SocialService.instance;
 
-  // ============ Query methods (read from local DB) ============
-
   Future<List<Comment>> getCommentsForFile(int fileID) {
     return _db.getCommentsForFile(fileID);
   }
 
-  /// [candidateCollectionIDs] narrows the indexed lookup to collections the
-  /// caller already knows are eligible.
   Future<Comment?> getLatestCommentForFile(
     int fileID, {
     required List<int> candidateCollectionIDs,
@@ -112,30 +104,18 @@ class SocialDataProvider {
     return _db.getReactionsForCollection(collectionID);
   }
 
-  // ============ Sync methods ============
-
-  /// Syncs reactions for a specific file.
-  /// Call this before displaying reactions for a file to ensure data is fresh.
   Future<void> syncFileReactions(int collectionID, int fileID) {
     return SocialSyncService.instance.syncFileReactions(collectionID, fileID);
   }
 
-  /// Syncs both comments and reactions for a specific file.
-  /// Call this before displaying comments screen to ensure data is fresh.
   Future<void> syncFileSocialData(int collectionID, int fileID) {
     return SocialSyncService.instance.syncFileSocialData(collectionID, fileID);
   }
 
-  /// Syncs anonymous profiles for a collection.
   Future<void> syncAnonProfiles(int collectionID) {
     return SocialSyncService.instance.syncAnonProfiles(collectionID);
   }
 
-  // ============ Comment mutation methods ============
-
-  /// Adds a comment via API, then stores locally.
-  ///
-  /// Returns the created Comment on success, throws on failure.
   Future<Comment?> addComment({
     required int collectionID,
     required String text,
@@ -143,10 +123,8 @@ class SocialDataProvider {
     String? parentCommentID,
   }) async {
     try {
-      // Encrypt the comment text
       final encrypted = _api.encryptComment(text, collectionID);
 
-      // Call API
       final commentID = await _api.createComment(
         collectionID: collectionID,
         cipher: encrypted.cipher,
@@ -155,7 +133,6 @@ class SocialDataProvider {
         parentCommentID: parentCommentID,
       );
 
-      // Create local comment object (timestamps in microseconds to match server)
       final now = DateTime.now().microsecondsSinceEpoch;
       final userID = Configuration.instance.getUserID() ?? 0;
       final comment = Comment(
@@ -169,7 +146,6 @@ class SocialDataProvider {
         updatedAt: now,
       );
 
-      // Store locally
       await _db.addComment(comment);
       return comment;
     } catch (e) {
@@ -178,15 +154,10 @@ class SocialDataProvider {
     }
   }
 
-  /// Deletes a comment via API, then marks as deleted locally.
-  ///
-  /// Returns the deleted Comment on success, throws on failure.
   Future<Comment?> deleteComment(String id) async {
     try {
-      // Call API
       await _api.deleteComment(id);
 
-      // Mark as deleted locally
       return _db.deleteComment(id);
     } catch (e) {
       _logger.severe('Failed to delete comment $id', e);
@@ -194,14 +165,6 @@ class SocialDataProvider {
     }
   }
 
-  // ============ Reaction mutation methods ============
-
-  /// Toggles a reaction (like) on a file or comment.
-  ///
-  /// If the user hasn't reacted, creates a new reaction.
-  /// If the user has already reacted, deletes the existing reaction.
-  ///
-  /// Returns the new reaction state (Reaction with isDeleted flag).
   Future<Reaction?> toggleReaction({
     required int userID,
     required int collectionID,
@@ -210,7 +173,6 @@ class SocialDataProvider {
     String reactionType = 'green_heart',
   }) async {
     try {
-      // Check if user already has a reaction
       final existingReaction = await _findExistingReaction(
         userID: userID,
         collectionID: collectionID,
@@ -219,10 +181,8 @@ class SocialDataProvider {
       );
 
       if (existingReaction != null && !existingReaction.isDeleted) {
-        // User has an active reaction - delete it
         await _api.deleteReaction(existingReaction.id);
 
-        // Mark as deleted locally (timestamps in microseconds to match server)
         final now = DateTime.now().microsecondsSinceEpoch;
         final deletedReaction = existingReaction.copyWith(
           isDeleted: true,
@@ -231,7 +191,6 @@ class SocialDataProvider {
         await _db.upsertReactions([deletedReaction]);
         return deletedReaction;
       } else {
-        // User doesn't have a reaction or it's deleted - create/upsert one
         final encrypted = _api.encryptReaction(reactionType, collectionID);
 
         final reactionID = await _api.upsertReaction(
@@ -242,7 +201,6 @@ class SocialDataProvider {
           commentID: commentID,
         );
 
-        // Create local reaction object (timestamps in microseconds to match server)
         final now = DateTime.now().microsecondsSinceEpoch;
         final reaction = Reaction(
           id: reactionID,
@@ -256,7 +214,6 @@ class SocialDataProvider {
           updatedAt: now,
         );
 
-        // Store locally
         await _db.upsertReactions([reaction]);
         return reaction;
       }
@@ -266,7 +223,6 @@ class SocialDataProvider {
     }
   }
 
-  /// Finds an existing reaction for the user on the given target.
   Future<Reaction?> _findExistingReaction({
     required int userID,
     required int collectionID,
@@ -295,7 +251,6 @@ class SocialDataProvider {
     return null;
   }
 
-  /// Checks if the current user has liked a file in a collection.
   Future<bool> hasUserLikedFile(int fileID, int collectionID) async {
     final userID = Configuration.instance.getUserID();
     if (userID == null) return false;
@@ -307,7 +262,6 @@ class SocialDataProvider {
     return reactions.any((r) => r.userID == userID && !r.isDeleted);
   }
 
-  /// Gets the current user's reaction on a file in a collection (if any).
   Future<Reaction?> getUserReactionForFile(int fileID, int collectionID) async {
     final userID = Configuration.instance.getUserID();
     if (userID == null) return null;
@@ -322,12 +276,6 @@ class SocialDataProvider {
     return null;
   }
 
-  // ============ Anon Profile methods ============
-
-  /// Gets the decrypted display name for an anonymous user.
-  ///
-  /// Returns the display name from the synced AnonProfile if available,
-  /// otherwise returns [fallback] (typically the raw anonUserID).
   Future<String> getAnonDisplayName(
     String anonUserID,
     int collectionID, {
@@ -337,9 +285,6 @@ class SocialDataProvider {
     return profile?.displayName ?? fallback ?? anonUserID;
   }
 
-  /// Gets all anon profiles for a collection as a map of anonUserID -> displayName.
-  ///
-  /// Only includes profiles where displayName could be extracted from the data.
   Future<Map<String, String>> getAnonDisplayNamesForCollection(
     int collectionID,
   ) async {

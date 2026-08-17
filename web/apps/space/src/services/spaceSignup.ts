@@ -9,18 +9,18 @@ import {
     stashSRPSetupAttributes,
     unstashAfterUseSRPSetupAttributes,
     unstashReferralSource,
-} from "ente-accounts-rs/services/accounts-db";
+} from "ente-accounts/services/accounts-db";
 import {
     generateSRPSetupAttributes,
     getAndSaveSRPAttributes,
-} from "ente-accounts-rs/services/srp";
+} from "ente-accounts/services/srp";
 import {
     generateAndSaveInteractiveKeyAttributes,
     generateKeysAndAttributes,
     sendOTT,
     verifyEmail,
     type KeyAttributes,
-} from "ente-accounts-rs/services/user";
+} from "ente-accounts/services/user";
 import { isMuseumHTTPError } from "ente-base/http";
 import {
     decryptSpaceBootstrapAuthToken,

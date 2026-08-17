@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=57-6281&m=dev
-/// Section: Design system / Shadows
-/// Specs: Subtle elevation shadows for sheets, overlays, and floating controls.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=57-6281&m=dev
 class Shadows {
   const Shadows._();
 

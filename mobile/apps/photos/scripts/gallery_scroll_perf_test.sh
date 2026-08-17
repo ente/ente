@@ -1,10 +1,8 @@
 #!/bin/bash
 
-# Make sure to go through home_gallery_scroll_test.dart and 
-# fill in email and password.
-# Specify destination directory for the perf results in perf_driver.dart.
-# Specify the report_key of the test in perf_driver.dart. `report_key`` of
-# `traceAction`` in app_init_test.dart.
+# Add credentials in integration_test/home_gallery_scroll_test.dart.
+# Configure home_gallery_scrolling_summary and the output filename in
+# test_driver/perf_driver.dart.
 
 export ENDPOINT="https://api.ente.com"
 

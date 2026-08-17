@@ -272,8 +272,6 @@ class FileUtil {
     }
 
     try {
-      // Use system file picker on both Android and iOS to let user
-      // choose where to save the file.
       final fileBytes = await decryptedFile.readAsBytes();
       final baseName = _baseNameWithoutExtension(targetFileName);
       final savedPath = await _saveFile(
@@ -303,9 +301,6 @@ class FileUtil {
     }
   }
 
-  /// Saves files using the platform's system file picker.
-  /// On Android and iOS this shows a system sheet allowing the user
-  /// to choose where to save the file.
   static Future<String?> _saveFile({
     required Uint8List bytes,
     required String fileName,

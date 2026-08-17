@@ -43,11 +43,11 @@ type FamilyMember struct {
 	Status       MemberStatus `json:"status" binding:"required"`
 	StorageLimit *int64       `json:"storageLimit" binding:"omitempty"`
 	UserID       *int64       `json:"userID"`
-	// This information should not be sent back in the response if the membership status is `INVITED`
+	// Do not expose usage for invited members.
 	Usage        int64 `json:"usage"`
 	IsAdmin      bool  `json:"isAdmin"`
-	MemberUserID int64 `json:"-"` // for internal use only, ignore from json response
-	AdminUserID  int64 `json:"-"` // for internal use only, ignore from json response
+	MemberUserID int64 `json:"-"`
+	AdminUserID  int64 `json:"-"`
 }
 
 type ModifyMemberStorage struct {
@@ -57,7 +57,7 @@ type ModifyMemberStorage struct {
 
 type FamilyMemberResponse struct {
 	Members []FamilyMember `json:"members" binding:"required"`
-	// Family admin subscription storage capacity. This excludes add-on and any other bonus storage
+	// The family admin's plan storage, excluding bonuses and add-ons.
 	Storage    int64 `json:"storage" binding:"required"`
 	ExpiryTime int64 `json:"expiryTime" binding:"required"`
 
@@ -65,9 +65,7 @@ type FamilyMemberResponse struct {
 }
 
 type UserUsageWithSubData struct {
-	UserID int64
-	// StorageConsumed by the current member.
-	// This information should not be sent back in the response if the membership status is `INVITED`
+	UserID          int64
 	StorageConsumed int64
 	ExpiryTime      int64
 	Storage         int64

@@ -139,7 +139,6 @@ class EnteMemoryWidgetProvider : HomeWidgetProvider() {
                                                                 subText
                                                         )
                                                 } else {
-                                                        // Open App on Widget Click
                                                         val deepLinkUri =
                                                                 Uri.parse(
                                                                         "memorywidget://configure?homeWidget"

@@ -53,8 +53,7 @@ func (u *PasskeyUser) WebAuthnName() string {
 }
 
 func (u *PasskeyUser) WebAuthnDisplayName() string {
-	// Safari requires a display name to be set, otherwise it does not recognize
-	// security keys.
+	// Safari ignores security keys unless a display name is set.
 	return u.Email
 }
 
@@ -68,7 +67,7 @@ func (u *PasskeyUser) WebAuthnCredentials() []webauthn.Credential {
 }
 
 func (u *PasskeyUser) WebAuthnIcon() string {
-	// this specification is deprecated but the interface requires it
+	// The interface still requires the deprecated icon field.
 	return ""
 }
 
@@ -235,11 +234,8 @@ func (r *Repository) CreateBeginRegistrationData(user *ente.User) (options *prot
 		return
 	}
 
-	// Set residentKey to "required" to ensure passkeys are created as discoverable credentials.
-	// This is necessary for Android to show third-party password managers (1Password, Bitwarden, etc.)
-	// in the Credential Manager UI during passkey registration. Without this, Android falls back to
-	// the legacy FIDO2 API which only offers Google Password Manager.
-	// This feature is currently enabled only for internal users with Ente email addresses.
+	// Discoverable credentials let Android offer third-party password managers.
+	// This is currently limited to Ente accounts.
 	normalizedEmail := emailUtil.NormalizeEmail(user.Email)
 	if strings.HasSuffix(normalizedEmail, "@ente.io") ||
 		strings.HasSuffix(normalizedEmail, "@ente.com") {

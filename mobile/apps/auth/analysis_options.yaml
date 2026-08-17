@@ -1,11 +1,6 @@
-# For more linters, we can check https://dart-lang.github.io/linter/lints/index.html
-# or https://pub.dev/packages/lint (Effective dart)
-# use "flutter analyze ." or "dart  analyze ." for running lint checks
-
 include: package:flutter_lints/flutter.yaml
 linter:
   rules:
-    # Ref https://github.com/flutter/packages/blob/master/packages/flutter_lints/lib/flutter.yaml
     - avoid_print
     - avoid_unnecessary_containers
     - avoid_web_libraries_in_flutter
@@ -22,7 +17,6 @@ linter:
     - avoid_empty_else
     - exhaustive_cases
 
-    # just style suggestions
     - sort_pub_dependencies
     - use_rethrow_when_possible
     - directives_ordering

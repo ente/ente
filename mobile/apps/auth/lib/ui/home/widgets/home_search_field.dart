@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Focuses the persistent search field and leaves the triggering key event for
-/// the platform text input system to process.
+// Return false so the platform text input also receives the triggering key.
 bool activateHomeSearchFromKeyEvent({
   required VoidCallback showSearch,
   required FocusNode focusNode,
@@ -12,7 +11,6 @@ bool activateHomeSearchFromKeyEvent({
   return false;
 }
 
-/// Keeps the search input attached and programmatically focusable while hidden.
 class PersistentSearchField extends StatelessWidget {
   const PersistentSearchField({
     super.key,

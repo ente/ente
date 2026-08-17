@@ -31,8 +31,6 @@ func (c *Controller) delete(i int) {
 	for {
 		err := c.tryDelete()
 		if err != nil {
-			// Sleep in proportion to the (arbitrary) index to space out the
-			// workers further.
 			time.Sleep(time.Duration(i+5) * time.Minute)
 		}
 	}

@@ -191,8 +191,6 @@ class UserService {
     );
   }
 
-  // getPublicKey returns null value if email id is not
-  // associated with another ente account
   Future<String?> getPublicKey(String email) async {
     try {
       final response = await _enteDio.get(
@@ -242,7 +240,6 @@ class UserService {
         if (hasSecurityStatusChanged) {
           Bus.instance.fire(UserDetailsChangedEvent());
         }
-        // handle email change from different client
         if (userDetails.email != _config.getEmail()) {
           await setEmail(userDetails.email);
         }
@@ -322,8 +319,7 @@ class UserService {
       }
 
       _logger.severe(e);
-      //This future is for waiting for the dialog from which logout() is called
-      //to close and only then to show the error dialog.
+      // Let the logout dialog close before showing the error.
       Future.delayed(const Duration(milliseconds: 150), () {
         if (context.mounted) {
           unawaited(showGenericErrorDialog(context: context, error: e));
@@ -492,7 +488,6 @@ class UserService {
           (route) => route.isFirst,
         );
       } else {
-        // should never reach here
         throw Exception("unexpected response during email verification");
       }
     } on DioException catch (e) {
@@ -844,7 +839,6 @@ class UserService {
         );
       }
     } else {
-      // should never reach here
       throw Exception("unexpected response during email verification");
     }
   }

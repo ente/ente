@@ -61,7 +61,6 @@ EXECUTE PROCEDURE
 
 CREATE OR REPLACE FUNCTION fn_update_collections_updation_time_using_update_at() RETURNS TRIGGER AS $$
 BEGIN
-    --
     IF  (TG_OP = 'UPDATE' OR TG_OP = 'INSERT') THEN
         UPDATE collections SET updation_time = NEW.updated_at where collection_id = new.collection_id and
                 updation_time < New.updated_at;

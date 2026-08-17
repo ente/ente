@@ -37,7 +37,6 @@ class MagicCache {
 
   MagicCache(this.title, this.fileUploadedIDs, {this.fileLocalIntIDs});
 
-  // Get map of uploadID to index in fileUploadedIDs
   Map<int, int> get fileIdToPositionMap {
     if (_fileIdToPositionMap == null) {
       _fileIdToPositionMap = {};
@@ -116,7 +115,7 @@ String getLocalizedTitleForL10n(StringsLocalizations l10n, String title) {
     case 'Greenery':
       return l10n.discover_greenery;
     default:
-      return title; // If no match, return the original string
+      return title;
   }
 }
 
@@ -234,8 +233,7 @@ class MagicCacheService {
   static const _kSearchTabIndex = 3;
   static const _kBackgroundUpdateDebounce = Duration(minutes: 5);
 
-  /// Delay is for cache update to be done not during app init, during which a
-  /// lot of other things are happening.
+  // Avoid competing with other startup work.
   static const _kCacheUpdateDelay = Duration(seconds: 10);
 
   final SharedPreferences _prefs;
@@ -622,9 +620,6 @@ class MagicCacheService {
     }
   }
 
-  ///Returns non-empty magic results from magicPromptsData
-  ///Length is number of prompts, can be less if there are not enough non-empty
-  ///results
   Future<List<MagicCache>> _nonEmptyMagicResults(
     List<Prompt> magicPromptsData,
   ) async {

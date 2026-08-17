@@ -21,7 +21,6 @@ import "package:photos/ui/social/widgets/resolved_social_user_name.dart";
 
 const _shrinkWrapThreshold = 30;
 
-/// Shows the likes bottom sheet for a file
 Future<void> showLikesBottomSheet(
   BuildContext context, {
   required int fileID,
@@ -93,7 +92,6 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
             includeHidden: _isOpenedFromHiddenCollection(),
           );
 
-      // Fetch like counts and thumbnails in parallel
       final sharedCollections = await Future.wait(
         sharedCollectionsList.map((collection) async {
           final likes = await SocialDataProvider.instance
@@ -111,13 +109,11 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
 
       if (!mounted) return;
 
-      // If no shared collections, close the sheet
       if (sharedCollections.isEmpty) {
         Navigator.of(context).pop();
         return;
       }
 
-      // Validate selected collection is in the shared list
       final isSelectedInShared = sharedCollections.any(
         (info) => info.collection.id == _selectedCollectionID,
       );
@@ -144,7 +140,6 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
     setState(() => _isLoading = true);
 
     try {
-      // Sync reactions from server before loading locally
       await SocialDataProvider.instance.syncFileReactions(
         _selectedCollectionID,
         widget.fileID,

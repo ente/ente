@@ -10,10 +10,6 @@ type GetEmailsFromHashesRequest struct {
 	Hashes []string `json:"hashes"`
 }
 
-// Admin API request to disable 2FA for a user account.
-//
-// This is used when we get a user request to reset their 2FA when they might've
-// lost access to their 2FA codes. We verify their identity out of band.
 type DisableTwoFactorRequest struct {
 	UserID int64 `json:"userID" binding:"required"`
 }

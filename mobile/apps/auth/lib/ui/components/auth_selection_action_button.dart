@@ -1,7 +1,6 @@
 import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 
-/// Auth-local selection action composed from Ente design tokens.
 class AuthSelectionActionButton extends StatelessWidget {
   const AuthSelectionActionButton({
     super.key,

@@ -33,7 +33,6 @@ class LocalAuthenticationService {
   }) async {
     final unlockReason = context.strings.unlock;
     if (kDebugMode && useDebugAuthCache) {
-      // if last auth time is less than 60 seconds, don't ask for auth again
       if (lastAuthTime != 0 &&
           DateTime.now().millisecondsSinceEpoch - lastAuthTime < 60000) {
         return true;

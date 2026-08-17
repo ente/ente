@@ -7,14 +7,10 @@ import (
 )
 
 type GetCollectionParams struct {
-	CollectionID int64
-	ActorUserID  int64
-	// IncludeDeleted defaults to false. If false and user is trying to fetch deletion collection
-	// then the request fails
+	CollectionID   int64
+	ActorUserID    int64
 	IncludeDeleted bool
-
-	// VerifyOwner deafults to false. If the flag is set to true, the method will verify that the actor actually owns the collection
-	VerifyOwner bool
+	VerifyOwner    bool
 	// todo: Add accessType in params for verifying read/write/can-upload/owner types of access
 }
 

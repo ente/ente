@@ -21,6 +21,7 @@ import {
     saveSRPAttributes,
     updateSavedLocalUser,
 } from "ente-accounts/services/accounts-db";
+import { decryptBox } from "ente-accounts/services/crypto";
 import {
     openPasskeyVerificationURL,
     passkeyVerificationRedirectURL,
@@ -31,6 +32,13 @@ import {
     unstashRedirect,
 } from "ente-accounts/services/redirect";
 import { checkSessionValidity } from "ente-accounts/services/session";
+import {
+    masterKeyFromSession,
+    saveMasterKeyInSessionAndSafeStore,
+    stashKeyEncryptionKeyInSessionStore,
+    unstashKeyEncryptionKeyFromSession,
+    updateSessionFromElectronSafeStorageIfNeeded,
+} from "ente-accounts/services/session-storage";
 import type { SRPAttributes } from "ente-accounts/services/srp";
 import {
     generateSRPSetupAttributes,
@@ -47,17 +55,9 @@ import {
 import { LinkButton } from "ente-base/components/LinkButton";
 import { LoadingIndicator } from "ente-base/components/loaders";
 import { useBaseContext } from "ente-base/context";
-import { decryptBox } from "ente-base/crypto";
 import { isDevBuild } from "ente-base/env";
 import { clearLocalStorage } from "ente-base/local-storage";
 import log from "ente-base/log";
-import {
-    masterKeyFromSession,
-    saveMasterKeyInSessionAndSafeStore,
-    stashKeyEncryptionKeyInSessionStore,
-    unstashKeyEncryptionKeyFromSession,
-    updateSessionFromElectronSafeStorageIfNeeded,
-} from "ente-base/session";
 import { saveAuthToken, savedAuthToken } from "ente-base/token";
 import { t } from "i18next";
 import { useRouter } from "next/router";

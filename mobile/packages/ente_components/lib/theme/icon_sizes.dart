@@ -1,6 +1,4 @@
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4770-20147&m=dev
-/// Section: Icons / Icon
-/// Specs: Icon glyph sizes used across component states.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4770-20147&m=dev
 class IconSizes {
   const IconSizes._();
 

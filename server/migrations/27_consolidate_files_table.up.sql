@@ -24,7 +24,6 @@ CREATE TRIGGER update_object_keys_updated_at
 EXECUTE PROCEDURE
     trigger_updated_at_microseconds_column();
 
--- copy data from existing tables to this new table.
 BEGIN;
 INSERT INTO object_keys(file_id, o_type, object_key, size, datacenters)
 SELECT file_id, 'file', object_key,size, datacenters FROM file_object_keys;

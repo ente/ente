@@ -11,14 +11,8 @@ import 'package:flutter/services.dart';
 
 enum TextInputComponentMessageType { helper, error, alert, success }
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2275-11526&m=dev
-/// Section: Textfield / Text Input
-/// Specs: 388px design width, 52px field height, 81px with label, 100px with helper.
-/// States: default, disabled, focused, error, success.
-///
-/// Multiline variant:
-/// https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2275-11746&m=dev
-
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2275-11526&m=dev
+// Multiline variant: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2275-11746&m=dev
 class TextInputComponent extends StatefulWidget {
   const TextInputComponent({
     super.key,
@@ -70,15 +64,10 @@ class TextInputComponent extends StatefulWidget {
   final bool autofocus;
   final int? maxLength;
 
-  /// Executes [onSubmit] when the notifier changes. Duplicate submissions are
-  /// ignored while a submit is in flight.
   final ValueNotifier<dynamic>? submitNotifier;
 
-  /// Clears and unfocuses the field when the notifier changes, unless [onCancel]
-  /// is provided.
   final ValueNotifier<dynamic>? cancelNotifier;
 
-  /// Called by [submitNotifier] or the platform editing-complete action.
   final FutureOr<void> Function(String value)? onSubmit;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onCancel;
@@ -91,32 +80,22 @@ class TextInputComponent extends StatefulWidget {
   final List<TextInputFormatter>? inputFormatters;
   final TextInputType? keyboardType;
 
-  /// Platform IME action. When set to [TextInputAction.next], completing the
-  /// field moves focus to the next node instead of doing nothing.
   final TextInputAction? textInputAction;
   final bool enableFillColor;
   final bool autocorrect;
   final bool enableSuggestions;
   final bool isRequired;
 
-  /// Caller-owned leading widget. Pass explicit color and size when needed.
   final Widget? prefix;
 
-  /// Caller-owned trailing widget. Sits in an icon slot that is at least
-  /// [IconSizes.medium] square and grows to fit wider content (e.g. a row of
-  /// affordances). Multiline fields pin this slot to the top.
   final Widget? suffix;
 
-  /// Optional tap handler for [suffix]. When provided, the trailing affordance
-  /// gets a 48px tap target without changing the field's visual layout.
   final VoidCallback? onSuffixTap;
   final TextInputComponentMessageType messageType;
   final IconData? messageIcon;
   final bool isDisabled;
 
-  /// When true the field is non-editable but keeps the enabled visual style
-  /// (unlike [isDisabled], which also mutes the text and disables the suffix
-  /// tap). Text stays selectable and the soft keyboard is suppressed.
+  // Unlike isDisabled, this keeps enabled styling and selectable text.
   final bool readOnly;
   final Iterable<String>? autofillHints;
   final int? maxLines;

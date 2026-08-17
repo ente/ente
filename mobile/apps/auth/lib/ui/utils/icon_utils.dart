@@ -14,10 +14,8 @@ class IconUtils {
 
   static final IconUtils instance = IconUtils._privateConstructor();
 
-  // Map of icon-title to the color code in HEX
   final Map<String, SimpleIconData> _simpleIcons = {};
   final Map<String, CustomIconData> _customIcons = {};
-  // Map of icon-color to its luminance
   final Map<Color, double> _colorLuminance = {};
   final List<String> _titleSplitCharacters = ['(', '.'];
 
@@ -218,7 +216,7 @@ class IconUtils {
     if (hexColor == null) return null;
     final theme = Theme.of(context).brightness;
     final color = Color(int.parse("0xFF$hexColor"));
-    // Color is close to neutral-grey and it's too light or dark for theme
+    // Use the theme icon color when a neutral grey lacks contrast.
     if (_isCloseToNeutralGrey(color) &&
         ((theme == Brightness.light && _getColorLuminance(color) > 0.70) ||
             (theme == Brightness.dark && _getColorLuminance(color) < 0.05))) {

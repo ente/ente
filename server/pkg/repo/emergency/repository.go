@@ -61,8 +61,6 @@ WHERE emergency_contact.user_id=$1 AND emergency_contact.emergency_contact_id=$2
 	return rowAffected > 0, nil
 }
 
-// GetActiveContactForUser returns all the contacts for a user that are in state accepted or invited
-// and also returns all the contacts that have added the user as emergency contact
 func (r *Repository) GetActiveContactForUser(ctx context.Context, userID int64) ([]*ContactRow, error) {
 	rows, err := r.DB.QueryContext(ctx,
 		`SELECT user_id, emergency_contact_id, state, notice_period_in_hrs, encrypted_key 
@@ -120,8 +118,6 @@ func (r *Repository) UpdateState(ctx context.Context,
 	return count > 0, stacktrace.Propagate(err2, "")
 }
 
-// UpdateRecoveryNotice updates the notice period for an emergency contact
-// Only allows update if the contact state is INVITED or ACCEPTED
 func (r *Repository) UpdateRecoveryNotice(ctx context.Context,
 	userID int64,
 	emergencyContactID int64,

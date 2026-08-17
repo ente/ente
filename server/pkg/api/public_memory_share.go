@@ -53,13 +53,11 @@ func (h *PublicMemoryShareHandler) GetFile(c *gin.Context) {
 	h.getFileForType(c, ente.FILE)
 }
 
-// GetThumbnailURLV3 returns the thumbnail URL and reserves HTTP 404 for an unavailable endpoint.
 func (h *PublicMemoryShareHandler) GetThumbnailURLV3(c *gin.Context) {
 	url, err := h.getFileURL(c, ente.THUMBNAIL)
 	writeFileURLV3(c, url, err)
 }
 
-// GetFileURLV3 returns the file URL and reserves HTTP 404 for an unavailable endpoint.
 func (h *PublicMemoryShareHandler) GetFileURLV3(c *gin.Context) {
 	url, err := h.getFileURL(c, ente.FILE)
 	writeFileURLV3(c, url, err)

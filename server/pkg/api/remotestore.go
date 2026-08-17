@@ -68,7 +68,6 @@ func (h *RemoteStoreHandler) GetFeatureFlags(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// CheckDomain returns 200 ok if the custom domain is claimed by any ente user
 func (h *RemoteStoreHandler) CheckDomain(c *gin.Context) {
 	domain := c.Query("domain")
 	if domain == "" {

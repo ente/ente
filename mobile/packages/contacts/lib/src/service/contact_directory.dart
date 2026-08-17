@@ -9,7 +9,6 @@ import 'package:logging/logging.dart';
 
 typedef ContactsServiceFactory = ContactsService Function();
 
-/// Account-scoped, observable contact cache over [ContactsService].
 class ContactDirectory {
   ContactDirectory({
     ContactsService? contactsService,
@@ -88,8 +87,7 @@ class ContactDirectory {
 
   void clearSession({bool notify = true}) => _clear(notify: notify);
 
-  /// Positive account IDs are authoritative and never fall back to email;
-  /// email lookup is only for identities without a known account ID.
+  // Positive account IDs are authoritative and never fall back to email.
   ContactRecord? getCachedContact({int? contactUserId, String? email}) {
     if (contactUserId != null && contactUserId > 0) {
       return _contactsByUserId[contactUserId];

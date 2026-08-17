@@ -34,7 +34,6 @@ class RemoteFlags {
     required this.customDomainCNAME,
   });
 
-  // CopyWith
   RemoteFlags copyWith({
     bool? enableStripe,
     bool? disableCFWorker,

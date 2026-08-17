@@ -54,22 +54,18 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
   @protected
   bool get isInEditMode => _currentMode == InfoPageMode.edit;
 
-  // Current data state (can be updated after saving)
   T? _currentData;
 
-  // Collection selection state
   List<Collection> _availableCollections = [];
   Set<int> _selectedCollectionIds = {};
   Set<int> _initialSelectedCollectionIds = {};
   bool _hasLoadedCollectionSelection = false;
 
-  // Getter for current data - prioritizes updated data over existing file data
   T? get currentData {
     if (_currentData != null) {
       return _currentData;
     }
 
-    // Extract data from existing file if available
     if (widget.existingFile != null) {
       final infoItem = InfoFileService.instance.extractInfoFromFile(
         widget.existingFile!,
@@ -80,13 +76,8 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
     return null;
   }
 
-  // Override this method in subclasses to refresh UI when data changes
-  void refreshUIWithCurrentData() {
-    // Default implementation does nothing
-    // Subclasses should override this to update their controllers/state
-  }
+  void refreshUIWithCurrentData() {}
 
-  // Abstract methods that subclasses must implement
   String get pageTitle;
   String get submitButtonText;
   InfoType get infoType;
@@ -209,9 +200,7 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
     loadExistingData();
   }
 
-  void loadExistingData() {
-    // Override in subclasses if needed
-  }
+  void loadExistingData() {}
 
   Future<void> _loadCollections() async {
     try {
@@ -238,7 +227,7 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
         _hasLoadedCollectionSelection = true;
       });
     } catch (e) {
-      // Handle error silently or show a message
+      // Leave collection selection unavailable.
     }
   }
 
@@ -264,7 +253,6 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
     }
 
     try {
-      // Create InfoItem using the subclass implementation
       final infoData = createInfoData();
       final infoItem = InfoItem(
         type: infoType,
@@ -273,17 +261,14 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
       );
 
       if (widget.existingFile != null) {
-        // Update existing file
         await _updateExistingFile(infoItem);
       } else {
-        // Create new file
         await _createNewFile(infoItem);
       }
 
       if (mounted && widget.existingFile != null) {
         _captureEditSessionState();
 
-        // Switch to view mode with updated data
         setState(() {
           _currentMode = InfoPageMode.view;
         });
@@ -315,7 +300,7 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
   Future<void> _updateExistingFile(InfoItem infoItem) async {
     if (widget.existingFile == null) return;
 
-    // Use InfoFileService to handle the update logic
+    // updateInfoFile syncs internally.
     final success = await InfoFileService.instance.updateInfoFile(
       existingFile: widget.existingFile!,
       updatedInfoItem: infoItem,
@@ -325,41 +310,31 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
       throw Exception('Failed to update file metadata');
     }
 
-    // Handle collection membership changes
     await _updateCollectionMembership();
 
     if (!mounted) return;
 
-    // Update the local data to reflect the changes in the UI
-    // Use the infoItem data directly since it contains the updated values
     setState(() {
       _currentData = infoItem.data as T?;
     });
 
-    // Refresh UI with updated data
     refreshUIWithCurrentData();
-
-    // The info file service already performs a sync, so we don't need to sync again
   }
 
   Future<void> _updateCollectionMembership() async {
     if (widget.existingFile == null) return;
     if (!_hasLoadedCollectionSelection) return;
 
-    // Get current collections for the file
     final currentCollections = await CollectionService.instance
         .getCollectionsForFile(widget.existingFile!);
 
-    // Fetch all collections to ensure we have the latest state
     final allCollections = await CollectionService.instance.getCollections();
 
-    // Get the favorites/important collection for special handling
     final favoriteCollection = await CollectionService.instance
         .getOrCreateImportantCollection();
 
     final currentCollectionIds = currentCollections.map((c) => c.id).toSet();
 
-    // Check if favorites status changed
     final wasFavorite = currentCollectionIds.contains(favoriteCollection.id);
     final isFavoriteNow = _selectedCollectionIds.contains(
       favoriteCollection.id,
@@ -371,10 +346,8 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
       await FavoritesService.instance.addToFavorites(widget.existingFile!);
     }
 
-    // Only favorites is special-cased; Uncategorized is treated as a normal
-    // collection. A file can belong to multiple collections (incl.
-    // Uncategorized), so it is only removed from Uncategorized when the user
-    // explicitly deselects it.
+    // Only Favorites is special. Uncategorized changes only when selected or
+    // deselected like any other collection.
     final regularCurrentIds = currentCollectionIds
         .where((id) => id != favoriteCollection.id)
         .toSet();
@@ -387,7 +360,6 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
       regularSelectedIds,
     );
 
-    // If all regular collections are deselected, move to uncategorized
     if (regularSelectedIds.isEmpty && collectionsToRemove.isNotEmpty) {
       for (final collectionId in collectionsToRemove) {
         try {
@@ -406,7 +378,6 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
         }
       }
     } else {
-      // Add to new collections
       for (final collectionId in collectionsToAdd) {
         try {
           final collection = allCollections.firstWhere(
@@ -422,7 +393,6 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
         }
       }
 
-      // Remove from deselected collections
       for (final collectionId in collectionsToRemove) {
         try {
           final collection = allCollections.firstWhere(
@@ -455,13 +425,11 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
       selectedCollections.add(uncategorizedCollection);
     }
 
-    // Upload to the first collection
     final uploadedFile = await InfoFileService.instance.createAndUploadInfoFile(
       infoItem: infoItem,
       collection: selectedCollections.first,
     );
 
-    // Add to additional collections if multiple were selected
     for (int i = 1; i < selectedCollections.length; i++) {
       await CollectionService.instance.addToCollection(
         selectedCollections[i],
@@ -470,13 +438,11 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
       );
     }
 
-    // Trigger sync after successful save
     await CollectionService.instance.sync();
     Bus.instance.fire(UserDetailsRefreshEvent());
 
     if (!mounted) return;
 
-    // Show success message
     final collectionCount = selectedCollections.length;
     final message = collectionCount == 1
         ? context.strings.recordSavedSuccessfully
@@ -484,13 +450,11 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
             count: collectionCount,
           );
 
-    // Navigate to home page and clear all previous routes
     await Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const HomePage()),
       (route) => false,
     );
 
-    // Show success message after navigation
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
         showToast(context, message);

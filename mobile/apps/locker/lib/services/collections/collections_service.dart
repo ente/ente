@@ -34,7 +34,6 @@ class CollectionService {
   static final CollectionService instance =
       CollectionService._privateConstructor();
 
-  // Fixed set of suggested collection names
   static const Set<String> _suggestedCollectionNames = {
     'Personal',
     'Work',
@@ -95,7 +94,6 @@ class CollectionService {
       return;
     }
     await _db.updateCollections(updatedCollections);
-    // Update the cache with new/updated collections
     for (final collection in updatedCollections) {
       _collectionIDToCollections[collection.id] = collection;
     }
@@ -180,16 +178,12 @@ class CollectionService {
       final collection = await _apiClient.create(name, type);
       _logger.info("Created collection: ${collection.id}");
 
-      // Cache in memory
       _collectionIDToCollections[collection.id] = collection;
 
-      // Add to local database immediately
       await _db.updateCollections([collection]);
 
-      // Fire event to update UI
       Bus.instance.fire(CollectionsUpdatedEvent('collection_created'));
 
-      // Sync to ensure we have the latest state
       await sync();
 
       return collection;
@@ -287,7 +281,6 @@ class CollectionService {
     }
   }
 
-  /// Removes orphaned files that exist in files but have no collection mappings.
   Future<void> cleanupOrphanedFiles() async {
     try {
       await _db.cleanupOrphanedFiles();
@@ -298,9 +291,6 @@ class CollectionService {
     }
   }
 
-  /// Adds a file to a collection. By default this triggers a full sync to
-  /// update local state. Set [runSync] to false to delay syncing (useful when
-  /// adding the same file to multiple collections during an upload).
   Future<void> addToCollection(
     Collection collection,
     EnteFile file, {
@@ -312,14 +302,11 @@ class CollectionService {
         "Added file (ID: ${file.uploadedFileID}) to collection ${collection.id}",
       );
 
-      // Update local database immediately
       await _db.addFilesToCollection(collection, [file]);
 
-      // Fire event to update UI
       Bus.instance.fire(CollectionsUpdatedEvent('add_to_collection'));
 
       if (runSync) {
-        // Also sync to ensure we have the latest state from server
         await sync();
       }
     } catch (e, stackTrace) {
@@ -355,7 +342,6 @@ class CollectionService {
     try {
       await _apiClient.rename(collection, newName);
       _logger.info("Renamed collection ${collection.id}");
-      // Let sync update the local state
       await sync();
     } catch (e, s) {
       _logger.severe("failed to rename collection", e, s);
@@ -455,10 +441,8 @@ class CollectionService {
     }
 
     try {
-      // Call API to move files on server
       await _apiClient.move(files, from, to);
 
-      // Update collectionID for all files
       for (final file in files) {
         file.collectionID = to.id;
       }
@@ -468,7 +452,6 @@ class CollectionService {
       await _db.addFilesToCollection(to, files);
       await _db.deleteFilesFromCollection(from, files);
 
-      // Let sync update the local state to ensure consistency
       if (runSync) {
         await sync();
       }
@@ -538,13 +521,7 @@ class CollectionService {
     }
   }
 
-  /// Trash an empty collection directly without moving files.
-  /// The server will verify that the collection is actually empty before
-  /// deleting. If keepFiles is set as False and the collection is not empty,
-  /// then the files in the collection will be moved to trash.
-  ///
-  /// [isBulkDelete] - During bulk deletion, this event is not fired to avoid
-  /// quick refresh of the collection gallery
+  // The server rejects this path unless the collection is empty.
   Future<void> trashEmptyCollection(
     Collection collection, {
     bool isBulkDelete = false,
@@ -555,6 +532,7 @@ class CollectionService {
         keepFiles: true,
         skipEventFiring: isBulkDelete,
       );
+      // Bulk deletion syncs once after the loop.
       if (!isBulkDelete) {
         await sync();
         await TrashService.instance.syncTrash();
@@ -583,8 +561,6 @@ class CollectionService {
         split.ownedByOtherUsers,
       );
     } else if (!isCollectionOwner && split.ownedByCurrentUser.isNotEmpty) {
-      // collection is not owned by the user, just remove files owned
-      // by current user and return
       await _apiClient.removeFromCollection(
         collection.id,
         split.ownedByCurrentUser,
@@ -599,13 +575,7 @@ class CollectionService {
       return;
     }
 
-    // pendingAssignMap keeps a track of files which are yet to be assigned to
-    // to destination collection.
     final Map<int, EnteFile> pendingAssignMap = {};
-    // destCollectionToFilesMap contains the destination collection and
-    // files entry which needs to be moved in destination.
-    // After the end of mapping logic, the number of files entries in
-    // pendingAssignMap should be equal to files in destCollectionToFilesMap
     final Map<int, List<EnteFile>> destCollectionToFilesMap = {};
     final List<int> uploadedIDs = [];
     for (EnteFile f in split.ownedByCurrentUser) {
@@ -618,9 +588,7 @@ class CollectionService {
     final Map<int, List<EnteFile>> collectionToFilesMap = await _db
         .getAllFilesGroupByCollectionID(uploadedIDs);
 
-    // Find and map the files from current collection to to entries in other
-    // collections. This mapping is done to avoid moving all the files to
-    // uncategorized during remove from album.
+    // Preserve another album membership instead of moving to Uncategorized.
     for (MapEntry<int, List<EnteFile>> entry in collectionToFilesMap.entries) {
       if (!await _isAutoMoveCandidate(
         collection.id,
@@ -631,10 +599,7 @@ class CollectionService {
       }
       final Collection? targetCollection = await getCollectionByID(entry.key);
       if (targetCollection != null) {
-        // for each file which already exist in the destination collection
-        // add entries in the moveDestCollectionToFiles map
         for (EnteFile file in entry.value) {
-          // Check if the uploaded file is still waiting to be mapped
           if (pendingAssignMap.containsKey(file.uploadedFileID)) {
             if (!destCollectionToFilesMap.containsKey(targetCollection.id)) {
               destCollectionToFilesMap[targetCollection.id] = <EnteFile>[];
@@ -647,7 +612,6 @@ class CollectionService {
         }
       }
     }
-    // Move the remaining files to uncategorized collection
     if (pendingAssignMap.isNotEmpty) {
       late final int toCollectionID;
 
@@ -668,7 +632,6 @@ class CollectionService {
       }
     }
 
-    // Verify that all files are mapped.
     int mappedFilesCount = 0;
     destCollectionToFilesMap.forEach((key, value) {
       mappedFilesCount += value.length;
@@ -684,9 +647,6 @@ class CollectionService {
         in destCollectionToFilesMap.entries) {
       if (collection.type == CollectionType.uncategorized &&
           entry.key == collection.id) {
-        // skip moving files to uncategorized collection from uncategorized
-        // this flow is triggered while cleaning up uncategerized collection
-
         _logger.info(
           'skipping moving ${entry.value.length} files to uncategorized collection',
         );
@@ -697,11 +657,6 @@ class CollectionService {
     }
   }
 
-  // This method returns true if the given destination collection is a good
-  // target to moving files during file remove or delete collection but keep
-  // photos action. Uncategorized or favorite type of collections are not
-  // good auto-move candidates. Uncategorized will be fall back for all files
-  // which could not be mapped to a potential target collection
   Future<bool> _isAutoMoveCandidate(
     int fromCollectionID,
     toCollectionID,
@@ -713,8 +668,6 @@ class CollectionService {
     final Collection? targetCollection = await getCollectionByID(
       toCollectionID,
     );
-    // ignore non-cached, deleted, uncategorized and favorite collections,
-    // and collections ignored by others
     if (targetCollection == null ||
         targetCollection.isDeleted ||
         (CollectionType.uncategorized == targetCollection.type ||
@@ -736,13 +689,10 @@ class CollectionService {
 
       _logger.info("Setting up default collections...");
 
-      // Create uncategorized collection if it doesn't exist
       await getOrCreateUncategorizedCollection();
 
-      // Create important (favorites) collection if it doesn't exist
       await getOrCreateImportantCollection();
 
-      // Create Documents collection if it doesn't exist
       await _getOrCreateDocumentsCollection();
 
       _logger.info("Default collections setup completed.");
@@ -793,8 +743,6 @@ class CollectionService {
     return createCollection("Documents", type: CollectionType.folder);
   }
 
-  /// Returns one random collection name that doesn't already exist
-  /// If all names are used, returns "Documents"
   Future<String> getRandomUnusedCollectionName() async {
     try {
       final existingCollections = await getCollections();
@@ -860,7 +808,6 @@ class CollectionService {
     }
   }
 
-  // getActiveCollections returns list of collections which are not deleted yet
   List<Collection> getActiveCollections() {
     return _collectionIDToCollections.values
         .toList()
@@ -868,13 +815,6 @@ class CollectionService {
         .toList();
   }
 
-  /// Returns Contacts(Users) that are relevant to the account owner.
-  /// Note: "User" refers to the account owner in the points below.
-  /// This includes:
-  /// 	- Collaborators and viewers of collections owned by user
-  ///   - Owners of collections shared to user.
-  ///   - All collaborators of collections in which user is a collaborator or
-  ///     a viewer.
   List<UserSuggestion> getRelevantContacts() {
     final int ownerID = Configuration.instance.getUserID()!;
     final String ownerEmail = Configuration.instance.getEmail()!;
@@ -889,14 +829,11 @@ class CollectionService {
 
     for (final c in getActiveCollections()) {
       if (c.owner.id == ownerID) {
-        // Collaborators and viewers of collections owned by user
         for (final User u in c.sharees) {
           add(u.email, userID: u.id);
         }
       } else if (c.owner.email.isNotEmpty) {
-        // Add owners of collections shared with user
         add(c.owner.email, userID: c.owner.id);
-        // Collaborators of collections in which user participates
         final participates = c.sharees.any(
           (u) => u.email == ownerEmail && (u.isCollaborator || u.isViewer),
         );
@@ -933,7 +870,6 @@ class CollectionService {
     _defaultSetupInFlight = null;
   }
 
-  // Methods for managing collection cache
   void updateCollectionCache(Collection collection) {
     _collectionIDToCollections[collection.id] = collection;
   }

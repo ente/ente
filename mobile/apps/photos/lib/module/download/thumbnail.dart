@@ -17,6 +17,7 @@ import 'package:photos/core/configuration.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/errors.dart';
 import 'package:photos/core/network/network.dart';
+import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/module/download/file.dart';
@@ -35,7 +36,7 @@ class _ThumbnailDownload {
   final EnteFile file;
   final Completer<Uint8List> completer;
   final CancelToken cancelToken;
-  int counter = 0; // number of times file download was requested
+  int counter = 0;
 
   _ThumbnailDownload(this.file, this.completer, this.cancelToken, this.counter);
 }
@@ -100,8 +101,7 @@ preloadThumbnailWithPendingRequestRef(EnteFile file) async {
   );
 }
 
-// Note: This method should only be called for files that have been uploaded
-// since cachedThumbnailPath depends on the file's uploadedID
+// cachedThumbnailPath requires an uploaded file ID.
 Future<File?> getThumbnailForUploadedFile(EnteFile file) async {
   final cachedThumbnail = cachedThumbnailPath(file);
   if (await cachedThumbnail.exists()) {
@@ -110,7 +110,7 @@ Future<File?> getThumbnailForUploadedFile(EnteFile file) async {
   }
   final thumbnail = await getThumbnail(file);
   if (thumbnail != null) {
-    // it might be already written to this path during `getThumbnail(file)`
+    // getThumbnail may have already written this path.
     if (!await cachedThumbnail.exists()) {
       final didWrite = await _writeCachedThumbnail(
         cachedThumbnail,
@@ -146,8 +146,6 @@ _getThumbnailFromServerRequest(EnteFile file) async {
       acquiredPendingRequestRef: false,
     );
   }
-  // Check if there's already in flight request for fetching thumbnail from the
-  // server
   final existing = _uploadIDToDownloadItem[file.uploadedFileID];
   if (existing == null) {
     final item = _ThumbnailDownload(
@@ -204,7 +202,8 @@ Future<Uint8List?> getThumbnailFromLocal(
     });
   } else {
     return file.getAsset.then((asset) async {
-      if (asset == null || !(await asset.exists)) {
+      // asset.exists may return false for files in the android device trash
+      if (asset == null || !(await asset.exists || file.isDeviceTrash)) {
         return null;
       }
       return asset
@@ -379,7 +378,7 @@ Future<void> _downloadAndDecryptThumbnail(_ThumbnailDownload item) async {
   }
   ThumbnailInMemoryLruCache.put(item.file, data);
   final cachedThumbnail = cachedThumbnailPath(item.file);
-  // data is already cached in-memory, no need to await on disk write
+  // Readers can use the in-memory copy while this is written to disk.
   unawaited(_writeCachedThumbnail(cachedThumbnail, data));
   if (!item.completer.isCompleted) {
     item.completer.complete(data);

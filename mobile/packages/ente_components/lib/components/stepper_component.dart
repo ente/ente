@@ -6,9 +6,7 @@ import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as material show IconButton;
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=57-6281&m=dev
-/// Section: Stepper
-/// Specs: Compact numeric stepper with decrement and increment icon controls.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=57-6281&m=dev
 class StepperComponent extends StatelessWidget {
   const StepperComponent({
     super.key,

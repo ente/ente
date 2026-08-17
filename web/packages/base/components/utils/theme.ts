@@ -460,15 +460,6 @@ const components: Components = {
         },
     },
 
-    MuiModal: {
-        styleOverrides: {
-            root: {
-                // Invisible stale modal roots must not block clicks.
-                '&:has(> div[style*="opacity: 0"])': { pointerEvents: "none" },
-            },
-        },
-    },
-
     MuiDrawer: {
         styleOverrides: {
             root: {

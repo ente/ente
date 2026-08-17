@@ -6,27 +6,6 @@ import 'package:flutter/material.dart';
 @visibleForTesting
 const appLockContentObscurerKey = ValueKey('app_lock_content_obscurer');
 
-/// A widget which handles app lifecycle events for showing and hiding a lock screen.
-/// This should wrap around a `MyApp` widget (or equivalent).
-///
-/// [lockScreen] is a [Widget] which should be a screen for handling login logic and
-/// calling `AppLock.of(context).didUnlock();` upon a successful login.
-///
-/// [builder] is a [Function] taking an [Object] as its argument and should return a
-/// [Widget]. The [Object] argument is provided by the [lockScreen] calling
-/// `AppLock.of(context).didUnlock();` with an argument. [Object] can then be injected
-/// in to your `MyApp` widget (or equivalent).
-///
-/// [enabled] determines wether or not the [lockScreen] should be shown on app launch
-/// and subsequent app pauses. This can be changed later on using `AppLock.of(context).enable();`,
-/// `AppLock.of(context).disable();` or the convenience method `AppLock.of(context).setEnabled(enabled);`
-/// using a bool argument.
-///
-/// [backgroundLockLatency] determines how much time is allowed to pass when
-/// the app is in the background state before the [lockScreen] widget should be
-/// shown upon returning. It defaults to instantly.
-///
-
 // ignore_for_file: unnecessary_this, library_private_types_in_public_api
 class AppLock extends StatefulWidget {
   final Widget Function(Object?) builder;
@@ -42,7 +21,6 @@ class AppLock extends StatefulWidget {
   final LocaleListResolutionCallback? localeListResolutionCallback;
   final bool debugShowCheckedModeBanner;
 
-  /// Invoked on each successful unlock (launch, resume, or manual).
   final VoidCallback? onUnlock;
 
   const AppLock({
@@ -206,14 +184,6 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     );
   }
 
-  /// Causes `AppLock` to either pop the [lockScreen] if the app is already running
-  /// or instantiates widget returned from the [builder] method if the app is cold
-  /// launched.
-  ///
-  /// [args] is an optional argument which will get passed to the [builder] method
-  /// when built. Use this when you want to inject objects created from the
-  /// [lockScreen] in to the rest of your app so you can better guarantee that some
-  /// objects, services or databases are already instantiated before using them.
   void didUnlock([Object? args]) {
     this.widget.onUnlock?.call();
     if (this._didUnlockForAppLaunch) {
@@ -223,12 +193,6 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     }
   }
 
-  /// Makes sure that [AppLock] shows the [lockScreen] on subsequent app pauses if
-  /// [enabled] is true of makes sure it isn't shown on subsequent app pauses if
-  /// [enabled] is false.
-  ///
-  /// This is a convenience method for calling the [enable] or [disable] method based
-  /// on [enabled].
   void setEnabled(bool enabled) {
     if (enabled) {
       this.enable();
@@ -246,21 +210,18 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     });
   }
 
-  /// Makes sure that [AppLock] shows the [lockScreen] on subsequent app pauses.
   void enable() {
     setState(() {
       this._enabled = true;
     });
   }
 
-  /// Makes sure that [AppLock] doesn't show the [lockScreen] on subsequent app pauses.
   void disable() {
     setState(() {
       this._enabled = false;
     });
   }
 
-  /// Show the [lockScreen] for automatic locking (app launch, background resume).
   Future<void> showLockScreen() {
     this._setLocked(true);
     return _navigatorKey.currentState!.pushNamed(
@@ -269,7 +230,7 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     );
   }
 
-  /// Show the [lockScreen] for user-initiated manual lock (no auto-auth on first frame).
+  // Manual lock must not auto-authenticate on its first frame.
   Future<void> showManualLockScreen() {
     this._setLocked(true);
     return _navigatorKey.currentState!.pushNamed(

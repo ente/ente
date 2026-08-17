@@ -20,9 +20,7 @@ const offsetTimeKey = 'offsetTime';
 const infoKey = 'info';
 
 class MagicMetadata {
-  // 0 -> visible
-  // 1 -> archived
-  // 2 -> hidden etc?
+  // 0 = visible, 1 = archived, 2 = hidden.
   int visibility;
 
   MagicMetadata({required this.visibility});
@@ -49,34 +47,25 @@ class PubMagicMetadata {
   double? lat;
   double? long;
 
-  // Indicates streaming version of the file.
   // If this is set, then the file is a streaming version of the original file.
   int? sv;
 
-  // ISO 8601 datetime without timezone. This contains the date and time of the photo in the original tz
-  // where the photo was taken.
+  // ISO 8601 datetime without an offset, using the photo's original timezone.
   String? dateTime;
   String? offsetTime;
 
-  // Motion Video Index. Positive value (>0) indicates that the file is a motion
-  // photo
+  // A positive Motion Video Index marks a motion photo.
   int? mvi;
 
-  // if true, then the thumbnail is not available
-  // Note: desktop/web sets hasStaticThumbnail in the file metadata.
-  // As we don't want to support updating the og file metadata (yet), adding
-  // this new field to the pub metadata. For static thumbnail, all thumbnails
-  // should have exact same hash with should match the constant `blackThumbnailBase64`
+  // Mobile stores missing-thumbnail state in public metadata. Desktop and web
+  // use hasStaticThumbnail in file metadata. Missing thumbnails use
+  // blackThumbnailBase64.
   bool? noThumb;
 
-  // null -> not computed
-  // 0 -> normal
-  // 1 -> panorama
+  // null = unknown, 0 = normal, 1 = panorama.
   int? mediaType;
 
-  // JSON containing information data for info files.
-  // Locker currently writes camelCase type values
-  // (note, physicalRecord, accountCredential, emergencyContact).
+  // Locker writes camelCase info type names in this JSON.
   Map<String, dynamic>? info;
 
   PubMagicMetadata({

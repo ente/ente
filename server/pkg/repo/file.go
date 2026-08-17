@@ -24,7 +24,6 @@ type FileRepository struct {
 	ObjectRepo        *ObjectRepository
 	ObjectCleanupRepo *ObjectCleanupRepository
 	ObjectCopiesRepo  *ObjectCopiesRepository
-	UsageRepo         *UsageRepository
 }
 
 func (repo *FileRepository) Create(
@@ -189,17 +188,9 @@ func (repo *FileRepository) CreateMetaFile(
 	return &file, stacktrace.Propagate(err, "")
 }
 
-// markAsNeedingReplication inserts new entries in object_copies, setting the
-// current hot DC as the source copy.
-//
-// The higher layer above us (file controller) would've already checked that the
-// object exists in the current hot DC (See `c.sizeOf` in file controller). This
-// would cover cases where the client fetched presigned upload URLs for say
-// hotDC1, but by the time they connected to museum, museum switched to using
-// hotDC2. So then when museum would try to fetch the file size from hotDC2, the
-// object won't be found there, and the upload would fail (which is the
-// behaviour we want, since hot DC swaps are not a frequent/expected operation,
-// we just wish to guarantee correctness if they do happen).
+// The controller first verifies the object in hotDC. This prevents recording an
+// upload against another bucket if hot storage changes after the client receives
+// its presigned URL.
 func (repo *FileRepository) markAsNeedingReplication(ctx context.Context, tx *sql.Tx, file ente.File, hotDC string) error {
 	if hotDC == repo.S3Config.GetHotBackblazeDC() {
 		err := repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, file.File.ObjectKey, true, true)
@@ -221,7 +212,6 @@ func (repo *FileRepository) markAsNeedingReplication(ctx context.Context, tx *sq
 	}
 }
 
-// See markAsNeedingReplication - this variant is for updating only thumbnails.
 func (repo *FileRepository) markThumbnailAsNeedingReplication(ctx context.Context, tx *sql.Tx, thumbnailObjectKey string, hotDC string) error {
 	if hotDC == repo.S3Config.GetHotBackblazeDC() {
 		err := repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, thumbnailObjectKey, true, false)
@@ -344,9 +334,8 @@ func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize
 		return stacktrace.Propagate(err, "")
 	}
 	if isDuplicateRequest {
-		// Skip markAsNeedingReplication for duplicate requests, it'd fail with
-		//     pq: duplicate key value violates unique constraint \"object_copies_pkey\"
-		// and render our transaction uncommittable
+		// Re-inserting object_copies on a duplicate request violates its primary
+		// key and leaves the transaction uncommittable.
 		log.Infof("Skipping update of object_copies for a duplicate request to update file %d", file.ID)
 	} else {
 		err = repo.markAsNeedingReplication(ctx, tx, file, hotDC)
@@ -694,14 +683,7 @@ func (repo *FileRepository) GetFileAttributes(fileID int64) (*ente.File, error) 
 	return &file, nil
 }
 
-// GetUsage  gets the Storage usage of a user
-// Deprecated: GetUsage is deprecated, use UsageRepository.GetUsage
-func (repo *FileRepository) GetUsage(userID int64) (int64, error) {
-	return repo.UsageRepo.GetUsage(userID)
-}
-
 func (repo *FileRepository) DropFilesMetadata(ctx context.Context, fileIDs []int64) error {
-	// ensure that the fileIDs are not present in object_keys
 	rows, err := repo.DB.QueryContext(ctx, `SELECT distinct(file_id) FROM object_keys WHERE file_id = ANY($1)`, pq.Array(fileIDs))
 	if err != nil {
 		return stacktrace.Propagate(err, "")

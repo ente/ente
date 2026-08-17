@@ -62,6 +62,7 @@ export const TripLayout: React.FC<TripLayoutProps> = ({
     enableJoin = false,
 }) => {
     const collectionTitle = collection?.name || albumTitle || "Trip";
+    const albumDescription = collection?.pubMagicMetadata?.data.caption?.trim();
 
     const theme = useTheme();
     const isMobileOrTablet = useMediaQuery(theme.breakpoints.down("md"));
@@ -365,6 +366,7 @@ export const TripLayout: React.FC<TripLayoutProps> = ({
                                 <MobileCover
                                     journeyData={journeyData}
                                     albumTitle={collectionTitle}
+                                    albumDescription={albumDescription}
                                     coverImageUrl={coverImageUrl}
                                 />
                             </MobileCoverOverlay>
@@ -465,6 +467,7 @@ export const TripLayout: React.FC<TripLayoutProps> = ({
                                     <TripCover
                                         journeyData={journeyData}
                                         albumTitle={collectionTitle}
+                                        albumDescription={albumDescription}
                                         coverImageUrl={coverImageUrl}
                                     />
 

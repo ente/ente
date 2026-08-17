@@ -36,7 +36,7 @@ Unlike folders, items in Locker can belong to multiple collections at once. This
 ### When creating an item
 
 1. While creating the item, tap the collection field
-2. Select one or more collections
+2. Leave all collections unselected to use **Uncategorized**. Or select one or more of your collections
 3. Complete creating the item
 
 ### Adding existing items to a collection
@@ -46,6 +46,19 @@ Unlike folders, items in Locker can belong to multiple collections at once. This
 3. Tap the collection field
 4. Select additional collections
 5. Tap **Save**
+
+## Uncategorized collection
+
+**Uncategorized** is where Locker keeps items that are not in one of your collections. Locker creates it for you.
+
+Items are added to Uncategorized when:
+
+- You create or upload an item without selecting a collection
+- You remove an item from its last collection but keep the item
+
+When you edit an item, Uncategorized appears with your other collections. Select it to keep the item there. Deselect it to remove the item.
+
+An item can be in Uncategorized and another collection at the same time. Adding it to another collection does not remove it from Uncategorized.
 
 ## Managing collections
 

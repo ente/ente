@@ -27,6 +27,7 @@ class PreferenceService {
   static const kShouldMinimizeToTrayOnClose =
       "should_minimize_to_tray_on_close";
   static const kCompactMode = "vi.compactMode";
+  static const kMenubarMode = "menubar_mode";
   static const kAppInstallTime = "appInstallTime";
 
   Future<void> init() async {
@@ -112,6 +113,18 @@ class PreferenceService {
     await _prefs.setBool(kShouldMinimizeOnCopy, value);
   }
 
+  bool isMenubarModeEnabled() {
+    if (_prefs.containsKey(kMenubarMode)) {
+      return _prefs.getBool(kMenubarMode)!;
+    } else {
+      return false;
+    }
+  }
+
+  Future<void> setMenubarModeEnabled(bool value) async {
+    await _prefs.setBool(kMenubarMode, value);
+  }
+
   bool shouldMinimizeToTrayOnClose() {
     if (_prefs.containsKey(kShouldMinimizeToTrayOnClose)) {
       return _prefs.getBool(kShouldMinimizeToTrayOnClose)!;
@@ -134,8 +147,7 @@ class PreferenceService {
     }
   }
 
-  // localEpochOffsetInMilliSecond returns the local epoch offset in milliseconds.
-  // This is used to adjust the time for TOTP calculations when device local time is not in sync with actual time.
+  // Offset TOTP calculations when the device clock is wrong.
   int timeOffsetInMilliSeconds() {
     return _prefs.getInt(kLocalTimeOffsetKey) ?? 0;
   }

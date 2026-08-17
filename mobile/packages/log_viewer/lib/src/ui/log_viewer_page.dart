@@ -10,7 +10,6 @@ import 'package:log_viewer/src/ui/logger_statistics_page.dart';
 import 'package:log_viewer/src/ui/timeline_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Main log viewer page
 class LogViewerPage extends StatefulWidget {
   const LogViewerPage({super.key});
 
@@ -32,13 +31,11 @@ class _LogViewerPageState extends State<LogViewerPage> {
   bool _isLoadingMore = false;
   bool _hasMoreLogs = true;
   int _currentOffset = 0;
-  static const int _pageSize = 100; // Load 100 logs at a time
+  static const int _pageSize = 100;
   StreamSubscription<LogEntry>? _logStreamSubscription;
 
-  // Time filtering state
   bool _timeFilterEnabled = false;
 
-  // Timeline state
   DateTime? _overallStartTime;
   DateTime? _overallEndTime;
   DateTime? _timelineStartTime;
@@ -57,9 +54,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
     await _initializeTimeline();
     await _loadLogs();
 
-    // Listen for new logs
     _logStreamSubscription = _logStore.logStream.listen((_) {
-      // Debounce updates to avoid too frequent refreshes
       _scheduleRefresh();
     });
   }
@@ -177,12 +172,10 @@ class _LogViewerPageState extends State<LogViewerPage> {
   }
 
   void _onSearchChanged(String query) {
-    // Parse query for special syntax like "logger:SomeName"
     String? searchText = query;
     Set<String>? loggerFilters;
 
     if (query.isNotEmpty) {
-      // Regular expression to match logger:name patterns
       final loggerPattern = RegExp(r'logger:(\S+)');
       final matches = loggerPattern.allMatches(query);
 
@@ -191,10 +184,8 @@ class _LogViewerPageState extends State<LogViewerPage> {
         for (final match in matches) {
           final loggerName = match.group(1);
           if (loggerName != null) {
-            // Support wildcards (e.g., Auth* matches AuthService, Authentication, etc.)
             if (loggerName.endsWith('*')) {
               final prefix = loggerName.substring(0, loggerName.length - 1);
-              // Find all loggers that start with this prefix
               for (final logger in _availableLoggers) {
                 if (logger.startsWith(prefix)) {
                   loggerFilters.add(logger);
@@ -206,19 +197,16 @@ class _LogViewerPageState extends State<LogViewerPage> {
           }
         }
 
-        // Remove logger:name patterns from search text
         searchText = query.replaceAll(loggerPattern, '').trim();
         if (searchText.isEmpty) {
           searchText = null;
         }
       }
     } else {
-      // Clear logger filters when search is empty
       loggerFilters = {};
     }
 
     setState(() {
-      // Only update logger filters if logger: syntax was found or query is empty
       final newLoggerFilters =
           loggerFilters ??
           (query.isEmpty ? <String>{} : _filter.selectedLoggers);
@@ -247,18 +235,6 @@ class _LogViewerPageState extends State<LogViewerPage> {
     });
     _loadLogs();
   }
-
-  // String _formatTimeRange(double hours) {
-  //   if (hours < 1) {
-  //     final minutes = (hours * 60).round();
-  //     return '${minutes}m';
-  //   } else if (hours < 24) {
-  //     return '${hours.round()}h';
-  //   } else {
-  //     final days = (hours / 24).round();
-  //     return '${days}d';
-  //   }
-  // }
 
   Future<void> _showFilterDialog() async {
     final newFilter = await showDialog<LogFilter>(
@@ -337,7 +313,6 @@ class _LogViewerPageState extends State<LogViewerPage> {
       ),
     );
 
-    // If a logger filter was returned, apply it to the search box
     if (result != null && mounted) {
       _searchController.text = result;
       _onSearchChanged(result);
@@ -455,7 +430,6 @@ class _LogViewerPageState extends State<LogViewerPage> {
       ),
       body: Column(
         children: [
-          // Search bar
           Container(
             color: theme.appBarTheme.backgroundColor,
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
@@ -488,7 +462,6 @@ class _LogViewerPageState extends State<LogViewerPage> {
             ),
           ),
 
-          // Timeline filter
           if (_overallStartTime != null && _overallEndTime != null) ...[
             Container(
               color: theme.appBarTheme.backgroundColor,
@@ -521,7 +494,6 @@ class _LogViewerPageState extends State<LogViewerPage> {
                       setState(() {
                         _timeFilterEnabled = !_timeFilterEnabled;
                         if (_timeFilterEnabled) {
-                          // Reset timeline to full range when enabled
                           _timelineStartTime = _overallStartTime;
                           _timelineEndTime = _overallEndTime;
                         }
@@ -547,7 +519,6 @@ class _LogViewerPageState extends State<LogViewerPage> {
             ],
           ],
 
-          // Active filters display
           if (_filter.hasActiveFilters)
             Container(
               height: 40,
@@ -647,7 +618,6 @@ class _LogViewerPageState extends State<LogViewerPage> {
               ),
             ),
 
-          // Log list
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -678,7 +648,6 @@ class _LogViewerPageState extends State<LogViewerPage> {
                           ? const SizedBox.shrink()
                           : const Divider(height: 1),
                       itemBuilder: (context, index) {
-                        // Show loading indicator at the bottom
                         if (index >= _logs.length) {
                           if (_isLoadingMore) {
                             return const Padding(
@@ -686,7 +655,6 @@ class _LogViewerPageState extends State<LogViewerPage> {
                               child: Center(child: CircularProgressIndicator()),
                             );
                           } else {
-                            // Trigger loading more when reaching the end
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               _loadMoreLogs();
                             });

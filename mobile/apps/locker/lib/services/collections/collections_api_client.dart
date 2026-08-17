@@ -111,7 +111,6 @@ class CollectionApiClient {
     for (final file in files) {
       final int uploadedFileID = file.uploadedFileID!;
 
-      // Follow Photos pattern: decrypt using file's current collectionID
       final fileCurrentCollection = await CollectionService.instance
           .getCollection(file.collectionID!);
       final fileCurrentCollectionKey = CryptoHelper.instance.getCollectionKey(
@@ -123,7 +122,6 @@ class CollectionApiClient {
         fileCurrentCollectionKey,
       );
 
-      // Re-encrypt the file key with the destination collection's key
       final encryptedKeyData = CryptoUtil.encryptSync(fileKey, collectionKey);
       final String encryptedKey = CryptoUtil.bin2base64(
         encryptedKeyData.encryptedData!,
@@ -245,7 +243,6 @@ class CollectionApiClient {
     params["fromCollectionID"] = fromCollection.id;
     params["toCollectionID"] = toCollection.id;
 
-    // Process files in batches
     const batchSize = 100;
     final batchedFiles = <List<EnteFile>>[];
     for (int i = 0; i < files.length; i += batchSize) {
@@ -255,7 +252,6 @@ class CollectionApiClient {
     for (final batch in batchedFiles) {
       params["files"] = [];
       for (final file in batch) {
-        // Follow Photos pattern: use file's collectionID to get the key
         final fileCollection = await CollectionService.instance.getCollection(
           file.collectionID!,
         );
@@ -268,10 +264,8 @@ class CollectionApiClient {
           fileCollectionKey,
         );
 
-        // Update file's collectionID to the destination (like Photos does)
         file.collectionID = toCollection.id;
 
-        // Re-encrypt the file key with the destination collection's key
         final destCollectionKey = CryptoHelper.instance.getCollectionKey(
           toCollection,
         );
@@ -552,7 +546,6 @@ class CollectionApiClient {
       collection.id,
       prop,
     );
-    // remove existing url information
     collection.publicURLs.clear();
     collection.publicURLs.add(PublicURL.fromMap(response.data["result"]));
     await _updateCollectionInDB(collection);

@@ -321,8 +321,6 @@ func (h *CollectionHandler) RemoveFilesV3(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// SuggestDeleteInSharedCollection allows collection owner or admins to suggest deletion
-// of files owned by others in a shared collection. The request must exclude files owned by the actor.
 func (h *CollectionHandler) SuggestDeleteInSharedCollection(c *gin.Context) {
 	var request ente.SuggestDeleteRequest
 	if err := handler.BindJSON(c, &request); err != nil {

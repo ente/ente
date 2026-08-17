@@ -59,12 +59,10 @@ class IsolateLogger {
   Future onLogRecordInIsolate(LogRecord rec) async {
     final str = rec.toPrettyString(null, true);
 
-    // write to stdout
     if (SuperLogging.shouldPrintLogRecord(rec)) {
       SuperLogging.printLog(str);
     }
 
-    // push to log queue
     fileQueueEntries.add(
       IsolateLogString(
         logString: str,
@@ -77,7 +75,7 @@ class IsolateLogger {
     );
   }
 
-  /// WARNING: only call this from the isolate
+  // Only call from the isolate.
   Queue<String> getLogStringsAndClear() {
     if (fileQueueEntries.isEmpty) return Queue<String>();
     final result = Queue<String>();
@@ -88,7 +86,7 @@ class IsolateLogger {
     return result;
   }
 
-  /// WARNING: only call this from the main thread
+  // Only call from the main thread.
   static void handLogStringsToMainLogger(List<String> logs) {
     while (logs.isNotEmpty) {
       final logString = logs.removeAt(0);

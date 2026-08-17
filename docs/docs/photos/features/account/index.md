@@ -9,7 +9,7 @@ Your Ente account is the foundation for securely storing and accessing your phot
 
 ## Using Ente accounts across products
 
-Your Ente account works across both Ente Photos and Ente Auth. You can use the same account for both products, or create separate accounts for each.
+One Ente account works with Ente Photos, Ente Auth, and Ente Locker. You can use one account for all three, or create a separate account for each.
 
 > [!NOTE]
 >

@@ -64,11 +64,9 @@ class LockScreenSettings {
     _secureStorage = const FlutterSecureStorage();
     _preferences = await SharedPreferences.getInstance();
 
-    ///Workaround for privacyScreen not working when app is killed and opened.
+    // Workaround for privacyScreen not working when app is killed and opened.
     await setHideAppContent(getShouldHideAppContent());
 
-    /// Function to Check if the migration for lock screen changes has
-    /// already been done by checking a stored boolean value.
     await runLockScreenChangesMigration();
 
     await _clearLsDataInKeychainIfFreshInstall(hasOptedForOfflineMode);
@@ -217,7 +215,6 @@ class LockScreenSettings {
 
   double? get appLogoHeight => _appLogoHeight;
 
-  /// Verifies that the hash of [text] matches [storedHash].
   Future<bool> verify({
     required String text,
     required String? storedHash,
@@ -236,12 +233,8 @@ class LockScreenSettings {
     return hash == storedHash;
   }
 
-  /// Like [verify], but for secrets created by photos' lock screen.
-  ///
-  /// On a miss it retries with photos' legacy (Interactive ops) parameters and,
-  /// on a hit, upgrades the stored hash to the current parameters under
-  /// [storageKey]. The re-store is best-effort, so a correct secret is never
-  /// rejected.
+  // Photos may still have hashes made with legacy Interactive ops.
+  // Upgrade them best-effort; a storage failure must not reject the secret.
   Future<bool> verifyWithLegacyFallback({
     required String text,
     required String? storedHash,
@@ -309,9 +302,7 @@ class LockScreenSettings {
     return _preferences.setBool(keyShouldShowLockScreen, value);
   }
 
-  // If the app was uninstalled (without logging out if it was used with
-  // backups), keychain items of the app persist in the keychain. To avoid using
-  // old keychain items, we delete them on reinstall.
+  // Keychain entries survive uninstall, so clear them after a reinstall.
   Future<void> _clearLsDataInKeychainIfFreshInstall(
     bool hasOptedForOfflineMode,
   ) async {

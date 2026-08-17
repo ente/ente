@@ -36,8 +36,6 @@ class _CodeSelectionActionsWidgetState
     extends State<CodeSelectionActionsWidget> {
   late final scrollController = ScrollController();
 
-  // static final _logger = Logger("CodeSelectionActionsWidget");
-
   @override
   void dispose() {
     scrollController.dispose();

@@ -59,9 +59,7 @@ type LegacyKitRecoverySession struct {
 	ID     uuid.UUID               `json:"id"`
 	KitID  uuid.UUID               `json:"kitID"`
 	Status LegacyKitRecoveryStatus `json:"status"`
-	// Remaining microseconds until recovery becomes ready. This follows the
-	// existing emergency legacy recovery API shape, where waitTill is a
-	// duration in API responses, not an epoch timestamp.
+	// Remaining microseconds until recovery is ready, not an epoch timestamp.
 	WaitTill  int64 `json:"waitTill"`
 	CreatedAt int64 `json:"createdAt"`
 }
@@ -92,10 +90,9 @@ type LegacyKitRecoveryInitiator struct {
 	// Share indexes reported by the recovery client as the shares used to
 	// reconstruct the kit secret. This is an audit hint, not an authorization
 	// primitive.
-	UsedPartIndexes []int `json:"usedPartIndexes,omitempty"`
-	// Server-captured request metadata for the successful recovery open call.
-	IP        string `json:"ip"`
-	UserAgent string `json:"userAgent"`
+	UsedPartIndexes []int  `json:"usedPartIndexes,omitempty"`
+	IP              string `json:"ip"`
+	UserAgent       string `json:"userAgent"`
 }
 
 type LegacyKitOwnerRecoverySessionResponse struct {

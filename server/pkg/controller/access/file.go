@@ -39,14 +39,12 @@ func (c controllerImpl) CanAccessFile(ctx *gin.Context, req *CanAccessFileParams
 		return stacktrace.Propagate(err, "failed to get owner to fileIDs map")
 	}
 
-	// Only fetch shared collections once when needed
 	var sharedCollections []int64
 	for owner, fileIDs := range ownerToFilesMap {
 		if owner == req.ActorUserID {
 			continue
 		}
 
-		// Lazy load collections only when we need to check permissions
 		if sharedCollections == nil {
 			sharedCollections, err = c.CollectionRepo.GetCollectionsSharedWithOrByUser(req.ActorUserID)
 			if err != nil {

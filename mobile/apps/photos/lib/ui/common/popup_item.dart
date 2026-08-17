@@ -33,6 +33,6 @@ class EntePopupMenuItem<T> extends PopupMenuItem<T> {
              const Padding(padding: EdgeInsets.all(8)),
              Text(label, style: TextStyle(color: labelColor)),
            ],
-         ), // Initially empty, will be populated in build
+         ),
        );
 }

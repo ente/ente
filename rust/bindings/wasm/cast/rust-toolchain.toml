@@ -1,0 +1,6 @@
+[toolchain]
+# Chromecast browsers don't support newer WASM features and need -Z build-std.
+channel = "nightly-2026-08-13"
+components = ["rust-src"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

@@ -116,10 +116,6 @@ class _DeviceFolderVerticalGridViewBodyState
     const Duration(milliseconds: 1500),
     executionInterval: const Duration(seconds: 4),
   );
-  /*
-  Aspect ratio 1:1
-  Width changes dynamically with screen width
-  */
   static const maxThumbnailWidth = 224.0;
   static const horizontalPadding = 16.0;
   static const crossAxisSpacing = 8.0;

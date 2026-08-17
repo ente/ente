@@ -60,7 +60,6 @@ class _SharedPublicCollectionPageState
     super.initState();
     logger.info("Init SharedPublicCollectionPage");
 
-    // Show join dialog after the page is built if requested
     if (widget.shouldShowJoinDialog) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showJoinDialog();
@@ -125,8 +124,6 @@ class _SharedPublicCollectionPageState
         ? [widget.c.thumbnail!]
         : null;
 
-    // Determine groupType based on collection layout.
-    // masonry/continuous (or unset) map to non-grouped rendering.
     final normalizedLayout = normalizePublicLinkLayout(
       widget.c.collection.pubMagicMetadata.layout,
     );

@@ -64,6 +64,15 @@ export const savedLocalUser = (): LocalUser | undefined => {
     return success ? data : undefined;
 };
 
+// The synchronous local user accessors intentionally do not run this async
+// consistency check since they are often called during render. Call this
+// explicitly when validating app startup state.
+export const isSavedUserTokenMismatch = async () => {
+    const savedUserToken = savedPartialLocalUser()?.token;
+    const authToken = await savedAuthToken();
+    return authToken ? savedUserToken !== authToken : !!savedUserToken;
+};
+
 export const isLocalStorageAndIndexedDBMismatch = async () =>
     savedPartialLocalUser()?.token && !(await savedAuthToken());
 

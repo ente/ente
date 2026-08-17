@@ -16,8 +16,6 @@ here=$(dirname "$0")
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
-# Stage the volume contents: the app, an /Applications link to drag it
-# into, the Finder layout, and the volume icon.
 vol="$tmp/vol"
 mkdir "$vol" "$vol/.background"
 cp -R "$app" "$vol/Ente Auth.app"

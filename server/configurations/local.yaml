@@ -1,66 +1,33 @@
-# Configuring museum
-# ------------------
+# Museum loads configuration in this order:
 #
-# 1. If the environment variable `ENVIRONMENT` is specified, then it is used to
-#    load one of the files from the `configurations/` directory. If not present,
-#    then by default `local.yaml` (this file) will get loaded.
+# 1. configurations/$ENVIRONMENT.yaml, or this file when ENVIRONMENT is unset.
+# 2. credentials-file, when present.
+# 3. museum.yaml in the current working directory, when present.
+# 4. ENTE_* environment variables.
 #
-# 2. If the "credentials-file" config option is set then museum will look for
-#    that file. If found, that file will also be loaded, and entries specified
-#    therein will override the defaults specified here.
+# Later sources override earlier ones.
 #
-# 3. Then, museum will look for a file named `museum.yaml` (gitignored) in the
-#    current working directory. If found, this file will also be loaded and
-#    merged.
+# Environment variables replace nesting and hyphens with underscores:
 #
-# 4. Config can be overridden with via environment variables (details below).
+# db.user -> ENTE_DB_USER
+# s3.b2-eu-cen -> ENTE_S3_B2_EU_CEN
 #
-# Environment variables
-# ---------------------
-#
-# All configuration options can be overridden via environment variables. The
-# environment variable should have the prefix "ENTE_", and any nesting should be
-# replaced by underscores.
-#
-# For example, the nested string "db.user" in the config file can alternatively
-# be specified (or be overridden) by setting an environment variable named
-# ENTE_DB_USER.
-#
-# Hyphens "-" will also be be replaced with underscores, so a string like "s3.b2-eu-cen"
-# can be specified by the environment variable named "S3_B2_EU_CEN".
-#
-#
-# Empty strings
-# -------------
-#
-# The empty string indicates missing values (to match go convention).
-#
-# This also means that to override a value that is specified in local.yaml in a
-# subsequently loaded config file, you should specify the key as an empty string
-# (`key: ""`) instead of leaving it unset.
+# Empty strings represent missing values.
+# In a later file, use `key: ""` to clear an earlier value; omitting the key leaves the earlier value unchanged.
 #
 # ---
 
-# If this option is specified, then it is loaded and gets merged-in over the
-# defaults present in default.yaml. This provides a way to inject credentials
-# and other overrides.
-#
-# The default is to look for a file named credentials.yaml in the CWD.
+# Optional configuration loaded before museum.yaml.
+# Defaults to credentials.yaml in the current working directory.
 #credentials-file: credentials.yaml
 
-# Some credentials (e.g. the TLS cert) are cumbersome to provide inline in the
-# YAML configuration file, thus these are loaded at runtime from separate files.
-#
-# This is the directory where museum should look for them.
-#
-# Currently, the following files are loaded (if needed)
+# Directory containing credentials kept outside YAML:
 #
 # - credentials/{tls.cert,tls.key}
 # - credentials/pst-service-account.json
 # - credentials/fcm-service-account.json
 #
-# The default is to look for a these files in a directory named credentials
-# under the CWD.
+# Defaults to credentials in the current working directory.
 #credentials-dir: credentials
 
 # By default, museum logs to stdout when running locally. Specify this path to

@@ -17,7 +17,9 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/authsession"
 	emailCtrl "github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/repo"
 	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/ente/museum/pkg/utils/crypto"
 	emailUtil "github.com/ente/museum/pkg/utils/email"
@@ -131,7 +133,6 @@ func (c *UserController) SendEmailOTT(context *gin.Context, email string, purpos
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	// for hard-coded ott, adding  same OTT in db can throw error
 	hasHardcodedOTT := false
 	if purpose != ente.ChangeEmailOTTPurpose {
 		hardCodedOTT := hardcodedOTTForEmail(c.HardCodedOTT, email)
@@ -143,8 +144,8 @@ func (c *UserController) SendEmailOTT(context *gin.Context, email string, purpos
 	}
 
 	err = c.UserAuthRepo.AddOTT(emailHash, app, ott, time.Microseconds()+OTTValidityDurationInMicroSeconds)
+	// Reused hard-coded OTTs may violate the database uniqueness check.
 	if !hasHardcodedOTT {
-		// ignore error for AddOTT for hardcode OTT. This is to avoid error when unique OTT check fails at db layer
 		if err != nil {
 			return stacktrace.Propagate(err, "")
 		}
@@ -197,7 +198,6 @@ func (c *UserController) validateSendOTT(ctx *gin.Context, email string, purpose
 			disclosureErr = stacktrace.Propagate(ente.ErrUserSignupIncomplete, "user has not completed sign up process")
 		}
 	}
-	// If there is no state-disclosing error, allow the OTT request.
 	if disclosureErr == nil {
 		return true, nil
 	}
@@ -226,8 +226,7 @@ func (c *UserController) shouldSwallowSendOTTDisclosureError(ctx *gin.Context) b
 	return true
 }
 
-// getSignUpState returns the signup state for an email.
-// Signup is complete only when both email and key attributes exist.
+// Signup requires both an account row and key attributes.
 func (c *UserController) getSignUpState(email string) (signUpState, error) {
 	userID, err := c.UserRepo.GetUserIDWithEmailUnrestricted(email)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -545,58 +544,26 @@ func (c *UserController) AddTokenAndNotify(ctx *gin.Context, userID int64, app e
 }
 
 func (c *UserController) RemoveTokensForApps(userID int64, apps []ente.App) error {
-	if len(apps) == 0 {
-		return nil
-	}
-	if err := c.deleteActiveTokenCacheEntriesForApps(userID, apps); err != nil {
-		return err
-	}
-	if err := c.UserAuthRepo.RemoveTokensForApps(userID, apps); err != nil {
-		return stacktrace.Propagate(err, "failed to remove tokens")
-	}
-	return nil
+	return c.finishTokenRevocation(c.UserAuthRepo.RemoveTokensForApps(userID, apps))
 }
 
 func (c *UserController) RemoveAllTokens(userID int64) error {
-	apps, err := c.UserAuthRepo.GetAppsForUser(userID)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to get user apps")
-	}
-	if err = c.deleteActiveTokenCacheEntriesForApps(userID, apps); err != nil {
-		return err
-	}
-	if err = c.UserAuthRepo.RemoveAllTokens(userID); err != nil {
-		return stacktrace.Propagate(err, "failed to remove tokens")
-	}
-	return nil
+	return c.finishTokenRevocation(c.UserAuthRepo.RemoveAllTokens(userID))
+}
+
+func (c *UserController) RemoveAllOtherTokens(userID int64, token string) error {
+	return c.finishTokenRevocation(c.UserAuthRepo.RemoveAllOtherTokens(userID, token))
 }
 
 func (c *UserController) TerminateSession(userID int64, token string) error {
-	apps, err := c.UserAuthRepo.GetAppsForUser(userID)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to get user apps")
-	}
-	for _, app := range apps {
-		c.Cache.Delete(fmt.Sprintf("%s:%s", app, token))
-	}
-	return stacktrace.Propagate(c.UserAuthRepo.RemoveToken(userID, token), "")
+	return c.finishTokenRevocation(c.UserAuthRepo.RemoveToken(userID, token))
 }
 
-// Auth middleware trusts cached app:token entries for up to a minute, so token
-// revocation needs to evict those entries as well to take effect immediately.
-func (c *UserController) deleteActiveTokenCacheEntriesForApps(userID int64, apps []ente.App) error {
-	if len(apps) == 0 {
-		return nil
+func (c *UserController) finishTokenRevocation(tokens []repo.RevokedToken, err error) error {
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to remove tokens")
 	}
-	for _, app := range apps {
-		sessions, err := c.UserAuthRepo.GetActiveSessions(userID, app)
-		if err != nil {
-			return stacktrace.Propagate(err, "failed to get active sessions")
-		}
-		for _, session := range sessions {
-			c.Cache.Delete(fmt.Sprintf("%s:%s", app, session.Token))
-		}
-	}
+	authsession.MarkRevoked(c.Cache, tokens)
 	return nil
 }
 

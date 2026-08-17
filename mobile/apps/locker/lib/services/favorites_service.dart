@@ -33,7 +33,6 @@ class FavoritesService {
     _collectionUpdatesSubscription = Bus.instance
         .on<CollectionsUpdatedEvent>()
         .listen((event) {
-          // When collections are updated, refresh our cache
           _warmUpCache();
         });
     await _warmUpCache();
@@ -94,7 +93,6 @@ class FavoritesService {
   }
 
   Future<bool> isFavorite(EnteFile file) async {
-    // Use cache for better performance
     if (file.uploadedFileID != null) {
       bool isFav = false;
       if (file.ownerID != _config.getUserID() && file.hash != null) {
@@ -172,12 +170,9 @@ class FavoritesService {
     } else {
       final Collection? favCollection = await getFavoritesCollection();
       for (final file in files) {
-        // Get current collections for file
         final currentCollections = await _collectionService
             .getCollectionsForFile(file);
 
-        // If file is in multiple collections, move it to the first non-favorite one
-        // Otherwise, move to uncategorized
         Collection? targetCollection;
         for (final col in currentCollections) {
           if (col.id != favCollection!.id) {
@@ -186,7 +181,6 @@ class FavoritesService {
           }
         }
 
-        // If no other collection found, move to uncategorized
         targetCollection ??= await _collectionService
             .getOrCreateUncategorizedCollection();
 
@@ -199,12 +193,9 @@ class FavoritesService {
   Future<void> removeFromFavorites(EnteFile file) async {
     final inUploadID = file.uploadedFileID;
     if (inUploadID == null) {
-      // Do nothing, ignore
     } else {
       final Collection? favCollection = await getFavoritesCollection();
 
-      // The file might be part of another collection. For unfav, we need to
-      // move file from the fav collection.
       if (file.ownerID != _config.getUserID() &&
           file.hash != null &&
           _cachedFavFileHashes.containsKey(file.hash!)) {
@@ -225,13 +216,10 @@ class FavoritesService {
         file = favFile;
       }
 
-      // Get current collections for file
       final currentCollections = await _collectionService.getCollectionsForFile(
         file,
       );
 
-      // If file is in multiple collections, move it to the first non-favorite one
-      // Otherwise, move to uncategorized
       Collection? targetCollection;
       for (final col in currentCollections) {
         if (col.id != favCollection.id) {
@@ -240,7 +228,6 @@ class FavoritesService {
         }
       }
 
-      // If no other collection found, move to uncategorized
       targetCollection ??= await _collectionService
           .getOrCreateUncategorizedCollection();
 

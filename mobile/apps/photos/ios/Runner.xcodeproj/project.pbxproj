@@ -469,7 +469,6 @@
 			attributes = {
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 1510;
-				ORGANIZATIONNAME = "The Chromium Authors";
 				TargetAttributes = {
 					54D121EB2F02675C00B8CC69 = {
 						CreatedOnToolsVersion = 26.2;
@@ -1410,7 +1409,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteAlbumWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteAlbumWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1452,7 +1450,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteAlbumWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteAlbumWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1493,7 +1490,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteAlbumWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteAlbumWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1533,7 +1529,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EntePeopleWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EntePeopleWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1575,7 +1570,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EntePeopleWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EntePeopleWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1616,7 +1610,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EntePeopleWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EntePeopleWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1656,7 +1649,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteMemoryWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteMemoryWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1698,7 +1690,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteMemoryWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteMemoryWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1739,7 +1730,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EnteMemoryWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = EnteMemoryWidget;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 The Chromium Authors. All rights reserved.";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

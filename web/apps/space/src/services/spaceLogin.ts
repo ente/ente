@@ -7,26 +7,26 @@ import {
     saveOriginalKeyAttributes,
     saveSRPAttributes,
     updateSavedLocalUser,
-} from "ente-accounts-rs/services/accounts-db";
+} from "ente-accounts/services/accounts-db";
 import {
     decryptBox,
     deriveKey,
     fromB64URLSafeNoPadding,
-} from "ente-accounts-rs/services/crypto";
+} from "ente-accounts/services/crypto";
 import {
     checkPasskeyVerificationStatus,
     clearInflightPasskeySessionID,
     passkeySessionExpiredErrorMessage,
-} from "ente-accounts-rs/services/passkey";
+} from "ente-accounts/services/passkey";
 import {
     stashKeyEncryptionKeyInSessionStore,
     unstashKeyEncryptionKeyFromSession,
-} from "ente-accounts-rs/services/session-storage";
+} from "ente-accounts/services/session-storage";
 import {
     getSRPAttributes,
     srpVerificationUnauthorizedErrorMessage,
     verifySRP,
-} from "ente-accounts-rs/services/srp";
+} from "ente-accounts/services/srp";
 import {
     type EmailOrSRPVerificationResponse,
     generateAndSaveInteractiveKeyAttributes,
@@ -34,7 +34,7 @@ import {
     TwoFactorAuthorizationResponse,
     verifyEmail,
     verifyTwoFactor,
-} from "ente-accounts-rs/services/user";
+} from "ente-accounts/services/user";
 import { clientPackageName } from "ente-base/app";
 import { HTTPError } from "ente-base/http";
 import log from "ente-base/log";

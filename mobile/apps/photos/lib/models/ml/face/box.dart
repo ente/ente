@@ -1,11 +1,6 @@
 import "package:ente_pure_utils/ente_pure_utils.dart";
 
-/// Bounding box of a face.
-///
-/// [ x] and [y] are the minimum coordinates, so the top left corner of the box.
-/// [width] and [height] are the width and height of the box.
-///
-/// WARNING: All values are relative to the original image size, so in the range [0, 1].
+// x and y are the top-left corner; all values are fractions of the image.
 class FaceBox {
   final double x;
   final double y;

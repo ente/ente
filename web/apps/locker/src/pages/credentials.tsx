@@ -1,1 +1,1 @@
-export { default } from "ente-accounts-rs/pages/credentials";
+export { default } from "ente-accounts/pages/credentials";

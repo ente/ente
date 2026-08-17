@@ -127,8 +127,7 @@ func (c *FileController) validateFileCreateOrUpdateReq(userID int64, file ente.F
 		if ente.App(collection.App) != app {
 			return stacktrace.Propagate(ente.ErrInvalidApp, "ctx app is different from collection app=%s collectionApp=%s", app, collection.App)
 		}
-		// Verify that user owns the collection.
-		// Warning: Do not remove this check
+		// Creating a file requires collection ownership, not shared access.
 		if collection.Owner.ID != userID {
 			return stacktrace.Propagate(ente.ErrPermissionDenied, "collection doesn't belong to user")
 		}
@@ -304,13 +303,8 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
 	}
-	// The client might retry updating the same file accidentally.
-	//
-	// This usually happens on iOS, where the first request to update a file
-	// might succeed, but the client might go into the background before it gets
-	// to know of it, and then retries again.
-	//
-	// As a safety check, also compare the file sizes.
+	// iOS may retry after backgrounding before receiving a successful response.
+	// Only matching object keys and total size make the update a duplicate.
 	isDuplicateRequest := false
 	if existingThumbnailObjectKey == file.Thumbnail.ObjectKey &&
 		existingFileObjectKey == file.File.ObjectKey &&
@@ -319,11 +313,9 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 	}
 	oldObjects := make([]string, 0)
 	if existingThumbnailObjectKey != file.Thumbnail.ObjectKey {
-		// Ignore accidental retrials
 		oldObjects = append(oldObjects, existingThumbnailObjectKey)
 	}
 	if existingFileObjectKey != file.File.ObjectKey {
-		// Ignore accidental retrials
 		oldObjects = append(oldObjects, existingFileObjectKey)
 	}
 	if file.Info != nil {
@@ -377,7 +369,6 @@ func (c *FileController) ValidateUploadEligibility(ctx context.Context, userID i
 	return nil
 }
 
-// GetUploadURLWithMetadata returns a single presigned URL that enforces checksum & length
 func (c *FileController) GetUploadURLWithMetadata(ctx context.Context, userID int64, req ente.UploadURLRequest, app ente.App) (ente.UploadURL, error) {
 	if req.ContentLength <= 0 {
 		return ente.UploadURL{}, stacktrace.Propagate(ente.ErrBadRequest, "contentLength must be greater than 0")
@@ -465,8 +456,7 @@ func (c *FileController) DoesFileExistInCollection(ctx *gin.Context, fileID int6
 	return nil
 }
 
-// GetSignedURLForPublicFile returns a presigned URL for a file without access checking.
-// The caller is responsible for verifying access before calling this method.
+// The caller must verify access before using this method.
 func (c *FileController) GetSignedURLForPublicFile(ctx *gin.Context, fileID int64, objType ente.ObjectType) (string, error) {
 	return c.getSignedURLForType(ctx, fileID, objType)
 }
@@ -566,8 +556,6 @@ func isCliRequest(ctx *gin.Context) bool {
 	return strings.Contains(userAgent, "go-resty")
 }
 
-// getWasabiSignedUrlIfAvailable returns a signed URL for the given fileID and objectType. It prefers wasabi over b2
-// if the file is not found in wasabi, it will return signed url from B2
 func (c *FileController) getWasabiSignedUrlIfAvailable(fileID int64, objType ente.ObjectType) (string, error) {
 	s3Object, dcs, err := c.ObjectRepo.GetObjectWithDCs(fileID, objType)
 	if err != nil {
@@ -612,7 +600,7 @@ func (c *FileController) Trash(ctx *gin.Context, userID int64, request ente.Tras
 			return stacktrace.Propagate(ente.ErrPermissionDenied, "user doesn't own collection")
 		}
 	}
-	return c.TrashRepository.TrashFiles(fileIDs, userID, request)
+	return c.TrashRepository.TrashFiles(ctx.Request.Context(), userID, request)
 }
 
 func (c *FileController) GetSize(userID int64, fileIDs []int64) (int64, error) {
@@ -631,10 +619,6 @@ func (c *FileController) GetFileInfo(ctx *gin.Context, userID int64, fileIDs []i
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	// Use GetFilesInfo for get fileInfo for the given list.
-	// Then for fileIDs that are not present in the response of GetFilesInfo, use GetFileInfoFromObjectKeys to get the file info.
-	// and merge the two responses. and for the fileIDs that are not present in the response of GetFileInfoFromObjectKeys,
-	// add a new FileInfo entry with size = -1
 	fileInfoResponse, err := c.FileRepo.GetFilesInfo(ctx, fileIDs, userID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
@@ -676,8 +660,7 @@ func (c *FileController) GetFileInfo(ctx *gin.Context, userID int64, fileIDs []i
 		id := fileID
 		fileInfo := fileInfoResponse[id]
 		if fileInfo == nil {
-			// This should be happening only for older users who may have a stale
-			// collection_file entry for a file that user has deleted
+			// Old accounts may retain collection entries for deleted files.
 			log.WithField("fileID", id).Error("fileInfo not found")
 			fileInfoList = append(fileInfoList, &ente.FileInfoResponse{
 				ID:       id,
@@ -808,9 +791,7 @@ func (c *FileController) validateUpdateMetadataRequest(ctx *gin.Context, req ent
 		if existingMetadata != nil {
 			oldToNewCountDiff = existingMetadata.Count - updateMMdRequest.MagicMetadata.Count
 		}
-		// Return an error if there is a version mismatch with the previous metadata
-		// or if the new metadata contains an unexpectedly lower number of keys
-		// (oldToNewCountDiff difference is > 2), which may indicate potential data loss due to potentially buggy client.
+		// Reject version mismatches and large key-count drops to avoid data loss.
 		if existingMetadata != nil && (existingMetadata.Version != updateMMdRequest.MagicMetadata.Version || oldToNewCountDiff > 2) {
 			log.WithFields(log.Fields{
 				"existing_count":   existingMetadata.Count,
@@ -826,8 +807,6 @@ func (c *FileController) validateUpdateMetadataRequest(ctx *gin.Context, req ent
 	return nil
 }
 
-// CleanupDeletedFiles deletes the files from object store. It will delete from both hot storage and
-// cold storage (if replicated)
 func (c *FileController) CleanupDeletedFiles() {
 	log.Info("Cleaning up deleted files")
 	if c.cleanupCronRunning {
@@ -1168,7 +1147,6 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 	return multipartUploadURLs, nil
 }
 
-// GetMultipartUploadURLWithMetadata enforces content length and optional per-part checksums.
 func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, userID int64, req ente.MultipartUploadURLRequest, app ente.App) (ente.MultipartUploadURLs, error) {
 	if req.ContentLength <= 0 {
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(ente.ErrBadRequest, "contentLength must be greater than 0")

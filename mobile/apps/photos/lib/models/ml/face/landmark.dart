@@ -1,6 +1,4 @@
-/// Landmark coordinate data.
-///
-/// WARNING: All coordinates are relative to the image size, so in the range [0, 1]!
+// Coordinates are fractions of the original image dimensions.
 class Landmark {
   double x;
   double y;

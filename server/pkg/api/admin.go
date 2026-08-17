@@ -221,6 +221,8 @@ func (h *AdminHandler) isFreshAdminToken(c *gin.Context) error {
 	return nil
 }
 
+// Used when a user who has lost access to their 2FA codes asks to reset 2FA.
+// Their identity is verified out of band.
 func (h *AdminHandler) DisableTwoFactor(c *gin.Context) {
 	err := h.isFreshAdminToken(c)
 	if err != nil {
@@ -269,9 +271,9 @@ func (h *AdminHandler) UpdateReferral(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-// RemovePasskeys is an admin API request to disable passkey 2FA for a user account by removing its passkeys.
-// This is used when we get a user request to reset their passkeys 2FA when they might've lost access to their devices or synced stores. We verify their identity out of band.
-// BY DEFAULT, IF THE USER HAS TOTP BASED 2FA ENABLED, REMOVING PASSKEYS WILL NOT DISABLE TOTP 2FA.
+// Used when a user who has lost access to their devices or synced stores asks
+// to reset passkey 2FA. Their identity is verified out of band. Removing
+// passkeys does not disable TOTP 2FA.
 func (h *AdminHandler) RemovePasskeys(c *gin.Context) {
 	var request ente.AdminOpsForUserRequest
 	if err := handler.BindJSON(c, &request); err != nil {

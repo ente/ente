@@ -2,7 +2,6 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:photos/services/account/user_service.dart';
-import "package:pinput/pinput.dart";
 
 class OTTVerificationPage extends StatefulWidget {
   final String email;
@@ -108,31 +107,6 @@ class _OTTVerificationPageState extends State<OTTVerificationPage> {
 
   Widget _getBody() {
     final colors = context.componentColors;
-    final defaultPinTheme = PinTheme(
-      height: 52,
-      width: 48,
-      textStyle: TextStyles.body.copyWith(color: colors.textBase),
-      decoration: BoxDecoration(
-        border: Border.all(color: colors.strokeFaint),
-        borderRadius: BorderRadius.circular(20),
-      ),
-    );
-
-    final focusedPinTheme = defaultPinTheme.copyWith(
-      decoration: BoxDecoration(
-        border: Border.all(color: colors.primary, width: 2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-    );
-
-    final submittedPinTheme = defaultPinTheme.copyWith(
-      textStyle: TextStyles.h1.copyWith(color: colors.primary),
-      decoration: BoxDecoration(
-        color: colors.primaryLight,
-        border: Border.all(color: colors.primary, width: 2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-    );
 
     return SafeArea(
       child: Padding(
@@ -156,15 +130,11 @@ class _OTTVerificationPageState extends State<OTTVerificationPage> {
             ),
             const SizedBox(height: 32),
             Center(
-              child: Pinput(
+              child: PinInputComponent(
                 length: 6,
                 controller: _pinController,
                 autofocus: true,
-                defaultPinTheme: defaultPinTheme,
-                focusedPinTheme: focusedPinTheme,
-                submittedPinTheme: submittedPinTheme,
-                followingPinTheme: defaultPinTheme,
-                keyboardType: TextInputType.number,
+                autofillHints: const [AutofillHints.oneTimeCode],
                 onChanged: (String pin) {
                   setState(() {
                     _code = pin;

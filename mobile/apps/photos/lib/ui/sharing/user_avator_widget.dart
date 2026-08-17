@@ -211,7 +211,6 @@ class AvatarIdentityWidget extends StatelessWidget {
         backgroundColor: avatarBackgroundColor(context, identity),
         child: Text(
           identity.initials,
-          // fixed color
           style: textStyle.copyWith(color: Colors.white),
         ),
       ),

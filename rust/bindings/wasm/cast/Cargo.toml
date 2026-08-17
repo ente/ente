@@ -1,0 +1,11 @@
+[package]
+name = "ente-cast-wasm"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-cast.workspace = true
+ente-wasm-log.workspace = true
+wasm-bindgen.workspace = true

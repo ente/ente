@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:log_viewer/src/core/log_models.dart';
 import 'package:log_viewer/src/core/log_store.dart';
 
-/// Page showing logger statistics with percentage breakdown
 class LoggerStatisticsPage extends StatefulWidget {
   final LogFilter filter;
 
@@ -49,7 +48,6 @@ class _LoggerStatisticsPageState extends State<LoggerStatisticsPage> {
   }
 
   Color _getLoggerColor(int index, double percentage) {
-    // Color coding based on percentage
     if (percentage > 50) return Colors.red.shade400;
     if (percentage > 20) return Colors.orange.shade400;
     if (percentage > 10) return Colors.blue.shade400;
@@ -118,7 +116,6 @@ class _LoggerStatisticsPageState extends State<LoggerStatisticsPage> {
             )
           : Column(
               children: [
-                // Summary cards
                 Container(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -146,7 +143,6 @@ class _LoggerStatisticsPageState extends State<LoggerStatisticsPage> {
                   ),
                 ),
 
-                // Statistics list
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _loadStatistics,
@@ -161,7 +157,6 @@ class _LoggerStatisticsPageState extends State<LoggerStatisticsPage> {
                           margin: const EdgeInsets.only(bottom: 8),
                           child: InkWell(
                             onTap: () {
-                              // Navigate back to log viewer with logger filter in search
                               Navigator.pop(
                                 context,
                                 'logger:${stat.loggerName}',

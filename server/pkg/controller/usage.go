@@ -51,8 +51,6 @@ func GetLockerLimitsForTier(isPaid bool) LockerLimits {
 	return limits
 }
 
-// CanUploadFile returns error if the file of given size (with StorageOverflowAboveSubscriptionLimit buffer) can be
-// uploaded or not. If size is not passed, it validates if current usage is less than subscription storage.
 func (c *UsageController) CanUploadFile(ctx context.Context, userID int64, size *int64, app ente.App) error {
 	if app != ente.Locker && (size == nil || *size < hundredMBInBytes) {
 		c.mu.Lock()
@@ -84,8 +82,6 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 	var subscriptionAdminID int64
 	var subscriptionUserIDs []int64
 
-	// if user is part of a family group, validate if subscription of familyAdmin is valid & member's total storage
-	// is less than the storage accordingly to subscription plan of the admin
 	var memberStorageLimit *int64
 	if familyAdminID != nil {
 		familyMembers, err := c.FamilyRepo.GetMembersWithStatus(*familyAdminID, repo.ActiveFamilyMemberStatus)

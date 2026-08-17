@@ -20,8 +20,7 @@ class AlbumDetailsUpdate {
   final String name;
   final String description;
 
-  /// Null when the cover was not edited. Zero resets the cover to the album's
-  /// default photo.
+  // Null means unchanged; zero restores the default cover.
   final int? coverID;
 }
 

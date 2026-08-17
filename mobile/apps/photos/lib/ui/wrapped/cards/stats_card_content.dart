@@ -194,7 +194,7 @@ List<_ChartTick> _buildAxisTicks(double axisMax) {
     return const <_ChartTick>[_ChartTick(value: 0, label: "0")];
   }
 
-  const int divisions = 2; // top, mid, baseline
+  const int divisions = 2;
   final double step = axisMax / divisions;
   final NumberFormat compactFormat = NumberFormat.compact();
   final NumberFormat integerFormat = NumberFormat.decimalPattern();

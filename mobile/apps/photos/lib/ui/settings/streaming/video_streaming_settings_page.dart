@@ -199,7 +199,6 @@ class VideoStreamingStatusWidgetState
     ) {
       final status = event.status;
 
-      // Handle different states
       switch (status) {
         case PreviewItemStatus.uploaded:
           init();

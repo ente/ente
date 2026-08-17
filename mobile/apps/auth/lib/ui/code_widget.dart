@@ -133,7 +133,6 @@ class _CodeWidgetState extends State<CodeWidget> {
       _isInitialized = true;
     }
     final l10n = context.strings;
-    // Cache the localized error label for use in timer callbacks
     _errorText = l10n.error;
 
     Widget getCardContents(
@@ -616,7 +615,6 @@ class _CodeWidgetState extends State<CodeWidget> {
     return entries;
   }
 
-  /// Adds menu items for non-trashed codes (share, QR, tag, notes, pin).
   void _addNonTrashedMenuItems(
     List<ContextMenuEntry> entries,
     StringsLocalizations l10n,
@@ -675,7 +673,6 @@ class _CodeWidgetState extends State<CodeWidget> {
     }
   }
 
-  /// Adds edit menu item for non-trashed codes or restore for trashed codes.
   void _addEditOrRestoreMenuItem(
     List<ContextMenuEntry> entries,
     StringsLocalizations l10n,
@@ -699,7 +696,6 @@ class _CodeWidgetState extends State<CodeWidget> {
     }
   }
 
-  /// Adds delete (forever) or trash menu item based on code state.
   void _addDeleteOrTrashMenuItem(
     List<ContextMenuEntry> entries,
     StringsLocalizations l10n,
@@ -744,7 +740,6 @@ class _CodeWidgetState extends State<CodeWidget> {
     return entries.isEmpty ? null : entries;
   }
 
-  /// Adds menu items for multi-selected trashed codes (restore, delete).
   void _addTrashedMultiSelectMenuItems(
     List<ContextMenuEntry> entries,
     StringsLocalizations l10n,
@@ -765,7 +760,6 @@ class _CodeWidgetState extends State<CodeWidget> {
     );
   }
 
-  /// Adds pin/unpin menu items based on selection pin state.
   void _addPinMenuItems(
     List<ContextMenuEntry> entries,
     StringsLocalizations l10n,
@@ -776,7 +770,6 @@ class _CodeWidgetState extends State<CodeWidget> {
     final bool isMixedPinned = anyPinned && !allPinned;
 
     if (isMixedPinned) {
-      // Show both pin and unpin options for mixed state
       entries.add(
         MenuItem(
           label: l10n.pinText,
@@ -792,7 +785,6 @@ class _CodeWidgetState extends State<CodeWidget> {
         ),
       );
     } else {
-      // Show single toggle option for uniform state
       entries.add(
         MenuItem(
           label: allPinned ? l10n.unpinText : l10n.pinText,
@@ -803,7 +795,6 @@ class _CodeWidgetState extends State<CodeWidget> {
     }
   }
 
-  /// Adds tag and trash menu items for multi-selection.
   void _addTagAndTrashMenuItems(
     List<ContextMenuEntry> entries,
     StringsLocalizations l10n,
@@ -1131,7 +1122,6 @@ class _CodeWidgetState extends State<CodeWidget> {
     try {
       return getOTP(widget.code);
     } catch (e) {
-      // Avoid accessing BuildContext from async timer callbacks
       return _errorText;
     }
   }
@@ -1141,14 +1131,12 @@ class _CodeWidgetState extends State<CodeWidget> {
       assert(widget.code.type.isTOTPCompatible);
       return getNextTotp(widget.code);
     } catch (e) {
-      // Avoid accessing BuildContext from async timer callbacks
       return _errorText;
     }
   }
 
   String _getFormattedCode(String code) {
     if (_hideCode) {
-      // replace all digits with •
       code = code.replaceAll(RegExp(r'\S'), '•');
     }
     switch (code.length) {

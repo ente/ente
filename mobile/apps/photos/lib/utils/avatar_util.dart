@@ -4,10 +4,10 @@ import "package:flutter/material.dart";
 enum AvatarIdentityRole {
   standard,
 
-  /// Kept black across themes to preserve the established "me" treatment.
+  // Keep black across themes for the established "me" treatment.
   currentUser,
 
-  /// A non-user uploading through a public Collect link.
+  // A non-user uploading through a public Collect link.
   publicUploader,
 }
 

@@ -1,6 +1,6 @@
 import nextConfig from "ente-base/next.config.base.js";
 
-/** @type {{ process?: { env?: Record<string, string> } }} */
+/** @type {{ process?: { env?: Record<string, string | undefined> } }} */
 const globalWithProcess = globalThis;
 const env = globalWithProcess.process?.env;
 const isTauriBuild = env?.ENTE_TAURI === "1";
@@ -11,10 +11,9 @@ const normalizedBasePath = rawBasePath
         : `/${rawBasePath}`
     : undefined;
 
-export default {
+/** @satisfies {import("next").NextConfig} */
+const config = {
     ...nextConfig,
-    eslint: { ignoreDuringBuilds: true },
-    typescript: { ignoreBuildErrors: true },
     ...(isTauriBuild ? { output: "export" } : {}),
     ...(normalizedBasePath
         ? {
@@ -24,3 +23,5 @@ export default {
           }
         : {}),
 };
+
+export default config;

@@ -1,9 +1,6 @@
 import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 
-/// A thin scrollbar rendered beside a bounded [ListView], with the thumb sized
-/// to [visibleItems] of [itemCount] and positioned from the shared
-/// [scrollController]. Shared by the add-email and share-collection sheets.
 class CustomListScrollbar extends StatelessWidget {
   const CustomListScrollbar({
     super.key,

@@ -1,8 +1,8 @@
 import {
     deriveSubKeyBytes,
-    generateDeriveKeySalt,
+    generateSRPSetupAttributesRust,
     toB64,
-} from "ente-base/crypto";
+} from "ente-accounts/services/crypto";
 import {
     authenticatedRequestHeaders,
     ensureOk,
@@ -10,7 +10,7 @@ import {
 } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
 import { ensure } from "ente-utils/ensure";
-import { SRP, SrpClient } from "fast-srp-hap";
+import { loadEnteWasm } from "ente-wasm/load";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { saveSRPAttributes } from "./accounts-db";
@@ -49,10 +49,6 @@ export const getSRPAttributes = async (
         .attributes;
 };
 
-// SRP setup needs the KEK (to derive these values) but can complete only
-// after the client has an auth token, which during signup arrives only after
-// email verification. That verification can outlast the browser tab, so these
-// values are stashed in local storage rather than kept in memory.
 export const SRPSetupAttributes = z.object({
     srpUserID: z.string(),
     srpSalt: z.string(),
@@ -65,34 +61,12 @@ export type SRPSetupAttributes = z.infer<typeof SRPSetupAttributes>;
 export const generateSRPSetupAttributes = async (
     kek: string,
 ): Promise<SRPSetupAttributes> => {
-    const loginSubKey = await deriveSRPLoginSubKey(kek);
-
-    // Museum schema requires this to be a UUID.
     const srpUserID = uuidv4();
-    const srpSalt = await generateDeriveKeySalt();
-
-    const srpVerifier = bufferToB64(
-        SRP.computeVerifier(
-            SRP.params["4096"],
-            b64ToBuffer(srpSalt),
-            Buffer.from(srpUserID),
-            b64ToBuffer(loginSubKey),
-        ),
-    );
-
-    return { srpUserID, srpSalt, srpVerifier, loginSubKey };
+    return {
+        srpUserID,
+        ...(await generateSRPSetupAttributesRust(kek, srpUserID)),
+    };
 };
-
-const deriveSRPLoginSubKey = async (kek: string) => {
-    const kekSubKeyBytes = await deriveSubKeyBytes(kek, 32, 1, "loginctx");
-    // Derive 32 bytes and use the first 16 as the SRP password. Asking the
-    // KDF for 16 bytes directly would produce a different value.
-    return toB64(kekSubKeyBytes.slice(0, 16));
-};
-
-const b64ToBuffer = (base64: string) => Buffer.from(base64, "base64");
-
-const bufferToB64 = (buffer: Buffer) => buffer.toString("base64");
 
 export const setupSRP = async (srpSetupAttributes: SRPSetupAttributes) =>
     srpSetupOrReconfigure(srpSetupAttributes, completeSRPSetup);
@@ -109,49 +83,31 @@ const srpSetupOrReconfigure = async (
     { srpSalt, srpUserID, srpVerifier, loginSubKey }: SRPSetupAttributes,
     exchangeCB: SRPSetupOrReconfigureExchangeCallback,
 ) => {
-    const srpClient = await generateSRPClient(srpSalt, srpUserID, loginSubKey);
-
-    const srpA = bufferToB64(srpClient.computeA());
+    const session = await createSRPSession(srpSalt, srpUserID, loginSubKey);
 
     const { setupID, srpB } = await startSRPSetup({
         srpUserID,
         srpSalt,
         srpVerifier,
-        srpA,
+        srpA: session.public_a(),
     });
 
-    srpClient.setB(b64ToBuffer(srpB));
+    const { srpM2 } = await exchangeCB({
+        setupID,
+        srpM1: session.compute_m1(srpB),
+    });
 
-    const srpM1 = bufferToB64(srpClient.computeM1());
-
-    const { srpM2 } = await exchangeCB({ srpM1, setupID });
-
-    srpClient.checkM2(b64ToBuffer(srpM2));
+    session.verify_m2(srpM2);
 };
 
-const generateSRPClient = async (
+const createSRPSession = async (
     srpSalt: string,
     srpUserID: string,
     loginSubKey: string,
-) =>
-    new Promise<SrpClient>((resolve, reject) => {
-        SRP.genKey((err, clientKey) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            resolve(
-                new SrpClient(
-                    SRP.params["4096"],
-                    b64ToBuffer(srpSalt),
-                    Buffer.from(srpUserID),
-                    b64ToBuffer(loginSubKey),
-                    clientKey!,
-                    false,
-                ),
-            );
-        });
-    });
+) => {
+    const wasm = await loadEnteWasm();
+    return new wasm.SrpSession(srpUserID, srpSalt, loginSubKey);
+};
 
 interface SetupSRPRequest {
     srpUserID: string;
@@ -162,11 +118,9 @@ interface SetupSRPRequest {
 
 const SetupSRPResponse = z.object({ setupID: z.string(), srpB: z.string() });
 
-type SetupSRPResponse = z.infer<typeof SetupSRPResponse>;
-
 const startSRPSetup = async (
     setupSRPRequest: SetupSRPRequest,
-): Promise<SetupSRPResponse> => {
+): Promise<z.infer<typeof SetupSRPResponse>> => {
     const res = await fetch(await apiURL("/users/srp/setup"), {
         method: "POST",
         headers: await authenticatedRequestHeaders(),
@@ -176,25 +130,22 @@ const startSRPSetup = async (
     return SetupSRPResponse.parse(await res.json());
 };
 
-interface CompleteSRPSetupRequest {
-    setupID: string;
-    srpM1: string;
-}
-
 const CompleteSRPSetupResponse = z.object({
     setupID: z.string(),
     srpM2: z.string(),
 });
 
-type CompleteSRPSetupResponse = z.infer<typeof CompleteSRPSetupResponse>;
-
-const completeSRPSetup = async (
-    completeSRPSetupRequest: CompleteSRPSetupRequest,
-) => {
+const completeSRPSetup = async ({
+    setupID,
+    srpM1,
+}: {
+    setupID: string;
+    srpM1: string;
+}) => {
     const res = await fetch(await apiURL("/users/srp/complete"), {
         method: "POST",
         headers: await authenticatedRequestHeaders(),
-        body: JSON.stringify(completeSRPSetupRequest),
+        body: JSON.stringify({ setupID, srpM1 }),
     });
     ensureOk(res);
     return CompleteSRPSetupResponse.parse(await res.json());
@@ -219,12 +170,10 @@ export const updateSRPAndKeyAttributes = (
         updateSRPAndKeys({ setupID, srpM1, updatedKeyAttr }),
     );
 
-export interface UpdateSRPAndKeysRequest {
+interface UpdateSRPAndKeysRequest {
     setupID: string;
     srpM1: string;
     updatedKeyAttr: UpdatedKeyAttr;
-    // Remote treats an omitted value as true, invalidating all other sessions
-    // of the user.
     logOutOtherDevices?: boolean;
 }
 
@@ -233,11 +182,9 @@ const UpdateSRPAndKeysResponse = z.object({
     setupID: z.string(),
 });
 
-type UpdateSRPAndKeysResponse = z.infer<typeof UpdateSRPAndKeysResponse>;
-
 const updateSRPAndKeys = async (
     updateSRPAndKeysRequest: UpdateSRPAndKeysRequest,
-): Promise<UpdateSRPAndKeysResponse> => {
+): Promise<z.infer<typeof UpdateSRPAndKeysResponse>> => {
     const res = await fetch(await apiURL("/users/srp/update"), {
         method: "POST",
         headers: await authenticatedRequestHeaders(),
@@ -250,70 +197,71 @@ const updateSRPAndKeys = async (
 export const srpVerificationUnauthorizedErrorMessage =
     "SRP verification failed (HTTP 401 Unauthorized)";
 
+const deriveSRPLoginSubKey = async (kek: string) => {
+    const kekSubKeyBytes = await deriveSubKeyBytes(kek, 32, 1, "loginctx");
+    return toB64(kekSubKeyBytes.slice(0, 16));
+};
+
 export const verifySRP = async (
     { srpUserID, srpSalt }: SRPAttributes,
     kek: string,
 ): Promise<EmailOrSRPVerificationResponse> => {
-    const loginSubKey = await deriveSRPLoginSubKey(kek);
-    const srpClient = await generateSRPClient(srpSalt, srpUserID, loginSubKey);
-
-    const { srpB, sessionID } = await createSRPSession({
+    const session = await createSRPSession(
+        srpSalt,
         srpUserID,
-        srpA: bufferToB64(srpClient.computeA()),
-    });
+        await deriveSRPLoginSubKey(kek),
+    );
 
-    srpClient.setB(b64ToBuffer(srpB));
+    const { srpB, sessionID } = await createSRPSessionOnRemote({
+        srpUserID,
+        srpA: session.public_a(),
+    });
 
     const { srpM2, ...rest } = await verifySRPSession({
         sessionID,
         srpUserID,
-        srpM1: bufferToB64(srpClient.computeM1()),
+        srpM1: session.compute_m1(srpB),
     });
 
-    srpClient.checkM2(b64ToBuffer(srpM2));
+    session.verify_m2(srpM2);
 
     return rest;
 };
-
-interface CreateSRPSessionRequest {
-    srpUserID: string;
-    srpA: string;
-}
 
 const CreateSRPSessionResponse = z.object({
     sessionID: z.string(),
     srpB: z.string(),
 });
 
-type CreateSRPSessionResponse = z.infer<typeof CreateSRPSessionResponse>;
-
-const createSRPSession = async (
-    createSRPSessionRequest: CreateSRPSessionRequest,
-): Promise<CreateSRPSessionResponse> => {
+const createSRPSessionOnRemote = async ({
+    srpUserID,
+    srpA,
+}: {
+    srpUserID: string;
+    srpA: string;
+}): Promise<z.infer<typeof CreateSRPSessionResponse>> => {
     const res = await fetch(await apiURL("/users/srp/create-session"), {
         method: "POST",
         headers: publicRequestHeaders(),
-        body: JSON.stringify(createSRPSessionRequest),
+        body: JSON.stringify({ srpUserID, srpA }),
     });
     ensureOk(res);
     return CreateSRPSessionResponse.parse(await res.json());
 };
 
-interface VerifySRPSessionRequest {
+const verifySRPSession = async ({
+    sessionID,
+    srpUserID,
+    srpM1,
+}: {
     sessionID: string;
     srpUserID: string;
     srpM1: string;
-}
-
-type SRPVerificationResponse = z.infer<typeof RemoteSRPVerificationResponse>;
-
-const verifySRPSession = async (
-    verifySRPSessionRequest: VerifySRPSessionRequest,
-): Promise<SRPVerificationResponse> => {
+}): Promise<z.infer<typeof RemoteSRPVerificationResponse>> => {
     const res = await fetch(await apiURL("/users/srp/verify-session"), {
         method: "POST",
         headers: publicRequestHeaders(),
-        body: JSON.stringify(verifySRPSessionRequest),
+        body: JSON.stringify({ sessionID, srpUserID, srpM1 }),
     });
     if (res.status == 401) {
         throw new Error(srpVerificationUnauthorizedErrorMessage);

@@ -11,7 +11,6 @@ import 'package:photos/module/download/file.dart';
 import "package:photos/module/upload/upload_data.dart";
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Finds device files whose contents changed after upload and queues updates.
 class LocalFileUpdateService {
   static final instance = LocalFileUpdateService._privateConstructor();
 
@@ -59,7 +58,6 @@ class LocalFileUpdateService {
   }
 
   Future<void> _cleanUpOlderMigration() async {
-    // check if any old_migration_keys are present in shared preferences
     bool hasOldMigrationKey = false;
     for (String key in _oldMigrationKeys) {
       if (_prefs.containsKey(key)) {
@@ -83,15 +81,9 @@ class LocalFileUpdateService {
     }
   }
 
-  // This method analyses all of local files for which the file
-  // modification/update time was changed. It checks if the existing fileHash
-  // is different from the hash of uploaded file. If fileHash are different,
-  // then it marks the file for file update.
   Future<void> _markFilesWhichAreActuallyUpdated() async {
     final sTime = DateTime.now().microsecondsSinceEpoch;
-    // singleRunLimit indicates number of files to check during single
-    // invocation of this method. The limit act as a crude way to limit the
-    // resource consumed by the method
+    // Limit each run to bound resource use.
     const int singleRunLimit = 10;
     final localIDsToProcess = await _fileUpdationDB
         .getLocalIDsForPotentialReUpload(

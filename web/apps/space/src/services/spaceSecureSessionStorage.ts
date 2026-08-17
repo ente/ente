@@ -1,4 +1,4 @@
-import { clearStashedKeyEncryptionKeyFromSession } from "ente-accounts-rs/services/session-storage";
+import { clearStashedKeyEncryptionKeyFromSession } from "ente-accounts/services/session-storage";
 import { z } from "zod";
 
 const windowNamePrefix = "ente-space-secure-session:";

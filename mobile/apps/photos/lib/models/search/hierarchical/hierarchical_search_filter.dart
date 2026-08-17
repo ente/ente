@@ -19,17 +19,13 @@ enum FilterTypeNames {
 }
 
 abstract class HierarchicalSearchFilter {
-  //These matches should be from list of all files in db and not just all files
-  //in gallery since this is used as cache for faster filtering when
-  //adding/removing applied filters.
   final String filterTypeName;
+  // Match every database file so removing another filter can restore results.
   final Set<int> matchedUploadedIDs;
   bool isApplied = false;
 
   HierarchicalSearchFilter({required this.filterTypeName, matchedUploadedIDs})
     : matchedUploadedIDs = matchedUploadedIDs ?? {},
-      //Check to ensure that when a new filter extends HierarchicalSearchFilter,
-      //it's filterTypeName is added to FilterTypeNames enum.
       assert(
         FilterTypeNames.values
             .map((e) => e.toString().split(".").last)
@@ -40,9 +36,6 @@ abstract class HierarchicalSearchFilter {
   String name();
   SearchFilterIcon? icon();
 
-  /// Will be [kmostRelevantFilter] if the filter is a Top-level filter. For
-  /// example, when searching for an album 'A' and opening it, when
-  /// hierarchical search starts, the album 'A' will be the top level filter.
   int relevance();
   bool isMatch(EnteFile file);
   bool isSameFilter(HierarchicalSearchFilter other);

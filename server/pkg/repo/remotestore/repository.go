@@ -25,7 +25,6 @@ func (r *Repository) InsertOrUpdate(ctx context.Context, userID int64, key strin
 	)
 
 	if err != nil {
-		// Check for unique violation (PostgreSQL error code 23505)
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			if pgErr.Constraint == "remote_store_custom_domain_unique_idx" {
@@ -81,7 +80,6 @@ func (r *Repository) GetDomain(ctx context.Context, userID int64) (*string, erro
 
 }
 
-// GetEffectiveDomain returns the resolved custom domain for the user (family pointers resolved).
 func (r *Repository) GetEffectiveDomain(ctx context.Context, userID int64) (*string, error) {
 	domain, err := r.GetDomain(ctx, userID)
 	if err != nil || domain == nil || *domain == "" {

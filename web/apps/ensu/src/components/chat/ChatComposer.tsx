@@ -22,16 +22,24 @@ import {
 import type { SxProps, Theme } from "@mui/material/styles";
 import React, { memo } from "react";
 
-type IconProps = { size: number; strokeWidth: number };
+interface IconProps {
+    size: number;
+    strokeWidth: number;
+}
 
-type DocumentAttachment = {
+interface DocumentAttachment {
     id: string;
     name: string;
     size: number;
     text: string;
-};
+}
 
-type ImageAttachment = { id: string; name: string; size: number; file: File };
+interface ImageAttachment {
+    id: string;
+    name: string;
+    size: number;
+    file: File;
+}
 
 type SuggestedModelStatus =
     | "checking"

@@ -142,8 +142,6 @@ GalleryImportResult parseQrImportPayload(String qrCodeData) {
   return GalleryImportResult.code(Code.fromOTPAuthUrl(qrCodeData));
 }
 
-/// Prompts the user to pick an image and tries to extract auth codes from it.
-/// Returns the parsed QR import result when successful, otherwise null.
 Future<GalleryImportResult?> pickCodeFromImage(
   BuildContext context, {
   Logger? logger,
@@ -153,7 +151,7 @@ Future<GalleryImportResult?> pickCodeFromImage(
 
   try {
     if (!context.mounted) return null;
-    final FilePickerResult? result = await FilePicker.platform.pickFiles(
+    final FilePickerResult? result = await FilePicker.pickFiles(
       type: pickFromFiles ? FileType.custom : FileType.image,
       allowedExtensions: pickFromFiles
           ? const ['png', 'jpg', 'jpeg', 'webp', 'heic']

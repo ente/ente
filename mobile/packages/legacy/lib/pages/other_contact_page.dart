@@ -17,9 +17,6 @@ import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "package:logging/logging.dart";
 
-// OtherContactPage is used to start recovery process for other user's account
-// Based on the state of the contact & recovery session, it will show
-// different UI
 class OtherContactPage extends StatefulWidget {
   final EmergencyContact contact;
   final EmergencyInfo emergencyInfo;
@@ -104,7 +101,6 @@ class _OtherContactPageState extends State<OtherContactPage> {
             ),
             Text(accountEmail, style: textTheme.smallMuted),
             const SizedBox(height: 12),
-            // Description text based on recovery state
             if (recoverySession == null)
               Text(
                 context.strings.recoverAccountDesc(
@@ -127,7 +123,6 @@ class _OtherContactPageState extends State<OtherContactPage> {
                 style: textTheme.smallMuted,
               ),
             const SizedBox(height: 24),
-            // Start recovery button (no active session)
             if (recoverySession == null)
               GradientButton(
                 text: context.strings.startRecovery,

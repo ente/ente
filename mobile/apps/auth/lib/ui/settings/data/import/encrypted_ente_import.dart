@@ -106,7 +106,7 @@ Future<void> _decryptExportData(
 }
 
 Future<void> _pickEnteJsonFile(BuildContext context) async {
-  FilePickerResult? result = await FilePicker.platform.pickFiles();
+  FilePickerResult? result = await FilePicker.pickFiles();
   if (result == null) {
     return;
   }

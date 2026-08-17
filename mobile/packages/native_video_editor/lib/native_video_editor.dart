@@ -101,7 +101,7 @@ class NativeVideoInfo {
   final int displayWidth;
   final int displayHeight;
 
-  /// Clockwise quarter-turn rotation required to display encoded pixels.
+  // Clockwise quarter-turn rotation required to display encoded pixels.
   final int rotationDegrees;
   final int? bitrate;
   final double? frameRate;
@@ -259,8 +259,6 @@ class NativeVideoEditor {
     'native_video_editor/progress',
   );
 
-  /// Combined operation: trim, rotate, and crop in a single pass
-  /// More efficient when multiple operations are needed
   static Future<VideoEditResult> processVideo({
     required String inputPath,
     required String outputPath,
@@ -431,7 +429,6 @@ class NativeVideoEditor {
     return NativeVideoInfo.fromMap(result);
   }
 
-  /// Cancel any ongoing video processing
   static Future<void> cancelProcessing() async {
     await _invokeVoid('cancelProcessing', null, operation: 'cancel processing');
   }

@@ -17,7 +17,6 @@ class CollectionSharingService {
 
   CollectionSharingService._privateConstructor();
 
-  /// Share a collection with a user
   Future<List<User>> share(
     int collectionID,
     String email,
@@ -48,7 +47,6 @@ class CollectionSharingService {
     }
   }
 
-  /// Unshare a collection with a user
   Future<List<User>> unshare(int collectionID, String email) async {
     try {
       final response = await _enteDio.post(
@@ -66,7 +64,6 @@ class CollectionSharingService {
     }
   }
 
-  /// Create a public sharing URL for a collection
   Future<Response> createShareUrl(int collectionID, bool enableCollect) async {
     try {
       final response = await _enteDio.post(
@@ -89,7 +86,6 @@ class CollectionSharingService {
     }
   }
 
-  /// Disable public sharing URL for a collection
   Future<void> disableShareUrl(int collectionID) async {
     try {
       await _enteDio.delete(
@@ -127,7 +123,6 @@ class CollectionSharingService {
     }
   }
 
-  /// Leave a shared collection
   Future<void> leaveCollection(int collectionID) async {
     try {
       await _enteDio.post("/collections/leave/$collectionID");

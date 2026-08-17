@@ -1,0 +1,1 @@
+- Fixed incorrect capture times for videos whose metadata stores creation time in UTC.

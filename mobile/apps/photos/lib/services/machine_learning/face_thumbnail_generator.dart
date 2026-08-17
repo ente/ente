@@ -17,14 +17,11 @@ class FaceThumbnailGenerator extends SuperIsolate {
   @override
   bool get shouldAutomaticDispose => true;
 
-  // Singleton pattern
   FaceThumbnailGenerator._privateConstructor();
   static final FaceThumbnailGenerator instance =
       FaceThumbnailGenerator._privateConstructor();
   factory FaceThumbnailGenerator() => instance;
 
-  /// Generates face thumbnails for all [faceBoxes] in the image at
-  /// [imagePath].
   Future<List<Uint8List>> generateFaceThumbnails(
     String imagePath,
     List<FaceBox> faceBoxes,

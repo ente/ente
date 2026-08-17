@@ -7,6 +7,7 @@ name = "cast"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
+ente-cast.workspace = true
 ente-core.workspace = true
 ente-uniffi-log.workspace = true
 thiserror.workspace = true

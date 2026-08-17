@@ -1,44 +1,48 @@
 import "package:photos/models/backup/backup_item_status.dart";
 import "package:photos/models/file/file.dart";
 
-class _PreserveError {
-  const _PreserveError();
-}
-
 class BackupItem {
-  static const _preserveError = _PreserveError();
-
   final BackupItemStatus status;
   final EnteFile file;
   final int collectionID;
   final Object? error;
+  final int? progressPercent;
 
   BackupItem({
     required this.status,
     required this.file,
     required this.collectionID,
     Object? error,
-  }) : error = status == BackupItemStatus.retry ? error : null;
+    int? progressPercent,
+  }) : error = status == BackupItemStatus.retry ? error : null,
+       progressPercent = status == BackupItemStatus.uploading
+           ? progressPercent
+           : null;
 
-  BackupItem copyWith({
-    BackupItemStatus? status,
-    EnteFile? file,
-    int? collectionID,
-    Object? error = _preserveError,
-  }) {
-    final nextStatus = status ?? this.status;
-    final nextError = identical(error, _preserveError) ? this.error : error;
+  BackupItem withStatus(BackupItemStatus status, {Object? error}) {
     return BackupItem(
-      status: nextStatus,
-      file: file ?? this.file,
-      collectionID: collectionID ?? this.collectionID,
-      error: nextStatus == BackupItemStatus.retry ? nextError : null,
+      status: status,
+      file: file,
+      collectionID: collectionID,
+      error: error,
+    );
+  }
+
+  BackupItem withUploadProgress(int progressPercent) {
+    if (status != BackupItemStatus.uploading) {
+      throw StateError("Only an uploading backup can report progress");
+    }
+    return BackupItem(
+      status: status,
+      file: file,
+      collectionID: collectionID,
+      progressPercent: progressPercent,
     );
   }
 
   @override
   String toString() {
-    return 'BackupItem(status: $status, file: $file, collectionID: $collectionID, error: $error)';
+    return 'BackupItem(status: $status, file: $file, collectionID: $collectionID, error: $error, progressPercent: $progressPercent)';
   }
 
   @override
@@ -48,7 +52,8 @@ class BackupItem {
     return other.status == status &&
         other.file == file &&
         other.collectionID == collectionID &&
-        other.error == error;
+        other.error == error &&
+        other.progressPercent == progressPercent;
   }
 
   @override
@@ -56,6 +61,7 @@ class BackupItem {
     return status.hashCode ^
         file.hashCode ^
         collectionID.hashCode ^
-        error.hashCode;
+        error.hashCode ^
+        progressPercent.hashCode;
   }
 }

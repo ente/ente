@@ -33,19 +33,16 @@ class EntePanoramaViewer extends StatefulWidget {
     this.onError,
   });
 
-  /// Equirectangular source image, either full or cropped.
+  // Full or cropped equirectangular image.
   final ImageProvider image;
 
-  /// Placement of [image] on its complete equirectangular canvas.
   final PanoramaGeometry geometry;
 
-  /// Camera used only on mount and when [image] changes.
+  // Used only on mount and when image changes.
   final PanoramaView? initialView;
 
-  /// Whether device orientation should adjust the camera.
   final bool motionEnabled;
 
-  /// Shown until both the image and fragment shader are ready.
   final Widget? placeholder;
   final VoidCallback? onTap;
   final ValueChanged<PanoramaView>? onViewChanged;

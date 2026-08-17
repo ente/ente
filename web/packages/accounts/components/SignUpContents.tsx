@@ -20,6 +20,8 @@ import {
     stashReferralSource,
     stashSRPSetupAttributes,
 } from "ente-accounts/services/accounts-db";
+import { deriveKeyInsufficientMemoryErrorMessage } from "ente-accounts/services/crypto";
+import { saveMasterKeyInSessionAndSafeStore } from "ente-accounts/services/session-storage";
 import { generateSRPSetupAttributes } from "ente-accounts/services/srp";
 import {
     generateAndSaveInteractiveKeyAttributes,
@@ -31,11 +33,9 @@ import { isWeakPassword } from "ente-accounts/utils/password";
 import { LinkButton } from "ente-base/components/LinkButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
-import { deriveKeyInsufficientMemoryErrorMessage } from "ente-base/crypto/types";
 import { isMuseumHTTPError } from "ente-base/http";
 import { JOIN_ALBUM_CONTEXT_KEY } from "ente-base/join-album";
 import log from "ente-base/log";
-import { saveMasterKeyInSessionAndSafeStore } from "ente-base/session";
 import { useFormik } from "formik";
 import { t } from "i18next";
 import type { NextRouter } from "next/router";

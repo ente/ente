@@ -15,11 +15,8 @@ const _minDateTimeSecondsSinceEpoch = -_maxDateTimeSecondsSinceEpoch;
 
 typedef AssetDateTimes = ({int creationTime, int modificationTime});
 
-/// Compares at the whole-second precision provided by photo_manager.
-///
-/// Uses the raw asset timestamps, counting invalid ones as epoch, so that
-/// assets with broken dates are picked up during first import (cutoff 0) but
-/// not re-flagged as updated on every incremental sync.
+// Treat invalid dates as epoch so the first import sees them without every
+// incremental sync flagging them again.
 bool isAssetAtOrAfterSyncCutoff(AssetEntity asset, int cutoffTime) {
   final latestAssetTimeSecond = max(
     _validSecondsSinceEpoch(asset.createDateSecond) ?? 0,

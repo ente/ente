@@ -14,7 +14,6 @@ import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/utils/dialog_util.dart";
 
-/// Shows the auto-pairing sheet for Cast devices.
 Future<void> showPairWithAutoSheet(
   BuildContext context,
   Collection collection,

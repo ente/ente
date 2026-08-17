@@ -20,9 +20,7 @@ const Duration _successDisplayDuration = Duration(seconds: 1);
 const int _maxTitleLines = 2;
 const int _maxCombinedTextLines = 3;
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4055-18734&m=dev
-/// Section: List items / Menu Item
-/// Specs: 336px by typography-derived menu item, optional leading icon, subtitle, trailing item, hover and selected states.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4055-18734&m=dev
 class MenuComponent extends StatefulWidget {
   const MenuComponent({
     super.key,

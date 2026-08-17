@@ -23,7 +23,6 @@ class ClipVectorDB {
 
   static Logger get logger => _logger;
 
-  // Singleton pattern
   ClipVectorDB._privateConstructor(this._databaseName, this._migrationKey);
   static final instance = ClipVectorDB._privateConstructor(
     "ente.ml.vectordb.clip.usearch",
@@ -35,7 +34,6 @@ class ClipVectorDB {
   );
   factory ClipVectorDB() => instance;
 
-  // only have a single app-wide reference to the database
   Future<VectorDb>? _vectorDbFuture;
   Future<void>? _warmupFuture;
   final Lock _writeLock = Lock();
@@ -448,7 +446,6 @@ class VectorDbStats {
   final int capacity;
   final int dimensions;
 
-  // in bytes
   final int fileSize;
   final int memoryUsage;
 

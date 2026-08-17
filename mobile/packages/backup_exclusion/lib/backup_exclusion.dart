@@ -7,22 +7,12 @@ import 'package:logging/logging.dart';
 final _logger = Logger('BackupExclusion');
 const _channel = MethodChannel('io.ente.backup_exclusion');
 
-/// Marks [path] as excluded from iCloud and local backups on iOS.
-///
-/// Called on every app init rather than once, so the flag is re-applied after
-/// device restores (where directories are recreated without the attribute).
-/// The syscall is idempotent and has negligible overhead.
-///
-/// No-op on non-iOS platforms.
+// Reapply on every app init: device restores recreate directories without it.
 Future<void> excludeFromBackup(String path) async {
   if (!Platform.isIOS) return;
   await _invokeExcludeFromBackup(path);
 }
 
-/// Invokes the platform channel directly, without the iOS platform guard.
-///
-/// Exposed for unit testing so tests can exercise the channel logic and
-/// logging behaviour without needing to fake [Platform.isIOS].
 @visibleForTesting
 Future<void> invokeExcludeFromBackup(String path) =>
     _invokeExcludeFromBackup(path);

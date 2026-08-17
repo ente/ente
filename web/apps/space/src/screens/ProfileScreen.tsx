@@ -92,11 +92,6 @@ export interface ProfilePostItem {
     width?: number;
 }
 
-export interface ProfilePostGroup {
-    items: ProfilePostItem[];
-    label: string;
-}
-
 interface SelectedProfilePost {
     draftFile?: File;
     draftImageError?: string;
@@ -291,7 +286,6 @@ interface ProfilePostTileProps {
     aspectRatio: number;
     dimensions: ProfilePhotoDimensions;
     displayName: string;
-    groupLabel: string;
     imageUrl?: string;
     index: number;
     isSingleItemRow: boolean;
@@ -308,7 +302,6 @@ const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
     aspectRatio,
     dimensions,
     displayName,
-    groupLabel,
     imageUrl,
     index,
     isSingleItemRow,
@@ -427,7 +420,7 @@ const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
             {!isUnavailable && imageUrl ? (
                 <Box
                     component="img"
-                    alt={`${groupLabel} post ${index + 1}`}
+                    alt={`${displayName} post ${index + 1}`}
                     onLoad={(event) => {
                         setReadyImageUrl(imageUrl);
                         onRememberDimensions(item.id, event.currentTarget);
@@ -515,7 +508,7 @@ interface ProfileScreenProps {
     onUnfriend?: () => Promise<void> | void;
     onUnfriendComplete?: () => void;
     onUpdatePostCaption?: (postId: number, caption: string) => Promise<void>;
-    postGroups?: ProfilePostGroup[];
+    postItems?: ProfilePostItem[];
     postsCount?: number;
     profile: SetupProfile;
     profileLink?: string;
@@ -548,7 +541,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     onUnfriend,
     onUnfriendComplete,
     onUpdatePostCaption,
-    postGroups = [],
+    postItems = [],
     postsCount,
     profile,
     profileLink,
@@ -609,13 +602,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           ? undefined
           : spaceDefaultCoverImagePath;
     const firstName = firstNameFrom(displayName);
-    const visiblePostGroups = postGroups
-        .map((group) => ({
-            ...group,
-            items: group.items.filter((item) => !deletedPostIDs.has(item.id)),
-        }))
-        .filter((group) => group.items.length > 0);
-    const visiblePostItems = visiblePostGroups.flatMap((group) => group.items);
+    const visiblePostItems = postItems.filter(
+        (item) => !deletedPostIDs.has(item.id),
+    );
     const viewerPostItems = visiblePostItems.filter(
         (item) =>
             !item.isUnavailable &&
@@ -624,10 +613,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const viewerPostIndexByID = new Map(
         viewerPostItems.map((item, index) => [item.id, index]),
     );
-    const postsSharedCount = visiblePostGroups.reduce(
-        (count, group) => count + group.items.length,
-        0,
-    );
+    const postsSharedCount = visiblePostItems.length;
     const displayedPostsCount = postsCount ?? postsSharedCount;
     const canOpenFriends = isOwnerProfile && Boolean(onOpenFriends);
     const canOpenProfileCover = Boolean(onOpenProfileCover);
@@ -647,6 +633,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const postImageLoadRootMargin = isAnonymousPublicProfile
         ? publicPhotoMasonryLoadRootMargin
         : photoMasonryLoadRootMargin;
+    const masonryRows = buildPostMasonryRows(
+        visiblePostItems,
+        loadedPhotoDimensionsByID,
+    );
 
     const closeFriendActions = () => setFriendActionsAnchor(null);
 
@@ -1771,7 +1761,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         display: "flex",
                         flex: hasProfilePosts ? "0 0 auto" : "1 1 0",
                         flexDirection: "column",
-                        gap: "24px",
                         minHeight: hasProfilePosts ? undefined : 0,
                         mt: "24px",
                         pb: "16px",
@@ -1780,171 +1769,116 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     }}
                 >
                     {hasProfilePosts ? (
-                        visiblePostGroups.map((group) => {
-                            const masonryRows = buildPostMasonryRows(
-                                group.items,
-                                loadedPhotoDimensionsByID,
-                            );
-
-                            return (
-                                <Box
-                                    component="section"
-                                    key={group.label}
-                                    sx={{ width: "100%" }}
-                                >
+                        <Box
+                            sx={{
+                                borderRadius: photoMasonryRadius,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: photoMasonryGap,
+                                mt: "6px",
+                                mx: "16px",
+                                overflow: "hidden",
+                                width: "calc(100% - 32px)",
+                            }}
+                        >
+                            {masonryRows.map((row, rowIndex) => {
+                                const isSingleItemRow = row.tiles.length == 1;
+                                return (
                                     <Box
+                                        key={`row-${rowIndex}`}
                                         sx={{
-                                            mb: "10px",
-                                            px: "18px",
+                                            display: "flex",
+                                            gap: photoMasonryGap,
+                                            aspectRatio: isSingleItemRow
+                                                ? undefined
+                                                : `${row.aspectRatio} / 1`,
                                             width: "100%",
                                         }}
                                     >
-                                        <Box
-                                            component="h2"
-                                            sx={{
-                                                color: textStrong,
-                                                fontFamily:
-                                                    '"Inter Variable", Inter, sans-serif',
-                                                fontSize: 14,
-                                                fontWeight: 650,
-                                                letterSpacing: 0,
-                                                lineHeight: "20px",
-                                                m: 0,
-                                            }}
-                                        >
-                                            {group.label}
-                                        </Box>
-                                    </Box>
-                                    <Box
-                                        sx={{
-                                            borderRadius: photoMasonryRadius,
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: photoMasonryGap,
-                                            mx: "16px",
-                                            overflow: "hidden",
-                                            width: "calc(100% - 32px)",
-                                        }}
-                                    >
-                                        {masonryRows.map((row, rowIndex) => {
-                                            const isSingleItemRow =
-                                                row.tiles.length == 1;
-                                            return (
-                                                <Box
-                                                    key={`${group.label}-row-${rowIndex}`}
-                                                    sx={{
-                                                        display: "flex",
-                                                        gap: photoMasonryGap,
-                                                        aspectRatio:
+                                        {row.tiles.map(
+                                            ({
+                                                aspectRatio,
+                                                dimensions,
+                                                item,
+                                                index,
+                                            }) => {
+                                                const imageUrl =
+                                                    loadedPostImageURLFor(item);
+                                                return (
+                                                    <ProfilePostTile
+                                                        key={`${item.id}-${index}`}
+                                                        aspectRatio={
+                                                            aspectRatio
+                                                        }
+                                                        dimensions={dimensions}
+                                                        displayName={
+                                                            displayName
+                                                        }
+                                                        imageUrl={imageUrl}
+                                                        index={index}
+                                                        isSingleItemRow={
                                                             isSingleItemRow
-                                                                ? undefined
-                                                                : `${row.aspectRatio} / 1`,
-                                                        width: "100%",
-                                                    }}
-                                                >
-                                                    {row.tiles.map(
-                                                        ({
-                                                            aspectRatio,
-                                                            dimensions,
-                                                            item,
-                                                            index,
-                                                        }) => {
-                                                            const imageUrl =
-                                                                loadedPostImageURLFor(
-                                                                    item,
+                                                        }
+                                                        isUnavailable={
+                                                            Boolean(
+                                                                item.isUnavailable,
+                                                            ) ||
+                                                            Boolean(
+                                                                unavailablePostsByKey[
+                                                                    profilePostImageCacheKey(
+                                                                        item,
+                                                                    )
+                                                                ],
+                                                            )
+                                                        }
+                                                        item={item}
+                                                        loadRootMargin={
+                                                            postImageLoadRootMargin
+                                                        }
+                                                        onLoadImage={() =>
+                                                            loadPostImage(item)
+                                                        }
+                                                        onImageDecodeError={() =>
+                                                            setUnavailablePostsByKey(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [profilePostImageCacheKey(
+                                                                        item,
+                                                                    )]: true,
+                                                                }),
+                                                            )
+                                                        }
+                                                        onOpen={(
+                                                            openedImageUrl,
+                                                        ) => {
+                                                            const postIndex =
+                                                                viewerPostIndexByID.get(
+                                                                    item.id,
                                                                 );
-                                                            return (
-                                                                <ProfilePostTile
-                                                                    key={`${group.label}-${item.id}-${index}`}
-                                                                    aspectRatio={
-                                                                        aspectRatio
-                                                                    }
-                                                                    dimensions={
-                                                                        dimensions
-                                                                    }
-                                                                    displayName={
-                                                                        displayName
-                                                                    }
-                                                                    groupLabel={
-                                                                        group.label
-                                                                    }
-                                                                    imageUrl={
-                                                                        imageUrl
-                                                                    }
-                                                                    index={
-                                                                        index
-                                                                    }
-                                                                    isSingleItemRow={
-                                                                        isSingleItemRow
-                                                                    }
-                                                                    isUnavailable={
-                                                                        Boolean(
-                                                                            item.isUnavailable,
-                                                                        ) ||
-                                                                        Boolean(
-                                                                            unavailablePostsByKey[
-                                                                                profilePostImageCacheKey(
-                                                                                    item,
-                                                                                )
-                                                                            ],
-                                                                        )
-                                                                    }
-                                                                    item={item}
-                                                                    loadRootMargin={
-                                                                        postImageLoadRootMargin
-                                                                    }
-                                                                    onLoadImage={() =>
-                                                                        loadPostImage(
-                                                                            item,
-                                                                        )
-                                                                    }
-                                                                    onImageDecodeError={() =>
-                                                                        setUnavailablePostsByKey(
-                                                                            (
-                                                                                current,
-                                                                            ) => ({
-                                                                                ...current,
-                                                                                [profilePostImageCacheKey(
-                                                                                    item,
-                                                                                )]:
-                                                                                    true,
-                                                                            }),
-                                                                        )
-                                                                    }
-                                                                    onOpen={(
-                                                                        openedImageUrl,
-                                                                    ) => {
-                                                                        const postIndex =
-                                                                            viewerPostIndexByID.get(
-                                                                                item.id,
-                                                                            );
-                                                                        if (
-                                                                            postIndex ==
-                                                                            undefined
-                                                                        )
-                                                                            return;
-                                                                        setSelectedPost(
-                                                                            selectedPostForItem(
-                                                                                item,
-                                                                                postIndex,
-                                                                                openedImageUrl,
-                                                                            ),
-                                                                        );
-                                                                    }}
-                                                                    onRememberDimensions={
-                                                                        rememberLoadedPhotoDimensions
-                                                                    }
-                                                                />
+                                                            if (
+                                                                postIndex ==
+                                                                undefined
+                                                            )
+                                                                return;
+                                                            setSelectedPost(
+                                                                selectedPostForItem(
+                                                                    item,
+                                                                    postIndex,
+                                                                    openedImageUrl,
+                                                                ),
                                                             );
-                                                        },
-                                                    )}
-                                                </Box>
-                                            );
-                                        })}
+                                                        }}
+                                                        onRememberDimensions={
+                                                            rememberLoadedPhotoDimensions
+                                                        }
+                                                    />
+                                                );
+                                            },
+                                        )}
                                     </Box>
-                                </Box>
-                            );
-                        })
+                                );
+                            })}
+                        </Box>
                     ) : shouldShowPostLoadingIndicator ? (
                         <ProfilePostLoadingIndicator />
                     ) : isPostsLoading ? null : (

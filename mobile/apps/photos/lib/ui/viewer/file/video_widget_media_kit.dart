@@ -158,7 +158,9 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
       }
     } else {
       widget.file.getAsset.then((asset) async {
-        if (asset == null || !(await asset.exists)) {
+        // Android trash assets may report that they do not exist.
+        if (asset == null ||
+            !(await asset.exists || widget.file.isDeviceTrash)) {
           if (widget.file.uploadedFileID != null) {
             _loadNetworkVideo();
           }
@@ -226,8 +228,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // Keep recognizer out of the arena during multi-touch/zoom to avoid
-      // it stealing pinch gestures with predominantly vertical movement.
+      // During zoom, keep this recognizer out of multi-touch gesture arenas.
       onVerticalDragUpdate: _isGuestView || _isZooming
           ? null
           : (d) {

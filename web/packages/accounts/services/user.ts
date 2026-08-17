@@ -7,12 +7,6 @@ import {
     updateSavedLocalUser,
 } from "ente-accounts/services/accounts-db";
 import {
-    generateSRPSetupAttributes,
-    getAndSaveSRPAttributes,
-    updateSRPAndKeyAttributes,
-    type UpdatedKeyAttr,
-} from "ente-accounts/services/srp";
-import {
     boxSealOpenBytes,
     decryptBox,
     deriveInteractiveKey,
@@ -21,14 +15,20 @@ import {
     generateKey,
     generateKeyPair,
     toB64URLSafe,
-} from "ente-base/crypto";
+} from "ente-accounts/services/crypto";
+import { ensureMasterKeyFromSession } from "ente-accounts/services/session-storage";
+import {
+    generateSRPSetupAttributes,
+    getAndSaveSRPAttributes,
+    updateSRPAndKeyAttributes,
+    type UpdatedKeyAttr,
+} from "ente-accounts/services/srp";
 import {
     authenticatedRequestHeaders,
     ensureOk,
     publicRequestHeaders,
 } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
-import { ensureMasterKeyFromSession } from "ente-base/session";
 import {
     removeAuthToken,
     saveAuthToken,
@@ -98,6 +98,38 @@ export const RemoteKeyAttributes = z.object({
 
 export const ensureSavedKeyAttributes = (): KeyAttributes =>
     ensureExpectedLoggedInValue(savedKeyAttributes());
+
+export interface UserKeyPair {
+    publicKey: string;
+    privateKey: string;
+}
+
+export const ensureUserKeyPair = async (): Promise<UserKeyPair> => {
+    const { encryptedSecretKey, secretKeyDecryptionNonce, publicKey } =
+        ensureSavedKeyAttributes();
+    const privateKey = await decryptBox(
+        { encryptedData: encryptedSecretKey, nonce: secretKeyDecryptionNonce },
+        await ensureMasterKeyFromSession(),
+    );
+    return { publicKey, privateKey };
+};
+
+export const getPublicKey = async (email: string) => {
+    const res = await fetch(await apiURL("/users/public-key", { email }), {
+        headers: await authenticatedRequestHeaders(),
+    });
+    ensureOk(res);
+    return z.object({ publicKey: z.string() }).parse(await res.json())
+        .publicKey;
+};
+
+export const getTwoFactorStatus = async () => {
+    const res = await fetch(await apiURL("/users/two-factor/status"), {
+        headers: await authenticatedRequestHeaders(),
+    });
+    ensureOk(res);
+    return z.object({ status: z.boolean() }).parse(await res.json()).status;
+};
 
 export interface GenerateKeysAndAttributesResult {
     masterKey: string;
@@ -418,6 +450,16 @@ export const setupTwoFactorFinish = async (
         twoFactorSecretDecryptionNonce: box.nonce,
     });
     updateSavedLocalUser({ isTwoFactorEnabled: true });
+};
+
+export const disableTwoFactor = async () => {
+    ensureOk(
+        await fetch(await apiURL("/users/two-factor/disable"), {
+            method: "POST",
+            headers: await authenticatedRequestHeaders(),
+        }),
+    );
+    updateSavedLocalUser({ isTwoFactorEnabled: false });
 };
 
 interface EnableTwoFactorRequest {

@@ -44,9 +44,7 @@ class CastSettingsPage extends StatelessWidget {
   }
 }
 
-/// Displays active cast sessions or the provided fallback when empty.
 class CastSessionsList extends StatefulWidget {
-  /// Creates a cast sessions list.
   const CastSessionsList({
     required this.showTitle,
     required this.fallback,
@@ -54,10 +52,8 @@ class CastSessionsList extends StatefulWidget {
     super.key,
   });
 
-  /// Whether to display the active sessions title.
   final bool showTitle;
 
-  /// Widget shown when there are no cast sessions.
   final Widget fallback;
 
   final List<CastInfo>? initialSessions;

@@ -23,7 +23,6 @@ func (r *Repository) GetStatus(userID int64) (*ente.TwoFactorRecoveryStatus, err
 	err := row.Scan(&isAdminResetEnabled, &resetKey)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// by default, admin
 			return &ente.TwoFactorRecoveryStatus{
 				AllowAdminReset:          true,
 				IsPasskeyRecoveryEnabled: false,

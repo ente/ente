@@ -17,7 +17,6 @@ import "package:photos/ui/sharing/verify_identity_dialog.dart";
 enum ActionTypesToShow { addViewer, addCollaborator, addAdmin }
 
 class AddParticipantPage extends StatefulWidget {
-  /// Cannot be empty
   final List<ActionTypesToShow> actionTypesToShow;
   final List<Collection> collections;
 
@@ -36,7 +35,6 @@ class _AddParticipantPage extends State<AddParticipantPage> {
   late CollectionActions collectionActions;
   late List<UserSuggestion> _suggestedUsers;
 
-  // Focus nodes are necessary
   final textFieldFocusNode = FocusNode();
   final _textController = TextEditingController();
 

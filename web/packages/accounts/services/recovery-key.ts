@@ -1,45 +1,22 @@
-import * as bip39 from "bip39";
 import { savedKeyAttributes } from "ente-accounts/services/accounts-db";
 import {
     decryptBox,
     encryptBox,
-    fromHex,
     generateKey,
-    toHex,
-} from "ente-base/crypto";
-import { ensureMasterKeyFromSession } from "ente-base/session";
+    recoveryKeyFromMnemonicOrHex,
+    recoveryKeyToMnemonicRust,
+} from "ente-accounts/services/crypto";
+import { ensureMasterKeyFromSession } from "ente-accounts/services/session-storage";
 import { saveKeyAttributes } from "./accounts-db";
 import { putUserRecoveryKeyAttributes, type KeyAttributes } from "./user";
 
-// The wordlist must stay English since the BIP-39 library used by the mobile
-// clients only supports English.
-bip39.setDefaultWordlist("english");
-
 // For legacy compatibility, the hex representation of the recovery key is
 // accepted in addition to the 24 word BIP-39 mnemonic.
-export const recoveryKeyFromMnemonic = (recoveryKeyMnemonicOrHex: string) => {
-    const trimmedInput = recoveryKeyMnemonicOrHex
-        .trim()
-        .split(" ")
-        .map((part) => part.trim())
-        .filter((part) => !!part)
-        .join(" ");
-
-    let recoveryKeyHex: string;
-    if (trimmedInput.indexOf(" ") > 0) {
-        if (trimmedInput.split(" ").length != 24) {
-            throw new Error("recovery code should have 24 words");
-        }
-        recoveryKeyHex = bip39.mnemonicToEntropy(trimmedInput);
-    } else {
-        recoveryKeyHex = trimmedInput;
-    }
-
-    return fromHex(recoveryKeyHex);
-};
+export const recoveryKeyFromMnemonic = (recoveryKeyMnemonicOrHex: string) =>
+    recoveryKeyFromMnemonicOrHex(recoveryKeyMnemonicOrHex);
 
 export const recoveryKeyToMnemonic = async (recoveryKey: string) =>
-    bip39.entropyToMnemonic(await toHex(recoveryKey));
+    recoveryKeyToMnemonicRust(recoveryKey);
 
 export const getUserRecoveryKey = async () => {
     const masterKey = await ensureMasterKeyFromSession();

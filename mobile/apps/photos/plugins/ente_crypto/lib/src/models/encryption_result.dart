@@ -10,9 +10,8 @@ class EncryptionResult {
 }
 
 class FileEncryptResult {
-  // Key using which the file is encrypted
   final Uint8List key;
-  // Header used for decrypting the file. This is stored in DB. We need both key and header to decrypt the file.
+  // Store this in the database; decryption requires both the header and key.
   final Uint8List header;
   final String? fileMd5;
   final List<String>? partMd5s;

@@ -70,16 +70,21 @@ export const generateImageThumbnail = async (
 
     const outputFilePath = await makeTempFilePath("jpeg");
 
-    let quality = 70;
-    let command = generateImageThumbnailCommand(
-        inputFilePath,
-        outputFilePath,
-        maxDimension,
-        quality,
-    );
-
     try {
         await writeToTemporaryInputFile();
+
+        const shouldResize = await shouldResizeImage(
+            inputFilePath,
+            maxDimension,
+        );
+        let quality = 70;
+        let command = generateImageThumbnailCommand(
+            inputFilePath,
+            outputFilePath,
+            maxDimension,
+            quality,
+            shouldResize,
+        );
 
         let thumbnail: Uint8Array<ArrayBuffer>;
         do {
@@ -91,6 +96,7 @@ export const generateImageThumbnail = async (
                 outputFilePath,
                 maxDimension,
                 quality,
+                shouldResize,
             );
         } while (thumbnail.length > maxSize && quality > 50);
         return thumbnail;
@@ -106,6 +112,7 @@ const generateImageThumbnailCommand = (
     outputFilePath: string,
     maxDimension: number,
     quality: number,
+    shouldResize: boolean,
 ) => {
     switch (process.platform) {
         case "darwin":
@@ -117,8 +124,7 @@ const generateImageThumbnailCommand = (
                 "-s",
                 "formatOptions",
                 `${quality}`,
-                "-Z",
-                `${maxDimension}`,
+                ...(shouldResize ? ["-Z", `${maxDimension}`] : []),
                 inputFilePath,
                 "--out",
                 outputFilePath,
@@ -132,9 +138,40 @@ const generateImageThumbnailCommand = (
                 inputFilePath,
                 `${outputFilePath}[Q=${quality}]`,
                 `${maxDimension}`,
+                "--size",
+                "down",
             ];
 
         default:
             throw new Error("Not available on the current OS/arch");
     }
+};
+
+const shouldResizeImage = async (
+    inputFilePath: string,
+    maxDimension: number,
+) => {
+    if (process.platform != "darwin") return true;
+
+    const { stdout } = await execAsync([
+        "sips",
+        "-g",
+        "pixelWidth",
+        "-g",
+        "pixelHeight",
+        inputFilePath,
+    ]);
+    const width = parseSipsDimension(stdout, "pixelWidth");
+    const height = parseSipsDimension(stdout, "pixelHeight");
+    return Math.max(width, height) > maxDimension;
+};
+
+const parseSipsDimension = (output: string, property: string) => {
+    const match = new RegExp(`^\\s*${property}:\\s*(\\d+)\\s*$`, "m").exec(
+        output,
+    );
+    const dimension = match?.[1] ? Number.parseInt(match[1], 10) : 0;
+    if (dimension <= 0)
+        throw new Error(`Could not read ${property} from sips output`);
+    return dimension;
 };

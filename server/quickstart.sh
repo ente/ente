@@ -53,7 +53,6 @@ gen_key () { head -c 32 /dev/urandom | base64 | tr -d '\n'; }
 # crypto_generichash_BYTES_MAX = 64
 gen_hash () { head -c 64 /dev/urandom | base64 | tr -d '\n'; }
 
-# Like gen_key but sodium_base64_VARIANT_URLSAFE which converts + to -, / to _
 gen_jwt_secret () { head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_'; }
 
 pg_pass=`gen_password`
@@ -95,7 +94,6 @@ services:
 
   web:
     image: ghcr.io/ente/web
-    # Uncomment what you need to tweak.
     ports:
       - 3000:3000 # Photos web app
       # - 3001:3001 # Accounts
@@ -107,7 +105,7 @@ services:
       # - 3008:3008 # Paste
       # - 3009:3009 # Locker
       # - 3010:3010 # Memories
-    # Modify these values to your custom subdomains, if using any
+    # Set this to your custom museum URL, if any.
     environment:
       ENTE_API_ORIGIN: http://localhost:8080
 
@@ -128,7 +126,7 @@ services:
     image: minio/minio
     ports:
       - 3200:3200 # MinIO API
-      # Uncomment to enable MinIO Web UI      
+      # Uncomment to enable the MinIO web UI.
       # - 3201:3201
     environment:
       MINIO_ROOT_USER: $minio_user
@@ -139,8 +137,6 @@ services:
     post_start:
       - command: |
           sh -c '
-          #!/bin/sh
-
           while ! mc alias set h0 http://minio:3200 $minio_user $minio_pass 2>/dev/null
           do
             echo "Waiting for minio..."
@@ -171,13 +167,13 @@ db:
       password: $pg_pass
 
 s3:
-      # Top-level configuration for buckets, you can override by specifying these configuration in the desired bucket.
-      # Set this to false if using external object storage bucket or bucket with SSL
+      # These defaults apply to all buckets and can be overridden per bucket.
+      # Set this to false for external buckets or buckets using SSL.
       are_local_buckets: true
-      # Set this to false if using subdomain-style URL. This is set to true for ensuring compatibility with MinIO when SSL is enabled.
+      # Set this to false for subdomain-style URLs. Keep it true for MinIO with SSL.
       use_path_style_urls: true
       b2-eu-cen:
-         # Uncomment the below configuration to override the top-level configuration 
+         # Uncomment to override the defaults for this bucket.
          # are_local_buckets: true
          # use_path_style_urls: true
          key: $minio_user
@@ -230,13 +226,13 @@ read -r choice
 if test "$choice" = y || test "$choice" = Y
 then
     printf "\nStarting docker compose\n"
-    printf "\nAfter the cluster has started, open web app at \033[1mhttp://localhost:3000\033[0m\n"
-    printf "(Verification code will be in the logs here)\n\n"
+    printf "\nAfter the services start, open web app at \033[1mhttp://localhost:3000\033[0m\n"
+    printf "Account verification codes will appear in these logs.\n\n"
     docker compose up
 else
-    printf "\nTo start the cluster:\n"
+    printf "\nTo start the services:\n"
     printf " \033[1;32m$\033[0m   cd my-ente\n"
     printf " \033[1;32m$\033[0m   docker compose up\n"
-    printf "\nAfter the cluster has started, open web app at \033[1mhttp://localhost:3000\033[0m\n"
-    printf "(Verification code will be in the logs here)\n\n"
+    printf "\nAfter the services start, open web app at \033[1mhttp://localhost:3000\033[0m\n"
+    printf "Account verification codes will appear in the logs.\n\n"
 fi

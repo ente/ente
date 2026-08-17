@@ -200,6 +200,7 @@ export const fileDurationString = (file: EnteFile): string | undefined => {
 export interface ParsedMetadata {
     width?: number;
     height?: number;
+    creationTime?: number;
     creationDate?: ParsedMetadataDate | undefined;
     location?: Location;
     description?: string;

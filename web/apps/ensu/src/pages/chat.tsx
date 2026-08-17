@@ -249,14 +249,19 @@ const SESSION_TITLE_PROMPT =
 const REPEAT_PENALTY = 1.18;
 const STREAMING_OUTRO_DURATION_MS = 520;
 
-type DocumentAttachment = {
+interface DocumentAttachment {
     id: string;
     name: string;
     text: string;
     size: number;
-};
+}
 
-type ImageAttachment = { id: string; name: string; size: number; file: File };
+interface ImageAttachment {
+    id: string;
+    name: string;
+    size: number;
+    file: File;
+}
 
 const createDocumentBlockRegex = () =>
     /----- BEGIN DOCUMENT: ([^\n]+) -----\n([\s\S]*?)\n----- END DOCUMENT: \1 -----/g;
@@ -293,7 +298,7 @@ const parseDocumentBlocks = (text: string) => {
 
 const stripHiddenPartsText = (text: string) =>
     text
-        .replace(/\u0000/g, "")
+        .replaceAll("\0", "")
         .replace(/<think>[\s\S]*?<\/think>/g, "")
         .replace(/<todo_list>[\s\S]*?<\/todo_list>/g, "")
         .trim();
@@ -412,7 +417,7 @@ const Page: React.FC = () => {
     const { showMiniDialog, onGenericError } = useBaseContext();
     const theme = useTheme();
     const isSmall = useMediaQuery(theme.breakpoints.down("md"));
-    const assetBasePath = router.basePath ?? "";
+    const assetBasePath = router.basePath;
     const logoSrc = `${assetBasePath}/images/ensu-logo.svg`;
     const [isDarkMode, setIsDarkMode] = useState(theme.palette.mode === "dark");
 
@@ -445,9 +450,7 @@ const Page: React.FC = () => {
     const logoFilter = isDarkMode ? "none" : "invert(1)";
     const userBubbleBackground = isDarkMode ? "fill.faintHover" : "fill.faint";
     const messageFontFamily = theme.typography.fontFamily ?? "inherit";
-    const codeFontFamily =
-        theme.typography.code?.fontFamily ??
-        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+    const codeFontFamily = theme.typography.code.fontFamily;
     const codeBlockBackground = isDarkMode
         ? "rgba(255, 255, 255, 0.06)"
         : "rgba(0, 0, 0, 0.04)";
@@ -658,8 +661,6 @@ const Page: React.FC = () => {
 
     const providerRef = useRef<LlmProvider | null>(null);
     const currentJobIdRef = useRef<number | null>(null);
-    const pendingCancelRef = useRef(false);
-    const stopRequestedRef = useRef(false);
     const generationTokenRef = useRef(0);
     const lastGenerationRef = useRef<{
         parentMessageUuid: string;
@@ -673,9 +674,10 @@ const Page: React.FC = () => {
     const attachmentPreviewUrlsRef = useRef<Record<string, string>>({});
     const pendingPreviewUrlsRef = useRef<Record<string, string>>({});
     const imagePreviewUrlRef = useRef<string | null>(null);
-    const attachmentPreviewInFlightRef = useRef<Record<string, Promise<void>>>(
-        {},
+    const attachmentPreviewInFlightRef = useRef(
+        new Map<string, Promise<void>>(),
     );
+
     const chatViewportRef = useRef<HTMLDivElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
     const lastScrollTopRef = useRef(0);
@@ -703,7 +705,7 @@ const Page: React.FC = () => {
 
     const scheduleIdleTask = useCallback(
         (callback: () => void, timeout = 1200) => {
-            if (typeof window === "undefined") return () => {};
+            if (typeof window === "undefined") return () => undefined;
             if (typeof window.requestIdleCallback === "function") {
                 const handle = window.requestIdleCallback(() => callback(), {
                     timeout,
@@ -1335,7 +1337,7 @@ const Page: React.FC = () => {
     );
 
     const deleteSessionLabel = useMemo(() => {
-        const title = deleteSessionTarget?.title?.trim();
+        const title = deleteSessionTarget?.title.trim();
         if (title && title !== "New chat") {
             return `"${title}"`;
         }
@@ -1374,7 +1376,6 @@ const Page: React.FC = () => {
         setPendingImages([]);
         setStickToBottom(true);
         currentJobIdRef.current = null;
-        pendingCancelRef.current = false;
     }, [currentSessionId]);
 
     useEffect(() => {
@@ -1415,7 +1416,7 @@ const Page: React.FC = () => {
         async (attachment: ChatAttachment, sessionUuid: string) => {
             if (!chatKey || !firstPaintDone) return;
             if (attachmentPreviewUrlsRef.current[attachment.id]) return;
-            if (attachmentPreviewInFlightRef.current[attachment.id]) return;
+            if (attachmentPreviewInFlightRef.current.has(attachment.id)) return;
 
             const task = (async () => {
                 try {
@@ -1442,29 +1443,24 @@ const Page: React.FC = () => {
                 }
             })();
 
-            attachmentPreviewInFlightRef.current[attachment.id] = task;
+            attachmentPreviewInFlightRef.current.set(attachment.id, task);
             try {
                 await task;
             } finally {
-                delete attachmentPreviewInFlightRef.current[attachment.id];
+                attachmentPreviewInFlightRef.current.delete(attachment.id);
             }
         },
         [chatKey, firstPaintDone, inferImageMime],
     );
 
     useEffect(() => {
-        const next = { ...pendingPreviewUrlsRef.current };
         const activeIds = new Set(pendingImages.map((image) => image.id));
+        const next: Record<string, string> = {};
 
-        Object.keys(next).forEach((id) => {
-            if (!activeIds.has(id)) {
-                const url = next[id];
-                if (url) {
-                    URL.revokeObjectURL(url);
-                }
-                delete next[id];
-            }
-        });
+        for (const [id, url] of Object.entries(pendingPreviewUrlsRef.current)) {
+            if (activeIds.has(id)) next[id] = url;
+            else URL.revokeObjectURL(url);
+        }
 
         pendingImages.forEach((image) => {
             if (!next[image.id]) {
@@ -1511,7 +1507,7 @@ const Page: React.FC = () => {
         const query = sessionSearch.trim().toLowerCase();
         if (!query) return sessions;
         return sessions.filter((session) => {
-            const title = session.title?.toLowerCase() ?? "";
+            const title = session.title.toLowerCase();
             const preview = session.lastMessagePreview?.toLowerCase() ?? "";
             return title.includes(query) || preview.includes(query);
         });
@@ -1537,7 +1533,7 @@ const Page: React.FC = () => {
     );
 
     const displayMessages = useMemo(() => {
-        const base = messageState.path ?? [];
+        const base = messageState.path;
         const augmented: ChatMessage[] = [];
         for (let i = 0; i < base.length; i++) {
             const msg = base[i];
@@ -1595,16 +1591,11 @@ const Page: React.FC = () => {
         });
 
         setAttachmentPreviews((prev) => {
-            const next = { ...prev };
-            Object.keys(next).forEach((id) => {
-                if (!activeIds.has(id)) {
-                    const url = next[id];
-                    if (url) {
-                        URL.revokeObjectURL(url);
-                    }
-                    delete next[id];
-                }
-            });
+            const next: Record<string, string> = {};
+            for (const [id, url] of Object.entries(prev)) {
+                if (activeIds.has(id)) next[id] = url;
+                else URL.revokeObjectURL(url);
+            }
             attachmentPreviewUrlsRef.current = next;
             return next;
         });
@@ -1620,7 +1611,7 @@ const Page: React.FC = () => {
 
     const showDrawerToggle = isSmall || drawerCollapsed;
     const drawerWidth = isSmall ? 300 : drawerCollapsed ? 0 : 320;
-    const desktopBreakpoint = theme.breakpoints.values.lg ?? 1200;
+    const desktopBreakpoint = theme.breakpoints.values.lg;
     const isDesktopOverlay = !isSmall && chatViewportWidth >= desktopBreakpoint;
     const showImageAttachment = isTauriRuntime;
     const showDownloadProgress =
@@ -1646,18 +1637,20 @@ const Page: React.FC = () => {
     }, [allowMmproj, resolvedDefaultModel, selectedModelId]);
 
     const downloadStatusLabel = useMemo(() => {
-        if (!showDownloadProgress) return null;
-        const status = downloadStatus?.status ?? "";
+        if (!downloadStatus?.status || downloadStatus.status === "Ready") {
+            return null;
+        }
+        const status = downloadStatus.status;
         if (status.toLowerCase().includes("loading")) {
             return status;
         }
-        if (downloadStatus?.totalBytes && downloadStatus.percent >= 0) {
+        if (downloadStatus.totalBytes && downloadStatus.percent >= 0) {
             const downloaded = downloadStatus.bytesDownloaded ?? 0;
             return `Downloading... ${formatBytes(downloaded)} / ${formatBytes(downloadStatus.totalBytes)}`;
         }
         if (status) return status;
         return "Downloading...";
-    }, [downloadStatus, showDownloadProgress]);
+    }, [downloadStatus]);
 
     const focusInput = useCallback(() => {
         if (showModelGate) return;
@@ -1729,21 +1722,20 @@ const Page: React.FC = () => {
             if ("__wbg_ptr" in error) {
                 return "Model failed to start. Please refresh and try again.";
             }
-            const text = String(error);
-            if (text && text !== "[object Object]") {
-                return normalizeErrorMessage(text);
-            }
         }
         try {
-            return normalizeErrorMessage(JSON.stringify(error));
+            const serialized = JSON.stringify(error);
+            return serialized
+                ? normalizeErrorMessage(serialized)
+                : "Unknown model error";
         } catch {
-            return normalizeErrorMessage(String(error));
+            return "Unknown model error";
         }
     }, []);
 
     const trimToWords = useCallback((text: string, maxWords: number) => {
         const normalized = text
-            .replace(/\u0000/g, "")
+            .replaceAll("\0", "")
             .replace(/[\r\n\t]+/g, " ")
             .replace(/\s+/g, " ")
             .trim();
@@ -1858,12 +1850,12 @@ const Page: React.FC = () => {
     const persistSessionTitle = useCallback(
         (sessionUuid: string, title: string, key: string) => {
             const previous = sessionTitleUpdatesRef.current.get(sessionUuid);
-            const task = (previous?.catch(() => {}) ?? Promise.resolve()).then(
-                async () => {
-                    await updateSessionTitle(sessionUuid, title, key);
-                    updateSessionTitleInState(sessionUuid, title);
-                },
-            );
+            const task = (
+                previous?.catch(() => undefined) ?? Promise.resolve()
+            ).then(async () => {
+                await updateSessionTitle(sessionUuid, title, key);
+                updateSessionTitleInState(sessionUuid, title);
+            });
             sessionTitleUpdatesRef.current.set(sessionUuid, task);
             void task
                 .finally(() => {
@@ -1873,7 +1865,7 @@ const Page: React.FC = () => {
                         sessionTitleUpdatesRef.current.delete(sessionUuid);
                     }
                 })
-                .catch(() => {});
+                .catch(() => undefined);
             return task;
         },
         [updateSessionTitleInState],
@@ -2168,19 +2160,18 @@ const Page: React.FC = () => {
     }, []);
 
     const buildHistory = useCallback(
-        async (
+        (
             path: ChatMessage[],
             promptText: string,
             contextSize: number,
             maxTokensCount?: number,
             stopAtMessageUuid?: string | null,
-        ): Promise<LlmMessage[]> => {
+        ): LlmMessage[] => {
             const candidates = slicePathUntil(path, stopAtMessageUuid);
             const lastCandidate = candidates[candidates.length - 1];
             const trimmedCandidates =
                 stopAtMessageUuid &&
-                lastCandidate &&
-                lastCandidate.messageUuid === stopAtMessageUuid
+                lastCandidate?.messageUuid === stopAtMessageUuid
                     ? candidates.slice(0, -1)
                     : candidates;
 
@@ -2308,8 +2299,6 @@ const Page: React.FC = () => {
 
             if (currentSessionIdRef.current === sessionId) {
                 generationTokenRef.current += 1;
-                pendingCancelRef.current = false;
-                stopRequestedRef.current = false;
 
                 const jobId = currentJobIdRef.current;
                 currentJobIdRef.current = null;
@@ -2340,7 +2329,7 @@ const Page: React.FC = () => {
     const requestRenameSession = useCallback((session: ChatSession) => {
         if (pendingSessionRenamesRef.current.has(session.sessionUuid)) return;
         setRenameSessionId(session.sessionUuid);
-        setRenameSessionTitle(session.title?.trim() || "New chat");
+        setRenameSessionTitle(session.title.trim() || "New chat");
     }, []);
 
     const handleCancelRenameSession = useCallback(() => {
@@ -2434,7 +2423,7 @@ const Page: React.FC = () => {
                             message.sessionUuid,
                         );
                         const name =
-                            attachment.name?.trim() || `image-${attachment.id}`;
+                            attachment.name.trim() || `image-${attachment.id}`;
                         const file = new File([toSafeBlobPart(bytes)], name, {
                             type: inferImageMime(name),
                         });
@@ -2509,7 +2498,7 @@ const Page: React.FC = () => {
                 );
 
                 const baseName =
-                    attachment.name?.trim() || `attachment-${attachment.id}`;
+                    attachment.name.trim() || `attachment-${attachment.id}`;
                 const treatAsImage = attachment.kind === "image";
                 const filename = treatAsImage
                     ? baseName
@@ -2553,16 +2542,13 @@ const Page: React.FC = () => {
                     return;
                 }
 
-                if (!treatAsImage) {
-                    const text = new TextDecoder().decode(bytes);
-                    const blob = new Blob([text], {
-                        type: "text/plain;charset=utf-8",
-                    });
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, "_blank", "noopener");
-                    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-                    return;
-                }
+                const text = new TextDecoder().decode(bytes);
+                const blob = new Blob([text], {
+                    type: "text/plain;charset=utf-8",
+                });
+                const url = URL.createObjectURL(blob);
+                window.open(url, "_blank", "noopener");
+                window.setTimeout(() => URL.revokeObjectURL(url), 1000);
             } catch (error) {
                 log.error("Failed to open attachment", error);
                 showMiniDialog({
@@ -2606,12 +2592,10 @@ const Page: React.FC = () => {
 
     const handleStopGeneration = useCallback(() => {
         const jobId = currentJobIdRef.current;
-        pendingCancelRef.current = true;
-        stopRequestedRef.current = true;
         generationTokenRef.current += 1;
 
         flushStreamingText();
-        const finalText = streamingBufferRef.current.replace(/\u0000/g, "");
+        const finalText = streamingBufferRef.current.replaceAll("\0", "");
         const trimmedText = finalText.trim();
         const parentMessageUuid = streamingParentId;
         const activeSessionId = currentSessionIdRef.current ?? currentSessionId;
@@ -2725,11 +2709,6 @@ const Page: React.FC = () => {
                 sessionUuid ?? currentSessionIdRef.current ?? currentSessionId;
             if (!chatKey || !activeSessionId) return;
 
-            if (pendingCancelRef.current) {
-                pendingCancelRef.current = false;
-            }
-            stopRequestedRef.current = false;
-
             const generationToken = generationTokenRef.current + 1;
             generationTokenRef.current = generationToken;
 
@@ -2780,16 +2759,16 @@ const Page: React.FC = () => {
 
                 if (resetContext) {
                     await provider.resetContext(contextSize);
+                    if (!isActiveGeneration()) return;
                 }
 
-                const history =
-                    (await buildHistory(
-                        historyPath,
-                        promptText,
-                        contextSize,
-                        maxTokens,
-                        stopAtMessageUuid,
-                    )) ?? [];
+                const history = buildHistory(
+                    historyPath,
+                    promptText,
+                    contextSize,
+                    maxTokens,
+                    stopAtMessageUuid,
+                );
 
                 const messages: LlmMessage[] = [
                     {
@@ -2811,45 +2790,24 @@ const Page: React.FC = () => {
                     );
                 }
 
-                if (pendingCancelRef.current || stopRequestedRef.current) {
-                    pendingCancelRef.current = false;
-                    stopRequestedRef.current = false;
-                    provider.cancelGeneration(-1);
-                    if (previousSelection) {
-                        void updateBranchSelectionState(
-                            parentMessageUuid,
-                            previousSelection,
-                        );
-                    }
-                    setIsGenerating(false);
-                    setIsStreamingOutro(false);
-                    setIsDownloading(false);
-                    setStreamingParentId(null);
-                    streamingBufferRef.current = "";
-                    streamingChunksRef.current = [];
-                    streamingCreatedAtRef.current = null;
-                    setStreamingText("");
-                    currentJobIdRef.current = null;
-                    return;
-                }
-
-                const hasImages =
-                    (imagePaths?.length ?? 0) > 0 &&
-                    provider.getBackendKind() === "tauri";
-                const mmprojPath = hasImages
+                const nativeImagePaths =
+                    imagePaths?.length && provider.getBackendKind() === "tauri"
+                        ? imagePaths
+                        : undefined;
+                const mmprojPath = nativeImagePaths
                     ? provider.getCurrentMmprojPath()
                     : undefined;
-                if (hasImages && !mmprojPath) {
+                if (nativeImagePaths && !mmprojPath) {
                     throw new Error("MMProj model not available");
                 }
 
-                await provider
-                    .generateChatStream(
+                try {
+                    await provider.generateChatStream(
                         {
                             messages,
-                            imagePaths: hasImages ? imagePaths : undefined,
+                            imagePaths: nativeImagePaths,
                             mmprojPath,
-                            mediaMarker: hasImages
+                            mediaMarker: nativeImagePaths
                                 ? (mediaMarker ?? MEDIA_MARKER)
                                 : undefined,
                             maxTokens,
@@ -2859,30 +2817,28 @@ const Page: React.FC = () => {
                         },
                         (event: GenerateEvent) => {
                             if (!isActiveGeneration()) {
+                                const jobId =
+                                    event.type === "text"
+                                        ? event.job_id
+                                        : event.summary.job_id;
+                                provider.cancelGeneration(jobId);
                                 return;
                             }
                             if (event.type === "text") {
                                 if (!currentJobIdRef.current) {
                                     currentJobIdRef.current = event.job_id;
-                                    if (pendingCancelRef.current) {
-                                        pendingCancelRef.current = false;
-                                        provider.cancelGeneration(event.job_id);
-                                        return;
-                                    }
                                 }
                                 streamingChunksRef.current.push(event.text);
                                 scheduleStreamingFlush();
-                            } else if (event.type === "done") {
+                            } else {
                                 currentJobIdRef.current = event.summary.job_id;
                             }
                         },
-                    )
-                    .catch((error: unknown) => {
-                        errorMessage =
-                            error instanceof Error
-                                ? error.message
-                                : String(error);
-                    });
+                    );
+                } catch (error) {
+                    errorMessage =
+                        error instanceof Error ? error.message : String(error);
+                }
 
                 if (!isActiveGeneration()) {
                     return;
@@ -2907,7 +2863,7 @@ const Page: React.FC = () => {
                     return;
                 }
 
-                const assistantText = finalText.replace(/\u0000/g, "");
+                const assistantText = finalText.replaceAll("\0", "");
                 setIsStreamingOutro(true);
 
                 await new Promise<void>((resolve) => {
@@ -2951,19 +2907,17 @@ const Page: React.FC = () => {
                     );
                 }
             } finally {
-                if (!isActiveGeneration()) {
-                    return;
+                if (isActiveGeneration()) {
+                    setIsGenerating(false);
+                    setIsStreamingOutro(false);
+                    setIsDownloading(false);
+                    streamingBufferRef.current = "";
+                    streamingChunksRef.current = [];
+                    setStreamingText("");
+                    setStreamingParentId(null);
+                    streamingCreatedAtRef.current = null;
+                    currentJobIdRef.current = null;
                 }
-                setIsGenerating(false);
-                setIsStreamingOutro(false);
-                setIsDownloading(false);
-                streamingBufferRef.current = "";
-                streamingChunksRef.current = [];
-                setStreamingText("");
-                setStreamingParentId(null);
-                streamingCreatedAtRef.current = null;
-                currentJobIdRef.current = null;
-                pendingCancelRef.current = false;
             }
         },
         [
@@ -3029,7 +2983,7 @@ const Page: React.FC = () => {
                 historyPath,
                 stopAtMessageUuid: parentUuid,
                 resetContext: true,
-                sessionUuid: currentSessionId ?? undefined,
+                sessionUuid: currentSessionId,
             });
         },
         [
@@ -3047,7 +3001,7 @@ const Page: React.FC = () => {
 
     const handlePrevBranch = useCallback(
         (switcher: BranchSwitcher) => {
-            if (!switcher || switcher.total <= 1) return;
+            if (switcher.total <= 1) return;
             const nextIndex =
                 (switcher.currentIndex - 1 + switcher.total) % switcher.total;
             const target = switcher.targets[nextIndex];
@@ -3059,7 +3013,7 @@ const Page: React.FC = () => {
 
     const handleNextBranch = useCallback(
         (switcher: BranchSwitcher) => {
-            if (!switcher || switcher.total <= 1) return;
+            if (switcher.total <= 1) return;
             const nextIndex = (switcher.currentIndex + 1) % switcher.total;
             const target = switcher.targets[nextIndex];
             if (!target) return;
@@ -3643,30 +3597,21 @@ const Page: React.FC = () => {
         showMiniDialog,
     ]);
 
-    const openAttachmentMenu = useCallback(
-        (_event: React.MouseEvent<HTMLElement>) => {
-            closeAttachmentMenu();
-            if (showImageAttachment) {
-                if (isImageAttachmentLimitReached) return;
-                if (isTauriRuntime) {
-                    void openTauriImageSelector();
-                } else {
-                    openImageSelector();
-                }
-                return;
-            }
-            openDocumentSelector();
-        },
-        [
-            closeAttachmentMenu,
-            isTauriRuntime,
-            isImageAttachmentLimitReached,
-            openDocumentSelector,
-            openImageSelector,
-            openTauriImageSelector,
-            showImageAttachment,
-        ],
-    );
+    const openAttachmentMenu = useCallback(() => {
+        closeAttachmentMenu();
+        if (showImageAttachment) {
+            if (isImageAttachmentLimitReached) return;
+            void openTauriImageSelector();
+            return;
+        }
+        openDocumentSelector();
+    }, [
+        closeAttachmentMenu,
+        isImageAttachmentLimitReached,
+        openDocumentSelector,
+        openTauriImageSelector,
+        showImageAttachment,
+    ]);
 
     const handleAttachmentChoice = useCallback(
         (choice: "image" | "document") => {
@@ -3743,7 +3688,7 @@ const Page: React.FC = () => {
         }
 
         const messageText = buildPromptWithDocuments(
-            trimmed.replace(/\u0000/g, ""),
+            trimmed.replaceAll("\0", ""),
             pendingDocuments,
         );
         const persistedAttachmentIds = new Set(

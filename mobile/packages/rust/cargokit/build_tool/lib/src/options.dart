@@ -1,5 +1,5 @@
-/// This is copied from Cargokit (which is the official way to use it currently)
-/// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
+// This is copied from Cargokit (which is the official way to use it currently)
+// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
 
 import 'dart:io';
 
@@ -17,29 +17,17 @@ import 'rustup.dart';
 
 final _log = Logger('options');
 
-/// A class for exceptions that have source span information attached.
 class SourceSpanException implements Exception {
   // This is a getter so that subclasses can override it.
-  /// A message describing the exception.
   String get message => _message;
   final String _message;
 
   // This is a getter so that subclasses can override it.
-  /// The span associated with this exception.
-  ///
-  /// This may be `null` if the source location can't be determined.
   SourceSpan? get span => _span;
   final SourceSpan? _span;
 
   SourceSpanException(this._message, this._span);
 
-  /// Returns a string representation of `this`.
-  ///
-  /// [color] may either be a [String], a [bool], or `null`. If it's a string,
-  /// it indicates an ANSI terminal color escape that should be used to
-  /// highlight the span's text. If it's `true`, it indicates that the text
-  /// should be highlighted using the default color. If it's `false` or `null`,
-  /// it indicates that the text shouldn't be highlighted.
   @override
   String toString({Object? color}) {
     if (span == null) return message;
@@ -107,7 +95,6 @@ class CargoBuildOptions {
 }
 
 extension on YamlMap {
-  /// Map that extracts keys so that we can do map case check on them.
   Map<dynamic, YamlNode> get valueMap =>
       nodes.map((key, value) => MapEntry(key.value, value));
 }
@@ -163,7 +150,6 @@ class PrecompiledBinaries {
   }
 }
 
-/// Cargokit options specified for Rust crate.
 class CargokitCrateOptions {
   CargokitCrateOptions({this.cargo = const {}, this.precompiledBinaries});
 

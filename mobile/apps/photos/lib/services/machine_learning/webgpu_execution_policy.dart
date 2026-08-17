@@ -7,9 +7,7 @@ import "package:photos/utils/ram_check_util.dart";
 
 final webGpuExecutionPolicy = WebGpuExecutionPolicy();
 
-/// Computes the app-owned portion of Android WebGPU eligibility.
-///
-/// Durable quarantine and GPU adapter compatibility are owned by Rust.
+// Rust owns durable quarantine and GPU adapter compatibility.
 class WebGpuExecutionPolicy {
   Future<int?>? _androidSdkFuture;
 
@@ -20,7 +18,6 @@ class WebGpuExecutionPolicy {
       return false;
     }
     final sdk = await (_androidSdkFuture ??= _readAndroidSdk());
-    // Android 12+
     return sdk != null && sdk >= 31;
   }
 

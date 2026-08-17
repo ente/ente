@@ -4,8 +4,10 @@ on:
     pull_request:
         paths:
             - "web/**"
+            - "rust/bindings/wasm/cast/**"
             - "rust/bindings/wasm/ente-wasm/**"
             - "rust/bindings/wasm/space/**"
+            - "rust/crates/cast/**"
             - "rust/crates/space/**"
             - "rust/crates/contacts/**"
             - "rust/crates/core/**"
@@ -50,6 +52,8 @@ jobs:
             - run: npm audit --audit-level critical
 
             - run: npm run build:wasm
+
+            - run: npm run build:cast-wasm
 
             - run: npm run build:space-wasm
 

@@ -23,7 +23,7 @@ This guide walks you through creating your first item in Ente Locker. You'll lea
 2. Select **Document**
 3. Choose a file from your device (PDF, image, or scan)
 4. Add a descriptive title (e.g., "Passport Scan")
-5. Select one or more collections to organize this item
+5. Leave collections unselected to use **Uncategorized**. Or select one or more collections to organize this item
 6. Tap **Save**
 
 ## Example: Adding a secret
@@ -35,7 +35,7 @@ This guide walks you through creating your first item in Ente Locker. You'll lea
     - **Username**: Your username or email
     - **Password**: Your password
     - **Notes**: Any additional information (optional)
-4. Select one or more collections to organize this item
+4. Leave collections unselected to use **Uncategorized**. Or select one or more collections to organize this item
 5. Tap **Save**
 
 ## Organizing with collections
@@ -45,8 +45,10 @@ Collections help you group related items together and control who can access the
 When creating an item:
 
 1. Tap the collection field
-2. Select one or more existing collections, or create a new one
-3. Your item will be saved to those collections
+2. Leave all collections unselected to use **Uncategorized**. Or select an existing collection or create a new one
+3. Tap **Save**
+
+Use Uncategorized for items you want to organize later.
 
 Learn more about [Collections](/locker/features/organization/collections).
 

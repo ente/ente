@@ -93,7 +93,6 @@ Future<void> _requestForEncryptionPassword(
             kekSalt,
           );
           String exportPlainText = await _getAuthDataForExport();
-          // Encrypt the key with this derived key
           final encResult = await CryptoUtil.encryptData(
             utf8.encode(exportPlainText),
             derivedKeyResult.key,
@@ -111,7 +110,6 @@ Future<void> _requestForEncryptionPassword(
             ),
           );
           if (!context.mounted) return;
-          // get json value of data
           await _exportCodes(
             context,
             jsonEncode(data.toJson()),

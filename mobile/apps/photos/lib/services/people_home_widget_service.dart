@@ -18,7 +18,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:synchronized/synchronized.dart';
 
 class PeopleHomeWidgetService {
-  // Constants
   static const String SELECTED_PEOPLE_KEY = "selectedPeopleHW";
   static const String PEOPLE_LAST_HASH_KEY = "peopleLastHash";
   static const String ANDROID_CLASS_NAME = "EntePeopleWidgetProvider";
@@ -28,17 +27,14 @@ class PeopleHomeWidgetService {
   static const String TOTAL_PEOPLE_KEY = "totalPeople";
   static const int MAX_PEOPLE_LIMIT = 50;
 
-  // Singleton pattern
   static final PeopleHomeWidgetService instance =
       PeopleHomeWidgetService._privateConstructor();
   PeopleHomeWidgetService._privateConstructor();
 
-  // Properties
   final Logger _logger = Logger((PeopleHomeWidgetService).toString());
   SharedPreferences get _prefs => ServiceLocator.instance.prefs;
   final peopleChangedLock = Lock();
 
-  // Public methods
   List<String>? getSelectedPeople() {
     return _prefs.getStringList(SELECTED_PEOPLE_KEY);
   }
@@ -215,19 +211,16 @@ class PeopleHomeWidgetService {
       return true;
     }
 
-    // Check if first import is completed
     final hasCompletedFirstImport = LocalSyncService.instance
         .hasCompletedFirstImportOrBypassed();
     if (!hasCompletedFirstImport) {
       return true;
     }
 
-    // Check ML consent
     if (isLocalGalleryMode || !hasGrantedMLConsent) {
       return true;
     }
 
-    // Check if selected people or hash exist
     final peopleIds = await _getEffectiveSelections();
     final hash = await _calculateHash(peopleIds);
 
@@ -241,20 +234,15 @@ class PeopleHomeWidgetService {
   }
 
   Future<void> _refreshPeopleWidget() async {
-    // only refresh if widget was synced without issues
     if (await countHomeWidgets() == 0) return;
     await _refreshWidget(message: "Refreshing from existing people set");
   }
 
   Future<bool> _shouldUpdateWidgetCache() async {
-    // Update widget cache when people were changed
     if (getPeopleChanged() == true) {
       return true;
     }
 
-    // update widget cache if
-    // - people not synced
-    // - people synced partially but now home widget is present
     final peopleStatus = getPeopleStatus();
     return peopleStatus == WidgetStatus.notSynced ||
         peopleStatus == WidgetStatus.syncedPartially &&
@@ -360,14 +348,12 @@ class PeopleHomeWidgetService {
           });
 
       if (renderResult != null) {
-        // Check for blockers again before continuing
         if (await _hasAnyBlockers()) {
           return;
         }
 
         await _setTotalPeople(renderedCount);
 
-        // Show update toast after first item is rendered
         if (renderedCount == 1) {
           await _refreshWidget(
             message: "First person fetched, updating widget",

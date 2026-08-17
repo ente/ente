@@ -25,10 +25,8 @@ import "package:photos/ui/viewer/search/result/search_result_widget.dart";
 import "package:photos/ui/viewer/search/search_query_utils.dart";
 import "package:photos/ui/viewer/search/search_widget.dart";
 
-///Not using StreamBuilder in this widget for rebuilding on every new event as
-///StreamBuilder is not lossless. It misses some events if the stream fires too
-///fast. Instead, we usi a queue to store the events and then generate the
-///widgets from the queue at regular intervals.
+// StreamBuilder can skip rapid events. Queue results and surface them on a
+// timer.
 class SearchSuggestionsWidget extends StatefulWidget {
   const SearchSuggestionsWidget({super.key});
 
@@ -48,8 +46,6 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
   Locale? _cachedSectionOrderLocale;
   List<_SearchResultsSection>? _cachedSectionOrder;
 
-  ///This is the interval at which the queue is checked for new events and
-  ///the search result widgets are generated from the queue.
   static const _surfaceNewResultsInterval = 50;
 
   @override
@@ -64,12 +60,7 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
 
       subscription = resultsStream!.listen(
         (searchResults) {
-          //Currently, we add searchResults even if the list is empty. So we are adding
-          //empty list to the queue, which will trigger rebuilds with no change in UI
-          //(see [generateResultWidgetsInIntervalsFromQueue]'s setState()).
-          //This is needed to clear the search results in this widget when the
-          //search bar is cleared, and the event fired by the stream will be an
-          //empty list. Can optimize rebuilds if there are performance issues in future.
+          // Empty results clear the suggestions when the query is cleared.
           if (searchResults.isNotEmpty) {
             IndexOfStackNotifier().searchState = SearchState.notEmpty;
           }
@@ -101,10 +92,6 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
     queueOfSearchResults.clear();
   }
 
-  ///This method generates searchResultsWidgets from the queueOfEvents by checking
-  ///every [_surfaceNewResultsInterval] if the queue is empty or not. If the
-  ///queue is not empty, it generates the widgets and clears the queue and
-  ///updates the UI.
   void generateResultWidgetsInIntervalsFromQueue() {
     timer = Timer.periodic(
       const Duration(milliseconds: _surfaceNewResultsInterval),

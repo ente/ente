@@ -1,14 +1,31 @@
 import 'package:photos/models/file/file.dart';
 
-class TrashFile extends EnteFile {
-  // time when file was put in the trash for first time
+sealed class TrashFile extends EnteFile {
+  TrashFile();
+
+  TrashFile.from(super.file, {required this.deleteBy}) : super.from();
+
+  // Time when deletion frees the user's storage.
+  late int deleteBy;
+}
+
+class EnteTrashFile extends TrashFile {
+  EnteTrashFile();
+
+  EnteTrashFile.from(
+    super.file, {
+    required super.deleteBy,
+    required this.createdAt,
+    required this.updateAt,
+  }) : super.from();
+
+  // Time first moved to Trash.
   late int createdAt;
 
-  // for non-deleted trash items, updateAt is usually equal to the latest time
-  // when the file was moved to trash
+  // Most recent move to Trash for active entries.
   late int updateAt;
+}
 
-  // time after which will will be deleted from trash & user's storage usage
-  // will go down
-  late int deleteBy;
+class DeviceTrashFile extends TrashFile {
+  DeviceTrashFile();
 }

@@ -48,9 +48,6 @@ func (repo *UserRepository) Get(userID int64) (ente.User, error) {
 	if err != nil {
 		return ente.User{}, stacktrace.Propagate(err, "")
 	}
-	// We should not be calling Get user for a deleted account. The one valid
-	// use case is for internal/Admin APIs, where please we should instead be
-	// using GetUserByIDInternal.
 	if strings.EqualFold(user.Hash, fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, userID)) {
 		return user, stacktrace.Propagate(ente.ErrUserDeleted, "user account is deleted %d", userID)
 	}
@@ -62,7 +59,7 @@ func (repo *UserRepository) Get(userID int64) (ente.User, error) {
 	return user, nil
 }
 
-// GetUserByIDInternal returns a user indicated by the id. Strickly use this method for internal APIs only.
+// Internal APIs only; unlike Get, this does not reject the deleted-account marker.
 func (repo *UserRepository) GetUserByIDInternal(id int64) (ente.User, error) {
 	var user ente.User
 	var encryptedEmail, nonce []byte
@@ -79,7 +76,6 @@ func (repo *UserRepository) GetUserByIDInternal(id int64) (ente.User, error) {
 	return user, nil
 }
 
-// Return true if userId 1 doesn't exists in the system.
 func (repo *UserRepository) IsLikelySelfHosted() bool {
 	var userOneExists bool
 	if err := repo.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE user_id = 1)`).Scan(&userOneExists); err != nil {
@@ -89,8 +85,6 @@ func (repo *UserRepository) IsLikelySelfHosted() bool {
 	return !userOneExists
 }
 
-// Delete removes the email_hash and encrypted email information for the user. It replaces email_hash with placeholder value
-// based on DELETED_EMAIL_HASH_FORMAT
 func (repo *UserRepository) Delete(userID int64) error {
 	return deleteUser(context.Background(), repo.DB, userID)
 }
@@ -167,10 +161,8 @@ func (repo *UserRepository) GetAll(sinceTime int64, tillTime int64) ([]ente.User
 	return users, nil
 }
 
-// GetActiveUsersByLastActivityBefore returns active users whose effective last
-// activity is older than or equal to beforeTime. Effective activity is the
-// latest of token activity, users.creation_time, authenticator_entity.updated_at,
-// and collections.updation_time. Paging is done by user_id.
+// Effective activity is the latest account creation, token, authenticator, or
+// collection activity. Results page by user ID.
 func (repo *UserRepository) GetActiveUsersByLastActivityBefore(beforeTime int64, afterUserID int64, limit int) ([]UserInactivityCandidate, error) {
 	rows, err := repo.DB.Query(`
 		SELECT
@@ -233,7 +225,6 @@ func (repo *UserRepository) GetActiveUsersByLastActivityBefore(beforeTime int64,
 	return result, nil
 }
 
-// GetLatestActivity returns the latest effective activity for a user.
 // The second return value is false when the user is no longer active.
 func (repo *UserRepository) GetLatestActivity(userID int64) (int64, bool, error) {
 	var lastActivity int64
@@ -343,9 +334,8 @@ func updateEmail(ctx context.Context, executor userMutationExecutor, userID int6
 	return stacktrace.Propagate(err, "")
 }
 
-// GetUserIDWithEmailUnrestricted returns the user ID associated with an email.
-// It bypasses authenticated discovery limits and is only for trusted,
-// non-disclosing flows. User-facing discovery must use controller.UserLookup.
+// Trusted, non-disclosing flows only. User-facing discovery must use
+// controller.UserLookup.
 func (repo *UserRepository) GetUserIDWithEmailUnrestricted(email string) (int64, error) {
 	sanitizedEmail := emailUtil.NormalizeEmail(email)
 	emailHash, err := crypto.GetHash(sanitizedEmail, repo.HashingKey)
@@ -460,7 +450,6 @@ func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuot
 		}
 		if refBonusStorage, ok := refBonus[user.ID]; ok {
 			addOnBonusStorage := addOnBonus[user.ID]
-			// cap usable ref bonus to the subscription storage + addOnBonus
 			if refBonusStorage > (subStorage + addOnBonusStorage) {
 				refBonusStorage = subStorage + addOnBonusStorage
 			}

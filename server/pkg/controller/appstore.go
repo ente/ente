@@ -70,8 +70,6 @@ func isEnteSandboxEmail(userEmail string) bool {
 		strings.HasSuffix(normalizedEmail, "@ente.com")
 }
 
-// validateSandboxRequest checks if the request is from sandbox environment.
-// If sandbox, it sends a Discord alert and returns an error for non-whitelisted users.
 func (c *AppStoreController) validateSandboxRequest(ctx context.Context, environment string, userID int64, sandboxContext string) error {
 	if environment != "Sandbox" {
 		return nil

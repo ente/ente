@@ -83,7 +83,6 @@ abstract class CryptoApi {
     int opsLimit,
   );
 
-  // Expose the Argon2 limits so higher layers can tune mem/ops values.
   int get pwhashMemLimitInteractive;
   int get pwhashMemLimitSensitive;
   int get pwhashOpsLimitInteractive;

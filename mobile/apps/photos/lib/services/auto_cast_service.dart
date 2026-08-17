@@ -2,10 +2,10 @@ import "package:ente_cast/ente_cast.dart";
 import "package:logging/logging.dart";
 import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/models/collection/collection.dart";
-import "package:uuid/uuid.dart";
+import "package:photos/src/rust/api/cast_api.dart";
 
 typedef CastPayloadEncoder =
-    String Function(String castToken, Collection collection, String publicKey);
+    PreparedCastPayload Function(Collection collection, String publicKey);
 
 class AutoCastDeviceNotFoundException implements Exception {
   const AutoCastDeviceNotFoundException();
@@ -40,13 +40,12 @@ class AutoCastService {
       if (publicKey == null) {
         throw const AutoCastDeviceNotFoundException();
       }
-      final castToken = const Uuid().v4();
-      final castPayload = _encodePayload(castToken, collection, publicKey);
+      final prepared = _encodePayload(collection, publicKey);
       final deviceID = await _gateway.publishCastPayload(
         code,
-        castPayload,
+        prepared.encryptedPayload,
         collection.id,
-        castToken,
+        prepared.castToken,
       );
       if (deviceID == null) {
         _logger.warning(

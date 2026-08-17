@@ -44,10 +44,11 @@ Future<void> showSingleFileDeleteSheet(
           isRemote: false,
           onDeleteFromLocal: () async {
             final deletedFiles = await deleteFilesOnDeviceOnly(context, [file]);
-            if (deletedFiles.isNotEmpty &&
-                ((isLocal && !isRemote) || isLocalOnlyContext)) {
+            final didDelete = deletedFiles.isNotEmpty;
+            if (didDelete && ((isLocal && !isRemote) || isLocalOnlyContext)) {
               onFileRemoved?.call(file);
             }
+            return didDelete;
           },
           onDeleteFromRemote: () async {
             throw AssertionError("delete from remote in local gallery mode");
@@ -79,22 +80,28 @@ Future<void> showSingleFileDeleteSheet(
       count: 1,
       onDeleteFromLocal: () async {
         final deletedFiles = await deleteFilesOnDeviceOnly(context, [file]);
-        if (deletedFiles.isNotEmpty &&
-            ((isLocal && !isRemote) || isLocalOnlyContext)) {
+        final didDelete = deletedFiles.isNotEmpty;
+        if (didDelete && ((isLocal && !isRemote) || isLocalOnlyContext)) {
           onFileRemoved?.call(file);
         }
+        return didDelete;
       },
       onDeleteFromRemote: () async {
         await deleteFilesFromRemoteOnly(context, [file]);
-        if (!context.mounted) return;
+        if (!context.mounted) return false;
         showShortToast(context, l10n.movedToTrash);
         if (((isRemote && !isLocal) || !isLocalOnlyContext)) {
           onFileRemoved?.call(file);
         }
+        return true;
       },
       onDeleteFromBoth: () async {
-        await deleteFilesFromEverywhere(context, [file]);
-        onFileRemoved?.call(file);
+        final deletedFiles = await deleteFilesFromEverywhere(context, [file]);
+        final didDelete = deletedFiles.isNotEmpty;
+        if (didDelete) {
+          onFileRemoved?.call(file);
+        }
+        return didDelete;
       },
     ),
   );

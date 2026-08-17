@@ -32,9 +32,9 @@ class VideoExifDialog extends StatelessWidget {
       child: ExpansionTile(
         initiallyExpanded: false,
         title: Text(title, style: getEnteTextTheme(context).body),
-        childrenPadding: EdgeInsets.zero, // Remove padding around children
+        childrenPadding: EdgeInsets.zero,
         tilePadding: EdgeInsets.zero,
-        collapsedShape: const Border(), // Remove border when collapsed
+        collapsedShape: const Border(),
         shape: const Border(),
         children: [content],
       ),
@@ -72,7 +72,6 @@ class VideoExifDialog extends StatelessWidget {
         if (value is List) {
           continue;
         }
-        // print type of value
         if (value is int ||
             value is double ||
             value is String ||
@@ -102,7 +101,7 @@ class VideoExifDialog extends StatelessWidget {
       title: Text(titleString, style: getEnteTextTheme(context).small),
       childrenPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
       tilePadding: EdgeInsets.zero,
-      collapsedShape: const Border(), // Remove border when collapsed
+      collapsedShape: const Border(),
       shape: const Border(),
       children: [
         Column(
@@ -141,7 +140,7 @@ class VideoExifDialog extends StatelessWidget {
       }
 
       if (value == null) {
-        return const SizedBox.shrink(); // Return an empty container if there's no data for the key.
+        return const SizedBox.shrink();
       }
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),

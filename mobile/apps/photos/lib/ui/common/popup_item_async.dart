@@ -43,6 +43,6 @@ class EntePopupMenuItemAsync<T, U> extends PopupMenuItem<T> {
                ],
              );
            },
-         ), // Initially empty, will be populated in build
+         ),
        );
 }

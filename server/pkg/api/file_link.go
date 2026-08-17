@@ -78,14 +78,12 @@ func (h *FileHandler) LinkFile(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-// LinkThumbnailURLV3 returns the thumbnail URL and reserves HTTP 404 for an unavailable endpoint.
 func (h *FileHandler) LinkThumbnailURLV3(c *gin.Context) {
 	linkCtx := auth.MustGetFileLinkAccessContext(c)
 	url, err := h.Controller.GetThumbnailURLForOwner(c, linkCtx.OwnerID, linkCtx.FileID)
 	writeFileURLV3(c, url, err)
 }
 
-// LinkFileURLV3 returns the file URL and reserves HTTP 404 for an unavailable endpoint.
 func (h *FileHandler) LinkFileURLV3(c *gin.Context) {
 	linkCtx := auth.MustGetFileLinkAccessContext(c)
 	url, err := h.Controller.GetFileURLForOwner(c, linkCtx.OwnerID, linkCtx.FileID)

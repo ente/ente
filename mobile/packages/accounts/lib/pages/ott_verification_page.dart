@@ -1,11 +1,11 @@
 import 'package:dots_indicator/dots_indicator.dart';
 import 'package:ente_accounts/ente_accounts.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/buttons/dynamic_fab.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:pinput/pinput.dart';
 
 class OTTVerificationPage extends StatefulWidget {
   final String email;
@@ -146,33 +146,6 @@ class _OTTVerificationPageState extends State<OTTVerificationPage> {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
 
-    final defaultPinTheme = PinTheme(
-      height: 48,
-      width: 48,
-      decoration: BoxDecoration(
-        color: colorScheme.backdropBase,
-        border: Border.all(color: colorScheme.strokeFaint, width: 1.75),
-        borderRadius: BorderRadius.circular(18),
-      ),
-    );
-
-    final focusedPinTheme = defaultPinTheme.copyWith(
-      decoration: BoxDecoration(
-        color: colorScheme.backdropBase,
-        border: Border.all(color: colorScheme.primary700, width: 1.75),
-        borderRadius: BorderRadius.circular(18),
-      ),
-    );
-
-    final submittedPinTheme = defaultPinTheme.copyWith(
-      textStyle: textTheme.h3Bold.copyWith(color: colorScheme.primary700),
-      decoration: BoxDecoration(
-        color: colorScheme.backdropBase,
-        border: Border.all(color: colorScheme.strokeFaint, width: 1.75),
-        borderRadius: BorderRadius.circular(18),
-      ),
-    );
-
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
@@ -195,15 +168,11 @@ class _OTTVerificationPageState extends State<OTTVerificationPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              Pinput(
+              PinInputComponent(
                 length: 6,
                 controller: _pinController,
                 autofocus: true,
-                defaultPinTheme: defaultPinTheme,
-                focusedPinTheme: focusedPinTheme,
-                submittedPinTheme: submittedPinTheme,
-                showCursor: false,
-                keyboardType: TextInputType.number,
+                autofillHints: const [AutofillHints.oneTimeCode],
                 onCompleted: (value) {
                   if (value.length == 6) {
                     onPressed();

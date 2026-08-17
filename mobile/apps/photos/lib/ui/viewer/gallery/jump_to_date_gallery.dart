@@ -68,7 +68,6 @@ class _JumpToDateGalleryState extends State<JumpToDateGallery> {
       }
     });
 
-    // Load files asynchronously
     _loadFiles();
   }
 
@@ -98,7 +97,7 @@ class _JumpToDateGalleryState extends State<JumpToDateGallery> {
       _loadState = GalleryLoadState.waitingForGalleryFinalBuildToComplete;
     });
 
-    // Wait for gallery to build, then make it visible
+    // Wait for the gallery's final build before revealing it.
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
         setState(() {

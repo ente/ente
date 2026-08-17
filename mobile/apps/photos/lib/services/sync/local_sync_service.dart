@@ -5,7 +5,6 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
-import "package:photos/core/cache/lru_map.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/errors.dart";
 import "package:photos/core/event_bus.dart";
@@ -26,14 +25,10 @@ import "package:photos/services/ignored_files_service.dart";
 import "package:photos/services/sync/import/diff.dart";
 import "package:photos/services/sync/import/local_assets.dart";
 import "package:photos/services/sync/import/model.dart";
+import "package:photos/services/sync/origin_fetch_tracker.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:synchronized/synchronized.dart";
 import "package:tuple/tuple.dart";
-
-// This map is used to track if a iOS origin file is being fetched for uploading
-// or ML processing. In such cases, we want to ignore these files if they come in response
-// from the local sync service. When a file is download
-final LRUMap<String, bool> trackOriginFetchForUploadOrML = LRUMap(200);
 
 class LocalSyncService {
   final _logger = Logger("LocalSyncService");
@@ -104,9 +99,8 @@ class LocalSyncService {
     _existingSync = Completer<void>();
     final int ownerID = Configuration.instance.getUserIDV2();
 
-    // We use a lock to prevent synchronisation to occur while it is downloading
-    // as this introduces wrong entry in FilesDB due to race condition
-    // This is a fix for https://github.com/ente/ente/issues/4296
+    // Local sync must not race downloads; that can create incorrect FilesDB
+    // rows.
     await _lock.synchronized(() async {
       final existingLocalFileIDs = await _db.getExistingLocalFileIDs(ownerID);
       _logger.info("${existingLocalFileIDs.length} localIDs were discovered");
@@ -121,7 +115,6 @@ class LocalSyncService {
           toTime: syncStartTime,
         );
       } else {
-        // Load from 0 - 01.01.2010
         Bus.instance.fire(
           SyncStatusUpdate(SyncStatus.startedFirstGalleryImport),
         );
@@ -181,8 +174,7 @@ class LocalSyncService {
       result,
       shouldBackup: backupPreferenceService.hasSelectedAllFoldersForBackup,
     );
-    // do not fire UI update event during first sync. Otherwise the next screen
-    // to shop the backup folder is skipped
+    // Firing this during first sync skips the backup-folder screen.
     if (hasUpdated && !isFirstSync) {
       Bus.instance.fire(BackupFoldersUpdatedEvent());
     }
@@ -248,10 +240,24 @@ class LocalSyncService {
       "unSyncedFiles: $hasUnsyncedFiles",
     );
     if (hasAnyMappingChanged || hasUnsyncedFiles) {
+      final newlyDiscoveredFiles = localDiffResult.uniqueLocalFiles ?? [];
+      final newlyDiscoveredLocalIDs = newlyDiscoveredFiles
+          .map((file) => file.localID)
+          .nonNulls
+          .toSet();
+      final newlyMappedLocalIDs =
+          localDiffResult.newPathToLocalIDs?.values.expand((ids) => ids) ??
+          const Iterable<String>.empty();
+      final hasOnlyNewFiles =
+          hasUnsyncedFiles &&
+          (localDiffResult.deletePathToLocalIDs?.isEmpty ?? true) &&
+          newlyMappedLocalIDs.every(newlyDiscoveredLocalIDs.contains);
       Bus.instance.fire(
-        LocalPhotosUpdatedEvent(
-          localDiffResult.uniqueLocalFiles ?? [],
+        _localPhotosUpdatedEvent(
+          updatedFiles: newlyDiscoveredFiles,
+          newlyInsertedFiles: newlyDiscoveredFiles,
           source: "syncAllChange",
+          hasOnlyNewFiles: hasOnlyNewFiles,
         ),
       );
     }
@@ -297,8 +303,7 @@ class LocalSyncService {
       return;
     }
     if (Platform.isIOS && error.reason == InvalidReason.sourceFileMissing) {
-      // ignoreSourceFileMissing error on iOS as the file fetch from iCloud might have failed,
-      // but the file might be available later
+      // Do not persist this failure; iCloud may make the asset available later.
       return;
     }
     final reason = error.reason == InvalidReason.photosResourceUnavailable
@@ -321,9 +326,7 @@ class LocalSyncService {
     return _prefs.getBool(kHasCompletedFirstImportKey) ?? false;
   }
 
-  /// Treat the first import as "done" when flag-driven flows intentionally
-  /// bypass it (e.g., onboarding skipped or only-new backup). Falls back to the
-  /// stored completion value otherwise.
+  // Onboarding skips and only-new backup intentionally bypass the first import.
   bool hasCompletedFirstImportOrBypassed() {
     if (!isLocalGalleryMode &&
         Configuration.instance.hasConfiguredAccount() &&
@@ -347,8 +350,6 @@ class LocalSyncService {
 
     final List<EnteFile> files = result.item2;
     if (files.isNotEmpty) {
-      // Update the mapping for device path_id to local file id. Also, keep track
-      // of newly discovered device paths
       await FilesDB.instance.insertLocalAssets(
         result.item1,
         shouldAutoBackup:
@@ -362,10 +363,8 @@ class LocalSyncService {
             DateTime.fromMicrosecondsSinceEpoch(toTime).toString(),
       );
       await _trackUpdatedFiles(files, existingLocalDs);
-      // keep reference of all Files for firing LocalPhotosUpdatedEvent
       final List<EnteFile> allFiles = [];
       allFiles.addAll(files);
-      // remove existing files and insert newly imported files in the table
       files.removeWhere((file) => existingLocalDs.contains(file.localID));
       await _db.insertMultiple(
         files,
@@ -397,33 +396,47 @@ class LocalSyncService {
     if (allFiles.isEmpty) return;
     final bool discoveredNewFiles = newlyInsertedFiles.isNotEmpty;
     if (!discoveredNewFiles) {
-      allFiles.removeWhere(
-        (file) =>
-            trackOriginFetchForUploadOrML.get(file.localID ?? '') ?? false,
-      );
+      allFiles.removeWhere(originFetchTracker.isUnchangedSinceFetch);
       if (allFiles.isEmpty) {
         _logger.info("skipping firing LocalPhotosUpdatedEvent as no new files");
         return;
       }
     }
 
-    // Check if any NEWLY INSERTED files were created in the last 7 days
-    bool hasRecentNewLocalDiscovery = false;
-    if (discoveredNewFiles) {
-      final sevenDaysAgo = DateTime.now()
-          .subtract(const Duration(days: 7))
-          .microsecondsSinceEpoch;
-      hasRecentNewLocalDiscovery = newlyInsertedFiles.any(
-        (file) => (file.creationTime ?? 0) > sevenDaysAgo,
+    Bus.instance.fire(
+      _localPhotosUpdatedEvent(
+        updatedFiles: allFiles,
+        newlyInsertedFiles: newlyInsertedFiles,
+        source: "loadedPhoto",
+        hasOnlyNewFiles:
+            discoveredNewFiles && allFiles.length == newlyInsertedFiles.length,
+      ),
+    );
+  }
+
+  LocalPhotosUpdatedEvent _localPhotosUpdatedEvent({
+    required List<EnteFile> updatedFiles,
+    required List<EnteFile> newlyInsertedFiles,
+    required String source,
+    required bool hasOnlyNewFiles,
+  }) {
+    final sevenDaysAgo = DateTime.now()
+        .subtract(const Duration(days: 7))
+        .microsecondsSinceEpoch;
+    final hasRecentNewLocalDiscovery = newlyInsertedFiles.any(
+      (file) => (file.creationTime ?? 0) > sevenDaysAgo,
+    );
+    if (hasOnlyNewFiles) {
+      return LocalPhotosAddedEvent(
+        newlyInsertedFiles,
+        source: source,
+        hasRecentNewLocalDiscovery: hasRecentNewLocalDiscovery,
       );
     }
-
-    Bus.instance.fire(
-      LocalPhotosUpdatedEvent(
-        allFiles,
-        source: "loadedPhoto",
-        hasRecentNewLocalDiscovery: hasRecentNewLocalDiscovery,
-      ),
+    return LocalPhotosUpdatedEvent(
+      updatedFiles,
+      source: source,
+      hasRecentNewLocalDiscovery: hasRecentNewLocalDiscovery,
     );
   }
 
@@ -431,26 +444,36 @@ class LocalSyncService {
     List<EnteFile> files,
     Set<String> existingLocalFileIDs,
   ) async {
-    final List<String> updatedLocalIDs = files
+    final List<EnteFile> updatedFiles = files
         .where(
           (file) =>
               file.localID != null &&
               existingLocalFileIDs.contains(file.localID),
         )
-        .map((e) => e.localID!)
         .toList();
 
-    if (updatedLocalIDs.isNotEmpty) {
-      final int updateCount = updatedLocalIDs.length;
-      updatedLocalIDs.removeWhere(
-        (x) => trackOriginFetchForUploadOrML.get(x) ?? false,
-      );
+    if (updatedFiles.isNotEmpty) {
+      final int updateCount = updatedFiles.length;
+      updatedFiles.removeWhere((file) {
+        final comparison = originFetchTracker.comparisonFor(file);
+        if (comparison == null) return false;
+
+        final title = file.title;
+        _logger.info(
+          "Origin fetch update decision for localID=${file.localID}"
+          "${title == null || title.isEmpty ? '' : ', title=$title'}, "
+          "modificationTime=${comparison.modificationTimeAtFetch} -> "
+          "${comparison.observedModificationTime}, "
+          "skipped=${comparison.shouldSkip}",
+        );
+        return comparison.shouldSkip;
+      });
       _logger.info(
-        "track ${updatedLocalIDs.length}/ $updateCount files due to modification change",
+        "track ${updatedFiles.length}/ $updateCount files due to modification change",
       );
-      if (updatedLocalIDs.isNotEmpty) {
+      if (updatedFiles.isNotEmpty) {
         await FileUpdationDB.instance.insertMultiple(
-          updatedLocalIDs,
+          updatedFiles.map((file) => file.localID!).toList(),
           FileUpdationDB.modificationTimeUpdated,
         );
       }
@@ -463,8 +486,7 @@ class LocalSyncService {
     }
     _isChangeCallbackRegistered = true;
     _changeCallbackDebouncer = Debouncer(const Duration(milliseconds: 500));
-    // In case of iOS limit permission, this call back is fired immediately
-    // after file selection dialog is dismissed.
+    // iOS fires this immediately after the limited-access picker closes.
     PhotoManager.addChangeCallback((value) async {
       _logger.info("Something changed on disk");
       _changeCallbackDebouncer.run(() async {

@@ -12,18 +12,13 @@ type EntityType string
 const (
 	Location EntityType = "location"
 	// Person entity is deprecated and will be removed in the future.
-	//Deprecated ..
 	Person EntityType = "person"
-	// CGroup is a new version of Person entity, where the data is gzipped before encryption
-	CGroup EntityType = "cgroup"
-	// SmartAlbum is a new entity type for storing smart album config data
+	// CGroup replaces Person; its data is gzipped before encryption.
+	CGroup     EntityType = "cgroup"
 	SmartAlbum EntityType = "smart_album"
-	// Memory is the entity type for memory share encryption keys
-	Memory EntityType = "memory"
-	// Contact is the entity type for the shared contact root key.
-	Contact EntityType = "contact"
-	// Space is the entity type for the space root key.
-	Space EntityType = "space"
+	Memory     EntityType = "memory"
+	Contact    EntityType = "contact"
+	Space      EntityType = "space"
 )
 
 func (et EntityType) IsValid() error {
@@ -75,7 +70,7 @@ type EntityDataRequest struct {
 	Type          EntityType `json:"type" binding:"required"`
 	EncryptedData string     `json:"encryptedData" binding:"required"`
 	Header        string     `json:"header" binding:"required"`
-	ID            *string    `json:"id"` // Optional ID, if not provided a new ID will be generated
+	ID            *string    `json:"id"`
 }
 
 func (edr *EntityDataRequest) IsValid(userID int64) error {
@@ -105,7 +100,7 @@ type UpdateEntityDataRequest struct {
 
 type GetEntityDiffRequest struct {
 	Type EntityType `form:"type" binding:"required"`
-	// SinceTime *int64. Pointer allows us to pass 0 value otherwise binding fails for zero Value.
+	// Keep this a pointer so binding accepts zero.
 	SinceTime *int64 `form:"sinceTime" binding:"required"`
 	Limit     int16  `form:"limit" binding:"required"`
 }

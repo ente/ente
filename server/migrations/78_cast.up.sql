@@ -12,5 +12,4 @@ CREATE  TABLE IF NOT EXISTS casting
     created_at BIGINT NOT NULL DEFAULT now_utc_micro_seconds(),
     last_used_at BIGINT NOT NULL DEFAULT now_utc_micro_seconds()
 );
--- create unique constraint on not deleted code
 CREATE UNIQUE INDEX IF NOT EXISTS casting_code_unique_idx ON casting (code) WHERE is_deleted = FALSE;

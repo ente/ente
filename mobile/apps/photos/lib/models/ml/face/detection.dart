@@ -4,21 +4,15 @@ import "package:photos/models/ml/face/box.dart";
 import "package:photos/models/ml/face/landmark.dart";
 import "package:photos/services/machine_learning/face_ml/face_detection/detection.dart";
 
-/// Stores the face detection data, notably the bounding box and landmarks.
-///
-/// - Bounding box: [FaceBox] with x, y (minimum, so top left corner), width, height
-/// - Landmarks: list of [Landmark]s, namely leftEye, rightEye, nose, leftMouth, rightMouth
-///
-/// WARNING: All coordinates are relative to the image size, so in the range [0, 1]!
 class Detection {
   FaceBox box;
+  // Order: left eye, right eye, nose, left mouth, right mouth.
   List<Landmark> landmarks;
 
   Detection({required this.box, required this.landmarks});
 
   bool get isEmpty => box.width == 0 && box.height == 0 && landmarks.isEmpty;
 
-  // empty box
   Detection.empty()
     : box = const FaceBox(x: 0, y: 0, width: 0, height: 0),
       landmarks = [];
@@ -69,10 +63,8 @@ class Detection {
     final bool noseCloseToRightEye =
         (nose[0] - rightEye[0]).abs() < 0.2 * eyeDistanceX;
 
-    // if (faceIsUpright && (noseStickingOutLeft || noseCloseToLeftEye)) {
     if (noseStickingOutLeft || (faceIsUpright && noseCloseToLeftEye)) {
       return FaceDirection.left;
-      // } else if (faceIsUpright && (noseStickingOutRight || noseCloseToRightEye)) {
     } else if (noseStickingOutRight || (faceIsUpright && noseCloseToRightEye)) {
       return FaceDirection.right;
     }

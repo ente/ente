@@ -28,10 +28,6 @@ abstract class Location with _$Location {
     return true;
   }
 
-  // isValidRange checks if the latitude and longitude are within the valid range
-  // for latitude and longitude. Note: We are only checking the range while
-  // rending location on the map. We need to investigate in which cases we are
-  // parsing incorrect location value.
   static bool isValidRange({
     required double latitude,
     required double longitude,

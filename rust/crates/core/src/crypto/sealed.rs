@@ -1,14 +1,13 @@
 use blake2b_simd::Params as Blake2bParams;
-use rand_core::{OsRng, RngCore};
+use crypto_secretbox::XSalsa20Poly1305;
+use crypto_secretbox::aead::generic_array::GenericArray;
+use crypto_secretbox::aead::{Aead, KeyInit};
 use salsa20::hsalsa;
 use subtle::ConstantTimeEq;
 use x25519_dalek::StaticSecret;
-use xsalsa20poly1305::XSalsa20Poly1305;
-use xsalsa20poly1305::aead::generic_array::GenericArray;
-use xsalsa20poly1305::aead::{Aead, KeyInit};
 use zeroize::Zeroize;
 
-use crate::crypto::{Error, PublicKey, Result, SecretKey};
+use crate::crypto::{Error, PublicKey, Result, SecretKey, fill_random};
 
 pub const PUBLIC_KEY_BYTES: usize = PublicKey::BYTES;
 
@@ -51,7 +50,7 @@ pub fn seal(plaintext: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
     let recipient_pk_point = x25519_dalek::PublicKey::from(recipient_pk_arr);
 
     let mut ephemeral_secret_bytes = [0u8; 32];
-    OsRng.fill_bytes(&mut ephemeral_secret_bytes);
+    fill_random(&mut ephemeral_secret_bytes);
     let ephemeral_secret = StaticSecret::from(ephemeral_secret_bytes);
     let ephemeral_public = x25519_dalek::PublicKey::from(&ephemeral_secret);
 

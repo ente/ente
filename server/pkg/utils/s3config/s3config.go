@@ -13,14 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Objects are replicated in multiple "data centers". Each data center is an
-// S3-compatible provider, and has an associated "bucket".
-//
-// The list of data centers are not arbitrarily configurable - while we pick the
-// exact credentials, endpoint and the bucket from the runtime configuration
-// file, the code has specific logic to deal with the quirks of specific data
-// centers. So as such, the constants used to specify these data centers in the
-// YAML configuration matter.
+// Bucket IDs are fixed because provider-specific code depends on their exact
+// values. Credentials, endpoints, and bucket names remain configurable.
 type S3Config struct {
 	buckets                   map[string]string
 	hotDC                     string
@@ -33,41 +27,19 @@ type S3Config struct {
 	// debugging workarounds; not tested/intended for production.
 	areLocalBuckets bool
 
-	// If for particular object type, the bucket is not specified, it will
-	// default to hotDC as the bucket with no replicas. Initially, this config won't support
-	// existing objectType (file, thumbnail) and will be used for new objectTypes. In the future,
-	// we can migrate existing objectTypes to this config.
-	fileDataConfig FileDataConfig
-	// If no explicit config is present, attachments default to hot storage with no replicas.
+	fileDataConfig   FileDataConfig
 	attachmentConfig AttachmentConfig
 }
 
-// # Datacenters
-// Note: We are now renaming datacenter names to bucketID. Till the migration is completed, you will see usage of both
-// terminology.
-// Below are some high level details about the three replicas ("data centers")
-// that are in use. There are a few other legacy ones too.
+// The primary object-replication path uses three provider-specific roles:
 //
-// # Backblaze (dcB2EuropeCentral)
+// Backblaze is primary hot storage. It is versioned, and the server rolls back
+// client overwrites by deleting the newest object version.
 //
-//   - Primary hot storage
-//   - Versioned, but with extra code that undoes all overwrites
+// Wasabi is secondary hot storage. Compliance prevents overwrites and deletion
+// for 21 days. Permanent deletion releases the hold before scheduled cleanup.
 //
-// # Wasabi (dcWasabiEuropeCentral_v3)
-//
-//   - Secondary hot storage
-//   - Objects stay under compliance, which prevents them from being
-//     deleted/updated for 21 days.
-//   - Not versioned (versioning is not needed since objects cannot be overwritten)
-//   - When an user (permanently) deletes an object, we remove the compliance
-//     retention. It can then be deleted normally when the scheduled
-//     cleanup happens (as long as it happens after 21 days).
-//
-// # Scaleway (dcSCWEuropeFrance_v3)
-//
-//   - Cold storage
-//   - Specify type GLACIER in API requests
-
+// Scaleway is cold storage. Replication uploads use the GLACIER storage class.
 var (
 	dcB2EuropeCentral                 string = "b2-eu-cen"
 	dcSCWEuropeFranceDeprecated       string = "scw-eu-fr"
@@ -163,7 +135,6 @@ func (config *S3Config) GetBucket(dcOrBucketID string) *string {
 	return &bucket
 }
 
-// GetBucketID returns the bucket ID for the given object type. Note: existing dc are renamed as bucketID
 func (config *S3Config) GetBucketID(oType ente.ObjectType) string {
 	if config.fileDataConfig.HasConfig(oType) {
 		return config.fileDataConfig.GetPrimaryBucketID(oType)
@@ -258,11 +229,6 @@ func (config *S3Config) GetColdScalewayDC() string {
 	return dcSCWEuropeFrance_v3
 }
 
-// ShouldDeleteFromDataCenter returns true if objects should be deleted from the
-// given data center when permanently deleting these objects.
-//
-// There are some legacy / deprecated data center values which are no longer
-// being used, and it returns false for such data centers.
 func (config *S3Config) ShouldDeleteFromDataCenter(dc string) bool {
 	return dc != dcSCWEuropeFranceDeprecated && dc != dcSCWEuropeFranceLockedDeprecated && dc != dcWasabiEuropeCentralDeprecated
 }
@@ -274,8 +240,6 @@ func (config *S3Config) WasabiComplianceDC() string {
 	return ""
 }
 
-// Return true if we're using local minio buckets. This can then be used to add
-// various workarounds for debugging locally; not meant for production use.
 func (config *S3Config) AreLocalBuckets() bool {
 	return config.areLocalBuckets
 }

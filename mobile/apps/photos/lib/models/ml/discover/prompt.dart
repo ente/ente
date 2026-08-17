@@ -1,4 +1,3 @@
-// Loaded from assets/discover.json
 class Prompt {
   final String id;
   final int position;
@@ -9,7 +8,6 @@ class Prompt {
   final bool showVideo;
   final bool recentFirst;
 
-  // fromJson
   Prompt.fromJson(Map<String, dynamic> json)
     : id = json['id'] ?? json['title'],
       query = json['query'] ?? json['prompt'],

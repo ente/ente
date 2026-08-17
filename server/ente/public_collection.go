@@ -108,19 +108,18 @@ func (p CollectionLinkRow) CanJoin() error {
 }
 
 type PublicURL struct {
-	URL             string `json:"url"`
-	DeviceLimit     int    `json:"deviceLimit"`
-	ValidTill       int64  `json:"validTill"`
-	EnableDownload  bool   `json:"enableDownload"`
-	EnableCollect   bool   `json:"enableCollect"`
-	EnableComment   bool   `json:"enableComment"`
-	PasswordEnabled bool   `json:"passwordEnabled"`
-	// Nonce contains the nonce value for the password if the link is password protected.
-	Nonce      *string                    `json:"nonce,omitempty"`
-	MemLimit   *int64                     `json:"memLimit,omitempty"`
-	OpsLimit   *int64                     `json:"opsLimit,omitempty"`
-	EnableJoin bool                       `json:"enableJoin"`
-	MinRole    *CollectionParticipantRole `json:"minRole,omitempty"`
+	URL             string                     `json:"url"`
+	DeviceLimit     int                        `json:"deviceLimit"`
+	ValidTill       int64                      `json:"validTill"`
+	EnableDownload  bool                       `json:"enableDownload"`
+	EnableCollect   bool                       `json:"enableCollect"`
+	EnableComment   bool                       `json:"enableComment"`
+	PasswordEnabled bool                       `json:"passwordEnabled"`
+	Nonce           *string                    `json:"nonce,omitempty"`
+	MemLimit        *int64                     `json:"memLimit,omitempty"`
+	OpsLimit        *int64                     `json:"opsLimit,omitempty"`
+	EnableJoin      bool                       `json:"enableJoin"`
+	MinRole         *CollectionParticipantRole `json:"minRole,omitempty"`
 }
 
 type PublicAccessContext struct {
@@ -153,9 +152,8 @@ type PublicCollectionSummary struct {
 	CreatedAt         int64
 	UpdatedAt         int64
 	DeviceAccessCount int
-	// not empty value of passHash indicates that the link is password protected.
-	PassHash      *string
-	EnableComment bool
+	PassHash          *string
+	EnableComment     bool
 }
 
 type AbuseReportRequest struct {

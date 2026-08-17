@@ -195,6 +195,7 @@ export const ChatDialogs = memo(
             React.useState(false);
 
         const [draftSystemPrompt, setDraftSystemPrompt] = React.useState("");
+        const wasSystemPromptSettingsOpen = React.useRef(false);
 
         const modelOptions = React.useMemo(
             () => [
@@ -224,12 +225,13 @@ export const ChatDialogs = memo(
             showModelSettings,
         ]);
 
-        // The draft resyncs only when the dialog opens, hence the deps
-        // suppression below.
         React.useEffect(() => {
-            if (!showSystemPromptSettings) return;
-            setDraftSystemPrompt(systemPrompt);
-        }, [showSystemPromptSettings]); // eslint-disable-line react-hooks/exhaustive-deps
+            const didOpen =
+                showSystemPromptSettings &&
+                !wasSystemPromptSettingsOpen.current;
+            wasSystemPromptSettingsOpen.current = showSystemPromptSettings;
+            if (didOpen) setDraftSystemPrompt(systemPrompt);
+        }, [showSystemPromptSettings, systemPrompt]);
 
         const validateModelSettings = React.useCallback(() => {
             const contextErrorValue =

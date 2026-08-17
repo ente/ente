@@ -69,8 +69,7 @@ class _MapPullUpGalleryState extends State<MapPullUpGallery> {
                   snap: true,
                   snapSizes: const [0.5],
                   builder: (context, scrollController) {
-                    //Must use cached widget here to avoid rebuilds when DraggableScrollableSheet
-                    //is snapped to it's initialChildSize
+                    // Keep snapping the sheet from rebuilding its contents.
                     cachedScrollableContent ??= cacheScrollableContent(
                       scrollController,
                       context,
@@ -80,7 +79,7 @@ class _MapPullUpGalleryState extends State<MapPullUpGallery> {
                   },
                 ),
                 DeferPointer(
-                  //This is to make the FileSelectionOverlayBar respect SafeArea
+                  // Restore the view's safe-area insets for the overlay.
                   child: MediaQuery(
                     data: MediaQueryData.fromView(View.of(context)),
                     child: FileSelectionOverlayBar(
@@ -141,7 +140,6 @@ class _MapPullUpGalleryState extends State<MapPullUpGallery> {
 
                       final images = snapshot.data!;
                       logger.info("Visible images: ${images.length}");
-                      //To retain only selected files that are in view (visible)
                       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
                         _selectedFiles.retainFiles(images.toSet());
                       });

@@ -26,8 +26,7 @@ const (
 )
 
 func (r *Repository) InsertOrUpdate(ctx context.Context, data filedata.Row) error {
-	// During insert, we set the sync_locked_till to 5 minutes in the future. This is to prevent
-	// immediate replication of the file data row, that can result in failure of update/retry requests
+	// Delay replication to avoid failing immediate update retries.
 	query := `
         INSERT INTO file_data 
             (file_id, user_id, data_type, size, latest_bucket, sync_locked_till) 
@@ -228,8 +227,6 @@ func (r *Repository) MoveBetweenBuckets(row filedata.Row, bucketID string, sourc
 	return nil
 }
 
-// GetPendingSyncDataAndExtendLock in a transaction gets single file data row that has been deleted and pending sync is true and sync_lock_till is less than now_utc_micro_seconds() and extends the lock till newSyncLockTime
-// This is used to lock the file data row for deletion and extend
 func (r *Repository) GetPendingSyncDataAndExtendLock(ctx context.Context, newSyncLockTime int64, forDeletion bool) (*filedata.Row, error) {
 	if newSyncLockTime < time.Now().Add(5*time.Minute).UnixMicro() {
 		return nil, stacktrace.NewError("newSyncLockTime should be at least 5min in the future")
@@ -263,8 +260,6 @@ func (r *Repository) GetPendingSyncDataAndExtendLock(ctx context.Context, newSyn
 	return &fileData, nil
 }
 
-// MarkReplicationAsDone marks the pending_sync as false for the file data row, while
-// ensuring that the row is not deleted
 func (r *Repository) MarkReplicationAsDone(ctx context.Context, row filedata.Row) error {
 	query := `UPDATE file_data SET pending_sync = false WHERE is_deleted=false and file_id = $1 AND data_type = $2 AND user_id = $3`
 	_, err := r.DB.ExecContext(ctx, query, row.FileID, string(row.Type), row.UserID)
@@ -284,8 +279,7 @@ func (r *Repository) RegisterReplicationAttempt(ctx context.Context, row filedat
 	return nil
 }
 
-// ResetSyncLock resets the sync_locked_till to now_utc_micro_seconds() for the file data row only if pending_sync is false and
-// the input syncLockedTill is equal to the existing sync_locked_till. This is used to reset the lock after the replication is done
+// Reset only after replication finishes and only if the lock has not changed.
 func (r *Repository) ResetSyncLock(ctx context.Context, row filedata.Row, syncLockedTill int64) error {
 	query := `UPDATE file_data SET sync_locked_till = now_utc_micro_seconds() WHERE pending_sync = false and file_id = $1 AND data_type = $2 AND user_id = $3 AND sync_locked_till = $4`
 	_, err := r.DB.ExecContext(ctx, query, row.FileID, string(row.Type), row.UserID, syncLockedTill)

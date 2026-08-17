@@ -86,8 +86,6 @@ func (repo *CollectionRepository) Get(collectionID int64) (ente.Collection, erro
 	return c, nil
 }
 
-// GetWithSharingDetailsForUser returns the collection along with sharees, active public URLs,
-// and decrypted owner email. If the actor is a sharee, the encrypted key sealed for that actor is returned.
 func (repo *CollectionRepository) GetWithSharingDetailsForUser(collectionID int64, actorUserID int64) (ente.Collection, error) {
 	c, err := repo.Get(collectionID)
 	if err != nil {
@@ -290,7 +288,8 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 			c.EncryptedName = encryptedName.String
 			c.NameDecryptionNonce = nameDecryptionNonce.String
 		}
-		// if collection is unshared, no need to parse owner's email. Email decryption will fail if the owner's account is deleted
+		// Unshared collections appear deleted, and their former owner's email may
+		// no longer be decryptable.
 		if c.IsDeleted {
 			c.Owner.Email = ""
 		} else {
@@ -302,8 +301,7 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 		}
 		// TODO: Pull this information in the previous query
 		if c.IsDeleted {
-			// if collection is deleted or unshared, c.IsDeleted will be true. In both cases, we should not send
-			// back information about other sharees
+			// Don't expose other sharees after deletion or unsharing.
 			c.Sharees = make([]ente.CollectionUser, 0)
 		} else {
 			sharees, err := repo.GetSharees(c.ID)
@@ -774,15 +772,12 @@ func (repo *CollectionRepository) RestoreFiles(ctx context.Context, userID int64
 	return tx.Commit()
 }
 
-// RemoveFilesV3 just remove the entries from the collection. This method assume that collection owner is
-// different from the file owners
 func (repo *CollectionRepository) RemoveFilesV3(context context.Context, collectionID int64, collectionOwnerID int64, fileIDs []int64) error {
 	updationTime := time.Microseconds()
 	ownerToFileIDs, err := repo.FileRepo.GetOwnerToFileIDsMap(context, fileIDs)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	// verify that none of the file belongs to the collection owner
 	if _, ok := ownerToFileIDs[collectionOwnerID]; ok {
 		return errors.New("can not remove files owned by album owner")
 	}
@@ -808,8 +803,6 @@ func (repo *CollectionRepository) RemoveFilesV3(context context.Context, collect
 	return stacktrace.Propagate(err, "")
 }
 
-// SuggestAction sets action markers for the given files in the collection so that
-// clients can act on them. It does not mark the membership as deleted.
 func (repo *CollectionRepository) SuggestAction(ctx context.Context, collectionID int64, actorUserID int64, fileIDs []int64, action string) error {
 	if len(fileIDs) == 0 {
 		return nil
@@ -1042,7 +1035,7 @@ func (repo *CollectionRepository) TrashV3(ctx context.Context, collectionID int6
 				CollectionID: collectionID,
 			})
 		}
-		err = repo.TrashRepo.TrashFiles(fileIDs, ownerID, ente.TrashRequest{OwnerID: ownerID, TrashItems: items})
+		err = repo.TrashRepo.TrashFiles(ctx, ownerID, ente.TrashRequest{OwnerID: ownerID, TrashItems: items})
 		if err != nil {
 			log.WithError(err).Error("failed to trash file")
 			return stacktrace.Propagate(err, "")
@@ -1094,9 +1087,6 @@ func (repo *CollectionRepository) removeAllFilesAddedByOthers(collectionID int64
 	return int64(len(fileIDs)), nil
 }
 
-// ScheduleDelete marks the collection as deleted and queue up an operation to
-// move the collection files to user's trash.
-// See [Collection Delete Versions] for more details
 func (repo *CollectionRepository) ScheduleDelete(collectionID int64) error {
 	updationTime := time.Microseconds()
 	ctx := context.Background()
@@ -1160,14 +1150,4 @@ func (repo *CollectionRepository) UpdateMagicMetadata(ctx context.Context,
 			magicMetadata, updationTime, collectionID)
 	}
 	return stacktrace.Propagate(err, "")
-}
-
-func (repo *CollectionRepository) GetSharedCollectionsCount(userID int64) (int64, error) {
-	row := repo.DB.QueryRow(`SELECT count(*) FROM collection_shares WHERE from_user_id = $1`, userID)
-	var count int64 = 0
-	err := row.Scan(&count)
-	if err != nil {
-		return -1, stacktrace.Propagate(err, "")
-	}
-	return count, nil
 }

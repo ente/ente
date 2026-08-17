@@ -88,7 +88,6 @@ func (c *UserController) SelfDeleteAccount(ctx *gin.Context, req ente.DeleteAcco
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	// Update reason, ignore failure in updating reason
 	updateErr := c.UserRepo.UpdateDeleteFeedback(userID, req.GetReasonAttr())
 	if updateErr != nil {
 		logger.WithError(updateErr).Error("failed to update delete feedback")

@@ -5,7 +5,6 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
-/// Manages SQLite database for log storage
 class LogDatabase {
   static const String _databaseName = 'log_viewer.db';
   static const String _tableName = 'logs';
@@ -16,13 +15,11 @@ class LogDatabase {
 
   LogDatabase({this.maxEntries = 10000});
 
-  /// Get database instance
   Future<Database> get database async {
     _database ??= await _initDatabase();
     return _database!;
   }
 
-  /// Initialize database
   Future<Database> _initDatabase() async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, _databaseName);
@@ -35,7 +32,6 @@ class LogDatabase {
     );
   }
 
-  /// Create database tables
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE $_tableName(
@@ -50,31 +46,24 @@ class LogDatabase {
       )
     ''');
 
-    // Minimal indexes for write performance - only timestamp for ordering
     await db.execute(
       'CREATE INDEX idx_timestamp ON $_tableName(timestamp DESC)',
     );
   }
 
-  /// Called when database is opened
   Future<void> _onOpen(Database db) async {
-    // Enable write-ahead logging for better performance
-    // Use rawQuery for PRAGMA commands to avoid permission issues
     await db.rawQuery('PRAGMA journal_mode = WAL');
   }
 
-  /// Insert a single log entry
   Future<int> insertLog(LogEntry entry) async {
     final db = await database;
     final id = await db.insert(_tableName, entry.toMap());
 
-    // Auto-truncate if needed
     await _truncateIfNeeded(db);
 
     return id;
   }
 
-  /// Insert multiple log entries in a batch
   Future<void> insertLogs(List<LogEntry> entries) async {
     if (entries.isEmpty) return;
 
@@ -89,7 +78,6 @@ class LogDatabase {
     await _truncateIfNeeded(db);
   }
 
-  /// Get logs with optional filtering
   Future<List<LogEntry>> getLogs({
     LogFilter? filter,
     int limit = 250,
@@ -97,12 +85,10 @@ class LogDatabase {
   }) async {
     final db = await database;
 
-    // Build WHERE clause
     final conditions = <String>[];
     final args = <dynamic>[];
 
     if (filter != null) {
-      // Logger filter
       if (filter.selectedLoggers.isNotEmpty) {
         final placeholders = List.filled(
           filter.selectedLoggers.length,
@@ -112,7 +98,6 @@ class LogDatabase {
         args.addAll(filter.selectedLoggers);
       }
 
-      // Level filter
       if (filter.selectedLevels.isNotEmpty) {
         final placeholders = List.filled(
           filter.selectedLevels.length,
@@ -122,7 +107,6 @@ class LogDatabase {
         args.addAll(filter.selectedLevels);
       }
 
-      // Process prefix filter
       if (filter.selectedProcesses.isNotEmpty) {
         final placeholders = List.filled(
           filter.selectedProcesses.length,
@@ -132,7 +116,6 @@ class LogDatabase {
         args.addAll(filter.selectedProcesses);
       }
 
-      // Search query
       if (filter.searchQuery != null && filter.searchQuery!.isNotEmpty) {
         conditions.add('(message LIKE ? OR error LIKE ?)');
         final searchPattern = '%${filter.searchQuery}%';
@@ -140,7 +123,6 @@ class LogDatabase {
         args.add(searchPattern);
       }
 
-      // Time range
       if (filter.startTime != null) {
         conditions.add('timestamp >= ?');
         args.add(filter.startTime!.millisecondsSinceEpoch);
@@ -167,7 +149,6 @@ class LogDatabase {
     return results.map((map) => LogEntry.fromMap(map)).toList();
   }
 
-  /// Get unique logger names for filtering
   Future<List<String>> getUniqueLoggers() async {
     final db = await database;
     final results = await db.rawQuery(
@@ -177,7 +158,6 @@ class LogDatabase {
     return results.map((row) => row['logger_name'] as String).toList();
   }
 
-  /// Get unique process prefixes for filtering
   Future<List<String>> getUniqueProcesses() async {
     final db = await database;
     final results = await db.rawQuery(
@@ -188,14 +168,12 @@ class LogDatabase {
         .map((row) => row['process_prefix'] as String)
         .toList();
 
-    // Always include 'Foreground' as an option for empty prefix
     final uniquePrefixes = <String>[''];
     uniquePrefixes.addAll(prefixes);
 
     return uniquePrefixes;
   }
 
-  /// Get count of logs matching filter
   Future<int> getLogCount({LogFilter? filter}) async {
     final db = await database;
 
@@ -206,7 +184,6 @@ class LogDatabase {
       return result.first['count'] as int;
     }
 
-    // Build WHERE clause (same as getLogs)
     final conditions = <String>[];
     final args = <dynamic>[];
 
@@ -261,13 +238,11 @@ class LogDatabase {
     return result.first['count'] as int;
   }
 
-  /// Clear all logs
   Future<void> clearLogs() async {
     final db = await database;
     await db.delete(_tableName);
   }
 
-  /// Clear logs by logger name
   Future<void> clearLogsByLogger(String loggerName) async {
     final db = await database;
     await db.delete(
@@ -277,18 +252,15 @@ class LogDatabase {
     );
   }
 
-  /// Truncate old logs if over limit
   Future<void> _truncateIfNeeded(Database db) async {
     final countResult = await db.rawQuery(
       'SELECT COUNT(*) as count FROM $_tableName',
     );
     final count = countResult.first['count'] as int;
 
-    // When we reach 11k+ entries, keep only the last 10k
     if (count >= maxEntries + 1000) {
       final toDelete = count - maxEntries;
 
-      // Delete oldest entries
       await db.execute(
         '''
         DELETE FROM $_tableName 
@@ -303,11 +275,9 @@ class LogDatabase {
     }
   }
 
-  /// Get logger statistics with count and percentage
   Future<List<LoggerStatistic>> getLoggerStatistics({LogFilter? filter}) async {
     final db = await database;
 
-    // Build WHERE clause (same as getLogs)
     final conditions = <String>[];
     final args = <dynamic>[];
 
@@ -360,14 +330,12 @@ class LogDatabase {
         ? ''
         : 'WHERE ${conditions.join(' AND ')}';
 
-    // Get total count for percentage calculation
     final totalQuery = 'SELECT COUNT(*) as total FROM $_tableName $whereClause';
     final totalResult = await db.rawQuery(totalQuery, args);
     final totalCount = totalResult.first['total'] as int;
 
     if (totalCount == 0) return [];
 
-    // Get logger statistics using single optimized query
     final statsQuery =
         '''
       SELECT 
@@ -393,7 +361,6 @@ class LogDatabase {
         .toList();
   }
 
-  /// Get time range of all logs
   Future<TimeRange?> getTimeRange() async {
     final db = await database;
     final result = await db.rawQuery('''
@@ -417,7 +384,6 @@ class LogDatabase {
     return null;
   }
 
-  /// Get all log timestamps for timeline visualization
   Future<List<DateTime>> getLogTimestamps() async {
     final db = await database;
     final result = await db.rawQuery('''
@@ -433,7 +399,6 @@ class LogDatabase {
         .toList();
   }
 
-  /// Close database connection
   Future<void> close() async {
     final db = _database;
     if (db != null) {

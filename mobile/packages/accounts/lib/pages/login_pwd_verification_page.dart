@@ -13,11 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import "package:logging/logging.dart";
 
-// LoginPasswordVerificationPage is a page that allows the user to enter their password to verify their identity.
-// If the password is correct, then the user is either directed to
-// PasswordReentryPage (if the user has not yet set up 2FA) or TwoFactorAuthenticationPage (if the user has set up 2FA).
-// In the PasswordReentryPage, the password is auto-filled based on the
-// volatile password.
 class LoginPasswordVerificationPage extends StatefulWidget {
   final BaseConfiguration config;
   final SrpAttributes srpAttributes;
@@ -155,7 +150,7 @@ class _LoginPasswordVerificationPageState
       await dialog.hide();
       if (e is LoginKeyDerivationError) {
         _logger.severe('loginKey derivation error', e, s);
-        // LoginKey err, perform regular login via ott verification
+        // Fall back to OTT when login-key derivation fails.
         await UserService.instance.sendOtt(
           context.mounted ? context : null,
           email!,
@@ -166,7 +161,7 @@ class _LoginPasswordVerificationPageState
         if (!context.mounted) {
           return;
         }
-        // device is not powerful enough to perform derive key
+        // This device cannot derive the key; offer recovery instead.
         final result = await showAlertBottomSheet<bool>(
           context,
           title: context.strings.recreatePasswordTitle,
@@ -269,8 +264,7 @@ class _LoginPasswordVerificationPageState
                       ),
                       const SizedBox(height: 8),
                       Visibility(
-                        // hidden textForm for suggesting auto-fill service for saving
-                        // password
+                        // Prompts platform password saving.
                         visible: false,
                         child: TextFormField(
                           autofillHints: const [AutofillHints.email],

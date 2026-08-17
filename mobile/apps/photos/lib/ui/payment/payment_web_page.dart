@@ -83,7 +83,6 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
                 shouldOverrideUrlLoading: (controller, navigationAction) async {
                   final loadingUri = navigationAction.request.url;
                   _logger.info("Loading url $loadingUri");
-                  // handle the payment response
                   if (_isPaymentActionComplete(loadingUri)) {
                     await _handlePaymentResponse(loadingUri!);
                     return NavigationActionPolicy.CANCEL;
@@ -158,7 +157,6 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
     }
   }
 
-  // show dialog to handle accidental back press.
   Future<bool> _buildPageExitWidget(BuildContext context) async {
     final result = await showDialog(
       useRootNavigator: false,
@@ -205,7 +203,6 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
       final reason = queryParams['reason'] ?? '';
       await _handlePaymentFailure(reason);
     } else {
-      // should never reach here
       _logger.severe("unexpected status", uri.toString());
       await showGenericErrorDialog(
         context: context,
@@ -238,7 +235,6 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
     Navigator.of(context).pop(true);
   }
 
-  // return true if verifySubscription didn't throw any exceptions
   Future<void> _handlePaymentSuccess(Map<String, String> queryParams) async {
     final checkoutSessionID = queryParams['session_id'] ?? '';
     try {
@@ -267,7 +263,6 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
     }
   }
 
-  // warn the user to wait for sometime before trying another payment
   Future<dynamic> _showExitPageDialog({String? title, String? content}) async {
     if (!mounted) return null;
     await showDialog(

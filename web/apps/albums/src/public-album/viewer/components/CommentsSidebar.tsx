@@ -747,6 +747,14 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
         setLikedComments(newLikedComments);
     }, [open, selectedCollectionInfo, reactionsByCollection, currentUserID]);
 
+    const requestCommentIdentity = () => {
+        if (enableJoin) {
+            setShowPublicCommentModal(true);
+        } else {
+            setShowAddNameModal(true);
+        }
+    };
+
     const handleSend = async () => {
         if (!commentText.trim() || !file || !selectedCollectionInfo) return;
 
@@ -754,7 +762,7 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
         if (storedIdentity && publicAlbumsCredentials && collectionKey) {
             await sendPublicComment(commentText.trim());
         } else {
-            setShowPublicCommentModal(true);
+            requestCommentIdentity();
         }
     };
 
@@ -935,13 +943,13 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
         setReplyingTo(commentToReply);
 
         if (needsIdentityToComment) {
-            setShowPublicCommentModal(true);
+            requestCommentIdentity();
         }
     };
 
     const handleInputClick = () => {
         if (needsIdentityToComment) {
-            setShowPublicCommentModal(true);
+            requestCommentIdentity();
         }
     };
 
@@ -995,7 +1003,12 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
             const storedIdentity = getStoredAnonIdentity(collectionID);
             if (!storedIdentity) {
                 setPendingCommentLike(targetComment);
-                setShowPublicLikeModal(true);
+                if (enableJoin) {
+                    setShowPublicLikeModal(true);
+                } else {
+                    setAddNameForCommentLike(true);
+                    setShowAddNameModal(true);
+                }
                 return;
             }
 

@@ -4,10 +4,8 @@ import "package:ente_crypto/ente_crypto.dart" as ente_crypto;
 import "package:ente_crypto_api/ente_crypto_api.dart";
 import "package:flutter_sodium/flutter_sodium.dart";
 
-/// A [CryptoApi] backed by photos' existing [ente_crypto] (flutter_sodium), so
-/// the lock screen reuses photos' libsodium instead of pulling in a second one.
-///
-/// Only the subset the lock screen calls is implemented; anything else throws.
+// Reuses Photos' flutter_sodium for the lock screen instead of loading a second
+// libsodium implementation. Methods unused by the lock screen throw.
 class PhotosCryptoApiAdapter implements CryptoApi {
   const PhotosCryptoApiAdapter();
 

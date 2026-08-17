@@ -9,11 +9,11 @@ description: A quick hotfix for keyring errors while running Ente CLI.
 
 Ente CLI makes use of your system keyring for storing sensitive information such as passwords.
 
-There are 2 ways to address keyring-related error:
+There are 2 ways to address keyring-related errors:
 
 ### Install system keyring
 
-This is the recommended method as it is considerably secure than the latter.
+This is the recommended method as it is considerably more secure than the latter.
 
 If you are using Linux for accessing Ente CLI with, you can install a system keyring manager such as `gnome-keyring`, `kwallet`, etc. via your distribution's package manager.
 
@@ -23,11 +23,11 @@ For Ubuntu/Debian based distributions, you can install `gnome-keyring` via `apt`
 sudo apt install gnome-keyring
 ```
 
-Now you can use Ente CLI for adding account, which will trigger your system's keyring.
+Now you can use Ente CLI for adding an account, which will trigger your system's keyring.
 
 ### Configure secrets path
 
-In case of using Ente CLI on server environment, you may not be able to install system keyring. In such cases, you can configure Ente CLI to use a text file for saving the secrets.
+In case of using Ente CLI in a server environment, you may not be able to install a system keyring manager. In such cases, you can configure Ente CLI to use a text file for saving the secrets.
 
 Set `ENTE_CLI_SECRETS_PATH` environment variable in your shell's configuration file (`~/.bashrc`, `~/.zshrc`, or other corresponding file)
 

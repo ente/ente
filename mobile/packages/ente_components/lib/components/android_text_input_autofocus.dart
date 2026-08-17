@@ -4,18 +4,10 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-/// Requests focus and explicitly shows Android's soft keyboard for text input.
-///
-/// Flutter can mark a text field as focused during a route/app-launch
-/// transition without Android showing the IME. This is visible on launch-time
-/// app lock screens: the password field is focused, but the keyboard stays
-/// hidden. This wrapper waits until the field is attached, focuses the provided
-/// [focusNode], then asks the platform text input channel to show the keyboard.
-/// See https://github.com/flutter/flutter/issues/122994 for the upstream
-/// Flutter issue tracking this behavior.
-///
-/// Use this only for text inputs that intentionally need keyboard focus as soon
-/// as they appear. The same [focusNode] must be passed to the wrapped text field.
+// Flutter can focus a field during a route transition without showing
+// Android's keyboard, so explicitly show it after the field attaches.
+// The child must use the same focusNode.
+// https://github.com/flutter/flutter/issues/122994
 class AndroidTextInputAutofocus extends StatefulWidget {
   const AndroidTextInputAutofocus({
     super.key,

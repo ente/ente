@@ -60,8 +60,6 @@ func (r *Repository) AddNewCode(ctx context.Context, userID int64, code string, 
 	return r.InsertCode(ctx, userID, code)
 }
 
-// GetCodeChangeCount returns the number of times the user has changed their referral code.
-// A count of 1 means no changes (only the initial code exists).
 func (r *Repository) GetCodeChangeCount(ctx context.Context, userID int64) (int, error) {
 	var count int
 	err := r.DB.QueryRowContext(ctx, "SELECT COALESCE(COUNT(*),0) FROM referral_codes WHERE user_id = $1", userID).Scan(&count)
@@ -71,8 +69,7 @@ func (r *Repository) GetCodeChangeCount(ctx context.Context, userID int64) (int,
 	return count, nil
 }
 
-// GetUserIDByCode returns the userID for the given storagebonus code. The method will also return the userID
-// if the code is inactive.
+// Inactive codes still resolve to their owner.
 func (r *Repository) GetUserIDByCode(ctx context.Context, code string) (*int64, error) {
 	var userID int64
 	err := r.DB.QueryRowContext(ctx, "SELECT user_id FROM referral_codes WHERE code = $1", code).Scan(&userID)

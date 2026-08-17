@@ -12,7 +12,6 @@ enum CollectionViewType {
   favorite,
 }
 
-/// Extension methods to determine which actions are available for each view type
 extension CollectionViewTypeActions on CollectionViewType {
   bool get isIncomingShare =>
       this == CollectionViewType.sharedCollectionViewer ||
@@ -35,7 +34,6 @@ extension CollectionViewTypeActions on CollectionViewType {
 
 CollectionViewType getCollectionViewType(Collection c, int userID) {
   if (!c.isOwner(userID)) {
-    // Check if user is collaborator or viewer
     final role = c.getRole(userID);
     if (role == CollectionParticipantRole.collaborator) {
       return CollectionViewType.sharedCollectionCollaborator;

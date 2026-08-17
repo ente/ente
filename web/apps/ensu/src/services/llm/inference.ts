@@ -58,8 +58,8 @@ export interface ContextParams {
 
 export interface InferenceBackend {
     readonly kind: BackendType;
-    initBackend(): Promise<void>;
-    loadModel(params: LoadModelParams): Promise<void>;
+    initBackend?(): Promise<void>;
+    loadModel(params: LoadModelParams): void | Promise<void>;
     createContext(
         model: { modelPath: string },
         params?: ContextParams,
@@ -113,9 +113,7 @@ class WasmInference implements InferenceBackend {
         this.wllama = new Wllama(wasmPaths, wllamaConfig);
     }
 
-    async initBackend() {}
-
-    async loadModel(params: LoadModelParams) {
+    loadModel(params: LoadModelParams) {
         const modelUrl = ensureUrl(params.modelPath);
         this.loadedModelUrl = modelUrl;
     }
@@ -151,9 +149,7 @@ class WasmInference implements InferenceBackend {
         });
         return urls.every((url) => {
             const existing = models.find((model) => model.url === url);
-            return (
-                existing && existing.validate() === ModelValidationStatus.VALID
-            );
+            return existing?.validate() === ModelValidationStatus.VALID;
         });
     }
 
@@ -169,8 +165,6 @@ class WasmInference implements InferenceBackend {
         );
         return this.generateCompletion(prompt, request, onEvent);
     }
-
-    async prewarmMultimodalContext() {}
 
     cancel(jobId: number) {
         if (jobId <= 0) {
@@ -241,7 +235,7 @@ class WasmInference implements InferenceBackend {
     private async ensureModelCached(modelUrl: string) {
         if (
             typeof navigator === "undefined" ||
-            !navigator.storage ||
+            !("storage" in navigator) ||
             !("getDirectory" in navigator.storage)
         ) {
             return;
@@ -278,10 +272,7 @@ class WasmInference implements InferenceBackend {
                 includeInvalid: true,
             });
             const existing = models.find((model) => model.url === url);
-            if (
-                existing &&
-                existing.validate() === ModelValidationStatus.VALID
-            ) {
+            if (existing?.validate() === ModelValidationStatus.VALID) {
                 totals[index] = existing.size;
                 loaded[index] = existing.size;
                 emitProgress("Ready");
@@ -294,7 +285,7 @@ class WasmInference implements InferenceBackend {
                 create: true,
             });
             const file = await handle.getFile();
-            let downloaded = file.size ?? 0;
+            let downloaded = file.size;
 
             const metadata =
                 await this.modelManager.cacheManager.getMetadata(url);
@@ -308,7 +299,7 @@ class WasmInference implements InferenceBackend {
             const headers: HeadersInit | undefined = downloaded
                 ? { Range: `bytes=${downloaded}-` }
                 : undefined;
-            let res = await fetch(url, { headers });
+            const res = await fetch(url, { headers });
             if (!res.ok || !res.body) {
                 throw new Error(`Failed to download model (${res.status})`);
             }
@@ -346,7 +337,6 @@ class WasmInference implements InferenceBackend {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                if (!value) continue;
                 await writable.write(value);
                 downloaded += value.length;
                 loaded[index] = downloaded;
@@ -399,6 +389,7 @@ class WasmInference implements InferenceBackend {
         const start = Date.now();
         const controller = new AbortController();
         this.abortControllers.set(jobId, controller);
+        onEvent?.({ type: "text", job_id: jobId, text: "" });
 
         let generatedTokens = 0;
         let promptTokens: number | null;
@@ -432,7 +423,7 @@ class WasmInference implements InferenceBackend {
 
             let lastText = "";
             for await (const chunk of stream) {
-                const currentText = chunk.currentText ?? "";
+                const currentText = chunk.currentText;
                 const delta = currentText.slice(lastText.length);
                 lastText = currentText;
                 generatedTokens += 1;
@@ -470,7 +461,7 @@ class WasmInference implements InferenceBackend {
     }
 
     private async resolveStopTokens(stopSequences: string[]) {
-        if (!stopSequences || stopSequences.length === 0) {
+        if (stopSequences.length === 0) {
             return { stopTokens: [] as number[] };
         }
 
@@ -498,7 +489,7 @@ class WasmInference implements InferenceBackend {
 
 const parseContentRangeTotal = (header: string | null) => {
     if (!header) return undefined;
-    const match = header.match(/\/(\d+)/);
+    const match = /\/(\d+)/.exec(header);
     if (!match) return undefined;
     const total = Number(match[1]);
     return Number.isFinite(total) ? total : undefined;
@@ -665,7 +656,7 @@ class TauriInference implements InferenceBackend {
             log.error("LLM tauri generate failed", err);
             throw err;
         } finally {
-            void unlisten();
+            unlisten();
         }
     }
 
@@ -750,31 +741,25 @@ const buildGenerateChatRequest = (request: GenerateChatRequest) => ({
 const buildSamplingConfig = (request: GenerateChatRequest) => {
     const sampling: Record<string, unknown> = {};
 
-    if (request.temperature !== undefined && request.temperature !== null) {
+    if (request.temperature !== undefined) {
         sampling.temp = request.temperature;
     }
-    if (request.topP !== undefined && request.topP !== null) {
+    if (request.topP !== undefined) {
         sampling.top_p = request.topP;
     }
-    if (request.topK !== undefined && request.topK !== null) {
+    if (request.topK !== undefined) {
         sampling.top_k = request.topK;
     }
-    if (request.repeatPenalty !== undefined && request.repeatPenalty !== null) {
+    if (request.repeatPenalty !== undefined) {
         sampling.penalty_repeat = request.repeatPenalty;
     }
-    if (
-        request.frequencyPenalty !== undefined &&
-        request.frequencyPenalty !== null
-    ) {
+    if (request.frequencyPenalty !== undefined) {
         sampling.penalty_freq = request.frequencyPenalty;
     }
-    if (
-        request.presencePenalty !== undefined &&
-        request.presencePenalty !== null
-    ) {
+    if (request.presencePenalty !== undefined) {
         sampling.penalty_present = request.presencePenalty;
     }
-    if (request.grammar !== undefined && request.grammar !== null) {
+    if (request.grammar !== undefined) {
         sampling.grammar = request.grammar;
     }
 

@@ -88,7 +88,6 @@ class _ApplyCodeContentState extends State<_ApplyCodeContent> {
       await storageBonusService.applyCode(code);
       if (mounted) {
         Navigator.of(context).pop(true);
-        // Navigate to success screen
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) =>

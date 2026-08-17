@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Represents a single log entry
 class LogEntry {
   final int? id;
   final String message;
@@ -22,7 +21,6 @@ class LogEntry {
     this.processPrefix = '',
   });
 
-  /// Create from database map
   factory LogEntry.fromMap(Map<String, dynamic> map) {
     return LogEntry(
       id: map['id'] as int?,
@@ -36,7 +34,6 @@ class LogEntry {
     );
   }
 
-  /// Convert to database map
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -50,7 +47,6 @@ class LogEntry {
     };
   }
 
-  /// Get color based on log level
   Color get levelColor {
     switch (level.toUpperCase()) {
       case 'SHOUT':
@@ -71,7 +67,6 @@ class LogEntry {
     }
   }
 
-  /// Get background color for list tile
   Color? get backgroundColor {
     switch (level.toUpperCase()) {
       case 'SHOUT':
@@ -84,7 +79,6 @@ class LogEntry {
     }
   }
 
-  /// Truncate message for preview
   String get truncatedMessage {
     final lines = message.split('\n');
     const maxLines = 4;
@@ -96,7 +90,6 @@ class LogEntry {
     return '${lines.take(maxLines).join('\n')}...';
   }
 
-  /// Format timestamp for display
   String get formattedTime {
     final hour = timestamp.hour.toString().padLeft(2, '0');
     final minute = timestamp.minute.toString().padLeft(2, '0');
@@ -105,12 +98,10 @@ class LogEntry {
     return '$hour:$minute:$second.$millis';
   }
 
-  /// Get display name for process prefix
   String get processDisplayName {
     if (processPrefix.isEmpty) {
       return 'Foreground';
     }
-    // Remove square brackets if present (e.g., "[fbg]" -> "fbg")
     final cleanPrefix = processPrefix.replaceAll(RegExp(r'[\[\]]'), '');
     switch (cleanPrefix) {
       case 'fbg':
@@ -135,7 +126,6 @@ class LogEntry {
   }
 }
 
-/// Filter configuration for log queries
 class LogFilter {
   final Set<String> selectedLoggers;
   final Set<String> selectedLevels;
@@ -155,7 +145,6 @@ class LogFilter {
     this.sortNewestFirst = true,
   });
 
-  /// Create a copy with modifications
   LogFilter copyWith({
     Set<String>? selectedLoggers,
     Set<String>? selectedLevels,
@@ -178,7 +167,6 @@ class LogFilter {
     );
   }
 
-  /// Check if any filters are active
   bool get hasActiveFilters {
     return selectedLoggers.isNotEmpty ||
         selectedLevels.isNotEmpty ||
@@ -188,11 +176,9 @@ class LogFilter {
         endTime != null;
   }
 
-  /// Clear all filters
   static const LogFilter empty = LogFilter();
 }
 
-/// Logger statistics data
 class LoggerStatistic {
   final String loggerName;
   final int logCount;
@@ -204,10 +190,8 @@ class LoggerStatistic {
     required this.percentage,
   });
 
-  /// Alias for logCount for compatibility
   int get count => logCount;
 
-  /// Format percentage for display
   String get formattedPercentage {
     if (percentage >= 10) {
       return '${percentage.toStringAsFixed(1)}%';
@@ -219,7 +203,6 @@ class LoggerStatistic {
   }
 }
 
-/// Available log levels
 class LogLevels {
   static const List<String> all = [
     'ALL',
@@ -234,7 +217,6 @@ class LogLevels {
     'OFF',
   ];
 
-  /// Get levels typically shown by default
   static const List<String> defaultVisible = [
     'INFO',
     'WARNING',
@@ -243,7 +225,6 @@ class LogLevels {
   ];
 }
 
-/// Represents a time range for logs
 class TimeRange {
   final DateTime start;
   final DateTime end;

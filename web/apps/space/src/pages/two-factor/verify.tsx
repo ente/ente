@@ -1,6 +1,6 @@
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
-import { savedPartialLocalUser } from "ente-accounts-rs/services/accounts-db";
+import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
 import { isHTTPErrorWithStatus } from "ente-base/http";
 import log from "ente-base/log";
 import React, { useEffect, useState } from "react";

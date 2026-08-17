@@ -22,7 +22,6 @@ import "package:ente_ui/theme/text_style.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 
-/// Shows the add contact bottom sheet and returns true if a contact was added
 Future<bool?> showAddContactSheet(
   BuildContext context, {
   required EmergencyInfo emergencyInfo,
@@ -409,7 +408,6 @@ class _AddContactSheetState extends State<AddContactSheet> {
       }
     }
 
-    // People who added you as their emergency contact
     for (final contact in widget.emergencyInfo.othersEmergencyContact) {
       add(contact.user.email, userID: contact.user.id);
     }
@@ -420,7 +418,6 @@ class _AddContactSheetState extends State<AddContactSheet> {
       add(member.email, userID: member.userID);
     }
 
-    // Filter by search text
     if (_textController.text.trim().isNotEmpty) {
       suggestedUsers.removeWhere(
         (element) => !element.matchesResolvedNameOrEmail(_textController.text),

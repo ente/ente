@@ -9,17 +9,12 @@ import "package:photos/services/filter/upload_ignore.dart";
 import "package:photos/services/ignored_files_service.dart";
 
 class DBFilterOptions {
-  // typically used for filtering out all files which are present in hidden
-  // (searchable files result) or archived collections or both (ex: home
-  // timeline)
   Set<int>? ignoredCollectionIDs;
   bool dedupeUploadID;
   bool hideIgnoredForUpload;
-  // If true, shared files that are already saved in the users account will be ignored.
   bool ignoreSavedFiles;
   bool onlyUploadedFiles;
 
-  // If true, files owned by other users or uploaded by other users will be ignored.
   bool ignoreSharedItems = false;
 
   DBFilterOptions({

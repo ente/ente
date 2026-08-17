@@ -137,7 +137,7 @@ String avatarInitials(String name) {
       : '$initial${words.last.toUpperCase().characters.first}';
 }
 
-/// A stable FNV-1a seed for identity colors across processes and platforms.
+// Keep identity colors stable across processes and platforms.
 int avatarSeedForIdentity(String identityKey) {
   var hash = 0x811c9dc5;
   for (final byte in utf8.encode(identityKey.trim().toLowerCase())) {
@@ -169,9 +169,7 @@ Color avatarComponentColorValue(
   };
 }
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6547&m=dev
-/// Section: Labels and avatars / Avatar
-/// Specs: 16px, 20px, 24px, 28px, 32px, and 56px circular avatars with image, color, and add-icon variants.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6547&m=dev
 class AvatarComponent extends StatelessWidget {
   const AvatarComponent({
     super.key,

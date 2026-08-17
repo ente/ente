@@ -16,6 +16,7 @@ import {
 import { useColorScheme } from "@mui/material/styles";
 import { sessionExpiredDialogAttributes } from "ente-accounts/components/utils/dialog";
 import { stashRedirect } from "ente-accounts/services/redirect";
+import { masterKeyFromSession } from "ente-accounts/services/session-storage";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { LoadingIndicator } from "ente-base/components/loaders";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
@@ -27,7 +28,6 @@ import {
 import { useBaseContext } from "ente-base/context";
 import { isHTTP401Error } from "ente-base/http";
 import log from "ente-base/log";
-import { masterKeyFromSession } from "ente-base/session";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";

@@ -5,15 +5,15 @@ import {
 } from "@/services/locker-limits";
 import { loadPersistedLockerState, syncLockerState } from "@/services/remote";
 import type { LockerCollection, LockerItem } from "@/types";
-import { sessionExpiredDialogAttributes } from "ente-accounts-rs/components/utils/dialog";
+import { sessionExpiredDialogAttributes } from "ente-accounts/components/utils/dialog";
 import {
     isSavedUserTokenMismatch,
     savedLocalUser,
     savedPartialLocalUser,
-} from "ente-accounts-rs/services/accounts-db";
-import { stashRedirect } from "ente-accounts-rs/services/redirect";
-import { masterKeyFromSession } from "ente-accounts-rs/services/session-storage";
-import { ensureLocalUser } from "ente-accounts-rs/services/user";
+} from "ente-accounts/services/accounts-db";
+import { stashRedirect } from "ente-accounts/services/redirect";
+import { masterKeyFromSession } from "ente-accounts/services/session-storage";
+import { ensureLocalUser } from "ente-accounts/services/user";
 import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import {
     authenticatedRequestHeaders,

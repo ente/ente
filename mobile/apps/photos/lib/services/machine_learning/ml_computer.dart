@@ -32,7 +32,6 @@ class MLComputer extends SuperIsolate {
   @override
   bool get shouldAutomaticDispose => false;
 
-  // Singleton pattern
   MLComputer._privateConstructor();
   static final MLComputer instance = MLComputer._privateConstructor();
   factory MLComputer() => instance;

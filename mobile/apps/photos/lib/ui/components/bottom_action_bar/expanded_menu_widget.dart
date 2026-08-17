@@ -9,7 +9,7 @@ class ExpandedMenuWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textScaler = MediaQuery.of(context).textScaler;
-    //20 is height of font and 28 is total whitespace (top+bottom)
+    // Each row uses 20 points for text and 28 for vertical spacing.
     var scaledHeight = textScaler.scale(20);
     if (scaledHeight < 20) {
       scaledHeight = 20;
@@ -21,7 +21,6 @@ class ExpandedMenuWidget extends StatelessWidget {
     double combinedHeightOfItems = 0.0;
 
     for (List<BlurMenuItemWidget> group in items) {
-      //no divider if there is only one item in the section/group
       if (group.length != 1) {
         numberOfDividers += (group.length - 1);
       }

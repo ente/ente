@@ -10,13 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// PasskeyCredential is our stored representation of a WebAuthn credential.
-// The credential material is converted back into webauthn.Credential during
-// authentication; RPID records which relying party the credential is scoped to.
 type PasskeyCredential struct {
 	PasskeyID uuid.UUID `json:"passkeyID"`
 
-	CredentialID string `json:"credentialID"` // string
+	CredentialID string `json:"credentialID"`
 
 	RPID                    string `json:"rpID"`
 	PublicKey               string `json:"publicKey"` // b64 []byte

@@ -1,5 +1,5 @@
 import type { LockerCollectionParticipant } from "@/types";
-import { getPublicKey } from "ente-accounts-rs/services/user";
+import { getPublicKey } from "ente-accounts/services/user";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
 import { z } from "zod";

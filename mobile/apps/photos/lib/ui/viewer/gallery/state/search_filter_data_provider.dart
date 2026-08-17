@@ -6,15 +6,13 @@ import "package:photos/models/search/hierarchical/only_them_filter.dart";
 class SearchFilterDataProvider {
   final _appliedFiltersNotifier = _AppliedFiltersNotifier();
 
-  /// [_recommededFiltersNotifier.value] are filters sorted by decreasing
-  /// order of relevance
   final _recommendedFiltersNotifier = _RecommendedFiltersNotifier();
   final isSearchingNotifier = ValueNotifier(false);
   HierarchicalSearchFilter initialGalleryFilter;
 
   SearchFilterDataProvider({required this.initialGalleryFilter});
 
-  /// [recommendations] are sorted by decreasing order of relevance
+  // Ordered from most to least relevant.
   List<HierarchicalSearchFilter> get recommendations =>
       _recommendedFiltersNotifier.recommendedFilters;
   List<HierarchicalSearchFilter> get appliedFilters =>
@@ -110,10 +108,6 @@ class SearchFilterDataProvider {
     );
   }
 
-  /// [InheritedSearchFilterDataWrapper] calls this method in its [dispose] so
-  /// if [InheritedSearchFilterDataWrapper] is an ancestor on the widget where
-  /// [SearchFilterDataProvider] is used, it's not necessary to call this method
-  /// explicitly
   void dispose() {
     _appliedFiltersNotifier.dispose();
     _recommendedFiltersNotifier.dispose();
@@ -149,9 +143,6 @@ class _RecommendedFiltersNotifier extends ChangeNotifier {
 
   void addFilters(
     List<HierarchicalSearchFilter> filters, {
-
-    ///This is to ensure that the filters that are being added are not already
-    ///already in recommendations or applied filters
     required List<HierarchicalSearchFilter> filtersToAvoid,
   }) {
     for (HierarchicalSearchFilter filter in filters) {

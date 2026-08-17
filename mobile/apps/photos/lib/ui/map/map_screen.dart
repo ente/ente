@@ -20,8 +20,6 @@ import "package:photos/ui/map/map_view.dart";
 import "package:photos/ui/notification/toast.dart";
 
 class MapScreen extends StatefulWidget {
-  // Add a function parameter where the function returns a Future<List<File>>
-
   final Future<List<EnteFile>> Function() filesFutureFn;
   final LatLng? center;
   final double initialZoom;

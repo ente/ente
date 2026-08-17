@@ -72,7 +72,7 @@ class _PeoplePageState extends State<PeoplePage> {
   bool _memoryLanePrewarmStarted = false;
   bool _isTryingToPopDeletedPersonPage = false;
 
-  bool get _memoryLaneEnabled => flagService.facesTimeline;
+  bool get _memoryLaneEnabled => MemoryLaneService.instance.isFeatureEnabled;
 
   @override
   void initState() {

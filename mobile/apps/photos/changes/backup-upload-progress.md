@@ -1,0 +1,1 @@
+- Added per-file progress to Backup Status and improved multipart upload reliability.

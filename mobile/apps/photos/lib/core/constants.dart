@@ -15,8 +15,8 @@ const int microSecondsInDay = 86400000000;
 const int android11SDKINT = 30;
 const int android12SDKINT = 31;
 const int jan011981Time = 347155200000000;
-const int galleryLoadStartTime = -8000000000000000; // Wednesday, March 6, 1748
-const int galleryLoadEndTime = 9223372036854775807; // 2^63 -1
+const int galleryLoadStartTime = -8000000000000000; // June 28, 1716
+const int galleryLoadEndTime = 9223372036854775807; // 2^63 - 1
 const int batchSize = 1000;
 const int batchSizeCopy = 100;
 const photoGridSizeDefault = 4;
@@ -24,7 +24,6 @@ const photoGridSizeMin = 2;
 const photoGridSizeMax = 6;
 const subGalleryMultiplier = 10;
 
-// used to identify which ente file are available in app cache
 const String sharedMediaIdentifier = 'ente-shared-media://';
 
 const galleryThumbnailDiskLoadDeferDuration = Duration(milliseconds: 80);
@@ -36,12 +35,10 @@ const mediaManagementHintDeleteAttemptThreshold = 3;
 // https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki#Generating_the_mnemonic
 const mnemonicKeyWordCount = 24;
 
-// https://stackoverflow.com/a/61162219
 const dragSensitivity = 8;
 
 const supportEmail = 'support@ente.com';
 
-// this is the chunk size of the un-encrypted file which is read and encrypted before uploading it as a single part.
 const multipartPartSize = 20 * 1024 * 1024;
 
 const kDefaultProductionEndpoint = 'https://api.ente.com';
@@ -52,7 +49,7 @@ const kFamilyUrl = 'https://family.ente.io';
 
 const int intMaxValue = 9223372036854775807;
 
-//Screen width of iPhone 14 pro max in points is taken as maximum
+// Cap layouts at the 430-point width of an iPhone 14 Pro Max.
 const double restrictedMaxWidth = 430;
 
 const double mobileSmallThreshold = 336;

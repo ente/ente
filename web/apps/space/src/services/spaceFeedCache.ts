@@ -1,4 +1,4 @@
-import { savedPartialLocalUser } from "ente-accounts-rs/services/accounts-db";
+import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
 import { getKV, removeKV, setKV } from "ente-base/kv";
 import log from "ente-base/log";
 import { apiOrigin } from "ente-base/origins";

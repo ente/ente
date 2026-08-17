@@ -29,38 +29,28 @@ class UserDetails {
     this.lockerFamilyUsage,
   );
 
-  // Locker-specific limits computed client-side based on subscription
-  // Free tier: 100 files, 1GB storage
-  // Paid tier: 1000 files, 10GB storage
   static const int _lockerFileLimitFree = 100;
   static const int _lockerFileLimitPaid = 1000;
-  static const int _lockerStorageLimitFree = 1 * 1024 * 1024 * 1024; // 1GB
-  static const int _lockerStorageLimitPaid = 10 * 1024 * 1024 * 1024; // 10GB
+  static const int _lockerStorageLimitFree = 1 * 1024 * 1024 * 1024;
+  static const int _lockerStorageLimitPaid = 10 * 1024 * 1024 * 1024;
 
-  /// Returns true if user has paid access (direct subscription, family plan,
-  /// or paid add-ons)
   bool hasPaidSubscription() {
-    // Direct paid subscription
     if (!subscription.isFreePlan() && subscription.isValid()) {
       return true;
     }
-    // Family plan member
     if (isPartOfFamily()) {
       return true;
     }
-    // Has paid add-ons
     if (hasPaidAddon()) {
       return true;
     }
     return false;
   }
 
-  /// Returns the locker file limit based on subscription status
   int getLockerFileLimit() {
     return hasPaidSubscription() ? _lockerFileLimitPaid : _lockerFileLimitFree;
   }
 
-  /// Returns the locker storage limit based on subscription status
   int getLockerStorageLimit() {
     return hasPaidSubscription()
         ? _lockerStorageLimitPaid
@@ -83,9 +73,6 @@ class UserDetails {
     return currentUserMember.isAdmin;
   }
 
-  // getFamilyOrPersonalUsage will return total usage for family if user
-  // belong to family group. Otherwise, it will return storage consumed by
-  // current user
   int getFamilyOrPersonalUsage() {
     return isPartOfFamily() ? familyData!.getTotalUsage() : usage;
   }
@@ -98,15 +85,11 @@ class UserDetails {
     return max(getTotalStorage() - getFamilyOrPersonalUsage(), 0);
   }
 
-  // getTotalStorage will return total storage available including the
-  // storage bonus
   int getTotalStorage() {
     return (isPartOfFamily() ? familyData!.storage : subscription.storage) +
         storageBonus;
   }
 
-  // return the member storage limit if user is part of family and the admin
-  // has set the storage limit for the user.
   int? familyMemberStorageLimit() {
     if (isPartOfFamily()) {
       try {
@@ -121,7 +104,6 @@ class UserDetails {
     return null;
   }
 
-  // This is the total storage for which user has paid for.
   int getPlanPlusAddonStorage() {
     return (isPartOfFamily() ? familyData!.storage : subscription.storage) +
         bonusData!.totalAddOnBonus();
@@ -213,14 +195,12 @@ class ProfileData {
   bool isEmailMFAEnabled;
   bool isTwoFactorEnabled;
 
-  // Constructor with default values
   ProfileData({
     this.canDisableEmailMFA = false,
     this.isEmailMFAEnabled = false,
     this.isTwoFactorEnabled = false,
   });
 
-  // Factory method to create ProfileData instance from JSON
   factory ProfileData.fromJson(Map<String, dynamic>? json) {
     return ProfileData(
       canDisableEmailMFA: json?['canDisableEmailMFA'] ?? false,
@@ -229,7 +209,6 @@ class ProfileData {
     );
   }
 
-  // Method to convert ProfileData instance to JSON
   Map<String, dynamic> toJson() {
     return {
       'canDisableEmailMFA': canDisableEmailMFA,
@@ -244,7 +223,6 @@ class ProfileData {
 class FamilyData {
   final List<FamilyMember>? members;
 
-  // Storage available based on the family plan
   final int storage;
   final int expiryTime;
 

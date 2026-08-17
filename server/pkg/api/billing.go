@@ -174,7 +174,6 @@ func (h *BillingHandler) GetCheckoutSession(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"sessionID": sessionID})
 }
 
-// StripeINNotificationHandler handles the notifications from older StripeIN account
 func (h *BillingHandler) StripeINNotificationHandler(c *gin.Context) {
 	notification, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -191,7 +190,6 @@ func (h *BillingHandler) StripeINNotificationHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-// StripeUSNotificationHandler handles the notifications from new StripeUS account
 func (h *BillingHandler) StripeUSNotificationHandler(c *gin.Context) {
 	notification, err := io.ReadAll(c.Request.Body)
 	if err != nil {

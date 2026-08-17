@@ -13,10 +13,9 @@ final Uri githubFeatureRequestUri = Uri.https(
 );
 const int microSecondsInDay = 86400000000;
 const int android11SDKINT = 30;
-const int galleryLoadStartTime = -8000000000000000; // Wednesday, March 6, 1748
-const int galleryLoadEndTime = 9223372036854775807; // 2^63 -1
+const int galleryLoadStartTime = -8000000000000000; // June 28, 1716
+const int galleryLoadEndTime = 9223372036854775807; // 2^63 - 1
 
-// used to identify which ente file are available in app cache
 // todo: 6Jun22: delete old media identifier after 3 months
 const String oldSharedMediaIdentifier = 'ente-shared://';
 const String sharedMediaIdentifier = 'ente-shared-media://';
@@ -31,10 +30,8 @@ const thumbnailServerLoadDeferDuration = Duration(milliseconds: 80);
 // https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki#Generating_the_mnemonic
 const mnemonicKeyWordCount = 24;
 
-// https://stackoverflow.com/a/61162219
 const dragSensitivity = 8;
 
-// Default values for various feature flags
 class FFDefault {
   static const bool enableStripe = true;
   static const bool disableCFWorker = false;

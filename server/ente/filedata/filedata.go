@@ -6,21 +6,6 @@ import (
 	"github.com/ente/museum/ente"
 )
 
-/*
-We store three types of derived data from a file, whose information is stored in the file_data table.
-Each derived data can have multiple objects, and each object is stored in the S3 bucket.
-1) MLData: This is the derived data from the file that is used for machine learning purposes.There's only
-one object for S3FileMetadata type.
-2) PreviewVideo: This is the derived data from the file that is used for previewing the video. This contains two objects.
-2.1) One object of type S3FileMetadata that contains the encrypted HLS playlist.
-2.2) Second object contains the encrypted video. The objectKey for this object is derived via ObjectKey function. The OG size column in the file_data
-contains sum of S3Metadata object size and the video object size. The object size is stored in the ObjectSize column.
-
-3) PreviewImage: This is the derived data from the file that is used for previewing the image. This just contain one object.
-The objectKey for this object is derived via ObjectKey function. We also store the nonce of the object in the ObjectNonce column.
-ObjectNonce is not stored for PreviewVideo type as HLS playlist contains a random key, that's only used once to encrypt the video with default nonce.
-*/
-
 type Entity struct {
 	FileID           int64           `json:"fileID"`
 	Type             ente.ObjectType `json:"type"`
@@ -44,7 +29,6 @@ type FDStatus struct {
 	UpdatedAt   int64           `json:"updatedAt"  binding:"required"`
 }
 
-// GetFilesData should only be used for getting the preview video playlist and derived metadata.
 type GetFilesData struct {
 	FileIDs []int64         `json:"fileIDs" binding:"required"`
 	Type    ente.ObjectType `json:"type" binding:"required"`
@@ -132,6 +116,10 @@ func (g *PreviewUploadUrlRequest) Validate() error {
 	return nil
 }
 
+// A row represents one derived asset. ML data and image previews each use one
+// S3 object. A video preview uses two: encrypted HLS playlist metadata and the
+// encrypted video. For videos, Size covers both and ObjectSize covers the
+// video.
 type Row struct {
 	FileID int64
 	UserID int64
@@ -140,8 +128,8 @@ type Row struct {
 	Size         int64
 	LatestBucket string
 	ObjectID     *string
-	// For HLS video object, there's no object nonce, all relevant data
-	// is stored in the metadata object that primarily contains the playlist.
+	// HLS video uses the default nonce with a one-time key stored in the playlist
+	// metadata, so no object nonce is stored.
 	ObjectNonce *string
 	// Size of the object that is stored in the S3 bucket.
 	// In case of HLS video, this points to the size of the encrypted video.

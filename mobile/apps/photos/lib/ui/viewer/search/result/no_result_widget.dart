@@ -19,7 +19,6 @@ class _NoResultWidgetState extends State<NoResultWidget> {
   void initState() {
     super.initState();
     searchTypes = SectionType.values.toList(growable: true);
-    // remove face and content sectionType
     searchTypes.removeWhere(
       (type) => type == SectionType.magic || type == SectionType.wrapped,
     );
@@ -123,7 +122,6 @@ class _NoResultWidgetState extends State<NoResultWidget> {
     );
   }
 
-  /// Join the strings with ', ' and wrap each element with double quotes
   String formatList(List<String> strings) {
     return strings.map((str) => '"$str"').join(', ');
   }

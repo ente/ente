@@ -34,11 +34,9 @@ class ComputeController {
   bool _debugInteractionOverride = false;
   Future<void>? _initFuture;
 
-  /// If true, user interaction is ignored and compute tasks can run regardless of user activity.
   bool get interactionOverride =>
       _temporaryInteractionOverride || _debugInteractionOverride;
 
-  /// If true, compute tasks are paused regardless of device health or user activity.
   bool get computeBlocked => _computeBlocks.isNotEmpty;
   final Set<String> _computeBlocks = {};
 
@@ -72,7 +70,6 @@ class ComputeController {
     _logger.info('init done ');
   }
 
-  // Directly assign the values + Attach listener for compute controller
   Future<void> init() {
     return _initFuture ??= _initInternal();
   }

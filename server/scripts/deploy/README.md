@@ -1,38 +1,28 @@
 # Production Deployments
 
-This document outlines how we ourselves deploy museum. Note that this is very specific to our use case, and while this might be useful as an example, this is likely overkill for simple self hosted deployments.
+This describes Ente's production deployment. It is specific to our infrastructure and is generally unnecessary for self-hosted instances.
 
 ## Overview
 
-We use museum's Dockerfile to build images which we then run on vanilla Ubuntu servers (+ Docker installed). For ease of administration, we wrap Docker commands to start/stop it in a systemd service.
+We run Museum's Docker image on Ubuntu hosts with Docker and manage it with systemd, following the [service pattern](../../../infra/services/README.md) used by the rest of our infrastructure.
 
-- The production machines are vanilla Ubuntu instances, with Docker and Promtail installed.
+- [server-release.yml](../../../.github/workflows/server-release.yml) builds and publishes the image.
 
-- There is a [GitHub action](../../../.github/workflows/server-release.yml) to build museum Docker images using its Dockerfile.
+- [museum.service](museum.service) runs the container directly; [museum.nginx.service](museum.nginx.service) runs it behind Nginx.
 
-- We wrap the commands to start and stop containers using these images in a systemd service.
+- `systemctl start|stop|status museum` manages the running image.
 
-- We call this general concept of standalone Docker images that are managed using systemd as "services". More examples and details [here](../../../infra/services/README.md).
-
-- So museum is a "service". You can see its systemd unit definition in [museum.service](museum.service)
-
-- On the running instance, we use `systemctl start|stop|status museum` to manage the current image.
-
-- To update museum, use [update-and-restart-museum.sh](update-and-restart-museum.sh). It pulls the latest image before restarting the service.
-
-- Optionally and alternatively, museum can also be run behind an Nginx. This option has a separate service definition.
+- [update-and-restart-museum.sh](update-and-restart-museum.sh) pulls the latest image and restarts the service.
 
 ## Installation
 
-To bring up an additional museum node:
+To bring up another Museum node, prepare the instance to run our services.
 
-Prepare the instance to run our services.
-
-Setup [promtail](../../../infra/services/promtail/README.md), [prometheus and node-exporter](../../../infra/services/prometheus/README.md) services.
+Set up [Promtail](../../../infra/services/promtail/README.md), [Prometheus and node-exporter](../../../infra/services/prometheus/README.md).
 
 If running behind Nginx, install the [nginx](../../../infra/services/nginx/README.md) service.
 
-Add credentials
+Add credentials:
 
 ```sh
 sudo mkdir -p /root/museum/credentials
@@ -41,7 +31,7 @@ sudo tee /root/museum/credentials/fcm-service-account.json
 sudo tee /root/museum/credentials.yaml
 ```
 
-Add billing data from the pricing-data repo
+Add billing data from the pricing-data repository:
 
 ```sh
 scp /path/to/pricing-data/{us,in,black-friday}.json <instance>:
@@ -50,7 +40,7 @@ sudo mkdir -p /root/museum/data/billing
 sudo mv *.json /root/museum/data/billing/
 ```
 
-Add the TLS credentials (optional if running behind Nginx)
+Add TLS credentials unless running behind Nginx:
 
 ```sh
 sudo tee /root/museum/credentials/tls.cert
@@ -71,7 +61,7 @@ sudo mv museum.service /etc/systemd/system
 sudo systemctl daemon-reload
 ```
 
-If running behind Nginx, tell it about museum config (modified with suitable rate limits)
+If running behind Nginx, install Museum's Nginx configuration with suitable rate limits:
 
 ```sh
 scp scripts/deploy/museum.nginx.conf <instance>:
@@ -82,13 +72,13 @@ sudo systemctl reload nginx
 
 ## Starting
 
-SSH into the instance, and run
+SSH into the instance and run:
 
 ```sh
 ./update-and-restart-museum.sh
 ```
 
-This'll ask for sudo credentials, pull the latest Docker image, restart the museum service and start tailing the logs (as a sanity check).
+The script pulls the latest image, restarts Museum, and tails its logs.
 
 ## Rollback
 

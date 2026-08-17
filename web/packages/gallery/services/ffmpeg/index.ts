@@ -64,9 +64,10 @@ const _makeGenThumbnailCommand = (seekTime: number, forHDR: boolean) => [
     "1",
     "-vf",
     [
-        // Scale it to a maximum height of 720 keeping aspect ratio, ensuring
-        // that the dimensions are even (subsequent filters require this).
-        "scale=-2:720",
+        // Scale it down to a maximum height of 720 keeping aspect ratio,
+        // ensuring that the dimensions are even (subsequent filters require
+        // this).
+        "scale=-2:'min(720,trunc(ih/2)*2)'",
         forHDR
             ? // Tone-map HDR frames so thumbnails are not washed out.
               [
@@ -119,11 +120,17 @@ const parseFFmpegExtractedMetadata = (ffmpegOutput: Uint8Array) => {
 
     const result: ParsedMetadata = {};
 
-    // Prefer QuickTime metadata because it retains the time-zone offset.
-    const creationDate =
-        parseFFMetadataDate(kv.get("com.apple.quicktime.creationdate")) ??
-        parseFFMetadataDate(kv.get("creation_time"));
-    if (creationDate) result.creationDate = creationDate;
+    const creationDate = parseFFMetadataDate(
+        kv.get("com.apple.quicktime.creationdate"),
+    );
+    if (creationDate) {
+        result.creationDate = creationDate;
+    } else {
+        const creationTime = parseFFMetadataDate(
+            kv.get("creation_time"),
+        )?.timestamp;
+        if (creationTime) result.creationTime = creationTime;
+    }
 
     const location =
         parseFFMetadataLocation(

@@ -1,4 +1,4 @@
-import { savedPartialLocalUser } from "ente-accounts-rs/services/accounts-db";
+import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
 import { clientPackageName, desktopAppVersion, isDesktop } from "ente-base/app";
 import { apiOrigin, apiURL } from "ente-base/origins";
 import type { SpaceAccountCtxHandle } from "ente-space-wasm";

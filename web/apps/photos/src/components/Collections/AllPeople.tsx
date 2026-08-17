@@ -364,7 +364,7 @@ const SearchField: React.FC<SearchFieldProps> = ({ value, onChange }) => {
             inputRef={inputRef}
             fullWidth
             size="small"
-            placeholder={`${t("search")} ${t("people").toLowerCase()}...`}
+            placeholder={`${t("people_search_hint")}...`}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             autoFocus

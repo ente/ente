@@ -4,7 +4,9 @@ import "package:ente_feature_flag/ente_feature_flag.dart";
 import "package:ente_install_source/ente_install_source.dart";
 import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/event_bus.dart";
 import "package:photos/core/network/endpoint_config.dart";
+import "package:photos/events/ml_consent_changed_event.dart";
 import "package:photos/gateways/billing/billing_gateway.dart";
 import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/gateways/collections/collection_files_gateway.dart";
@@ -33,7 +35,6 @@ import "package:photos/services/library_sharing_local_store.dart";
 import "package:photos/services/library_sharing_service.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
-import "package:photos/services/machine_learning/face_ml/person/person_feedback_service.dart";
 import "package:photos/services/magic_cache_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
@@ -62,7 +63,6 @@ class ServiceLocator {
   late final BackupSettings backupSettings;
   late final EnteWakeLockService wakeLockService;
 
-  // instance
   ServiceLocator._privateConstructor();
 
   static final ServiceLocator instance = ServiceLocator._privateConstructor();
@@ -111,7 +111,7 @@ AutoCastService get autoCastService {
   _autoCastService ??= AutoCastService(
     transport: castService,
     gateway: CastGateway(ServiceLocator.instance.enteDio),
-    encodePayload: collectionsService.getCastData,
+    encodePayload: collectionsService.prepareCastPayloadForCollection,
   );
   return _autoCastService!;
 }
@@ -123,10 +123,8 @@ BackupSettings get backupSettings => ServiceLocator.instance.backupSettings;
 EnteWakeLockService get wakeLockService =>
     ServiceLocator.instance.wakeLockService;
 
-/// Whether the app is currently showing the no-account local gallery experience.
-///
-/// This does not mean the device is offline. It means the active gallery mode is
-/// local-device focused rather than Ente-account focused.
+// True when showing local-device photos instead of an Ente account. Network
+// access may still be used.
 bool get isLocalGalleryMode => localSettings.isLocalGalleryMode;
 
 bool get hasGrantedMLConsent {
@@ -139,9 +137,10 @@ bool get hasGrantedMLConsent {
 Future<void> setMLConsent(bool enabled) async {
   if (isLocalGalleryMode) {
     await localSettings.setLocalGalleryMLConsent(enabled);
-    return;
+  } else {
+    await flagService.setMLConsent(enabled);
   }
-  await flagService.setMLConsent(enabled);
+  Bus.instance.fire(MLConsentChangedEvent(enabled));
 }
 
 bool get mapEnabled {
@@ -247,12 +246,6 @@ ComputeController get computeController {
   return _computeController!;
 }
 
-PersonFeedbackService? _personFeedbackService;
-PersonFeedbackService get personFeedbackService {
-  _personFeedbackService ??= PersonFeedbackService();
-  return _personFeedbackService!;
-}
-
 PermissionService? _permissionService;
 PermissionService get permissionService {
   _permissionService ??= PermissionService(ServiceLocator.instance.prefs);
@@ -328,7 +321,6 @@ InstallSourceService get installSourceService {
   return _installSourceService!;
 }
 
-// Gateways
 PushGateway? _pushGateway;
 PushGateway get pushGateway {
   _pushGateway ??= PushGateway(ServiceLocator.instance.enteDio);

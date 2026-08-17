@@ -1,1 +1,1 @@
-export { default } from "ente-accounts-rs/pages/passkeys/finish";
+export { default } from "ente-accounts/pages/passkeys/finish";

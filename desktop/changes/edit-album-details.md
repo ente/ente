@@ -1,0 +1,1 @@
+- Added a unified album details dialog for editing album names, descriptions, and cover photos.

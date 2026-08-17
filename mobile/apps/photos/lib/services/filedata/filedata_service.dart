@@ -29,9 +29,7 @@ class FileDataService {
     previewIds = <int, PreviewInfo>{};
   }
 
-  /// Used to not sync preview ids everytime a chunking and preview
-  /// upload is successful, instead update the local copy of those
-  /// preview ids
+  // Update the local preview cache without syncing after every upload.
   void appendPreview(int id, String objectId, int objectSize) {
     if (previewIds.containsKey(id)) return;
     previewIds[id] = PreviewInfo(objectId: objectId, objectSize: objectSize);

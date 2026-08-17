@@ -29,8 +29,6 @@ class DeduplicationService {
     }
   }
 
-  // Returns a list of DuplicateFiles, where each DuplicateFiles object contains
-  // a list of files that have the same hash
   Future<List<DuplicateFiles>> _getDuplicateFiles() async {
     Map<int, int> uploadIDToSize = {};
     final bool hasFileSizes = await FilesService.instance.hasMigratedSizes();
@@ -66,9 +64,7 @@ class DeduplicationService {
     final Map<String, Set<int>> livePhotoHashToCollectionsSet = {};
     final Set<int> processedFileIds = <int>{};
     for (final file in filteredFiles) {
-      // Note: For live photos, the zipped file size could be different if
-      // the files were uploaded from different devices. So, we dedupe live
-      // photos based on hash only.
+      // Equivalent live photos can have different archive sizes across devices.
       if (file.fileType == FileType.livePhoto) {
         final key = '${file.hash}';
         if (!livePhotoHashToFilesMap.containsKey(key)) {

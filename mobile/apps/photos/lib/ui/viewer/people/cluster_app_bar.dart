@@ -129,7 +129,6 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
   List<Widget> _getDefaultActions(BuildContext context) {
     final iconColor = getEnteColorScheme(context).contentLight;
     final List<Widget> actions = <Widget>[];
-    // If the user has selected files, don't show any actions
     if (widget.selectedFiles.files.isNotEmpty ||
         isLocalGalleryMode ||
         !Configuration.instance.hasConfiguredAccount()) {
@@ -226,14 +225,12 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
           final Map<String, String> newFaceIdToClusterID =
               breakupResult.newFaceIdToCluster;
 
-          // Update to delete the old clusters and save the new clusters
           await mlDataDB.deleteClusterSummary(widget.clusterID);
           await MLDataDB.instance.clusterSummaryUpdate(
             breakupResult.newClusterSummaries,
           );
           await mlDataDB.updateFaceIdToClusterId(newFaceIdToClusterID);
 
-          // Find the biggest cluster
           biggestClusterID = '';
           int biggestClusterSize = 0;
           for (final MapEntry<String, List<String>> clusterToFaces
@@ -243,14 +240,13 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
               biggestClusterID = clusterToFaces.key;
             }
           }
-          // Get the files for the biggest new cluster
           final biggestClusterFileIDs = newClusterIDToFaceIDs[biggestClusterID]!
               .map((e) => getFileIdFromFaceId<int>(e))
               .toList();
           biggestClusterFiles = await FilesDB.instance
               .getFileIDToFileFromIDs(biggestClusterFileIDs)
               .then((mapping) => mapping.values.toList());
-          // Sort the files to prevent issues with the order of the files in gallery
+          // Keep the replacement gallery in newest-first order.
           biggestClusterFiles.sort(
             (a, b) => b.creationTime!.compareTo(a.creationTime!),
           );
@@ -258,18 +254,15 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
           userConfirmed = true;
         } catch (e, s) {
           _logger.severe('Breakup cluster failed', e, s);
-          // await showGenericErrorDialog(context: context, error: e);
         }
       },
     );
     if (userConfirmed) {
       Bus.instance.fire(PeopleChangedEvent());
 
-      // Close the old cluster page
       if (!context.mounted) return;
       Navigator.of(context).pop();
 
-      // Push the new cluster page
       if (!context.mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(

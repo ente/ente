@@ -1,8 +1,6 @@
 import "package:flutter/material.dart";
 import "package:rive/rive.dart" as rive;
 
-/// Overlay widget that appears at the top of the screen when pulling down.
-/// This shows the Merry Christmas animation with the duck character.
 class ChristmasPullOverlay extends StatefulWidget {
   final double pullOffset;
   final bool isReleased;
@@ -42,12 +40,10 @@ class _ChristmasPullOverlayState extends State<ChristmasPullOverlay> {
   void didUpdateWidget(ChristmasPullOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Set trigger to true when pulled past threshold
     if (widget.pullOffset >= widget.triggerThreshold) {
       _triggerInput?.value = true;
     }
 
-    // Set trigger to false when released
     if (widget.isReleased) {
       _triggerInput?.value = false;
     }

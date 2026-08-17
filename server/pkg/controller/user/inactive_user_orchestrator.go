@@ -361,7 +361,6 @@ func (c *InactiveUserOrchestrator) processCandidate(candidate repo.UserInactivit
 		return stageHint, false, false, err
 	}
 	if !found {
-		// User is no longer active.
 		return inactivityEmailStageNone, false, false, nil
 	}
 

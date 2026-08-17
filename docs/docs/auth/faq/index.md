@@ -106,6 +106,14 @@ If your codes were created offline and you've since lost access to that device, 
 
 No, Ente Auth does not require an account. You can choose to use the app without backups if you prefer.
 
+### How can I delete my account? {#auth-delete-account}
+
+You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account.
+
+Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you delete your account (irrespective of which app you delete it from) since Photos, Auth, and Locker use the same underlying account.
+
+To know details of how your data is deleted, including when you delete your account, please see https://ente.com/blog/how-ente-deletes-data/.
+
 ### Can Ente Auth run fully offline with no connection to any server? {#auth-fully-offline}
 
 Yes. Choose **Use without backups** to use Auth entirely offline, with no account and no connection to Ente's servers. Learn more in [Using offline mode safely](/auth/features/offline-mode).

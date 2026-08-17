@@ -1043,7 +1043,7 @@ async fn write_file_metadata(
     let extension = Path::new(filename)
         .extension()
         .and_then(|s| s.to_str())
-        .unwrap_or(""); // Extension might be legitimately missing for some files
+        .unwrap_or("");
 
     let meta_filename = format!("{}_{}.{}.json", base_name, file_index, extension);
 

@@ -19,14 +19,14 @@ import (
 
 const MaxSendCount = 10
 
-// AllowedProviders is a set of valid provider names for discount coupons.
 // While adding new providers, consider adding customized templates in email package.
 var AllowedProviders = map[string]bool{
-	"Kagi":       true,
-	"Tuta":       true,
-	"Notesnook":  true,
-	"Windscribe": true,
-	"Test":       true,
+	"Kagi":         true,
+	"Tuta":         true,
+	"Notesnook":    true,
+	"Windscribe":   true,
+	"LeaveMeAlone": true,
+	"Test":         true,
 }
 
 type Controller struct {
@@ -156,6 +156,9 @@ func (c *Controller) sendCouponEmail(ctx context.Context, user ente.User, coupon
 	case "Windscribe":
 		subject = "Ente Friends - Windscribe discount code"
 		templateName = "discount_coupon_windscribe.html"
+	case "LeaveMeAlone":
+		subject = "Ente Friends - Leave Me Alone discount code"
+		templateName = "discount_coupon_leave_me_alone.html"
 	case "Test":
 		subject = "Ente Friends - Test trial code"
 		templateName = "discount_coupon_test.html"

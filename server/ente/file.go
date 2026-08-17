@@ -18,7 +18,7 @@ type File struct {
 	File               FileAttributes `json:"file" binding:"required"`
 	Thumbnail          FileAttributes `json:"thumbnail" binding:"required"`
 	Metadata           FileAttributes `json:"metadata" binding:"required"`
-	// IsDeleted is True when the file ID is removed from the  CollectionID
+	// True when the file was removed from this collection.
 	IsDeleted          bool           `json:"isDeleted"`
 	UpdationTime       int64          `json:"updationTime"`
 	MagicMetadata      *MagicMetadata `json:"magicMetadata,omitempty"`
@@ -36,7 +36,7 @@ type MetaFile struct {
 	EncryptedKey       string         `json:"encryptedKey"`
 	KeyDecryptionNonce string         `json:"keyDecryptionNonce"`
 	Metadata           FileAttributes `json:"metadata" binding:"required"`
-	// IsDeleted is True when the file ID is removed from the  CollectionID
+	// True when the file was removed from this collection.
 	IsDeleted          bool           `json:"isDeleted"`
 	UpdationTime       int64          `json:"updationTime"`
 	MagicMetadata      *MagicMetadata `json:"magicMetadata,omitempty"`
@@ -81,13 +81,12 @@ type FilesInfoResponse struct {
 }
 
 type TrashRequest struct {
-	OwnerID    int64              // ownerID will be set internally via auth header
+	OwnerID    int64              // Set from the authenticated user, not the request body.
 	TrashItems []TrashItemRequest `json:"items" binding:"required"`
 }
 
 type TrashItemRequest struct {
-	FileID int64 `json:"fileID" binding:"required"`
-	// collectionID belonging to same owner
+	FileID       int64 `json:"fileID" binding:"required"`
 	CollectionID int64 `json:"collectionID" binding:"required"`
 }
 

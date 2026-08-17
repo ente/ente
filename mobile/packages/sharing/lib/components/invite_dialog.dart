@@ -5,7 +5,6 @@ import "package:ente_ui/theme/ente_theme.dart";
 import "package:ente_utils/share_utils.dart";
 import "package:flutter/material.dart";
 
-/// Shows the invite sheet when a user doesn't have an Ente account
 Future<void> showInviteSheet(BuildContext context, {required String email}) {
   return showBaseBottomSheet<void>(
     context,

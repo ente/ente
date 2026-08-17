@@ -77,11 +77,7 @@ func (c *MailingListsController) listmonkSubscribe(email string) error {
 }
 
 func (c *MailingListsController) listmonkUnsubscribe(email string) error {
-	// Listmonk doesn't provide an endpoint for unsubscribing users
-	// from a particular list directly via their email
-	//
-	// Thus, fetching subscriberID through email address,
-	// and then calling the endpoint to delete that user
+	// Listmonk deletion needs a subscriber ID, so look it up by email first.
 	id, err := listmonk.GetSubscriberID(c.listmonkCredentials.BaseURL+"/api/subscribers",
 		c.listmonkCredentials.Username, c.listmonkCredentials.Password, email)
 	if err != nil {

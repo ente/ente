@@ -391,11 +391,11 @@ async fn prepare_download_tasks(
                     sanitize_filename(title)
                 } else {
                     log::error!("File {} has no title in metadata", file.id);
-                    continue; // Skip this file
+                    continue;
                 }
             } else {
                 log::error!("File {} has no metadata", file.id);
-                continue; // Skip this file
+                continue;
             };
 
             if let Some(ref meta) = metadata {

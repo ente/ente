@@ -118,8 +118,6 @@ Rect _sharePosOrigin(BuildContext? context, GlobalKey? key) {
   return rect;
 }
 
-/// Returns the rect of button if context and key are not null
-/// If key is null, returned rect will be at the center of the screen
 Rect shareButtonRect(BuildContext context, GlobalKey? shareButtonKey) {
   Size size = MediaQuery.sizeOf(context);
   final RenderObject? renderObject = shareButtonKey?.currentContext

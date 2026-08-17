@@ -6,13 +6,10 @@ import 'package:gradient_borders/box_borders/gradient_box_border.dart';
 class GradientButton extends StatefulWidget {
   final Function? onTap;
 
-  // text is ignored if child is specified
   final String text;
 
-  // nullable
   final IconData? iconData;
 
-  // padding between the text and icon
   final double paddingValue;
 
   final double fontSize;

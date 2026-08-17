@@ -77,27 +77,27 @@ Future<File?> _getLocalDiskFile(
   EnteFile file, {
   bool liveVideo = false,
   bool isOrigin = false,
-}) {
-  if (file.isSharedMediaToAppSandbox) {
-    final localFile = File(getSharedMediaFilePath(file));
-    return localFile.exists().then((exist) {
-      return exist ? localFile : null;
-    });
-  } else if (file.fileType == FileType.livePhoto && liveVideo) {
-    return Motionphoto.getLivePhotoFile(file.localID!);
-  } else {
-    return file.getAsset.then((asset) async {
-      if (asset == null || !(await asset.exists)) {
-        if (isOrigin && file.isVideo) {
-          _logger.warning(
-            "Failed to get file for assetID: ${file.localID}, is asset null: ${asset == null}",
-          );
-        }
-        return null;
-      }
-      return isOrigin ? asset.originFile : asset.file;
-    });
+}) async {
+  // Return null because reading a device trash file by its file system path
+  // fails with a permission-denied error.
+  if (file.isDeviceTrash) {
+    return null;
   }
+
+  if (file.isSharedMediaToAppSandbox) {
+    final localFile = File(getSharedMediaPathFromLocalID(file.localID!));
+    return await localFile.exists() ? localFile : null;
+  }
+
+  if (file.fileType == FileType.livePhoto && liveVideo) {
+    return await Motionphoto.getLivePhotoFile(file.localID!);
+  }
+
+  final asset = await file.getAsset;
+  if (asset == null || !(await asset.exists)) {
+    return null;
+  }
+  return isOrigin ? await asset.originFile : await asset.file;
 }
 
 String getSharedMediaFilePath(EnteFile file) {

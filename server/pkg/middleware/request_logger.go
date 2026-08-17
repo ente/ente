@@ -30,8 +30,7 @@ var latency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 	Buckets: []float64{10, 50, 100, 200, 500, 1000, 10000, 30000, 60000, 120000, 600000},
 }, []string{"code", "method", "host", "url"})
 
-// shouldSkipBodyLog returns true if the body should not be logged.
-// This is useful for endpoints that receive large or sensitive payloads.
+// Skip read-only requests and writes with large or sensitive bodies.
 func shouldSkipBodyLog(method string, path string) bool {
 	isReadOnly := method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
 	if !isReadOnly {

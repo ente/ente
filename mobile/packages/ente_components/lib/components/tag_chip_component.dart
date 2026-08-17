@@ -7,9 +7,7 @@ import 'package:flutter/material.dart';
 
 enum TagChipComponentState { selected, unselected, disabled }
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6479&m=dev
-/// Section: Tag Chip
-/// Specs: 44px height, 16px radius, body text, selected/unselected/disabled states with one optional icon slot.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6479&m=dev
 class TagChipComponent extends StatelessWidget {
   const TagChipComponent({
     super.key,

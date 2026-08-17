@@ -51,9 +51,8 @@ func (repo *BillingRepository) GetSubscriptionForTransaction(transactionID strin
 	return s, stacktrace.Propagate(err, "")
 }
 
-// UpdateTransactionIDOnDeletion just append `userID:` before original transaction id on account deletion.
-// This is to ensure that any subscription update isn't accidently applied to the deleted account and
-// if user want to use same subscription in different ente account, they should be able to do that.
+// Prefix the transaction ID so provider updates cannot reach the deleted
+// account. The original ID can then be linked to another account.
 func (repo *BillingRepository) UpdateTransactionIDOnDeletion(userID int64) error {
 	_, err := repo.DB.Query(`update subscriptions SET original_transaction_id = user_id || ':'  || original_transaction_id where original_transaction_id is not NULL and user_id= $1`, userID)
 	return stacktrace.Propagate(err, "")

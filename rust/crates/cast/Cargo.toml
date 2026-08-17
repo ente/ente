@@ -1,0 +1,9 @@
+[package]
+name = "ente-cast"
+edition = "2024"
+
+[dependencies]
+ente-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

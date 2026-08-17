@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"io"
@@ -17,6 +18,8 @@ import (
 )
 
 var errBindJSON = errors.New("bind json")
+
+const statusClientClosedRequest = 499
 
 type bindJSONError struct {
 	err error
@@ -42,6 +45,11 @@ func BindJSON(c *gin.Context, obj any) error {
 }
 
 func Error(c *gin.Context, err error) {
+	if c.Request.Context().Err() == context.Canceled {
+		c.AbortWithStatus(statusClientClosedRequest)
+		return
+	}
+
 	unWrappedErr := errors.Unwrap(err)
 	if unWrappedErr == nil {
 		unWrappedErr = err

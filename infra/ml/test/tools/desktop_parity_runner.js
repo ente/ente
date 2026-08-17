@@ -104,10 +104,10 @@ const mlModelPaths = (models) => ({
     petBodyEmbeddingCat: "",
 });
 
-const analyzeFixture = async (native, fileID, imagePath, modelPaths) => {
+const analyzeFixture = async (native, fileID, imageBytes, modelPaths) => {
     const result = await native.analyzeImage({
         fileId: fileID,
-        imagePath,
+        imageBytes,
         runFaces: true,
         runClip: true,
         runPets: false,
@@ -185,11 +185,13 @@ const main = async () => {
         for (const [index, item] of items.entries()) {
             const t = Date.now();
             try {
-                const imagePath = path.resolve(args["ml-dir"], item.source);
+                const imageBytes = await fsp.readFile(
+                    path.resolve(args["ml-dir"], item.source),
+                );
                 const result = await analyzeFixture(
                     native,
                     index + 1,
-                    imagePath,
+                    imageBytes,
                     modelPaths,
                 );
                 results.push(

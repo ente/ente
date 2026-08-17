@@ -4,8 +4,6 @@ import 'package:ente_components/components/bottom_sheet/bottom_sheet_component.d
 import 'package:ente_components/components/buttons/button_component.dart';
 import 'package:flutter/material.dart';
 
-/// Shows the standard error sheet while leaving app-specific localization,
-/// parsing, and logging to the caller.
 Future<T?> showErrorBottomSheetComponent<T>({
   required BuildContext context,
   required String message,
@@ -13,10 +11,7 @@ Future<T?> showErrorBottomSheetComponent<T>({
   Widget? illustration,
   String? actionLabel,
   FutureOr<void> Function()? onActionTap,
-
-  /// Called when the close button is pressed, before the sheet is dismissed.
-  ///
-  /// Barrier taps, drag dismissals, and system back dismissals do not call this.
+  // Called only by the close button, not other dismissal paths.
   FutureOr<void> Function()? onClose,
   bool showCloseButton = true,
   bool isDismissible = true,

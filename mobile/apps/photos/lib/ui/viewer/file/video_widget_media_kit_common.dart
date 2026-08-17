@@ -100,7 +100,6 @@ class _VideoWidgetState extends State<VideoWidget> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Video layer with zoom support
         widget.transformationController != null
             ? ZoomableVideoViewer(
                 transformationController: widget.transformationController!,
@@ -108,7 +107,6 @@ class _VideoWidgetState extends State<VideoWidget> {
                 child: videoWidget,
               )
             : videoWidget,
-        // Controls overlay (fixed position, not affected by zoom)
         ValueListenableBuilder(
           valueListenable: showControlsNotifier,
           builder: (context, value, _) {

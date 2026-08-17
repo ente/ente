@@ -1,6 +1,4 @@
 import 'dart:math' as math;
-
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -11,24 +9,13 @@ import "package:photos/models/gallery/fixed_extent_section_layout.dart";
 // Copyright (c) 2020-2023 Thibault Deckers and contributors
 // Licensed under BSD-3-Clause License
 
-// Using a Single SliverVariedExtentList or Using a combination where there are
-// multiple sliver delegate builders in a CustomScrollView doesn't scale.
-
-// With using a Single SliverKnownExtentList with each section being either a
-// group header or a row of grid, the problem is that scrolling becomes janky
-// the deeper the list is scrolled if the list is large enough.
-
-// With using multiple slivers (and hence multiple SliverChildBuilderDelegates)
-// in CustomScrollView, the deep scrolling issue exists and the first child
-// of every builderDelegate is always initialized, even if it's not in viewport
-// or in cacheExtent.
+// Flutter's standard slivers become janky deep in large galleries. Using one
+// sliver per section also builds every section's first child, even off-screen.
+//
+// This custom sliver uses precomputed section sizes to jump to visible rows.
 
 // https://github.com/flutter/flutter/issues/168442
 // https://github.com/flutter/flutter/issues/95028
-
-// A custom implementation of SliverMultiBoxAdaptorWidget
-// adapted from SliverFixedExtentBoxAdaptor. Optimizations in layout solves
-// the deep scrolling issue.
 
 class SectionedListSliver<T> extends StatelessWidget {
   final List<FixedExtentSectionLayout> sectionLayouts;
@@ -44,9 +31,7 @@ class SectionedListSliver<T> extends StatelessWidget {
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           if (index >= childCount) return null;
-          final sectionLayout = sectionLayouts.firstWhereOrNull(
-            (section) => section.hasChild(index),
-          );
+          final sectionLayout = sectionLayouts.sectionForIndex(index);
           return sectionLayout?.builder(context, index) ?? const SizedBox();
         },
         childCount: childCount,
@@ -100,13 +85,10 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
   }) : _sectionLayouts = sectionLayouts;
 
   FixedExtentSectionLayout? sectionAtIndex(int index) =>
-      sectionLayouts.firstWhereOrNull((section) => section.hasChild(index));
+      sectionLayouts.sectionForIndex(index);
 
   FixedExtentSectionLayout? sectionAtOffset(double scrollOffset) =>
-      sectionLayouts.firstWhereOrNull(
-        (section) => section.hasChildAtOffset(scrollOffset),
-      ) ??
-      sectionLayouts.lastOrNull;
+      sectionLayouts.sectionForOffset(scrollOffset);
 
   double indexToLayoutOffset(int index) {
     return (sectionAtIndex(index) ?? sectionLayouts.lastOrNull)
@@ -135,8 +117,7 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
     double? leadingScrollOffset,
     double? trailingScrollOffset,
   }) {
-    // default implementation is an estimation via `childManager.estimateMaxScrollOffset()`
-    // but we have the accurate offset via pre-computed section layouts
+    // Section sizes give us the exact scroll extent; do not estimate it.
     return _sectionLayouts.last.maxOffset;
   }
 
@@ -181,7 +162,6 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
         index: firstIndex,
         layoutOffset: indexToLayoutOffset(firstIndex),
       )) {
-        // There are either no children, or we are past the end of all our children.
         double max;
         if (firstIndex <= 0) {
           max = 0.0;
@@ -236,7 +216,6 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
           after: trailingChildWithLayout,
         );
         if (child == null) {
-          // We have run out of children.
           final layout = sectionAtIndex(index) ?? sectionLayouts.last;
           estimatedMaxScrollOffset = layout.maxOffset;
           break;

@@ -11,8 +11,7 @@ let package = Package(
     targets: [
         .target(
             name: "PhotosPlatformCore",
-            path: "Classes",
-            exclude: ["PhotosPlatformPlugin.swift"]
+            path: "Sources/PhotosPlatformCore"
         )
     ],
     swiftLanguageVersions: [.v5]

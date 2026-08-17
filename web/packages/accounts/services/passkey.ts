@@ -2,12 +2,12 @@ import {
     saveKeyAttributes,
     updateSavedLocalUser,
 } from "ente-accounts/services/accounts-db";
+import { encryptBox, generateKey } from "ente-accounts/services/crypto";
 import {
     resetSavedLocalUserTokens,
     TwoFactorAuthorizationResponse,
 } from "ente-accounts/services/user";
 import { clientPackageName, isDesktop } from "ente-base/app";
-import { encryptBox, generateKey } from "ente-base/crypto";
 import {
     authenticatedRequestHeaders,
     ensureOk,

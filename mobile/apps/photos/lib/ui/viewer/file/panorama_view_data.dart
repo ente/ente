@@ -1,9 +1,7 @@
 import "package:flutter/material.dart";
 
-/// View parameters for rendering a (possibly partial) panorama on a sphere,
-/// derived from GPano XMP metadata.
-///
-/// See https://developers.google.com/streetview/spherical-metadata
+// GPano metadata describes the image as a crop of a full equirectangular
+// canvas: https://developers.google.com/streetview/spherical-metadata
 class PanoramaViewData {
   const PanoramaViewData({
     required this.fullWidth,
@@ -11,24 +9,11 @@ class PanoramaViewData {
     required this.croppedArea,
   });
 
-  /// Width in pixels of the full equirectangular canvas.
   final double fullWidth;
-
-  /// Height in pixels of the full equirectangular canvas.
   final double fullHeight;
-
-  /// Area of the full canvas that the image actually covers, in pixels.
   final Rect croppedArea;
 
-  /// Initial camera longitude, in degrees within [-180, 180], that points the
-  /// view at the horizontal center of the cropped area.
-  ///
-  /// The panorama widget maps the cropped area to its absolute position on the
-  /// full equirectangular canvas, and its longitude 0 faces the horizontal
-  /// center (u = 0.5) of that canvas. Partial panoramas (e.g. Pixel sweep
-  /// panoramas) keep the compass heading of the shot, so their cropped area
-  /// can sit anywhere on the canvas; without this correction the initial view
-  /// often faces an empty part of the sphere.
+  // Partial panoramas may not cover longitude 0. Start at the crop's center.
   double get initialLongitude {
     final double uCenter =
         (croppedArea.left + croppedArea.width / 2) / fullWidth;
@@ -38,15 +23,12 @@ class PanoramaViewData {
     return longitude;
   }
 
-  /// Initial camera latitude that points at the vertical center of the crop.
   double get initialLatitude {
     final double vCenter =
         (croppedArea.top + croppedArea.height / 2) / fullHeight;
     return (0.5 - vCenter) * 180;
   }
 
-  /// Parses GPano attributes extracted from XMP. Returns null when the
-  /// metadata is insufficient to place the image on the panorama sphere.
   static PanoramaViewData? fromXmp(Map<String, String> data) {
     double? cWidth = double.tryParse(
       data["GPano:CroppedAreaImageWidthPixels"] ?? "",
@@ -59,13 +41,13 @@ class PanoramaViewData {
     double? cLeft = double.tryParse(data["GPano:CroppedAreaLeftPixels"] ?? "");
     double? cTop = double.tryParse(data["GPano:CroppedAreaTopPixels"] ?? "");
 
-    // handle missing `fullPanoHeight` (e.g. Samsung camera app panorama mode)
+    // Samsung panoramas can omit the full height.
     if (fHeight == null && fWidth != null && cHeight != null) {
       fHeight = (fWidth / 2).round().toDouble();
       cTop = ((fHeight - cHeight) / 2).round().toDouble();
     }
 
-    // handle inconsistent sizing (e.g. rotated image taken with OnePlus EB2103)
+    // Some rotated images report the cropped and full sizes inconsistently.
     if (cWidth != null &&
         cHeight != null &&
         fWidth != null &&
@@ -82,7 +64,6 @@ class PanoramaViewData {
           : Orientation.portrait;
       var inconsistent = false;
       if (croppedOrientation != fullOrientation) {
-        // inconsistent orientation
         inconsistent = true;
         final tmp = ch;
         ch = cw;
@@ -90,7 +71,6 @@ class PanoramaViewData {
       }
 
       if (cw > fw) {
-        // inconsistent full/cropped width
         inconsistent = true;
         final tmp = fw;
         fw = cw;
@@ -98,7 +78,6 @@ class PanoramaViewData {
       }
 
       if (ch > fh) {
-        // inconsistent full/cropped height
         inconsistent = true;
         final tmp = ch;
         ch = fh;

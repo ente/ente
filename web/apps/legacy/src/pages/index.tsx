@@ -14,7 +14,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { isWeakPassword } from "ente-accounts-rs/utils/password";
+import { isWeakPassword } from "ente-accounts/utils/password";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";

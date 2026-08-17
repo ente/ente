@@ -57,7 +57,6 @@ void main() {
     final secondDataToStore = restoredCode.toOTPAuthUrlFormat();
     expect(dataToStore, secondDataToStore);
   });
-  //
 
   test("parseWithFunnyAccountName", () {
     final code = Code.fromOTPAuthUrl(

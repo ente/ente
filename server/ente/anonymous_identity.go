@@ -16,7 +16,7 @@ type AnonymousIdentityClaim struct {
 
 func NewAnonymousIdentityToken(secret []byte, anonUserID string) (string, int64, error) {
 	issuedAt := time.Now()
-	expiry := issuedAt.AddDate(1, 0, 0) // 1 year validity
+	expiry := issuedAt.AddDate(1, 0, 0)
 	claim := AnonymousIdentityClaim{
 		Typ: anonIdentityTokenType,
 		RegisteredClaims: jwt.RegisteredClaims{

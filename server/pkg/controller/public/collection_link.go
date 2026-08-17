@@ -22,8 +22,7 @@ import (
 const (
 	AccessTokenLength = 10
 
-	// DeviceLimitThreshold represents number of unique devices which can access a shared collection. (ip + user agent)
-	// is treated as unique device
+	// A device is identified by its IP and user agent.
 	DeviceLimitThreshold = 50
 
 	DeviceLimitThresholdMultiplier = 10
@@ -99,7 +98,7 @@ func (c *CollectionLinkController) CreateFile(ctx *gin.Context, file ente.File, 
 		return ente.File{}, stacktrace.Propagate(err, "")
 	}
 	collectionOwnerID := collection.Owner.ID
-	// Do not let any update happen via public Url
+	// Don't allow public links to update files.
 	file.ID = 0
 	file.OwnerID = collectionOwnerID
 	file.UpdationTime = time.Microseconds()
@@ -180,10 +179,7 @@ func (c *CollectionLinkController) UpdateSharedUrl(ctx *gin.Context, req ente.Up
 	}, nil
 }
 
-// VerifyPassword verifies if the user has provided correct pw hash. If yes, it returns a signed jwt token which can be
-// used by the client to pass in other requests for public collection.
-// Having a separate endpoint for password validation allows us to easily rate-limit the attempts for brute-force
-// attack for guessing password.
+// Password verification is separate so attempts can be rate-limited.
 func (c *CollectionLinkController) VerifyPassword(ctx *gin.Context, req ente.VerifyPasswordRequest) (*ente.VerifyPasswordResponse, error) {
 	accessContext := auth.MustGetPublicAccessContext(ctx)
 	collectionLinkRow, err := c.CollectionLinkRepo.GetActiveCollectionLinkRow(ctx, accessContext.CollectionID)
@@ -222,7 +218,7 @@ func (c *CollectionLinkController) GetPublicCollection(ctx *gin.Context, mustAll
 	if collection.IsDeleted {
 		return ente.Collection{}, stacktrace.Propagate(ente.ErrNotFound, "collection is deleted")
 	}
-	// hide redundant/private information
+	// Don't expose private collection metadata through public links.
 	collection.Sharees = nil
 	collection.MagicMetadata = nil
 	publicURLsWithLimitedInfo := make([]ente.PublicURL, 0)

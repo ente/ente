@@ -1,4 +1,3 @@
-// Faces Table Fields & Schema Queries
 import 'package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart';
 
 const facesTable = 'faces';
@@ -36,12 +35,8 @@ const createFacesTable =
   ''';
 
 const deleteFacesTable = 'DELETE FROM $facesTable';
-// End of Faces Table Fields & Schema Queries
-
-//##region Face Clusters Table Fields & Schema Queries
 const faceClustersTable = 'face_clusters';
 
-// fcClusterId & fcFaceId are the primary keys and fcClusterId is a foreign key to faces table
 const createFaceClustersTable =
     '''
 CREATE TABLE IF NOT EXISTS $faceClustersTable (
@@ -50,13 +45,9 @@ CREATE TABLE IF NOT EXISTS $faceClustersTable (
   PRIMARY KEY($faceIDColumn)
 );
 ''';
-// -- Creating a non-unique index on clusterID for query optimization
 const fcClusterIDIndex =
     '''CREATE INDEX IF NOT EXISTS idx_fcClusterID ON $faceClustersTable($clusterIDColumn);''';
 const deleteFaceClustersTable = 'DELETE FROM $faceClustersTable';
-//##endregion
-
-// Clusters Table Fields & Schema Queries
 const clusterPersonTable = 'cluster_person';
 
 const createClusterPersonTable =
@@ -68,9 +59,7 @@ CREATE TABLE IF NOT EXISTS $clusterPersonTable (
 );
 ''';
 const deleteClusterPersonTable = 'DELETE FROM $clusterPersonTable';
-// End Clusters Table Fields & Schema Queries
 
-/// Cluster Summary Table Fields & Schema Queries
 const clusterSummaryTable = 'cluster_summary';
 const avgColumn = 'avg';
 const countColumn = 'count';
@@ -86,9 +75,6 @@ CREATE TABLE IF NOT EXISTS $clusterSummaryTable (
 
 const deleteClusterSummaryTable = 'DELETE FROM $clusterSummaryTable';
 
-/// End Cluster Summary Table Fields & Schema Queries
-
-/// Cluster Centroid Vector ID Mapping Table Fields & Schema Queries
 const clusterCentroidVectorIdMappingTable = 'cluster_centroid_vector_id_map';
 const clusterCentroidVectorIdColumn = 'cluster_vector_id';
 
@@ -103,9 +89,6 @@ CREATE TABLE IF NOT EXISTS $clusterCentroidVectorIdMappingTable (
 const deleteClusterCentroidVectorIdMappingTable =
     'DELETE FROM $clusterCentroidVectorIdMappingTable';
 
-/// End Cluster Centroid Vector ID Mapping Table Fields & Schema Queries
-
-/// notPersonFeedback Table Fields & Schema Queries
 const notPersonFeedback = 'not_person_feedback';
 
 const createNotPersonFeedbackTable =
@@ -117,9 +100,6 @@ CREATE TABLE IF NOT EXISTS $notPersonFeedback (
 );
 ''';
 const deleteNotPersonFeedbackTable = 'DELETE FROM $notPersonFeedback';
-// End Clusters Table Fields & Schema Queries
-
-// ## CLIP EMBEDDINGS TABLE
 const clipTable = 'clip';
 
 const createClipEmbeddingsTable =
@@ -151,7 +131,6 @@ CREATE TABLE IF NOT EXISTS $fileDataTable (
 
 const deleteFileDataTable = 'DELETE FROM $fileDataTable';
 
-// ## FACE CACHE TABLE
 const faceCacheTable = 'face_cache';
 
 const createFaceCacheTable =
@@ -165,7 +144,6 @@ CREATE TABLE IF NOT EXISTS $faceCacheTable (
 
 const deleteFaceCacheTable = 'DELETE FROM $faceCacheTable';
 
-// ## TEXT EMBEDDINGS CACHE TABLE
 const textEmbeddingsCacheTable = 'text_embeddings_cache';
 
 const createTextEmbeddingsCacheTable =
@@ -181,7 +159,6 @@ CREATE TABLE IF NOT EXISTS $textEmbeddingsCacheTable (
 
 const deleteTextEmbeddingsCacheTable = 'DELETE FROM $textEmbeddingsCacheTable';
 
-// ## OFFLINE FILE KEY MAP TABLE
 const offlineFileKeyMapTable = 'offline_file_key_map';
 const offlineFileKeyLocalIdColumn = 'local_id';
 const offlineFileKeyIntIdColumn = 'local_int_id';
@@ -194,17 +171,12 @@ CREATE TABLE IF NOT EXISTS $offlineFileKeyMapTable (
 );
 ''';
 
-// ── PET RECOGNITION TABLES ─────────────────────────────────────────────
-
-// Shared column names
 const petFaceIDColumn = 'pet_face_id';
 const petBodyIDColumn = 'pet_body_id';
 const speciesColumn = 'species';
 const detectionColumn = 'detection';
 const faceVectorIdColumn = 'face_vector_id';
 const bodyVectorIdColumn = 'body_vector_id';
-
-// ── Pet Faces Table ──
 
 const petFacesTable = 'pet_faces';
 
@@ -225,11 +197,8 @@ const createPetFacesTable =
 
 const deletePetFacesTable = 'DELETE FROM $petFacesTable';
 
-// ── Pet Bodies Table ──
-
 const petBodiesTable = 'pet_bodies';
-// Alias so pet-body code doesn't reference the face-specific constant name.
-// The underlying SQL column is the same ('score').
+// Both tables use the SQL column "score".
 const bodyScore = faceScore;
 
 const createPetBodiesTable =
@@ -249,9 +218,6 @@ const createPetBodiesTable =
 
 const deletePetBodiesTable = 'DELETE FROM $petBodiesTable';
 
-// ── Vector ID Mapping Tables ──
-
-/// Maps pet_face_id (string) → integer for face usearch index
 const petFaceVectorIdMappingTable = 'pet_face_vector_id_map';
 const petFaceVectorIdColumn = 'pet_face_vector_id';
 
@@ -266,7 +232,6 @@ CREATE TABLE IF NOT EXISTS $petFaceVectorIdMappingTable (
 const deletePetFaceVectorIdMappingTable =
     'DELETE FROM $petFaceVectorIdMappingTable';
 
-/// Maps pet_body_id (string) → integer for body usearch index
 const petBodyVectorIdMappingTable = 'pet_body_vector_id_map';
 const petBodyVectorIdColumn = 'pet_body_vector_id';
 

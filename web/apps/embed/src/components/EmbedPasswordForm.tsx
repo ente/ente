@@ -2,7 +2,7 @@ import { Stack, Typography } from "@mui/material";
 import {
     AccountsPageContents,
     AccountsPageTitle,
-} from "ente-accounts-rs/components/layouts/centered-paper";
+} from "ente-accounts/components/layouts/centered-paper";
 import {
     SingleInputForm,
     type SingleInputFormProps,

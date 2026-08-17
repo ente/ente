@@ -17,6 +17,7 @@ import 'package:photos/events/local_photos_updated_event.dart';
 import 'package:photos/gateways/trash/models/trash_item_request.dart';
 import "package:photos/models/button_result.dart";
 import 'package:photos/models/file/file.dart';
+import "package:photos/models/file/trash_file.dart";
 import "package:photos/models/files_split.dart";
 import "package:photos/models/freeable_space_info.dart";
 import 'package:photos/models/selected_files.dart';
@@ -69,14 +70,14 @@ _tryTrashOrDeleteFiles(List<String> assetIDs) async {
   }
 }
 
-Future<void> deleteFilesFromEverywhere(
+Future<List<EnteFile>> deleteFilesFromEverywhere(
   BuildContext context,
   List<EnteFile> files,
 ) async {
   _logger.info("Trying to deleteFilesFromEverywhere " + files.toString());
   final List<String> localAssetIDs = [];
   final List<String> localSharedMediaIDs = [];
-  final List<String> alreadyDeletedIDs = []; // Files already missing from disk.
+  final List<String> alreadyDeletedIDs = [];
   bool hasLocalOnlyFiles = false;
   for (final file in files) {
     if (file.localID != null) {
@@ -102,7 +103,6 @@ Future<void> deleteFilesFromEverywhere(
   final List<EnteFile> deletedFiles = [];
   for (final file in files) {
     if (file.localID != null) {
-      // Handle only files deleted, moved to trash, or already missing.
       if (removedIDs.contains(file.localID) ||
           alreadyDeletedIDs.contains(file.localID)) {
         deletedFiles.add(file);
@@ -166,6 +166,7 @@ Future<void> deleteFilesFromEverywhere(
     // ignore: unawaited_futures
     RemoteSyncService.instance.sync(silently: true);
   }
+  return deletedFiles;
 }
 
 Future<void> deleteFilesFromRemoteOnly(
@@ -227,7 +228,7 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
   _logger.info("Trying to deleteFilesOnDeviceOnly" + files.toString());
   final List<String> localAssetIDs = [];
   final List<String> localSharedMediaIDs = [];
-  final List<String> alreadyDeletedIDs = []; // Files already missing from disk.
+  final List<String> alreadyDeletedIDs = [];
   final localOnlyIDs = <String?>{};
   for (final file in files) {
     if (file.localID != null) {
@@ -251,7 +252,6 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
   final List<EnteFile> deletedFiles = [];
   final List<int> uploadedFileIDsToClear = [];
   for (final file in files) {
-    // Handle only files deleted, moved to trash, or already missing.
     if (removedIDs.contains(file.localID) ||
         alreadyDeletedIDs.contains(file.localID)) {
       deletedFiles.add(file);
@@ -292,6 +292,7 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
 }
 
 Future<bool> deleteFromTrash(BuildContext context, List<EnteFile> files) async {
+  final trashFiles = files.map((file) => file as EnteTrashFile).toList();
   bool didDeletionStart = false;
   final l10n = context.strings;
   final actionResult = await showBottomSheetComponent<ButtonResult>(
@@ -307,29 +308,25 @@ Future<bool> deleteFromTrash(BuildContext context, List<EnteFile> files) async {
         ButtonComponent(
           label: l10n.yesDelete,
           variant: ButtonComponentVariant.critical,
-          onTap: () => _runDeleteAction(
-            sheetContext,
-            ButtonAction.first,
-            () async {
-              try {
-                didDeletionStart = true;
-                await trashSyncService.deleteFromTrash(files);
-                Bus.instance.fire(
-                  FilesUpdatedEvent(
-                    files,
-                    type: EventType.deletedFromEverywhere,
-                    source: "deleteFromTrash",
-                  ),
-                );
-                //the FilesUpdateEvent is not reloading trash on premanently removing
-                //files, so need to fire ForceReloadTrashPageEvent
-                Bus.instance.fire(ForceReloadTrashPageEvent());
-              } catch (e, s) {
-                _logger.info("failed to delete from trash", e, s);
-                rethrow;
-              }
-            },
-          ),
+          onTap: () =>
+              _runDeleteAction(sheetContext, ButtonAction.first, () async {
+                try {
+                  didDeletionStart = true;
+                  await trashSyncService.deleteFromTrash(trashFiles);
+                  Bus.instance.fire(
+                    FilesUpdatedEvent(
+                      trashFiles,
+                      type: EventType.deletedFromEverywhere,
+                      source: "deleteFromTrash",
+                    ),
+                  );
+                  // FilesUpdatedEvent does not reload Trash here.
+                  Bus.instance.fire(ForceReloadTrashPageEvent());
+                } catch (e, s) {
+                  _logger.info("failed to delete from trash", e, s);
+                  rethrow;
+                }
+              }),
         ),
       ],
     ),
@@ -520,7 +517,7 @@ Future<LocalDeletionResult> deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
   return combineDeletionResults(sharedMediaResult, platformResult);
 }
 
-/// Only to be used on Android
+// Only use on Android.
 Future<LocalDeletionResult>
 retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
   BuildContext context, {
@@ -885,16 +882,39 @@ Future<void> showDeleteSheet(
   }
   final List<EnteFile> deletableFiles =
       filesSplit.ownedByCurrentUser + filesSplit.pendingUploads;
-  final Future<void> Function(BuildContext context, List<EnteFile> files)
-  deleteFromRemoteOnlyAction =
-      deleteFromRemoteOnlyOverride ?? deleteFilesFromRemoteOnly;
-  final Future<void> Function(BuildContext context, List<EnteFile> files)
-  deleteOnDeviceOnlyAction =
-      deleteOnDeviceOnlyOverride ??
-      (context, files) async => deleteFilesOnDeviceOnly(context, files);
-  final Future<void> Function(BuildContext context, List<EnteFile> files)
-  deleteFromEverywhereAction =
-      deleteFromEverywhereOverride ?? deleteFilesFromEverywhere;
+  Future<bool> deleteFromRemoteOnlyAction(
+    BuildContext context,
+    List<EnteFile> files,
+  ) async {
+    if (deleteFromRemoteOnlyOverride != null) {
+      await deleteFromRemoteOnlyOverride(context, files);
+    } else {
+      await deleteFilesFromRemoteOnly(context, files);
+    }
+    return true;
+  }
+
+  Future<bool> deleteOnDeviceOnlyAction(
+    BuildContext context,
+    List<EnteFile> files,
+  ) async {
+    if (deleteOnDeviceOnlyOverride != null) {
+      await deleteOnDeviceOnlyOverride(context, files);
+      return true;
+    }
+    return (await deleteFilesOnDeviceOnly(context, files)).isNotEmpty;
+  }
+
+  Future<bool> deleteFromEverywhereAction(
+    BuildContext context,
+    List<EnteFile> files,
+  ) async {
+    if (deleteFromEverywhereOverride != null) {
+      await deleteFromEverywhereOverride(context, files);
+      return true;
+    }
+    return (await deleteFilesFromEverywhere(context, files)).isNotEmpty;
+  }
 
   if (deletableFiles.isEmpty && filesSplit.ownedByOtherUsers.isNotEmpty) {
     showShortToast(context, l10n.cannotDeleteSharedFiles);
@@ -922,7 +942,7 @@ Future<void> showDeleteSheet(
               isLocal: true,
               isRemote: false,
               onDeleteFromLocal: () async {
-                await deleteOnDeviceOnlyAction(
+                return deleteOnDeviceOnlyAction(
                   context,
                   localGalleryDeletableFiles,
                 );
@@ -940,8 +960,10 @@ Future<void> showDeleteSheet(
           true;
     } else {
       if (!context.mounted) return;
-      await deleteOnDeviceOnlyAction(context, localGalleryDeletableFiles);
-      didDelete = true;
+      didDelete = await deleteOnDeviceOnlyAction(
+        context,
+        localGalleryDeletableFiles,
+      );
     }
     if (!didDelete) {
       return;
@@ -961,12 +983,6 @@ Future<void> showDeleteSheet(
     throw AssertionError("Unexpected state");
   }
 
-  Future<void> deleteFromEnte() async {
-    await deleteFromRemoteOnlyAction(context, deletableFiles);
-    if (!context.mounted) return;
-    showShortToast(context, l10n.movedToTrash);
-  }
-
   var didDeleteLocalFiles = false;
   final actionResult = await showBottomSheetComponent<bool>(
     context: context,
@@ -976,15 +992,30 @@ Future<void> showDeleteSheet(
       isRemote: hasRemoteFiles,
       count: deletableFiles.length,
       onDeleteFromLocal: () async {
-        await deleteOnDeviceOnlyAction(context, deletableFiles);
-        didDeleteLocalFiles = true;
+        final didDelete = await deleteOnDeviceOnlyAction(
+          context,
+          deletableFiles,
+        );
+        didDeleteLocalFiles = didDelete;
+        return didDelete;
       },
       onDeleteFromRemote: () async {
-        await deleteFromEnte();
+        final didDelete = await deleteFromRemoteOnlyAction(
+          context,
+          deletableFiles,
+        );
+        if (didDelete && context.mounted) {
+          showShortToast(context, l10n.movedToTrash);
+        }
+        return didDelete;
       },
       onDeleteFromBoth: () async {
-        await deleteFromEverywhereAction(context, deletableFiles);
-        didDeleteLocalFiles = true;
+        final didDelete = await deleteFromEverywhereAction(
+          context,
+          deletableFiles,
+        );
+        didDeleteLocalFiles = didDelete;
+        return didDelete;
       },
     ),
   );
@@ -1074,9 +1105,9 @@ class DeleteConfirmationSheet extends StatefulWidget {
   final bool isLocal;
   final bool isRemote;
   final int count;
-  final Future<void> Function() onDeleteFromLocal;
-  final Future<void> Function() onDeleteFromRemote;
-  final Future<void> Function() onDeleteFromBoth;
+  final Future<bool> Function() onDeleteFromLocal;
+  final Future<bool> Function() onDeleteFromRemote;
+  final Future<bool> Function() onDeleteFromBoth;
 
   const DeleteConfirmationSheet({
     super.key,
@@ -1109,12 +1140,12 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
 
   Future<void> _onDelete(
     BuildContext context,
-    Future<void> Function() callback,
+    Future<bool> Function() callback,
   ) async {
     try {
-      await callback();
+      final didDelete = await callback();
       if (context.mounted) {
-        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(didDelete);
       }
     } catch (error) {
       if (context.mounted) {
@@ -1169,7 +1200,6 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
         ),
       ),
       actions: [
-        // Expanded target choices
         AnimatedSize(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
@@ -1232,9 +1262,7 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
                       ),
                     ],
                   )
-                :
-                  // Preferred target shortcut
-                  ButtonComponent(
+                : ButtonComponent(
                     label: switch (deletePreference) {
                       DeletePreference.DeleteFromRemoteOnly =>
                         l10n.deleteFromEnte,
@@ -1256,7 +1284,6 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
                   ),
           ),
         ),
-        // Preference control
         if (widget.isLocal && widget.isRemote)
           ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 48),

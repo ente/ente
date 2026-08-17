@@ -47,6 +47,27 @@ const DeleteChallengeResponse = z.object({
     encryptedChallenge: z.string().nullish().transform(nullToUndefined),
 });
 
+export interface AccountDeletionSummary {
+    photosAndVideosCount: number;
+    authenticatorCodesCount: number;
+    lockerRecordsCount: number;
+}
+
+const AccountDeletionSummary = z.object({
+    photosAndVideosCount: z.number().int(),
+    authenticatorCodesCount: z.number().int(),
+    lockerRecordsCount: z.number().int(),
+});
+
+export const getAccountDeletionSummary =
+    async (): Promise<AccountDeletionSummary> => {
+        const res = await fetch(await apiURL("/users/deletion-summary"), {
+            headers: await authenticatedRequestHeaders(),
+        });
+        ensureOk(res);
+        return AccountDeletionSummary.parse(await res.json());
+    };
+
 export const getAccountDeleteChallenge = async () => {
     const res = await fetch(await apiURL("/users/delete-challenge"), {
         headers: await authenticatedRequestHeaders(),

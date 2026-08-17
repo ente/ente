@@ -6,7 +6,7 @@ export const scaledImageDimensions = (
     if (width == 0 || height == 0) return { width: 0, height: 0 };
     const widthScaleFactor = maxDimension / width;
     const heightScaleFactor = maxDimension / height;
-    const scaleFactor = Math.min(widthScaleFactor, heightScaleFactor);
+    const scaleFactor = Math.min(1, widthScaleFactor, heightScaleFactor);
     const resizedDimensions = {
         width: Math.round(width * scaleFactor),
         height: Math.round(height * scaleFactor),

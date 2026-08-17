@@ -10,15 +10,10 @@ import "package:logging/logging.dart";
 
 final _logger = Logger("LegacyUtils");
 
-/// Opens the Legacy (Emergency contacts) page after authenticating the user.
 Future<void> openLegacyPage(BuildContext context) async {
   await _openLegacy(context, showIntroWhenNoKits: false);
 }
 
-/// Opens Legacy from a home onboarding entrypoint.
-///
-/// Users without a Legacy kit see the intro before setup. Users with an
-/// existing kit continue to the regular Legacy management page.
 Future<void> openLegacyFromHome(BuildContext context) async {
   await _openLegacy(context, showIntroWhenNoKits: true);
 }

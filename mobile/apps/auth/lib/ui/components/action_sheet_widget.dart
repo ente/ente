@@ -10,11 +10,7 @@ import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 enum ActionSheetType { defaultActionSheet, iconOnly }
 
-/// Compatibility adapter for legacy Auth action sheets.
-///
-/// Existing callers keep their [ButtonWidget] result contract while the sheet
-/// renders through Ente components. New surfaces should use
-/// [BottomSheetComponent] directly.
+// Legacy adapter. New surfaces should use BottomSheetComponent directly.
 Future<ButtonResult?> showActionSheet({
   required BuildContext context,
   required List<ButtonWidget> buttons,

@@ -39,9 +39,7 @@ class FileWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Specify key to ensure that the widget is rebuilt when the file changes
-    // Before changing this, ensure that file deletes are handled properly
-
+    // Deleting a file can change the file at this index. Key by file identity.
     final String fileKey = _fileWidgetKey(file);
     if (file.fileType == FileType.livePhoto ||
         file.fileType == FileType.image) {

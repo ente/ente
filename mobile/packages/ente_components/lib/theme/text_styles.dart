@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=7672-54672&m=dev
-/// Section: Text styles
-/// Specs: Inter body scale, Outfit display title scale, letter spacing 0.
-/// Display-1 32/40, Display-2 24/32, Display-3 20/28; H1 20/28, H2 18/24,
-/// body 14/20, mini 12/16, tiny 10/12.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=7672-54672&m=dev
 class TextStyles {
   const TextStyles._();
 

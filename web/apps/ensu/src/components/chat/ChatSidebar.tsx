@@ -23,7 +23,10 @@ import {
 import type { SxProps, Theme } from "@mui/material/styles";
 import React, { memo } from "react";
 
-type IconProps = { size: number; strokeWidth: number };
+interface IconProps {
+    size: number;
+    strokeWidth: number;
+}
 
 export interface ChatSidebarProps {
     drawerCollapsed: boolean;
@@ -40,7 +43,7 @@ export interface ChatSidebarProps {
     handleNewChat: () => void;
     handleOpenDrawer: () => void;
     handleCollapseDrawer: () => void;
-    groupedSessions: Array<[string, ChatSession[]]>;
+    groupedSessions: [string, ChatSession[]][];
     currentSessionId?: string;
     handleSelectSession: (sessionId: string) => void;
     requestRenameSession: (session: ChatSession) => void;
@@ -284,7 +287,7 @@ export const ChatSidebar = memo(
                         </Typography>
                         {group.map((session) => {
                             const sessionTitle =
-                                session.title?.trim() || "New chat";
+                                session.title.trim() || "New chat";
                             return (
                                 <ListItemButton
                                     key={session.sessionUuid}

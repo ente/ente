@@ -8,6 +8,7 @@ import ListAltOutlinedIcon from "@mui/icons-material/ListAltOutlined";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import RestoreIcon from "@mui/icons-material/Restore";
+import SearchIcon from "@mui/icons-material/Search";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
     Dialog,
@@ -15,10 +16,12 @@ import {
     DialogContent,
     DialogTitle,
     IconButton,
+    InputAdornment,
     List,
     ListItem,
     Stack,
     styled,
+    TextField,
     ToggleButton,
     ToggleButtonGroup,
     Tooltip,
@@ -313,16 +316,26 @@ const AddPersonDialog: React.FC<AddPersonDialogProps> = ({
     const isFullScreen = useMediaQuery("(max-width: 490px)");
 
     const [openNameInput, setOpenNameInput] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
 
     const cgroupPeople: CGroupPerson[] = people.filter(
         (p) => p.type != "cluster",
     );
+    const query = searchTerm.trim().toLowerCase();
+    const filteredPeople = cgroupPeople.filter(
+        (person) => !query || person.name?.toLowerCase().includes(query),
+    );
+
+    const handleClose = () => {
+        setSearchTerm("");
+        onClose();
+    };
 
     const handleAddPerson = () => setOpenNameInput(true);
 
     const handleAddPersonBySelect = useWrapAsyncOperation(
         async (personID: string) => {
-            onClose();
+            handleClose();
             const person = cgroupPeople.find((p) => p.id == personID)!;
             await addClusterToCGroup(person.cgroup, cluster);
             onSelectPerson(personID);
@@ -337,7 +350,7 @@ const AddPersonDialog: React.FC<AddPersonDialogProps> = ({
     // This render-time update intentionally redirects an empty list to naming.
     // React discards this render and starts another with the new state.
     if (open && !openNameInput && !cgroupPeople.length) {
-        onClose();
+        handleClose();
         setOpenNameInput(true);
         return <></>;
     }
@@ -345,20 +358,47 @@ const AddPersonDialog: React.FC<AddPersonDialogProps> = ({
     return (
         <>
             <Dialog
-                {...{ open, onClose }}
+                open={open}
+                onClose={handleClose}
                 fullWidth
                 fullScreen={isFullScreen}
                 slotProps={{ paper: { sx: { maxWidth: "490px" } } }}
             >
-                <SpacedRow sx={{ padding: "10px 8px 6px 0" }}>
-                    <DialogTitle variant="h3">{t("add_name")}</DialogTitle>
-                    <DialogCloseIconButton {...{ onClose }} />
-                </SpacedRow>
+                <Stack sx={{ gap: 1.5, padding: "10px 8px 6px 24px" }}>
+                    <SpacedRow>
+                        <DialogTitle variant="h3" sx={{ p: 0 }}>
+                            {t("add_name")}
+                        </DialogTitle>
+                        <DialogCloseIconButton onClose={handleClose} />
+                    </SpacedRow>
+                    <TextField
+                        fullWidth
+                        type="search"
+                        size="small"
+                        placeholder={`${t("people_search_hint")}...`}
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        autoFocus
+                        slotProps={{
+                            htmlInput: {
+                                "aria-label": t("people_search_hint"),
+                            },
+                            input: {
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon />
+                                    </InputAdornment>
+                                ),
+                            },
+                        }}
+                        sx={searchFieldSx}
+                    />
+                </Stack>
                 <DialogContent_>
                     <LargeTileCreateNewButton onClick={handleAddPerson}>
                         {t("new_person")}
                     </LargeTileCreateNewButton>
-                    {cgroupPeople.map((person) => (
+                    {filteredPeople.map((person) => (
                         <PersonButton
                             key={person.id}
                             person={person}
@@ -388,6 +428,28 @@ const DialogContent_ = styled(DialogContent)`
     flex-wrap: wrap;
     gap: 4px;
 `;
+
+const searchFieldSx = {
+    marginLeft: "-8px",
+    "& .MuiOutlinedInput-root": {
+        backgroundColor: "background.searchInput",
+        borderColor: "transparent",
+        "&:hover": { borderColor: "accent.light" },
+        "&.Mui-focused": { borderColor: "accent.main", boxShadow: "none" },
+    },
+    "& .MuiInputBase-input": {
+        color: "text.base",
+        paddingTop: "8.5px !important",
+        paddingBottom: "8.5px !important",
+    },
+    "& .MuiInputAdornment-root": {
+        color: "stroke.muted",
+        marginTop: "0 !important",
+        marginRight: "8px",
+    },
+    "& .MuiOutlinedInput-notchedOutline": { borderColor: "transparent" },
+    "& .MuiInputBase-input::placeholder": { color: "text.muted", opacity: 1 },
+};
 
 interface PersonButtonProps {
     person: Person;

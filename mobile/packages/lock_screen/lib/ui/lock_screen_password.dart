@@ -8,16 +8,6 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 
-/// [isChangingLockScreenSettings] Authentication required for changing lock screen settings.
-/// Set to true when the app requires the user to authenticate before allowing
-/// changes to the lock screen settings.
-
-/// [isAuthenticatingOnAppLaunch] Authentication required on app launch.
-/// Set to true when the app requires the user to authenticate immediately upon opening.
-
-/// [isAuthenticatingForInAppChange] Authentication required for in-app changes (e.g., email, password).
-/// Set to true when the app requires the to authenticate for sensitive actions like email, password changes.
-
 class LockScreenPassword extends StatefulWidget {
   const LockScreenPassword({
     super.key,

@@ -107,8 +107,7 @@ class AlbumRowItemWidget extends StatelessWidget {
                             if (snapshot.hasData) {
                               thumbnail = snapshot.data!;
                             } else {
-                              //Need to use cached thumbnail so that the hero
-                              //animation works as expected.
+                              // Reuse the cached thumbnail for a stable Hero.
                               thumbnail = CollectionsService.instance
                                   .getCoverCache(c);
                             }
@@ -279,8 +278,7 @@ class AlbumRowItemWidget extends StatelessWidget {
                         if (snapshot.hasData) {
                           cachedCount = snapshot.data;
                         } else {
-                          //Need to use cached count so that the hero
-                          //animation works as expected without flickering.
+                          // Reuse the cached count to prevent Hero flicker.
                           cachedCount = CollectionsService.instance
                               .getCachedFileCount(c);
                         }

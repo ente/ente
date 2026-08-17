@@ -6,8 +6,6 @@ import "package:photos/models/file/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/services/wrapped/models.dart";
 
-/// Preloads the media referenced by Wrapped cards so the viewer can render
-/// without waiting on database and thumbnail fetches.
 class WrappedMediaPreloader {
   WrappedMediaPreloader._()
     : _logger = Logger("WrappedMediaPreloader"),
@@ -20,7 +18,6 @@ class WrappedMediaPreloader {
   final Map<int, EnteFile> _cache;
   final Map<int, Future<EnteFile?>> _inFlight;
 
-  /// Loads and caches the media for the supplied Wrapped result.
   Future<void> prime(WrappedResult result) async {
     final Set<int> targetIDs = _extractMediaIDs(result.cards);
     _pruneTo(targetIDs);
@@ -35,13 +32,11 @@ class WrappedMediaPreloader {
     await Future.wait(pending, eagerError: false);
   }
 
-  /// Clears all cached entries and cancels outstanding loads.
   void reset() {
     _cache.clear();
     _inFlight.clear();
   }
 
-  /// Returns the cached file for [uploadedID] if available.
   EnteFile? getCachedFile(int uploadedID) {
     if (uploadedID <= 0) {
       return null;
@@ -49,7 +44,6 @@ class WrappedMediaPreloader {
     return _cache[uploadedID];
   }
 
-  /// Ensures the [EnteFile] for [uploadedID] is cached and returns it.
   Future<EnteFile?> ensureFile(int uploadedID) {
     if (uploadedID <= 0) {
       return Future<EnteFile?>.value(null);
@@ -91,7 +85,6 @@ class WrappedMediaPreloader {
   }
 
   void _warmThumbnail(EnteFile file) {
-    // Thumbnail preloading returns a future internally; fire-and-forget.
     try {
       // ignore: unawaited_futures
       preloadThumbnail(file);

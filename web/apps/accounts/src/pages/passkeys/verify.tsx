@@ -12,7 +12,7 @@ import {
 import InfoIcon from "@mui/icons-material/Info";
 import KeyIcon from "@mui/icons-material/Key";
 import { Paper, Stack, Typography, styled } from "@mui/material";
-import { TwoFactorAuthorizationResponse } from "ente-accounts-rs/services/user";
+import { TwoFactorAuthorizationResponse } from "ente-accounts/services/user";
 import { CenteredFill } from "ente-base/components/containers";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";

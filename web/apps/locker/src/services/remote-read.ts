@@ -6,7 +6,7 @@ import type {
 import {
     ensureLocalUser,
     ensureUserKeyPair,
-} from "ente-accounts-rs/services/user";
+} from "ente-accounts/services/user";
 import { fetchFile } from "ente-base/file-download";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import log from "ente-base/log";

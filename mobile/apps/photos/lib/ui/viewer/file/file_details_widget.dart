@@ -153,8 +153,6 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     final bool isFileOwner =
         file.ownerID == null || file.ownerID == _currentUserID;
 
-    //Make sure the bottom most tile is always the same one, that is it should
-    //not be rendered only if a condition is met.
     final fileDetailsTiles = <Widget>[];
     final bool canEditCaption = isFileOwner && !file.isTrash;
     fileDetailsTiles.add(
@@ -220,46 +218,6 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
                   ],
                 )
               : const SizedBox.shrink();
-
-          ///To be used when state issues are fixed when location is updated.
-          //
-          //  file.fileType != FileType.video &&
-          //         file.ownerID == _currentUserID
-          //     ? Column(
-          //         children: [
-          //           InfoItemWidget(
-          //             leadingIcon: Icons.pin_drop_outlined,
-          //             title: "No location data",
-          //             subtitleSection: Future.value(
-          //               [
-          //                 Text(
-          //                   "Add location data",
-          //                   style: getEnteTextTheme(context).miniBoldMuted,
-          //                 ),
-          //               ],
-          //             ),
-          //             hasChipButtons: false,
-          //             onTap: () async {
-          //               await showBarModalBottomSheet(
-          //                 shape: const RoundedRectangleBorder(
-          //                   borderRadius: BorderRadius.vertical(
-          //                     top: Radius.circular(5),
-          //                   ),
-          //                 ),
-          //                 backgroundColor: getEnteColorScheme(context)
-          //                     .backgroundElevated,
-          //                 barrierColor: backdropFaintDark,
-          //                 context: context,
-          //                 builder: (context) {
-          //                   return UpdateLocationDataWidget([file]);
-          //                 },
-          //               );
-          //             },
-          //           ),
-          //           const FileDetailsDivider(),
-          //         ],
-          //       )
-          //     : const SizedBox.shrink();
         },
       ),
     ]);
@@ -369,12 +327,8 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     );
   }
 
-  //This code is for updating the location of files in which location data is
-  //missing and the EXIF has location data. This is only happens for a
-  //certain specific minority of devices.
+  // Some devices leave file location empty even when EXIF contains it.
   Future<void> _updateLocationFromExif(Location? locationDataFromExif) async {
-    // If the file is not uploaded or the file is not owned by the current user
-    // then we don't need to update the location.
     if (!widget.file.isUploaded || widget.file.ownerID == null) {
       return;
     }
@@ -452,10 +406,6 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     return value.toStringAsFixed(2).replaceFirst(RegExp(r"\.?0+$"), "");
   }
 
-  /// Formats exposure time from EXIF data into a human-readable string.
-  ///
-  /// For shutter speeds >= 1 second, displays as decimal with 's' suffix (e.g., "1.3s")
-  /// For shutter speeds < 1 second, displays as a fraction (e.g., "1/100")
   String _formatExposureTime(IfdTag exposureTimeTag) {
     final values = exposureTimeTag.values.toList();
     if (values.isEmpty) {
@@ -477,14 +427,11 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     final double seconds = numerator / denominator;
 
     if (seconds >= 1) {
-      // For exposures >= 1 second, show as decimal seconds
       if (seconds == seconds.roundToDouble()) {
         return "${seconds.toInt()}s";
       }
       return "${seconds.toStringAsFixed(1)}s";
     } else {
-      // For exposures < 1 second, always convert to 1/x format
-      // e.g., 529/200000 → 1/378
       final reciprocal = (1 / seconds).round();
       return "1/$reciprocal";
     }

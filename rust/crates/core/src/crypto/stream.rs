@@ -5,7 +5,7 @@
 use crypto_secretstream::{
     Header as UpstreamHeader, Key as UpstreamKey, PullStream, PushStream, Stream, Tag,
 };
-use rand_core::OsRng;
+use rand_core_06::OsRng;
 use std::io::{Read, Write};
 
 use crate::crypto::{Error, Header, Key, Result};

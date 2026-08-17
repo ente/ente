@@ -26,9 +26,9 @@ const versionFiles = {
         "rust/apps/ensu/src-tauri/tauri.conf.json",
         "rust/apps/ensu/src-tauri/Cargo.toml",
         "rust/Cargo.lock",
-        "mobile/native/android/apps/ensu/app/build.gradle.kts",
-        "mobile/native/apple/apps/ensu/Ensu.xcodeproj/project.pbxproj",
-        "mobile/native/apple/apps/ensu/Ensu/Info.plist",
+        "android/apps/ensu/app/build.gradle.kts",
+        "apple/apps/ensu/Ensu.xcodeproj/project.pbxproj",
+        "apple/apps/ensu/Ensu/Info.plist",
     ],
 };
 

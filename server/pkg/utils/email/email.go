@@ -56,7 +56,6 @@ func containsCRLF(s string) bool {
 	return strings.ContainsRune(s, '\r') || strings.ContainsRune(s, '\n')
 }
 
-// wrapToMaxLineLength inserts LF breaks into long base64 blobs to respect SMTP limits.
 func wrapToMaxLineLength(s string, maxLen int) string {
 	if maxLen <= 0 {
 		return s

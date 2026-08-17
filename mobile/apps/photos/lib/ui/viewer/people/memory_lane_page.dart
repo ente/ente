@@ -59,7 +59,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   static const double _cardGapUpdateTolerance = 0.5;
   static const double _controlsHeightUpdateTolerance = 0.5;
   static const double _controlsHeightFallback = 140;
-  // Wait for this many frames (or the available total) before auto-starting playback.
+  // Wait for this many frames, or all available frames, before autoplay.
   static const int _initialFrameTarget = 120;
   static const int _frameBuildConcurrency = 6;
 
@@ -92,7 +92,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   int _currentCaptionValue = 0;
   _CaptionType _currentCaptionType = _CaptionType.yearsAgo;
   int _maxCaptionDigits = 1;
-  bool get _featureEnabled => flagService.facesTimeline;
+  bool get _featureEnabled => MemoryLaneService.instance.isFeatureEnabled;
   bool get _showShareAction =>
       _featureEnabled &&
       flagService.enableMemoryShareLink &&
@@ -1235,8 +1235,8 @@ class _TimelineFrame {
       return null;
     }
     return _resizedImageCache.putIfAbsent(cacheWidth, () {
-      // Decode face crops with width only so BoxFit.cover can crop them
-      // naturally without forcing the crop to the card's aspect ratio.
+      // Decode face crops by width only so BoxFit.cover can crop naturally
+      // without forcing the image to the card's aspect ratio.
       return ResizeImage.resizeIfNeeded(cacheWidth, null, baseImage);
     });
   }
@@ -1279,8 +1279,6 @@ class _MemoryLaneCard extends StatelessWidget {
     final scale = _calculateScale(distance);
     final yOffset = _calculateYOffset(distance);
     final opacity = _calculateOpacity(distance);
-    // Skip the expensive ImageFiltered blur for distant cards where the
-    // combination of low opacity and dark overlay already obscures detail.
     final blurSigma = blurEnabled && distance < 3.0
         ? _calculateBlur(distance)
         : 0.0;
@@ -1293,13 +1291,8 @@ class _MemoryLaneCard extends StatelessWidget {
     );
 
     final cardShadow = _shadowForCard(distance);
-    // Emphasize the active card by delaying the date reveal until the card is
-    // nearly centered; keeps background cards calm while the primary one lifts.
     final double emphasisDistance = distance.abs();
-    final double activation = (1 - (emphasisDistance * 1.8)).clamp(
-      0.0,
-      1.0,
-    ); // hide until near front
+    final double activation = (1 - (emphasisDistance * 1.8)).clamp(0.0, 1.0);
     final double emphasis = Curves.easeOutQuad.transform(activation);
     final double dateOpacity = emphasis;
     final double gradientAlpha = 0.6 * emphasis;
@@ -1430,7 +1423,6 @@ class _MemoryLaneCard extends StatelessWidget {
         imageAspectRatio <= 0) {
       return cardWidth;
     }
-    // BoxFit.cover needs enough decoded height for tall portrait cards.
     return math.max(cardWidth, cardHeight * imageAspectRatio);
   }
 
@@ -1495,8 +1487,6 @@ class _MemoryLaneCard extends StatelessWidget {
     if (distance <= 0) {
       return 0;
     }
-    // Drop blur aggressively once the card is mostly in view so the hero frame
-    // looks sharp as soon as it settles.
     const double clearDistance = 0.15;
     const double blurMultiplier = 10;
     final double effective = math.max(0, distance - clearDistance);
@@ -1508,7 +1498,7 @@ class _MemoryLaneCard extends StatelessWidget {
       return 0;
     }
     final clamped = distance.clamp(0.0, 3.0);
-    const double base = 0.035; // ~2 degrees
+    const double base = 0.035;
     final falloff = math.max(0.2, 1 - clamped * 0.18);
     return base * clamped * falloff;
   }
@@ -1535,7 +1525,6 @@ class _MemoryLaneCard extends StatelessWidget {
     const double reachDistance = 3.0;
     final double normalized = (distance / reachDistance).clamp(0.0, 1.0);
     final double eased = Curves.easeOutCubic.transform(normalized);
-    // Fade the lift overlay much earlier so the card looks settled sooner.
     return overlayMax * eased;
   }
 }

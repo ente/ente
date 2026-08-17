@@ -1,0 +1,1 @@
+- Fixed synced changes to People sometimes not appearing after startup.

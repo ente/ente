@@ -111,11 +111,11 @@ class FileBottomBarState extends State<FileBottomBar> {
         widget.file.isOwner &&
         widget.file.isUploaded &&
         (collection?.isHidden() ?? false);
-    if (widget.file is TrashFile) {
+    if (widget.file.isEnteTrash) {
       _addTrashOptions(children);
     }
 
-    if (widget.file is! TrashFile) {
+    if (!widget.file.isTrash) {
       if (isOwnedByUser) {
         children.add(
           Tooltip(
@@ -263,8 +263,8 @@ class FileBottomBarState extends State<FileBottomBar> {
               color: Colors.white,
             ),
             onPressed: () async {
-              final trashedFile = <TrashFile>[];
-              trashedFile.add(widget.file as TrashFile);
+              final trashedFile = <EnteTrashFile>[];
+              trashedFile.add(widget.file.asEnteTrashFile!);
               if (await deleteFromTrash(context, trashedFile) == true) {
                 if (!mounted) return;
                 Navigator.pop(context);

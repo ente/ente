@@ -60,17 +60,14 @@ Map<int, String> _days = {
 final currentYear = int.parse(DateTime.now().year.toString());
 const searchStartYear = 1970;
 
-//Jun 2022
 String getMonthAndYear(DateTime dateTime) {
   return "${_months[dateTime.month]!} ${dateTime.year}";
 }
 
-//Thu, 30 Jun
 String getDayAndMonth(DateTime dateTime) {
   return "${_days[dateTime.weekday]!}, ${dateTime.day} ${_months[dateTime.month]!}";
 }
 
-//30 Jun, 2022
 String getDateAndMonthAndYear(DateTime dateTime) {
   return "${dateTime.day} ${_months[dateTime.month]!}, ${dateTime.year}";
 }
@@ -91,7 +88,6 @@ String getAbbreviationOfYear(DateTime dateTime) {
   return (dateTime.year % 100).toString();
 }
 
-//14:32
 String getTime(DateTime dateTime) {
   final hours = dateTime.hour > 9
       ? dateTime.hour.toString()
@@ -102,29 +98,24 @@ String getTime(DateTime dateTime) {
   return "$hours:$minutes";
 }
 
-//11:22 AM
 String getTimeIn12hrFormat(DateTime dateTime) {
   return DateFormat.jm().format(dateTime);
 }
 
-//Thu, Jun 30, 2022 - 14:32
 String getFormattedTime(
   DateTime dateTime, {
   BuildContext? context,
   bool withYear = false,
 }) {
   if (context != null) {
-    // Use locale-aware formatting when context is provided
     return DateFormat(
       'E, MMM d, y - HH:mm',
       Localizations.localeOf(context).languageCode,
     ).format(dateTime);
   }
-  // Default formatting
   return "${getDay(dateTime)}, ${getMonth(dateTime)} ${dateTime.day}, ${dateTime.year} - ${getTime(dateTime)}";
 }
 
-//30 Jun'22
 String getFormattedDate(DateTime dateTime) {
   return "${dateTime.day} ${getMonth(dateTime)}'${getAbbreviationOfYear(dateTime)}";
 }
@@ -263,8 +254,6 @@ Widget getDayWidget(
   );
 }
 
-// Added from photos standalone utils
-
 bool areFromSameDay(int firstCreationTime, int secondCreationTime) {
   final firstDate = DateTime.fromMicrosecondsSinceEpoch(firstCreationTime);
   final secondDate = DateTime.fromMicrosecondsSinceEpoch(secondCreationTime);
@@ -281,12 +270,10 @@ bool areDatesInSameWeek(DateTime date1, DateTime date2) {
   }
   final int dayOfWeek1 = date1.weekday;
   final int dayOfWeek2 = date2.weekday;
-  // Calculate the start and end dates of the week for both dates
   final DateTime startOfWeek1 = date1.subtract(Duration(days: dayOfWeek1 - 1));
   final DateTime endOfWeek1 = startOfWeek1.add(const Duration(days: 6));
   final DateTime startOfWeek2 = date2.subtract(Duration(days: dayOfWeek2 - 1));
   final DateTime endOfWeek2 = startOfWeek2.add(const Duration(days: 6));
-  // Check if the two dates fall within the same week range
   if ((date1.isAfter(startOfWeek2) && date1.isBefore(endOfWeek2)) ||
       (date2.isAfter(startOfWeek1) && date2.isBefore(endOfWeek1))) {
     return true;
@@ -294,33 +281,24 @@ bool areDatesInSameWeek(DateTime date1, DateTime date2) {
   return false;
 }
 
-// Create link default names:
-// Same day: "Dec 19, 2022"
-// Same month: "Dec 19 - 22, 2022"
-// Base case: "Dec 19, 2022 - Jan 7, 2023"
 String getNameForDateRange(int firstCreationTime, int secondCreationTime) {
   final startTime = DateTime.fromMicrosecondsSinceEpoch(firstCreationTime);
   final endTime = DateTime.fromMicrosecondsSinceEpoch(secondCreationTime);
-  // different year
   if (startTime.year != endTime.year) {
     return "${_shortMonths[startTime.month]!} ${startTime.day}, ${startTime.year} - "
         "${_shortMonths[endTime.month]!} ${endTime.day}, ${endTime.year}";
   }
-  // same year, diff month
   if (startTime.month != endTime.month) {
     return "${_shortMonths[startTime.month]!} ${startTime.day} - "
         "${_shortMonths[endTime.month]!} ${endTime.day}, ${endTime.year}";
   }
-  // same month and year, diff day
   if (startTime.day != endTime.day) {
     return "${_shortMonths[startTime.month]!} ${startTime.day} - "
         "${_shortMonths[endTime.month]!} ${endTime.day}, ${endTime.year}";
   }
-  // same day
   return "${_shortMonths[endTime.month]!} ${endTime.day}, ${endTime.year}";
 }
 
-/// Returns the duration in seconds from the format "h:mm:ss" or "m:ss".
 int? durationToSeconds(String? duration) {
   if (duration == null) {
     return null;
@@ -329,14 +307,12 @@ int? durationToSeconds(String? duration) {
   int seconds = 0;
 
   if (parts.length == 3) {
-    // Format: "h:mm:ss"
-    seconds += int.parse(parts[0]) * 3600; // Hours to seconds
-    seconds += int.parse(parts[1]) * 60; // Minutes to seconds
-    seconds += int.parse(parts[2]); // Seconds
+    seconds += int.parse(parts[0]) * 3600;
+    seconds += int.parse(parts[1]) * 60;
+    seconds += int.parse(parts[2]);
   } else if (parts.length == 2) {
-    // Format: "m:ss"
-    seconds += int.parse(parts[0]) * 60; // Minutes to seconds
-    seconds += int.parse(parts[1]); // Seconds
+    seconds += int.parse(parts[0]) * 60;
+    seconds += int.parse(parts[1]);
   } else {
     throw FormatException('Invalid duration format: $duration');
   }
@@ -344,7 +320,6 @@ int? durationToSeconds(String? duration) {
   return seconds;
 }
 
-/// Returns the duration in the format "h:mm:ss" or "m:ss".
 String secondsToDuration(int totalSeconds) {
   final hours = totalSeconds ~/ 3600;
   final minutes = (totalSeconds % 3600) ~/ 60;
@@ -383,13 +358,11 @@ final RegExp _filenameExp = RegExp('[\\.A-Za-z]*');
 
 DateTime? parseDateTimeFromFileNameV2(
   String fileName, {
-  /* to avoid parsing incorrect date time from the filename, the max and min
-    year limits the chances of parsing incorrect date times
-    */
+  // Year bounds reduce false dates parsed from filenames.
   int minYear = 1990,
   int? maxYear,
 }) {
-  // add next year to avoid corner cases for 31st Dec
+  // Include next year for 31 December edge cases.
   maxYear ??= currentYear + 1;
   String val = fileName.replaceAll(_filenameExp, '');
   if (val.isNotEmpty && !_isNumeric(val[0])) {

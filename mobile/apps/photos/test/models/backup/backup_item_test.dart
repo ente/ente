@@ -4,7 +4,7 @@ import 'package:photos/models/backup/backup_item_status.dart';
 import 'package:photos/models/file/file.dart';
 
 void main() {
-  test('copyWith can explicitly clear a retry error', () {
+  test('status transitions replace retry details', () {
     final error = StateError('retry');
     final retryItem = BackupItem(
       status: BackupItemStatus.retry,
@@ -13,14 +13,14 @@ void main() {
       error: error,
     );
 
-    expect(retryItem.copyWith().error, same(error));
-    expect(retryItem.copyWith(error: null).error, isNull);
-
     const replacementError = Object();
     expect(
-      retryItem.copyWith(error: replacementError).error,
+      retryItem
+          .withStatus(BackupItemStatus.retry, error: replacementError)
+          .error,
       same(replacementError),
     );
+    expect(retryItem.withStatus(BackupItemStatus.retry).error, isNull);
   });
 
   test('non-retry statuses cannot retain an error', () {
@@ -31,9 +31,7 @@ void main() {
       error: StateError('retry'),
     );
 
-    final uploadingItem = retryItem.copyWith(
-      status: BackupItemStatus.uploading,
-    );
+    final uploadingItem = retryItem.withStatus(BackupItemStatus.uploading);
 
     expect(uploadingItem.error, isNull);
   });

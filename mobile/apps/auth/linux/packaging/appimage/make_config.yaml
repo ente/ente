@@ -18,11 +18,6 @@ categories:
 startup_notify: false
 startup_wm_class: io.ente.auth
 
-# You can specify the shared libraries that you want to bundle with your app
-#
-# flutter_distributor automatically detects the shared libraries that your app
-# depends on, but you can also specify them manually here.
-#
 # Bundled libp11-kit from the Ubuntu build depends on libffi.so.8.
 include:
   - libffi.so.8

@@ -2370,6 +2370,7 @@
       }
     }
   },
+  "menubarMode": "Menubar mode",
   "message": "Message",
   "minimizeAppOnCopy": "Minimize app on copy",
   "minimizeToTrayOnClose": "Minimize to tray on close",
@@ -2604,8 +2605,6 @@
   "ocrModelsNetworkRequiredError": "Network connection required to download OCR models on first use",
   "ocrModelsPrepareFailed": "Could not prepare OCR models",
   "ocrNoTextDetected": "No text detected",
-  "ocrProcessingOverlayMessage": "Detecting text...",
-  "ocrSelectionHint": "Swipe or double tap to select just what you need",
   "of_": "of",
   "offlineEnableBackupTagLabel": "10 GB FREE!",
   "offlineFacesBannerSubtitle": "Sign up to tag people and easily find them later.",
@@ -3268,6 +3267,7 @@
     "description": "Reset password title"
   },
   "resetToDefault": "Reset to default",
+  "restartAppToApplyChanges": "Restart the app to apply this change",
   "@resetToDefault": {
     "description": "Button text to reset cover photo to default"
   },

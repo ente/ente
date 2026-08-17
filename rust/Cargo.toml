@@ -11,16 +11,19 @@ members = [
     "bindings/uniffi/cast",
     "bindings/uniffi/ensu",
     "bindings/uniffi/log",
+    "bindings/wasm/cast",
     "bindings/wasm/ente-wasm",
     "bindings/wasm/core",
     "bindings/wasm/log",
     "bindings/wasm/space",
     "crates/accounts",
     "crates/assets",
+    "crates/cast",
     "crates/contacts",
     "crates/core",
     "crates/ensu",
     "crates/image",
+    "crates/ml",
     "crates/paste",
     "crates/photos",
     "crates/space",
@@ -30,11 +33,13 @@ members = [
 [workspace.dependencies]
 ente-accounts = { path = "crates/accounts" }
 ente-assets = { path = "crates/assets" }
+ente-cast = { path = "crates/cast" }
 ente-contacts = { path = "crates/contacts" }
 ente-core = { path = "crates/core" }
 ente-ensu = { path = "crates/ensu" }
 ente-frb-log = { path = "bindings/frb/log" }
 ente-image = { path = "crates/image" }
+ente-ml = { path = "crates/ml" }
 ente-paste = { path = "crates/paste" }
 ente-photos = { path = "crates/photos" }
 ente-space = { path = "crates/space" }

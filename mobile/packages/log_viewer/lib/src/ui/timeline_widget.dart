@@ -64,7 +64,6 @@ class _TimelineWidgetState extends State<TimelineWidget> {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final double width = renderBox.size.width - 40; // Account for handle width
 
-    // Convert global position to local position within the timeline track
     final Offset globalPosition = details.globalPosition;
     final Offset localPosition = renderBox.globalToLocal(globalPosition);
     final double localX =
@@ -114,7 +113,6 @@ class _TimelineWidgetState extends State<TimelineWidget> {
               builder: (context, constraints) {
                 return Stack(
                   children: [
-                    // Timeline track
                     Positioned(
                       left: 20,
                       right: 20,
@@ -137,7 +135,6 @@ class _TimelineWidgetState extends State<TimelineWidget> {
                       ),
                     ),
 
-                    // Selected range
                     Positioned(
                       left: 20 + (_leftPosition * (constraints.maxWidth - 40)),
                       right:
@@ -162,7 +159,6 @@ class _TimelineWidgetState extends State<TimelineWidget> {
                       ),
                     ),
 
-                    // Left handle
                     Positioned(
                       left: (_leftPosition * (constraints.maxWidth - 40)),
                       top: 12,
@@ -199,7 +195,6 @@ class _TimelineWidgetState extends State<TimelineWidget> {
                       ),
                     ),
 
-                    // Right handle
                     Positioned(
                       left: (_rightPosition * (constraints.maxWidth - 40)),
                       top: 12,
@@ -241,7 +236,6 @@ class _TimelineWidgetState extends State<TimelineWidget> {
             ),
           ),
 
-          // Time labels
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -271,7 +265,6 @@ class _TimelineWidgetState extends State<TimelineWidget> {
     final bucketDuration = totalDuration / bucketCount;
     final buckets = List<int>.filled(bucketCount, 0);
 
-    // Count logs in each bucket
     for (final timestamp in widget.logTimestamps) {
       final offset = timestamp.difference(widget.startTime).inMilliseconds;
       if (offset >= 0 && offset <= totalDuration) {

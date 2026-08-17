@@ -2,7 +2,6 @@ import "package:ente_components/ente_components.dart" as components;
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 
-/// Pass [hugeIcon], or [iconWidget] for custom assets.
 class SelectionActionButton extends StatelessWidget {
   final String labelText;
   final List<List<dynamic>>? hugeIcon;
@@ -122,7 +121,7 @@ class __BodyState extends State<_Body> {
                 Text(
                   widget.labelText,
                   textAlign: TextAlign.center,
-                  //textTheme in [getWidthOfLongestWord] should be same as this
+                  // Keep this style in sync with computeWidthOfWord.
                   style: labelStyle,
                 ),
               ],
@@ -161,7 +160,7 @@ class __BodyState extends State<_Body> {
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
-    //buffer of 8 added as width is shorter than actual text width
+    // Add 8 points because TextPainter under-measures this label.
     return textPainter.size.width + 8;
   }
 }

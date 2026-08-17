@@ -12,15 +12,7 @@ import "package:photos/src/rust/api/usearch_api.dart";
 import "package:sqlite_async/sqlite_async.dart";
 import "package:synchronized/synchronized.dart";
 
-/// Vector database for pet embeddings.
-///
-/// **Each embedding model gets its own vector space** because embeddings from
-/// different models (dog face BYOL vs cat body, etc.) are not comparable.
-/// Face embeddings are 128-d, body embeddings are 192-d.
-///
-/// Uses usearch (via Rust FFI) for approximate nearest-neighbor search.
-/// Pet face IDs are strings, so they are mapped to auto-incrementing integers
-/// via [petFaceVectorIdMappingTable] before being stored as usearch keys.
+// Each model needs its own vector space; their embeddings are not comparable.
 class PetVectorDB {
   static final Logger _logger = Logger("PetVectorDB");
 
@@ -32,10 +24,7 @@ class PetVectorDB {
 
   static Logger get logger => _logger;
 
-  // Private constructor for named instances
   PetVectorDB._named(this._databaseName, this._embeddingDimension);
-
-  // ── Online vector spaces ──
 
   static final dogFace = PetVectorDB._named(
     "ente.ml.vectordb.pet.dog_face.usearch",
@@ -57,8 +46,6 @@ class PetVectorDB {
     BigInt.from(bodyDimension),
   );
 
-  // ── Local-gallery vector spaces ──
-
   static final localGalleryDogFace = PetVectorDB._named(
     "ente.ml.offline.vectordb.pet.dog_face.usearch",
     BigInt.from(faceDimension),
@@ -79,7 +66,6 @@ class PetVectorDB {
     BigInt.from(bodyDimension),
   );
 
-  /// All online vector DB instances for iteration.
   static final List<PetVectorDB> allInstances = [
     dogFace,
     catFace,
@@ -87,7 +73,6 @@ class PetVectorDB {
     catBody,
   ];
 
-  /// All local-gallery vector DB instances for iteration.
   static final List<PetVectorDB> allLocalGalleryInstances = [
     localGalleryDogFace,
     localGalleryCatFace,
@@ -95,9 +80,7 @@ class PetVectorDB {
     localGalleryCatBody,
   ];
 
-  /// Get the correct vector DB for a species + embedding type.
-  /// [species]: 0 = dog, 1 = cat
-  /// [isFace]: true = face embedding, false = body embedding
+  // Species is 0 for dogs and 1 for cats.
   static PetVectorDB forModel({
     required int species,
     required bool isFace,
@@ -152,10 +135,8 @@ class PetVectorDB {
     return vectorDB;
   }
 
-  // ── ID Mapping (pet_face_id string → integer for usearch) ──
+  // usearch needs integer keys; faces and bodies use separate ID spaces.
 
-  /// Get or create integer vector IDs for the given pet face IDs.
-  /// Returns a map of petFaceId → integer vectorId.
   Future<Map<String, int>> getPetFaceVectorIdMap(
     Iterable<String> petFaceIds, {
     required SqliteDatabase db,
@@ -194,8 +175,6 @@ class PetVectorDB {
     return result;
   }
 
-  /// Get or create integer vector IDs for body/object embeddings.
-  /// Uses [petBodyVectorIdMappingTable] — separate ID space from face embeddings.
   Future<Map<String, int>> getObjectVectorIdMap(
     Iterable<String> objectIds, {
     required SqliteDatabase db,
@@ -234,8 +213,6 @@ class PetVectorDB {
     return result;
   }
 
-  // ── Vector Operations ──
-
   Future<void> _runWriteOperation(
     Future<void> Function(VectorDb db) operation,
   ) async {
@@ -245,7 +222,6 @@ class PetVectorDB {
     });
   }
 
-  /// Insert a single pet face embedding into the vector DB.
   Future<void> insertEmbedding({
     required int vectorId,
     required List<double> embedding,
@@ -260,7 +236,6 @@ class PetVectorDB {
     }
   }
 
-  /// Bulk insert pet face embeddings.
   Future<void> bulkInsertEmbeddings({
     required List<int> vectorIds,
     required List<Float32List> embeddings,
@@ -279,7 +254,6 @@ class PetVectorDB {
     }
   }
 
-  /// Get embeddings by their vector IDs.
   Future<List<Float32List>> getEmbeddings(List<int> vectorIds) async {
     final db = await _vectorDB;
     try {
@@ -291,7 +265,6 @@ class PetVectorDB {
     }
   }
 
-  /// Delete embeddings by their vector IDs.
   Future<void> deleteEmbeddings(List<int> vectorIds) async {
     if (vectorIds.isEmpty) {
       return;
@@ -312,7 +285,6 @@ class PetVectorDB {
     }
   }
 
-  /// Search for the closest pet face embeddings to a query.
   Future<(Uint64List, Float32List)> searchClosestVectors(
     List<double> query,
     int count, {
@@ -331,7 +303,6 @@ class PetVectorDB {
     }
   }
 
-  /// Delete all embeddings and reset the index.
   Future<void> deleteAllEmbeddings() async {
     try {
       await _runWriteOperation((db) async {

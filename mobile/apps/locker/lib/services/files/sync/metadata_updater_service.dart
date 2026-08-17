@@ -110,9 +110,6 @@ class MetadataUpdaterService {
         } else if (file.ownerID != ownerID) {
           throw AssertionError("cannot modify memories not owned by you");
         }
-        // read the existing magic metadata and apply new updates to existing data
-        // current update is simple replace. This will be enhanced in the future,
-        // as required.
         final newUpdates = metadataUpdateMap != null
             ? metadataUpdateMap[file.uploadedFileID]
             : newMetadataUpdate;
@@ -127,7 +124,6 @@ class MetadataUpdaterService {
           jsonToUpdate[key] = value;
         });
 
-        // update the local information so that it's reflected on UI
         file.pubMmdEncodedJson = jsonEncode(jsonToUpdate);
         file.pubMagicMetadata = PubMagicMetadata.fromJson(jsonToUpdate);
 

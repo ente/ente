@@ -9,12 +9,12 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { sessionExpiredDialogAttributes } from "ente-accounts-rs/components/utils/dialog";
+import { sessionExpiredDialogAttributes } from "ente-accounts/components/utils/dialog";
 import {
     getActiveSessions,
     terminateSession,
     type Session,
-} from "ente-accounts-rs/services/sessions";
+} from "ente-accounts/services/sessions";
 import { RowButton, RowButtonGroup } from "ente-base/components/RowButton";
 import { useBaseContext } from "ente-base/context";
 import { isHTTP401Error } from "ente-base/http";

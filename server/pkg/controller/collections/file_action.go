@@ -150,15 +150,6 @@ func (c *CollectionController) MoveFiles(ctx *gin.Context, req ente.MoveFilesReq
 	return stacktrace.Propagate(err, "")
 }
 
-// RemoveFilesV3 enforces all removal rules for shared collections:
-//  1. accessCtrl must confirm the actor participates in the collection;
-//  2. collaborators/viewers may only remove the files they added themselves;
-//  3. the collection owner may remove files added by others but never their own;
-//  4. admins can remove anyone's files, but a collection owner's files are only
-//     queued for removal (REMOVE action + pending collection_action entry) so
-//     the owner can act on them;
-//  5. once the validations pass, non-owner files are deleted immediately via
-//     CollectionRepo.RemoveFilesV3.
 func (c *CollectionController) RemoveFilesV3(ctx *gin.Context, actorUserID int64, req ente.RemoveFilesV3Request) error {
 	accessResp, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
 		CollectionID: req.CollectionID,
@@ -221,14 +212,6 @@ func (c *CollectionController) RemoveFilesV3(ctx *gin.Context, actorUserID int64
 	return nil
 }
 
-// SuggestDeleteInSharedCollection allows collection owners/admins to nudge other
-// participants to delete their files:
-//  1. only OWNER/ADMIN roles pass the access check;
-//  2. every file ID must belong to the collection and none may belong to the acting user;
-//  3. the method internally reuses RemoveFilesV3 to enforce role-based rules and
-//     to actually detach the files from the collection;
-//  4. each remote owner then receives DELETE_SUGGESTED actions so their clients
-//     can surface the pending delete request.
 func (c *CollectionController) SuggestDeleteInSharedCollection(ctx *gin.Context, req ente.SuggestDeleteRequest) error {
 	actorUserID := auth.GetUserID(ctx.Request.Header)
 	accessResp, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{

@@ -22,7 +22,6 @@ class CryptoHelper {
     final encryptedKey = CryptoUtil.base642bin(collection.encryptedKey);
     Uint8List? collectionKey;
     if (collection.owner.id == Configuration.instance.getUserID()) {
-      // If the collection is owned by the user, decrypt with the master key
       if (Configuration.instance.getKey() == null) {
         // Possible during AppStore account migration, where SecureStorage
         // would become inaccessible to the new Developer Account
@@ -34,7 +33,6 @@ class CryptoHelper {
         CryptoUtil.base642bin(collection.keyDecryptionNonce!),
       );
     } else {
-      // If owned by a different user, decrypt with the public key
       collectionKey = CryptoUtil.openSealSync(
         encryptedKey,
         CryptoUtil.base642bin(

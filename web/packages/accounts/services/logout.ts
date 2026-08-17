@@ -1,8 +1,8 @@
+import { clearSessionStorage } from "ente-accounts/services/session-storage";
 import { clearBlobCaches } from "ente-base/blob-cache";
 import { clearKVDB } from "ente-base/kv";
 import { clearLocalStorage } from "ente-base/local-storage";
 import log from "ente-base/log";
-import { clearSessionStorage } from "ente-base/session";
 import { clearStashedRedirect } from "./redirect";
 import { remoteLogoutIfNeeded } from "./user";
 

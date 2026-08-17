@@ -27,8 +27,7 @@ type Collection struct {
 	MagicMetadata       *MagicMetadata       `json:"magicMetadata,omitempty"`
 	App                 string               `json:"app"`
 	PublicMagicMetadata *MagicMetadata       `json:"pubMagicMetadata,omitempty"`
-	// SharedMagicMetadata keeps the metadata of the sharees to store settings like
-	// if the collection should be shown on timeline or not
+	// Per-sharee settings such as timeline visibility.
 	SharedMagicMetadata *MagicMetadata `json:"sharedMagicMetadata,omitempty"`
 }
 
@@ -160,21 +159,16 @@ type CopyResponse struct {
 }
 
 type RemoveFilesRequest struct {
-	CollectionID int64 `json:"collectionID" binding:"required"`
-	// OtherFileIDs represents the files which don't belong the user trying to remove files
-	FileIDs []int64 `json:"fileIDs"`
+	CollectionID int64   `json:"collectionID" binding:"required"`
+	FileIDs      []int64 `json:"fileIDs"`
 }
 
-// In V3, only those files are allowed to be removed from collection which don't belong to the collection owner.
-// If collection owner wants to remove files owned by them, the client should move those files to other collections
-// owned by the collection user. Also, See [Collection Delete Versions] for additional context.
+// Files owned by the collection owner must be moved, not removed.
 type RemoveFilesV3Request struct {
-	CollectionID int64 `json:"collectionID" binding:"required"`
-	// OtherFileIDs represents the files which don't belong the user trying to remove files
-	FileIDs []int64 `json:"fileIDs"  binding:"required"`
+	CollectionID int64   `json:"collectionID" binding:"required"`
+	FileIDs      []int64 `json:"fileIDs"  binding:"required"`
 }
 
-// Only collection owner or admins can suggest deletion for files owned by others (not the acting user).
 type SuggestDeleteRequest struct {
 	CollectionID int64   `json:"collectionID" binding:"required"`
 	FileIDs      []int64 `json:"fileIDs" binding:"required"`

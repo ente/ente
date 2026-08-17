@@ -29,7 +29,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum _AlbumWidgetCacheUpdateReason { none, changed, stale }
 
 class AlbumHomeWidgetService {
-  // Constants
   static const String SELECTED_ALBUMS_KEY = "selectedAlbumsHW";
   static const String ALBUMS_LAST_HASH_KEY = "albumsLastHash";
   static const String ANDROID_CLASS_NAME = "EnteAlbumsWidgetProvider";
@@ -42,14 +41,12 @@ class AlbumHomeWidgetService {
   static const int MAX_ALBUMS_LIMIT = 50;
   static const Duration ALBUMS_CACHE_REFRESH_INTERVAL = Duration(hours: 24);
 
-  // Singleton pattern
   static final AlbumHomeWidgetService instance =
       AlbumHomeWidgetService._privateConstructor();
   AlbumHomeWidgetService._privateConstructor() {
     _listenToLocalPhotoUpdates();
   }
 
-  // Properties
   final Logger _logger = Logger((AlbumHomeWidgetService).toString());
   SharedPreferences get _prefs => ServiceLocator.instance.prefs;
 
@@ -81,7 +78,6 @@ class AlbumHomeWidgetService {
     });
   }
 
-  // Public methods
   List<int>? getSelectedAlbumIds() {
     final selectedAlbums = _prefs.getStringList(SELECTED_ALBUMS_KEY);
     return selectedAlbums?.map((id) => int.tryParse(id) ?? 0).toList();
@@ -215,7 +211,6 @@ class AlbumHomeWidgetService {
       return;
     }
 
-    // First navigate to the collection page
     final thumbnail = await CollectionsService.instance.getCover(collection);
     AppNavigationService.instance
         .pushPage(
@@ -226,7 +221,6 @@ class AlbumHomeWidgetService {
       collection.id,
     );
 
-    // Then open the specific file
     final file = await FilesDB.instance.getFile(fileId);
     if (file == null) {
       _logger.warning("Cannot launch widget: file with ID $fileId not found");
@@ -248,7 +242,6 @@ class AlbumHomeWidgetService {
     await _refreshAlbumsWidget();
   }
 
-  // Private methods
   String _calculateHash(List<int> albumIds) {
     String updationTimestamps = "";
 
@@ -270,14 +263,12 @@ class AlbumHomeWidgetService {
   }
 
   Future<bool> _hasAnyBlockers([bool isBg = false]) async {
-    // Check if first import is completed
     final hasCompletedFirstImport = LocalSyncService.instance
         .hasCompletedFirstImportOrBypassed();
     if (!hasCompletedFirstImport) {
       return true;
     }
 
-    // Check if selected albums exist
     final selectedAlbumIds = await _getEffectiveSelectedAlbumIds(isBg);
     final albums = getAlbumsByIds(selectedAlbumIds);
 
@@ -359,7 +350,6 @@ class AlbumHomeWidgetService {
   }
 
   Future<void> _refreshAlbumsWidget() async {
-    // only refresh if widget was synced without issues
     if (await countHomeWidgets() == 0) return;
     await _refreshWidget(message: "Refreshing from existing album set");
   }
@@ -370,18 +360,15 @@ class AlbumHomeWidgetService {
   }
 
   Future<_AlbumWidgetCacheUpdateReason> _getWidgetCacheUpdateReason() async {
-    // Check if albums changed flag is set
     if (hasSelectionChanged() == true) {
       return _AlbumWidgetCacheUpdateReason.changed;
     }
 
-    // Check if we have any albums selected
     final selectedAlbumIds = await _getEffectiveSelectedAlbumIds();
     if (selectedAlbumIds.isEmpty) {
       return _AlbumWidgetCacheUpdateReason.none;
     }
 
-    // Check if hash has changed
     final currentHash = _calculateHash(selectedAlbumIds);
     final lastHash = getAlbumsLastHash();
 
@@ -438,7 +425,6 @@ class AlbumHomeWidgetService {
   Future<List<int>> _getEffectiveSelectedAlbumIds([bool isBg = false]) async {
     final selectedAlbumIds = getSelectedAlbumIds();
 
-    // If no albums selected, use favorites as default
     if (selectedAlbumIds == null || selectedAlbumIds.isEmpty) {
       if (isBg) {
         await FavoritesService.instance.initFav();
@@ -581,7 +567,6 @@ class AlbumHomeWidgetService {
       final albumName = randomEntry.value.$1;
 
       final String renderKey = '${albumId}_${randomAlbumFile.generatedID}';
-      // Skip if already rendered or previously failed
       if (!renderedKeys.add(renderKey) || failedKeys.contains(renderKey)) {
         attemptsCount++;
         continue;
@@ -601,7 +586,6 @@ class AlbumHomeWidgetService {
           });
 
       if (renderResult != null) {
-        // Check for blockers again before continuing
         if (await _hasAnyBlockers()) {
           await clearWidget();
           return;
@@ -610,7 +594,6 @@ class AlbumHomeWidgetService {
         renderedCount++;
         await _setTotalAlbums(renderedCount);
 
-        // Show update toast after first item is rendered
         if (renderedCount == 1) {
           await _refreshWidget(message: "First album fetched, updating widget");
           await updateAlbumsStatus(WidgetStatus.syncedPartially);
@@ -618,7 +601,6 @@ class AlbumHomeWidgetService {
 
         attemptsCount++;
       } else {
-        // Track failed renders to avoid retrying known-bad files
         renderedKeys.remove(renderKey);
         failedKeys.add(renderKey);
         attemptsCount++;
@@ -631,7 +613,6 @@ class AlbumHomeWidgetService {
       );
     }
 
-    // Update the hash to track changes
     final hash = _calculateHash(selectedAlbumIds);
     await setAlbumsLastHash(hash);
 

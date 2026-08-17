@@ -146,7 +146,6 @@ class OfflineAuthenticatorDB {
     return _convertRows(rows);
   }
 
-  // deleteByID will prefer generated id if both ids are passed during deletion
   Future<void> deleteByIDs({List<int>? generatedIDs, List<String>? ids}) async {
     final db = await instance.database;
     final batch = db.batch();

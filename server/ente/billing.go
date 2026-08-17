@@ -96,7 +96,8 @@ type Subscription struct {
 	UserID    int64  `json:"userID"`
 	ProductID string `json:"productID"`
 	Storage   int64  `json:"storage"`
-	// LinkedPurchaseToken on PlayStore , OriginalTransactionID on AppStore and SubscriptionID on Stripe
+	// Play Store linked purchase token, App Store original transaction ID, or
+	// Stripe subscription ID.
 	OriginalTransactionID string                 `json:"originalTransactionID"`
 	ExpiryTime            int64                  `json:"expiryTime"`
 	UpgradedAt            int64                  `json:"upgradedAt,omitempty"`

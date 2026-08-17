@@ -4,7 +4,6 @@ import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 
-/// Shared trailing-action surface for the gallery / people / cluster app bars.
 class GalleryAppBarIconButtonSurface extends StatelessWidget {
   const GalleryAppBarIconButtonSurface({required this.icon, super.key});
 

@@ -72,7 +72,7 @@ type StorageBonus struct {
 	Type      BonusType `json:"type"`
 	CreatedAt int64     `json:"createdAt"`
 	UpdatedAt int64     `json:"-"`
-	// ValidTill represents the validity of the storage bonus. If it is 0, it is valid forever.
+	// Zero means no expiry.
 	ValidTill    int64         `json:"validTill"`
 	RevokeReason *RevokeReason `json:"-"`
 	IsRevoked    bool          `json:"isRevoked"`

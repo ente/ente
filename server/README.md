@@ -58,7 +58,7 @@ Until we get there, museum serves as an assistant for various housekeeping chore
 
 - Details about the 3 (yes 3!) clouds where the encrypted data and database are replicated to are [documented here](https://ente.com/reliability)
 
-Museum's architecture is generic enough to support arbitrary end-to-end encrypted storage. While we're currently focusing on building a great photo storage and sharing experience, that's not a limit. For example, we already use museum to also provide an [end-to-end encrypted open source 2FA app with cloud backups](../auth).
+Museum's architecture is generic enough to support arbitrary end-to-end encrypted storage. While we're currently focusing on building a great photo storage and sharing experience, that's not a limit. For example, we use museum to provide end-to-end encrypted [2FA](https://ente.com/auth), [document storage](https://ente.com/locker), and [social](https://ente.space).
 
 ## Self hosting
 

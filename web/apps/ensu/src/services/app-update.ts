@@ -89,7 +89,7 @@ const showUpdatePrompt = (showMiniDialog: ShowMiniDialog, version: string) => {
 
 const checkAndPromptForAppUpdates = async (showMiniDialog: ShowMiniDialog) => {
     const result = await checkForAppUpdates();
-    if (result?.kind !== "available") return result;
+    if (result.kind !== "available") return result;
     if (promptedVersion === result.version) return result;
     promptedVersion = result.version;
     showUpdatePrompt(showMiniDialog, result.version);
@@ -100,7 +100,7 @@ export const handleManualAppUpdateCheck = async (
     showMiniDialog: ShowMiniDialog,
 ) => {
     const result = await checkForAppUpdates();
-    if (!result || result.kind === "not-supported") return;
+    if (result.kind === "not-supported") return;
 
     if (result.kind === "up-to-date") {
         showMiniDialog({
@@ -125,7 +125,7 @@ export const handleManualAppUpdateCheck = async (
 
 export const setupAutoAppUpdates = (showMiniDialog: ShowMiniDialog) => {
     if (!isTauriRuntime() || !buildEnvIsProductionBuild || intervalId) {
-        return () => {};
+        return () => undefined;
     }
 
     void checkAndPromptForAppUpdates(showMiniDialog);

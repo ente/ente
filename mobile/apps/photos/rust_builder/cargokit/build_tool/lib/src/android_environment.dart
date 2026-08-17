@@ -1,5 +1,5 @@
-/// This is copied from Cargokit (which is the official way to use it currently)
-/// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
+// This is copied from Cargokit (which is the official way to use it currently)
+// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
 
 import 'dart:io';
 import 'dart:isolate';
@@ -38,19 +38,14 @@ class AndroidEnvironment {
     runCommand(clang, [target, ...args]);
   }
 
-  /// Full path to Android SDK.
   final String sdkPath;
 
-  /// Full version of Android NDK.
   final String ndkVersion;
 
-  /// Minimum supported SDK version.
   final int minSdkVersion;
 
-  /// Target directory for build artifacts.
   final String targetTempDir;
 
-  /// Target being built.
   final Target target;
 
   bool ndkIsInstalled() {

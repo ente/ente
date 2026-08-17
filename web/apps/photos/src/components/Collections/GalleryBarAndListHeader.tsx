@@ -63,20 +63,7 @@ type GalleryBarAndListHeaderProps = Omit<
     canCreateAlbum: boolean;
 } & Pick<
         CollectionHeaderProps,
-        | "files"
-        | "mapFileSource"
-        | "onRemotePull"
-        | "onAddSaveGroup"
-        | "onMarkTempDeleted"
-        | "onAddFileToCollection"
-        | "onRemoteFilesPull"
-        | "onVisualFeedback"
-        | "fileNormalCollectionIDs"
-        | "collectionNameByID"
-        | "onSelectCollection"
-        | "onSelectPerson"
-        | "canSetAlbumCover"
-        | "onSetAlbumCover"
+        "onRemotePull" | "onAddSaveGroup" | "onEditAlbumDetails" | "onShowMap"
     > &
     Pick<
         CollectionShareProps,
@@ -97,27 +84,18 @@ export const GalleryBarAndListHeader: React.FC<
     setActiveCollectionID,
     setBlockingLoad,
     people,
+    onSelectPerson,
     allPeople,
     saveGroups,
     canCreateAlbum,
     hasActiveFileSelection,
-    files,
-    mapFileSource,
     activePerson,
     emailByUserID,
     shareSuggestionEmails,
     onRemotePull,
-    canSetAlbumCover,
-    onSetAlbumCover,
+    onEditAlbumDetails,
     onAddSaveGroup,
-    onMarkTempDeleted,
-    onAddFileToCollection,
-    onRemoteFilesPull,
-    onVisualFeedback,
-    fileNormalCollectionIDs,
-    collectionNameByID,
-    onSelectCollection,
-    onSelectPerson,
+    onShowMap,
     setFileListHeader,
 }) => {
     const { show: showAllAlbums, props: allAlbumsVisibilityProps } =
@@ -179,6 +157,10 @@ export const GalleryBarAndListHeader: React.FC<
         return !!group && !isSaveComplete(group) && !isSaveCancelled(group);
     }, [saveGroups, activeCollectionID]);
 
+    const albumDescription =
+        activeCollection?.pubMagicMetadata?.data.caption?.trim();
+    const [descriptionHeight, setDescriptionHeight] = useState(0);
+
     useEffect(() => {
         if (shouldHide) return;
 
@@ -197,29 +179,19 @@ export const GalleryBarAndListHeader: React.FC<
                 <CollectionHeader
                     {...{
                         activeCollection,
-                        files,
-                        mapFileSource,
                         setActiveCollectionID,
                         isActiveCollectionDownloadInProgress,
                         onRemotePull,
                         onAddSaveGroup,
-                        onMarkTempDeleted,
-                        onAddFileToCollection,
-                        onRemoteFilesPull,
-                        onVisualFeedback,
-                        fileNormalCollectionIDs,
-                        collectionNameByID,
-                        emailByUserID,
-                        onSelectCollection,
-                        onSelectPerson,
+                        onShowMap,
                     }}
                     collectionSummary={collectionSummary}
                     onCollectionShare={openCollectionShare}
                     onCollectionManageLink={openCollectionManageLink}
                     onCollectionCast={showCollectionCast}
-                    canSetAlbumCover={canSetAlbumCover}
-                    onSetAlbumCover={onSetAlbumCover}
+                    onEditAlbumDetails={onEditAlbumDetails}
                     hasActiveFileSelection={hasActiveFileSelection}
+                    onDescriptionHeightChange={setDescriptionHeight}
                 />
             ) : mode != "people" && collectionSummary ? (
                 <GalleryItemsHeaderAdapter>
@@ -236,7 +208,7 @@ export const GalleryBarAndListHeader: React.FC<
             ) : (
                 <></>
             ),
-            height: 68,
+            height: 68 + (albumDescription ? descriptionHeight : 0),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -246,8 +218,6 @@ export const GalleryBarAndListHeader: React.FC<
         activeCollection,
         activeCollectionID,
         isActiveCollectionDownloadInProgress,
-        files,
-        mapFileSource,
         activePerson,
         showCollectionShare,
         openCollectionShare,
@@ -256,17 +226,10 @@ export const GalleryBarAndListHeader: React.FC<
         hasActiveFileSelection,
         onRemotePull,
         onAddSaveGroup,
-        onMarkTempDeleted,
-        onAddFileToCollection,
-        onRemoteFilesPull,
-        onVisualFeedback,
-        fileNormalCollectionIDs,
-        collectionNameByID,
-        emailByUserID,
-        onSelectCollection,
-        onSelectPerson,
-        canSetAlbumCover,
-        onSetAlbumCover,
+        onShowMap,
+        onEditAlbumDetails,
+        albumDescription,
+        descriptionHeight,
         // TODO: Cluster
         // This causes a loop since it is an array dep
         // people,

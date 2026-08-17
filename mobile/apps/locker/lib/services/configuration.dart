@@ -22,8 +22,6 @@ class Configuration extends BaseConfiguration
   );
 
   @override
-  // Provide all secure storage keys that should be wiped on logout.
-  // Locker app uses the standard keys defined in BaseConfiguration.
   List<String> get secureStorageKeys =>
       BaseConfiguration.accountSecureStorageKeys;
 

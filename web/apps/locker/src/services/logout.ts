@@ -1,5 +1,5 @@
-import { savedLocalUser } from "ente-accounts-rs/services/accounts-db";
-import { accountLogout } from "ente-accounts-rs/services/logout";
+import { savedLocalUser } from "ente-accounts/services/accounts-db";
+import { accountLogout } from "ente-accounts/services/logout";
 import log from "ente-base/log";
 import { clearLockerDB } from "./locker-db";
 import { clearLockerCache } from "./remote-cache";

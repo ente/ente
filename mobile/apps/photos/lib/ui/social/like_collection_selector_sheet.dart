@@ -20,7 +20,6 @@ final _logger = Logger("LikeCollectionSelectorSheet");
 
 const _greenHeartColor = Color(0xFF08C225);
 
-/// Holds collection info with mutable like state for the selector
 class _CollectionLikeState {
   final Collection collection;
   bool isLiked;
@@ -28,13 +27,6 @@ class _CollectionLikeState {
   _CollectionLikeState({required this.collection, required this.isLiked});
 }
 
-/// Shows the like collection selector bottom sheet
-///
-/// Parameters:
-/// - [fileID]: The uploaded file ID to like
-/// - [currentUserID]: Current user's ID for checking existing likes
-/// - [collections]: Shared collections eligible for this action
-/// - [file]: The EnteFile for displaying thumbnail (optional, will fetch if null)
 Future<void> showLikeCollectionSelectorSheet(
   BuildContext context, {
   required int fileID,
@@ -92,10 +84,8 @@ class _LikeCollectionSelectorSheetState
 
   Future<void> _loadData() async {
     try {
-      // Load file if not provided (for thumbnail)
       _file ??= await FilesDB.instance.getAnyUploadedFile(widget.fileID);
 
-      // Fetch like states in parallel
       final collectionStates = await Future.wait(
         widget.collections.map((collection) async {
           final reactions = await SocialDataProvider.instance
@@ -126,7 +116,6 @@ class _LikeCollectionSelectorSheetState
 
   Future<void> _toggleLike(_CollectionLikeState state) async {
     final previousState = state.isLiked;
-    // Optimistic UI update
     setState(() => state.isLiked = !state.isLiked);
 
     try {
@@ -147,26 +136,21 @@ class _LikeCollectionSelectorSheetState
   }
 
   Future<void> _likeAll() async {
-    // Get collections that aren't already liked
     final toLike = _collections.where((c) => !c.isLiked).toList();
 
     if (toLike.isEmpty) {
-      // All already liked, just close
       Navigator.of(context).pop();
       return;
     }
 
-    // Optimistic UI update
     setState(() {
       for (final c in toLike) {
         c.isLiked = true;
       }
     });
 
-    // Track failures for rollback
     final failed = <_CollectionLikeState>[];
 
-    // Perform all likes in parallel
     await Future.wait(
       toLike.map((c) async {
         try {
@@ -184,7 +168,6 @@ class _LikeCollectionSelectorSheetState
 
     if (!mounted) return;
 
-    // Rollback failed items and show toast
     if (failed.isNotEmpty) {
       setState(() {
         for (final c in failed) {
@@ -195,11 +178,9 @@ class _LikeCollectionSelectorSheetState
         context,
         context.strings.failedToLikeAlbums(count: failed.length),
       );
-      // Don't close sheet - let user retry
       return;
     }
 
-    // Close sheet after successful "Like all"
     Navigator.of(context).pop();
   }
 
@@ -228,7 +209,6 @@ class _LikeCollectionSelectorSheetState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header with close button - inlined for simplicity
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 11, 12, 0),
               child: Row(
@@ -280,7 +260,6 @@ class _LikeCollectionSelectorSheetState
               allLiked: _allLiked,
               onLikeAll: _likeAll,
             ),
-            // Album list
             Flexible(
               child: Scrollbar(
                 thumbVisibility: true,
@@ -457,8 +436,8 @@ class _AlbumListItem extends StatelessWidget {
     final textTheme = getEnteTextTheme(context);
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final heartContainerBg = isDarkTheme
-        ? const Color(0x1A08C225) // ~10% opacity for dark
-        : const Color(0x0F08C225); // ~6% opacity for light
+        ? const Color(0x1A08C225)
+        : const Color(0x0F08C225);
 
     return GestureDetector(
       onTap: onTap,

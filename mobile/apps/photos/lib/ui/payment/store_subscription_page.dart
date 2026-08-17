@@ -61,10 +61,8 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
   EnteColorScheme colorScheme = darkScheme;
   String? _selectedProductID;
 
-  // hasYearlyPlans is used to check if there are yearly plans for given store
   bool hasYearlyPlans = false;
 
-  // _showYearlyPlan is used to determine if we should show the yearly plans
   bool showYearlyPlan = false;
 
   @override

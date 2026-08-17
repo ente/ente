@@ -23,7 +23,6 @@ class CustomTrackShape extends RoundedRectSliderTrackShape {
 }
 
 class RadiusPickerWidget extends StatefulWidget {
-  ///This notifier can be listened from a parent widget to get the selected radius
   final ValueNotifier<double> selectedRadiusNotifier;
 
   const RadiusPickerWidget(this.selectedRadiusNotifier, {super.key});
@@ -155,8 +154,6 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
     );
   }
 
-  //9.99 -> 10, 9.0 -> 9, 5.02 -> 5, 5.09 -> 5.1
-  //12.3 -> 12, 121.65 -> 122, 999.9 -> 1000
   String roundRadius(double radius) {
     String result;
     final roundedRadius = (radius * 10).round() / 10;
@@ -216,14 +213,12 @@ class NumberWithDecimalInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    // Check if the new value matches the pattern
     if (_pattern.hasMatch(newValue.text)) {
       if (newValue.text.isEmpty) {
         return newValue;
       }
       final newValueAsDouble = double.tryParse(newValue.text);
 
-      // Check if the new value is within the allowed range
       if (newValueAsDouble != null && newValueAsDouble <= maxValue) {
         return newValue;
       }

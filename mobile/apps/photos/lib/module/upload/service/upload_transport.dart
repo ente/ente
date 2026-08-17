@@ -60,6 +60,7 @@ class UploadTransport {
     File file,
     int fileSize, {
     required String contentMd5,
+    ProgressCallback? onSendProgress,
   }) async {
     final uploadURL = await _getUploadURL(
       contentLength: fileSize,
@@ -71,6 +72,7 @@ class UploadTransport {
       fileSize,
       contentMd5: contentMd5,
       attempt: 1,
+      onSendProgress: onSendProgress,
     );
   }
 
@@ -129,6 +131,7 @@ class UploadTransport {
     int fileSize, {
     required String contentMd5,
     required int attempt,
+    ProgressCallback? onSendProgress,
   }) async {
     if (contentMd5.isEmpty) {
       throw StateError("Missing MD5 for checksum-protected upload");
@@ -148,8 +151,9 @@ class UploadTransport {
         useUploadProxy ? "$kUploadProxyEndpoint/file-upload" : uploadURL.url,
         data: file.openRead(),
         options: Options(headers: headers),
-        onSendProgress: (sent, total) {
+        onSendProgress: (sent, _) {
           bytesSent = sent;
+          onSendProgress?.call(sent, fileSize);
         },
       );
       _logger.info(
@@ -184,6 +188,7 @@ class UploadTransport {
           fileSize,
           contentMd5: contentMd5,
           attempt: attempt + 1,
+          onSendProgress: onSendProgress,
         );
       }
       _logger.info(

@@ -282,6 +282,12 @@ class _CatalogHomeState extends State<CatalogHome> {
         previewBuilder: (_) => const _TextInputPreview(),
       ),
       CatalogSection(
+        title: 'PIN input',
+        icon: HugeIcons.strokeRoundedLockPassword,
+        components: const ['Six-digit OTP', 'Obscured PIN', 'Error state'],
+        previewBuilder: (_) => const _PinInputPreview(),
+      ),
+      CatalogSection(
         title: 'Selection controls',
         icon: HugeIcons.strokeRoundedSlidersHorizontal,
         components: const ['Checkbox', 'Radio', 'Switch', 'Slider', 'Stepper'],
@@ -2445,6 +2451,77 @@ class _TextInputPreviewIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _CatalogHugeIcon(icon, color: context.componentColors.textLighter);
+  }
+}
+
+class _PinInputPreview extends StatefulWidget {
+  const _PinInputPreview();
+
+  @override
+  State<_PinInputPreview> createState() => _PinInputPreviewState();
+}
+
+class _PinInputPreviewState extends State<_PinInputPreview> {
+  late final TextEditingController _otpController;
+  late final TextEditingController _pinController;
+  late final TextEditingController _errorController;
+
+  @override
+  void initState() {
+    super.initState();
+    _otpController = TextEditingController(text: '888');
+    _pinController = TextEditingController(text: '12');
+    _errorController = TextEditingController(text: '8051');
+  }
+
+  @override
+  void dispose() {
+    _otpController.dispose();
+    _pinController.dispose();
+    _errorController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _CatalogPreviewList(
+      children: [
+        _CatalogPreviewGroup(
+          title: 'Six-digit OTP',
+          child: Center(
+            child: PinInputComponent(
+              controller: _otpController,
+              autofocus: true,
+              autofillHints: const [AutofillHints.oneTimeCode],
+              semanticLabel: 'Six-digit one-time code',
+            ),
+          ),
+        ),
+        _CatalogPreviewGroup(
+          title: 'Obscured PIN',
+          child: Center(
+            child: PinInputComponent(
+              length: 4,
+              controller: _pinController,
+              obscureText: true,
+              semanticLabel: 'Four-digit PIN',
+            ),
+          ),
+        ),
+        _CatalogPreviewGroup(
+          title: 'Error state',
+          child: Center(
+            child: PinInputComponent(
+              length: 4,
+              controller: _errorController,
+              obscureText: true,
+              isError: true,
+              semanticLabel: 'Incorrect four-digit PIN',
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

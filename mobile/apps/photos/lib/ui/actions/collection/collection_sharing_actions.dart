@@ -75,7 +75,6 @@ class CollectionActions {
           shouldSurfaceExecutionStates: true,
           labelText: context.strings.yesRemove,
           onTap: () async {
-            // for quickLink collection, we need to trash the collection
             if (collection.isQuickLinkCollection() && !collection.hasSharees) {
               await trashCollectionKeepingPhotos(collection);
             } else {
@@ -92,9 +91,9 @@ class CollectionActions {
         ),
       ],
       title: context.strings.removePublicLink,
-      body:
-          //'This will remove the public link for accessing "${collection.name}".',
-          context.strings.disableLinkMessage(albumName: collection.displayName),
+      body: context.strings.disableLinkMessage(
+        albumName: collection.displayName,
+      ),
     );
     if (actionResult?.action != null) {
       if (actionResult!.action == ButtonAction.error) {
@@ -116,8 +115,6 @@ class CollectionActions {
   ) async {
     late final Collection newCollection;
     try {
-      // create album with emptyName, use collectionCreationTime on UI to
-      // show name
       logger.info("creating album for sharing files");
       final EnteFile fileWithMinCreationTime = files.reduce(
         (a, b) => (a.creationTime ?? 0) < (b.creationTime ?? 0) ? a : b,
@@ -165,7 +162,6 @@ class CollectionActions {
     return null;
   }
 
-  // removeParticipant remove the user from a share album
   Future<bool> removeParticipant(
     BuildContext context,
     Collection collection,
@@ -239,8 +235,6 @@ class CollectionActions {
       await showGenericErrorDialog(context: context, error: e);
       return false;
     }
-    // getPublicKey can return null when no user is associated with given
-    // email id
     if (publicKey == null || publicKey == '') {
       // todo: neeraj replace this as per the design where a new screen
       // is used for error. Do this change along with handling of network errors
@@ -252,7 +246,6 @@ class CollectionActions {
     }
   }
 
-  // addEmailToCollection returns true if add operation was successful
   Future<bool> addEmailToCollection(
     BuildContext context,
     Collection collection,
@@ -296,8 +289,6 @@ class CollectionActions {
       await showGenericErrorDialog(context: context, error: e);
       return false;
     }
-    // getPublicKey can return null when no user is associated with given
-    // email id
     if (publicKey == null || publicKey == '') {
       // todo: neeraj replace this as per the design where a new screen
       // is used for error. Do this change along with handling of network errors
@@ -382,7 +373,6 @@ class CollectionActions {
     );
   }
 
-  // deleteCollectionSheet returns true if the album is successfully deleted
   Future<bool> deleteCollectionSheet(
     BuildContext bContext,
     Collection collection,
@@ -525,7 +515,6 @@ class CollectionActions {
       files,
       isHidden: collection.isHidden() && !collection.isDefaultHidden(),
     );
-    // collection should be empty on server now
     await collectionsService.trashEmptyCollection(collection);
   }
 
@@ -549,8 +538,6 @@ class CollectionActions {
     }
   }
 
-  // _confirmSharedAlbumDeletion should be shown when user tries to delete an
-  // album shared with other ente users.
   Future<bool> _confirmSharedAlbumDeletion(
     BuildContext context,
     Collection collection,
@@ -566,23 +553,9 @@ class CollectionActions {
         actionResult!.action == ButtonAction.first;
   }
 
-  /*
-  _moveFilesFromCurrentCollection removes the file from the current
-  collection. Based on the file and collection ownership, files will be
-  either moved to different collection (Case A). or will just get removed
-  from current collection (Case B).
-  -------------------------------
-  Case A: Files and collection belong to the same user. Such files
-  will be moved to a collection which belongs to the user and removed from
-  the current collection as part of move operation.
-  Note: Even files are present in the
-  destination collection, we need to make move API call on the server
-  so that the files are removed from current collection and are actually
-  moved to a collection owned by the user.
-  -------------------------------
-  Case B: Owner of files and collections are different. In such cases,
-  we will just remove (not move) the files from the given collection.
-  */
+  // Moving an owned file must call the move API even if it is already in
+  // another owned collection, because move also removes it from this one.
+  // Files owned by someone else can only be removed from this collection.
   Future<void> moveFilesFromCurrentCollection(
     BuildContext? context,
     Collection collection,
@@ -618,8 +591,6 @@ class CollectionActions {
         split.ownedByOtherUsers,
       );
     } else if (!isCollectionOwner && split.ownedByCurrentUser.isNotEmpty) {
-      // collection is not owned by the user, just remove files owned
-      // by current user and return
       await collectionsService.removeFromCollection(
         collection.id,
         split.ownedByCurrentUser,
@@ -634,13 +605,7 @@ class CollectionActions {
       return;
     }
 
-    // pendingAssignMap keeps a track of files which are yet to be assigned to
-    // to destination collection.
     final Map<int, EnteFile> pendingAssignMap = {};
-    // destCollectionToFilesMap contains the destination collection and
-    // files entry which needs to be moved in destination.
-    // After the end of mapping logic, the number of files entries in
-    // pendingAssignMap should be equal to files in destCollectionToFilesMap
     final Map<int, List<EnteFile>> destCollectionToFilesMap = {};
     final List<int> uploadedIDs = [];
     for (EnteFile f in split.ownedByCurrentUser) {
@@ -668,18 +633,13 @@ class CollectionActions {
       }
     }
 
-    // Find and map the files from current collection to to entries in other
-    // collections. This mapping is done to avoid moving all the files to
-    // uncategorized during remove from album.
+    // Preserve another album membership instead of moving to Uncategorized.
     for (MapEntry<int, List<EnteFile>> entry in collectionToFilesMap.entries) {
       if (!_isAutoMoveCandidate(collection.id, entry.key, currentUserID)) {
         continue;
       }
       final targetCollection = collectionsService.getCollectionByID(entry.key)!;
-      // for each file which already exist in the destination collection
-      // add entries in the moveDestCollectionToFiles map
       for (EnteFile file in entry.value) {
-        // Check if the uploaded file is still waiting to be mapped
         if (pendingAssignMap.containsKey(file.uploadedFileID)) {
           if (!destCollectionToFilesMap.containsKey(targetCollection.id)) {
             destCollectionToFilesMap[targetCollection.id] = <EnteFile>[];
@@ -691,7 +651,6 @@ class CollectionActions {
         }
       }
     }
-    // Move the remaining files to uncategorized collection
     if (pendingAssignMap.isNotEmpty) {
       late final int toCollectionID;
       if (isHidden) {
@@ -715,7 +674,6 @@ class CollectionActions {
       }
     }
 
-    // Verify that all files are mapped.
     int mappedFilesCount = 0;
     destCollectionToFilesMap.forEach((key, value) {
       mappedFilesCount += value.length;
@@ -731,8 +689,6 @@ class CollectionActions {
         in destCollectionToFilesMap.entries) {
       if (collection.type == CollectionType.uncategorized &&
           entry.key == collection.id) {
-        // skip moving files to uncategorized collection from uncategorized
-        // this flow is triggered while cleaning up uncategerized collection
         logger.info(
           'skipping moving ${entry.value.length} files to uncategorized collection',
         );
@@ -746,11 +702,6 @@ class CollectionActions {
     }
   }
 
-  // This method returns true if the given destination collection is a good
-  // target to moving files during file remove or delete collection but keey
-  // photos action. Uncategorized or favorite type of collections are not
-  // good auto-move candidates. Uncategorized will be fall back for all files
-  // which could not be mapped to a potential target collection
   bool _isAutoMoveCandidate(int fromCollectionID, toCollectionID, int userID) {
     if (fromCollectionID == toCollectionID) {
       return false;
@@ -758,8 +709,6 @@ class CollectionActions {
     final Collection? targetCollection = collectionsService.getCollectionByID(
       toCollectionID,
     );
-    // ignore non-cached, deleted, uncategorized and favorite collections,
-    // and collections ignored by others
     if (targetCollection == null ||
         targetCollection.isDeleted ||
         (CollectionType.uncategorized == targetCollection.type ||
@@ -783,7 +732,6 @@ class CollectionActions {
           shouldSurfaceExecutionStates: true,
           labelText: context.strings.subscribe,
           onTap: () async {
-            // for quickLink collection, we need to trash the collection
             Navigator.of(context)
                 .push(
                   MaterialPageRoute(

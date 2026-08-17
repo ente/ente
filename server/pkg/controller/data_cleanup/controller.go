@@ -193,7 +193,6 @@ func (c *DeleteUserCleanupController) storageCheck(ctx context.Context, item *en
 				return stacktrace.Propagate(err, "")
 			}
 		} else if item.StageAttemptCount >= maxStorageCheckAttempt {
-			// Note: if storage is still not zero after maxStorageCheckAttempt attempts and trash is empty, mark the clean-up as done
 			return c.completeCleanup(ctx, item)
 		}
 		return fmt.Errorf("storage consumed is not zero: %d", usage)

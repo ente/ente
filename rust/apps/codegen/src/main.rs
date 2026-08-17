@@ -89,10 +89,10 @@ fn generate_native(target: NativeTarget) -> Result<(), DynError> {
             crate_name: "ensu",
             crate_dir: rust_root.join("bindings/uniffi/ensu"),
         };
-        generate_swift(&ensu, "mobile/native/apple/apps/ensu/Ensu/Generated")?;
+        generate_swift(&ensu, "apple/apps/ensu/Ensu/Generated")?;
         generate_kotlin(
             &ensu,
-            "mobile/native/android/apps/ensu/rust/src/main/kotlin",
+            "android/apps/ensu/rust/src/main/kotlin",
             "io/ente/ensu/bindings/ensu.kt",
         )?;
     }
@@ -102,11 +102,11 @@ fn generate_native(target: NativeTarget) -> Result<(), DynError> {
             crate_name: "cast",
             crate_dir: rust_root.join("bindings/uniffi/cast"),
         };
-        generate_swift(&cast, "mobile/native/apple/apps/cast/Cast/Generated")?;
+        generate_swift(&cast, "apple/apps/cast/Cast/Generated")?;
         // TODO: Android cast bindings scaffold
         // generate_kotlin(
         //     &cast,
-        //     "mobile/native/android/apps/cast/app/src/main/kotlin",
+        //     "android/apps/cast/app/src/main/kotlin",
         //     "io/ente/cast/bindings/cast.kt",
         // )?;
     }

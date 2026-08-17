@@ -16,18 +16,25 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, IconButton, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
+import type { SystemStyleObject } from "@mui/system";
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 
-type DocumentAttachment = {
+interface DocumentAttachment {
     id: string;
     name: string;
     text: string;
     size: number;
-};
+}
 
-type IconProps = { size: number; strokeWidth: number };
+interface IconProps {
+    size: number;
+    strokeWidth: number;
+}
 
-export type ParsedDocuments = { text: string; documents: DocumentAttachment[] };
+export interface ParsedDocuments {
+    text: string;
+    documents: DocumentAttachment[];
+}
 
 export interface ChatMessageListProps {
     messages: ChatMessage[];
@@ -39,7 +46,7 @@ export interface ChatMessageListProps {
     isStreamingOutro: boolean;
     stickToBottom: boolean;
     onStickToBottomChange: (value: boolean) => void;
-    scrollContainerRef: React.MutableRefObject<HTMLDivElement | null>;
+    scrollContainerRef: React.RefObject<HTMLDivElement | null>;
     onScroll: () => void;
     onUserScrollIntent: () => void;
     onOpenAttachment: (
@@ -60,7 +67,7 @@ export interface ChatMessageListProps {
     userMessageTextSx: SxProps<Theme>;
     assistantTextSx: SxProps<Theme>;
     assistantMarkdownSx: SxProps<Theme>;
-    streamingMessageSx: SxProps<Theme>;
+    streamingMessageSx: SystemStyleObject<Theme>;
     actionButtonSx: SxProps<Theme>;
     smallIconProps: IconProps;
     actionIconProps: IconProps;
@@ -189,7 +196,7 @@ interface MessageRowProps {
     userBubbleBackground: string;
     userMessageTextSx: SxProps<Theme>;
     assistantMarkdownSx: SxProps<Theme>;
-    streamingMessageSx: SxProps<Theme>;
+    streamingMessageSx: SystemStyleObject<Theme>;
     actionButtonSx: SxProps<Theme>;
     smallIconProps: IconProps;
     actionIconProps: IconProps;
@@ -378,9 +385,7 @@ const MessageRow = memo(
                                         isGenerating={
                                             isGenerating && isStreaming
                                         }
-                                        isOutroPhase={
-                                            isStreaming && isStreamingOutro
-                                        }
+                                        isOutroPhase={isStreamingOutro}
                                         fallbackText={`${loadingPhrase ?? "Generating your reply"}${dots}`}
                                     />
                                 </Stack>
@@ -491,7 +496,6 @@ const MessageRow = memo(
                                                 aria-label="Previous branch"
                                                 sx={actionButtonSx}
                                                 onClick={() =>
-                                                    switcher &&
                                                     onPrevBranch(switcher)
                                                 }
                                             >
@@ -510,16 +514,13 @@ const MessageRow = memo(
                                                     textAlign: "center",
                                                 }}
                                             >
-                                                {switcher
-                                                    ? switcher.currentIndex + 1
-                                                    : 1}
-                                                /{switcher ? switcher.total : 1}
+                                                {switcher.currentIndex + 1}/
+                                                {switcher.total}
                                             </Typography>
                                             <IconButton
                                                 aria-label="Next branch"
                                                 sx={actionButtonSx}
                                                 onClick={() =>
-                                                    switcher &&
                                                     onNextBranch(switcher)
                                                 }
                                             >
@@ -564,7 +565,6 @@ const MessageRow = memo(
                                                 aria-label="Previous branch"
                                                 sx={actionButtonSx}
                                                 onClick={() =>
-                                                    switcher &&
                                                     onPrevBranch(switcher)
                                                 }
                                             >
@@ -583,16 +583,13 @@ const MessageRow = memo(
                                                     textAlign: "center",
                                                 }}
                                             >
-                                                {switcher
-                                                    ? switcher.currentIndex + 1
-                                                    : 1}
-                                                /{switcher ? switcher.total : 1}
+                                                {switcher.currentIndex + 1}/
+                                                {switcher.total}
                                             </Typography>
                                             <IconButton
                                                 aria-label="Next branch"
                                                 sx={actionButtonSx}
                                                 onClick={() =>
-                                                    switcher &&
                                                     onNextBranch(switcher)
                                                 }
                                             >

@@ -3,8 +3,6 @@ import "package:photos/models/file/dummy_file.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/ui/viewer/gallery/component/swipe_selectable_file_widget.dart";
 
-/// A widget that displays a dummy placeholder in the gallery grid.
-/// Participates in swipe gesture tracking but is not selectable.
 class DummyFileWidget extends StatelessWidget {
   final DummyFile file;
   final SelectedFiles? selectedFiles;

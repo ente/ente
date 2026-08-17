@@ -6,9 +6,7 @@ import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6644&m=dev
-/// Section: Radio buttons, toggles and checkboxes / Toggle Switch
-/// Specs: 31px by 18px switch with selected and unselected states.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6644&m=dev
 class ToggleSwitchComponent extends StatefulWidget {
   const ToggleSwitchComponent({
     super.key,

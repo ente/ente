@@ -21,7 +21,6 @@ import 'package:flutter/material.dart';
 
 typedef DialogBuilder = DialogWidget Function(BuildContext context);
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showErrorDialog(
   BuildContext context,
   String title,
@@ -107,7 +106,6 @@ String parseErrorForUI(
         }
       }
     }
-    // return generic error if the user is not internal and the error is not in debug mode
     if (!kDebugMode) {
       return genericError;
     }
@@ -141,7 +139,6 @@ String parseErrorForUI(
   }
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showGenericErrorDialog({
   required BuildContext context,
   bool isDismissible = true,
@@ -236,7 +233,6 @@ DialogWidget choiceDialog({
   return DialogWidget(title: title, body: body, buttons: buttons, icon: icon);
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showChoiceDialog(
   BuildContext context, {
   required String title,
@@ -280,7 +276,6 @@ Future<ButtonResult?> showChoiceDialog(
   );
 }
 
-///Will return null if dismissed by tapping outside
 Future<ButtonResult?> showChoiceActionSheet(
   BuildContext context, {
   required String title,
@@ -379,7 +374,6 @@ Future<ButtonResult?> showConfettiDialog<T>({
                 blastDirection: pi / 2,
                 emissionFrequency: 0,
                 numberOfParticles: 100,
-                // a lot of particles at once
                 gravity: 1,
                 blastDirectionality: BlastDirectionality.explosive,
               ),
@@ -396,7 +390,7 @@ Future<ButtonResult?> showConfettiDialog<T>({
   );
 }
 
-//Can return ButtonResult? from ButtonWidget or Exception? from TextInputDialog
+// Returns null after submit, ButtonResult on cancel, and Exception on failure.
 Future<dynamic> showTextInputDialog(
   BuildContext context, {
   required String title,

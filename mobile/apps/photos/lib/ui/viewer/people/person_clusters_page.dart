@@ -39,7 +39,6 @@ class _PersonClustersPageState extends State<PersonClustersPage> {
           if (snapshot.hasData) {
             final clusters = snapshot.data!;
             final List<String> keys = clusters.keys.toList();
-            // Sort the clusters by the number of files in each cluster, largest first
             keys.sort(
               (b, a) => clusters[a]!.length.compareTo(clusters[b]!.length),
             );
@@ -74,9 +73,7 @@ class _PersonClustersPageState extends State<PersonClustersPage> {
                                 : const NoThumbnailWidget(addBorder: false),
                           ),
                         ),
-                        const SizedBox(
-                          width: 8.0,
-                        ), // Add some spacing between the thumbnail and the text
+                        const SizedBox(width: 8.0),
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
@@ -165,15 +162,12 @@ class _PersonClustersWidgetState extends State<PersonClustersWidget> {
         if (snapshot.hasData) {
           final clusters = snapshot.data!;
           final List<String> keys = clusters.keys.toList();
-          // Sort the clusters by the number of files in each cluster, largest first
           keys.sort(
             (b, a) => clusters[a]!.length.compareTo(clusters[b]!.length),
           );
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              // Determine number of columns based on available width
-              // Minimum column width of 150, maximum of 250
               final double columnWidth = MediaQuery.of(context).size.width > 600
                   ? 250
                   : 150;
@@ -183,11 +177,10 @@ class _PersonClustersWidgetState extends State<PersonClustersWidget> {
 
               return GridView.builder(
                 shrinkWrap: true,
-                physics:
-                    const NeverScrollableScrollPhysics(), // Disable scrolling
+                physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  childAspectRatio: 1, // Adjust this to control height vs width
+                  childAspectRatio: 1,
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
                 ),

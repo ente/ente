@@ -74,7 +74,6 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
   Widget build(BuildContext context) {
     final isKeypadOpen = MediaQuery.of(context).viewInsets.bottom > 100;
 
-    // Initialize theme-aware color
     final colorScheme = getEnteColorScheme(context);
     _validFieldValueColor = colorScheme.primary700.withValues(alpha: 0.2);
 

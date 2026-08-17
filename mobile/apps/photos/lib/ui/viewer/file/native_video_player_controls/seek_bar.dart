@@ -132,8 +132,7 @@ class _NativeVideoProgressControlsState
   }
 
   void _startMovingSeekbar() {
-    //Video starts playing after a slight delay. This delay is to ensure that
-    //the seek bar animation starts after the video starts playing.
+    // Start the seek animation after delayed video playback begins.
     Future.delayed(const Duration(milliseconds: 700), () {
       if (!mounted) {
         return;
@@ -151,11 +150,9 @@ class _NativeVideoProgressControlsState
   void _listen(PlaybackEvent playerData) {
     switch (playerData) {
       case PlaybackStatusChangedEvent():
-        // Emitted when playback status changes (playing, paused, or stopped)
         _onPlaybackStatusChanged();
         break;
       case PlaybackPositionChangedEvent():
-        // Emitted when playback position changes
         _onPlaybackPositionChanged();
         break;
       case PlaybackEndedEvent():
@@ -179,9 +176,7 @@ class _NativeVideoProgressControlsState
     }
     final target = widget.controller.playbackPosition.inMilliseconds;
 
-    //There is a slight delay (around 350 ms) for the event being listened to
-    //by this listener on the next target (target that comes after 0). Adding
-    //this buffer to keep the seek bar animation smooth.
+    // The position event after zero arrives about 350 ms late.
     if (target == 0) {
       await Future.delayed(const Duration(milliseconds: 450));
     }

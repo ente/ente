@@ -539,7 +539,7 @@ export const listSessions = async (chatKey: string): Promise<ChatSession[]> => {
             list.sort((a, b) => b.createdAt - a.createdAt);
         }
 
-        return Promise.all(
+        return await Promise.all(
             activeSessions.map(async (session) => {
                 const title = await decryptSessionTitle(session, chatKey);
                 const latest = bySession.get(session.sessionUuid)?.[0];
@@ -585,7 +585,7 @@ export const listMessages = async (
             .filter((message) => message.sessionUuid === sessionUuid)
             .sort((a, b) => a.createdAt - b.createdAt);
 
-        return Promise.all(
+        return await Promise.all(
             sessionMessages.map(async (message) => ({
                 messageUuid: message.messageUuid,
                 sessionUuid: message.sessionUuid,

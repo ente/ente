@@ -24,7 +24,6 @@ services:
     image: postgres:15-trixie
     env_file:
       - .env
-    # Wait for postgres to accept connections before starting museum.
     healthcheck:
       test: pg_isready -q -d ${POSTGRES_DB} -U ${POSTGRES_USER}
       start_period: 30s
@@ -45,8 +44,6 @@ services:
     post_start:
       - command: |
           sh -c '
-          #!/bin/sh
-
           while ! mc alias set h0 http://minio:3200 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} 2>/dev/null
           do
             echo "Waiting for minio..."

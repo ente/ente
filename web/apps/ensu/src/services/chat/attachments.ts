@@ -5,7 +5,7 @@ const ATTACHMENT_KEY_INFO = "llmchat_attachment_v1";
 const BLOB_HEADER_BYTES = 24;
 
 const ensureCryptoSubtle = () => {
-    if (typeof crypto === "undefined" || !crypto.subtle) {
+    if (typeof crypto === "undefined") {
         throw new Error("WebCrypto not available for attachment encryption");
     }
     return crypto.subtle;

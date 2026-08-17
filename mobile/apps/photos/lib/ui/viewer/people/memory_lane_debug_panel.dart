@@ -6,7 +6,6 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/memory_lane_changed_event.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
 import "package:photos/models/ml/face/person.dart";
-import "package:photos/service_locator.dart";
 import "package:photos/services/memory_lane/memory_lane_cache_service.dart";
 import "package:photos/services/memory_lane/memory_lane_service.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -27,7 +26,7 @@ class _MemoryLaneDebugPanelState extends State<MemoryLaneDebugPanel> {
   String? _info;
   StreamSubscription<MemoryLaneChangedEvent>? _timelineSubscription;
 
-  bool get _featureEnabled => flagService.facesTimeline;
+  bool get _featureEnabled => MemoryLaneService.instance.isFeatureEnabled;
 
   @override
   void initState() {

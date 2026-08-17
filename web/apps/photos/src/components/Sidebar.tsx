@@ -1033,6 +1033,10 @@ const Account: React.FC<AccountProps> = ({
         showSessions();
     }, [onAuthenticateUser, showSessions]);
 
+    const handleDeleteAccount = useCallback(() => {
+        showDeleteAccount();
+    }, [showDeleteAccount]);
+
     useEffect(() => {
         if (!open || !pendingAction) return;
         switch (pendingAction) {
@@ -1056,7 +1060,7 @@ const Account: React.FC<AccountProps> = ({
                 handleChangeEmail();
                 break;
             case "account.deleteAccount":
-                showDeleteAccount();
+                handleDeleteAccount();
                 break;
             case "account.sessions":
                 void handleActiveSessions();
@@ -1068,12 +1072,12 @@ const Account: React.FC<AccountProps> = ({
         handleActiveSessions,
         handleChangeEmail,
         handleChangePassword,
+        handleDeleteAccount,
         handleRecoveryKey,
         handlePasskeys,
         open,
         onActionHandled,
         pendingAction,
-        showDeleteAccount,
         showTwoFactor,
     ]);
 
@@ -1124,7 +1128,7 @@ const Account: React.FC<AccountProps> = ({
                     <RowButton
                         color="critical"
                         label={t("delete_account")}
-                        onClick={showDeleteAccount}
+                        onClick={handleDeleteAccount}
                     />
                 </RowButtonGroup>
             </Stack>

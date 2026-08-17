@@ -25,9 +25,7 @@ Future<Tuple2<List<LocalPathAsset>, List<EnteFile>>> getLocalPathAssetsAndFiles(
   );
   final List<LocalPathAsset> localPathAssets = [];
 
-  // alreadySeenLocalIDs is used to track and ignore file with particular
-  // localID if it's already present in another album. This only impacts iOS
-  // devices where a file can belong to multiple
+  // iOS assets can belong to multiple albums; emit each local ID once.
   final Set<String> alreadySeenLocalIDs = {};
   final List<EnteFile> uniqueFiles = [];
   for (AssetPathEntity pathEntity in pathEntities) {
@@ -68,11 +66,6 @@ Future<Tuple2<List<LocalPathAsset>, List<EnteFile>>> getLocalPathAssetsAndFiles(
   return Tuple2(localPathAssets, uniqueFiles);
 }
 
-// getDeviceFolderWithCountAndLatestFile returns a tuple of AssetPathEntity and
-// latest file's localID in the assetPath, along with modifiedPath time and
-// total count of assets in a Asset Path.
-// We use this result to update the latest thumbnail for deviceFolder and
-// identify (in future) which AssetPath needs to be re-synced again.
 Future<List<Tuple2<AssetPathEntity, String>>>
 getDeviceFolderWithCountAndCoverID() async {
   final List<Tuple2<AssetPathEntity, String>> result = [];
@@ -133,14 +126,11 @@ Future<List<LocalPathAsset>> getAllLocalAssets({bool? needsTitle}) async {
   return localPathAssets;
 }
 
-/// returns a list of AssetPathEntity with relevant filter operations.
-/// [needTitle] impacts the performance for fetching the actual [AssetEntity]
-/// in iOS. Same is true for [containsModifiedPath]
 Future<List<AssetPathEntity>> _getGalleryList({
   final int? updateFromTime,
   final int? updateToTime,
+  // Fetching asset titles or modified-path data is expensive on iOS.
   final bool containsModifiedPath = false,
-  // in iOS fetching the AssetEntity title impacts performance
   final bool needsTitle = true,
   final OrderOption? orderOption,
 }) async {

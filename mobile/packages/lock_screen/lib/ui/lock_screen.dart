@@ -45,9 +45,8 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   int invalidAttemptCount = 0;
   int remainingTimeInSeconds = 0;
   final _lockscreenSetting = LockScreenSettings.instance;
-  // Suppress auto-auth only for the initial manual presentation.
   bool _suppressAutoPrompt = false;
-  // Opening the Linux setup guide can background the app; skip that resume.
+  // Opening the Linux setup guide backgrounds the app; skip that resume.
   bool _suppressNextLifecyclePrompt = false;
 
   @override
@@ -202,7 +201,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
                 } else {
                   await UserService.instance.logout(context);
                 }
-                // To start the app afresh, resetting all state.
+                // Restart from a clean process after logout.
                 Process.killPid(pid, ProcessSignal.sigkill);
               },
             ),
@@ -221,15 +220,12 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
         _hasPlacedAppInBackground = false;
         return;
       }
-      // This is triggered either when the lock screen is dismissed or when
-      // the app is brought to foreground
       _hasPlacedAppInBackground = false;
       final bool didAuthInLast5Seconds =
           lastAuthenticatingTime != null &&
           DateTime.now().millisecondsSinceEpoch - lastAuthenticatingTime! <
               5000;
       if (!_hasAuthenticationFailed && !didAuthInLast5Seconds) {
-        // If there is a cooldown timer (after multiple failures), respect it
         if (_lockscreenSetting.getlastInvalidAttemptTime() >
                 DateTime.now().millisecondsSinceEpoch &&
             !_isShowingLockScreen) {
@@ -242,21 +238,16 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
             _showLockScreen(source: "lifeCycle");
           });
         } else if (!_suppressAutoPrompt) {
-          // No cooldown: auto-prompt when app becomes active again
           _showLockScreen(source: "lifeCycle");
         }
       } else {
-        _hasAuthenticationFailed = false; // Reset failure state
+        _hasAuthenticationFailed = false;
       }
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      // This is triggered either when the lock screen pops up or when
-      // the app is pushed to background
       if (!_isShowingLockScreen) {
         _hasPlacedAppInBackground = true;
-        _hasAuthenticationFailed = false; // reset failure state
-        // If we suppressed the initial auto-prompt due to manual lock,
-        // enable auto-prompt for the next resume after focus loss.
+        _hasAuthenticationFailed = false;
         _suppressAutoPrompt = false;
       }
     }
@@ -364,15 +355,13 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
           isTimerRunning = false;
         });
       } else {
+        // Backgrounding the app is not a failed authentication.
         if (!_hasPlacedAppInBackground) {
-          // Treat this as a failure only if user did not explicitly
-          // put the app in background
           if (_lockscreenSetting.getInvalidAttemptCount() > 4 &&
               invalidAttemptCount !=
                   _lockscreenSetting.getInvalidAttemptCount()) {
             invalidAttemptCount = _lockscreenSetting.getInvalidAttemptCount();
 
-            // For logged-in users, auto-logout after 10 failed attempts
             if (invalidAttemptCount > 9 && widget.config.isLoggedIn()) {
               await _autoLogoutOnMaxInvalidAttempts();
               return;

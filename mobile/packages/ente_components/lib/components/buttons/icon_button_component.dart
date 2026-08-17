@@ -18,10 +18,7 @@ enum IconButtonComponentVariant {
   circular,
 }
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2207-42075&m=dev
-/// Section: Buttons / Icon Button
-/// Specs: 36px square, compact icon affordance with default, hover, pressed,
-/// disabled, loading, and success states.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2207-42075&m=dev
 class IconButtonComponent extends StatefulWidget {
   const IconButtonComponent({
     super.key,

@@ -5,7 +5,6 @@ import 'package:ente_contacts/src/service/contacts_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Read-oriented compatibility facade over the shared [ContactDirectory].
 class ContactsDisplayService {
   ContactsDisplayService._privateConstructor() : _store = ContactDirectory();
 
@@ -16,7 +15,7 @@ class ContactsDisplayService {
 
   ValueListenable<int> get changes => _store.revision;
 
-  /// Known accounts keep the same contact-scoped notifier across hydration.
+  // Known accounts keep the same notifier across cache hydration.
   ValueListenable<int> changesFor({int? contactUserId, String? email}) {
     final resolvedUserId = contactUserId != null && contactUserId > 0
         ? contactUserId

@@ -1,5 +1,5 @@
 import { Input, Stack, TextField } from "@mui/material";
-import { isWeakPassword } from "ente-accounts-rs/utils/password";
+import { isWeakPassword } from "ente-accounts/utils/password";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
 import React, { useState } from "react";
 import type { LegacyRecoverySession } from "..";

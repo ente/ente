@@ -6,9 +6,6 @@ import "package:photos/models/search/hierarchical/hierarchical_search_filter.dar
 class OnlyThemFilter extends HierarchicalSearchFilter {
   final List<FaceFilter> faceFilters;
   final int occurrence;
-
-  /// Workaround to avoid passing context to the filter to avoid making context
-  /// a long lived object.
   final String onlyThemString;
 
   OnlyThemFilter({

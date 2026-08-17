@@ -1,0 +1,1 @@
+- Show newly added device photos immediately and keep local photos visible when hiding shared items.

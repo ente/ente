@@ -39,11 +39,9 @@ EXECUTE PROCEDURE
     trigger_updated_at_microseconds_column();
 
 
--- This function updates the entity_key updated_at if the relevant entity_data is changed
 CREATE OR REPLACE FUNCTION fn_update_entity_key_updated_at_via_updated_at() RETURNS TRIGGER AS
 $$
 BEGIN
-    --
     IF (TG_OP = 'UPDATE' OR TG_OP = 'INSERT') THEN
         UPDATE entity_key
         SET updated_at = NEW.updated_at
@@ -61,4 +59,3 @@ CREATE TRIGGER trigger_entity_key_on_entity_data_updation
     FOR EACH ROW
 EXECUTE PROCEDURE
     fn_update_entity_key_updated_at_via_updated_at();
-

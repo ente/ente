@@ -43,12 +43,15 @@ type OldMessage = Omit<StoredMessage, "attachments"> & {
     deletedAt?: number | null;
     isDeleted?: boolean;
 };
-type AttachmentBytes = { id: string; data: Uint8Array<ArrayBuffer> };
-type BrowserStore = {
+interface AttachmentBytes {
+    id: string;
+    data: Uint8Array<ArrayBuffer>;
+}
+interface BrowserStore {
     sessions: OldSession[];
     messages: OldMessage[];
     attachmentBytes: AttachmentBytes[];
-};
+}
 
 interface OldIndexedDb extends DBSchema {
     sessions: { key: string; value: OldSession };
@@ -287,13 +290,8 @@ const removeCurrentBrowserTombstones = async () => {
 };
 
 const readOldIndexedDb = async () => {
-    let created = false;
-    const source = await openDB<OldIndexedDb>(OLD_INDEXED_DB, undefined, {
-        upgrade: () => {
-            created = true;
-        },
-    });
-    if (created || !source.objectStoreNames.contains("sessions")) {
+    const source = await openDB<OldIndexedDb>(OLD_INDEXED_DB);
+    if (!source.objectStoreNames.contains("sessions")) {
         source.close();
         await deleteDB(OLD_INDEXED_DB);
         return undefined;

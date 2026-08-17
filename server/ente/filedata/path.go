@@ -7,8 +7,7 @@ import (
 	"github.com/ente/museum/ente/base"
 )
 
-// BasePrefix returns the base prefix for all objects related to a file. To check if the file data is deleted,
-// ensure that there's no file in the S3 bucket with this prefix.
+// File data is fully deleted only when no objects remain under this prefix.
 func BasePrefix(fileID int64, ownerID int64) string {
 	return fmt.Sprintf("%d/file-data/%d/", ownerID, fileID)
 }

@@ -99,6 +99,7 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
 
   void _clearSearch() {
     _searchController.clear();
+    _searchFocusNode.unfocus();
     _onSearchChanged('');
   }
 
@@ -141,6 +142,7 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
         controller: _searchController,
         focusNode: _searchFocusNode,
         hintText: context.strings.searchSettings,
+        shouldUnfocusOnClearOrSubmit: true,
         onChanged: _onSearchChanged,
         prefix: HugeIcon(
           icon: HugeIcons.strokeRoundedSearch01,

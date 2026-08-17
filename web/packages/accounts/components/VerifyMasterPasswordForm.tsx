@@ -1,4 +1,5 @@
 import { Input, TextField } from "@mui/material";
+import { decryptBox, deriveKey } from "ente-accounts/services/crypto";
 import {
     srpVerificationUnauthorizedErrorMessage,
     type SRPAttributes,
@@ -6,7 +7,6 @@ import {
 import type { KeyAttributes } from "ente-accounts/services/user";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
-import { decryptBox, deriveKey } from "ente-base/crypto";
 import log from "ente-base/log";
 import { useFormik } from "formik";
 import { t } from "i18next";

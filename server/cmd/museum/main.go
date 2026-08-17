@@ -154,8 +154,7 @@ func main() {
 		TaskLockingRepo: taskLockingRepo,
 		HostName:        hostName,
 	}
-	// Note: during boot-up, release any locks that might have been left behind.
-	// This is a safety measure to ensure that no locks are left behind in case of a crash or restart.
+	// Clear locks left by a crash or restart.
 	lockController.ReleaseHostLock()
 
 	var latencyLogger = promauto.NewHistogramVec(prometheus.HistogramOpts{
@@ -199,7 +198,7 @@ func main() {
 	usageRepo := &repo.UsageRepository{DB: db, UserRepo: userRepo}
 	fileRepo := &repo.FileRepository{DB: db, S3Config: s3Config, QueueRepo: queueRepo,
 		ObjectRepo: objectRepo, ObjectCleanupRepo: objectCleanupRepo,
-		ObjectCopiesRepo: objectCopiesRepo, UsageRepo: usageRepo}
+		ObjectCopiesRepo: objectCopiesRepo}
 	fileLinkRepo := public.NewFileLinkRepo(db)
 	pasteRepo := public.NewPasteRepository(db)
 	fileDataRepo := &fileDataRepo.Repository{DB: db, ObjectCleanupRepo: objectCleanupRepo}
@@ -877,7 +876,7 @@ func main() {
 	publicAPI.GET("/family/invite-info/:token", familyHandler.GetInviteInfo)
 	publicAPI.POST("/family/accept-invite", familyHandler.AcceptInvite)
 
-	privateAPI.DELETE("/family/leave", familyHandler.Leave) // native/web app
+	privateAPI.DELETE("/family/leave", familyHandler.Leave)
 
 	familyAuthAPI.POST("/family/create", familyHandler.CreateFamily)
 	familyAuthAPI.POST("/family/add-member", familyHandler.InviteMember)
@@ -1264,7 +1263,7 @@ func setupAndStartBackgroundJobs(
 		return
 	}
 
-	fileDataCtrl.StartDataDeletion() // Start data deletion for file data;
+	fileDataCtrl.StartDataDeletion()
 	contactController.StartDataDeletion()
 	objectCleanupController.StartRemovingUnreportedObjects()
 	spaceModule.Cleanup.StartRemovingUnreportedObjects()
@@ -1434,7 +1433,6 @@ func cors() gin.HandlerFunc {
 
 func cacheHeaders() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Add "Cache-Control: no-store" to HTTP GET API responses.
 		if c.Request.Method == http.MethodGet {
 			reqPath := urlSanitizer(c)
 			if reqPath == "/files/preview/:fileID" ||

@@ -17,10 +17,8 @@ class LabeledControlComponent extends StatelessWidget {
   final String label;
   final String? subtitle;
 
-  /// Overrides the label and subtitle color.
   final Color? foreground;
 
-  /// Called when the label area is tapped.
   final VoidCallback? onTap;
 
   @override

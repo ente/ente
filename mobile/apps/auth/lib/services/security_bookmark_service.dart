@@ -2,10 +2,7 @@ import 'dart:io';
 
 import 'package:scoped_dir_access/scoped_dir_access.dart';
 
-/// Service for managing iOS security-scoped bookmarks.
-///
-/// This is a thin wrapper around [DirUtils] for backward compatibility.
-/// You can use [DirUtils.instance] directly if you prefer.
+// Backward-compatible wrapper; new code can use DirUtils directly.
 class SecurityBookmarkService {
   SecurityBookmarkService._();
 
@@ -13,11 +10,7 @@ class SecurityBookmarkService {
 
   final _dirUtils = DirUtils.instance;
 
-  /// Opens native iOS directory picker and creates a bookmark immediately.
-  ///
-  /// Returns a [DirectoryPickResult] with both path and bookmark, or null if cancelled.
-  /// This is the preferred method on iOS as it creates the bookmark while we still
-  /// have the security-scoped URL from the picker.
+  // Create the bookmark while the picker still owns the security-scoped URL.
   Future<DirectoryPickResult?> pickDirectoryAndCreateBookmark() async {
     if (!Platform.isIOS) return null;
 
@@ -30,12 +23,7 @@ class SecurityBookmarkService {
     );
   }
 
-  /// Starts accessing a security-scoped resource using a stored bookmark.
-  ///
-  /// Returns a [BookmarkAccessResult] containing the success status,
-  /// resolved path, and whether the bookmark is stale.
-  ///
-  /// You MUST call [stopAccessingBookmark] when done to balance the call.
+  // Each successful call must be balanced with stopAccessingBookmark.
   Future<BookmarkAccessResult?> startAccessingBookmark(String bookmark) async {
     if (!Platform.isIOS) return null;
 
@@ -50,10 +38,6 @@ class SecurityBookmarkService {
     );
   }
 
-  /// Stops accessing a security-scoped resource.
-  ///
-  /// Always call this after you're done with file operations to
-  /// balance the [startAccessingBookmark] call.
   Future<bool> stopAccessingBookmark(String bookmark) async {
     if (!Platform.isIOS) return true;
 

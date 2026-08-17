@@ -32,8 +32,7 @@ class LocalBackupService {
     });
   }
 
-  /// Clear backup password on fresh install (like lock screen does).
-  /// Only clears if not logged in and not in offline mode.
+  // Clear any backup password left in secure storage by an earlier install.
   Future<void> _clearBackupPasswordIfFreshInstall(
     bool hasOptedForOfflineMode,
   ) async {
@@ -92,8 +91,7 @@ class LocalBackupService {
     return triggerAutomaticBackup();
   }
 
-  /// Write backup to a directory that we already have scoped access to.
-  /// Used on iOS where security-scoped access is held by caller.
+  // The caller must hold security-scoped access on iOS.
   Future<bool> writeBackupToDirectory(String directoryPath) async {
     try {
       final String? password = await _readPassword();
@@ -136,7 +134,6 @@ class LocalBackupService {
       final dirUtils = DirUtils.instance;
       final contentBytes = Uint8List.fromList(utf8.encode(content));
 
-      // Android SAF
       if (target.treeUri != null) {
         final dir = PickedDirectory(path: '', treeUri: target.treeUri);
         final success = await dirUtils.writeFile(dir, fileName, contentBytes);
@@ -146,7 +143,6 @@ class LocalBackupService {
         return success;
       }
 
-      // iOS/macOS with bookmark - write directly to the selected directory
       if ((Platform.isIOS || Platform.isMacOS) && target.iosBookmark != null) {
         final dir = PickedDirectory(
           path: target.path!,
@@ -166,7 +162,6 @@ class LocalBackupService {
         return result ?? false;
       }
 
-      // Other platforms (Windows, Linux): direct file write
       final basePath = target.path!;
       await Directory(basePath).create(recursive: true);
       final filePath = '$basePath/$fileName';
@@ -211,7 +206,6 @@ class LocalBackupService {
           .where((f) => _isBackupFile(p.basename(f.path)))
           .toList();
 
-      // Sort by mtime async
       final filesWithMtime = await Future.wait(
         files.map((f) async => (f, await f.lastModified())),
       );
@@ -257,7 +251,6 @@ class LocalBackupService {
         }
       }
 
-      // On iOS/macOS, use scoped access via bookmark
       if ((Platform.isIOS || Platform.isMacOS) &&
           iosBookmark != null &&
           iosBookmark.isNotEmpty) {

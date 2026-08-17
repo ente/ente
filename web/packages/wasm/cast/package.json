@@ -1,0 +1,20 @@
+{
+    "name": "ente-cast-wasm",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": {
+            "types": "./index.ts",
+            "import": "./index.ts"
+        }
+    },
+    "module": "./index.ts",
+    "types": "./index.ts",
+    "scripts": {
+        "build": "cd ../../../../rust/bindings/wasm/cast && wasm-pack build . --target bundler --out-dir ../../../../web/packages/wasm/cast/pkg --no-pack -- -Z build-std=panic_abort,std"
+    },
+    "devDependencies": {
+        "ente-build-config": "*",
+        "wasm-pack": "0.15.0"
+    }
+}

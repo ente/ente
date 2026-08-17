@@ -98,7 +98,6 @@ class UserService {
     });
     _preferences = await SharedPreferences.getInstance();
     if (Configuration.instance.isLoggedIn() && !isLocalGalleryMode) {
-      // add artificial delay in refreshing 2FA status
       Future.delayed(
         const Duration(seconds: 5),
         () => {setTwoFactor(fetchTwoFactorStatus: true).ignore()},
@@ -206,8 +205,6 @@ class UserService {
     await _gateway.sendFeedback(feedback: feedback, type: type);
   }
 
-  // getPublicKey returns null value if email id is not
-  // associated with another ente account
   Future<String?> getPublicKey(String email) async {
     final String? cachedPubKey = _publicKeyCache.get(email);
     if (cachedPubKey != null) {
@@ -255,7 +252,6 @@ class UserService {
       if (hasSecurityStatusChanged) {
         Bus.instance.fire(UserDetailsChangedEvent());
       }
-      // handle email change from different client
       if (userDetails.email != _config.getEmail()) {
         await setEmail(userDetails.email);
       }
@@ -287,11 +283,8 @@ class UserService {
       if (!context.mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
-      // Determine if we should silently ignore the error and proceed with logout
       final bool silentlyIgnoreError =
-          // Token is already invalid (401 response)
           (e is DioException && e.response?.statusCode == 401) ||
-          // Custom endpoints where server might be non-existent or unavailable
           !endpointConfig.isProduction;
 
       if (silentlyIgnoreError) {
@@ -305,7 +298,6 @@ class UserService {
 
         await Configuration.instance.logout();
 
-        // Navigate to first route if context is still mounted
         if (context.mounted) {
           Navigator.of(context).popUntil((route) => route.isFirst);
         }
@@ -313,8 +305,7 @@ class UserService {
       }
 
       _logger.severe("Failed to logout", e);
-      //This future is for waiting for the dialog from which logout() is called
-      //to close and only then to show the error dialog.
+      // Let the logout dialog close before showing the error.
       if (!context.mounted) return;
       unawaited(
         Future.delayed(const Duration(milliseconds: 150), () {
@@ -1237,15 +1228,6 @@ class UserService {
     }
   }
 
-  /// Returns Contacts(Users) that are relevant to the account owner.
-  /// Note: "User" refers to the account owner in the points below.
-  /// This includes:
-  /// 	- Collaborators and viewers of collections owned by user
-  ///   - Owners of collections shared to user.
-  ///   - All collaborators of collections in which user is a collaborator or
-  ///     a viewer.
-  ///   - All family members of user.
-  ///   - All contacts linked to a person.
   List<UserSuggestion> getRelevantContacts() {
     final int ownerID = Configuration.instance.getUserID()!;
     final String ownerEmail = Configuration.instance.getEmail()!;
@@ -1260,14 +1242,11 @@ class UserService {
 
     for (final c in CollectionsService.instance.getActiveCollections()) {
       if (c.owner.id == ownerID) {
-        // Collaborators and viewers of collections owned by user
         for (final User u in c.sharees) {
           add(u.email, userID: u.id);
         }
       } else if (c.owner.email.isNotEmpty) {
-        // Owners of collections shared with user
         add(c.owner.email, userID: c.owner.id);
-        // Collaborators of collections in which user participates
         final participates = c.sharees.any(
           (u) =>
               u.email == ownerEmail &&

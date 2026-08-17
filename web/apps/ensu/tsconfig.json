@@ -3,6 +3,7 @@
     "compilerOptions": {
         "paths": { "@/*": ["./src/*"] },
         "allowJs": true,
+        "checkJs": true,
         "incremental": true,
         "exactOptionalPropertyTypes": false
     },

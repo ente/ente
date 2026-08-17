@@ -1,14 +1,14 @@
 # Running Museum
 
-You can run a Docker compose cluster containing museum, the web app, and the essential auxiliary services it requires (database and object storage). This is the easiest and simplest way to get started, and also provides an isolated environment that doesn't clutter your machine.
+The Docker Compose setup runs Museum, Postgres, and MinIO in an isolated cluster. This is the easiest way to get started.
 
-You can also run museum directly on your machine if you wish - it is a single static go binary.
+You can also run the static Go binary directly on your machine.
 
-This document describes these different approaches (you can choose any one), and also outlines configuration.
+This document covers both approaches and Museum's configuration.
 
-- [Run using pre-built Docker images](quickstart/README.md)
+- [Run using pre-built Docker images](docs/quickstart.md)
 - [Run using Docker, building image from source](#build-and-run-using-docker)
-- [Run with Docker, à la carte](#pre-built-images)
+- [Use individual pre-built images](#pre-built-images)
 - [Run without Docker](#running-without-docker)
 - [Configuration](#configuration)
 
@@ -22,44 +22,44 @@ For more details, see [docs/quickstart.md](docs/quickstart.md).
 
 ## Build and run using Docker
 
-Start the cluster (in the `ente/server` directory)
+From `ente/server`, start the cluster:
 
 ```sh
 docker compose up --build
 ```
 
-Once the cluster has started, you should be able to do call museum
+Once the cluster has started, call Museum:
 
 ```sh
 curl http://localhost:8080/ping
 ```
 
-Or connect from the [web app](../web)
+Or connect from the [web app](../web):
 
 ```sh
 NEXT_PUBLIC_ENTE_ENDPOINT=http://localhost:8080 npm run dev
 ```
 
-Or connect from the [mobile app](../mobile)
+Or connect from the [mobile app](../mobile):
 
 ```sh
 flutter run --dart-define=endpoint=http://localhost:8080
 ```
 
-Or interact with the other services in the cluster, e.g. connect to the DB
+Connect to Postgres:
 
 ```sh
 docker compose exec postgres env PGPASSWORD=pgpass psql -U pguser -d ente_db
 ```
 
-Or interact with the MinIO S3 API
+Use the MinIO S3 API:
 
 ```sh
 AWS_ACCESS_KEY_ID=changeme AWS_SECRET_ACCESS_KEY=changeme1234 \
     aws s3 --endpoint-url http://localhost:3200 ls s3://b2-eu-cen
 ```
 
-Or open the MinIO dashboard at http://localhost:3201
+Or open the MinIO dashboard at http://localhost:3201.
 
 > [!NOTE]
 >
@@ -67,15 +67,15 @@ Or open the MinIO dashboard at http://localhost:3201
 
 > [!WARNING]
 >
-> The default credentials are user changeme / password changeme1234. Goes without saying, but remember to change them!
+> The sample credentials are user `changeme` and password `changeme1234`. Change them before any non-local use.
 
 > [!NOTE]
 >
-> While we've provided a MinIO based Docker compose file to make it easy for people to get started, if you're running it in production we recommend using an external S3.
+> For production, we recommend using external S3-compatible storage instead of the bundled MinIO service.
 
 ### Cleanup
 
-Persistent data is stored in Docker volumes and will persist across container restarts. The volume can be saved / inspected using the `docker volumes` command.
+Persistent data is stored in Docker volumes and survives container restarts. Inspect the volumes with `docker volume ls`.
 
 To remove stopped containers, use `docker compose rm`. To also remove volumes, use `docker compose down -v`.
 
@@ -85,21 +85,21 @@ You can spin up independent clusters, each with its own volumes, by using the `-
 
 ### Pruning images
 
-Each time museum gets rebuilt from source, a new image gets created but the old one is retained as a dangling image. You can use `docker image prune --force`, or `docker system prune` if that's fine with you, to remove these.
+Each source build creates a new image and leaves the old one dangling. Remove dangling images with `docker image prune --force`, or use `docker system prune` for a broader cleanup.
 
 ## Pre-built images
 
-## server
+### Server
 
-If you have setup the database and object storage externally and only want to run Ente's server, you can just pull and run the image from **`ghcr.io/ente/server`**.
+If you have provisioned Postgres and object storage separately, pull the server image from `ghcr.io/ente/server`.
 
 ```sh
 docker pull ghcr.io/ente/server
 ```
 
-## web
+### Web
 
-Similarly, there is a pre-built Docker image containing all the web apps which you can just pull and run the from **`ghcr.io/ente/web`**.
+The image at `ghcr.io/ente/web` contains all the web apps.
 
 ```sh
 docker pull ghcr.io/ente/web
@@ -109,7 +109,7 @@ For details about configuring the web image, see [web/docs/docker.md](../web/doc
 
 ## Running without Docker
 
-The museum binary can be run by using `go run cmd/museum/main.go`. But first, you'll need to prepare your machine for development. Here we give the steps, with examples that work for macOS (please adapt to your OS).
+The following development setup runs Museum directly on macOS. Adapt the package installation commands for other operating systems.
 
 ### Install [Go](https://golang.org/dl/)
 
@@ -125,7 +125,7 @@ brew install postgresql@15
 
 > [!NOTE]
 >
-> Here we install same major version of Postgres as our production database to avoid surprises, but if you're using a newer Postgres that should work fine too.
+> This installs the same Postgres major version used in production. Newer versions should also work.
 
 Run the service:
 
@@ -147,7 +147,7 @@ brew services run postgresql@15
 > brew services start postgresql@15
 > ```
 
-Create the database and user (one time)
+Create the database and user once:
 
 ```sh
 psql postgres -c "CREATE USER pguser WITH PASSWORD 'pgpass';"
@@ -165,9 +165,6 @@ psql postgres -c "CREATE DATABASE ente_db OWNER pguser;"
 > ```sh
 > psql ente_db
 > ```
->
-> Data is stored in `/opt/homebrew/var/postgresql@15`
-
 ### Install Local S3
 
 If you don't have a test S3 bucket, you can run a S3 compatible API locally. This section outlines using minio. Garage is also a newer alternative.
@@ -177,7 +174,7 @@ brew install minio minio-mc
 brew services run minio
 ```
 
-One time bucket creation.
+Create the bucket once:
 
 ```sh
 mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
@@ -219,12 +216,6 @@ From `ente/server`,
 go run cmd/museum/main.go
 ```
 
-For live reloads, install [air](https://github.com/cosmtrek/air#installation). Then you can just call `air` after declaring the required environment variables. For example,
-
-```sh
-air
-```
-
 ### Testing
 
 For quick local iteration without Postgres-backed tests, run `go test ./...` or a narrower package like `go test ./pkg/controller/email`. Tests that require Postgres skip unless the test environment is explicitly enabled.
@@ -244,9 +235,7 @@ The script creates a temporary `ente_test_*` database on the selected Postgres i
 
 ## Configuration
 
-Now that you have museum running (either inside Docker or standalone), we can talk about configuring it.
-
-By default, museum runs in the "local" configuration using values specified in `local.yaml`.
+By default, Museum uses the values in `configurations/local.yaml`.
 
 To override these values, you can create a file named `museum.yaml` in the current directory. This path is git-ignored for convenience. Note that if you run the Docker compose cluster without creating this file, Docker will create an empty directory named `museum.yaml` which you can `rmdir` if you need to provide a config file later on.
 
@@ -254,4 +243,4 @@ The keys and values supported by this configuration file are documented in [conf
 
 > [!TIP]
 >
-> If your mobile app is able to connect to your self hosted instance but is not able to view or upload images, see [ente.com/help/self-hosting/administration/object-storage](https://ente.com/help/self-hosting/administration/object-storage).
+> If your mobile app can connect to your self-hosted instance but cannot view or upload images, see [ente.com/help/self-hosting/administration/object-storage](https://ente.com/help/self-hosting/administration/object-storage).

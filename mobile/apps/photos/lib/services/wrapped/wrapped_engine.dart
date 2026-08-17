@@ -21,11 +21,9 @@ import "package:photos/services/wrapped/models.dart";
 final Logger _engineLogger = Logger("WrappedEngine");
 final Logger _computeLogger = Logger("WrappedEngineIsolate");
 
-/// Orchestrates the single-isolate computation pipeline for Ente Rewind.
 class WrappedEngine {
   const WrappedEngine._();
 
-  /// Schedules the compute pipeline on a worker isolate.
   static Future<WrappedResult> compute({required int year}) async {
     final DateTime now = DateTime.now();
     _engineLogger.fine("Scheduling Wrapped compute for $year at $now");

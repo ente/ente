@@ -57,15 +57,12 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
 
   VideoEditorController? _controller;
 
-  /// Toggle state for internal users to switch between native and FFmpeg export
-  /// Initially set to the flag service value
   late bool _useNativeExport;
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize toggle with flagService value
     _useNativeExport = flagService.useNativeVideoEditor;
 
     _controller = VideoEditorController.file(widget.ioFile);
@@ -419,8 +416,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
           ".mp4";
       final galleryTitle = await getMediaStoreCompatibleTitle(fileName);
 
-      //Disabling notifications for assets changing to insert the file into
-      //files db before triggering a sync.
+      // Insert the edited file before asset notifications trigger a sync.
       await PhotoManager.stopChangeNotify();
       notificationsStopped = true;
 
@@ -460,8 +456,6 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
         showShortToast(context, context.strings.editsSaved);
         final files = List<EnteFile>.of(widget.detailPageConfig.files);
 
-        // the index could be -1 if the files fetched doesn't contain the newly
-        // edited files
         int selectionIndex = files.indexWhere(
           (file) => file.generatedID == newFile.generatedID,
         );

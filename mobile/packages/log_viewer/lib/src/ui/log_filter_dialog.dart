@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:log_viewer/src/core/log_models.dart';
 
-/// Dialog for configuring log filters
 class LogFilterDialog extends StatefulWidget {
   final List<String> availableLoggers;
   final List<String> availableProcesses;
@@ -106,7 +105,6 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
@@ -132,7 +130,6 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
               ),
             ),
 
-            // Content
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -142,7 +139,6 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Log Levels
                     Text(
                       'Log Levels',
                       style: theme.textTheme.titleMedium?.copyWith(
@@ -161,7 +157,6 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Process Prefixes
                     if (widget.availableProcesses.isNotEmpty) ...[
                       Text(
                         'Process',
@@ -270,7 +265,6 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
                       const SizedBox(height: 16),
                     ],
 
-                    // Loggers
                     if (widget.availableLoggers.isNotEmpty) ...[
                       Text(
                         'Loggers',
@@ -373,7 +367,6 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
               ),
             ),
 
-            // Actions
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(

@@ -6,9 +6,9 @@ class Language {
 
   const Language({required this.iso639_2, required this.name, this.native});
 
-  // subset of ISO 639-2 codes for living languages (including macrolanguages, excluding constructed and collective ones)
-  // synonyms for terminology and bibliographic applications (ISO 639-2/T and ISO 639-2/B) are separate entries
-  // some entries have been simplified to keep only one name for one code
+  // ISO 639-2 living languages, including macrolanguages but excluding
+  // constructed and collective codes. Terminological and bibliographic aliases
+  // are separate entries; some names are simplified.
   static const living639_2 = [
     Language(
       iso639_2: 'aar',

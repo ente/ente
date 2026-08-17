@@ -2,9 +2,7 @@ import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as material show Slider;
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=57-6281&m=dev
-/// Section: Slider
-/// Specs: Mobile slider primitive using primary and stroke tokens.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=57-6281&m=dev
 class SliderComponent extends StatelessWidget {
   const SliderComponent({
     super.key,

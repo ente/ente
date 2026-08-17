@@ -1,4 +1,4 @@
-import { TwoFactorAuthorizationResponse } from "ente-accounts-rs/services/user";
+import { TwoFactorAuthorizationResponse } from "ente-accounts/services/user";
 import { clientPackageName } from "ente-base/app";
 import {
     fromB64URLSafeNoPadding,

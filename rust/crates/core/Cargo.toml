@@ -8,22 +8,19 @@ edition = "2024"
 argon2 = "0.5"
 base64 = "0.22"
 blake2b_simd = "1.0"
+crypto_secretbox = { version = "0.1", default-features = false, features = ["alloc", "salsa20"] }
 crypto_secretstream = "=0.2.0"
-# We enable `getrandom`'s `js` feature so that the crate works on
-# `wasm32-unknown-unknown` (it uses the browser's `crypto.getRandomValues`).
-# This also enables `rand_core::OsRng` on WASM.
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.4", features = ["wasm_js"] }
 log.workspace = true
 md-5.workspace = true
-rand_core = { version = "0.6", features = ["getrandom"] }
+rand_core_06 = { package = "rand_core", version = "0.6", features = ["getrandom"] }
 reqwest = { workspace = true, features = ["http2", "charset", "system-proxy", "json", "rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
 salsa20 = "0.10"
 serde.workspace = true
 serde_json.workspace = true
 subtle = "2"
 thiserror.workspace = true
-x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-xsalsa20poly1305 = "0.9"
+x25519-dalek = { version = "3.0", features = ["static_secrets"] }
 zeroize.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

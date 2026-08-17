@@ -50,22 +50,6 @@ const _memoryCaptionActionBarGap = 4.0;
 const _memoryCaptionLineHeight = 16.0;
 const _memoryCaptionScrimTopPadding = 12.0;
 
-//There are two states of variables that FullScreenMemory depends on:
-//1. The list of memories
-//2. The current index of the page view
-
-//1
-//Only when items are deleted will list of memories change and this requires the
-//whole screen to be rebuild. So the InheritedWidget is updated using the Updater
-//widget which will then lead to a rebuild of all widgets that call
-//InheritedWidget.of(context).
-
-//2
-//There are widgets that doesn't come inside the PageView that needs to rebuild
-//with new state when page index is changed. So the index is stored in a
-//ValueNotifier inside the InheritedWidget and the widgets that need to change
-//are wrapped in a ValueListenableBuilder.
-
 //TODO: Use better naming convention. "Memory" should be a whole memory and
 //parts of the memory should be called "items".
 int? _clampedMemoryIndex(int index, int length) {
@@ -77,6 +61,8 @@ bool _isValidMemoryIndex(int index, int length) {
   return index >= 0 && index < length;
 }
 
+// Deleting a memory changes the shared list and rebuilds the screen. Page
+// changes use a ValueNotifier so widgets outside the PageView also rebuild.
 class FullScreenMemoryDataUpdater extends StatefulWidget {
   final List<Memory> memories;
   final int initialIndex;
@@ -319,8 +305,7 @@ class FullScreenMemoryData extends InheritedWidget {
 
   @override
   bool updateShouldNotify(FullScreenMemoryData oldWidget) {
-    // Checking oldWidget.memories.length != memories.length here doesn't work
-    //because the old widget and new widget reference the same memories list.
+    // Lengths cannot detect changes because both widgets share the memory list.
     return true;
   }
 }
@@ -354,7 +339,6 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
   // AnimatedSwitcher doesn't animate its initial child, so we wrap it
   // in an AnimatedOpacity that ramps 0→1 after the first frame.
   double _firstPhotoOpacity = 0;
-  // Photo crossfade durations for auto vs manual advance.
   static const _autoCrossfadeDuration = Duration(milliseconds: 600);
   static const _manualCrossfadeDuration = Duration(milliseconds: 200);
   // How long to hold the incoming photo's Ken Burns still. Intentionally
@@ -370,7 +354,6 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
   bool _isMediaZoomed = false;
   final _socialControlsVisible = ValueNotifier<bool>(false);
 
-  /// Used to check if any pointer is on the screen.
   final hasPointerOnScreenNotifier = ValueNotifier<bool>(false);
   bool hasFinalFileLoaded = false;
   bool isAtFirstOrLastFile = false;
@@ -433,11 +416,6 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
     super.dispose();
   }
 
-  /// Used to check if user has touched the screen and then to pause animation
-  /// and once the pointer is removed from the screen, it resumes the animation
-  /// It also resets the zoom of the photo view to default for better user
-  /// experience after finger(s) is removed from the screen after zooming in by
-  /// pinching.
   void _hasPointerListener() {
     if (hasPointerOnScreenNotifier.value) {
       _toggleAnimation(pause: true);

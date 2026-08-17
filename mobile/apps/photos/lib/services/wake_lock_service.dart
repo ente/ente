@@ -10,11 +10,8 @@ enum WakeLockFor {
   largeBackupStandbyScreen,
 }
 
-/// Use this wrapper to use wakelock. This class makes sure that the wakelock
-/// setting across sessions if set is respected when wakelock is updated for
-/// other non across session purposes.
-/// Only place where this wrapper is not used for accessing wakelock APIs is
-/// in media_kit package.
+// Temporary callers must not override the across-session setting.
+// media_kit is the only code that intentionally bypasses this wrapper.
 class EnteWakeLockService {
   static const String kKeepAppAwakeAcrossSessions =
       "keepAppAwakeAcrossSessions";

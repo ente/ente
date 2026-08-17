@@ -15,7 +15,6 @@ class CropCalculation {
   final int width;
   final int height;
 
-  /// FFmpeg crop filter string: crop=w:h:x:y
   String toFFmpegFilter() => 'crop=$width:$height:$x:$y';
 }
 
@@ -27,15 +26,11 @@ class VideoCropException implements Exception {
   String toString() => 'VideoCropException: $message';
 }
 
-/// Helpers to derive display- and file-space crop rectangles for native export
 class VideoCropUtil {
   static double _clampNormalized(double value) {
     return value.clamp(0.0, 1.0);
   }
 
-  /// Calculate the crop rectangle in display-space pixels.
-  ///
-  /// Returns a Rect in display-space so the native plugins can transform to file-space.
   static Rect calculateDisplaySpaceCropRect({
     required VideoEditorController controller,
   }) {
@@ -46,8 +41,6 @@ class VideoCropUtil {
     );
   }
 
-  /// Testability helper: bypasses controller and platform checks by accepting
-  /// raw crop data. Only used in unit tests.
   @visibleForTesting
   static Rect calculateDisplaySpaceCropRectFromData({
     required Offset minCrop,
@@ -104,7 +97,6 @@ class VideoCropUtil {
     );
   }
 
-  /// Convert the normalised crop selection into file-space coordinates.
   static CropCalculation calculateFileSpaceCrop({
     required VideoEditorController controller,
   }) {

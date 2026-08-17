@@ -5,6 +5,7 @@ import "package:flutter_test/flutter_test.dart";
 import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/services/auto_cast_service.dart";
+import "package:photos/src/rust/api/cast_api.dart";
 
 void main() {
   test("server session stop disconnects before revocation completes", () async {
@@ -13,7 +14,10 @@ void main() {
     final service = AutoCastService(
       transport: transport,
       gateway: gateway,
-      encodePayload: (_, _, _) => "encrypted-payload",
+      encodePayload: (_, _) => const PreparedCastPayload(
+        castToken: "cast-token",
+        encryptedPayload: "encrypted-payload",
+      ),
     );
     final device = Object();
     await service.connect(device, _FakeCollection());

@@ -6,8 +6,7 @@ const clusterMlVersion = 1;
 const petMlVersion = 1;
 const minimumClusterSize = 2;
 
-/// Bits for the `flags` bitmask on RemoteFaceEmbedding / RemoteClipEmbedding.
-/// Once shipped, a bit's meaning is immutable — only add new bits.
+// Remote embedding flag bits are immutable. Add new bits; never reuse old ones.
 const int mlIndexFlagRuntimeRust = 1 << 0;
 const int mlIndexFlagCoreML = 1 << 1;
 const int mlIndexFlagWebGPU = 1 << 2;

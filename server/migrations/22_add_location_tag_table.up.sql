@@ -3,7 +3,6 @@ $$
 SELECT CAST(extract(EPOCH from now() at time zone 'utc') * 1000000 as BIGINT) ;
 $$ language sql;
 
--- We can reuse this func to create triggers in other tables.
 CREATE OR REPLACE FUNCTION trigger_updated_at_microseconds_column()
     RETURNS TRIGGER AS
 $$

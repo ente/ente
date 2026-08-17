@@ -63,7 +63,7 @@ dependencies:
   event_bus: 2.0.1
   expandable: 5.0.1
   fast_base58: 0.2.1
-  file_picker: 10.3.10
+  file_picker: 11.0.3
   file_saver: 0.3.1
   flutter:
     sdk: flutter

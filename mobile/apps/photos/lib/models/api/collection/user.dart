@@ -4,8 +4,6 @@ import "dart:convert";
 class User {
   final int id;
   String email;
-
-  /// Local-only display name for anonymous social actors; never serialized.
   final String? label;
   String? role;
 
@@ -43,7 +41,5 @@ class UserSuggestion {
 
   final int? userID;
   final String email;
-
-  /// Local-only display label; see [User.label].
   final String? label;
 }

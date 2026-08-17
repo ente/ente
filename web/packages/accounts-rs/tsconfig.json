@@ -1,8 +1,0 @@
-{
-    "extends": "ente-build-config/tsconfig-next.json",
-    "include": [
-        ".",
-        "../base/global-electron.d.ts",
-        "../base/components/utils/mui-theme.d.ts"
-    ]
-}

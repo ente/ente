@@ -67,9 +67,8 @@ class _PetsItemWidgetState extends State<PetsItemWidget> {
         return;
       }
 
-      // Convert DBPetFace to Face objects for crop generation.
-      // The detection JSON stores box as [xMin, yMin, xMax, yMax] (xyxy),
-      // so we parse it into FaceBox(x, y, width, height) manually.
+      // Stored pet boxes are [xMin, yMin, xMax, yMax], while FaceBox takes
+      // [x, y, width, height].
       final faces = <Face>[];
       for (final dbPetFace in dbPetFaces) {
         final json = jsonDecode(dbPetFace.detection) as Map<String, dynamic>;

@@ -100,7 +100,6 @@ class _RequestPasswordVerificationPageState
               CryptoUtil.base642bin(attributes.keyDecryptionNonce),
             );
             await dialog.show();
-            // pop
             await widget.onPasswordVerified(keyEncryptionKey);
             await dialog.hide();
             if (context.mounted) {
@@ -153,8 +152,7 @@ class _RequestPasswordVerificationPageState
                   ),
                 ),
                 Visibility(
-                  // hidden textForm for suggesting auto-fill service for saving
-                  // password
+                  // Prompts platform password saving.
                   visible: false,
                   child: TextFormField(
                     autofillHints: const [AutofillHints.email],

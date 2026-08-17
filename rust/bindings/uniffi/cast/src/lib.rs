@@ -2,6 +2,8 @@ uniffi::setup_scaffolding!("cast");
 
 pub mod log;
 
+use std::sync::Arc;
+
 use ente_core::crypto;
 use thiserror::Error;
 
@@ -17,35 +19,50 @@ impl From<crypto::Error> for CastCryptoError {
     }
 }
 
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct CastKeyPair {
-    pub public_key: Vec<u8>,
-    pub private_key: Vec<u8>,
-}
-
-#[uniffi::export]
-pub fn generate_key_pair() -> CastKeyPair {
-    let private_key = crypto::SecretKey::generate();
-    let public_key = private_key.public_key();
-    CastKeyPair {
-        public_key: public_key.as_bytes().to_vec(),
-        private_key: private_key.as_bytes().to_vec(),
+impl From<ente_cast::Error> for CastCryptoError {
+    fn from(err: ente_cast::Error) -> Self {
+        CastCryptoError::Message(ente_core::error::chain(&err))
     }
 }
 
+#[derive(Clone, Debug, uniffi::Record)]
+pub struct CastPayload {
+    pub collection_id: i64,
+    pub cast_token: String,
+    pub collection_key: String,
+}
+
+impl From<ente_cast::CastPayload> for CastPayload {
+    fn from(payload: ente_cast::CastPayload) -> Self {
+        Self {
+            collection_id: payload.collection_id,
+            cast_token: payload.cast_token,
+            collection_key: payload.collection_key,
+        }
+    }
+}
+
+#[derive(uniffi::Object)]
+pub struct CastReceiver {
+    inner: ente_cast::ReceiverCredentials,
+}
+
 #[uniffi::export]
-pub fn open_sealed_box(
-    ciphertext: Vec<u8>,
-    public_key: Vec<u8>,
-    private_key: Vec<u8>,
-) -> Result<Vec<u8>, CastCryptoError> {
-    let public_key = crypto::PublicKey::try_from_slice(&public_key)?;
-    let private_key = crypto::SecretKey::try_from_slice(&private_key)?;
-    Ok(crypto::sealed::open(
-        &ciphertext,
-        &public_key,
-        &private_key,
-    )?)
+impl CastReceiver {
+    #[uniffi::constructor]
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self {
+            inner: ente_cast::ReceiverCredentials::generate(),
+        })
+    }
+
+    pub fn public_key(&self) -> String {
+        self.inner.public_key()
+    }
+
+    pub fn open_payload(&self, encrypted_payload: String) -> Result<CastPayload, CastCryptoError> {
+        Ok(self.inner.open_payload(&encrypted_payload)?.into())
+    }
 }
 
 #[uniffi::export]

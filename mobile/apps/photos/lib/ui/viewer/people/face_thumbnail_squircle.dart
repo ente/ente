@@ -2,12 +2,8 @@ import "dart:math" as math;
 
 import "package:flutter/widgets.dart";
 
-// Flutter's `RSuperellipse` clamps radii so they don't overlap, which means
-// radii > (side / 2) become circles. Historically we used an oversized radius
-// with `ContinuousRectangleBorder` to approximate the iOS squircle.
-//
-// This factor produces a similarly "squircled" look without collapsing into a
-// circle for the common square thumbnail sizes used across the app.
+// RSuperellipse radii above half the side collapse into a circle. This factor
+// preserves the previous iOS-style squircle shape.
 const double _kFaceThumbnailSquircleRadiusFactor = 0.30;
 const double _kFaceThumbnailSquircleMinStraightEdge = 8.0;
 

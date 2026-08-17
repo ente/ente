@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2207-41577&m=dev
-/// Section: Buttons / Button Small
-/// Specs: Button radius 20px; supporting surfaces use compact mobile radii.
+// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2207-41577&m=dev
 class Radii {
   const Radii._();
 

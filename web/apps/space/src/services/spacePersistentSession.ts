@@ -1,15 +1,15 @@
 import {
     replaceSavedLocalUser,
     savedPartialLocalUser,
-} from "ente-accounts-rs/services/accounts-db";
+} from "ente-accounts/services/accounts-db";
 import {
     decryptBox,
     encryptBox,
     fromB64,
     generateKey,
     toB64,
-} from "ente-accounts-rs/services/crypto";
-import { accountLogout } from "ente-accounts-rs/services/logout";
+} from "ente-accounts/services/crypto";
+import { accountLogout } from "ente-accounts/services/logout";
 import { ensureOk, publicRequestHeaders } from "ente-base/http";
 import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";

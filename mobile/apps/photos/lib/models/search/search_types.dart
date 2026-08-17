@@ -54,13 +54,11 @@ enum SectionType {
   wrapped,
   location,
   album,
-  // People section shows the files shared by other persons
   contacts,
   fileTypesAndExtension,
 }
 
 extension SectionTypeExtensions on SectionType {
-  // passing context for internalization in the future
   String sectionTitle(BuildContext context) {
     switch (this) {
       case SectionType.face:
@@ -103,8 +101,6 @@ extension SectionTypeExtensions on SectionType {
     }
   }
 
-  // isCTAVisible is used to show/hide the CTA button in the empty state
-  // Disable the CTA for face, content, moment, fileTypesAndExtension, fileCaption
   bool get isCTAVisible {
     switch (this) {
       case SectionType.face:
@@ -213,7 +209,6 @@ extension SectionTypeExtensions on SectionType {
             initialValue: "",
             textCapitalization: TextCapitalization.words,
             onSubmit: (String text) async {
-              // indicates user cancelled the rename request
               if (text.trim() == "") {
                 return;
               }
@@ -221,7 +216,7 @@ extension SectionTypeExtensions on SectionType {
                 final Collection c = await CollectionsService.instance
                     .createAlbum(text);
 
-                // Close the dialog now so that it does not flash when leaving the album again.
+                // Close now so it does not flash when returning from the album.
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
 
@@ -314,8 +309,6 @@ extension SectionTypeExtensions on SectionType {
     }
   }
 
-  ///Events to listen to for different search sections, different from common
-  ///events listened to in AllSectionsExampleState.
   List<Stream<Event>> sectionUpdateEvents() {
     switch (this) {
       case SectionType.location:

@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:io";
 import "dart:typed_data";
 
 import "package:collection/collection.dart";
@@ -10,6 +11,7 @@ import "package:ente_legacy/pages/legacy_congratulations_page.dart";
 import "package:ente_legacy/services/legacy_kit_local_settings.dart";
 import "package:ente_legacy/services/legacy_kit_pdf_service.dart";
 import "package:ente_legacy/services/legacy_kit_service.dart";
+import "package:ente_legacy/services/legacy_kit_share_file_service.dart";
 import "package:ente_rust/ente_rust.dart" as rust;
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/alert_bottom_sheet.dart";
@@ -19,10 +21,13 @@ import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
+import "package:path_provider/path_provider.dart";
 import "package:share_plus/share_plus.dart";
 
 typedef LegacyKitAuthenticator =
     Future<bool> Function(BuildContext context, String reason);
+
+final _legacyKitShareTokens = <String, Object>{};
 
 const _partNameStyle = TextStyle(
   fontFamily: TextStyles.outfitFontFamily,
@@ -373,13 +378,27 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
       if (!mounted) {
         return;
       }
+      final fileName = "${_fileNameForPart(part)}.pdf";
       final size = MediaQuery.sizeOf(context);
       final ShareResult result;
+      Directory? temporaryDirectory;
+      Directory? shareDirectory;
+      File? sharePlusCopy;
+      Object? shareToken;
       try {
+        temporaryDirectory = await getTemporaryDirectory();
+        shareDirectory = await temporaryDirectory.createTemp(
+          legacyKitShareDirectoryPrefix,
+        );
+        final pdf = File("${shareDirectory.path}/$fileName");
+        await pdf.writeAsBytes(bytes, flush: true);
+        // share_plus copies path-backed files here on Android.
+        sharePlusCopy = File("${temporaryDirectory.path}/share_plus/$fileName");
+        shareToken = Object();
+        _legacyKitShareTokens[sharePlusCopy.path] = shareToken;
         result = await SharePlus.instance.share(
           ShareParams(
-            files: [XFile.fromData(bytes, mimeType: "application/pdf")],
-            fileNameOverrides: ["${_fileNameForPart(part)}.pdf"],
+            files: [XFile(pdf.path, mimeType: "application/pdf")],
             sharePositionOrigin: Offset.zero & size,
           ),
         );
@@ -388,6 +407,12 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
           showShortToast(context, context.strings.somethingWentWrong);
         }
         return;
+      } finally {
+        if (temporaryDirectory != null && shareDirectory != null) {
+          unawaited(
+            _deleteSharedPdf(shareDirectory, sharePlusCopy, shareToken),
+          );
+        }
       }
       if (result.status == ShareResultStatus.dismissed || !mounted) {
         return;
@@ -651,7 +676,24 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
         .replaceAll(RegExp(r"-+"), "-")
         .replaceAll(RegExp(r"^-+|-+$"), "");
     final name = sanitized.isEmpty ? "part-${part.index}" : sanitized;
-    return "ente-legacy-kit-$name";
+    return "$legacyKitShareFilePrefix$name";
+  }
+}
+
+Future<void> _deleteSharedPdf(
+  Directory shareDirectory,
+  File? sharePlusCopy,
+  Object? shareToken,
+) async {
+  await Future<void>.delayed(legacyKitShareRetention);
+  await deleteLegacyKitShareFile(shareDirectory);
+  if (sharePlusCopy != null &&
+      shareToken != null &&
+      identical(_legacyKitShareTokens[sharePlusCopy.path], shareToken)) {
+    await deleteLegacyKitShareFile(sharePlusCopy);
+    if (identical(_legacyKitShareTokens[sharePlusCopy.path], shareToken)) {
+      _legacyKitShareTokens.remove(sharePlusCopy.path);
+    }
   }
 }
 

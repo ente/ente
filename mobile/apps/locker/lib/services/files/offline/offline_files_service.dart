@@ -12,10 +12,6 @@ import 'package:locker/services/files/sync/models/file.dart';
 import 'package:locker/services/info_file_service.dart';
 import 'package:logging/logging.dart';
 
-/// Handles Locker's explicit per-file offline save flow.
-///
-/// A file is marked offline only after the encrypted blob has been saved on
-/// this device.
 class OfflineFilesService {
   OfflineFilesService._privateConstructor();
 
@@ -31,7 +27,7 @@ class OfflineFilesService {
     await cleanupStaleOfflineFileCopies(olderThan: _cachedFileCleanupAge);
   }
 
-  /// Shared files and info records are intentionally excluded from offline save.
+  // Shared files and info records are excluded from offline save.
   bool _canMarkOffline(EnteFile file) {
     final currentUserID = Configuration.instance.getUserID();
     return file.uploadedFileID != null &&
@@ -54,7 +50,6 @@ class OfflineFilesService {
     return eligibleFilesById.values.toList();
   }
 
-  /// Downloads the encrypted blob and marks the file offline on success.
   Future<bool> markFilesOffline(
     BuildContext context,
     Iterable<EnteFile> files,
@@ -171,7 +166,6 @@ class OfflineFilesService {
     return successCount > 0;
   }
 
-  /// Clears offline state for the selected files on this device.
   Future<bool> unmarkFilesOffline(
     BuildContext context,
     Iterable<EnteFile> files,
@@ -250,8 +244,8 @@ class OfflineFilesService {
     await _clearOfflineState(staleFileIDs);
   }
 
-  /// Downloads first, then writes the local offline mark if the file is still
-  /// active in the current library view.
+  // Mark offline only after the encrypted copy is saved and the file is still
+  // active.
   Future<bool> _ensureOfflineCopyAndMark(EnteFile file) async {
     final fileID = file.uploadedFileID!;
     await ensureEncryptedOfflineCopy(file);

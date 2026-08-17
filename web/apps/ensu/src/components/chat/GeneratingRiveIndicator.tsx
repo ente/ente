@@ -1,12 +1,12 @@
 import { Box, Typography } from "@mui/material";
 import { memo, useEffect, useState } from "react";
 
-type GeneratingRiveIndicatorProps = {
+interface GeneratingRiveIndicatorProps {
     size?: number;
     fallbackText?: string;
     isGenerating?: boolean;
     isOutroPhase?: boolean;
-};
+}
 
 const DOT_STEP_MS = 420;
 

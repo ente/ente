@@ -15,7 +15,6 @@ import "package:photos/ui/social/widgets/resolved_social_user_name.dart";
 
 const _shrinkWrapThreshold = 30;
 
-/// Shows the likes bottom sheet for a comment
 Future<void> showCommentLikesBottomSheet(
   BuildContext context, {
   required List<Reaction> reactions,

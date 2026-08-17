@@ -58,7 +58,6 @@ class AddPhotosPhotoWidget extends StatelessWidget {
     });
     final Set<int> hiddenCollectionIDs = CollectionsService.instance
         .getHiddenCollectionIds();
-    // Hide the current collection files from suggestions
     hiddenCollectionIDs.add(collection.id);
 
     return Container(
@@ -233,9 +232,8 @@ class AddPhotosPhotoWidget extends StatelessWidget {
     }
   }
 
-  // _getAssetPickerTextDelegate returns the text delegate for the asset picker
-  // This custom method is required to enforce English as the default fallback
-  // instead of Chinese.
+  // AssetPicker's fallback is Chinese. Unsupported locales use its English
+  // delegate.
   Future<AssetPickerTextDelegate> _getAssetPickerTextDelegate() async {
     final Locale locale = (await getLocale())!;
     switch (locale.languageCode.toLowerCase()) {

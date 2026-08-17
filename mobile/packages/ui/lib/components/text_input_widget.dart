@@ -18,8 +18,6 @@ class TextInputWidget extends StatefulWidget {
   final bool? autoFocus;
   final int? maxLength;
 
-  ///TextInputWidget will listen to this notifier and executes onSubmit when
-  ///notified.
   final ValueNotifier? submitNotifier;
   final bool alwaysShowSuccessState;
   final bool showOnlyLoadingState;
@@ -69,8 +67,6 @@ class _TextInputWidgetState extends State<TextInputWidget> {
   final _debouncer = Debouncer(const Duration(milliseconds: 300));
   late final ValueNotifier<bool> _obscureTextNotifier;
 
-  ///This is to pass if the TextInputWidget is in a dialog and an error is
-  ///thrown in executing onSubmit by passing it as arg in Navigator.pop()
   Exception? _exception;
   bool _incorrectPassword = false;
   @override
@@ -272,11 +268,7 @@ class _TextInputWidgetState extends State<TextInputWidget> {
       setState(() {});
     }
 
-    // when the time taken by widget.onSubmit is approximately equal to the debounce
-    // time, the callback is getting executed when/after the if condition
-    // below is executing/executed which results in execution state stuck at
-    // idle state. This Future is for delaying the execution of the if
-    // condition so that the calback in the debouncer finishes execution before.
+    // Let the debounced callback finish before checking its execution state.
     await Future.delayed(const Duration(milliseconds: 5));
     if (!mounted) {
       return;

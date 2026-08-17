@@ -81,8 +81,7 @@ func (repo *FamilyRepository) AddMemberInvite(ctx context.Context, adminID int64
 	if adminID == memberID {
 		return "", stacktrace.Propagate(errors.New("memberID and adminID can not be same"), "")
 	}
-	// on conflict, we should not change the status from 'ACCEPTED' to `INVITED`.
-	// Also, the token should not be updated if the user is already in `INVITED` state.
+	// Reinviting must not replace an invite token or reopen an accepted membership.
 	_, err := repo.DB.ExecContext(ctx, `INSERT INTO families(id, admin_id, member_id, status, token, storage_limit) 
 			VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT (admin_id,member_id) 
 			    DO UPDATE SET(status, token) = ($4, $5) WHERE  NOT (families.status = ANY($7))`,
@@ -90,8 +89,6 @@ func (repo *FamilyRepository) AddMemberInvite(ctx context.Context, adminID int64
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
-	// separate query for fetch current token. Returning the same token in previous query was making query complex for
-	// the case when there's no DB update.
 	var activeInviteToken string
 	err = repo.DB.QueryRowContext(ctx, `SELECT token from families where admin_id = $1 and member_id = $2 and status = $3`,
 		adminID, memberID, ente.INVITED).Scan(&activeInviteToken)

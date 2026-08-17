@@ -10,6 +10,7 @@ import (
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/jwt"
+	"github.com/ente/museum/pkg/controller/authsession"
 	"github.com/ente/museum/pkg/utils/network"
 	"github.com/sirupsen/logrus"
 
@@ -35,53 +36,51 @@ func (m *AuthMiddleware) TokenAuthMiddleware(jwtClaimScope *jwt.ClaimScope) gin.
 			return
 		}
 		app := auth.GetApp(c)
-		cacheKey := fmt.Sprintf("%s:%s", app, token)
-		isJWT := false
-		if jwtClaimScope != nil {
-			isJWT = true
-			cacheKey = fmt.Sprintf("%s:%s:%s", app, token, *jwtClaimScope)
-		}
-		userID, found := m.Cache.Get(cacheKey)
-		var err error
-		if !found {
-			if isJWT {
-				claim, claimErr := m.UserController.ValidateJWTToken(token, *jwtClaimScope)
-				if claimErr != nil {
-					err = claimErr
-				} else {
-					userID = claim.UserID
-				}
-			} else {
-				var isExpired bool
-				userID, isExpired, err = m.UserAuthRepo.GetUserIDWithToken(token, app)
-				if err != nil && !errors.Is(err, sql.ErrNoRows) {
-					logrus.Errorf("Failed to validate token: %s", err)
-					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to validate token"})
-					return
-				}
-				if isExpired {
-					logrus.Warningf("User token expired: %d", userID)
-					c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token expired"})
-					return
-				}
+		var userID int64
+		if jwtClaimScope == nil {
+			var expired, cached bool
+			var err error
+			userID, expired, cached, err = authsession.Authenticate(m.UserAuthRepo, m.Cache, token, app)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				logrus.Errorf("Failed to validate token: %s", err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to validate token"})
+				return
 			}
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 				return
 			}
-			if !isJWT {
+			if expired {
+				logrus.Warningf("User token expired: %d", userID)
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token expired"})
+				return
+			}
+			if !cached {
 				ip := network.GetClientIP(c)
 				userAgent := c.Request.UserAgent()
 				// skip updating last used for requests routed via CF worker
 				if !network.IsCFWorkerIP(ip) {
 					go func() {
-						_ = m.UserAuthRepo.UpdateLastUsedAt(userID.(int64), token, ip, userAgent)
+						_ = m.UserAuthRepo.UpdateLastUsedAt(userID, token, ip, userAgent)
 					}()
 				}
 			}
-			m.Cache.Set(cacheKey, userID, cache.DefaultExpiration)
+		} else {
+			cacheKey := fmt.Sprintf("%s:%s:%s", app, token, *jwtClaimScope)
+			cachedUserID, found := m.Cache.Get(cacheKey)
+			if found {
+				userID = cachedUserID.(int64)
+			} else {
+				claim, err := m.UserController.ValidateJWTToken(token, *jwtClaimScope)
+				if err != nil {
+					c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+					return
+				}
+				userID = claim.UserID
+				m.Cache.Set(cacheKey, userID, cache.DefaultExpiration)
+			}
 		}
-		c.Request.Header.Set("X-Auth-User-ID", strconv.FormatInt(userID.(int64), 10))
+		c.Request.Header.Set("X-Auth-User-ID", strconv.FormatInt(userID, 10))
 		c.Set(auth.AppContextKey, app)
 		c.Next()
 	}

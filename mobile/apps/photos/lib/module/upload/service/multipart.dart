@@ -16,6 +16,8 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 
 class MultiPartUploader {
+  static const _maximumPartUploadAttempts = 3;
+
   final Dio _s3Dio;
   final UploadLocksDB _db;
   final FlagService _featureFlagService;
@@ -44,7 +46,6 @@ class MultiPartUploader {
 
     final encryptKeyNonce = CryptoUtil.base642bin(result.keyNonce);
 
-    // Get the full multipart info to access MD5 data
     final multipartInfo = await _db.getCachedLinks(
       localId,
       fileHash,
@@ -76,7 +77,6 @@ class MultiPartUploader {
       endpointConfig.isProduction;
 
   int calculatePartCount(int fileSize) {
-    // If the feature flag is disabled, return 1
     if (!_featureFlagService.enableMobMultiPart) return 1;
     if (!localSettings.userEnabledMultiplePart) return 1;
 
@@ -91,7 +91,6 @@ class MultiPartUploader {
     required List<String> partMd5s,
   }) async {
     try {
-      // Expected number of parts for given content and part length
       final recomputedCount = (contentLength / partLength).ceil();
 
       final urls = await _gateway.getMultipartUploadUrl(
@@ -99,7 +98,6 @@ class MultiPartUploader {
         partLength: partLength,
         partMd5s: partMd5s,
       );
-      // Validate server respected the requested count/segmentation
       if (urls.partsURLs.length != recomputedCount ||
           count != recomputedCount) {
         _logger.severe(
@@ -158,8 +156,9 @@ class MultiPartUploader {
     String localId,
     String fileHash,
     int collectionID,
-    String encryptedFileName,
-  ) async {
+    String encryptedFileName, {
+    ProgressCallback? onSendProgress,
+  }) async {
     final multipartInfo = await _db.getCachedLinks(
       localId,
       fileHash,
@@ -171,9 +170,12 @@ class MultiPartUploader {
     Map<int, String> etags = multipartInfo.partETags ?? {};
 
     if (multipartInfo.status == MultipartStatus.pending) {
-      // upload individual parts and get their etags
       try {
-        etags = await _uploadParts(multipartInfo, encryptedFile);
+        etags = await _uploadParts(
+          multipartInfo,
+          encryptedFile,
+          onSendProgress: onSendProgress,
+        );
       } on DioException catch (e) {
         if (e.response?.statusCode == 404) {
           _logger.severe(
@@ -189,10 +191,14 @@ class MultiPartUploader {
         }
         rethrow;
       }
+    } else {
+      onSendProgress?.call(
+        multipartInfo.encFileSize,
+        multipartInfo.encFileSize,
+      );
     }
 
     if (multipartInfo.status != MultipartStatus.completed) {
-      // complete the multipart upload
       try {
         await _completeMultipartUpload(
           multipartInfo.urls.objectKey,
@@ -225,8 +231,8 @@ class MultiPartUploader {
     int fileSize, {
     String? fileMd5,
     List<String>? partMd5s,
+    ProgressCallback? onSendProgress,
   }) async {
-    // upload individual parts and get their etags
     final etags = await _uploadParts(
       MultipartInfo(
         urls: urls,
@@ -235,9 +241,9 @@ class MultiPartUploader {
         partMd5s: partMd5s,
       ),
       encryptedFile,
+      onSendProgress: onSendProgress,
     );
 
-    // complete the multipart upload
     await _completeMultipartUpload(urls.objectKey, etags, urls.completeURL);
 
     return urls.objectKey;
@@ -245,8 +251,9 @@ class MultiPartUploader {
 
   Future<Map<int, String>> _uploadParts(
     MultipartInfo partInfo,
-    File encryptedFile,
-  ) async {
+    File encryptedFile, {
+    ProgressCallback? onSendProgress,
+  }) async {
     final partsURLs = partInfo.urls.partsURLs;
     final partUploadStatus = partInfo.partUploadStatus;
     final partsLength = partsURLs.length;
@@ -257,7 +264,6 @@ class MultiPartUploader {
     int i = 0;
     final partSize = partInfo.partSize ?? multipartPartSizeForUpload;
 
-    // Go to the first part that is not uploaded
     while (i < (partUploadStatus?.length ?? 0) &&
         (partUploadStatus?[i] ?? false)) {
       i++;
@@ -269,7 +275,6 @@ class MultiPartUploader {
         "File size mismatch. Expected ${partInfo.encFileSize} but got $encFileLength",
       );
     }
-    // Ensure the number of URLs matches what we expect from the part size
     final expectedCount = (encFileLength / partSize).ceil();
     if (partsLength != expectedCount) {
       _logger.severe(
@@ -279,7 +284,8 @@ class MultiPartUploader {
       );
       throw MultiPartError('multipart url count mismatch');
     }
-    // Start parts upload
+    var completedBytes = (i * partSize).clamp(0, encFileLength).toInt();
+    onSendProgress?.call(completedBytes, encFileLength);
     int count = 0;
     while (i < partsLength) {
       count++;
@@ -300,7 +306,6 @@ class MultiPartUploader {
         Headers.contentTypeHeader: "application/octet-stream",
       };
 
-      // Add MD5 header if available for this part
       if (partMd5s != null && i < partMd5s.length) {
         headers[useUploadProxy ? 'CONTENT-MD5' : 'Content-MD5'] = partMd5s[i];
       } else if (kDebugMode) {
@@ -310,15 +315,42 @@ class MultiPartUploader {
         headers["UPLOAD-URL"] = partURL;
       }
 
+      var partBytesSent = 0;
       try {
-        final response = await _s3Dio.put(
-          useUploadProxy ? "$kUploadProxyEndpoint/multipart-upload" : partURL,
-          data: encryptedFile.openRead(
-            i * partSize,
-            isLastPart ? null : (i + 1) * partSize,
-          ),
-          options: Options(headers: headers),
-        );
+        late final Response<dynamic> response;
+        for (var attempt = 1; ; attempt++) {
+          try {
+            response = await _s3Dio.put(
+              useUploadProxy
+                  ? "$kUploadProxyEndpoint/multipart-upload"
+                  : partURL,
+              data: encryptedFile.openRead(
+                i * partSize,
+                isLastPart ? null : (i + 1) * partSize,
+              ),
+              options: Options(headers: headers),
+              onSendProgress: (sent, _) {
+                if (sent > partBytesSent) {
+                  partBytesSent = sent;
+                  onSendProgress?.call(
+                    completedBytes + partBytesSent,
+                    encFileLength,
+                  );
+                }
+              },
+            );
+            break;
+          } on DioException catch (error) {
+            if (error.response?.statusCode != 520 ||
+                attempt >= _maximumPartUploadAttempts) {
+              rethrow;
+            }
+            _logger.info(
+              "Multipart part PUT received HTTP 520; retrying immediately "
+              "(${attempt + 1}/$_maximumPartUploadAttempts)",
+            );
+          }
+        }
 
         final eTag = useUploadProxy
             ? _extractProxyETag(response.data)
@@ -331,6 +363,8 @@ class MultiPartUploader {
         etags[i] = eTag!;
 
         await _db.updatePartStatus(partInfo.urls.objectKey, i, eTag);
+        completedBytes += fileSize;
+        onSendProgress?.call(completedBytes, encFileLength);
         i++;
       } on DioException catch (e) {
         if (e.response?.statusCode == 400 &&
