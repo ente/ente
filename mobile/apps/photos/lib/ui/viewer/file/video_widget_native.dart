@@ -202,8 +202,12 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     } else {
       await widget.file.getAsset.then((asset) async {
         // Android trash assets may report that they do not exist.
-        if (asset == null ||
-            !(await asset.exists || widget.file.isDeviceTrash)) {
+        if (widget.file.isDeviceTrash) {
+          final mediaURL = await asset?.getMediaUrl();
+          if (mediaURL != null) {
+            _setFilePathForNativePlayer(mediaURL, update);
+          }
+        } else if (asset == null || !await asset.exists) {
           if (widget.file.uploadedFileID != null) {
             _loadNetworkVideo(update);
           }
