@@ -155,10 +155,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
   }
 
   bool get _shouldShowLargeBackupBanner =>
-      flagService.largeBackupStandby &&
-      Platform.isIOS &&
-      !_showErrorBanner &&
-      _largeBackupSession.isActive;
+      Platform.isIOS && !_showErrorBanner && _largeBackupSession.isActive;
 
   Widget _largeBackupBanner(BuildContext context) {
     return _bannerPadding(

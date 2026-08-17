@@ -92,23 +92,21 @@ class BackupSettingsScreen extends StatelessWidget {
         ],
         if (Platform.isIOS) ...[
           const SizedBox(height: 24),
-          if (flagService.largeBackupStandby) ...[
-            SettingsItem(
-              title: pendingTranslation("(i) Backup mode"),
-              subtitle: pendingTranslation(
-                "Keep Ente awake while your backup finishes",
-              ),
-              icon: HugeIcons.strokeRoundedMoon02,
-              showOnlyLoadingState: true,
-              onTap: () {
-                return showLargeBackupScreen(
-                  context,
-                  SyncService.instance.largeBackupSessionTracker,
-                );
-              },
+          SettingsItem(
+            title: pendingTranslation("Backup mode"),
+            subtitle: pendingTranslation(
+              "Keep Ente awake while your backup finishes",
             ),
-            const SizedBox(height: 8),
-          ],
+            icon: HugeIcons.strokeRoundedMoon02,
+            showOnlyLoadingState: true,
+            onTap: () {
+              return showLargeBackupScreen(
+                context,
+                SyncService.instance.largeBackupSessionTracker,
+              );
+            },
+          ),
+          const SizedBox(height: 8),
           _toggleItem(
             context,
             title: l10n.disableAutoLock,
