@@ -542,7 +542,7 @@ class MLService {
   }
 
   void triggerML() {
-    if (_mlControllerStatus && !MlProcessLock.instance.isBusy) {
+    if (_mlControllerStatus) {
       unawaited(runAllML());
     }
   }
