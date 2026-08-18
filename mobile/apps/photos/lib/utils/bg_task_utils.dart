@@ -29,6 +29,7 @@ void callbackDispatcher() {
           // periodic tasks: a window that closes early never runs end-of-task
           // code, so rescheduling there would break the chain.
           await BgTaskUtils.scheduleIOSBackgroundProcessingTask();
+          await BgTaskUtils.markProcessingTaskStart(prefs);
         }
         await runBackgroundTask(
           taskName,
@@ -49,6 +50,11 @@ void callbackDispatcher() {
         BgTaskUtils.$.warning('Task error: $e');
         await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
         failure = e.toString();
+      } finally {
+        if (Platform.isIOS &&
+            taskName == BgTaskUtils.iOSBackgroundProcessingTask) {
+          await BgTaskUtils.clearProcessingTaskStart(prefs);
+        }
       }
     }, prefix: "[bg]").onError((_, _) {
       failure = "Didn't finished correctly!";
@@ -86,6 +92,43 @@ class BgTaskUtils {
         : kBGTaskMLSelfStopIOS;
   }
 
+  static const _kProcessingTaskStartTimeKey = "ios_processing_task_start_time";
+
+  static Future<void> markProcessingTaskStart(SharedPreferences prefs) async {
+    final previousStart = prefs.getInt(_kProcessingTaskStartTimeKey);
+    if (previousStart != null) {
+      _logUncleanProcessingTaskExit(previousStart);
+    }
+    await prefs.setInt(
+      _kProcessingTaskStartTimeKey,
+      DateTime.now().microsecondsSinceEpoch,
+    );
+    $.info("Marked processing task start");
+  }
+
+  static Future<void> clearProcessingTaskStart(SharedPreferences prefs) async {
+    await prefs.remove(_kProcessingTaskStartTimeKey);
+    $.info("Cleared processing task start marker");
+  }
+
+  static Future<void> reportUncleanProcessingTaskExit() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    final previousStart = prefs.getInt(_kProcessingTaskStartTimeKey);
+    if (previousStart == null) return;
+    if (await isBackgroundEngineActive()) return;
+    _logUncleanProcessingTaskExit(previousStart);
+    await prefs.remove(_kProcessingTaskStartTimeKey);
+  }
+
+  static void _logUncleanProcessingTaskExit(int startTimeMicroseconds) {
+    $.warning(
+      "Previous background processing task (started "
+      "${DateTime.fromMicrosecondsSinceEpoch(startTimeMicroseconds)}) did not "
+      "finish cleanly; the process was likely killed on OS expiration",
+    );
+  }
+
   static Future<void> releaseResourcesForKill(
     String taskId,
     SharedPreferences prefs,
@@ -101,6 +144,7 @@ class BgTaskUtils {
     try {
       await workmanager.Workmanager().initialize(callbackDispatcher);
       if (Platform.isIOS) {
+        await reportUncleanProcessingTaskExit();
         // The processing task is scheduled regardless of the background
         // refresh setting: that setting reliably gates app refresh tasks,
         // while processing tasks may still be granted overnight windows.
