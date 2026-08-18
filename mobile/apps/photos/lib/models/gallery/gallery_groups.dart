@@ -310,20 +310,12 @@ class GalleryGroups {
     final stopwatch = Stopwatch()..start();
 
     final yearsInGroups = <int>{};
-    List<EnteFile> groupFiles = [];
-    final allFilesLength = allFiles.length;
 
     if (groupType.showGroupHeader()) {
-      for (int index = 0; index < allFilesLength; index++) {
-        if (index > 0 &&
-            !groupType.areFromSameGroup(allFiles[index - 1], allFiles[index])) {
-          _createNewGroup(groupFiles, yearsInGroups);
-          groupFiles = [];
-        }
-        groupFiles.add(allFiles[index]);
-      }
-      if (groupFiles.isNotEmpty) {
-        _createNewGroup(groupFiles, yearsInGroups);
+      var start = 0;
+      for (final end in _timeGroupEndIndexes()) {
+        _createNewGroup(allFiles.sublist(start, end), yearsInGroups);
+        start = end;
       }
     } else {
       // Split allFiles into groups of max length 10 * crossAxisCount for
@@ -343,6 +335,37 @@ class GalleryGroups {
     stopwatch.stop();
   }
 
+  List<int> _timeGroupEndIndexes() {
+    final ends = <int>[];
+    if (allFiles.isEmpty) {
+      return ends;
+    }
+
+    if (groupType == GroupType.week) {
+      var previousFile = allFiles.first;
+      for (var index = 1; index < allFiles.length; index++) {
+        final file = allFiles[index];
+        if (!groupType.areFromSameGroup(previousFile, file)) {
+          ends.add(index);
+        }
+        previousFile = file;
+      }
+      ends.add(allFiles.length);
+      return ends;
+    }
+
+    var groupRange = groupType.getGroupRange(allFiles.first);
+    for (var index = 1; index < allFiles.length; index++) {
+      final creationTime = allFiles[index].creationTime!;
+      if (creationTime < groupRange.$1 || creationTime > groupRange.$2) {
+        ends.add(index);
+        groupRange = groupType.getGroupRange(allFiles[index]);
+      }
+    }
+    ends.add(allFiles.length);
+    return ends;
+  }
+
   void _createNewGroup(List<EnteFile> groupFiles, Set<int> yearsInGroups) {
     final uuid = _uuid.v1();
 
@@ -353,11 +376,9 @@ class GalleryGroups {
       final incompleteRowCount = groupFiles.length % crossAxisCount;
       if (incompleteRowCount != 0) {
         final dummiesNeeded = crossAxisCount - incompleteRowCount;
-        final filesWithDummies = List<EnteFile>.from(groupFiles);
         for (int i = 0; i < dummiesNeeded; i++) {
-          filesWithDummies.add(DummyFile(groupID: uuid, index: i));
+          groupFiles.add(DummyFile(groupID: uuid, index: i));
         }
-        groupFiles = filesWithDummies;
       }
     }
 

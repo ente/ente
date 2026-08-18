@@ -1539,7 +1539,12 @@ const PublicAlbumCoverHero: React.FC<PublicAlbumCoverHeroProps> = ({
                 <MobileMasonryCoverTitle>{title}</MobileMasonryCoverTitle>
                 <AlbumDescription
                     description={description}
-                    sx={{ maxWidth: "100%", mt: "-6px", opacity: 0.8 }}
+                    sx={{
+                        maxWidth: "100%",
+                        mt: "-6px",
+                        opacity: 0.8,
+                        textAlign: "center",
+                    }}
                 />
                 <Typography
                     variant="small"

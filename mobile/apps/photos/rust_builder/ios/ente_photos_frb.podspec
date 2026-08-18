@@ -1,5 +1,5 @@
 Pod::Spec.new do |s|
-  s.name             = 'ente_photos_rust'
+  s.name             = 'ente_photos_frb'
   s.version          = '0.0.1'
   s.summary          = 'A new Flutter FFI plugin project.'
   s.description      = <<-DESC
@@ -43,13 +43,13 @@ A new Flutter FFI plugin project.
         exit 1
       fi
       unset ORT_IOS_XCFWK_PATH ORT_IOS_XCFWK_LOCATION
-      sh "$(cd -P "$PODS_TARGET_SRCROOT" && pwd)/../../../../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/photos ente_photos_rust
+      sh "$(cd -P "$PODS_TARGET_SRCROOT" && pwd)/../../../../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/photos ente_photos_frb
     SCRIPT
     :execution_position => :before_compile,
     :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
     # Let Xcode know that the static library linked below is created by this
     # build step.
-    :output_files => ["${BUILT_PRODUCTS_DIR}/libente_photos_rust.a"],
+    :output_files => ["${BUILT_PRODUCTS_DIR}/libente_photos_frb.a"],
   }
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
@@ -60,7 +60,7 @@ A new Flutter FFI plugin project.
     # Runtime's duplicate protobuf objects.
     'OTHER_LDFLAGS' => [
       '$(inherited)',
-      '${BUILT_PRODUCTS_DIR}/libente_photos_rust.a',
+      '${BUILT_PRODUCTS_DIR}/libente_photos_frb.a',
       '-lc++',
       '-Wl,-u,_frb_pde_ffi_dispatcher_primary',
     ].join(' '),

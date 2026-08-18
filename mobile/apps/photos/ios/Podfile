@@ -34,7 +34,7 @@ target 'Runner' do
   use_modular_headers!
 
   # Ente's custom prebuilt ONNX Runtime static libraries (download + SHA-256
-  # verification handled by CocoaPods). Consumed by the ente_photos_rust
+  # verification handled by CocoaPods). Consumed by the ente_photos_frb
   # build phase, which points the Rust `ort` crate at the platform slice.
   pod 'EnteOnnxRuntime', :podspec => '../../../../apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec'
 
@@ -51,7 +51,7 @@ post_install do |installer|
     target.build_configurations.each do |config|
       config.build_settings.delete 'IPHONEOS_DEPLOYMENT_TARGET'
 
-      if target.name == 'ente_photos_rust' && config.name == 'Debug'
+      if target.name == 'ente_photos_frb' && config.name == 'Debug'
         config.build_settings['ONLY_ACTIVE_ARCH[sdk=iphonesimulator*]'] = 'YES'
       end
     end

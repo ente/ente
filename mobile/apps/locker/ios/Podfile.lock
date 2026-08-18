@@ -1,6 +1,8 @@
 PODS:
   - app_links (6.4.1):
     - Flutter
+  - camera_avfoundation (0.0.1):
+    - Flutter
   - cupertino_http (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -43,6 +45,7 @@ PODS:
     - Flutter
   - ente_screen_cover (0.0.1):
     - Flutter
+  - EnteOnnxRuntime (1.28.0-r3)
   - file_picker (0.0.1):
     - DKImagePickerController/PhotoGallery
     - Flutter
@@ -93,11 +96,13 @@ PODS:
 
 DEPENDENCIES:
   - app_links (from `.symlinks/plugins/app_links/ios`)
+  - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - cupertino_http (from `.symlinks/plugins/cupertino_http/darwin`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - ente_locker_frb (from `.symlinks/plugins/ente_locker_frb/ios`)
   - ente_mail (from `.symlinks/plugins/ente_mail/ios`)
   - ente_screen_cover (from `.symlinks/plugins/ente_screen_cover/ios`)
+  - EnteOnnxRuntime (from `../../../../apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec`)
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - file_saver (from `.symlinks/plugins/file_saver/ios`)
   - Flutter (from `Flutter`)
@@ -128,6 +133,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   app_links:
     :path: ".symlinks/plugins/app_links/ios"
+  camera_avfoundation:
+    :path: ".symlinks/plugins/camera_avfoundation/ios"
   cupertino_http:
     :path: ".symlinks/plugins/cupertino_http/darwin"
   device_info_plus:
@@ -138,6 +145,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/ente_mail/ios"
   ente_screen_cover:
     :path: ".symlinks/plugins/ente_screen_cover/ios"
+  EnteOnnxRuntime:
+    :podspec: "../../../../apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec"
   file_picker:
     :path: ".symlinks/plugins/file_picker/ios"
   file_saver:
@@ -177,13 +186,15 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
+  camera_avfoundation: 5675ca25298b6f81fa0a325188e7df62cc217741
   cupertino_http: 94ac07f5ff090b8effa6c5e2c47871d48ab7c86c
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
   DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
-  ente_locker_frb: 493a1f7828e127b606d65a484e4fa9171d8c76ec
+  ente_locker_frb: 4509a99affb6399cec6d61bcf7af9676063b091d
   ente_mail: 90753dd584f49ee092759a32d4143ca51db69641
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
+  EnteOnnxRuntime: c994300f7ef809dd318664cfd85868ca69b3cd1a
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
@@ -206,6 +217,6 @@ SPEC CHECKSUMS:
   ua_client_hints: 92fe0d139619b73ec9fcb46cc7e079a26178f586
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
-PODFILE CHECKSUM: 1ea06a574e0473671dee0ea3e6eb43a416f8b3d4
+PODFILE CHECKSUM: d732296d669eef6955fe041b27235c882d88df54
 
 COCOAPODS: 1.17.0

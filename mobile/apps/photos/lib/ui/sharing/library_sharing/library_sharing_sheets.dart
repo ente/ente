@@ -6,7 +6,6 @@ import 'package:photos/ui/collections/album/list_item.dart';
 import 'package:photos/ui/components/thumbnail_list_item.dart';
 import 'package:photos/ui/sharing/library_sharing/library_sharing_controller.dart';
 import 'package:photos/ui/sharing/library_sharing/library_sharing_role_badge.dart';
-import 'package:photos/ui/sharing/library_sharing/library_sharing_strings.dart';
 
 typedef LibrarySharingAlbumThumbnailBuilder =
     Widget Function(BuildContext context, Collection album);
@@ -22,21 +21,21 @@ Future<CollectionParticipantRole?> showEnableLibrarySharingSheet({
       builder: (context, setState) {
         final colors = context.componentColors;
         return BottomSheetComponent(
-          title: LibrarySharingStrings.enableLibrarySharing,
+          title: context.strings.librarySharingEnableTitle,
           borderSide: BorderSide(color: colors.strokeDark),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                LibrarySharingStrings.enableLibrarySharingMessage(
-                  recipientLabel,
+                context.strings.librarySharingEnableDescription(
+                  recipient: recipientLabel,
                 ),
                 style: TextStyles.body.copyWith(color: colors.textLight),
               ),
               const SizedBox(height: Spacing.lg),
               Text(
-                LibrarySharingStrings.hiddenAlbumsNotShared,
+                context.strings.librarySharingHiddenAlbumsDescription,
                 style: TextStyles.body.copyWith(color: colors.textLight),
               ),
               const SizedBox(height: Spacing.lg),
@@ -49,7 +48,7 @@ Future<CollectionParticipantRole?> showEnableLibrarySharingSheet({
                     ),
                     onSelected: (role) => setState(() => selectedRole = role),
                     child: MenuComponent(
-                      title: LibrarySharingStrings.role,
+                      title: context.strings.librarySharingRole,
                       trailing: LibrarySharingRoleSelector(role: selectedRole),
                     ),
                   ),
@@ -59,7 +58,7 @@ Future<CollectionParticipantRole?> showEnableLibrarySharingSheet({
           ),
           actions: [
             ButtonComponent(
-              label: LibrarySharingStrings.enable,
+              label: context.strings.enable,
               density: ButtonComponentDensity.compact,
               shouldSurfaceExecutionStates: false,
               onTap: () => Navigator.of(sheetContext).pop(selectedRole),
@@ -87,7 +86,7 @@ Future<bool?> showLibrarySharingRolesSheet({
           builder: (context) {
             final colors = context.componentColors;
             return BottomSheetComponent(
-              title: LibrarySharingStrings.roles,
+              title: context.strings.librarySharingRoles,
               showCloseButton: !controller.isMutating,
               borderSide: BorderSide(color: colors.strokeDark),
               content: _LibrarySharingRoleList(
@@ -96,7 +95,7 @@ Future<bool?> showLibrarySharingRolesSheet({
               ),
               actions: [
                 ButtonComponent(
-                  label: LibrarySharingStrings.updateRoles,
+                  label: context.strings.librarySharingUpdateRoles,
                   density: ButtonComponentDensity.compact,
                   isDisabled: !controller.canApply,
                   onTap: () async {
@@ -190,13 +189,17 @@ Future<bool> confirmStopLibrarySharing({
         builder: (sheetContext) {
           final colors = sheetContext.componentColors;
           return BottomSheetComponent(
-            title: LibrarySharingStrings.stopSharingTitle(count),
-            message: LibrarySharingStrings.stopSharingMessage(count),
+            title: sheetContext.strings.librarySharingStopSharingTitle(
+              count: count,
+            ),
+            message: sheetContext.strings.librarySharingStopSharingDescription(
+              count: count,
+            ),
             illustration: Image.asset('assets/warning-red.png'),
             borderSide: BorderSide(color: colors.strokeDark),
             actions: [
               ButtonComponent(
-                label: LibrarySharingStrings.stopSharing,
+                label: sheetContext.strings.librarySharingStopSharing,
                 variant: ButtonComponentVariant.critical,
                 density: ButtonComponentDensity.compact,
                 shouldSurfaceExecutionStates: false,
@@ -216,8 +219,11 @@ Future<bool> showPreviouslyUnsharedAlbums({
   return await showBottomSheetComponent<bool>(
         context: context,
         builder: (sheetContext) => BottomSheetComponent(
-          title: LibrarySharingStrings.previouslyUnsharedTitle(count),
-          message: LibrarySharingStrings.previouslyUnsharedMessage(count),
+          title: sheetContext.strings.librarySharingPreviouslyUnsharedTitle(
+            count: count,
+          ),
+          message: sheetContext.strings
+              .librarySharingPreviouslyUnsharedDescription(count: count),
           illustration: Image.asset('assets/warning-red.png'),
           borderSide: BorderSide(
             color: sheetContext.componentColors.strokeDark,
@@ -243,11 +249,11 @@ Future<void> showLibrarySharingFailure({
   final count = controller.failedCount;
   return showErrorBottomSheetComponent<void>(
     context: context,
-    title: LibrarySharingStrings.sharingFailed,
+    title: context.strings.librarySharingFailedTitle,
     message: count > 0
-        ? LibrarySharingStrings.failedAlbumCount(count)
-        : LibrarySharingStrings.sharingFailedMessage,
-    actionLabel: LibrarySharingStrings.retryFailed,
+        ? context.strings.librarySharingFailedAlbumCount(count: count)
+        : context.strings.librarySharingFailedDescription,
+    actionLabel: context.strings.librarySharingRetryFailedAlbums,
     onActionTap: () async {
       Navigator.of(context).pop();
       await onRetry();

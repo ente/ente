@@ -5,7 +5,6 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/ui/sharing/library_sharing/library_sharing_controller.dart';
 import 'package:photos/ui/sharing/library_sharing/library_sharing_role_badge.dart';
-import 'package:photos/ui/sharing/library_sharing/library_sharing_strings.dart';
 
 class LibrarySharingSelectionSheet extends StatelessWidget {
   const LibrarySharingSelectionSheet({
@@ -42,8 +41,8 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
           ],
           ButtonComponent(
             label: controller.isAddingAlbums
-                ? LibrarySharingStrings.shareAlbumCount(
-                    controller.selectedCount,
+                ? context.strings.librarySharingShareAlbumCount(
+                    count: controller.selectedCount,
                   )
                 : context.strings.save,
             density: ButtonComponentDensity.compact,
@@ -53,7 +52,7 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
           if (controller.canStopSharing) ...[
             const SizedBox(height: Spacing.md),
             ButtonComponent(
-              label: LibrarySharingStrings.stopSharing,
+              label: context.strings.librarySharingStopSharing,
               variant: ButtonComponentVariant.tertiaryCritical,
               density: ButtonComponentDensity.compact,
               shouldSurfaceExecutionStates: false,
@@ -70,7 +69,7 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      label: LibrarySharingStrings.albumSelectionControls,
+      label: 'Album selection controls',
       expanded: isExpanded,
       onExpand: isExpanded ? null : () => onChanged(true),
       onCollapse: isExpanded ? () => onChanged(false) : null,
@@ -104,14 +103,14 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
     final canClearSelection = controller.hasSelection && !controller.isMutating;
     final selectedCount = SelectionSummaryChipComponent(
       key: const ValueKey('library-sharing-selected-count'),
-      label: LibrarySharingStrings.selectedAlbumCount(controller.selectedCount),
+      label: l10n.selectedCount(count: controller.selectedCount),
       icon: const HugeIcon(
         icon: HugeIcons.strokeRoundedCancel01,
         size: IconSizes.small,
       ),
       semanticLabel: canClearSelection
           ? l10n.unselectAll
-          : LibrarySharingStrings.selectedAlbumCount(controller.selectedCount),
+          : l10n.selectedCount(count: controller.selectedCount),
       isSelected: controller.hasSelection,
       onTap: canClearSelection ? controller.clearSelection : null,
     );
@@ -151,11 +150,11 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
     final canEditRole = controller.canEditSelectedRoles;
     final trailing = LibrarySharingRoleSelector(
       role: selectedRole,
-      fallbackLabel: LibrarySharingStrings.mixed,
+      fallbackLabel: context.strings.librarySharingMixed,
       showChevron: canEditRole,
     );
     final menu = MenuComponent(
-      title: LibrarySharingStrings.role,
+      title: context.strings.librarySharingRole,
       trailing: trailing,
       isDisabled: !canEditRole,
       onTap: selectedRole == null && canEditRole ? onShowMixedRoles : null,

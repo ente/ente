@@ -1,4 +1,4 @@
-group 'com.flutter_rust_bridge.ente_photos_rust'
+group 'com.flutter_rust_bridge.ente_photos_frb'
 version '1.0'
 
 buildscript {
@@ -23,7 +23,7 @@ apply plugin: 'com.android.library'
 
 android {
     if (project.android.hasProperty("namespace")) {
-        namespace 'com.flutter_rust_bridge.ente_photos_rust'
+        namespace 'com.flutter_rust_bridge.ente_photos_frb'
     }
 
     // Bumping the plugin compileSdkVersion requires all clients of this plugin
@@ -46,5 +46,5 @@ android {
 apply from: "../../../../cargokit/gradle/plugin.gradle"
 cargokit {
     manifestDir = "../../../../../rust/bindings/frb/photos"
-    libname = "ente_photos_rust"
+    libname = "ente_photos_frb"
 }

@@ -96,6 +96,9 @@
       "hex": "004D6E"
     },
     {
+      "title": "Ancestry"
+    },
+    {
       "title": "Animal Crossing",
       "slug": "animal_crossing",
       "altNames": [
@@ -199,6 +202,13 @@
       ]
     },
     {
+      "title": "BambooHR",
+      "slug": "bamboohr",
+      "altNames": [
+        "BambooHR"
+      ]
+    },
+    {
       "title": "Band",
       "slug": "band"
     },
@@ -269,6 +279,9 @@
     {
       "title": "Bitazza",
       "slug": "bitazza"
+    },
+    {
+      "title": "Bitbuy"
     },
     {
       "title": "Bitfinex"
@@ -618,6 +631,9 @@
       ]
     },
     {
+      "title": "Cults"
+    },
+    {
       "title": "Cwallet",
       "altNames": [
         "cwallet",
@@ -699,6 +715,21 @@
     },
     {
       "title": "DocuSeal"
+    },
+    {
+      "title": "DocuSign",
+      "slug": "docusign",
+      "altNames": [
+        "DocuSign",
+        "DocuSign (NA1)",
+        "DocuSign (NA2)",
+        "DocuSign (NA3)",
+        "DocuSign (NA4)",
+        "DocuSign (EU)",
+        "DocuSign (AU)",
+        "DocuSign (CA)",
+        "DocuSign (JP1)"
+      ]
     },
     {
       "title": "Dominos",
@@ -853,6 +884,9 @@
       ]
     },
     {
+      "title": "Fansly"
+    },
+    {
       "title": "Fastmail"
     },
     {
@@ -964,7 +998,10 @@
       "title": "GMX"
     },
     {
-      "title": "GoDaddy"
+      "title": "GoDaddy",
+      "altNames": [
+        "GoDaddy"
+      ]
     },
     {
       "title": "GommeHD.net",
@@ -1528,6 +1565,13 @@
       ]
     },
     {
+      "title": "MyHeritage",
+      "slug": "myheritage",
+      "altNames": [
+        "MyHeritage"
+      ]
+    },
+    {
       "title": "Name.com",
       "slug": "name_com"
     },
@@ -1759,6 +1803,9 @@
     },
     {
       "title": "PayPal"
+    },
+    {
+      "title": "Payworks"
     },
     {
       "title": "PBTech",
@@ -2131,6 +2178,12 @@
       "title": "Smouter"
     },
     {
+      "title": "SMSFAST",
+      "altNames": [
+        "SMSFAST"
+      ]
+    },
+    {
       "title": "SMSPool",
       "slug": "sms_pool_net",
       "altNames": [
@@ -2401,7 +2454,10 @@
       "hex": "00305d"
     },
     {
-      "title": "TunnelBear"
+      "title": "TunnelBear",
+      "altNames": [
+        "TunnelBear"
+      ]
     },
     {
       "title": "Tuta",
@@ -2561,6 +2617,13 @@
       "altNames": [
         "Warner Brothers",
         "WB Games Account"
+      ]
+    },
+    {
+      "title": "Wave Financial",
+      "slug": "wave_financial",
+      "altNames": [
+        "my.waveapps.com"
       ]
     },
     {

@@ -1,0 +1,1 @@
+- Improved timeline loading performance for large photo libraries.

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Gradle dependency verification.
+
+  Every artifact is deliberately trusted except Ente's custom ONNX Runtime
+  binaries: those are fetched from a plain GitHub release (no repository
+  metadata), so their SHA-256 digests are pinned here. The digests come from
+  the SHA256SUMS asset published with the ort-packaging release.
+-->
+<verification-metadata xmlns="https://schema.gradle.org/dependency-verification"
+                       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                       xsi:schemaLocation="https://schema.gradle.org/dependency-verification https://schema.gradle.org/dependency-verification/dependency-verification-1.3.xsd">
+   <configuration>
+      <verify-metadata>false</verify-metadata>
+      <verify-signatures>false</verify-signatures>
+      <trusted-artifacts>
+         <trust group="^(?!io\.ente\.onnxruntime$).*$" regex="true"/>
+      </trusted-artifacts>
+   </configuration>
+   <components>
+      <component group="io.ente.onnxruntime" name="onnxruntime-webgpu-android" version="1.28.0-r3">
+         <artifact name="onnxruntime-webgpu-android-1.28.0-r3.aar">
+            <sha256 value="1d268652c6c8392581a06eef889a2823f88ce006633cd76106ca27aade27f193"/>
+         </artifact>
+      </component>
+   </components>
+</verification-metadata>

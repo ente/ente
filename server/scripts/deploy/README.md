@@ -78,8 +78,6 @@ SSH into the instance and run:
 ./update-and-restart-museum.sh
 ```
 
-The script pulls the latest image, restarts Museum, and tails its logs.
-
 ## Rollback
 
 The update script tags the currently running image as `museum-prod:previous` before pulling. To roll back:

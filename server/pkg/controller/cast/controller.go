@@ -2,6 +2,7 @@ package cast
 
 import (
 	"context"
+	"encoding/base64"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/cast"
@@ -21,7 +22,10 @@ type Controller struct {
 	AccessCtrl access.Controller
 }
 
-const maxRegisterDeviceUserAgentBytes = 1000
+const (
+	maxRegisterDeviceUserAgentBytes = 1000
+	pqPublicKeyBytes                = 1216
+)
 
 func NewController(castRepo *castRepo.Repository,
 	accessCtrl access.Controller,
@@ -33,6 +37,9 @@ func NewController(castRepo *castRepo.Repository,
 }
 
 func (c *Controller) RegisterDevice(ctx *gin.Context, request *cast.RegisterDeviceRequest) (string, error) {
+	if err := validatePQPublicKey(request.PQPublicKey); err != nil {
+		return "", err
+	}
 	ipAddress := network.GetClientIP(ctx)
 	userAgent := ctx.GetHeader("User-Agent")
 	if len(userAgent) > maxRegisterDeviceUserAgentBytes {
@@ -47,7 +54,21 @@ func (c *Controller) RegisterDevice(ctx *gin.Context, request *cast.RegisterDevi
 		}).Warn("RegisterDevice: failed to get device type")
 		deviceName = ipAddress
 	}
-	return c.CastRepo.AddCode(ctx, request.PublicKey, ipAddress, deviceName)
+	return c.CastRepo.AddCode(ctx, request.PublicKey, request.PQPublicKey, ipAddress, deviceName)
+}
+
+func validatePQPublicKey(publicKey *string) error {
+	if publicKey == nil {
+		return nil
+	}
+	if len(*publicKey) != base64.StdEncoding.EncodedLen(pqPublicKeyBytes) {
+		return stacktrace.Propagate(ente.ErrBadRequest, "invalid pqPublicKey length")
+	}
+	decoded, err := base64.StdEncoding.DecodeString(*publicKey)
+	if err != nil || len(decoded) != pqPublicKeyBytes {
+		return stacktrace.Propagate(ente.ErrBadRequest, "invalid pqPublicKey")
+	}
+	return nil
 }
 
 func (c *Controller) GetAllDevices(ctx *gin.Context, userID int64) ([]cast.CastInfo, error) {
@@ -58,19 +79,19 @@ func (c *Controller) DeleteDevice(ctx *gin.Context, userID int64, deviceID uuid.
 	return c.CastRepo.RevokeForGivenUserAndDevice(ctx, userID, deviceID)
 }
 
-func (c *Controller) GetPublicKey(ctx *gin.Context, deviceCode string) (string, error) {
-	pubKey, ip, err := c.CastRepo.GetPubKeyAndIp(ctx, deviceCode)
+func (c *Controller) GetDeviceInfo(ctx *gin.Context, deviceCode string) (*cast.DeviceInfo, error) {
+	deviceInfo, ip, err := c.CastRepo.GetDeviceInfoAndIP(ctx, deviceCode)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "")
+		return nil, stacktrace.Propagate(err, "")
 	}
 	if ip != network.GetClientIP(ctx) {
 		logrus.WithFields(logrus.Fields{
 			"deviceCode": deviceCode,
 			"ip":         ip,
 			"clientIP":   network.GetClientIP(ctx),
-		}).Warn("GetPublicKey: IP mismatch")
+		}).Warn("GetDeviceInfo: IP mismatch")
 	}
-	return pubKey, nil
+	return deviceInfo, nil
 }
 
 func (c *Controller) GetEncCastData(ctx context.Context, deviceCode string) (*string, error) {

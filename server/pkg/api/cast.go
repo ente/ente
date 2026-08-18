@@ -41,14 +41,12 @@ func (h *CastHandler) RegisterDevice(c *gin.Context) {
 
 func (h *CastHandler) GetDeviceInfo(c *gin.Context) {
 	deviceCode := getDeviceCode(c)
-	publicKey, err := h.Ctrl.GetPublicKey(c, deviceCode)
+	deviceInfo, err := h.Ctrl.GetDeviceInfo(c, deviceCode)
 	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, "failed to get public key"))
+		handler.Error(c, stacktrace.Propagate(err, "failed to get device info"))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"publicKey": publicKey,
-	})
+	c.JSON(http.StatusOK, deviceInfo)
 }
 
 func (h *CastHandler) GetAllDevices(c *gin.Context) {

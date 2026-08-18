@@ -1,4 +1,4 @@
-name: ente_photos_rust
+name: ente_photos_frb
 description: "Utility to build Rust code"
 version: 0.0.1
 publish_to: none

@@ -20,9 +20,9 @@ PODS:
     - Flutter
   - ente_panorama_viewer (0.0.1):
     - Flutter
-  - ente_photos_platform (0.0.1):
+  - ente_photos_frb (0.0.1):
     - Flutter
-  - ente_photos_rust (0.0.1):
+  - ente_photos_platform (0.0.1):
     - Flutter
   - ente_qr (0.0.1):
     - Flutter
@@ -252,8 +252,8 @@ DEPENDENCIES:
   - ente_cast (from `.symlinks/plugins/ente_cast/ios`)
   - ente_mail (from `.symlinks/plugins/ente_mail/ios`)
   - ente_panorama_viewer (from `.symlinks/plugins/ente_panorama_viewer/ios`)
+  - ente_photos_frb (from `.symlinks/plugins/ente_photos_frb/ios`)
   - ente_photos_platform (from `.symlinks/plugins/ente_photos_platform/ios`)
-  - ente_photos_rust (from `.symlinks/plugins/ente_photos_rust/ios`)
   - ente_qr (from `.symlinks/plugins/ente_qr/ios`)
   - ente_screen_brightness (from `.symlinks/plugins/ente_screen_brightness/ios`)
   - ente_screen_cover (from `.symlinks/plugins/ente_screen_cover/ios`)
@@ -343,10 +343,10 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/ente_mail/ios"
   ente_panorama_viewer:
     :path: ".symlinks/plugins/ente_panorama_viewer/ios"
+  ente_photos_frb:
+    :path: ".symlinks/plugins/ente_photos_frb/ios"
   ente_photos_platform:
     :path: ".symlinks/plugins/ente_photos_platform/ios"
-  ente_photos_rust:
-    :path: ".symlinks/plugins/ente_photos_rust/ios"
   ente_qr:
     :path: ".symlinks/plugins/ente_qr/ios"
   ente_screen_brightness:
@@ -451,8 +451,8 @@ SPEC CHECKSUMS:
   ente_cast: a25feb3127397e5fc6aff03a12120916707757d4
   ente_mail: 90753dd584f49ee092759a32d4143ca51db69641
   ente_panorama_viewer: 87bb22e7868c3005314f80c05ee0787aa07edcd8
+  ente_photos_frb: c693c36243f0f65df25e7674552879cc74588fea
   ente_photos_platform: 08757c7e4977863732f75ce0f85cc6144600e3d2
-  ente_photos_rust: e217348178d710d624852c9a9ae8872c00b30366
   ente_qr: 86beaf5d2644705db9b565b32dd8b82c05fb36af
   ente_screen_brightness: 7dd13c361508ee6098a2578908ebf35e9f567e28
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
@@ -517,6 +517,6 @@ SPEC CHECKSUMS:
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
   workmanager_apple: 904529ae31e97fc5be632cf628507652294a0778
 
-PODFILE CHECKSUM: 4450cf498e634fde2a46bbe657d08e05214be7b8
+PODFILE CHECKSUM: 50318c7062bacf98b6cddf7dc37637eb4eabed48
 
 COCOAPODS: 1.17.0

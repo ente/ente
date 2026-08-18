@@ -1,7 +1,7 @@
 # Download vehicle for Ente's pinned custom ONNX Runtime iOS static-library
 # XCFramework. CocoaPods downloads the release ZIP at `pod install` time,
 # verifies its SHA-256, and caches it. Nothing is compiled or linked here:
-# the ente_photos_rust pod's build phase points the Rust `ort` crate at the
+# the ente_photos_frb pod's build phase points the Rust `ort` crate at the
 # XCFramework's static archive for the active platform via ORT_LIB_PATH.
 Pod::Spec.new do |s|
   s.name     = 'EnteOnnxRuntime'

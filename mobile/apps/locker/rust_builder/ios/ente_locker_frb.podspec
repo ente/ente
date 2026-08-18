@@ -20,23 +20,44 @@ A new Flutter FFI plugin project.
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.platform = :ios, '13.0'
+  s.platform = :ios, '15.1'
+
+  # Flutter.framework has no i386 slice; ONNX Runtime 1.28 has no x86_64 simulator binary.
+  s.user_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386 x86_64' }
   s.swift_version = '5.0'
 
   s.script_phase = {
     :name => 'Build Rust library',
-    # First argument is relative path to the `rust` folder, second is name of rust library
-    :script => 'sh "$(cd -P "$PODS_TARGET_SRCROOT" && pwd)/../../../../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/locker ente_locker_frb',
+    # ORT_LIB_PATH points the Rust `ort` crate at the EnteOnnxRuntime pod's static archive.
+    :script => <<-SCRIPT,
+      set -e
+      case "$PLATFORM_NAME" in
+        iphoneos)        ort_slice=ios-arm64 ;;
+        iphonesimulator) ort_slice=ios-arm64-simulator ;;
+        *) echo "error: unsupported platform for ONNX Runtime: $PLATFORM_NAME" >&2; exit 1 ;;
+      esac
+      export ORT_LIB_PATH="$PODS_ROOT/EnteOnnxRuntime/onnxruntime.xcframework/$ort_slice"
+      if [ ! -f "$ORT_LIB_PATH/libonnxruntime.a" ]; then
+        echo "error: $ORT_LIB_PATH/libonnxruntime.a is missing; run 'pod install'" >&2
+        exit 1
+      fi
+      unset ORT_IOS_XCFWK_PATH ORT_IOS_XCFWK_LOCATION
+      sh "$(cd -P "$PODS_TARGET_SRCROOT" && pwd)/../../../../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/locker ente_locker_frb
+    SCRIPT
     :execution_position => :before_compile,
     :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
-    # Let XCode know that the static library referenced in -force_load below is
-    # created by this build step.
+    # Let Xcode know the static library linked below is created by this build step.
     :output_files => ["${BUILT_PRODUCTS_DIR}/libente_locker_frb.a"],
   }
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
-    # Flutter.framework does not contain a i386 slice.
-    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
-    'OTHER_LDFLAGS' => '-force_load ${BUILT_PRODUCTS_DIR}/libente_locker_frb.a',
+    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386 x86_64',
+    # Roots the FRB dispatcher instead of -force_load to avoid ONNX Runtime's duplicate protobuf objects.
+    'OTHER_LDFLAGS' => [
+      '$(inherited)',
+      '${BUILT_PRODUCTS_DIR}/libente_locker_frb.a',
+      '-lc++',
+      '-Wl,-u,_frb_pde_ffi_dispatcher_primary',
+    ].join(' '),
   }
 end

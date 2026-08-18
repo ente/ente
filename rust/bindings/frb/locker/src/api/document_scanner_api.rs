@@ -1,0 +1,335 @@
+use std::any::Any;
+use std::panic::{AssertUnwindSafe, catch_unwind};
+
+use ente_assets::AssetStore;
+use ente_ml::scan;
+use flutter_rust_bridge::frb;
+
+#[derive(Clone, Copy, Debug)]
+pub struct RustPoint {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct RustQuad {
+    pub top_left: RustPoint,
+    pub top_right: RustPoint,
+    pub bottom_right: RustPoint,
+    pub bottom_left: RustPoint,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum RustColorMode {
+    Color,
+    Grayscale,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct RustPlaneLayout {
+    pub width: i32,
+    pub height: i32,
+    pub y_row_stride: i32,
+    pub uv_row_stride: i32,
+    pub uv_pixel_stride: i32,
+}
+
+#[derive(Clone, Debug)]
+pub struct RustScanOptions {
+    pub color_mode_override: Option<RustColorMode>,
+    pub max_pixels: Option<u32>,
+    /// Must be a multiple of 90.
+    pub rotation_degrees: i32,
+}
+
+#[derive(Clone, Debug)]
+pub struct RustReprocessOptions {
+    /// Same space as `RustScanResult.quad`: the decoded source image.
+    pub quad: RustQuad,
+    /// Must be a multiple of 90.
+    pub rotation_degrees: i32,
+    pub color_mode: RustColorMode,
+    pub max_pixels: Option<u32>,
+    pub jpeg_quality: Option<u8>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RustScanResult {
+    /// Decoded-source coordinates (EXIF applied, before `rotation_degrees`); `None` when nothing was detected.
+    pub quad: Option<RustQuad>,
+    pub color_mode: RustColorMode,
+    pub output_width: u32,
+    pub output_height: u32,
+    /// The size `quad` is relative to.
+    pub source_width: u32,
+    pub source_height: u32,
+    /// JPEG-encoded.
+    pub processed_image: Vec<u8>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum RustScanErrorKind {
+    InvalidInput,
+    ModelLoad,
+    Codec,
+    Pipeline,
+    Internal,
+}
+
+#[derive(Clone, Debug)]
+pub struct RustScanError {
+    pub kind: RustScanErrorKind,
+    pub message: String,
+}
+
+#[frb(opaque)]
+pub struct ScannerSession {
+    inner: scan::ScannerSession,
+}
+
+impl ScannerSession {
+    pub async fn create(assets_dir: String) -> Result<ScannerSession, RustScanError> {
+        let store = AssetStore::new(assets_dir);
+        let model_path = scan::ensure_segmentation_model(&store)
+            .await
+            .map_err(|error| RustScanError {
+                kind: RustScanErrorKind::ModelLoad,
+                message: error.to_string(),
+            })?;
+        catch_panic(|| {
+            let inner = scan::ScannerSession::new(&model_path.to_string_lossy())?;
+            Ok(ScannerSession { inner })
+        })
+    }
+
+    /// The returned quad is in mask space (256x256), already rotated by `rotation_degrees`.
+    pub fn live_detect_bgra(
+        &self,
+        bgra: Vec<u8>,
+        row_stride: i32,
+        width: u32,
+        height: u32,
+        rotation_degrees: i32,
+    ) -> Result<Option<RustQuad>, RustScanError> {
+        catch_panic(AssertUnwindSafe(|| {
+            let rgba = bgra_to_rgba(&bgra, row_stride, width, height)?;
+            let quad = self
+                .inner
+                .live_detect_rgba(&rgba, width, height, rotation_degrees)?;
+            Ok(quad.map(to_api_quad))
+        }))
+    }
+
+    /// Quad semantics as in [`Self::live_detect_bgra`].
+    pub fn live_detect_yuv420(
+        &self,
+        y: Vec<u8>,
+        u: Vec<u8>,
+        v: Vec<u8>,
+        layout: RustPlaneLayout,
+        rotation_degrees: i32,
+    ) -> Result<Option<RustQuad>, RustScanError> {
+        catch_panic(AssertUnwindSafe(|| {
+            let quad = self.inner.live_detect_yuv420(
+                &y,
+                &u,
+                &v,
+                to_plane_layout(layout),
+                rotation_degrees,
+            )?;
+            Ok(quad.map(to_api_quad))
+        }))
+    }
+
+    pub fn process_capture(
+        &self,
+        image_bytes: Vec<u8>,
+        options: RustScanOptions,
+    ) -> Result<RustScanResult, RustScanError> {
+        catch_panic(AssertUnwindSafe(|| {
+            let result = self
+                .inner
+                .process_capture(&image_bytes, &to_scan_options(&options))?;
+            Ok(to_api_scan_result(result))
+        }))
+    }
+
+    pub fn reprocess(
+        &self,
+        source_bytes: Vec<u8>,
+        options: RustReprocessOptions,
+    ) -> Result<RustScanResult, RustScanError> {
+        catch_panic(AssertUnwindSafe(|| {
+            let result = self
+                .inner
+                .reprocess(&source_bytes, &to_reprocess_options(&options))?;
+            Ok(to_api_scan_result(result))
+        }))
+    }
+}
+
+fn catch_panic<T>(body: impl FnOnce() -> Result<T, RustScanError>) -> Result<T, RustScanError> {
+    catch_unwind(AssertUnwindSafe(body)).unwrap_or_else(|panic| {
+        Err(RustScanError {
+            kind: RustScanErrorKind::Internal,
+            message: panic_message(&panic),
+        })
+    })
+}
+
+fn panic_message(panic: &Box<dyn Any + Send>) -> String {
+    if let Some(message) = panic.downcast_ref::<&str>() {
+        (*message).to_string()
+    } else if let Some(message) = panic.downcast_ref::<String>() {
+        message.clone()
+    } else {
+        "unknown panic".to_string()
+    }
+}
+
+fn bgra_to_rgba(
+    bgra: &[u8],
+    row_stride: i32,
+    width: u32,
+    height: u32,
+) -> Result<Vec<u8>, RustScanError> {
+    let invalid = |message: String| RustScanError {
+        kind: RustScanErrorKind::InvalidInput,
+        message,
+    };
+    if width == 0 || height == 0 {
+        return Err(invalid(format!("empty frame: {width}x{height}")));
+    }
+    let width = width as usize;
+    let height = height as usize;
+    let row_stride = usize::try_from(row_stride)
+        .map_err(|_| invalid(format!("negative row stride {row_stride}")))?;
+    let row_bytes = width
+        .checked_mul(4)
+        .ok_or_else(|| invalid(format!("width {width} overflows")))?;
+    if row_stride < row_bytes {
+        return Err(invalid(format!(
+            "row stride {row_stride} is less than {row_bytes} bytes per row"
+        )));
+    }
+    let required = (height - 1)
+        .checked_mul(row_stride)
+        .and_then(|bulk| bulk.checked_add(row_bytes))
+        .ok_or_else(|| invalid(format!("frame {width}x{height} overflows")))?;
+    if bgra.len() < required {
+        return Err(invalid(format!(
+            "buffer holds {} bytes, {required} required",
+            bgra.len()
+        )));
+    }
+
+    let mut rgba = vec![0u8; height * row_bytes];
+    for (row_index, rgba_row) in rgba.chunks_exact_mut(row_bytes).enumerate() {
+        let bgra_row = &bgra[row_index * row_stride..row_index * row_stride + row_bytes];
+        for (rgba_px, bgra_px) in rgba_row.chunks_exact_mut(4).zip(bgra_row.chunks_exact(4)) {
+            rgba_px[0] = bgra_px[2];
+            rgba_px[1] = bgra_px[1];
+            rgba_px[2] = bgra_px[0];
+            rgba_px[3] = bgra_px[3];
+        }
+    }
+    Ok(rgba)
+}
+
+impl From<scan::ScanError> for RustScanError {
+    fn from(value: scan::ScanError) -> Self {
+        let (kind, message) = match value {
+            scan::ScanError::InvalidInput(message) => (RustScanErrorKind::InvalidInput, message),
+            scan::ScanError::ModelLoad(message) => (RustScanErrorKind::ModelLoad, message),
+            scan::ScanError::Codec(message) => (RustScanErrorKind::Codec, message),
+            scan::ScanError::Pipeline(message) => (RustScanErrorKind::Pipeline, message),
+        };
+        RustScanError { kind, message }
+    }
+}
+
+fn to_plane_layout(layout: RustPlaneLayout) -> scan::PlaneLayout {
+    scan::PlaneLayout {
+        width: layout.width,
+        height: layout.height,
+        y_row_stride: layout.y_row_stride,
+        uv_row_stride: layout.uv_row_stride,
+        uv_pixel_stride: layout.uv_pixel_stride,
+    }
+}
+
+fn to_scan_options(options: &RustScanOptions) -> scan::ScanOptions {
+    scan::ScanOptions {
+        color_mode_override: options.color_mode_override.map(to_color_mode),
+        max_pixels: options.max_pixels,
+        rotation_degrees: options.rotation_degrees,
+    }
+}
+
+fn to_reprocess_options(options: &RustReprocessOptions) -> scan::ReprocessOptions {
+    scan::ReprocessOptions {
+        quad: to_quad(options.quad),
+        rotation_degrees: options.rotation_degrees,
+        color_mode: to_color_mode(options.color_mode),
+        max_pixels: options.max_pixels,
+        jpeg_quality: options.jpeg_quality,
+    }
+}
+
+fn to_color_mode(mode: RustColorMode) -> scan::ColorMode {
+    match mode {
+        RustColorMode::Color => scan::ColorMode::Color,
+        RustColorMode::Grayscale => scan::ColorMode::Grayscale,
+    }
+}
+
+fn to_api_color_mode(mode: scan::ColorMode) -> RustColorMode {
+    match mode {
+        scan::ColorMode::Color => RustColorMode::Color,
+        scan::ColorMode::Grayscale => RustColorMode::Grayscale,
+    }
+}
+
+fn to_quad(quad: RustQuad) -> scan::Quad {
+    scan::Quad {
+        top_left: to_point(quad.top_left),
+        top_right: to_point(quad.top_right),
+        bottom_right: to_point(quad.bottom_right),
+        bottom_left: to_point(quad.bottom_left),
+    }
+}
+
+fn to_point(point: RustPoint) -> scan::Point {
+    scan::Point {
+        x: point.x,
+        y: point.y,
+    }
+}
+
+fn to_api_quad(quad: scan::Quad) -> RustQuad {
+    RustQuad {
+        top_left: to_api_point(quad.top_left),
+        top_right: to_api_point(quad.top_right),
+        bottom_right: to_api_point(quad.bottom_right),
+        bottom_left: to_api_point(quad.bottom_left),
+    }
+}
+
+fn to_api_point(point: scan::Point) -> RustPoint {
+    RustPoint {
+        x: point.x,
+        y: point.y,
+    }
+}
+
+fn to_api_scan_result(result: scan::ScanResult) -> RustScanResult {
+    RustScanResult {
+        quad: result.quad.map(to_api_quad),
+        color_mode: to_api_color_mode(result.color_mode),
+        output_width: result.output_width,
+        output_height: result.output_height,
+        source_width: result.source_width,
+        source_height: result.source_height,
+        processed_image: result.processed_image,
+    }
+}

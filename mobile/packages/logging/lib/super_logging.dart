@@ -337,13 +337,4 @@ class SuperLogging {
     final pkgInfo = await PackageInfo.fromPlatform();
     return "${pkgInfo.version}+${pkgInfo.buildNumber}";
   }
-
-  // disable sentry on f-droid. We need to make it opt-in preference
-  static Future<bool> isFDroidBuild() async {
-    if (!Platform.isAndroid) {
-      return false;
-    }
-    final pkgName = (await PackageInfo.fromPlatform()).packageName;
-    return pkgName.endsWith("fdroid");
-  }
 }

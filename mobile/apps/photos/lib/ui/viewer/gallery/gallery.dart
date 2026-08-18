@@ -675,7 +675,7 @@ class GalleryState extends State<Gallery> {
 
   ScrollPhysics get _scrollPhysics => widget.disableScroll
       ? const NeverScrollableScrollPhysics()
-      : const ExponentialBouncingScrollPhysics();
+      : const BouncingScrollPhysics();
 
   static String _buildAutomationScrollIdentifier(String tagPrefix) {
     final safeTagPrefix = tagPrefix.replaceAll(
@@ -878,7 +878,7 @@ class GalleryState extends State<Gallery> {
                             child: CustomScrollView(
                               physics: widget.disableScroll || isSwipeActive
                                   ? const NeverScrollableScrollPhysics()
-                                  : const ExponentialBouncingScrollPhysics(),
+                                  : const BouncingScrollPhysics(),
                               controller: _scrollController,
                               slivers: [
                                 if (widget.appBar != null)
@@ -1237,16 +1237,4 @@ class GalleryIndexUpdatedEvent {
   final int index;
 
   GalleryIndexUpdatedEvent(this.tag, this.index);
-}
-
-// TODO: Revert this PR https://github.com/ente/ente/pull/8401 after Jan 1,
-// 2026. This was implemented temporarily for the Christmas banner and should
-// be removed afterwards.
-class ExponentialBouncingScrollPhysics extends BouncingScrollPhysics {
-  const ExponentialBouncingScrollPhysics({super.parent});
-
-  @override
-  ExponentialBouncingScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return ExponentialBouncingScrollPhysics(parent: buildParent(ancestor));
-  }
 }

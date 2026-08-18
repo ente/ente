@@ -21,6 +21,46 @@ import "package:shared_preferences/shared_preferences.dart";
 
 const double earthRadius = 6371; // Earth's radius in kilometers
 
+class CitySearchIndex {
+  static const empty = CitySearchIndex(
+    cities: <City>[],
+    nodes: <List<int>>[],
+    root: -1,
+    maxLatDelta: 0,
+    maxLngDelta: 0,
+  );
+
+  final List<City> cities;
+  final List<List<int>> nodes;
+  final int root;
+  final double maxLatDelta;
+  final double maxLngDelta;
+
+  const CitySearchIndex({
+    required this.cities,
+    required this.nodes,
+    required this.root,
+    required this.maxLatDelta,
+    required this.maxLngDelta,
+  });
+
+  bool get isEmpty => cities.isEmpty;
+
+  Map<String, dynamic> searchArgs(List<EnteFile> files, {String query = ''}) {
+    return <String, dynamic>{
+      "query": query,
+      "cities": cities,
+      "files": files,
+      if (nodes.isNotEmpty && root >= 0) ...{
+        "kdTreeNodes": nodes,
+        "kdTreeRoot": root,
+        "kdTreeMaxLatDelta": maxLatDelta,
+        "kdTreeMaxLngDelta": maxLngDelta,
+      },
+    };
+  }
+}
+
 class LocationService {
   final SharedPreferences prefs;
   final Logger _logger = Logger((LocationService).toString());
@@ -32,11 +72,7 @@ class LocationService {
   static const _kCitiesKdTreeRemotePath =
       "https://assets.ente.com/world_cities.kdtree.bin";
 
-  List<City> _cities = [];
-  List<List<int>> _kdTreeNodes = [];
-  int _kdTreeRoot = -1;
-  double _kdTreeMaxLatDelta = 0;
-  double _kdTreeMaxLngDelta = 0;
+  CitySearchIndex _citySearchIndex = CitySearchIndex.empty;
 
   // TODO: lau: consider actually using this in location section
   List<BaseLocation> baseLocations = [];
@@ -72,22 +108,22 @@ class LocationService {
     List<EnteFile> allFiles,
     String query,
   ) async {
-    if (allFiles.isNotEmpty && _cities.isEmpty && query.isEmpty) {
+    if (allFiles.isNotEmpty && _citySearchIndex.isEmpty && query.isEmpty) {
       reloadLocationDiscoverySection = true;
     }
     final EnteWatch w = EnteWatch("cities_search")..start();
     w.log('start for files ${allFiles.length} and query $query');
-    final args = <String, dynamic>{
-      "query": query,
-      "cities": _cities,
-      "files": allFiles,
-    };
-    if (_kdTreeNodes.isNotEmpty && _kdTreeRoot >= 0) {
-      args["kdTreeNodes"] = _kdTreeNodes;
-      args["kdTreeRoot"] = _kdTreeRoot;
-      args["kdTreeMaxLatDelta"] = _kdTreeMaxLatDelta;
-      args["kdTreeMaxLngDelta"] = _kdTreeMaxLngDelta;
+    final normalizedQuery = query.toLowerCase();
+    if (normalizedQuery.isNotEmpty &&
+        !_citySearchIndex.cities.any(
+          (city) => city.city.toLowerCase().contains(normalizedQuery),
+        )) {
+      w.log(
+        'end for query: $query  on ${allFiles.length} files, found 0 cities',
+      );
+      return {};
     }
+    final args = _citySearchIndex.searchArgs(allFiles, query: query);
     final result = await _computer.compute(getCityResults, param: args);
     w.log(
       'end for query: $query  on ${allFiles.length} files, found '
@@ -97,10 +133,14 @@ class LocationService {
   }
 
   Future<List<City>> getCities() async {
-    if (_cities.isEmpty) {
+    return (await getCitySearchIndex()).cities;
+  }
+
+  Future<CitySearchIndex> getCitySearchIndex() async {
+    if (_citySearchIndex.isEmpty) {
       await _loadCities();
     }
-    return _cities;
+    return _citySearchIndex;
   }
 
   Future<Iterable<LocalEntity<LocationTag>>> getLocationTags() {
@@ -241,11 +281,13 @@ class LocationService {
   }
 
   void _applyKdTreeLoadResult(Map<String, dynamic> result) {
-    _cities = result["cities"] as List<City>;
-    _kdTreeNodes = (result["nodes"] as List).cast<List<int>>();
-    _kdTreeRoot = result["root"] as int;
-    _kdTreeMaxLatDelta = (result["maxLatDelta"] as num).toDouble();
-    _kdTreeMaxLngDelta = (result["maxLngDelta"] as num).toDouble();
+    _citySearchIndex = CitySearchIndex(
+      cities: result["cities"] as List<City>,
+      nodes: (result["nodes"] as List).cast<List<int>>(),
+      root: result["root"] as int,
+      maxLatDelta: (result["maxLatDelta"] as num).toDouble(),
+      maxLngDelta: (result["maxLngDelta"] as num).toDouble(),
+    );
   }
 
   Future<void> _loadCities() async {

@@ -1,5 +1,5 @@
 [package]
-name = "ente_photos_rust"
+name = "ente-photos-frb"
 edition = "2024"
 
 [lib]

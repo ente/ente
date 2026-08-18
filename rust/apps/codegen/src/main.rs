@@ -234,7 +234,7 @@ fn generate_napi() -> Result<(), DynError> {
             .arg("check")
             .arg("--locked")
             .arg("-p")
-            .arg("ente_photos_napi")
+            .arg("ente-photos-napi")
             .arg("--target-dir")
             .arg(target_dir()?)
             .env("NAPI_TYPE_DEF_TMP_FOLDER", &type_def_dir)
@@ -297,12 +297,12 @@ fn format_frb_bindings(target: FrbTarget) -> Result<(), DynError> {
         FrbTarget::All => {
             command
                 .arg("-p")
-                .arg("ente_photos_rust")
+                .arg("ente-photos-frb")
                 .arg("-p")
                 .arg("ente-locker-frb");
         }
         FrbTarget::Photos => {
-            command.arg("-p").arg("ente_photos_rust");
+            command.arg("-p").arg("ente-photos-frb");
         }
         FrbTarget::Locker => {
             command.arg("-p").arg("ente-locker-frb");

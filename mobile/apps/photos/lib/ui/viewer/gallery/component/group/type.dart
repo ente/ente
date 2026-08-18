@@ -2,7 +2,6 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/widgets.dart";
 import "package:intl/intl.dart";
-import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 
 enum GroupType { day, week, month, size, year, none }
@@ -118,9 +117,10 @@ extension GroupTypeExtension on GroupType {
       case GroupType.day:
         final date = DateTime.fromMicrosecondsSinceEpoch(file.creationTime!);
         final startOfDay = DateTime(date.year, date.month, date.day);
+        final endOfDay = DateTime(date.year, date.month, date.day + 1);
         return (
           startOfDay.microsecondsSinceEpoch,
-          (startOfDay.microsecondsSinceEpoch + microSecondsInDay - 1),
+          endOfDay.microsecondsSinceEpoch - 1,
         );
       case GroupType.week:
         final date = DateTime.fromMicrosecondsSinceEpoch(file.creationTime!);

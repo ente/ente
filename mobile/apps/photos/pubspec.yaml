@@ -58,10 +58,10 @@ dependencies:
     path: ../../packages/mail
   ente_panorama_viewer:
     path: plugins/ente_panorama_viewer
+  ente_photos_frb:
+    path: rust_builder
   ente_photos_platform:
     path: plugins/ente_photos_platform
-  ente_photos_rust:
-    path: rust_builder
   ente_pure_utils:
     path: ../../packages/ente_pure_utils
   ente_qr:

@@ -15,7 +15,7 @@ import 'package:photos/models/metadata/common_keys.dart';
 import 'package:photos/models/user_details.dart';
 import 'package:photos/services/account/user_service.dart';
 import 'package:photos/services/collections_service.dart';
-import 'package:photos/services/library_sharing_local_store.dart';
+import 'package:photos/services/library_sharing_store.dart';
 import 'package:photos/utils/contact_string_util.dart';
 import 'package:synchronized/synchronized.dart';
 
@@ -85,16 +85,16 @@ class LibrarySharingService implements LibrarySharingRepository {
     CollectionsService? collectionsService,
     UserService? userService,
     Configuration? configuration,
-    LibrarySharingLocalStore? localStore,
+    required LibrarySharingEntityStore store,
   }) : _collectionsService = collectionsService ?? CollectionsService.instance,
        _userService = userService ?? UserService.instance,
        _configuration = configuration ?? Configuration.instance,
-       _localStore = localStore ?? LibrarySharingLocalStore();
+       _store = store;
 
   final CollectionsService _collectionsService;
   final UserService _userService;
   final Configuration _configuration;
-  final LibrarySharingLocalStore _localStore;
+  final LibrarySharingEntityStore _store;
   final _logger = Logger('LibrarySharingService');
   final _operationLock = Lock();
 
@@ -137,6 +137,7 @@ class LibrarySharingService implements LibrarySharingRepository {
     required Map<int, CollectionParticipantRole> roles,
   }) => _operationLock.synchronized(() async {
     final ownerUserID = _currentOwnerUserID();
+    await _store.sync();
     final publicKey = await _requirePublicKey(recipient.email);
     final statuses = await _shareInBatches(
       ownerUserID: ownerUserID,
@@ -150,7 +151,7 @@ class LibrarySharingService implements LibrarySharingRepository {
         .where((entry) => _isShareSuccess(entry.value))
         .map((entry) => entry.key)
         .toSet();
-    final config = await _localStore.read(ownerUserID, recipient.userID);
+    final config = await _store.read(ownerUserID, recipient.userID);
     if (config != null && succeededIDs.isNotEmpty) {
       await _writeConfig(
         ownerUserID,
@@ -169,6 +170,7 @@ class LibrarySharingService implements LibrarySharingRepository {
     required List<int> collectionIDs,
   }) => _operationLock.synchronized(() async {
     final ownerUserID = _currentOwnerUserID();
+    await _store.sync();
     final statuses = await _unshareInBatches(
       ownerUserID: ownerUserID,
       recipientUserID: recipientUserID,
@@ -179,7 +181,7 @@ class LibrarySharingService implements LibrarySharingRepository {
         .where((entry) => _isUnshareSuccess(entry.value))
         .map((entry) => entry.key)
         .toSet();
-    final config = await _localStore.read(ownerUserID, recipientUserID);
+    final config = await _store.read(ownerUserID, recipientUserID);
     if (config != null && succeededIDs.isNotEmpty) {
       await _writeConfig(
         ownerUserID,
@@ -222,8 +224,8 @@ class LibrarySharingService implements LibrarySharingRepository {
     if (ownerUserID == null) {
       return false;
     }
-    return (await _localStore.read(ownerUserID, recipientUserID))?.enabled ??
-        false;
+    await _store.sync();
+    return (await _store.read(ownerUserID, recipientUserID))?.enabled ?? false;
   }
 
   @override
@@ -248,11 +250,12 @@ class LibrarySharingService implements LibrarySharingRepository {
       throw ArgumentError.value(role, 'role');
     }
     final ownerUserID = _currentOwnerUserID();
+    await _store.sync();
     final publicKey = await _requirePublicKey(recipient.email);
-    final existing = await _localStore.read(ownerUserID, recipient.userID);
+    final existing = await _store.read(ownerUserID, recipient.userID);
     var config =
         (existing ??
-                LibrarySharingLocalConfig(
+                LibrarySharingConfig(
                   recipientUserID: recipient.userID,
                   enabled: false,
                   defaultRole: role,
@@ -262,7 +265,7 @@ class LibrarySharingService implements LibrarySharingRepository {
       ownerUserID,
     ).toList();
     config = _observeCollections(config, collections);
-    await _writeConfig(ownerUserID, config);
+    config = await _writeConfig(ownerUserID, config);
 
     final roles = _automaticShareRoles(collections, config);
     final statuses = roles.isEmpty
@@ -299,7 +302,8 @@ class LibrarySharingService implements LibrarySharingRepository {
   Future<void> disableAutomaticSharing(int recipientUserID) =>
       _operationLock.synchronized(() async {
         final ownerUserID = _currentOwnerUserID();
-        final config = await _localStore.read(ownerUserID, recipientUserID);
+        await _store.sync();
+        final config = await _store.read(ownerUserID, recipientUserID);
         if (config != null && config.enabled) {
           await _writeConfig(ownerUserID, config.copyWith(enabled: false));
         }
@@ -326,14 +330,21 @@ class LibrarySharingService implements LibrarySharingRepository {
     if (ownerUserID == null) {
       return;
     }
-    final configs = await _localStore.readAll(ownerUserID);
+    try {
+      await _store.sync();
+    } catch (error, stackTrace) {
+      _logger.warning(
+        'Could not sync library sharing state',
+        error,
+        stackTrace,
+      );
+      return;
+    }
+    final configs = await _store.readAll(ownerUserID);
     for (final config in configs.where((config) => config.enabled)) {
       try {
         await _operationLock.synchronized(() async {
-          final latest = await _localStore.read(
-            ownerUserID,
-            config.recipientUserID,
-          );
+          final latest = await _store.read(ownerUserID, config.recipientUserID);
           if (latest == null || !latest.enabled) {
             return;
           }
@@ -364,32 +375,36 @@ class LibrarySharingService implements LibrarySharingRepository {
 
   Future<void> _reconcileConfig(
     int ownerUserID,
-    LibrarySharingLocalConfig config,
+    LibrarySharingConfig config,
   ) async {
     final collections = _automaticallyShareableOwnedCollections(
       ownerUserID,
     ).toList();
     config = _observeCollections(config, collections);
-    await _writeConfig(ownerUserID, config);
+    config = await _writeConfig(ownerUserID, config);
+    if (!config.enabled) {
+      return;
+    }
 
     final roles = _automaticShareRoles(collections, config);
-    if (roles.isNotEmpty) {
-      final recipientEmail = _recipientEmail(config.recipientUserID);
-      final statuses = await _shareInBatches(
-        ownerUserID: ownerUserID,
-        recipientUserID: config.recipientUserID,
-        recipientEmail: recipientEmail,
-        publicKey: await _requirePublicKey(recipientEmail),
-        roles: roles,
-        source: CollectionShareSource.automatic,
-      );
-      config = _applyAutomaticShareResults(config, statuses);
+    if (roles.isEmpty) {
+      return;
     }
+    final recipientEmail = _recipientEmail(config.recipientUserID);
+    final statuses = await _shareInBatches(
+      ownerUserID: ownerUserID,
+      recipientUserID: config.recipientUserID,
+      recipientEmail: recipientEmail,
+      publicKey: await _requirePublicKey(recipientEmail),
+      roles: roles,
+      source: CollectionShareSource.automatic,
+    );
+    config = _applyAutomaticShareResults(config, statuses);
     await _writeConfig(ownerUserID, config);
   }
 
-  LibrarySharingLocalConfig _observeCollections(
-    LibrarySharingLocalConfig config,
+  LibrarySharingConfig _observeCollections(
+    LibrarySharingConfig config,
     List<Collection> collections,
   ) {
     final collectionIDs = collections
@@ -409,7 +424,7 @@ class LibrarySharingService implements LibrarySharingRepository {
 
   Map<int, CollectionParticipantRole> _automaticShareRoles(
     List<Collection> collections,
-    LibrarySharingLocalConfig config,
+    LibrarySharingConfig config,
   ) => {
     for (final collection in collections)
       if (!config.hidden.contains(collection.id) &&
@@ -421,8 +436,8 @@ class LibrarySharingService implements LibrarySharingRepository {
         ),
   };
 
-  LibrarySharingLocalConfig _applyAutomaticShareResults(
-    LibrarySharingLocalConfig config,
+  LibrarySharingConfig _applyAutomaticShareResults(
+    LibrarySharingConfig config,
     Map<int, CollectionShareStatus> statuses,
   ) {
     final addedAutomatically = {...config.addedAutomatically};
@@ -542,12 +557,12 @@ class LibrarySharingService implements LibrarySharingRepository {
     }
   }
 
-  Future<void> _writeConfig(
+  Future<LibrarySharingConfig> _writeConfig(
     int ownerUserID,
-    LibrarySharingLocalConfig config,
-  ) async {
+    LibrarySharingConfig config,
+  ) {
     _ensureCurrentOwner(ownerUserID);
-    await _localStore.write(ownerUserID, config);
+    return _store.write(ownerUserID, config);
   }
 
   Future<String> _requirePublicKey(String email) async {
@@ -571,7 +586,7 @@ class LibrarySharingService implements LibrarySharingRepository {
 
   Future<void> _refreshFamilyAndHandleIneligibleRecipient(
     int ownerUserID,
-    LibrarySharingLocalConfig config,
+    LibrarySharingConfig config,
   ) async {
     UserDetails userDetails;
     try {

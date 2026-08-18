@@ -1,5 +1,5 @@
 Pod::Spec.new do |s|
-  s.name             = 'ente_photos_rust'
+  s.name             = 'ente_photos_frb'
   s.version          = '0.0.1'
   s.summary          = 'A new Flutter FFI plugin project.'
   s.description      = <<-DESC
@@ -26,17 +26,17 @@ A new Flutter FFI plugin project.
   s.script_phase = {
     :name => 'Build Rust library',
     # First argument is relative path to the `rust` folder, second is name of rust library
-    :script => 'sh "$(cd -P "$PODS_TARGET_SRCROOT" && pwd)/../../../../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/photos ente_photos_rust',
+    :script => 'sh "$(cd -P "$PODS_TARGET_SRCROOT" && pwd)/../../../../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/photos ente_photos_frb',
     :execution_position => :before_compile,
     :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
     # Let XCode know that the static library referenced in -force_load below is
     # created by this build step.
-    :output_files => ["${BUILT_PRODUCTS_DIR}/libente_photos_rust.a"],
+    :output_files => ["${BUILT_PRODUCTS_DIR}/libente_photos_frb.a"],
   }
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     # ONNX Runtime 1.28 does not publish Apple x86_64 binaries.
     'EXCLUDED_ARCHS[sdk=macosx*]' => 'x86_64',
-    'OTHER_LDFLAGS' => '-force_load ${BUILT_PRODUCTS_DIR}/libente_photos_rust.a -lc++',
+    'OTHER_LDFLAGS' => '-force_load ${BUILT_PRODUCTS_DIR}/libente_photos_frb.a -lc++',
   }
 end

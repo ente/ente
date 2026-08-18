@@ -52,7 +52,6 @@ import "package:photos/ui/viewer/gallery/hooks/edit_album_details_sheet.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/location/edit_location_sheet.dart";
-import 'package:photos/utils/delete_file_util.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/magic_util.dart';
 
@@ -74,6 +73,7 @@ class GalleryAppBarWidget extends StatefulWidget {
     Future<void> Function()? onDisableDeviceFolderBackup,
     Collection? collection,
     List<EnteFile>? files,
+    PreferredSizeWidget? bottom,
   }) {
     return GalleryAppBarConfig(
       sliverBuilder: (_) => GalleryAppBarWidget._(
@@ -86,11 +86,13 @@ class GalleryAppBarWidget extends StatefulWidget {
         onDisableDeviceFolderBackup: onDisableDeviceFolderBackup,
         collection: collection,
         files: files,
+        bottom: bottom,
       ),
       geometryBuilder: (context) => _resolveSliverGeometry(
         context,
         subtitle: subtitle,
         description: collection?.displayDescription,
+        bottomHeight: bottom?.preferredSize.height,
       ),
     );
   }
@@ -99,13 +101,14 @@ class GalleryAppBarWidget extends StatefulWidget {
     BuildContext context, {
     String? subtitle,
     String? description,
+    double? bottomHeight,
   }) {
     final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
       context,
     );
     final isHierarchicalSearchable =
         inheritedSearchFilterData?.isHierarchicalSearchable ?? false;
-    final bottomHeight = isHierarchicalSearchable
+    bottomHeight ??= isHierarchicalSearchable
         ? AppBarFilterChips.preferredHeight(context)
         : 0.0;
     final collapsibleBottomHeight = AlbumDescriptionHeader.preferredHeight(
@@ -132,6 +135,7 @@ class GalleryAppBarWidget extends StatefulWidget {
   final Future<void> Function()? onDisableDeviceFolderBackup;
   final Collection? collection;
   final List<EnteFile>? files;
+  final PreferredSizeWidget? bottom;
 
   const GalleryAppBarWidget._(
     this.type,
@@ -143,6 +147,7 @@ class GalleryAppBarWidget extends StatefulWidget {
     this.onDisableDeviceFolderBackup,
     this.collection,
     this.files,
+    this.bottom,
   });
 
   @override
@@ -172,7 +177,6 @@ enum AlbumPopupAction {
   downloadAlbum,
   sortByMostRecent,
   sortByMostRelevant,
-  emptyTrash,
   editLocation,
   deleteLocation,
   galleryGuestView,
@@ -269,12 +273,22 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       widget.collection?.displayDescription,
     );
 
+    if (widget.bottom != null) {
+      return _GallerySliverAppBar(
+        title: _appBarTitle,
+        subtitle: widget.subtitle,
+        actions: _getDefaultActions(context),
+        bottom: widget.bottom,
+      );
+    }
+
     if (!isHierarchicalSearchable) {
       return _GallerySliverAppBar(
         title: _appBarTitle,
         subtitle: widget.subtitle,
         actions: _getDefaultActions(context),
         collapsibleBottom: descriptionHeader,
+        bottom: widget.bottom,
       );
     }
 
@@ -654,8 +668,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             await onCleanUncategorizedClick(context);
           } else if (value == AlbumPopupAction.downloadAlbum) {
             await _downloadPublicAlbumToGallery(widget.files!);
-          } else if (value == AlbumPopupAction.emptyTrash) {
-            await emptyTrash(context);
           } else if (value == AlbumPopupAction.editLocation) {
             editLocation();
           } else if (value == AlbumPopupAction.deleteLocation) {
@@ -685,7 +697,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         (!isArchived && galleryType.canHide()) ||
         widget.collection != null ||
         galleryType.canDelete() ||
-        galleryType == GalleryType.trash ||
         galleryType == GalleryType.sharedCollection ||
         (galleryType == GalleryType.localFolder && !_isICloudSharedAlbum) ||
         _canDisableDeviceFolderBackup ||
@@ -882,13 +893,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
           AlbumPopupAction.downloadAlbum,
           strings.download,
           galleryAppBarMenuIcon(HugeIcons.strokeRoundedDownload01, iconColor),
-        ),
-      if (galleryType == GalleryType.trash)
-        _menuOption(
-          AlbumPopupAction.emptyTrash,
-          strings.deleteAll,
-          galleryAppBarMenuIcon(HugeIcons.strokeRoundedDelete01, warningColor),
-          labelColor: warningColor,
         ),
     ];
   }

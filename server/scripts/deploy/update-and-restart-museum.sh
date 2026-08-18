@@ -1,9 +1,6 @@
 #!/bin/sh
 
 # This script is meant to be run on the production instances.
-#
-# It will tag the old image, pull the latest Docker image, restart museum and
-# start tailing the logs as a sanity check.
 
 set -o errexit
 
@@ -14,5 +11,6 @@ fi
 sudo docker pull rg.fr-par.scw.cloud/ente/museum-prod
 
 sudo systemctl restart museum
-sudo systemctl status museum | more
-sudo tail -F /root/var/logs/museum.log
+curl -fk --retry 5 --retry-connrefused --retry-delay 1 https://localhost/ping
+sudo systemctl status museum --no-pager
+sudo tail -n 20 /root/var/logs/museum.log
