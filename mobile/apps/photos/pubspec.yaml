@@ -47,7 +47,7 @@ dependencies:
   ente_crypto_api:
     path: ../../packages/ente_crypto_api
   ente_feature_flag:
-    path: plugins/ente_feature_flag
+    path: ../../packages/feature_flag
   ente_icons:
     path: ../../packages/ente_icons
   ente_install_source:

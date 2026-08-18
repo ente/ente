@@ -1,15 +1,12 @@
-// ignore_for_file: always_use_package_imports
-
 import "dart:async";
 import "dart:convert";
 import "dart:developer";
 import "dart:io";
 
 import "package:dio/dio.dart";
+import "package:ente_feature_flag/src/remote_flags.dart";
 import "package:flutter/foundation.dart";
 import "package:shared_preferences/shared_preferences.dart";
-
-import "model.dart";
 
 class FlagService {
   static const int _commentsFlag = 1 << 1;

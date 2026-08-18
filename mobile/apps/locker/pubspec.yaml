@@ -38,6 +38,8 @@ dependencies:
     path: ../../packages/ente_crypto_dart_adapter
   ente_events:
     path: ../../packages/events
+  ente_feature_flag:
+    path: ../../packages/feature_flag
   ente_icons:
     path: ../../packages/ente_icons
   ente_install_source:
