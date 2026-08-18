@@ -1108,11 +1108,9 @@
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
-  "deviceLockExplanation": "Disable the device screen lock when Ente is in the foreground and there is a backup in progress. This is normally not needed, but may help big uploads and initial imports of large libraries complete faster.",
   "deviceNotFound": "Device not found",
   "didYouKnow": "Did you know?",
   "digits": "Digits",
-  "disableAutoLock": "Disable auto lock",
   "disableBackup": "Disable backup",
   "disableDownloadWarningBody": "Viewers can still take screenshots or save a copy of your photos using external tools",
   "disableDownloadWarningTitle": "Please note",

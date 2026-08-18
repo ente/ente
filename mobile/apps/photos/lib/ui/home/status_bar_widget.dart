@@ -161,13 +161,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
     return _bannerPadding(
       BannerComponent(
         key: const ValueKey("large-backup-standby-banner"),
-        leadingWidget: SvgPicture.asset(
-          "assets/backup_mode_moon.svg",
-          colorFilter: ColorFilter.mode(
-            context.componentColors.primaryDark,
-            BlendMode.srcIn,
-          ),
-        ),
+        leadingIcon: HugeIcons.strokeRoundedMoon02,
         title: context.strings.backupModeKeepAppOpen,
         subtitle: context.strings.backupModeScreenWillDim,
         state: BannerComponentState.success,
@@ -189,6 +183,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
         title: l10n.machineLearning,
         subtitle: l10n.machineLearningBannerSubtitle,
         state: BannerComponentState.success,
+        trailingWidget: const Icon(Icons.arrow_forward),
         onTap: () async {
           await routeToPage(
             context,
@@ -206,6 +201,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
         leadingIcon: HugeIcons.strokeRoundedAlertCircle,
         title: context.strings.confirmYourRecoveryKey,
         state: BannerComponentState.warning,
+        trailingWidget: const Icon(Icons.arrow_forward),
         onTap: () async {
           await routeToPage(
             context,
