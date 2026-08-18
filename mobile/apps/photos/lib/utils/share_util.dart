@@ -135,6 +135,20 @@ Future<ShareResult> shareText(
 String formatMemoryShareText(String title, String shareUrl) =>
     '$title: $shareUrl';
 
+String formatAlbumShareText(
+  String albumName,
+  String? albumDescription,
+  String shareUrl,
+) {
+  final sharedDescription =
+      albumDescription != null && albumDescription.length > 100
+      ? '${albumDescription.substring(0, 100)}...'
+      : albumDescription;
+  return sharedDescription == null
+      ? '$albumName: $shareUrl'
+      : '$albumName - $sharedDescription: $shareUrl';
+}
+
 Future<ShareResult> shareLinkWithDescription(
   String url, {
   String? description,
@@ -258,9 +272,15 @@ void shareSelected(
 Future<void> shareAlbumLink(
   BuildContext context,
   String url,
-  GlobalKey key,
-) async {
-  await shareLinkWithDescription(url, context: context, key: key);
+  GlobalKey key, {
+  required String albumName,
+  String? albumDescription,
+}) async {
+  await shareText(
+    formatAlbumShareText(albumName, albumDescription, url),
+    context: context,
+    key: key,
+  );
 }
 
 // iPad share sheets require a source rectangle.
