@@ -25,9 +25,6 @@ void callbackDispatcher() {
         BgTaskUtils.$.info('Task started $tlog');
         if (Platform.isIOS &&
             taskName == BgTaskUtils.iOSBackgroundProcessingTask) {
-          // Re-arm at task start, mirroring the plugin's native resubmit for
-          // periodic tasks: a window that closes early never runs end-of-task
-          // code, so rescheduling there would break the chain.
           await BgTaskUtils.scheduleIOSBackgroundProcessingTask();
           await BgTaskUtils.markProcessingTaskStart(prefs);
         }
@@ -145,9 +142,7 @@ class BgTaskUtils {
       await workmanager.Workmanager().initialize(callbackDispatcher);
       if (Platform.isIOS) {
         await reportUncleanProcessingTaskExit();
-        // The processing task is scheduled regardless of the background
-        // refresh setting: that setting reliably gates app refresh tasks,
-        // while processing tasks may still be granted overnight windows.
+        // Background refresh permission does not reliably gate processing tasks.
         await scheduleIOSBackgroundProcessingTask();
         final status = await Permission.backgroundRefresh.status;
         if (status != PermissionStatus.granted) {
@@ -194,9 +189,7 @@ class BgTaskUtils {
     }
   }
 
-  // BGProcessingTask requests are one-shot: the plugin resubmits app refresh
-  // tasks natively but not processing tasks, so each run schedules the next
-  // one and every foreground launch re-arms the chain after a force-quit.
+  // Workmanager does not resubmit one-shot processing tasks.
   static Future<void> scheduleIOSBackgroundProcessingTask() async {
     try {
       await workmanager.Workmanager().registerProcessingTask(

@@ -673,8 +673,7 @@ Future<void> _scheduleHeartBeat(
   SharedPreferences prefs,
   bool isBackground,
 ) async {
-  // iOS launches the full app (running main) for background task wake-ups, so
-  // the main engine being alive doesn't imply the app is actually in use.
+  // iOS background wakes run main() without resuming the app.
   final bool skipFGWrite =
       !isBackground &&
       Platform.isIOS &&

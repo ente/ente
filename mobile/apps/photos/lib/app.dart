@@ -270,8 +270,6 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
     } else {
       AppLifecycleService.instance.onAppInBackground(stateChangeReason);
       if (Platform.isIOS && state == AppLifecycleState.paused) {
-        // Stop before suspension freezes the run mid-flight, so the ML lock
-        // is free for background-task engines while the app stays suspended.
         MLService.instance.stopActiveRun(MlStopReason.appPaused);
       }
     }
