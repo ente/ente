@@ -202,17 +202,10 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     }
     player.dispose();
     _transformationController.dispose();
-    if (wakeLockService.shouldKeepAppAwakeAcrossSessions) {
-      wakeLockService.updateWakeLock(
-        enable: true,
-        wakeLockFor: WakeLockFor.handlingMediaKitEdgeCase,
-      );
-    } else {
-      wakeLockService.updateWakeLock(
-        enable: false,
-        wakeLockFor: WakeLockFor.videoPlayback,
-      );
-    }
+    wakeLockService.updateWakeLock(
+      enable: false,
+      wakeLockFor: WakeLockFor.videoPlayback,
+    );
     super.dispose();
   }
 

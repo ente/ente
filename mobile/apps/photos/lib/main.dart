@@ -439,7 +439,6 @@ Future<void> _init(
       NetworkClient.instance.downloadDio,
       packageInfo,
     );
-    wakeLockService.init(isBackground: isBackground);
 
     _logger.info("Configuration init $tlog");
     await Configuration.instance.init(preferences);
