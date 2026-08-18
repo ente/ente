@@ -1248,6 +1248,7 @@ class _BannerPreview extends StatelessWidget {
             subtitle: 'Preparing secure upload',
             state: BannerComponentState.informative,
             leadingWidget: const _BannerLoadingLeading(),
+            trailingWidget: const Icon(Icons.arrow_forward),
             onTap: () {},
           ),
         ),
@@ -1295,6 +1296,7 @@ class _BannerStatePreview extends StatelessWidget {
       title: spec.title,
       subtitle: spec.subtitle,
       state: spec.state,
+      trailingWidget: const Icon(Icons.arrow_forward),
       onTap: () {
         ScaffoldMessenger.of(
           context,

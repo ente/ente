@@ -13,6 +13,7 @@ void main() {
           title: "Subscribe",
           subtitle: "Your subscription has expired",
           state: BannerComponentState.failure,
+          trailingWidget: const Icon(Icons.arrow_forward),
           onTap: () => tapCount += 1,
         ),
       ),
@@ -49,6 +50,11 @@ void main() {
     final title = tester.widget<Text>(find.text("Confirm your recovery key"));
     expect(title.maxLines, 2);
     expect(title.overflow, TextOverflow.ellipsis);
+    expect(find.byIcon(Icons.arrow_forward), findsNothing);
+    expect(
+      find.byKey(const ValueKey("banner-component-trailing-slot")),
+      findsNothing,
+    );
   });
 
   testWidgets("BannerComponent maps state colors from component tokens", (
@@ -169,6 +175,7 @@ void main() {
           title: "Syncing",
           subtitle: "Preparing secure upload",
           state: BannerComponentState.informative,
+          trailingWidget: const Icon(Icons.arrow_forward),
           onTap: () {},
         ),
       ),
