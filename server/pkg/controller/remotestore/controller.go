@@ -9,7 +9,6 @@ import (
 
 	"github.com/ente/museum/pkg/controller"
 	"github.com/ente/museum/pkg/repo"
-	"github.com/ente/museum/pkg/utils/rollout"
 	"github.com/spf13/viper"
 	"golang.org/x/net/idna"
 
@@ -19,11 +18,6 @@ import (
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	videoStreamingRolloutPercentage = 75
-	videoStreamingRolloutNonce      = "video-streaming-v1"
 )
 
 type Controller struct {
@@ -105,7 +99,7 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		DisableCFWorker: false,
 		// Disabling this still leaves multipart enabled for internal users.
 		EnableMobMultiPart: true,
-		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions | ente.CastSessionsV2 | ente.DeferredMultipartChecksums,
+		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions | ente.CastSessionsV2 | ente.DeferredMultipartChecksums | ente.VideoStreaming,
 		CastUrl:            viper.GetString("apps.cast"),
 		EmbedUrl:           viper.GetString("apps.embed-albums"),
 		CustomDomainCNAME:  viper.GetString("apps.custom-domain.cname"),
@@ -138,11 +132,9 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		}
 	}
 
-	if response.InternalUser ||
-		rollout.IsInPercentageRollout(userID, videoStreamingRolloutNonce, videoStreamingRolloutPercentage) {
-		response.ServerApiFlag |= ente.VideoStreaming
+	if response.InternalUser {
+		response.ServerApiFlag |= ente.LibrarySharing
 	}
-
 	return response, nil
 }
 

@@ -4,7 +4,6 @@ import UIKit
 
 @MainActor
 class CastViewModel: ObservableObject {
-    // MARK: - Published Properties
     @Published var currentView: CurrentView = .connecting
     @Published var deviceCode: String = ""
     @Published var currentImageData: Data?
@@ -13,12 +12,10 @@ class CastViewModel: ObservableObject {
     @Published var statusMessage: String = ""
     @Published var errorMessage: String?
 
-    // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
     private let pairingService: RealCastPairingService
     private let castSession: CastSession
 
-    // MARK: - Public Properties
     public let slideshowService: RealSlideshowService
 
     enum CurrentView {
@@ -50,7 +47,6 @@ class CastViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .assign(to: \.currentImageData, on: self)
             .store(in: &cancellables)
-        // Auto-transition once first image arrives (covers single-image albums and empty-to-populated)
         slideshowService.$currentImageData
             .receive(on: DispatchQueue.main)
             .sink { [weak self] data in
@@ -123,8 +119,6 @@ class CastViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    // MARK: - Public Methods
-
     func startCastSession() {
         castSession.setState(.registering)
         deviceCode = ""
@@ -178,7 +172,6 @@ class CastViewModel: ObservableObject {
     }
 
     private func handlePayloadReceived(_ payload: CastPayload) {
-        // Idempotency: if we're already connected with same payload, skip
         if case .connected(let existing) = castSession.state, existing == payload {
             return
         }
@@ -188,12 +181,10 @@ class CastViewModel: ObservableObject {
         statusMessage = ""
 
         Task {
-            // Add a small delay to prevent flickering from rapid state changes
             try? await Task.sleep(nanoseconds: 500_000_000)
 
             await slideshowService.start(castPayload: payload)
 
-            // Additional delay to ensure slideshow is properly loaded
             try? await Task.sleep(nanoseconds: 1_000_000_000)
 
             await MainActor.run {
@@ -220,8 +211,6 @@ class CastViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Slideshow Navigation
-
     func nextSlide() {
         guard currentView == .slideshow else { return }
 
@@ -237,8 +226,6 @@ class CastViewModel: ObservableObject {
             await slideshowService.previousSlide()
         }
     }
-
-    // MARK: - Private Methods
 
     private func handleStateChange(_ state: CastSessionState) {
         switch state {
@@ -263,10 +250,8 @@ class CastViewModel: ObservableObject {
     }
 
     private func handleSlideshowError(_ error: String) {
-        // Prevent stale slideshow errors from a previous (expired) session
-        // from overriding the fresh pairing code UI. Only react to slideshow
-        // errors once we are actually in a connected/slideshow flow.
-        // Exception: Allow empty state errors even during connecting
+        // Ignore stale slideshow errors while a new connection is starting.
+        // Empty-state errors may belong to the new connection.
         let isEmptyStateError = error.contains("No media files") ||
             error.contains("available in this album") ||
             error.contains("available in this collection") ||
@@ -310,7 +295,6 @@ class CastViewModel: ObservableObject {
             pairingService.resetForNewSession()
 
             await MainActor.run {
-                // Directly set to pairing once device registration begins to avoid brief empty/error flicker
                 currentView = .connecting
                 errorMessage = nil
                 statusMessage = "Starting fresh session..."

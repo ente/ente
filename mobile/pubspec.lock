@@ -41,14 +41,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.3.0"
-  animated_stack_widget:
-    dependency: transitive
-    description:
-      name: animated_stack_widget
-      sha256: ce4788dd158768c9d4388354b6fb72600b78e041a37afc4c279c63ecafcb9408
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.4"
   ansicolor:
     dependency: transitive
     description:
@@ -241,30 +233,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "8.12.6"
-  cached_network_image:
-    dependency: transitive
-    description:
-      name: cached_network_image
-      sha256: "7c1183e361e5c8b0a0f21a28401eecdbde252441106a9816400dd4c2b2424916"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.4.1"
-  cached_network_image_platform_interface:
-    dependency: transitive
-    description:
-      name: cached_network_image_platform_interface
-      sha256: "35814b016e37fbdc91f7ae18c8caf49ba5c88501813f73ce8a07027a395e2829"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.1.1"
-  cached_network_image_web:
-    dependency: transitive
-    description:
-      name: cached_network_image_web
-      sha256: "980842f4e8e2535b8dbd3d5ca0b1f0ba66bf61d14cc3a17a9b4788a3685ba062"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.3.1"
   camera:
     dependency: transitive
     description:
@@ -498,6 +466,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  dart_polylabel2:
+    dependency: transitive
+    description:
+      name: dart_polylabel2
+      sha256: "7eeab15ce72894e4bdba6a8765712231fc81be0bd95247de4ad9966abc57adc6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   dart_style:
     dependency: transitive
     description:
@@ -611,7 +587,14 @@ packages:
       url: "https://github.com/ente/ente_crypto_dart.git"
     source: git
     version: "1.0.0"
-  ente_photos_rust:
+  ente_locker_frb:
+    dependency: transitive
+    description:
+      path: "apps/locker/rust_builder"
+      relative: true
+    source: path
+    version: "0.0.1"
+  ente_photos_frb:
     dependency: transitive
     description:
       path: "apps/photos/rust_builder"
@@ -698,14 +681,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
-  ffigen:
-    dependency: transitive
-    description:
-      name: ffigen
-      sha256: "10cb41647d73e0204f8d35138a3f20eb52418cce96599ad49167b1111e59a557"
-      url: "https://pub.dev"
-    source: hosted
-    version: "13.0.0"
   ffmpeg_kit_flutter:
     dependency: transitive
     description:
@@ -1032,26 +1007,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_map
-      sha256: "2ecb34619a4be19df6f40c2f8dce1591675b4eff7a6857bd8f533706977385da"
+      sha256: ce1debbb29cade61964334b2a19c7c76e5bb2ef7dacf126c6424ee44036232f8
       url: "https://pub.dev"
     source: hosted
-    version: "7.0.2"
-  flutter_map_marker_cluster:
-    dependency: transitive
-    description:
-      name: flutter_map_marker_cluster
-      sha256: "2c1fb4d7a2105c4bbeb89be215320507f4b71b2036df4341fab9d2aa677d3ae9"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.4.0"
-  flutter_map_marker_popup:
-    dependency: transitive
-    description:
-      name: flutter_map_marker_popup
-      sha256: a7540538114b5d1627ab67b498273d66bc36090385412ae49ef215af4a2861c5
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.0.0"
+    version: "8.3.1"
   flutter_native_splash:
     dependency: transitive
     description:
@@ -1609,14 +1568,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.1"
-  logger:
-    dependency: transitive
-    description:
-      name: logger
-      sha256: "25aee487596a6257655a1e091ec2ae66bc30e7af663592cc3a27e6591e05035c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.7.0"
   logging:
     dependency: transitive
     description:
@@ -1885,14 +1836,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.4.1"
-  octo_image:
-    dependency: transitive
-    description:
-      name: octo_image
-      sha256: "34faa6639a78c7e3cbe79be6f9f96535867e879748ade7d17c9b1ae7536293bd"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.0"
   open_file:
     dependency: transitive
     description:
@@ -2181,14 +2124,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.9.1"
-  polylabel:
-    dependency: transitive
-    description:
-      name: polylabel
-      sha256: "41b9099afb2aa6c1730bdd8a0fab1400d287694ec7615dd8516935fa3144214b"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.1"
   pool:
     dependency: transitive
     description:
@@ -3221,14 +3156,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.3"
-  yaml_edit:
-    dependency: transitive
-    description:
-      name: yaml_edit
-      sha256: "07c9e63ba42519745182b88ca12264a7ba2484d8239958778dfe4d44fe760488"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.4"
   zxing2:
     dependency: transitive
     description:

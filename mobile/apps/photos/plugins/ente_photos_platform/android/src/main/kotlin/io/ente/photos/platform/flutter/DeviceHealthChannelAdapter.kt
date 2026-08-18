@@ -15,28 +15,25 @@ import io.flutter.plugin.common.MethodChannel
 internal class DeviceHealthChannelAdapter :
     MethodChannel.MethodCallHandler,
     EventChannel.StreamHandler {
-    private lateinit var methodChannel: MethodChannel
     private lateinit var eventChannel: EventChannel
     private lateinit var service: DeviceHealthService
     private var eventSink: EventChannel.EventSink? = null
 
     fun attach(binding: FlutterPlugin.FlutterPluginBinding) {
         service = DeviceHealthService(binding.applicationContext)
-        methodChannel = MethodChannel(binding.binaryMessenger, METHOD_CHANNEL)
         eventChannel = EventChannel(binding.binaryMessenger, EVENT_CHANNEL)
-        methodChannel.setMethodCallHandler(this)
         eventChannel.setStreamHandler(this)
     }
 
-    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) =
         when (call.method) {
             "deviceHealth.getSnapshot" -> result.success(service.snapshot().toChannelMap())
+
             "deviceHealth.getMemorySnapshot" ->
                 result.success(service.memorySnapshot().toMemoryChannelMap())
 
             else -> result.notImplemented()
         }
-    }
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
         eventSink = events
@@ -53,7 +50,6 @@ internal class DeviceHealthChannelAdapter :
     fun detach() {
         eventSink = null
         service.stopObserving()
-        methodChannel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
     }
 
@@ -128,7 +124,6 @@ internal class DeviceHealthChannelAdapter :
             }
 
     private companion object {
-        const val METHOD_CHANNEL = "io.ente.photos.platform"
         const val EVENT_CHANNEL = "io.ente.photos.platform/device_health_events"
     }
 }

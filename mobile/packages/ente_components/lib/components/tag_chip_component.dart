@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:ente_components/components/chip_surface.dart';
 import 'package:ente_components/theme/radii.dart';
 import 'package:ente_components/theme/spacing.dart';
@@ -25,6 +27,13 @@ class TagChipComponent extends StatelessWidget {
   final TagChipComponentState state;
   final VoidCallback? onTap;
   final String? tooltip;
+
+  static double preferredHeight(BuildContext context) {
+    final textHeight =
+        MediaQuery.textScalerOf(context).scale(TextStyles.body.fontSize!) *
+        TextStyles.body.height!;
+    return math.max(44, textHeight + 2 * Spacing.md);
+  }
 
   bool get _selected => state == TagChipComponentState.selected;
 

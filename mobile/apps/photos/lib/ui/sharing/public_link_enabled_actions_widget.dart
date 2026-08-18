@@ -60,7 +60,13 @@ class PublicLinkEnabledActionsWidget extends StatelessWidget {
           title: context.strings.sendLink,
           icon: HugeIcons.strokeRoundedSent,
           onTap: () async {
-            await shareAlbumLink(context, url, effectiveKey);
+            await shareAlbumLink(
+              context,
+              url,
+              effectiveKey,
+              albumName: collection.displayName,
+              albumDescription: collection.displayDescription,
+            );
           },
         ),
         ShareMenuItem(

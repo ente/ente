@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:io";
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
@@ -7,6 +8,7 @@ import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/album_sort_order_change_event.dart";
 import "package:photos/events/app_mode_changed_event.dart";
@@ -34,6 +36,8 @@ import "package:photos/ui/tabs/albums/empty_states/received_empty_state.dart";
 import "package:photos/ui/tabs/albums/empty_states/shared_empty_state.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/actions/delete_empty_albums.dart";
+import "package:photos/ui/viewer/gallery/trash_page.dart";
+import "package:photos/utils/device_info.dart";
 
 enum _AlbumsFilter { ente, onDevice, shared, received }
 
@@ -870,6 +874,10 @@ class _AlbumsTabState extends State<AlbumsTab>
                               ),
                               const SizedBox(width: 6),
                               albumsOptionsButton,
+                              if (isLocalGalleryMode)
+                                const _LocalGalleryTrashButton(
+                                  before: SizedBox(width: 6),
+                                ),
                             ],
                           ),
                   ),
@@ -1145,6 +1153,50 @@ class _AlbumsMoreButtonOverlay extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LocalGalleryTrashButton extends StatefulWidget {
+  final Widget before;
+
+  const _LocalGalleryTrashButton({required this.before});
+
+  @override
+  State<_LocalGalleryTrashButton> createState() =>
+      _LocalGalleryTrashButtonState();
+}
+
+class _LocalGalleryTrashButtonState extends State<_LocalGalleryTrashButton> {
+  late final Future<bool> _isTrashSupported;
+
+  @override
+  void initState() {
+    _isTrashSupported = (() async {
+      return flagService.internalUser &&
+          Platform.isAndroid &&
+          !await isAndroidSDKVersionLowerThan(android11SDKINT);
+    })();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: _isTrashSupported,
+      builder: (_, snapshot) => (snapshot.data ?? false)
+          ? Row(
+              children: [
+                widget.before,
+                IconButtonComponent(
+                  variant: IconButtonComponentVariant.primary,
+                  shouldSurfaceExecutionStates: false,
+                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02),
+                  onTap: () => showTrashPage(context),
+                ),
+              ],
+            )
+          : const SizedBox.shrink(),
     );
   }
 }

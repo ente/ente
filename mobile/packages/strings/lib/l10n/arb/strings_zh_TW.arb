@@ -1887,8 +1887,6 @@
   "ocrModelsNetworkRequiredError": "首次使用時需要網路連線以下載文字辨識 OCR 模型",
   "ocrModelsPrepareFailed": "無法準備文字辨識 OCR 模型",
   "ocrNoTextDetected": "未偵測到任何文字",
-  "ocrProcessingOverlayMessage": "偵測文字中……",
-  "ocrSelectionHint": "透過滑動或連按兩下，精準選取所需內容",
   "offlineEnableBackupTagLabel": "10 GB 免費！",
   "offlineFacesBannerSubtitle": "註冊即可標記人物，稍後輕鬆找到他們。",
   "offlineFacesBannerTitle": "想保存這些臉孔嗎？",

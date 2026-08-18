@@ -2394,8 +2394,6 @@
   "ocrModelsNetworkRequiredError": "Exige conexão com a rede para baixar modelos OCR no primeiro uso",
   "ocrModelsPrepareFailed": "Não foi possível preparar modelos OCR",
   "ocrNoTextDetected": "Nenhum texto detectado",
-  "ocrProcessingOverlayMessage": "Detectando texto...",
-  "ocrSelectionHint": "Deslize ou toque duplo para selecionar o que precisa",
   "offlineEnableBackupTagLabel": "10 GB GRÁTIS!",
   "offlineFacesBannerSubtitle": "Registre-se para marcar pessoas e encontrá-las facilmente depois.",
   "offlineFacesBannerTitle": "Deseja salvar estes rostos?",

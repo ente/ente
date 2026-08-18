@@ -9,15 +9,20 @@ import "package:hugeicons/hugeicons.dart";
 import "package:local_auth/local_auth.dart";
 import "package:logging/logging.dart";
 import "package:modal_bottom_sheet/modal_bottom_sheet.dart";
+import "package:photo_manager/photo_manager.dart";
 import 'package:photos/core/configuration.dart';
+import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/files_updated_event.dart";
+import "package:photos/events/force_reload_trash_page_event.dart";
 import "package:photos/events/guest_view_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/device_collection.dart';
+import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
+import "package:photos/models/file/trash_file.dart";
 import 'package:photos/models/files_split.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/metadata/common_keys.dart";
@@ -175,7 +180,7 @@ class _FileSelectionActionsWidgetState
         SelectionActionButton(
           hugeIcon: HugeIcons.strokeRoundedDelete01,
           labelText: context.strings.permanentlyDelete,
-          onTap: _permanentlyDelete,
+          onTap: _permanentlyDeleteFromTrash,
           isCritical: true,
         ),
       );
@@ -354,7 +359,7 @@ class _FileSelectionActionsWidgetState
           SelectionActionButton(
             hugeIcon: HugeIcons.strokeRoundedDelete01,
             labelText: context.strings.permanentlyDelete,
-            onTap: _permanentlyDelete,
+            onTap: _permanentlyDeleteFromTrash,
             isCritical: true,
           ),
         );
@@ -480,6 +485,27 @@ class _FileSelectionActionsWidgetState
             labelText: context.strings.unarchive,
             onTap: _onUnArchiveClick,
             shouldShow: ownedFilesCount > 0,
+          ),
+        );
+      }
+
+      if (widget.type.showRestoreOption()) {
+        items.add(
+          SelectionActionButton(
+            hugeIcon: HugeIcons.strokeRoundedRestoreBin,
+            labelText: context.strings.restore,
+            onTap: _restore,
+          ),
+        );
+      }
+
+      if (widget.type.showPermanentlyDeleteOption()) {
+        items.add(
+          SelectionActionButton(
+            hugeIcon: HugeIcons.strokeRoundedDelete01,
+            labelText: context.strings.permanentlyDelete,
+            onTap: _permanentlyDeleteFromTrash,
+            isCritical: true,
           ),
         );
       }
@@ -1066,6 +1092,16 @@ class _FileSelectionActionsWidgetState
   }
 
   void _restore() {
+    final isDeviceOnly = widget.selectedFiles.files.every(
+      (f) => f.isDeviceTrash,
+    );
+    if (isDeviceOnly) {
+      _restoreFilesFromDeviceTrash(widget.selectedFiles).onError((e, s) {
+        if (!mounted) return;
+        showGenericErrorDialog(context: context, error: e).ignore();
+      });
+      return;
+    }
     showCollectionActionSheet(
       context,
       selectedFiles: widget.selectedFiles,
@@ -1073,8 +1109,26 @@ class _FileSelectionActionsWidgetState
     );
   }
 
-  Future<void> _permanentlyDelete() async {
-    if (await deleteFromTrash(context, widget.selectedFiles.files.toList())) {
+  Future<void> _permanentlyDeleteFromTrash() async {
+    final isDeviceOnly = widget.selectedFiles.files.every(
+      (f) => f.isDeviceTrash,
+    );
+    if (isDeviceOnly) {
+      final deletedIDs = await permanentlyDeleteFromDeviceTrash(
+        context,
+        widget.selectedFiles.files.map((f) => f.localID!).toList(),
+      );
+      widget.selectedFiles.unSelectAll(
+        widget.selectedFiles.files
+            .where((f) => deletedIDs.contains(f.localID))
+            .toSet(),
+      );
+      return;
+    }
+    if (await deleteFromEnteTrash(
+      context,
+      widget.selectedFiles.files.whereType<EnteTrashFile>().toList(),
+    )) {
       widget.selectedFiles.clearAll();
     }
   }
@@ -1257,6 +1311,32 @@ class _FileSelectionActionsWidgetState
       widget.selectedFiles.clearAll();
     } else {
       widget.selectedFiles.replaceSelection(skippedFiles.toSet());
+    }
+  }
+
+  Future<void> _restoreFilesFromDeviceTrash(SelectedFiles selectedFiles) async {
+    final files = selectedFiles.files
+        .map((f) => f.asDeviceTrashFile!.toAssetEntity())
+        .toList();
+    final restoredIDs = <String>{};
+    try {
+      for (final batch in files.chunks(batchSize)) {
+        final result = await PhotoManager.editor.android.restoreFromTrash(
+          batch,
+        );
+        restoredIDs.addAll(result);
+      }
+    } catch (e, s) {
+      _logger.warning("_restoreFilesFromDeviceTrash failed:", e, s);
+      rethrow;
+    } finally {
+      if (restoredIDs.isNotEmpty) {
+        final restoredFiles = selectedFiles.files.where(
+          (f) => restoredIDs.contains(f.localID),
+        );
+        selectedFiles.unSelectAll(restoredFiles.toSet());
+        Bus.instance.fire(ForceReloadTrashPageEvent());
+      }
     }
   }
 }

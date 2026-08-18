@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ente_contacts/contacts.dart' as contacts;
 import 'package:locker/services/configuration.dart';
+import 'package:locker/services/frb_contacts_rust_api.dart';
 import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,7 +16,10 @@ class LockerContactsDisplayService {
     required SharedPreferences preferences,
     required PackageInfo packageInfo,
   }) async {
-    contacts.ContactsDisplayService.instance.init(preferences: preferences);
+    contacts.ContactsDisplayService.instance.init(
+      preferences: preferences,
+      rustApi: const FrbContactsRustApi(),
+    );
     _packageInfo = packageInfo;
     scheduleEnsureReady();
   }

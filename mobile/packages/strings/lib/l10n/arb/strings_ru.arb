@@ -14,10 +14,22 @@
       }
     }
   },
+  "accountRecovery": "Восстановление аккаунта",
   "accountSetupIncompleteCreateAccount": "Настройка учетной записи не завершена. Создайте учетную запись, чтобы завершить настройку.",
   "@accountSetupIncompleteCreateAccount": {
     "description": "Error shown when account exists but signup is incomplete"
   },
+  "actionNotSupportedForSharedFiles": "{count, plural, one{Действие не поддерживается для {count} общего файла} few {Действие не поддерживается для {count} общий файлов} many {Действие не поддерживается для {count} общий файлов} other{Действие не поддерживается для {count} общих файлов}}",
+  "@actionNotSupportedForSharedFiles": {
+    "description": "Message when action is not supported for shared files",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "actionNotSupportedOnFavouritesAlbum": "Это действие недоступно для альбома «Избранное»",
   "activeLinksWillShowUpHere": "Здесь будут показаны активные ссылки",
   "activeSessions": "Активные сеансы",
   "@activeSessions": {
@@ -157,6 +169,7 @@
     "description": "Action label to add selected files to an existing person."
   },
   "addTrustedContact": "Добавить доверенный контакт",
+  "addTrustedPerson": "Добавить доверенное лицо",
   "addUpTo5MembersFree": "Добавьте до 5 участников бесплатно",
   "addViewer": "Добавить зрителя",
   "addViewers": "{count, plural, =0{Добавить зрителя} one{Добавить зрителя} few{Добавить зрителей} many{Добавить зрителей} other{Добавить зрителей}}",
@@ -194,7 +207,10 @@
   "after1Month": "Через 1 месяц",
   "after1Week": "Через 1 неделю",
   "after1Year": "Через 1 год",
+  "albumDescriptionHint": "Введите описание для этого альбома",
+  "albumEditsWillNotBeSaved": "Ваши правки в этом альбоме не будут сохранены.",
   "albumLayout": "Макет альбома",
+  "albumName": "Название альбома",
   "albumOwner": "Владелец",
   "@albumOwner": {
     "description": "Role of the album owner"
@@ -289,7 +305,12 @@
   },
   "aNewVersionOfEnteIsAvailable": "Доступна новая версия Ente.",
   "aNewVersionOfEnteLockerIsAvailable": "Доступна новая версия Ente Locker.",
+  "anythingElse": "Что-то еще?",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
+  },
   "appearance": "Оформление",
+  "appIcon": "Значок приложения",
   "appleId": "Идентификатор Apple",
   "applePhotosUnsupportedResource": "Этот файл не может быть сохранен в Apple Photos. Вы можете просмотреть его в Ente.",
   "@applePhotosUnsupportedResource": {
@@ -356,14 +377,24 @@
   "attachLogsHelper": "Помогает нам быстрее диагностировать проблему",
   "authenticateGeneric": "Пожалуйста, авторизуйтесь",
   "authenticating": "Аутентификация...",
+  "authenticationFailedPleaseTryAgain": "Аутентификация не удалась, пожалуйста, попробуйте снова",
+  "@authenticationFailedPleaseTryAgain": {
+    "description": "Error message when authentication fails"
+  },
   "authenticationSuccessful": "Аутентификация прошла успешно!",
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
+  "authToChangeEmailVerificationSetting": "Пожалуйста, авторизуйтесь для изменения настроек подтверждения электронной почты",
+  "authToChangeLockscreenSetting": "Пожалуйста, авторизуйтесь для изменения настроек экрана блокировки",
+  "authToChangeYourEmail": "Пожалуйста, авторизуйтесь для смены электронной почты",
+  "authToChangeYourPassword": "Пожалуйста, авторизуйтесь для смены пароля",
   "authToConfigureTwofactorAuthentication": "Пожалуйста, авторизуйтесь для настройки двухфакторной аутентификации",
   "authToExportCodes": "Пожалуйста, авторизуйтесь для экспорта кодов",
+  "authToInitiateAccountDeletion": "Разблокируйте, чтобы удалить свой аккаунт",
   "authToInitiateSignIn": "Пожалуйста, авторизуйтесь, чтобы получить доступ к резервному копированию.",
   "authToManageLegacy": "Пожалуйста, авторизуйтесь для управления доверенными контактами",
+  "authToManageLegacyKit": "Авторизуйтесь для управления устаревшими комплектами",
   "authToSetBackupPassword": "Авторизуйтесь для установки пароля резервной копии",
   "authToUpdateBackupPassword": "Авторизуйтесь для обновления пароля резервной копии",
   "authToViewPasskey": "Пожалуйста, авторизуйтесь для просмотра ключа доступа",
@@ -376,6 +407,7 @@
   "authToViewYourActiveSessions": "Пожалуйста, авторизуйтесь для просмотра активных сессий",
   "authToViewYourHiddenFiles": "Пожалуйста, авторизуйтесь для просмотра скрытых файлов",
   "authToViewYourMemories": "Пожалуйста, авторизуйтесь для просмотра воспоминаний",
+  "authToViewYourRecoveryKey": "Пожалуйста, авторизуйтесь для просмотра ключа восстановления",
   "autoAddPeople": "Автоматически добавлять людей",
   "autoAddToAlbum": "Автоматически добавлять в альбом",
   "autoCastDialogBody": "Здесь вы увидите доступные устройства.",
@@ -383,6 +415,10 @@
   "autoLock": "Автоблокировка",
   "@autoLock": {
     "description": "Auto lock setting title"
+  },
+  "autoLockFeatureDescription": "Время в фоне, после которого приложение блокируется",
+  "@autoLockFeatureDescription": {
+    "description": "Description of auto lock feature"
   },
   "autoLogoutMessage": "Вы вышли из системы из-за технического сбоя. Приносим извинения за неудобства.",
   "automaticallyAnalyzeAndSplitGrouping": "Мы автоматически проанализируем группу, чтобы определить, есть ли в ней несколько человек, и снова разделим их. Это может занять несколько секунд.",
@@ -434,6 +470,7 @@
   "birthday": "День рождения",
   "birthdayJoy": "Радость дня рождения",
   "birthdays": "Дни рождения",
+  "blockLegacyKitRecoveryMessage": "Заблокировать текущую попытку восстановления\nОбратите внимание, что они могут начать новую попытку восстановления",
   "blog": "Блог",
   "bothIssuerAndAccountCanNotBeEmpty": "И эмитент, и аккаунт не могут быть пустыми",
   "bringYourFamilyAlong": "Пригласите свою семью",
@@ -444,6 +481,10 @@
   "calculating": "Подсчёт...",
   "camera": "Камера",
   "campingMoments": "Моменты у костра",
+  "cancel": "Отмена",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
   "cancelInvite": "Отменить приглашение",
   "@cancelInvite": {
     "description": "Title for cancel invite confirmation dialog"
@@ -521,6 +562,7 @@
     "description": "Change email button label"
   },
   "changeLocationOfSelectedItems": "Изменить местоположение выбранных элементов?",
+  "changePassword": "Изменить пароль",
   "changePasswordTitle": "Изменить пароль",
   "@changePasswordTitle": {
     "description": "Change password title"
@@ -528,6 +570,11 @@
   "changePermissions": "Изменить разрешения",
   "changePermissionsQuestion": "Изменить разрешения?",
   "changeYourReferralCode": "Изменить код",
+  "checkForUpdates": "Проверить обновления",
+  "checkInboxAndSpamFolder": "Пожалуйста, проверьте ваш почтовый ящик (и спам) для завершения верификации",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
   "checking": "Проверка...",
   "checkingModels": "Проверка моделей...",
   "checkStatus": "Проверить статус",
@@ -2110,8 +2157,6 @@
   "ocrModelsNetworkRequiredError": "Для загрузки моделей OCR при первом использовании требуется сетевое подключение",
   "ocrModelsPrepareFailed": "Не удалось создать модели OCR",
   "ocrNoTextDetected": "Текст не обнаружен",
-  "ocrProcessingOverlayMessage": "Обнаружение текста...",
-  "ocrSelectionHint": "Свайп или двойное нажатие для выбора того, что вам нужно",
   "of_": "от",
   "offlineEnableBackupTagLabel": "10 ГБ БЕСПЛАТНО!",
   "offlineFacesBannerSubtitle": "Зарегистрируйтесь, чтобы помечать людей и легко находить их позже.",

@@ -1,7 +1,5 @@
 import Foundation
 
-// MARK: - Persistent Thread-Safe File Cache
-
 actor ThreadSafeFileCache {
     private var cache: [Int: Data] = [:]
     private var cacheOrder: [Int] = []
@@ -19,7 +17,6 @@ actor ThreadSafeFileCache {
         self.cacheDirectory = documentsPath.appendingPathComponent("EnteFileCache")
         self.metadataURL = cacheDirectory.appendingPathComponent("cache_metadata.json")
         
-        // Create cache directory if it doesn't exist
         try? FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
         
         loadCacheFromDisk()
@@ -32,7 +29,6 @@ actor ThreadSafeFileCache {
         
         let fileURL = cacheDirectory.appendingPathComponent("\(fileID).cache")
         if let data = try? Data(contentsOf: fileURL) {
-            // Load into memory cache for faster future access
             cache[fileID] = data
             if !cacheOrder.contains(fileID) {
                 cacheOrder.append(fileID)
@@ -117,7 +113,6 @@ actor ThreadSafeFileCache {
         }
         totalBytes -= removedBytes
         
-        // Save updated metadata after eviction
         saveCacheMetadata()
         
         print("Cache GC complete: now \(cache.count) files, \(totalBytes) bytes")
@@ -150,7 +145,6 @@ actor ThreadSafeFileCache {
         
         print("Loaded \(validFileIDs.count) cached files (\(loadedBytes) bytes) from disk")
         
-        // Clean up any invalid entries
         if validFileIDs.count != metadata.fileIDs.count {
             saveCacheMetadata()
         }

@@ -1,3 +1,5 @@
+import "dart:io";
+
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -15,9 +17,11 @@ class SaveToLockerEmptyStateWidget extends StatelessWidget {
   const SaveToLockerEmptyStateWidget({
     super.key,
     required this.onUploadDocument,
+    required this.onUploadFiles,
   });
 
   final Future<bool> Function() onUploadDocument;
+  final Future<bool> Function(List<File> files) onUploadFiles;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +39,7 @@ class SaveToLockerEmptyStateWidget extends StatelessWidget {
               context,
               option.type,
               onUploadDocument: onUploadDocument,
+              onUploadFiles: onUploadFiles,
             ),
           ),
         ],

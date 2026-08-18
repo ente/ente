@@ -173,8 +173,6 @@
   "ocrModelsNetworkRequiredError": "ପ୍ରଥମ ବ୍ୟବହାରରେ OCR ମଡେଲଗୁଡିକ ଡାଉନଲୋଡ୍ କରିବାକୁ ନେଟୱାର୍କ୍ ସଂଯୋଜନା ଆବଶ୍ୟକୀୟ",
   "ocrModelsPrepareFailed": "OCR ମଡେଲଗୁଡିକ ପ୍ରସ୍ତୁତ କରିପାରିବେ ନାହିଁ",
   "ocrNoTextDetected": "କୌଣସି ଟେକ୍ସଟ୍ ଚିହ୍ନଟ ହୋଇନାହିଁ",
-  "ocrProcessingOverlayMessage": "ଲେଖା ଚିହ୍ନଟ ହେଉଛି...",
-  "ocrSelectionHint": "ଆପଣ ଯାହା ଆବଶ୍ୟକ କରନ୍ତି ତାହା ଚୟନ କରିବାକୁ ସ୍ଵାଇପ୍ କିମ୍ବା ଦୁଇଥର ଟ୍ୟାପ୍ କରନ୍ତୁ",
   "oops": "ଓହୋ",
   "@oops": {
     "description": "Oops error title"

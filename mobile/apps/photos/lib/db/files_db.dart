@@ -944,41 +944,6 @@ class FilesDB with SqlDbBase {
     return FileLoadResult(files, files.length == limit);
   }
 
-  Future<List<EnteFile>> getFilesCreatedWithinDurations(
-    List<List<int>> durations,
-    Set<int> ignoredCollectionIDs, {
-    int? visibility,
-    String order = 'ASC',
-    bool dedupeUploadID = true,
-  }) async {
-    if (durations.isEmpty) {
-      return <EnteFile>[];
-    }
-    final db = await instance.sqliteAsyncDB;
-    String whereClause = durations
-        .map(
-          (duration) =>
-              "($columnCreationTime >= ${duration[0]} AND $columnCreationTime < ${duration[1]})",
-        )
-        .join(" OR ");
-
-    whereClause = "( $whereClause )";
-    if (visibility != null) {
-      whereClause += ' AND $columnMMdVisibility = $visibility';
-    }
-    final query =
-        'SELECT * FROM $filesTable WHERE $whereClause ORDER BY $columnCreationTime $order';
-    final results = await db.getAll(query);
-    final files = convertToFiles(results);
-    return applyDBFilters(
-      files,
-      DBFilterOptions(
-        ignoredCollectionIDs: ignoredCollectionIDs,
-        dedupeUploadID: dedupeUploadID,
-      ),
-    );
-  }
-
   Future<List<EnteFile>> getFilesPendingForUpload() async {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll(

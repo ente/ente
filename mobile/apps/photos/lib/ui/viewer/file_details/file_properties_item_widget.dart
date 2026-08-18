@@ -105,11 +105,11 @@ class _FilePropertiesItemWidgetState extends State<FilePropertiesItemWidget> {
       subSectionWidgets.add(Text(formatBytes(fileSize), style: textStyle));
     }
 
-    if ((widget.file.fileType == FileType.video) &&
-        (widget.file.localID != null || widget.file.duration != 0)) {
-      if (widget.file.duration != 0) {
+    if (widget.file.fileType == FileType.video) {
+      final duration = widget.file.duration ?? 0;
+      if (duration != 0) {
         subSectionWidgets.add(
-          Text(secondsToHHMMSS(widget.file.duration!), style: textStyle),
+          Text(secondsToHHMMSS(duration), style: textStyle),
         );
       } else {
         final asset = await widget.file.getAsset;

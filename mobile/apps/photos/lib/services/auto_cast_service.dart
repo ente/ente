@@ -5,7 +5,11 @@ import "package:photos/models/collection/collection.dart";
 import "package:photos/src/rust/api/cast_api.dart";
 
 typedef CastPayloadEncoder =
-    PreparedCastPayload Function(Collection collection, String publicKey);
+    PreparedCastPayload Function(
+      Collection collection,
+      String publicKey,
+      String? pqPublicKey,
+    );
 
 class AutoCastDeviceNotFoundException implements Exception {
   const AutoCastDeviceNotFoundException();
@@ -36,11 +40,15 @@ class AutoCastService {
       collectionID: collection.id,
     );
     try {
-      final publicKey = await _gateway.getPublicKey(code);
-      if (publicKey == null) {
+      final publicKeys = await _gateway.getPublicKeys(code);
+      if (publicKeys == null) {
         throw const AutoCastDeviceNotFoundException();
       }
-      final prepared = _encodePayload(collection, publicKey);
+      final prepared = _encodePayload(
+        collection,
+        publicKeys.publicKey,
+        publicKeys.pqPublicKey,
+      );
       final deviceID = await _gateway.publishCastPayload(
         code,
         prepared.encryptedPayload,

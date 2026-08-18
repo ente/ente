@@ -1,14 +1,10 @@
 import "dart:io" show Platform;
 
-import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
-import "package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart";
 import "package:latlong2/latlong.dart";
 import "package:photos/ui/map/image_marker.dart";
 import "package:photos/ui/map/map_button.dart";
-import "package:photos/ui/map/map_gallery_tile.dart";
-import "package:photos/ui/map/map_gallery_tile_badge.dart";
 import "package:photos/ui/map/map_marker.dart";
 import "package:photos/ui/map/tile/layers.dart";
 import "package:url_launcher/url_launcher.dart";
@@ -39,7 +35,7 @@ Future<bool> _launchCoordinates(double latitude, double longitude) async {
 
 class MapView extends StatefulWidget {
   final List<ImageMarker> imageMarkers;
-  final Function updateVisibleImages;
+  final void Function(MapCamera camera) updateViewport;
   final MapController controller;
   final LatLng center;
   final double minZoom;
@@ -55,7 +51,7 @@ class MapView extends StatefulWidget {
 
   const MapView({
     super.key,
-    required this.updateVisibleImages,
+    required this.updateViewport,
     required this.imageMarkers,
     required this.controller,
     required this.center,
@@ -76,21 +72,23 @@ class MapView extends StatefulWidget {
 
 class _MapViewState extends State<MapView> {
   late List<Marker> _markers;
-  final _debouncer = Debouncer(
-    const Duration(milliseconds: 300),
-    executionInterval: const Duration(milliseconds: 750),
-  );
 
   @override
   void initState() {
     super.initState();
-    _markers = _buildMakers();
+    _markers = _buildMarkers();
   }
 
-  void onChange(LatLngBounds bounds) {
-    _debouncer.run(() async {
-      widget.updateVisibleImages(bounds);
-    });
+  @override
+  void didUpdateWidget(MapView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.imageMarkers, widget.imageMarkers)) {
+      _markers = _buildMarkers();
+    }
+  }
+
+  void onChange(MapCamera camera) {
+    widget.updateViewport(camera);
   }
 
   @override
@@ -121,42 +119,12 @@ class _MapViewState extends State<MapView> {
               ),
             ),
             onPositionChanged: (position, hasGesture) {
-              onChange(position.visibleBounds);
+              onChange(position);
             },
           ),
           children: [
             const OSMTileLayer(),
-            MarkerClusterLayerWidget(
-              options: MarkerClusterLayerOptions(
-                alignment: Alignment.topCenter,
-                maxClusterRadius: 100,
-                showPolygon: false,
-                spiderfyCluster: false,
-                size: widget.markerSize,
-                padding: const EdgeInsets.all(80),
-                markers: _markers,
-                onClusterTap: (_) {
-                  onChange(widget.controller.camera.visibleBounds);
-                },
-                builder: (context, List<Marker> markers) {
-                  final valueKey = markers.first.key as ValueKey;
-                  final index = valueKey.value as int;
-
-                  final clusterKey = 'map-badge-$index-len-${markers.length}';
-
-                  return Stack(
-                    key: ValueKey(clusterKey),
-                    children: [
-                      MapGalleryTile(
-                        key: Key(markers.first.key.toString()),
-                        imageMarker: widget.imageMarkers[index],
-                      ),
-                      MapGalleryTileBadge(size: markers.length),
-                    ],
-                  );
-                },
-              ),
-            ),
+            MarkerLayer(markers: _markers),
             Padding(
               padding: EdgeInsets.only(
                 bottom: widget.bottomSheetDraggableAreaHeight,
@@ -232,13 +200,25 @@ class _MapViewState extends State<MapView> {
     );
   }
 
-  List<Marker> _buildMakers() {
+  List<Marker> _buildMarkers() {
     return List<Marker>.generate(widget.imageMarkers.length, (index) {
       final imageMarker = widget.imageMarkers[index];
+      final clusterBounds = imageMarker.clusterBounds;
       return mapMarker(
         imageMarker,
         ValueKey(index),
         markerSize: widget.markerSize,
+        onTap: clusterBounds == null
+            ? null
+            : () {
+                widget.controller.fitCamera(
+                  CameraFit.bounds(
+                    bounds: clusterBounds,
+                    padding: const EdgeInsets.all(80),
+                    maxZoom: widget.maxZoom,
+                  ),
+                );
+              },
       );
     });
   }

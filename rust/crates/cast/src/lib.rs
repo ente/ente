@@ -1,4 +1,4 @@
-use ente_core::crypto::{self, PublicKey, SecretKey};
+use ente_core::crypto::{self, PublicKey, SecretKey, hpke};
 use ente_core::{b64, id};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -17,6 +17,8 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+const HPKE_INFO: &[u8] = b"ente-cast";
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CastPayload {
@@ -34,12 +36,14 @@ pub struct PreparedCastPayload {
 
 pub struct ReceiverCredentials {
     secret_key: SecretKey,
+    pq_secret_key: hpke::SecretKey,
 }
 
 impl ReceiverCredentials {
     pub fn generate() -> Self {
         Self {
             secret_key: SecretKey::generate(),
+            pq_secret_key: hpke::SecretKey::generate(),
         }
     }
 
@@ -47,22 +51,29 @@ impl ReceiverCredentials {
         b64::encode(self.secret_key.public_key().as_bytes())
     }
 
+    pub fn pq_public_key(&self) -> String {
+        b64::encode(self.pq_secret_key.public_key().as_bytes())
+    }
+
     pub fn open_payload(&self, encrypted_payload: &str) -> Result<CastPayload> {
         let ciphertext = b64::decode(encrypted_payload)?;
-        let public_key = self.secret_key.public_key();
-        let plaintext = crypto::sealed::open(&ciphertext, &public_key, &self.secret_key)?;
+        let plaintext = hpke::open(&ciphertext, &self.pq_secret_key, HPKE_INFO).or_else(|_| {
+            crypto::sealed::open(&ciphertext, &self.secret_key.public_key(), &self.secret_key)
+        })?;
         Ok(serde_json::from_slice(&plaintext)?)
     }
 }
 
 pub fn prepare_payload(
     public_key: &str,
+    pq_public_key: Option<&str>,
     collection_id: i64,
     collection_key: &str,
 ) -> Result<PreparedCastPayload> {
     let cast_token = id::random("cast");
     let encrypted_payload = seal_payload(
         public_key,
+        pq_public_key,
         &CastPayload {
             collection_id,
             cast_token: cast_token.clone(),
@@ -75,10 +86,20 @@ pub fn prepare_payload(
     })
 }
 
-fn seal_payload(public_key: &str, payload: &CastPayload) -> Result<String> {
-    let public_key = PublicKey::try_from_slice(&b64::decode(public_key)?)?;
+fn seal_payload(
+    public_key: &str,
+    pq_public_key: Option<&str>,
+    payload: &CastPayload,
+) -> Result<String> {
     let plaintext = serde_json::to_vec(payload)?;
-    Ok(b64::encode(&crypto::sealed::seal(&plaintext, &public_key)?))
+    let ciphertext = if let Some(pq_public_key) = pq_public_key {
+        let public_key = hpke::PublicKey::try_from_slice(&b64::decode(pq_public_key)?)?;
+        hpke::seal(&plaintext, &public_key, HPKE_INFO)?
+    } else {
+        let public_key = PublicKey::try_from_slice(&b64::decode(public_key)?)?;
+        crypto::sealed::seal(&plaintext, &public_key)?
+    };
+    Ok(b64::encode(&ciphertext))
 }
 
 #[cfg(test)]
@@ -94,10 +115,11 @@ mod tests {
     }
 
     #[test]
-    fn round_trip() {
+    fn pq_round_trip() {
         let receiver = ReceiverCredentials::generate();
         let prepared = prepare_payload(
             &receiver.public_key(),
+            Some(&receiver.pq_public_key()),
             payload().collection_id,
             &payload().collection_key,
         )
@@ -124,6 +146,7 @@ mod tests {
         let secret_key: [u8; 32] = std::array::from_fn(|index| index as u8);
         let receiver = ReceiverCredentials {
             secret_key: SecretKey::from_seed(&secret_key).unwrap(),
+            pq_secret_key: hpke::SecretKey::generate(),
         };
         assert_eq!(
             receiver.public_key(),
@@ -136,7 +159,7 @@ mod tests {
 
     #[test]
     fn rejects_invalid_inputs() {
-        assert!(prepare_payload("not base64", 42, "collection_key").is_err());
+        assert!(prepare_payload("not base64", None, 42, "collection_key").is_err());
 
         let receiver = ReceiverCredentials::generate();
         assert!(receiver.open_payload("not base64").is_err());
@@ -144,10 +167,86 @@ mod tests {
     }
 
     #[test]
+    fn sender_does_not_fallback_from_invalid_pq_key() {
+        let receiver = ReceiverCredentials::generate();
+        assert!(
+            prepare_payload(
+                &receiver.public_key(),
+                Some("not base64"),
+                42,
+                "collection_key"
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn sender_uses_classical_without_pq_key() {
+        let receiver = ReceiverCredentials::generate();
+        let prepared = prepare_payload(
+            &receiver.public_key(),
+            None,
+            payload().collection_id,
+            &payload().collection_key,
+        )
+        .unwrap();
+
+        assert_eq!(
+            receiver.open_payload(&prepared.encrypted_payload).unwrap(),
+            CastPayload {
+                cast_token: prepared.cast_token,
+                ..payload()
+            }
+        );
+    }
+
+    #[test]
+    fn corrupted_payloads_fail() {
+        let receiver = ReceiverCredentials::generate();
+        for pq_public_key in [Some(receiver.pq_public_key()), None] {
+            let prepared = prepare_payload(
+                &receiver.public_key(),
+                pq_public_key.as_deref(),
+                42,
+                "collection_key",
+            )
+            .unwrap();
+            let mut ciphertext = b64::decode(&prepared.encrypted_payload).unwrap();
+            *ciphertext.last_mut().unwrap() ^= 1;
+            assert!(receiver.open_payload(&b64::encode(&ciphertext)).is_err());
+        }
+    }
+
+    #[test]
+    fn wrong_hpke_domain_fails() {
+        let receiver = ReceiverCredentials::generate();
+        let ciphertext = hpke::seal(
+            &serde_json::to_vec(&payload()).unwrap(),
+            &receiver.pq_secret_key.public_key(),
+            b"other-domain",
+        )
+        .unwrap();
+
+        assert!(receiver.open_payload(&b64::encode(&ciphertext)).is_err());
+    }
+
+    #[test]
+    fn invalid_pq_plaintext_is_not_retried_as_classical() {
+        let receiver = ReceiverCredentials::generate();
+        let ciphertext =
+            hpke::seal(b"not JSON", &receiver.pq_secret_key.public_key(), HPKE_INFO).unwrap();
+
+        assert!(matches!(
+            receiver.open_payload(&b64::encode(&ciphertext)),
+            Err(Error::Payload(_))
+        ));
+    }
+
+    #[test]
     fn generates_cast_token() {
         let receiver = ReceiverCredentials::generate();
-        let first = prepare_payload(&receiver.public_key(), 42, "collection_key").unwrap();
-        let second = prepare_payload(&receiver.public_key(), 42, "collection_key").unwrap();
+        let first = prepare_payload(&receiver.public_key(), None, 42, "collection_key").unwrap();
+        let second = prepare_payload(&receiver.public_key(), None, 42, "collection_key").unwrap();
 
         assert_eq!(first.cast_token.len(), 27);
         assert!(first.cast_token.starts_with("cast_"));

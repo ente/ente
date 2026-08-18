@@ -1,7 +1,5 @@
 import "dart:convert";
 
-import "package:ente_rust/ente_rust.dart" as rust;
-
 enum LegacyKitRecoveryStatus { waiting, ready, blocked, cancelled, recovered }
 
 class LegacyKitRecoverySession {
@@ -20,18 +18,6 @@ class LegacyKitRecoverySession {
     required this.waitTill,
     required this.createdAt,
   });
-
-  factory LegacyKitRecoverySession.fromRust(
-    rust.LegacyKitRecoverySession session,
-  ) {
-    return LegacyKitRecoverySession(
-      id: session.id,
-      kitId: session.kitId,
-      status: _statusFromRust(session.status),
-      waitTill: session.waitTill,
-      createdAt: session.createdAt,
-    );
-  }
 }
 
 class LegacyKitRecoveryInitiatorHint {
@@ -44,16 +30,6 @@ class LegacyKitRecoveryInitiatorHint {
     required this.ip,
     required this.userAgent,
   });
-
-  factory LegacyKitRecoveryInitiatorHint.fromRust(
-    rust.LegacyKitRecoveryInitiatorHint hint,
-  ) {
-    return LegacyKitRecoveryInitiatorHint(
-      usedPartIndexes: hint.usedPartIndexes,
-      ip: hint.ip,
-      userAgent: hint.userAgent,
-    );
-  }
 }
 
 class LegacyKitOwnerRecoverySessionDetails {
@@ -64,19 +40,6 @@ class LegacyKitOwnerRecoverySessionDetails {
     required this.session,
     required this.initiators,
   });
-
-  factory LegacyKitOwnerRecoverySessionDetails.fromRust(
-    rust.LegacyKitOwnerRecoverySessionDetails details,
-  ) {
-    return LegacyKitOwnerRecoverySessionDetails(
-      session: details.session == null
-          ? null
-          : LegacyKitRecoverySession.fromRust(details.session!),
-      initiators: details.initiators
-          .map(LegacyKitRecoveryInitiatorHint.fromRust)
-          .toList(growable: false),
-    );
-  }
 }
 
 class LegacyKitPart {
@@ -84,10 +47,6 @@ class LegacyKitPart {
   final String name;
 
   const LegacyKitPart({required this.index, required this.name});
-
-  factory LegacyKitPart.fromRust(rust.LegacyKitPart part) {
-    return LegacyKitPart(index: part.index, name: part.name);
-  }
 }
 
 class LegacyKit {
@@ -108,22 +67,6 @@ class LegacyKit {
     required this.updatedAt,
     required this.activeRecoverySession,
   });
-
-  factory LegacyKit.fromRust(rust.LegacyKit kit) {
-    return LegacyKit(
-      id: kit.id,
-      noticePeriodInHours: kit.noticePeriodInHours,
-      legacyUrl: kit.legacyUrl,
-      parts: kit.metadata.parts
-          .map(LegacyKitPart.fromRust)
-          .toList(growable: false),
-      createdAt: kit.createdAt,
-      updatedAt: kit.updatedAt,
-      activeRecoverySession: kit.activeRecoverySession == null
-          ? null
-          : LegacyKitRecoverySession.fromRust(kit.activeRecoverySession!),
-    );
-  }
 
   String get displayName => parts.map((part) => part.name).join(" · ");
 
@@ -148,18 +91,6 @@ class LegacyKitShare {
     required this.checksum,
     required this.partName,
   });
-
-  factory LegacyKitShare.fromRust(rust.LegacyKitShare share) {
-    return LegacyKitShare(
-      payloadVersion: share.payloadVersion,
-      variant: _variantToCode(share.variant),
-      kitId: share.kitId,
-      shareIndex: share.shareIndex,
-      share: share.share,
-      checksum: share.checksum,
-      partName: share.partName,
-    );
-  }
 
   String toQrPayload() {
     return jsonEncode({
@@ -187,29 +118,4 @@ class LegacyKitCreateResult {
   final List<LegacyKitShare> shares;
 
   const LegacyKitCreateResult({required this.kit, required this.shares});
-
-  factory LegacyKitCreateResult.fromRust(rust.LegacyKitCreateResult result) {
-    return LegacyKitCreateResult(
-      kit: LegacyKit.fromRust(result.kit),
-      shares: result.shares
-          .map(LegacyKitShare.fromRust)
-          .toList(growable: false),
-    );
-  }
-}
-
-LegacyKitRecoveryStatus _statusFromRust(rust.LegacyKitRecoveryStatus status) {
-  return switch (status) {
-    rust.LegacyKitRecoveryStatus.waiting => LegacyKitRecoveryStatus.waiting,
-    rust.LegacyKitRecoveryStatus.ready => LegacyKitRecoveryStatus.ready,
-    rust.LegacyKitRecoveryStatus.blocked => LegacyKitRecoveryStatus.blocked,
-    rust.LegacyKitRecoveryStatus.cancelled => LegacyKitRecoveryStatus.cancelled,
-    rust.LegacyKitRecoveryStatus.recovered => LegacyKitRecoveryStatus.recovered,
-  };
-}
-
-int _variantToCode(rust.LegacyKitVariant variant) {
-  return switch (variant) {
-    rust.LegacyKitVariant.twoOfThree => 1,
-  };
 }

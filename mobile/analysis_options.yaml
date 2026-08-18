@@ -29,6 +29,8 @@ linter:
     - unawaited_futures
 
 analyzer:
+  exclude:
+    - cargokit/**
   errors:
     avoid_empty_else: error
     exhaustive_cases: error

@@ -2,7 +2,6 @@
 *.log
 .cxx/
 .gradle/
-.idea/
 .kotlin/
 .settings/
 build/
@@ -10,4 +9,3 @@ local.properties
 key.properties
 *.keystore
 *.jks
-.DS_Store

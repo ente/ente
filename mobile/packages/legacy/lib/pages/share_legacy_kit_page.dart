@@ -10,9 +10,9 @@ import "package:ente_legacy/models/legacy_kit_models.dart";
 import "package:ente_legacy/pages/legacy_congratulations_page.dart";
 import "package:ente_legacy/services/legacy_kit_local_settings.dart";
 import "package:ente_legacy/services/legacy_kit_pdf_service.dart";
+import "package:ente_legacy/services/legacy_kit_rust_api.dart";
 import "package:ente_legacy/services/legacy_kit_service.dart";
 import "package:ente_legacy/services/legacy_kit_share_file_service.dart";
-import "package:ente_rust/ente_rust.dart" as rust;
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/alert_bottom_sheet.dart";
 import "package:ente_ui/utils/dialog_util.dart";
@@ -488,7 +488,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
     }
     if (updateError == null) {
       showShortToast(context, context.strings.recoveryTimeUpdated);
-    } else if (updateError is rust.ContactsError_ActiveRecoverySession) {
+    } else if (updateError is LegacyKitActiveRecoverySessionException) {
       try {
         await _refreshKit();
       } catch (_) {

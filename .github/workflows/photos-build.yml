@@ -121,7 +121,7 @@ jobs:
 
             - run: flutter pub get --enforce-lockfile
 
-            - run: cargo codegen frb
+            - run: cargo codegen frb photos
               working-directory: rust
 
             - name: Free runner disk space
@@ -244,7 +244,7 @@ jobs:
             - name: Set up Rive iOS binaries
               run: dart run rive_native:setup --clean --platform ios
 
-            - run: cargo codegen frb
+            - run: cargo codegen frb photos
               working-directory: rust
 
             - name: Install iOS pods

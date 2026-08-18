@@ -28,6 +28,11 @@ impl CastReceiver {
         self.inner.public_key()
     }
 
+    #[wasm_bindgen(getter, js_name = pqPublicKey)]
+    pub fn pq_public_key(&self) -> String {
+        self.inner.pq_public_key()
+    }
+
     #[wasm_bindgen(js_name = openPayload)]
     pub fn open_payload(&self, encrypted_payload: &str) -> Result<CastPayload, JsError> {
         Ok(self.inner.open_payload(encrypted_payload)?.into())
@@ -90,8 +95,15 @@ impl PreparedCastPayload {
 #[wasm_bindgen(js_name = preparePayload)]
 pub fn prepare_payload(
     public_key: &str,
+    pq_public_key: Option<String>,
     collection_id: i64,
     collection_key: &str,
 ) -> Result<PreparedCastPayload, JsError> {
-    Ok(ente_cast::prepare_payload(public_key, collection_id, collection_key)?.into())
+    Ok(ente_cast::prepare_payload(
+        public_key,
+        pq_public_key.as_deref(),
+        collection_id,
+        collection_key,
+    )?
+    .into())
 }

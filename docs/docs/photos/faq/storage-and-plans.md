@@ -141,7 +141,7 @@ All other features work on the free plan, including:
 - Map view
 - Machine learning (face recognition, magic search)
 - Creating /receiving shared albums
-- Public links (device limit of 5)
+- Public links (device limit of 10)
 - Background sync
 
 ### Is there an x GB plan? {#specific-plan-size}

@@ -15,11 +15,11 @@ class ContactsService {
 
   ContactsService({
     required SharedPreferences preferences,
+    required ContactsRustApi rustApi,
     ContactsDatabase? database,
-    ContactsRustApi? rustApi,
   }) : _preferences = preferences,
        _database = database ?? ContactsDatabase(),
-       _rustApi = rustApi ?? const FrbContactsRustApi();
+       _rustApi = rustApi;
 
   final SharedPreferences _preferences;
   final ContactsDatabase _database;

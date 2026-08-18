@@ -1075,8 +1075,6 @@
   "ocrModelsNetworkRequiredError": "Az OCR modellek első letöltéséhez internetkapcsolat szükséges",
   "ocrModelsPrepareFailed": "Nem sikerült előkészíteni az OCR modelleket",
   "ocrNoTextDetected": "Nem található szöveg",
-  "ocrProcessingOverlayMessage": "Szöveg felismerése...",
-  "ocrSelectionHint": "Húzd vagy koppints duplán a kívánt rész kiválasztásához",
   "offlineModeWarning": "Úgy döntöttél, hogy biztonsági mentés nélkül folytatod. Kérjük, készíts manuális biztonsági másolatot a kódok biztonsága érdekében.",
   "onboardingDesc": "Mentsd el a képeid és videóid. Minden emléked egyetlen helyen.",
   "onboardingTitle": "Mindenhez amit nem akarsz elfelejteni",

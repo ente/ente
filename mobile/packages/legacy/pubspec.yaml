@@ -28,8 +28,6 @@ dependencies:
     path: ../network
   ente_pure_utils:
     path: ../ente_pure_utils
-  ente_rust:
-    path: ../rust
   ente_sharing:
     path: ../sharing
   ente_strings:

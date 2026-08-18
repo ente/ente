@@ -1,19 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:photos/app_mode.dart';
 import 'package:photos/ente_theme_data.dart';
-import 'package:ente_strings/ente_strings.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/models/file/trash_file.dart';
 import 'package:photos/models/files_split.dart';
 import 'package:photos/models/selected_files.dart';
-import 'package:photos/settings/local_settings.dart';
 import 'package:photos/service_locator.dart';
+import 'package:photos/settings/local_settings.dart';
 import 'package:photos/utils/delete_file_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -53,7 +53,7 @@ void main() {
       await tester.pumpWidget(
         _TestApp(
           onOpen: (context) async {
-            result = await deleteFromTrash(context, [file]);
+            result = await deleteFromEnteTrash(context, [file]);
           },
         ),
       );

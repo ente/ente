@@ -17,7 +17,6 @@ dependencies:
   backup_exclusion:
     path: ../../packages/backup_exclusion
   bip39: 1.0.6
-  cached_network_image: 3.4.1
   camera: 0.11.2+1
   chewie: 1.13.0
   collection: 1.19.1
@@ -59,18 +58,16 @@ dependencies:
     path: ../../packages/mail
   ente_panorama_viewer:
     path: plugins/ente_panorama_viewer
+  ente_photos_frb:
+    path: rust_builder
   ente_photos_platform:
     path: plugins/ente_photos_platform
-  ente_photos_rust:
-    path: rust_builder
   ente_pure_utils:
     path: ../../packages/ente_pure_utils
   ente_qr:
     path: ../../packages/ente_qr
   ente_qr_ui:
     path: ../../packages/qr
-  ente_rust:
-    path: ../../packages/rust
   ente_screen_brightness:
     path: ../../packages/ente_screen_brightness
   ente_strings:
@@ -107,8 +104,7 @@ dependencies:
   flutter_local_notifications: 19.3.0
   flutter_localizations:
     sdk: flutter
-  flutter_map: 7.0.2
-  flutter_map_marker_cluster: 1.4.0
+  flutter_map: 8.3.1
   flutter_rust_bridge: 2.12.0
   # Version 9.2.4 leaves lock-screen keys behind after an app reinstall.
   # Upgrade only after this is fixed or with a migration.

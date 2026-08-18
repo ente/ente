@@ -1,4 +1,6 @@
 **/lib/generated_plugin_registrant.dart
-**/android/gradlew
-**/android/gradlew.bat
-**/android/**/gradle-wrapper.jar
+**/rust_builder/pubspec.lock
+**/rust_builder/windows/flutter/
+
+# Generated FRB Dart bindings
+*/lib/src/rust/*

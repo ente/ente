@@ -429,15 +429,17 @@ export const Upload: React.FC<UploadProps> = ({
             <Inputs
                 {...{ getFileSelectorInputProps, getFolderSelectorInputProps }}
             />
-            <UploadTypeSelector
-                open={props.uploadTypeSelectorView}
-                onClose={props.closeUploadTypeSelector}
-                publicAlbumsCredentials={publicAlbumsCredentials}
-                pendingUploadType={
-                    isInputPending ? selectedUploadType.current : undefined
-                }
-                onSelect={handleUploadTypeSelect}
-            />
+            {props.uploadTypeSelectorView ? (
+                <UploadTypeSelector
+                    open
+                    onClose={props.closeUploadTypeSelector}
+                    publicAlbumsCredentials={publicAlbumsCredentials}
+                    pendingUploadType={
+                        isInputPending ? selectedUploadType.current : undefined
+                    }
+                    onSelect={handleUploadTypeSelect}
+                />
+            ) : null}
             <UploadProgress
                 open={uploadProgressView}
                 onClose={closeUploadProgress}

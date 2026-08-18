@@ -75,6 +75,9 @@ app.*.map.json
 **/android/app/debug
 **/android/app/profile
 **/android/app/release
+**/android/gradlew
+**/android/gradlew.bat
+**/android/**/gradle-wrapper.jar
 local.properties
 
 # Remember to never publicly share your keystore.

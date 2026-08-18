@@ -2,9 +2,7 @@ import SwiftUI
 import UIKit
 
 struct FontUtils {
-    
-    // MARK: - Safe Font Creation
-    
+
     private static func safeFont(name: String, size: CGFloat, fallback: Font) -> Font {
         if UIFont(name: name, size: size) != nil {
             return .custom(name, size: size)
@@ -12,9 +10,7 @@ struct FontUtils {
             return fallback
         }
     }
-    
-    // MARK: - Font Presets
-    
+
     static func montserratBold(size: CGFloat) -> Font {
         return safeFont(name: "Montserrat-Bold", size: size, fallback: .system(size: size, weight: .bold))
     }

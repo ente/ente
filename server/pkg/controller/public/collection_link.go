@@ -29,8 +29,14 @@ const (
 
 	DeviceLimitWarningThreshold = 2000
 
-	FreeUserDeviceLimit = 5
+	FreeUserDeviceLimit = 10
+
+	legacyFreeUserDeviceLimit = 5
 )
+
+func IsAllowedFreeUserDeviceLimit(deviceLimit int) bool {
+	return deviceLimit == FreeUserDeviceLimit || deviceLimit == legacyFreeUserDeviceLimit
+}
 
 type CollectionLinkController struct {
 	FileController        *controller.FileController

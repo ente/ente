@@ -31,10 +31,15 @@ class CastGateway {
 
   CastGateway(this._enteDio);
 
-  Future<String?> getPublicKey(String deviceCode) async {
+  Future<({String publicKey, String? pqPublicKey})?> getPublicKeys(
+    String deviceCode,
+  ) async {
     try {
       final response = await _enteDio.get("/cast/device-info/$deviceCode");
-      return response.data["publicKey"];
+      return (
+        publicKey: response.data["publicKey"] as String,
+        pqPublicKey: response.data["pqPublicKey"] as String?,
+      );
     } catch (e) {
       if (e is DioException && e.response != null) {
         if (e.response!.statusCode == 404) {

@@ -1,5 +1,6 @@
 import 'package:ente_contacts/src/models/contact_record.dart';
 import 'package:ente_contacts/src/models/contacts_session.dart';
+import 'package:ente_contacts/src/rust/contacts_rust_api.dart';
 import 'package:ente_contacts/src/service/contact_directory.dart';
 import 'package:ente_contacts/src/service/contacts_service.dart';
 import 'package:flutter/foundation.dart';
@@ -29,13 +30,22 @@ class ContactsDisplayService {
     required SharedPreferences preferences,
     ContactsService? contactsService,
     ContactsService Function()? contactsServiceFactory,
+    ContactsRustApi? rustApi,
   }) {
+    if (contactsService == null &&
+        contactsServiceFactory == null &&
+        rustApi == null) {
+      throw ArgumentError(
+        'rustApi is required when no contacts service or factory is given',
+      );
+    }
     _store = ContactDirectory(
       contactsService: contactsService,
       contactsServiceFactory:
           contactsServiceFactory ??
           (contactsService == null
-              ? () => ContactsService(preferences: preferences)
+              ? () =>
+                    ContactsService(preferences: preferences, rustApi: rustApi!)
               : null),
     );
   }

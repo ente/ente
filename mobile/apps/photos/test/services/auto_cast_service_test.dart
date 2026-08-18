@@ -14,7 +14,7 @@ void main() {
     final service = AutoCastService(
       transport: transport,
       gateway: gateway,
-      encodePayload: (_, _) => const PreparedCastPayload(
+      encodePayload: (_, _, _) => const PreparedCastPayload(
         castToken: "cast-token",
         encryptedPayload: "encrypted-payload",
       ),
@@ -54,8 +54,10 @@ class _FakeCastGateway extends Fake implements CastGateway {
   Future<void>? revokeFuture;
 
   @override
-  Future<String?> getPublicKey(String deviceCode) async {
-    return "public-key";
+  Future<({String publicKey, String? pqPublicKey})?> getPublicKeys(
+    String deviceCode,
+  ) async {
+    return (publicKey: "public-key", pqPublicKey: "pq-public-key");
   }
 
   @override

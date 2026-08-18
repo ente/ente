@@ -18,7 +18,6 @@ final class KeychainStore {
             kSecValueData as String: data,
         ]
 
-        // Try update first.
         let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         if updateStatus == errSecSuccess {
             return
@@ -27,7 +26,6 @@ final class KeychainStore {
             throw KeychainStoreError.unexpectedStatus(updateStatus)
         }
 
-        // Insert.
         var insertQuery = query
         insertQuery[kSecValueData as String] = data
         insertQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly

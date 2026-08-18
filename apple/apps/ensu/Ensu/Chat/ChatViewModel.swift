@@ -129,7 +129,6 @@ final class ChatViewModel: ObservableObject {
         let knowledgeProvider = KnowledgeProvider(assetStore: assetStore)
         let knowledgeStore = KnowledgeStore(datasets: config.knowledgeDatasets, provider: knowledgeProvider)
 
-        // Chat DB + attachments.
         let dbDir = baseDir.appendingPathComponent("llmchat", isDirectory: true)
         try? FileManager.default.createDirectory(at: dbDir, withIntermediateDirectories: true, attributes: nil)
         let attachmentsDir = dbDir.appendingPathComponent("chat_attachments", isDirectory: true)
@@ -152,7 +151,6 @@ final class ChatViewModel: ObservableObject {
             fatalError("Failed to open chat DB: \(error)")
         }
 
-        // Load sessions/messages.
         let loadedResult = try? chatDb.listSessions()
         if let loadedResult {
             Self.pruneOrphanedAttachments(
@@ -164,7 +162,6 @@ final class ChatViewModel: ObservableObject {
         let loaded = loadedResult ?? []
         let sessions = Self.buildSessions(from: loaded, chatDb: chatDb, summaries: summaries)
 
-        // Stored properties.
         self.provider = provider
         self.knowledgeEmbedding = config.knowledgeEmbedding
         self.knowledgeProvider = knowledgeProvider

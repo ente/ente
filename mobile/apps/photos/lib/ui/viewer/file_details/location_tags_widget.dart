@@ -208,7 +208,7 @@ class _InfoMapState extends State<InfoMap> {
                       key: ValueKey(_hasEnabledMap),
                       children: [
                         MapView(
-                          updateVisibleImages: () {},
+                          updateViewport: (_) {},
                           imageMarkers: [
                             ImageMarker(
                               imageFile: widget.file,
@@ -253,7 +253,7 @@ class _InfoMapState extends State<InfoMap> {
                                 clipBehavior: Clip.none,
                                 children: [
                                   MapView(
-                                    updateVisibleImages: () {},
+                                    updateViewport: (_) {},
                                     imageMarkers: const [],
                                     controller: _mapController,
                                     center: const LatLng(13.041599, 77.594566),

@@ -2,6 +2,26 @@ package ente
 
 import "testing"
 
+func TestCreatePublicAccessTokenRequestValidatesDeviceLimit(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		deviceLimit int
+		wantError   bool
+	}{
+		{name: "negative", deviceLimit: -1, wantError: true},
+		{name: "unlimited", deviceLimit: 0},
+		{name: "maximum", deviceLimit: 50},
+		{name: "over maximum", deviceLimit: 51, wantError: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := (&CreatePublicAccessTokenRequest{DeviceLimit: test.deviceLimit}).Validate()
+			if (err != nil) != test.wantError {
+				t.Fatalf("Validate() error = %v, wantError = %t", err, test.wantError)
+			}
+		})
+	}
+}
+
 func TestFilterPublicURLsForRole(t *testing.T) {
 	viewer := VIEWER
 	collaborator := COLLABORATOR

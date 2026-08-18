@@ -121,7 +121,7 @@ jobs:
 
             - run: flutter pub get --enforce-lockfile
 
-            - run: cargo codegen frb shared
+            - run: cargo codegen frb locker
               working-directory: rust
 
             - name: Prepare whatsnew
@@ -139,7 +139,7 @@ jobs:
 
             - name: Build independent APK
               run: |
-                  flutter build apk --build-name="${RELEASE_VERSION}" --build-number="${BUILD_NUMBER}" --dart-define=cronetHttpNoPlay=true --release --flavor independent
+                  flutter build apk --build-name="${RELEASE_VERSION}" --build-number="${BUILD_NUMBER}" --dart-define=cronetHttpNoPlay=true --release --flavor independent --target-platform android-arm,android-arm64
                   mv build/app/outputs/flutter-apk/app-independent-release.apk "artifacts/${ARTIFACT_STEM}.apk"
               env:
                   SIGNING_KEY_PATH: ${{ runner.temp }}/ente_locker_key.jks
@@ -148,7 +148,7 @@ jobs:
                   SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD_LOCKER }}
 
             - name: Build PlayStore AAB
-              run: flutter build appbundle --build-name="${RELEASE_VERSION}" --build-number="${BUILD_NUMBER}" --dart-define=cronetHttpNoPlay=true --release --flavor playstore
+              run: flutter build appbundle --build-name="${RELEASE_VERSION}" --build-number="${BUILD_NUMBER}" --dart-define=cronetHttpNoPlay=true --release --flavor playstore --target-platform android-arm,android-arm64
               env:
                   SIGNING_KEY_PATH: ${{ runner.temp }}/ente_locker_key.jks
                   SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS_LOCKER }}
@@ -241,7 +241,7 @@ jobs:
             - name: Set up Rive iOS binaries
               run: dart run rive_native:setup --clean --platform ios
 
-            - run: cargo codegen frb shared
+            - run: cargo codegen frb locker
               working-directory: rust
 
             - name: Install iOS pods

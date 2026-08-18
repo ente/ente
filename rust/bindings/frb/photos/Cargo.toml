@@ -1,12 +1,15 @@
 [package]
-name = "ente_photos_rust"
+name = "ente-photos-frb"
 edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
+ente-accounts.workspace = true
 ente-cast.workspace = true
+ente-contacts.workspace = true
+ente-core.workspace = true
 ente-frb-log.workspace = true
 ente-image.workspace = true
 ente-ml = { workspace = true, features = ["usearch"] }

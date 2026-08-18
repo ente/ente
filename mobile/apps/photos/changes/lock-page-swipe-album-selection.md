@@ -1,0 +1,1 @@
+- Lock page swipe during album selection. (@r4khul)

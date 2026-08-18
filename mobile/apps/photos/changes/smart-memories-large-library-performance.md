@@ -1,0 +1,1 @@
+- Improved Smart Memories generation performance for large photo libraries.

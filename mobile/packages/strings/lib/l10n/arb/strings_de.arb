@@ -2421,8 +2421,6 @@
   "ocrModelsNetworkRequiredError": "Netzwerkverbindung erforderlich, um die OCR-Modelle bei der ersten Nutzung herunterzuladen",
   "ocrModelsPrepareFailed": "OCR-Modelle konnten nicht vorbereitet werden",
   "ocrNoTextDetected": "Kein Text erkannt",
-  "ocrProcessingOverlayMessage": "Erkenne Text...",
-  "ocrSelectionHint": "Wischen oder doppeltes Tippen, um genau das auszuwählen, was du brauchst",
   "of_": "von",
   "offlineEnableBackupTagLabel": "10 GB GRATIS!",
   "offlineFacesBannerSubtitle": "Melde dich an, um Leute zu markieren und sie später leicht zu finden.",

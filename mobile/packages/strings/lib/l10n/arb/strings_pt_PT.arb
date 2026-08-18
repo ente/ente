@@ -1290,8 +1290,6 @@
   "ocrModelsNetworkRequiredError": "Conexão de rede necessária para transferir modelos OCR no primeiro uso",
   "ocrModelsPrepareFailed": "Não possível preparar os modelos OCR",
   "ocrNoTextDetected": "Nenhum texto detetado",
-  "ocrProcessingOverlayMessage": "A detetar texto...",
-  "ocrSelectionHint": "Deslize ou toque duas vezes para selecionar só o que precisa",
   "offlineModeWarning": "Selecionou continuar sem backups. Faça backups manuais para certificar de que os códigos estejam seguros.",
   "onEnte": "Em <branding>ente</branding>",
   "@onEnte": {

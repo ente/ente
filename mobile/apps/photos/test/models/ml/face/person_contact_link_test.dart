@@ -469,6 +469,7 @@ class _FakeEntityService implements EntityService {
     Map<String, dynamic> jsonMap, {
     String? id,
     bool addWithCustomID = false,
+    int? expectedUpdatedAt,
   }) async {
     final entityID = id ?? "person-${_entities.length + 1}";
     final entity = LocalEntityData(

@@ -50,6 +50,9 @@ func (c *Controller) CreateEntity(ctx *gin.Context, req model.EntityDataRequest)
 
 func (c *Controller) UpdateEntity(ctx *gin.Context, req model.UpdateEntityDataRequest) (*model.EntityData, error) {
 	userID := auth.GetUserID(ctx.Request.Header)
+	if err := req.IsValid(); err != nil {
+		return nil, stacktrace.Propagate(err, "invalid UpdateEntityDataRequest")
+	}
 	err := c.Repo.Update(ctx, userID, req)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to updateEntity")

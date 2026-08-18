@@ -329,7 +329,13 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
         title: context.strings.sendLink,
         icon: HugeIcons.strokeRoundedSent,
         onTap: () async {
-          await shareAlbumLink(context, urlValue, sendLinkButtonKey);
+          await shareAlbumLink(
+            context,
+            urlValue,
+            sendLinkButtonKey,
+            albumName: widget.collection!.displayName,
+            albumDescription: widget.collection!.displayDescription,
+          );
         },
       ),
       ShareMenuItem(

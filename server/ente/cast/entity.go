@@ -10,7 +10,13 @@ type CastRequest struct {
 }
 
 type RegisterDeviceRequest struct {
-	PublicKey string `json:"publicKey" binding:"required"`
+	PublicKey   string  `json:"publicKey" binding:"required"`
+	PQPublicKey *string `json:"pqPublicKey"`
+}
+
+type DeviceInfo struct {
+	PublicKey   string  `json:"publicKey"`
+	PQPublicKey *string `json:"pqPublicKey,omitempty"`
 }
 
 type AuthContext struct {

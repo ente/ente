@@ -53,7 +53,6 @@ struct MessageInputView: View {
                 let inputVerticalPadding: CGFloat = 10
                 let textFieldPadding: CGFloat = 6
 
-                // Lift the bar slightly off the bottom edge.
                 let bottomPadding: CGFloat = EnsuSpacing.md
 
                 let inputStackSpacing: CGFloat = EnsuSpacing.sm

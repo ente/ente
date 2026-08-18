@@ -60,6 +60,10 @@ impl CastReceiver {
         self.inner.public_key()
     }
 
+    pub fn pq_public_key(&self) -> String {
+        self.inner.pq_public_key()
+    }
+
     pub fn open_payload(&self, encrypted_payload: String) -> Result<CastPayload, CastCryptoError> {
         Ok(self.inner.open_payload(&encrypted_payload)?.into())
     }

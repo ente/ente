@@ -31,8 +31,8 @@ import "package:photos/services/backup_preference_service.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/entity_service.dart";
 import "package:photos/services/filedata/filedata_service.dart";
-import "package:photos/services/library_sharing_local_store.dart";
 import "package:photos/services/library_sharing_service.dart";
+import "package:photos/services/library_sharing_store.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/services/magic_cache_service.dart";
@@ -294,7 +294,7 @@ CollectionsService get collectionsService {
 LibrarySharingService? _librarySharingService;
 LibrarySharingService get librarySharingService {
   _librarySharingService ??= LibrarySharingService(
-    localStore: LibrarySharingLocalStore(ServiceLocator.instance.prefs),
+    store: LibrarySharingEntityStore(entityService),
   );
   return _librarySharingService!;
 }

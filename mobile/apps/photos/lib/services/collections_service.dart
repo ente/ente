@@ -793,9 +793,11 @@ class CollectionsService {
   PreparedCastPayload prepareCastPayloadForCollection(
     Collection collection,
     String publicKey,
+    String? pqPublicKey,
   ) {
     return prepareCastPayload(
       publicKey: publicKey,
+      pqPublicKey: pqPublicKey,
       collectionId: collection.id,
       collectionKey: CryptoUtil.bin2base64(getCollectionKey(collection.id)),
     );

@@ -16,7 +16,6 @@ import 'package:ente_lock_screen/ui/app_lock.dart';
 import 'package:ente_lock_screen/ui/lock_screen.dart';
 import 'package:ente_logging/logging.dart';
 import 'package:ente_network/network.dart';
-import 'package:ente_rust/ente_rust.dart';
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/theme/theme_config.dart";
 import "package:flutter/material.dart";
@@ -34,9 +33,12 @@ import 'package:locker/services/files/download/service_locator.dart';
 import 'package:locker/services/files/links/links_client.dart';
 import 'package:locker/services/files/links/links_service.dart';
 import 'package:locker/services/files/offline/offline_files_service.dart';
+import 'package:locker/services/frb_legacy_kit_rust_api.dart';
 import 'package:locker/services/local_settings.dart';
 import 'package:locker/services/trash/trash_service.dart';
 import 'package:locker/services/update_service.dart';
+import 'package:locker/src/rust/api/log.dart';
+import 'package:locker/src/rust/frb_generated.dart';
 import 'package:locker/ui/pages/home_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -115,7 +117,7 @@ Future<void> _ensureRustInitialized() async {
     await inFlightInit;
     return;
   }
-  final initFuture = EnteRust.init();
+  final initFuture = EnteLockerRust.init();
   _rustInitFuture = initFuture;
   try {
     await initFuture;
@@ -227,6 +229,7 @@ Future<void> _init(bool bool, {String? via}) async {
     await LegacyKitService.instance.init(
       config: Configuration.instance,
       sessionProvider: LockerContactsDisplayService.buildSession,
+      rustApi: const FrbLegacyKitRustApi(),
     );
     unawaited(
       Future.delayed(

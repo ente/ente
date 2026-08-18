@@ -148,6 +148,16 @@ Open `Settings > Security > App lock` on mobile, or `Settings > Preferences > Ap
 
 Learn more in the [App lock guide](/photos/features/account/app-lock).
 
+### Can I let someone browse my photos without giving them access to my whole library? {#guest-view}
+
+Yes. Use guest view to hand your phone to someone else and let them browse a single photo, a set of selected photos, or an entire album, without reaching the rest of your library, settings, or actions like edit, share, or delete.
+
+Guest view can only be exited with device authentication (Face Recognition, Fingerprint, or your device passcode/password), so the person can't leave guest view on their own.
+
+Guest view is available on mobile only.
+
+Learn more in the [Guest view guide](/photos/features/utilities/guest-view).
+
 ### Can I contact support using PGP? {#support-pgp}
 
 Yes. You can send encrypted messages to [pgp@ente.com](mailto:pgp@ente.com). The public key is published on [openpgp.org](https://keys.openpgp.org/) and is also available at [ente.com/pgp/pgp.asc](https://ente.com/pgp/pgp.asc). The fingerprint is `D71B F781 998B 4AED 01A2  0AF6 02BD D83A 56EA 68E2`.

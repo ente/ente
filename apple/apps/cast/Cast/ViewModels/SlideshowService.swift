@@ -6,11 +6,10 @@ import UIKit
 
 @MainActor
 class RealSlideshowService: ObservableObject {
-    // MARK: - Published Properties
     @Published var currentImageData: Data?
-    @Published var currentVideoData: Data? // Deprecated path (kept for compatibility)
-    @Published var currentVideoURL: URL? // Temp file URL for AVPlayer playback
-    @Published var livePhotoVideoData: Data? // Video component for live photos
+    @Published var currentVideoData: Data?
+    @Published var currentVideoURL: URL?
+    @Published var livePhotoVideoData: Data?
     @Published var videoPlayer: AVPlayer?
     @Published var isVideoPlaying: Bool = false
     @Published var videoCurrentTime: Double = 0
@@ -18,16 +17,12 @@ class RealSlideshowService: ObservableObject {
     @Published var currentFile: CastFile?
     @Published var error: String?
     
-    // Enhanced state management
     @Published var isPlaying: Bool = false
     @Published var isPaused: Bool = false
     @Published var slideLoadingProgress: Double = 0.0
     @Published var currentSlideIndex: Int = 0
     @Published var totalSlides: Int = 0
     
-    // MARK: - Private Properties
-    
-    // Global file list management
     private var allFiles: [CastFile] = []
     private var currentFileIndex: Int = 0
     private var lastUpdateTime: Int64 = 0
@@ -35,14 +30,12 @@ class RealSlideshowService: ObservableObject {
     private var hasCompletedInitialFetch: Bool = false
     private var storedCastPayload: CastPayload?
     
-    // Periodic diff polling
     private var diffPollingTimer: Timer?
-    private let diffPollingInterval: TimeInterval = 5.0  // 5 seconds
+    private let diffPollingInterval: TimeInterval = 5.0
     private var isPeriodicPollingEnabled: Bool = true
     private var currentFileWasDeleted: Bool = false
-    private var isStopping: Bool = false  // Flag to indicate service is being stopped
+    private var isStopping: Bool = false
     
-    // Enhanced slideshow features
     private var slideTimer: Timer?
     private var prefetchCache: [Int: Data] = [:]
     private var videoTempFiles: [Int: URL] = [:]
@@ -51,26 +44,20 @@ class RealSlideshowService: ObservableObject {
     private var slidePauseTime: Date?
     private var slideStartTime: Date?
     
-    // File content caching - prevent redundant downloads
     private let fileCache = ThreadSafeFileCache(
-        maxBytes: 4096 * 1024 * 1024, // 4GB
-        shrinkTargetBytes: 2048 * 1024 * 1024 // 2GB
+        maxBytes: 4096 * 1024 * 1024,
+        shrinkTargetBytes: 2048 * 1024 * 1024
     )
     
-    // Simplified mode: only load first file (no slideshow navigation)
     private var didDisplayFirstFile: Bool = false
     
     private let baseURL = "https://api.ente.com"
     private let castDownloadURL = "https://cast-albums.ente.com/download"
     
-    // Configuration Flags
-    private let verboseFileLogging = false          // Reduces per-file spam unless true
-    private let verboseDecryptionLogging = false    // Detailed size/key logs
+    private let verboseFileLogging = false
+    private let verboseDecryptionLogging = false
     
-    // 401 Error Handling
     private var isHandlingAuthExpiry: Bool = false
-    
-    // MARK: - Slideshow Controls
     
     func pause() {
         slideTimer?.invalidate()
@@ -78,7 +65,6 @@ class RealSlideshowService: ObservableObject {
         isPlaying = false
         isPaused = true
         
-        // Calculate remaining time when pausing
         if let startTime = slideStartTime {
             let elapsed = Date().timeIntervalSince(startTime)
             let totalDuration = currentFile.map { slideshowConfiguration.duration(for: $0) } ?? 0
@@ -93,7 +79,6 @@ class RealSlideshowService: ObservableObject {
         isPlaying = true
         slidePauseTime = nil
         
-        // Resume with remaining time if we have it, otherwise start fresh
         if slideTimeRemaining > 0 {
             startSlideTimer(withDuration: slideTimeRemaining)
         } else {
@@ -110,33 +95,29 @@ class RealSlideshowService: ObservableObject {
     }
     
     func nextSlide() async {
-        // If we no longer have an active payload (e.g. after auth expiry reset) just ignore any stray timer fires
+        // Ignore timer callbacks after the session has been reset.
         guard storedCastPayload != nil else { return }
         guard !allFiles.isEmpty else {
-            // Only surface empty-state error if we're in an active slideshow session (payload present)
             await MainActor.run {
                 self.error = "No media files available in this album"
             }
             return
         }
         
-        // For single photo, just restart the timer without changing index
         if allFiles.count == 1 {
             if isPlaying && !isPaused {
                 startSlideTimer()
             }
             return
         }
-        
-        // Check if current file was deleted and handle accordingly
+
         if currentFileWasDeleted {
             currentFileWasDeleted = false
-            // Current index already adjusted in processDiffBatch
+            // Removing this file already exposed the next item at this index.
             if currentFileIndex >= allFiles.count {
                 currentFileIndex = 0
             }
         } else {
-            // Normal progression to next slide
             currentFileIndex = (currentFileIndex + 1) % allFiles.count
         }
         
@@ -155,25 +136,18 @@ class RealSlideshowService: ObservableObject {
         }
     }
     
-    // MARK: - Main Entry Points
-    
     func start(castPayload: CastPayload) async {
         
-        // Enable screen saver prevention for slideshow
         ScreenSaverManager.preventScreenSaver()
         
-        // Clear any expired state first, then store new payload
         await clearExpiredTokenState()
         storedCastPayload = castPayload
         await MainActor.run {
-            // Don't blindly nuke existing UI state until we actually know file list status
-            // Just mark as loading; CastViewModel controls high-level view transitions.
             if self.error != nil { self.error = nil }
         }
         
         do {
             
-            // Initialize file list and fetch all files with pagination
             await initializeFileList(castPayload: castPayload)
             
             let fileCount = await MainActor.run { allFiles.count }
@@ -186,7 +160,6 @@ class RealSlideshowService: ObservableObject {
             
             print("Found \(fileCount) files total")
             
-            // Clean up cache for files no longer in the collection
             let validFileIDs = Set(await MainActor.run { allFiles.map { $0.id } })
             await cleanupExpiredCache(validFileIDs: validFileIDs)
             
@@ -198,10 +171,8 @@ class RealSlideshowService: ObservableObject {
                 self.isPaused = false
             }
             
-            // Display first file and start slideshow
             await displaySlideAtCurrentIndex()
             
-            // For single photo, ensure timer is started even if it's an image
             if fileCount == 1 {
                 startSlideTimer()
             } else {
@@ -219,20 +190,17 @@ class RealSlideshowService: ObservableObject {
     
     func stop() async {
         
-        // Disable screen saver prevention when stopping slideshow
         ScreenSaverManager.allowScreenSaver()
         
-        // Set stopping flag to cancel ongoing operations
         await MainActor.run {
             isStopping = true
             stopPeriodicDiffPolling()
         }
         
-    // Invalidate slide timer to avoid post-reset nextSlide() firing that could trigger false empty-state UI
-    slideTimer?.invalidate()
-    slideTimer = nil
+        // A late timer callback would surface a false empty state.
+        slideTimer?.invalidate()
+        slideTimer = nil
 
-    // Clear navigation state
         await MainActor.run {
             currentFile = nil
             currentImageData = nil
@@ -246,7 +214,6 @@ class RealSlideshowService: ObservableObject {
         let stats = await getCacheStats()
         print("Final cache stats: \(stats.count) files, \(stats.totalSize) bytes")
         
-        // Reset stopping flag for next session
         await MainActor.run {
             isStopping = false
         }
@@ -254,11 +221,10 @@ class RealSlideshowService: ObservableObject {
     
     func clearExpiredTokenState() async {
         
-        // Ensure screen saver prevention is disabled when clearing expired state
         ScreenSaverManager.allowScreenSaver()
         
         await MainActor.run {
-            // Ensure any existing slide timer from previous session is cancelled to prevent spurious empty-state errors
+            // A late timer callback would surface a false empty state.
             slideTimer?.invalidate()
             slideTimer = nil
             storedCastPayload = nil
@@ -266,7 +232,6 @@ class RealSlideshowService: ObservableObject {
             hasCompletedInitialFetch = false
             allFiles.removeAll()
             prefetchCache.removeAll()
-            // Clear any error state that might trigger empty view
             error = nil
             currentFile = nil
             currentImageData = nil
@@ -274,38 +239,31 @@ class RealSlideshowService: ObservableObject {
             currentVideoURL = nil
             livePhotoVideoData = nil
         }
-        // Don't clear cache automatically - preserve across sessions
+        // Preserve the cache across sessions.
     }
-    
-    // MARK: - File List Management
     
     @MainActor
     private func initializeFileList(castPayload: CastPayload) async {
-        // Check if we've already completed the initial fetch
         if hasCompletedInitialFetch && !allFiles.isEmpty {
             print("Using cached file list with \(allFiles.count) files")
             return
         }
         
-        // Reset state for fresh fetch
         allFiles.removeAll()
         lastUpdateTime = 0
         currentFileIndex = 0
         hasCompletedInitialFetch = false
         
-        // Fetch all pages until hasMore is false
         do {
             try await fetchAllFiles(castPayload: castPayload)
-            // Mark as completed only after successfully fetching all pages
             hasCompletedInitialFetch = true
-            // Shuffle order to randomize slideshow similar to web experience
             if !allFiles.isEmpty {
                 allFiles.shuffle()
             }
             print("Initial diff fetch completed - \(allFiles.count) files cached (shuffled)")
         } catch {
             print("Failed to fetch files: \(error)")
-            hasCompletedInitialFetch = false // Ensure we retry on next attempt
+            hasCompletedInitialFetch = false
             self.error = "Failed to load files: \(error.localizedDescription)"
         }
     }
@@ -318,10 +276,8 @@ class RealSlideshowService: ObservableObject {
             if verboseFileLogging { print("Fetching files since time: \(sinceTime)") }
             let result = try await fetchFilesBatch(castPayload: castPayload, sinceTime: sinceTime)
             
-            // Process the batch on MainActor
             await processDiffBatch(result.files, collectionKey: castPayload.collectionKey)
             
-            // Update pagination state on MainActor
             await MainActor.run {
                 if result.latestUpdateTime > self.lastUpdateTime {
                     print("Initial fetch updating lastUpdateTime: \(self.lastUpdateTime) → \(result.latestUpdateTime)")
@@ -336,7 +292,6 @@ class RealSlideshowService: ObservableObject {
         
         print("Initial diff fetch complete - total files cached: \(await MainActor.run { allFiles.count })")
         
-        // Start periodic polling after initial fetch completes
         await MainActor.run {
             startPeriodicDiffPolling()
         }
@@ -361,7 +316,6 @@ class RealSlideshowService: ObservableObject {
         }
         
         guard httpResponse.statusCode == 200 else {
-            // Handle 401 specially - this means token expired, need to reset to pairing
             if httpResponse.statusCode == 401 {
                 await handleUnauthorizedError()
                 throw CastError.serverError(401, "Authentication expired - resetting to pairing mode")
@@ -369,7 +323,6 @@ class RealSlideshowService: ObservableObject {
             throw CastError.serverError(httpResponse.statusCode, String(data: data, encoding: .utf8))
         }
         
-        // Parse the diff response
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let diff = json["diff"] as? [[String: Any]] else {
             throw CastError.networkError("Invalid JSON response")
@@ -377,7 +330,6 @@ class RealSlideshowService: ObservableObject {
         
         let hasMore = json["hasMore"] as? Bool ?? false
         
-        // Find the latest update time from this batch
         var latestUpdateTime = sinceTime
         var foundAnyUpdates = false
         for item in diff {
@@ -387,7 +339,6 @@ class RealSlideshowService: ObservableObject {
             }
         }
         
-        // If no items had updationTime, keep the original sinceTime
         if !foundAnyUpdates {
             latestUpdateTime = sinceTime
         }
@@ -411,26 +362,22 @@ class RealSlideshowService: ObservableObject {
             let isDeleted = item["isDeleted"] as? Bool ?? false
             
             if isDeleted {
-                // Remove file from list if it exists
                 if let index = allFiles.firstIndex(where: { $0.id == id }) {
                     let removedFile = allFiles.remove(at: index)
                     print("Removed deleted file: \(removedFile.title) (ID: \(id))")
                     
-                    // Check if deleted file was the currently playing one
                     if originalCurrentFile?.id == id {
                         currentFileWasDeleted = true
                         
-                        // Immediately move to next slide if current was deleted
                         Task {
                             await self.nextSlide()
                         }
                     }
                     
-                    // Adjust current index if necessary
                     if index < currentFileIndex && currentFileIndex > 0 {
                         currentFileIndex -= 1
                     } else if index == currentFileIndex && currentFileIndex >= allFiles.count && !allFiles.isEmpty {
-                        currentFileIndex = 0 // Wrap around to beginning
+                        currentFileIndex = 0
                     }
                     
                     prefetchCache.removeValue(forKey: id)
@@ -440,29 +387,24 @@ class RealSlideshowService: ObservableObject {
                     print("Skipping deleted file \(id) (not in list)")
                 }
             } else {
-                // Add or update file
                 do {
-                    // Only decrypt metadata here, not file content
                     if let file = try await decryptFileMetadata(item: item, collectionKey: collectionKey) {
-                        // Skip pure videos (we only want images + live photos)
+                        // Cast images and Live Photos, not standalone videos.
                         if file.isVideo && !file.isLivePhoto {
                             if verboseFileLogging { print("Skipping video file: \(file.title) (ID: \(id))") }
                             continue
                         }
-                        // Check if file already exists
                         if let existingIndex = allFiles.firstIndex(where: { $0.id == id }) {
                             let oldFile = allFiles[existingIndex]
                             allFiles[existingIndex] = file
                             print("Updated file: \(file.title) (ID: \(id))")
                             
-                            // Check if hash changed - clear cache if so
                             if oldFile.hash != file.hash && file.hash != nil {
                                 print("Hash changed for file \(id) - clearing cache")
                                 prefetchCache.removeValue(forKey: id)
                                 await removeCachedFileContent(fileID: id)
                             }
                             
-                            // Track if current file was modified
                             if existingIndex == currentFileIndex {
                                 currentFileChanged = true
                             }
@@ -479,9 +421,7 @@ class RealSlideshowService: ObservableObject {
         
         print("File list now contains \(allFiles.count) files")
         
-        // Handle state transitions
         if allFiles.isEmpty {
-            // Transition to empty state
             slideTimer?.invalidate()
             slideTimer = nil
             isPlaying = false
@@ -495,17 +435,15 @@ class RealSlideshowService: ObservableObject {
             currentFileIndex = 0
             error = "No media files available in this album"
         } else if wasEmpty {
-            // Transition from empty to having files
             currentFileIndex = 0
             currentSlideIndex = 0
             totalSlides = allFiles.count
             
-            // Restart slideshow if we have a stored payload
             if let payload = storedCastPayload {
                 print("Restarting slideshow with \(allFiles.count) files")
-                error = nil // Clear error first to avoid UI flicker
+                // Clear before loading to avoid an empty-state flash.
+                error = nil
                 
-                // Display first slide and start slideshow
                 Task {
                     await displaySlideAtCurrentIndex()
                     await MainActor.run {
@@ -517,15 +455,12 @@ class RealSlideshowService: ObservableObject {
                 }
             }
         } else {
-            // Normal update - just update count
             totalSlides = allFiles.count
             
-            // Ensure current index is valid
             if currentFileIndex >= allFiles.count {
                 currentFileIndex = 0
             }
             
-            // If current file was modified, reload it
             if currentFileChanged && !allFiles.isEmpty {
                 Task {
                     await displaySlideAtCurrentIndex()
@@ -533,14 +468,11 @@ class RealSlideshowService: ObservableObject {
             }
         }
         
-        // Clean up expired cache entries after processing batch
         let currentValidFileIDs = Set(allFiles.map { $0.id })
         Task {
             await cleanupExpiredCache(validFileIDs: currentValidFileIDs)
         }
     }
-    
-    // MARK: - Slide Display & Navigation
     
     private func displaySlideAtCurrentIndex() async {
         guard currentFileIndex >= 0, currentFileIndex < allFiles.count,
@@ -551,7 +483,6 @@ class RealSlideshowService: ObservableObject {
             slideLoadingProgress = 0.0
         }
         
-        // Check cache first
         if let cachedData = prefetchCache[currentFileIndex] {
             await updateCurrentSlide(with: cachedData, file: allFiles[currentFileIndex])
             await MainActor.run { slideLoadingProgress = 1.0 }
@@ -575,19 +506,16 @@ class RealSlideshowService: ObservableObject {
             await updateCurrentSlide(with: decryptedData, file: file)
             await MainActor.run { slideLoadingProgress = 1.0 }
             
-            // Start prefetching next few slides
             startPrefetching()
             
         } catch {
             let file = allFiles[currentFileIndex]
             print("Failed to load file \(file.id): \(file.title) at index \(currentFileIndex) - \(error)")
             
-            // Auto-skip problematic files and continue slideshow
             await MainActor.run {
                 slideLoadingProgress = 0.0
             }
             
-            // Try next slide automatically after a brief delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 Task {
                     await self.skipToNextSlide()
@@ -598,17 +526,15 @@ class RealSlideshowService: ObservableObject {
     
     @MainActor
     private func updateCurrentSlide(with data: Data, file: CastFile) {
-    // Seamless transition: don't nuke existing image until replacement assigned
-    let wasEmpty = error == "No media files available in this album"
-    error = nil
-    currentFile = file
+        // Keep the old image until its replacement is ready.
+        let wasEmpty = error == "No media files available in this album"
+        error = nil
+        currentFile = file
         
         if file.isLivePhoto {
-            // Handle live photo: extract image component only, store video separately
             do {
                 let components = try extractLivePhotoComponents(from: data)
                 
-                // For live photos, only set the image component for display
                 if let imageData = components.imageData {
                     currentImageData = imageData
                     print("Live photo image component loaded: \(imageData.count) bytes")
@@ -616,7 +542,6 @@ class RealSlideshowService: ObservableObject {
                     currentImageData = data
                 }
                 
-                // Store video component separately for long-press playback
                 if let videoData = components.videoData {
                     livePhotoVideoData = videoData
                     print("Live photo video component stored: \(videoData.count) bytes")
@@ -624,34 +549,29 @@ class RealSlideshowService: ObservableObject {
                     livePhotoVideoData = nil
                 }
                 
-                // Clear video properties to ensure image display
                 currentVideoData = nil
                 currentVideoURL = nil
                 
-                // Start timer for live photo (show as image)
                 startSlideTimer()
                 
             } catch {
                 print("Failed to extract live photo components: \(error)")
-                // Fallback to treating as regular image
                 currentImageData = data
                 currentVideoData = nil
                 currentVideoURL = nil
                 livePhotoVideoData = nil
                 startSlideTimer()
             }
-            
+
         } else if file.isVideo {
-            // Switching to video: clear image state now
             currentImageData = nil
             livePhotoVideoData = nil
-            // Write decrypted data to a temp file to preserve original color space & avoid brightness shifts
+            // A temp file preserves the color space and avoids brightness shifts.
             do {
                 let url: URL
                 if let existing = videoTempFiles[file.id] {
                     url = existing
                 } else {
-                    // Extract proper file extension from filename
                     let fileExtension = file.title.components(separatedBy: ".").last?.lowercased() ?? "mp4"
                     let tmpURL = FileManager.default.temporaryDirectory.appendingPathComponent("cast_video_\(file.id)_\(UUID().uuidString).\(fileExtension)")
                     try data.write(to: tmpURL, options: .atomic)
@@ -659,24 +579,22 @@ class RealSlideshowService: ObservableObject {
                     url = tmpURL
                 }
                 currentVideoURL = url
-                currentVideoData = nil // release raw data memory
+                currentVideoData = nil
                 prepareVideoPlayer(url: url)
             } catch {
                 print("Failed to persist video temp file: \(error)")
                 currentVideoURL = nil
             }
         } else {
-            // Regular image
             currentVideoData = nil
             currentVideoURL = nil
             livePhotoVideoData = nil
-            currentImageData = data // assign image last for minimal black gap
-            // Start timer for image slide immediately
+            // Assign the image last to avoid a black frame.
+            currentImageData = data
             startSlideTimer()
         }
         error = nil
         
-        // If we just transitioned from empty to having content, notify the UI
         if wasEmpty {
             NotificationCenter.default.post(name: .slideshowRestarted, object: nil)
         }
@@ -684,7 +602,7 @@ class RealSlideshowService: ObservableObject {
     
     private func startSlideTimer(withDuration customDuration: TimeInterval? = nil) {
         guard let currentFile = currentFile else { return }
-        // For video slides we rely on actual playback end rather than a fixed timer
+        // Video playback advances the slideshow when it ends.
         if currentFile.isVideo { 
             slideTimeRemaining = 0
             slideStartTime = nil
@@ -696,14 +614,12 @@ class RealSlideshowService: ObservableObject {
         slideStartTime = Date()
         slideTimeRemaining = duration
         
-        // For single photo albums, we still want the timer to fire to maintain the slideshow loop
         slideTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 guard let self = self, self.isPlaying, !self.isPaused else { return }
                 self.slideTimeRemaining = 0
                 self.slideStartTime = nil
                 
-                // For single photos, nextSlide will just restart the timer
                 await self.nextSlide()
             }
         }
@@ -714,7 +630,6 @@ class RealSlideshowService: ObservableObject {
         
         currentFileIndex = (currentFileIndex + 1) % allFiles.count
         
-        // If we've gone through all files and still have errors, stop the slideshow
         let maxRetries = allFiles.count
         var retryCount = 0
         
@@ -730,7 +645,6 @@ class RealSlideshowService: ObservableObject {
                     file: file
                 )
                 
-                // Success! Update the slide
                 prefetchCache[currentFileIndex] = decryptedData
                 await updateCurrentSlide(with: decryptedData, file: file)
                 
@@ -741,12 +655,10 @@ class RealSlideshowService: ObservableObject {
                 
                 print("Successfully loaded file \(file.id): \(file.title)")
                 
-                // Restart timer if playing
                 if isPlaying && !isPaused {
                     startSlideTimer()
                 }
                 
-                // Start prefetching again
                 startPrefetching()
                 return
                 
@@ -758,7 +670,6 @@ class RealSlideshowService: ObservableObject {
             }
         }
         
-        // If we reach here, all files have issues
         await MainActor.run {
             self.error = "Unable to load any slides. All files may be corrupted or have decryption issues."
         }
@@ -770,7 +681,6 @@ class RealSlideshowService: ObservableObject {
             for i in 1...prefetchCount {
                 let prefetchIndex = (currentFileIndex + i) % allFiles.count
                 
-                // Skip if already cached
                 if prefetchCache[prefetchIndex] != nil { continue }
                 
                 guard let payload = storedCastPayload else { continue }
@@ -783,7 +693,6 @@ class RealSlideshowService: ObservableObject {
                     )
                     prefetchCache[prefetchIndex] = data
                     
-                    // Clean up old cache entries
                     if prefetchCache.count > 5 {
                         let oldKeys = Array(prefetchCache.keys.sorted().prefix(prefetchCache.count - 5))
                         for key in oldKeys {
@@ -797,17 +706,13 @@ class RealSlideshowService: ObservableObject {
                     continue
                 }
                 
-                // Add delay between prefetch operations
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                try? await Task.sleep(nanoseconds: 500_000_000)
             }
         }
     }
     
-    // MARK: - Video Playback Management
-    
     private func prepareVideoPlayer(url: URL) {
         let playerItem = AVPlayerItem(url: url)
-        // Observe duration once ready
         NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: playerItem, queue: .main) { [weak self] _ in
             Task { @MainActor in
                 self?.videoDidFinish()
@@ -818,13 +723,11 @@ class RealSlideshowService: ObservableObject {
         videoPlayer = player
         isVideoPlaying = false
         videoCurrentTime = 0
-        // Get duration asynchronously for iOS 16+
         Task { @MainActor in
             if let duration = try? await playerItem.asset.load(.duration) {
                 self.videoDuration = CMTimeGetSeconds(duration)
             }
         }
-        // Auto-play
         playVideo()
         startVideoProgressUpdates()
     }
@@ -845,7 +748,6 @@ class RealSlideshowService: ObservableObject {
         guard let player = videoPlayer else { return }
         player.play()
         isVideoPlaying = true
-        // Ensure slideshow timer paused during video playback
         slideTimer?.invalidate()
     }
     
@@ -858,13 +760,11 @@ class RealSlideshowService: ObservableObject {
         }
     }
     
-    // MARK: - Periodic Diff Polling
-    
     @MainActor
     private func startPeriodicDiffPolling() {
         guard isPeriodicPollingEnabled && storedCastPayload != nil else { return }
         
-        stopPeriodicDiffPolling() // Stop any existing timer
+        stopPeriodicDiffPolling()
         
         print("Starting periodic diff polling (every \(diffPollingInterval)s)")
         
@@ -896,7 +796,6 @@ class RealSlideshowService: ObservableObject {
                 
                 await processDiffBatch(result.files, collectionKey: payload.collectionKey)
                 
-                // Only update lastUpdateTime if we actually found items with valid updationTime
                 await MainActor.run {
                     if result.latestUpdateTime > self.lastUpdateTime {
                         print("Updating lastUpdateTime: \(self.lastUpdateTime) → \(result.latestUpdateTime)")
@@ -910,48 +809,38 @@ class RealSlideshowService: ObservableObject {
         } catch {
             if let castError = error as? CastError,
                case .serverError(401, _) = castError {
-                // handleUnauthorizedError already called in fetchFilesBatch
+                // fetchFilesBatch already handled this error.
             } else {
                 print("Periodic diff check failed: \(error)")
-                // Continue polling on other errors
             }
         }
     }
     
-    // MARK: - 401 Error Handling
-    
     @MainActor
     private func handleUnauthorizedError() {
-        // Prevent multiple concurrent auth expiry handling
         guard !isHandlingAuthExpiry else {
             return
         }
         
         isHandlingAuthExpiry = true
         
-        // Stop screen saver prevention immediately before any UI transitions
         ScreenSaverManager.allowScreenSaver()
         
-        // Stop all ongoing operations
         isPeriodicPollingEnabled = false
         stopPeriodicDiffPolling()
         
-        // Notify the view model to reset session
         NotificationCenter.default.post(name: .authenticationExpired, object: nil)
         
-        // Reset flag after a delay to allow reset to complete
+        // Keep the guard set while the session resets.
         Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
             await MainActor.run {
                 self.isHandlingAuthExpiry = false
             }
         }
     }
     
-    // MARK: - Network & Download
-
     private func downloadEncryptedFile(castPayload: CastPayload, fileID: Int) async throws -> Data {
-        // Use the file download endpoint with cast-specific headers
         let url = URL(string: "\(castDownloadURL)/?fileID=\(fileID)")!
         
         var request = URLRequest(url: url)
@@ -965,7 +854,6 @@ class RealSlideshowService: ObservableObject {
         }
         
         guard httpResponse.statusCode == 200 else {
-            // Condensed error log
             let snippet = (String(data: data, encoding: .utf8) ?? "").prefix(160)
             print("Download error [\(httpResponse.statusCode)] fileID=\(fileID): \(snippet)")
             if httpResponse.statusCode == 401 {
@@ -980,13 +868,11 @@ class RealSlideshowService: ObservableObject {
     }
     
     private func downloadAndDecryptFileContent(castPayload: CastPayload, file: CastFile) async throws -> Data {
-        // Check if service is stopping
         let stopping = await MainActor.run { isStopping }
         if stopping {
             throw CastError.networkError("Service is stopping")
         }
         
-        // Check cache first
         if let cachedData = await getCachedFileContent(fileID: file.id) {
             if verboseFileLogging { print("Using cached content for file \(file.id): \(file.title) (\(cachedData.count) bytes)") }
             return cachedData
@@ -994,11 +880,9 @@ class RealSlideshowService: ObservableObject {
         
             if verboseFileLogging { print("Downloading and decrypting file \(file.id): \(file.title)") }
         
-        // Step 1: Download encrypted file
         let encryptedData = try await downloadEncryptedFile(castPayload: castPayload, fileID: file.id)
             if verboseFileLogging { print("Downloaded \(encryptedData.count) bytes") }
         
-        // Step 2: Decrypt file key using collection key
         let fileKey = try decryptFileKey(
             encryptedKey: file.encryptedKey,
             nonce: file.keyDecryptionNonce,
@@ -1006,7 +890,6 @@ class RealSlideshowService: ObservableObject {
         )
             
         
-        // Step 3: Decrypt file content using file key and decryption header
         let decryptedData = try decryptFileContent(
             encryptedData: encryptedData,
             fileKey: fileKey,
@@ -1014,13 +897,10 @@ class RealSlideshowService: ObservableObject {
         )
             
         
-        // Step 4: Cache the decrypted content
         await cacheFileContent(fileID: file.id, data: decryptedData)
         
         return decryptedData
     }
-    
-    // MARK: - File Decryption Functions
     
     private func decryptFileMetadata(item: [String: Any], collectionKey: String) async throws -> CastFile? {
         guard let id = item["id"] as? Int,
@@ -1036,7 +916,6 @@ class RealSlideshowService: ObservableObject {
         }
         
         do {
-            // Step 1: Decrypt file key using collection key (SecretBox)
             let fileKey = try decryptFileKey(
                 encryptedKey: encryptedKey,
                 nonce: keyDecryptionNonce,
@@ -1044,7 +923,6 @@ class RealSlideshowService: ObservableObject {
             )
             if verboseDecryptionLogging { print("File key decrypted successfully") }
             
-            // Step 2: Decrypt metadata using file key (XChaCha20-Poly1305)
             let metadata = try decryptMetadata(
                 encryptedData: encryptedMetadata,
                 decryptionHeader: metadataHeader,
@@ -1052,11 +930,9 @@ class RealSlideshowService: ObservableObject {
             )
             
             
-            // Step 3: Parse decrypted metadata JSON
             let fileMetadata = try parseFileMetadata(data: metadata)
             
             
-            // Create CastFile with decrypted metadata and decryption info
             let isVideo = fileMetadata.fileType == 1
             let isLivePhoto = fileMetadata.fileType == 2
             return CastFile(
@@ -1077,7 +953,6 @@ class RealSlideshowService: ObservableObject {
     }
     
     private func decryptFileKey(encryptedKey: String, nonce: String, collectionKey: String) throws -> Data {
-        // Convert base64 inputs to data
         guard let encryptedKeyData = Data(base64Encoded: encryptedKey),
               let nonceData = Data(base64Encoded: nonce),
               let collectionKeyData = Data(base64Encoded: collectionKey) else {
@@ -1093,7 +968,6 @@ class RealSlideshowService: ObservableObject {
     }
     
     private func decryptMetadata(encryptedData: String, decryptionHeader: String, fileKey: Data) throws -> Data {
-        // Convert base64 inputs to data
         guard let encryptedBytes = Data(base64Encoded: encryptedData),
               let headerBytes = Data(base64Encoded: decryptionHeader) else {
             throw CastError.decryptionError("Invalid base64 in metadata decryption")
@@ -1111,7 +985,6 @@ class RealSlideshowService: ObservableObject {
     }
     
     private func decryptFileContent(encryptedData: Data, fileKey: Data, decryptionHeader: String) throws -> Data {
-        // Convert base64 header to data
         guard let headerBytes = Data(base64Encoded: decryptionHeader) else {
             throw CastError.decryptionError("Invalid base64 in file decryption header")
         }
@@ -1126,7 +999,6 @@ class RealSlideshowService: ObservableObject {
     }
     
     private func parseFileMetadata(data: Data) throws -> FileMetadata {
-        // Parse the decrypted JSON metadata
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw CastError.decryptionError("Invalid JSON in decrypted metadata")
         }
@@ -1146,8 +1018,6 @@ class RealSlideshowService: ObservableObject {
         )
     }
     
-    // MARK: - Cache Management Helpers
-    
     private func getCachedFileContent(fileID: Int) async -> Data? {
         return await fileCache.get(fileID)
     }
@@ -1160,10 +1030,8 @@ class RealSlideshowService: ObservableObject {
         let stats = await getCacheStats()
         print("Starting cache cleanup - current cache has \(stats.count) files")
         
-        // Get all currently cached file IDs
         let cachedFileIDs = await fileCache.getCachedFileIDs()
         
-        // Remove files that are no longer valid
         var removedCount = 0
         for cachedFileID in cachedFileIDs {
             if !validFileIDs.contains(cachedFileID) {
@@ -1190,8 +1058,6 @@ class RealSlideshowService: ObservableObject {
         return await fileCache.getStats()
     }
 }
-
-// MARK: - Live Photo Utilities
 
 func extractZipUsingFoundation(zipURL: URL, to destinationURL: URL) throws {
     do {
@@ -1220,10 +1086,9 @@ func extractLivePhotoComponents(from zipData: Data) throws -> LivePhotoComponent
     var videoPath: URL?
     
     do {
-        // For tvOS, we'll implement a simple zip reader using Foundation
         try extractZipUsingFoundation(zipURL: zipURL, to: extractDirectory)
         
-        // Enumerate all extracted files (including nested) because zips may contain a folder structure.
+        // Live Photo zips may nest their assets.
         let resourceKeys: [URLResourceKey] = [.isDirectoryKey]
         let enumerator = FileManager.default.enumerator(at: extractDirectory, includingPropertiesForKeys: resourceKeys)
         
@@ -1238,7 +1103,6 @@ func extractLivePhotoComponents(from zipData: Data) throws -> LivePhotoComponent
         }
         
     while let fileURL = enumerator?.nextObject() as? URL {
-            // Skip directories
             if (try? fileURL.resourceValues(forKeys: Set(resourceKeys)).isDirectory) == true { continue }
             let filename = fileURL.lastPathComponent
             
@@ -1251,18 +1115,17 @@ func extractLivePhotoComponents(from zipData: Data) throws -> LivePhotoComponent
                 videoPath = fileURL
                 print("Extracted live photo video: \(filename) (\(videoData?.count ?? 0) bytes)")
             } else {
-                // Only log unexpected files once both components missing to avoid noise
                 if imageData == nil || videoData == nil {
                     print("Ignoring non-component file in live photo zip: \(filename)")
                 }
             }
         }
         
-        // Fallback heuristics: Some live photo packages may store assets without extensions or with generic names.
+        // Some packages use extensionless or generic asset names.
         if imageData == nil || videoData == nil {
             let contents = try FileManager.default.contentsOfDirectory(at: extractDirectory, includingPropertiesForKeys: nil)
             if imageData == nil {
-                if let guessImage = contents.first(where: { $0.pathExtension.isEmpty }) { // pick first extension-less file as possible image
+                if let guessImage = contents.first(where: { $0.pathExtension.isEmpty }) {
                     imageData = try? Data(contentsOf: guessImage)
                     imagePath = guessImage
                     if imageData != nil { print("Heuristic image pick: \(guessImage.lastPathComponent)") }

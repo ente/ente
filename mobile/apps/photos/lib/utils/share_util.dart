@@ -135,6 +135,20 @@ Future<ShareResult> shareText(
 String formatMemoryShareText(String title, String shareUrl) =>
     '$title: $shareUrl';
 
+String formatAlbumShareText(
+  String albumName,
+  String? albumDescription,
+  String shareUrl,
+) {
+  final sharedDescription =
+      albumDescription != null && albumDescription.characters.length > 100
+      ? '${albumDescription.characters.take(100)}...'
+      : albumDescription;
+  return sharedDescription == null
+      ? '$albumName: $shareUrl'
+      : '$albumName - $sharedDescription: $shareUrl';
+}
+
 Future<ShareResult> shareLinkWithDescription(
   String url, {
   String? description,
@@ -227,26 +241,6 @@ Future<List<EnteFile>> convertPicketAssets(
   return localFiles;
 }
 
-DateTime? parseDateFromFileNam1e(String fileName) {
-  if (fileName.startsWith('IMG-') || fileName.startsWith('VID-')) {
-    // Whatsapp media files
-    return DateTime.tryParse(fileName.split('-')[1]);
-  } else if (fileName.startsWith("Screenshot_")) {
-    // Screenshots on droid
-    return DateTime.tryParse(
-      (fileName).replaceAll('Screenshot_', '').replaceAll('-', 'T'),
-    );
-  } else {
-    return DateTime.tryParse(
-      (fileName)
-          .replaceAll("IMG_", "")
-          .replaceAll("VID_", "")
-          .replaceAll("DCIM_", "")
-          .replaceAll("_", " "),
-    );
-  }
-}
-
 void shareSelected(
   BuildContext context,
   GlobalKey shareButtonKey,
@@ -258,9 +252,15 @@ void shareSelected(
 Future<void> shareAlbumLink(
   BuildContext context,
   String url,
-  GlobalKey key,
-) async {
-  await shareLinkWithDescription(url, context: context, key: key);
+  GlobalKey key, {
+  required String albumName,
+  String? albumDescription,
+}) async {
+  await shareText(
+    formatAlbumShareText(albumName, albumDescription, url),
+    context: context,
+    key: key,
+  );
 }
 
 // iPad share sheets require a source rectangle.

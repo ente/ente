@@ -11,7 +11,6 @@ import "package:ente_lock_screen/lock_screen_settings.dart";
 import "package:ente_lock_screen/ui/app_lock.dart";
 import "package:ente_lock_screen/ui/lock_screen.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
-import "package:ente_rust/ente_rust.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/theme/theme_config.dart" as ente_ui;
 import "package:ffmpeg_kit_flutter/ffmpeg_kit_config.dart";
@@ -87,7 +86,6 @@ bool _stopHearBeat = false;
 bool _isSyncInitialized = false;
 bool _isRustInitialized = false;
 Future<void>? _rustInitFuture;
-late final LogSinkGuard _enteRustLogSinkGuard;
 late final photos_rust_log.LogSinkGuard _photosRustLogSinkGuard;
 
 enum ForegroundStartupMode { normal, picker }
@@ -570,7 +568,7 @@ Future<void> _ensureRustInitialized({required String via}) async {
     return;
   }
 
-  final initFuture = Future.wait([EntePhotosRust.init(), EnteRust.init()]);
+  final initFuture = EntePhotosRust.init();
   _rustInitFuture = initFuture;
   try {
     await initFuture;
@@ -583,10 +581,6 @@ Future<void> _ensureRustInitialized({required String via}) async {
 
 void _attachRustLogStream() {
   final logger = Logger("rust");
-  _enteRustLogSinkGuard = LogSinkGuard();
-  _enteRustLogSinkGuard.attachLogStream().listen((entry) {
-    _logRustEntry(logger, entry.level.name, entry.target, entry.message);
-  });
   _photosRustLogSinkGuard = photos_rust_log.LogSinkGuard();
   _photosRustLogSinkGuard.attachLogStream().listen((entry) {
     _logRustEntry(logger, entry.level.name, entry.target, entry.message);

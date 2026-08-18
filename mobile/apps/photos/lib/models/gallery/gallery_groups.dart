@@ -310,20 +310,12 @@ class GalleryGroups {
     final stopwatch = Stopwatch()..start();
 
     final yearsInGroups = <int>{};
-    List<EnteFile> groupFiles = [];
-    final allFilesLength = allFiles.length;
 
     if (groupType.showGroupHeader()) {
-      for (int index = 0; index < allFilesLength; index++) {
-        if (index > 0 &&
-            !groupType.areFromSameGroup(allFiles[index - 1], allFiles[index])) {
-          _createNewGroup(groupFiles, yearsInGroups);
-          groupFiles = [];
-        }
-        groupFiles.add(allFiles[index]);
-      }
-      if (groupFiles.isNotEmpty) {
-        _createNewGroup(groupFiles, yearsInGroups);
+      var start = 0;
+      for (final end in _timeGroupEndIndexes()) {
+        _createNewGroup(_copyFilesInRange(start, end), yearsInGroups);
+        start = end;
       }
     } else {
       // Split allFiles into groups of max length 10 * crossAxisCount for
@@ -332,7 +324,7 @@ class GalleryGroups {
         final end = (i + 10 * crossAxisCount < allFiles.length)
             ? i + 10 * crossAxisCount
             : allFiles.length;
-        final subGroup = allFiles.sublist(i, end);
+        final subGroup = _copyFilesInRange(i, end);
         _createNewGroup(subGroup, yearsInGroups);
       }
     }
@@ -341,6 +333,43 @@ class GalleryGroups {
       "Built ${_groupIds.length} groups for group type ${groupType.name} in ${stopwatch.elapsedMilliseconds} ms",
     );
     stopwatch.stop();
+  }
+
+  List<EnteFile> _copyFilesInRange(int start, int end) {
+    // Create a real List<EnteFile> so _createNewGroup can add DummyFiles.
+    // A sublist of List<EnteTrashFile>, for example, only accepts EnteTrashFile.
+    return List<EnteFile>.from(allFiles.getRange(start, end));
+  }
+
+  List<int> _timeGroupEndIndexes() {
+    final ends = <int>[];
+    if (allFiles.isEmpty) {
+      return ends;
+    }
+
+    if (groupType == GroupType.week) {
+      var previousFile = allFiles.first;
+      for (var index = 1; index < allFiles.length; index++) {
+        final file = allFiles[index];
+        if (!groupType.areFromSameGroup(previousFile, file)) {
+          ends.add(index);
+        }
+        previousFile = file;
+      }
+      ends.add(allFiles.length);
+      return ends;
+    }
+
+    var groupRange = groupType.getGroupRange(allFiles.first);
+    for (var index = 1; index < allFiles.length; index++) {
+      final creationTime = allFiles[index].creationTime!;
+      if (creationTime < groupRange.$1 || creationTime > groupRange.$2) {
+        ends.add(index);
+        groupRange = groupType.getGroupRange(allFiles[index]);
+      }
+    }
+    ends.add(allFiles.length);
+    return ends;
   }
 
   void _createNewGroup(List<EnteFile> groupFiles, Set<int> yearsInGroups) {
@@ -353,11 +382,9 @@ class GalleryGroups {
       final incompleteRowCount = groupFiles.length % crossAxisCount;
       if (incompleteRowCount != 0) {
         final dummiesNeeded = crossAxisCount - incompleteRowCount;
-        final filesWithDummies = List<EnteFile>.from(groupFiles);
         for (int i = 0; i < dummiesNeeded; i++) {
-          filesWithDummies.add(DummyFile(groupID: uuid, index: i));
+          groupFiles.add(DummyFile(groupID: uuid, index: i));
         }
-        groupFiles = filesWithDummies;
       }
     }
 

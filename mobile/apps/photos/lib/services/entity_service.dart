@@ -61,6 +61,7 @@ class EntityService {
     Map<String, dynamic> jsonMap, {
     String? id,
     bool addWithCustomID = false,
+    int? expectedUpdatedAt,
   }) async {
     final String plainText = jsonEncode(jsonMap);
     final key = await getOrCreateEntityKey(type);
@@ -86,7 +87,13 @@ class EntityService {
 
     final EntityData data = id == null || addWithCustomID
         ? await _gateway.createEntity(type, id, encryptedData, header)
-        : await _gateway.updateEntity(type, id, encryptedData, header);
+        : await _gateway.updateEntity(
+            type,
+            id,
+            encryptedData,
+            header,
+            expectedUpdatedAt: expectedUpdatedAt,
+          );
     final localData = LocalEntityData(
       id: data.id,
       type: type,

@@ -6,6 +6,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/contacts_changed_event.dart";
 import "package:photos/events/user_logged_out_event.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/frb_contacts_rust_api.dart";
 
 // Photos-specific session and event adapter for the shared contact directory.
 class PhotosContactsService {
@@ -13,6 +14,7 @@ class PhotosContactsService {
     : _store = contacts.ContactDirectory(
         contactsServiceFactory: () => contacts.ContactsService(
           preferences: ServiceLocator.instance.prefs,
+          rustApi: const FrbContactsRustApi(),
         ),
         onContactsChanged: _notifyContactsChanged,
         profilePictureFailureTtl: Duration.zero,
@@ -177,7 +179,7 @@ class PhotosContactsService {
     } on StateError catch (error, stackTrace) {
       if (_isRustInitializationError(error)) {
         _logger.warning(
-          "Contacts integration unavailable while Rust bindings are not initialized during $description. Photos initializes EntePhotosRust in main.dart, but ente_contacts calls into package:ente_rust.",
+          "Contacts integration unavailable while Rust bindings are not initialized during $description. Photos initializes EntePhotosRust in main.dart.",
           error,
           stackTrace,
         );

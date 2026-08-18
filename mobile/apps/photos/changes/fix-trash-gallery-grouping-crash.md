@@ -1,0 +1,1 @@
+- Fixed a crash when opening Ente Trash.

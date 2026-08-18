@@ -1878,8 +1878,6 @@
   "ocrModelsNetworkRequiredError": "پہلی بار OCR ماڈلز ڈاؤن لوڈ کرنے کے لیے نیٹ ورک کنکشن درکار ہے",
   "ocrModelsPrepareFailed": "OCR ماڈلز تیار نہیں ہو سکے",
   "ocrNoTextDetected": "کوئی متن دریافت نہیں ہوا",
-  "ocrProcessingOverlayMessage": "متن دریافت کیا جا رہا ہے...",
-  "ocrSelectionHint": "صرف اپنی ضرورت کی چیز منتخب کرنے کے لیے سوائپ یا ڈبل ​​ٹیپ کریں",
   "offlineEnableBackupTagLabel": "10 GB مفت!",
   "offlineFacesBannerSubtitle": "لوگوں کو ٹیگ کرنے اور بعد میں انہیں آسانی سے تلاش کرنے کے لیے سائن اپ کریں.",
   "offlineFacesBannerTitle": "کیا ان چہروں کو محفوظ کرنا چاہتے ہیں؟",

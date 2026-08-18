@@ -1203,8 +1203,6 @@
   "ocrModelsNetworkRequiredError": "Nätverksanslutning krävs för att ladda ned OCR-modeller vid första användning",
   "ocrModelsPrepareFailed": "Kunde inte förbereda OCR-modeller",
   "ocrNoTextDetected": "Ingen text upptäckt",
-  "ocrProcessingOverlayMessage": "Upptäcker text...",
-  "ocrSelectionHint": "Svep eller dubbeltryck för att välja vad du behöver",
   "offlineModeWarning": "Du har valt att fortsätta utan säkerhetskopior. Vänligen ta manuella säkerhetskopior för att se till att dina koder är säkra.",
   "onlyFamilyAdminCanChangeCode": "Kontakta {familyAdminEmail} för att ändra din kod.",
   "@onlyFamilyAdminCanChangeCode": {

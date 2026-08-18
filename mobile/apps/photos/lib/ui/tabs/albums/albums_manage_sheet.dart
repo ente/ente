@@ -106,18 +106,14 @@ Future<void> showAlbumsManageSheet(BuildContext context) {
               label: strings.trash,
               icon: HugeIcons.strokeRoundedDelete01,
               iconColor: const Color(0xFFE3505A),
-              onTap: () async {
-                final ok = await LocalAuthenticationService.instance
-                    .requestLocalAuthentication(
-                      context,
-                      strings.authToViewTrashedFiles,
-                    );
-                if (!ok || !context.mounted) return;
-                if (sheetContext.mounted) {
-                  Navigator.of(sheetContext).pop();
-                }
-                unawaited(routeToPage(context, TrashPage()));
-              },
+              onTap: () => showTrashPage(
+                context,
+                beforeRouteToPage: () {
+                  if (sheetContext.mounted) {
+                    Navigator.of(sheetContext).pop();
+                  }
+                },
+              ),
             ),
           ],
         ),
