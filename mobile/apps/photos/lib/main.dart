@@ -720,6 +720,13 @@ Future<void> _handleBackgroundPush(Object message) async {
     if (PushService.shouldSync(message)) {
       _logger.info("Foreground is active, skipping background sync from push");
     }
+  } else if (!isProcessBg) {
+    // This engine already ran SuperLogging.main: re-entering runWithLogs here
+    // would attach a duplicate log listener and clobber the log prefix.
+    _logger.info("Background push received in backgrounded main engine");
+    if (PushService.shouldSync(message)) {
+      await _sync('firebaseBgSyncMainEngine');
+    }
   } else {
     runWithLogs(() async {
       _logger.info("Background push received, no active foreground");
