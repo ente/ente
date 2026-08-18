@@ -141,8 +141,8 @@ String formatAlbumShareText(
   String shareUrl,
 ) {
   final sharedDescription =
-      albumDescription != null && albumDescription.length > 100
-      ? '${albumDescription.substring(0, 100)}...'
+      albumDescription != null && albumDescription.characters.length > 100
+      ? '${albumDescription.characters.take(100)}...'
       : albumDescription;
   return sharedDescription == null
       ? '$albumName: $shareUrl'
