@@ -41,6 +41,7 @@ class VideoWidgetMediaKit extends StatefulWidget {
   final void Function() onStreamChange;
   final File? preview;
   final bool selectedPreview;
+  final ValueNotifier<double> playbackSpeed;
   final Function({required int memoryDuration})? onFinalFileLoad;
 
   const VideoWidgetMediaKit(
@@ -54,6 +55,7 @@ class VideoWidgetMediaKit extends StatefulWidget {
     required this.onStreamChange,
     this.preview,
     required this.selectedPreview,
+    required this.playbackSpeed,
     this.onFinalFileLoad,
     super.key,
   });
@@ -257,6 +259,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
                 isFromMemories: widget.isFromMemories,
                 onStreamChange: widget.onStreamChange,
                 isPreviewPlayer: widget.selectedPreview,
+                playbackSpeed: widget.playbackSpeed,
               )
             : Center(
                 child: ValueListenableBuilder(

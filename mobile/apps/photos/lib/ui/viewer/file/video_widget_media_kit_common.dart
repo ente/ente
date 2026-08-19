@@ -23,6 +23,7 @@ class VideoWidget extends StatefulWidget {
   final bool isFromMemories;
   final void Function() onStreamChange;
   final bool isPreviewPlayer;
+  final ValueNotifier<double> playbackSpeed;
 
   const VideoWidget(
     this.file,
@@ -35,6 +36,7 @@ class VideoWidget extends StatefulWidget {
     // ignore: unused_element
     required this.onStreamChange,
     required this.isPreviewPlayer,
+    required this.playbackSpeed,
   });
 
   @override
@@ -46,12 +48,11 @@ class _VideoWidgetState extends State<VideoWidget> {
   final _hideControlsDebouncer = Debouncer(const Duration(milliseconds: 2000));
   final _isSeekingNotifier = ValueNotifier<bool>(false);
   late final StreamSubscription<bool> _isPlayingStreamSubscription;
-  final _playbackSpeed = ValueNotifier<double>(1.0);
 
   @override
   void initState() {
     super.initState();
-    widget.controller.player.setRate(_playbackSpeed.value);
+    widget.controller.player.setRate(widget.playbackSpeed.value);
     _isPlayingStreamSubscription = widget.controller.player.stream.playing
         .listen((isPlaying) {
           if (isPlaying && !_isSeekingNotifier.value) {
@@ -75,7 +76,6 @@ class _VideoWidgetState extends State<VideoWidget> {
     _hideControlsDebouncer.cancelDebounceTimer();
     _isSeekingNotifier.removeListener(isSeekingListener);
     _isSeekingNotifier.dispose();
-    _playbackSpeed.dispose();
     super.dispose();
   }
 
@@ -201,11 +201,11 @@ class _VideoWidgetState extends State<VideoWidget> {
                           left: 0,
                           child: SafeArea(
                             top: false,
-                            left: false,
+                            left: true,
                             child: Stack(
                               children: [
                                 ValueListenableBuilder<double>(
-                                  valueListenable: _playbackSpeed,
+                                  valueListenable: widget.playbackSpeed,
                                   builder: (context, speed, _) {
                                     return VideoSpeedButton(
                                       showControls: value,
@@ -215,7 +215,8 @@ class _VideoWidgetState extends State<VideoWidget> {
                                           context,
                                           currentSpeed: speed,
                                           onSpeedSelected: (newSpeed) {
-                                            _playbackSpeed.value = newSpeed;
+                                            widget.playbackSpeed.value =
+                                                newSpeed;
                                             widget.controller.player.setRate(
                                               newSpeed,
                                             );

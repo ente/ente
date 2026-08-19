@@ -53,6 +53,7 @@ class VideoWidgetNative extends StatefulWidget {
   final void Function()? onStreamChange;
   final PlaylistData? playlistData;
   final bool selectedPreview;
+  final ValueNotifier<double> playbackSpeed;
   final Function({required int memoryDuration})? onFinalFileLoad;
 
   const VideoWidgetNative(
@@ -68,6 +69,7 @@ class VideoWidgetNative extends StatefulWidget {
     this.playlistData,
     this.onFinalFileLoad,
     required this.selectedPreview,
+    required this.playbackSpeed,
   });
 
   @override
@@ -98,7 +100,6 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   StreamSubscription<DownloadTask>? downloadTaskSubscription;
   final _transformationController = TransformationController();
   bool _isZooming = false;
-  final _playbackSpeed = ValueNotifier<double>(1.0);
 
   @override
   void initState() {
@@ -188,7 +189,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     );
     await _controller?.loadVideo(videoSource);
     await _applyVolume();
-    await _controller?.setPlaybackSpeed(_playbackSpeed.value);
+    await _controller?.setPlaybackSpeed(widget.playbackSpeed.value);
     await _syncPlayback();
 
     Bus.instance.fire(SeekbarTriggeredEvent(position: 0));
@@ -287,7 +288,6 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     _showControls.dispose();
     _isSeeking.removeListener(_seekListener);
     _isSeeking.dispose();
-    _playbackSpeed.dispose();
     _debouncer.cancelDebounceTimer();
     _transformationController.dispose();
     wakeLockService.updateWakeLock(
@@ -462,7 +462,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                   left: 0,
                                   child: SafeArea(
                                     top: false,
-                                    left: false,
+                                    left: true,
                                     right: false,
                                     child: ValueListenableBuilder(
                                       valueListenable: _showControls,
@@ -470,7 +470,8 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                         return Stack(
                                           children: [
                                             ValueListenableBuilder<double>(
-                                              valueListenable: _playbackSpeed,
+                                              valueListenable:
+                                                  widget.playbackSpeed,
                                               builder: (context, speed, _) {
                                                 return VideoSpeedButton(
                                                   showControls: value,
@@ -480,7 +481,9 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                                       context,
                                                       currentSpeed: speed,
                                                       onSpeedSelected: (newSpeed) {
-                                                        _playbackSpeed.value =
+                                                        widget
+                                                                .playbackSpeed
+                                                                .value =
                                                             newSpeed;
                                                         _controller
                                                             ?.setPlaybackSpeed(
@@ -637,7 +640,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   Future<void> _onPlaybackReady() async {
     if (_isPlaybackReady.value) return;
     await _applyVolume();
-    await _controller?.setPlaybackSpeed(_playbackSpeed.value);
+    await _controller?.setPlaybackSpeed(widget.playbackSpeed.value);
     await _syncPlayback();
     final durationInSeconds = durationToSeconds(duration) ?? 10;
     widget.onFinalFileLoad?.call(memoryDuration: durationInSeconds);
