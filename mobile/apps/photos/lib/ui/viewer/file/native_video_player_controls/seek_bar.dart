@@ -14,6 +14,7 @@ class NativeVideoProgressControls extends StatefulWidget {
   final ValueNotifier<bool> isSeeking;
   final ValueNotifier<DateTime?>? lastSeekTime;
   final ValueNotifier<int?>? lastSeekTargetMs;
+  final ValueNotifier<int>? seekGeneration;
 
   const NativeVideoProgressControls(
     this.controller,
@@ -21,6 +22,7 @@ class NativeVideoProgressControls extends StatefulWidget {
     this.isSeeking, {
     this.lastSeekTime,
     this.lastSeekTargetMs,
+    this.seekGeneration,
     super.key,
   });
 
@@ -141,14 +143,17 @@ class _NativeVideoProgressControlsState
   int? _lastSeekTargetMs;
 
   void _seekTo(double value) {
+    final position = _positionInMilliseconds(value);
+    if (position == null) return;
+    final now = DateTime.now();
+    _lastSeekTime = now;
+    _lastSeekTargetMs = position;
+    widget.lastSeekTime?.value = now;
+    widget.lastSeekTargetMs?.value = position;
+    if (widget.seekGeneration != null) {
+      widget.seekGeneration!.value++;
+    }
     _debouncer.run(() async {
-      final position = _positionInMilliseconds(value);
-      if (position == null) return;
-      final now = DateTime.now();
-      _lastSeekTime = now;
-      _lastSeekTargetMs = position;
-      widget.lastSeekTime?.value = now;
-      widget.lastSeekTargetMs?.value = position;
       await widget.controller.seekTo(Duration(milliseconds: position));
     });
   }
@@ -190,12 +195,7 @@ class _NativeVideoProgressControlsState
     }
   }
 
-  void _onPlaybackPositionChanged() async {
-    if (widget.isSeeking.value) return;
-
-    final target = widget.controller.playbackPosition.inMilliseconds;
-    final duration = widget.controller.videoInfo?.durationInMilliseconds;
-
+  bool _isEventStale(int target) {
     final lastSeek = widget.lastSeekTime?.value ?? _lastSeekTime;
     if (lastSeek != null &&
         DateTime.now().difference(lastSeek).inMilliseconds <
@@ -205,9 +205,19 @@ class _NativeVideoProgressControlsState
           _lastSeekTargetMs ??
           _elapsedMilliseconds;
       if ((target - referenceMs).abs() > _staleDeltaThreshold.inMilliseconds) {
-        return;
+        return true;
       }
     }
+    return false;
+  }
+
+  void _onPlaybackPositionChanged() async {
+    if (widget.isSeeking.value) return;
+
+    final target = widget.controller.playbackPosition.inMilliseconds;
+    final duration = widget.controller.videoInfo?.durationInMilliseconds;
+
+    if (_isEventStale(target)) return;
 
     if (widget.controller.playbackStatus == PlaybackStatus.paused ||
         (widget.controller.playbackStatus == PlaybackStatus.stopped &&
@@ -221,9 +231,15 @@ class _NativeVideoProgressControlsState
 
     // The position event after zero arrives about 350 ms late.
     if (target == 0) {
+      final generation = widget.seekGeneration?.value;
       await Future.delayed(const Duration(milliseconds: 450));
+      if (generation != widget.seekGeneration?.value) return;
     }
     if (!mounted) {
+      return;
+    }
+
+    if (target == 0 && (widget.isSeeking.value || _isEventStale(target))) {
       return;
     }
 

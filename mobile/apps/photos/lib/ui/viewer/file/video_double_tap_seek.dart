@@ -42,10 +42,18 @@ class _DoubleTapSeekOverlayState extends State<DoubleTapSeekOverlay>
   DateTime? _lastDoubleTapTime;
   bool? _lastDirection;
   Duration? _pendingTarget;
-  late final AnimationController _badgeAnimation = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 180),
-  );
+  TapDownDetails? _doubleTapDetails;
+  int _seekGeneration = 0;
+  late final AnimationController _badgeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _badgeAnimation = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+  }
 
   @override
   void dispose() {
@@ -54,7 +62,7 @@ class _DoubleTapSeekOverlayState extends State<DoubleTapSeekOverlay>
     super.dispose();
   }
 
-  void _handleDoubleTapDown(TapDownDetails details) {
+  void _handleDoubleTap(TapDownDetails details) {
     if (!widget.enabled()) return;
 
     final renderBox = context.findRenderObject() as RenderBox?;
@@ -70,23 +78,25 @@ class _DoubleTapSeekOverlayState extends State<DoubleTapSeekOverlay>
         now.difference(_lastDoubleTapTime!).inMilliseconds <= 750 &&
         _lastDirection == isForward;
 
-    if (isFastSequence) {
-      _accumulatedSeconds += 5;
-    } else {
-      _accumulatedSeconds = 5;
-      _lastDirection = isForward;
-    }
-    _lastDoubleTapTime = now;
-
-    final currentPos = isFastSequence && _pendingTarget != null
-        ? _pendingTarget!
-        : widget.position();
+    final currentPos = _pendingTarget ?? widget.position();
     var target = isForward
         ? currentPos + kDefaultSeekDuration
         : currentPos - kDefaultSeekDuration;
 
     if (target < Duration.zero) target = Duration.zero;
     if (target > totalDur) target = totalDur;
+
+    if (isFastSequence) {
+      final isAtSeekBoundary =
+          (isForward && target >= totalDur) ||
+          (!isForward && target <= Duration.zero);
+      if (!isAtSeekBoundary) _accumulatedSeconds += 5;
+    } else {
+      _accumulatedSeconds = 5;
+      _lastDirection = isForward;
+    }
+    _lastDoubleTapTime = now;
+    _seekGeneration++;
 
     _pendingTarget = target;
     widget.seekTo(target);
@@ -96,13 +106,14 @@ class _DoubleTapSeekOverlayState extends State<DoubleTapSeekOverlay>
 
   void _showSeekBadge(bool forward) {
     _badgeHideTimer?.cancel();
+    final generation = _seekGeneration;
     setState(() {
       _badgeForward = forward;
       _showBadge = true;
     });
     _badgeAnimation.forward(from: 0);
     _badgeHideTimer = Timer(const Duration(milliseconds: 750), () {
-      if (!mounted) return;
+      if (!mounted || generation != _seekGeneration) return;
       setState(() {
         _showBadge = false;
         _accumulatedSeconds = 0;
@@ -120,8 +131,14 @@ class _DoubleTapSeekOverlayState extends State<DoubleTapSeekOverlay>
         GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTap: widget.onSingleTap,
-          onDoubleTapDown: _handleDoubleTapDown,
-          onDoubleTap: () {},
+          onDoubleTapDown: (details) => _doubleTapDetails = details,
+          onDoubleTapCancel: () => _doubleTapDetails = null,
+          onDoubleTap: () {
+            if (_doubleTapDetails != null) {
+              _handleDoubleTap(_doubleTapDetails!);
+              _doubleTapDetails = null;
+            }
+          },
           onLongPress: widget.onLongPress,
           onLongPressUp: widget.onLongPressUp,
           child: Container(constraints: const BoxConstraints.expand()),

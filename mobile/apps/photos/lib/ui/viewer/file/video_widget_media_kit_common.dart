@@ -46,6 +46,7 @@ class _VideoWidgetState extends State<VideoWidget> {
   final _isSeekingNotifier = ValueNotifier<bool>(false);
   final _lastSeekTime = ValueNotifier<DateTime?>(null);
   final _lastSeekTargetMs = ValueNotifier<int?>(null);
+  final _seekGeneration = ValueNotifier<int>(0);
   Timer? _doubleTapSeekReleaseTimer;
   late final StreamSubscription<bool> _isPlayingStreamSubscription;
 
@@ -78,6 +79,7 @@ class _VideoWidgetState extends State<VideoWidget> {
     _isSeekingNotifier.dispose();
     _lastSeekTime.dispose();
     _lastSeekTargetMs.dispose();
+    _seekGeneration.dispose();
     super.dispose();
   }
 
@@ -121,6 +123,7 @@ class _VideoWidgetState extends State<VideoWidget> {
           seekTo: (duration) {
             _lastSeekTime.value = DateTime.now();
             _lastSeekTargetMs.value = duration.inMilliseconds;
+            _seekGeneration.value++;
             widget.controller.player.seek(duration);
             _doubleTapSeekReleaseTimer?.cancel();
             _doubleTapSeekReleaseTimer = Timer(
@@ -205,6 +208,7 @@ class _VideoWidgetState extends State<VideoWidget> {
                                 isSeekingNotifier: _isSeekingNotifier,
                                 lastSeekTime: _lastSeekTime,
                                 lastSeekTargetMs: _lastSeekTargetMs,
+                                seekGeneration: _seekGeneration,
                               ),
                             ),
                           ),
@@ -327,12 +331,14 @@ class _MediaKitVideoProgressControls extends StatefulWidget {
   final ValueNotifier<bool> isSeekingNotifier;
   final ValueNotifier<DateTime?> lastSeekTime;
   final ValueNotifier<int?> lastSeekTargetMs;
+  final ValueNotifier<int> seekGeneration;
 
   const _MediaKitVideoProgressControls({
     required this.controller,
     required this.isSeekingNotifier,
     required this.lastSeekTime,
     required this.lastSeekTargetMs,
+    required this.seekGeneration,
   });
 
   @override
@@ -433,6 +439,7 @@ class _MediaKitVideoProgressControlsState
 
           widget.lastSeekTime.value = DateTime.now();
           widget.lastSeekTargetMs.value = _elapsedTime.inMilliseconds;
+          widget.seekGeneration.value++;
 
           _debouncer.run(() async {
             await widget.controller.player.seek(_positionAt(value));
@@ -440,6 +447,10 @@ class _MediaKitVideoProgressControlsState
         },
         divisions: 4500,
         onChangeEnd: (value) async {
+          widget.lastSeekTime.value = DateTime.now();
+          widget.lastSeekTargetMs.value = _positionAt(value).inMilliseconds;
+          widget.seekGeneration.value++;
+
           await widget.controller.player.seek(_positionAt(value));
           if (mounted) {
             setState(() {

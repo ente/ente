@@ -89,6 +89,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   final _isSeeking = ValueNotifier(false);
   final _lastSeekTime = ValueNotifier<DateTime?>(null);
   final _lastSeekTargetMs = ValueNotifier<int?>(null);
+  final _seekGeneration = ValueNotifier<int>(0);
   Timer? _doubleTapSeekReleaseTimer;
   final _debouncer = Debouncer(const Duration(milliseconds: 2000));
   StreamSubscription<PlaybackEvent>? _subscription;
@@ -277,6 +278,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     _doubleTapSeekReleaseTimer?.cancel();
     _lastSeekTime.dispose();
     _lastSeekTargetMs.dispose();
+    _seekGeneration.dispose();
     _debouncer.cancelDebounceTimer();
     _transformationController.dispose();
     wakeLockService.updateWakeLock(
@@ -369,14 +371,20 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                 _controller?.playbackPosition ?? Duration.zero,
                             duration: () => Duration(
                               milliseconds:
-                                  _controller
-                                      ?.videoInfo
-                                      ?.durationInMilliseconds ??
-                                  0,
+                                  ((_controller
+                                              ?.videoInfo
+                                              ?.durationInMilliseconds ??
+                                          0) >
+                                      0
+                                  ? _controller!
+                                        .videoInfo!
+                                        .durationInMilliseconds
+                                  : (durationToSeconds(duration) ?? 0) * 1000),
                             ),
                             seekTo: (duration) {
                               _lastSeekTime.value = DateTime.now();
                               _lastSeekTargetMs.value = duration.inMilliseconds;
+                              _seekGeneration.value++;
                               _controller?.seekTo(duration);
                               _doubleTapSeekReleaseTimer?.cancel();
                               _doubleTapSeekReleaseTimer = Timer(
@@ -461,6 +469,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                             isSeeking: _isSeeking,
                                             lastSeekTime: _lastSeekTime,
                                             lastSeekTargetMs: _lastSeekTargetMs,
+                                            seekGeneration: _seekGeneration,
                                           )
                                         : const SizedBox.shrink(),
                                   ),
@@ -883,6 +892,7 @@ class _VideoProgressControls extends StatelessWidget {
   final ValueNotifier<bool> isSeeking;
   final ValueNotifier<DateTime?> lastSeekTime;
   final ValueNotifier<int?> lastSeekTargetMs;
+  final ValueNotifier<int> seekGeneration;
 
   const _VideoProgressControls({
     required this.controller,
@@ -891,6 +901,7 @@ class _VideoProgressControls extends StatelessWidget {
     required this.isSeeking,
     required this.lastSeekTime,
     required this.lastSeekTargetMs,
+    required this.seekGeneration,
   });
 
   @override
@@ -910,6 +921,7 @@ class _VideoProgressControls extends StatelessWidget {
               isSeeking,
               lastSeekTime: lastSeekTime,
               lastSeekTargetMs: lastSeekTargetMs,
+              seekGeneration: seekGeneration,
             ),
           ),
         );
