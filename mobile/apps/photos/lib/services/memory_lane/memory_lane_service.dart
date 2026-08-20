@@ -884,81 +884,44 @@ Map<String, dynamic> selectTimelineEntriesTask(Map<String, dynamic> param) {
 }
 
 List<_TimelineFaceData> _pickFacesForYear(List<_TimelineFaceData> faces) {
-  int getDayKeyForFace(_TimelineFaceData face) {
-    final localDate = DateTime.fromMicrosecondsSinceEpoch(
-      face.creationTimeMicros,
-    );
-    return localDate.year * 10000 + localDate.month * 100 + localDate.day;
-  }
+  if (faces.isEmpty) return [];
 
-  if (faces.isEmpty) {
-    return <_TimelineFaceData>[];
-  }
-
-  final sortedByQuality = List<_TimelineFaceData>.from(faces)
-    ..sort((_TimelineFaceData a, _TimelineFaceData b) {
-      final highScoreComparison =
-          (b.hasHighScore ? 1 : 0) - (a.hasHighScore ? 1 : 0);
-      if (highScoreComparison != 0) {
-        return highScoreComparison;
-      }
-
-      final scoreComparison = b.score.compareTo(a.score);
-      if (scoreComparison != 0) {
-        return scoreComparison;
-      }
-
-      final blurComparison = b.blur.compareTo(a.blur);
-      if (blurComparison != 0) {
-        return blurComparison;
-      }
-
-      return a.creationTimeMicros.compareTo(b.creationTimeMicros);
-    });
-
-  final picks = <_TimelineFaceData>[];
-  final selectedIds = <String>{};
-  final usedDayKeys = <int>{};
-  final uniqueDayKeys = sortedByQuality.map(getDayKeyForFace).toSet();
-  final totalUniqueDays = uniqueDayKeys.length;
-  final targetUniqueDayCount = totalUniqueDays >= 4 ? 4 : totalUniqueDays;
-  final allowDuplicateDays = totalUniqueDays < 4;
-
-  if (targetUniqueDayCount > 0) {
-    for (final face in sortedByQuality) {
-      final dayKey = getDayKeyForFace(face);
-      if (usedDayKeys.contains(dayKey)) {
-        continue;
-      }
-      picks.add(face);
-      selectedIds.add(face.faceId);
-      usedDayKeys.add(dayKey);
-      if (picks.length == targetUniqueDayCount) {
-        break;
-      }
+  final sortedFaces = faces.sorted((a, b) {
+    if (a.hasHighScore != b.hasHighScore) {
+      return a.hasHighScore ? -1 : 1;
     }
-  }
 
-  if (picks.length < 4) {
-    for (final face in sortedByQuality) {
-      if (selectedIds.contains(face.faceId)) {
-        continue;
-      }
-      final dayKey = getDayKeyForFace(face);
-      if (!allowDuplicateDays && usedDayKeys.contains(dayKey)) {
-        continue;
-      }
-      picks.add(face);
-      selectedIds.add(face.faceId);
-      usedDayKeys.add(dayKey);
-      if (picks.length == 4) {
-        break;
-      }
-    }
-  }
+    final scoreComparison = b.score.compareTo(a.score);
+    if (scoreComparison != 0) return scoreComparison;
 
-  picks.sort((a, b) => a.creationTimeMicros.compareTo(b.creationTimeMicros));
-  return picks;
+    final blurComparison = b.blur.compareTo(a.blur);
+    if (blurComparison != 0) return blurComparison;
+
+    return a.creationTimeMicros.compareTo(b.creationTimeMicros);
+  });
+
+  final facesByDay = groupBy(sortedFaces, (_TimelineFaceData face) {
+    final date = DateTime.fromMicrosecondsSinceEpoch(face.creationTimeMicros);
+    return date.year * 10000 + date.month * 100 + date.day;
+  });
+
+  final uniqueDayPicks = facesByDay.values
+      .map((faces) => faces[0])
+      .take(4)
+      .toList();
+
+  final selectedIds = uniqueDayPicks.map((face) => face.faceId).toSet();
+
+  final picks = [
+    ...uniqueDayPicks,
+    ...sortedFaces
+        .where((face) => !selectedIds.contains(face.faceId))
+        .take(4 - uniqueDayPicks.length),
+  ];
+
+  return picks.sorted(
+    (a, b) => a.creationTimeMicros.compareTo(b.creationTimeMicros),
+  );
 }
 
 int? _eligibleCreationTimeCutoffMicros(String? birthDateString) {
