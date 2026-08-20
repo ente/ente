@@ -2655,6 +2655,11 @@
       "title": "WHMCS"
     },
     {
+      "title": "WhyReboot",
+      "slug": "whyreboot",
+      "hex": "F15924"
+    },
+    {
       "title": "Wick"
     },
     {
