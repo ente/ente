@@ -1,5 +1,6 @@
 import "dart:async";
 import "dart:io";
+
 import "package:ente_icons/ente_icons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -1096,10 +1097,18 @@ class _FileSelectionActionsWidgetState
       (f) => f.isDeviceTrash,
     );
     if (isDeviceOnly) {
-      _restoreFilesFromDeviceTrash(widget.selectedFiles).onError((e, s) {
-        if (!mounted) return;
-        showGenericErrorDialog(context: context, error: e).ignore();
-      });
+      _restoreFilesFromDeviceTrash(widget.selectedFiles)
+          .then((restoredCount) {
+            if (restoredCount == 0 || !mounted) return;
+            showToast(
+              context,
+              context.strings.restoredItems(count: restoredCount),
+            );
+          })
+          .onError((e, s) {
+            if (!mounted) return;
+            showGenericErrorDialog(context: context, error: e).ignore();
+          });
       return;
     }
     showCollectionActionSheet(
@@ -1314,7 +1323,7 @@ class _FileSelectionActionsWidgetState
     }
   }
 
-  Future<void> _restoreFilesFromDeviceTrash(SelectedFiles selectedFiles) async {
+  Future<int> _restoreFilesFromDeviceTrash(SelectedFiles selectedFiles) async {
     final files = selectedFiles.files
         .map((f) => f.asDeviceTrashFile!.toAssetEntity())
         .toList();
@@ -1326,6 +1335,7 @@ class _FileSelectionActionsWidgetState
         );
         restoredIDs.addAll(result);
       }
+      return restoredIDs.length;
     } catch (e, s) {
       _logger.warning("_restoreFilesFromDeviceTrash failed:", e, s);
       rethrow;

@@ -19,7 +19,7 @@ log.workspace = true
 nalgebra = "0.33.2"
 once_cell = "1.20.2"
 plsfix = "0.1.8"
-rayon = "1"
+rayon = "1.12.0"
 regex = "1.11.1"
 thiserror.workspace = true
 # The FRB photos bridge calls the SimSIMD symbol exported by usearch 2.21.x.

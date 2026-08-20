@@ -5,7 +5,7 @@ import type {
     EncryptedFile,
     KeyPair,
 } from "ente-base/crypto/types";
-import { loadCryptoReadyEnteWasm } from "ente-wasm/load";
+import { loadCryptoReadyEnteWasm } from "ente-core-wasm/load";
 
 const shouldFallbackToLegacyBlobDecrypt = (error: unknown): boolean => {
     if (!error || typeof error !== "object") {

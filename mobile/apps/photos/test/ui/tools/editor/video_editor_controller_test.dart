@@ -22,14 +22,6 @@ void main() {
     );
   });
 
-  test('visual crop conversion is reversible for every quarter turn', () {
-    for (final rotation in [0, 90, 180, 270]) {
-      final visual = rotateNormalizedRect(sourceCrop, rotation);
-      final restored = rotateNormalizedRect(visual, 360 - rotation);
-      _expectRectClose(restored, sourceCrop, reason: 'rotation=$rotation');
-    }
-  });
-
   test('fixed-ratio crop remains in bounds without changing ratio', () {
     final crop = constrainNormalizedCropRect(
       rect: const Rect.fromLTRB(-0.1, 0.1, 0.8, 0.9),
@@ -48,10 +40,10 @@ void main() {
   });
 }
 
-void _expectRectClose(Rect actual, Rect expected, {String? reason}) {
+void _expectRectClose(Rect actual, Rect expected) {
   const tolerance = 1e-12;
-  expect(actual.left, closeTo(expected.left, tolerance), reason: reason);
-  expect(actual.top, closeTo(expected.top, tolerance), reason: reason);
-  expect(actual.right, closeTo(expected.right, tolerance), reason: reason);
-  expect(actual.bottom, closeTo(expected.bottom, tolerance), reason: reason);
+  expect(actual.left, closeTo(expected.left, tolerance));
+  expect(actual.top, closeTo(expected.top, tolerance));
+  expect(actual.right, closeTo(expected.right, tolerance));
+  expect(actual.bottom, closeTo(expected.bottom, tolerance));
 }

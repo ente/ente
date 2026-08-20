@@ -1,68 +1,4 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { resolveContactDisplayFromSnapshot } from "./resolver";
-import type { ContactsDisplaySnapshot } from "./types";
-
-const makeSnapshot = (): ContactsDisplaySnapshot => ({
-    isHydrated: true,
-    recordsByUserID: new Map([
-        [
-            101,
-            {
-                contactId: "c_1",
-                contactUserId: 101,
-                resolvedEmail: "set@test.test",
-                displayName: "Set",
-                profilePictureAttachmentID: "a_1",
-                updatedAt: 1,
-            },
-        ],
-    ]),
-    recordsByEmail: new Map([
-        [
-            "set@test.test",
-            {
-                contactId: "c_1",
-                contactUserId: 101,
-                resolvedEmail: "set@test.test",
-                displayName: "Set",
-                profilePictureAttachmentID: "a_1",
-                updatedAt: 1,
-            },
-        ],
-    ]),
-    avatarURLsByContactID: new Map(),
-});
-
-describe("resolveContactDisplayFromSnapshot", () => {
-    test("prefers contact name by user id", () => {
-        const resolved = resolveContactDisplayFromSnapshot(makeSnapshot(), {
-            userID: 101,
-            email: "set@test.test",
-        });
-
-        expect(resolved.primaryLabel).toBe("Set");
-        expect(resolved.actualEmail).toBe("set@test.test");
-        expect(resolved.source).toBe("contact");
-    });
-
-    test("falls back to email when no contact exists", () => {
-        const resolved = resolveContactDisplayFromSnapshot(makeSnapshot(), {
-            email: "other@test.test",
-        });
-
-        expect(resolved.primaryLabel).toBe("other@test.test");
-        expect(resolved.actualEmail).toBe("other@test.test");
-        expect(resolved.source).toBe("fallback");
-    });
-
-    test("returns an empty label when no user or email exists", () => {
-        const resolved = resolveContactDisplayFromSnapshot(makeSnapshot(), {});
-
-        expect(resolved.primaryLabel).toBe("");
-        expect(resolved.initial).toBe("?");
-        expect(resolved.source).toBe("fallback");
-    });
-});
 
 beforeEach(() => {
     vi.resetModules();
@@ -163,7 +99,7 @@ const setupContactsModule = async (options: SetupOptions = {}) => {
         desktopAppVersion: undefined,
         isDesktop: false,
     }));
-    vi.doMock("ente-wasm", () => ({
+    vi.doMock("ente-core-wasm", () => ({
         contacts_open_ctx: vi.fn(() => ({
             ctx: {
                 update_auth_token,

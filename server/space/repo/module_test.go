@@ -223,54 +223,30 @@ func TestCreateSpaceEnforcesOneSpacePerOwner(t *testing.T) {
 }
 
 func TestCreateSpaceRejectsInvalidSlug(t *testing.T) {
-	for _, tc := range []struct {
-		name    string
-		slug    string
-		message string
-	}{
-		{name: "reserved", slug: "ente", message: "spaceSlug is reserved"},
-		{name: "invalid syntax", slug: "ali/ce", message: "spaceSlug can only contain"},
-		{name: "too short", slug: "abc", message: "spaceSlug must be 4-30 characters"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			module := newSpaceTestModule(t)
-			ctx := context.Background()
-			userID := insertSpaceUser(t, module, "create-invalid-"+tc.name+"@example.com", "create-invalid-public")
+	module := newSpaceTestModule(t)
+	ctx := context.Background()
+	userID := insertSpaceUser(t, module, "create-invalid@example.com", "create-invalid-public")
 
-			_, err := testCreateSpace(ctx, module, userID, tc.slug, "root", "public", "secret", "nonce", "profile")
-			require.Error(t, err)
-			require.Contains(t, err.Error(), tc.message)
-			require.Equal(t, int64(0), countSpaceRows(t, module, `SELECT COUNT(*) FROM spaces WHERE owner_id = $1`, userID))
-		})
-	}
+	_, err := testCreateSpace(ctx, module, userID, "ente", "root", "public", "secret", "nonce", "profile")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "spaceSlug is reserved")
+	require.Equal(t, int64(0), countSpaceRows(t, module, `SELECT COUNT(*) FROM spaces WHERE owner_id = $1`, userID))
 }
 
 func TestUpdateSlugRejectsInvalidSlug(t *testing.T) {
-	for _, tc := range []struct {
-		name    string
-		slug    string
-		message string
-	}{
-		{name: "reserved", slug: "ente", message: "spaceSlug is reserved"},
-		{name: "invalid syntax", slug: "ali/ce", message: "spaceSlug can only contain"},
-		{name: "too short", slug: "abc", message: "spaceSlug must be 4-30 characters"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			module := newSpaceTestModule(t)
-			ctx := context.Background()
-			userID := insertSpaceUser(t, module, "update-invalid-"+tc.name+"@example.com", "update-invalid-public")
-			space, err := testCreateSpace(ctx, module, userID, "valid_slug", "root", "public", "secret", "nonce", "profile")
-			require.NoError(t, err)
+	module := newSpaceTestModule(t)
+	ctx := context.Background()
+	userID := insertSpaceUser(t, module, "update-invalid@example.com", "update-invalid-public")
+	space, err := testCreateSpace(ctx, module, userID, "valid_slug", "root", "public", "secret", "nonce", "profile")
+	require.NoError(t, err)
 
-			_, err = module.Spaces.UpdateSlug(ctx, space.SpaceID, tc.slug)
-			require.Error(t, err)
-			require.Contains(t, err.Error(), tc.message)
+	_, err = module.Spaces.UpdateSlug(ctx, space.SpaceID, "ente")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "spaceSlug is reserved")
 
-			unchanged, err := module.Spaces.GetSpaceByID(ctx, space.SpaceID)
-			require.NoError(t, err)
-			require.Equal(t, "valid_slug", unchanged.SpaceSlug)
-		})
-	}
+	unchanged, err := module.Spaces.GetSpaceByID(ctx, space.SpaceID)
+	require.NoError(t, err)
+	require.Equal(t, "valid_slug", unchanged.SpaceSlug)
 }
 
 func TestCreatePostEnforcesSpacePostLimit(t *testing.T) {

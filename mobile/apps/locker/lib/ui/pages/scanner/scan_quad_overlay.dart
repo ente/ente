@@ -8,6 +8,8 @@ class ScanQuadOverlay extends StatefulWidget {
 
   static const double _smoothing = 0.15;
 
+  static const double _settled = 0.05 / 256;
+
   final ScanQuad? quad;
   final Color color;
 
@@ -39,10 +41,14 @@ class _ScanQuadOverlayState extends State<ScanQuadOverlay>
       return;
     }
     final current = _displayed;
-    final next = current == null
-        ? target
-        : lerpQuad(current, target, ScanQuadOverlay._smoothing);
-    setState(() => _displayed = next);
+    if (current == null) {
+      setState(() => _displayed = target);
+      return;
+    }
+    if (maxCornerDistance(current, target) <= ScanQuadOverlay._settled) return;
+    setState(
+      () => _displayed = lerpQuad(current, target, ScanQuadOverlay._smoothing),
+    );
   }
 
   @override
@@ -68,10 +74,7 @@ class _QuadPainter extends CustomPainter {
     if (source == null || size.isEmpty) return;
     final points = [
       for (final c in source.corners)
-        Offset(
-          c.dx / ScanQuad.maskSide * size.width,
-          c.dy / ScanQuad.maskSide * size.height,
-        ),
+        Offset(c.dx * size.width, c.dy * size.height),
     ];
     final path = Path()..addPolygon(points, true);
     canvas.drawPath(

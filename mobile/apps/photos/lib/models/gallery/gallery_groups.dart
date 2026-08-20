@@ -347,19 +347,6 @@ class GalleryGroups {
       return ends;
     }
 
-    if (groupType == GroupType.week) {
-      var previousFile = allFiles.first;
-      for (var index = 1; index < allFiles.length; index++) {
-        final file = allFiles[index];
-        if (!groupType.areFromSameGroup(previousFile, file)) {
-          ends.add(index);
-        }
-        previousFile = file;
-      }
-      ends.add(allFiles.length);
-      return ends;
-    }
-
     var groupRange = groupType.getGroupRange(allFiles.first);
     for (var index = 1; index < allFiles.length; index++) {
       final creationTime = allFiles[index].creationTime!;

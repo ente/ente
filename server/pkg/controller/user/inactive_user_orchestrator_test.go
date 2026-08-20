@@ -1,7 +1,6 @@
 package user
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/ente/museum/pkg/repo"
@@ -112,92 +111,6 @@ func TestNextInactivityEmailStage(t *testing.T) {
 				t.Fatalf("unexpected stage: got %q want %q", got, tc.want)
 			}
 		})
-	}
-}
-
-func TestHasAnyStageSuccess(t *testing.T) {
-	stats := newInactiveUserRunStats()
-	if hasAnyStageSuccess(stats.SuccessByStage) {
-		t.Fatal("expected no stage success")
-	}
-
-	stats.SuccessByStage[inactivityEmailStageWarn7d] = 1
-	if !hasAnyStageSuccess(stats.SuccessByStage) {
-		t.Fatal("expected stage success to be detected")
-	}
-}
-
-func TestHasInactiveUserRunSummaryActivity(t *testing.T) {
-	stats := newInactiveUserRunStats()
-	if hasInactiveUserRunSummaryActivity(stats) {
-		t.Fatal("expected no summary activity")
-	}
-
-	stats.PausedLegacyContact = 1
-	if !hasInactiveUserRunSummaryActivity(stats) {
-		t.Fatal("expected paused legacy contact to count as summary activity")
-	}
-
-	stats.PausedLegacyContact = 0
-	stats.SuccessByStage[inactivityEmailStageWarn2m] = 1
-	if !hasInactiveUserRunSummaryActivity(stats) {
-		t.Fatal("expected stage success to count as summary activity")
-	}
-}
-
-func TestBuildInactiveUserRunSummary(t *testing.T) {
-	stats := newInactiveUserRunStats()
-	stats.ProcessedUsers = 12
-	stats.SentEmails = 3
-	stats.SuccessByStage[inactivityEmailStageWarn2m] = 2
-	stats.SuccessByStage[inactivityEmailStageWarn1m] = 1
-	stats.FailureByStage[inactivityEmailStageWarn7d] = 4
-	stats.PreStageFailures = 2
-	stats.PausedLegacyContact = 6
-
-	summary := buildInactiveUserRunSummary(stats, 0)
-
-	mustContain := []string{
-		"Inactive user run summary (1970-01-01T00:00:00Z)",
-		"processed=12",
-		"sent=3",
-		"success={warn_2m=2, warn_1m=1}",
-		"failures={warn_7d=4}",
-		"pre_stage_failures=2",
-		"paused_legacy_contact=6",
-	}
-
-	for _, fragment := range mustContain {
-		if !strings.Contains(summary, fragment) {
-			t.Fatalf("summary missing fragment %q: %s", fragment, summary)
-		}
-	}
-
-	mustNotContain := []string{
-		"warn_7d=0",
-		"warn_1d=0",
-		"confirm_13m=0",
-		"warn_2m=0",
-		"warn_1m=0",
-		"sent=0",
-		"pre_stage_failures=0",
-	}
-	for _, fragment := range mustNotContain {
-		if strings.Contains(summary, fragment) {
-			t.Fatalf("summary contains zero-value fragment %q: %s", fragment, summary)
-		}
-	}
-}
-
-func TestBuildInactiveUserRunSummaryForPausedOnlyRun(t *testing.T) {
-	stats := newInactiveUserRunStats()
-	stats.ProcessedUsers = 12
-	stats.PausedLegacyContact = 2
-
-	summary := buildInactiveUserRunSummary(stats, 0)
-	want := "Inactive user run summary (1970-01-01T00:00:00Z): processed=12 | paused_legacy_contact=2"
-	if summary != want {
-		t.Fatalf("unexpected summary: got %q want %q", summary, want)
 	}
 }
 

@@ -20,7 +20,7 @@ import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
 import { isDevBuild } from "ente-base/env";
 import log from "ente-base/log";
-import type { LegacyKitRecoveryHandle } from "ente-wasm";
+import type { LegacyKitRecoveryHandle } from "ente-core-wasm";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     changeLegacyKitPassword,

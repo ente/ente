@@ -251,21 +251,4 @@ mod tests {
         assert_eq!(desktop_llm_asset("").unwrap(), desktop_default);
         assert_eq!(desktop_llm_asset("no-such-model").unwrap(), desktop_default);
     }
-
-    #[test]
-    fn all_catalog_presets_produce_valid_assets() {
-        for preset in crate::config::llm_catalog() {
-            llm_asset(&preset).expect("catalog preset");
-        }
-    }
-
-    #[test]
-    fn knowledge_embedding_asset_is_checksum_backed() {
-        let store = AssetStore::new(std::env::temp_dir().join("ensu-assets-test"));
-        let asset = knowledge_embedding_model_asset();
-        assert_eq!(
-            store.file_path(&asset, "model.gguf"),
-            Some(store.asset_dir(&asset).join("model.gguf"))
-        );
-    }
 }

@@ -7,5 +7,4 @@ pub mod log;
 pub mod map_cluster_api;
 pub mod ml_indexing_api;
 pub mod motion_photo_api;
-pub mod urls;
 pub mod usearch_api;

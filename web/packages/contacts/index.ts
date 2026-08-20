@@ -8,8 +8,8 @@ import { retryAsyncOperation } from "ente-base/http";
 import log from "ente-base/log";
 import { apiOrigin } from "ente-base/origins";
 import { savedAuthToken } from "ente-base/token";
-import type { ContactsCtxHandle } from "ente-wasm";
-import { loadEnteWasm } from "ente-wasm/load";
+import type { ContactsCtxHandle } from "ente-core-wasm";
+import { loadEnteWasm } from "ente-core-wasm/load";
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import {
     saveContactDisplayRecords,

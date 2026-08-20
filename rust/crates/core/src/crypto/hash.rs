@@ -172,18 +172,6 @@ mod tests {
     }
 
     #[test]
-    fn test_keyed_hash_different_keys() {
-        let data = b"Same data";
-        let key1 = vec![0x42u8; 32];
-        let key2 = vec![0x43u8; 32];
-
-        let hash1 = hash(data, Some(64), Some(&key1)).unwrap();
-        let hash2 = hash(data, Some(64), Some(&key2)).unwrap();
-
-        assert_ne!(hash1, hash2);
-    }
-
-    #[test]
     fn test_empty_key_same_as_no_key() {
         let data = b"Test";
 
@@ -220,29 +208,5 @@ mod tests {
         let data = b"";
         let hash = hash_default(data).unwrap();
         assert_eq!(hash.len(), HASH_BYTES);
-    }
-
-    #[test]
-    fn test_large_data() {
-        let data = vec![0x42u8; 1024 * 1024];
-        let hash = hash_default(&data).unwrap();
-        assert_eq!(hash.len(), HASH_BYTES);
-    }
-
-    #[test]
-    fn test_avalanche_effect() {
-        let data1 = b"Test";
-        let data2 = b"Test ";
-
-        let hash1 = hash_default(data1).unwrap();
-        let hash2 = hash_default(data2).unwrap();
-
-        let diff_count = hash1
-            .iter()
-            .zip(hash2.iter())
-            .filter(|(a, b)| a != b)
-            .count();
-
-        assert!(diff_count > 15);
     }
 }

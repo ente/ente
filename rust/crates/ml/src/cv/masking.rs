@@ -1,5 +1,5 @@
 use crate::cv::OpResult;
-use crate::cv::image::{ImageF32, ImageU8};
+use crate::cv::image::ImageU8;
 
 pub(crate) fn threshold_binary_u8(src: &ImageU8, thresh: f64, maxval: f64) -> OpResult<ImageU8> {
     let ithresh = thresh.floor() as i64;
@@ -11,20 +11,6 @@ pub(crate) fn threshold_binary_u8(src: &ImageU8, thresh: f64, maxval: f64) -> Op
         src.data
             .iter()
             .map(|&v| if v as i64 > ithresh { imaxval } else { 0 })
-            .collect(),
-    )
-}
-
-pub(crate) fn threshold_binary_f32(src: &ImageF32, thresh: f64, maxval: f64) -> OpResult<ImageF32> {
-    let t = thresh as f32;
-    let m = maxval as f32;
-    ImageF32::new(
-        src.width,
-        src.height,
-        src.channels,
-        src.data
-            .iter()
-            .map(|&v| if v > t { m } else { 0.0 })
             .collect(),
     )
 }

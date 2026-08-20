@@ -41,865 +41,730 @@ class ChangeLogStrings {
     'en': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Faster photo analysis',
+          title: 'Library Sharing',
           description:
-              'Ente’s on-device machine learning now analyzes your photos 5–10 times faster.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Faster, sharper face suggestions',
-          description:
-              "The image processing now runs 5-10 times faster! Also, blurry and sideways faces no longer muddy your people groups, and we will remember the faces you've already dismissed.",
+              'Share your current and future albums with family members automatically. Head to Settings → Family, pick a member, and tap Share albums. New albums are included as you create them.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramas, reborn',
+          title: 'Album descriptions',
           description:
-              'Rebuilt from the ground up. Panoramas open faster, move smoothly, and no longer come up blank.',
-        ),
-        ChangeLogEntryStrings(
-          title: "Backups that don't get stuck",
-          description:
-              "If your device runs out of room mid-backup, Ente now tells you and picks up where it left off once you've freed some space.",
+              'Give an album a description alongside its name and cover photo. Descriptions travel with your shared links, so anyone opening one sees the context you added.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Casting, simplified',
+          title: 'Faster on big libraries',
           description:
-              'Screens are easier to find on Android and pair automatically on iOS. No extra setup.',
+              'Search, Smart Memories, the map, and timeline scrolling are all substantially quicker if you have a large library. Map clustering alone is 2–3x faster.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Backups you can watch',
+          description:
+              'Backup Status now shows per-file progress, and large multipart uploads are more reliable.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Mute, remembered',
+          title: 'Selecting text in photos',
           description:
-              'Silence a video once and it stays that way for the next one.',
+              'Controls stay reachable while you select, and tapping selected text clears it.',
         ),
         ChangeLogEntryStrings(
-          title: 'and more!',
+          title: 'A tidier selection menu',
           description:
-              'Clear your Trash straight from Free up space, a smoother and more reliable app lock, favoriting shared photos in memories, Traditional Chinese joins the language list, smoother swiping in the photo viewer, plus fixes for uploading to multiple albums and picking SD card media in other apps.',
-          isOnlineOnly: true,
+              'The actions in the selection bar are ordered by how often you reach for them, and the share icon now matches your platform.',
         ),
       ],
     ),
     'ca': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Anàlisi de fotos més ràpida',
+          title: 'Compartició de la biblioteca',
           description:
-              "L'aprenentatge automàtic d'Ente ara analitza les teves fotos al dispositiu entre 5 i 10 vegades més ràpid.",
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Suggeriments de cares més ràpids i precisos',
-          description:
-              "El processament d'imatges ara és entre 5 i 10 vegades més ràpid! A més, les cares borroses o de costat ja no desordenen els grups de persones, i recordarem les cares que ja hagis descartat.",
+              "Comparteix automàticament els àlbums actuals i futurs amb els membres de la família. Ves a Configuració → Família, tria un membre i toca Comparteix àlbums. Els àlbums nous s'hi inclouran a mesura que els creïs.",
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoràmiques, renovades',
+          title: 'Descripcions dels àlbums',
           description:
-              "Refetes des de zero. Les panoràmiques s'obren més ràpid, es desplacen amb fluïdesa i ja no apareixen en blanc.",
-        ),
-        ChangeLogEntryStrings(
-          title: "Còpies de seguretat que no es queden encallades",
-          description:
-              "Si el dispositiu es queda sense espai durant una còpia de seguretat, Ente t'avisa i reprèn la còpia des d'on s'havia aturat quan hagis alliberat una mica d'espai.",
+              "Dona context a un àlbum amb una descripció, a més del nom i la foto de portada. Les descripcions s'inclouen als enllaços compartits perquè tothom qui n'obri un vegi el context que hi has afegit.",
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Transmissió simplificada',
+          title: 'Més ràpid amb biblioteques grans',
           description:
-              "Trobar pantalles és més fàcil a Android, i a iOS es vinculen automàticament. Sense cap configuració addicional.",
+              "La cerca, els Records intel·ligents, el mapa i el desplaçament per la línia de temps són molt més ràpids si tens una biblioteca gran. Només l'agrupació del mapa és entre 2 i 3 vegades més ràpida.",
+        ),
+        ChangeLogEntryStrings(
+          title: 'Còpies de seguretat que pots seguir',
+          description:
+              "L'Estat de la còpia de seguretat ara mostra el progrés de cada fitxer, i les pujades grans en diverses parts són més fiables.",
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Silenci recordat',
+          title: 'Selecció de text a les fotos',
           description:
-              'Silencia un vídeo una vegada i el següent continuarà silenciat.',
+              'Els controls continuen accessibles mentre selecciones text, i tocar el text seleccionat en suprimeix la selecció.',
         ),
         ChangeLogEntryStrings(
-          title: 'i molt més!',
+          title: 'Un menú de selecció més ordenat',
           description:
-              "Buida la Paperera directament des d'Allibera espai, un bloqueig de l'aplicació més fluid i fiable, marca com a favorites les fotos compartides als records, el xinès tradicional s'incorpora a la llista d'idiomes, un desplaçament més fluid al visualitzador de fotos i correccions per pujar contingut a diversos àlbums i seleccionar contingut multimèdia de la targeta SD en altres aplicacions.",
-          isOnlineOnly: true,
+              'Les accions de la barra de selecció s’ordenen segons la freqüència amb què les utilitzes, i la icona de compartir ara coincideix amb la de la teva plataforma.',
         ),
       ],
     ),
     'cs': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Rychlejší analýza fotek',
+          title: 'Sdílení knihovny',
           description:
-              'Strojové učení Ente teď analyzuje vaše fotky přímo v zařízení 5–10× rychleji.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Rychlejší a přesnější návrhy obličejů',
-          description:
-              'Zpracování obrázků je teď 5–10× rychlejší! Rozmazané obličeje a obličeje otočené na bok už navíc nenarušují skupiny osob a zapamatujeme si, které obličeje jste už zamítli.',
+              'Automaticky sdílejte svá současná i budoucí alba s členy rodiny. Přejděte do Nastavení → Rodina, vyberte člena a klepněte na Sdílet alba. Nová alba se zahrnou hned, jak je vytvoříte.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramata jako znovuzrozená',
+          title: 'Popisy alb',
           description:
-              'Přepracovali jsme je od základů. Panoramata se otevírají rychleji, plynule se posouvají a už se nezobrazují prázdná.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Zálohy, které se nezaseknou',
-          description:
-              'Pokud v zařízení během zálohování dojde místo, Ente vás teď upozorní a po uvolnění místa zálohování naváže tam, kde skončilo.',
+              'K názvu a titulní fotce alba teď můžete přidat i popis. Popisy se přenášejí do sdílených odkazů, takže každý, kdo je otevře, uvidí kontext, který jste přidali.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Jednodušší přenos na obrazovku',
+          title: 'Rychlejší u velkých knihoven',
           description:
-              'V Androidu se obrazovky snáze vyhledávají a v iOS se párují automaticky. Bez dalšího nastavování.',
+              'Vyhledávání, Chytré vzpomínky, mapa i posouvání časové osy jsou u velkých knihoven výrazně rychlejší. Samotné seskupování na mapě je 2–3× rychlejší.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Zálohování pod dohledem',
+          description:
+              'Stav zálohování teď zobrazuje průběh jednotlivých souborů a velká vícedílná nahrávání jsou spolehlivější.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Ztlumení, které si pamatujeme',
+          title: 'Výběr textu ve fotkách',
           description:
-              'Jednou video ztlumte a ztlumené zůstane i to následující.',
+              'Ovládací prvky zůstávají při výběru textu dostupné a klepnutí na vybraný text výběr zruší.',
         ),
         ChangeLogEntryStrings(
-          title: 'a ještě víc!',
+          title: 'Přehlednější nabídka výběru',
           description:
-              'Vyprázdnění Koše přímo z nabídky Uvolnit místo, plynulejší a spolehlivější zámek aplikace, přidávání sdílených fotek ze vzpomínek do oblíbených, tradiční čínština v seznamu jazyků, plynulejší přejíždění v prohlížeči fotek a také opravy nahrávání do více alb a výběru médií z SD karty v jiných aplikacích.',
-          isOnlineOnly: true,
+              'Akce na liště výběru jsou seřazené podle toho, jak často je používáte, a ikona sdílení teď odpovídá vaší platformě.',
         ),
       ],
     ),
     'de': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Schnellere Fotoanalyse',
+          title: 'Bibliothek teilen',
           description:
-              'Das maschinelle Lernen von Ente analysiert deine Fotos jetzt direkt auf deinem Gerät 5–10-mal schneller.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Schnellere, präzisere Gesichtsvorschläge',
-          description:
-              'Die Bildverarbeitung läuft jetzt 5–10-mal schneller! Außerdem bringen unscharfe und seitlich gedrehte Gesichter deine Personengruppen nicht mehr durcheinander, und wir merken uns, welche Gesichter du bereits verworfen hast.',
+              'Teile deine aktuellen und zukünftigen Alben automatisch mit Familienmitgliedern. Gehe zu Einstellungen → Familie, wähle ein Mitglied aus und tippe auf Alben teilen. Neue Alben werden beim Erstellen automatisch einbezogen.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramen, neu erfunden',
+          title: 'Albumbeschreibungen',
           description:
-              'Von Grund auf neu entwickelt. Panoramen öffnen sich schneller, lassen sich flüssig bewegen und werden nicht mehr leer angezeigt.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Backups, die nicht stecken bleiben',
-          description:
-              'Wenn auf deinem Gerät während eines Backups der Speicherplatz ausgeht, sagt Ente dir jetzt Bescheid und macht dort weiter, wo es aufgehört hat, sobald du etwas Speicherplatz freigegeben hast.',
+              'Gib einem Album zusätzlich zu Name und Titelbild eine Beschreibung. Beschreibungen werden über deine geteilten Links mitgegeben, sodass alle, die einen Link öffnen, den von dir hinzugefügten Kontext sehen.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Casting, ganz einfach',
+          title: 'Schneller bei großen Bibliotheken',
           description:
-              'Auf Android lassen sich Bildschirme leichter finden, auf iOS werden sie automatisch gekoppelt. Keine zusätzliche Einrichtung.',
+              'Suche, Smarte Erinnerungen, Karte und Scrollen in der Zeitleiste sind bei großen Bibliotheken deutlich schneller. Allein die Gruppierung auf der Karte ist 2–3-mal schneller.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Backups mit sichtbarem Fortschritt',
+          description:
+              'Der Sicherungsstatus zeigt jetzt den Fortschritt für jede Datei an, und große mehrteilige Uploads sind zuverlässiger.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Stummschaltung, gespeichert',
+          title: 'Text in Fotos auswählen',
           description:
-              'Schalte ein Video einmal stumm, und auch das nächste bleibt stumm.',
+              'Die Bedienelemente bleiben während der Auswahl erreichbar, und durch Tippen auf ausgewählten Text wird die Auswahl aufgehoben.',
         ),
         ChangeLogEntryStrings(
-          title: 'und vieles mehr!',
+          title: 'Ein aufgeräumteres Auswahlmenü',
           description:
-              'Leere deinen Papierkorb direkt über Speicherplatz freigeben, nutze eine flüssigere und zuverlässigere App-Sperre, markiere geteilte Fotos in Erinnerungen als Favoriten, wähle traditionelles Chinesisch aus der Sprachliste, wische flüssiger durch die Fotoanzeige und profitiere von Fehlerbehebungen beim Hochladen in mehrere Alben und beim Auswählen von Medien auf SD-Karten in anderen Apps.',
-          isOnlineOnly: true,
+              'Die Aktionen in der Auswahlleiste sind danach sortiert, wie oft du sie verwendest, und das Teilen-Symbol entspricht jetzt deiner Plattform.',
         ),
       ],
     ),
     'es': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Análisis de fotos más rápido',
+          title: 'Uso compartido de la biblioteca',
           description:
-              'El aprendizaje automático de Ente ahora analiza tus fotos en el dispositivo entre 5 y 10 veces más rápido.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Sugerencias de rostros más rápidas y precisas',
-          description:
-              '¡El procesamiento de imágenes ahora es entre 5 y 10 veces más rápido! Además, los rostros borrosos o girados de lado ya no enturbian tus grupos de personas, y recordaremos los rostros que ya hayas descartado.',
+              'Comparte automáticamente tus álbumes actuales y futuros con tus familiares. Ve a Configuración → Familia, elige a un miembro y toca Compartir álbumes. Los álbumes nuevos se incluyen a medida que los creas.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panorámicas, renacidas',
+          title: 'Descripciones de álbumes',
           description:
-              'Reconstruidas desde cero. Las panorámicas se abren más rápido, se mueven con fluidez y ya no aparecen en blanco.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Copias de seguridad que no se atascan',
-          description:
-              'Si tu dispositivo se queda sin espacio durante una copia de seguridad, Ente te avisa y la reanuda desde donde se quedó en cuanto hayas liberado algo de espacio.',
+              'Añade una descripción a un álbum junto con su nombre y foto de portada. Las descripciones se incluyen en tus enlaces compartidos, para que cualquiera que abra uno vea el contexto que añadiste.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Transmisión simplificada',
+          title: 'Más rapidez en bibliotecas grandes',
           description:
-              'En Android, las pantallas son más fáciles de encontrar y, en iOS, se vinculan automáticamente. Sin configuración adicional.',
+              'La búsqueda, los Recuerdos inteligentes, el mapa y el desplazamiento por la cronología son mucho más rápidos si tienes una biblioteca grande. Solo la agrupación del mapa es entre 2 y 3 veces más rápida.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Copias de seguridad que puedes seguir',
+          description:
+              'El Estado de la copia de seguridad ahora muestra el progreso de cada archivo, y las cargas grandes de varias partes son más fiables.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Silencio que se recuerda',
+          title: 'Seleccionar texto en fotos',
           description:
-              'Silencia un vídeo una vez y el siguiente también permanecerá en silencio.',
+              'Los controles permanecen accesibles mientras seleccionas texto, y tocar el texto seleccionado borra la selección.',
         ),
         ChangeLogEntryStrings(
-          title: '¡y mucho más!',
+          title: 'Un menú de selección más ordenado',
           description:
-              'Vacía la Papelera directamente desde Liberar espacio, disfruta de un bloqueo de aplicación más fluido y fiable, marca como favoritas las fotos compartidas en los recuerdos, encuentra el chino tradicional en la lista de idiomas, desliza con más fluidez en el visor de fotos y aprovecha las correcciones para subir contenido a varios álbumes y elegir archivos multimedia de la tarjeta SD en otras aplicaciones.',
-          isOnlineOnly: true,
+              'Las acciones de la barra de selección se ordenan según la frecuencia con la que las usas, y el icono de compartir ahora coincide con el de tu plataforma.',
         ),
       ],
     ),
     'fr': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Analyse des photos plus rapide',
+          title: 'Partage de la photothèque',
           description:
-              'L’apprentissage automatique d’Ente analyse désormais vos photos sur votre appareil 5 à 10 fois plus vite.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Des suggestions de visages plus rapides et plus précises',
-          description:
-              'Le traitement d’image est désormais 5 à 10 fois plus rapide ! De plus, les visages flous ou inclinés ne perturbent plus vos groupes de personnes, et nous mémoriserons les visages que vous avez déjà ignorés.',
+              'Partagez automatiquement vos albums actuels et futurs avec les membres de votre famille. Accédez à Paramètres → Famille, choisissez un membre et touchez Partager les albums. Les nouveaux albums sont inclus dès leur création.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramas, nouvelle génération',
+          title: 'Descriptions d’albums',
           description:
-              'Entièrement reconstruits. Les panoramas s’ouvrent plus vite, se déplacent en toute fluidité et ne s’affichent plus vides.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Des sauvegardes qui ne restent pas bloquées',
-          description:
-              'Si votre appareil manque d’espace en cours de sauvegarde, Ente vous prévient désormais et reprend là où elle s’était arrêtée dès que vous avez libéré de l’espace.',
+              'Ajoutez une description à un album en plus de son nom et de sa photo de couverture. Les descriptions accompagnent vos liens partagés, afin que toute personne qui en ouvre un voie le contexte que vous avez ajouté.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Diffusion simplifiée',
+          title: 'Plus rapide avec les grandes photothèques',
           description:
-              'Les écrans sont plus faciles à trouver sous Android et s’associent automatiquement sous iOS. Aucune configuration supplémentaire.',
+              'La recherche, les Souvenirs intelligents, la carte et le défilement de la chronologie sont nettement plus rapides si votre photothèque est volumineuse. Le regroupement sur la carte est à lui seul 2 à 3 fois plus rapide.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Des sauvegardes à suivre en direct',
+          description:
+              'L’état de la sauvegarde affiche désormais la progression de chaque fichier, et les envois volumineux en plusieurs parties sont plus fiables.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Le mode silencieux, mémorisé',
+          title: 'Sélection de texte dans les photos',
           description:
-              'Coupez le son d’une vidéo une fois, et la suivante restera également muette.',
+              'Les commandes restent accessibles pendant la sélection, et toucher le texte sélectionné efface la sélection.',
         ),
         ChangeLogEntryStrings(
-          title: 'et bien plus encore !',
+          title: 'Un menu de sélection mieux ordonné',
           description:
-              'Videz votre Corbeille directement depuis Libérer de l’espace, profitez d’un verrouillage de l’application plus fluide et plus fiable, ajoutez aux favoris les photos partagées dans les souvenirs, retrouvez le chinois traditionnel dans la liste des langues, parcourez la visionneuse de photos plus facilement et profitez de correctifs pour l’envoi vers plusieurs albums et la sélection de médias de la carte SD dans d’autres applications.',
-          isOnlineOnly: true,
+              'Les actions de la barre de sélection sont classées selon leur fréquence d’utilisation, et l’icône de partage correspond désormais à votre plateforme.',
         ),
       ],
     ),
     'it': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Analisi delle foto più veloce',
+          title: 'Condivisione della libreria',
           description:
-              'L’apprendimento automatico di Ente ora analizza le tue foto sul dispositivo da 5 a 10 volte più velocemente.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Suggerimenti di volti più rapidi e precisi',
-          description:
-              'L’elaborazione delle immagini ora è da 5 a 10 volte più veloce! Inoltre, i volti sfocati o ruotati di lato non confondono più i tuoi gruppi di persone e ricorderemo i volti che hai già ignorato.',
+              'Condividi automaticamente gli album attuali e futuri con i membri della famiglia. Vai su Impostazioni → Famiglia, scegli un membro e tocca Condividi album. I nuovi album vengono inclusi man mano che li crei.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramiche, rinate',
+          title: 'Descrizioni degli album',
           description:
-              'Ricostruite da zero. Le panoramiche si aprono più velocemente, si muovono con fluidità e non appaiono più vuote.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Backup che non si bloccano',
-          description:
-              'Se il dispositivo esaurisce lo spazio durante un backup, Ente ora ti avvisa e riprende da dove si era interrotto non appena avrai liberato un po’ di spazio.',
+              'Aggiungi a un album una descrizione oltre al nome e alla foto di copertina. Le descrizioni accompagnano i link condivisi, così chiunque ne apra uno vedrà il contesto che hai aggiunto.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Trasmissione su schermo, semplificata',
+          title: 'Più veloce con le librerie grandi',
           description:
-              'Su Android è più facile trovare gli schermi, mentre su iOS si abbinano automaticamente. Nessuna configurazione aggiuntiva.',
+              'La ricerca, i Ricordi intelligenti, la mappa e lo scorrimento della sequenza temporale sono molto più veloci se hai una libreria grande. Il solo raggruppamento sulla mappa è da 2 a 3 volte più veloce.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Backup da seguire in tempo reale',
+          description:
+              'Lo Stato backup ora mostra l’avanzamento di ogni file e i caricamenti multipart di grandi dimensioni sono più affidabili.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Il silenzioso resta attivo',
+          title: 'Selezione del testo nelle foto',
           description:
-              'Disattiva l’audio di un video una volta e resterà disattivato anche per il successivo.',
+              'I controlli restano accessibili durante la selezione e toccando il testo selezionato la selezione viene annullata.',
         ),
         ChangeLogEntryStrings(
-          title: 'e molto altro!',
+          title: 'Un menu di selezione più ordinato',
           description:
-              'Svuota il Cestino direttamente da Libera spazio, usa un blocco app più fluido e affidabile, aggiungi ai preferiti le foto condivise nei ricordi, trova il cinese tradizionale nell’elenco delle lingue, scorri più fluidamente nel visualizzatore di foto e approfitta delle correzioni per il caricamento in più album e la selezione dei contenuti della scheda SD in altre app.',
-          isOnlineOnly: true,
+              'Le azioni nella barra di selezione sono ordinate in base alla frequenza con cui le usi e l’icona di condivisione ora corrisponde alla tua piattaforma.',
         ),
       ],
     ),
     'ja': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: '写真解析を高速化',
-          description: 'Enteの機械学習が、デバイス上で写真を5～10倍速く解析できるようになりました。',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'より速く、より正確な顔の候補',
+          title: 'ライブラリ共有',
           description:
-              '画像処理が5～10倍高速になりました！さらに、ぼやけた顔や横向きの顔が人物グループに混ざらなくなり、すでに除外した顔も記憶されます。',
+              '現在および今後作成するアルバムを家族と自動的に共有できます。［設定］→［ファミリー］でメンバーを選び、［アルバムを共有］をタップしてください。新しいアルバムも作成時に自動で含まれます。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'パノラマを一新',
-          description: 'ゼロから作り直しました。パノラマがより速く開き、滑らかに動作し、真っ白に表示されることもなくなりました。',
-        ),
-        ChangeLogEntryStrings(
-          title: '止まらないバックアップ',
+          title: 'アルバムの説明',
           description:
-              'バックアップ中に端末の空き容量が不足すると、Enteがお知らせし、空き容量を確保した後に中断したところから再開します。',
+              'アルバムに名前やカバー写真とあわせて説明を追加できます。説明は共有リンクにも表示されるため、リンクを開いた人に追加した背景が伝わります。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'キャストをシンプルに',
-          description: 'Androidでは画面を見つけやすくなり、iOSでは自動でペアリングされます。追加の設定は必要ありません。',
-          isOnlineOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'ミュート設定を記憶',
-          description: '一度動画をミュートにすると、次の動画でもミュートのままになります。',
-        ),
-        ChangeLogEntryStrings(
-          title: 'ほかにも！',
+          title: '大規模ライブラリでも高速に',
           description:
-              '「スペースを解放する」から直接ゴミ箱を空にできるようになったほか、よりスムーズで信頼性の高いアプリロック、思い出内の共有写真のお気に入り登録、繁体字中国語の言語リストへの追加、写真ビューアでのより滑らかなスワイプ、複数のアルバムへのアップロードや他のアプリでのSDカード内メディアの選択に関する修正を行いました。',
+              '大規模なライブラリで、検索、スマートメモリー、マップ、タイムラインのスクロールが大幅に高速化しました。マップのクラスタリングだけでも2～3倍高速です。',
+        ),
+        ChangeLogEntryStrings(
+          title: '進捗が見えるバックアップ',
+          description:
+              'バックアップの状態にファイルごとの進捗が表示されるようになり、大容量のマルチパートアップロードの信頼性も向上しました。',
           isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '写真内のテキスト選択',
+          description: 'テキストを選択中も操作ボタンにアクセスでき、選択したテキストをタップすると選択が解除されます。',
+        ),
+        ChangeLogEntryStrings(
+          title: 'すっきりした選択メニュー',
+          description: '選択バーの操作を使用頻度順に並べ替え、共有アイコンもお使いのプラットフォームに合うものになりました。',
         ),
       ],
     ),
     'nl': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Snellere fotoanalyse',
+          title: 'Bibliotheek delen',
           description:
-              'Ente’s machinelearning analyseert je foto’s nu rechtstreeks op je apparaat, 5–10 keer zo snel.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Snellere, scherpere gezichtssuggesties',
-          description:
-              'De beeldverwerking is nu 5–10 keer zo snel! Bovendien vertroebelen onscherpe en gedraaide gezichten je persoonsgroepen niet meer en onthouden we welke gezichten je al hebt afgewezen.',
+              'Deel je huidige en toekomstige albums automatisch met gezinsleden. Ga naar Instellingen → Familie, kies een lid en tik op Albums delen. Nieuwe albums worden toegevoegd zodra je ze maakt.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panorama’s, herboren',
+          title: 'Albumbeschrijvingen',
           description:
-              'Helemaal opnieuw opgebouwd. Panorama’s openen sneller, bewegen soepel en worden niet meer blanco weergegeven.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Back-ups die niet vastlopen',
-          description:
-              'Als de opslagruimte op je apparaat tijdens een back-up opraakt, laat Ente je dat nu weten en gaat de back-up verder waar die was gebleven zodra je wat ruimte hebt vrijgemaakt.',
+              'Geef een album naast een naam en omslagfoto ook een beschrijving. Beschrijvingen gaan mee met je gedeelde links, zodat iedereen die een link opent de context ziet die je hebt toegevoegd.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Casten, vereenvoudigd',
+          title: 'Sneller bij grote bibliotheken',
           description:
-              'Schermen zijn gemakkelijker te vinden op Android en worden automatisch gekoppeld op iOS. Geen extra configuratie.',
+              'Zoeken, Slimme herinneringen, de kaart en scrollen door de tijdlijn zijn allemaal aanzienlijk sneller als je een grote bibliotheek hebt. Alleen al het clusteren op de kaart is 2–3 keer sneller.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Back-ups die je kunt volgen',
+          description:
+              'Back-up status toont nu de voortgang per bestand en grote meerdelige uploads zijn betrouwbaarder.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Dempen, onthouden',
+          title: "Tekst selecteren in foto's",
           description:
-              'Demp een video één keer en ook de volgende blijft gedempt.',
+              'De bediening blijft bereikbaar terwijl je tekst selecteert en door op geselecteerde tekst te tikken wis je de selectie.',
         ),
         ChangeLogEntryStrings(
-          title: 'en nog veel meer!',
+          title: 'Een overzichtelijker selectiemenu',
           description:
-              'Leeg je Prullenbak rechtstreeks vanuit Ruimte vrijmaken, gebruik een soepelere en betrouwbaardere app-vergrendeling, voeg gedeelde foto’s in herinneringen toe aan je favorieten, kies Traditioneel Chinees in de talenlijst, veeg soepeler door de fotoviewer en profiteer van oplossingen voor uploaden naar meerdere albums en het kiezen van media op een SD-kaart in andere apps.',
-          isOnlineOnly: true,
+              'De acties in de selectiebalk zijn gerangschikt op hoe vaak je ze gebruikt en het deelpictogram past nu bij je platform.',
         ),
       ],
     ),
     'no': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Raskere bildeanalyse',
+          title: 'Deling av bibliotek',
           description:
-              'Entes maskinlæring analyserer nå bildene dine på enheten 5–10 ganger raskere.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Raskere og skarpere ansiktsforslag',
-          description:
-              'Bildebehandlingen er nå 5–10 ganger raskere! I tillegg vil ikke uskarpe og sidelengs ansikter lenger rote til persongruppene dine, og vi husker ansiktene du allerede har avvist.',
+              'Del nåværende og fremtidige album automatisk med familiemedlemmer. Gå til Innstillinger → Familie, velg et medlem og trykk på Del album. Nye album tas med etter hvert som du oppretter dem.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramaer, gjenfødt',
+          title: 'Albumbeskrivelser',
           description:
-              'Bygget opp helt fra bunnen av. Panoramaer åpnes raskere, beveger seg jevnt og vises ikke lenger tomme.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Sikkerhetskopier som ikke setter seg fast',
-          description:
-              'Hvis enheten din går tom for lagringsplass under sikkerhetskopiering, sier Ente fra og fortsetter der den slapp så snart du har frigjort litt plass.',
+              'Gi et album en beskrivelse i tillegg til navn og forsidebilde. Beskrivelsene følger de delte lenkene, slik at alle som åpner en, ser konteksten du la til.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Enklere casting',
+          title: 'Raskere med store biblioteker',
           description:
-              'Det er enklere å finne skjermer på Android, og på iOS sammenkobles de automatisk. Ingen ekstra oppsett.',
+              'Søk, Smarte minner, kartet og rulling på tidslinjen er betydelig raskere hvis du har et stort bibliotek. Gruppering på kartet alene er 2–3 ganger raskere.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sikkerhetskopiering du kan følge',
+          description:
+              'Status for sikkerhetskopi viser nå fremdrift per fil, og store opplastinger i flere deler er mer pålitelige.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Demping, husket',
+          title: 'Velge tekst i bilder',
           description:
-              'Demp en video én gang, så forblir også den neste dempet.',
+              'Kontrollene er fortsatt tilgjengelige mens du velger tekst, og et trykk på valgt tekst fjerner markeringen.',
         ),
         ChangeLogEntryStrings(
-          title: 'og mye mer!',
+          title: 'En ryddigere valgmeny',
           description:
-              'Tøm Papirkurv direkte fra Frigjør lagringsplass, bruk en jevnere og mer pålitelig applås, merk delte bilder i minner som favoritter, finn tradisjonell kinesisk i språklisten, sveip jevnere i bildevisningen, og få rettelser for opplasting til flere album og valg av medier fra SD-kort i andre apper.',
-          isOnlineOnly: true,
+              'Handlingene i valglinjen er sortert etter hvor ofte du bruker dem, og deleikonet samsvarer nå med plattformen din.',
         ),
       ],
     ),
     'pl': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Szybsza analiza zdjęć',
+          title: 'Udostępnianie biblioteki',
           description:
-              'Uczenie maszynowe Ente analizuje teraz Twoje zdjęcia na urządzeniu 5–10 razy szybciej.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Szybsze i trafniejsze sugestie twarzy',
-          description:
-              'Przetwarzanie obrazów jest teraz 5–10 razy szybsze! Ponadto rozmazane i obrócone bokiem twarze nie zaburzają już grup osób, a twarze, które zostały już odrzucone, zostaną zapamiętane.',
+              'Automatycznie udostępniaj rodzinie swoje obecne i przyszłe albumy. Przejdź do Ustawienia → Rodzina, wybierz osobę i stuknij Udostępnij albumy. Nowe albumy będą dodawane w chwili ich utworzenia.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramy od nowa',
+          title: 'Opisy albumów',
           description:
-              'Przebudowane od podstaw. Panoramy otwierają się szybciej, przesuwają płynnie i nie wyświetlają się już jako puste.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Kopie zapasowe, które się nie zacinają',
-          description:
-              'Jeśli podczas tworzenia kopii zapasowej na urządzeniu zabraknie miejsca, Ente teraz Cię o tym poinformuje i po zwolnieniu miejsca wznowi pracę od momentu, w którym została przerwana.',
+              'Dodaj do albumu opis obok nazwy i zdjęcia na okładkę. Opisy są dołączane do udostępnionych linków, więc każda osoba, która otworzy link, zobaczy dodany przez Ciebie kontekst.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Prostsze przesyłanie na ekran',
+          title: 'Szybciej przy dużych bibliotekach',
           description:
-              'W Androidzie ekrany łatwiej znaleźć, a w iOS parują się automatycznie. Bez dodatkowej konfiguracji.',
+              'Wyszukiwanie, Inteligentne wspomnienia, mapa i przewijanie osi czasu działają znacznie szybciej, jeśli masz dużą bibliotekę. Samo grupowanie na mapie jest 2–3 razy szybsze.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Kopie zapasowe z widocznym postępem',
+          description:
+              'Status kopii zapasowej pokazuje teraz postęp dla każdego pliku, a duże przesyłania wieloczęściowe są bardziej niezawodne.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Wyciszenie zapamiętane',
+          title: 'Zaznaczanie tekstu na zdjęciach',
           description:
-              'Wycisz film raz, a następny również pozostanie wyciszony.',
+              'Elementy sterujące pozostają dostępne podczas zaznaczania, a stuknięcie zaznaczonego tekstu usuwa zaznaczenie.',
         ),
         ChangeLogEntryStrings(
-          title: 'i wiele więcej!',
+          title: 'Uporządkowane menu zaznaczenia',
           description:
-              'Opróżnianie Kosza bezpośrednio z opcji Zwolnij miejsce, płynniejsza i bardziej niezawodna blokada aplikacji, dodawanie do ulubionych udostępnionych zdjęć ze wspomnień, tradycyjny chiński na liście języków, płynniejsze przesuwanie w przeglądarce zdjęć oraz poprawki przesyłania do wielu albumów i wybierania multimediów z karty SD w innych aplikacjach.',
-          isOnlineOnly: true,
+              'Działania na pasku zaznaczenia są uporządkowane według częstotliwości użycia, a ikona udostępniania jest teraz zgodna z Twoją platformą.',
         ),
       ],
     ),
     'pt_BR': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Análise de fotos mais rápida',
+          title: 'Compartilhamento da biblioteca',
           description:
-              'O aprendizado de máquina do Ente agora analisa suas fotos diretamente no dispositivo de 5 a 10 vezes mais rápido.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Sugestões de rostos mais rápidas e precisas',
-          description:
-              'O processamento de imagens agora é de 5 a 10 vezes mais rápido! Além disso, rostos desfocados ou de lado não atrapalham mais seus grupos de pessoas, e vamos lembrar quais rostos você já dispensou.',
+              'Compartilhe automaticamente seus álbuns atuais e futuros com familiares. Acesse Opções → Família, escolha uma pessoa e toque em Compartilhar álbuns. Novos álbuns são incluídos conforme você os cria.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramas, renovados',
+          title: 'Descrições de álbuns',
           description:
-              'Reconstruídos do zero. Os panoramas abrem mais rápido, movem-se com fluidez e não aparecem mais em branco.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Backups que não travam',
-          description:
-              'Se o seu dispositivo ficar sem espaço durante um backup, o Ente agora avisa e retoma de onde parou assim que você liberar um pouco de espaço.',
+              'Adicione uma descrição ao álbum, além do nome e da foto de capa. As descrições acompanham os links compartilhados, para que qualquer pessoa que abrir um deles veja o contexto que você adicionou.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Transmissão simplificada',
+          title: 'Mais rapidez em bibliotecas grandes',
           description:
-              'No Android, é mais fácil encontrar telas; no iOS, elas são pareadas automaticamente. Sem configuração extra.',
+              'A pesquisa, as Memórias inteligentes, o mapa e a rolagem da linha do tempo ficaram muito mais rápidos para bibliotecas grandes. Só o agrupamento no mapa está de 2 a 3 vezes mais rápido.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Backups que você pode acompanhar',
+          description:
+              'O Estado do backup agora mostra o progresso de cada arquivo, e uploads grandes em várias partes estão mais confiáveis.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'O modo mudo fica salvo',
+          title: 'Seleção de texto em fotos',
           description:
-              'Silencie um vídeo uma vez e o próximo também ficará sem som.',
+              'Os controles continuam acessíveis durante a seleção, e tocar no texto selecionado desfaz a seleção.',
         ),
         ChangeLogEntryStrings(
-          title: 'e muito mais!',
+          title: 'Um menu de seleção mais organizado',
           description:
-              'Esvazie a Lixeira direto em Liberar espaço, use um bloqueio do aplicativo mais fluido e confiável, favorite fotos compartilhadas nas memórias, encontre o chinês tradicional na lista de idiomas, deslize com mais fluidez no visualizador de fotos e aproveite as correções para uploads em vários álbuns e para selecionar mídias do cartão SD em outros aplicativos.',
-          isOnlineOnly: true,
+              'As ações na barra de seleção são ordenadas pela frequência de uso, e o ícone de compartilhamento agora corresponde à sua plataforma.',
         ),
       ],
     ),
     'pt_PT': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Análise de fotografias mais rápida',
+          title: 'Partilha da biblioteca',
           description:
-              'A aprendizagem automática do Ente analisa agora as suas fotografias no dispositivo entre 5 e 10 vezes mais depressa.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Sugestões de rostos mais rápidas e precisas',
-          description:
-              'O processamento de imagens é agora 5 a 10 vezes mais rápido! Além disso, os rostos desfocados ou de lado já não baralham os seus grupos de pessoas, e vamos recordar os rostos que já dispensou.',
+              'Partilhe automaticamente os seus álbuns atuais e futuros com familiares. Aceda a Definições → Família, escolha um membro e toque em Partilhar álbuns. Os novos álbuns são incluídos à medida que os cria.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramas, renascidos',
+          title: 'Descrições de álbuns',
           description:
-              'Reconstruídos de raiz. Os panoramas abrem mais depressa, movem-se com fluidez e já não aparecem em branco.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Cópias de segurança que não ficam bloqueadas',
-          description:
-              'Se o seu dispositivo ficar sem espaço durante uma cópia de segurança, o Ente avisa-o agora e retoma a partir de onde parou assim que libertar algum espaço.',
+              'Adicione uma descrição a um álbum, além do nome e da fotografia de capa. As descrições acompanham as ligações partilhadas, para que qualquer pessoa que abra uma veja o contexto que adicionou.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Transmissão simplificada',
+          title: 'Mais rápido com bibliotecas grandes',
           description:
-              'No Android, é mais fácil encontrar ecrãs; no iOS, estes são emparelhados automaticamente. Sem configuração adicional.',
+              'A pesquisa, as Memórias inteligentes, o mapa e o deslocamento na cronologia são substancialmente mais rápidos se tiver uma biblioteca grande. Só o agrupamento no mapa é 2 a 3 vezes mais rápido.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Cópias de segurança que pode acompanhar',
+          description:
+              'O Status da cópia de segurança mostra agora o progresso de cada ficheiro e os carregamentos multipartes grandes são mais fiáveis.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Silêncio, memorizado',
+          title: 'Selecionar texto em fotografias',
           description:
-              'Silencie um vídeo uma vez e o seguinte também ficará sem som.',
+              'Os controlos continuam acessíveis durante a seleção e tocar no texto selecionado limpa a seleção.',
         ),
         ChangeLogEntryStrings(
-          title: 'e muito mais!',
+          title: 'Um menu de seleção mais organizado',
           description:
-              'Esvazie a Lixeira diretamente em Libertar espaço, use um bloqueio da aplicação mais fluido e fiável, marque como favoritas as fotografias partilhadas nas memórias, encontre o chinês tradicional na lista de idiomas, deslize mais suavemente no visualizador de fotografias e aproveite as correções nos envios para vários álbuns e na seleção de conteúdos do cartão SD noutras aplicações.',
-          isOnlineOnly: true,
+              'As ações na barra de seleção são ordenadas pela frequência de utilização e o ícone de partilha corresponde agora à sua plataforma.',
         ),
       ],
     ),
     'ro': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Analiză mai rapidă a fotografiilor',
+          title: 'Partajarea bibliotecii',
           description:
-              'Tehnologia Ente de învățare automată vă analizează acum fotografiile direct pe dispozitiv de 5–10 ori mai repede.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Sugestii de fețe mai rapide și mai precise',
-          description:
-              'Procesarea imaginilor este acum de 5–10 ori mai rapidă! În plus, fețele neclare sau întoarse într-o parte nu vă mai încurcă grupurile de persoane, iar noi vom reține fețele pe care le-ați respins deja.',
+              'Partajează automat albumele actuale și viitoare cu membrii familiei. Accesează Setări → Familie, alege un membru și atinge Partajează albumele. Albumele noi sunt incluse pe măsură ce le creezi.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panorame, renăscute',
+          title: 'Descrieri pentru albume',
           description:
-              'Reconstruite de la zero. Panoramele se deschid mai repede, se mișcă fluid și nu mai apar goale.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Copii de siguranță care nu se blochează',
-          description:
-              'Dacă dispozitivul rămâne fără spațiu în timpul unei copii de siguranță, Ente vă anunță acum și reia de unde a rămas după ce eliberați puțin spațiu.',
+              'Adaugă unui album o descriere, pe lângă nume și fotografia de copertă. Descrierile însoțesc linkurile partajate, astfel încât oricine deschide unul vede contextul adăugat de tine.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Transmitere simplificată',
+          title: 'Mai rapid pentru biblioteci mari',
           description:
-              'Ecranele sunt mai ușor de găsit pe Android și se asociază automat pe iOS. Fără configurare suplimentară.',
+              'Căutarea, Amintirile inteligente, harta și derularea cronologiei sunt mult mai rapide dacă ai o bibliotecă mare. Numai gruparea pe hartă este de 2–3 ori mai rapidă.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Copii de siguranță pe care le poți urmări',
+          description:
+              'Stare copie de rezervă afișează acum progresul pentru fiecare fișier, iar încărcările multipart mari sunt mai fiabile.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Sunet dezactivat, setare reținută',
+          title: 'Selectarea textului din fotografii',
           description:
-              'Dezactivați sunetul unui videoclip o dată, iar următorul va rămâne și el fără sunet.',
+              'Comenzile rămân accesibile în timpul selectării, iar atingerea textului selectat șterge selecția.',
         ),
         ChangeLogEntryStrings(
-          title: 'și multe altele!',
+          title: 'Un meniu de selecție mai ordonat',
           description:
-              'Goliți Coșul de gunoi direct din Eliberați spațiu, folosiți o blocare a aplicației mai fluidă și mai fiabilă, adăugați la favorite fotografiile partajate din amintiri, găsiți chineza tradițională în lista de limbi, glisați mai fluid în vizualizatorul de fotografii și beneficiați de remedieri pentru încărcarea în mai multe albume și selectarea conținutului media de pe cardul SD în alte aplicații.',
-          isOnlineOnly: true,
+              'Acțiunile din bara de selecție sunt ordonate după frecvența utilizării, iar pictograma de partajare corespunde acum platformei tale.',
         ),
       ],
     ),
     'ru': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Более быстрый анализ фотографий',
+          title: 'Общий доступ к библиотеке',
           description:
-              'Машинное обучение Ente теперь анализирует ваши фотографии на устройстве в 5–10 раз быстрее.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Более быстрые и точные подсказки лиц',
-          description:
-              'Обработка изображений теперь работает в 5–10 раз быстрее! Кроме того, размытые и повёрнутые набок лица больше не вносят путаницу в группы людей, а мы запомним лица, которые вы уже отклонили.',
+              'Автоматически делитесь текущими и будущими альбомами с членами семьи. Откройте Настройки → Семья, выберите участника и нажмите Поделиться альбомами. Новые альбомы будут добавляться по мере их создания.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Панорамы, рождённые заново',
+          title: 'Описания альбомов',
           description:
-              'Полностью переработаны. Панорамы открываются быстрее, плавно перемещаются и больше не отображаются пустыми.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Резервные копии, которые не застревают',
-          description:
-              'Если во время резервного копирования на устройстве закончится место, Ente теперь сообщит об этом и продолжит с места остановки, как только вы освободите немного места.',
+              'Добавляйте к альбому описание вместе с названием и фотографией обложки. Описания передаются по общим ссылкам, поэтому каждый, кто откроет ссылку, увидит добавленный вами контекст.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Трансляция стала проще',
+          title: 'Быстрее для больших библиотек',
           description:
-              'На Android экраны теперь проще находить, а на iOS они подключаются автоматически. Никакой дополнительной настройки.',
+              'Поиск, Умные воспоминания, карта и прокрутка временной шкалы стали значительно быстрее для больших библиотек. Одна только группировка на карте работает в 2–3 раза быстрее.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Резервное копирование с видимым прогрессом',
+          description:
+              'Статус резервного копирования теперь показывает прогресс для каждого файла, а большие многочастные загрузки стали надёжнее.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Отключение звука запоминается',
+          title: 'Выделение текста на фотографиях',
           description:
-              'Отключите звук у одного видео — и следующее тоже останется без звука.',
+              'Элементы управления остаются доступными во время выделения, а нажатие на выделенный текст снимает выделение.',
         ),
         ChangeLogEntryStrings(
-          title: 'и многое другое!',
+          title: 'Более аккуратное меню выбора',
           description:
-              'Очищайте Корзину прямо из раздела Освободить место, пользуйтесь более плавной и надёжной блокировкой приложения, добавляйте в избранное общие фотографии из воспоминаний, выбирайте традиционный китайский в списке языков, плавнее листайте фотографии в средстве просмотра и получайте исправления загрузки в несколько альбомов и выбора медиафайлов с SD-карты в других приложениях.',
-          isOnlineOnly: true,
+              'Действия на панели выбора упорядочены по частоте использования, а значок «Поделиться» теперь соответствует вашей платформе.',
         ),
       ],
     ),
     'tr': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Daha hızlı fotoğraf analizi',
+          title: 'Kütüphane paylaşımı',
           description:
-              'Ente’nin cihaz üzerinde çalışan makine öğrenimi artık fotoğraflarınızı 5–10 kat daha hızlı analiz ediyor.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Daha hızlı, daha isabetli yüz önerileri',
-          description:
-              'Görüntü işleme artık 5–10 kat daha hızlı! Ayrıca bulanık ve yana dönük yüzler artık kişi gruplarınızı karıştırmıyor ve daha önce reddettiğiniz yüzleri hatırlıyoruz.',
+              'Mevcut ve gelecekteki albümlerinizi aile üyeleriyle otomatik olarak paylaşın. Ayarlar → Aile bölümüne gidin, bir üye seçin ve Albümleri paylaş seçeneğine dokunun. Yeni albümler oluşturuldukça otomatik olarak eklenir.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Panoramalar yeniden doğdu',
+          title: 'Albüm açıklamaları',
           description:
-              'Baştan sona yeniden geliştirildi. Panoramalar daha hızlı açılıyor, akıcı hareket ediyor ve artık boş görünmüyor.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Takılıp kalmayan yedeklemeler',
-          description:
-              'Yedekleme sırasında cihazınızda yer kalmazsa Ente artık sizi bilgilendiriyor ve biraz alan açtıktan sonra kaldığı yerden devam ediyor.',
+              'Bir albüme adı ve kapak fotoğrafının yanında bir açıklama ekleyin. Açıklamalar paylaşılan bağlantılarınızla birlikte gider; böylece bağlantıyı açan herkes eklediğiniz bağlamı görür.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Ekrana yansıtmak artık daha kolay',
+          title: 'Büyük kütüphanelerde daha hızlı',
           description:
-              'Android’de ekranları bulmak daha kolay; iOS’ta ise otomatik olarak eşleştiriliyorlar. Ek kurulum gerekmiyor.',
+              'Büyük bir kütüphaneniz varsa arama, Akıllı anılar, harita ve zaman çizelgesinde kaydırma çok daha hızlıdır. Yalnızca harita kümeleme bile 2–3 kat daha hızlıdır.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Takip edebileceğiniz yedeklemeler',
+          description:
+              'Yedekleme durumu artık her dosyanın ilerlemesini gösteriyor ve büyük, çok parçalı yüklemeler daha güvenilir.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Sessiz ayarı hatırlanıyor',
+          title: 'Fotoğraflarda metin seçme',
           description:
-              'Bir videonun sesini bir kez kapatın; sonraki video da sessiz kalsın.',
+              'Metin seçerken kontroller erişilebilir kalır ve seçili metne dokunmak seçimi temizler.',
         ),
         ChangeLogEntryStrings(
-          title: 've dahası!',
+          title: 'Daha düzenli bir seçim menüsü',
           description:
-              'Çöp kutunuzu doğrudan Boş alan bölümünden temizleme, daha akıcı ve güvenilir bir uygulama kilidi, anılardaki paylaşılan fotoğrafları favorilere ekleme, dil listesine eklenen Geleneksel Çince, fotoğraf görüntüleyicide daha akıcı kaydırma, ayrıca birden fazla albüme yükleme ve diğer uygulamalarda SD kart medyası seçmeyle ilgili düzeltmeler.',
-          isOnlineOnly: true,
+              'Seçim çubuğundaki işlemler kullanım sıklığına göre sıralanıyor ve paylaşım simgesi artık platformunuzla eşleşiyor.',
         ),
       ],
     ),
     'uk': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Швидший аналіз фотографій',
+          title: 'Спільний доступ до бібліотеки',
           description:
-              'Машинне навчання Ente тепер аналізує ваші фотографії на пристрої в 5–10 разів швидше.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Швидші й точніші пропозиції облич',
-          description:
-              'Обробка зображень тепер працює в 5–10 разів швидше! Крім того, розмиті й повернуті набік обличчя більше не вносять плутанину у ваші групи людей, а ми запам’ятаємо обличчя, які ви вже відхилили.',
+              'Автоматично діліться поточними й майбутніми альбомами з членами родини. Відкрийте Налаштування → Сім’я, виберіть учасника й натисніть Поділитися альбомами. Нові альбоми додаватимуться під час створення.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Панорами, народжені наново',
+          title: 'Описи альбомів',
           description:
-              'Повністю перебудовані. Панорами відкриваються швидше, рухаються плавно й більше не відображаються порожніми.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Резервні копії, які не застрягають',
-          description:
-              'Якщо під час резервного копіювання на пристрої закінчиться місце, Ente тепер повідомить про це й продовжить із місця зупинки, щойно ви звільните трохи простору.',
+              'Додавайте до альбому опис разом із назвою та фотографією обкладинки. Описи передаються за спільними посиланнями, тож кожен, хто відкриє посилання, побачить доданий вами контекст.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Трансляція стала простішою',
+          title: 'Швидше для великих бібліотек',
           description:
-              'На Android екрани тепер легше знайти, а на iOS вони з’єднуються автоматично. Жодних додаткових налаштувань.',
+              'Пошук, Розумні спогади, карта й прокручування часової шкали стали значно швидшими для великих бібліотек. Саме групування на карті працює у 2–3 рази швидше.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Резервне копіювання з видимим перебігом',
+          description:
+              'Стан резервного копіювання тепер показує перебіг для кожного файлу, а великі багатокомпонентні завантаження стали надійнішими.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Вимкнення звуку запам’ятовується',
+          title: 'Виділення тексту на фотографіях',
           description:
-              'Вимкніть звук одного відео — і наступне теж залишиться без звуку.',
+              'Елементи керування залишаються доступними під час виділення, а натискання на виділений текст скасовує виділення.',
         ),
         ChangeLogEntryStrings(
-          title: 'і багато іншого!',
+          title: 'Охайніше меню вибору',
           description:
-              'Очищайте Смітник безпосередньо з розділу Звільнити місце, користуйтеся плавнішим і надійнішим блокуванням застосунку, додавайте до улюбленого спільні фотографії зі спогадів, вибирайте традиційну китайську в списку мов, плавніше гортайте у вікні перегляду фотографій, а також отримайте виправлення завантаження до кількох альбомів і вибору медіафайлів із SD-картки в інших застосунках.',
-          isOnlineOnly: true,
+              'Дії на панелі вибору впорядковано за частотою використання, а піктограма поширення тепер відповідає вашій платформі.',
         ),
       ],
     ),
     'vi': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Phân tích ảnh nhanh hơn',
+          title: 'Chia sẻ thư viện',
           description:
-              'Công nghệ học máy trên thiết bị của Ente giờ phân tích ảnh của bạn nhanh gấp 5–10 lần.',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Gợi ý khuôn mặt nhanh hơn, chính xác hơn',
-          description:
-              'Khả năng xử lý hình ảnh giờ nhanh gấp 5–10 lần! Ngoài ra, các khuôn mặt bị mờ hoặc nghiêng ngang sẽ không còn làm lẫn lộn các nhóm người, và Ente sẽ ghi nhớ những khuôn mặt bạn đã loại bỏ.',
+              'Tự động chia sẻ các album hiện tại và trong tương lai với thành viên gia đình. Vào Cài đặt → Gia đình, chọn một thành viên rồi nhấn Chia sẻ album. Album mới sẽ được thêm vào ngay khi bạn tạo.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Ảnh toàn cảnh, tái sinh',
+          title: 'Mô tả album',
           description:
-              'Được xây dựng lại từ đầu. Ảnh toàn cảnh mở nhanh hơn, chuyển động mượt mà và không còn hiển thị trống.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Sao lưu không còn mắc kẹt',
-          description:
-              'Nếu thiết bị hết dung lượng giữa chừng khi sao lưu, Ente giờ sẽ thông báo và tiếp tục từ chỗ đã dừng sau khi bạn giải phóng được một ít dung lượng.',
+              'Thêm mô tả cho album bên cạnh tên và ảnh bìa. Mô tả được hiển thị cùng liên kết chia sẻ, để bất kỳ ai mở liên kết đều thấy ngữ cảnh bạn đã thêm.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Truyền màn hình, đơn giản hơn',
+          title: 'Nhanh hơn với thư viện lớn',
           description:
-              'Trên Android, bạn có thể tìm màn hình dễ dàng hơn; trên iOS, màn hình được tự động ghép đôi. Không cần thiết lập thêm.',
+              'Tìm kiếm, Gợi nhớ kỷ niệm, bản đồ và cuộn dòng thời gian đều nhanh hơn đáng kể nếu bạn có thư viện lớn. Riêng việc nhóm trên bản đồ đã nhanh hơn 2–3 lần.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Theo dõi tiến trình sao lưu',
+          description:
+              'Trạng thái sao lưu giờ hiển thị tiến trình của từng tệp, và các lượt tải lên nhiều phần dung lượng lớn đáng tin cậy hơn.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Ghi nhớ chế độ tắt tiếng',
+          title: 'Chọn văn bản trong ảnh',
           description:
-              'Tắt tiếng một video một lần và video tiếp theo cũng sẽ tiếp tục tắt tiếng.',
+              'Các nút điều khiển vẫn trong tầm với khi bạn chọn văn bản, và nhấn vào văn bản đã chọn sẽ xóa lựa chọn.',
         ),
         ChangeLogEntryStrings(
-          title: 'và nhiều hơn nữa!',
+          title: 'Menu lựa chọn gọn gàng hơn',
           description:
-              'Xóa sạch Thùng rác ngay trong Giải phóng dung lượng, sử dụng khóa ứng dụng mượt mà và đáng tin cậy hơn, thêm ảnh được chia sẻ trong kỷ niệm vào mục yêu thích, chọn tiếng Trung phồn thể trong danh sách ngôn ngữ, vuốt mượt mà hơn trong trình xem ảnh, cùng các bản sửa lỗi khi tải lên nhiều album và chọn nội dung trên thẻ SD trong các ứng dụng khác.',
-          isOnlineOnly: true,
+              'Các thao tác trên thanh lựa chọn được sắp xếp theo tần suất bạn sử dụng, và biểu tượng chia sẻ giờ phù hợp với nền tảng của bạn.',
         ),
       ],
     ),
     'zh_CN': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: '照片分析更快',
-          description: 'Ente 现在通过设备端机器学习分析你的照片，速度提升了 5–10 倍。',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '更快、更精准的人脸建议',
-          description: '图像处理速度现在提升了 5–10 倍！此外，模糊和侧转的人脸不再干扰人物分组，我们还会记住你已经忽略的人脸。',
-          isOnlineOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '全景照片，焕然新生',
-          description: '从头重构。全景照片打开更快、移动更流畅，也不会再显示为空白。',
-        ),
-        ChangeLogEntryStrings(
-          title: '不再卡住的备份',
-          description: '如果设备在备份过程中空间不足，Ente 现在会提醒你，并在你释放一些空间后从中断处继续。',
-          isOnlineOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '投屏，更简单',
-          description: '在 Android 上更容易找到屏幕，在 iOS 上则会自动配对。无需额外设置。',
-          isOnlineOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '静音设置，自动记住',
-          description: '将一个视频静音后，下一个视频也会保持静音。',
-        ),
-        ChangeLogEntryStrings(
-          title: '还有更多！',
+          title: '图库共享',
           description:
-              '可直接从“释放空间”清空回收站，应用锁更流畅可靠，可在回忆中收藏共享照片，语言列表新增繁体中文，照片查看器滑动更流畅，以及修复了上传到多个相册和在其他应用中选取 SD 卡媒体的问题。',
+              '自动与家人共享你当前和今后创建的相册。前往“设置”→“家庭”，选择一位成员，然后轻点“共享相册”。新建相册会在创建时自动包含在内。',
           isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '相册描述',
+          description:
+              '除了名称和封面照片外，现在还可以为相册添加描述。描述会随共享链接一起显示，让打开链接的任何人都能看到你添加的背景信息。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '大型图库更流畅',
+          description: '如果你的图库规模较大，搜索、智能回忆、地图和时间线滚动现在都会快得多。仅地图聚类速度就提升了 2–3 倍。',
+        ),
+        ChangeLogEntryStrings(
+          title: '看得见进度的备份',
+          description: '“备份状态”现在会显示每个文件的进度，大型分片上传也更加可靠。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '选择照片中的文字',
+          description: '选择文字时，控件会始终保持可用；轻点已选文字即可清除选择。',
+        ),
+        ChangeLogEntryStrings(
+          title: '更整洁的选择菜单',
+          description: '选择栏中的操作会按使用频率排序，共享图标现在也会与所用平台保持一致。',
         ),
       ],
     ),
     'zh_TW': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: '照片分析更快速',
-          description: 'Ente 的機器學習現在會在裝置上分析您的照片，速度提升 5–10 倍。',
-          isLocalGalleryOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '更快、更精準的臉孔建議',
+          title: '圖庫共享',
           description:
-              '影像處理速度現在快了 5–10 倍！此外，模糊或橫向的臉孔不再干擾您的人物分組，而且我們會記住您已忽略的臉孔。',
+              '自動與家人共享您目前和未來建立的相簿。前往「設定」→「家庭」，選擇一位成員，然後點一下「共享相簿」。新相簿會在建立時自動包含在內。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '全景照片，煥然一新',
-          description: '從頭徹底重建。全景照片開啟速度更快、移動更流暢，也不再顯示空白。',
-        ),
-        ChangeLogEntryStrings(
-          title: '不再卡住的備份',
-          description: '如果您的裝置在備份途中耗盡儲存空間，Ente 現在會通知您；釋放一些空間後，備份將從中斷處繼續。',
-          isOnlineOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '投放，更簡單',
-          description: '在 Android 上更容易找到螢幕，iOS 上則會自動配對。無需額外設定。',
-          isOnlineOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '記住靜音設定',
-          description: '將一部影片設為靜音後，下一部也會維持靜音。',
-        ),
-        ChangeLogEntryStrings(
-          title: '還有更多！',
+          title: '相簿描述',
           description:
-              '可直接從「釋放空間」清空垃圾桶、App 鎖定更流暢可靠、在回憶中將共享照片加入最愛、繁體中文加入語言清單、照片檢視器滑動更流暢，並修正上傳至多個相簿和在其他 App 中選取 SD 卡媒體的問題。',
+              '除了名稱和封面照片外，現在還可以為相簿新增描述。描述會隨共享連結一併顯示，讓開啟連結的任何人都能看到您新增的背景資訊。',
           isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '大型圖庫更流暢',
+          description: '如果您的圖庫較大，搜尋、自動分類回憶、地圖和時間軸捲動現在都快得多。僅地圖分群速度就提升了 2–3 倍。',
+        ),
+        ChangeLogEntryStrings(
+          title: '看得見進度的備份',
+          description: '「備份狀態」現在會顯示每個檔案的進度，大型分段上傳也更加可靠。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '選取照片中的文字',
+          description: '選取文字時，控制項會保持可用；點一下已選取的文字即可清除選取。',
+        ),
+        ChangeLogEntryStrings(
+          title: '更整潔的選取選單',
+          description: '選取列中的操作會按使用頻率排序，共享圖示現在也會與您使用的平台一致。',
         ),
       ],
     ),

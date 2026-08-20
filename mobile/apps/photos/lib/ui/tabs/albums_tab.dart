@@ -241,11 +241,8 @@ class _AlbumsTabState extends State<AlbumsTab>
     await Future.wait([_loadEnteCollections(), _loadSharedCollections()]);
   }
 
-  bool get _isLocalGalleryMode =>
-      isLocalGalleryMode && !Configuration.instance.hasConfiguredAccount();
-
   _AlbumsFilter get _effectiveFilter =>
-      _isLocalGalleryMode ? _AlbumsFilter.onDevice : _filter.value;
+      isLocalGalleryMode ? _AlbumsFilter.onDevice : _filter.value;
 
   bool get _hasSearchQuery => _searchQuery.trim().isNotEmpty;
 
@@ -289,7 +286,7 @@ class _AlbumsTabState extends State<AlbumsTab>
   }
 
   void _selectFilter(_AlbumsFilter filter) {
-    if (_isLocalGalleryMode && filter != _AlbumsFilter.onDevice) return;
+    if (isLocalGalleryMode && filter != _AlbumsFilter.onDevice) return;
     if (_filter.value == filter) return;
     widget.selectedAlbums?.clearAll();
     _resetScrollForNextContent();
@@ -467,7 +464,7 @@ class _AlbumsTabState extends State<AlbumsTab>
   }
 
   Widget _buildGlobalSearchResultsSliver(StringsLocalizations strings) {
-    if (_isLocalGalleryMode) {
+    if (isLocalGalleryMode) {
       return SliverMainAxisGroup(
         slivers: [
           DeviceFolderVerticalGridSliver(
@@ -766,7 +763,6 @@ class _AlbumsTabState extends State<AlbumsTab>
     final textTheme = getEnteTextTheme(context);
     final strings = context.strings;
     final selectedAlbums = widget.selectedAlbums;
-    final localGalleryMode = _isLocalGalleryMode;
     final albumsOptionsButton = Builder(
       builder: (buttonContext) => IconButtonComponent(
         variant: IconButtonComponentVariant.primary,
@@ -891,7 +887,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                   duration: _kSearchTransitionDuration,
                   switchInCurve: Curves.easeOutCubic,
                   switchOutCurve: Curves.easeInCubic,
-                  child: _isSearchActive || localGalleryMode
+                  child: _isSearchActive || isLocalGalleryMode
                       ? const SizedBox.shrink(key: ValueKey("hidden_filters"))
                       : Padding(
                           key: const ValueKey("album_filters"),
@@ -905,7 +901,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                                 child: ValueListenableBuilder<_AlbumsFilter>(
                                   valueListenable: _filter,
                                   builder: (context, selected, _) {
-                                    final effectiveFilter = localGalleryMode
+                                    final effectiveFilter = isLocalGalleryMode
                                         ? _AlbumsFilter.onDevice
                                         : selected;
                                     return Stack(
@@ -919,7 +915,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                                           ),
                                           child: Row(
                                             children: [
-                                              if (!localGalleryMode) ...[
+                                              if (!isLocalGalleryMode) ...[
                                                 _AlbumsFilterChip(
                                                   label: strings.ente,
                                                   selected:
@@ -940,7 +936,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                                                   _AlbumsFilter.onDevice,
                                                 ),
                                               ),
-                                              if (!localGalleryMode) ...[
+                                              if (!isLocalGalleryMode) ...[
                                                 const SizedBox(width: 8),
                                                 _AlbumsFilterChip(
                                                   label:

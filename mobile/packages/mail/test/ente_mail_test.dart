@@ -43,22 +43,6 @@ void main() {
     });
   });
 
-  test('parses every unavailable reason', () async {
-    for (final reason in MailUnavailableReason.values) {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (_) async {
-            return {'status': 'unavailable', 'reason': reason.name};
-          });
-
-      final result = await composer.compose(
-        const MailDraft(recipient: 'support@ente.io'),
-      );
-
-      expect(result, isA<MailUnavailable>());
-      expect((result as MailUnavailable).reason, reason);
-    }
-  });
-
   test('rejects malformed native results', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (_) async {

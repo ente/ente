@@ -461,6 +461,33 @@
   "backupFile": "Backup file",
   "backupFolderLabel": "Backup folder:",
   "backupLocationChoiceDescription": "Where do you want to save your backups?",
+  "backupMode": "Backup mode",
+  "backupModeBackingUpItems": "{count, plural, one{Backing up {formattedCount} item} other{Backing up {formattedCount} items}}",
+  "@backupModeBackingUpItems": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12546"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "12,546"
+      }
+    }
+  },
+  "backupModeCheckingForMoreItems": "Checking for more items",
+  "backupModeFinishYourBackup": "Finish your backup",
+  "backupModeKeepAppOpen": "Keep the app open",
+  "backupModeNoBackupInProgress": "No backup in progress",
+  "backupModeNoBackupInProgressDescription": "Start a backup, then return to backup mode.",
+  "backupModePlugInPhone": "Plug in your phone. Backups use battery.",
+  "backupModePreservingYourMemories": "Preserving your memories",
+  "backupModeScreenDimmingDescription": "The screen dims to save battery. Tap it anytime to come back.",
+  "backupModeScreenWillDim": "Screen will dim automatically to save battery",
+  "backupModeSettingsDescription": "Keep the app open to finish your backup",
+  "backupModeStart": "Start backup mode",
+  "backupModeStayInEnte": "Stay in Ente. Switching apps pauses your backup.",
+  "backupModeTapToWakeScreen": "Tap to wake the screen",
   "backupOnlyNewPhotos": "Backup only new photos",
   "backupOnlyNewPhotosAllFoldersSelected": "All folders are currently selected for backup.\n\nYou can continue for now, or update selected folders.",
   "backupOnlyNewPhotosNoFoldersSelectedContinue": "No folders are currently selected for backup.\n\nYou can continue for now, or update selected folders.",
@@ -1086,11 +1113,9 @@
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
-  "deviceLockExplanation": "Disable the device screen lock when Ente is in the foreground and there is a backup in progress. This is normally not needed, but may help big uploads and initial imports of large libraries complete faster.",
   "deviceNotFound": "Device not found",
   "didYouKnow": "Did you know?",
   "digits": "Digits",
-  "disableAutoLock": "Disable auto lock",
   "disableBackup": "Disable backup",
   "disableDownloadWarningBody": "Viewers can still take screenshots or save a copy of your photos using external tools",
   "disableDownloadWarningTitle": "Please note",
@@ -2179,6 +2204,21 @@
   },
   "librarySharingAllCurrentAlbumsShared": "All your current albums are shared",
   "librarySharingBannerDescription": "Share all your albums",
+  "librarySharingDisable": "Disable",
+  "librarySharingDisableDescription": "Albums you have already shared will stay shared with {recipient}, including any new photos you add to them. New albums will not be shared automatically.\n\nTo stop sharing an album, tap it and select '{stopSharingLabel}'.",
+  "@librarySharingDisableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      },
+      "stopSharingLabel": {
+        "type": "String",
+        "example": "Stop sharing"
+      }
+    }
+  },
+  "librarySharingDisableTitle": "Disable library sharing?",
   "librarySharingEnableDescription": "Your existing albums and any albums you create in the future will be automatically shared with {recipient}.",
   "@librarySharingEnableDescription": {
     "placeholders": {
@@ -3392,6 +3432,14 @@
   "@restore": {
     "description": "Display text for an action which triggers a restore of item from trash",
     "type": "text"
+  },
+  "restoredItems": "{count, plural, one{Restored item} other{Restored {count} items}}",
+  "@restoredItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "restoreToAlbum": "Restore to album",
   "restoringFiles": "Restoring files...",

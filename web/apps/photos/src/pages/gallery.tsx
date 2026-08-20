@@ -320,16 +320,14 @@ const Page: React.FC = () => {
         url?: string;
     }>({ open: false });
 
-    const onAuthenticateCallback = useRef<(() => void) | undefined>(undefined);
-    const onAuthenticateCancelCallback = useRef<(() => void) | undefined>(
-        undefined,
-    );
+    const onAuthenticateCallback = useRef<
+        ((didAuthenticate: boolean) => void) | undefined
+    >(undefined);
 
     const authenticateUserWithPasswordModal = useCallback(
         () =>
-            new Promise<void>((resolve, reject) => {
+            new Promise<boolean>((resolve) => {
                 onAuthenticateCallback.current = resolve;
-                onAuthenticateCancelCallback.current = reject;
                 showAuthenticateUser();
             }),
         [],
@@ -339,27 +337,23 @@ const Page: React.FC = () => {
         if (!isDesktop) return authenticateUserWithPasswordModal();
 
         const reauthResult = await reauthenticateWithAppLock();
-        if (reauthResult === "authenticated") return;
-        if (reauthResult === "cancelled") {
-            throw new Error("app_lock_reauthentication_cancelled");
-        }
+        if (reauthResult === "authenticated") return true;
+        if (reauthResult === "cancelled") return false;
 
         return authenticateUserWithPasswordModal();
     }, [authenticateUserWithPasswordModal]);
 
     const handleCloseAuthenticateUser = useCallback(() => {
         authenticateUserVisibilityProps.onClose();
-        // Reject the suspended caller when the modal is dismissed.
-        if (onAuthenticateCancelCallback.current) {
-            onAuthenticateCancelCallback.current();
-            onAuthenticateCancelCallback.current = undefined;
+        if (onAuthenticateCallback.current) {
+            onAuthenticateCallback.current(false);
+            onAuthenticateCallback.current = undefined;
         }
     }, [authenticateUserVisibilityProps.onClose]);
 
     const handleAuthenticate = useCallback(() => {
-        onAuthenticateCancelCallback.current = undefined;
         if (onAuthenticateCallback.current) {
-            onAuthenticateCallback.current();
+            onAuthenticateCallback.current(true);
             onAuthenticateCallback.current = undefined;
         }
     }, []);
@@ -1337,7 +1331,7 @@ const Page: React.FC = () => {
                 Date.now() - lastAuthAt > 5 * 60 * 1e3
             ) {
                 try {
-                    await authenticateUser();
+                    if (!(await authenticateUser())) return;
                     lastAuthenticationForHiddenTimestamp.current = Date.now();
                 } catch {
                     return;

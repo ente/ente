@@ -8,7 +8,7 @@
         "ente-accounts": "*",
         "ente-base": "*",
         "ente-contacts-web": "*",
-        "ente-wasm": "*"
+        "ente-core-wasm": "*"
     },
     "devDependencies": {
         "ente-build-config": "*"

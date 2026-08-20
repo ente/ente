@@ -16,6 +16,34 @@ double maxCornerDistance(ScanQuad a, ScanQuad b) {
   return worst;
 }
 
+double quadArea(List<Offset> corners) {
+  var doubled = 0.0;
+  for (var i = 0; i < corners.length; i++) {
+    final a = corners[i];
+    final b = corners[(i + 1) % corners.length];
+    doubled += a.dx * b.dy - b.dx * a.dy;
+  }
+  return doubled.abs() / 2;
+}
+
+bool isUsableQuad(List<Offset> corners, {required double minAreaFraction}) {
+  if (corners.length != 4) return false;
+  final area = quadArea(corners);
+  if (area < minAreaFraction) return false;
+  final minCross = area * 0.02;
+  var winding = 0.0;
+  for (var i = 0; i < 4; i++) {
+    final a = corners[i];
+    final b = corners[(i + 1) % 4];
+    final c = corners[(i + 2) % 4];
+    final cross = (b.dx - a.dx) * (c.dy - b.dy) - (b.dy - a.dy) * (c.dx - b.dx);
+    if (cross.abs() < minCross) return false;
+    if (winding != 0 && cross.sign != winding) return false;
+    winding = cross.sign;
+  }
+  return true;
+}
+
 ScanQuad orderClockwise(List<Offset> corners) {
   assert(corners.length == 4);
   final cx = corners.map((c) => c.dx).reduce((a, b) => a + b) / 4;
@@ -43,7 +71,7 @@ Rect fittedRect(Size container, double aspect) {
 }
 
 class QuadStabilizer {
-  static const double maxCornerDrift = 20.0;
+  static const double maxCornerDrift = 20.0 / 256;
   static const int requiredStableFrames = 3;
 
   int _stableCount = 0;

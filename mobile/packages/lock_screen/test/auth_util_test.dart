@@ -6,156 +6,142 @@ import 'package:local_auth/local_auth.dart';
 
 void main() {
   group("windowsLocalAuthenticationExceptionForError", () {
-    test("maps Windows not-enrolled errors to setup guidance", () {
-      final exception = windowsLocalAuthenticationExceptionForError(
-        PlatformException(
+    final cases = <_WindowsCase>[
+      (
+        name: "not enrolled",
+        error: PlatformException(
           code: "NotEnrolled",
           message: "No biometrics enrolled on this device.",
         ),
-      );
-
-      expect(exception, isNotNull);
-      expect(exception!.issue, WindowsLocalAuthIssue.notConfigured);
-      expect(exception.userMessage, contains("Windows Hello"));
-      expect(exception.userMessage, contains("PIN"));
-    });
-
-    test("maps Windows hardware errors to app lock fallback guidance", () {
-      final exception = windowsLocalAuthenticationExceptionForError(
-        PlatformException(
+        issue: WindowsLocalAuthIssue.notConfigured,
+        messages: ["Windows Hello", "PIN"],
+      ),
+      (
+        name: "no hardware",
+        error: PlatformException(
           code: "NoHardware",
           message: "No biometric hardware found",
         ),
-      );
-
-      expect(exception, isNotNull);
-      expect(exception!.issue, WindowsLocalAuthIssue.noHardware);
-      expect(exception.userMessage, contains("App lock"));
-    });
-
-    test("maps LocalAuthException codes", () {
-      final exception = windowsLocalAuthenticationExceptionForError(
-        const LocalAuthException(
+        issue: WindowsLocalAuthIssue.noHardware,
+        messages: ["App lock"],
+      ),
+      (
+        name: "local auth not enrolled",
+        error: const LocalAuthException(
           code: LocalAuthExceptionCode.noBiometricsEnrolled,
         ),
-      );
+        issue: WindowsLocalAuthIssue.notConfigured,
+        messages: [],
+      ),
+      (
+        name: "unrelated platform exception",
+        error: PlatformException(code: "UserCanceled"),
+        issue: null,
+        messages: [],
+      ),
+    ];
 
-      expect(exception, isNotNull);
-      expect(exception!.issue, WindowsLocalAuthIssue.notConfigured);
-    });
-
-    test("ignores unrelated platform exceptions", () {
-      final exception = windowsLocalAuthenticationExceptionForError(
-        PlatformException(code: "UserCanceled"),
-      );
-
-      expect(exception, isNull);
-    });
+    for (final fixture in cases) {
+      test(fixture.name, () {
+        final exception = windowsLocalAuthenticationExceptionForError(
+          fixture.error,
+        );
+        expect(exception?.issue, fixture.issue);
+        for (final message in fixture.messages) {
+          expect(exception?.userMessage, contains(message));
+        }
+      });
+    }
   });
 
   group("isExpectedLocalAuthFailure", () {
-    test("treats user-driven cancellations as expected failures", () {
-      expect(
-        isExpectedLocalAuthFailure(
-          const LocalAuthException(code: LocalAuthExceptionCode.userCanceled),
-        ),
-        isTrue,
-      );
-      expect(
-        isExpectedLocalAuthFailure(
-          const LocalAuthException(code: LocalAuthExceptionCode.systemCanceled),
-        ),
-        isTrue,
-      );
-      expect(
-        isExpectedLocalAuthFailure(
-          const LocalAuthException(
-            code: LocalAuthExceptionCode.userRequestedFallback,
-          ),
-        ),
-        isTrue,
-      );
-    });
-
-    test("does not hide setup or device errors", () {
-      expect(
-        isExpectedLocalAuthFailure(
-          const LocalAuthException(
-            code: LocalAuthExceptionCode.noCredentialsSet,
-          ),
-        ),
-        isFalse,
-      );
-      expect(
-        isExpectedLocalAuthFailure(
-          const LocalAuthException(code: LocalAuthExceptionCode.deviceError),
-        ),
-        isFalse,
-      );
-    });
+    for (final (code, expected) in const [
+      (LocalAuthExceptionCode.userCanceled, true),
+      (LocalAuthExceptionCode.systemCanceled, true),
+      (LocalAuthExceptionCode.userRequestedFallback, true),
+      (LocalAuthExceptionCode.noCredentialsSet, false),
+      (LocalAuthExceptionCode.deviceError, false),
+    ]) {
+      test(code.name, () {
+        expect(
+          isExpectedLocalAuthFailure(LocalAuthException(code: code)),
+          expected,
+        );
+      });
+    }
   });
 
   group("localAuthenticationUnavailableExceptionForError", () {
-    test("maps missing credentials to setup guidance", () {
-      final exception = localAuthenticationUnavailableExceptionForError(
-        const LocalAuthException(code: LocalAuthExceptionCode.noCredentialsSet),
-      );
+    const cases = <_UnavailableCase>[
+      (
+        name: "missing credentials",
+        code: LocalAuthExceptionCode.noCredentialsSet,
+        issue: LocalAuthUnavailableIssue.notConfigured,
+        messages: ["System authentication", "PIN/password"],
+      ),
+      (
+        name: "no hardware",
+        code: LocalAuthExceptionCode.noBiometricHardware,
+        issue: LocalAuthUnavailableIssue.noHardware,
+        messages: [],
+      ),
+      (
+        name: "device error",
+        code: LocalAuthExceptionCode.deviceError,
+        issue: LocalAuthUnavailableIssue.unavailable,
+        messages: [],
+      ),
+      (
+        name: "user cancellation",
+        code: LocalAuthExceptionCode.userCanceled,
+        issue: null,
+        messages: [],
+      ),
+    ];
 
-      expect(exception, isNotNull);
-      expect(exception!.issue, LocalAuthUnavailableIssue.notConfigured);
-      expect(exception.userMessage, contains("System authentication"));
-      expect(exception.userMessage, contains("PIN/password"));
-    });
-
-    test("maps hardware and device errors", () {
-      expect(
-        localAuthenticationUnavailableExceptionForError(
-          const LocalAuthException(
-            code: LocalAuthExceptionCode.noBiometricHardware,
-          ),
-        )!.issue,
-        LocalAuthUnavailableIssue.noHardware,
-      );
-      expect(
-        localAuthenticationUnavailableExceptionForError(
-          const LocalAuthException(code: LocalAuthExceptionCode.deviceError),
-        )!.issue,
-        LocalAuthUnavailableIssue.unavailable,
-      );
-    });
-
-    test("ignores expected user failures", () {
-      final exception = localAuthenticationUnavailableExceptionForError(
-        const LocalAuthException(code: LocalAuthExceptionCode.userCanceled),
-      );
-
-      expect(exception, isNull);
-    });
+    for (final fixture in cases) {
+      test(fixture.name, () {
+        final exception = localAuthenticationUnavailableExceptionForError(
+          LocalAuthException(code: fixture.code),
+        );
+        expect(exception?.issue, fixture.issue);
+        for (final message in fixture.messages) {
+          expect(exception?.userMessage, contains(message));
+        }
+      });
+    }
   });
 
   group("shouldShowLinuxSystemAuthSetupGuide", () {
-    test("routes Linux setup-required failures to the guide dialog", () {
-      expect(
-        shouldShowLinuxSystemAuthSetupGuide(
-          const LocalAuthenticationUnavailableException(
-            issue: LocalAuthUnavailableIssue.linuxSetupRequired,
-            code: "noCredentialsSet",
+    for (final (issue, expected) in const [
+      (LocalAuthUnavailableIssue.linuxSetupRequired, true),
+      (LocalAuthUnavailableIssue.notConfigured, false),
+    ]) {
+      test(issue.name, () {
+        expect(
+          shouldShowLinuxSystemAuthSetupGuide(
+            LocalAuthenticationUnavailableException(
+              issue: issue,
+              code: "noCredentialsSet",
+            ),
           ),
-        ),
-        isTrue,
-      );
-    });
-
-    test("keeps generic local auth failures on toast guidance", () {
-      expect(
-        shouldShowLinuxSystemAuthSetupGuide(
-          const LocalAuthenticationUnavailableException(
-            issue: LocalAuthUnavailableIssue.notConfigured,
-            code: "noCredentialsSet",
-          ),
-        ),
-        isFalse,
-      );
-    });
+          expected,
+        );
+      });
+    }
   });
 }
+
+typedef _WindowsCase = ({
+  String name,
+  Object error,
+  WindowsLocalAuthIssue? issue,
+  List<String> messages,
+});
+
+typedef _UnavailableCase = ({
+  String name,
+  LocalAuthExceptionCode code,
+  LocalAuthUnavailableIssue? issue,
+  List<String> messages,
+});

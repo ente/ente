@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:io";
 
 import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
@@ -242,10 +243,21 @@ class FileBottomBarState extends State<FileBottomBar> {
             icon: const Icon(CupertinoIcons.gobackward, color: Colors.white),
             onPressed: () {
               if (widget.file.isDeviceTrash) {
-                _restoreFromDeviceTrash().onError((e, s) {
-                  if (!mounted) return;
-                  showGenericErrorDialog(context: context, error: e).ignore();
-                });
+                _restoreFromDeviceTrash()
+                    .then((didRestore) {
+                      if (!didRestore || !mounted) return;
+                      showToast(
+                        context,
+                        context.strings.restoredItems(count: 1),
+                      );
+                    })
+                    .onError((e, s) {
+                      if (!mounted) return;
+                      showGenericErrorDialog(
+                        context: context,
+                        error: e,
+                      ).ignore();
+                    });
                 return;
               }
               final selectedFiles = SelectedFiles();
@@ -328,12 +340,13 @@ class FileBottomBarState extends State<FileBottomBar> {
     );
   }
 
-  Future<void> _restoreFromDeviceTrash() async {
+  Future<bool> _restoreFromDeviceTrash() async {
     final restoredIDs = await PhotoManager.editor.android.restoreFromTrash([
       widget.file.asDeviceTrashFile!.toAssetEntity(),
     ]);
-    if (restoredIDs.isEmpty) return;
+    if (restoredIDs.isEmpty) return false;
     Bus.instance.fire(ForceReloadTrashPageEvent());
     await widget.onFileRemoved(widget.file);
+    return true;
   }
 }

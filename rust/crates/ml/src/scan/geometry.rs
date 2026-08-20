@@ -128,7 +128,7 @@ pub(crate) fn create_quad(vertices: &[Point]) -> Quad {
 
 #[cfg(test)]
 mod tests {
-    use super::{ImageSize, Point, Quad, create_quad, norm};
+    use super::{Point, Quad, create_quad};
 
     fn assert_close(a: f64, b: f64, eps: f64) {
         assert!((a - b).abs() <= eps, "expected {a} ~= {b} (eps {eps})");
@@ -175,17 +175,5 @@ mod tests {
         let scaled = quad.scaled_to(256.0, 256.0, 1024.0, 512.0);
         assert_close(scaled.top_right.x, 512.0, 1e-9);
         assert_close(scaled.bottom_right.y, 512.0, 1e-9);
-    }
-
-    #[test]
-    fn norm_matches_hypot() {
-        assert_close(norm(Point::new(0.0, 0.0), Point::new(3.0, 4.0)), 5.0, 1e-12);
-    }
-
-    #[test]
-    fn image_size_keeps_doubles() {
-        let size = ImageSize::new(1024.0, 768.0);
-        assert_close(size.width, 1024.0, 0.0);
-        assert_close(size.height, 768.0, 0.0);
     }
 }

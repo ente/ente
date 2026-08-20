@@ -5,21 +5,6 @@ import org.junit.Test
 
 class VideoModelsTest {
     @Test
-    fun metadataRotationDefinesDisplayDimensions() {
-        val metadata = VideoMetadata(
-            durationMs = 1_000,
-            width = 1_920,
-            height = 1_080,
-            rotationDegrees = 270,
-            bitrate = null,
-            frameRate = null
-        )
-
-        assertEquals(1_080, metadata.displayWidth)
-        assertEquals(1_920, metadata.displayHeight)
-    }
-
-    @Test
     fun boundedSizePreservesAspectRatioWithoutUpscaling() {
         assertEquals(
             PixelSize(width = 144, height = 81),

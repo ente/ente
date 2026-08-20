@@ -3,122 +3,107 @@ import "package:test/test.dart";
 
 void main() {
   group('toLocationObj', () {
-    test('returns null if lat or long are null', () {
-      final gpsData = GPSData(null, null, null, null);
-      expect(gpsData.toLocationObj(), isNull);
-
-      final gpsDataWithLatOnly = GPSData(null, [1, 2, 3], null, null);
-      expect(gpsDataWithLatOnly.toLocationObj(), isNull);
-
-      final gpsDataWithLongOnly = GPSData(null, null, null, [1, 2, 3]);
-      expect(gpsDataWithLongOnly.toLocationObj(), isNull);
+    test('rejects incomplete coordinates and invalid references', () {
+      for (final gpsData in [
+        GPSData(null, null, null, null),
+        GPSData(null, [1, 2, 3], null, null),
+        GPSData(null, null, null, [1, 2, 3]),
+        GPSData(null, [1, 2], null, [1, 2, 3]),
+        GPSData(null, [1, 2, 3], null, [1, 2]),
+        GPSData(null, [1, 2], null, [1, 2]),
+        GPSData("A", [1, 2, 3], "xyz", [1, 2, 3]),
+      ]) {
+        expect(gpsData.toLocationObj(), isNull);
+      }
     });
 
-    test('returns null if lat or long have less than 3 elements', () {
-      final gpsData1 = GPSData(null, [1, 2], null, [1, 2, 3]);
-      expect(gpsData1.toLocationObj(), isNull);
+    for (final (name, latRef, lat, longRef, long, expectedLat, expectedLong)
+        in const [
+          (
+            'north east',
+            'N',
+            [40.0, 26.0, 46.84],
+            'E',
+            [79.0, 58.0, 56.33],
+            40.446344,
+            79.982313,
+          ),
+          (
+            'north west',
+            'N',
+            [40.0, 26.0, 46.84],
+            'W',
+            [79.0, 58.0, 56.33],
+            40.446344,
+            -79.982313,
+          ),
+          (
+            'south east',
+            'S',
+            [40.0, 26.0, 46.84],
+            'E',
+            [79.0, 58.0, 56.33],
+            -40.446344,
+            79.982313,
+          ),
+          (
+            'south west',
+            'S',
+            [40.0, 26.0, 46.84],
+            'W',
+            [79.0, 58.0, 56.33],
+            -40.446344,
+            -79.982313,
+          ),
+          (
+            'unsigned without references',
+            null,
+            [40.0, 26.0, 46.84],
+            null,
+            [79.0, 58.0, 56.33],
+            40.446344,
+            79.982313,
+          ),
+          (
+            'negative latitude without references',
+            null,
+            [-40.0, 26.0, 46.84],
+            null,
+            [79.0, 58.0, 56.33],
+            -40.446344,
+            79.982313,
+          ),
+          (
+            'negative longitude without references',
+            null,
+            [40.0, 26.0, 46.84],
+            null,
+            [-79.0, 58.0, 56.33],
+            40.446344,
+            -79.982313,
+          ),
+          (
+            'negative minutes without references',
+            null,
+            [40.0, -26.0, 46.84],
+            null,
+            [79.0, -58.0, 56.33],
+            -40.446344,
+            -79.982313,
+          ),
+        ]) {
+      test(name, () {
+        final location = GPSData(
+          latRef,
+          [...lat],
+          longRef,
+          [...long],
+        ).toLocationObj();
 
-      final gpsData2 = GPSData(null, [1, 2, 3], null, [1, 2]);
-      expect(gpsData2.toLocationObj(), isNull);
-
-      final gpsData3 = GPSData(null, [1, 2], null, [1, 2]);
-      expect(gpsData3.toLocationObj(), isNull);
-    });
-
-    test('returns null if latRef or longRef is of invalid format', () {
-      final gpsData1 = GPSData("A", [1, 2, 3], "xyz", [1, 2, 3]);
-      expect(gpsData1.toLocationObj(), isNull);
-    });
-
-    void testParsingLocation(
-      String? latRef,
-      List<double> lat,
-      String? longRef,
-      List<double> long,
-      double expectedLat,
-      double expectedLong,
-    ) {
-      final gpsData = GPSData(latRef, lat, longRef, long);
-      final location = gpsData.toLocationObj();
-      expect(location, isNotNull);
-      expect(location!.latitude, closeTo(expectedLat, 0.00001));
-      expect(location.longitude, closeTo(expectedLong, 0.00001));
+        expect(location, isNotNull);
+        expect(location!.latitude, closeTo(expectedLat, 0.00001));
+        expect(location.longitude, closeTo(expectedLong, 0.00001));
+      });
     }
-
-    test(
-      'converts coordinates with different latRef and longRef combinations',
-      () {
-        testParsingLocation(
-          "N",
-          [40, 26, 46.84],
-          "E",
-          [79, 58, 56.33],
-          40.446344,
-          79.982313,
-        );
-        testParsingLocation(
-          "N",
-          [40, 26, 46.84],
-          "W",
-          [79, 58, 56.33],
-          40.446344,
-          -79.982313,
-        );
-        testParsingLocation(
-          "S",
-          [40, 26, 46.84],
-          "E",
-          [79, 58, 56.33],
-          -40.446344,
-          79.982313,
-        );
-        testParsingLocation(
-          "S",
-          [40, 26, 46.84],
-          "W",
-          [79, 58, 56.33],
-          -40.446344,
-          -79.982313,
-        );
-      },
-    );
-
-    test(
-      'converts coordinates with missing latRef and longRef but with signed lat and long',
-      () {
-        testParsingLocation(
-          null,
-          [40, 26, 46.84],
-          null,
-          [79, 58, 56.33],
-          40.446344,
-          79.982313,
-        );
-        testParsingLocation(
-          null,
-          [-40, 26, 46.84],
-          null,
-          [79, 58, 56.33],
-          -40.446344,
-          79.982313,
-        );
-        testParsingLocation(
-          null,
-          [40, 26, 46.84],
-          null,
-          [-79, 58, 56.33],
-          40.446344,
-          -79.982313,
-        );
-        testParsingLocation(
-          null,
-          [40, -26, 46.84],
-          null,
-          [79, -58, 56.33],
-          -40.446344,
-          -79.982313,
-        );
-      },
-    );
   });
 }

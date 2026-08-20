@@ -9,8 +9,8 @@ import {
     publicRequestHeaders,
 } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
+import { loadEnteWasm } from "ente-core-wasm/load";
 import { ensure } from "ente-utils/ensure";
-import { loadEnteWasm } from "ente-wasm/load";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { saveSRPAttributes } from "./accounts-db";

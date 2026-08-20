@@ -1,1 +1,0 @@
-- Fixed a crash while freeing up device space on Android with media management permission enabled, reported on Samsung devices.

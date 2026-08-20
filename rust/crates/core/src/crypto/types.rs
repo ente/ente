@@ -1,9 +1,9 @@
 use subtle::ConstantTimeEq;
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::ZeroizeOnDrop;
 
 use crate::crypto::{Error, Result, SecretVec};
 
-#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+#[derive(ZeroizeOnDrop)]
 pub struct Key([u8; Self::BYTES]);
 
 impl Key {
@@ -163,7 +163,7 @@ impl PublicKey {
     }
 }
 
-#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+#[derive(ZeroizeOnDrop)]
 pub struct SecretKey([u8; Self::BYTES]);
 
 impl SecretKey {
@@ -228,13 +228,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_key_generate() {
-        let key = Key::generate();
-        let key2 = Key::generate();
-        assert_ne!(key, key2);
-    }
-
-    #[test]
     fn test_key_roundtrips() {
         let key = Key::generate();
         let copy = Key::try_from_slice(key.as_bytes()).unwrap();
@@ -260,33 +253,11 @@ mod tests {
     }
 
     #[test]
-    fn test_key_zeroize() {
-        let mut key = Key::from_bytes([0xABu8; 32]);
-        key.zeroize();
-        assert_eq!(key.as_bytes(), &[0u8; 32]);
-    }
-
-    #[test]
-    fn test_nonce_salt_generate() {
-        assert_ne!(Nonce::generate(), Nonce::generate());
-        assert_ne!(Salt::generate(), Salt::generate());
-    }
-
-    #[test]
     fn test_non_secret_types_reject_wrong_length() {
         assert!(Nonce::try_from_slice(&[0u8; 12]).is_err());
         assert!(Salt::try_from_slice(&[0u8; 8]).is_err());
         assert!(Header::try_from_slice(&[0u8; 23]).is_err());
         assert!(PublicKey::try_from_slice(&[0u8; 31]).is_err());
-    }
-
-    #[test]
-    fn test_secret_key_public_key_is_deterministic() {
-        let sk = SecretKey::generate();
-        assert_eq!(sk.public_key(), sk.public_key());
-
-        let sk2 = SecretKey::generate();
-        assert_ne!(sk.public_key(), sk2.public_key());
     }
 
     #[test]
@@ -296,12 +267,5 @@ mod tests {
         let sk2 = SecretKey::from_seed(&seed).unwrap();
         assert_eq!(sk1, sk2);
         assert_eq!(sk1.public_key(), sk2.public_key());
-    }
-
-    #[test]
-    fn test_random_bytes() {
-        let bytes = random_bytes(16);
-        assert_eq!(bytes.len(), 16);
-        assert_ne!(bytes, random_bytes(16));
     }
 }

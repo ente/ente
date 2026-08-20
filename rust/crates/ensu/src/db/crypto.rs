@@ -3,9 +3,6 @@ use ente_core::crypto::{Header, Key, blob};
 
 use crate::db::{Error, Result};
 
-pub const HEADER_BYTES: usize = blob::HEADER_BYTES;
-pub const KEY_BYTES: usize = blob::KEY_BYTES;
-
 pub fn encrypt_blob(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>> {
     Ok(blob::encrypt_combined(
         plaintext,
@@ -14,13 +11,13 @@ pub fn encrypt_blob(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>> {
 }
 
 pub fn decrypt_blob(data: &[u8], key: &[u8]) -> Result<Vec<u8>> {
-    if data.len() < HEADER_BYTES {
+    if data.len() < Header::BYTES {
         return Err(Error::InvalidBlobLength {
-            minimum: HEADER_BYTES,
+            minimum: Header::BYTES,
             actual: data.len(),
         });
     }
-    let (header, ciphertext) = data.split_at(HEADER_BYTES);
+    let (header, ciphertext) = data.split_at(Header::BYTES);
     Ok(blob::decrypt(
         ciphertext,
         &Header::try_from_slice(header)?,
@@ -68,7 +65,7 @@ mod tests {
 
     #[test]
     fn blob_roundtrip() {
-        let key = vec![7u8; KEY_BYTES];
+        let key = vec![7u8; Key::BYTES];
         let plaintext = b"hello";
 
         let encrypted = encrypt_blob(plaintext, &key).unwrap();
@@ -80,7 +77,7 @@ mod tests {
 
     #[test]
     fn json_field_roundtrip() {
-        let key = vec![9u8; KEY_BYTES];
+        let key = vec![9u8; Key::BYTES];
         let plaintext = "file-name.png";
 
         let encrypted = encrypt_json_field(plaintext, &key).unwrap();

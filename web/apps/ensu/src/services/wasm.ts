@@ -1,7 +1,7 @@
 import { isTauriRuntime } from "@/services/tauri-runtime";
-import { loadEnteWasm } from "ente-wasm/load";
+import { loadEnteWasm } from "ente-core-wasm/load";
 
-export type EnteWasmModule = typeof import("ente-wasm");
+export type EnteWasmModule = typeof import("ente-core-wasm");
 
 export interface EncryptedBlob {
     encrypted_data: string;

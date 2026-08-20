@@ -1,7 +1,7 @@
 import { clientPackageName, desktopAppVersion, isDesktop } from "ente-base/app";
 import { apiOrigin } from "ente-base/origins";
-import type { LegacyKitRecoveryHandle } from "ente-wasm";
-import { loadCryptoReadyEnteWasm } from "ente-wasm/load";
+import type { LegacyKitRecoveryHandle } from "ente-core-wasm";
+import { loadCryptoReadyEnteWasm } from "ente-core-wasm/load";
 import { z } from "zod";
 import type { LegacyKitShare } from "./share";
 

@@ -149,8 +149,7 @@ type SidebarProps = ModalVisibilityProps & {
         isHiddenCollectionSummary?: boolean,
     ) => Promise<void>;
     onShowExport: () => void;
-    // Cancellation or failure deliberately leaves this promise unsettled.
-    onAuthenticateUser: () => Promise<void>;
+    onAuthenticateUser: () => Promise<boolean>;
 };
 
 type AccountAction = Extract<
@@ -192,14 +191,6 @@ type FreeUpSpaceAction = Extract<
     SidebarActionID,
     "freeUpSpace.deduplicate" | "freeUpSpace.largeFiles"
 >;
-
-const appLockReauthenticationCancelledMessage =
-    "app_lock_reauthentication_cancelled";
-
-const isReauthenticationCancellation = (error: unknown) =>
-    error == undefined ||
-    (error instanceof Error &&
-        error.message === appLockReauthenticationCancelledMessage);
 
 export const Sidebar: React.FC<SidebarProps> = ({
     open,
@@ -265,10 +256,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         void (async () => {
             try {
-                await onAuthenticateUser();
+                if (!(await onAuthenticateUser())) return;
                 onShowExport();
-            } catch {
-                // User cancelled reauthentication.
+            } catch (error) {
+                log.error("Failed to authenticate before export", error);
             }
         })();
     }, [onAuthenticateUser, onShowExport, showMiniDialog]);
@@ -1007,9 +998,10 @@ const Account: React.FC<AccountProps> = ({
         if (isDesktop) {
             const reauthResult = await reauthenticateWithAppLock();
             if (reauthResult === "cancelled") return;
-            if (reauthResult === "fallback") await onAuthenticateUser();
+            if (reauthResult === "fallback" && !(await onAuthenticateUser()))
+                return;
         } else {
-            await onAuthenticateUser();
+            if (!(await onAuthenticateUser())) return;
         }
         showRecoveryKey();
     }, [onAuthenticateUser, showRecoveryKey]);
@@ -1026,9 +1018,10 @@ const Account: React.FC<AccountProps> = ({
         if (isDesktop) {
             const reauthResult = await reauthenticateWithAppLock();
             if (reauthResult === "cancelled") return;
-            if (reauthResult === "fallback") await onAuthenticateUser();
+            if (reauthResult === "fallback" && !(await onAuthenticateUser()))
+                return;
         } else {
-            await onAuthenticateUser();
+            if (!(await onAuthenticateUser())) return;
         }
         showSessions();
     }, [onAuthenticateUser, showSessions]);
@@ -1167,10 +1160,9 @@ const DesktopAppLockSettings: React.FC<
 
     const handleOpen = useCallback(async () => {
         try {
-            await onAuthenticateUser();
+            if (!(await onAuthenticateUser())) return;
             show();
         } catch (error) {
-            if (isReauthenticationCancellation(error)) return;
             log.error("Failed to open app lock settings", error);
         }
     }, [onAuthenticateUser, show]);

@@ -12,7 +12,6 @@ dependencies:
   app_links: 6.4.1
   bip39: 1.0.6
   camera: 0.11.2+1
-  camera_android_camerax: 0.6.30
   collection: 1.19.1
   convert: 3.1.2
   crypto: 3.0.7

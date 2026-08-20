@@ -11,6 +11,7 @@ pub use client::{
     MAX_SPACE_MESSAGE_TEXT_BYTES, MAX_SPACE_MESSAGE_TEXT_CHARS, MAX_SPACE_POST_PLAINTEXT_BYTES,
     MAX_SPACE_POST_UPLOAD_BYTES, PostPhotoAssetOptions, SpaceLinkCtx,
 };
+pub use crypto::{decrypt_space_root_entity_key, encrypt_space_root_entity_key};
 pub use error::{Result, SpaceError};
 pub use models::{
     CreatedSpace, CreatedSpaceLink, DecryptedFriendShare, DecryptedMessage, DecryptedPost,

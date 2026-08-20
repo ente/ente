@@ -6,6 +6,7 @@ mod schema;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
+use ente_core::crypto::Key;
 use uuid::Uuid;
 use zeroize::Zeroizing;
 
@@ -396,9 +397,9 @@ impl ChatDb<crate::db::backend::sqlite::SqliteBackend> {
 }
 
 fn validate_key(key: Vec<u8>) -> Result<Zeroizing<Vec<u8>>> {
-    if key.len() != crypto::KEY_BYTES {
+    if key.len() != Key::BYTES {
         return Err(Error::InvalidKeyLength {
-            expected: crypto::KEY_BYTES,
+            expected: Key::BYTES,
             actual: key.len(),
         });
     }
@@ -443,10 +444,11 @@ mod tests {
     use std::sync::atomic::{AtomicI64, Ordering};
     use std::sync::{Arc, Mutex};
 
+    use ente_core::crypto::Header;
+
     use super::*;
     use crate::db::backend::sqlite::SqliteBackend;
     use crate::db::backend::{BackendTx, RowExt, Value};
-    use crate::db::crypto::KEY_BYTES;
     use crate::db::models::{AttachmentKind, AttachmentMeta};
 
     #[derive(Debug)]
@@ -496,7 +498,7 @@ mod tests {
     fn make_db(uuids: Vec<Uuid>, clock: Arc<dyn Clock>) -> ChatDb<SqliteBackend> {
         ChatDb::new(
             SqliteBackend::open_in_memory().unwrap(),
-            vec![1u8; KEY_BYTES],
+            vec![1u8; Key::BYTES],
             clock,
             Arc::new(TestUuidGen::new(uuids)),
         )
@@ -522,7 +524,7 @@ mod tests {
             .unwrap()
             .unwrap();
         let stored = row.get_blob(0).unwrap();
-        assert!(stored.len() >= crypto::HEADER_BYTES);
+        assert!(stored.len() >= Header::BYTES);
         assert_ne!(stored, b"hello".to_vec());
     }
 
@@ -582,7 +584,7 @@ mod tests {
         let root = std::env::temp_dir().join(format!("ensu-v4-{}", Uuid::new_v4()));
         std::fs::create_dir_all(&root).unwrap();
         let path = root.join("llmchat.db");
-        let key = vec![2u8; KEY_BYTES];
+        let key = vec![2u8; Key::BYTES];
         let (session_id, message_id) = {
             let db = ChatDb::open_sqlite_with_defaults(&path, key.clone()).unwrap();
             let session = db.create_session("Before migration").unwrap();

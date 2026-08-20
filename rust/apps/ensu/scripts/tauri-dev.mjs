@@ -18,7 +18,7 @@ const desktopVersion = config.version;
 if (!desktopVersion) throw new Error("Missing Ensu desktop version");
 
 config.build = config.build || {};
-config.build.beforeDevCommand = `node ../../../web/scripts/check-deps.mjs && cd ../../../web && npm run build:wasm && NEXT_PUBLIC_ENSU_DESKTOP_VERSION=${desktopVersion} npm exec --workspace ensu -- next dev --webpack -p ${port}`;
+config.build.beforeDevCommand = `node ../../../web/scripts/check-deps.mjs && cd ../../../web && npm run build:core-wasm && NEXT_PUBLIC_ENSU_DESKTOP_VERSION=${desktopVersion} npm exec --workspace ensu -- next dev --webpack -p ${port}`;
 config.build.devUrl = `http://localhost:${port}`;
 
 await fs.writeFile(devConfigPath, JSON.stringify(config, null, 2));

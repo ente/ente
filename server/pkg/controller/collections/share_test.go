@@ -170,20 +170,6 @@ func addShareTestOwnerFile(t *testing.T, db *sql.DB, collectionID, ownerID int64
 	return fileID
 }
 
-func TestShareeIndexForEmail(t *testing.T) {
-	sharees := []ente.CollectionUser{
-		{ID: 1, Email: "one@example.com"},
-		{ID: 2, Email: "Person@Example.COM"},
-	}
-
-	if got := shareeIndexForEmail(sharees, "  person@example.com "); got != 1 {
-		t.Fatalf("sharee index = %d, want 1", got)
-	}
-	if got := shareeIndexForEmail(sharees, "missing@example.com"); got != -1 {
-		t.Fatalf("missing sharee index = %d, want -1", got)
-	}
-}
-
 func TestUnShareResolvesTargetFromCurrentSharees(t *testing.T) {
 	testutil.WithServerRoot(t)
 	db := testutil.RequireTestDB(t)

@@ -54,15 +54,17 @@ class MemoryLaneEntry {
 
 class MemoryLanePersonTimeline {
   final String personId;
+  late final bool isCluster;
   final MemoryLaneStatus status;
   final int updatedAtMicros;
   final List<MemoryLaneEntry> entries;
 
-  const MemoryLanePersonTimeline({
+  MemoryLanePersonTimeline({
     required this.personId,
     required this.status,
     required this.updatedAtMicros,
     required this.entries,
+    this.isCluster = false,
   });
 
   bool get isReady => status == MemoryLaneStatus.ready;
@@ -72,6 +74,7 @@ class MemoryLanePersonTimeline {
     "status": memoryLaneStatusToString(status),
     "updatedAt": updatedAtMicros,
     "entries": entries.map((entry) => entry.toJson()).toList(),
+    "isCluster": isCluster,
   };
 
   factory MemoryLanePersonTimeline.fromJson(Map<String, dynamic> json) {
@@ -85,6 +88,7 @@ class MemoryLanePersonTimeline {
             (entry) => MemoryLaneEntry.fromJson(entry as Map<String, dynamic>),
           )
           .toList(growable: false),
+      isCluster: json['isCluster'] as bool? ?? false,
     );
   }
 
@@ -98,25 +102,28 @@ class MemoryLanePersonTimeline {
       status: status ?? this.status,
       updatedAtMicros: updatedAtMicros ?? this.updatedAtMicros,
       entries: entries ?? this.entries,
+      isCluster: isCluster,
     );
   }
 }
 
 class MemoryLaneComputeLogEntry {
   final String personId;
+  late final bool isCluster;
   final String? name;
   final String? birthDate;
   final int faceCount;
   final int lastComputedMicros;
   final int logicVersion;
 
-  const MemoryLaneComputeLogEntry({
+  MemoryLaneComputeLogEntry({
     required this.personId,
     required this.faceCount,
     required this.lastComputedMicros,
     required this.logicVersion,
     this.name,
     this.birthDate,
+    this.isCluster = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -126,6 +133,7 @@ class MemoryLaneComputeLogEntry {
     "faceCount": faceCount,
     "lastComputed": lastComputedMicros,
     "logicVersion": logicVersion,
+    "isCluster": isCluster,
   };
 
   factory MemoryLaneComputeLogEntry.fromJson(Map<String, dynamic> json) {
@@ -136,6 +144,7 @@ class MemoryLaneComputeLogEntry {
       faceCount: json["faceCount"] as int? ?? 0,
       lastComputedMicros: json["lastComputed"] as int? ?? 0,
       logicVersion: json["logicVersion"] as int? ?? 0,
+      isCluster: json["isCluster"] as bool? ?? false,
     );
   }
 
@@ -153,6 +162,7 @@ class MemoryLaneComputeLogEntry {
       faceCount: faceCount ?? this.faceCount,
       lastComputedMicros: lastComputedMicros ?? this.lastComputedMicros,
       logicVersion: logicVersion ?? this.logicVersion,
+      isCluster: isCluster,
     );
   }
 }

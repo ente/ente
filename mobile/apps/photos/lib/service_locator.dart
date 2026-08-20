@@ -82,7 +82,7 @@ class ServiceLocator {
     endpointConfig = EndpointConfig(prefs);
     localSettings = LocalSettings(prefs);
     backupSettings = BackupSettings(prefs);
-    wakeLockService = EnteWakeLockService(prefs);
+    wakeLockService = EnteWakeLockService();
   }
 }
 

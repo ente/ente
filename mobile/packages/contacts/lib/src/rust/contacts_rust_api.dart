@@ -74,24 +74,12 @@ abstract class ContactsRustContext {
     Uint8List attachmentBytes,
   );
 
-  Future<Uint8List> getAttachment(
-    ContactAttachmentType attachmentType,
-    String attachmentId,
-  );
-
   Future<ContactRecord> deleteAttachment(
     String contactId,
     ContactAttachmentType attachmentType,
   );
 
-  Future<ContactRecord> setProfilePicture(
-    String contactId,
-    Uint8List profilePicture,
-  );
-
   Future<Uint8List> getProfilePicture(String contactId);
-
-  Future<ContactRecord> deleteProfilePicture(String contactId);
 }
 
 abstract class ContactsRustApi {

@@ -85,7 +85,7 @@ void main() {
       expect(Code.fromOTPAuthUrl(uri).period, 300);
     });
 
-    test('formats failed entry details separately from summary error', () {
+    test('keeps failed entry details out of the summary error', () {
       const exception = ImportEntryParseException(
         entry: {'issuer': 'Example', 'digits': 11},
         error: FormatException('Invalid OTP digits: 11'),
@@ -95,15 +95,6 @@ void main() {
       expect(exception.toString(), isNot(contains('issuer')));
       expect(exception.details, contains('Invalid OTP digits: 11'));
       expect(exception.details, contains('"digits": 11'));
-    });
-
-    test('keeps preformatted failed entry details readable', () {
-      const exception = ImportEntryParseException(
-        entry: '{\n  "digits": 11\n}',
-        error: FormatException('Invalid OTP digits: 11'),
-      );
-
-      expect(exception.entryText, '{\n  "digits": 11\n}');
     });
   });
 }

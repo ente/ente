@@ -3,7 +3,7 @@ name = "ente-wasm-log"
 edition = "2024"
 
 [dependencies]
-js-sys = "0.3"
+js-sys.workspace = true
 log.workspace = true
 wasm-bindgen.workspace = true
 web-sys = { version = "0.3.102", features = ["console"] }

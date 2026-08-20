@@ -1,1 +1,0 @@
-- Improved text selection in photos so controls stay reachable and tapping selected text clears the selection.

@@ -7,7 +7,7 @@ import type { SRPSetupAttributes } from "ente-accounts/services/srp";
 import type { KeyAttributes } from "ente-accounts/services/user";
 import { ensureOk, publicRequestHeaders } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
-import { loadEnteWasm } from "ente-wasm/load";
+import { loadEnteWasm } from "ente-core-wasm/load";
 import { z } from "zod";
 
 export const spaceBootstrapAuthHeaders = (authToken: string) => ({

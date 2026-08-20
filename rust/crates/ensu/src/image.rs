@@ -18,9 +18,7 @@ mod tests {
         image_compression::{EncodedImageFormat, encode_rgb},
     };
 
-    use super::{
-        ATTACHMENT_IMAGE_JPEG_QUALITY, ATTACHMENT_IMAGE_MAX_LONG_EDGE, compress_attachment_image,
-    };
+    use super::{ATTACHMENT_IMAGE_MAX_LONG_EDGE, compress_attachment_image};
 
     #[test]
     fn compress_attachment_image_uses_ensu_defaults() {
@@ -34,10 +32,5 @@ mod tests {
         assert_eq!(decoded.dimensions.width, ATTACHMENT_IMAGE_MAX_LONG_EDGE);
         assert_eq!(decoded.dimensions.height, 256);
         assert!(output.len() < input.len());
-    }
-
-    #[test]
-    fn compression_quality_default_is_85() {
-        assert_eq!(ATTACHMENT_IMAGE_JPEG_QUALITY, 85);
     }
 }

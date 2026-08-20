@@ -6,7 +6,7 @@ updates:
       - "/web"
       - "/web/apps/*"
       - "/web/packages/*"
-      - "/web/packages/wasm/space"
+      - "/web/packages/wasm/*"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 0

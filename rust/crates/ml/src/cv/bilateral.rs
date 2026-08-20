@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 
 use super::reflect101;
-use crate::cv::OpResult;
 use crate::cv::image::ImageU8;
+use crate::cv::{OpResult, PARALLEL_MIN_ELEMS};
 
 pub(crate) fn bilateral_filter_u8(
     src: &ImageU8,
@@ -59,23 +59,30 @@ pub(crate) fn bilateral_filter_u8(
     }
 
     let mut out = vec![0u8; w * h];
-    out.par_chunks_exact_mut(w)
-        .enumerate()
-        .for_each(|(y, dst)| {
-            let win = &temp[y * stride..];
-            let centre = radius * stride + radius;
-            for (x, d) in dst.iter_mut().enumerate() {
-                let mid = win[centre + x] as i32;
-                let mut sum = 0.0f32;
-                let mut wsum = 0.0f32;
-                for &(off, sw) in &taps {
-                    let val = win[off + x];
-                    let weight = sw * color_weight[(val as i32 - mid).unsigned_abs() as usize];
-                    wsum += weight;
-                    sum += val as f32 * weight;
-                }
-                *d = (sum / wsum).round_ties_even() as u8;
+    let row = |y: usize, dst: &mut [u8]| {
+        let win = &temp[y * stride..];
+        let centre = radius * stride + radius;
+        for (x, d) in dst.iter_mut().enumerate() {
+            let mid = win[centre + x] as i32;
+            let mut sum = 0.0f32;
+            let mut wsum = 0.0f32;
+            for &(off, sw) in &taps {
+                let val = win[off + x];
+                let weight = sw * color_weight[(val as i32 - mid).unsigned_abs() as usize];
+                wsum += weight;
+                sum += val as f32 * weight;
             }
-        });
+            *d = (sum / wsum).round_ties_even() as u8;
+        }
+    };
+    if w * h >= PARALLEL_MIN_ELEMS {
+        out.par_chunks_exact_mut(w)
+            .enumerate()
+            .for_each(|(y, dst)| row(y, dst));
+    } else {
+        for (y, dst) in out.chunks_exact_mut(w).enumerate() {
+            row(y, dst);
+        }
+    }
     ImageU8::new(src.width, src.height, 1, out)
 }

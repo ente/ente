@@ -7,22 +7,6 @@ use crate::transport::{
 
 use mockito::{Matcher, Server};
 use serde_json::json;
-use zeroize::Zeroize;
-
-#[test]
-fn decrypted_friend_share_zeroizes_its_key() {
-    let mut share = DecryptedFriendShare {
-        friend: "friend@example.com".to_owned(),
-        space_id: "space-friend".to_owned(),
-        space_slug: "friend".to_owned(),
-        space_key: vec![42; 32],
-        key_version: 1,
-    };
-
-    share.zeroize();
-
-    assert!(share.space_key.is_empty());
-}
 
 #[tokio::test]
 async fn account_api_sends_space_session_token_header() {

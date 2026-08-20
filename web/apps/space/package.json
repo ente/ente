@@ -12,10 +12,9 @@
         "@hugeicons/react": "1.1.4",
         "ente-accounts": "*",
         "ente-base": "*",
+        "ente-core-wasm": "*",
         "ente-media": "*",
         "ente-space-wasm": "*",
-        "ente-wasm": "*",
-        "ente-wasm-core": "*",
         "photoswipe": "5.4.4",
         "react-easy-crop": "5.5.7",
         "thumbhash": "0.1.1"

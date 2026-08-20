@@ -1,78 +1,75 @@
 use std::sync::Mutex;
 
-use ort::ep::CPU;
-use ort::session::Session;
-use ort::session::builder::GraphOptimizationLevel;
-use ort::value::TensorRef;
-
 use super::OpResult;
 use super::scanner::ScanError;
 use crate::cv;
-use crate::cv::image::{ImageRef, ImageU8};
+use crate::cv::image::ImageU8;
+use crate::error::MlError;
+use crate::onnx::{ExecutionMode, OnnxSession, PreparedF32Input, SessionRunError, run_f32};
 
 pub const MASK_SIDE: i32 = 256;
 
+const MODEL_NAMESPACE: &str = "document-segmentation";
+
 pub(crate) struct Segmenter {
-    session: Mutex<Session>,
+    session: Mutex<OnnxSession>,
+    model_path: String,
 }
 
 impl Segmenter {
-    /// CPU-only on purpose: downstream thresholds need deterministic output across devices.
     pub(crate) fn new(model_path: &str) -> Result<Self, ScanError> {
-        let build = || -> Result<Session, ort::Error> {
-            Session::builder()?
-                .with_optimization_level(GraphOptimizationLevel::All)?
-                .with_intra_threads(1)?
-                .with_inter_threads(1)?
-                .with_execution_providers([CPU::default().with_arena_allocator(true).build()])?
-                .commit_from_file(model_path)
+        let segmenter = Self {
+            session: Mutex::new(
+                OnnxSession::new(ExecutionMode::PlatformDefault).with_unvalidated_acceleration(),
+            ),
+            model_path: model_path.to_string(),
         };
-        let session = build().map_err(|err| ScanError::ModelLoad(err.to_string()))?;
-        if session.inputs().len() != 1 {
-            return Err(ScanError::ModelLoad(format!(
-                "expected exactly 1 model input, got {}",
-                session.inputs().len()
-            )));
-        }
-        Ok(Self {
-            session: Mutex::new(session),
-        })
+        let samples = (MASK_SIDE * MASK_SIDE * 3) as usize;
+        segmenter
+            .infer(vec![0.0f32; samples])
+            .map_err(ScanError::ModelLoad)?;
+        Ok(segmenter)
     }
 
-    pub(crate) fn probability_map_u8(&self, bgr: &ImageU8) -> OpResult<Vec<u8>> {
-        let rgb = cv::bgr_to_rgb(bgr)?;
-        let resized = cv::resize_bilinear(ImageRef::U8(&rgb), MASK_SIDE, MASK_SIDE)?.into_u8()?;
-
-        let input: Vec<f32> = resized
-            .data
-            .iter()
-            .map(|&v| (v as f32 - 127.5) / 127.5)
-            .collect();
-
+    fn infer(&self, input: Vec<f32>) -> OpResult<Vec<f32>> {
         let side = MASK_SIDE as i64;
-        let mut session = match self.session.lock() {
+        let expected = (MASK_SIDE * MASK_SIDE) as usize;
+        let input = PreparedF32Input::new(input);
+        let mut guard = match self.session.lock() {
             Ok(guard) => guard,
             Err(poisoned) => poisoned.into_inner(),
         };
-        let mut run = || -> Result<Vec<f32>, String> {
-            let tensor = TensorRef::<f32>::from_array_view(([1i64, side, side, 3], &input[..]))
-                .map_err(|err| err.to_string())?;
-            let outputs = session
-                .run(ort::inputs![tensor])
-                .map_err(|err| err.to_string())?;
-            if outputs.len() == 0 {
-                return Err("model produced no outputs".to_string());
-            }
-            let (shape, data) = outputs[0]
-                .try_extract_tensor::<f32>()
-                .map_err(|err| err.to_string())?;
-            let expected = (MASK_SIDE * MASK_SIDE) as usize;
-            if data.len() != expected {
-                return Err(format!("unexpected model output shape {shape:?}"));
-            }
-            Ok(data.to_vec())
-        };
-        let data = run()?;
+        let (data, _usage) = guard
+            .run(&self.model_path, MODEL_NAMESPACE, |session| {
+                let (shape, values) = run_f32(session, &input, [1i64, side, side, 3])?;
+                if values.len() != expected {
+                    return Err(SessionRunError::from(MlError::Ort(format!(
+                        "unexpected model output shape {shape:?}"
+                    ))));
+                }
+                Ok(values)
+            })
+            .map_err(|error| error.to_string())?;
+        Ok(data)
+    }
+
+    pub(crate) fn probability_map_u8(&self, bgr: &ImageU8) -> OpResult<Vec<u8>> {
+        if bgr.channels != 3 {
+            return Err(format!(
+                "probability_map_u8: expected a 3-channel image, got {}",
+                bgr.channels
+            ));
+        }
+        let resized = cv::resize_u8(bgr, MASK_SIDE, MASK_SIDE, cv::Interp::Bilinear)?;
+
+        let mut input = vec![0.0f32; resized.data.len()];
+        for (out, px) in input.chunks_exact_mut(3).zip(resized.data.chunks_exact(3)) {
+            out[0] = (px[2] as f32 - 127.5) / 127.5;
+            out[1] = (px[1] as f32 - 127.5) / 127.5;
+            out[2] = (px[0] as f32 - 127.5) / 127.5;
+        }
+
+        let data = self.infer(input)?;
 
         Ok(data
             .iter()

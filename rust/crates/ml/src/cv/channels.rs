@@ -17,19 +17,6 @@ fn require_channels(src: &ImageU8, channels: i32, op: &str) -> OpResult<()> {
     Ok(())
 }
 
-pub(crate) fn bgr_to_rgb(src: &ImageU8) -> OpResult<ImageU8> {
-    require_channels(src, 3, "bgr_to_rgb")?;
-    let mut data = vec![0u8; src.data.len()];
-    super::pointwise(&mut data, 3, &src.data, 3, |data, srcd| {
-        for (out, px) in data.chunks_exact_mut(3).zip(srcd.chunks_exact(3)) {
-            out[0] = px[2];
-            out[1] = px[1];
-            out[2] = px[0];
-        }
-    });
-    ImageU8::new(src.width, src.height, 3, data)
-}
-
 pub(crate) fn gray_to_bgr(src: &ImageU8) -> OpResult<ImageU8> {
     require_channels(src, 1, "gray_to_bgr")?;
     let mut data = vec![0u8; src.data.len() * 3];

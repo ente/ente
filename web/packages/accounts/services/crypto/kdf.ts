@@ -1,4 +1,4 @@
-import { loadCryptoReadyEnteWasm } from "ente-wasm/load";
+import { loadCryptoReadyEnteWasm } from "ente-core-wasm/load";
 
 export const deriveKeyInsufficientMemoryErrorMessage =
     "Failed to derive key (insufficient memory)";

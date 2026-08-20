@@ -25,6 +25,8 @@ class ScannerCropPage extends StatefulWidget {
 class _ScannerCropPageState extends State<ScannerCropPage> {
   static const double _handleRadius = 22;
 
+  static const double _minAreaFraction = 0.01;
+
   Uint8List? _sourceBytes;
   double _aspect = 3 / 4;
   List<Offset> _corners = const [];
@@ -47,10 +49,7 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
     setState(() {
       _sourceBytes = bytes;
       _aspect = page.sourceWidth / page.sourceHeight;
-      _corners = [
-        for (final c in page.quad.corners)
-          Offset(c.dx / ScanQuad.maskSide, c.dy / ScanQuad.maskSide),
-      ];
+      _corners = [...page.quad.corners];
     });
   }
 
@@ -61,12 +60,15 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
     return null;
   }
 
+  ScanQuad get _orderedQuad => orderClockwise(_corners);
+
+  bool get _canSave =>
+      _corners.length == 4 &&
+      isUsableQuad(_orderedQuad.corners, minAreaFraction: _minAreaFraction);
+
   Future<void> _save() async {
     final navigator = Navigator.of(context);
-    final quad = orderClockwise([
-      for (final c in _corners)
-        Offset(c.dx * ScanQuad.maskSide, c.dy * ScanQuad.maskSide),
-    ]);
+    final quad = _orderedQuad;
     await widget.session.updatePage(widget.pageId, quad: quad);
     if (mounted) navigator.pop();
   }
@@ -197,7 +199,7 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
               padding: const EdgeInsets.all(Spacing.xl),
               child: ButtonComponent(
                 label: context.strings.save,
-                onTap: source == null ? null : _save,
+                onTap: source == null || !_canSave ? null : _save,
               ),
             ),
           ],

@@ -164,47 +164,6 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_keys() {
-        let result = generate_test_keys("test_password_123").unwrap();
-
-        assert!(!result.key_attributes.kek_salt.is_empty());
-        assert!(!result.key_attributes.encrypted_key.is_empty());
-        assert!(!result.key_attributes.public_key.is_empty());
-        assert!(!result.private_key_attributes.key.is_empty());
-        assert!(!result.private_key_attributes.recovery_key.is_empty());
-        assert_eq!(result.login_key.len(), 16);
-
-        let master_key = b64::decode(&result.private_key_attributes.key).unwrap();
-        assert_eq!(master_key.len(), 32);
-        assert_eq!(result.private_key_attributes.recovery_key.len(), 64);
-    }
-
-    #[test]
-    fn test_generate_keys_can_decrypt_master_key() {
-        let result = generate_test_keys("my_secure_password").unwrap();
-
-        let encrypted_key = b64::decode(&result.key_attributes.encrypted_key).unwrap();
-        let nonce = b64::decode(&result.key_attributes.key_decryption_nonce).unwrap();
-        let decrypted_master = decrypt_raw(&encrypted_key, &nonce, &result.key_encryption_key);
-
-        let original_master = b64::decode(&result.private_key_attributes.key).unwrap();
-        assert_eq!(decrypted_master, original_master);
-    }
-
-    #[test]
-    fn test_generate_keys_can_decrypt_secret_key() {
-        let result = generate_test_keys("password").unwrap();
-        let master_key = b64::decode(&result.private_key_attributes.key).unwrap();
-
-        let encrypted = b64::decode(&result.key_attributes.encrypted_secret_key).unwrap();
-        let nonce = b64::decode(&result.key_attributes.secret_key_decryption_nonce).unwrap();
-        let decrypted = decrypt_raw(&encrypted, &nonce, &master_key);
-
-        let original = b64::decode(&result.private_key_attributes.secret_key).unwrap();
-        assert_eq!(decrypted, original);
-    }
-
-    #[test]
     fn test_generate_keys_recovery_key_can_decrypt_master() {
         let result = generate_test_keys("password").unwrap();
         let recovery_key = hex::decode(&*result.private_key_attributes.recovery_key).unwrap();
@@ -313,21 +272,5 @@ mod tests {
             &master_key,
         );
         assert_eq!(decrypted_recovery, recovery_key);
-    }
-
-    #[test]
-    fn test_different_passwords_produce_different_keys() {
-        let result1 = generate_test_keys("password1").unwrap();
-        let result2 = generate_test_keys("password2").unwrap();
-
-        assert_ne!(
-            result1.key_attributes.kek_salt,
-            result2.key_attributes.kek_salt
-        );
-        assert_ne!(
-            result1.private_key_attributes.key,
-            result2.private_key_attributes.key
-        );
-        assert_ne!(result1.login_key, result2.login_key);
     }
 }

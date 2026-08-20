@@ -51,10 +51,22 @@ import log from "ente-base/log";
 import { saveAuthToken } from "ente-base/token";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import { Trans } from "react-i18next";
 
-const Page: React.FC = () => {
+export interface VerifyEmailPresentationProps {
+    email: string;
+    resend: "enable" | "sending" | "sent";
+    onSubmit: SingleInputFormProps["onSubmit"];
+    onResend: () => void;
+    onChangeEmail: () => void;
+}
+
+export interface VerifyPageProps {
+    presentation?: ComponentType<VerifyEmailPresentationProps>;
+}
+
+const Page: React.FC<VerifyPageProps> = ({ presentation: Presentation }) => {
     const { logout, showMiniDialog } = useBaseContext();
 
     const [email, setEmail] = useState("");
@@ -182,6 +194,21 @@ const Page: React.FC = () => {
                 }
                 {...{ logout, showMiniDialog }}
             />
+        );
+    }
+
+    if (Presentation) {
+        return (
+            <>
+                <Presentation
+                    email={email}
+                    resend={resend}
+                    onSubmit={onSubmit}
+                    onResend={resendEmail}
+                    onChangeEmail={logout}
+                />
+                <SecondFactorChoice {...secondFactorChoiceProps} />
+            </>
         );
     }
 

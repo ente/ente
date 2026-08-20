@@ -406,10 +406,14 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
 
   Future<void> _toggleLibrarySharing() async {
     if (_controller.isAutomaticSharingEnabled) {
-      await _showFailureIfNeeded(
-        await _controller.disableAutomaticSharing(),
-        _toggleLibrarySharing,
+      final confirmed = await confirmDisableLibrarySharing(
+        context: context,
+        recipientLabel: _recipient.label,
       );
+      if (!confirmed || !mounted) {
+        return;
+      }
+      await _disableLibrarySharing();
       return;
     }
     final role = await showEnableLibrarySharingSheet(
@@ -420,6 +424,13 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
       return;
     }
     await _enableLibrarySharing(role);
+  }
+
+  Future<void> _disableLibrarySharing() async {
+    await _showFailureIfNeeded(
+      await _controller.disableAutomaticSharing(),
+      _disableLibrarySharing,
+    );
   }
 
   Future<void> _enableLibrarySharing(CollectionParticipantRole role) async {

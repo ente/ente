@@ -1,11 +1,35 @@
 use ente_core::b64;
-use ente_core::crypto::{Key, Nonce, PublicKey, SecretKey, blob, sealed, secretbox};
+use ente_core::crypto::{Header, Key, Nonce, PublicKey, SecretKey, blob, sealed, secretbox};
 use md5::{Digest, Md5};
 
 use crate::error::Result;
 
 pub(crate) const SECRETBOX_PAYLOAD_OVERHEAD_BYTES: usize = Nonce::BYTES + secretbox::MAC_BYTES;
-pub(crate) const ASSET_PAYLOAD_OVERHEAD_BYTES: usize = blob::HEADER_BYTES + blob::ABYTES;
+pub(crate) const ASSET_PAYLOAD_OVERHEAD_BYTES: usize = Header::BYTES + blob::ABYTES;
+
+pub fn encrypt_space_root_entity_key(
+    space_root_key_b64: &str,
+    master_key_b64: &str,
+) -> Result<String> {
+    let space_root_key = b64::decode(space_root_key_b64)?;
+    let master_key = b64::decode(master_key_b64)?;
+    Ok(b64::encode(&encrypt_secretbox_payload(
+        &master_key,
+        &space_root_key,
+    )?))
+}
+
+pub fn decrypt_space_root_entity_key(
+    encrypted_key_b64: &str,
+    master_key_b64: &str,
+) -> Result<String> {
+    let encrypted_key = b64::decode(encrypted_key_b64)?;
+    let master_key = b64::decode(master_key_b64)?;
+    Ok(b64::encode(&decrypt_secretbox_payload(
+        &master_key,
+        &encrypted_key,
+    )?))
+}
 
 pub(crate) fn generate_key() -> Vec<u8> {
     Key::generate().as_bytes().to_vec()
@@ -66,10 +90,10 @@ mod tests {
 
     #[test]
     fn secretbox_payload_round_trip() {
-        let key = generate_key();
-        let plaintext = b"hello space";
-        let payload = encrypt_secretbox_payload(&key, plaintext).unwrap();
-        let decrypted = decrypt_secretbox_payload(&key, &payload).unwrap();
+        let key = b64::encode(&generate_key());
+        let plaintext = b64::encode(b"hello space");
+        let payload = encrypt_space_root_entity_key(&plaintext, &key).unwrap();
+        let decrypted = decrypt_space_root_entity_key(&payload, &key).unwrap();
         assert_eq!(decrypted, plaintext);
     }
 

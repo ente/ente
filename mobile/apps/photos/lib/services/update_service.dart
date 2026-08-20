@@ -17,7 +17,7 @@ class UpdateService {
   static const kUpdateAvailableShownTimeKey = "update_available_shown_time_key";
   static const _updateNotificationsEnabledKey = "update_notifications_enabled";
   static const changeLogVersionKey = "update_change_log_key";
-  static const currentChangeLogVersion = 58;
+  static const currentChangeLogVersion = 59;
 
   LatestVersionInfo? _latestVersion;
   final _logger = Logger("UpdateService");

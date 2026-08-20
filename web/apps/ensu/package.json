@@ -14,7 +14,7 @@
         "@tauri-apps/plugin-updater": "2.10.1",
         "@wllama/wllama": "2.4.0",
         "ente-base": "*",
-        "ente-wasm": "*",
+        "ente-core-wasm": "*",
         "idb": "8.0.3",
         "katex": "0.17.0",
         "react-markdown": "10.1.0",

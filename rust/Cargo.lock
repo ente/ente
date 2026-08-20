@@ -2488,6 +2488,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ente-core-wasm"
+version = "0.0.0"
+dependencies = [
+ "ente-accounts",
+ "ente-contacts",
+ "ente-core",
+ "ente-wasm-log",
+ "js-sys",
+ "md-5 0.11.0",
+ "serde",
+ "serde-wasm-bindgen",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "ente-ensu"
 version = "0.0.0"
 dependencies = [
@@ -2606,6 +2622,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ente-paste-wasm"
+version = "0.0.0"
+dependencies = [
+ "ente-paste",
+ "ente-wasm-log",
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "ente-photos"
 version = "0.0.0"
 dependencies = [
@@ -2617,7 +2644,6 @@ dependencies = [
 name = "ente-photos-frb"
 version = "0.0.0"
 dependencies = [
- "ente-accounts",
  "ente-cast",
  "ente-contacts",
  "ente-core",
@@ -2724,31 +2750,6 @@ name = "ente-uniffi-log"
 version = "0.0.0"
 dependencies = [
  "log",
-]
-
-[[package]]
-name = "ente-wasm"
-version = "0.0.0"
-dependencies = [
- "ente-accounts",
- "ente-contacts",
- "ente-core",
- "ente-wasm-log",
- "js-sys",
- "md-5 0.11.0",
- "serde",
- "serde-wasm-bindgen",
- "wasm-bindgen",
- "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "ente-wasm-core"
-version = "0.0.0"
-dependencies = [
- "ente-core",
- "ente-wasm-log",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -11497,18 +11498,18 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.8.2"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b97154e67e32c85465826e8bcc1c59429aaaf107c1e4a9e53c8d8ccd5eff88d0"
+checksum = "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e"
 dependencies = [
  "zeroize_derive",
 ]
 
 [[package]]
 name = "zeroize_derive"
-version = "1.4.3"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85a5b4158499876c763cb03bc4e49185d3cccbabb15b33c627f7884f43db852e"
+checksum = "3c50655cbb0fe3fc43170059e702f1ce5e19b84cec58dc87b037a09935c2f328"
 dependencies = [
  "proc-macro2",
  "quote",

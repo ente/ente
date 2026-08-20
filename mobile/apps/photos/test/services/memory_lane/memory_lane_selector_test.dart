@@ -290,39 +290,4 @@ void main() {
       expect(result["entries"], isNull);
     });
   });
-
-  group("minimum eligible creation time", () {
-    test("returns null when birthdate missing", () {
-      expect(MemoryLaneService.minimumEligibleCreationTimeMicros(null), isNull);
-      expect(MemoryLaneService.minimumEligibleCreationTimeMicros(""), isNull);
-    });
-
-    test("returns null for invalid birthdate string", () {
-      expect(
-        MemoryLaneService.minimumEligibleCreationTimeMicros("invalid"),
-        isNull,
-      );
-    });
-
-    test("computes third birthday cutoff", () {
-      final birthDate = DateTime(2010, 6, 15);
-      final cutoff = MemoryLaneService.minimumEligibleCreationTimeMicros(
-        "2010-06-15",
-      );
-      final expected = DateTime(
-        birthDate.year + 3,
-        birthDate.month,
-        birthDate.day,
-      ).microsecondsSinceEpoch;
-      expect(cutoff, equals(expected));
-    });
-
-    test("clamps day for leap birthdays", () {
-      final cutoff = MemoryLaneService.minimumEligibleCreationTimeMicros(
-        "2012-02-29",
-      );
-      final expected = DateTime(2015, 2, 28).microsecondsSinceEpoch;
-      expect(cutoff, equals(expected));
-    });
-  });
 }

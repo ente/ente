@@ -1,7 +1,7 @@
 import type { Remote } from "comlink";
 import { inWorker } from "ente-base/env";
 import { ComlinkWorker } from "ente-base/worker/comlink-worker";
-import { loadCryptoReadyEnteWasm } from "ente-wasm/load";
+import { loadCryptoReadyEnteWasm } from "ente-core-wasm/load";
 import type { DerivedKey } from "./kdf";
 import * as kdf from "./kdf";
 import type { KDFWorker } from "./kdf.worker";
