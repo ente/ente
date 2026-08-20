@@ -965,7 +965,7 @@ int? _eligibleCreationTimeCutoffMicros(String? birthDateString) {
   final birthDate = DateTime.tryParse(birthDateString ?? "");
   if (birthDate == null) return null;
   final year = birthDate.year + 3;
-  final lastDay = DateTime(year, birthDate.month + 1).day;
+  final lastDay = DateTime(year, birthDate.month + 1, 0).day;
   return DateTime(
     year,
     birthDate.month,
