@@ -5,6 +5,7 @@ import "dart:math" show min;
 import "dart:typed_data" show Uint8List;
 
 import "package:flutter/foundation.dart" show kDebugMode;
+import "package:flutter/widgets.dart" show AppLifecycleState, WidgetsBinding;
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
@@ -361,6 +362,15 @@ class MLService {
     }
     if (!hasGrantedMLConsent) {
       _logger.info("runAllML called without ML consent, skipping");
+      return MlRunDisposition.denied;
+    }
+    // On iOS the main engine may be woken without being resumed; the resume
+    // hook re-triggers ML, so no retry is scheduled here.
+    if (!force &&
+        !isProcessBg &&
+        Platform.isIOS &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      _logger.info("runAllML skipped, app is not resumed");
       return MlRunDisposition.denied;
     }
     final MLMode mode = isLocalGalleryMode
