@@ -711,7 +711,19 @@ Future<void> _homeWidgetSyncPeriodic() async {
 
 Future<void> _scheduleFGSync(String caller) async {
   await _sync(caller);
+  _scheduleNextFGSync();
+}
+
+void _scheduleNextFGSync() {
   Future.delayed(kFGSyncFrequency, () async {
+    final bool isIOSWokenInBackground =
+        Platform.isIOS &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed;
+    if (isIOSWokenInBackground) {
+      _logger.info("Skipping fgSyncCron, app is not resumed");
+      _scheduleNextFGSync();
+      return;
+    }
     unawaited(_scheduleFGSync('fgSyncCron'));
   });
 }
