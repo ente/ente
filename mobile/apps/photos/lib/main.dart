@@ -83,6 +83,9 @@ const kBGPushTimeout = Duration(seconds: 28);
 // leaving margin to drain in-flight work and release the process lock cleanly.
 const kBGTaskMLSelfStopIOS = Duration(seconds: 26);
 const kBGProcessingTaskMLSelfStopIOS = Duration(minutes: 3, seconds: 45);
+// A suspended main engine can still hold the ml lock when a processing window
+// opens; it drains its latched stop within seconds once the process is woken.
+const kBGProcessingTaskMLLockWaitIOS = Duration(seconds: 60);
 const kBGTaskMLSelfStopAndroid = Duration(minutes: 9);
 bool isProcessBg = true;
 bool _stopHearBeat = false;
@@ -248,6 +251,7 @@ Future<void> runBackgroundTask(
   TimeLogger tlog, {
   String mode = 'normal',
   Duration? mlSelfStop,
+  Duration? mlLockWait,
 }) async {
   // Created at task start so a stop that fires before ML begins stays
   // latched for the whole task.
@@ -271,7 +275,7 @@ Future<void> runBackgroundTask(
       "[BG TASK] No recent foreground activity, proceeding with background work",
     );
 
-    await _runMinimally(taskId, tlog, mlRunControl);
+    await _runMinimally(taskId, tlog, mlRunControl, mlLockWait);
   } finally {
     mlSelfStopTimer.cancel();
   }
@@ -281,6 +285,7 @@ Future<void> _runMinimally(
   String taskId,
   TimeLogger tlog,
   MlRunControl mlRunControl,
+  Duration? mlLockWait,
 ) async {
   try {
     final PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -375,6 +380,7 @@ Future<void> _runMinimally(
           final disposition = await MLService.instance.runAllML(
             force: false,
             control: mlRunControl,
+            lockWait: mlLockWait,
           );
           _logger.info("[BG TASK] ML run disposition: ${disposition.name}");
         } finally {

@@ -343,6 +343,7 @@ class MLService {
   Future<MlRunDisposition> runAllML({
     bool force = false,
     MlRunControl? control,
+    Duration? lockWait,
   }) async {
     final runControl = control ?? MlRunControl();
     // A latched stop always wins, force included.
@@ -386,6 +387,7 @@ class MLService {
             control: runControl,
           );
         },
+        lockWait: lockWait,
       );
       if (attempt != MlLockAttempt.ran) {
         _logger.info("runAllML denied the ml process lock (${attempt.name})");
@@ -495,18 +497,25 @@ class MLService {
   Future<MlLockAttempt> _runExclusiveWithControl(
     MlOperation operation,
     MlRunControl control,
-    Future<void> Function() body,
-  ) async {
+    Future<void> Function() body, {
+    Duration? lockWait,
+  }) async {
     _runControls.add(control);
     try {
-      return await MlProcessLock.instance.tryRunExclusive(operation, () async {
-        _installRunControl(control);
-        try {
-          await body();
-        } finally {
-          _clearRunControl(control);
-        }
-      }, background: isProcessBg);
+      return await MlProcessLock.instance.tryRunExclusive(
+        operation,
+        () async {
+          _installRunControl(control);
+          try {
+            await body();
+          } finally {
+            _clearRunControl(control);
+          }
+        },
+        background: isProcessBg,
+        waitForAvailability: lockWait != null,
+        waitDeadline: lockWait,
+      );
     } finally {
       _runControls.remove(control);
     }

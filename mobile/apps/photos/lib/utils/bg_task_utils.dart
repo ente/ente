@@ -32,6 +32,7 @@ void callbackDispatcher() {
           taskName,
           tlog,
           mlSelfStop: BgTaskUtils.mlSelfStopFor(taskName),
+          mlLockWait: BgTaskUtils.mlLockWaitFor(taskName),
         ).timeout(
           BgTaskUtils.taskTimeoutFor(taskName),
           onTimeout: () async {
@@ -87,6 +88,11 @@ class BgTaskUtils {
     return taskName == iOSBackgroundProcessingTask
         ? kBGProcessingTaskMLSelfStopIOS
         : kBGTaskMLSelfStopIOS;
+  }
+
+  static Duration? mlLockWaitFor(String taskName) {
+    if (!Platform.isIOS || taskName != iOSBackgroundProcessingTask) return null;
+    return kBGProcessingTaskMLLockWaitIOS;
   }
 
   static const _kProcessingTaskStartTimeKey = "ios_processing_task_start_time";
