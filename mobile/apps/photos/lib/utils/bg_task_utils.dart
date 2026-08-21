@@ -18,6 +18,7 @@ void callbackDispatcher() {
     // Deferred error construction: an eagerly created Future.error with no
     // listener surfaces as an unhandled exception even on success.
     String? failure = "Task didn't run";
+    bool timedOut = false;
     final prefs = await SharedPreferences.getInstance();
 
     await runWithLogs(() async {
@@ -36,20 +37,27 @@ void callbackDispatcher() {
         ).timeout(
           BgTaskUtils.taskTimeoutFor(taskName),
           onTimeout: () async {
+            timedOut = true;
             BgTaskUtils.$.warning(
               "TLE, committing seppuku for taskID: $taskName",
             );
             await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
           },
         );
-        BgTaskUtils.$.info('Task run successful $tlog');
-        failure = null;
+        if (timedOut) {
+          failure = "Task timed out";
+        } else {
+          BgTaskUtils.$.info('Task run successful $tlog');
+          failure = null;
+        }
       } catch (e) {
         BgTaskUtils.$.warning('Task error: $e');
         await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
         failure = e.toString();
       } finally {
-        if (Platform.isIOS &&
+        // A timed-out run may still be draining, so its marker stays set.
+        if (!timedOut &&
+            Platform.isIOS &&
             taskName == BgTaskUtils.iOSBackgroundProcessingTask) {
           await BgTaskUtils.clearProcessingTaskStart(prefs);
         }
@@ -128,7 +136,8 @@ class BgTaskUtils {
     $.warning(
       "Previous background processing task (started "
       "${DateTime.fromMicrosecondsSinceEpoch(startTimeMicroseconds)}) did not "
-      "finish cleanly; the process was likely killed on OS expiration",
+      "finish cleanly; it timed out while draining or the process was killed "
+      "on OS expiration",
     );
   }
 
