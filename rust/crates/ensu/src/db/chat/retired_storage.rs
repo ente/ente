@@ -16,9 +16,10 @@ pub(super) fn cleanup(db_path: &Path) {
 
 #[cfg(test)]
 mod tests {
-    use crate::db::chat::ChatDb;
-    use crate::db::crypto::KEY_BYTES;
+    use ente_core::crypto::Key;
     use uuid::Uuid;
+
+    use crate::db::chat::ChatDb;
 
     #[test]
     fn sqlite_open_removes_retired_storage() {
@@ -34,7 +35,7 @@ mod tests {
             std::fs::write(root.join(name), b"obsolete").unwrap();
         }
 
-        ChatDb::open_sqlite_with_defaults(root.join("llmchat.db"), vec![1u8; KEY_BYTES]).unwrap();
+        ChatDb::open_sqlite_with_defaults(root.join("llmchat.db"), vec![1u8; Key::BYTES]).unwrap();
 
         assert!(!root.join("llmchat_sync.db").exists());
         assert!(!root.join("llmchat_sync.db-wal").exists());

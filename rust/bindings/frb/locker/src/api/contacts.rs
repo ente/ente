@@ -492,17 +492,6 @@ impl ContactsCtx {
             .map_err(Into::into)
     }
 
-    pub async fn get_attachment_encrypted(
-        &self,
-        attachment_type: AttachmentType,
-        attachment_id: String,
-    ) -> Result<Vec<u8>, ContactsError> {
-        self.inner
-            .get_attachment_encrypted(attachment_type.into(), &attachment_id)
-            .await
-            .map_err(Into::into)
-    }
-
     pub async fn delete_attachment(
         &self,
         contact_id: String,
@@ -515,28 +504,11 @@ impl ContactsCtx {
             .map_err(Into::into)
     }
 
-    pub async fn set_profile_picture(
-        &self,
-        contact_id: String,
-        profile_picture: Vec<u8>,
-    ) -> Result<ContactRecord, ContactsError> {
-        self.set_attachment(contact_id, AttachmentType::ProfilePicture, profile_picture)
-            .await
-    }
-
     pub async fn get_profile_picture(&self, contact_id: String) -> Result<Vec<u8>, ContactsError> {
         self.inner
             .get_profile_picture(&contact_id)
             .await
             .map_err(Into::into)
-    }
-
-    pub async fn delete_profile_picture(
-        &self,
-        contact_id: String,
-    ) -> Result<ContactRecord, ContactsError> {
-        self.delete_attachment(contact_id, AttachmentType::ProfilePicture)
-            .await
     }
 
     pub async fn legacy_kits(&self) -> Result<Vec<LegacyKit>, ContactsError> {

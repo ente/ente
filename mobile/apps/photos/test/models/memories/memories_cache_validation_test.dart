@@ -1,10 +1,11 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:intl/date_symbol_data_local.dart";
-import "package:ente_strings/ente_strings.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/location/location.dart";
+import "package:photos/models/memories/clip_memory.dart";
 import "package:photos/models/memories/filler_memory.dart";
 import "package:photos/models/memories/memories_cache.dart";
 import "package:photos/models/memories/memory.dart";
@@ -158,6 +159,14 @@ void main() {
         activity: PeopleActivity.hiking,
       )..title = "Stored people title";
 
+      final clipMemory = ClipMemory(
+        buildMemories([711, 712]),
+        110,
+        120,
+        ClipMemoryType.goldenHourPortraits,
+        id: "clip-typed",
+      )..title = "Stored clip title";
+
       final originals = <SmartMemory>[
         tripMemory,
         timeMemory,
@@ -166,6 +175,7 @@ void main() {
         fillerMemory,
         onThisDayMemory,
         peopleMemory,
+        clipMemory,
       ];
 
       for (final original in originals) {

@@ -2,6 +2,7 @@ use std::any::Any;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use ente_assets::AssetStore;
+use ente_ml::indexing::set_ml_execution_config;
 use ente_ml::scan;
 use flutter_rust_bridge::frb;
 
@@ -35,14 +36,6 @@ pub struct RustPlaneLayout {
 }
 
 #[derive(Clone, Debug)]
-pub struct RustScanOptions {
-    pub color_mode_override: Option<RustColorMode>,
-    pub max_pixels: Option<u32>,
-    /// Must be a multiple of 90.
-    pub rotation_degrees: i32,
-}
-
-#[derive(Clone, Debug)]
 pub struct RustReprocessOptions {
     /// Same space as `RustScanResult.quad`: the decoded source image.
     pub quad: RustQuad,
@@ -50,7 +43,6 @@ pub struct RustReprocessOptions {
     pub rotation_degrees: i32,
     pub color_mode: RustColorMode,
     pub max_pixels: Option<u32>,
-    pub jpeg_quality: Option<u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -90,13 +82,9 @@ pub struct ScannerSession {
 impl ScannerSession {
     pub async fn create(assets_dir: String) -> Result<ScannerSession, RustScanError> {
         let store = AssetStore::new(assets_dir);
-        let model_path = scan::ensure_segmentation_model(&store)
-            .await
-            .map_err(|error| RustScanError {
-                kind: RustScanErrorKind::ModelLoad,
-                message: error.to_string(),
-            })?;
+        let model_path = scan::ensure_segmentation_model(&store).await?;
         catch_panic(|| {
+            set_ml_execution_config(true);
             let inner = scan::ScannerSession::new(&model_path.to_string_lossy())?;
             Ok(ScannerSession { inner })
         })
@@ -111,13 +99,16 @@ impl ScannerSession {
         height: u32,
         rotation_degrees: i32,
     ) -> Result<Option<RustQuad>, RustScanError> {
-        catch_panic(AssertUnwindSafe(|| {
-            let rgba = bgra_to_rgba(&bgra, row_stride, width, height)?;
-            let quad = self
-                .inner
-                .live_detect_rgba(&rgba, width, height, rotation_degrees)?;
+        catch_panic(|| {
+            let row_stride = u32::try_from(row_stride).map_err(|_| RustScanError {
+                kind: RustScanErrorKind::InvalidInput,
+                message: format!("negative row stride {row_stride}"),
+            })?;
+            let quad =
+                self.inner
+                    .live_detect_bgra(&bgra, row_stride, width, height, rotation_degrees)?;
             Ok(quad.map(to_api_quad))
-        }))
+        })
     }
 
     /// Quad semantics as in [`Self::live_detect_bgra`].
@@ -129,7 +120,7 @@ impl ScannerSession {
         layout: RustPlaneLayout,
         rotation_degrees: i32,
     ) -> Result<Option<RustQuad>, RustScanError> {
-        catch_panic(AssertUnwindSafe(|| {
+        catch_panic(|| {
             let quad = self.inner.live_detect_yuv420(
                 &y,
                 &u,
@@ -138,20 +129,18 @@ impl ScannerSession {
                 rotation_degrees,
             )?;
             Ok(quad.map(to_api_quad))
-        }))
+        })
     }
 
     pub fn process_capture(
         &self,
         image_bytes: Vec<u8>,
-        options: RustScanOptions,
+        max_pixels: Option<u32>,
     ) -> Result<RustScanResult, RustScanError> {
-        catch_panic(AssertUnwindSafe(|| {
-            let result = self
-                .inner
-                .process_capture(&image_bytes, &to_scan_options(&options))?;
+        catch_panic(|| {
+            let result = self.inner.process_capture(&image_bytes, max_pixels)?;
             Ok(to_api_scan_result(result))
-        }))
+        })
     }
 
     pub fn reprocess(
@@ -159,12 +148,12 @@ impl ScannerSession {
         source_bytes: Vec<u8>,
         options: RustReprocessOptions,
     ) -> Result<RustScanResult, RustScanError> {
-        catch_panic(AssertUnwindSafe(|| {
+        catch_panic(|| {
             let result = self
                 .inner
                 .reprocess(&source_bytes, &to_reprocess_options(&options))?;
             Ok(to_api_scan_result(result))
-        }))
+        })
     }
 }
 
@@ -185,55 +174,6 @@ fn panic_message(panic: &Box<dyn Any + Send>) -> String {
     } else {
         "unknown panic".to_string()
     }
-}
-
-fn bgra_to_rgba(
-    bgra: &[u8],
-    row_stride: i32,
-    width: u32,
-    height: u32,
-) -> Result<Vec<u8>, RustScanError> {
-    let invalid = |message: String| RustScanError {
-        kind: RustScanErrorKind::InvalidInput,
-        message,
-    };
-    if width == 0 || height == 0 {
-        return Err(invalid(format!("empty frame: {width}x{height}")));
-    }
-    let width = width as usize;
-    let height = height as usize;
-    let row_stride = usize::try_from(row_stride)
-        .map_err(|_| invalid(format!("negative row stride {row_stride}")))?;
-    let row_bytes = width
-        .checked_mul(4)
-        .ok_or_else(|| invalid(format!("width {width} overflows")))?;
-    if row_stride < row_bytes {
-        return Err(invalid(format!(
-            "row stride {row_stride} is less than {row_bytes} bytes per row"
-        )));
-    }
-    let required = (height - 1)
-        .checked_mul(row_stride)
-        .and_then(|bulk| bulk.checked_add(row_bytes))
-        .ok_or_else(|| invalid(format!("frame {width}x{height} overflows")))?;
-    if bgra.len() < required {
-        return Err(invalid(format!(
-            "buffer holds {} bytes, {required} required",
-            bgra.len()
-        )));
-    }
-
-    let mut rgba = vec![0u8; height * row_bytes];
-    for (row_index, rgba_row) in rgba.chunks_exact_mut(row_bytes).enumerate() {
-        let bgra_row = &bgra[row_index * row_stride..row_index * row_stride + row_bytes];
-        for (rgba_px, bgra_px) in rgba_row.chunks_exact_mut(4).zip(bgra_row.chunks_exact(4)) {
-            rgba_px[0] = bgra_px[2];
-            rgba_px[1] = bgra_px[1];
-            rgba_px[2] = bgra_px[0];
-            rgba_px[3] = bgra_px[3];
-        }
-    }
-    Ok(rgba)
 }
 
 impl From<scan::ScanError> for RustScanError {
@@ -258,21 +198,12 @@ fn to_plane_layout(layout: RustPlaneLayout) -> scan::PlaneLayout {
     }
 }
 
-fn to_scan_options(options: &RustScanOptions) -> scan::ScanOptions {
-    scan::ScanOptions {
-        color_mode_override: options.color_mode_override.map(to_color_mode),
-        max_pixels: options.max_pixels,
-        rotation_degrees: options.rotation_degrees,
-    }
-}
-
 fn to_reprocess_options(options: &RustReprocessOptions) -> scan::ReprocessOptions {
     scan::ReprocessOptions {
         quad: to_quad(options.quad),
         rotation_degrees: options.rotation_degrees,
         color_mode: to_color_mode(options.color_mode),
         max_pixels: options.max_pixels,
-        jpeg_quality: options.jpeg_quality,
     }
 }
 

@@ -1,12 +1,19 @@
 import { AccountsPageContents } from "ente-accounts/components/layouts/centered-paper";
-import { LoginContents } from "ente-accounts/components/LoginContents";
+import {
+    LoginContents,
+    type LoginPresentationProps,
+} from "ente-accounts/components/LoginContents";
 import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
 import { LoadingIndicator } from "ente-base/components/loaders";
 import { customAPIHost } from "ente-base/origins";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";
 
-const Page: React.FC = () => {
+export interface LoginPageProps {
+    presentation?: React.ComponentType<LoginPresentationProps>;
+}
+
+const Page: React.FC<LoginPageProps> = ({ presentation: Presentation }) => {
     const [loading, setLoading] = useState(true);
     const [host, setHost] = useState<string | undefined>(undefined);
 
@@ -22,6 +29,8 @@ const Page: React.FC = () => {
 
     return loading ? (
         <LoadingIndicator />
+    ) : Presentation ? (
+        <LoginContents {...{ host, onSignUp }} presentation={Presentation} />
     ) : (
         <AccountsPageContents>
             <LoginContents {...{ host, onSignUp }} />

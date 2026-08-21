@@ -42,20 +42,7 @@ func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []
 		return stacktrace.Propagate(err, "Failed to verify fileOwnership")
 	}
 
-	trashedOrDeletedFileIDs, err := c.TrashRepo.GetFilesInTrashOrDeleted(ctx, userID, fileIDs)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to check trash state")
-	}
-	if len(trashedOrDeletedFileIDs) > 0 {
-		log.WithFields(log.Fields{
-			"user_id":                     userID,
-			"collection_id":               cID,
-			"trashed_or_deleted_file_ids": trashedOrDeletedFileIDs,
-		}).Warn("attempt to add trashed or deleted files to collection")
-		return stacktrace.Propagate(&ente.ErrFileInTrash, "")
-	}
-
-	err = c.CollectionRepo.AddFiles(cID, collectionOwnerID, files, filesOwnerID)
+	err = c.CollectionRepo.AddFiles(ctx.Request.Context(), cID, collectionOwnerID, files, filesOwnerID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -87,7 +74,7 @@ func (c *CollectionController) RestoreFiles(ctx *gin.Context, userID int64, cID 
 			return stacktrace.Propagate(ente.ErrPermissionDenied, "")
 		}
 	}
-	err = c.CollectionRepo.RestoreFiles(ctx, userID, cID, files)
+	err = c.CollectionRepo.RestoreFiles(ctx.Request.Context(), userID, cID, files)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -132,21 +119,7 @@ func (c *CollectionController) MoveFiles(ctx *gin.Context, req ente.MoveFilesReq
 		return stacktrace.Propagate(err, "Failed to verify fileOwnership")
 	}
 
-	trashedOrDeletedFileIDs, err := c.TrashRepo.GetFilesInTrashOrDeleted(ctx, userID, fileIDs)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to check trash state")
-	}
-	if len(trashedOrDeletedFileIDs) > 0 {
-		log.WithFields(log.Fields{
-			"user_id":                     userID,
-			"from_collection_id":          req.FromCollectionID,
-			"to_collection_id":            req.ToCollectionID,
-			"trashed_or_deleted_file_ids": trashedOrDeletedFileIDs,
-		}).Warn("attempt to move trashed or deleted files between collections")
-		return stacktrace.Propagate(&ente.ErrFileInTrash, "")
-	}
-
-	err = c.CollectionRepo.MoveFiles(ctx, req.ToCollectionID, req.FromCollectionID, req.Files, userID, userID)
+	err = c.CollectionRepo.MoveFiles(ctx.Request.Context(), req.ToCollectionID, req.FromCollectionID, req.Files, userID, userID)
 	return stacktrace.Propagate(err, "")
 }
 

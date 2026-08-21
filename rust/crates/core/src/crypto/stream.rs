@@ -15,10 +15,6 @@ use crate::crypto::{Error, Header, Key, Result};
 const _: () = assert!(Key::BYTES == UpstreamKey::BYTES);
 const _: () = assert!(Header::BYTES == UpstreamHeader::BYTES);
 
-pub const HEADER_BYTES: usize = Header::BYTES;
-
-pub const KEY_BYTES: usize = Key::BYTES;
-
 pub const ABYTES: usize = Stream::ABYTES;
 
 pub const ENCRYPTION_CHUNK_SIZE: usize = 4 * 1024 * 1024;
@@ -676,7 +672,7 @@ mod tests {
         assert_eq!(plaintext.len(), decrypted.len());
         assert_eq!(plaintext, decrypted);
 
-        let ciphertext_len = encrypted.len() - HEADER_BYTES;
+        let ciphertext_len = encrypted.len() - Header::BYTES;
         assert_eq!(ciphertext_len, estimate_encrypted_size(plaintext.len()));
     }
 
@@ -735,7 +731,7 @@ mod tests {
             encryptor.finish().expect("finish failed");
         }
 
-        assert_eq!(encrypted.len(), HEADER_BYTES + ABYTES);
+        assert_eq!(encrypted.len(), Header::BYTES + ABYTES);
 
         let reader = Cursor::new(&encrypted);
         let mut decryptor =
@@ -877,8 +873,8 @@ mod tests {
 
     #[test]
     fn test_constants_match_upstream() {
-        assert_eq!(HEADER_BYTES, 24);
-        assert_eq!(KEY_BYTES, 32);
+        assert_eq!(Header::BYTES, 24);
+        assert_eq!(Key::BYTES, 32);
         assert_eq!(ABYTES, 17);
     }
 
@@ -1243,7 +1239,7 @@ mod tests {
                     encryptor.write(&plaintext).expect("write failed");
                     encryptor.finish().expect("finish failed");
                 }
-                let stream_ciphertext_len = enc_stream.len() - HEADER_BYTES;
+                let stream_ciphertext_len = enc_stream.len() - Header::BYTES;
 
                 let expected = estimate_encrypted_size(size);
 

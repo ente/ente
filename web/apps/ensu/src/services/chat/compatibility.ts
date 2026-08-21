@@ -1,4 +1,3 @@
-import { base64ToBytes } from "@/services/base64";
 import { isTauriRuntime } from "@/services/tauri-runtime";
 import { removeKV } from "ente-base/kv";
 import log from "ente-base/log";
@@ -8,7 +7,7 @@ import {
     secureStorageGet,
     secureStorageSet,
 } from "../secure-storage";
-import { decryptAttachmentBytes, encryptAttachmentBytes } from "./attachments";
+import { decryptAttachmentBytes, encryptAttachmentBytes } from "./crypto";
 import {
     attachmentBytesExists,
     chatDb,
@@ -219,7 +218,9 @@ const localStorageStore = (): BrowserStore => {
             parsed.messages ?? [],
             (parsed.attachmentBytes ?? []).map(({ id, data }) => ({
                 id,
-                data: base64ToBytes(data),
+                data: Uint8Array.from(atob(data), (value) =>
+                    value.charCodeAt(0),
+                ),
             })),
         );
     } catch (error) {

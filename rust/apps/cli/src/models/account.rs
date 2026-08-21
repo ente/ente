@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
-use zeroize::Zeroize;
+use zeroize::ZeroizeOnDrop;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Account {
@@ -61,8 +61,7 @@ impl Account {
     }
 }
 
-#[derive(Serialize, Deserialize, Zeroize)]
-#[zeroize(drop)]
+#[derive(Serialize, Deserialize, ZeroizeOnDrop)]
 pub struct AccountSecrets {
     pub token: Vec<u8>,
     pub master_key: Vec<u8>,

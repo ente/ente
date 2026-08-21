@@ -1,7 +1,7 @@
 name: photos
 description: ente photos application
 
-version: 1.3.62+2158
+version: 1.3.63+2158
 publish_to: none
 
 resolution: workspace
@@ -47,7 +47,7 @@ dependencies:
   ente_crypto_api:
     path: ../../packages/ente_crypto_api
   ente_feature_flag:
-    path: plugins/ente_feature_flag
+    path: ../../packages/feature_flag
   ente_icons:
     path: ../../packages/ente_icons
   ente_install_source:
@@ -124,7 +124,8 @@ dependencies:
   http: 1.6.0
   hugeicons: 1.1.7
   image: 4.7.0
-  in_app_purchase: 3.2.1
+  in_app_purchase: 3.3.0
+  in_app_purchase_storekit: 0.4.11+1
   intl: 0.20.2
   just_audio: 0.10.5
   latlong2: 0.9.1
@@ -285,6 +286,7 @@ flutter:
   assets:
     - assets/
     - assets/rituals/
+    - assets/memory-music/
     - assets/rewind_badges/
     - assets/video-editor/
     - assets/image-editor/

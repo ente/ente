@@ -23,14 +23,30 @@ import { isHTTP4xxError, isHTTPErrorWithStatus } from "ente-base/http";
 import log from "ente-base/log";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+    type ComponentType,
+} from "react";
 import { Trans } from "react-i18next";
+
+export interface TwoFactorRecoverPresentationProps {
+    onSubmit: SingleInputFormProps["onSubmit"];
+    onNoRecoveryKey: () => void;
+    onBack: () => void;
+}
 
 export interface RecoverPageProps {
     twoFactorType: TwoFactorType;
+    presentation?: ComponentType<TwoFactorRecoverPresentationProps>;
 }
 
-const Page: React.FC<RecoverPageProps> = ({ twoFactorType }) => {
+const Page: React.FC<RecoverPageProps> = ({
+    twoFactorType,
+    presentation: Presentation,
+}) => {
     const { logout, showMiniDialog, onGenericError } = useBaseContext();
 
     const [sessionID, setSessionID] = useState<string | undefined>(undefined);
@@ -58,6 +74,10 @@ const Page: React.FC<RecoverPageProps> = ({ twoFactorType }) => {
             }),
         [showMiniDialog],
     );
+
+    function handleNoRecoveryKey() {
+        showContactSupportDialog();
+    }
 
     useEffect(() => {
         void (async () => {
@@ -117,6 +137,16 @@ const Page: React.FC<RecoverPageProps> = ({ twoFactorType }) => {
 
     if (!handleSubmit) {
         return <LoadingIndicator />;
+    }
+
+    if (Presentation) {
+        return (
+            <Presentation
+                onSubmit={handleSubmit}
+                onNoRecoveryKey={handleNoRecoveryKey}
+                onBack={router.back}
+            />
+        );
     }
 
     return (

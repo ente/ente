@@ -391,6 +391,41 @@ class SearchService {
     }
   }
 
+  Future<List<GenericSearchResult>> getLocalFileIDsSearchResults(
+    String query,
+    Set<String> localFileIDs,
+  ) async {
+    if (!isLocalGalleryMode || localFileIDs.isEmpty) {
+      return [];
+    }
+
+    try {
+      final files = (await getAllFilesForSearch())
+          .where((file) => localFileIDs.contains(file.localID))
+          .toList();
+      if (files.isEmpty) {
+        return [];
+      }
+
+      return [
+        GenericSearchResult(
+          ResultType.file,
+          query.trim(),
+          files,
+          hierarchicalSearchFilter: TopLevelGenericFilter(
+            filterName: query.trim(),
+            occurrence: kMostRelevantFilter,
+            filterResultType: ResultType.file,
+            matchedUploadedIDs: filesToUploadedFileIDs(files),
+          ),
+        ),
+      ];
+    } catch (e, s) {
+      _logger.severe("Failed to search by local file IDs", e, s);
+      return [];
+    }
+  }
+
   Future<List<EnteFile>> getAllFilesForHierarchicalSearch() async {
     if (_cachedFilesFuture != null &&
         _cachedFilesForHierarchicalSearch != null) {

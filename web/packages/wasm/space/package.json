@@ -11,7 +11,7 @@
     "module": "./index.ts",
     "types": "./index.ts",
     "scripts": {
-        "build": "wasm-pack build ../../../../rust/bindings/wasm/space --target bundler --out-dir ../../../../web/packages/wasm/space/pkg"
+        "build": "wasm-pack build ../../../../rust/bindings/wasm/space --target bundler --out-dir ../../../../web/packages/wasm/space/pkg --no-pack"
     },
     "devDependencies": {
         "ente-build-config": "*",

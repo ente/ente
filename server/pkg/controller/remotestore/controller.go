@@ -99,7 +99,7 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		DisableCFWorker: false,
 		// Disabling this still leaves multipart enabled for internal users.
 		EnableMobMultiPart: true,
-		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions | ente.CastSessionsV2 | ente.DeferredMultipartChecksums | ente.VideoStreaming,
+		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions | ente.CastSessionsV2 | ente.DeferredMultipartChecksums | ente.VideoStreaming | ente.LibrarySharing,
 		CastUrl:            viper.GetString("apps.cast"),
 		EmbedUrl:           viper.GetString("apps.embed-albums"),
 		CustomDomainCNAME:  viper.GetString("apps.custom-domain.cname"),

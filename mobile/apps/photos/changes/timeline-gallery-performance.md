@@ -1,1 +1,0 @@
-- Improved timeline gallery scrolling performance for large galleries. (@r4khul)

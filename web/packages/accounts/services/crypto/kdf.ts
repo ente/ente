@@ -1,5 +1,3 @@
-import { loadCryptoReadyEnteWasm } from "ente-wasm/load";
-
 export const deriveKeyInsufficientMemoryErrorMessage =
     "Failed to derive key (insufficient memory)";
 
@@ -53,7 +51,7 @@ export const deriveKey = async (
     memLimit: number,
 ) => {
     try {
-        const wasm = await loadCryptoReadyEnteWasm();
+        const wasm = await import("ente-core-wasm");
         return wasm.auth_derive_kek(password, saltB64, memLimit, opsLimit);
     } catch (error) {
         throw toPlainError(error);
@@ -70,7 +68,7 @@ const normalizeDerivedKey = (result: WasmDerivedKey): DerivedKey => ({
 export const deriveSensitiveKey = async (
     password: string,
 ): Promise<DerivedKey> => {
-    const wasm = await loadCryptoReadyEnteWasm();
+    const wasm = await import("ente-core-wasm");
     try {
         return normalizeDerivedKey(wasm.auth_generate_sensitive_kek(password));
     } catch (error) {
@@ -81,7 +79,7 @@ export const deriveSensitiveKey = async (
 export const deriveInteractiveKey = async (
     password: string,
 ): Promise<DerivedKey> => {
-    const wasm = await loadCryptoReadyEnteWasm();
+    const wasm = await import("ente-core-wasm");
     try {
         return normalizeDerivedKey(
             wasm.auth_generate_interactive_kek(password),

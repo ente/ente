@@ -1,6 +1,4 @@
-import "dart:math";
-import "dart:ui";
-
+import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/core/event_bus.dart";
@@ -11,7 +9,6 @@ import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/hidden_service.dart";
-import "package:photos/ui/common/bottom_shadow.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
@@ -40,26 +37,7 @@ class _CleanupHiddenFromDevicePageState
   final _selectedFiles = SelectedFiles();
 
   @override
-  void initState() {
-    super.initState();
-    _selectedFiles.addListener(_onSelectionChange);
-  }
-
-  @override
-  void dispose() {
-    _selectedFiles.removeListener(_onSelectionChange);
-    super.dispose();
-  }
-
-  void _onSelectionChange() {
-    setState(() {});
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final filesAreSelected = _selectedFiles.files.isNotEmpty;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final deleteAllButtonHeight = 40.0 + max(bottomPadding, 6.0) + 12.0;
     final appBar = GalleryAppBarWidget.sliverConfig(
       GalleryType.cleanupHiddenFromDevice,
       context.strings.deleteOnDeviceFiles,
@@ -90,24 +68,6 @@ class _CleanupHiddenFromDevicePageState
               alignment: Alignment.bottomCenter,
               children: [
                 gallery,
-                const BottomShadowWidget(offsetDy: 20),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  height: filesAreSelected ? 0 : deleteAllButtonHeight,
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 100),
-                    opacity: filesAreSelected ? 0.0 : 1.0,
-                    curve: Curves.easeIn,
-                    child: IgnorePointer(
-                      ignoring: filesAreSelected,
-                      child: SafeArea(
-                        minimum: const EdgeInsets.only(bottom: 6),
-                        child: _deleteAllButton(context),
-                      ),
-                    ),
-                  ),
-                ),
                 FileSelectionOverlayBar(
                   GalleryType.cleanupHiddenFromDevice,
                   _selectedFiles,
@@ -115,46 +75,28 @@ class _CleanupHiddenFromDevicePageState
               ],
             ),
           ),
+          floatingActionButton: ListenableBuilder(
+            listenable: _selectedFiles,
+            builder: (context, _) {
+              if (_selectedFiles.files.isNotEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: FABComponent(
+                  label: context.strings.deleteAll,
+                  variant: FABComponentVariant.destructive,
+                  onTap: _deleteAll,
+                ),
+              );
+            },
+          ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+          floatingActionButtonAnimator:
+              FloatingActionButtonAnimator.noAnimation,
         ),
       ),
-    );
-  }
-
-  Widget _deleteAllButton(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: InkWell(
-            onTap: _deleteAll,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Color.fromRGBO(255, 101, 101, 0.2),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8.0,
-                      horizontal: 16,
-                    ),
-                    child: Text(
-                      context.strings.deleteAll,
-                      style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                        color: const Color.fromRGBO(255, 101, 101, 1),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

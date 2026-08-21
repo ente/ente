@@ -366,9 +366,17 @@ class ClipMemory extends SmartMemory {
     int firstDateToShow,
     int lastDateToShow,
     this.clipMemoryType, {
+    String? id,
     super.firstCreationTime,
     super.lastCreationTime,
-  }) : super(memories, MemoryType.clip, '', firstDateToShow, lastDateToShow);
+  }) : super(
+         memories,
+         MemoryType.clip,
+         '',
+         firstDateToShow,
+         lastDateToShow,
+         id: id,
+       );
 
   @override
   String createTitle(StringsLocalizations locals, String languageCode) {

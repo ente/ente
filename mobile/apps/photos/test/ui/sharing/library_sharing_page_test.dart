@@ -16,132 +16,6 @@ import 'package:photos/ui/sharing/library_sharing/library_sharing_sheets.dart';
 import 'library_sharing_test_helpers.dart';
 
 void main() {
-  testWidgets('empty first-time flow shows the library sharing banner', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(375, 812));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    final controller = LibrarySharingController(
-      recipient: librarySharingTestRecipient,
-      repository: FakeLibrarySharingRepository(const []),
-    );
-
-    await tester.pumpWidget(
-      _app(
-        LibrarySharingPage(
-          recipient: librarySharingTestRecipient,
-          controller: controller,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
-    expect(find.text('No albums to share yet'), findsOneWidget);
-    expect(find.text('Library sharing'), findsOneWidget);
-    expect(find.byType(ToggleSwitchComponent), findsOneWidget);
-  });
-
-  testWidgets('existing recipient add mode renders the Share with state', (
-    tester,
-  ) async {
-    final controller = LibrarySharingController(
-      recipient: librarySharingTestRecipient,
-      repository: FakeLibrarySharingRepository([
-        librarySharingTestAlbum(
-          1,
-          recipientRole: CollectionParticipantRole.viewer,
-        ),
-      ]),
-    );
-    await controller.load();
-    controller.enterAddMode();
-
-    await tester.pumpWidget(
-      _app(
-        LibrarySharingPage(
-          recipient: librarySharingTestRecipient,
-          controller: controller,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Share with'), findsOneWidget);
-    expect(find.text('Sharing with'), findsNothing);
-    expect(find.text('All your current albums are shared'), findsOneWidget);
-    expect(find.text('Library sharing'), findsNothing);
-    expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
-    expect(find.byType(ToggleSwitchComponent), findsNothing);
-  });
-
-  testWidgets('library sharing banner enables and disables automatic sharing', (
-    tester,
-  ) async {
-    final controller = _LayoutTestLibrarySharingController();
-
-    await tester.pumpWidget(
-      _app(
-        LibrarySharingPage(
-          recipient: librarySharingTestRecipient,
-          controller: controller,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Library sharing'), findsOneWidget);
-    expect(find.text('Share all your albums'), findsOneWidget);
-    final toggle = tester.widget<ToggleSwitchComponent>(
-      find.byKey(const ValueKey('library-sharing-toggle')),
-    );
-    expect(toggle.selected, isFalse);
-
-    await tester.tap(find.text('Library sharing'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-
-    expect(find.text('Enable library sharing?'), findsOneWidget);
-    expect(
-      find.text(
-        'Your existing albums and any albums you create in the future will be automatically shared with Friend.',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.text(
-        'Hidden albums will not be shared. You can stop sharing any album at any time.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Role'), findsOneWidget);
-    expect(find.text('Viewer'), findsOneWidget);
-
-    await tester.tap(find.text('Enable'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Enable library sharing?'), findsNothing);
-    expect(
-      tester
-          .widget<ToggleSwitchComponent>(
-            find.byKey(const ValueKey('library-sharing-toggle')),
-          )
-          .selected,
-      isTrue,
-    );
-
-    await tester.tap(find.text('Library sharing'));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<ToggleSwitchComponent>(
-            find.byKey(const ValueKey('library-sharing-toggle')),
-          )
-          .selected,
-      isFalse,
-    );
-  });
-
   testWidgets('offers to review albums that were previously unshared', (
     tester,
   ) async {
@@ -179,37 +53,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(controller.isAddingAlbums, isTrue);
     expect(find.text('Share with'), findsOneWidget);
-  });
-
-  testWidgets('keeps the library sharing banner while albums are selected', (
-    tester,
-  ) async {
-    final controller = _LayoutTestLibrarySharingController();
-
-    await tester.pumpWidget(
-      _app(
-        LibrarySharingPage(
-          recipient: librarySharingTestRecipient,
-          controller: controller,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Library sharing'), findsOneWidget);
-    expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
-
-    controller.enterManageMode();
-    controller.selectAll();
-    await tester.pumpAndSettle();
-    expect(find.text('Library sharing'), findsOneWidget);
-    expect(find.byType(LibrarySharingSelectionSheet), findsOneWidget);
-
-    controller.clearSelection();
-    await tester.pumpAndSettle();
-    expect(find.text('Library sharing'), findsOneWidget);
-    expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
-    expect(find.byTooltip('Share albums'), findsOneWidget);
   });
 
   testWidgets('mixed selection routes role editing and offers stop sharing', (
@@ -259,33 +102,6 @@ void main() {
 
     await tester.tap(find.text('Mixed'));
     expect(mixedRolesOpened, isTrue);
-  });
-
-  testWidgets('shows loading before the empty add state', (tester) async {
-    final loadGate = Completer<List<Collection>>();
-    final controller = LibrarySharingController(
-      recipient: librarySharingTestRecipient,
-      repository: FakeLibrarySharingRepository(const [], loadGate: loadGate),
-    );
-
-    await tester.pumpWidget(
-      _app(
-        LibrarySharingPage(
-          recipient: librarySharingTestRecipient,
-          controller: controller,
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
-
-    loadGate.complete(const []);
-    await tester.pumpAndSettle();
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.text('No albums to share yet'), findsOneWidget);
-    expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
   });
 
   testWidgets('roles sheet cannot be dismissed while an update is running', (

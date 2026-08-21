@@ -199,7 +199,7 @@ dependencies {
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
     // Custom WebGPU/XNNPACK build required by Rust ML, which dynamically
     // loads libonnxruntime.so.
-    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.28.0-r3@aar'
+    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.28.1-r1@aar'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'

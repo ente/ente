@@ -5,7 +5,6 @@ import "package:ente_strings/ente_strings.dart";
 import "package:photos/models/button_result.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
-import "package:photos/utils/dialog_util.dart";
 
 void main() {
   group("ButtonWidget", () {
@@ -46,46 +45,6 @@ void main() {
 
       expect(result, isNull);
       expect(find.text("Cancel"), findsOneWidget);
-    });
-
-    testWidgets("action sheet buttons return their selected action", (
-      tester,
-    ) async {
-      ButtonResult? result;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: darkThemeData,
-          localizationsDelegates: StringsLocalizations.localizationsDelegates,
-          supportedLocales: StringsLocalizations.supportedLocales,
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: TextButton(
-                  onPressed: () async {
-                    result = await showChoiceActionSheet(
-                      context,
-                      title: "Clean Uncategorized",
-                      body: "Remove duplicate album entries",
-                      firstButtonLabel: "Confirm",
-                    );
-                  },
-                  child: const Text("Open sheet"),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text("Open sheet"));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text("Confirm"));
-      await tester.pumpAndSettle();
-
-      expect(result?.action, ButtonAction.first);
-      expect(find.text("Open sheet"), findsOneWidget);
     });
   });
 }

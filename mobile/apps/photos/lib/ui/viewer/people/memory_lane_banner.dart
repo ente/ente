@@ -8,7 +8,6 @@ import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
 import "package:photos/models/ml/face/face.dart";
-import "package:photos/models/ml/face/person.dart";
 import "package:photos/services/memory_lane/memory_lane_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
@@ -207,14 +206,14 @@ class _SparklePainter extends CustomPainter {
 
 class MemoryLaneBannerSection extends StatefulWidget {
   final bool showBanner;
-  final PersonEntity person;
+  final String personId;
   final VoidCallback? onTap;
   final Future<MemoryLanePersonTimeline?> Function(String personId)?
   loadTimeline;
 
   const MemoryLaneBannerSection({
     required this.showBanner,
-    required this.person,
+    required this.personId,
     this.onTap,
     this.loadTimeline,
     super.key,
@@ -240,8 +239,7 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
   @override
   void didUpdateWidget(covariant MemoryLaneBannerSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final bool personChanged =
-        widget.person.remoteID != oldWidget.person.remoteID;
+    final bool personChanged = widget.personId != oldWidget.personId;
     final bool bannerActivated =
         widget.showBanner && !oldWidget.showBanner && widget.onTap != null;
     final bool tapEnabled =
@@ -265,8 +263,8 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
     try {
       final loader =
           widget.loadTimeline ?? MemoryLaneService.instance.getTimeline;
-      final timeline = await loader(widget.person.remoteID);
-      if (!mounted || timeline == null || !timeline.isReady) {
+      final timeline = await loader(widget.personId);
+      if (!mounted || timeline == null || !timeline.isEligible) {
         _markThumbnailResolved();
         return;
       }
@@ -291,8 +289,7 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
       });
     } catch (error, stackTrace) {
       _logger.warning(
-        "Failed to load Memory Lane banner thumbnail for "
-        "${widget.person.remoteID}",
+        "Failed to load Memory Lane banner thumbnail for ${widget.personId}",
         error,
         stackTrace,
       );
@@ -336,7 +333,7 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
     } catch (error, stackTrace) {
       _logger.warning(
         "Failed to fetch face crop for banner "
-        "person=${widget.person.remoteID} entry=${entry.faceId}",
+        "person=${widget.personId} entry=${entry.faceId}",
         error,
         stackTrace,
       );

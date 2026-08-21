@@ -14,11 +14,6 @@ import { ensureOk, publicRequestHeaders } from "ente-base/http";
 import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";
 import { removeAuthToken } from "ente-base/token";
-import {
-    Key,
-    secretboxDecryptCombined,
-    secretboxEncryptCombined,
-} from "ente-wasm-core";
 import { spaceBootstrapAuthHeaders } from "services/spaceBootstrapAuth";
 import {
     clearSpaceSecureSessionStorage,
@@ -72,31 +67,6 @@ const SpaceEntityKeyResponse = z.object({
 type SpaceEntityKeyResponse = z.infer<typeof SpaceEntityKeyResponse>;
 
 const spaceEntityKeyHeaderBytes = 24;
-
-const masterKeyToSecretboxKey = async (masterKey: string) =>
-    Key.fromBytes(await fromB64(masterKey));
-
-const encryptSpaceRootEntityKey = async (
-    spaceRootKey: string,
-    masterKey: string,
-) =>
-    toB64(
-        await secretboxEncryptCombined(
-            await fromB64(spaceRootKey),
-            await masterKeyToSecretboxKey(masterKey),
-        ),
-    );
-
-const decryptSpaceRootEntityKey = async (
-    encryptedKey: string,
-    masterKey: string,
-) =>
-    toB64(
-        await secretboxDecryptCombined(
-            await fromB64(encryptedKey),
-            await masterKeyToSecretboxKey(masterKey),
-        ),
-    );
 
 const splitSpaceEntityKey = async (encryptedKey: string) => {
     const combined = await fromB64(encryptedKey);
@@ -296,8 +266,10 @@ export const getOrCreateSpaceRootKey = async (
     masterKey: string,
     authToken: string,
 ) => {
+    const { decryptSpaceRootEntityKey, encryptSpaceRootEntityKey } =
+        await import("ente-space-wasm");
     const candidate = await generateKey();
-    const encryptedKey = await encryptSpaceRootEntityKey(candidate, masterKey);
+    const encryptedKey = encryptSpaceRootEntityKey(candidate, masterKey);
     const splitKey = await splitSpaceEntityKey(encryptedKey);
     const res = await fetch(await apiURL("/user-entity/key/ensure"), {
         method: "POST",

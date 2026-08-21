@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -49,25 +48,16 @@ func PanicRecover() gin.HandlerFunc {
 					}
 				}
 
-				httpRequest, _ := httputil.DumpRequest(c.Request, false)
-				requestData := strings.Split(string(httpRequest), "\r\n")
-				for idx, header := range requestData {
-					current := strings.Split(header, ":")
-					if current[0] == "Authorization" || current[0] == "X-Auth-Token" || current[0] == "X-Space-Session-Token" || current[0] == "X-Ente-Space-Link-Auth" {
-						requestData[idx] = current[0] + ": *"
-					}
-				}
-				reqDataWithoutAuthHeaders := strings.Join(requestData, "\r\n")
-				var logWithAttributes = log.WithFields(log.Fields{
-					"request_data": reqDataWithoutAuthHeaders,
-					"req_id":       requestid.Get(c),
-					"req_uri":      c.Request.URL.Path,
-					"panic":        err,
-					"broken_pipe":  brokenPipe,
-					"stack":        string(debug.Stack()),
+				logWithAttributes := log.WithFields(log.Fields{
+					"req_id":      requestid.Get(c),
+					"req_method":  c.Request.Method,
+					"req_uri":     c.Request.URL.Path,
+					"panic":       err,
+					"broken_pipe": brokenPipe,
+					"stack":       string(debug.Stack()),
 				})
 				if brokenPipe {
-					log.Warn("Panic Recovery: Broken pipe")
+					logWithAttributes.Warn("Panic Recovery: Broken pipe")
 					// If the connection is dead, we can't write a status to it.
 					c.Error(err.(error)) // nolint: errcheck
 					c.Abort()

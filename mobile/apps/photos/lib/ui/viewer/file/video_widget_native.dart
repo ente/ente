@@ -46,6 +46,8 @@ class VideoWidgetNative extends StatefulWidget {
   final FullScreenRequestCallback? playbackCallback;
   final Function(bool)? shouldDisableScroll;
   final bool isFromMemories;
+  final bool isActive;
+  final bool? isAudioMutedOverride;
   final void Function()? onStreamChange;
   final PlaylistData? playlistData;
   final bool selectedPreview;
@@ -57,6 +59,8 @@ class VideoWidgetNative extends StatefulWidget {
     this.playbackCallback,
     this.shouldDisableScroll,
     this.isFromMemories = false,
+    required this.isActive,
+    this.isAudioMutedOverride,
     required this.onStreamChange,
     super.key,
     this.playlistData,
@@ -113,7 +117,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     resumeVideoSubscription = Bus.instance.on<ResumeVideoEvent>().listen((
       event,
     ) {
-      _controller?.play();
+      if (widget.isActive) _controller?.play();
     });
     if (!widget.isFromMemories) {
       _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
@@ -158,6 +162,17 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     );
   }
 
+  @override
+  void didUpdateWidget(covariant VideoWidgetNative oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive != widget.isActive) {
+      unawaited(_syncPlayback());
+    }
+    if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {
+      unawaited(_applyVolume());
+    }
+  }
+
   Future<void> setVideoSource() async {
     if (_filePath == null) {
       _logger.info('Stop video player, file path is null');
@@ -169,10 +184,8 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       type: VideoSourceType.file,
     );
     await _controller?.loadVideo(videoSource);
-    if (!widget.isFromMemories) {
-      await _controller?.setVolume(localSettings.isMuted() ? 0.0 : 1.0);
-    }
-    await _controller?.play();
+    await _applyVolume();
+    await _syncPlayback();
 
     Bus.instance.fire(SeekbarTriggeredEvent(position: 0));
   }
@@ -379,7 +392,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                               }
                             },
                             onLongPressUp: () {
-                              if (widget.isFromMemories) {
+                              if (widget.isFromMemories && widget.isActive) {
                                 widget.playbackCallback?.call(
                                   true,
                                   FullScreenRequestReason.userInteraction,
@@ -590,10 +603,8 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
 
   Future<void> _onPlaybackReady() async {
     if (_isPlaybackReady.value) return;
-    if (!widget.isFromMemories) {
-      await _controller!.setVolume(localSettings.isMuted() ? 0.0 : 1.0);
-    }
-    await _controller!.play();
+    await _applyVolume();
+    await _syncPlayback();
     final durationInSeconds = durationToSeconds(duration) ?? 10;
     widget.onFinalFileLoad?.call(memoryDuration: durationInSeconds);
     _isPlaybackReady.value = true;
@@ -601,9 +612,30 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
 
   void _onPlaybackEnded() async {
     await _controller?.stop();
-    if (localSettings.shouldLoopVideo()) {
+    if (widget.isActive && localSettings.shouldLoopVideo()) {
       Bus.instance.fire(SeekbarTriggeredEvent(position: 0));
       await _controller?.play();
+    }
+  }
+
+  Future<void> _applyVolume() async {
+    final controller = _controller;
+    if (controller == null) return;
+    final mutedOverride = widget.isAudioMutedOverride;
+    if (mutedOverride != null) {
+      await controller.setVolume(mutedOverride ? 0.0 : 1.0);
+    } else if (!widget.isFromMemories) {
+      await controller.setVolume(localSettings.isMuted() ? 0.0 : 1.0);
+    }
+  }
+
+  Future<void> _syncPlayback() async {
+    final controller = _controller;
+    if (controller == null) return;
+    if (widget.isActive) {
+      await controller.play();
+    } else {
+      await controller.pause();
     }
   }
 

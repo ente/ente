@@ -8,8 +8,7 @@ import { retryAsyncOperation } from "ente-base/http";
 import log from "ente-base/log";
 import { apiOrigin } from "ente-base/origins";
 import { savedAuthToken } from "ente-base/token";
-import type { ContactsCtxHandle } from "ente-wasm";
-import { loadEnteWasm } from "ente-wasm/load";
+import type { ContactsCtxHandle } from "ente-core-wasm";
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import {
     saveContactDisplayRecords,
@@ -373,7 +372,7 @@ const ensureContactsCtxOpen = async ({
         if (!isCurrentSession(sessionKey, generation)) {
             return;
         }
-        const { contacts_open_ctx } = await loadEnteWasm();
+        const { contacts_open_ctx } = await import("ente-core-wasm");
         const openedCtx = (await contacts_open_ctx({
             baseUrl: baseURL,
             authToken,

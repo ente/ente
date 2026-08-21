@@ -1,1 +1,0 @@
-- Fixed the Free Up Space screen remaining open without a success confirmation after files were deleted.

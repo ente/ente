@@ -1,5 +1,32 @@
-import Page_ from "ente-accounts/pages/two-factor/recover";
+import { RecoverTwoFactorForm } from "@/components/auth/RecoveryForm";
+import { PhotosAuthShell } from "@/components/PhotosAuthShell";
+import { featureFlags } from "@/featureFlags";
+import AccountsTwoFactorRecoverPage, {
+    type TwoFactorRecoverPresentationProps,
+} from "ente-accounts/pages/two-factor/recover";
+import type React from "react";
 
-const Page = () => <Page_ twoFactorType="passkey" />;
+function RecoverTwoFactorPresentation(
+    props: TwoFactorRecoverPresentationProps,
+): React.JSX.Element {
+    return (
+        <PhotosAuthShell contentWidth={420}>
+            <RecoverTwoFactorForm {...props} />
+        </PhotosAuthShell>
+    );
+}
 
-export default Page;
+function PasskeyRecoverPage(): React.JSX.Element {
+    if (!featureFlags.enableNewPhotosAuthFlow) {
+        return <AccountsTwoFactorRecoverPage twoFactorType="passkey" />;
+    }
+
+    return (
+        <AccountsTwoFactorRecoverPage
+            twoFactorType="passkey"
+            presentation={RecoverTwoFactorPresentation}
+        />
+    );
+}
+
+export default PasskeyRecoverPage;

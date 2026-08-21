@@ -16,6 +16,10 @@ type CreateFileUrl struct {
 	EncryptedShareKey     *string `json:"encryptedShareKey,omitempty"`
 }
 
+func (r *CreateFileUrl) Validate() error {
+	return validatePublicLinkKDFParams(r.KdfMemLimit, r.KdfOpsLimit)
+}
+
 type UpdateFileUrl struct {
 	LinkID          string `json:"linkID" binding:"required"`
 	FileID          int64  `json:"fileID" binding:"required"`

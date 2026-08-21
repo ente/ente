@@ -61,7 +61,8 @@ func (c *Controller) ChangePassword(ctx *gin.Context, userID int64, request ente
 	if disableErr := c.PasskeyController.RemovePasskey2FA(contact.UserID); disableErr != nil {
 		return nil, stacktrace.Propagate(disableErr, "failed to disable passkey")
 	}
-	resp, err := c.UserCtrl.UpdateSrpAndKeyAttributes(ctx, contact.UserID, request.UpdateSrp, false)
+	logOutAllSessions := request.UpdateSrp.LogOutOtherDevices == nil || *request.UpdateSrp.LogOutOtherDevices
+	resp, err := c.UserCtrl.RecoverSrpAndKeyAttributes(ctx, contact.UserID, request.UpdateSrp, logOutAllSessions)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}

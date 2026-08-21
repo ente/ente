@@ -310,6 +310,11 @@ impl RequestBuilder {
         Self(self.0.body(body))
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub fn credentials_include(self) -> Self {
+        Self(self.0.fetch_credentials_include())
+    }
+
     pub async fn send(self) -> Result<Response, Error> {
         Ok(Response(self.0.send().await?))
     }

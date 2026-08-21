@@ -1,9 +1,7 @@
-mod arith;
 mod bilateral;
 mod canny;
 mod channels;
 mod contours;
-mod convert;
 mod draw;
 mod filter;
 pub(crate) mod image;
@@ -18,49 +16,29 @@ mod warp;
 
 use rayon::prelude::*;
 
-use self::image::{Image, ImageRef};
-
 pub(crate) type OpResult<T> = Result<T, String>;
 
-pub(crate) use arith::{
-    add_f32_scalar, add_weighted_f32, exp_f32, log_f32, magnitude_f32, max_f32_scalar,
-    min_f32_scalar, multiply_f32, multiply_f32_scalar, subtract_f32, subtract_f32_scalar,
-};
 pub(crate) use bilateral::bilateral_filter_u8;
 pub(crate) use canny::canny;
-pub(crate) use channels::{bgr_to_gray, bgr_to_rgb, gray_to_bgr, merge_u8, split_u8};
+pub(crate) use channels::{bgr_to_gray, gray_to_bgr, merge_u8, split_u8};
 pub(crate) use contours::find_contours;
-pub(crate) use convert::{f32_to_u8, u8_to_f32};
 pub(crate) use draw::fill_poly;
 pub(crate) use filter::{box_filter_f32, gaussian_blur_u8};
 pub(crate) use lab::{bgr_to_lab, lab_to_bgr};
 pub(crate) use masking::{
-    bitwise_and_u8, copy_to_masked, count_non_zero, in_range_u8, threshold_binary_f32,
-    threshold_binary_u8,
+    bitwise_and_u8, copy_to_masked, count_non_zero, in_range_u8, threshold_binary_u8,
 };
 pub(crate) use morph::{morphology_close, morphology_erode, morphology_open};
+pub(crate) use resize::{Interp, resize_f32, resize_u8};
 pub(crate) use stats::{
-    hist_256_f32, hist_256_u8, mean_f32, mean_u8c3_masked, min_max_loc_f32, percentile_f32, sum_f32,
+    hist_256_f32, hist_256_u8, mean_f32, mean_u8c3_masked, min_max_loc_f32, percentile_f32,
+    percentile_pair_f32,
 };
 pub(crate) use structuring::ellipse_kernel;
 pub(crate) use transform::rotate_u8;
 pub(crate) use warp::warp_perspective;
 
-use resize::Interp;
-
-pub(crate) fn resize_bilinear(src: ImageRef<'_>, width: i32, height: i32) -> OpResult<Image> {
-    resize::resize(src, width, height, Interp::Bilinear)
-}
-
-pub(crate) fn resize_area(src: ImageRef<'_>, width: i32, height: i32) -> OpResult<Image> {
-    resize::resize(src, width, height, Interp::Area)
-}
-
-pub(crate) fn resize_bicubic(src: ImageRef<'_>, width: i32, height: i32) -> OpResult<Image> {
-    resize::resize(src, width, height, Interp::Bicubic)
-}
-
-const PARALLEL_MIN_PIXELS: usize = 65_536;
+pub(crate) const PARALLEL_MIN_ELEMS: usize = 200_000;
 const PIXELS_PER_CHUNK: usize = 65_536;
 
 pub(crate) fn pointwise<T: Sync, U: Send>(
@@ -70,7 +48,7 @@ pub(crate) fn pointwise<T: Sync, U: Send>(
     src_stride: usize,
     f: impl Fn(&mut [U], &[T]) + Send + Sync,
 ) {
-    if out.len() / out_stride.max(1) < PARALLEL_MIN_PIXELS {
+    if out.len() < PARALLEL_MIN_ELEMS {
         f(out, src);
         return;
     }
@@ -88,7 +66,7 @@ pub(crate) fn pointwise3<T: Sync, V: Sync, U: Send>(
     b_stride: usize,
     f: impl Fn(&mut [U], &[T], &[V]) + Send + Sync,
 ) {
-    if out.len() / out_stride.max(1) < PARALLEL_MIN_PIXELS {
+    if out.len() < PARALLEL_MIN_ELEMS {
         f(out, a, b);
         return;
     }

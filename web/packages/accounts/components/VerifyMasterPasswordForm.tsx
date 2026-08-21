@@ -10,7 +10,19 @@ import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/Passwor
 import log from "ente-base/log";
 import { useFormik } from "formik";
 import { t } from "i18next";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ComponentType } from "react";
+
+export interface VerifyMasterPasswordPresentationProps {
+    userEmail: string;
+    password: string;
+    passwordError: string | undefined;
+    isSubmitting: boolean;
+    submitButtonTitle: string;
+    onPasswordChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onSubmit: React.SubmitEventHandler<HTMLFormElement>;
+}
 
 export interface VerifyMasterPasswordFormProps {
     userEmail: string;
@@ -27,6 +39,7 @@ export interface VerifyMasterPasswordFormProps {
         keyAttributes: KeyAttributes,
         password: string,
     ) => void;
+    presentation?: ComponentType<VerifyMasterPasswordPresentationProps>;
 }
 
 export const VerifyMasterPasswordForm: React.FC<
@@ -38,6 +51,7 @@ export const VerifyMasterPasswordForm: React.FC<
     getKeyAttributes,
     onVerify,
     submitButtonTitle,
+    presentation: Presentation,
 }) => {
     const [showPassword, setShowPassword] = useState(false);
 
@@ -138,6 +152,20 @@ export const VerifyMasterPasswordForm: React.FC<
 
         onVerify(key, kek, keyAttributes, password);
     };
+
+    if (Presentation) {
+        return (
+            <Presentation
+                userEmail={userEmail}
+                password={formik.values.password}
+                passwordError={formik.errors.password}
+                isSubmitting={formik.isSubmitting}
+                submitButtonTitle={submitButtonTitle}
+                onPasswordChange={formik.handleChange}
+                onSubmit={formik.handleSubmit}
+            />
+        );
+    }
 
     return (
         <form onSubmit={formik.handleSubmit}>

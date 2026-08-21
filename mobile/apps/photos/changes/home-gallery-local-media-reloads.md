@@ -1,1 +1,0 @@
-- Fixed home gallery lag caused by unnecessary reloads after local media changes.

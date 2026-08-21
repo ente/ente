@@ -291,6 +291,23 @@ fn decode_b64_field(value: &str) -> Result<Vec<u8>, WasmSpaceError> {
         .map_err(Into::into)
 }
 
+#[wasm_bindgen(js_name = encryptSpaceRootEntityKey)]
+pub fn encrypt_space_root_entity_key(
+    space_root_key_b64: &str,
+    master_key_b64: &str,
+) -> Result<String, WasmSpaceError> {
+    ente_space::encrypt_space_root_entity_key(space_root_key_b64, master_key_b64)
+        .map_err(Into::into)
+}
+
+#[wasm_bindgen(js_name = decryptSpaceRootEntityKey)]
+pub fn decrypt_space_root_entity_key(
+    encrypted_key_b64: &str,
+    master_key_b64: &str,
+) -> Result<String, WasmSpaceError> {
+    ente_space::decrypt_space_root_entity_key(encrypted_key_b64, master_key_b64).map_err(Into::into)
+}
+
 fn utf8_field(bytes: Vec<u8>, field: &str) -> Result<String, WasmSpaceError> {
     String::from_utf8(bytes).map_err(|err| {
         ente_space::SpaceError::InvalidInput(format!("invalid {field} utf8: {err}")).into()

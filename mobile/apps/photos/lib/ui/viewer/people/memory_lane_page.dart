@@ -49,6 +49,23 @@ const LinearGradient _memoryLaneBackgroundGradient = LinearGradient(
   stops: [0.0, 0.3, 0.52, 0.74, 1.0],
 );
 
+@visibleForTesting
+int wholeYearsBetween(DateTime start, DateTime end) {
+  final startDate = DateTime(start.year, start.month, start.day);
+  final endDate = DateTime(end.year, end.month, end.day);
+  if (endDate.isBefore(startDate)) return 0;
+
+  int years = endDate.year - startDate.year;
+  final lastDay = DateTime(endDate.year, startDate.month + 1, 0).day;
+  final anniversary = DateTime(
+    endDate.year,
+    startDate.month,
+    startDate.day.clamp(1, lastDay),
+  );
+  if (endDate.isBefore(anniversary)) years--;
+  return years;
+}
+
 class _MemoryLanePageState extends State<MemoryLanePage>
     with TickerProviderStateMixin {
   static const _frameInterval = Duration(milliseconds: 800);
@@ -92,9 +109,8 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   int _currentCaptionValue = 0;
   _CaptionType _currentCaptionType = _CaptionType.yearsAgo;
   int _maxCaptionDigits = 1;
-  bool get _featureEnabled => MemoryLaneService.instance.isFeatureEnabled;
   bool get _showShareAction =>
-      _featureEnabled &&
+      MemoryLaneService.instance.isFeatureEnabled &&
       flagService.enableMemoryShareLink &&
       !isLocalGalleryMode;
 
@@ -106,7 +122,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
           ..addListener(_onCardAnimationTick)
           ..addStatusListener(_onCardAnimationStatusChanged);
     _stackProgressNotifier = ValueNotifier<double>(_stackProgress);
-    if (_featureEnabled) {
+    if (MemoryLaneService.instance.isFeatureEnabled) {
       unawaited(_loadFrames());
     } else {
       _timelineUnavailable = true;
@@ -150,7 +166,9 @@ class _MemoryLanePageState extends State<MemoryLanePage>
       if (!mounted) {
         return;
       }
-      if (timeline == null || !timeline.isReady || timeline.entries.isEmpty) {
+      if (timeline == null ||
+          !timeline.isEligible ||
+          timeline.entries.isEmpty) {
         setState(() {
           _timelineUnavailable = true;
           _allFramesLoaded = true;
@@ -427,21 +445,12 @@ class _MemoryLanePageState extends State<MemoryLanePage>
       final birthDateString = widget.person.data.birthDate!;
       final birthDate = DateTime.tryParse(birthDateString);
       if (birthDate == null) {
-        captionValue = MemoryLaneService.completedYearsBetween(
-          creationDate,
-          DateTime.now(),
-        );
+        captionValue = wholeYearsBetween(creationDate, DateTime.now());
       } else {
-        captionValue = MemoryLaneService.completedYearsBetween(
-          birthDate,
-          creationDate,
-        );
+        captionValue = wholeYearsBetween(birthDate, creationDate);
       }
     } else {
-      captionValue = MemoryLaneService.completedYearsBetween(
-        creationDate,
-        DateTime.now(),
-      );
+      captionValue = wholeYearsBetween(creationDate, DateTime.now());
     }
     final timelineFrame = _TimelineFrame(
       entry: entry,
@@ -592,7 +601,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
 
   @override
   Widget build(BuildContext context) {
-    if (!_featureEnabled) {
+    if (!MemoryLaneService.instance.isFeatureEnabled) {
       final l10n = context.strings;
       final colorScheme = getEnteColorScheme(context);
       final textTheme = getEnteTextTheme(context);
@@ -1118,7 +1127,9 @@ class _MemoryLanePageState extends State<MemoryLanePage>
       final timeline = await MemoryLaneService.instance.getTimeline(
         widget.person.remoteID,
       );
-      if (timeline == null || !timeline.isReady || timeline.entries.isEmpty) {
+      if (timeline == null ||
+          !timeline.isEligible ||
+          timeline.entries.isEmpty) {
         await dialog.hide();
         if (context.mounted) {
           showShortToast(context, l10n.somethingWentWrong);

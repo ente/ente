@@ -4,7 +4,11 @@ import {
     AccountsPageFooter,
     AccountsPageTitle,
 } from "ente-accounts/components/layouts/centered-paper";
-import { RecoveryKey } from "ente-accounts/components/RecoveryKey";
+import {
+    RecoveryKey,
+    RecoveryKeyContents,
+    type RecoveryKeyPresentationProps,
+} from "ente-accounts/components/RecoveryKey";
 import {
     savedJustSignedUp,
     savedOriginalKeyAttributes,
@@ -33,13 +37,22 @@ import { useBaseContext } from "ente-base/context";
 import log from "ente-base/log";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import {
     NewPasswordForm,
     type NewPasswordFormProps,
+    type NewPasswordPresentationProps,
 } from "../components/NewPasswordForm";
 
-const Page: React.FC = () => {
+export interface GeneratePageProps {
+    passwordPresentation?: ComponentType<NewPasswordPresentationProps>;
+    recoveryKeyPresentation?: ComponentType<RecoveryKeyPresentationProps>;
+}
+
+const Page: React.FC<GeneratePageProps> = ({
+    passwordPresentation,
+    recoveryKeyPresentation,
+}) => {
     const { logout, showMiniDialog } = useBaseContext();
 
     const [userEmail, setUserEmail] = useState("");
@@ -93,31 +106,50 @@ const Page: React.FC = () => {
         [userEmail],
     );
 
-    return (
-        <>
-            {openRecoveryKey ? (
-                <RecoveryKey
-                    open={openRecoveryKey}
-                    onClose={() => void router.push(appHomeRoute)}
-                    showMiniDialog={showMiniDialog}
-                />
-            ) : userEmail ? (
-                <AccountsPageContents>
-                    <AccountsPageTitle>{t("set_password")}</AccountsPageTitle>
-                    <NewPasswordForm
-                        userEmail={userEmail}
-                        submitButtonTitle={t("set_password")}
-                        onSubmit={handleSubmit}
-                    />
-                    <Divider sx={{ mt: 1 }} />
-                    <AccountsPageFooter>
-                        <LinkButton onClick={logout}>{t("go_back")}</LinkButton>
-                    </AccountsPageFooter>
-                </AccountsPageContents>
-            ) : (
-                <LoadingIndicator />
-            )}
-        </>
+    function handleRecoveryKeyClose() {
+        void router.push(appHomeRoute);
+    }
+
+    if (openRecoveryKey && recoveryKeyPresentation) {
+        return (
+            <RecoveryKeyContents
+                open
+                onClose={handleRecoveryKeyClose}
+                showMiniDialog={showMiniDialog}
+                presentation={recoveryKeyPresentation}
+            />
+        );
+    }
+
+    return openRecoveryKey ? (
+        <RecoveryKey
+            open
+            onClose={handleRecoveryKeyClose}
+            showMiniDialog={showMiniDialog}
+        />
+    ) : userEmail && passwordPresentation ? (
+        <NewPasswordForm
+            userEmail={userEmail}
+            submitButtonTitle={t("set_password")}
+            onSubmit={handleSubmit}
+            onBack={logout}
+            presentation={passwordPresentation}
+        />
+    ) : userEmail ? (
+        <AccountsPageContents>
+            <AccountsPageTitle>{t("set_password")}</AccountsPageTitle>
+            <NewPasswordForm
+                userEmail={userEmail}
+                submitButtonTitle={t("set_password")}
+                onSubmit={handleSubmit}
+            />
+            <Divider sx={{ mt: 1 }} />
+            <AccountsPageFooter>
+                <LinkButton onClick={logout}>{t("go_back")}</LinkButton>
+            </AccountsPageFooter>
+        </AccountsPageContents>
+    ) : (
+        <LoadingIndicator />
     );
 };
 

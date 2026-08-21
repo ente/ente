@@ -3,6 +3,7 @@
 //! apply when converting frames to RGBA, so YUV and RGBA frames yield the
 //! same quad.
 
+use crate::cv;
 use crate::cv::image::ImageU8;
 
 const YG: i32 = 18997; // round(1.164 * 64 * 256 * 256 / 257)
@@ -50,12 +51,12 @@ fn required_len(rows: i32, row_stride: i32, last_row_bytes: i32) -> usize {
     (rows - 1) as usize * row_stride as usize + last_row_bytes as usize
 }
 
-pub(crate) fn yuv420_to_bgr(
+fn check_layout(
     y_plane: &[u8],
     u_plane: &[u8],
     v_plane: &[u8],
     layout: PlaneLayout,
-) -> Result<ImageU8, String> {
+) -> Result<(i32, i32), String> {
     let PlaneLayout {
         width,
         height,
@@ -104,45 +105,107 @@ pub(crate) fn yuv420_to_bgr(
             v_plane.len()
         ));
     }
+    Ok((cw, ch))
+}
+
+fn plane_to_image(
+    plane: &[u8],
+    width: i32,
+    height: i32,
+    row_stride: i32,
+    pixel_stride: i32,
+) -> Result<ImageU8, String> {
+    let (w, h) = (width as usize, height as usize);
+    let (row_stride, pixel_stride) = (row_stride as usize, pixel_stride as usize);
+    if pixel_stride == 1 && row_stride == w {
+        return ImageU8::new(width, height, 1, plane[..w * h].to_vec());
+    }
+    let mut out = vec![0u8; w * h];
+    for (row, dst) in out.chunks_exact_mut(w).enumerate() {
+        let base = row * row_stride;
+        for (col, sample) in dst.iter_mut().enumerate() {
+            *sample = plane[base + col * pixel_stride];
+        }
+    }
+    ImageU8::new(width, height, 1, out)
+}
+
+pub(crate) fn yuv420_to_bgr(
+    y_plane: &[u8],
+    u_plane: &[u8],
+    v_plane: &[u8],
+    layout: PlaneLayout,
+    width: i32,
+    height: i32,
+) -> Result<ImageU8, String> {
+    let (cw, ch) = check_layout(y_plane, u_plane, v_plane, layout)?;
+
+    let y = plane_to_image(y_plane, layout.width, layout.height, layout.y_row_stride, 1)?;
+    let u = plane_to_image(
+        u_plane,
+        cw,
+        ch,
+        layout.uv_row_stride,
+        layout.uv_pixel_stride,
+    )?;
+    let v = plane_to_image(
+        v_plane,
+        cw,
+        ch,
+        layout.uv_row_stride,
+        layout.uv_pixel_stride,
+    )?;
+
+    let y = cv::resize_u8(&y, width, height, cv::Interp::Bilinear)?;
+    let u = cv::resize_u8(&u, width, height, cv::Interp::Bilinear)?;
+    let v = cv::resize_u8(&v, width, height, cv::Interp::Bilinear)?;
 
     let mut out = vec![0u8; width as usize * height as usize * 3];
-    for row in 0..height {
-        let y_base = row as usize * y_row_stride as usize;
-        let uv_base = (row / 2) as usize * uv_row_stride as usize;
-        let out_base = row as usize * width as usize * 3;
-        for col in 0..width {
-            let uv_index = uv_base + (col / 2) as usize * uv_pixel_stride as usize;
-            let (b, g, r) = yuv_to_bgr(
-                y_plane[y_base + col as usize],
-                u_plane[uv_index],
-                v_plane[uv_index],
-            );
-            let o = out_base + col as usize * 3;
-            out[o] = b;
-            out[o + 1] = g;
-            out[o + 2] = r;
-        }
+    for (pixel, ((&y, &u), &v)) in out
+        .chunks_exact_mut(3)
+        .zip(y.data.iter().zip(u.data.iter()).zip(v.data.iter()))
+    {
+        let (b, g, r) = yuv_to_bgr(y, u, v);
+        pixel[0] = b;
+        pixel[1] = g;
+        pixel[2] = r;
     }
 
     ImageU8::new(width, height, 3, out)
 }
 
-pub(crate) fn rgba_to_bgr(rgba: &[u8], width: i32, height: i32) -> Result<ImageU8, String> {
+pub(crate) fn bgra_to_bgr(
+    bgra: &[u8],
+    row_stride: i32,
+    width: i32,
+    height: i32,
+) -> Result<ImageU8, String> {
     if width <= 0 || height <= 0 {
         return Err(format!("invalid frame size {width}x{height}"));
     }
-    let expected = width as usize * height as usize * 4;
-    if rgba.len() != expected {
+    let row_bytes = width as usize * 4;
+    if row_stride < 0 || (row_stride as usize) < row_bytes {
         return Err(format!(
-            "RGBA buffer has {} bytes, expected {expected} for {width}x{height}",
-            rgba.len()
+            "row stride {row_stride} is smaller than {row_bytes} bytes per row"
         ));
     }
+    let row_stride = row_stride as usize;
+    let needed = required_len(height, row_stride as i32, row_bytes as i32);
+    if bgra.len() < needed {
+        return Err(format!(
+            "BGRA buffer has {} bytes, needs {needed}",
+            bgra.len()
+        ));
+    }
+
     let mut out = vec![0u8; width as usize * height as usize * 3];
-    for (dst, src) in out.chunks_exact_mut(3).zip(rgba.chunks_exact(4)) {
-        dst[0] = src[2];
-        dst[1] = src[1];
-        dst[2] = src[0];
+    for (row, dst_row) in out.chunks_exact_mut(width as usize * 3).enumerate() {
+        let src_row = &bgra[row * row_stride..row * row_stride + row_bytes];
+        for (dst, src) in dst_row.chunks_exact_mut(3).zip(src_row.chunks_exact(4)) {
+            dst[0] = src[0];
+            dst[1] = src[1];
+            dst[2] = src[2];
+        }
     }
     ImageU8::new(width, height, 3, out)
 }
@@ -298,6 +361,8 @@ mod tests {
                 uv_row_stride: ceil_half(width),
                 uv_pixel_stride: 1,
             },
+            width,
+            height,
         )
         .expect("planar conversion");
 
@@ -319,6 +384,8 @@ mod tests {
                 uv_row_stride: cw * 2,
                 uv_pixel_stride: 2,
             },
+            width,
+            height,
         )
         .expect("interleaved conversion");
         assert_eq!(planar, interleaved);
@@ -339,6 +406,8 @@ mod tests {
                 uv_row_stride: cw * 2,
                 uv_pixel_stride: 2,
             },
+            width,
+            height,
         )
         .expect("nv12 conversion");
         assert_eq!(planar, nv12);
@@ -365,6 +434,8 @@ mod tests {
                 uv_row_stride: ceil_half(width),
                 uv_pixel_stride: 1,
             },
+            width,
+            height,
         )
         .expect("tight conversion");
 
@@ -396,6 +467,8 @@ mod tests {
                 uv_row_stride: uv_stride,
                 uv_pixel_stride: 1,
             },
+            width,
+            height,
         )
         .expect("padded conversion");
         assert_eq!(tight, padded);
@@ -410,9 +483,9 @@ mod tests {
             uv_row_stride: 4,
             uv_pixel_stride: 1,
         };
-        assert!(yuv420_to_bgr(&[0u8; 63], &[0u8; 16], &[0u8; 16], layout).is_err());
-        assert!(yuv420_to_bgr(&[0u8; 64], &[0u8; 15], &[0u8; 16], layout).is_err());
-        assert!(yuv420_to_bgr(&[0u8; 64], &[0u8; 16], &[0u8; 15], layout).is_err());
+        assert!(yuv420_to_bgr(&[0u8; 63], &[0u8; 16], &[0u8; 16], layout, 8, 8).is_err());
+        assert!(yuv420_to_bgr(&[0u8; 64], &[0u8; 15], &[0u8; 16], layout, 8, 8).is_err());
+        assert!(yuv420_to_bgr(&[0u8; 64], &[0u8; 16], &[0u8; 15], layout, 8, 8).is_err());
         assert!(
             yuv420_to_bgr(
                 &[0u8; 64],
@@ -421,7 +494,9 @@ mod tests {
                 PlaneLayout {
                     y_row_stride: 4,
                     ..layout
-                }
+                },
+                8,
+                8
             )
             .is_err()
         );
@@ -436,17 +511,36 @@ mod tests {
                     y_row_stride: 1,
                     uv_row_stride: 1,
                     uv_pixel_stride: 1,
-                }
+                },
+                1,
+                1
             )
             .is_ok()
         );
     }
 
     #[test]
-    fn rgba_to_bgr_drops_alpha_and_reverses_channels() {
-        let rgba = vec![1u8, 2, 3, 255, 10, 20, 30, 0];
-        let bgr = rgba_to_bgr(&rgba, 2, 1).expect("conversion");
-        assert_eq!(bgr.data, vec![3, 2, 1, 30, 20, 10]);
-        assert!(rgba_to_bgr(&rgba, 3, 1).is_err());
+    fn bgra_to_bgr_honours_row_padding_and_rejects_bad_geometry() {
+        let stride = 2 * 4 + 4;
+        let mut padded = vec![0xAAu8; stride * 2];
+        let rows = [
+            [[1u8, 2, 3, 255], [10, 20, 30, 0]],
+            [[40u8, 50, 60, 255], [70, 80, 90, 128]],
+        ];
+        for (row, pixels) in rows.iter().enumerate() {
+            for (col, px) in pixels.iter().enumerate() {
+                padded[row * stride + col * 4..row * stride + col * 4 + 4].copy_from_slice(px);
+            }
+        }
+
+        let bgr = bgra_to_bgr(&padded, stride as i32, 2, 2).expect("conversion");
+        assert_eq!(bgr.data, vec![1, 2, 3, 10, 20, 30, 40, 50, 60, 70, 80, 90]);
+
+        let needed = stride + 2 * 4;
+        assert!(bgra_to_bgr(&padded[..needed], stride as i32, 2, 2).is_ok());
+        assert!(bgra_to_bgr(&padded[..needed - 1], stride as i32, 2, 2).is_err());
+        assert!(bgra_to_bgr(&padded, 7, 2, 2).is_err());
+        assert!(bgra_to_bgr(&padded, -8, 2, 2).is_err());
+        assert!(bgra_to_bgr(&padded, stride as i32, 0, 2).is_err());
     }
 }

@@ -24,16 +24,39 @@ import { SlideUpTransition } from "./mui/SlideUpTransition";
 interface DevSettingsProps {
     open: boolean;
     onClose: () => void;
+    presentation?: React.ComponentType<DevSettingsPresentationProps>;
 }
 
-export const DevSettings: React.FC<DevSettingsProps> = ({ open, onClose }) => {
+export interface DevSettingsPresentationProps {
+    open: boolean;
+    onDialogClose: ModalProps["onClose"];
+    value: string;
+    onChange: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+    onBlur: React.FocusEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+    error?: string;
+    isChecking: boolean;
+    canSave: boolean;
+    onSubmit: React.SubmitEventHandler<HTMLFormElement>;
+    onClose: () => void;
+}
+
+export const DevSettings: React.FC<DevSettingsProps> = ({
+    open,
+    onClose,
+    presentation,
+}) => {
     const fullScreen = useIsSmallWidth();
 
     const handleDialogClose: ModalProps["onClose"] = (_, reason: string) => {
         if (reason != "backdropClick") onClose();
     };
 
-    return (
+    return presentation ? (
+        <Contents
+            {...{ open, onClose, presentation }}
+            onDialogClose={handleDialogClose}
+        />
+    ) : (
         <Dialog
             {...{ open, fullScreen }}
             onClose={handleDialogClose}
@@ -41,12 +64,15 @@ export const DevSettings: React.FC<DevSettingsProps> = ({ open, onClose }) => {
             maxWidth="xs"
             fullWidth
         >
-            <Contents {...{ onClose }} />
+            <Contents {...{ open, onClose }} />
         </Dialog>
     );
 };
 
-type ContentsProps = Pick<DevSettingsProps, "onClose">;
+type ContentsProps = Pick<
+    DevSettingsProps,
+    "open" | "onClose" | "presentation"
+> & { onDialogClose?: ModalProps["onClose"] };
 
 const Contents: React.FC<ContentsProps> = (props) => {
     // This boundary reloads the stored origin on every dialog open.
@@ -55,11 +81,20 @@ const Contents: React.FC<ContentsProps> = (props) => {
         string | undefined
     >();
 
-    useEffect(
-        () =>
-            void getKVS("apiOrigin").then((o) => setInitialAPIOrigin(o ?? "")),
-        [],
-    );
+    useEffect(() => {
+        if (!props.open) {
+            setInitialAPIOrigin(undefined);
+            return;
+        }
+
+        let cancelled = false;
+        void getKVS("apiOrigin").then((origin) => {
+            if (!cancelled) setInitialAPIOrigin(origin ?? "");
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [props.open]);
 
     if (initialAPIOrigin === undefined) return <></>;
 
@@ -68,22 +103,27 @@ const Contents: React.FC<ContentsProps> = (props) => {
 
 type FormProps = ContentsProps & { initialAPIOrigin: string };
 
-const Form: React.FC<FormProps> = ({ initialAPIOrigin, onClose }) => {
+const Form: React.FC<FormProps> = ({
+    open,
+    initialAPIOrigin,
+    onClose,
+    onDialogClose,
+    presentation: Presentation,
+}) => {
     const formik = useFormik({
         initialValues: { apiOrigin: initialAPIOrigin },
         validate: ({ apiOrigin }) => {
-            try {
-                // Constructing the URL performs validation.
-                // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                apiOrigin && new URL(apiOrigin);
-            } catch {
+            if (apiOrigin && !isValidEndpoint(apiOrigin, !!Presentation)) {
                 return { apiOrigin: "Invalid endpoint" };
             }
             return {};
         },
         onSubmit: async (values, { setSubmitting, setErrors }) => {
+            const apiOrigin = Presentation
+                ? values.apiOrigin.trim()
+                : values.apiOrigin;
             try {
-                await updateAPIOrigin(values.apiOrigin);
+                await updateAPIOrigin(apiOrigin);
             } catch (e) {
                 setErrors({
                     apiOrigin: e instanceof Error ? e.message : String(e),
@@ -97,10 +137,32 @@ const Form: React.FC<FormProps> = ({ initialAPIOrigin, onClose }) => {
     });
 
     // Auto-focus marks this field touched before submission.
-    const hasError =
-        formik.submitCount > 0 &&
+    const hasError = Boolean(
+        (Presentation || formik.submitCount > 0) &&
         formik.touched.apiOrigin &&
-        !!formik.errors.apiOrigin;
+        formik.errors.apiOrigin,
+    );
+
+    if (Presentation) {
+        const trimmedValue = formik.values.apiOrigin.trim();
+        const canSave =
+            !formik.isSubmitting &&
+            (!trimmedValue || isValidEndpoint(trimmedValue, true)) &&
+            !(trimmedValue == "" && initialAPIOrigin == "");
+
+        return (
+            <Presentation
+                {...{ open, canSave, onClose }}
+                onDialogClose={onDialogClose}
+                value={formik.values.apiOrigin}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                error={hasError ? String(formik.errors.apiOrigin) : undefined}
+                isChecking={formik.isSubmitting}
+                onSubmit={formik.handleSubmit}
+            />
+        );
+    }
 
     return (
         <form onSubmit={formik.handleSubmit}>
@@ -161,6 +223,15 @@ const Form: React.FC<FormProps> = ({ initialAPIOrigin, onClose }) => {
             </DialogActions>
         </form>
     );
+};
+
+const isValidEndpoint = (origin: string, httpOnly: boolean) => {
+    try {
+        const { protocol } = new URL(origin);
+        return !httpOnly || protocol == "http:" || protocol == "https:";
+    } catch {
+        return false;
+    }
 };
 
 const updateAPIOrigin = async (origin: string) => {

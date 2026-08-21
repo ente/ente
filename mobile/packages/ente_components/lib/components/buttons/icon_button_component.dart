@@ -29,6 +29,8 @@ class IconButtonComponent extends StatefulWidget {
     this.shouldSurfaceExecutionStates = true,
     this.shouldShowSuccessConfirmation = false,
     this.tooltip,
+    this.size = _defaultButtonSize,
+    this.iconSize = _defaultIconSize,
   });
 
   final Widget icon;
@@ -38,6 +40,8 @@ class IconButtonComponent extends StatefulWidget {
   final bool shouldSurfaceExecutionStates;
   final bool shouldShowSuccessConfirmation;
   final String? tooltip;
+  final double size;
+  final double iconSize;
 
   @override
   State<IconButtonComponent> createState() => _IconButtonComponentState();
@@ -89,8 +93,8 @@ class _IconButtonComponentState extends State<IconButtonComponent>
         : BorderRadius.circular(Radii.md);
 
     Widget button = SizedBox(
-      width: _buttonSize,
-      height: _buttonSize,
+      width: widget.size,
+      height: widget.size,
       child: MouseRegion(
         cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
         onEnter: (_) => _setHovered(true),
@@ -109,8 +113,8 @@ class _IconButtonComponentState extends State<IconButtonComponent>
               key: const ValueKey('icon-button-surface'),
               duration: Motion.quick,
               curve: Curves.easeInOutCubic,
-              width: _buttonSize,
-              height: _buttonSize,
+              width: widget.size,
+              height: widget.size,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: colors.background,
@@ -159,7 +163,7 @@ class _IconButtonComponentState extends State<IconButtonComponent>
         turns: _loadingController,
         child: HugeIcon(
           icon: HugeIcons.strokeRoundedLoading03,
-          size: _iconSize,
+          size: widget.iconSize,
           color: foreground,
         ),
       );
@@ -168,13 +172,13 @@ class _IconButtonComponentState extends State<IconButtonComponent>
       return HugeIcon(
         key: const ValueKey('success'),
         icon: HugeIcons.strokeRoundedTick02,
-        size: _iconSize,
+        size: widget.iconSize,
         color: foreground,
       );
     }
     return IconTheme.merge(
       key: const ValueKey('icon'),
-      data: IconThemeData(size: _iconSize, color: foreground),
+      data: IconThemeData(size: widget.iconSize, color: foreground),
       child: widget.icon,
     );
   }
@@ -424,8 +428,8 @@ class _IconButtonComponentState extends State<IconButtonComponent>
   }
 }
 
-const double _buttonSize = 36;
-const double _iconSize = IconSizes.small;
+const double _defaultButtonSize = 36;
+const double _defaultIconSize = IconSizes.small;
 
 class _ResolvedIconButtonColors {
   const _ResolvedIconButtonColors({

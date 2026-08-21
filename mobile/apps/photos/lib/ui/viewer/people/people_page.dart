@@ -31,7 +31,6 @@ import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart
 import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 import "package:photos/ui/viewer/people/memory_lane_banner.dart";
-import "package:photos/ui/viewer/people/memory_lane_debug_panel.dart";
 import "package:photos/ui/viewer/people/memory_lane_page.dart";
 import "package:photos/ui/viewer/people/people_app_bar.dart";
 import "package:photos/ui/viewer/people/person_gallery_suggestion.dart";
@@ -120,21 +119,16 @@ class _PeoplePageState extends State<PeoplePage> {
     _searchFilterDataProvider = SearchFilterDataProvider(
       initialGalleryFilter: initialGalleryFilter,
     );
-    if (_memoryLaneEnabled) {
-      _timelineNotifier = MemoryLaneService.instance.readyPersonIds;
-      _timelineListener = () {
-        if (!mounted) return;
-        setState(() {});
-        _maybePrewarmMemoryLane();
-      };
-      _timelineNotifier!.addListener(_timelineListener!);
-      unawaited(
-        MemoryLaneService.instance.ensureTimelineReachability(
-          _person.remoteID,
-          trigger: "people_page_visit",
-        ),
-      );
-    }
+    _timelineNotifier = MemoryLaneService.instance.readyPersonIds;
+    _timelineListener = () {
+      if (!mounted) return;
+      setState(() {});
+      _maybePrewarmMemoryLane();
+    };
+    _timelineNotifier!.addListener(_timelineListener!);
+    unawaited(
+      MemoryLaneService.instance.ensureTimelineReachability(_person.remoteID),
+    );
   }
 
   Future<List<EnteFile>> _loadPersonFiles() async {
@@ -202,12 +196,11 @@ class _PeoplePageState extends State<PeoplePage> {
   }
 
   Future<void> _openMemoryLanePage() async {
-    if (!_memoryLaneEnabled) return;
     _timelineLogger.info("banner_tap person=${_person.remoteID}");
-    await routeToPage(context, MemoryLanePage(person: _person));
-    if (!mounted) {
-      return;
+    if (MemoryLaneService.instance.hasReadyTimelineSync(_person.remoteID)) {
+      await routeToPage(context, MemoryLanePage(person: _person));
     }
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -237,14 +230,12 @@ class _PeoplePageState extends State<PeoplePage> {
   Widget build(BuildContext context) {
     _logger.info("Building for ${_person.data.name}");
     final bool featureEnabled = _memoryLaneEnabled;
-    final bool memoryLaneReady = featureEnabled
-        ? MemoryLaneService.instance.hasReadyTimelineSync(_person.remoteID)
-        : false;
+    final bool memoryLaneReady = MemoryLaneService.instance
+        .hasReadyTimelineSync(_person.remoteID);
     final bool hasSeenMemoryLane = localSettings.hasSeenMemoryLane(
       _person.remoteID,
     );
-    final bool showMemoryLaneBanner =
-        featureEnabled && memoryLaneReady && !hasSeenMemoryLane;
+    final bool showMemoryLaneBanner = memoryLaneReady && !hasSeenMemoryLane;
 
     final appBar = PeopleAppBar.sliverConfig(
       GalleryType.peopleTag,
@@ -252,9 +243,7 @@ class _PeoplePageState extends State<PeoplePage> {
       _selectedFiles,
       _person,
       memoryLaneReady: memoryLaneReady,
-      onMemoryLaneTap: featureEnabled && memoryLaneReady
-          ? _openMemoryLanePage
-          : null,
+      onMemoryLaneTap: _openMemoryLanePage,
     );
 
     final personGallery = _Gallery(
@@ -266,9 +255,7 @@ class _PeoplePageState extends State<PeoplePage> {
       personEntity: _person,
       memoryLaneEnabled: featureEnabled,
       showTimelineBanner: showMemoryLaneBanner,
-      onTimelineTap: featureEnabled && memoryLaneReady
-          ? () => unawaited(_openMemoryLanePage())
-          : null,
+      onTimelineTap: () => unawaited(_openMemoryLanePage()),
     );
 
     return GalleryBoundariesProvider(
@@ -389,11 +376,9 @@ class _GalleryState extends State<_Gallery> {
         children: [
           MemoryLaneBannerSection(
             showBanner: widget.memoryLaneEnabled && widget.showTimelineBanner,
-            person: widget.personEntity,
+            personId: widget.personEntity.remoteID,
             onTap: widget.memoryLaneEnabled ? widget.onTimelineTap : null,
           ),
-          if (widget.memoryLaneEnabled)
-            MemoryLaneDebugPanel(person: widget.personEntity),
           !userDismissedPersonGallerySuggestion
               ? Dismissible(
                   key: const Key("personGallerySuggestion"),

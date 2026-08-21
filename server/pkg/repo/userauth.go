@@ -111,25 +111,50 @@ func (repo *UserAuthRepository) GetValidOTTs(emailHash string, app ente.App) ([]
 	return otts, nil
 }
 
-func (repo *UserAuthRepository) GetMaxWrongAttempts(emailHash string, app ente.App) (int, error) {
-	row := repo.DB.QueryRow(`SELECT COALESCE(MAX(wrong_attempt),0) FROM otts WHERE email_hash = $1 AND expiration_time > $2 AND app = $3`,
-		emailHash, time.Microseconds(), app)
-	var wrongAttempt int
-	if err := row.Scan(&wrongAttempt); err != nil {
-		return 0, stacktrace.Propagate(err, "Failed to scan row")
-	}
-	return wrongAttempt, nil
-}
-
-// RecordWrongAttemptForActiveOtt increases the wrong_attempt count for given emailHash and active ott.
-// Assuming tha we keep deleting expired OTT, max(wrong_attempt) can be used to track brute-force attack
-func (repo *UserAuthRepository) RecordWrongAttemptForActiveOtt(emailHash string, app ente.App) error {
-	_, err := repo.DB.Exec(`UPDATE otts SET wrong_attempt = otts.wrong_attempt + 1
-				WHERE email_hash = $1  AND expiration_time > $2 AND app=$3`, emailHash, time.Microseconds(), app)
+func (repo *UserAuthRepository) ReserveOTTVerificationAttempt(emailHash string, app ente.App, submittedOTT string, limit int) ([]string, bool, error) {
+	tx, err := repo.DB.Begin()
 	if err != nil {
-		return stacktrace.Propagate(err, "Failed to update wrong attempt count")
+		return nil, false, stacktrace.Propagate(err, "")
 	}
-	return nil
+	defer tx.Rollback()
+
+	rows, err := tx.Query(`SELECT ott, wrong_attempt FROM otts
+		WHERE email_hash = $1 AND app = $2 AND expiration_time > $3
+		ORDER BY ott FOR UPDATE`, emailHash, app, time.Microseconds())
+	if err != nil {
+		return nil, false, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+
+	otts := make([]string, 0)
+	limited := false
+	matched := false
+	for rows.Next() {
+		var ott string
+		var wrongAttempt int
+		if err := rows.Scan(&ott, &wrongAttempt); err != nil {
+			return nil, false, stacktrace.Propagate(err, "")
+		}
+		otts = append(otts, ott)
+		limited = limited || wrongAttempt >= limit
+		matched = matched || ott == submittedOTT
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, stacktrace.Propagate(err, "")
+	}
+	if limited || len(otts) == 0 || matched {
+		return otts, limited, nil
+	}
+
+	_, err = tx.Exec(`UPDATE otts SET wrong_attempt = wrong_attempt + 1
+		WHERE email_hash = $1 AND app = $2 AND ott = ANY($3)`, emailHash, app, pq.Array(otts))
+	if err != nil {
+		return nil, false, stacktrace.Propagate(err, "")
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, false, stacktrace.Propagate(err, "")
+	}
+	return otts, false, nil
 }
 
 func (repo *UserAuthRepository) AddToken(userID int64, app ente.App, token string, ip string, userAgent string) error {

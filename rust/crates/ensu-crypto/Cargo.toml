@@ -1,0 +1,9 @@
+[package]
+name = "ente-ensu-crypto"
+edition = "2024"
+
+[dependencies]
+ente-core.workspace = true
+hkdf.workspace = true
+sha2.workspace = true
+thiserror.workspace = true

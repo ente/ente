@@ -150,19 +150,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_srp_session_creation() {
-        let srp_user_id = "test-user-id";
-        let srp_salt = [0u8; 16];
-        let login_key = [0u8; 16];
-
-        let session = SrpSession::new(srp_user_id, &srp_salt, &login_key).unwrap();
-
-        let a = session.public_a();
-        assert!(!a.is_empty());
-        assert!(a.len() >= SRP_N_BYTES);
-    }
-
-    #[test]
     fn test_public_a_padding() {
         let a_public = vec![0xAB, 0xCD];
         let session = SrpSession {

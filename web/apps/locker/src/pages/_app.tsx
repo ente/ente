@@ -1,6 +1,7 @@
 import { LockerHead } from "@/components/LockerHead";
 import { lockerLogout } from "@/services/logout";
 import "@fontsource-variable/inter";
+import "@fontsource-variable/outfit";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import {

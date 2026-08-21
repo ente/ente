@@ -176,17 +176,7 @@ fn read_paste_text(text: Option<String>, file: Option<PathBuf>) -> Result<String
         (Some(_), Some(_)) => unreachable!("clap prevents text and --file together"),
     };
 
-    if text.trim().is_empty() {
-        return Err(Error::InvalidInput(
-            "Paste text cannot be empty".to_string(),
-        ));
-    }
-    if text.chars().count() > ente_paste::MAX_PASTE_CHARS {
-        return Err(Error::InvalidInput(format!(
-            "Paste is limited to {} characters",
-            ente_paste::MAX_PASTE_CHARS
-        )));
-    }
+    ente_paste::validate_text(&text)?;
     Ok(text)
 }
 

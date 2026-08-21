@@ -29,6 +29,7 @@ import 'package:locker/services/configuration.dart';
 import "package:locker/services/contacts_display_service.dart";
 import 'package:locker/services/db/locker_db.dart';
 import 'package:locker/services/favorites_service.dart';
+import 'package:locker/services/feature_flag_service.dart';
 import 'package:locker/services/files/download/service_locator.dart';
 import 'package:locker/services/files/links/links_client.dart';
 import 'package:locker/services/files/links/links_service.dart';
@@ -181,6 +182,7 @@ Future<void> _init(bool bool, {String? via}) async {
     await Configuration.instance.init([LockerDB.instance]);
 
     await Network.instance.init(Configuration.instance);
+    FeatureFlagService.instance.init(preferences);
     final installSourceService = InstallSourceService(
       Network.instance.enteDio,
       app: Configuration.instance.appIdentity.app,

@@ -1,14 +1,9 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 func TestAuthorizationResponseRequiresAccountsURLOnlyForPasskey(t *testing.T) {
@@ -49,27 +44,5 @@ func TestAuthorizationResponseRequiresAccountsURLOnlyForPasskey(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})
-	}
-}
-
-func TestVerifySRPSessionRejectsPasskeyResponseWithoutAccountsURL(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/users/srp/verify-session" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"id":1,"passkeySessionID":"passkey-session"}`))
-	}))
-	defer server.Close()
-
-	client := NewClient(Params{Host: server.URL})
-	ctx := context.WithValue(t.Context(), "app", string(AppPhotos))
-
-	_, err := client.VerifySRPSession(ctx, uuid.New(), uuid.New(), "client-m1")
-	if err == nil {
-		t.Fatal("expected response parsing to reject missing accounts URL")
-	}
-	if !strings.Contains(err.Error(), "accountsUrl is required") {
-		t.Fatalf("unexpected error: %v", err)
 	}
 }

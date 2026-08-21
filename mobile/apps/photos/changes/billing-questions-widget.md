@@ -1,1 +1,0 @@
-- Fixed clip behavior and error handling in billing questions widget. (@r4khul)

@@ -48,8 +48,9 @@ fn full_link_roundtrip(museum: &Museum) -> TestResult {
         String::from_utf8_lossy(&second_consume.stdout),
     );
     assert!(
-        String::from_utf8_lossy(&second_consume.stderr).contains("HTTP 410"),
-        "second consume should fail with 410, got stderr: {}",
+        String::from_utf8_lossy(&second_consume.stderr)
+            .contains("This paste has expired or was already opened."),
+        "second consume should report the paste as unavailable, got stderr: {}",
         String::from_utf8_lossy(&second_consume.stderr),
     );
 
@@ -173,8 +174,9 @@ fn wrong_password_consumes_password_protected_paste(museum: &Museum) -> TestResu
         String::from_utf8_lossy(&second.stdout),
     );
     assert!(
-        String::from_utf8_lossy(&second.stderr).contains("HTTP 410"),
-        "second consume should fail with 410, got stderr: {}",
+        String::from_utf8_lossy(&second.stderr)
+            .contains("This paste has expired or was already opened."),
+        "second consume should report the paste as unavailable, got stderr: {}",
         String::from_utf8_lossy(&second.stderr),
     );
 
@@ -216,7 +218,8 @@ fn consumed_password_paste_checks_availability_before_password(museum: &Museum) 
         "second consume unexpectedly succeeded"
     );
     assert!(
-        String::from_utf8_lossy(&second.stderr).contains("HTTP 410"),
+        String::from_utf8_lossy(&second.stderr)
+            .contains("This paste has expired or was already opened."),
         "consumed paste should fail before password validation, got stderr: {}",
         String::from_utf8_lossy(&second.stderr),
     );

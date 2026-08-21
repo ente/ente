@@ -1,2 +1,0 @@
-- UI updates for the memories and gallery file viewers.
-- Fixed hero animation bug where multiple photos animated when closing. (@r4khul)

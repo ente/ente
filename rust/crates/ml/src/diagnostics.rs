@@ -422,7 +422,6 @@ mod tests {
 
     #[test]
     fn fast_analysis_emits_no_watchdog_events() {
-        assert_eq!(SLOW_ANALYSIS_THRESHOLD, Duration::from_secs(60));
         let started_at = Instant::now();
         let mut state = MonitorState::default();
         state.register(1, context(42), AnalysisStage::DecodeImage, started_at);

@@ -14,11 +14,14 @@ pub(crate) fn score_quad_against_probmap(
     min_quad_area_ratio: f64,
 ) -> OpResult<f64> {
     let mask = make_polygon_mask(probmap.width, probmap.height, quad)?;
-    let mask_float = cv::u8_to_f32(&mask)?;
-    let masked = cv::multiply_f32(probmap, &mask_float)?;
 
-    let sum_masked = cv::sum_f32(&masked)?;
-    let sum_mask = cv::sum_f32(&mask_float)?;
+    let mut sum_masked = 0.0f64;
+    let mut sum_mask = 0.0f64;
+    for (&prob, &inside) in probmap.data.iter().zip(mask.data.iter()) {
+        let inside = inside as f32;
+        sum_masked += (prob * inside) as f64;
+        sum_mask += inside as f64;
+    }
     let mean_prob = sum_masked / sum_mask;
     let area_ratio = sum_mask / (probmap.height * probmap.width) as f64;
 

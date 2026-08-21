@@ -79,7 +79,7 @@ class _BannerToast extends StatelessWidget {
           subtitle: subtitle,
           state: state,
           leadingWidget: leadingWidget,
-          trailingWidget: trailingWidget ?? const SizedBox.shrink(),
+          trailingWidget: trailingWidget,
           onTap: onDismiss,
         ),
       ),

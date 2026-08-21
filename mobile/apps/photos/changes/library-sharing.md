@@ -1,1 +1,0 @@
-- Added Library Sharing for automatically sharing current and future albums with family members.

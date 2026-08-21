@@ -298,7 +298,8 @@ func (c *Controller) ChangePassword(ctx *gin.Context, req ente.LegacyKitRecovery
 	if err := c.PasskeyController.RemovePasskey2FA(session.UserID); err != nil {
 		return nil, stacktrace.Propagate(err, "failed to disable passkeys")
 	}
-	resp, err := c.UserCtrl.UpdateSrpAndKeyAttributes(ctx, session.UserID, req.UpdateSrpAndKeysRequest, false)
+	logOutAllSessions := req.UpdateSrpAndKeysRequest.LogOutOtherDevices == nil || *req.UpdateSrpAndKeysRequest.LogOutOtherDevices
+	resp, err := c.UserCtrl.RecoverSrpAndKeyAttributes(ctx, session.UserID, req.UpdateSrpAndKeysRequest, logOutAllSessions)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to update password via legacy kit")
 	}

@@ -716,33 +716,30 @@ class GPSData {
   GPSData(this.latRef, this.lat, this.longRef, this.long);
 
   Location? toLocationObj() {
+    final lat = this.lat;
+    final long = this.long;
+    if (lat == null || long == null || lat.length < 3 || long.length < 3) {
+      return null;
+    }
+
+    final latRef = this.latRef?.toLowerCase();
+    final longRef = this.longRef?.toLowerCase();
     int? latSign;
     int? longSign;
-    if (lat == null || long == null) {
-      return null;
-    }
-    if (lat!.length < 3 || long!.length < 3) {
-      return null;
-    }
     if (latRef == null && longRef == null) {
-      latSign = lat!.any((element) => element < 0) ? -1 : 1;
-      longSign = long!.any((element) => element < 0) ? -1 : 1;
-
-      for (var element in lat!) {
-        lat![lat!.indexOf(element)] = element.abs();
-      }
-      for (var element in long!) {
-        long![long!.indexOf(element)] = element.abs();
-      }
+      latSign = lat.any((element) => element < 0) ? -1 : 1;
+      longSign = long.any((element) => element < 0) ? -1 : 1;
+    } else if (latRef == null || longRef == null) {
+      return null;
     } else {
-      if (latRef!.toLowerCase().startsWith('n')) {
+      if (latRef.startsWith('n')) {
         latSign = 1;
-      } else if (latRef!.toLowerCase().startsWith('s')) {
+      } else if (latRef.startsWith('s')) {
         latSign = -1;
       }
-      if (longRef!.toLowerCase().startsWith('e')) {
+      if (longRef.startsWith('e')) {
         longSign = 1;
-      } else if (longRef!.toLowerCase().startsWith('w')) {
+      } else if (longRef.startsWith('w')) {
         longSign = -1;
       }
     }
@@ -751,9 +748,16 @@ class GPSData {
       return null;
     }
 
+    final latParts = latRef == null
+        ? lat.map((part) => part.abs()).toList()
+        : lat;
+    final longParts = longRef == null
+        ? long.map((part) => part.abs()).toList()
+        : long;
     final result = Location(
-      latitude: latSign * (lat![0] + lat![1] / 60 + lat![2] / 3600),
-      longitude: longSign * (long![0] + long![1] / 60 + long![2] / 3600),
+      latitude: latSign * (latParts[0] + latParts[1] / 60 + latParts[2] / 3600),
+      longitude:
+          longSign * (longParts[0] + longParts[1] / 60 + longParts[2] / 3600),
     );
     if (Location.isValidLocation(result)) {
       return result;

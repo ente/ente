@@ -1,1 +1,0 @@
-- Improved search responsiveness for large photo libraries.

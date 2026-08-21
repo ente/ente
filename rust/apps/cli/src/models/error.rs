@@ -55,7 +55,27 @@ impl From<ente_paste::Error> for Error {
             E::IncorrectPassword => {
                 Error::AuthenticationFailed("Incorrect paste password".to_string())
             }
-            E::InvalidInput(message) => Error::InvalidInput(message),
+            E::Unavailable => {
+                Error::Generic("This paste has expired or was already opened.".to_string())
+            }
+            E::EmptyText => Error::InvalidInput("Paste text cannot be empty".to_string()),
+            E::TextTooLong => Error::InvalidInput(format!(
+                "Paste is limited to {} characters",
+                ente_paste::MAX_PASTE_CHARS
+            )),
+            E::InvalidLink => {
+                Error::InvalidInput("Paste URL or access token is invalid".to_string())
+            }
+            E::InvalidAccessToken => Error::InvalidInput("Invalid paste access token".to_string()),
+            E::InvalidKey => Error::InvalidInput("Invalid paste key".to_string()),
+            E::MissingKey => {
+                Error::InvalidInput("Paste key missing. Pass a full paste URL or --key".to_string())
+            }
+            E::KeyMismatch => {
+                Error::InvalidInput("Paste URL fragment and --key do not match".to_string())
+            }
+            E::PasswordRequired => Error::InvalidInput("Paste password is required".to_string()),
+            E::SessionNotOpen => Error::Generic("Paste is not open".to_string()),
             other => Error::Generic(other.to_string()),
         }
     }

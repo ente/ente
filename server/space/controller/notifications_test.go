@@ -104,12 +104,21 @@ func TestSpaceWebPushCopyAndValidation(t *testing.T) {
 	require.NoError(t, err)
 	p256dh := base64.RawURLEncoding.EncodeToString(privateKey.PublicKey().Bytes())
 	auth := base64.RawURLEncoding.EncodeToString(make([]byte, 16))
-	require.NoError(t, validateWebPushSubscription("https://push.example/subscription", p256dh, auth))
-	require.Error(t, validateWebPushSubscription("http://push.example/subscription", p256dh, auth))
-	require.Error(t, validateWebPushSubscription("https://user@push.example/subscription", p256dh, auth))
-	require.Error(t, validateWebPushSubscription("https://push.example/subscription#fragment", p256dh, auth))
-	require.Error(t, validateWebPushSubscription("https://push.example/subscription", "invalid", auth))
-	require.Error(t, validateWebPushSubscription("https://push.example/subscription", p256dh, "invalid"))
+	endpoint := "https://fcm.googleapis.com/wp/subscription"
+	require.NoError(t, validateWebPushSubscription(endpoint, p256dh, auth))
+	require.NoError(t, validateWebPushSubscription("https://updates.push.services.mozilla.com/wpush/v2/subscription", p256dh, auth))
+	require.NoError(t, validateWebPushSubscription("https://web.push.apple.com/subscription", p256dh, auth))
+	require.NoError(t, validateWebPushSubscription("https://db5.notify.windows.com/subscription", p256dh, auth))
+	require.NoError(t, validateWebPushSubscription("https://jmt17.google.com/fcm/send/subscription", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("https://push.example/subscription", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("https://web.push.apple.com.attacker.example/subscription", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("https://fcm.googleapis.com:8443/wp/subscription", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("https://jmt17.google.com/other", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("http://fcm.googleapis.com/wp/subscription", p256dh, auth))
+	require.Error(t, validateWebPushSubscription("https://user@fcm.googleapis.com/wp/subscription", p256dh, auth))
+	require.Error(t, validateWebPushSubscription(endpoint+"#fragment", p256dh, auth))
+	require.Error(t, validateWebPushSubscription(endpoint, "invalid", auth))
+	require.Error(t, validateWebPushSubscription(endpoint, p256dh, "invalid"))
 }
 
 func TestSpaceWebPushAddressMustBePublic(t *testing.T) {
@@ -319,7 +328,7 @@ func TestSpaceWebPushSenderUsesGenericPayloadAndPrunesDeadEndpoint(t *testing.T)
 	recipientID := insertSpaceControllerUser(t, repos, "space-push-recipient@example.com", "recipient-public")
 	sessionHash := []byte("space-push-session-hash")
 	require.NoError(t, repos.Sessions.CreateBrowserSession(ctx, sessionHash, recipientID, "wrap-key", timeutil.NDaysFromNow(1)))
-	_, err := repos.WebPush.UpsertAccountSubscription(ctx, sessionHash, "https://push.example/subscription", "p256dh", "auth")
+	_, err := repos.WebPush.UpsertAccountSubscription(ctx, sessionHash, "https://fcm.googleapis.com/wp/subscription", "p256dh", "auth")
 	require.NoError(t, err)
 
 	config := newSpaceWebPushTestConfig(t)
@@ -328,7 +337,7 @@ func TestSpaceWebPushSenderUsesGenericPayloadAndPrunesDeadEndpoint(t *testing.T)
 	t.Cleanup(func() { sendSpaceWebPush = originalSend })
 	var payload spaceWebPushPayload
 	sendSpaceWebPush = func(_ context.Context, message []byte, subscription *webpush.Subscription, options *webpush.Options) (*http.Response, error) {
-		require.Equal(t, "https://push.example/subscription", subscription.Endpoint)
+		require.Equal(t, "https://fcm.googleapis.com/wp/subscription", subscription.Endpoint)
 		require.Equal(t, uint32(spaceWebPushRecordSize), options.RecordSize)
 		require.Equal(t, spaceWebPushTTLSeconds, options.TTL)
 		require.Equal(t, webpush.UrgencyNormal, options.Urgency)
@@ -369,7 +378,7 @@ func TestPublicPostPushCarriesOnlyOpaqueLocalRouteTarget(t *testing.T) {
 		spaceActivityPostCreated,
 		"/app",
 		[]repo.SpaceWebPushSubscriptionRecord{{
-			Endpoint: "https://push.example/public",
+			Endpoint: "https://fcm.googleapis.com/wp/public",
 			P256dh:   "p256dh",
 			Auth:     "auth",
 			TargetID: "wpt_public_target",
@@ -398,7 +407,7 @@ func TestSpaceWebPushSendRateAppliesOncePerActivity(t *testing.T) {
 	subscriptions := make([]repo.SpaceWebPushSubscriptionRecord, 51)
 	for index := range subscriptions {
 		subscriptions[index] = repo.SpaceWebPushSubscriptionRecord{
-			Endpoint: fmt.Sprintf("https://push.example/%d", index),
+			Endpoint: fmt.Sprintf("https://fcm.googleapis.com/wp/%d", index),
 			P256dh:   "p256dh",
 			Auth:     "auth",
 		}

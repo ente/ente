@@ -1,0 +1,448 @@
+use ente_core::b64;
+use ente_core::crypto;
+use md5::{Digest, Md5};
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub struct CryptoError {
+    code: String,
+    message: String,
+}
+
+#[wasm_bindgen]
+impl CryptoError {
+    #[wasm_bindgen(getter)]
+    pub fn code(&self) -> String {
+        self.code.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn message(&self) -> String {
+        self.message.clone()
+    }
+}
+
+impl From<crypto::Error> for CryptoError {
+    fn from(e: crypto::Error) -> Self {
+        use crypto::Error as E;
+
+        let code = match &e {
+            E::InvalidKeyLength { .. } => "invalid_key_length",
+            E::InvalidNonceLength { .. } => "invalid_nonce_length",
+            E::InvalidSaltLength { .. } => "invalid_salt_length",
+            E::InvalidHeaderLength { .. } => "invalid_header_length",
+            E::CiphertextTooShort { .. } => "ciphertext_too_short",
+            E::InvalidKeyDerivationParams(_) => "invalid_kdf_params",
+            E::KeyDerivationFailed => "key_derivation_failed",
+            E::EncryptionFailed => "encryption_failed",
+            E::DecryptionFailed => "decryption_failed",
+            E::StreamInitFailed => "stream_init_failed",
+            E::StreamPushFailed => "stream_push_failed",
+            E::StreamPullFailed => "stream_pull_failed",
+            E::StreamTruncated => "stream_truncated",
+            E::StreamTrailingData => "stream_trailing_data",
+            E::SealedBoxOpenFailed => "sealed_box_open_failed",
+            E::InvalidPublicKey => "invalid_public_key",
+            E::Json(_) => "json",
+            E::Argon2(_) => "argon2",
+            E::Aead => "aead",
+            E::ArrayConversion => "array_conversion",
+            E::Io(_) => "io",
+        }
+        .to_string();
+
+        Self {
+            code,
+            message: ente_core::error::chain(&e),
+        }
+    }
+}
+
+impl From<b64::DecodeError> for CryptoError {
+    fn from(e: b64::DecodeError) -> Self {
+        Self {
+            code: "base64_decode".to_string(),
+            message: e.to_string(),
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn crypto_generate_key() -> String {
+    b64::encode(crypto::Key::generate().as_bytes())
+}
+
+#[wasm_bindgen]
+pub struct CryptoStreamEncryptor {
+    encryptor: crypto::stream::Encryptor,
+    key: String,
+    decryption_header: String,
+}
+
+#[wasm_bindgen]
+impl CryptoStreamEncryptor {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Result<CryptoStreamEncryptor, CryptoError> {
+        let key = crypto::Key::generate();
+        let encryptor = crypto::stream::Encryptor::new(&key);
+        let decryption_header = b64::encode(encryptor.header().as_bytes());
+
+        Ok(Self {
+            encryptor,
+            key: b64::encode(key.as_bytes()),
+            decryption_header,
+        })
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn key(&self) -> String {
+        self.key.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn decryption_header(&self) -> String {
+        self.decryption_header.clone()
+    }
+
+    pub fn encrypt_chunk(
+        &mut self,
+        plaintext: Vec<u8>,
+        is_final: bool,
+    ) -> Result<Vec<u8>, CryptoError> {
+        self.encryptor
+            .push(&plaintext, is_final)
+            .map_err(Into::into)
+    }
+}
+
+#[wasm_bindgen]
+pub struct CryptoStreamDecryptor {
+    decryptor: crypto::stream::Decryptor,
+    finalized: bool,
+}
+
+#[wasm_bindgen]
+impl CryptoStreamDecryptor {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        decryption_header_b64: &str,
+        key_b64: &str,
+    ) -> Result<CryptoStreamDecryptor, CryptoError> {
+        let header = b64::decode(decryption_header_b64)?;
+        let key = b64::decode(key_b64)?;
+        let decryptor = crypto::stream::Decryptor::new(
+            &crypto::Header::try_from_slice(&header)?,
+            &crypto::Key::try_from_slice(&key)?,
+        );
+
+        Ok(Self {
+            decryptor,
+            finalized: false,
+        })
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn decryption_chunk_size(&self) -> usize {
+        crypto::stream::DECRYPTION_CHUNK_SIZE
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn is_finalized(&self) -> bool {
+        self.finalized
+    }
+
+    pub fn decrypt_chunk(&mut self, ciphertext: Vec<u8>) -> Result<Vec<u8>, CryptoError> {
+        let (plaintext, is_final) = self.decryptor.pull(&ciphertext)?;
+        self.finalized = is_final;
+        Ok(plaintext)
+    }
+}
+
+#[wasm_bindgen]
+pub fn crypto_md5_base64(data: Vec<u8>) -> String {
+    let digest = Md5::digest(&data);
+    b64::encode(&digest)
+}
+
+#[wasm_bindgen]
+pub struct CryptoKeyPair {
+    public_key: String,
+    secret_key: String,
+}
+
+#[wasm_bindgen]
+impl CryptoKeyPair {
+    #[wasm_bindgen(getter)]
+    pub fn public_key(&self) -> String {
+        self.public_key.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn secret_key(&self) -> String {
+        self.secret_key.clone()
+    }
+}
+
+#[wasm_bindgen]
+pub fn crypto_generate_keypair() -> CryptoKeyPair {
+    let secret_key = crypto::SecretKey::generate();
+    CryptoKeyPair {
+        public_key: b64::encode(secret_key.public_key().as_bytes()),
+        secret_key: b64::encode(secret_key.as_bytes()),
+    }
+}
+
+#[wasm_bindgen]
+pub struct EncryptedBox {
+    encrypted_data: String,
+    nonce: String,
+}
+
+#[wasm_bindgen]
+impl EncryptedBox {
+    #[wasm_bindgen(getter)]
+    pub fn encrypted_data(&self) -> String {
+        self.encrypted_data.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn nonce(&self) -> String {
+        self.nonce.clone()
+    }
+}
+
+#[wasm_bindgen]
+pub fn crypto_encrypt_box(data_b64: &str, key_b64: &str) -> Result<EncryptedBox, CryptoError> {
+    let data = b64::decode(data_b64)?;
+    let key = b64::decode(key_b64)?;
+
+    let out = crypto::secretbox::encrypt(&data, &crypto::Key::try_from_slice(&key)?);
+
+    Ok(EncryptedBox {
+        encrypted_data: b64::encode(&out.encrypted_data),
+        nonce: b64::encode(out.nonce.as_bytes()),
+    })
+}
+
+#[wasm_bindgen]
+pub fn crypto_decrypt_box(
+    encrypted_data_b64: &str,
+    nonce_b64: &str,
+    key_b64: &str,
+) -> Result<String, CryptoError> {
+    let ciphertext = b64::decode(encrypted_data_b64)?;
+    let nonce = b64::decode(nonce_b64)?;
+    let key = b64::decode(key_b64)?;
+
+    let plaintext = crypto::secretbox::decrypt(
+        &ciphertext,
+        &crypto::Nonce::try_from_slice(&nonce)?,
+        &crypto::Key::try_from_slice(&key)?,
+    )?;
+    Ok(b64::encode(&plaintext))
+}
+
+#[wasm_bindgen]
+pub struct EncryptedBlob {
+    encrypted_data: String,
+    decryption_header: String,
+}
+
+#[wasm_bindgen]
+impl EncryptedBlob {
+    #[wasm_bindgen(getter)]
+    pub fn encrypted_data(&self) -> String {
+        self.encrypted_data.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn decryption_header(&self) -> String {
+        self.decryption_header.clone()
+    }
+}
+
+#[wasm_bindgen]
+pub fn crypto_encrypt_blob(data_b64: &str, key_b64: &str) -> Result<EncryptedBlob, CryptoError> {
+    let data = b64::decode(data_b64)?;
+    let key = b64::decode(key_b64)?;
+
+    let out = crypto::blob::encrypt(&data, &crypto::Key::try_from_slice(&key)?)?;
+    Ok(EncryptedBlob {
+        encrypted_data: b64::encode(&out.encrypted_data),
+        decryption_header: b64::encode(out.decryption_header.as_bytes()),
+    })
+}
+
+#[wasm_bindgen]
+pub fn crypto_decrypt_blob(
+    encrypted_data_b64: &str,
+    decryption_header_b64: &str,
+    key_b64: &str,
+) -> Result<String, CryptoError> {
+    let ciphertext = b64::decode(encrypted_data_b64)?;
+    let header = b64::decode(decryption_header_b64)?;
+    let key = b64::decode(key_b64)?;
+
+    let plaintext = crypto::blob::decrypt(
+        &ciphertext,
+        &crypto::Header::try_from_slice(&header)?,
+        &crypto::Key::try_from_slice(&key)?,
+    )?;
+    Ok(b64::encode(&plaintext))
+}
+
+#[wasm_bindgen]
+pub fn crypto_decrypt_blob_legacy(
+    encrypted_data_b64: &str,
+    decryption_header_b64: &str,
+    key_b64: &str,
+) -> Result<String, CryptoError> {
+    let ciphertext = b64::decode(encrypted_data_b64)?;
+    let header = b64::decode(decryption_header_b64)?;
+    let key = b64::decode(key_b64)?;
+
+    let plaintext = crypto::blob::decrypt_legacy(
+        &ciphertext,
+        &crypto::Header::try_from_slice(&header)?,
+        &crypto::Key::try_from_slice(&key)?,
+    )?;
+    Ok(b64::encode(&plaintext))
+}
+
+#[wasm_bindgen]
+pub fn crypto_decrypt_stream(
+    encrypted_data_b64: &str,
+    decryption_header_b64: &str,
+    key_b64: &str,
+) -> Result<String, CryptoError> {
+    let ciphertext = b64::decode(encrypted_data_b64)?;
+    let header = b64::decode(decryption_header_b64)?;
+    let key = b64::decode(key_b64)?;
+
+    let plaintext = crypto::stream::decrypt_file_data(
+        &ciphertext,
+        &crypto::Header::try_from_slice(&header)?,
+        &crypto::Key::try_from_slice(&key)?,
+    )?;
+    Ok(b64::encode(&plaintext))
+}
+
+#[wasm_bindgen]
+pub fn crypto_box_seal(
+    data_b64: &str,
+    recipient_public_key_b64: &str,
+) -> Result<String, CryptoError> {
+    let data = b64::decode(data_b64)?;
+    let pk = b64::decode(recipient_public_key_b64)?;
+    let sealed = crypto::sealed::seal(&data, &crypto::PublicKey::try_from_slice(&pk)?)?;
+    Ok(b64::encode(&sealed))
+}
+
+#[wasm_bindgen]
+pub fn crypto_box_seal_open(
+    sealed_b64: &str,
+    recipient_public_key_b64: &str,
+    recipient_secret_key_b64: &str,
+) -> Result<String, CryptoError> {
+    let sealed = b64::decode(sealed_b64)?;
+    let pk = b64::decode(recipient_public_key_b64)?;
+    let sk = b64::decode(recipient_secret_key_b64)?;
+    let opened = crypto::sealed::open(
+        &sealed,
+        &crypto::PublicKey::try_from_slice(&pk)?,
+        &crypto::SecretKey::try_from_slice(&sk)?,
+    )?;
+    Ok(b64::encode(&opened))
+}
+
+#[wasm_bindgen]
+pub fn crypto_derive_subkey(
+    key_b64: &str,
+    subkey_len: usize,
+    subkey_id: u64,
+    context: &str,
+) -> Result<String, CryptoError> {
+    let key = b64::decode(key_b64)?;
+    let context: [u8; 8] = context.as_bytes().try_into().map_err(|_| {
+        crypto::Error::InvalidKeyDerivationParams("KDF context must be exactly 8 bytes".into())
+    })?;
+    let subkey = crypto::kdf::derive_subkey(
+        &crypto::Key::try_from_slice(&key)?,
+        subkey_len,
+        subkey_id,
+        &context,
+    )?;
+    Ok(b64::encode(&subkey))
+}
+
+#[wasm_bindgen]
+pub struct EncryptedStreamResult {
+    encrypted_data: String,
+    decryption_header: String,
+    md5_hash: String,
+    key: String,
+}
+
+#[wasm_bindgen]
+impl EncryptedStreamResult {
+    #[wasm_bindgen(getter)]
+    pub fn encrypted_data(&self) -> String {
+        self.encrypted_data.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn decryption_header(&self) -> String {
+        self.decryption_header.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn md5_hash(&self) -> String {
+        self.md5_hash.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn key(&self) -> String {
+        self.key.clone()
+    }
+}
+
+#[wasm_bindgen]
+pub fn crypto_encrypt_stream(data_b64: &str) -> Result<EncryptedStreamResult, CryptoError> {
+    let plaintext = b64::decode(data_b64)?;
+
+    let key = crypto::Key::generate();
+    let mut reader = std::io::Cursor::new(&plaintext);
+    let mut writer = ente_core::io::Md5Writer::new(Vec::new());
+
+    let header = crypto::stream::encrypt_file(&mut reader, &mut writer, &key)?;
+    let (encrypted, md5) = writer.finalize();
+
+    Ok(EncryptedStreamResult {
+        encrypted_data: b64::encode(&encrypted),
+        decryption_header: b64::encode(header.as_bytes()),
+        md5_hash: b64::encode(&md5),
+        key: b64::encode(key.as_bytes()),
+    })
+}
+
+#[wasm_bindgen]
+pub fn crypto_encrypt_stream_with_key(
+    data_b64: &str,
+    key_b64: &str,
+) -> Result<EncryptedStreamResult, CryptoError> {
+    let plaintext = b64::decode(data_b64)?;
+    let key = crypto::Key::try_from_slice(&b64::decode(key_b64)?)?;
+
+    let mut reader = std::io::Cursor::new(&plaintext);
+    let mut writer = ente_core::io::Md5Writer::new(Vec::new());
+
+    let header = crypto::stream::encrypt_file(&mut reader, &mut writer, &key)?;
+    let (encrypted, md5) = writer.finalize();
+
+    Ok(EncryptedStreamResult {
+        encrypted_data: b64::encode(&encrypted),
+        decryption_header: b64::encode(header.as_bytes()),
+        md5_hash: b64::encode(&md5),
+        key: b64::encode(key.as_bytes()),
+    })
+}

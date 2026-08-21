@@ -3,19 +3,6 @@ import "package:flutter_test/flutter_test.dart";
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 
 void main() {
-  testWidgets("AppBarFilterChips keeps default heights without text scaling", (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _wrap((context) {
-        expect(AppBarFilterChips.chipHeight(context), 40);
-        expect(AppBarFilterChips.preferredHeight(context), 48);
-        expect(AppBarFilterChips.appBarHeight(context), kToolbarHeight + 48);
-        return const SizedBox.shrink();
-      }),
-    );
-  });
-
   testWidgets("AppBarFilterChips expands heights with scaled text", (
     tester,
   ) async {

@@ -1,75 +1,142 @@
-import { base64ToUtf8, utf8ToBase64 } from "../base64";
-import { ensureCryptoInit, enteWasm } from "../wasm";
+import { isTauriRuntime } from "@/services/tauri-runtime";
+
+type EnsuWasmModule = typeof import("ente-ensu-wasm");
+type TauriCoreModule = typeof import("@tauri-apps/api/core");
 
 export interface EncryptedChatPayload {
     encryptedData: string;
     header: string;
 }
 
-const CHAT_FIELD_PREFIX = "enc:v1";
+const ensuWasm = () => import("ente-ensu-wasm");
+
+const tauriInvoke = async <T>(
+    ...args: Parameters<TauriCoreModule["invoke"]>
+) => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return invoke<T>(...args);
+};
+
+const encryptedChatPayloadValue = (
+    payload: ReturnType<EnsuWasmModule["encryptChatPayload"]>,
+) => {
+    try {
+        return { encryptedData: payload.encryptedData, header: payload.header };
+    } finally {
+        payload.free();
+    }
+};
+
+const wasmBytes = (bytes: Uint8Array) => bytes as Uint8Array<ArrayBuffer>;
+
+const invokeAttachmentCommand = async (
+    command: string,
+    data: Uint8Array,
+    chatKeyB64: string,
+    sessionUuid: string,
+) =>
+    new Uint8Array(
+        await tauriInvoke<ArrayBuffer>(command, data, {
+            headers: { "chat-key": chatKeyB64, "session-uuid": sessionUuid },
+        }),
+    );
+
+export const generateChatKey = async () =>
+    isTauriRuntime()
+        ? tauriInvoke<string>("chat_crypto_generate_key")
+        : (await ensuWasm()).generateChatKey();
 
 export const encryptChatPayload = async (
     payload: unknown,
     chatKeyB64: string,
 ): Promise<EncryptedChatPayload> => {
-    await ensureCryptoInit();
-    const wasm = await enteWasm();
-
-    const plaintextB64 = utf8ToBase64(JSON.stringify(payload));
-    const encrypted = await wasm.crypto_encrypt_blob(plaintextB64, chatKeyB64);
-
-    return {
-        encryptedData: encrypted.encrypted_data,
-        header: encrypted.decryption_header,
-    };
+    const value = JSON.stringify(payload);
+    if (isTauriRuntime()) {
+        return tauriInvoke("chat_crypto_encrypt_payload", {
+            input: { value, keyB64: chatKeyB64 },
+        });
+    }
+    return encryptedChatPayloadValue(
+        (await ensuWasm()).encryptChatPayload(value, chatKeyB64),
+    );
 };
 
 export const decryptChatPayload = async (
     { encryptedData, header }: EncryptedChatPayload,
     chatKeyB64: string,
 ): Promise<unknown> => {
-    await ensureCryptoInit();
-    const wasm = await enteWasm();
-
-    const plaintextB64 = await wasm.crypto_decrypt_blob(
-        encryptedData,
-        header,
-        chatKeyB64,
-    );
-    return JSON.parse(base64ToUtf8(plaintextB64));
+    const value = isTauriRuntime()
+        ? await tauriInvoke<string>("chat_crypto_decrypt_payload", {
+              input: {
+                  encryptedDataB64: encryptedData,
+                  headerB64: header,
+                  keyB64: chatKeyB64,
+              },
+          })
+        : (await ensuWasm()).decryptChatPayload(
+              encryptedData,
+              header,
+              chatKeyB64,
+          );
+    return JSON.parse(value);
 };
 
 export const encryptChatField = async (
     value: string,
     chatKeyB64: string,
-): Promise<string> => {
-    await ensureCryptoInit();
-    const wasm = await enteWasm();
-
-    const plaintextB64 = utf8ToBase64(value);
-    const encrypted = await wasm.crypto_encrypt_blob(plaintextB64, chatKeyB64);
-    return `${CHAT_FIELD_PREFIX}:${encrypted.encrypted_data}:${encrypted.decryption_header}`;
-};
+): Promise<string> =>
+    isTauriRuntime()
+        ? tauriInvoke("chat_crypto_encrypt_field", {
+              input: { value, keyB64: chatKeyB64 },
+          })
+        : (await ensuWasm()).encryptChatField(value, chatKeyB64);
 
 export const decryptChatField = async (
     value: string,
     chatKeyB64: string,
-): Promise<string> => {
-    const [prefix, version, ciphertext, header] = value.split(":");
-    if (
-        `${prefix}:${version}` !== CHAT_FIELD_PREFIX ||
-        !ciphertext ||
-        !header
-    ) {
-        throw new Error("Invalid encrypted field format");
-    }
+): Promise<string> =>
+    isTauriRuntime()
+        ? tauriInvoke("chat_crypto_decrypt_field", {
+              input: { value, keyB64: chatKeyB64 },
+          })
+        : (await ensuWasm()).decryptChatField(value, chatKeyB64);
 
-    await ensureCryptoInit();
-    const wasm = await enteWasm();
-    const plaintextB64 = await wasm.crypto_decrypt_blob(
-        ciphertext,
-        header,
-        chatKeyB64,
-    );
-    return base64ToUtf8(plaintextB64);
-};
+export const encryptAttachmentBytes = async (
+    data: Uint8Array,
+    chatKeyB64: string,
+    sessionUuid: string,
+): Promise<Uint8Array<ArrayBuffer>> =>
+    isTauriRuntime()
+        ? invokeAttachmentCommand(
+              "chat_crypto_encrypt_attachment",
+              data,
+              chatKeyB64,
+              sessionUuid,
+          )
+        : wasmBytes(
+              (await ensuWasm()).encryptChatAttachment(
+                  data,
+                  chatKeyB64,
+                  sessionUuid,
+              ),
+          );
+
+export const decryptAttachmentBytes = async (
+    data: Uint8Array,
+    chatKeyB64: string,
+    sessionUuid: string,
+): Promise<Uint8Array<ArrayBuffer>> =>
+    isTauriRuntime()
+        ? invokeAttachmentCommand(
+              "chat_crypto_decrypt_attachment",
+              data,
+              chatKeyB64,
+              sessionUuid,
+          )
+        : wasmBytes(
+              (await ensuWasm()).decryptChatAttachment(
+                  data,
+                  chatKeyB64,
+                  sessionUuid,
+              ),
+          );

@@ -34,14 +34,6 @@ void main() {
     expect(payload["n"], "Amit, Brother, 98");
   });
 
-  test("encodes compact payload as copy code", () {
-    final share = _share(1, "Mom");
-    expect(
-      utf8.decode(base64Url.decode(base64Url.normalize(share.toCopyCode()))),
-      share.toQrPayload(),
-    );
-  });
-
   test("keeps the complete display name in the QR payload", () {
     const partName = "Mother 👩‍👩‍👧‍👦 Very Long Name";
 

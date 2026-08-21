@@ -70,6 +70,42 @@ Future<CollectionParticipantRole?> showEnableLibrarySharingSheet({
   );
 }
 
+Future<bool> confirmDisableLibrarySharing({
+  required BuildContext context,
+  required String recipientLabel,
+}) async {
+  return await showBottomSheetComponent<bool>(
+        context: context,
+        builder: (sheetContext) {
+          final colors = sheetContext.componentColors;
+          return BottomSheetComponent(
+            title: sheetContext.strings.librarySharingDisableTitle,
+            closeTooltip: sheetContext.strings.close,
+            borderSide: BorderSide(color: colors.strokeDark),
+            actionsTopSpacing: Spacing.xxl,
+            content: Text(
+              sheetContext.strings.librarySharingDisableDescription(
+                recipient: recipientLabel,
+                stopSharingLabel:
+                    sheetContext.strings.librarySharingStopSharing,
+              ),
+              style: TextStyles.body.copyWith(color: colors.textLight),
+            ),
+            actions: [
+              ButtonComponent(
+                label: sheetContext.strings.librarySharingDisable,
+                variant: ButtonComponentVariant.critical,
+                density: ButtonComponentDensity.compact,
+                shouldSurfaceExecutionStates: false,
+                onTap: () => Navigator.of(sheetContext).pop(true),
+              ),
+            ],
+          );
+        },
+      ) ??
+      false;
+}
+
 Future<bool?> showLibrarySharingRolesSheet({
   required BuildContext context,
   required LibrarySharingController controller,

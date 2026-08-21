@@ -262,23 +262,18 @@ bool areFromSameDay(int firstCreationTime, int secondCreationTime) {
       firstDate.day == secondDate.day;
 }
 
-bool areDatesInSameWeek(DateTime date1, DateTime date2) {
-  if (date1.year == date2.year &&
-      date1.month == date2.month &&
-      date1.day == date2.day) {
-    return true;
-  }
-  final int dayOfWeek1 = date1.weekday;
-  final int dayOfWeek2 = date2.weekday;
-  final DateTime startOfWeek1 = date1.subtract(Duration(days: dayOfWeek1 - 1));
-  final DateTime endOfWeek1 = startOfWeek1.add(const Duration(days: 6));
-  final DateTime startOfWeek2 = date2.subtract(Duration(days: dayOfWeek2 - 1));
-  final DateTime endOfWeek2 = startOfWeek2.add(const Duration(days: 6));
-  if ((date1.isAfter(startOfWeek2) && date1.isBefore(endOfWeek2)) ||
-      (date2.isAfter(startOfWeek1) && date2.isBefore(endOfWeek1))) {
-    return true;
-  }
-  return false;
+DateTime startOfISOWeek(DateTime date) {
+  final mondayDay = date.day - (date.weekday - DateTime.monday);
+  return date.isUtc
+      ? DateTime.utc(date.year, date.month, mondayDay)
+      : DateTime(date.year, date.month, mondayDay);
+}
+
+DateTime startOfNextISOWeek(DateTime date) {
+  final start = startOfISOWeek(date);
+  return start.isUtc
+      ? DateTime.utc(start.year, start.month, start.day + 7)
+      : DateTime(start.year, start.month, start.day + 7);
 }
 
 String getNameForDateRange(int firstCreationTime, int secondCreationTime) {

@@ -37,6 +37,7 @@ import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/home/memories/all_memories_page.dart";
 import "package:photos/ui/home/memories/full_screen_memory.dart";
+import "package:photos/ui/home/memories/memory_music_session.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/people/people_page.dart";
 import "package:photos/utils/cache_util.dart";
@@ -1306,7 +1307,7 @@ class MemoriesCacheService {
     bool found = false;
     memoryLoop:
     for (final memory in allMemories) {
-      if (memory.type == MemoryType.onThisDay) {
+      if (memory.type == MemoryType.onThisDay && memory.memories.isNotEmpty) {
         found = true;
         break memoryLoop;
       }
@@ -1339,7 +1340,8 @@ class MemoriesCacheService {
     for (final memory in allMemories) {
       if (memory is PeopleMemory &&
           (memory.isBirthday ?? false) &&
-          memory.personID == personID) {
+          memory.personID == personID &&
+          memory.memories.isNotEmpty) {
         personMemories.add(memory);
       }
     }
@@ -1377,17 +1379,28 @@ class MemoriesCacheService {
       return;
     }
     if (context != null && !context.mounted) return;
-    await _routeToPage(
-      FullScreenMemoryDataUpdater(
-        initialIndex: 0,
-        memories: personMemory.memories,
-        child: Container(
-          color: backgroundColorDark,
-          width: double.infinity,
-          height: double.infinity,
-          child: FullScreenMemory(personMemory.title, 0),
+    final page = FullScreenMemoryDataUpdater(
+      initialIndex: 0,
+      memories: personMemory.memories,
+      child: Container(
+        color: backgroundColorDark,
+        width: double.infinity,
+        height: double.infinity,
+        child: FullScreenMemory(
+          personMemory.title,
+          0,
+          memoryID: personMemory.id,
+          isActive: true,
         ),
       ),
+    );
+    await _routeToPage(
+      flagService.internalUser
+          ? MemoryMusicSession(
+              memoryIDs: <String>[personMemory.id],
+              child: page,
+            )
+          : page,
       context: context,
       forceCustomPageRoute: true,
     );

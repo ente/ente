@@ -1,0 +1,12 @@
+[package]
+name = "ente-ensu-wasm"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-ensu-crypto.workspace = true
+ente-wasm-log.workspace = true
+js-sys.workspace = true
+wasm-bindgen.workspace = true

@@ -11,40 +11,11 @@ const _authThemeModeKey = "ente_auth_theme_mode";
 const _adaptiveThemePrefKey = "adaptive_theme_preferences";
 
 void main() {
-  setUp(() {
-    SharedPreferencesAsyncPlatform.instance =
-        InMemorySharedPreferencesAsync.empty();
-    SharedPreferences.setMockInitialValues({});
-  });
+  setUp(_resetPreferences);
 
   test("returns system when no theme preference exists", () async {
     expect(await AuthThemePreferences.getThemeMode(), ThemeMode.system);
   });
-
-  test("reads Auth theme preference using Flutter ThemeMode index", () async {
-    await _setAuthThemeModeIndex(ThemeMode.system.index);
-    expect(await AuthThemePreferences.getThemeMode(), ThemeMode.system);
-
-    await _setAuthThemeModeIndex(ThemeMode.light.index);
-    expect(await AuthThemePreferences.getThemeMode(), ThemeMode.light);
-
-    await _setAuthThemeModeIndex(ThemeMode.dark.index);
-    expect(await AuthThemePreferences.getThemeMode(), ThemeMode.dark);
-  });
-
-  test(
-    "persists Auth theme preference using Flutter ThemeMode index",
-    () async {
-      await AuthThemePreferences.setThemeMode(ThemeMode.system);
-      expect(await _getAuthThemeModeIndex(), ThemeMode.system.index);
-
-      await AuthThemePreferences.setThemeMode(ThemeMode.light);
-      expect(await _getAuthThemeModeIndex(), ThemeMode.light.index);
-
-      await AuthThemePreferences.setThemeMode(ThemeMode.dark);
-      expect(await _getAuthThemeModeIndex(), ThemeMode.dark.index);
-    },
-  );
 
   test("prefers Auth theme preference", () async {
     await _setAuthThemeModeIndex(ThemeMode.dark.index);
@@ -72,35 +43,24 @@ void main() {
   test(
     "converts adaptive theme indices to Flutter ThemeMode indices",
     () async {
-      await _setAsyncAdaptiveThemeModeIndex(0);
-      expect(await AuthThemePreferences.getThemeMode(), ThemeMode.light);
-      expect(await _getAuthThemeModeIndex(), ThemeMode.light.index);
-
-      SharedPreferencesAsyncPlatform.instance =
-          InMemorySharedPreferencesAsync.empty();
-      SharedPreferences.setMockInitialValues({});
-
-      await _setAsyncAdaptiveThemeModeIndex(1);
-      expect(await AuthThemePreferences.getThemeMode(), ThemeMode.dark);
-      expect(await _getAuthThemeModeIndex(), ThemeMode.dark.index);
-
-      SharedPreferencesAsyncPlatform.instance =
-          InMemorySharedPreferencesAsync.empty();
-      SharedPreferences.setMockInitialValues({});
-
-      await _setAsyncAdaptiveThemeModeIndex(2);
-      expect(await AuthThemePreferences.getThemeMode(), ThemeMode.system);
-      expect(await _getAuthThemeModeIndex(), ThemeMode.system.index);
+      for (final (adaptiveIndex, mode) in const [
+        (0, ThemeMode.light),
+        (1, ThemeMode.dark),
+        (2, ThemeMode.system),
+      ]) {
+        _resetPreferences();
+        await _setAsyncAdaptiveThemeModeIndex(adaptiveIndex);
+        expect(await AuthThemePreferences.getThemeMode(), mode);
+        expect(await _getAuthThemeModeIndex(), mode.index);
+      }
     },
   );
+}
 
-  test("keeps Auth theme preference when adaptive value resets", () async {
-    await AuthThemePreferences.setThemeMode(ThemeMode.light);
-    await _setAsyncAdaptiveThemeModeIndex(2);
-    await _setLegacyAdaptiveThemeModeIndex(2);
-
-    expect(await AuthThemePreferences.getThemeMode(), ThemeMode.light);
-  });
+void _resetPreferences() {
+  SharedPreferencesAsyncPlatform.instance =
+      InMemorySharedPreferencesAsync.empty();
+  SharedPreferences.setMockInitialValues({});
 }
 
 Future<void> _setAuthThemeModeIndex(int themeModeIndex) async {

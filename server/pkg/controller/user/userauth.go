@@ -267,20 +267,14 @@ func (c *UserController) verifyEmailOtt(context *gin.Context, email string, ott 
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	wrongAttempt, err := c.UserAuthRepo.GetMaxWrongAttempts(emailHash, app)
+	otts, limited, err := c.UserAuthRepo.ReserveOTTVerificationAttempt(emailHash, app, ott, OTTWrongAttemptLimit)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-
-	if wrongAttempt >= OTTWrongAttemptLimit {
+	if limited {
 		msg := fmt.Sprintf("Too many wrong ott verification attemp for app %s", app)
 		go c.DiscordController.NotifyPotentialAbuse(msg)
 		return stacktrace.Propagate(ente.ErrTooManyBadRequest, "User needs to wait before active ott are expired")
-	}
-
-	otts, err := c.UserAuthRepo.GetValidOTTs(emailHash, app)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
 	}
 	if len(otts) < 1 {
 		return stacktrace.Propagate(ente.ErrExpiredOTT, "")
@@ -292,9 +286,6 @@ func (c *UserController) verifyEmailOtt(context *gin.Context, email string, ott 
 		}
 	}
 	if !isValidOTT {
-		if err = c.UserAuthRepo.RecordWrongAttemptForActiveOtt(emailHash, app); err != nil {
-			log.WithError(err).Warn("Failed to track wrong attempt")
-		}
 		return stacktrace.Propagate(ente.ErrIncorrectOTT, "")
 	}
 	removed, err := c.UserAuthRepo.RemoveOTT(emailHash, ott, app)

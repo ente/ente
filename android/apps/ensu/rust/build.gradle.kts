@@ -135,5 +135,5 @@ dependencies {
     // Custom WebGPU/XNNPACK build; the Rust runtime dynamically loads its
     // libonnxruntime.so. Resolved from the Ivy repository declared in
     // settings.gradle.kts and SHA-256 pinned in gradle/verification-metadata.xml.
-    api("io.ente.onnxruntime:onnxruntime-webgpu-android:1.28.0-r3@aar")
+    api("io.ente.onnxruntime:onnxruntime-webgpu-android:1.28.1-r1@aar")
 }

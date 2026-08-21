@@ -1,11 +1,18 @@
 [package]
-name = "ente-wasm-core"
+name = "ente-core-wasm"
 edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-ente-core = { workspace = true }
+ente-accounts.workspace = true
+ente-contacts.workspace = true
+ente-core.workspace = true
 ente-wasm-log.workspace = true
+js-sys.workspace = true
+md-5.workspace = true
+serde.workspace = true
+serde-wasm-bindgen.workspace = true
 wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true

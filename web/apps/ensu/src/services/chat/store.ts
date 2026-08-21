@@ -2,10 +2,11 @@ import { isTauriRuntime } from "@/services/tauri-runtime";
 import { getKV, removeKV, setKV } from "ente-base/kv";
 import log from "ente-base/log";
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import { decryptAttachmentBytes, encryptAttachmentBytes } from "./attachments";
 import {
+    decryptAttachmentBytes,
     decryptChatField,
     decryptChatPayload,
+    encryptAttachmentBytes,
     encryptChatField,
     encryptChatPayload,
 } from "./crypto";

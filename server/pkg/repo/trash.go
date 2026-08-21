@@ -119,12 +119,15 @@ func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash en
 	for _, item := range trash.TrashItems {
 		fileIDs = append(fileIDs, item.FileID)
 	}
-	updationTime := time.Microseconds()
 	tx, err := t.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
+	if err := lockFiles(ctx, tx, userID, fileIDs); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	updationTime := time.Microseconds()
 	rows, err := tx.QueryContext(ctx, `SELECT DISTINCT collection_id FROM 
 			collection_files WHERE file_id = ANY($1) AND is_deleted = $2`, pq.Array(fileIDs), false)
 	if err != nil {
@@ -205,11 +208,15 @@ func (t *TrashRepository) Delete(ctx context.Context, userID int64, fileIDs []in
 	if len(fileIDs) > TrashDiffLimit {
 		return fmt.Errorf("can not delete more than %d in one go", TrashDiffLimit)
 	}
-	fileIDsInTrash, _, err := t.GetFilesInTrashState(ctx, userID, fileIDs)
-	if err != nil {
-		return err
-	}
 	tx, err := t.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+	if err := lockFiles(ctx, tx, userID, fileIDs); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	fileIDsInTrash, _, err := t.getFilesInTrashState(ctx, tx, userID, fileIDs)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -217,26 +224,18 @@ func (t *TrashRepository) Delete(ctx context.Context, userID int64, fileIDs []in
 	logrus.WithField("fileIDs", fileIDsInTrash).Info("deleting files")
 	_, err = tx.ExecContext(ctx, `UPDATE trash SET is_deleted= true WHERE file_id = ANY ($1)`, pq.Array(fileIDsInTrash))
 	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			logrus.WithError(rollbackErr).Error("transaction rollback failed")
-			return stacktrace.Propagate(rollbackErr, "")
-		}
 		return stacktrace.Propagate(err, "")
 	}
 
 	err = t.FileRepo.scheduleDeletion(ctx, tx, fileIDsInTrash, userID)
 	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			logrus.WithError(rollbackErr).Error("transaction rollback failed")
-			return stacktrace.Propagate(rollbackErr, "")
-		}
 		return stacktrace.Propagate(err, "")
 	}
-	return tx.Commit()
+	return stacktrace.Propagate(tx.Commit(), "")
 }
 
-func (t *TrashRepository) GetFilesInTrashState(ctx context.Context, userID int64, fileIDs []int64) ([]int64, bool, error) {
-	rows, err := t.DB.Query(`SELECT file_id FROM trash
+func (t *TrashRepository) getFilesInTrashState(ctx context.Context, tx *sql.Tx, userID int64, fileIDs []int64) ([]int64, bool, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT file_id FROM trash
 			WHERE user_id = $1 AND file_id = ANY ($2)
 			AND is_deleted = FALSE AND is_restored = FALSE`, userID, pq.Array(fileIDs))
 	if err != nil {
@@ -258,8 +257,8 @@ func (t *TrashRepository) GetFilesInTrashState(ctx context.Context, userID int64
 	return fileIDsInTrash, canRestoreOrDeleteAllFiles, nil
 }
 
-func (t *TrashRepository) GetFilesInTrashOrDeleted(ctx context.Context, userID int64, fileIDs []int64) ([]int64, error) {
-	rows, err := t.DB.QueryContext(ctx, `SELECT file_id FROM trash
+func (t *TrashRepository) getFilesInTrashOrDeleted(ctx context.Context, tx *sql.Tx, userID int64, fileIDs []int64) ([]int64, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT file_id FROM trash
 			WHERE user_id = $1 AND file_id = ANY ($2)
 			AND is_restored = FALSE`, userID, pq.Array(fileIDs))
 	if err != nil {

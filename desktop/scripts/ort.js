@@ -3,7 +3,7 @@ const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 
-const ortVersion = "1.28.0-r3";
+const ortVersion = "1.28.1-r1";
 
 // Our packaging enables CoreML on macOS and WebGPU elsewhere.
 const ortReleaseURL = `https://github.com/ente/ort-packaging/releases/download/ort-${ortVersion}`;
@@ -12,17 +12,17 @@ const ortReleaseURL = `https://github.com/ente/ort-packaging/releases/download/o
 // release's .sha256 sidecars.
 const ortAssetSHA256s = {
     "darwin-arm64":
-        "5f5bf25a65756c25ab13b331c90d5b4324e59bb669dfc1b3bf2d060a8760c0f3",
+        "12890a871d0e658dd064be187fa63d27c6b692e69f94d4750532fd8f4d179c1e",
     "darwin-x64":
-        "8be0681d58f0398cf8fbc52cf5a10aa5ee0f7976c45dca81598dd562575a8cdc",
+        "8c96da8568343b5ab496e93d112a5d6126c01e5dcc4e6719219aa678ad6abe25",
     "linux-arm64":
-        "343572e7a09565d517bb2802fed5b27c8a950337dafa99a4d8bc4fe06acb5485",
+        "2eb71ced50e16b4e2d4ab20b924276d50d123417962a7d874a0cdb7f0171c63d",
     "linux-x64":
-        "8478974b222df6ce9069976a4bbf99a89f0604565c350bb9a40565a3ec43e05d",
+        "94e55336214e891e9f648901f0c815f113d1534cecae82ecef9c3828cd73d4f4",
     "win32-arm64":
-        "bb31227878d7684ff1ef80a90bea7e95d4868db91e4751dfa5af6ae9b3b6adcd",
+        "88f6d088a76d6708e34ba769362f298911c53362f1ee5d3c8b918027d85d2028",
     "win32-x64":
-        "d6984f7fafd1d4cd7b3969654e919e148c0b697ffffa64d4f203549615d59877",
+        "88747ac8b6870041c0e09410d1202b4e8911f07150b7d397f66952688d8be5a1",
 };
 
 const ortAssetName = (platform, arch) => {

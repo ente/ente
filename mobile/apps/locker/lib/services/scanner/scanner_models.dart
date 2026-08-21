@@ -1,21 +1,15 @@
 import 'dart:io';
 import 'dart:ui';
 
-enum ScanColorMode { auto, color, grayscale }
+enum ScanColorMode { color, grayscale }
 
 class ScanQuad {
   const ScanQuad(this.corners);
 
-  static const double maskSide = 256;
-
   final List<Offset> corners;
 
-  factory ScanQuad.fullFrame() => const ScanQuad([
-    Offset(0, 0),
-    Offset(maskSide, 0),
-    Offset(maskSide, maskSide),
-    Offset(0, maskSide),
-  ]);
+  factory ScanQuad.fullFrame() =>
+      const ScanQuad([Offset(0, 0), Offset(1, 0), Offset(1, 1), Offset(0, 1)]);
 }
 
 class ScannedPage {

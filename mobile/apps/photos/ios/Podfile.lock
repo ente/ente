@@ -30,7 +30,7 @@ PODS:
     - Flutter
   - ente_screen_cover (0.0.1):
     - Flutter
-  - EnteOnnxRuntime (1.28.0-r3)
+  - EnteOnnxRuntime (1.28.1-r1)
   - ffmpeg_kit_custom (6.0.3)
   - ffmpeg_kit_flutter (6.0.3):
     - ffmpeg_kit_custom
@@ -456,7 +456,7 @@ SPEC CHECKSUMS:
   ente_qr: 86beaf5d2644705db9b565b32dd8b82c05fb36af
   ente_screen_brightness: 7dd13c361508ee6098a2578908ebf35e9f567e28
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
-  EnteOnnxRuntime: c994300f7ef809dd318664cfd85868ca69b3cd1a
+  EnteOnnxRuntime: 7baa83a95717a6c9c8d0d4599f9f2c90b72d2905
   ffmpeg_kit_custom: 682b4f2f1ff1f8abae5a92f6c3540f2441d5be99
   ffmpeg_kit_flutter: 915b345acc97d4142e8a9a8549d177ff10f043f5
   file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
@@ -479,7 +479,7 @@ SPEC CHECKSUMS:
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   home_widget: f169fc41fd807b4d46ab6615dc44d62adbf9f64f
-  in_app_purchase_storekit: d1a48cb0f8b29dbf5f85f782f5dd79b21b90a5e6
+  in_app_purchase_storekit: 22cca7d08eebca9babdf4d07d0baccb73325d3c8
   integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
   just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
   launcher_icon_switcher: 84c218d233505aa7d8655d8fa61a3ba802c022da

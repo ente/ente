@@ -5,19 +5,15 @@ import 'package:flutter/foundation.dart';
 import 'package:locker/services/scanner/document_scanner_service.dart';
 import 'package:locker/services/scanner/pdf_writer.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
-import 'package:locker/services/scanner/scanner_service_locator.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 class ScanSessionController extends ChangeNotifier {
-  ScanSessionController({DocumentScannerService? service})
-    : _service = service ?? documentScannerService;
-
   static const _pdfExtension = '.pdf';
 
   final _logger = Logger('ScanSessionController');
-  final DocumentScannerService _service;
+  final DocumentScannerService _service = DocumentScannerService.instance;
   final List<ScannedPage> _pages = [];
   final List<File> _exports = [];
   Future<void> _queue = Future.value();
@@ -173,7 +169,7 @@ class ScanSessionController extends ChangeNotifier {
     final specs = <PdfPageSpec>[];
     for (final page in List.of(_pages)) {
       final jpeg = await page.processedJpeg.readAsBytes();
-      final size = _pageSizeMm(jpeg);
+      final size = _pageSizeMm(page);
       specs.add(
         PdfPageSpec(jpeg: jpeg, widthMm: size.widthMm, heightMm: size.heightMm),
       );
@@ -189,12 +185,11 @@ class ScanSessionController extends ChangeNotifier {
     return file;
   }
 
-  static ({double widthMm, double heightMm}) _pageSizeMm(Uint8List jpeg) {
-    final info = JpegInfo.parse(jpeg);
+  static ({double widthMm, double heightMm}) _pageSizeMm(ScannedPage page) {
     const a4HeightMm = 297.0;
-    final longestPx = info.width > info.height ? info.width : info.height;
+    final longestPx = page.width > page.height ? page.width : page.height;
     final scale = a4HeightMm / longestPx;
-    return constrainToMaxFormat(info.width * scale, info.height * scale);
+    return constrainToMaxFormat(page.width * scale, page.height * scale);
   }
 
   Future<void> disposeSession() async {

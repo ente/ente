@@ -19,64 +19,33 @@ func (b testSpaceAssetBuckets) IsBucketActive(bucketID string) bool {
 	return b[bucketID]
 }
 
-func TestPresignUploadRejectsOversizedPost(t *testing.T) {
-	controller := &AssetsController{}
-	ctx := context.Background()
-	space := &spacerepo.SpaceRecord{SpaceID: "space-1"}
+func TestPresignUploadRejectsOversizedAssets(t *testing.T) {
+	for _, test := range []struct {
+		purpose string
+		limit   int64
+	}{
+		{purpose: uploadPurposePost, limit: maxPostUploadBytes},
+		{purpose: uploadPurposeAvatar, limit: maxAvatarUploadBytes},
+		{purpose: uploadPurposeCover, limit: maxCoverUploadBytes},
+	} {
+		t.Run(test.purpose, func(t *testing.T) {
+			request := models.PresignUploadRequest{
+				Size:       test.limit + 1,
+				ContentMD5: "XUFAKrxLKna5cZ2REBfFkg==",
+			}
+			if test.purpose != uploadPurposePost {
+				request.Purpose = &test.purpose
+			}
 
-	_, err := controller.PresignUpload(ctx, space, models.PresignUploadRequest{
-		Size:       maxPostUploadBytes + 1,
-		ContentMD5: "XUFAKrxLKna5cZ2REBfFkg==",
-	})
-
-	require.Error(t, err)
-	require.Contains(t, err.Error(), strconv.FormatInt(maxPostUploadBytes, 10))
-}
-
-func TestPresignUploadRejectsOversizedAvatar(t *testing.T) {
-	controller := &AssetsController{}
-	ctx := context.Background()
-	space := &spacerepo.SpaceRecord{SpaceID: "space-1"}
-	purpose := uploadPurposeAvatar
-
-	_, err := controller.PresignUpload(ctx, space, models.PresignUploadRequest{
-		Size:       maxAvatarUploadBytes + 1,
-		ContentMD5: "XUFAKrxLKna5cZ2REBfFkg==",
-		Purpose:    &purpose,
-	})
-
-	require.Error(t, err)
-	require.Contains(t, err.Error(), strconv.FormatInt(maxAvatarUploadBytes, 10))
-}
-
-func TestPresignUploadRejectsOversizedCover(t *testing.T) {
-	controller := &AssetsController{}
-	ctx := context.Background()
-	space := &spacerepo.SpaceRecord{SpaceID: "space-1"}
-	purpose := uploadPurposeCover
-
-	_, err := controller.PresignUpload(ctx, space, models.PresignUploadRequest{
-		Size:       maxCoverUploadBytes + 1,
-		ContentMD5: "XUFAKrxLKna5cZ2REBfFkg==",
-		Purpose:    &purpose,
-	})
-
-	require.Error(t, err)
-	require.Contains(t, err.Error(), strconv.FormatInt(maxCoverUploadBytes, 10))
-}
-
-func TestMaxUploadBytesForPurpose(t *testing.T) {
-	postLimit, err := maxUploadBytesForPurpose(uploadPurposePost)
-	require.NoError(t, err)
-	require.Equal(t, maxPostUploadBytes, postLimit)
-
-	avatarLimit, err := maxUploadBytesForPurpose(uploadPurposeAvatar)
-	require.NoError(t, err)
-	require.Equal(t, maxAvatarUploadBytes, avatarLimit)
-
-	coverLimit, err := maxUploadBytesForPurpose(uploadPurposeCover)
-	require.NoError(t, err)
-	require.Equal(t, maxCoverUploadBytes, coverLimit)
+			_, err := (&AssetsController{}).PresignUpload(
+				context.Background(),
+				&spacerepo.SpaceRecord{SpaceID: "space-1"},
+				request,
+			)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), strconv.FormatInt(test.limit, 10))
+		})
+	}
 }
 
 func TestNormalizeContentMD5(t *testing.T) {

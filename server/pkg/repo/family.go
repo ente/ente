@@ -55,6 +55,7 @@ func (repo *FamilyRepository) CloseFamily(ctx context.Context, adminID int64) er
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `DELETE FROM families WHERE admin_id = $1`, adminID)
 	if err != nil {
 		tx.Rollback()

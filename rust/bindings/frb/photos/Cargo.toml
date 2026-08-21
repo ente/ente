@@ -6,7 +6,6 @@ edition = "2024"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-ente-accounts.workspace = true
 ente-cast.workspace = true
 ente-contacts.workspace = true
 ente-core.workspace = true

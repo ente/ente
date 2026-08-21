@@ -272,6 +272,7 @@ class ClipMemorySpec extends MemorySpec {
       firstDateToShow,
       lastDateToShow,
       clipMemoryType,
+      id: id,
     );
     clipMemory.title = title;
     return clipMemory;

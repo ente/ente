@@ -100,7 +100,7 @@ func (c *ObjectCleanupController) removeUnreportedObjects() int {
 	// Always commit the batch. skip() delays failed rows to prevent a tight loop.
 	cerr := tx.Commit()
 	if cerr != nil {
-		cerr = stacktrace.Propagate(err, "Failed to commit transaction")
+		cerr = stacktrace.Propagate(cerr, "Failed to commit transaction")
 		logger.Error(cerr)
 	}
 
@@ -146,9 +146,11 @@ func (c *ObjectCleanupController) removeUnreportedObject(tx *sql.Tx, t ente.Temp
 
 	if t.IsMultipart {
 		err = c.abortMultipartUpload(t.ObjectKey, t.UploadID, dc)
-	} else {
-		err = c.DeleteObjectFromDataCenter(t.ObjectKey, dc)
+		if err != nil {
+			return skip(err)
+		}
 	}
+	err = c.DeleteObjectFromDataCenter(t.ObjectKey, dc)
 	if err != nil {
 		return skip(err)
 	}

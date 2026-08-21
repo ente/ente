@@ -1,4 +1,6 @@
-use super::OpResult;
+use rayon::prelude::*;
+
+use super::{OpResult, PARALLEL_MIN_ELEMS, saturate_u8_f32};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ImageU8 {
@@ -64,6 +66,38 @@ impl ImageU8 {
     pub(crate) fn same_geometry(&self, other: &ImageU8) -> bool {
         self.width == other.width && self.height == other.height && self.channels == other.channels
     }
+
+    pub(crate) fn to_f32(&self) -> ImageF32 {
+        ImageF32 {
+            width: self.width,
+            height: self.height,
+            channels: self.channels,
+            data: map_vec(&self.data, |v| v as f32),
+        }
+    }
+}
+
+fn map_vec<T: Copy + Sync, U: Send>(src: &[T], f: impl Fn(T) -> U + Send + Sync) -> Vec<U> {
+    if src.len() >= PARALLEL_MIN_ELEMS {
+        src.par_iter().map(|&v| f(v)).collect()
+    } else {
+        src.iter().map(|&v| f(v)).collect()
+    }
+}
+
+fn zip_vec<T: Copy + Sync, U: Send>(
+    a: &[T],
+    b: &[T],
+    f: impl Fn(T, T) -> U + Send + Sync,
+) -> Vec<U> {
+    if a.len() >= PARALLEL_MIN_ELEMS {
+        a.par_iter()
+            .zip(b.par_iter())
+            .map(|(&x, &y)| f(x, y))
+            .collect()
+    } else {
+        a.iter().zip(b.iter()).map(|(&x, &y)| f(x, y)).collect()
+    }
 }
 
 impl ImageF32 {
@@ -99,42 +133,74 @@ impl ImageF32 {
     pub(crate) fn same_geometry(&self, other: &ImageF32) -> bool {
         self.width == other.width && self.height == other.height && self.channels == other.channels
     }
-}
 
-#[derive(Clone, Copy, Debug)]
-pub(crate) enum ImageRef<'a> {
-    U8(&'a ImageU8),
-    F32(&'a ImageF32),
-}
-
-#[derive(Clone, Debug)]
-pub(crate) enum Image {
-    U8(ImageU8),
-    F32(ImageF32),
-}
-
-impl ImageRef<'_> {
-    pub(crate) fn size(&self) -> (i32, i32) {
-        match self {
-            ImageRef::U8(i) => i.size(),
-            ImageRef::F32(i) => (i.width, i.height),
-        }
-    }
-}
-
-impl Image {
-    pub(crate) fn into_u8(self) -> OpResult<ImageU8> {
-        match self {
-            Image::U8(i) => Ok(i),
-            Image::F32(_) => Err("expected an 8-bit image, got 32-bit float".to_string()),
+    fn like(&self, data: Vec<f32>) -> ImageF32 {
+        ImageF32 {
+            width: self.width,
+            height: self.height,
+            channels: self.channels,
+            data,
         }
     }
 
-    pub(crate) fn into_f32(self) -> OpResult<ImageF32> {
-        match self {
-            Image::F32(i) => Ok(i),
-            Image::U8(_) => Err("expected a 32-bit float image, got 8-bit".to_string()),
+    fn require_same(&self, other: &ImageF32) -> OpResult<()> {
+        if self.same_geometry(other) {
+            return Ok(());
         }
+        Err(format!(
+            "elementwise op on {}x{}x{} and {}x{}x{}",
+            self.width, self.height, self.channels, other.width, other.height, other.channels
+        ))
+    }
+
+    pub(crate) fn map(&self, f: impl Fn(f32) -> f32 + Send + Sync) -> ImageF32 {
+        self.like(map_vec(&self.data, f))
+    }
+
+    pub(crate) fn map_mut(&mut self, f: impl Fn(f32) -> f32 + Send + Sync) {
+        if self.data.len() >= PARALLEL_MIN_ELEMS {
+            self.data.par_iter_mut().for_each(|v| *v = f(*v));
+        } else {
+            self.data.iter_mut().for_each(|v| *v = f(*v));
+        }
+    }
+
+    pub(crate) fn map_to_u8(&self, f: impl Fn(f32) -> f32 + Send + Sync) -> ImageU8 {
+        ImageU8 {
+            width: self.width,
+            height: self.height,
+            channels: self.channels,
+            data: map_vec(&self.data, |v| saturate_u8_f32(f(v))),
+        }
+    }
+
+    pub(crate) fn zip_map(
+        &self,
+        other: &ImageF32,
+        f: impl Fn(f32, f32) -> f32 + Send + Sync,
+    ) -> OpResult<ImageF32> {
+        self.require_same(other)?;
+        Ok(self.like(zip_vec(&self.data, &other.data, f)))
+    }
+
+    pub(crate) fn zip_mut(
+        &mut self,
+        other: &ImageF32,
+        f: impl Fn(&mut f32, f32) + Send + Sync,
+    ) -> OpResult<()> {
+        self.require_same(other)?;
+        if self.data.len() >= PARALLEL_MIN_ELEMS {
+            self.data
+                .par_iter_mut()
+                .zip(other.data.par_iter())
+                .for_each(|(a, &b)| f(a, b));
+        } else {
+            self.data
+                .iter_mut()
+                .zip(other.data.iter())
+                .for_each(|(a, &b)| f(a, b));
+        }
+        Ok(())
     }
 }
 

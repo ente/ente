@@ -5,7 +5,7 @@
     "identifier": "io.ente.ensu",
     "mainBinaryName": "Ensu",
     "build": {
-        "beforeDevCommand": "node ../../../web/scripts/check-deps.mjs && cd ../../../web && npm run build:wasm && npm exec --workspace ensu -- next dev --webpack -p 3010",
+        "beforeDevCommand": "node ../../../web/scripts/check-deps.mjs && cd ../../../web && npm run build:core-wasm && npm exec --workspace ensu -- next dev --webpack -p 3010",
         "beforeBuildCommand": "node scripts/tauri-build-web.mjs",
         "devUrl": "http://localhost:3010",
         "frontendDist": "../../../../web/apps/ensu/out"

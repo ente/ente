@@ -1,1 +1,0 @@
-- (i) Adds Backup mode on iOS to keep Ente awake and dim the display during large backups.

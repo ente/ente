@@ -22,6 +22,9 @@ type FileLinkController struct {
 }
 
 func (c *FileLinkController) CreateLink(ctx *gin.Context, req ente.CreateFileUrl) (*ente.FileUrl, error) {
+	if err := req.Validate(); err != nil {
+		return nil, stacktrace.Propagate(err, "invalid request")
+	}
 	actorUserID := auth.GetUserID(ctx.Request.Header)
 	app := auth.GetApp(ctx)
 	if req.App != app {

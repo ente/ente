@@ -1,9 +1,7 @@
 use rayon::prelude::*;
 
-use crate::cv::OpResult;
 use crate::cv::image::ImageU8;
-
-const PARALLEL_MIN_PIXELS: usize = 200_000;
+use crate::cv::{OpResult, PARALLEL_MIN_ELEMS};
 
 fn morph(src: &ImageU8, kernel: &ImageU8, erode: bool) -> OpResult<ImageU8> {
     if src.channels != 1 || kernel.channels != 1 {
@@ -48,7 +46,7 @@ fn morph(src: &ImageU8, kernel: &ImageU8, erode: bool) -> OpResult<ImageU8> {
             }
         }
     };
-    if w * h >= PARALLEL_MIN_PIXELS {
+    if w * h >= PARALLEL_MIN_ELEMS {
         out.par_chunks_mut(w)
             .enumerate()
             .for_each(|(y, dst)| row(y, dst));

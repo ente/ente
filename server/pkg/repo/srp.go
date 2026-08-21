@@ -166,14 +166,28 @@ func (repo *UserAuthRepository) GetSrpSessionEntity(ctx context.Context, session
 	return &result, nil
 }
 
-func (repo *UserAuthRepository) IncrementSrpSessionAttemptCount(ctx context.Context, sessionID uuid.UUID) error {
-	_, err := repo.DB.ExecContext(ctx, `UPDATE srp_sessions SET attempt_count = attempt_count + 1 WHERE id = $1`, sessionID)
-	return stacktrace.Propagate(err, "")
+func (repo *UserAuthRepository) ReserveSrpSessionAttempt(ctx context.Context, sessionID uuid.UUID, limit int) (*ente.SRPSessionEntity, error) {
+	result := ente.SRPSessionEntity{}
+	row := repo.DB.QueryRowContext(ctx, `UPDATE srp_sessions SET attempt_count = attempt_count + 1
+		WHERE id = $1 AND has_verified = false AND attempt_count < $2
+		RETURNING id, srp_user_id, server_key, srp_a, has_verified, attempt_count, COALESCE(is_fake, false)`, sessionID, limit)
+	err := row.Scan(&result.ID, &result.SRPUserID, &result.ServerKey, &result.SRP_A, &result.IsVerified, &result.AttemptCount, &result.IsFake)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	return &result, nil
 }
 
-func (repo *UserAuthRepository) SetSrpSessionVerified(ctx context.Context, sessionID uuid.UUID) error {
-	_, err := repo.DB.ExecContext(ctx, `UPDATE srp_sessions SET has_verified = true WHERE id = $1`, sessionID)
-	return stacktrace.Propagate(err, "")
+func (repo *UserAuthRepository) TrySetSrpSessionVerified(ctx context.Context, sessionID uuid.UUID) (bool, error) {
+	result, err := repo.DB.ExecContext(ctx, `UPDATE srp_sessions SET has_verified = true WHERE id = $1 AND has_verified = false`, sessionID)
+	if err != nil {
+		return false, stacktrace.Propagate(err, "")
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, stacktrace.Propagate(err, "")
+	}
+	return rowsAffected == 1, nil
 }
 
 func (repo *UserAuthRepository) CleanupOldFakeSessions(ctx context.Context) (int64, error) {

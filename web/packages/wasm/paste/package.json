@@ -1,0 +1,26 @@
+{
+    "name": "ente-paste-wasm",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": {
+            "types": "./index.ts",
+            "import": "./index.ts"
+        }
+    },
+    "module": "./index.ts",
+    "types": "./index.ts",
+    "scripts": {
+        "build": "wasm-pack build ../../../../rust/bindings/wasm/paste --target bundler --out-dir ../../../../web/packages/wasm/paste/pkg --no-pack",
+        "test": "vitest --run"
+    },
+    "dependencies": {
+        "comlink": "4.4.2"
+    },
+    "devDependencies": {
+        "ente-build-config": "*",
+        "vite-plugin-wasm": "3.6.0",
+        "vitest": "4.1.8",
+        "wasm-pack": "0.15.0"
+    }
+}

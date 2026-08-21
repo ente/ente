@@ -55,6 +55,14 @@ func (repo *TwoFactorRepository) GetUserIDWithTwoFactorSession(sessionID string)
 	return id, nil
 }
 
+func (repo *TwoFactorRepository) ConsumeTwoFactorSession(sessionID string) error {
+	var userID int64
+	err := repo.DB.QueryRow(`DELETE FROM two_factor_sessions
+		WHERE session_id = $1 AND expiration_time > $2
+		RETURNING user_id`, sessionID, time.Microseconds()).Scan(&userID)
+	return stacktrace.Propagate(err, "Failed to consume two-factor session")
+}
+
 func (repo *TwoFactorRepository) GetRecoveryKeyEncryptedTwoFactorSecret(userID int64) (ente.TwoFactorRecoveryResponse, error) {
 	var response ente.TwoFactorRecoveryResponse
 	row := repo.DB.QueryRow(`SELECT recovery_encrypted_two_factor_secret, recovery_two_factor_secret_decryption_nonce FROM two_factor WHERE user_id = $1`, userID)
@@ -114,23 +122,17 @@ func (repo *TwoFactorRepository) RemoveExpiredTempTwoFactorSecrets() error {
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *TwoFactorRepository) GetWrongAttempts(sessionID string) (int, error) {
-	row := repo.DB.QueryRow(`SELECT wrong_attempt FROM two_factor_sessions WHERE session_id = $1`,
-		sessionID)
-	var wrongAttempt int
-	if err := row.Scan(&wrongAttempt); err != nil {
-		return 0, stacktrace.Propagate(err, "Failed to scan row")
-	}
-	return wrongAttempt, nil
-}
-
-func (repo *TwoFactorRepository) RecordWrongAttempt(sessionID string) error {
-	_, err := repo.DB.Exec(`UPDATE two_factor_sessions SET wrong_attempt = wrong_attempt + 1
-			WHERE session_id = $1`, sessionID)
+func (repo *TwoFactorRepository) ReserveTwoFactorAttempt(sessionID string) (bool, error) {
+	result, err := repo.DB.Exec(`UPDATE two_factor_sessions SET wrong_attempt = wrong_attempt + 1
+			WHERE session_id = $1 AND expiration_time > $2 AND wrong_attempt < 10`, sessionID, time.Microseconds())
 	if err != nil {
-		return stacktrace.Propagate(err, "Failed to update wrong attempt count")
+		return false, stacktrace.Propagate(err, "Failed to reserve two-factor attempt")
 	}
-	return nil
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, stacktrace.Propagate(err, "Failed to get rows affected")
+	}
+	return rowsAffected == 1, nil
 }
 
 // TryRecordUsedOTPCode atomically tries to record an OTP code as used

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import "package:photos/core/event_bus.dart";
+import "package:photos/events/pause_video_event.dart";
 import "package:photos/models/memories/smart_memory.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/home/memories/full_screen_memory.dart";
 import "package:photos/ui/home/memories/memory_cover_util.dart";
+import "package:photos/ui/home/memories/memory_music_session.dart";
 
 class AllMemoriesPage extends StatefulWidget {
   final int initialPageIndex;
@@ -25,12 +29,20 @@ class AllMemoriesPage extends StatefulWidget {
 class _AllMemoriesPageState extends State<AllMemoriesPage>
     with SingleTickerProviderStateMixin {
   late PageController pageController;
-  bool isFirstLoad = true;
+  late final List<SmartMemory> _memories;
+  late final int _initialPageIndex;
+  late int _activePageIndex;
 
   @override
   void initState() {
     super.initState();
-    pageController = PageController(initialPage: widget.initialPageIndex);
+    final initialMemory = widget.allMemories[widget.initialPageIndex];
+    _memories = widget.allMemories
+        .where((memory) => memory.memories.isNotEmpty)
+        .toList();
+    _initialPageIndex = _memories.indexOf(initialMemory);
+    _activePageIndex = _initialPageIndex;
+    pageController = PageController(initialPage: _initialPageIndex);
   }
 
   @override
@@ -41,7 +53,7 @@ class _AllMemoriesPageState extends State<AllMemoriesPage>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final page = Container(
       width: double.infinity,
       height: double.infinity,
       color: backgroundColorDark,
@@ -49,21 +61,23 @@ class _AllMemoriesPageState extends State<AllMemoriesPage>
         controller: pageController,
         physics: const BouncingScrollPhysics(),
         hitTestBehavior: HitTestBehavior.translucent,
-        itemCount: widget.allMemories.length,
+        itemCount: _memories.length,
+        onPageChanged: (index) {
+          Bus.instance.fire(PauseVideoEvent());
+          setState(() => _activePageIndex = index);
+        },
         itemBuilder: (context, index) {
-          final smartMemory = widget.allMemories[index];
-          final initialMemoryIndex =
-              widget.isFromWidgetOrNotifications && isFirstLoad
-              ? widget.inititalFileIndex
-              : getNextMemoryIndex(smartMemory.memories);
-          isFirstLoad = false;
+          final smartMemory = _memories[index];
+          final initialMemoryIndex = _initialItemIndexForPage(index);
           return FullScreenMemoryDataUpdater(
             initialIndex: initialMemoryIndex,
             memories: smartMemory.memories,
             child: FullScreenMemory(
               smartMemory.title,
               initialMemoryIndex,
-              onNextMemory: index < widget.allMemories.length - 1
+              memoryID: smartMemory.id,
+              isActive: index == _activePageIndex,
+              onNextMemory: index < _memories.length - 1
                   ? () => pageController.nextPage(
                       duration: const Duration(milliseconds: 675),
                       curve: Curves.easeOutQuart,
@@ -80,5 +94,18 @@ class _AllMemoriesPageState extends State<AllMemoriesPage>
         },
       ),
     );
+    return flagService.internalUser
+        ? MemoryMusicSession(
+            memoryIDs: _memories.map((memory) => memory.id).toList(),
+            child: page,
+          )
+        : page;
+  }
+
+  int _initialItemIndexForPage(int pageIndex) {
+    final memories = _memories[pageIndex].memories;
+    return widget.isFromWidgetOrNotifications && pageIndex == _initialPageIndex
+        ? widget.inititalFileIndex
+        : getNextMemoryIndex(memories);
   }
 }

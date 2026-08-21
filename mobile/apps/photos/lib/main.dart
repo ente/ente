@@ -39,6 +39,7 @@ import "package:photos/locale.dart";
 import 'package:photos/module/upload/service/file_uploader.dart';
 import 'package:photos/module/upload/service/local_file_update_service.dart';
 import "package:photos/service_locator.dart";
+import "package:photos/services/account/purchase_update_listener.dart";
 import "package:photos/services/account/user_service.dart";
 import 'package:photos/services/app_lifecycle_service.dart';
 import 'package:photos/services/collections_service.dart';
@@ -93,6 +94,7 @@ enum ForegroundStartupMode { normal, picker }
 void main() async {
   debugRepaintRainbowEnabled = false;
   WidgetsFlutterBinding.ensureInitialized();
+  await configureStoreKit();
   ente_ui.AppThemeConfig.initialize(ente_ui.EnteApp.photos);
   await initIsIPad();
   if (isIPad) {
@@ -181,7 +183,13 @@ Future<void> _runInForeground(
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(SemanticSearchService.instance.init());
-      unawaited(_warmForegroundDeferredServices());
+      unawaited(MemoryLaneService.instance.init());
+      unawaited(
+        Future.delayed(
+          const Duration(seconds: 5),
+          installSourceService.autoAttributePendingSource,
+        ),
+      );
     });
     unawaited(_scheduleFGSync('appStart in FG'));
   });
@@ -196,27 +204,6 @@ Future<void> _warmPickerFilesDb() async {
   } catch (e, s) {
     _logger.warning("Picker FilesDB warm-up failed", e, s);
   }
-}
-
-Future<void> _warmForegroundDeferredServices() async {
-  try {
-    await MemoryLaneService.instance.init();
-    if (MemoryLaneService.instance.isFeatureEnabled) {
-      MemoryLaneService.instance
-          .queueFullRecompute(trigger: "startup")
-          .ignore();
-    } else {
-      _logger.info("Memory Lane disabled");
-    }
-  } catch (e, s) {
-    _logger.warning("Deferred MemoryLaneService warm failed", e, s);
-  }
-  unawaited(
-    Future.delayed(
-      const Duration(seconds: 5),
-      installSourceService.autoAttributePendingSource,
-    ),
-  );
 }
 
 ThemeMode _themeMode(AdaptiveThemeMode? savedThemeMode) {
@@ -439,7 +426,6 @@ Future<void> _init(
       NetworkClient.instance.downloadDio,
       packageInfo,
     );
-    wakeLockService.init(isBackground: isBackground);
 
     _logger.info("Configuration init $tlog");
     await Configuration.instance.init(preferences);

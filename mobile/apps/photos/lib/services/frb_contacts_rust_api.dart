@@ -127,17 +127,6 @@ class _FrbContactsRustContext implements ContactsRustContext {
   }
 
   @override
-  Future<Uint8List> getAttachment(
-    ContactAttachmentType attachmentType,
-    String attachmentId,
-  ) {
-    return _inner.getAttachmentEncrypted(
-      attachmentType: _toRustAttachmentType(attachmentType),
-      attachmentId: attachmentId,
-    );
-  }
-
-  @override
   Future<ContactRecord> deleteAttachment(
     String contactId,
     ContactAttachmentType attachmentType,
@@ -151,25 +140,8 @@ class _FrbContactsRustContext implements ContactsRustContext {
   }
 
   @override
-  Future<ContactRecord> setProfilePicture(
-    String contactId,
-    Uint8List profilePicture,
-  ) async {
-    return setAttachment(
-      contactId,
-      ContactAttachmentType.profilePicture,
-      profilePicture,
-    );
-  }
-
-  @override
   Future<Uint8List> getProfilePicture(String contactId) {
     return _inner.getProfilePicture(contactId: contactId);
-  }
-
-  @override
-  Future<ContactRecord> deleteProfilePicture(String contactId) async {
-    return deleteAttachment(contactId, ContactAttachmentType.profilePicture);
   }
 }
 

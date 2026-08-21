@@ -399,7 +399,8 @@ pub async fn chat_db_open(
         let root = app_data_dir(&app)?;
         let path = chat_db_path(&app)?;
         let attachments = attachments_dir_path(&app)?;
-        let key = b64::decode(&input.key_b64).map_err(ApiError::from)?;
+        let key = b64::decode(&input.key_b64)
+            .map_err(|error| ApiError::new("base64_decode", error.to_string()))?;
         let recovery_keys = input
             .recovery_keys_b64
             .iter()

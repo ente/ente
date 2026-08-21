@@ -66,6 +66,10 @@
       "hex": "000000"
     },
     {
+      "title": "AirVPN",
+      "slug": "airvpn"
+    },
+    {
       "title": "AJ Bell",
       "slug": "aj_bell",
       "hex": "c41230"

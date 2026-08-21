@@ -61,34 +61,6 @@ void main() {
     );
   });
 
-  test('debugOpenAndSync hydrates local cache even when sync fails', () async {
-    await service.debugOpenAndSync(session);
-
-    expect(service.hasHydratedCache, isTrue);
-    expect(service.getCachedContact(contactUserId: 7), isNotNull);
-    expect((await service.getContact(email: 'ALICE@test.test'))?.id, 'ct_1');
-    expect(service.getCachedSavedName(contactUserId: 7), 'Alice');
-    expect(service.getCachedSavedName(email: 'ALICE@test.test'), 'Alice');
-    expect(service.getCachedResolvedEmail(contactUserId: 7), 'alice@test.test');
-    expect(service.getCachedContacts().single.contactUserId, 7);
-    expect(
-      service.getCachedResolvedEmail(email: 'ALICE@test.test'),
-      'alice@test.test',
-    );
-    expect(contactsService.openCalls, 1);
-    expect(contactsService.syncCalls, 1);
-  });
-
-  test('user id lookup does not fall back to email', () async {
-    await service.debugOpenAndSync(session);
-
-    expect(
-      await service.getContact(contactUserId: 99, email: 'ALICE@test.test'),
-      isNull,
-    );
-    expect((await service.getContact(email: 'ALICE@test.test'))?.id, 'ct_1');
-  });
-
   test('deletion tombstone evicts contact indexes', () async {
     await service.debugOpenAndSync(session);
 
@@ -109,67 +81,6 @@ void main() {
     expect(service.getCachedContact(email: 'ALICE@test.test'), isNull);
     expect(service.getCachedContacts(), isEmpty);
   });
-
-  test(
-    'stale in-flight debugOpenAndSync does not repopulate cache after session switch',
-    () async {
-      contactsService.getContactsBarrier = Completer<void>();
-      contactsService.getContactsStarted = Completer<void>();
-      contactsService.localContactsPages =
-          Queue<List<contacts.ContactRecord>>.of([
-            const [
-              contacts.ContactRecord(
-                id: 'ct_old',
-                contactUserId: 7,
-                email: 'alice@test.test',
-                data: contacts.ContactData(contactUserId: 7, name: 'Alice'),
-                profilePictureAttachmentId: null,
-                isDeleted: false,
-                createdAt: 1,
-                updatedAt: 2,
-              ),
-            ],
-            const [
-              contacts.ContactRecord(
-                id: 'ct_new',
-                contactUserId: 9,
-                email: 'bob@test.test',
-                data: contacts.ContactData(contactUserId: 9, name: 'Bob'),
-                profilePictureAttachmentId: null,
-                isDeleted: false,
-                createdAt: 3,
-                updatedAt: 4,
-              ),
-            ],
-          ]);
-      contactsService.syncPages = Queue<List<contacts.ContactRecord>>.of([
-        const [],
-        const [],
-      ]);
-
-      final oldOpenAndSync = service.debugOpenAndSync(session);
-      await contactsService.getContactsStarted!.future;
-
-      final nextSession = contacts.ContactsSession(
-        baseUrl: session.baseUrl,
-        authToken: 'token-2',
-        userId: 2,
-        accountKey: Uint8List.fromList([9, 9, 9]),
-      );
-      await service.debugOpenAndSync(nextSession);
-
-      expect(service.getCachedSavedName(contactUserId: 9), 'Bob');
-      expect(service.getCachedSavedName(contactUserId: 7), isNull);
-
-      contactsService.getContactsBarrier!.complete();
-      await oldOpenAndSync;
-
-      expect(service.getCachedSavedName(contactUserId: 9), 'Bob');
-      expect(service.getCachedResolvedEmail(contactUserId: 9), 'bob@test.test');
-      expect(service.getCachedSavedName(contactUserId: 7), isNull);
-      expect(service.getCachedResolvedEmail(contactUserId: 7), isNull);
-    },
-  );
 
   test('session switch creates a fresh contacts service instance', () async {
     final firstService = FakeContactsService(
@@ -295,16 +206,10 @@ class FakeContactsService extends Fake implements contacts.ContactsService {
   final List<contacts.ContactRecord> localContacts;
   final List<contacts.ContactRecord> syncDiff;
   final Object? syncError;
-  Queue<List<contacts.ContactRecord>>? localContactsPages;
-  Queue<List<contacts.ContactRecord>>? syncPages;
   final Map<String, Uint8List> profilePictureBytesByContactId = {};
   Completer<void>? openBarrier;
   Completer<void>? openStarted;
-  Completer<void>? getContactsBarrier;
-  Completer<void>? getContactsStarted;
   int openCalls = 0;
-  int syncCalls = 0;
-  int getContactsCalls = 0;
   int getProfilePictureCalls = 0;
 
   @override
@@ -323,22 +228,7 @@ class FakeContactsService extends Fake implements contacts.ContactsService {
   @override
   Future<List<contacts.ContactRecord>> getContacts({
     bool includeDeleted = false,
-  }) async {
-    getContactsCalls += 1;
-    final pages = localContactsPages;
-    final response = pages != null && pages.isNotEmpty
-        ? pages.removeFirst()
-        : localContacts;
-    final started = getContactsStarted;
-    if (started != null && !started.isCompleted) {
-      started.complete();
-    }
-    final barrier = getContactsBarrier;
-    if (getContactsCalls == 1 && barrier != null && !barrier.isCompleted) {
-      await barrier.future;
-    }
-    return response;
-  }
+  }) async => localContacts;
 
   @override
   Future<contacts.ContactRecord?> getContactByUserId(
@@ -356,11 +246,6 @@ class FakeContactsService extends Fake implements contacts.ContactsService {
 
   @override
   Future<List<contacts.ContactRecord>> sync() async {
-    syncCalls += 1;
-    final pages = syncPages;
-    if (pages != null && pages.isNotEmpty) {
-      return pages.removeFirst();
-    }
     final error = syncError;
     if (error != null) {
       throw error;

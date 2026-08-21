@@ -35,10 +35,13 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::crypto::crypto_init,
-            commands::crypto::crypto_generate_key,
-            commands::crypto::crypto_encrypt_blob,
-            commands::crypto::crypto_decrypt_blob,
+            commands::crypto::chat_crypto_generate_key,
+            commands::crypto::chat_crypto_encrypt_payload,
+            commands::crypto::chat_crypto_decrypt_payload,
+            commands::crypto::chat_crypto_encrypt_field,
+            commands::crypto::chat_crypto_decrypt_field,
+            commands::crypto::chat_crypto_encrypt_attachment,
+            commands::crypto::chat_crypto_decrypt_attachment,
             commands::secure_storage::secure_storage_get,
             commands::secure_storage::secure_storage_set,
             commands::secure_storage::secure_storage_delete,

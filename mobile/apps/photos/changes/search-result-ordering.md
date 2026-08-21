@@ -1,1 +1,0 @@
-- Improved search results ordering based on the query.

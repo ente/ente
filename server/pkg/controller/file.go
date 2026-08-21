@@ -303,20 +303,15 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
 	}
-	// iOS may retry after backgrounding before receiving a successful response.
-	// Only matching object keys and total size make the update a duplicate.
-	isDuplicateRequest := false
-	if existingThumbnailObjectKey == file.Thumbnail.ObjectKey &&
-		existingFileObjectKey == file.File.ObjectKey &&
-		diff == 0 {
-		isDuplicateRequest = true
-	}
-	oldObjects := make([]string, 0)
+	oldObjects := make([]string, 0, 2)
+	stagedObjects := make([]string, 0, 2)
 	if existingThumbnailObjectKey != file.Thumbnail.ObjectKey {
 		oldObjects = append(oldObjects, existingThumbnailObjectKey)
+		stagedObjects = append(stagedObjects, file.Thumbnail.ObjectKey)
 	}
 	if existingFileObjectKey != file.File.ObjectKey {
 		oldObjects = append(oldObjects, existingFileObjectKey)
+		stagedObjects = append(stagedObjects, file.File.ObjectKey)
 	}
 	if file.Info != nil {
 		file.Info.FileSize = fileSize
@@ -327,7 +322,7 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 			ThumbnailSize: thumbnailSize,
 		}
 	}
-	err = c.FileRepo.Update(file, fileSize, thumbnailSize, diff, oldObjects, isDuplicateRequest)
+	err = c.FileRepo.Update(file, fileSize, thumbnailSize, diff, oldObjects, stagedObjects)
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
 	}

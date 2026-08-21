@@ -71,7 +71,16 @@ func TestCreateUserEntityKeyReturnsAlreadyExistsForConflictingCreate(t *testing.
 	}
 
 	second := performCreateUserEntityKeyRequest(t, handler, userID, secondBody)
-	assertAPIErrorResponse(t, second, http.StatusConflict, ente.AlreadyExists, "Key already exists")
+	if second.Code != http.StatusConflict {
+		t.Fatalf("unexpected status code: got %d want %d; body=%s", second.Code, http.StatusConflict, second.Body.String())
+	}
+	var apiErr ente.ApiError
+	if err := json.Unmarshal(second.Body.Bytes(), &apiErr); err != nil {
+		t.Fatalf("failed to decode response body: %v", err)
+	}
+	if apiErr.Code != ente.AlreadyExists || apiErr.Message != "Key already exists" {
+		t.Fatalf("unexpected error response: %+v", apiErr)
+	}
 }
 
 func TestEnsureUserEntityKeyReturnsExistingKeyForConflict(t *testing.T) {

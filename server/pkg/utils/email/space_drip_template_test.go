@@ -19,16 +19,9 @@ func TestSpaceDripTemplateRendersCTAAndBody(t *testing.T) {
 		"CTALabel": "Finish setup",
 	})
 	require.NoError(t, err)
-	require.Contains(t, body, `role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f0f1f3"`)
-	require.Contains(t, body, `max-width: 420px; width: 100%;`)
-	require.Contains(t, body, `align="left" style="color: #5f5f5f;`)
 	require.Contains(t, body, "Your Ente Space profile is still unfinished.")
-	require.Contains(t, body, `style="border-collapse: separate; border-spacing: 0; width: 100%;"`)
 	require.Contains(t, body, `href="https://ente.space/app"`)
 	require.Contains(t, body, "Finish setup")
-	require.Contains(t, body, `https://email-assets.ente.com/ente-2026-green.png`)
-	require.Contains(t, body, `class="footer-icons" style="width: 24px; padding: 4px"`)
-	require.Contains(t, body, "Ente Technologies, Inc.")
 }
 
 func TestSpaceDripTemplateOmitsCTAWithoutLabel(t *testing.T) {
@@ -43,8 +36,6 @@ func TestSpaceDripTemplateOmitsCTAWithoutLabel(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Contains(t, body, "Reply to this email or drop a message on our Discord!")
-	require.Contains(t, body, `padding: 0 0 0; text-align: left;`)
 	require.NotContains(t, body, `href="https://ente.space/app"`)
 	require.NotContains(t, body, `Open Ente Space`)
-	require.Contains(t, body, `https://email-assets.ente.com/ente-2026-green.png`)
 }

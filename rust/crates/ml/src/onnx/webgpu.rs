@@ -136,13 +136,14 @@ fn probe_vulkan_vendor_ids() -> Result<Vec<u32>, String> {
 }
 
 // Dropping without disarming intentionally preserves the failed-attempt record.
-#[cfg(any(
-    target_os = "android",
-    target_os = "linux",
-    target_os = "windows",
-    test
-))]
+#[derive(Debug)]
 pub(super) struct ArmedCanary {
+    #[cfg(any(
+        target_os = "android",
+        target_os = "linux",
+        target_os = "windows",
+        test
+    ))]
     path: PathBuf,
 }
 
@@ -165,19 +166,21 @@ pub(super) fn arm_canary(model_path: &str, model_namespace: &str) -> io::Result<
     Ok(ArmedCanary { path })
 }
 
-#[cfg(any(
-    target_os = "android",
-    target_os = "linux",
-    target_os = "windows",
-    test
-))]
 impl ArmedCanary {
     pub(super) fn disarm(self) {
-        if let Err(error) = remove_file_durably(&self.path) {
-            log::warn!(
-                "failed to disarm WebGPU crash canary at '{}': {error}",
-                self.path.display()
-            );
+        #[cfg(any(
+            target_os = "android",
+            target_os = "linux",
+            target_os = "windows",
+            test
+        ))]
+        {
+            if let Err(error) = remove_file_durably(&self.path) {
+                log::warn!(
+                    "failed to disarm WebGPU crash canary at '{}': {error}",
+                    self.path.display()
+                );
+            }
         }
     }
 }

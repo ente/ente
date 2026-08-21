@@ -13,7 +13,7 @@ mod yuv;
 
 pub use color::ColorMode;
 pub use geometry::{Point, Quad};
-pub use scanner::{ReprocessOptions, ScanError, ScanOptions, ScanResult, ScannerSession};
+pub use scanner::{ReprocessOptions, ScanError, ScanResult, ScannerSession};
 pub use segmentation::MASK_SIDE;
 pub use yuv::PlaneLayout;
 
@@ -23,13 +23,14 @@ use ente_assets::download::CancellationToken;
 use ente_assets::{Asset, AssetFile, AssetStore};
 
 pub const SEGMENTATION_MODEL_SHA256: &str =
-    "36b8eeadd42592af496bf2e125a6aad9bebcbca1bda2ac19fa22e108574217a3";
+    "5ddcb87c70cb7674189e6fc148e84a490ca65b282276534210255a777d48a808";
 
 // Temporary dev hosting; will move to models.ente.com.
-const SEGMENTATION_MODEL_URL: &str = "https://entedevassets.priem.dev/document_segmentation.onnx";
-const SEGMENTATION_MODEL_FILE: &str = "document_segmentation.onnx";
+const SEGMENTATION_MODEL_URL: &str =
+    "https://entedevassets.priem.dev/document_segmentation_opt.onnx";
+const SEGMENTATION_MODEL_FILE: &str = "document_segmentation_opt.onnx";
 
-fn segmentation_model_asset() -> Asset {
+fn segmentation_model_asset() -> Result<Asset, ScanError> {
     Asset::file(
         vec!["models".to_string(), "document_segmentation".to_string()],
         AssetFile {
@@ -38,13 +39,11 @@ fn segmentation_model_asset() -> Asset {
             sha256: SEGMENTATION_MODEL_SHA256.to_string(),
         },
     )
-    .expect("valid segmentation model asset")
+    .map_err(|error| ScanError::ModelLoad(error.to_string()))
 }
 
-pub async fn ensure_segmentation_model(
-    store: &AssetStore,
-) -> Result<PathBuf, ente_assets::download::Error> {
-    let asset = segmentation_model_asset();
+pub async fn ensure_segmentation_model(store: &AssetStore) -> Result<PathBuf, ScanError> {
+    let asset = segmentation_model_asset()?;
     if store.is_downloaded(&asset) {
         log::info!("segmentation model: using cached copy");
     } else {
@@ -56,15 +55,16 @@ pub async fn ensure_segmentation_model(
                 |_| {},
                 CancellationToken::default(),
             )
-            .await?;
+            .await
+            .map_err(|error| ScanError::ModelLoad(error.to_string()))?;
         log::info!(
             "segmentation model: downloaded in {}ms",
             start.elapsed().as_millis()
         );
     }
-    Ok(store
+    store
         .file_path(&asset, SEGMENTATION_MODEL_FILE)
-        .expect("segmentation model file"))
+        .ok_or_else(|| ScanError::ModelLoad(format!("asset declares no {SEGMENTATION_MODEL_FILE}")))
 }
 
 pub(crate) use crate::cv::OpResult;

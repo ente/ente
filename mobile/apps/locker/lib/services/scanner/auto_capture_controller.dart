@@ -1,3 +1,4 @@
+import 'package:locker/services/scanner/scan_geometry.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
 
 enum AutoCaptureState { searching, arming, cooldown }
@@ -85,13 +86,5 @@ class AutoCaptureController {
     _lastFrameAt = null;
   }
 
-  static double _areaFraction(ScanQuad quad) {
-    var doubled = 0.0;
-    for (var i = 0; i < 4; i++) {
-      final a = quad.corners[i];
-      final b = quad.corners[(i + 1) % 4];
-      doubled += a.dx * b.dy - b.dx * a.dy;
-    }
-    return doubled.abs() / 2 / (ScanQuad.maskSide * ScanQuad.maskSide);
-  }
+  static double _areaFraction(ScanQuad quad) => quadArea(quad.corners);
 }

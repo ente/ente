@@ -1,11 +1,11 @@
 import { isTauriRuntime } from "@/services/tauri-runtime";
 import { secureStorageGet, secureStorageSet } from "../secure-storage";
-import { ensureCryptoInit, enteWasm } from "../wasm";
 import {
     hasRetiredLocalChatStore,
     promoteLocalChatKey,
     retiredBrowserChatKey,
 } from "./compatibility";
+import { generateChatKey } from "./crypto";
 
 const LOCAL_KEY = "ensu.chatKey.local";
 const CURRENT_SECURE_KEY = "localChatKey.v2";
@@ -68,8 +68,7 @@ export const getOrCreateLocalChatKey = async () => {
         throw new Error("Existing chat data has no encryption key");
     }
 
-    await ensureCryptoInit();
-    const chatKey = await (await enteWasm()).crypto_generate_key();
+    const chatKey = await generateChatKey();
     await persistLocalKey(chatKey);
     return chatKey;
 };

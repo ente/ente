@@ -116,5 +116,5 @@ dependencies {
     // Needed at runtime for Tink since R8 strips these annotations otherwise.
     implementation 'com.google.errorprone:error_prone_annotations:2.24.0'
     // Loaded at runtime via dlopen by the Rust document scanner.
-    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.28.0-r3@aar'
+    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.28.1-r1@aar'
 }

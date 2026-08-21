@@ -1,7 +1,6 @@
 import { clientPackageName, desktopAppVersion, isDesktop } from "ente-base/app";
 import { apiOrigin } from "ente-base/origins";
-import type { LegacyKitRecoveryHandle } from "ente-wasm";
-import { loadCryptoReadyEnteWasm } from "ente-wasm/load";
+import type { LegacyKitRecoveryHandle } from "ente-core-wasm";
 import { z } from "zod";
 import type { LegacyKitShare } from "./share";
 
@@ -28,7 +27,7 @@ export const openLegacyKitRecovery = async (
     shares: LegacyKitShare[],
     email?: string,
 ): Promise<OpenedLegacyKitRecovery> => {
-    const wasm = await loadCryptoReadyEnteWasm();
+    const wasm = await import("ente-core-wasm");
     const handle = await wasm.legacy_kit_open_recovery({
         baseUrl: await apiOrigin(),
         shares,

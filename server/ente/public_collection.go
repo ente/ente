@@ -60,6 +60,9 @@ func (ut *UpdatePublicAccessTokenRequest) Validate() error {
 	if !(allPassParamsMissing || allPassParamsPresent) {
 		return NewBadRequestWithMessage("all password params should be either present or missing")
 	}
+	if err := validatePublicLinkKDFParams(ut.MemLimit, ut.OpsLimit); err != nil {
+		return err
+	}
 
 	if allPassParamsPresent && ut.DisablePassword != nil && *ut.DisablePassword {
 		return NewBadRequestWithMessage("can not set and disable password in same request")
@@ -74,6 +77,16 @@ func (ut *UpdatePublicAccessTokenRequest) Validate() error {
 func validatePublicLinkDeviceLimit(deviceLimit int) error {
 	if deviceLimit < 0 || deviceLimit > 50 {
 		return NewBadRequestWithMessage(fmt.Sprintf("device limit: %d out of range [0-50]", deviceLimit))
+	}
+	return nil
+}
+
+func validatePublicLinkKDFParams(memLimit, opsLimit *int64) error {
+	if memLimit == nil && opsLimit == nil {
+		return nil
+	}
+	if memLimit == nil || opsLimit == nil || *memLimit != 67108864 || *opsLimit != 2 {
+		return NewBadRequestWithMessage("invalid KDF parameters")
 	}
 	return nil
 }

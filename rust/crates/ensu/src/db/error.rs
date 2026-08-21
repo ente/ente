@@ -59,6 +59,20 @@ pub enum Error {
     Migration(String),
 }
 
+impl From<ente_ensu_crypto::Error> for Error {
+    fn from(error: ente_ensu_crypto::Error) -> Self {
+        use ente_ensu_crypto::Error as E;
+
+        match error {
+            E::InvalidBlobLength { minimum, actual } => Self::InvalidBlobLength { minimum, actual },
+            E::InvalidEncryptedField => Self::InvalidEncryptedField,
+            E::Crypto(error) => Self::Crypto(error),
+            E::Base64Decode(error) => Self::Base64Decode(error),
+            E::Utf8(error) => Self::Utf8(error),
+        }
+    }
+}
+
 #[cfg(feature = "sqlite")]
 impl From<rusqlite::Error> for Error {
     fn from(err: rusqlite::Error) -> Self {

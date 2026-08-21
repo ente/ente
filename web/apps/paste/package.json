@@ -10,6 +10,7 @@
         "@hugeicons/core-free-icons": "1.2.1",
         "@hugeicons/react": "1.1.6",
         "ente-base": "*",
+        "ente-paste-wasm": "*",
         "qr-code-styling": "1.9.2"
     },
     "devDependencies": {

@@ -10,10 +10,6 @@ fn sum_channel0(src: &ImageF32) -> f64 {
     }
 }
 
-pub(crate) fn sum_f32(src: &ImageF32) -> OpResult<f64> {
-    Ok(sum_channel0(src))
-}
-
 pub(crate) fn mean_f32(src: &ImageF32) -> OpResult<f64> {
     Ok(sum_channel0(src) / src.pixels() as f64)
 }
@@ -79,12 +75,24 @@ pub(crate) fn hist_256_f32(src: &ImageF32) -> OpResult<Vec<f64>> {
     Ok(bins.iter().map(|&c| c as f64).collect())
 }
 
+fn nth(values: &mut [f32], p: f64) -> f32 {
+    let index = ((values.len() as f64 * p) as usize).min(values.len() - 1);
+    let (_, value, _) = values.select_nth_unstable_by(index, f32::total_cmp);
+    *value
+}
+
 pub(crate) fn percentile_f32(src: &ImageF32, p: f64) -> OpResult<f32> {
     let mut values = src.data.clone();
     if values.is_empty() {
         return Err("percentile_f32: empty image".to_string());
     }
-    let index = ((values.len() as f64 * p) as usize).min(values.len() - 1);
-    let (_, value, _) = values.select_nth_unstable_by(index, f32::total_cmp);
-    Ok(*value)
+    Ok(nth(&mut values, p))
+}
+
+pub(crate) fn percentile_pair_f32(src: &ImageF32, low: f64, high: f64) -> OpResult<(f32, f32)> {
+    let mut values = src.data.clone();
+    if values.is_empty() {
+        return Err("percentile_pair_f32: empty image".to_string());
+    }
+    Ok((nth(&mut values, low), nth(&mut values, high)))
 }

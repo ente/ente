@@ -1,0 +1,13 @@
+[package]
+name = "ente-paste-wasm"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-wasm-log.workspace = true
+ente-paste.workspace = true
+js-sys.workspace = true
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true

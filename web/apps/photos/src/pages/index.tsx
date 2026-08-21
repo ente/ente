@@ -1,3 +1,8 @@
+import { DevSettingsDialog } from "@/components/auth/DevSettingsDialog";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { SignUpForm } from "@/components/auth/SignUpForm";
+import { PhotosAuthShell } from "@/components/PhotosAuthShell";
+import { featureFlags } from "@/featureFlags";
 import { Box, Stack, Typography, styled } from "@mui/material";
 import { LoginContents } from "ente-accounts/components/LoginContents";
 import { SignUpContents } from "ente-accounts/components/SignUpContents";
@@ -38,6 +43,9 @@ const Page: React.FC = () => {
         () => void customAPIHost().then(setHost),
         [],
     );
+
+    const handleShowLogin = useCallback(() => setShowLogin(true), []);
+    const handleShowSignUp = useCallback(() => setShowLogin(false), []);
 
     useEffect(() => {
         void (async () => {
@@ -113,6 +121,22 @@ const Page: React.FC = () => {
         <TappableContainer onMaybeChangeHost={refreshHost}>
             {loading ? (
                 <ActivityIndicator />
+            ) : featureFlags.enableNewPhotosAuthFlow ? (
+                <PhotosAuthShell>
+                    {showLogin ? (
+                        <LoginContents
+                            {...{ host }}
+                            onSignUp={handleShowSignUp}
+                            presentation={LoginForm}
+                        />
+                    ) : (
+                        <SignUpContents
+                            {...{ router, host }}
+                            onLogin={handleShowLogin}
+                            presentation={SignUpForm}
+                        />
+                    )}
+                </PhotosAuthShell>
             ) : (
                 <>
                     <SlideshowPanel>
@@ -148,12 +172,12 @@ const Page: React.FC = () => {
                             {showLogin ? (
                                 <LoginContents
                                     {...{ host }}
-                                    onSignUp={() => setShowLogin(false)}
+                                    onSignUp={handleShowSignUp}
                                 />
                             ) : (
                                 <SignUpContents
                                     {...{ router, host }}
-                                    onLogin={() => setShowLogin(true)}
+                                    onLogin={handleShowLogin}
                                 />
                             )}
                         </Stack>
@@ -210,7 +234,15 @@ const TappableContainer: React.FC<
             ]}
             onClick={handleClick}
         >
-            <DevSettings open={showDevSettings} onClose={handleClose} />
+            <DevSettings
+                open={showDevSettings}
+                onClose={handleClose}
+                presentation={
+                    featureFlags.enableNewPhotosAuthFlow
+                        ? DevSettingsDialog
+                        : undefined
+                }
+            />
             {children}
         </CenteredFill>
     );

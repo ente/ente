@@ -244,6 +244,9 @@ func (n *SpaceWebPushSender) sendSubscription(
 	payload []byte,
 	subscription repo.SpaceWebPushSubscriptionRecord,
 ) {
+	if validateWebPushEndpoint(subscription.Endpoint) != nil {
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), spaceWebPushSendTimeout)
 	defer cancel()
 	response, err := sendSpaceWebPush(ctx, payload, &webpush.Subscription{

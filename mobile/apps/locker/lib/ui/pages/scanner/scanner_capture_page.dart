@@ -88,7 +88,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
     final camera = _camera;
     if (state == AppLifecycleState.inactive) {
       if (camera != null) {
-        _camera = null;
+        setState(() => _camera = null);
         unawaited(camera.dispose());
       }
       _autoCapture.reset();
@@ -116,6 +116,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
     _autoCapture.reset();
     try {
       final cameras = await availableCameras();
+      if (!mounted) return;
       if (cameras.isEmpty) {
         setState(() => _status = _CameraStatus.error);
         return;

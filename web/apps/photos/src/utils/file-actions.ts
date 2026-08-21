@@ -127,7 +127,7 @@ function getBaseActions(
     }
 
     if (barMode === "hidden-albums") {
-        return ["download", "unhide", "trash"];
+        return ["download", "addToAlbum", "unhide", "trash"];
     }
 
     const isUserFavorites =

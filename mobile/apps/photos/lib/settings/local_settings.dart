@@ -69,6 +69,7 @@ class LocalSettings {
   static const kRateUsPromptThreshold = 2;
   static const shouldLoopVideoKey = "video.should_loop";
   static const isMutedKey = "video.is_muted";
+  static const _memoriesAudioMutedKey = "memories.audio_muted";
   static const onGuestViewKey = "on_guest_view";
   static const _hasConfiguredLinksInAppPermissionKey =
       "has_configured_links_in_app_permission";
@@ -458,6 +459,14 @@ class LocalSettings {
 
   bool isMuted() {
     return _prefs.getBool(isMutedKey) ?? false;
+  }
+
+  Future<void> setMemoriesAudioMuted(bool value) async {
+    await _prefs.setBool(_memoriesAudioMutedKey, value);
+  }
+
+  bool isMemoriesAudioMuted() {
+    return _prefs.getBool(_memoriesAudioMutedKey) ?? false;
   }
 
   Future<void> setOnGuestView(bool value) {

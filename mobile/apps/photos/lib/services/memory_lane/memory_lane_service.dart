@@ -8,13 +8,11 @@ import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
-import "package:photos/events/memory_lane_changed_event.dart";
 import "package:photos/events/ml_consent_changed_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
 import "package:photos/models/ml/face/face.dart";
-import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
@@ -22,20 +20,33 @@ import "package:photos/services/memory_lane/memory_lane_cache_service.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 
-typedef _TimelineComputationResult = ({
-  MemoryLanePersonTimeline timeline,
-  Map<int, EnteFile> filesById,
-  int faceCount,
-});
+@visibleForTesting
+int? eligibleCreationTimeCutoffMicros(String? birthDateString) {
+  if (birthDateString == null || birthDateString.isEmpty) {
+    return null;
+  }
+  final birthDate = DateTime.tryParse(birthDateString);
+  if (birthDate == null) {
+    return null;
+  }
+  final year = birthDate.year + 3;
+  final lastDay = DateTime(year, birthDate.month + 1, 0).day;
+  return DateTime(
+    year,
+    birthDate.month,
+    birthDate.day.clamp(1, lastDay),
+  ).microsecondsSinceEpoch;
+}
 
 class MemoryLaneService {
-  MemoryLaneService._internal() : _enabledForSession = hasGrantedMLConsent;
+  MemoryLaneService._internal() {
+    __isFeatureEnabled = hasGrantedMLConsent;
+  }
 
   static final MemoryLaneService instance = MemoryLaneService._internal();
 
   static const _minimumYears = 2;
   static const _minimumFacesPerYear = 4;
-  static const _minimumEligibleAgeYears = 3;
   static const _recomputeCooldown = Duration(hours: 2);
   static const _timelineLogicVersion = 3;
   static const _startupBackfillDelay = Duration(seconds: 15);
@@ -61,62 +72,50 @@ class MemoryLaneService {
   );
 
   final Map<String, int> _lastForcedComputeMicros = {};
-  final Map<String, _PendingRecomputeRequest> _pendingRequests = {};
+  final Map<String, bool> _pendingRequests = {};
   final Set<String> _cropReadinessInFlight = {};
 
-  bool _enabledForSession;
+  bool __isFeatureEnabled = false;
+  // TODO: this should be removed, but flagService does not fire MLConsentChangedEvent on remote flags sync
+  bool get isFeatureEnabled =>
+      hasGrantedMLConsent && __isFeatureEnabled && flagService.facesTimeline;
   bool _initialized = false;
 
-  StreamSubscription<PeopleChangedEvent>? _peopleChangedSubscription;
-  StreamSubscription<MLConsentChangedEvent>? _mlConsentChangedSubscription;
   Timer? _startupBackfillTimer;
 
-  bool get isFeatureEnabled =>
-      _enabledForSession && flagService.facesTimeline && hasGrantedMLConsent;
-
   Future<void> init() async {
-    if (_initialized) return;
-    await _cacheService.init();
-    await _cacheService.ensureComputeLogVersion(_timelineLogicVersion);
-    await _refreshReadyPersonIds();
-    _peopleChangedSubscription = Bus.instance.on<PeopleChangedEvent>().listen(
-      _handlePeopleChange,
-    );
-    _mlConsentChangedSubscription = Bus.instance
-        .on<MLConsentChangedEvent>()
-        .listen(_handleMlConsentChange);
-    _scheduleStartupBackfill();
-    _initialized = true;
-  }
-
-  Future<void> dispose() async {
-    await _peopleChangedSubscription?.cancel();
-    await _mlConsentChangedSubscription?.cancel();
-    _startupBackfillTimer?.cancel();
-    readyPersonIds.dispose();
+    if (_initialized) {
+      return;
+    }
+    try {
+      await _cacheService.init();
+      await _cacheService.ensureComputeLogVersion(_timelineLogicVersion);
+      await _refreshReadyPersonIds();
+      Bus.instance.on<PeopleChangedEvent>().listen(_handlePeopleChange);
+      Bus.instance.on<MLConsentChangedEvent>().listen(_handleMlConsentChange);
+      _scheduleStartupBackfill();
+      _initialized = true;
+      await _queueFullRecompute();
+    } catch (e, s) {
+      _logger.severe("Initialization failed", e, s);
+    }
   }
 
   void _handleMlConsentChange(MLConsentChangedEvent event) {
-    if (event.enabled) return;
-    _enabledForSession = false;
+    if (event.enabled) {
+      return;
+    }
+    __isFeatureEnabled = false;
     _startupBackfillTimer?.cancel();
     _startupBackfillTimer = null;
   }
 
-  Future<void> queueFullRecompute({
-    bool force = false,
-    String trigger = "",
-  }) async {
+  Future<void> _queueFullRecompute({bool force = false}) async {
     if (!isFeatureEnabled) {
-      _logger.fine(
-        "Memory Lane full recompute skipped ($trigger): feature disabled",
-      );
       return;
     }
     if (!PersonService.isInitialized) {
-      _logger.warning(
-        "Memory Lane full recompute skipped: PersonService not initialized",
-      );
+      _logger.warning("Full recompute skipped: PersonService unavailable");
       return;
     }
     final persons = await PersonService.instance.getPersons();
@@ -125,77 +124,37 @@ class MemoryLaneService {
         await _handleIgnoredPerson(person.remoteID);
         continue;
       }
-      schedulePersonRecompute(
-        person.remoteID,
-        force: force,
-        trigger: trigger.isEmpty ? "full_recompute" : trigger,
-      );
+      schedulePersonRecompute(person.remoteID, force: force);
     }
   }
 
-  void schedulePersonRecompute(
-    String personId, {
-    bool force = false,
-    String trigger = "",
-  }) {
-    if (!isFeatureEnabled) {
-      _logger.fine(
-        "Memory Lane recompute skipped for $personId ($trigger): feature disabled",
-      );
+  void schedulePersonRecompute(String personId, {bool force = false}) {
+    if (personId.isEmpty) {
       return;
     }
-    if (personId.isEmpty) return;
-    final normalizedTrigger = trigger.isEmpty ? "unspecified" : trigger.trim();
-    final existing = _pendingRequests[personId];
-    if (existing != null) {
-      existing.merge(force: force, trigger: normalizedTrigger);
-    } else {
-      _pendingRequests[personId] = _PendingRecomputeRequest(
-        force: force,
-        trigger: normalizedTrigger,
-      );
-    }
+    _pendingRequests[personId] = (_pendingRequests[personId] ?? false) || force;
     _precomputeQueue
         .addTask(personId, () async {
-          final request =
-              _pendingRequests.remove(personId) ??
-              _PendingRecomputeRequest(
-                force: force,
-                trigger: normalizedTrigger,
-              );
-          await _recomputeTimelineForPerson(
-            personId,
-            force: request.force,
-            trigger: request.trigger,
-          );
+          final requestForce = _pendingRequests.remove(personId) ?? force;
+          await _recomputeTimelineForPerson(personId, force: requestForce);
         })
-        .catchError((error, stackTrace) {
+        .catchError((e, s) {
           _pendingRequests.remove(personId);
-          _logger.warning(
-            "Memory Lane recompute task failed to enqueue for $personId",
-            error,
-            stackTrace,
-          );
+          _logger.severe("Recompute failed for $personId", e, s);
         });
   }
 
-  Future<void> ensureTimelineReachability(
-    String personId, {
-    String trigger = "",
-  }) async {
+  Future<void> ensureTimelineReachability(String personId) async {
     if (!isFeatureEnabled) {
       return;
     }
     if (personId.isEmpty) {
       return;
     }
-    final normalizedTrigger = trigger.isEmpty
-        ? "timeline_reachability"
-        : trigger.trim();
     final timeline = await _cacheService.getTimeline(personId);
-    if (timeline == null || !timeline.isReady || timeline.entries.isEmpty) {
+    if (timeline == null || !timeline.isEligible || timeline.entries.isEmpty) {
       await _refreshReadyPersonIds();
-      schedulePersonRecompute(personId, trigger: normalizedTrigger);
+      schedulePersonRecompute(personId);
       return;
     }
     if (await _areTimelineFaceCropsCached(timeline)) {
@@ -203,11 +162,13 @@ class MemoryLaneService {
       return;
     }
     await _refreshReadyPersonIds();
-    _queueTimelineCropReadiness(personId, trigger: normalizedTrigger);
+    _queueTimelineCropReadiness(personId);
   }
 
   Future<MemoryLanePersonTimeline?> getTimeline(String personId) async {
-    if (!isFeatureEnabled) return null;
+    if (!isFeatureEnabled) {
+      return null;
+    }
     final timeline = await _cacheService.getTimeline(personId);
     if (timeline == null || timeline.entries.isEmpty) {
       return timeline;
@@ -222,27 +183,19 @@ class MemoryLaneService {
       (entry) => hiddenFileIds.contains(entry.fileId),
     );
     if (!containsHiddenEntry) {
-      if (timeline.isReady && !await _areTimelineFaceCropsCached(timeline)) {
-        _logger.info(
-          "Memory Lane: cached timeline for $personId is missing face crops",
-        );
-        _queueTimelineCropReadiness(personId, trigger: "crop_cache_validation");
+      if (timeline.isEligible && !await _areTimelineFaceCropsCached(timeline)) {
+        _logger.info("Missing face crops for $personId");
+        _queueTimelineCropReadiness(personId);
         await _refreshReadyPersonIds();
         return null;
       }
       return timeline;
     }
 
-    _logger.info(
-      "Memory Lane: evicting stale cached timeline for $personId due to hidden entries",
-    );
+    _logger.info("Removing timeline with hidden files for $personId");
     await _cacheService.removeTimeline(personId);
     await _refreshReadyPersonIds();
-    schedulePersonRecompute(
-      personId,
-      force: true,
-      trigger: "hidden_entry_validation",
-    );
+    schedulePersonRecompute(personId, force: true);
     return null;
   }
 
@@ -253,18 +206,10 @@ class MemoryLaneService {
     return readyPersonIds.value.contains(personId);
   }
 
-  Future<bool> hasReadyTimeline(String personId) async {
-    if (!isFeatureEnabled) return false;
-    final timeline = await _cacheService.getTimeline(personId);
-    return timeline != null &&
-        timeline.isReady &&
-        await _areTimelineFaceCropsCached(timeline);
-  }
-
   Future<bool> _areTimelineFaceCropsCached(
     MemoryLanePersonTimeline timeline,
   ) async {
-    if (!timeline.isReady || timeline.entries.isEmpty) {
+    if (!timeline.isEligible || timeline.entries.isEmpty) {
       return false;
     }
     return areFullFaceCropsCached(
@@ -273,7 +218,7 @@ class MemoryLaneService {
     );
   }
 
-  void _queueTimelineCropReadiness(String personId, {required String trigger}) {
+  void _queueTimelineCropReadiness(String personId) {
     if (_cropReadinessInFlight.contains(personId)) {
       return;
     }
@@ -281,64 +226,43 @@ class MemoryLaneService {
     _cropReadinessQueue
         .addTask(personId, () async {
           try {
-            await _repairTimelineCropReadiness(personId, trigger: trigger);
+            await _repairTimelineCropReadiness(personId);
           } finally {
             _cropReadinessInFlight.remove(personId);
           }
         })
-        .catchError((error, stackTrace) {
+        .catchError((e, s) {
           _cropReadinessInFlight.remove(personId);
-          _logger.warning(
-            "Memory Lane crop readiness task failed for $personId",
-            error,
-            stackTrace,
-          );
+          _logger.warning("Crop repair task failed for $personId", e, s);
         });
   }
 
-  Future<void> _repairTimelineCropReadiness(
-    String personId, {
-    required String trigger,
-  }) async {
+  Future<void> _repairTimelineCropReadiness(String personId) async {
     if (!isFeatureEnabled) {
       return;
     }
     if (!PersonService.isInitialized) {
       _logger.warning(
-        "Memory Lane crop readiness skipped for $personId: PersonService not initialized",
+        "Crop repair skipped for $personId: PersonService unavailable",
       );
       return;
     }
     final timeline = await _cacheService.getTimeline(personId);
-    if (timeline == null || !timeline.isReady || timeline.entries.isEmpty) {
+    if (timeline == null || !timeline.isEligible || timeline.entries.isEmpty) {
       await _refreshReadyPersonIds();
       return;
     }
     if (await _areTimelineFaceCropsCached(timeline)) {
       await _refreshReadyPersonIds();
-      Bus.instance.fire(
-        MemoryLaneChangedEvent(
-          personId: personId,
-          status: MemoryLaneStatus.ready,
-        ),
-      );
       return;
     }
     final person = await PersonService.instance.getPerson(personId);
     if (person == null) {
-      _logger.info("Memory Lane: person $personId missing, clearing cache");
       await _cacheService.removeTimeline(personId);
       await _refreshReadyPersonIds();
-      Bus.instance.fire(
-        MemoryLaneChangedEvent(
-          personId: personId,
-          status: MemoryLaneStatus.ineligible,
-        ),
-      );
       return;
     }
     if (person.data.isIgnored) {
-      _logger.info("Memory Lane: person $personId ignored, clearing cache");
       await _handleIgnoredPerson(personId);
       return;
     }
@@ -346,22 +270,13 @@ class MemoryLaneService {
     final fileIds = timeline.entries.map((entry) => entry.fileId).toSet();
     final filesById = await _filesDB.getFileIDToFileFromIDs(fileIds.toList());
     final cropsReady = await _ensureFaceCrops(
-      person,
+      personId,
       timeline.entries,
       filesById,
     );
     await _refreshReadyPersonIds();
-    if (cropsReady) {
-      Bus.instance.fire(
-        MemoryLaneChangedEvent(
-          personId: personId,
-          status: MemoryLaneStatus.ready,
-        ),
-      );
-    } else {
-      _logger.warning(
-        "Memory Lane crop readiness failed for $personId (trigger: $trigger)",
-      );
+    if (!cropsReady) {
+      _logger.warning("Crop repair failed for $personId");
     }
   }
 
@@ -369,19 +284,10 @@ class MemoryLaneService {
     _pendingRequests.remove(personId);
     await _cacheService.removeTimeline(personId);
     await _refreshReadyPersonIds();
-    Bus.instance.fire(
-      MemoryLaneChangedEvent(
-        personId: personId,
-        status: MemoryLaneStatus.ineligible,
-      ),
-    );
   }
 
   void _handlePeopleChange(PeopleChangedEvent event) {
     if (!isFeatureEnabled) {
-      _logger.fine(
-        "Memory Lane people change ignored (${event.type.name}): feature disabled",
-      );
       return;
     }
     if (event.type == PeopleEventType.syncDone) {
@@ -393,9 +299,7 @@ class MemoryLaneService {
   Future<void> _processPeopleChange(PeopleChangedEvent event) async {
     final person = event.person;
     if (person == null) {
-      _logger.warning(
-        "Memory Lane: people event ${event.type.name} missing person data",
-      );
+      _logger.warning("${event.type.name} event missing person");
       _scheduleStartupBackfill();
       return;
     }
@@ -403,17 +307,9 @@ class MemoryLaneService {
       await _handleIgnoredPerson(person.remoteID);
       return;
     }
-    final String triggerPrefix = "people_event_${event.type.name}";
     final logEntry = await _cacheService.getComputeLogEntry(person.remoteID);
     if (logEntry == null) {
-      _logger.info(
-        "Memory Lane: no compute log for ${person.remoteID}, forcing recompute ($triggerPrefix)",
-      );
-      schedulePersonRecompute(
-        person.remoteID,
-        force: true,
-        trigger: "${triggerPrefix}_no_log",
-      );
+      schedulePersonRecompute(person.remoteID, force: true);
       return;
     }
     final Set<String> faceIds = await _mlDataDB.getFaceIDsForPerson(
@@ -426,10 +322,6 @@ class MemoryLaneService {
     final bool faceCountChanged = logEntry.faceCount != currentFaceCount;
 
     if (!nameChanged && !birthDateChanged && !faceCountChanged) {
-      _logger.fine(
-        "Memory Lane: ${person.remoteID} change ignored "
-        "(no name/dob/face count deltas)",
-      );
       return;
     }
 
@@ -437,65 +329,42 @@ class MemoryLaneService {
     final Set<String> currentFaceIdSet = faceIds;
 
     if (_timelineFacesMissing(timeline, currentFaceIdSet)) {
-      final trigger = "${triggerPrefix}_face_removed";
-      _logger.info(
-        "Memory Lane: recompute scheduled for ${person.remoteID} ($trigger)",
-      );
-      schedulePersonRecompute(person.remoteID, trigger: trigger);
+      schedulePersonRecompute(person.remoteID);
       return;
     }
 
     if (birthDateChanged) {
-      final trigger = "${triggerPrefix}_birthdate_changed";
-      _logger.info(
-        "Memory Lane: recompute scheduled for ${person.remoteID} ($trigger)",
-      );
-      schedulePersonRecompute(person.remoteID, trigger: trigger);
+      schedulePersonRecompute(person.remoteID);
       return;
     }
 
     if (!faceCountChanged) {
-      _logger.fine(
-        "Memory Lane: ${person.remoteID} change skipped after checks "
-        "(nameChanged=$nameChanged, faceCountChanged=$faceCountChanged)",
-      );
       return;
     }
 
-    final facesPerYear = await _countEligibleFacesByYear(person, faceIds);
-    if (_hasNewYearWithTenFaces(timeline, facesPerYear)) {
-      final trigger = "${triggerPrefix}_new_year";
-      _logger.info(
-        "Memory Lane: recompute scheduled for ${person.remoteID} ($trigger)",
-      );
-      schedulePersonRecompute(person.remoteID, trigger: trigger);
-      return;
-    }
-
-    _logger.fine(
-      "Memory Lane: ${person.remoteID} change skipped "
-      "(nameChanged=$nameChanged, birthDateChanged=$birthDateChanged, "
-      "faceCountChanged=$faceCountChanged)",
+    final facesPerYear = await _countEligibleFacesByYear(
+      faceIds,
+      eligibleCreationTimeCutoffMicros(person.data.birthDate),
     );
+    if (_hasNewYearWithTenFaces(timeline, facesPerYear)) {
+      schedulePersonRecompute(person.remoteID);
+      return;
+    }
   }
 
   void _scheduleStartupBackfill() {
-    if (!isFeatureEnabled) return;
     _startupBackfillTimer?.cancel();
     _startupBackfillTimer = Timer(_startupBackfillDelay, () {
-      if (!isFeatureEnabled) {
-        return;
-      }
       unawaited(_runStartupBackfill());
     });
   }
 
   Future<void> _runStartupBackfill() async {
-    if (!isFeatureEnabled) return;
+    if (!isFeatureEnabled) {
+      return;
+    }
     if (!PersonService.isInitialized) {
-      _logger.warning(
-        "Memory Lane startup diff skipped: PersonService not initialized",
-      );
+      _logger.warning("Startup backfill skipped: PersonService unavailable");
       return;
     }
     try {
@@ -507,31 +376,31 @@ class MemoryLaneService {
           .toSet();
       final missingIds = <String>[];
       for (final person in persons) {
-        if (person.data.isIgnored) continue;
-        if (alreadyComputed.contains(person.remoteID)) continue;
+        if (person.data.isIgnored) {
+          continue;
+        }
+        if (alreadyComputed.contains(person.remoteID)) {
+          continue;
+        }
         missingIds.add(person.remoteID);
         if (missingIds.length >= _startupBackfillBatchSize) {
           break;
         }
       }
       if (missingIds.isEmpty) {
-        _logger.fine("Memory Lane startup diff: all persons covered");
         return;
       }
       for (final personId in missingIds) {
-        schedulePersonRecompute(personId, force: true, trigger: "startup_diff");
+        schedulePersonRecompute(personId, force: true);
       }
-      _logger.info(
-        "Memory Lane startup diff queued ${missingIds.length} persons",
-      );
-    } catch (error, stackTrace) {
-      _logger.severe("Memory Lane startup diff failed", error, stackTrace);
+    } catch (e, s) {
+      _logger.severe("Startup backfill failed", e, s);
     }
   }
 
   Future<Map<int, int>> _countEligibleFacesByYear(
-    PersonEntity person,
     Iterable<String> faceIds,
+    int? minCreationTimeMicros,
   ) async {
     if (faceIds.isEmpty) {
       return {};
@@ -546,19 +415,19 @@ class MemoryLaneService {
         .map((e) => e.uploadedFileID)
         .whereType<int>()
         .toSet();
-    final minCreationTime = minimumEligibleCreationTimeMicros(
-      person.data.birthDate,
-    );
     final counts = <int, int>{};
     for (final faceId in faceIds) {
       final fileId = getFileIdFromFaceId<int>(faceId);
-      if (hiddenFileIds.contains(fileId)) continue;
+      if (hiddenFileIds.contains(fileId)) {
+        continue;
+      }
       final file = fileMap[fileId];
       final creationTime = file?.creationTime;
       if (creationTime == null || creationTime <= 0) {
         continue;
       }
-      if (minCreationTime != null && creationTime < minCreationTime) {
+      if (minCreationTimeMicros != null &&
+          creationTime < minCreationTimeMicros) {
         continue;
       }
       final year = DateTime.fromMicrosecondsSinceEpoch(creationTime).year;
@@ -602,36 +471,24 @@ class MemoryLaneService {
   Future<void> _recomputeTimelineForPerson(
     String personId, {
     required bool force,
-    required String trigger,
   }) async {
     if (!isFeatureEnabled) {
-      _logger.fine(
-        "Memory Lane compute skipped for $personId ($trigger): feature disabled",
-      );
       return;
     }
     if (!PersonService.isInitialized) {
       _logger.warning(
-        "Memory Lane recompute skipped for $personId: PersonService not initialized",
+        "Recompute skipped for $personId: PersonService unavailable",
       );
       return;
     }
 
     final person = await PersonService.instance.getPerson(personId);
     if (person == null) {
-      _logger.info("Memory Lane: person $personId missing, clearing cache");
       await _cacheService.removeTimeline(personId);
       await _refreshReadyPersonIds();
-      Bus.instance.fire(
-        MemoryLaneChangedEvent(
-          personId: personId,
-          status: MemoryLaneStatus.ineligible,
-        ),
-      );
       return;
     }
     if (person.data.isIgnored) {
-      _logger.info("Memory Lane: person $personId ignored, clearing cache");
       await _handleIgnoredPerson(personId);
       return;
     }
@@ -643,20 +500,12 @@ class MemoryLaneService {
     if (!force && lastComputedMicros != null) {
       final remaining = nowMicros - lastComputedMicros;
       if (remaining < _recomputeCooldown.inMicroseconds) {
-        _logger.fine(
-          "Memory Lane compute skipped for $personId due to cooldown "
-          "(elapsed ${remaining / Duration.microsecondsPerHour} hours, trigger: $trigger)",
-        );
         return;
       }
     }
     if (!force && lastForcedMicros != null) {
       final remaining = nowMicros - lastForcedMicros;
       if (remaining < _recomputeCooldown.inMicroseconds) {
-        _logger.fine(
-          "Memory Lane compute skipped for $personId due to forced cooldown "
-          "(elapsed ${remaining / Duration.microsecondsPerHour} hours, trigger: $trigger)",
-        );
         return;
       }
     }
@@ -665,84 +514,55 @@ class MemoryLaneService {
       _lastForcedComputeMicros[personId] = nowMicros;
     }
 
-    try {
-      final result = await _computeTimeline(person, nowMicros);
-      await _cacheService.upsertTimeline(result.timeline);
-      await _cacheService.upsertComputeLogEntry(
-        MemoryLaneComputeLogEntry(
-          personId: person.remoteID,
-          name: person.data.name,
-          birthDate: person.data.birthDate,
-          faceCount: result.faceCount,
-          lastComputedMicros: nowMicros,
-          logicVersion: _timelineLogicVersion,
-        ),
-      );
-      if (!result.timeline.isReady) {
-        await _refreshReadyPersonIds();
-        Bus.instance.fire(
-          MemoryLaneChangedEvent(
-            personId: person.remoteID,
-            status: result.timeline.status,
-          ),
-        );
-        return;
-      }
-      final cropsReady = await _ensureFaceCrops(
-        person,
-        result.timeline.entries,
-        result.filesById,
-      );
+    final faceIds = await _mlDataDB.getFaceIDsForPerson(personId);
+    final (timeline, filesById) = await _computeTimeline(
+      faceIds,
+      personId,
+      nowMicros,
+      eligibleCreationTimeCutoffMicros(person.data.birthDate),
+    );
+    await _cacheService.upsertTimeline(timeline);
+    await _cacheService.upsertComputeLogEntry(
+      MemoryLaneComputeLogEntry(
+        personId: personId,
+        name: person.data.name,
+        birthDate: person.data.birthDate,
+        faceCount: faceIds.length,
+        lastComputedMicros: nowMicros,
+        logicVersion: _timelineLogicVersion,
+      ),
+    );
+    if (!timeline.isEligible) {
       await _refreshReadyPersonIds();
-      if (cropsReady) {
-        Bus.instance.fire(
-          MemoryLaneChangedEvent(
-            personId: person.remoteID,
-            status: result.timeline.status,
-          ),
-        );
-      } else {
-        _logger.warning(
-          "Memory Lane crop readiness failed for $personId (trigger: $trigger)",
-        );
-        _queueTimelineCropReadiness(
-          person.remoteID,
-          trigger: "recompute_crop_retry",
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.severe(
-        "Memory Lane compute failed for $personId (trigger: $trigger)",
-        error,
-        stackTrace,
-      );
+      return;
+    }
+    final cropsReady = await _ensureFaceCrops(
+      personId,
+      timeline.entries,
+      filesById,
+    );
+    await _refreshReadyPersonIds();
+    if (!cropsReady) {
+      _logger.warning("Crop repair failed for $personId");
+      _queueTimelineCropReadiness(personId);
     }
   }
 
-  Future<_TimelineComputationResult> _computeTimeline(
-    PersonEntity person,
+  Future<(MemoryLanePersonTimeline, Map<int, EnteFile>)> _computeTimeline(
+    Set<String> faceIds,
+    String personId,
     int nowMicros,
+    int? minCreationTimeMicros,
   ) async {
-    final personId = person.remoteID;
-    final minCreationTimeMicros = minimumEligibleCreationTimeMicros(
-      person.data.birthDate,
-    );
-    final faceIds = await _mlDataDB.getFaceIDsForPerson(personId);
-    final totalFaceCount = faceIds.length;
     if (faceIds.isEmpty) {
-      _logger.fine(
-        "Memory Lane: person $personId has no faces, marking ineligible",
-      );
-      final timeline = MemoryLanePersonTimeline(
-        personId: personId,
-        status: MemoryLaneStatus.ineligible,
-        updatedAtMicros: nowMicros,
-        entries: const [],
-      );
       return (
-        timeline: timeline,
-        filesById: const <int, EnteFile>{},
-        faceCount: totalFaceCount,
+        MemoryLanePersonTimeline(
+          personId: personId,
+          isEligible: false,
+          updatedAtMicros: nowMicros,
+          entries: const [],
+        ),
+        const <int, EnteFile>{},
       );
     }
 
@@ -761,7 +581,9 @@ class MemoryLaneService {
     final facesByFileId = <int, Map<String, Face>>{};
     for (final faceId in faceIds) {
       final fileId = getFileIdFromFaceId<int>(faceId);
-      if (hiddenFileIds.contains(fileId)) continue;
+      if (hiddenFileIds.contains(fileId)) {
+        continue;
+      }
       final file = fileMap[fileId];
       if (file == null) {
         continue;
@@ -803,51 +625,37 @@ class MemoryLaneService {
     }
 
     if (faces.isEmpty) {
-      _logger.fine(
-        "Memory Lane: person $personId has no usable faces after filtering,"
-        " marking ineligible",
-      );
-      final timeline = MemoryLanePersonTimeline(
-        personId: personId,
-        status: MemoryLaneStatus.ineligible,
-        updatedAtMicros: nowMicros,
-        entries: const [],
-      );
       return (
-        timeline: timeline,
-        filesById: fileMap,
-        faceCount: totalFaceCount,
+        MemoryLanePersonTimeline(
+          personId: personId,
+          isEligible: false,
+          updatedAtMicros: nowMicros,
+          entries: const [],
+        ),
+        fileMap,
       );
     }
 
     final selectionResult = await Computer.shared().compute(
-      selectTimelineEntriesTask,
+      _selectTimelineEntriesTask,
       param: {
         "faces": faces.map((face) => face.toJson()).toList(),
         "minYears": _minimumYears,
         "minFaces": _minimumFacesPerYear,
-        "minCreationTime": ?minCreationTimeMicros,
+        "minCreationTime": minCreationTimeMicros,
       },
-      taskName: "faces_timeline_select_${person.remoteID}",
+      taskName: "faces_timeline_select",
     );
 
-    if (selectionResult["status"] != "ready") {
-      final eligibleYearCount =
-          selectionResult["eligibleYearCount"] as int? ?? 0;
-      _logger.info(
-        "Memory Lane: person $personId ineligible "
-        "(eligibleYears=$eligibleYearCount, faces=${faces.length})",
-      );
-      final timeline = MemoryLanePersonTimeline(
-        personId: personId,
-        status: MemoryLaneStatus.ineligible,
-        updatedAtMicros: nowMicros,
-        entries: const [],
-      );
+    if (!(selectionResult["isEligible"] as bool)) {
       return (
-        timeline: timeline,
-        filesById: fileMap,
-        faceCount: totalFaceCount,
+        MemoryLanePersonTimeline(
+          personId: personId,
+          isEligible: false,
+          updatedAtMicros: nowMicros,
+          entries: const [],
+        ),
+        fileMap,
       );
     }
 
@@ -864,100 +672,69 @@ class MemoryLaneService {
         )
         .toList();
 
-    final timeline = MemoryLanePersonTimeline(
-      personId: personId,
-      status: MemoryLaneStatus.ready,
-      updatedAtMicros: nowMicros,
-      entries: entries,
+    return (
+      MemoryLanePersonTimeline(
+        personId: personId,
+        isEligible: true,
+        updatedAtMicros: nowMicros,
+        entries: entries,
+      ),
+      fileMap,
     );
-
-    final years =
-        (selectionResult["years"] as List<dynamic>?)?.cast<int>().join(", ") ??
-        "unknown";
-    _logger.info(
-      "Memory Lane ready for $personId "
-      "(frames=${entries.length}, years=$years)",
-    );
-
-    return (timeline: timeline, filesById: fileMap, faceCount: totalFaceCount);
   }
 
   Future<bool> _ensureFaceCrops(
-    PersonEntity person,
+    String personId,
     List<MemoryLaneEntry> entries,
     Map<int, EnteFile> fileMap,
   ) async {
-    final personId = person.remoteID;
     if (entries.isEmpty) {
       return false;
     }
+    final byFile = groupBy(entries, (entry) => entry.fileId);
     var allCropsReady = true;
-    final entriesByFile = <int, List<MemoryLaneEntry>>{};
-    for (final entry in entries) {
-      entriesByFile.putIfAbsent(entry.fileId, () => []).add(entry);
-    }
-
-    for (final entry in entriesByFile.entries) {
-      final file = fileMap[entry.key];
+    for (final group in byFile.entries) {
+      if (group.value.isEmpty) {
+        continue;
+      }
+      final file = fileMap[group.key];
       if (file == null) {
         allCropsReady = false;
-        _logger.warning(
-          "Memory Lane: failed to cache crops for $personId, file ${entry.key} missing",
-        );
+        _logger.warning("Missing file ${group.key} for $personId crops");
         continue;
       }
-      final faces = await _mlDataDB.getFacesForGivenFileID(entry.key);
-      if (faces == null || faces.isEmpty) {
+      final faces = await _mlDataDB.getFacesForGivenFileID(group.key) ?? [];
+      if (faces.isEmpty) {
         allCropsReady = false;
-        _logger.warning(
-          "Memory Lane: failed to cache crops for $personId, no faces for file ${entry.key}",
-        );
+        _logger.warning("No faces for $personId file ${group.key}");
         continue;
       }
-      final selectedFaces = entry.value
+      final selectedFaces = group.value
           .map(
-            (timelineEntry) => faces.firstWhereOrNull(
-              (face) => face.faceID == timelineEntry.faceId,
-            ),
+            (entry) =>
+                faces.firstWhereOrNull((face) => face.faceID == entry.faceId),
           )
           .whereType<Face>()
           .toList();
-      if (selectedFaces.length != entry.value.length) {
+      if (selectedFaces.length != group.value.length) {
         allCropsReady = false;
-        _logger.warning(
-          "Memory Lane: failed to cache all crops for $personId file ${entry.key}, some faces missing",
-        );
-      }
-      if (selectedFaces.isEmpty) {
+        _logger.warning("Missing faces for $personId file ${group.key}");
         continue;
       }
-      try {
-        final cropMap = await getCachedFaceCrops(
-          file,
-          selectedFaces,
-          useFullFile: true,
-          useTempCache: false,
-        );
-        if (cropMap == null) {
-          allCropsReady = false;
-          continue;
-        }
-        for (final face in selectedFaces) {
-          final crop = cropMap[face.faceID];
-          if (crop == null || crop.isEmpty) {
-            allCropsReady = false;
-            _logger.warning(
-              "Memory Lane: missing generated crop for $personId file ${entry.key}",
-            );
-          }
-        }
-      } catch (error, stackTrace) {
+      final cropMap = await getCachedFaceCrops(
+        file,
+        selectedFaces,
+        useFullFile: true,
+        useTempCache: false,
+      );
+      if (cropMap == null) {
         allCropsReady = false;
-        _logger.warning(
-          "Memory Lane: failed to cache crops for $personId file ${entry.key}",
-          error,
-          stackTrace,
-        );
+        continue;
+      }
+      if (selectedFaces.any((face) => (cropMap[face.faceID] ?? []).isEmpty)) {
+        allCropsReady = false;
+        _logger.warning("Missing crop for $personId file ${group.key}");
+        continue;
       }
     }
     return allCropsReady;
@@ -967,10 +744,14 @@ class MemoryLaneService {
     String personId, {
     int frameCount = 6,
   }) async {
-    if (!isFeatureEnabled) return;
+    if (!isFeatureEnabled) {
+      return;
+    }
     try {
       final timeline = await _cacheService.getTimeline(personId);
-      if (timeline == null || !timeline.isReady || timeline.entries.isEmpty) {
+      if (timeline == null ||
+          !timeline.isEligible ||
+          timeline.entries.isEmpty) {
         return;
       }
       final entries = timeline.entries.take(frameCount).toList();
@@ -983,8 +764,6 @@ class MemoryLaneService {
           .toList();
       final filesById = await _filesDB.getFileIDToFileFromIDs(uniqueFileIds);
       final Map<int, Future<List<Face>?>> facesFutures = {};
-      final stopwatch = Stopwatch()..start();
-      int warmed = 0;
       for (final entry in entries) {
         final file = filesById[entry.fileId];
         if (file == null) {
@@ -1001,32 +780,15 @@ class MemoryLaneService {
         if (face == null) {
           continue;
         }
-        try {
-          await getCachedFaceCrops(
-            file,
-            [face],
-            useFullFile: true,
-            useTempCache: false,
-          );
-          warmed += 1;
-        } catch (error, stackTrace) {
-          _logger.fine(
-            "Memory Lane prewarm failed for $personId file ${entry.fileId}",
-            error,
-            stackTrace,
-          );
-        }
+        await getCachedFaceCrops(
+          file,
+          [face],
+          useFullFile: true,
+          useTempCache: false,
+        );
       }
-      _logger.fine(
-        "Memory Lane prewarm person=$personId warmed=$warmed "
-        "target=$frameCount elapsed=${stopwatch.elapsedMilliseconds}ms",
-      );
-    } catch (error, stackTrace) {
-      _logger.fine(
-        "Memory Lane prewarm error for $personId",
-        error,
-        stackTrace,
-      );
+    } catch (e, s) {
+      _logger.fine("Prewarm failed for $personId", e, s);
     }
   }
 
@@ -1034,7 +796,7 @@ class MemoryLaneService {
     final cache = await _cacheService.getCache();
     final current = <String>{};
     for (final timeline in cache.allTimelines) {
-      if (!timeline.isReady) {
+      if (!timeline.isEligible) {
         continue;
       }
       if (await _areTimelineFaceCropsCached(timeline)) {
@@ -1042,43 +804,6 @@ class MemoryLaneService {
       }
     }
     readyPersonIds.value = current;
-  }
-
-  static int completedYearsBetween(DateTime start, DateTime end) {
-    final startDate = DateTime(start.year, start.month, start.day);
-    final endDate = DateTime(end.year, end.month, end.day);
-    if (endDate.isBefore(startDate)) {
-      return 0;
-    }
-    int years = endDate.year - startDate.year;
-    if (endDate.isBefore(_safeDateInYear(startDate, endDate.year))) {
-      years -= 1;
-    }
-    return years < 0 ? 0 : years;
-  }
-
-  @visibleForTesting
-  static int? minimumEligibleCreationTimeMicros(String? birthDateString) {
-    if (birthDateString == null || birthDateString.isEmpty) {
-      return null;
-    }
-    final birthDate = DateTime.tryParse(birthDateString);
-    if (birthDate == null) {
-      return null;
-    }
-    final cutoff = _safeDateInYear(
-      birthDate,
-      birthDate.year + _minimumEligibleAgeYears,
-    );
-    return cutoff.microsecondsSinceEpoch;
-  }
-
-  static DateTime _safeDateInYear(DateTime date, int year) {
-    final daysInTargetMonth = DateTime(year, date.month + 1, 0).day;
-    final targetDay = date.day > daysInTargetMonth
-        ? daysInTargetMonth
-        : date.day;
-    return DateTime(year, date.month, targetDay);
   }
 }
 
@@ -1118,18 +843,17 @@ class _TimelineFaceData {
       blur: (json["blur"] as num?)?.toDouble() ?? 0.0,
     );
   }
-
-  bool get hasHighScore => score >= 0.8;
 }
 
-Map<String, dynamic> selectTimelineEntriesTask(Map<String, dynamic> param) {
-  final facesJson = (param["faces"] as List<dynamic>)
-      .cast<Map<String, dynamic>>();
-  final minYears = param["minYears"] as int;
-  final minFacesPerYear = param["minFaces"] as int;
-  final minCreationTimeMicros = param["minCreationTime"] as int?;
+Map<String, dynamic> _selectTimelineEntriesTask(Map<String, dynamic> param) {
+  final int minYears = param["minYears"];
+  final int minFacesPerYear = param["minFaces"];
+  final int? minCreationTimeMicros = param["minCreationTime"];
 
-  final faces = facesJson.map(_TimelineFaceData.fromJson).toList();
+  final faces = (param["faces"] as List<dynamic>)
+      .cast<Map<String, dynamic>>()
+      .map(_TimelineFaceData.fromJson)
+      .toList();
 
   if (minCreationTimeMicros != null) {
     faces.removeWhere(
@@ -1138,144 +862,71 @@ Map<String, dynamic> selectTimelineEntriesTask(Map<String, dynamic> param) {
   }
 
   if (faces.isEmpty) {
-    return {"status": "ineligible", "eligibleYearCount": 0};
+    return {"isEligible": false, "eligibleYearCount": 0};
   }
 
-  final yearGroups = <int, List<_TimelineFaceData>>{};
-  for (final face in faces) {
-    yearGroups.putIfAbsent(face.year, () => []).add(face);
+  final eligible = groupBy(faces, (face) => face.year).entries
+      .where((entry) => entry.value.length >= minFacesPerYear)
+      .sortedBy((a) => a.key);
+
+  if (eligible.length < minYears) {
+    return {"isEligible": false, "eligibleYearCount": eligible.length};
   }
 
-  final eligibleEntries =
-      yearGroups.entries
-          .where((entry) => entry.value.length >= minFacesPerYear)
-          .toList()
-        ..sort((a, b) => a.key.compareTo(b.key));
+  final selected = eligible
+      .expand((entry) => _pickFacesForYear(entry.value))
+      .sortedBy((face) => face.creationTimeMicros)
+      .map((face) => face.toJson())
+      .toList();
 
-  if (eligibleEntries.length < minYears) {
-    return {
-      "status": "ineligible",
-      "eligibleYearCount": eligibleEntries.length,
-    };
-  }
+  final years = eligible.map((entry) => entry.key).toList();
 
-  final selected = <_TimelineFaceData>[];
-  final years = <int>[];
-  for (final entry in eligibleEntries) {
-    entry.value.sort(
-      (a, b) => a.creationTimeMicros.compareTo(b.creationTimeMicros),
-    );
-    years.add(entry.key);
-    final picks = _pickFacesForYear(entry.value);
-    selected.addAll(picks);
-  }
-
-  selected.sort((a, b) => a.creationTimeMicros.compareTo(b.creationTimeMicros));
-
-  return {
-    "status": "ready",
-    "entries": selected.map((face) => face.toJson()).toList(),
-    "years": years,
-  };
+  return {"isEligible": true, "entries": selected, "years": years};
 }
 
 List<_TimelineFaceData> _pickFacesForYear(List<_TimelineFaceData> faces) {
   if (faces.isEmpty) {
-    return <_TimelineFaceData>[];
+    return [];
   }
 
-  final sortedByQuality = List<_TimelineFaceData>.from(faces)
-    ..sort(_compareFaceQuality);
-
-  final picks = <_TimelineFaceData>[];
-  final selectedIds = <String>{};
-  final usedDayKeys = <int>{};
-  final uniqueDayKeys = sortedByQuality
-      .map((face) => _dayKeyForMicros(face.creationTimeMicros))
-      .toSet();
-  final totalUniqueDays = uniqueDayKeys.length;
-  final targetUniqueDayCount = totalUniqueDays >= 4 ? 4 : totalUniqueDays;
-  final allowDuplicateDays = totalUniqueDays < 4;
-
-  if (targetUniqueDayCount > 0) {
-    for (final face in sortedByQuality) {
-      final dayKey = _dayKeyForMicros(face.creationTimeMicros);
-      if (usedDayKeys.contains(dayKey)) {
-        continue;
-      }
-      picks.add(face);
-      selectedIds.add(face.faceId);
-      usedDayKeys.add(dayKey);
-      if (picks.length == targetUniqueDayCount) {
-        break;
-      }
+  final byQuality = faces.sorted((a, b) {
+    const highScoreThreshold = 0.8;
+    final aIsHighScore = a.score >= highScoreThreshold;
+    final bIsHighScore = b.score >= highScoreThreshold;
+    if (aIsHighScore != bIsHighScore) {
+      return aIsHighScore ? -1 : 1;
     }
-  }
 
-  if (picks.length < 4) {
-    for (final face in sortedByQuality) {
-      if (selectedIds.contains(face.faceId)) {
-        continue;
-      }
-      final dayKey = _dayKeyForMicros(face.creationTimeMicros);
-      if (!allowDuplicateDays && usedDayKeys.contains(dayKey)) {
-        continue;
-      }
-      picks.add(face);
-      selectedIds.add(face.faceId);
-      usedDayKeys.add(dayKey);
-      if (picks.length == 4) {
-        break;
-      }
+    final scoreComparison = b.score.compareTo(a.score);
+    if (scoreComparison != 0) {
+      return scoreComparison;
     }
+
+    final blurComparison = b.blur.compareTo(a.blur);
+    if (blurComparison != 0) {
+      return blurComparison;
+    }
+
+    return a.creationTimeMicros.compareTo(b.creationTimeMicros);
+  });
+
+  final byDays = groupBy(byQuality, (face) {
+    final date = DateTime.fromMicrosecondsSinceEpoch(face.creationTimeMicros);
+    return date.year * 10000 + date.month * 100 + date.day;
+  });
+
+  final picks = byDays.values.map((group) => group[0]).take(4).toList();
+
+  if (picks.length == 4) {
+    return picks;
   }
 
-  picks.sort((a, b) => a.creationTimeMicros.compareTo(b.creationTimeMicros));
+  final selectedIds = picks.map((face) => face.faceId).toSet();
+  picks.addAll(
+    byQuality
+        .where((face) => !selectedIds.contains(face.faceId))
+        .take(4 - picks.length),
+  );
+
   return picks;
-}
-
-int _compareFaceQuality(_TimelineFaceData a, _TimelineFaceData b) {
-  final highScoreComparison =
-      (b.hasHighScore ? 1 : 0) - (a.hasHighScore ? 1 : 0);
-  if (highScoreComparison != 0) {
-    return highScoreComparison;
-  }
-
-  final scoreComparison = b.score.compareTo(a.score);
-  if (scoreComparison != 0) {
-    return scoreComparison;
-  }
-
-  final blurComparison = b.blur.compareTo(a.blur);
-  if (blurComparison != 0) {
-    return blurComparison;
-  }
-
-  return a.creationTimeMicros.compareTo(b.creationTimeMicros);
-}
-
-int _dayKeyForMicros(int micros) {
-  final localDate = DateTime.fromMicrosecondsSinceEpoch(micros);
-  return localDate.year * 10000 + localDate.month * 100 + localDate.day;
-}
-
-class _PendingRecomputeRequest {
-  bool force;
-  final Set<String> _triggers;
-
-  _PendingRecomputeRequest({required this.force, required String trigger})
-    : _triggers = {_normalizeTrigger(trigger)};
-
-  void merge({required bool force, required String trigger}) {
-    this.force = this.force || force;
-    _triggers.add(_normalizeTrigger(trigger));
-  }
-
-  String get trigger => _triggers.join("|");
-
-  static String _normalizeTrigger(String trigger) {
-    final trimmed = trigger.trim();
-    if (trimmed.isEmpty) return "unspecified";
-    return trimmed;
-  }
 }
