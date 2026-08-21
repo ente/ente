@@ -265,6 +265,7 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
       unawaited(_reloadCachesUpdatedInBackground(lastAppOpenTime));
       SyncService.instance.sync();
       if (Platform.isIOS) {
+        unawaited(BgTaskUtils.ensureIOSProcessingTaskScheduled());
         MLService.instance.triggerML();
       }
     } else {

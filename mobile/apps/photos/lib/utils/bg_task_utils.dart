@@ -2,6 +2,7 @@ import "dart:io";
 
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter/widgets.dart" show AppLifecycleState, WidgetsBinding;
 import "package:logging/logging.dart";
 import "package:permission_handler/permission_handler.dart";
 import "package:photos/db/upload_locks_db.dart";
@@ -158,7 +159,11 @@ class BgTaskUtils {
       if (Platform.isIOS) {
         await reportUncleanProcessingTaskExit();
         // Background refresh permission does not reliably gate processing tasks.
-        await scheduleIOSBackgroundProcessingTask();
+        final isForegroundLaunch =
+            WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+        if (isForegroundLaunch) {
+          await ensureIOSProcessingTaskScheduled();
+        }
         final status = await Permission.backgroundRefresh.status;
         if (status != PermissionStatus.granted) {
           $.warning(
@@ -204,8 +209,18 @@ class BgTaskUtils {
     }
   }
 
+  static bool _processingTaskArmedThisProcess = false;
+
+  // Foreground arm to restart the chain after a first install or force-quit;
+  // once per process, so resumes don't keep pushing the pending request out.
+  static Future<void> ensureIOSProcessingTaskScheduled() async {
+    if (_processingTaskArmedThisProcess) return;
+    _processingTaskArmedThisProcess =
+        await scheduleIOSBackgroundProcessingTask();
+  }
+
   // Workmanager does not resubmit one-shot processing tasks.
-  static Future<void> scheduleIOSBackgroundProcessingTask() async {
+  static Future<bool> scheduleIOSBackgroundProcessingTask() async {
     try {
       await workmanager.Workmanager().registerProcessingTask(
         iOSBackgroundProcessingTask,
@@ -217,8 +232,10 @@ class BgTaskUtils {
         ),
       );
       $.info("Scheduled iOS background processing task");
+      return true;
     } catch (e) {
       $.warning("Failed to schedule iOS background processing task: $e");
+      return false;
     }
   }
 }
