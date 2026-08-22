@@ -9,7 +9,7 @@ const String sentryDSN =
 final Uri githubFeatureRequestUri = Uri.https(
   "github.com",
   "/ente/ente/discussions/categories/enhancements",
-  {"discussions_q": "is:open label:\"- auth\" sort:top"},
+  {"discussions_q": "is:open label:\"auth\" sort:top"},
 );
 const int microSecondsInDay = 86400000000;
 const String sharedMediaIdentifier = 'ente-shared-media://';
