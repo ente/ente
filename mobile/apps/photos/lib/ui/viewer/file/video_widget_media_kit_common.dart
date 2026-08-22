@@ -9,6 +9,8 @@ import "package:photos/models/file/file.dart";
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
+import "package:photos/ui/viewer/file/video_control/video_speed_bottom_sheet.dart";
+import "package:photos/ui/viewer/file/video_control/video_speed_button.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/zoomable_video_viewer.dart";
 
@@ -21,6 +23,7 @@ class VideoWidget extends StatefulWidget {
   final bool isFromMemories;
   final void Function() onStreamChange;
   final bool isPreviewPlayer;
+  final ValueNotifier<double> playbackSpeed;
 
   const VideoWidget(
     this.file,
@@ -33,6 +36,7 @@ class VideoWidget extends StatefulWidget {
     // ignore: unused_element
     required this.onStreamChange,
     required this.isPreviewPlayer,
+    required this.playbackSpeed,
   });
 
   @override
@@ -48,6 +52,7 @@ class _VideoWidgetState extends State<VideoWidget> {
   @override
   void initState() {
     super.initState();
+    widget.controller.player.setRate(widget.playbackSpeed.value);
     _isPlayingStreamSubscription = widget.controller.player.stream.playing
         .listen((isPlaying) {
           if (isPlaying && !_isSeekingNotifier.value) {
@@ -196,13 +201,38 @@ class _VideoWidgetState extends State<VideoWidget> {
                           left: 0,
                           child: SafeArea(
                             top: false,
-                            left: false,
-                            right: false,
-                            child: VideoStreamChangeWidget(
-                              showControls: value,
-                              file: widget.file,
-                              isPreviewPlayer: widget.isPreviewPlayer,
-                              onStreamChange: widget.onStreamChange,
+                            left: true,
+                            child: Stack(
+                              children: [
+                                ValueListenableBuilder<double>(
+                                  valueListenable: widget.playbackSpeed,
+                                  builder: (context, speed, _) {
+                                    return VideoSpeedButton(
+                                      showControls: value,
+                                      playbackSpeed: speed,
+                                      onTap: () {
+                                        showVideoSpeedBottomSheet(
+                                          context,
+                                          currentSpeed: speed,
+                                          onSpeedSelected: (newSpeed) {
+                                            widget.playbackSpeed.value =
+                                                newSpeed;
+                                            widget.controller.player.setRate(
+                                              newSpeed,
+                                            );
+                                          },
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                                VideoStreamChangeWidget(
+                                  showControls: value,
+                                  file: widget.file,
+                                  isPreviewPlayer: widget.isPreviewPlayer,
+                                  onStreamChange: widget.onStreamChange,
+                                ),
+                              ],
                             ),
                           ),
                         ),
