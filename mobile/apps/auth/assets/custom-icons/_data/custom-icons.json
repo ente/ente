@@ -834,6 +834,13 @@
       "hex": "000000"
     },
     {
+      "title": "Epson",
+      "slug": "epson",
+      "altNames": [
+        "Epson America"
+      ]
+    },
+    {
       "title": "ESET",
       "slug": "eset",
       "altNames": [
