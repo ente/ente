@@ -1,8 +1,9 @@
-import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:locker/services/scanner/scan_geometry.dart';
 import 'package:locker/services/scanner/scan_session_controller.dart';
@@ -27,10 +28,15 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
 
   static const double _minAreaFraction = 0.01;
 
+  static const double _loupeSize = 116;
+  static const double _loupeLift = 104;
+  static const double _loupeMagnification = 2.0;
+
   Uint8List? _sourceBytes;
   double _aspect = 3 / 4;
   List<Offset> _corners = const [];
   int _dragging = -1;
+  Offset? _dragFocus;
 
   @override
   void initState() {
@@ -71,6 +77,43 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
     final quad = _orderedQuad;
     await widget.session.updatePage(widget.pageId, quad: quad);
     if (mounted) navigator.pop();
+  }
+
+  void _endDrag() {
+    if (_dragging < 0 && _dragFocus == null) return;
+    setState(() {
+      _dragging = -1;
+      _dragFocus = null;
+    });
+  }
+
+  Widget _buildLoupe(Size container, Offset focus, Color color) {
+    final above = focus.dy - _loupeLift - _loupeSize / 2 > 0;
+    final centerY = above ? focus.dy - _loupeLift : focus.dy + _loupeLift;
+    final centerX = focus.dx.clamp(
+      _loupeSize / 2,
+      container.width - _loupeSize / 2,
+    );
+    final center = Offset(centerX, centerY);
+    return Positioned(
+      left: center.dx - _loupeSize / 2,
+      top: center.dy - _loupeSize / 2,
+      child: RawMagnifier(
+        size: const Size(_loupeSize, _loupeSize),
+        magnificationScale: _loupeMagnification,
+        focalPointOffset: focus - center,
+        decoration: MagnifierDecoration(
+          shape: const CircleBorder(),
+          shadows: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 12,
+            ),
+          ],
+        ),
+        child: CustomPaint(painter: _LoupePainter(color: color)),
+      ),
+    );
   }
 
   @override
@@ -159,20 +202,30 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
                                   best = i;
                                 }
                               }
-                              _dragging = bestDistance <= _handleRadius * 2
+                              final grabbed = bestDistance <= _handleRadius * 2
                                   ? best
                                   : -1;
+                              if (grabbed < 0) return;
+                              unawaited(HapticFeedback.selectionClick());
+                              setState(() {
+                                _dragging = grabbed;
+                                _dragFocus = toScreen(_corners[grabbed]);
+                              });
                             },
                             onPanUpdate: (details) {
                               if (_dragging < 0) return;
+                              final normalized = toNormalized(
+                                details.localPosition,
+                              );
                               setState(() {
-                                _corners = [..._corners]
-                                  ..[_dragging] = toNormalized(
-                                    details.localPosition,
-                                  );
+                                final updated = [..._corners];
+                                updated[_dragging] = normalized;
+                                _corners = updated;
+                                _dragFocus = toScreen(normalized);
                               });
                             },
-                            onPanEnd: (_) => _dragging = -1,
+                            onPanEnd: (_) => _endDrag(),
+                            onPanCancel: _endDrag,
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
@@ -186,8 +239,15 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
                                       for (final c in _corners) toScreen(c),
                                     ],
                                     color: colors.primary,
+                                    activeIndex: _dragging,
                                   ),
                                 ),
+                                if (_dragging >= 0 && _dragFocus != null)
+                                  _buildLoupe(
+                                    container,
+                                    _dragFocus!,
+                                    colors.primary,
+                                  ),
                               ],
                             ),
                           );
@@ -210,10 +270,15 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
 }
 
 class _CropPainter extends CustomPainter {
-  const _CropPainter({required this.corners, required this.color});
+  const _CropPainter({
+    required this.corners,
+    required this.color,
+    required this.activeIndex,
+  });
 
   final List<Offset> corners;
   final Color color;
+  final int activeIndex;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -225,15 +290,17 @@ class _CropPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3,
     );
-    for (final corner in corners) {
+    for (var i = 0; i < corners.length; i++) {
+      final corner = corners[i];
+      final radius = i == activeIndex ? 5.0 : 12.0;
       canvas.drawCircle(
         corner,
-        12,
+        radius,
         Paint()..color = color.withValues(alpha: 0.45),
       );
       canvas.drawCircle(
         corner,
-        12,
+        radius,
         Paint()
           ..color = color
           ..style = PaintingStyle.stroke
@@ -244,5 +311,56 @@ class _CropPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CropPainter oldDelegate) =>
-      oldDelegate.corners != corners || oldDelegate.color != color;
+      oldDelegate.corners != corners ||
+      oldDelegate.color != color ||
+      oldDelegate.activeIndex != activeIndex;
+}
+
+class _LoupePainter extends CustomPainter {
+  const _LoupePainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    const gap = 6.0;
+    const arm = 14.0;
+    canvas
+      ..drawLine(
+        center - const Offset(arm, 0),
+        center - const Offset(gap, 0),
+        paint,
+      )
+      ..drawLine(
+        center + const Offset(gap, 0),
+        center + const Offset(arm, 0),
+        paint,
+      )
+      ..drawLine(
+        center - const Offset(0, arm),
+        center - const Offset(0, gap),
+        paint,
+      )
+      ..drawLine(
+        center + const Offset(0, gap),
+        center + const Offset(0, arm),
+        paint,
+      )
+      ..drawCircle(
+        center,
+        size.width / 2 - 1.5,
+        Paint()
+          ..color = color.withValues(alpha: 0.9)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3,
+      );
+  }
+
+  @override
+  bool shouldRepaint(_LoupePainter oldDelegate) => oldDelegate.color != color;
 }

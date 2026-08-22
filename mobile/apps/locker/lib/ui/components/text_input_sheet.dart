@@ -12,11 +12,23 @@ Future<dynamic> showTextInputSheet(
   TextCapitalization textCapitalization = TextCapitalization.words,
   int? maxLength,
   bool isPasswordInput = false,
-}) {
+  bool selectInitialValue = false,
+}) async {
   var currentText = initialValue ?? '';
   var isSubmitting = false;
 
   final canSubmit = ValueNotifier<bool>(currentText.trim().isNotEmpty);
+  final controller = selectInitialValue
+      ? TextEditingController.fromValue(
+          TextEditingValue(
+            text: currentText,
+            selection: TextSelection(
+              baseOffset: 0,
+              extentOffset: currentText.length,
+            ),
+          ),
+        )
+      : null;
 
   Future<void> submit(BuildContext sheetContext, String value) async {
     final text = isPasswordInput ? value : value.trim();
@@ -39,13 +51,14 @@ Future<dynamic> showTextInputSheet(
     }
   }
 
-  return showBottomSheetComponent<dynamic>(
+  final result = await showBottomSheetComponent<dynamic>(
     context: context,
     builder: (sheetContext) => BottomSheetComponent(
       title: title,
       isKeyboardAware: true,
       content: TextInputComponent(
-        initialValue: initialValue,
+        controller: controller,
+        initialValue: controller == null ? initialValue : null,
         hintText: hintText,
         autofocus: true,
         maxLength: maxLength,
@@ -68,4 +81,6 @@ Future<dynamic> showTextInputSheet(
       ],
     ),
   );
+  controller?.dispose();
+  return result;
 }
