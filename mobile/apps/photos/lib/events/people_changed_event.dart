@@ -8,6 +8,7 @@ class PeopleChangedEvent extends Event {
   final PeopleEventType type;
   final String source;
   final PersonEntity? person;
+  final Set<String>? clusterIDs;
 
   PeopleChangedEvent({
     this.relevantFiles,
@@ -15,6 +16,7 @@ class PeopleChangedEvent extends Event {
     this.type = PeopleEventType.defaultType,
     this.source = "",
     this.person,
+    this.clusterIDs,
   });
 
   @override
@@ -29,4 +31,5 @@ enum PeopleEventType {
   saveOrEditPerson,
   addedClusterToPerson,
   reviewedSuggestion,
+  automaticallyMergedClustersIntoPerson,
 }
