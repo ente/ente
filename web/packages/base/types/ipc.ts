@@ -39,6 +39,7 @@ export interface Electron {
     clearAppLockConfigFromSafeStorage: () => Promise<void>;
     onMainWindowFocus: (cb: (() => void) | undefined) => void;
     onMainWindowBlur: (cb: (() => void) | undefined) => void;
+    setTitleBarOverlay: (isDark: boolean) => void;
     onOpenEnteURL: (cb: ((url: string) => void) | undefined) => void;
     lastShownChangelogVersion: () => Promise<number | undefined>;
     setLastShownChangelogVersion: (version: number) => Promise<void>;

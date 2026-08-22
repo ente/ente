@@ -7,6 +7,7 @@ interface UserPreferences {
     lastShownChangelogVersion?: number;
     windowBounds?: { x: number; y: number; width: number; height: number };
     isWindowMaximized?: boolean;
+    isDarkMode?: boolean;
 }
 
 const userPreferencesSchema: Schema<UserPreferences> = {
@@ -23,6 +24,7 @@ const userPreferencesSchema: Schema<UserPreferences> = {
         },
     },
     isWindowMaximized: { type: "boolean" },
+    isDarkMode: { type: "boolean" },
 };
 
 export const userPreferences = new Store({

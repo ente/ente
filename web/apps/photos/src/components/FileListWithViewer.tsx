@@ -150,7 +150,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     const [highlightCommentID, setHighlightCommentID] = useState<
         string | undefined
     >(undefined);
-    const { showNotification } = usePhotosAppContext();
+    const { showNotification, setIsFileViewerOpen } = usePhotosAppContext();
     const { mode: colorSchemeMode, systemMode } = useColorScheme();
     const theme = useTheme();
     const resolvedMode =
@@ -159,29 +159,38 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
             : (colorSchemeMode ?? theme.palette.mode);
     const isDarkMode = resolvedMode === "dark";
 
+    const updateOpenFileViewer = useCallback(
+        (open: boolean) => {
+            setOpenFileViewer(open);
+            setIsFileViewerOpen?.(open);
+            onSetOpenFileViewer?.(open);
+        },
+        [onSetOpenFileViewer, setIsFileViewerOpen],
+    );
+
+    useEffect(() => () => setIsFileViewerOpen?.(false), [setIsFileViewerOpen]);
+
     useEffect(() => {
         if (pendingFileIndex !== undefined) {
             setCurrentIndex(pendingFileIndex);
             setInitialSidebar(pendingFileSidebar);
             setHighlightCommentID(pendingHighlightCommentID);
-            setOpenFileViewer(true);
-            onSetOpenFileViewer?.(true);
+            updateOpenFileViewer(true);
             onPendingNavigationConsumed?.();
         }
     }, [
         pendingFileIndex,
         pendingFileSidebar,
         pendingHighlightCommentID,
-        onSetOpenFileViewer,
+        updateOpenFileViewer,
         onPendingNavigationConsumed,
     ]);
 
     const handleCloseFileViewerInternal = useCallback(() => {
         setInitialSidebar(undefined);
         setHighlightCommentID(undefined);
-        onSetOpenFileViewer?.(false);
-        setOpenFileViewer(false);
-    }, [onSetOpenFileViewer]);
+        updateOpenFileViewer(false);
+    }, [updateOpenFileViewer]);
 
     const annotatedFiles = useMemo(
         (): FileListAnnotatedFile[] =>
@@ -195,10 +204,9 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     const handleThumbnailClick = useCallback(
         (index: number) => {
             setCurrentIndex(index);
-            setOpenFileViewer(true);
-            onSetOpenFileViewer?.(true);
+            updateOpenFileViewer(true);
         },
-        [onSetOpenFileViewer],
+        [updateOpenFileViewer],
     );
 
     const handleTriggerRemotePull = useCallback(

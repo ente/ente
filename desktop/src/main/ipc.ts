@@ -69,6 +69,7 @@ import {
     watchUpdateSyncedFiles,
 } from "./services/watch";
 import { triggerCreateUtilityProcess } from "./services/workers";
+import { userPreferences } from "./stores/user-preferences";
 
 const parsePersistedAppLockConfig = (
     config: unknown,
@@ -275,6 +276,19 @@ export const attachIPCHandlers = () => {
 };
 
 export const attachMainWindowIPCHandlers = (mainWindow: BrowserWindow) => {
+    on("setTitleBarOverlay", (_, isDark: boolean) => {
+        if (typeof isDark != "boolean") return;
+
+        userPreferences.set("isDarkMode", isDark);
+
+        if (process.platform != "win32") return;
+
+        mainWindow.setTitleBarOverlay({
+            color: isDark ? "black" : "white",
+            symbolColor: isDark ? "#cdcdcd" : "black",
+        });
+    });
+
     on("triggerCreateUtilityProcess", (_, type: UtilityProcessType) =>
         triggerCreateUtilityProcess(type, mainWindow),
     );

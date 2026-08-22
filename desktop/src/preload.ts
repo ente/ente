@@ -105,6 +105,9 @@ const onMainWindowBlur = (cb: (() => void) | undefined) => {
     if (cb) ipcRenderer.on("mainWindowBlur", cb);
 };
 
+const setTitleBarOverlay = (isDark: boolean) =>
+    ipcRenderer.send("setTitleBarOverlay", isDark);
+
 const onOpenEnteURL = (cb: ((url: string) => void) | undefined) => {
     ipcRenderer.removeAllListeners("openEnteURL");
     if (cb) ipcRenderer.on("openEnteURL", (_, url: string) => cb(url));
@@ -289,6 +292,7 @@ contextBridge.exposeInMainWorld("electron", {
     promptDeviceLock,
     onMainWindowFocus,
     onMainWindowBlur,
+    setTitleBarOverlay,
     onOpenEnteURL,
 
     onAppUpdateAvailable,

@@ -167,6 +167,8 @@ const createMainWindow = () => {
         path.join(isDev ? "build" : process.resourcesPath, "window-icon.png"),
     );
     const bounds = windowBounds();
+    const shouldUseDarkColors =
+        userPreferences.get("isDarkMode") ?? nativeTheme.shouldUseDarkColors;
 
     const window = new BrowserWindow({
         webPreferences: {
@@ -180,10 +182,13 @@ const createMainWindow = () => {
         titleBarStyle: "hidden",
         titleBarOverlay:
             process.platform == "win32"
-                ? { color: "black", symbolColor: "#cdcdcd" }
+                ? {
+                      color: shouldUseDarkColors ? "black" : "white",
+                      symbolColor: shouldUseDarkColors ? "#cdcdcd" : "black",
+                  }
                 : true,
         // Match the initial paint to the OS theme to avoid a white or black flash.
-        backgroundColor: nativeTheme.shouldUseDarkColors ? "black" : "white",
+        backgroundColor: shouldUseDarkColors ? "black" : "white",
         show: false,
     });
 

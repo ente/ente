@@ -7,6 +7,7 @@ export interface PhotosAppContextT {
     showNotification: (attributes: NotificationAttributes) => void;
     watchFolderView: boolean;
     setWatchFolderView: (isOpen: boolean) => void;
+    setIsFileViewerOpen?: (isOpen: boolean) => void;
 }
 
 export const PhotosAppContext = createContext<PhotosAppContextT | undefined>(
