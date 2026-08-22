@@ -1,0 +1,2 @@
+- Zoom double-tapped photos toward the tapped area instead of the image center.
+- Replaced the third-party photo viewer with a lightweight Ente-owned viewer.

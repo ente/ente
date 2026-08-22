@@ -172,7 +172,6 @@ dependencies:
   permission_handler: 12.0.1
   photo_manager: 3.11.0
   photo_manager_image_provider: 2.2.0
-  photo_view: 0.15.0
   pinput: 5.0.2
   pointycastle: 3.9.1
   pro_image_editor: 11.23.0

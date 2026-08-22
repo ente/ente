@@ -7,7 +7,6 @@ import 'package:ente_ui/components/loading_widget.dart';
 import 'package:flutter/material.dart';
 import "package:flutter_image_compress/flutter_image_compress.dart";
 import 'package:logging/logging.dart';
-import 'package:photo_view/photo_view.dart';
 import 'package:photos/core/cache/thumbnail_in_memory_cache.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/event_bus.dart';
@@ -25,6 +24,7 @@ import "package:photos/service_locator.dart" show flagService;
 import "package:photos/src/rust/api/image_processing_api.dart" as rust_image;
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
+import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/utils/image_util.dart';
 import "package:photos/utils/ram_check_util.dart";
@@ -37,6 +37,7 @@ class ZoomableImage extends StatefulWidget {
   final bool shouldCover;
   final bool isGuestView;
   final bool isFromMemories;
+  final bool enableVerticalSwipeActions;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
 
@@ -49,6 +50,7 @@ class ZoomableImage extends StatefulWidget {
     this.shouldCover = false,
     this.isGuestView = false,
     this.isFromMemories = false,
+    this.enableVerticalSwipeActions = true,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
   });
@@ -74,15 +76,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
   // Start the memory slideshow timer when any image is ready, without waiting
   // for the original.
   bool _firedOnReady = false;
-  ValueChanged<PhotoViewScaleState>? _scaleStateChangedCallback;
-  bool _isZooming = false;
-  PhotoViewController _photoViewController = PhotoViewController();
-  final _scaleStateController = PhotoViewScaleStateController();
-  StreamSubscription<dynamic>? _zoomStreamSubscription;
-
-  // Baseline PhotoView scale for the current image/controller when the image
-  // is at its contained size. ZoomTransform.scale is reported relative to this.
-  double? _initialScale;
+  bool _interactionLocked = false;
+  final _imageZoomController = ImageZoomController();
   late final StreamSubscription<ResetZoomOfPhotoView> _resetZoomSubscription;
   late final StreamSubscription<RetryFailedImageLoadEvent>
   _retryFailedLoadSubscription;
@@ -113,20 +108,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
       _loadedSmallThumbnail = true;
       _notifyReadyOnce();
     }
-    _scaleStateChangedCallback = (value) {
-      if (widget.shouldDisableScroll != null) {
-        widget.shouldDisableScroll!(value != PhotoViewScaleState.initial);
-      }
-      _isZooming = value != PhotoViewScaleState.initial;
-      final state = InheritedDetailPageState.maybeOf(context);
-      state?.isZoomedNotifier.value = _isZooming;
-      if (!_isZooming) {
-        _initialScale = _photoViewController.scale ?? _initialScale;
-        state?.zoomTransformNotifier.value = ZoomTransform.identity;
-      }
-    };
-
-    _subscribeToZoomStream();
+    _imageZoomController.addListener(_onZoomChanged);
 
     _resetZoomSubscription = Bus.instance.on<ResetZoomOfPhotoView>().listen((
       event,
@@ -135,7 +117,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
         uploadedFileID: widget.photo.uploadedFileID,
         localID: widget.photo.localID,
       )) {
-        _scaleStateController.scaleState = PhotoViewScaleState.initial;
+        unawaited(_imageZoomController.reset());
       }
     });
 
@@ -155,31 +137,37 @@ class _ZoomableImageState extends State<ZoomableImage> {
         });
   }
 
-  void _subscribeToZoomStream() {
-    _zoomStreamSubscription = _photoViewController.outputStateStream.listen((
-      value,
-    ) {
-      if (!mounted) return;
-      final state = InheritedDetailPageState.maybeOf(context);
-      if (value.scale == null) return;
-      if (!_isZooming) {
-        _initialScale = value.scale;
-        state?.zoomTransformNotifier.value = ZoomTransform.identity;
-        return;
-      }
-      _initialScale ??= value.scale;
-      state?.zoomTransformNotifier.value = ZoomTransform(
-        scale: value.scale! / _initialScale!,
-        offset: value.position,
-      );
-    });
+  void _onZoomChanged() {
+    if (!mounted) return;
+    final transform = _imageZoomController.transform;
+    final isZooming = _imageZoomController.isZoomed;
+    final state = InheritedDetailPageState.maybeOf(context);
+    state?.isZoomedNotifier.value = isZooming;
+    state?.zoomTransformNotifier.value = isZooming
+        ? ZoomTransform(scale: transform.scale, offset: transform.offset)
+        : ZoomTransform.identity;
+  }
+
+  void _onInteractionLockChanged(bool isLocked) {
+    widget.shouldDisableScroll?.call(isLocked);
+    if (_interactionLocked == isLocked || !mounted) return;
+    setState(() => _interactionLocked = isLocked);
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    if (_imageZoomController.isZoomed) return;
+    if (details.delta.dy > dragSensitivity) {
+      unawaited(Navigator.maybePop(context));
+    } else if (details.delta.dy < -dragSensitivity) {
+      showDetailsSheet(context, widget.photo);
+    }
   }
 
   @override
   void dispose() {
-    _zoomStreamSubscription?.cancel();
-    _photoViewController.dispose();
-    _scaleStateController.dispose();
+    _imageZoomController
+      ..removeListener(_onZoomChanged)
+      ..dispose();
     _resetZoomSubscription.cancel();
     _retryFailedLoadSubscription.cancel();
     super.dispose();
@@ -195,61 +183,40 @@ class _ZoomableImageState extends State<ZoomableImage> {
     Widget content;
 
     if (_imageProvider != null) {
-      content = PhotoViewGestureDetectorScope(
-        axis: Axis.vertical,
-        child: PhotoView(
-          // Rebuild PhotoView when the original replaces a zoomed thumbnail so
-          // the adjusted zoom takes effect. Memories do not zoom; a stable key
-          // lets gaplessPlayback replace the image without flashing the layer
-          // underneath.
-          key: widget.isFromMemories ? null : ValueKey(_loadedFinalImage),
-          imageProvider: _imageProvider,
-          controller: _photoViewController,
-          filterQuality: FilterQuality.high,
-          scaleStateController: _scaleStateController,
-          scaleStateChangedCallback: _scaleStateChangedCallback,
-          minScale: widget.shouldCover
-              ? PhotoViewComputedScale.covered
-              : PhotoViewComputedScale.contained,
-          gaplessPlayback: true,
-          heroAttributes: PhotoViewHeroAttributes(
-            tag: widget.tagPrefix! + _photo.tag,
-          ),
-          backgroundDecoration: widget.backgroundDecoration as BoxDecoration?,
-          loadingBuilder: (context, event) {
-            // Match the loading state to the image's on-screen size during the
-            // hero animation.
-            final screenDimensions = MediaQuery.sizeOf(context);
-            late final double screenRelativeImageWidth;
-            late final double screenRelativeImageHeight;
-            final screenWidth = screenDimensions.width;
-            final screenHeight = screenDimensions.height;
+      content = ImageZoomViewer(
+        imageProvider: _imageProvider!,
+        controller: _imageZoomController,
+        imageSizeHint: _photo.width > 0 && _photo.height > 0
+            ? Size(_photo.width.toDouble(), _photo.height.toDouble())
+            : null,
+        heroTag: widget.tagPrefix! + _photo.tag,
+        backgroundDecoration: widget.backgroundDecoration,
+        initialFit: widget.shouldCover ? BoxFit.cover : BoxFit.contain,
+        // Collage already owns its transform with an outer InteractiveViewer.
+        gesturesEnabled: !widget.shouldCover,
+        onInteractionLockChanged: _onInteractionLockChanged,
+        loadingBuilder: (context, event) {
+          // Match the loading state to the image's on-screen size during the
+          // hero animation.
+          final screenSize = MediaQuery.sizeOf(context);
+          final fittedSize = _photo.width > 0 && _photo.height > 0
+              ? applyBoxFit(
+                  BoxFit.contain,
+                  Size(_photo.width.toDouble(), _photo.height.toDouble()),
+                  screenSize,
+                ).destination
+              : screenSize;
 
-            final aspectRatioOfScreen = screenWidth / screenHeight;
-            final aspectRatioOfImage = _photo.width / _photo.height;
-
-            if (aspectRatioOfImage > aspectRatioOfScreen) {
-              screenRelativeImageWidth = screenWidth;
-              screenRelativeImageHeight = screenWidth / aspectRatioOfImage;
-            } else if (aspectRatioOfImage < aspectRatioOfScreen) {
-              screenRelativeImageHeight = screenHeight;
-              screenRelativeImageWidth = screenHeight * aspectRatioOfImage;
-            } else {
-              screenRelativeImageWidth = screenWidth;
-              screenRelativeImageHeight = screenHeight;
-            }
-
-            return Center(
-              child: SizedBox(
-                width: screenRelativeImageWidth,
-                height: screenRelativeImageHeight,
-                child: widget.isFromMemories
-                    ? const _DelayedLoadingIndicator()
-                    : const EnteLoadingWidget(color: Colors.white),
-              ),
-            );
-          },
-        ),
+          return Center(
+            child: SizedBox(
+              width: fittedSize.width,
+              height: fittedSize.height,
+              child: widget.isFromMemories
+                  ? const _DelayedLoadingIndicator()
+                  : const EnteLoadingWidget(color: Colors.white),
+            ),
+          );
+        },
       );
     } else if (_showingThumbnailFallback) {
       content = Center(
@@ -267,19 +234,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
 
     final GestureDragUpdateCallback? verticalDragCallback =
-        _isZooming || widget.isGuestView
+        _interactionLocked ||
+            widget.isGuestView ||
+            !widget.enableVerticalSwipeActions
         ? null
-        : (d) => {
-            if (!_isZooming)
-              {
-                if (d.delta.dy > dragSensitivity)
-                  {
-                    {unawaited(Navigator.maybePop(context))},
-                  }
-                else if (d.delta.dy < (dragSensitivity * -1))
-                  {showDetailsSheet(context, widget.photo)},
-              },
-          };
+        : _onVerticalDragUpdate;
     return GestureDetector(
       onVerticalDragUpdate: verticalDragCallback,
       child: content,
@@ -554,10 +513,6 @@ class _ZoomableImageState extends State<ZoomableImage> {
     ImageProvider imageProvider,
     File file,
   ) async {
-    await _updatePhotoViewController(
-      previewImageProvider: _imageProvider,
-      finalImageProvider: imageProvider,
-    );
     setState(() {
       _imageProvider = imageProvider;
       _loadedFinalImage = true;
@@ -565,48 +520,6 @@ class _ZoomableImageState extends State<ZoomableImage> {
     });
     _notifyReadyOnce();
     widget.onFinalImageLoaded?.call(file);
-  }
-
-  Future<void> _updatePhotoViewController({
-    required ImageProvider? previewImageProvider,
-    required ImageProvider finalImageProvider,
-  }) async {
-    final bool shouldFixPosition =
-        previewImageProvider != null &&
-        _isZooming &&
-        _photoViewController.scale != null;
-    ImageInfo? finalImageInfo;
-    if (shouldFixPosition) {
-      final prevImageInfo = await getImageInfo(previewImageProvider);
-      finalImageInfo = await getImageInfo(finalImageProvider);
-      final previousScale = _photoViewController.scale!;
-      final previousRelativeScale = _initialScale != null && _initialScale! > 0
-          ? previousScale / _initialScale!
-          : null;
-      final scale =
-          previousScale /
-          (finalImageInfo.image.width / prevImageInfo.image.width);
-      final currentPosition = _photoViewController.value.position;
-      unawaited(_zoomStreamSubscription?.cancel());
-      _photoViewController = PhotoViewController(
-        initialPosition: currentPosition,
-        initialScale: scale,
-      );
-      if (previousRelativeScale != null &&
-          previousRelativeScale.isFinite &&
-          previousRelativeScale > 0) {
-        _initialScale = scale / previousRelativeScale;
-      } else {
-        _initialScale = null;
-      }
-      _subscribeToZoomStream();
-      // Prevent auto-zoom when the original loads after two double taps.
-      _scaleStateController.scaleState = PhotoViewScaleState.zoomedIn;
-    }
-    final bool canUpdateMetadata = _photo.canEditMetaInfo;
-    if (finalImageInfo == null && canUpdateMetadata && !_photo.hasDimensions) {
-      finalImageInfo = await getImageInfo(finalImageProvider);
-    }
   }
 
   bool _isGIF() => _photo.displayName.toLowerCase().endsWith(".gif");

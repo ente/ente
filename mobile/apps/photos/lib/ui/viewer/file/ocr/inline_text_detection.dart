@@ -827,7 +827,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
               child: overlay,
             );
 
-            // Let PhotoView own gestures while pinching or settling a zoom.
+            // Let the image viewer own gestures while pinching or settling a zoom.
             final shouldIgnore =
                 _isPinching || (isZoomed && !_zoomGestureSettled);
 

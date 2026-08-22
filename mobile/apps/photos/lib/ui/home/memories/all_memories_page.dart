@@ -32,6 +32,7 @@ class _AllMemoriesPageState extends State<AllMemoriesPage>
   late final List<SmartMemory> _memories;
   late final int _initialPageIndex;
   late int _activePageIndex;
+  bool _isMediaInteractionLocked = false;
 
   @override
   void initState() {
@@ -59,12 +60,17 @@ class _AllMemoriesPageState extends State<AllMemoriesPage>
       color: backgroundColorDark,
       child: PageView.builder(
         controller: pageController,
-        physics: const BouncingScrollPhysics(),
+        physics: _isMediaInteractionLocked
+            ? const NeverScrollableScrollPhysics()
+            : const BouncingScrollPhysics(),
         hitTestBehavior: HitTestBehavior.translucent,
         itemCount: _memories.length,
         onPageChanged: (index) {
           Bus.instance.fire(PauseVideoEvent());
-          setState(() => _activePageIndex = index);
+          setState(() {
+            _activePageIndex = index;
+            _isMediaInteractionLocked = false;
+          });
         },
         itemBuilder: (context, index) {
           final smartMemory = _memories[index];
@@ -77,6 +83,13 @@ class _AllMemoriesPageState extends State<AllMemoriesPage>
               initialMemoryIndex,
               memoryID: smartMemory.id,
               isActive: index == _activePageIndex,
+              onMediaInteractionLockChanged: (isLocked) {
+                if (index != _activePageIndex ||
+                    _isMediaInteractionLocked == isLocked) {
+                  return;
+                }
+                setState(() => _isMediaInteractionLocked = isLocked);
+              },
               onNextMemory: index < _memories.length - 1
                   ? () => pageController.nextPage(
                       duration: const Duration(milliseconds: 675),

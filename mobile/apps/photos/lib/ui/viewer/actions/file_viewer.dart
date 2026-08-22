@@ -11,7 +11,6 @@ import "package:media_extension/media_extension.dart";
 import "package:media_extension/media_extension_action_types.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photo_manager_image_provider/photo_manager_image_provider.dart";
-import "package:photo_view/photo_view.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/metadata/file_magic.dart";
@@ -19,6 +18,7 @@ import "package:photos/module/metadata/local_file.dart";
 import "package:photos/module/metadata/video.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
+import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
 import "package:video_player/video_player.dart";
 
@@ -51,14 +51,10 @@ class FileViewerState extends State<FileViewer> {
       action.action == IntentAction.view &&
       (action.type == MediaType.image || action.type == MediaType.video);
 
-  Widget _boundedPhotoView(ImageProvider imageProvider) {
-    return PhotoView(
+  Widget _boundedImageViewer(ImageProvider imageProvider) {
+    return ImageZoomViewer(
       imageProvider: imageProvider,
-      filterQuality: FilterQuality.high,
-      initialScale: PhotoViewComputedScale.contained,
-      minScale: PhotoViewComputedScale.contained,
-      maxScale: PhotoViewComputedScale.covered * 3.0,
-      strictScale: true,
+      maxScaleOverCover: 3.0,
     );
   }
 
@@ -417,7 +413,7 @@ class FileViewerState extends State<FileViewer> {
       builder: (context, snapshot) {
         final bytes = snapshot.data;
         if (bytes != null) {
-          return _boundedPhotoView(MemoryImage(bytes));
+          return _boundedImageViewer(MemoryImage(bytes));
         }
         if (snapshot.connectionState != ConnectionState.done) {
           return const CircularProgressIndicator();
@@ -430,7 +426,7 @@ class FileViewerState extends State<FileViewer> {
   Widget _buildImageViewer() {
     final sharedMediaPath = widget.sharedMediaFile?.path;
     if (sharedMediaPath != null) {
-      return _boundedPhotoView(Image.file(File(sharedMediaPath)).image);
+      return _boundedImageViewer(Image.file(File(sharedMediaPath)).image);
     }
 
     final data = action.data;
@@ -441,7 +437,7 @@ class FileViewerState extends State<FileViewer> {
 
     final uri = Uri.tryParse(data);
     if (uri?.scheme == "file") {
-      return _boundedPhotoView(FileImage(File(uri!.toFilePath())));
+      return _boundedImageViewer(FileImage(File(uri!.toFilePath())));
     }
 
     final assetFuture = mediaStoreAssetFuture;
@@ -459,7 +455,7 @@ class FileViewerState extends State<FileViewer> {
             }
             return const CircularProgressIndicator();
           }
-          return _boundedPhotoView(AssetEntityImageProvider(asset));
+          return _boundedImageViewer(AssetEntityImageProvider(asset));
         },
       );
     }
@@ -474,7 +470,7 @@ class FileViewerState extends State<FileViewer> {
     }
 
     try {
-      return _boundedPhotoView(MemoryImage(base64Decode(data)));
+      return _boundedImageViewer(MemoryImage(base64Decode(data)));
     } catch (e, s) {
       _logger.severe("failed to decode shared image payload", e, s);
       return const Icon(Icons.error);
