@@ -173,7 +173,13 @@ Future<List<EnteFile>> convertIncomingSharedMediaToFile(
       continue;
     }
     final enteFile = EnteFile();
-    final sharedLocalId = const Uuid().v4();
+    final fileExtension = extension(media.path);
+    final safeExtension =
+        RegExp(r'^\.[A-Za-z0-9]{1,15}$').stringMatch(fileExtension) ==
+            fileExtension
+        ? fileExtension
+        : '';
+    final sharedLocalId = const Uuid().v4() + safeExtension;
     enteFile.title = basename(media.path);
     var ioFile = File(media.path);
     try {
