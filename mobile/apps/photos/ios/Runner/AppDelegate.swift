@@ -44,7 +44,6 @@ import workmanager_apple
       // only accept non-homewidget urls for AppLinks
       if !url.absoluteString.contains("homeWidget") {
         AppLinks.shared.handleLink(url: url)
-        return true
       }
     }
 
