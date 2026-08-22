@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:typed_data";
 
 import "package:ente_accounts/models/user_details.dart";
@@ -7,6 +8,8 @@ import "package:ente_accounts/services/passkey_service.dart";
 import "package:ente_accounts/services/user_service.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_crypto_api/ente_crypto_api.dart";
+import "package:ente_events/event_bus.dart";
+import "package:ente_events/models/user_details_changed_event.dart";
 import "package:ente_lock_screen/local_authentication_service.dart";
 import "package:ente_lock_screen/lock_screen_settings.dart";
 import "package:ente_lock_screen/ui/lock_screen_options.dart";
@@ -27,12 +30,30 @@ class SecuritySettingsPage extends StatefulWidget {
 class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
   final _config = Configuration.instance;
   final Logger _logger = Logger('SecuritySettingsPage');
+  late final StreamSubscription<UserDetailsChangedEvent>
+  _userDetailsChangedSubscription;
   late bool _hasLoggedIn;
 
   @override
   void initState() {
-    _hasLoggedIn = _config.hasConfiguredAccount();
     super.initState();
+    _hasLoggedIn = _config.hasConfiguredAccount();
+    _userDetailsChangedSubscription = Bus.instance
+        .on<UserDetailsChangedEvent>()
+        .listen((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
+    if (_hasLoggedIn) {
+      unawaited(_refreshSecurityDetails());
+    }
+  }
+
+  @override
+  void dispose() {
+    _userDetailsChangedSubscription.cancel();
+    super.dispose();
   }
 
   @override
@@ -43,6 +64,8 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
       title: l10n.security,
       children: [
         if (_hasLoggedIn) ...[
+          _buildTwoFactorItem(context),
+          const SizedBox(height: 8),
           _buildEmailVerificationItem(context),
           const SizedBox(height: 8),
           _buildPasskeyItem(context),
@@ -54,6 +77,73 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           _buildActiveSessionsItem(context),
         ],
       ],
+    );
+  }
+
+  Widget _buildTwoFactorItem(BuildContext context) {
+    return MergeSemantics(
+      child: SettingsItem(
+        title: context.strings.twofactor,
+        icon: HugeIcons.strokeRoundedSmartPhone01,
+        showChevron: false,
+        trailing: ToggleSwitchComponent.async(
+          value: UserService.instance.hasEnabledTwoFactor,
+          onChanged: () => _onTwoFactorToggle(context),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _refreshSecurityDetails() async {
+    try {
+      await UserService.instance.getUserDetailsV2(memoryCount: true);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e, s) {
+      _logger.warning('Failed to refresh security details', e, s);
+    }
+  }
+
+  Future<void> _onTwoFactorToggle(BuildContext context) async {
+    final hasAuthenticated = await LocalAuthenticationService.instance
+        .requestLocalAuthentication(
+          context,
+          context.strings.authToConfigureTwofactorAuthentication,
+        );
+    if (!context.mounted || !hasAuthenticated) {
+      return;
+    }
+
+    final isTwoFactorEnabled = UserService.instance.hasEnabledTwoFactor();
+    if (isTwoFactorEnabled) {
+      await _disableTwoFactor(context);
+    } else {
+      await UserService.instance.setupTwoFactor(context);
+    }
+  }
+
+  Future<void> _disableTwoFactor(BuildContext context) async {
+    final strings = context.strings;
+    await showBottomSheetComponent<void>(
+      context: context,
+      builder: (sheetContext) => BottomSheetComponent(
+        title: strings.disableTwofactor,
+        message: strings.confirm2FADisable,
+        illustration: Image.asset('assets/warning-grey.png'),
+        actions: [
+          ButtonComponent(
+            label: strings.yes,
+            variant: ButtonComponentVariant.critical,
+            onTap: () async {
+              await UserService.instance.disableTwoFactor(context);
+              if (sheetContext.mounted) {
+                Navigator.of(sheetContext).pop();
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 

@@ -61,6 +61,13 @@ class SettingsSearchRegistry {
           routeBuilder: (_) => const SecuritySettingsPage(),
         ),
         SettingsSearchItem(
+          title: l10n.twofactor,
+          sectionPath: l10n.security,
+          icon: HugeIcons.strokeRoundedSmartPhone01,
+          routeBuilder: (_) => const SecuritySettingsPage(),
+          keywords: const ["2fa", "two factor", "authenticator", "otp"],
+        ),
+        SettingsSearchItem(
           title: l10n.emailVerificationToggle,
           sectionPath: l10n.security,
           icon: HugeIcons.strokeRoundedSecurityCheck,

@@ -20,6 +20,7 @@ import 'package:ente_accounts/pages/password_reentry_page.dart';
 import 'package:ente_accounts/pages/recovery_page.dart';
 import 'package:ente_accounts/pages/two_factor_authentication_page.dart';
 import 'package:ente_accounts/pages/two_factor_recovery_page.dart';
+import 'package:ente_accounts/pages/two_factor_setup_page.dart';
 import 'package:ente_accounts/services/install_source_handler.dart';
 import 'package:ente_base/models/key_attributes.dart';
 import 'package:ente_base/models/key_gen_result.dart';
@@ -211,6 +212,8 @@ class UserService {
     bool shouldCache = true,
   }) async {
     try {
+      final previousEmailMFAStatus = hasEmailMFAEnabled();
+      final previousTwoFactorStatus = hasEnabledTwoFactor();
       final response = await _enteDio.get(
         "/users/details/v2",
         queryParameters: {"memoryCount": memoryCount},
@@ -218,15 +221,24 @@ class UserService {
       final userDetails = UserDetails.fromMap(response.data);
       if (shouldCache) {
         await _preferences.setString(keyUserDetails, userDetails.toJson());
+        var hasSecurityStatusChanged = false;
         if (userDetails.profileData != null) {
+          final profileData = userDetails.profileData!;
           await _preferences.setBool(
             kIsEmailMFAEnabled,
-            userDetails.profileData!.isEmailMFAEnabled,
+            profileData.isEmailMFAEnabled,
           );
           await _preferences.setBool(
             kCanDisableEmailMFA,
-            userDetails.profileData!.canDisableEmailMFA,
+            profileData.canDisableEmailMFA,
           );
+          await _setTwoFactorEnabled(profileData.isTwoFactorEnabled);
+          hasSecurityStatusChanged =
+              previousEmailMFAStatus != profileData.isEmailMFAEnabled ||
+              previousTwoFactorStatus != profileData.isTwoFactorEnabled;
+        }
+        if (hasSecurityStatusChanged) {
+          Bus.instance.fire(UserDetailsChangedEvent());
         }
         if (userDetails.email != _config.getEmail()) {
           await setEmail(userDetails.email);
@@ -447,6 +459,9 @@ class UserService {
             clientPackage: _config.appIdentity.clientPackageName,
           );
         } else if (twoFASessionID.isNotEmpty) {
+          if (_config.appIdentity.app == "locker") {
+            await _setTwoFactorEnabled(true);
+          }
           page = TwoFactorAuthenticationPage(twoFASessionID);
         } else {
           await _saveConfiguration(response);
@@ -790,6 +805,9 @@ class UserService {
           clientPackage: _config.appIdentity.clientPackageName,
         );
       } else if (twoFASessionID.isNotEmpty) {
+        if (_config.appIdentity.app == "locker") {
+          await _setTwoFactorEnabled(true);
+        }
         page = TwoFactorAuthenticationPage(twoFASessionID);
       } else {
         await _saveConfiguration(response);
@@ -867,6 +885,167 @@ class UserService {
       _logger.severe(e);
       rethrow;
     }
+  }
+
+  Future<void> setupTwoFactor(BuildContext context) async {
+    final dialog = createProgressDialog(context, context.strings.pleaseWait);
+    await dialog.show();
+    try {
+      final response = await _enteDio.post("/users/two-factor/setup");
+      await dialog.hide();
+      if (!context.mounted) {
+        return;
+      }
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => TwoFactorSetupPage(
+            _config,
+            response.data["secretCode"] as String,
+            response.data["qrCode"] as String,
+          ),
+        ),
+      );
+    } catch (e, s) {
+      await dialog.hide();
+      _logger.severe("Failed to set up two-factor authentication", e, s);
+      if (context.mounted) {
+        await showGenericErrorBottomSheet(context: context, error: e);
+      }
+      rethrow;
+    }
+  }
+
+  Future<bool> enableTwoFactor(
+    BuildContext context,
+    String secret,
+    String code,
+  ) async {
+    late Uint8List recoveryKey;
+    try {
+      recoveryKey = await _getOrCreateRecoveryKey(context);
+    } catch (e) {
+      if (context.mounted) {
+        await showGenericErrorBottomSheet(context: context, error: e);
+      }
+      return false;
+    }
+    if (!context.mounted) return false;
+
+    final encryptionResult = CryptoUtil.encryptSync(
+      CryptoUtil.base642bin(secret),
+      recoveryKey,
+    );
+    final dialog = createProgressDialog(context, context.strings.verifying);
+    await dialog.show();
+    try {
+      await _enteDio.post(
+        "/users/two-factor/enable",
+        data: {
+          "code": code,
+          "encryptedTwoFactorSecret": CryptoUtil.bin2base64(
+            encryptionResult.encryptedData!,
+          ),
+          "twoFactorSecretDecryptionNonce": CryptoUtil.bin2base64(
+            encryptionResult.nonce!,
+          ),
+        },
+      );
+      await _setTwoFactorEnabled(true);
+      await dialog.hide();
+      Bus.instance.fire(UserDetailsChangedEvent());
+      return true;
+    } on DioException catch (e, s) {
+      await dialog.hide();
+      _logger.severe("Failed to enable two-factor authentication", e, s);
+      if (!context.mounted) {
+        return false;
+      }
+      if (e.response?.statusCode == 401) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.incorrectCode,
+          message: context.strings.pleaseVerifyTheCodeYouHaveEntered,
+          assetPath: 'assets/warning-grey.png',
+        );
+      } else {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.somethingWentWrong,
+          message: context.strings.pleaseContactSupportIfTheProblemPersists,
+          assetPath: 'assets/warning-grey.png',
+        );
+      }
+      return false;
+    } catch (e, s) {
+      await dialog.hide();
+      _logger.severe("Failed to enable two-factor authentication", e, s);
+      if (context.mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.somethingWentWrong,
+          message: context.strings.pleaseContactSupportIfTheProblemPersists,
+          assetPath: 'assets/warning-grey.png',
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> disableTwoFactor(BuildContext context) async {
+    final dialog = createProgressDialog(
+      context,
+      context.strings.disablingTwofactorAuthentication,
+    );
+    await dialog.show();
+    try {
+      await _enteDio.post("/users/two-factor/disable");
+      await _setTwoFactorEnabled(false);
+      await dialog.hide();
+      Bus.instance.fire(UserDetailsChangedEvent());
+      if (context.mounted) {
+        showShortToast(
+          context,
+          context.strings.twofactorAuthenticationHasBeenDisabled,
+        );
+      }
+    } catch (e, s) {
+      await dialog.hide();
+      _logger.severe("Failed to disable two-factor authentication", e, s);
+      if (context.mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.somethingWentWrong,
+          message: context.strings.pleaseContactSupportIfTheProblemPersists,
+          assetPath: 'assets/warning-grey.png',
+        );
+      }
+    }
+  }
+
+  Future<Uint8List> _getOrCreateRecoveryKey(BuildContext context) async {
+    final keyAttributes = _config.getKeyAttributes()!;
+    if (keyAttributes.recoveryKeyEncryptedWithMasterKey.isEmpty) {
+      final dialog = createProgressDialog(context, context.strings.pleaseWait);
+      await dialog.show();
+      try {
+        final updatedKeyAttributes = await _config.createNewRecoveryKey();
+        await setRecoveryKey(updatedKeyAttributes);
+        await dialog.hide();
+      } catch (e, s) {
+        await dialog.hide();
+        _logger.severe("Failed to create recovery key", e, s);
+        rethrow;
+      }
+    }
+    return _config.getRecoveryKey();
+  }
+
+  Future<void> _setTwoFactorEnabled(bool value) async {
+    await _preferences.setBool(keyHasEnabledTwoFactor, value);
+  }
+
+  bool hasEnabledTwoFactor() {
+    return _preferences.getBool(keyHasEnabledTwoFactor) ?? false;
   }
 
   Future<void> verifyTwoFactor(

@@ -1,0 +1,1 @@
+- Added support for setting up two-factor authentication from Locker.

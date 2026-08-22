@@ -232,6 +232,29 @@ abstract class BaseConfiguration {
     return keyEncryptionKey;
   }
 
+  Future<KeyAttributes> createNewRecoveryKey() async {
+    final masterKey = getKey()!;
+    final existingAttributes = getKeyAttributes()!;
+    final recoveryKey = CryptoUtil.generateKey();
+    final encryptedMasterKey = CryptoUtil.encryptSync(masterKey, recoveryKey);
+    final encryptedRecoveryKey = CryptoUtil.encryptSync(recoveryKey, masterKey);
+
+    return existingAttributes.copyWith(
+      masterKeyEncryptedWithRecoveryKey: CryptoUtil.bin2base64(
+        encryptedMasterKey.encryptedData!,
+      ),
+      masterKeyDecryptionNonce: CryptoUtil.bin2base64(
+        encryptedMasterKey.nonce!,
+      ),
+      recoveryKeyEncryptedWithMasterKey: CryptoUtil.bin2base64(
+        encryptedRecoveryKey.encryptedData!,
+      ),
+      recoveryKeyDecryptionNonce: CryptoUtil.bin2base64(
+        encryptedRecoveryKey.nonce!,
+      ),
+    );
+  }
+
   Future<void> recover(String recoveryKey) async {
     if (recoveryKey.contains(' ')) {
       final split = recoveryKey.split(' ');

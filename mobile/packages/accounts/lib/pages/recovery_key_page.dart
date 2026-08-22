@@ -88,13 +88,20 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.backgroundBase,
         centerTitle: true,
-        title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorScheme.primary700,
-            BlendMode.srcIn,
-          ),
-        ),
+        title: widget.title == null
+            ? SvgPicture.asset(
+                'assets/svg/app-logo.svg',
+                colorFilter: ColorFilter.mode(
+                  colorScheme.primary700,
+                  BlendMode.srcIn,
+                ),
+              )
+            : Text(
+                widget.title!,
+                style: textTheme.largeBold.copyWith(
+                  color: colorScheme.textBase,
+                ),
+              ),
         leading: widget.showAppBar == false
             ? const SizedBox.shrink()
             : IconButton(
