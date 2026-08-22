@@ -22,6 +22,7 @@ import "package:photos/models/location/location.dart";
 import "package:photos/module/metadata/local_file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
+import "package:photos/ui/common/photo_library_add_permission.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
@@ -89,6 +90,9 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   }
 
   Future<void> saveImage(ProImageEditorState editorState) async {
+    if (!await ensurePhotoLibraryAddPermission(context)) return;
+    if (!mounted) return;
+
     final l10n = context.strings;
     final dialog = createProgressDialog(context, l10n.saving);
     await dialog.show();

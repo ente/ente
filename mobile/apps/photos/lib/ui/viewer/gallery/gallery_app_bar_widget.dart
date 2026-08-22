@@ -35,6 +35,7 @@ import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import "package:photos/ui/cast/cast.dart";
 import "package:photos/ui/collections/album/smart_album_people.dart";
+import "package:photos/ui/common/photo_library_add_permission.dart";
 import "package:photos/ui/common/web_page.dart";
 import 'package:photos/ui/components/action_sheet_widget.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
@@ -943,6 +944,9 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     if (files == null || files.isEmpty) {
       return;
     }
+    if (!await ensurePhotoLibraryAddPermission(context)) return;
+    if (!mounted) return;
+
     if (flagService.internalUser) {
       try {
         await galleryDownloadQueueService.enqueueFiles(

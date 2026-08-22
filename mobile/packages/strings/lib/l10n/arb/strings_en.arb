@@ -2946,6 +2946,8 @@
   },
   "pets": "Furry companions",
   "photoGridSize": "Photo grid size",
+  "photoLibraryAddPermissionRequired": "Ente needs permission to save photos and videos to Apple Photos. You can allow access in Settings.",
+  "photoLibraryAddPermissionRestricted": "Photo Library access is restricted on this device.",
   "photos": "Photos",
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Photos added by you will be removed from the album",
   "photosAndVideosCount": "{count, plural, one{{formattedCount} photo & video} other{{formattedCount} photos & videos}}",

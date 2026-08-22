@@ -1,0 +1,1 @@
+- Fixed saving photos and videos to Apple Photos when permission is disabled.

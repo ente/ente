@@ -32,6 +32,7 @@ import "package:photos/theme/colors.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import 'package:photos/ui/collections/collection_action_sheet.dart';
+import "package:photos/ui/common/photo_library_add_permission.dart";
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/viewer/actions/suggest_delete_sheet.dart';
 import "package:photos/ui/viewer/file/detail_page.dart";
@@ -614,6 +615,10 @@ class FileAppBarState extends State<FileAppBar> {
       }
       return;
     }
+
+    if (!mounted) return;
+    if (!await ensurePhotoLibraryAddPermission(context)) return;
+    if (!mounted) return;
 
     final fileToDownload = !file.isRemoteOnlyFile
         ? (file.copyWith()..localID = null)

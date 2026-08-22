@@ -40,6 +40,7 @@ import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_file_actions.dart';
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import 'package:photos/ui/collections/collection_action_sheet.dart';
+import "package:photos/ui/common/photo_library_add_permission.dart";
 import 'package:photos/ui/components/action_sheet_widget.dart';
 import "package:photos/ui/components/bottom_action_bar/selection_action_button_widget.dart";
 import 'package:photos/ui/components/buttons/button_widget.dart';
@@ -1222,6 +1223,9 @@ class _FileSelectionActionsWidgetState
     int addedToQueueCount = 0;
 
     if (filesToDownload.isNotEmpty) {
+      if (!await ensurePhotoLibraryAddPermission(context)) return;
+      if (!mounted) return;
+
       if (flagService.internalUser) {
         try {
           final enqueueResult = await galleryDownloadQueueService.enqueueFiles(
