@@ -97,3 +97,9 @@ export const shouldHideDockIcon = (): boolean =>
 
 export const setShouldHideDockIcon = (hide: boolean) =>
     userPreferences.set("hideDockIcon", hide);
+
+export const shouldDisableAutoUpdate = (): boolean =>
+    userPreferences.get("disableAutoUpdate") ?? false;
+
+export const setDisableAutoUpdate = (disable: boolean) =>
+    userPreferences.set("disableAutoUpdate", disable);

@@ -4,6 +4,7 @@ interface UserPreferences {
     hideDockIcon?: boolean;
     skipAppVersion?: string;
     muteUpdateNotificationVersion?: string;
+    disableAutoUpdate?: boolean;
     lastShownChangelogVersion?: number;
     windowBounds?: { x: number; y: number; width: number; height: number };
     isWindowMaximized?: boolean;
@@ -23,6 +24,7 @@ const userPreferencesSchema: Schema<UserPreferences> = {
         },
     },
     isWindowMaximized: { type: "boolean" },
+    disableAutoUpdate: { type: "boolean" },
 };
 
 export const userPreferences = new Store({
