@@ -39,6 +39,8 @@ import workmanager_apple
     WorkmanagerPlugin.registerPeriodicTask(
       withIdentifier: "io.ente.frame.iOSBackgroundAppRefresh",
       frequency: NSNumber(value: freqInMinutes))
+    WorkmanagerPlugin.registerBGProcessingTask(
+      withIdentifier: "io.ente.frame.iOSBackgroundProcessing")
 
     if let url = AppLinks.shared.getLink(launchOptions: launchOptions) {
       // only accept non-homewidget urls for AppLinks

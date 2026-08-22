@@ -2,6 +2,7 @@ import "dart:io";
 
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter/widgets.dart" show AppLifecycleState, WidgetsBinding;
 import "package:logging/logging.dart";
 import "package:permission_handler/permission_handler.dart";
 import "package:photos/db/upload_locks_db.dart";
@@ -18,26 +19,49 @@ void callbackDispatcher() {
     // Deferred error construction: an eagerly created Future.error with no
     // listener surfaces as an unhandled exception even on success.
     String? failure = "Task didn't run";
+    bool timedOut = false;
     final prefs = await SharedPreferences.getInstance();
 
     await runWithLogs(() async {
       try {
         BgTaskUtils.$.info('Task started $tlog');
-        await runBackgroundTask(taskName, tlog).timeout(
-          Platform.isIOS ? kBGTaskTimeout : const Duration(hours: 1),
+        if (Platform.isIOS &&
+            taskName == BgTaskUtils.iOSBackgroundProcessingTask) {
+          await BgTaskUtils.scheduleIOSBackgroundProcessingTask();
+          await BgTaskUtils.markProcessingTaskStart(prefs);
+        }
+        await runBackgroundTask(
+          taskName,
+          tlog,
+          mlSelfStop: BgTaskUtils.mlSelfStopFor(taskName),
+          mlLockWait: BgTaskUtils.mlLockWaitFor(taskName),
+        ).timeout(
+          BgTaskUtils.taskTimeoutFor(taskName),
           onTimeout: () async {
+            timedOut = true;
             BgTaskUtils.$.warning(
               "TLE, committing seppuku for taskID: $taskName",
             );
             await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
           },
         );
-        BgTaskUtils.$.info('Task run successful $tlog');
-        failure = null;
+        if (timedOut) {
+          failure = "Task timed out";
+        } else {
+          BgTaskUtils.$.info('Task run successful $tlog');
+          failure = null;
+        }
       } catch (e) {
         BgTaskUtils.$.warning('Task error: $e');
         await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
         failure = e.toString();
+      } finally {
+        // A timed-out run may still be draining, so its marker stays set.
+        if (!timedOut &&
+            Platform.isIOS &&
+            taskName == BgTaskUtils.iOSBackgroundProcessingTask) {
+          await BgTaskUtils.clearProcessingTaskStart(prefs);
+        }
       }
     }, prefix: "[bg]").onError((_, _) {
       failure = "Didn't finished correctly!";
@@ -55,6 +79,69 @@ void callbackDispatcher() {
 class BgTaskUtils {
   static final $ = Logger("BgTaskUtils");
 
+  static const iOSBackgroundAppRefreshTask =
+      "io.ente.frame.iOSBackgroundAppRefresh";
+  static const iOSBackgroundProcessingTask =
+      "io.ente.frame.iOSBackgroundProcessing";
+  static const androidPeriodicTask = "io.ente.photos.androidPeriodicTask";
+
+  static Duration taskTimeoutFor(String taskName) {
+    if (!Platform.isIOS) return const Duration(hours: 1);
+    return taskName == iOSBackgroundProcessingTask
+        ? kBGProcessingTaskTimeout
+        : kBGTaskTimeout;
+  }
+
+  static Duration mlSelfStopFor(String taskName) {
+    if (!Platform.isIOS) return kBGTaskMLSelfStopAndroid;
+    return taskName == iOSBackgroundProcessingTask
+        ? kBGProcessingTaskMLSelfStopIOS
+        : kBGTaskMLSelfStopIOS;
+  }
+
+  static Duration? mlLockWaitFor(String taskName) {
+    if (!Platform.isIOS || taskName != iOSBackgroundProcessingTask) return null;
+    return kBGProcessingTaskMLLockWaitIOS;
+  }
+
+  static const _kProcessingTaskStartTimeKey = "ios_processing_task_start_time";
+
+  static Future<void> markProcessingTaskStart(SharedPreferences prefs) async {
+    final previousStart = prefs.getInt(_kProcessingTaskStartTimeKey);
+    if (previousStart != null) {
+      _logUncleanProcessingTaskExit(previousStart);
+    }
+    await prefs.setInt(
+      _kProcessingTaskStartTimeKey,
+      DateTime.now().microsecondsSinceEpoch,
+    );
+    $.info("Marked processing task start");
+  }
+
+  static Future<void> clearProcessingTaskStart(SharedPreferences prefs) async {
+    await prefs.remove(_kProcessingTaskStartTimeKey);
+    $.info("Cleared processing task start marker");
+  }
+
+  static Future<void> reportUncleanProcessingTaskExit() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    final previousStart = prefs.getInt(_kProcessingTaskStartTimeKey);
+    if (previousStart == null) return;
+    if (await isBackgroundEngineActive()) return;
+    _logUncleanProcessingTaskExit(previousStart);
+    await prefs.remove(_kProcessingTaskStartTimeKey);
+  }
+
+  static void _logUncleanProcessingTaskExit(int startTimeMicroseconds) {
+    $.warning(
+      "Previous background processing task (started "
+      "${DateTime.fromMicrosecondsSinceEpoch(startTimeMicroseconds)}) did not "
+      "finish cleanly; it timed out while draining or the process was killed "
+      "on OS expiration",
+    );
+  }
+
   static Future<void> releaseResourcesForKill(
     String taskId,
     SharedPreferences prefs,
@@ -67,23 +154,28 @@ class BgTaskUtils {
   }
 
   static Future configureWorkmanager() async {
-    if (Platform.isIOS) {
-      final status = await Permission.backgroundRefresh.status;
-      if (status != PermissionStatus.granted) {
-        $.warning(
-          "Background refresh permission is not granted. Please grant it to start the background service.",
-        );
-        return;
-      }
-    }
-    $.warning("Configuring Work Manager for background tasks");
-    const iOSBackgroundAppRefresh = "io.ente.frame.iOSBackgroundAppRefresh";
-    const androidPeriodicTask = "io.ente.photos.androidPeriodicTask";
-    final backgroundTaskIdentifier = Platform.isIOS
-        ? iOSBackgroundAppRefresh
-        : androidPeriodicTask;
     try {
       await workmanager.Workmanager().initialize(callbackDispatcher);
+      if (Platform.isIOS) {
+        await reportUncleanProcessingTaskExit();
+        // Background refresh permission does not reliably gate processing tasks.
+        final isForegroundLaunch =
+            WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+        if (isForegroundLaunch) {
+          await ensureIOSProcessingTaskScheduled();
+        }
+        final status = await Permission.backgroundRefresh.status;
+        if (status != PermissionStatus.granted) {
+          $.warning(
+            "Background refresh permission is not granted. Please grant it to start the background app refresh task.",
+          );
+          return;
+        }
+      }
+      $.warning("Configuring Work Manager for background tasks");
+      final backgroundTaskIdentifier = Platform.isIOS
+          ? iOSBackgroundAppRefreshTask
+          : androidPeriodicTask;
       await workmanager.Workmanager().registerPeriodicTask(
         backgroundTaskIdentifier,
         backgroundTaskIdentifier,
@@ -114,6 +206,36 @@ class BgTaskUtils {
       }
     } catch (e) {
       $.warning("Failed to configure WorkManager: $e");
+    }
+  }
+
+  static bool _processingTaskArmedThisProcess = false;
+
+  // Foreground arm to restart the chain after a first install or force-quit;
+  // once per process, so resumes don't keep pushing the pending request out.
+  static Future<void> ensureIOSProcessingTaskScheduled() async {
+    if (_processingTaskArmedThisProcess) return;
+    _processingTaskArmedThisProcess =
+        await scheduleIOSBackgroundProcessingTask();
+  }
+
+  // Workmanager does not resubmit one-shot processing tasks.
+  static Future<bool> scheduleIOSBackgroundProcessingTask() async {
+    try {
+      await workmanager.Workmanager().registerProcessingTask(
+        iOSBackgroundProcessingTask,
+        iOSBackgroundProcessingTask,
+        initialDelay: kDebugMode ? Duration.zero : const Duration(minutes: 30),
+        constraints: workmanager.Constraints(
+          networkType: workmanager.NetworkType.connected,
+          requiresCharging: true,
+        ),
+      );
+      $.info("Scheduled iOS background processing task");
+      return true;
+    } catch (e) {
+      $.warning("Failed to schedule iOS background processing task: $e");
+      return false;
     }
   }
 }

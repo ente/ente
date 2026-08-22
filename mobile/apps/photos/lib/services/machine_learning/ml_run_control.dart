@@ -2,6 +2,7 @@ import "package:logging/logging.dart";
 
 enum MlStopReason {
   foregroundActive,
+  appPaused,
   backgroundDeadline,
   controller,
   logout,
