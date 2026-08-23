@@ -697,13 +697,6 @@
       "title": "DirectAdmin"
     },
     {
-      "title": "Discogs",
-      "slug": "discogs",
-      "altNames": [
-        "discogs.com"
-      ]
-    },
-    {
       "title": "Discourse"
     },
     {
@@ -832,13 +825,6 @@
       "title": "Epic Games",
       "slug": "epic_games",
       "hex": "000000"
-    },
-    {
-      "title": "Epson",
-      "slug": "epson",
-      "altNames": [
-        "Epson America"
-      ]
     },
     {
       "title": "ESET",
@@ -1759,13 +1745,6 @@
       "slug": "online_payment_platform",
       "altNames": [
         "OPP"
-      ]
-    },
-    {
-      "title": "OnlyFans",
-      "slug": "onlyfans",
-      "altNames": [
-        "OnlyFans"
       ]
     },
     {
