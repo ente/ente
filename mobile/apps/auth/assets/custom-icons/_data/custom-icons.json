@@ -1,11 +1,6 @@
 {
   "icons": [
     {
-      "title": "Accountable",
-      "slug": "accountable",
-      "hex": "794FD7"
-    },
-    {
       "title": "1xBet",
       "slug": "1x_bet"
     },
@@ -27,6 +22,11 @@
     {
       "title": "ABB",
       "slug": "abb"
+    },
+    {
+      "title": "Accountable",
+      "slug": "accountable",
+      "hex": "794FD7"
     },
     {
       "title": "Accredible",
