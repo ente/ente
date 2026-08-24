@@ -17,6 +17,7 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:locker/services/configuration.dart";
+import "package:locker/services/feature_flag_service.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import "package:logging/logging.dart";
 
@@ -64,8 +65,10 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
       title: l10n.security,
       children: [
         if (_hasLoggedIn) ...[
-          _buildTwoFactorItem(context),
-          const SizedBox(height: 8),
+          if (FeatureFlagService.instance.internalUser) ...[
+            _buildTwoFactorItem(context),
+            const SizedBox(height: 8),
+          ],
           _buildEmailVerificationItem(context),
           const SizedBox(height: 8),
           _buildPasskeyItem(context),
@@ -83,7 +86,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
   Widget _buildTwoFactorItem(BuildContext context) {
     return MergeSemantics(
       child: SettingsItem(
-        title: context.strings.twofactor,
+        title: pendingTranslation("(i) 2FA"),
         icon: HugeIcons.strokeRoundedSmartPhone01,
         showChevron: false,
         trailing: ToggleSwitchComponent.async(

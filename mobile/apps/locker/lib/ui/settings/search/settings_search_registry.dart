@@ -8,6 +8,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:locker/services/configuration.dart";
+import "package:locker/services/feature_flag_service.dart";
 import "package:locker/services/update_service.dart";
 import "package:locker/ui/settings/pages/about_page.dart";
 import "package:locker/ui/settings/pages/account_settings_page.dart";
@@ -60,13 +61,14 @@ class SettingsSearchRegistry {
           icon: HugeIcons.strokeRoundedSecurityCheck,
           routeBuilder: (_) => const SecuritySettingsPage(),
         ),
-        SettingsSearchItem(
-          title: l10n.twofactor,
-          sectionPath: l10n.security,
-          icon: HugeIcons.strokeRoundedSmartPhone01,
-          routeBuilder: (_) => const SecuritySettingsPage(),
-          keywords: const ["2fa", "two factor", "authenticator", "otp"],
-        ),
+        if (FeatureFlagService.instance.internalUser)
+          SettingsSearchItem(
+            title: pendingTranslation("(i) 2FA"),
+            sectionPath: l10n.security,
+            icon: HugeIcons.strokeRoundedSmartPhone01,
+            routeBuilder: (_) => const SecuritySettingsPage(),
+            keywords: const ["2fa", "two factor", "authenticator", "otp"],
+          ),
         SettingsSearchItem(
           title: l10n.emailVerificationToggle,
           sectionPath: l10n.security,
