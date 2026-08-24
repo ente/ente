@@ -51,7 +51,7 @@ func WaitForEnter(prompt string) error {
 
 func GetAppType() api.App {
 	for {
-		app, err := GetUserInput("Enter app type (default: photos)")
+		app, err := GetUserInput("Enter app type (photos/auth; default: photos)")
 		if err != nil {
 			fmt.Printf("Use default app type: %s\n", api.AppPhotos)
 			return api.AppPhotos
@@ -61,8 +61,6 @@ func GetAppType() api.App {
 			return api.AppPhotos
 		case "auth":
 			return api.AppAuth
-		case "locker":
-			return api.AppLocker
 		case "":
 			return api.AppPhotos
 		default:
