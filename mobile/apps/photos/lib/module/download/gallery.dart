@@ -30,14 +30,23 @@ String getDownloadSkipToastFileName(EnteFile file) {
 
 String _getGallerySaveTitle(EnteFile file, String fallbackPath) {
   final displayName = file.displayName;
-  if (displayName.trim().isNotEmpty) {
-    return displayName;
+  final title = displayName.trim().isNotEmpty
+      ? displayName
+      : ((file.title != null && file.title!.trim().isNotEmpty)
+            ? file.title!
+            : file_path.basename(fallbackPath));
+  // photo_manager (Android) derives the MediaStore MIME type from the
+  // extension of this title, not from fallbackPath. A title without an
+  // extension (e.g. a user-edited name saved before an extension was
+  // attached) resolves to "image/*", which ContentResolver.insert rejects
+  // with IllegalArgumentException: Unsupported MIME type image/*.
+  if (file_path.extension(title).isEmpty) {
+    final fallbackExtension = file_path.extension(fallbackPath);
+    if (fallbackExtension.isNotEmpty) {
+      return '$title$fallbackExtension';
+    }
   }
-  final title = file.title;
-  if (title != null && title.trim().isNotEmpty) {
-    return title;
-  }
-  return file_path.basename(fallbackPath);
+  return title;
 }
 
 Future<String?> getExistingLocalFolderNameForDownloadSkipToast(
