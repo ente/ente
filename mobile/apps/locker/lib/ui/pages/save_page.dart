@@ -4,6 +4,7 @@ import 'dart:io';
 import "package:ente_components/ente_components.dart";
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/utils/toast_util.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:locker/ui/pages/account_credentials_page.dart';
@@ -27,7 +28,7 @@ class SaveOption {
   final String description;
 }
 
-const bool docScannerEnabled = false;
+const bool docScannerEnabled = kDebugMode;
 
 List<SaveOption> saveOptions(BuildContext context) {
   final l10n = context.strings;

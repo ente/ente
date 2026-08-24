@@ -1,14 +1,14 @@
 {
   "schema_version": "1",
-  "dataset": "laurenspriem/test-fixtures/ml/indexing/v1",
-  "dataset_repo": "https://github.com/laurenspriem/test-fixtures/tree/ml_more_test_data/ml/indexing/v1",
-  "dataset_manifest": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/manifest.json",
+  "dataset": "ente/test-fixtures/ml/indexing/v1",
+  "dataset_repo": "https://github.com/ente/test-fixtures/tree/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1",
+  "dataset_manifest": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/manifest.json",
   "dataset_version": 1,
   "items": [
     {
       "file_id": "1343_rotate_90_cw.jpg",
       "source": "test_data/ml-indexing/v1/files/1343_rotate_90_cw.jpg",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/1343_rotate_90_cw.jpg",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/1343_rotate_90_cw.jpg",
       "source_sha256": "58a0ed2c14f781cce1121a31fda990e7a9caf7b1cbcf11f946857ca5ed174537",
       "source_size": 2883662,
       "source_mime_type": "image/jpeg",
@@ -23,7 +23,7 @@
     {
       "file_id": "1718_rotate_90_cw.HEIC",
       "source": "test_data/ml-indexing/v1/files/1718_rotate_90_cw.HEIC",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/1718_rotate_90_cw.HEIC",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/1718_rotate_90_cw.HEIC",
       "source_sha256": "7680b1b6009c7adec43aebf75738fb03dd0679ab1fd5a59db6f798ac8060fac1",
       "source_size": 4983539,
       "source_mime_type": "image/heic",
@@ -38,7 +38,7 @@
     {
       "file_id": "7765_horizontal_normal.HEIC",
       "source": "test_data/ml-indexing/v1/files/7765_horizontal_normal.HEIC",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/7765_horizontal_normal.HEIC",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/7765_horizontal_normal.HEIC",
       "source_sha256": "6a1bdb4b6d06d6d3ffa40e35902bb14d0708f1de327b38f74b234b262cfecbdd",
       "source_size": 4900407,
       "source_mime_type": "image/heic",
@@ -53,7 +53,7 @@
     {
       "file_id": "7949_mirror_horizontal_rotate_270_cw.HEIC",
       "source": "test_data/ml-indexing/v1/files/7949_mirror_horizontal_rotate_270_cw.HEIC",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/7949_mirror_horizontal_rotate_270_cw.HEIC",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/7949_mirror_horizontal_rotate_270_cw.HEIC",
       "source_sha256": "94d2e8396114479cc19b3fc54ecb0f9702e0253cfacf47efe7b2cb083261038f",
       "source_size": 657724,
       "source_mime_type": "image/heic",
@@ -69,7 +69,7 @@
     {
       "file_id": "IMG_0682_pano.HEIC",
       "source": "test_data/ml-indexing/v1/files/IMG_0682_pano.HEIC",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/IMG_0682_pano.HEIC",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/IMG_0682_pano.HEIC",
       "source_sha256": "421880549246551f71c78b973960ed6e6c2901af87c2abddd258638a82a319db",
       "source_size": 7881238,
       "source_mime_type": "image/heic",
@@ -83,7 +83,7 @@
     {
       "file_id": "IMG_8606_rotate_90_cw_contains_text.HEIC",
       "source": "test_data/ml-indexing/v1/files/IMG_8606_rotate_90_cw_contains_text.HEIC",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/IMG_8606_rotate_90_cw_contains_text.HEIC",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/IMG_8606_rotate_90_cw_contains_text.HEIC",
       "source_sha256": "f0cc163af8dff0737152616caf5959ec6e404e92bcfe4bdd9797169b2b3d3037",
       "source_size": 1404763,
       "source_mime_type": "image/heic",
@@ -99,7 +99,7 @@
     {
       "file_id": "IMG_8905.CR2",
       "source": "test_data/ml-indexing/v1/files/IMG_8905.CR2",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/IMG_8905.CR2",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/IMG_8905.CR2",
       "source_sha256": "31339ecb9850138bfa7ad98404e5b429045b0db45ef02773290829ded53fd306",
       "source_size": 26356626,
       "source_mime_type": "image/x-canon-cr2",
@@ -113,7 +113,7 @@
     {
       "file_id": "IMG_pano.jpg",
       "source": "test_data/ml-indexing/v1/files/IMG_pano.jpg",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/IMG_pano.jpg",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/IMG_pano.jpg",
       "source_sha256": "1d17c9e5983a8784b6a805885b735705b8644190b592a66505e62536783c7b47",
       "source_size": 6222699,
       "source_mime_type": "image/jpeg",
@@ -127,7 +127,7 @@
     {
       "file_id": "astronaut.png",
       "source": "test_data/ml-indexing/v1/files/astronaut.png",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/astronaut.png",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/astronaut.png",
       "source_sha256": "2418889d0d83962d51facc3832b55cf1849690018a1e873d1c551146555cd02f",
       "source_size": 424520,
       "source_mime_type": "image/png",
@@ -140,7 +140,7 @@
     {
       "file_id": "man.jpeg",
       "source": "test_data/ml-indexing/v1/files/man.jpeg",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/man.jpeg",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/man.jpeg",
       "source_sha256": "f366fe66a02c132c3ed8e65ef49475f483a5a879db170e7de6eb02edcf2ef97e",
       "source_size": 4120,
       "source_mime_type": "image/jpeg",
@@ -155,7 +155,7 @@
     {
       "file_id": "people.jpeg",
       "source": "test_data/ml-indexing/v1/files/people.jpeg",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/people.jpeg",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/people.jpeg",
       "source_sha256": "2fdb1c7c7ae8007662b5c9e9ddcec7677b0090884ca8b8a5da3d1020f153a8f5",
       "source_size": 9012,
       "source_mime_type": "image/jpeg",
@@ -170,7 +170,7 @@
     {
       "file_id": "singapore.jpg",
       "source": "test_data/ml-indexing/v1/files/singapore.jpg",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/singapore.jpg",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/singapore.jpg",
       "source_sha256": "cfc5b98ec69a65f04b0e4bb7c06009ad6d43362773a5b546c19a48e467a8bf95",
       "source_size": 613520,
       "source_mime_type": "image/jpeg",
@@ -185,7 +185,7 @@
     {
       "file_id": "starwatchers.jpg",
       "source": "test_data/ml-indexing/v1/files/starwatchers.jpg",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/starwatchers.jpg",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/starwatchers.jpg",
       "source_sha256": "4126a2c940110dfce7dc697ab6a430bcabaca038eccc52a260a7f2e6070d36ad",
       "source_size": 85936,
       "source_mime_type": "image/jpeg",
@@ -200,7 +200,7 @@
     {
       "file_id": "ui_app.webp",
       "source": "test_data/ml-indexing/v1/files/ui_app.webp",
-      "source_url": "https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/files/ui_app.webp",
+      "source_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/files/ui_app.webp",
       "source_sha256": "3ac62b0b9972ef82daa7554b86f4cfbda9c758dc4aa0df80818389d5306cb268",
       "source_size": 120022,
       "source_mime_type": "image/webp",

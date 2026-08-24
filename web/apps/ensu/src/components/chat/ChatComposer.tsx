@@ -131,7 +131,12 @@ export const ChatComposer = memo(
         actionIconProps,
         stopButtonColor,
     }: ChatComposerProps) => {
+        const isModelPreparationActive =
+            modelGateStatus === "checking" ||
+            modelGateStatus === "preloading" ||
+            modelGateStatus === "downloading";
         const disableSend =
+            isModelPreparationActive ||
             isDownloading ||
             (!isGenerating &&
                 !input.trim() &&
@@ -139,6 +144,7 @@ export const ChatComposer = memo(
                 pendingImages.length === 0);
         const disableAttachmentButton =
             isGenerating ||
+            isModelPreparationActive ||
             isDownloading ||
             (showImageAttachment && isImageAttachmentLimitReached);
 
@@ -334,18 +340,23 @@ export const ChatComposer = memo(
                                             variant="contained"
                                             color="accent"
                                             disabled={
-                                                modelGateStatus ===
-                                                    "downloading" ||
-                                                isDownloading
+                                                modelGateStatus !== "missing" &&
+                                                modelGateStatus !== "error"
                                             }
                                             onClick={() =>
                                                 void handleDownloadModel()
                                             }
                                         >
-                                            {modelGateStatus ===
-                                                "downloading" || isDownloading
-                                                ? "Downloading..."
-                                                : "Download"}
+                                            {modelGateStatus === "checking"
+                                                ? "Checking..."
+                                                : modelGateStatus ===
+                                                        "preloading" ||
+                                                    modelGateStatus ===
+                                                        "downloading"
+                                                  ? "Loading..."
+                                                  : modelGateStatus === "error"
+                                                    ? "Retry"
+                                                    : "Download"}
                                         </Button>
                                     </Stack>
                                 </Stack>

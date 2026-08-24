@@ -119,7 +119,7 @@ const BrandPanel: React.FC<BrandPanelProps> = ({ headline, size }) => (
                     {[
                         t("photos_auth_free_storage"),
                         t("photos_auth_no_ads_no_spying"),
-                        t("photos_auth_open_source_audited"),
+                        t("auth_independently_audited"),
                     ].map((bullet) => (
                         <Bullet key={bullet}>
                             <CheckCircle aria-hidden="true">

@@ -72,7 +72,7 @@ export interface InferenceBackend {
         mmprojPath: string,
         mediaMarker?: string,
     ): Promise<void>;
-    cancel(jobId: number): void;
+    cancel(jobId: number): Promise<void>;
     freeContext(): Promise<void>;
     freeModel(): Promise<void>;
     isModelAvailable(modelPath: string): Promise<boolean>;
@@ -166,18 +166,19 @@ class WasmInference implements InferenceBackend {
         return this.generateCompletion(prompt, request, onEvent);
     }
 
-    cancel(jobId: number) {
+    cancel(jobId: number): Promise<void> {
         if (jobId <= 0) {
             for (const controller of this.abortControllers.values()) {
                 controller.abort();
             }
             this.abortControllers.clear();
-            return;
+            return Promise.resolve();
         }
         const controller = this.abortControllers.get(jobId);
         if (controller) {
             controller.abort();
         }
+        return Promise.resolve();
     }
 
     async freeContext() {
@@ -660,9 +661,9 @@ class TauriInference implements InferenceBackend {
         }
     }
 
-    cancel(jobId: number) {
+    async cancel(jobId: number) {
         log.info("LLM tauri cancel", { jobId });
-        void invoke("llm_cancel", { jobId });
+        await invoke("llm_cancel", { jobId });
     }
 
     async freeContext() {

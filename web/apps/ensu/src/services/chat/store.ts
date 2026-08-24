@@ -1,3 +1,4 @@
+import type { SourceCitation } from "@/services/knowledge";
 import { isTauriRuntime } from "@/services/tauri-runtime";
 import { getKV, removeKV, setKV } from "ente-base/kv";
 import log from "ente-base/log";
@@ -113,6 +114,8 @@ export interface ChatMessage {
     text: string;
     createdAt: number;
     attachments?: ChatAttachment[];
+    citations?: SourceCitation[];
+    sourceLabel?: string;
     isSynthetic?: boolean;
 }
 
@@ -139,6 +142,8 @@ interface NativeMessage {
     text: string;
     createdAt: number;
     attachments?: NativeAttachment[];
+    citations?: SourceCitation[];
+    sourceLabel?: string | null;
 }
 
 const nowMicros = () => Date.now() * 1000;
@@ -423,6 +428,8 @@ const listMessagesNative = async (
             name: attachment.name,
             size: attachment.size,
         })),
+        citations: message.citations,
+        sourceLabel: message.sourceLabel ?? undefined,
     }));
 };
 
@@ -443,6 +450,7 @@ const addMessageNative = async (
     text: string,
     parentMessageUuid?: string,
     attachments: ChatAttachment[] = [],
+    citations: SourceCitation[] = [],
 ): Promise<ChatMessage> => {
     const message = await invokeChat<NativeMessage>("chat_db_insert_message", {
         input: {
@@ -450,6 +458,7 @@ const addMessageNative = async (
             sender,
             text,
             parentMessageUuid,
+            citations,
             attachments: attachments.map((attachment) => ({
                 id: attachment.id,
                 kind: attachment.kind,
@@ -490,6 +499,8 @@ const addMessageNative = async (
             name: attachment.name,
             size: attachment.size,
         })),
+        citations: message.citations,
+        sourceLabel: message.sourceLabel ?? undefined,
     };
 };
 
@@ -636,6 +647,7 @@ export const addMessage = async (
     chatKey: string,
     parentMessageUuid?: string,
     attachments: ChatAttachment[] = [],
+    citations: SourceCitation[] = [],
 ): Promise<ChatMessage> => {
     if (isTauriRuntime()) {
         return addMessageNative(
@@ -644,6 +656,7 @@ export const addMessage = async (
             text,
             parentMessageUuid,
             attachments,
+            citations,
         );
     }
 

@@ -24,6 +24,7 @@ class ScanSessionController extends ChangeNotifier {
 
   List<ScannedPage> get pages => List.unmodifiable(_pages);
   int get pageCount => _pages.length;
+  int get pendingCount => _pendingCount;
   bool get isProcessing => _pendingCount > 0;
 
   String? get fileName => _fileName;

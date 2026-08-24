@@ -1,5 +1,12 @@
+import { DevSettingsDialog } from "@/components/auth/DevSettingsDialog";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { AuthShell } from "@/components/AuthShell";
+import { featureFlags } from "@/featureFlags";
 import { Paper, Stack, styled } from "@mui/material";
-import { LoginContents } from "ente-accounts/components/LoginContents";
+import {
+    LoginContents,
+    type LoginPresentationProps,
+} from "ente-accounts/components/LoginContents";
 import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
 import { CenteredFill } from "ente-base/components/containers";
 import { EnteLogo } from "ente-base/components/EnteLogo";
@@ -8,7 +15,7 @@ import { NavbarBase } from "ente-base/components/Navbar";
 import { customAPIHost } from "ente-base/origins";
 import { DevSettings } from "ente-new/photos/components/DevSettings";
 import { useRouter } from "next/router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const AccountsPagePaper = styled(Paper)(({ theme }) => ({
     marginBlock: theme.spacing(2),
@@ -23,11 +30,19 @@ const AccountsPagePaper = styled(Paper)(({ theme }) => ({
     borderRadius: "20px",
 }));
 
-const Page: React.FC = () => {
+function LoginPresentation(props: LoginPresentationProps): React.JSX.Element {
+    return (
+        <AuthShell>
+            <LoginForm {...props} />
+        </AuthShell>
+    );
+}
+
+const LoginPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [host, setHost] = useState<string | undefined>(undefined);
     const [showDevSettings, setShowDevSettings] = useState(false);
-    const [tapCount, setTapCount] = useState(0);
+    const tapCount = useRef(0);
 
     const router = useRouter();
 
@@ -44,18 +59,33 @@ const Page: React.FC = () => {
 
     const onSignUp = useCallback(() => void router.push("/signup"), [router]);
 
-    const handleBackgroundClick: React.MouseEventHandler = (event) => {
-        if (!shouldAllowChangingAPIOrigin()) return;
-
-        if (event.target !== event.currentTarget) return;
-
-        if (showDevSettings) return;
-
-        setTapCount(tapCount + 1);
-        if (tapCount + 1 == 7) {
-            setTapCount(0);
+    const countDevSettingsTap = () => {
+        tapCount.current += 1;
+        if (tapCount.current == 7) {
+            tapCount.current = 0;
             setShowDevSettings(true);
         }
+    };
+
+    const handleLegacyBackgroundClick: React.MouseEventHandler = (event) => {
+        if (!shouldAllowChangingAPIOrigin()) return;
+        if (event.target !== event.currentTarget) return;
+        if (showDevSettings) return;
+        countDevSettingsTap();
+    };
+
+    const handleNewAuthBackgroundClick: React.MouseEventHandler = (event) => {
+        if (!shouldAllowChangingAPIOrigin()) return;
+        if (showDevSettings) return;
+        if (
+            event.target instanceof Element &&
+            event.target.closest(
+                'button, a, input, textarea, select, [role="button"]',
+            )
+        ) {
+            return;
+        }
+        countDevSettingsTap();
     };
 
     const handleClose = () => {
@@ -63,9 +93,25 @@ const Page: React.FC = () => {
         refreshHost();
     };
 
-    return loading ? (
-        <LoadingIndicator />
-    ) : (
+    if (loading) return <LoadingIndicator />;
+
+    if (featureFlags.enableNewAuthFlow) {
+        return (
+            <NewAuthRoot onClick={handleNewAuthBackgroundClick}>
+                <LoginContents
+                    {...{ host, onSignUp }}
+                    presentation={LoginPresentation}
+                />
+                <DevSettings
+                    open={showDevSettings}
+                    onClose={handleClose}
+                    presentation={DevSettingsDialog}
+                />
+            </NewAuthRoot>
+        );
+    }
+
+    return (
         <Stack
             sx={[
                 { minHeight: "100svh", bgcolor: "secondary.main" },
@@ -85,7 +131,7 @@ const Page: React.FC = () => {
                 <EnteLogo />
             </NavbarBase>
             <CenteredFill
-                onClick={handleBackgroundClick}
+                onClick={handleLegacyBackgroundClick}
                 sx={[
                     { bgcolor: "secondary.main" },
                     (theme) =>
@@ -103,7 +149,9 @@ const Page: React.FC = () => {
     );
 };
 
-export default Page;
+export default LoginPage;
+
+const NewAuthRoot = styled("div")({ width: "100%", minHeight: "100svh" });
 
 const shouldAllowChangingAPIOrigin = () => {
     const hostname = new URL(window.location.origin).hostname;

@@ -17,6 +17,7 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(commands::llm::State::default())
         .manage(commands::chat_db::ChatDbState::default())
+        .manage(commands::knowledge::State::default())
         .setup(|app| {
             logging::init_logging(app.handle());
             logging::log("App", "setup started");
@@ -67,12 +68,18 @@ fn main() {
             commands::llm::llm_prewarm_multimodal_context,
             commands::llm::llm_generate_chat_stream,
             commands::llm::llm_cancel,
+            commands::llm::llm_retrieval_epoch,
             commands::system::system_info,
             commands::config::desktop_model_policy,
             commands::llm::llm_model_status,
+            commands::llm::llm_model_download_size,
             commands::llm::llm_migrate_models,
             commands::llm::llm_download_model,
             commands::llm::llm_cancel_model_download,
+            commands::knowledge::knowledge_catalog,
+            commands::knowledge::knowledge_download_pack,
+            commands::knowledge::knowledge_cancel_pack_download,
+            commands::knowledge::knowledge_retrieve,
         ])
         .build(tauri::generate_context!())
         .unwrap_or_else(|err| {

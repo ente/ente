@@ -31,7 +31,7 @@ export function SetPasswordForm({
         <>
             <ScreenHeader
                 title={submitButtonTitle}
-                subtitle={t("locker_auth_password_recovery_warning")}
+                subtitle={t("auth_password_recovery_warning")}
             />
             <Form onSubmit={onSubmit}>
                 <HiddenEmail

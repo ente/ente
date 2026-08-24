@@ -1,17 +1,84 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
+import 'package:locker/services/scanner/scan_geometry.dart';
 import 'package:locker/services/scanner/scan_session_controller.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
 import 'package:locker/ui/components/text_input_sheet.dart';
+import 'package:locker/ui/pages/scanner/delayed_reveal.dart';
 import 'package:locker/ui/pages/scanner/scanner_crop_page.dart';
 import 'package:share_plus/share_plus.dart';
+
+class ScannerPageHero extends StatelessWidget {
+  const ScannerPageHero({
+    super.key,
+    required this.file,
+    required this.primary,
+    required this.child,
+  });
+
+  static const tag = 'scanner-review-page';
+  static const radius = 10.0;
+
+  final File? file;
+  final bool primary;
+  final Widget child;
+
+  static Widget _shuttle(
+    BuildContext flightContext,
+    Animation<double> animation,
+    HeroFlightDirection direction,
+    BuildContext fromHeroContext,
+    BuildContext toHeroContext,
+  ) {
+    _HeroSurface surfaceOf(BuildContext context) =>
+        (context.widget as Hero).child as _HeroSurface;
+    final from = surfaceOf(fromHeroContext);
+    final to = surfaceOf(toHeroContext);
+    final file = (to.primary ? to.file : from.file) ?? to.file ?? from.file;
+    if (file == null) return to.child;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Image(
+        image: FileImage(file),
+        fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Hero(
+      tag: tag,
+      flightShuttleBuilder: _shuttle,
+      child: _HeroSurface(file: file, primary: primary, child: child),
+    );
+  }
+}
+
+class _HeroSurface extends StatelessWidget {
+  const _HeroSurface({
+    required this.file,
+    required this.primary,
+    required this.child,
+  });
+
+  final File? file;
+  final bool primary;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => child;
+}
 
 class ScannerReviewPage extends StatefulWidget {
   const ScannerReviewPage({
@@ -27,13 +94,26 @@ class ScannerReviewPage extends StatefulWidget {
   State<ScannerReviewPage> createState() => _ScannerReviewPageState();
 }
 
-class _ScannerReviewPageState extends State<ScannerReviewPage> {
+class _ScannerReviewPageState extends State<ScannerReviewPage>
+    with TickerProviderStateMixin {
   static const _thumbnailWidth = 40.0;
   static const _thumbnailHeight = 56.0;
 
   late final PageController _pageController;
+  late final AnimationController _deleteController = AnimationController(
+    vsync: this,
+    duration: Motion.standard,
+  );
+  late final AnimationController _rotateController = AnimationController(
+    vsync: this,
+    duration: Motion.slow,
+  );
   int _index = 0;
   bool _operationInFlight = false;
+  String? _deletingId;
+  String? _rotatingId;
+  File? _rotatingFile;
+  double _rotatingAspect = 1;
 
   @override
   void initState() {
@@ -56,6 +136,8 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
   void dispose() {
     widget.session.removeListener(_onSessionChanged);
     _pageController.dispose();
+    _deleteController.dispose();
+    _rotateController.dispose();
     super.dispose();
   }
 
@@ -119,6 +201,7 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
       context,
       title: l10n.renameFile,
       initialValue: base,
+      selectInitialValue: true,
       hintText: l10n.enterFileName,
       submitButtonLabel: l10n.save,
       onSubmit: (String name) async => widget.session.renameFile(name),
@@ -139,13 +222,83 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
   Future<void> _rotate() => _runExclusive(() async {
     final page = _currentPage;
     if (page == null) return;
-    await widget.session.rotatePageClockwise(page.id);
+    unawaited(HapticFeedback.selectionClick());
+    setState(() {
+      _rotatingId = page.id;
+      _rotatingFile = page.processedJpeg;
+      _rotatingAspect = page.height == 0 ? 1 : page.width / page.height;
+    });
+    try {
+      await Future.wait([
+        _rotateController.forward(from: 0),
+        widget.session.rotatePageClockwise(page.id),
+      ]);
+      if (!mounted) return;
+      for (final updated in widget.session.pages) {
+        if (updated.id == page.id) {
+          await precacheImage(FileImage(updated.processedJpeg), context);
+          break;
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        showShortToast(context, context.strings.somethingWentWrong);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _rotatingId = null;
+          _rotatingFile = null;
+        });
+        _rotateController.reset();
+      }
+    }
   });
+
+  Widget _buildRotatingPage(File file, double aspect) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final box = constraints.biggest;
+        final before = fittedRect(box, aspect);
+        final after = fittedRect(box, 1 / aspect);
+        final targetScale = after.width / before.height;
+        return AnimatedBuilder(
+          animation: _rotateController,
+          builder: (context, child) {
+            final t = Curves.easeInOutCubic.transform(_rotateController.value);
+            return Transform.rotate(
+              angle: t * math.pi / 2,
+              child: Transform.scale(
+                scale: 1 + (targetScale - 1) * t,
+                child: child,
+              ),
+            );
+          },
+          child: Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(Radii.sm),
+              child: Image.file(
+                file,
+                key: ValueKey(file.path),
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _delete() => _runExclusive(() async {
     final page = _currentPage;
     if (page == null) return;
+    unawaited(HapticFeedback.mediumImpact());
+    setState(() => _deletingId = page.id);
+    await _deleteController.forward(from: 0);
     await widget.session.deletePage(page.id);
+    if (!mounted) return;
+    setState(() => _deletingId = null);
+    _deleteController.reset();
   });
 
   void _jumpToPage(int index) {
@@ -157,6 +310,7 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
   }
 
   void _onReorder(int oldIndex, int newIndex) {
+    unawaited(HapticFeedback.lightImpact());
     final pages = widget.session.pages;
     if (pages.isEmpty) return;
     final viewedId = pages[_index.clamp(0, pages.length - 1)].id;
@@ -217,6 +371,30 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
     );
   }
 
+  Widget _buildProcessingState(ColorTokens colors) {
+    return Center(
+      child: DelayedReveal(
+        visible: true,
+        delay: const Duration(seconds: 1),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            const SizedBox(height: Spacing.lg),
+            Text(
+              context.strings.scanProcessing,
+              style: TextStyles.body.copyWith(color: colors.textLighter),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildThumbnailStrip(
     List<ScannedPage> pages,
     int current,
@@ -232,6 +410,7 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
         ),
         itemCount: pages.length,
         onReorder: _onReorder,
+        onReorderStart: (_) => unawaited(HapticFeedback.mediumImpact()),
         itemBuilder: (context, index) {
           final page = pages[index];
           final isCurrent = index == current;
@@ -256,7 +435,10 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
                     page.processedJpeg,
                     key: ValueKey(page.processedJpeg.path),
                     fit: BoxFit.cover,
-                    cacheHeight: 168,
+                    cacheHeight:
+                        (_thumbnailHeight *
+                                MediaQuery.devicePixelRatioOf(context))
+                            .round(),
                   ),
                 ),
               ),
@@ -300,7 +482,7 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
                           ),
                           variant: IconButtonComponentVariant.unfilled,
                           onTap: () => Navigator.of(context).pop(false),
-                          tooltip: l10n.addPage,
+                          tooltip: l10n.back,
                         ),
                         Expanded(
                           child: Center(child: _buildFileNameField(colors)),
@@ -319,7 +501,7 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
                   ),
                   Expanded(
                     child: pageCount == 0
-                        ? const Center(child: CircularProgressIndicator())
+                        ? _buildProcessingState(colors)
                         : PageView.builder(
                             controller: _pageController,
                             itemCount: pageCount,
@@ -327,22 +509,55 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
                                 setState(() => _index = index),
                             itemBuilder: (context, index) {
                               final page = pages[index];
+                              final image = ClipRRect(
+                                borderRadius: BorderRadius.circular(Radii.sm),
+                                child: Image.file(
+                                  page.processedJpeg,
+                                  key: ValueKey(page.processedJpeg.path),
+                                  fit: BoxFit.contain,
+                                ),
+                              );
+                              final rotatingFile = _rotatingFile;
+                              final content =
+                                  page.id == _rotatingId && rotatingFile != null
+                                  ? _buildRotatingPage(
+                                      rotatingFile,
+                                      _rotatingAspect,
+                                    )
+                                  : index == current
+                                  ? ScannerPageHero(
+                                      file: page.processedJpeg,
+                                      primary: true,
+                                      child: image,
+                                    )
+                                  : image;
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: Spacing.lg,
                                   vertical: Spacing.sm,
                                 ),
                                 child: Center(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(
-                                      Radii.sm,
-                                    ),
-                                    child: Image.file(
-                                      page.processedJpeg,
-                                      key: ValueKey(page.processedJpeg.path),
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
+                                  child: page.id == _deletingId
+                                      ? AnimatedBuilder(
+                                          animation: _deleteController,
+                                          builder: (context, child) {
+                                            final v = Curves.easeIn.transform(
+                                              _deleteController.value,
+                                            );
+                                            return Opacity(
+                                              opacity: 1 - v,
+                                              child: Transform.translate(
+                                                offset: Offset(0, -24 * v),
+                                                child: Transform.scale(
+                                                  scale: 1 - 0.25 * v,
+                                                  child: child,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: content,
+                                        )
+                                      : content,
                                 ),
                               );
                             },
@@ -359,10 +574,20 @@ class _ScannerReviewPageState extends State<ScannerReviewPage> {
                       ),
                     ),
                   const SizedBox(height: Spacing.sm),
-                  if (pageCount > 1) ...[
-                    _buildThumbnailStrip(pages, current, colors),
-                    const SizedBox(height: Spacing.sm),
-                  ],
+                  AnimatedSize(
+                    duration: Motion.standard,
+                    curve: Curves.easeInOut,
+                    alignment: Alignment.topCenter,
+                    child: pageCount > 1
+                        ? Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildThumbnailStrip(pages, current, colors),
+                              const SizedBox(height: Spacing.sm),
+                            ],
+                          )
+                        : const SizedBox(width: double.infinity),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

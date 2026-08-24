@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:locker/services/scanner/scanner_models.dart';
@@ -103,4 +104,44 @@ class QuadStabilizer {
     _stableCount = 0;
     _lastRawQuad = null;
   }
+}
+
+Float64List? homographyMatrix(List<Offset> source, List<Offset> target) {
+  assert(source.length == 4 && target.length == 4);
+  final rows = List.generate(8, (_) => List.filled(9, 0.0));
+  for (var i = 0; i < 4; i++) {
+    final x = source[i].dx;
+    final y = source[i].dy;
+    final u = target[i].dx;
+    final v = target[i].dy;
+    rows[2 * i] = [x, y, 1, 0, 0, 0, -u * x, -u * y, u];
+    rows[2 * i + 1] = [0, 0, 0, x, y, 1, -v * x, -v * y, v];
+  }
+  for (var col = 0; col < 8; col++) {
+    var pivot = col;
+    for (var r = col + 1; r < 8; r++) {
+      if (rows[r][col].abs() > rows[pivot][col].abs()) pivot = r;
+    }
+    if (rows[pivot][col].abs() < 1e-9) return null;
+    if (pivot != col) {
+      final swap = rows[pivot];
+      rows[pivot] = rows[col];
+      rows[col] = swap;
+    }
+    for (var r = 0; r < 8; r++) {
+      if (r == col) continue;
+      final factor = rows[r][col] / rows[col][col];
+      if (factor == 0) continue;
+      for (var c = col; c < 9; c++) {
+        rows[r][c] -= factor * rows[col][c];
+      }
+    }
+  }
+  final h = [for (var i = 0; i < 8; i++) rows[i][8] / rows[i][i], 1.0];
+  return Float64List.fromList([
+    h[0], h[3], 0, h[6], //
+    h[1], h[4], 0, h[7], //
+    0, 0, 1, 0, //
+    h[2], h[5], 0, h[8], //
+  ]);
 }

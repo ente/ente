@@ -526,6 +526,7 @@
   "camera": "Camera",
   "campingMoments": "Campfire moments",
   "cancel": "Cancel",
+  "back": "Back",
   "@cancel": {
     "description": "Cancel button label"
   },
@@ -3598,6 +3599,9 @@
   "scannerNotSupportedOnDevice": "Document scanning is not supported on this device",
   "scannerTorchOff": "Turn off torch",
   "scannerTorchOn": "Turn on torch",
+  "scannerCapture": "Capture",
+  "scannerPreparing": "Preparing scanner...",
+  "scanProcessing": "Processing your scan...",
   "scanPageOfTotal": "Page {current} of {total}",
   "@scanPageOfTotal": {
     "description": "Page position indicator in the document scanner review screen",

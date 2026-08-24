@@ -12,8 +12,8 @@ Runtime outputs (`goldens/*.json`, `goldens/results.json`, and `infra/ml/test/ou
 
 The default corpus is sourced from:
 
-- `https://github.com/laurenspriem/test-fixtures/tree/ml_more_test_data/ml/indexing/v1`
-- Canonical fixture metadata: `https://raw.githubusercontent.com/laurenspriem/test-fixtures/ml_more_test_data/ml/indexing/v1/manifest.json`
+- `https://github.com/ente/test-fixtures/tree/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1`
+- Canonical fixture metadata: `https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/manifest.json`
 
 `manifest.json` in this directory uses:
 
