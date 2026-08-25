@@ -736,9 +736,15 @@ export const PublicAlbumSingleFileViewer: React.FC<
                                         width: 40,
                                         height: 40,
                                         p: 0.75,
-                                        bgcolor: "rgba(0, 0, 0, 0.4)",
+                                        bgcolor: {
+                                            xs: "transparent",
+                                            sm: "rgba(255, 255, 255, 0.16)",
+                                        },
                                         "&:hover": {
-                                            bgcolor: "rgba(0, 0, 0, 0.55)",
+                                            bgcolor: {
+                                                xs: "transparent",
+                                                sm: "rgba(255, 255, 255, 0.24)",
+                                            },
                                         },
                                     }}
                                 >
