@@ -61,7 +61,7 @@ abstract class BaseConfiguration {
   Future<void> init(List<EnteBaseDatabase> dbs) async {
     _databases = dbs;
     _tempDocumentsDirPath =
-        "${p.join((await getTemporaryDirectory()).path, "temp")}${p.separator}";
+        "${p.join((await getApplicationCacheDirectory()).path, "temp")}${p.separator}";
     _preferences = await SharedPreferences.getInstance();
     _secureStorage = const FlutterSecureStorage(
       iOptions: IOSOptions(
