@@ -112,7 +112,7 @@ class ExistingUploadResolver {
     }
 
     final fileMissingLocal = existingUploadedFiles.firstWhereOrNull(
-      (file) => file.localID == null,
+      (file) => file.collectionID == targetCollectionID && file.localID == null,
     );
     if (fileMissingLocal != null) {
       _logger.info(
@@ -134,7 +134,9 @@ class ExistingUploadResolver {
     final fileInDifferentCollection = existingUploadedFiles.firstWhereOrNull(
       (file) =>
           file.collectionID != targetCollectionID &&
-          (file.localID == fileToUpload.localID || isSandboxFile),
+          (file.localID == null ||
+              file.localID == fileToUpload.localID ||
+              isSandboxFile),
     );
     if (fileInDifferentCollection != null) {
       _logger.info(
