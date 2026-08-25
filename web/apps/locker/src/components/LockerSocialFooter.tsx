@@ -4,6 +4,8 @@ import XIcon from "@mui/icons-material/X";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import { IconButton, Stack, Typography } from "@mui/material";
 import { buildEnvGitSHA } from "ente-base/env";
+import log from "ente-base/log";
+import { getRemoteFlag } from "ente-new/photos/services/remote-store";
 import { t } from "i18next";
 import React from "react";
 
@@ -54,7 +56,18 @@ const buildLabel = () => {
 };
 
 export const LockerSocialFooter: React.FC = () => {
-    const build = buildLabel();
+    const [isInternalUser, setIsInternalUser] = React.useState(false);
+
+    React.useEffect(() => {
+        void getRemoteFlag("internalUser").then(
+            setIsInternalUser,
+            (error: unknown) => {
+                log.error("Failed to fetch internal user flag", error);
+            },
+        );
+    }, []);
+
+    const build = isInternalUser ? buildLabel() : undefined;
 
     return (
         <Stack sx={{ alignItems: "center", gap: 1, px: 1, pb: 1 }}>
