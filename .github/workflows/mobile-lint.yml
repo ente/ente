@@ -100,13 +100,16 @@ jobs:
               working-directory: mobile
               run: |
                   test_package() (
-                      member=${1#"$PWD/"}
+                      member=${2#"$PWD/"}
                       echo "Testing $member"
                       cd "$member"
-                      flutter test --no-pub
-                  )
+                      flutter test --no-pub --reporter=failures-only
+                  ) > "$reports/$1" 2>&1
                   export -f test_package
 
+                  reports=$(mktemp -d)
+                  export reports
+                  status=0
                   dart pub workspace list --json |
                       jq -r '.packages[] | select(.name != "ente_workspace") | .path' |
                       while IFS= read -r member; do
@@ -114,4 +117,7 @@ jobs:
                               printf '%s\n' "$member"
                           fi
                       done |
-                      xargs -P4 -n1 bash -e -c 'test_package "$1"' _
+                      nl -n rz |
+                      xargs -P4 -n2 bash -e -c 'test_package "$1" "$2"' _ || status=$?
+                  cat "$reports"/*
+                  exit "$status"
