@@ -38,15 +38,25 @@ const Set<String> _rawImageExtensions = {
 bool isRawImageExtension(String extension) =>
     _rawImageExtensions.contains(extension.toLowerCase());
 
-Future<ImageInfo> getImageInfo(ImageProvider imageProvider) {
-  final completer = Completer<ImageInfo>();
+Future<Size> getImageSize(ImageProvider imageProvider) {
+  final completer = Completer<Size>();
   final imageStream = imageProvider.resolve(const ImageConfiguration());
   late final ImageStreamListener listener;
   listener = ImageStreamListener(
     (imageInfo, _) {
-      if (completer.isCompleted) return;
       imageStream.removeListener(listener);
-      completer.complete(imageInfo);
+      try {
+        if (!completer.isCompleted) {
+          completer.complete(
+            Size(
+              imageInfo.image.width.toDouble(),
+              imageInfo.image.height.toDouble(),
+            ),
+          );
+        }
+      } finally {
+        imageInfo.dispose();
+      }
     },
     onError: (error, stackTrace) {
       if (completer.isCompleted) return;

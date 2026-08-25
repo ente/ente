@@ -104,19 +104,22 @@ abstract class SuperIsolate {
         return null;
       }
 
-      final completer = Completer<dynamic>();
       final answerPort = ReceivePort();
 
       _activeTasks++;
       final taskID = newIsolateTaskID(operation.name);
-      _mainSendPort.send([taskID, operation.index, args, answerPort.sendPort]);
-
-      answerPort.listen((receivedMessage) {
+      try {
+        _mainSendPort.send([
+          taskID,
+          operation.index,
+          args,
+          answerPort.sendPort,
+        ]);
+        final receivedMessage = await answerPort.first;
         if (receivedMessage['taskID'] != taskID) {
           logger.severe("Received isolate message with wrong taskID");
-          return;
+          throw StateError("Received isolate message with wrong taskID");
         }
-        _activeTasks--;
         final logs = receivedMessage['logs'] as List<String>;
         IsolateLogger.handLogStringsToMainLogger(logs);
         final data = receivedMessage['data'];
@@ -125,13 +128,13 @@ abstract class SuperIsolate {
           final errorStackTrace = data['stackTrace'];
           final exception = Exception(errorMessage);
           final stackTrace = StackTrace.fromString(errorStackTrace);
-          completer.completeError(exception, stackTrace);
-        } else {
-          completer.complete(data);
+          Error.throwWithStackTrace(exception, stackTrace);
         }
-      });
-
-      return completer.future;
+        return data;
+      } finally {
+        answerPort.close();
+        _activeTasks--;
+      }
     });
   }
 

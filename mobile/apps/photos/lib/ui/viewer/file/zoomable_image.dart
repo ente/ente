@@ -575,17 +575,16 @@ class _ZoomableImageState extends State<ZoomableImage> {
         previewImageProvider != null &&
         _isZooming &&
         _photoViewController.scale != null;
-    ImageInfo? finalImageInfo;
+    Size? finalImageSize;
     if (shouldFixPosition) {
-      final prevImageInfo = await getImageInfo(previewImageProvider);
-      finalImageInfo = await getImageInfo(finalImageProvider);
+      final prevImageSize = await getImageSize(previewImageProvider);
+      finalImageSize = await getImageSize(finalImageProvider);
       final previousScale = _photoViewController.scale!;
       final previousRelativeScale = _initialScale != null && _initialScale! > 0
           ? previousScale / _initialScale!
           : null;
       final scale =
-          previousScale /
-          (finalImageInfo.image.width / prevImageInfo.image.width);
+          previousScale / (finalImageSize.width / prevImageSize.width);
       final currentPosition = _photoViewController.value.position;
       unawaited(_zoomStreamSubscription?.cancel());
       _photoViewController = PhotoViewController(
@@ -604,8 +603,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
       _scaleStateController.scaleState = PhotoViewScaleState.zoomedIn;
     }
     final bool canUpdateMetadata = _photo.canEditMetaInfo;
-    if (finalImageInfo == null && canUpdateMetadata && !_photo.hasDimensions) {
-      finalImageInfo = await getImageInfo(finalImageProvider);
+    if (finalImageSize == null && canUpdateMetadata && !_photo.hasDimensions) {
+      await getImageSize(finalImageProvider);
     }
   }
 
