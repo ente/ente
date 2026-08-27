@@ -1,0 +1,1 @@
+- Fixed deleted photos continuing to appear in face suggestions.

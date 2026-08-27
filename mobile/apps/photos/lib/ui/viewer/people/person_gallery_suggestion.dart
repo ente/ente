@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/ml/db.dart";
+import "package:photos/events/files_updated_event.dart";
+import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/face/person.dart";
@@ -45,6 +47,7 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
   bool isPreparingNext = false;
   bool hasCurrentSuggestion = false;
   Map<int, Map<int, Uint8List?>> precomputedFaceCrops = {};
+  late final StreamSubscription<LocalPhotosUpdatedEvent> _filesUpdatedEvent;
   late final StreamSubscription<PeopleChangedEvent> _peopleChangedEvent;
   int _suggestionLoadID = 0;
 
@@ -66,6 +69,28 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
       if (personPage &&
           event.type == PeopleEventType.reviewedSuggestion &&
           event.person?.remoteID == widget.person!.remoteID) {
+        unawaited(_reloadSuggestions());
+      }
+    });
+    _filesUpdatedEvent = Bus.instance.on<LocalPhotosUpdatedEvent>().listen((
+      event,
+    ) {
+      if (event.type != EventType.deletedFromDevice &&
+          event.type != EventType.deletedFromEverywhere &&
+          event.type != EventType.deletedFromRemote &&
+          event.type != EventType.hide) {
+        return;
+      }
+      final updatedFileIDs = event.updatedFiles
+          .map((file) => file.uploadedFileID)
+          .whereType<int>()
+          .toSet();
+      final affectsSuggestion = allSuggestions.any(
+        (suggestion) => suggestion.filesInCluster.any(
+          (file) => updatedFileIDs.contains(file.uploadedFileID),
+        ),
+      );
+      if (affectsSuggestion) {
         unawaited(_reloadSuggestions());
       }
     });
@@ -454,6 +479,7 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
   @override
   void dispose() {
     _suggestionLoadID++;
+    _filesUpdatedEvent.cancel();
     _peopleChangedEvent.cancel();
     _slideController?.dispose();
     _fadeController?.dispose();
