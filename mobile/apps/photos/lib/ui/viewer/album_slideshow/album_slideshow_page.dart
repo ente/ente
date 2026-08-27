@@ -1,7 +1,11 @@
 import "dart:async";
+import "dart:ui";
 
+import "package:ente_components/components/bottom_sheet/bottom_sheet_component.dart";
 import "package:ente_components/components/buttons/icon_button_component.dart";
+import "package:ente_components/components/filter_chip_component.dart";
 import "package:ente_components/theme/icon_sizes.dart";
+import "package:ente_components/theme/motion.dart";
 import "package:ente_components/theme/spacing.dart";
 import "package:ente_components/theme/text_styles.dart";
 import "package:ente_components/theme/theme.dart";
@@ -10,9 +14,14 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
+import "package:photos/ui/viewer/file/thumbnail_widget.dart";
+
+const _albumSlideshowDurationOptions = [5, 10, 15, 30];
 
 class AlbumSlideshowPage extends StatefulWidget {
   AlbumSlideshowPage({
@@ -32,72 +41,54 @@ class AlbumSlideshowPage extends StatefulWidget {
   State<AlbumSlideshowPage> createState() => _AlbumSlideshowPageState();
 }
 
-class _SlideSlot {
-  _SlideSlot(this._index);
-
-  int? _index;
-  bool isReady = false;
-
-  int? get index => _index;
-
-  set index(int? value) {
-    if (_index == value) return;
-
-    _index = value;
-    isReady = false;
-  }
-}
-
 class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
-  static const Duration _slideDuration = Duration(seconds: 5);
+    with WidgetsBindingObserver {
   static const Duration _mediaReadyTimeout = Duration(seconds: 10);
-  static const Duration _crossFadeDuration = Duration(milliseconds: 600);
+  static const Duration _autoCrossFadeDuration = Duration(milliseconds: 600);
+  static const Duration _manualCrossFadeDuration = Duration(milliseconds: 200);
+  static const Duration _backgroundCrossFadeDuration = Duration(
+    milliseconds: 750,
+  );
   static const Duration _controlsHideDelay = Duration(seconds: 3);
   static final ThemeData _controlsTheme = ComponentTheme.darkTheme();
 
   Timer? _advanceTimer;
   Timer? _controlsHideTimer;
-  late final AnimationController _crossFadeController;
-  late final CurvedAnimation _crossFadeAnimation;
-  late final List<_SlideSlot> _slots;
-  int _currentSlotIndex = 0;
+  late List<EnteFile> _files;
+  late Duration _slideDuration;
+  int _currentIndex = 0;
+  bool _currentSlideReady = false;
+  bool _autoAdvanceTransition = false;
+  late bool _useBlurredBackground;
+  late bool _useRandomOrder;
   bool _controlsVisible = true;
   bool _isPlaying = true;
+  bool _isSettingsOpen = false;
   bool _accessibleNavigation = false;
   bool _wakeLockRequested = false;
-  bool _isForeground = false;
 
-  List<EnteFile> get _files => widget.files;
-  int get _nextSlotIndex => 1 - _currentSlotIndex;
-  int? get _nextIndex => _slots[_nextSlotIndex].index;
-
-  int? _indexAfter(int index) {
-    if (_files.length < 2) return null;
-    return (index + 1) % _files.length;
-  }
-
-  bool get _isTransitioning =>
-      _crossFadeController.status != AnimationStatus.dismissed;
-  bool get _isCurrentSlideReady => _slots[_currentSlotIndex].isReady;
+  EnteFile get _currentFile => _files[_currentIndex];
+  bool get _isForeground =>
+      (WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed) ==
+      AppLifecycleState.resumed;
+  bool get _canAdvance =>
+      _isPlaying && _isForeground && !_isSettingsOpen && _files.length > 1;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _slots = [_SlideSlot(0), _SlideSlot(_indexAfter(0))];
-    _crossFadeController = AnimationController(
-      vsync: this,
-      duration: _crossFadeDuration,
-    )..addStatusListener(_onCrossFadeStatusChanged);
-    _crossFadeAnimation = CurvedAnimation(
-      parent: _crossFadeController,
-      curve: Curves.easeInOut,
+    _slideDuration = Duration(
+      seconds: localSettings.albumSlideshowDurationSeconds,
     );
-    _isForeground =
-        (WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed) ==
-        AppLifecycleState.resumed;
+    _useBlurredBackground = localSettings.albumSlideshowBlurredBackground;
+    _useRandomOrder = localSettings.albumSlideshowRandomOrder;
+    _files = List.of(widget.files);
+    if (_useRandomOrder) {
+      _files.shuffle();
+    }
     _setAlbumSlideshowWakeLock(_isForeground && _isPlaying);
+    _preloadAdjacentFiles();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _syncSystemUi();
@@ -122,31 +113,23 @@ class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _isForeground = state == AppLifecycleState.resumed;
-    if (_isForeground) {
-      _setAlbumSlideshowWakeLock(_isPlaying);
+    if (state == AppLifecycleState.resumed) {
+      _setAlbumSlideshowWakeLock(_isPlaying && !_isSettingsOpen);
       _syncSystemUi();
-      if (_isTransitioning && _isPlaying) {
-        _crossFadeController.forward();
-      } else {
-        _scheduleAdvance();
-      }
+      _scheduleAdvance();
       _scheduleControlsHide();
     } else {
       _setAlbumSlideshowWakeLock(false);
-      _advanceTimer?.cancel();
+      _cancelAdvanceTimer();
       _controlsHideTimer?.cancel();
-      _crossFadeController.stop();
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _advanceTimer?.cancel();
+    _cancelAdvanceTimer();
     _controlsHideTimer?.cancel();
-    _crossFadeAnimation.dispose();
-    _crossFadeController.dispose();
     _setAlbumSlideshowWakeLock(false);
     _setSystemUiVisible(true);
     super.dispose();
@@ -174,77 +157,155 @@ class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
   }
 
   void _scheduleAdvance() {
-    _advanceTimer?.cancel();
-    if (!_isPlaying ||
-        !_isForeground ||
-        _isTransitioning ||
-        _nextIndex == null) {
-      return;
-    }
+    _cancelAdvanceTimer();
+    if (!_canAdvance) return;
+
     _advanceTimer = Timer(
-      _isCurrentSlideReady ? _slideDuration : _mediaReadyTimeout,
-      _advance,
+      _currentSlideReady ? _slideDuration : _mediaReadyTimeout,
+      () {
+        _advanceTimer = null;
+        _goToNext(autoAdvance: true);
+      },
     );
   }
 
-  void _onSlideReady(int slotIndex, int index) {
-    if (!mounted) return;
-
-    final slot = _slots[slotIndex];
-    if (slot.index != index || slot.isReady) return;
-
-    slot.isReady = true;
-    if (slotIndex == _currentSlotIndex) {
-      _scheduleAdvance();
-    }
-  }
-
-  void _advance() {
-    if (!mounted ||
-        _nextIndex == null ||
-        _isTransitioning ||
-        !_isPlaying ||
-        !_isForeground) {
-      return;
-    }
-
+  void _cancelAdvanceTimer() {
     _advanceTimer?.cancel();
-    _crossFadeController.forward(from: 0);
+    _advanceTimer = null;
   }
 
-  void _onCrossFadeStatusChanged(AnimationStatus status) {
-    if (status != AnimationStatus.completed || !mounted) return;
-    final nextSlotIndex = _nextSlotIndex;
-    final nextIndex = _slots[nextSlotIndex].index;
-    if (nextIndex == null) return;
+  void _onSlideReady(String fileTag) {
+    if (!mounted || fileTag != _currentFile.tag || _currentSlideReady) return;
 
-    setState(() {
-      _currentSlotIndex = nextSlotIndex;
-      _slots[_nextSlotIndex].index = _indexAfter(nextIndex);
-      _crossFadeController.value = 0;
-    });
+    _currentSlideReady = true;
     _scheduleAdvance();
   }
 
+  void _goToNext({required bool autoAdvance}) {
+    if (autoAdvance && !_canAdvance) return;
+    _goToIndex((_currentIndex + 1) % _files.length, autoAdvance: autoAdvance);
+  }
+
+  void _goToPrevious() {
+    _goToIndex(
+      (_currentIndex - 1 + _files.length) % _files.length,
+      autoAdvance: false,
+    );
+  }
+
+  void _goToIndex(int index, {required bool autoAdvance}) {
+    if (!mounted || _files.length < 2 || index == _currentIndex) return;
+
+    setState(() {
+      _currentIndex = index;
+      _currentSlideReady = false;
+      _autoAdvanceTransition = autoAdvance;
+    });
+    _preloadAdjacentFiles();
+    _scheduleAdvance();
+  }
+
+  void _preloadAdjacentFiles() {
+    if (_files.length < 2) return;
+
+    final previousIndex = (_currentIndex - 1 + _files.length) % _files.length;
+    final nextIndex = (_currentIndex + 1) % _files.length;
+    _preloadFileAt(previousIndex);
+    if (nextIndex != previousIndex) {
+      _preloadFileAt(nextIndex);
+    }
+  }
+
+  void _preloadFileAt(int index) {
+    preloadThumbnail(_files[index]);
+    preloadFile(_files[index]);
+  }
+
   void _togglePlayback() {
+    if (_isPlaying) {
+      _cancelAdvanceTimer();
+    }
     setState(() {
       _isPlaying = !_isPlaying;
       _controlsVisible = true;
     });
     _syncSystemUi();
-    _setAlbumSlideshowWakeLock(_isForeground && _isPlaying);
+    _setAlbumSlideshowWakeLock(_isForeground && _isPlaying && !_isSettingsOpen);
     if (_isPlaying) {
-      if (_isTransitioning) {
-        _crossFadeController.forward();
-      } else {
-        _scheduleAdvance();
-      }
+      _scheduleAdvance();
       _scheduleControlsHide();
     } else {
-      _advanceTimer?.cancel();
       _controlsHideTimer?.cancel();
-      _crossFadeController.stop();
     }
+  }
+
+  void _setSlideDuration(int seconds) {
+    if (_slideDuration.inSeconds == seconds) return;
+
+    setState(() => _slideDuration = Duration(seconds: seconds));
+    unawaited(localSettings.setAlbumSlideshowDurationSeconds(seconds));
+    if (_currentSlideReady) {
+      _scheduleAdvance();
+    }
+  }
+
+  void _setBlurredBackground(bool value) {
+    if (_useBlurredBackground == value) return;
+
+    setState(() => _useBlurredBackground = value);
+    unawaited(localSettings.setAlbumSlideshowBlurredBackground(value));
+  }
+
+  void _setRandomOrder(bool value) {
+    if (_useRandomOrder == value) return;
+
+    final currentFile = _currentFile;
+    final files = List<EnteFile>.of(widget.files);
+    if (value) {
+      files.shuffle();
+    }
+    setState(() {
+      _files = files;
+      _currentIndex = files.indexOf(currentFile);
+      _useRandomOrder = value;
+    });
+    _preloadAdjacentFiles();
+    unawaited(localSettings.setAlbumSlideshowRandomOrder(value));
+  }
+
+  Future<void> _showSettings() async {
+    if (_isSettingsOpen) return;
+
+    _cancelAdvanceTimer();
+    _controlsHideTimer?.cancel();
+    setState(() {
+      _isSettingsOpen = true;
+      _controlsVisible = true;
+    });
+    _syncSystemUi();
+    _setAlbumSlideshowWakeLock(false);
+
+    await showBottomSheetComponent<void>(
+      context: context,
+      builder: (_) => Theme(
+        data: _controlsTheme,
+        child: _AlbumSlideshowSettingsSheet(
+          initialDurationSeconds: _slideDuration.inSeconds,
+          initiallyRandomOrder: _useRandomOrder,
+          initiallyBlurred: _useBlurredBackground,
+          onDurationSelected: _setSlideDuration,
+          onRandomOrderChanged: _setRandomOrder,
+          onBlurredBackgroundChanged: _setBlurredBackground,
+        ),
+      ),
+    );
+    if (!mounted) return;
+
+    setState(() => _isSettingsOpen = false);
+    _setAlbumSlideshowWakeLock(_isForeground && _isPlaying);
+    _syncSystemUi();
+    _scheduleAdvance();
+    _scheduleControlsHide();
   }
 
   void _toggleControls() {
@@ -262,6 +323,7 @@ class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
     if (!_isPlaying ||
         !_isForeground ||
         !_controlsVisible ||
+        _isSettingsOpen ||
         _accessibleNavigation) {
       return;
     }
@@ -272,41 +334,80 @@ class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
     });
   }
 
-  Widget _buildSlides() {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        for (var slotIndex = 0; slotIndex < _slots.length; slotIndex++)
-          if (_slots[slotIndex].index != null)
-            _buildSlideSlot(
-              slotIndex: slotIndex,
-              index: _slots[slotIndex].index!,
-              opacity: slotIndex == _currentSlotIndex
-                  ? ReverseAnimation(_crossFadeAnimation)
-                  : _crossFadeAnimation,
-            ),
-      ],
+  void _handleTap(TapUpDetails details) {
+    if (_files.length < 2) {
+      _toggleControls();
+      return;
+    }
+
+    final width = MediaQuery.sizeOf(context).width;
+    if (details.localPosition.dx < width * 0.25) {
+      HapticFeedback.selectionClick();
+      _goToPrevious();
+    } else if (details.localPosition.dx > width * 0.75) {
+      HapticFeedback.selectionClick();
+      _goToNext(autoAdvance: false);
+    } else {
+      _toggleControls();
+    }
+  }
+
+  Widget _buildBackground() {
+    return IgnorePointer(
+      child: AnimatedSwitcher(
+        duration: _backgroundCrossFadeDuration,
+        switchInCurve: Curves.easeOutExpo,
+        switchOutCurve: Curves.easeInExpo,
+        layoutBuilder: (currentChild, previousChildren) => Stack(
+          fit: StackFit.expand,
+          children: [...previousChildren, ?currentChild],
+        ),
+        child: _useBlurredBackground
+            ? ImageFiltered(
+                key: ValueKey("album-slideshow-blur-${_currentFile.tag}"),
+                imageFilter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
+                child: ThumbnailWidget(
+                  _currentFile,
+                  placeholderColor: Colors.black,
+                  shouldShowSyncStatus: false,
+                  shouldShowFavoriteIcon: false,
+                  shouldShowVideoOverlayIcon: false,
+                ),
+              )
+            : const ColoredBox(
+                key: ValueKey("album-slideshow-black-background"),
+                color: Colors.black,
+              ),
+      ),
     );
   }
 
-  Widget _buildSlideSlot({
-    required int slotIndex,
-    required int index,
-    required Animation<double> opacity,
-  }) {
+  Widget _buildSlide() {
+    final file = _currentFile;
     return IgnorePointer(
-      child: FadeTransition(
-        key: ValueKey("album-slideshow-slot-$slotIndex-opacity"),
-        opacity: opacity,
+      child: AnimatedSwitcher(
+        duration: _autoAdvanceTransition
+            ? _autoCrossFadeDuration
+            : _manualCrossFadeDuration,
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        layoutBuilder: (currentChild, previousChildren) => Stack(
+          fit: StackFit.expand,
+          children: [
+            for (final child in previousChildren)
+              HeroMode(enabled: false, child: child),
+            ?currentChild,
+          ],
+        ),
         child: SizedBox.expand(
-          key: ValueKey("album-slideshow-slot-$slotIndex-$index"),
+          key: ValueKey("album-slideshow-${file.tag}"),
           child: FileWidget(
-            _files[index],
-            tagPrefix: "album_slideshow_${slotIndex}_",
+            file,
+            tagPrefix: "album_slideshow",
             backgroundDecoration: const BoxDecoration(),
             isFromMemories: true,
             onFinalFileLoad: ({required int memoryDuration}) =>
-                _onSlideReady(slotIndex, index),
+                _onSlideReady(file.tag),
           ),
         ),
       ),
@@ -324,10 +425,11 @@ class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
         body: Stack(
           fit: StackFit.expand,
           children: [
-            _buildSlides(),
+            _buildBackground(),
+            _buildSlide(),
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: _toggleControls,
+              onTapUp: _handleTap,
             ),
             _buildControls(context),
           ],
@@ -406,7 +508,25 @@ class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 48),
+                            SizedBox(
+                              width: 48,
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: IconButtonComponent(
+                                  tooltip: pendingTranslation(
+                                    "Slideshow settings",
+                                  ),
+                                  variant: IconButtonComponentVariant.unfilled,
+                                  shouldSurfaceExecutionStates: false,
+                                  size: 48,
+                                  onTap: _showSettings,
+                                  icon: const HugeIcon(
+                                    icon: HugeIcons.strokeRoundedSettings01,
+                                    size: IconSizes.small,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -452,5 +572,159 @@ class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
         ),
       ),
     );
+  }
+}
+
+class _AlbumSlideshowSettingsSheet extends StatefulWidget {
+  const _AlbumSlideshowSettingsSheet({
+    required this.initialDurationSeconds,
+    required this.initiallyRandomOrder,
+    required this.initiallyBlurred,
+    required this.onDurationSelected,
+    required this.onRandomOrderChanged,
+    required this.onBlurredBackgroundChanged,
+  });
+
+  final int initialDurationSeconds;
+  final bool initiallyRandomOrder;
+  final bool initiallyBlurred;
+  final ValueChanged<int> onDurationSelected;
+  final ValueChanged<bool> onRandomOrderChanged;
+  final ValueChanged<bool> onBlurredBackgroundChanged;
+
+  @override
+  State<_AlbumSlideshowSettingsSheet> createState() =>
+      _AlbumSlideshowSettingsSheetState();
+}
+
+class _AlbumSlideshowSettingsSheetState
+    extends State<_AlbumSlideshowSettingsSheet> {
+  late int _durationSeconds;
+  late bool _randomOrder;
+  late bool _blurred;
+
+  @override
+  void initState() {
+    super.initState();
+    _durationSeconds = widget.initialDurationSeconds;
+    _randomOrder = widget.initiallyRandomOrder;
+    _blurred = widget.initiallyBlurred;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return BottomSheetComponent(
+      title: pendingTranslation("Slideshow settings"),
+      closeTooltip: context.strings.close,
+      isScrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            pendingTranslation("Slide duration"),
+            style: TextStyles.bodyBold.copyWith(color: colors.textBase),
+          ),
+          const SizedBox(height: Spacing.sm),
+          Wrap(
+            spacing: Spacing.sm,
+            runSpacing: Spacing.md,
+            children: [
+              for (final seconds in _albumSlideshowDurationOptions)
+                _buildChip(
+                  label: pendingTranslation("$seconds sec"),
+                  selected: seconds == _durationSeconds,
+                  onTap: () {
+                    if (seconds == _durationSeconds) return;
+                    setState(() => _durationSeconds = seconds);
+                    widget.onDurationSelected(seconds);
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xl),
+          Text(
+            pendingTranslation("Order"),
+            style: TextStyles.bodyBold.copyWith(color: colors.textBase),
+          ),
+          const SizedBox(height: Spacing.sm),
+          Wrap(
+            spacing: Spacing.sm,
+            runSpacing: Spacing.md,
+            children: [
+              _buildChip(
+                label: pendingTranslation("In order"),
+                selected: !_randomOrder,
+                onTap: () => _setRandomOrder(false),
+              ),
+              _buildChip(
+                label: pendingTranslation("Random"),
+                selected: _randomOrder,
+                onTap: () => _setRandomOrder(true),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xl),
+          Text(
+            pendingTranslation("Background"),
+            style: TextStyles.bodyBold.copyWith(color: colors.textBase),
+          ),
+          const SizedBox(height: Spacing.sm),
+          Wrap(
+            spacing: Spacing.sm,
+            runSpacing: Spacing.md,
+            children: [
+              _buildChip(
+                label: pendingTranslation("Blurred"),
+                selected: _blurred,
+                onTap: () => _setBlurred(true),
+              ),
+              _buildChip(
+                label: pendingTranslation("Black"),
+                selected: !_blurred,
+                onTap: () => _setBlurred(false),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return AnimatedSize(
+      duration: Motion.standard,
+      curve: Curves.easeInOutCubic,
+      alignment: Alignment.centerLeft,
+      child: FilterChipComponent(
+        label: label,
+        state: selected
+            ? FilterChipComponentState.selected
+            : FilterChipComponentState.unselected,
+        trailing: selected
+            ? const HugeIcon(icon: HugeIcons.strokeRoundedTick02, size: 12)
+            : null,
+        onChanged: (_) => onTap(),
+      ),
+    );
+  }
+
+  void _setBlurred(bool value) {
+    if (_blurred == value) return;
+
+    setState(() => _blurred = value);
+    widget.onBlurredBackgroundChanged(value);
+  }
+
+  void _setRandomOrder(bool value) {
+    if (_randomOrder == value) return;
+
+    setState(() => _randomOrder = value);
+    widget.onRandomOrderChanged(value);
   }
 }

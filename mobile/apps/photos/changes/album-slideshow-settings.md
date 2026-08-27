@@ -1,0 +1,1 @@
+- Added controls for slide duration, photo order, and background style to album slideshows.

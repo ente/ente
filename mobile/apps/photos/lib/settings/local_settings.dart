@@ -70,6 +70,11 @@ class LocalSettings {
   static const shouldLoopVideoKey = "video.should_loop";
   static const isMutedKey = "video.is_muted";
   static const _memoriesAudioMutedKey = "memories.audio_muted";
+  static const _albumSlideshowDurationSecondsKey =
+      "album_slideshow.duration_seconds";
+  static const _albumSlideshowBlurredBackgroundKey =
+      "album_slideshow.blurred_background";
+  static const _albumSlideshowRandomOrderKey = "album_slideshow.random_order";
   static const onGuestViewKey = "on_guest_view";
   static const _hasConfiguredLinksInAppPermissionKey =
       "has_configured_links_in_app_permission";
@@ -467,6 +472,27 @@ class LocalSettings {
 
   bool isMemoriesAudioMuted() {
     return _prefs.getBool(_memoriesAudioMutedKey) ?? false;
+  }
+
+  int get albumSlideshowDurationSeconds =>
+      _prefs.getInt(_albumSlideshowDurationSecondsKey) ?? 5;
+
+  Future<void> setAlbumSlideshowDurationSeconds(int value) async {
+    await _prefs.setInt(_albumSlideshowDurationSecondsKey, value);
+  }
+
+  bool get albumSlideshowBlurredBackground =>
+      _prefs.getBool(_albumSlideshowBlurredBackgroundKey) ?? true;
+
+  Future<void> setAlbumSlideshowBlurredBackground(bool value) async {
+    await _prefs.setBool(_albumSlideshowBlurredBackgroundKey, value);
+  }
+
+  bool get albumSlideshowRandomOrder =>
+      _prefs.getBool(_albumSlideshowRandomOrderKey) ?? false;
+
+  Future<void> setAlbumSlideshowRandomOrder(bool value) async {
+    await _prefs.setBool(_albumSlideshowRandomOrderKey, value);
   }
 
   Future<void> setOnGuestView(bool value) {
