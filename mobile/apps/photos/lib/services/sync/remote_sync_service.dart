@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -195,7 +196,8 @@ class RemoteSyncService {
       _existingSync = null;
       _logger.warning("Error executing remote sync", e, s);
 
-      if (flagService.internalUser ||
+      if (e is DioException ||
+          flagService.internalUser ||
           // The outer sync uses these errors to update UI state.
           {
             UnauthorizedError,
