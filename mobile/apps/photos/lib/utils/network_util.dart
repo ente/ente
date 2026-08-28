@@ -1,5 +1,16 @@
 import "package:connectivity_plus/connectivity_plus.dart";
+import "package:dio/dio.dart";
 import "package:photos/service_locator.dart";
+
+bool isNetworkDioException(Object error) =>
+    error is DioException &&
+    const {
+      DioExceptionType.connectionTimeout,
+      DioExceptionType.sendTimeout,
+      DioExceptionType.receiveTimeout,
+      DioExceptionType.connectionError,
+      DioExceptionType.unknown,
+    }.contains(error.type);
 
 Future<bool> canUseHighBandwidth() async {
   // A VPN can be reported alongside Wi-Fi or mobile.

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/core/configuration.dart';
@@ -23,6 +22,7 @@ import 'package:photos/services/sync/large_backup_session_tracker.dart';
 import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/offline_import_metadata_service.dart';
 import 'package:photos/services/sync/remote_sync_service.dart';
+import 'package:photos/utils/network_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SyncService {
@@ -162,21 +162,12 @@ class SyncService {
         SyncStatusUpdate(SyncStatus.error, error: NoMediaLocationAccessError()),
       );
     } catch (e) {
-      if (e is DioException) {
-        if (e.type == DioExceptionType.connectionTimeout ||
-            e.type == DioExceptionType.sendTimeout ||
-            e.type == DioExceptionType.receiveTimeout ||
-            e.type == DioExceptionType.connectionError ||
-            e.type == DioExceptionType.unknown) {
-          Bus.instance.fire(
-            SyncStatusUpdate(
-              SyncStatus.paused,
-              reason: "Waiting for network...",
-            ),
-          );
-          _logger.severe("unable to connect", e, StackTrace.current);
-          return false;
-        }
+      if (isNetworkDioException(e)) {
+        Bus.instance.fire(
+          SyncStatusUpdate(SyncStatus.paused, reason: "Waiting for network..."),
+        );
+        _logger.severe("unable to connect", e, StackTrace.current);
+        return false;
       }
       _logger.severe("backup failed", e, StackTrace.current);
       Bus.instance.fire(SyncStatusUpdate(SyncStatus.error));

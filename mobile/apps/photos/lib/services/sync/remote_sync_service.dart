@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -86,15 +85,9 @@ class RemoteSyncService {
     _localPhotosUpdatedSubscription?.cancel();
     _localPhotosUpdatedSubscription = Bus.instance
         .on<LocalPhotosUpdatedEvent>()
-        .listen((event) async {
-          if (event.type == EventType.addedOrUpdated) {
-            if (_existingSync == null) {
-              try {
-                await sync();
-              } on DeviceStorageFullError catch (e) {
-                Bus.instance.fire(SyncStatusUpdate(SyncStatus.error, error: e));
-              }
-            }
+        .listen((event) {
+          if (event.type == EventType.addedOrUpdated && _existingSync == null) {
+            SyncService.instance.sync().ignore();
           }
         });
   }
@@ -192,11 +185,12 @@ class RemoteSyncService {
         _existingSync = null;
       }
     } catch (e, s) {
-      _existingSync?.complete();
+      final existingSync = _existingSync;
       _existingSync = null;
       _logger.warning("Error executing remote sync", e, s);
 
-      if (e is DioException ||
+      final shouldRethrow =
+          isNetworkDioException(e) ||
           flagService.internalUser ||
           // The outer sync uses these errors to update UI state.
           {
@@ -207,9 +201,13 @@ class RemoteSyncService {
             DeviceStorageFullError,
             SyncStopRequestedError,
             NoMediaLocationAccessError,
-          }.contains(e.runtimeType)) {
+          }.contains(e.runtimeType);
+      if (shouldRethrow) {
+        existingSync?.future.ignore();
+        existingSync?.completeError(e, s);
         rethrow;
       }
+      existingSync?.complete();
     } finally {
       _isExistingSyncSilent = false;
     }
