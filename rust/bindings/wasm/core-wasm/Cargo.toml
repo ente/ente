@@ -1,0 +1,15 @@
+[package]
+name = "ente-core-wasm"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-accounts.workspace = true
+ente-core.workspace = true
+ente-wasm-log.workspace = true
+js-sys.workspace = true
+md-5.workspace = true
+thiserror.workspace = true
+wasm-bindgen.workspace = true

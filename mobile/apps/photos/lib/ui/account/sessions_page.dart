@@ -142,8 +142,9 @@ class _SessionsPageState extends State<SessionsPage> {
 
   void _showSessionTerminationDialog(Session session) {
     final l10n = context.strings;
-    final isLoggingOutFromThisDevice =
-        session.token == Configuration.instance.getToken();
+    final isLoggingOutFromThisDevice = session.isCurrentSession(
+      Configuration.instance.getToken(),
+    );
     final displayedUserAgent = session.ua.length > 256
         ? "${session.ua.substring(0, 253)}..."
         : session.ua;
@@ -180,7 +181,7 @@ class _SessionsPageState extends State<SessionsPage> {
 
   Widget _getUAWidget(Session session) {
     final colors = context.componentColors;
-    if (session.token == Configuration.instance.getToken()) {
+    if (session.isCurrentSession(Configuration.instance.getToken())) {
       return Text(
         context.strings.thisDevice,
         style: TextStyles.bodyBold.copyWith(color: colors.primary),

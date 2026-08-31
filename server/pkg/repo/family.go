@@ -25,26 +25,23 @@ func (repo *FamilyRepository) CreateFamily(ctx context.Context, adminID int64) e
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `INSERT INTO families(id, admin_id, member_id, status) 
 			VALUES($1, $2, $3, $4) ON CONFLICT (admin_id,member_id) 
 			    DO UPDATE SET status = $4 WHERE families.status NOT IN ($4)`, uuid.New(), adminID, adminID, ente.SELF)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 
 	result, err := tx.ExecContext(ctx, `UPDATE users SET family_admin_id = $1 WHERE user_id = $2 and family_admin_id is  null`, adminID, adminID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	if affected != 1 {
-		tx.Rollback()
 		return stacktrace.Propagate(errors.New("exactly one row should be updated"), "")
 	}
 	return stacktrace.Propagate(tx.Commit(), "failed to commit txn creating family")
@@ -55,20 +52,18 @@ func (repo *FamilyRepository) CloseFamily(ctx context.Context, adminID int64) er
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `DELETE FROM families WHERE admin_id = $1`, adminID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	affectedRows, err := tx.ExecContext(ctx, `UPDATE users SET family_admin_id = null WHERE family_admin_id = $1`, adminID)
 
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	affected, err := affectedRows.RowsAffected()
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	if affected != 1 {
@@ -130,23 +125,20 @@ func (repo *FamilyRepository) AcceptInvite(ctx context.Context, adminID int64, m
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `UPDATE families SET status = $1 WHERE token = $2`, ente.ACCEPTED, token)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE users SET family_admin_id = $1 WHERE user_id = $2 and family_admin_id is  null`, adminID, memberID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	if affected != 1 {
-		tx.Rollback()
 		return stacktrace.Propagate(errors.New("exactly one row should be updated"), "")
 	}
 	return stacktrace.Propagate(tx.Commit(), "failed to commit txn for accepting family invite")
@@ -157,19 +149,17 @@ func (repo *FamilyRepository) RemoveMember(ctx context.Context, adminID int64, m
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, `UPDATE families set status = $1 WHERE admin_id = $2 AND member_id = $3 AND status= $4`, removeReason, adminID, memberID, ente.ACCEPTED)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	affected, _ := result.RowsAffected()
 	if affected != 1 {
-		tx.Rollback()
 		return stacktrace.Propagate(errors.New("exactly one row should be updated"), "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE users set family_admin_id = null WHERE user_id = $1 and family_admin_id = $2`, memberID, adminID)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	return stacktrace.Propagate(tx.Commit(), "failed to commit")
@@ -189,9 +179,9 @@ func (repo *FamilyRepository) RevokeInvite(ctx context.Context, adminID int64, m
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	_, err = tx.ExecContext(ctx, `UPDATE families set status=$1 WHERE admin_id = $2 AND member_id = $3 AND status = $4`, ente.REVOKED, adminID, memberID, ente.INVITED)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "")
 	}
 	return stacktrace.Propagate(tx.Commit(), "failed to commit")

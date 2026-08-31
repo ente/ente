@@ -1,5 +1,5 @@
 [package]
-name = "ente_photos_napi"
+name = "ente-photos-napi"
 edition = "2024"
 
 [lib]

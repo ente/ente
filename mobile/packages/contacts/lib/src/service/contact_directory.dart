@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:ente_contacts/src/models/contact_data.dart';
-import 'package:ente_contacts/src/models/contact_record.dart';
-import 'package:ente_contacts/src/models/contacts_session.dart';
 import 'package:ente_contacts/src/service/contacts_service.dart';
+import 'package:ente_frb/contacts.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
@@ -46,22 +44,21 @@ class ContactDirectory {
   bool get hasHydratedCache => _hasHydratedCache;
   bool get needsWarmup => !_hasHydratedCache || _active?.ready == null;
 
-  Future<void> ensureReady(ContactsSession session) async {
-    final key = _sessionKey(session);
+  Future<void> ensureReady({
+    required String baseUrl,
+    required int userId,
+  }) async {
+    final key = '$baseUrl|$userId';
     var active = _active;
     if (active?.key != key) {
       _clear(notify: true);
-      active = _ActiveContacts(
-        key: key,
-        authToken: session.authToken,
-        service: _newContactsService(),
-      );
+      active = _ActiveContacts(key: key, service: _newContactsService());
       _active = active;
     }
 
     final ready = active!.ready;
     if (ready == null) {
-      final opening = _hydrate(active, session);
+      final opening = _hydrate(active, userId);
       active.ready = opening;
       try {
         await opening;
@@ -73,19 +70,31 @@ class ContactDirectory {
     } else {
       await ready;
     }
-
-    if (!_isActive(active) || active.authToken == session.authToken) return;
-    await active.service.updateAuthToken(session.authToken);
-    if (_isActive(active)) active.authToken = session.authToken;
   }
 
   Future<void> resetLocalState() async {
     final service = _active?.service;
     _clear(notify: true);
-    await service?.resetLocalState();
+    try {
+      await service?.resetLocalState();
+    } finally {
+      await service?.close();
+    }
   }
 
   void clearSession({bool notify = true}) => _clear(notify: notify);
+
+  Future<void> close({bool notify = true}) async {
+    final active = _active;
+    _clear(notify: notify);
+    final ready = active?.ready;
+    if (ready != null) {
+      try {
+        await ready;
+      } catch (_) {}
+    }
+    await active?.service.close();
+  }
 
   // Positive account IDs are authoritative and never fall back to email.
   ContactRecord? getCachedContact({int? contactUserId, String? email}) {
@@ -98,10 +107,7 @@ class ContactDirectory {
 
   String? getCachedSavedName({int? contactUserId, String? email}) =>
       _trimToNull(
-        getCachedContact(
-          contactUserId: contactUserId,
-          email: email,
-        )?.data?.name,
+        getCachedContact(contactUserId: contactUserId, email: email)?.name,
       );
 
   String? getCachedResolvedEmail({int? contactUserId, String? email}) =>
@@ -160,15 +166,16 @@ class ContactDirectory {
     required String name,
   }) async {
     final active = _requireActive();
-    final existing = await active.service.getContactByUserId(
+    final service = active.service;
+    final existing = await service.getContactByUserId(
       contactUserId,
       includeDeleted: true,
     );
     _requireActiveSession(active);
     final data = ContactData(contactUserId: contactUserId, name: name.trim());
     final contact = existing == null
-        ? await active.service.createContact(data)
-        : await active.service.updateContact(existing.id, data);
+        ? await service.createContact(data)
+        : await service.updateContact(existing.id, data);
     _requireActiveSession(active);
     _cacheAndNotify(contact);
     return contact;
@@ -180,7 +187,8 @@ class ContactDirectory {
     required Uint8List bytes,
   }) async {
     final active = _requireActive();
-    final existing = await active.service.getContactByUserId(
+    final service = active.service;
+    final existing = await service.getContactByUserId(
       contactUserId,
       includeDeleted: true,
     );
@@ -190,16 +198,16 @@ class ContactDirectory {
       return existing.isDeleted ? null : existing;
     }
 
-    final created = await active.service.createContact(
+    final created = await service.createContact(
       ContactData(contactUserId: contactUserId, name: name.trim()),
     );
     if (!_isActive(active)) return null;
     late ContactRecord updated;
     try {
-      updated = await active.service.setProfilePicture(created.id, bytes);
+      updated = await service.setProfilePicture(created.id, bytes);
     } catch (_) {
       if (!_isActive(active)) rethrow;
-      updated = await active.service.setProfilePicture(created.id, bytes);
+      updated = await service.setProfilePicture(created.id, bytes);
     }
     if (!_isActive(active)) return null;
     _cachePicture(updated, bytes);
@@ -258,12 +266,13 @@ class ContactDirectory {
     _revision.value = 0;
   }
 
-  Future<void> _hydrate(_ActiveContacts active, ContactsSession session) async {
-    await active.service.open(session);
+  Future<void> _hydrate(_ActiveContacts active, int userId) async {
+    final service = active.service;
+    await service.open(userId: userId);
     if (!_isActive(active)) return;
 
     final knownUserIds = _contactsByUserId.keys.toSet();
-    final local = await active.service.getContacts();
+    final local = await service.getContacts();
     if (!_isActive(active)) return;
     final localChanged = _cacheAll(local);
     _hasHydratedCache = true;
@@ -277,7 +286,7 @@ class ContactDirectory {
         .toSet();
 
     try {
-      final diff = await active.service.sync();
+      final diff = await service.sync();
       if (!_isActive(active)) return;
       final diffChanged = _cacheAll(diff);
       if (diffChanged.isNotEmpty) {
@@ -375,7 +384,7 @@ class ContactDirectory {
       a.updatedAt == b.updatedAt &&
       a.isDeleted == b.isDeleted &&
       a.email == b.email &&
-      a.data?.name == b.data?.name &&
+      a.name == b.name &&
       a.profilePictureAttachmentId == b.profilePictureAttachmentId;
 
   void _cacheAndNotify(ContactRecord contact) {
@@ -467,9 +476,6 @@ class ContactDirectory {
     return factory();
   }
 
-  String _sessionKey(ContactsSession session) =>
-      '${session.baseUrl}|${session.userId}';
-
   String? _normalizeEmail(String? value) {
     final normalized = value?.trim().toLowerCase();
     return normalized == null || normalized.isEmpty ? null : normalized;
@@ -482,14 +488,9 @@ class ContactDirectory {
 }
 
 class _ActiveContacts {
-  _ActiveContacts({
-    required this.key,
-    required this.authToken,
-    required this.service,
-  });
+  _ActiveContacts({required this.key, required this.service});
 
   final String key;
   final ContactsService service;
-  String authToken;
   Future<void>? ready;
 }

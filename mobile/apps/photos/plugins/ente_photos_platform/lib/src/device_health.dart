@@ -210,17 +210,13 @@ abstract interface class DeviceHealthSource {
   Stream<DeviceHealthSnapshot> get updates;
 }
 
-abstract interface class DeviceMemorySource {
-  Future<DeviceMemorySnapshot> getMemorySnapshot();
-}
-
-class DeviceHealthClient implements DeviceHealthSource, DeviceMemorySource {
+class DeviceHealthClient implements DeviceHealthSource {
   DeviceHealthClient({MethodChannel? methodChannel, EventChannel? eventChannel})
     : _methodChannel = methodChannel ?? const MethodChannel(_methodChannelName),
       _eventChannel = eventChannel ?? const EventChannel(_eventChannelName);
 
   static final instance = DeviceHealthClient();
-  static const _methodChannelName = 'io.ente.photos.platform';
+  static const _methodChannelName = 'io.ente.photos.platform/device_health';
   static const _eventChannelName =
       'io.ente.photos.platform/device_health_events';
 
@@ -239,7 +235,6 @@ class DeviceHealthClient implements DeviceHealthSource, DeviceMemorySource {
     return DeviceHealthSnapshot.fromMap(result);
   }
 
-  @override
   Future<DeviceMemorySnapshot> getMemorySnapshot() async {
     final result = await _methodChannel.invokeMethod<Map<dynamic, dynamic>>(
       'deviceHealth.getMemorySnapshot',

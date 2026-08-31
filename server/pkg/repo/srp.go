@@ -116,41 +116,23 @@ func (repo *UserAuthRepository) InsertSRPAuth(ctx context.Context, userID int64,
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *UserAuthRepository) InsertOrUpdateSRPAuthAndKeyAttr(ctx context.Context, userID int64, req ente.UpdateSRPAndKeysRequest, setup *ente.SRPSetupEntity) error {
-	isSRPSetupDone, err := repo.IsSRPSetupDone(ctx, userID)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
+func (repo *UserAuthRepository) InsertOrUpdateSRPAuthAndKeyAttr(ctx context.Context, userID int64, updateKeyAttr ente.UpdateKeysRequest, setup *ente.SRPSetupEntity) error {
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	if !isSRPSetupDone {
-		_, err = tx.ExecContext(ctx, `
-	INSERT INTO srp_auth(user_id, srp_user_id, salt, verifier) VALUES($1, $2 , $3, $4)`,
-			userID, setup.SRPUserID, setup.Salt, setup.Verifier)
-	} else {
-		_, err = tx.ExecContext(ctx, `UPDATE srp_auth SET srp_user_id = $1, salt = $2, verifier = $3 WHERE user_id = $4`,
-			setup.SRPUserID, setup.Salt, setup.Verifier, userID)
-	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO srp_auth(user_id, srp_user_id, salt, verifier) VALUES($1, $2, $3, $4)
+		ON CONFLICT (user_id) DO UPDATE SET
+			srp_user_id = EXCLUDED.srp_user_id, salt = EXCLUDED.salt, verifier = EXCLUDED.verifier`,
+		userID, setup.SRPUserID, setup.Salt, setup.Verifier)
 	if err != nil {
-		rollBackErr := tx.Rollback()
-		if rollBackErr != nil {
-			return rollBackErr
-		}
 		return stacktrace.Propagate(err, "")
-	}
-	updateKeyAttr := *req.UpdateAttributes
-	if validErr := updateKeyAttr.Validate(); validErr != nil {
-		return stacktrace.Propagate(validErr, "")
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE key_attributes SET kek_salt = $1, encrypted_key = $2, key_decryption_nonce = $3, mem_limit = $4, ops_limit = $5 WHERE user_id = $6`,
 		updateKeyAttr.KEKSalt, updateKeyAttr.EncryptedKey, updateKeyAttr.KeyDecryptionNonce, updateKeyAttr.MemLimit, updateKeyAttr.OpsLimit, userID)
 	if err != nil {
-		rollBackErr := tx.Rollback()
-		if rollBackErr != nil {
-			return rollBackErr
-		}
 		return stacktrace.Propagate(err, "")
 	}
 	return tx.Commit()
@@ -166,14 +148,28 @@ func (repo *UserAuthRepository) GetSrpSessionEntity(ctx context.Context, session
 	return &result, nil
 }
 
-func (repo *UserAuthRepository) IncrementSrpSessionAttemptCount(ctx context.Context, sessionID uuid.UUID) error {
-	_, err := repo.DB.ExecContext(ctx, `UPDATE srp_sessions SET attempt_count = attempt_count + 1 WHERE id = $1`, sessionID)
-	return stacktrace.Propagate(err, "")
+func (repo *UserAuthRepository) ReserveSrpSessionAttempt(ctx context.Context, sessionID uuid.UUID, limit int) (*ente.SRPSessionEntity, error) {
+	result := ente.SRPSessionEntity{}
+	row := repo.DB.QueryRowContext(ctx, `UPDATE srp_sessions SET attempt_count = attempt_count + 1
+		WHERE id = $1 AND has_verified = false AND attempt_count < $2
+		RETURNING id, srp_user_id, server_key, srp_a, has_verified, attempt_count, COALESCE(is_fake, false)`, sessionID, limit)
+	err := row.Scan(&result.ID, &result.SRPUserID, &result.ServerKey, &result.SRP_A, &result.IsVerified, &result.AttemptCount, &result.IsFake)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	return &result, nil
 }
 
-func (repo *UserAuthRepository) SetSrpSessionVerified(ctx context.Context, sessionID uuid.UUID) error {
-	_, err := repo.DB.ExecContext(ctx, `UPDATE srp_sessions SET has_verified = true WHERE id = $1`, sessionID)
-	return stacktrace.Propagate(err, "")
+func (repo *UserAuthRepository) TrySetSrpSessionVerified(ctx context.Context, sessionID uuid.UUID) (bool, error) {
+	result, err := repo.DB.ExecContext(ctx, `UPDATE srp_sessions SET has_verified = true WHERE id = $1 AND has_verified = false`, sessionID)
+	if err != nil {
+		return false, stacktrace.Propagate(err, "")
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, stacktrace.Propagate(err, "")
+	}
+	return rowsAffected == 1, nil
 }
 
 func (repo *UserAuthRepository) CleanupOldFakeSessions(ctx context.Context) (int64, error) {

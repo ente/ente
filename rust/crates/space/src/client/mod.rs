@@ -26,7 +26,7 @@ use crate::crypto::{
     ASSET_PAYLOAD_OVERHEAD_BYTES, SECRETBOX_PAYLOAD_OVERHEAD_BYTES, decrypt_secretbox_payload,
     encrypt_secretbox_payload, generate_key, generate_keypair, open_with_keypair,
 };
-use crate::error::{Result, SpaceError};
+use crate::error::{Error, Result};
 use crate::models::{
     CreatedSpace, DecryptedFriendShare, DecryptedSpaceProfile, FeedItem, MessagePayload,
     OpenAccountSpaceCtxInput, PostObjectMetadata,
@@ -38,7 +38,7 @@ use crate::transport::{
 use ente_core::{
     b64,
     crypto::SecretVec,
-    http::{Api, ApiConfig, Auth, Http},
+    http::{self, Api, ApiConfig, Auth, Http},
 };
 const UPLOAD_PURPOSE_AVATAR: &str = "avatar";
 const UPLOAD_PURPOSE_COVER: &str = "cover";
@@ -74,7 +74,7 @@ fn profile_object_id_from_key(object_key: &str) -> Result<String> {
         .next()
         .filter(|value| !value.trim().is_empty() && !value.contains('/'))
         .map(ToOwned::to_owned)
-        .ok_or_else(|| SpaceError::InvalidInput("invalid profile asset object key".into()))
+        .ok_or_else(|| Error::InvalidInput("invalid profile asset object key".into()))
 }
 
 #[derive(Clone)]
@@ -159,7 +159,8 @@ impl AccountSpaceCtx {
             .get("/account/space")
             .send()
             .await?
-            .error_for_status()?
+            .error_for_status()
+            .map_err(map_session_error)?
             .json()
             .await?;
         *cache_lock(&self.owned_spaces_cache, "owned spaces")? = Some(spaces.clone());
@@ -180,7 +181,7 @@ impl AccountSpaceCtx {
 
     pub(crate) fn decrypt_space_identity(&self, space: &SpaceKeyResponse) -> Result<SpaceIdentity> {
         if space.public_key.trim().is_empty() || space.encrypted_secret_key.trim().is_empty() {
-            return Err(SpaceError::MissingSecretKey);
+            return Err(Error::MissingSecretKey);
         }
         let public_key = b64::decode(&space.public_key)?;
         let encrypted_secret_key = b64::decode(&space.encrypted_secret_key)?;
@@ -194,7 +195,7 @@ impl AccountSpaceCtx {
     pub(crate) async fn space_identity_for(&self, space_id: &str) -> Result<SpaceIdentity> {
         let space_id = space_id.trim();
         if space_id.is_empty() {
-            return Err(SpaceError::InvalidInput("space id is required".into()));
+            return Err(Error::InvalidInput("space id is required".into()));
         }
         if let Some(value) = cache_lock(&self.space_identity_cache, "space identity")?
             .get(space_id)
@@ -208,7 +209,7 @@ impl AccountSpaceCtx {
             .into_iter()
             .find(|value| value.space_id == space_id)
             .ok_or_else(|| {
-                SpaceError::InvalidInput(format!("space {space_id} is not owned by the account"))
+                Error::InvalidInput(format!("space {space_id} is not owned by the account"))
             })?;
         let identity = self.decrypt_space_identity(&space)?;
         cache_lock(&self.space_identity_cache, "space identity")?
@@ -224,7 +225,7 @@ impl AccountSpaceCtx {
         let identity = self.space_identity_for(space_id).await?;
         let ciphertext = b64::decode(&share.friend_sealed_space_key)?;
         if ciphertext.is_empty() {
-            return Err(SpaceError::MissingFriendSealedSpaceKey);
+            return Err(Error::MissingFriendSealedSpaceKey);
         }
         let space_key = open_with_keypair(&ciphertext, &identity.public_key, &identity.secret_key)?;
         Ok(DecryptedFriendShare {
@@ -243,10 +244,10 @@ impl AccountSpaceCtx {
         let space_root_key = self
             .get_space_root_key()
             .await?
-            .ok_or_else(|| SpaceError::InvalidInput("space root key is missing".into()))?;
+            .ok_or_else(|| Error::InvalidInput("space root key is missing".into()))?;
         let space_id = space_id.trim();
         if space_id.is_empty() {
-            return Err(SpaceError::InvalidInput("space id is required".into()));
+            return Err(Error::InvalidInput("space id is required".into()));
         }
         let space = self
             .list_owned_spaces()
@@ -254,7 +255,7 @@ impl AccountSpaceCtx {
             .into_iter()
             .find(|value| value.space_id == space_id)
             .ok_or_else(|| {
-                SpaceError::InvalidInput(format!("space {space_id} is not owned by the account"))
+                Error::InvalidInput(format!("space {space_id} is not owned by the account"))
             })?;
         let packed = b64::decode(&space.root_wrapped_space_key)?;
         let space_key = decrypt_secretbox_payload(&space_root_key, &packed)?;
@@ -334,7 +335,8 @@ impl AccountSpaceCtx {
             .send()
             .await?
             .error_for_code()
-            .await?
+            .await
+            .map_err(map_create_space_error)?
             .json::<SpaceKeyResponse>()
             .await?;
         self.cache_created_owned_space(SpaceKeyResponse {
@@ -391,7 +393,8 @@ impl AccountSpaceCtx {
             .send()
             .await?
             .error_for_code()
-            .await?
+            .await
+            .map_err(map_space_slug_error)?
             .json()
             .await?;
         self.clear_owned_space_cache()?;
@@ -553,7 +556,7 @@ impl AccountSpaceCtx {
         self.resolve_owned_space_access(space_id)
             .await?
             .ok_or_else(|| {
-                SpaceError::InvalidInput(format!("space {space_id} is not owned by the account"))
+                Error::InvalidInput(format!("space {space_id} is not owned by the account"))
             })
     }
 
@@ -572,7 +575,7 @@ impl AccountSpaceCtx {
     ) -> Result<Vec<DecryptedFriendShare>> {
         let space_id = space_id.trim();
         if space_id.is_empty() {
-            return Err(SpaceError::InvalidInput("space id is required".into()));
+            return Err(Error::InvalidInput("space id is required".into()));
         }
         if let Some(value) = cache_lock(&self.friend_shares_cache, "friend shares")?
             .get(space_id)
@@ -647,7 +650,7 @@ impl AccountSpaceCtx {
 
 fn ensure_space_upload_size(purpose: &str, encrypted_size: usize, max_bytes: usize) -> Result<()> {
     if encrypted_size == 0 || encrypted_size > max_bytes {
-        return Err(SpaceError::InvalidInput(format!(
+        return Err(Error::InvalidInput(format!(
             "{purpose} upload size must be between 1 and {max_bytes} bytes"
         )));
     }
@@ -656,7 +659,7 @@ fn ensure_space_upload_size(purpose: &str, encrypted_size: usize, max_bytes: usi
 
 fn encrypt_post_object_metadata(post_key: &[u8], metadata: &PostObjectMetadata) -> Result<String> {
     let plaintext = serde_json::to_vec(metadata)
-        .map_err(|err| SpaceError::InvalidInput(format!("invalid post object metadata: {err}")))?;
+        .map_err(|err| Error::InvalidInput(format!("invalid post object metadata: {err}")))?;
     Ok(b64::encode(&encrypt_secretbox_payload(
         post_key, &plaintext,
     )?))
@@ -672,15 +675,15 @@ pub fn decrypt_post_object_metadata(
     let plaintext = decrypt_secretbox_payload(post_key, &b64::decode(cipher)?)?;
     serde_json::from_slice(&plaintext)
         .map(Some)
-        .map_err(|err| SpaceError::InvalidInput(format!("invalid post object metadata: {err}")))
+        .map_err(|err| Error::InvalidInput(format!("invalid post object metadata: {err}")))
 }
 
 fn ensure_post_objects_are_photos(objects: &[PostObjectPayload], post_key: &[u8]) -> Result<()> {
     for object in objects {
         let metadata = decrypt_post_object_metadata(post_key, object)?
-            .ok_or_else(|| SpaceError::InvalidInput("post object metadata is required".into()))?;
+            .ok_or_else(|| Error::InvalidInput("post object metadata is required".into()))?;
         if ensure_supported_photo_media_type(metadata.media_type.as_deref())?.is_none() {
-            return Err(SpaceError::InvalidInput(ONLY_PHOTOS_UPLOAD_MESSAGE.into()));
+            return Err(Error::InvalidInput(ONLY_PHOTOS_UPLOAD_MESSAGE.into()));
         }
     }
     Ok(())
@@ -688,17 +691,17 @@ fn ensure_post_objects_are_photos(objects: &[PostObjectPayload], post_key: &[u8]
 
 fn validate_message_payload(payload: &MessagePayload, plaintext_len: usize) -> Result<()> {
     if payload.text.chars().count() > MAX_SPACE_MESSAGE_TEXT_CHARS {
-        return Err(SpaceError::InvalidInput(format!(
+        return Err(Error::InvalidInput(format!(
             "message text must be {MAX_SPACE_MESSAGE_TEXT_CHARS} characters or fewer"
         )));
     }
     if payload.text.len() > MAX_SPACE_MESSAGE_TEXT_BYTES {
-        return Err(SpaceError::InvalidInput(format!(
+        return Err(Error::InvalidInput(format!(
             "message text must be {MAX_SPACE_MESSAGE_TEXT_BYTES} bytes or fewer"
         )));
     }
     if plaintext_len > MAX_SPACE_MESSAGE_PAYLOAD_BYTES {
-        return Err(SpaceError::InvalidInput(format!(
+        return Err(Error::InvalidInput(format!(
             "message payload must be {MAX_SPACE_MESSAGE_PAYLOAD_BYTES} bytes or fewer"
         )));
     }
@@ -743,7 +746,37 @@ pub(super) fn build_api(
 fn cache_lock<'a, T>(cache: &'a Mutex<T>, name: &str) -> Result<MutexGuard<'a, T>> {
     cache
         .lock()
-        .map_err(|_| SpaceError::InvalidInput(format!("{name} cache poisoned")))
+        .map_err(|_| Error::InvalidInput(format!("{name} cache poisoned")))
+}
+
+fn map_account_error(error: http::Error) -> Error {
+    match error.status_code() {
+        Some(403) => Error::PermissionDenied,
+        _ => map_session_error(error),
+    }
+}
+
+fn map_session_error(error: http::Error) -> Error {
+    match error.status_code() {
+        Some(401) => Error::SessionUnauthorized,
+        _ => error.into(),
+    }
+}
+
+fn map_create_space_error(error: http::Error) -> Error {
+    match &error {
+        http::Error::Api { code, .. } if code == "CONFLICT" => Error::SpaceLimitReached,
+        _ => map_space_slug_error(error),
+    }
+}
+
+fn map_space_slug_error(error: http::Error) -> Error {
+    match &error {
+        http::Error::Api { code, .. } if code == "ALREADY_EXISTS" => Error::SpaceSlugAlreadyExists,
+        http::Error::Api { code, .. } if code == "SPACE_SLUG_RESERVED" => Error::SpaceSlugReserved,
+        http::Error::Api { code, .. } if code == "BAD_REQUEST" => Error::InvalidSpaceSlug,
+        _ => map_account_error(error),
+    }
 }
 
 pub(super) fn decrypt_space_profile(

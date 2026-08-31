@@ -1,6 +1,4 @@
 import "package:logging/logging.dart";
-import "package:path/path.dart";
-import "package:path_provider/path_provider.dart";
 import "package:photos/db/common/base.dart";
 import "package:photos/module/download/task.dart";
 import "package:sqlite_async/sqlite_async.dart";
@@ -50,21 +48,13 @@ class GalleryDownloadsDB with SqlDbBase {
   static final GalleryDownloadsDB instance =
       GalleryDownloadsDB._privateConstructor();
 
-  static Future<SqliteDatabase>? _sqliteAsyncDBFuture;
-
-  Future<SqliteDatabase> get sqliteAsyncDB async {
-    _sqliteAsyncDBFuture ??= _initSqliteAsyncDatabase();
-    return _sqliteAsyncDBFuture!;
-  }
-
-  Future<SqliteDatabase> _initSqliteAsyncDatabase() async {
-    final documentsDirectory = await getApplicationDocumentsDirectory();
-    final path = join(documentsDirectory.path, _databaseName);
-    _logger.info("DB path $path");
-    final database = SqliteDatabase(path: path);
-    await migrate(database, _migrationScripts);
-    return database;
-  }
+  Future<SqliteDatabase> get sqliteAsyncDB => getOrOpenDatabase(
+    () => openMigratedDatabase(
+      _databaseName,
+      _migrationScripts,
+      logPath: (path) => _logger.info("DB path $path"),
+    ),
+  );
 
   Future<void> upsertTask(DownloadTask task) async {
     final db = await sqliteAsyncDB;

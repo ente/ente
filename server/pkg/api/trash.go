@@ -40,7 +40,7 @@ func (t *TrashHandler) Delete(c *gin.Context) {
 		return
 	}
 	request.OwnerID = userID
-	err := t.Controller.Delete(c, request)
+	err := t.Controller.Delete(c.Request.Context(), request)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return

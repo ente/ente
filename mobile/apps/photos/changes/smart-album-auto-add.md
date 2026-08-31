@@ -1,0 +1,1 @@
+- Fixed smart albums not automatically adding newly recognized people.

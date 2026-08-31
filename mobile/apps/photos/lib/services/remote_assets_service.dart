@@ -31,9 +31,13 @@ class RemoteAssetsService {
     String remotePath, {
     bool refetch = false,
     String? expectedSha256,
+    String? cacheFileName,
   }) async {
     return _lockFor(remotePath).synchronized(() async {
-      final path = await _getLocalPath(remotePath);
+      final path = await _getLocalPath(
+        remotePath,
+        cacheFileName: cacheFileName,
+      );
       final file = File(path);
       if (await file.exists() && !refetch) {
         _logger.info("Returning cached file for $remotePath");
@@ -117,10 +121,13 @@ class RemoteAssetsService {
     });
   }
 
-  Future<String> _getLocalPath(String remotePath) async {
+  Future<String> _getLocalPath(
+    String remotePath, {
+    String? cacheFileName,
+  }) async {
     return (await getApplicationSupportDirectory()).path +
         "/assets/" +
-        _urlToFileName(remotePath);
+        (cacheFileName ?? _urlToFileName(remotePath));
   }
 
   String _urlToFileName(String url) {

@@ -9,15 +9,9 @@ const String sentryDSN =
 final Uri githubFeatureRequestUri = Uri.https(
   "github.com",
   "/ente/ente/discussions/categories/enhancements",
-  {"discussions_q": "is:open label:\"- auth\" sort:top"},
+  {"discussions_q": "is:open label:\"auth\" sort:top"},
 );
 const int microSecondsInDay = 86400000000;
-const int android11SDKINT = 30;
-const int galleryLoadStartTime = -8000000000000000; // Wednesday, March 6, 1748
-const int galleryLoadEndTime = 9223372036854775807; // 2^63 -1
-
-// todo: 6Jun22: delete old media identifier after 3 months
-const String oldSharedMediaIdentifier = 'ente-shared://';
 const String sharedMediaIdentifier = 'ente-shared-media://';
 
 const int maxLivePhotoToastCount = 2;
@@ -29,8 +23,6 @@ const thumbnailServerLoadDeferDuration = Duration(milliseconds: 80);
 // 256 bit key maps to 24 words
 // https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki#Generating_the_mnemonic
 const mnemonicKeyWordCount = 24;
-
-const dragSensitivity = 8;
 
 class FFDefault {
   static const bool enableStripe = true;

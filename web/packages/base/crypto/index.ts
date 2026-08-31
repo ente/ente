@@ -244,11 +244,6 @@ export const deriveKey = (
               w.deriveKey(passphrase, salt, opsLimit, memLimit),
           );
 
-export const deriveSensitiveKey = (passphrase: string): Promise<DerivedKey> =>
-    inWorker()
-        ? libsodium.deriveSensitiveKey(passphrase)
-        : sharedWorker().then((w) => w.deriveSensitiveKey(passphrase));
-
 export const deriveInteractiveKey = (
     passphrase: string,
 ): Promise<DerivedKey> =>

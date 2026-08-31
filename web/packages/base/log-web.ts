@@ -1,6 +1,7 @@
 import { buildEnvGitSHA, isDevBuild } from "ente-base/env";
 import log, { attachRustLogHook } from "ente-base/log";
 import { appName, appNames } from "./app";
+import { isNamedError } from "./error";
 
 export const logStartupBanner = (userID?: number) => {
     // appName is an unchecked build-time value.
@@ -79,7 +80,7 @@ export const logToDisk = (message: string) => {
         localStorage.setItem(lsKey, JSON.stringify({ logs }));
     } catch (e) {
         console.error("Failed to persist log", e);
-        if (e instanceof Error && e.name == "QuotaExceededError") {
+        if (isNamedError(e, "QuotaExceededError")) {
             localStorage.removeItem(lsKey);
         }
     }

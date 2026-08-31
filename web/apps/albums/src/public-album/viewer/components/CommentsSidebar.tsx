@@ -9,7 +9,7 @@ import {
     deletePublicReaction,
     getStoredAnonIdentity,
 } from "@/public-album/social/api/public-reaction";
-import { useBrowserBackClose } from "@/shared/hooks/useBrowserBackClose";
+import { useBrowserBackClose } from "@/shared/hooks/use-browser-back-close";
 import CloseIcon from "@mui/icons-material/Close";
 import {
     Avatar,

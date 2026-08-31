@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
-import { SpaceBackIcon } from "components/SpaceBackIcon";
+import { SpaceBackIcon } from "components/BackIcon";
 import React, { useState } from "react";
-import { spaceTouchTargetSize } from "styles/touchTargets";
+import { spaceTouchTargetSize } from "styles/touch-targets";
 
 export const setupProfileBackground = "#FAFAFA";
 

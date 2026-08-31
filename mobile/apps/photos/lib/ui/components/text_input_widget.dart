@@ -425,7 +425,7 @@ class _TextInputWidgetState extends State<TextInputWidget> {
   }
 }
 
-//todo: Add clear and custom icon for suffic icon
+// TODO: Add clear and custom suffix icons.
 class SuffixIconWidget extends StatelessWidget {
   final ExecutionState executionState;
   final bool shouldSurfaceExecutionStates;

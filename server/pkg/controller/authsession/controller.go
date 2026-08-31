@@ -13,8 +13,8 @@ type cacheEntry struct {
 	revoked bool
 }
 
-func Authenticate(repo *repo.UserAuthRepository, authCache *cache.Cache, token string, app ente.App) (userID int64, expired, cached bool, err error) {
-	cacheKey := tokenCacheKey(app, token)
+func Authenticate(repo *repo.UserAuthRepository, authCache *cache.Cache, tokenHash []byte, app ente.App) (userID int64, expired, cached bool, err error) {
+	cacheKey := tokenCacheKey(app, tokenHash)
 	for {
 		if value, ok := authCache.Get(cacheKey); ok {
 			entry := value.(cacheEntry)
@@ -24,7 +24,7 @@ func Authenticate(repo *repo.UserAuthRepository, authCache *cache.Cache, token s
 			return entry.userID, false, true, nil
 		}
 
-		userID, expired, err = repo.GetUserIDWithToken(token, app)
+		userID, expired, err = repo.GetUserIDWithTokenHash(tokenHash, app)
 		if err != nil || expired {
 			return
 		}
@@ -36,10 +36,10 @@ func Authenticate(repo *repo.UserAuthRepository, authCache *cache.Cache, token s
 
 func MarkRevoked(authCache *cache.Cache, tokens []repo.RevokedToken) {
 	for _, token := range tokens {
-		authCache.Set(tokenCacheKey(token.App, token.Token), cacheEntry{revoked: true}, cache.DefaultExpiration)
+		authCache.Set(tokenCacheKey(token.App, token.TokenHash), cacheEntry{revoked: true}, cache.DefaultExpiration)
 	}
 }
 
-func tokenCacheKey(app ente.App, token string) string {
-	return string(app) + ":" + token
+func tokenCacheKey(app ente.App, tokenHash []byte) string {
+	return string(app) + ":" + string(tokenHash)
 }

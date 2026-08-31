@@ -50,27 +50,6 @@ const parseInitData = (data: unknown) => {
 
 type MLNative = typeof MLNativeModule;
 
-type MLWorkerAnalyzeImageErrorKind = "init" | "ort" | "image" | "misc";
-
-interface MLWorkerAnalyzeImageError {
-    kind: MLWorkerAnalyzeImageErrorKind;
-    message: string;
-}
-
-type MLWorkerAnalyzeImageResponse =
-    | { ok: true; result: MLNativeModule.AnalyzeImageResult }
-    | { ok: false; error: MLWorkerAnalyzeImageError };
-
-class CategorizedMLWorkerError extends Error {
-    constructor(
-        public readonly kind: MLWorkerAnalyzeImageErrorKind,
-        message: string,
-    ) {
-        super(message);
-        this.name = "CategorizedMLWorkerError";
-    }
-}
-
 let _native: MLNative | undefined;
 let _assetStore: MLNativeModule.AssetStore | undefined;
 let _nativeLoadError: string | undefined;
@@ -111,18 +90,20 @@ const logRustEntry = (level: string, target: string, message: string) => {
 
 const mlNative = () => {
     if (_native) return _native;
-    throw new CategorizedMLWorkerError(
-        "init",
-        `ML is unavailable: ${_nativeLoadError ?? "not loaded"}`,
-    );
+    throw mlInitError(`ML is unavailable: ${_nativeLoadError ?? "not loaded"}`);
 };
 
 const assetStore = () => {
     if (_assetStore) return _assetStore;
-    throw new CategorizedMLWorkerError(
-        "init",
+    throw mlInitError(
         `ML is unavailable: ${_nativeLoadError ?? "asset store not loaded"}`,
     );
+};
+
+const mlInitError = (message: string) => {
+    const error = new Error(message);
+    error.name = "ml_init";
+    return error;
 };
 
 const _indexingModelPaths = new Map<
@@ -177,52 +158,15 @@ export interface MLWorkerAnalyzeImageRequest {
     generateFaceCrops: boolean;
 }
 
-export const analyzeImage = async (
-    req: MLWorkerAnalyzeImageRequest,
-): Promise<MLWorkerAnalyzeImageResponse> => {
-    try {
-        return { ok: true, result: await analyzeImageOrThrow(req) };
-    } catch (e) {
-        return { ok: false, error: categorizeAnalyzeImageError(e) };
-    }
-};
-
-const analyzeImageOrThrow = async (req: MLWorkerAnalyzeImageRequest) => {
+export const analyzeImage = async (req: MLWorkerAnalyzeImageRequest) => {
     const native = mlNative();
-    return analyzeImageOnce(native, req);
-};
-
-// A corrupt on-disk model will fail every retry, so report an init failure that
-// suspends indexing until restart.
-const categorizeAnalyzeImageError = (e: unknown): MLWorkerAnalyzeImageError => {
-    if (e instanceof CategorizedMLWorkerError) {
-        return { kind: e.kind, message: e.message };
-    }
-
-    const message = e instanceof Error ? e.message : String(e);
-    const kind: MLWorkerAnalyzeImageErrorKind = message.startsWith(
-        "CorruptModel: ",
-    )
-        ? "init"
-        : message.startsWith("Decode: ") || message.startsWith("Image: ")
-          ? "image"
-          : message.startsWith("Ort: ") || message.startsWith("Runtime: ")
-            ? "ort"
-            : "misc";
-    return { kind, message };
-};
-
-const analyzeImageOnce = async (
-    native: MLNative,
-    req: MLWorkerAnalyzeImageRequest,
-) => {
     const modelPaths = await indexingModelPaths(
         req.runFaces,
         req.runClip,
         req.runPets,
     );
     ensureMLRuntime(native, modelPaths);
-    return await native.analyzeImage({
+    return native.analyzeImage({
         fileId: req.fileID,
         imageBytes: uint8ArrayToBuffer(req.bytes),
         runFaces: req.runFaces,

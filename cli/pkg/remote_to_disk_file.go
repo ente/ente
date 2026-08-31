@@ -20,7 +20,7 @@ import (
 func (c *ClICtrl) syncFiles(ctx context.Context, account model.Account) error {
 	log.Printf("Starting file download")
 	exportRoot := account.ExportDir
-	_, albumIDToMetaMap, err := readFolderMetadata(exportRoot)
+	albumIDToMetaMap, err := readFolderMetadata(exportRoot)
 	if err != nil {
 		return err
 	}

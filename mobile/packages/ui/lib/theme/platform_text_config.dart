@@ -44,8 +44,7 @@ class PlatformTextConfig {
   }
 
   static MediaQueryData adjustMediaQueryTextScaling(MediaQueryData data) {
-    // Clamp text scaling between 0.8 and 1.3 to prevent extreme scaling
-    // that can break UI layouts
+    // Avoid layout breakage at extreme text scales.
     final textScaleFactor =
         (data.textScaler.scale(1.0) * getPlatformFontScaleFactor()).clamp(
           0.8,

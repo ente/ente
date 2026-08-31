@@ -80,15 +80,7 @@ export const App: React.FC = () => {
             const userResult = await getUser(
                 { token: authToken },
                 userSearchInput,
-            ).catch((error: unknown) => {
-                if (
-                    error instanceof Error &&
-                    error.message === "User not found"
-                ) {
-                    return undefined;
-                }
-                throw error;
-            });
+            );
             if (requestID !== searchRequestID.current) return;
             if (userResult) {
                 const userDetailsData = buildUserDetailsData(

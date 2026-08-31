@@ -31,12 +31,6 @@ class ProcessLockState {
       'heldFor: ${heldFor.inMilliseconds}ms)';
 }
 
-/// Client for the process-global, engine-owned named locks.
-///
-/// At most one Flutter engine holds a given name at a time. Acquisition is
-/// idempotent for the engine that already holds the name; locks are released
-/// automatically when the owning engine detaches, and all state dies with
-/// the OS process.
 class ProcessLockClient {
   ProcessLockClient({MethodChannel? methodChannel})
     : _methodChannel = methodChannel ?? const MethodChannel(_methodChannelName);
@@ -46,8 +40,6 @@ class ProcessLockClient {
 
   final MethodChannel _methodChannel;
 
-  /// Attempts to acquire [name] for this engine. Returns false when another
-  /// engine holds the lock. [origin] and [operation] are diagnostic labels.
   Future<bool> tryAcquire({
     required String name,
     required String origin,

@@ -8,6 +8,12 @@ import (
 	"github.com/ente/museum/internal/testutil"
 )
 
+func TestInsertOrUpdatePreviewDataRequiresObjectID(t *testing.T) {
+	if err := (&Repository{}).InsertOrUpdatePreviewData(t.Context(), enteFileData.Row{}, ""); err == nil {
+		t.Fatal("InsertOrUpdatePreviewData() error = nil")
+	}
+}
+
 func TestDeleteFileData(t *testing.T) {
 	testutil.WithServerRoot(t)
 

@@ -1,16 +1,26 @@
 import { Input, TextField } from "@mui/material";
 import { decryptBox, deriveKey } from "ente-accounts/services/crypto";
-import {
-    srpVerificationUnauthorizedErrorMessage,
-    type SRPAttributes,
-} from "ente-accounts/services/srp";
+import type { SRPAttributes } from "ente-accounts/services/srp";
 import type { KeyAttributes } from "ente-accounts/services/user";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { useFormik } from "formik";
 import { t } from "i18next";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ComponentType } from "react";
+
+export interface VerifyMasterPasswordPresentationProps {
+    userEmail: string;
+    password: string;
+    passwordError: string | undefined;
+    isSubmitting: boolean;
+    submitButtonTitle: string;
+    onPasswordChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onSubmit: React.SubmitEventHandler<HTMLFormElement>;
+}
 
 export interface VerifyMasterPasswordFormProps {
     userEmail: string;
@@ -27,6 +37,7 @@ export interface VerifyMasterPasswordFormProps {
         keyAttributes: KeyAttributes,
         password: string,
     ) => void;
+    presentation?: ComponentType<VerifyMasterPasswordPresentationProps>;
 }
 
 export const VerifyMasterPasswordForm: React.FC<
@@ -38,6 +49,7 @@ export const VerifyMasterPasswordForm: React.FC<
     getKeyAttributes,
     onVerify,
     submitButtonTitle,
+    presentation: Presentation,
 }) => {
     const [showPassword, setShowPassword] = useState(false);
 
@@ -108,10 +120,7 @@ export const VerifyMasterPasswordForm: React.FC<
                     keyAttributes = result;
                 }
             } catch (e) {
-                if (
-                    e instanceof Error &&
-                    e.message == srpVerificationUnauthorizedErrorMessage
-                ) {
+                if (isNamedError(e, "srp_verification_unauthorized")) {
                     log.error("Incorrect password or no account", e);
                     setFieldError(t("incorrect_password_or_no_account"));
                     return;
@@ -138,6 +147,20 @@ export const VerifyMasterPasswordForm: React.FC<
 
         onVerify(key, kek, keyAttributes, password);
     };
+
+    if (Presentation) {
+        return (
+            <Presentation
+                userEmail={userEmail}
+                password={formik.values.password}
+                passwordError={formik.errors.password}
+                isSubmitting={formik.isSubmitting}
+                submitButtonTitle={submitButtonTitle}
+                onPasswordChange={formik.handleChange}
+                onSubmit={formik.handleSubmit}
+            />
+        );
+    }
 
     return (
         <form onSubmit={formik.handleSubmit}>

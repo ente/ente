@@ -1,0 +1,1 @@
+- Fixed downloading images without file extensions

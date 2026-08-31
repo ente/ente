@@ -17,25 +17,20 @@ struct StatusView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // White background
                 Color.white
                     .ignoresSafeArea()
                 
-                // Main content
                 VStack(spacing: 24) {
                     Spacer()
                     
-                    // Status icon - clean display without backgrounds
                     StatusIcon(status: status)
                         .padding(.bottom, 16)
                     
-                    // Title
                     Text(title)
                         .font(FontUtils.interSemiBold(size: 42))
                         .foregroundColor(.black)
                         .multilineTextAlignment(.center)
                     
-                    // Message (if not empty)
                     if !message.isEmpty {
                         Text(message)
                             .font(FontUtils.interRegular(size: 20))
@@ -49,7 +44,6 @@ struct StatusView: View {
                 .frame(maxWidth: 900)
                 .frame(maxWidth: .infinity)
                 
-                // Ente branding in top right corner
                 VStack {
                     HStack {
                         Spacer()
@@ -94,7 +88,6 @@ struct StatusIcon: View {
     let status: StatusView.StatusType
     
     var body: some View {
-        // Simple icon display without any backgrounds or effects
         iconView
             .frame(width: 400, height: 240)
     }

@@ -186,9 +186,9 @@ func (c *FileController) prepareOutdatedObjectForDeletion(qItem repo.QueueItem) 
 		ctxLogger.WithError(err).Error("Failed to begin transaction for delayed outdated object enqueue")
 		return
 	}
+	defer tx.Rollback()
 	err = c.QueueRepo.AddItems(context.Background(), tx, repo.DeleteOutdatedObjectQueue, []string{qItem.Item})
 	if err != nil {
-		tx.Rollback()
 		ctxLogger.WithError(err).Error("Failed to enqueue outdated object for delayed deletion")
 		return
 	}

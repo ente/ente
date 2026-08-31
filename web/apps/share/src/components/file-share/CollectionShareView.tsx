@@ -10,7 +10,7 @@ import { Notification } from "ente-base/components/Notification";
 import { SingleInputForm } from "ente-base/components/SingleInputForm";
 import { t } from "i18next";
 import React from "react";
-import { useCollectionShare } from "../../hooks/useCollectionShare";
+import { useCollectionShare } from "../../hooks/use-collection-share";
 import type { SharedCollectionItemInfo } from "../../services/collection-share";
 import { formatFileSize } from "../../services/file-share";
 import { getLockerFileIcon } from "../../utils/file-type";

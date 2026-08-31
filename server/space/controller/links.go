@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	SpaceLinkAuthHeader   = "X-Ente-Space-Link-Auth"
+	SpaceLinkAuthHeader   = "X-Space-Link-Auth"
 	spaceLinkAuthKeyBytes = 32
 	spaceLinkKDFSaltBytes = 16
 	spaceLinkKDFMemLimit  = 67_108_864

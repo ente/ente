@@ -24,6 +24,12 @@ pub(crate) use tensor::{
 
 use providers::{ExecutionProvider, ProviderPlan};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AccelerationValidation {
+    GoldenRequired,
+    Unvalidated,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ProviderUsage {
     pub(crate) coreml: bool,
@@ -48,23 +54,43 @@ impl ProviderUsage {
 
 #[derive(Debug)]
 pub(crate) struct OnnxSession {
+    model_path: String,
+    model_namespace: String,
     mode: ExecutionMode,
+    validation: AccelerationValidation,
     provider_plan: Option<ProviderPlan>,
     session: Option<Session>,
+    first_run_canary: Option<webgpu::ArmedCanary>,
 }
 
 impl OnnxSession {
-    pub(crate) fn new(mode: ExecutionMode) -> Self {
+    pub(crate) fn new(model_path: &str, model_namespace: &str, mode: ExecutionMode) -> Self {
         Self {
+            model_path: model_path.to_string(),
+            model_namespace: model_namespace.to_string(),
             mode,
+            validation: AccelerationValidation::GoldenRequired,
             provider_plan: None,
             session: None,
+            first_run_canary: None,
         }
     }
 
-    pub(crate) fn clear(&mut self) {
+    /// Only for models whose output is not indexed and so cannot
+    /// silently poison stored data.
+    pub(crate) fn with_unvalidated_acceleration(mut self) -> Self {
+        self.validation = AccelerationValidation::Unvalidated;
+        self
+    }
+
+    pub(crate) fn model_path(&self) -> &str {
+        &self.model_path
+    }
+
+    pub(crate) fn unload(&mut self) {
         self.provider_plan = None;
         self.session = None;
+        self.leave_first_run_canary_armed();
     }
 
     #[cfg(test)]
@@ -72,14 +98,26 @@ impl OnnxSession {
         self.session.is_some()
     }
 
+    #[cfg(test)]
+    pub(crate) fn has_load_state(&self) -> bool {
+        self.provider_plan.is_some() || self.session.is_some() || self.first_run_canary.is_some()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn initialize_load_state(&mut self) {
+        self.provider_plan = Some(ProviderPlan::new(
+            self.mode,
+            &self.model_path,
+            self.validation,
+        ));
+    }
+
     pub(crate) fn run<T>(
         &mut self,
-        model_path: &str,
-        model_namespace: &str,
         mut operation: impl FnMut(&mut Session) -> SessionRunResult<T>,
     ) -> MlResult<(T, ProviderUsage)> {
         loop {
-            self.ensure_loaded(model_path, model_namespace)?;
+            self.ensure_loaded()?;
 
             let execution_provider = self
                 .provider_plan
@@ -92,9 +130,15 @@ impl OnnxSession {
                 .expect("session must be loaded before model execution");
             match operation(session) {
                 Ok(value) => {
+                    self.disarm_first_run_canary();
                     return Ok((value, ProviderUsage::from_provider(execution_provider)));
                 }
                 Err(error) => {
+                    if error.is_retryable() {
+                        self.leave_first_run_canary_armed();
+                    } else {
+                        self.disarm_first_run_canary();
+                    }
                     if self.retry_after_provider_failure(&error) {
                         continue;
                     }
@@ -104,18 +148,21 @@ impl OnnxSession {
         }
     }
 
-    fn ensure_loaded(&mut self, model_path: &str, model_namespace: &str) -> MlResult<()> {
+    fn ensure_loaded(&mut self) -> MlResult<()> {
         if self.session.is_some() {
             return Ok(());
         }
 
+        let model_path = self.model_path.as_str();
+        let model_namespace = self.model_namespace.as_str();
         let provider_plan = self
             .provider_plan
-            .get_or_insert_with(|| ProviderPlan::new(self.mode, model_path));
+            .get_or_insert_with(|| ProviderPlan::new(self.mode, model_path, self.validation));
         let model_name = model_file_label(model_path);
         log::info!("loading {model_name} with {:?} execution", self.mode);
         let started_at = std::time::Instant::now();
-        let session = build_next_session(model_path, provider_plan, model_namespace)?;
+        let loaded =
+            build_next_session(model_path, provider_plan, model_namespace, self.validation)?;
         let execution_provider = provider_plan
             .selected_provider()
             .expect("successful session build must select an execution provider");
@@ -123,8 +170,19 @@ impl OnnxSession {
             "loaded {model_name} with {execution_provider:?} in {:?}",
             started_at.elapsed()
         );
-        self.session = Some(session);
+        self.session = Some(loaded.session);
+        self.first_run_canary = loaded.first_run_canary;
         Ok(())
+    }
+
+    fn disarm_first_run_canary(&mut self) {
+        if let Some(canary) = self.first_run_canary.take() {
+            canary.disarm();
+        }
+    }
+
+    fn leave_first_run_canary_armed(&mut self) {
+        self.first_run_canary = None;
     }
 
     fn retry_after_provider_failure(&mut self, error: &SessionRunError) -> bool {
@@ -145,6 +203,20 @@ impl OnnxSession {
     }
 }
 
+struct LoadedSession {
+    session: Session,
+    first_run_canary: Option<webgpu::ArmedCanary>,
+}
+
+impl LoadedSession {
+    fn new(session: Session) -> Self {
+        Self {
+            session,
+            first_run_canary: None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) enum SessionRunError {
     Retryable(MlError),
@@ -156,6 +228,15 @@ pub(crate) type SessionRunResult<T> = Result<T, SessionRunError>;
 impl SessionRunError {
     fn retryable(error: MlError) -> Self {
         Self::Retryable(error)
+    }
+
+    fn from_inference_error(error: ort::Error) -> Self {
+        match error.code() {
+            ort::ErrorCode::GenericFailure
+            | ort::ErrorCode::RuntimeException
+            | ort::ErrorCode::ExecutionProviderFailure => Self::Retryable(error.into()),
+            _ => Self::Terminal(error.into()),
+        }
     }
 
     fn is_retryable(&self) -> bool {
@@ -191,12 +272,14 @@ impl From<SessionRunError> for MlError {
 
 impl<R> From<ort::Error<R>> for SessionRunError {
     fn from(error: ort::Error<R>) -> Self {
-        let error = MlError::Ort(error.to_string());
-        if is_execution_provider_run_failure(&error) {
-            Self::Retryable(error)
-        } else {
-            Self::Terminal(error)
-        }
+        Self::Terminal(error.into())
+    }
+}
+
+fn session_load_error<R>(model_path: &str, error: ort::Error<R>) -> MlError {
+    match error.code() {
+        ort::ErrorCode::InvalidProtobuf => MlError::CorruptModel(model_path.to_string()),
+        _ => error.into(),
     }
 }
 
@@ -204,26 +287,31 @@ fn build_next_session(
     model_path: &str,
     plan: &mut ProviderPlan,
     model_namespace: &str,
-) -> MlResult<Session> {
+    validation: AccelerationValidation,
+) -> MlResult<LoadedSession> {
     let result = providers::run_provider_plan(plan, |execution_provider| {
         let attempt = providers::provider_attempt(execution_provider, model_path, model_namespace);
-        if attempt.uses_webgpu() {
+        if attempt.execution_provider() == ExecutionProvider::WebGpu {
             #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
             {
-                return build_webgpu_session_with_canary(model_path, model_namespace, attempt)
-                    .map_err(|error| format!("{error}"));
+                return build_webgpu_session_with_canary(
+                    model_path,
+                    model_namespace,
+                    attempt,
+                    validation,
+                );
             }
             #[cfg(not(any(target_os = "android", target_os = "linux", target_os = "windows")))]
             unreachable!("WebGPU provider attempts are not constructed on this platform");
         }
 
         let coreml_cache_dir = attempt.coreml_cache_dir().map(Path::to_path_buf);
-        match build_and_validate_session(model_path, attempt) {
+        match build_and_validate_session(model_path, attempt, validation) {
             Ok(session) => {
                 if let Some(cache_dir) = coreml_cache_dir {
                     coreml_cache::finalize(&cache_dir, model_path);
                 }
-                Ok(session)
+                Ok(LoadedSession::new(session))
             }
             Err(error) => {
                 if let Some(cache_dir) = coreml_cache_dir
@@ -234,7 +322,7 @@ fn build_next_session(
                         model_file_label(model_path)
                     );
                 }
-                Err(format!("{error}"))
+                Err(error)
             }
         }
     });
@@ -244,36 +332,36 @@ fn build_next_session(
         Err(errors) => errors,
     };
 
-    if has_protobuf_parse_failure(&errors) {
+    if errors
+        .iter()
+        .any(|error| matches!(error, MlError::CorruptModel(_)))
+    {
         return Err(MlError::CorruptModel(model_path.to_string()));
     }
 
     Err(MlError::Ort(format!(
         "failed to create ONNX session for model '{model_path}' across EP fallbacks: {}",
-        errors.join(" | ")
+        errors
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(" | ")
     )))
 }
 
 fn build_cpu_session(model_path: &str) -> MlResult<Session> {
-    let mut plan = ProviderPlan::new(ExecutionMode::CpuOnly, model_path);
-    build_next_session(model_path, &mut plan, "golden-tooling")
-}
-
-fn is_execution_provider_run_failure(error: &MlError) -> bool {
-    let MlError::Ort(message) = error else {
-        return false;
-    };
-    let normalized = message.to_ascii_lowercase();
-    normalized.contains("executionprovider")
-        || normalized.contains("unknown allocation device")
-        || normalized.contains("xnnpackexecutionprovider")
-        || normalized.contains("coremlexecutionprovider")
-        || normalized.contains("webgpu")
-        || normalized.contains("wgpu")
-        || normalized.contains("dawn")
-        || normalized.contains("vulkan")
-        || normalized.contains("vk_error")
-        || normalized.contains("ep error")
+    let mut plan = ProviderPlan::new(
+        ExecutionMode::CpuOnly,
+        model_path,
+        AccelerationValidation::GoldenRequired,
+    );
+    build_next_session(
+        model_path,
+        &mut plan,
+        "golden-tooling",
+        AccelerationValidation::GoldenRequired,
+    )
+    .map(|loaded| loaded.session)
 }
 
 // A CoreML self-test failure is treated as construction failure so the caller
@@ -282,6 +370,7 @@ fn is_execution_provider_run_failure(error: &MlError) -> bool {
 fn build_and_validate_session(
     model_path: &str,
     attempt: providers::ProviderAttempt,
+    _validation: AccelerationValidation,
 ) -> MlResult<Session> {
     #[cfg(any(
         target_os = "android",
@@ -314,7 +403,9 @@ fn build_and_validate_session(
     };
 
     #[cfg(any(target_os = "ios", target_os = "macos"))]
-    if execution_provider == ExecutionProvider::CoreMl {
+    if execution_provider == ExecutionProvider::CoreMl
+        && _validation == AccelerationValidation::GoldenRequired
+    {
         run_session_self_test(model_path, &mut session, "CoreML")?;
     }
 
@@ -328,7 +419,8 @@ fn build_webgpu_session_with_canary(
     model_path: &str,
     model_namespace: &str,
     attempt: providers::ProviderAttempt,
-) -> MlResult<Session> {
+    validation: AccelerationValidation,
+) -> MlResult<LoadedSession> {
     // Fail closed: without a durable failure record, a crash during the
     // attempt would go unnoticed and the crash loop protection would be lost.
     let canary = match webgpu::arm_canary(model_path, model_namespace) {
@@ -378,9 +470,17 @@ fn build_webgpu_session_with_canary(
             return Err(error);
         }
     };
-    run_session_self_test(model_path, &mut session, "WebGPU")?;
-    canary.disarm();
-    Ok(session)
+    let first_run_canary = if validation == AccelerationValidation::GoldenRequired {
+        run_session_self_test(model_path, &mut session, "WebGPU")?;
+        canary.disarm();
+        None
+    } else {
+        Some(canary)
+    };
+    Ok(LoadedSession {
+        session,
+        first_run_canary,
+    })
 }
 
 #[cfg(any(
@@ -517,58 +617,59 @@ fn model_file_label(model_path: &str) -> &str {
         .unwrap_or(model_path)
 }
 
-fn has_protobuf_parse_failure(errors: &[String]) -> bool {
-    errors.iter().any(|error| {
-        error
-            .to_ascii_lowercase()
-            .contains("protobuf parsing failed")
-    })
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        ExecutionProvider, SessionRunError, has_protobuf_parse_failure,
-        is_execution_provider_run_failure, provider_attempt_failure_message,
-    };
+    use super::{ExecutionMode, ExecutionProvider, OnnxSession, provider_attempt_failure_message};
 
-    #[test]
-    fn provider_failure_detection_is_limited_to_ort_execution_errors() {
-        assert!(is_execution_provider_run_failure(&super::MlError::Ort(
-            "WebGPU EP error: VK_ERROR_DEVICE_LOST".to_string()
-        )));
-        assert!(!is_execution_provider_run_failure(&super::MlError::Ort(
-            "invalid tensor shape".to_string()
-        )));
-        assert!(!is_execution_provider_run_failure(
-            &super::MlError::Postprocess("WebGPU".to_string())
-        ));
+    fn first_run_canary(temp: &tempfile::TempDir) -> super::webgpu::ArmedCanary {
+        let model = temp.path().join("model.onnx");
+        super::webgpu::arm_canary(&model.to_string_lossy(), "scanner").unwrap()
+    }
+
+    fn has_canary(temp: &tempfile::TempDir) -> bool {
+        std::fs::read_dir(temp.path()).unwrap().next().is_some()
     }
 
     #[test]
-    fn typed_run_errors_control_retryability() {
-        let retryable =
-            SessionRunError::retryable(super::MlError::Ort("non-finite output".to_string()));
-        assert!(retryable.is_retryable());
+    fn successful_first_run_disarms_the_canary() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut session = OnnxSession::new("model.onnx", "scanner", ExecutionMode::CpuOnly);
+        session.first_run_canary = Some(first_run_canary(&temp));
 
-        let terminal = SessionRunError::from(super::MlError::Ort(
-            "WebGPU text from a typed terminal error".to_string(),
-        ));
-        assert!(!terminal.is_retryable());
+        session.disarm_first_run_canary();
+
+        assert!(!has_canary(&temp));
     }
 
     #[test]
-    fn detects_protobuf_parse_failure() {
-        assert!(has_protobuf_parse_failure(&[String::from(
-            "Load model failed:Protobuf parsing failed.",
-        )]));
+    fn retryable_first_run_failure_leaves_the_canary_armed() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut session = OnnxSession::new("model.onnx", "scanner", ExecutionMode::CpuOnly);
+        session.first_run_canary = Some(first_run_canary(&temp));
+
+        session.leave_first_run_canary_armed();
+
+        assert!(has_canary(&temp));
     }
 
     #[test]
-    fn ignores_other_onnx_errors() {
-        assert!(!has_protobuf_parse_failure(&[String::from(
-            "Load model failed: missing initializer",
-        )]));
+    fn unload_preserves_model_identity_and_armed_canary() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut session = OnnxSession::new(
+            "/models/document.onnx",
+            "document-segmentation",
+            ExecutionMode::CpuOnly,
+        );
+        session.initialize_load_state();
+        session.first_run_canary = Some(first_run_canary(&temp));
+
+        session.unload();
+
+        assert_eq!(session.model_path, "/models/document.onnx");
+        assert_eq!(session.model_namespace, "document-segmentation");
+        assert!(!session.is_loaded());
+        assert!(!session.has_load_state());
+        assert!(has_canary(&temp));
     }
 
     #[test]

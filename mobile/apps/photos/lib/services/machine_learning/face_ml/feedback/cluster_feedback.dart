@@ -1230,7 +1230,7 @@ class ClusterFeedbackService<T> {
     return finalSuggestions;
   }
 
-  Future<bool> checkAndDoAutomaticMerges(
+  Future<Set<String>?> checkAndDoAutomaticMerges(
     PersonEntity p, {
     required String personClusterID,
     bool firePeopleChangedEvent = true,
@@ -1243,7 +1243,7 @@ class ClusterFeedbackService<T> {
         _logger.info(
           'Cluster $personClusterID has less than $kMinimumClusterSizeSearchResult faces, not doing automatic merges',
         );
-        return false;
+        return null;
       }
     }
     final List<(String, double, String)> suggestions =
@@ -1257,7 +1257,7 @@ class ClusterFeedbackService<T> {
       _logger.info(
         'No automatic merge suggestions for ${kDebugMode ? p.data.name : "private"}',
       );
-      return false;
+      return null;
     }
 
     _logger.info(
@@ -1273,10 +1273,16 @@ class ClusterFeedbackService<T> {
     }
 
     if (firePeopleChangedEvent) {
-      Bus.instance.fire(PeopleChangedEvent());
+      Bus.instance.fire(
+        PeopleChangedEvent(
+          type: PeopleEventType.automaticallyMergedClustersIntoPerson,
+          person: p,
+          newClusterIDs: suggestions.map((s) => s.$1).toSet(),
+        ),
+      );
     }
 
-    return true;
+    return suggestions.map((s) => s.$1).toSet();
   }
 
   Future<void> addClusterToExistingPerson({
@@ -1309,7 +1315,7 @@ class ClusterFeedbackService<T> {
     );
   }
 
-  Future<PersonEntity> ignoreCluster(
+  Future<(PersonEntity, Set<String>?)> ignoreCluster(
     String clusterID, {
     bool firePeopleChangedEvent = true,
   }) async {
@@ -1318,17 +1324,61 @@ class ClusterFeedbackService<T> {
       clusterID: clusterID,
       isHidden: true,
     );
-    final merged = await checkAndDoAutomaticMerges(
+    final mergedClusterIDs = await checkAndDoAutomaticMerges(
       ignoredPerson,
       personClusterID: clusterID,
       firePeopleChangedEvent: firePeopleChangedEvent,
     );
-    if (!merged && firePeopleChangedEvent) {
+    if (firePeopleChangedEvent && mergedClusterIDs == null) {
       Bus.instance.fire(
         PeopleChangedEvent(person: ignoredPerson, source: "ignore_cluster"),
       );
     }
-    return ignoredPerson;
+    return (ignoredPerson, mergedClusterIDs);
+  }
+
+  Future<void> ignoreClusters(
+    Iterable<String> clusterIDs, {
+    void Function(int completed, int total)? onProgress,
+  }) async {
+    final remainingClusterIDs = clusterIDs.toSet();
+    final total = remainingClusterIDs.length;
+    final ignoredPersons = <PersonEntity>[];
+    final assignedClusterIDs = <String>{};
+    var automaticallyMerged = false;
+
+    try {
+      // Automatic merges can satisfy other requested clusters in the batch.
+      while (remainingClusterIDs.isNotEmpty) {
+        final clusterID = remainingClusterIDs.first;
+        final (ignoredPerson, mergedClusterIDs) = await ignoreCluster(
+          clusterID,
+          firePeopleChangedEvent: false,
+        );
+        ignoredPersons.add(ignoredPerson);
+        assignedClusterIDs.add(clusterID);
+        remainingClusterIDs.remove(clusterID);
+        if (mergedClusterIDs != null) {
+          automaticallyMerged = true;
+          assignedClusterIDs.addAll(mergedClusterIDs);
+          remainingClusterIDs.removeAll(mergedClusterIDs);
+        }
+        onProgress?.call(total - remainingClusterIDs.length, total);
+      }
+    } finally {
+      if (ignoredPersons.isNotEmpty) {
+        Bus.instance.fire(
+          PeopleChangedEvent(
+            type: automaticallyMerged
+                ? PeopleEventType.automaticallyMergedClustersIntoPerson
+                : PeopleEventType.defaultType,
+            person: ignoredPersons.first,
+            source: "ignore_clusters",
+            newClusterIDs: assignedClusterIDs,
+          ),
+        );
+      }
+    }
   }
 
   Future<List<(String, int)>> checkForMixedClusters() async {
@@ -2150,7 +2200,6 @@ class ClusterFeedbackService<T> {
       }
       w?.log('calculated distances for cluster $clusterID');
       suggestion.filesInCluster.sort((b, a) {
-        //todo: review with @laurens, added this to avoid null safety issue
         final double distanceA = fileIdToDistanceMap[a.uploadedFileID!] ?? -1;
         final double distanceB = fileIdToDistanceMap[b.uploadedFileID!] ?? -1;
         return distanceA.compareTo(distanceB);
@@ -2218,7 +2267,6 @@ class ClusterFeedbackService<T> {
     _logger.info(
       "Debug logging for cluster $clusterID${clusterSize != null ? ' with $clusterSize photos' : ''}",
     );
-    // todo:(laurens) remove to review
     const String biggestClusterID = 'some random id';
 
     if (logClusterSummary) {

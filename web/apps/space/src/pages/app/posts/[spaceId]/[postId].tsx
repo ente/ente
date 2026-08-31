@@ -1,18 +1,18 @@
-import { SpaceFileViewer } from "components/SpaceFileViewer";
-import { SpacePageMeta } from "components/SpacePageMeta";
-import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { SpaceFileViewer } from "components/FileViewer";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React from "react";
+import { patchCachedSpaceFeedPost } from "services/feed-cache";
 import {
     loadCurrentSpacePost,
     replyToCurrentPost,
     setCurrentPostLiked,
     type SpacePost,
 } from "services/space";
-import { patchCachedSpaceFeedPost } from "services/spaceFeedCache";
-import { useSpaceAppState } from "state/spaceAppState";
-import { spaceRoutes } from "utils/spaceRoutes";
-import { useSpaceRouter } from "utils/spaceRouteTransitions";
+import { useSpaceAppState } from "state/app-state";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
 
 const postBackground = "#000000";
 

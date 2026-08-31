@@ -9,34 +9,3 @@ pub(crate) fn api_url(origin: &str, path: &str) -> String {
         path.trim_start_matches('/')
     )
 }
-
-pub fn file_download_url(api_origin: &str, file_id: i64) -> String {
-    if api_origin == PRODUCTION_API_ORIGIN {
-        format!("https://files.ente.com/?fileID={}", file_id)
-    } else {
-        api_url(api_origin, &format!("files/download/{file_id}"))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_production_url() {
-        let url = file_download_url(PRODUCTION_API_ORIGIN, 12345);
-        assert_eq!(url, "https://files.ente.com/?fileID=12345");
-    }
-
-    #[test]
-    fn test_custom_server() {
-        let url = file_download_url("https://my-server.example.com", 99);
-        assert_eq!(url, "https://my-server.example.com/files/download/99");
-    }
-
-    #[test]
-    fn test_custom_server_path_prefix() {
-        let url = file_download_url("https://my-server.example.com/ente/", 99);
-        assert_eq!(url, "https://my-server.example.com/ente/files/download/99");
-    }
-}

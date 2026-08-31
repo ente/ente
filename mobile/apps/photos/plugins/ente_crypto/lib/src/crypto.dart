@@ -1,6 +1,5 @@
 import "dart:convert";
 import "dart:io";
-import 'dart:typed_data';
 
 import "package:computer/computer.dart";
 import "package:convert/convert.dart";
@@ -84,79 +83,6 @@ EncryptionResult chachaEncryptData(Map<String, dynamic> args) {
   );
 }
 
-// chachaEncryptFileV2 does chucked encryption similar to chachaEncryptFile.
-// This implementation is refactored to simplify the logic to make it easier to
-// maintain and reason about.
-// Rolling out this version 2 in phases to ensure stability
-Future<FileEncryptResult> chachaEncryptFileV2(Map<String, dynamic> args) async {
-  final encryptionStartTime = DateTime.now().millisecondsSinceEpoch;
-  final logger = Logger("chachaEncryptFileV2");
-  final sourceFile = File(args["sourceFilePath"]);
-  final destinationFile = File(args["destinationFilePath"]);
-  if (destinationFile.existsSync() && (destinationFile.lengthSync() > 0)) {
-    logger.warning("Destination file already exists and is not empty");
-    throw Exception("Destination file already exists and is not empty");
-  }
-  final sourceFileLength = await sourceFile.length();
-  logger.info("Encrypting file of size " + sourceFileLength.toString());
-
-  final inputFile = sourceFile.openSync(mode: FileMode.read);
-  final key = args["key"] ?? Sodium.cryptoSecretstreamXchacha20poly1305Keygen();
-  final initPushResult = Sodium.cryptoSecretstreamXchacha20poly1305InitPush(
-    key,
-  );
-  var bytesRead = 0;
-  var tag = Sodium.cryptoSecretstreamXchacha20poly1305TagMessage;
-  while (tag != Sodium.cryptoSecretstreamXchacha20poly1305TagFinal) {
-    final bool isLastChunk =
-        bytesRead + encryptionChunkSize >= sourceFileLength;
-    final int chunkSize = isLastChunk
-        ? (sourceFileLength - bytesRead)
-        : encryptionChunkSize;
-
-    final buffer = BytesBuilder();
-    while (buffer.length < chunkSize) {
-      final remainingBytes = chunkSize - buffer.length;
-      final readBytes = await inputFile.read(remainingBytes);
-      if (readBytes.isEmpty) break;
-      buffer.add(readBytes);
-    }
-
-    final bufferBytes = buffer.toBytes();
-    bytesRead += bufferBytes.length;
-    if (bufferBytes.length != chunkSize) {
-      throw Exception(
-        "V2 $kPartialReadErrorTag $chunkSize bytes, but got ${bufferBytes.length} bytes, sourceFileLength: $sourceFileLength",
-      );
-    }
-    if (isLastChunk) {
-      if (bytesRead == sourceFileLength) {
-        tag = Sodium.cryptoSecretstreamXchacha20poly1305TagFinal;
-      } else {
-        throw Exception(
-          "Expected $sourceFileLength bytes, but read $bytesRead bytes",
-        );
-      }
-    }
-    final encryptedData = Sodium.cryptoSecretstreamXchacha20poly1305Push(
-      initPushResult.state,
-      bufferBytes,
-      null,
-      tag,
-    );
-    await destinationFile.writeAsBytes(encryptedData, mode: FileMode.append);
-  }
-  await inputFile.close();
-
-  logger.info(
-    "Encryption time: " +
-        (DateTime.now().millisecondsSinceEpoch - encryptionStartTime)
-            .toString(),
-  );
-
-  return FileEncryptResult(key: key, header: initPushResult.header);
-}
-
 Future<FileEncryptResult> chachaEncryptFile(Map<String, dynamic> args) async {
   final encryptionStartTime = DateTime.now().millisecondsSinceEpoch;
   final logger = Logger("ChaChaEncryptV1");
@@ -211,12 +137,12 @@ Future<FileEncryptResult> chachaEncryptFileWithVerification(
   final logger = Logger("ChaChaEncryptWithMD5");
   final sourceFile = File(args["sourceFilePath"]);
   final destinationFile = File(args["destinationFilePath"]);
-  final int? multiPartChunkSizeInBytes = args["multiPartChunkSizeInBytes"];
+  final int? partSize = args["multiPartChunkSizeInBytes"];
   final sourceFileLength = await sourceFile.length();
 
   logger.info("Encrypting file of size $sourceFileLength");
-  if (multiPartChunkSizeInBytes != null) {
-    logger.info("Using multipart chunk size: $multiPartChunkSizeInBytes bytes");
+  if (partSize != null) {
+    logger.info("Using multipart chunk size: $partSize bytes");
   }
 
   final inputFile = sourceFile.openSync(mode: FileMode.read);
@@ -232,21 +158,16 @@ Future<FileEncryptResult> chachaEncryptFileWithVerification(
     key,
   );
 
-  AccumulatorSink<Digest>? fullAccumulator;
-  ChunkedConversionSink<List<int>>? fullMd5Sink;
-  AccumulatorSink<Digest>? partAccumulator;
-  ChunkedConversionSink<List<int>>? partMd5Sink;
+  var md5Accumulator = AccumulatorSink<Digest>();
+  var md5Sink = md5.startChunkedConversion(md5Accumulator);
+
+  String finishMd5() {
+    md5Sink.close();
+    return base64.encode(md5Accumulator.events.single.bytes);
+  }
 
   final List<String> partMd5s = [];
-  final BytesBuilder partBuffer = BytesBuilder();
-
-  if (multiPartChunkSizeInBytes == null) {
-    fullAccumulator = AccumulatorSink<Digest>();
-    fullMd5Sink = md5.startChunkedConversion(fullAccumulator);
-  } else {
-    partAccumulator = AccumulatorSink<Digest>();
-    partMd5Sink = md5.startChunkedConversion(partAccumulator);
-  }
+  var bytesInPart = 0;
 
   var bytesRead = 0;
   var totalEncryptedBytes = 0;
@@ -309,55 +230,42 @@ Future<FileEncryptResult> chachaEncryptFileWithVerification(
       }
 
       totalEncryptedBytes += encryptedData.length;
+      outSink.add(encryptedData);
 
-      if (multiPartChunkSizeInBytes == null) {
-        fullMd5Sink!.add(encryptedData);
-        outSink.add(encryptedData);
+      if (partSize == null) {
+        md5Sink.add(encryptedData);
       } else {
-        partBuffer.add(encryptedData);
-
-        final bool isLastChunk =
-            tag == Sodium.cryptoSecretstreamXchacha20poly1305TagFinal;
-
-        while (partBuffer.length >= multiPartChunkSizeInBytes) {
-          final partBytes = partBuffer.toBytes().sublist(
-            0,
-            multiPartChunkSizeInBytes,
+        var offset = 0;
+        while (offset < encryptedData.length) {
+          final bytesToPartBoundary = partSize - bytesInPart;
+          final end = offset + bytesToPartBoundary < encryptedData.length
+              ? offset + bytesToPartBoundary
+              : encryptedData.length;
+          md5Sink.add(
+            offset == 0 && end == encryptedData.length
+                ? encryptedData
+                : Uint8List.sublistView(encryptedData, offset, end),
           );
+          bytesInPart += end - offset;
+          offset = end;
 
-          partMd5Sink!.add(partBytes);
-          partMd5Sink.close();
-          final digest = partAccumulator!.events.single;
-          partMd5s.add(base64.encode(digest.bytes));
+          if (bytesInPart == partSize) {
+            partMd5s.add(finishMd5());
 
-          logger.info(
-            "Part ${partMd5s.length}: $multiPartChunkSizeInBytes bytes",
-          );
+            logger.info("Part ${partMd5s.length}: $partSize bytes");
 
-          outSink.add(partBytes);
-
-          final remaining = partBuffer.toBytes().sublist(
-            multiPartChunkSizeInBytes,
-          );
-          partBuffer.clear();
-          partBuffer.add(remaining);
-
-          if (!isLastChunk || partBuffer.isNotEmpty) {
-            partAccumulator = AccumulatorSink<Digest>();
-            partMd5Sink = md5.startChunkedConversion(partAccumulator);
+            bytesInPart = 0;
+            if (offset < encryptedData.length ||
+                tag != Sodium.cryptoSecretstreamXchacha20poly1305TagFinal) {
+              md5Accumulator = AccumulatorSink<Digest>();
+              md5Sink = md5.startChunkedConversion(md5Accumulator);
+            }
           }
         }
 
-        if (isLastChunk && partBuffer.isNotEmpty) {
-          final lastPartBytes = partBuffer.toBytes();
-
-          partMd5Sink!.add(lastPartBytes);
-          partMd5Sink.close();
-          final digest = partAccumulator!.events.single;
-          partMd5s.add(base64.encode(digest.bytes));
-
-          outSink.add(lastPartBytes);
-          partBuffer.clear();
+        if (tag == Sodium.cryptoSecretstreamXchacha20poly1305TagFinal &&
+            bytesInPart > 0) {
+          partMd5s.add(finishMd5());
         }
       }
     }
@@ -365,10 +273,8 @@ Future<FileEncryptResult> chachaEncryptFileWithVerification(
     await inputFile.close();
 
     String? finalFileMd5;
-    if (multiPartChunkSizeInBytes == null && fullMd5Sink != null) {
-      fullMd5Sink.close();
-      final digest = fullAccumulator!.events.single;
-      finalFileMd5 = base64.encode(digest.bytes);
+    if (partSize == null) {
+      finalFileMd5 = finishMd5();
       logger.info("File MD5: $finalFileMd5");
     }
 
@@ -379,9 +285,7 @@ Future<FileEncryptResult> chachaEncryptFileWithVerification(
         (DateTime.now().millisecondsSinceEpoch -
             encryptionStartTime.millisecondsSinceEpoch) /
         1000;
-    final partsInfo = multiPartChunkSizeInBytes != null
-        ? " Parts: ${partMd5s.length}"
-        : "";
+    final partsInfo = partSize != null ? " Parts: ${partMd5s.length}" : "";
     debugPrint(
       "FileEncryption: Time: ${encryptionTimeSeconds}s "
       "Total encrypted: $totalEncryptedBytes bytes$partsInfo",
@@ -391,10 +295,8 @@ Future<FileEncryptResult> chachaEncryptFileWithVerification(
       key: key,
       header: initPushResult.header,
       fileMd5: finalFileMd5,
-      partMd5s: multiPartChunkSizeInBytes != null && partMd5s.isNotEmpty
-          ? partMd5s
-          : null,
-      partSize: multiPartChunkSizeInBytes,
+      partMd5s: partSize == null ? null : partMd5s,
+      partSize: partSize,
     );
   } catch (e) {
     try {
@@ -719,22 +621,6 @@ class CryptoUtil {
           taskName: "encryptFile",
         )
         .unwrapExceptionInComputer();
-  }
-
-  static Future<FileEncryptResult> encryptFileV2(
-    String sourceFilePath,
-    String destinationFilePath, {
-    Uint8List? key,
-  }) {
-    final args = <String, dynamic>{};
-    args["sourceFilePath"] = sourceFilePath;
-    args["destinationFilePath"] = destinationFilePath;
-    args["key"] = key;
-    return _computer.compute(
-      chachaEncryptFileV2,
-      param: args,
-      taskName: "encryptFileV2",
-    );
   }
 
   static Future<FileEncryptResult> encryptFileWithMD5(

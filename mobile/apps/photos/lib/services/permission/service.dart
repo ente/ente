@@ -4,8 +4,12 @@ import "package:shared_preferences/shared_preferences.dart";
 class PermissionService {
   static const kHasGrantedPermissionsKey = "has_granted_permissions";
   static const kPermissionStateKey = "permission_state";
+  static const _photoLibraryAddRequestOption = PermissionRequestOption(
+    iosAccessLevel: IosAccessLevel.addOnly,
+  );
   final SharedPreferences _prefs;
   PermissionService(this._prefs);
+
   Future<PermissionState> requestPhotoMangerPermissions() {
     return PhotoManager.requestPermissionExtend(
       requestOption: const PermissionRequestOption(
@@ -15,6 +19,17 @@ class PermissionService {
         ),
       ),
     );
+  }
+
+  Future<PermissionState> requestPhotoLibraryAddPermission() async {
+    final state = await PhotoManager.getPermissionState(
+      requestOption: _photoLibraryAddRequestOption,
+    );
+    return state == PermissionState.notDetermined
+        ? PhotoManager.requestPermissionExtend(
+            requestOption: _photoLibraryAddRequestOption,
+          )
+        : state;
   }
 
   bool hasGrantedPermissions() {

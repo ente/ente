@@ -150,11 +150,7 @@ class _DeviceFolderPageState extends State<DeviceFolderPage> {
   Future<void> _openSkippedFiles() async {
     await routeToPage(
       context,
-      SkippedDeviceFolderPage(
-        widget.deviceCollection,
-        shouldBackup: _shouldBackup,
-        onBackupChanged: _updateBackupStatus,
-      ),
+      SkippedDeviceFolderPage(widget.deviceCollection),
     );
   }
 }

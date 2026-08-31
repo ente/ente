@@ -1,6 +1,5 @@
 import "dart:io";
 
-import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart' as hw;
 import 'package:photos/app_mode.dart';
 import 'package:photos/core/constants.dart';
@@ -69,6 +68,12 @@ class LocalSettings {
   static const kRateUsPromptThreshold = 2;
   static const shouldLoopVideoKey = "video.should_loop";
   static const isMutedKey = "video.is_muted";
+  static const _memoriesAudioMutedKey = "memories.audio_muted";
+  static const _albumSlideshowDurationSecondsKey =
+      "album_slideshow.duration_seconds";
+  static const _albumSlideshowBlurredBackgroundKey =
+      "album_slideshow.blurred_background";
+  static const _albumSlideshowRandomOrderKey = "album_slideshow.random_order";
   static const onGuestViewKey = "on_guest_view";
   static const _hasConfiguredLinksInAppPermissionKey =
       "has_configured_links_in_app_permission";
@@ -83,7 +88,6 @@ class LocalSettings {
   static const kPeopleSortSimilaritySelected =
       "people_sort_similarity_selected";
   static const kShowLocalIDOverThumbnails = "show_local_id_over_thumbnails";
-  static const kEnableDatabaseLogging = "enable_db_logging";
   static const _kInternalUserDisabled = "ls.internal_user_disabled";
   static const _kBGDebugNotificationsEnabled =
       "ls.bg_debug_notifications_enabled";
@@ -460,6 +464,35 @@ class LocalSettings {
     return _prefs.getBool(isMutedKey) ?? false;
   }
 
+  Future<void> setMemoriesAudioMuted(bool value) async {
+    await _prefs.setBool(_memoriesAudioMutedKey, value);
+  }
+
+  bool isMemoriesAudioMuted() {
+    return _prefs.getBool(_memoriesAudioMutedKey) ?? false;
+  }
+
+  int get albumSlideshowDurationSeconds =>
+      _prefs.getInt(_albumSlideshowDurationSecondsKey) ?? 5;
+
+  Future<void> setAlbumSlideshowDurationSeconds(int value) async {
+    await _prefs.setInt(_albumSlideshowDurationSecondsKey, value);
+  }
+
+  bool get albumSlideshowBlurredBackground =>
+      _prefs.getBool(_albumSlideshowBlurredBackgroundKey) ?? true;
+
+  Future<void> setAlbumSlideshowBlurredBackground(bool value) async {
+    await _prefs.setBool(_albumSlideshowBlurredBackgroundKey, value);
+  }
+
+  bool get albumSlideshowRandomOrder =>
+      _prefs.getBool(_albumSlideshowRandomOrderKey) ?? false;
+
+  Future<void> setAlbumSlideshowRandomOrder(bool value) async {
+    await _prefs.setBool(_albumSlideshowRandomOrderKey, value);
+  }
+
   Future<void> setOnGuestView(bool value) {
     return _prefs.setBool(onGuestViewKey, value);
   }
@@ -489,13 +522,6 @@ class LocalSettings {
 
   Future<void> setShowLocalIDOverThumbnails(bool value) async {
     await _prefs.setBool(kShowLocalIDOverThumbnails, value);
-  }
-
-  bool get enableDatabaseLogging =>
-      _prefs.getBool(kEnableDatabaseLogging) ?? kDebugMode;
-
-  Future<void> setEnableDatabaseLogging(bool value) async {
-    await _prefs.setBool(kEnableDatabaseLogging, value);
   }
 
   bool get isInternalUserDisabled =>

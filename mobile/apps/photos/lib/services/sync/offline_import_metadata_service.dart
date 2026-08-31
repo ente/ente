@@ -7,6 +7,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
+import "package:photos/main.dart" show isProcessBg;
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/module/download/file.dart";
@@ -14,6 +15,7 @@ import "package:photos/module/metadata/exif.dart";
 import "package:photos/module/metadata/local_file.dart";
 import 'package:photos/module/metadata/location.dart';
 import "package:photos/service_locator.dart";
+import "package:photos/services/process_activity.dart";
 
 class OfflineImportMetadataService {
   static const kProcessingVersion = 1;
@@ -28,10 +30,7 @@ class OfflineImportMetadataService {
 
   static final instance = OfflineImportMetadataService._privateConstructor();
 
-  Future<void> processPendingFiles({
-    int batchSize = kDefaultBatchSize,
-    int maxBatches = 4,
-  }) async {
+  Future<void> processPendingFiles({int batchSize = kDefaultBatchSize}) async {
     if (!Platform.isAndroid || !isLocalGalleryMode) {
       return;
     }
@@ -42,19 +41,24 @@ class OfflineImportMetadataService {
 
     _running = Completer<void>();
     try {
-      for (var batch = 0; batch < maxBatches; batch++) {
-        if (!isLocalGalleryMode) {
-          _logger.info("Offline mode disabled, stopping metadata processing");
+      ({int creationTime, int generatedID})? cursor;
+      while (isLocalGalleryMode) {
+        if (isProcessBg && await isForegroundEngineActive()) {
+          _logger.info("Foreground active, stopping background processing");
           return;
         }
-
         final files = await _db.getUnUploadedLocalFilesPendingOfflineProcessing(
           kProcessingVersion,
           limit: batchSize,
+          cursor: cursor,
         );
         if (files.isEmpty) {
           return;
         }
+        cursor = (
+          creationTime: files.last.creationTime!,
+          generatedID: files.last.generatedID!,
+        );
 
         final updatedFiles = <EnteFile>[];
         for (final file in files) {
@@ -87,6 +91,7 @@ class OfflineImportMetadataService {
           return;
         }
       }
+      _logger.info("Offline mode disabled, stopping metadata processing");
     } finally {
       _running?.complete();
       _running = null;

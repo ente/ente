@@ -353,17 +353,14 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
       final displayPath = await DisplayImageHelper.ensureDisplayablePath(
         localPath,
       );
-      final imageInfo = await getImageInfo(FileImage(File(displayPath)));
+      final imageSize = await getImageSize(FileImage(File(displayPath)));
       if (!mounted ||
           requestId != _imageSizeRequestId ||
           _localFilePath != localPath) {
         return;
       }
       setState(() {
-        _resolvedImageSize = Size(
-          imageInfo.image.width.toDouble(),
-          imageInfo.image.height.toDouble(),
-        );
+        _resolvedImageSize = imageSize;
       });
     } catch (error, stackTrace) {
       _logger.warning(
@@ -827,7 +824,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
               child: overlay,
             );
 
-            // Let PhotoView own gestures while pinching or settling a zoom.
+            // Let the image viewer own gestures while pinching or settling a zoom.
             final shouldIgnore =
                 _isPinching || (isZoomed && !_zoomGestureSettled);
 

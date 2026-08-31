@@ -4,6 +4,7 @@ import { z } from "zod";
 
 const Session = z.object({
     token: z.string(),
+    isCurrent: z.boolean().optional(),
     creationTime: z.number(),
     ip: z.string(),
     ua: z.string(),
@@ -12,6 +13,11 @@ const Session = z.object({
 });
 
 export type Session = z.infer<typeof Session>;
+
+export const isCurrentSession = (
+    session: Session,
+    currentToken: string | undefined,
+) => session.isCurrent ?? session.token === currentToken;
 
 const SessionsResponse = z.object({ sessions: z.array(Session) });
 

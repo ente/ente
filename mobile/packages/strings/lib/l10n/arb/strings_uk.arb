@@ -14,11 +14,13 @@
       }
     }
   },
+  "accountRecovery": "Відновлення акаунту",
   "activeSessions": "Активні сеанси",
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
   "add": "Додати",
+  "addAdmin": "Додати адміністратора",
   "addANewEmail": "Додати нову пошту",
   "addCode": "Додати код",
   "addCollaborator": "Додати співавтора",
@@ -37,6 +39,7 @@
   },
   "addedToQueue": "Додано до черги",
   "addEmail": "Додати електронну пошту",
+  "addFamilyMember": "Додати члена сім'ї",
   "addFiles": "Додати файли",
   "addFromDevice": "Додати з пристрою",
   "addingPhotos": "Додавання фото",
@@ -63,6 +66,7 @@
   "addPhotos": "Додати фотографії",
   "addSelected": "Додати вибране",
   "addTag": "Додати мітку",
+  "addTo": "Додати до",
   "addToAlbum": "Додати до альбому",
   "addToCollection": "Додати до колекції",
   "addToEnte": "Додати до Ente",
@@ -71,15 +75,20 @@
   "@addToPerson": {
     "description": "Action label to add selected files to an existing person."
   },
+  "addTrustedContact": "Додати довірений контакт",
   "addViewer": "Додати глядача",
   "addYourPhotosNow": "Додайте свої фотографії",
+  "admin": "Адміністратор",
+  "admins": "Адміністратори",
   "advanced": "Додатково",
+  "aerialViews": "У повітрі",
   "after1Day": "Через 1 день",
   "after1Hour": "Через 1 годину",
   "after1Month": "Через 1 місяць",
   "after1Week": "Через 1 тиждень",
   "after1Year": "Через 1 рік",
   "albumLayout": "Макет альбому",
+  "albumName": "Назва альбому",
   "albumOwner": "Власник",
   "@albumOwner": {
     "description": "Role of the album owner"
@@ -88,6 +97,7 @@
   "albumTitle": "Назва альбому",
   "albumUpdated": "Альбом оновлено",
   "algorithm": "Алгоритм",
+  "align": "Вирівнювання",
   "all": "Усі",
   "allClear": "✨ Все чисто",
   "allFilesAlreadyMarkedAsImportant": "Усі елементи вже позначені як важливі",
@@ -107,6 +117,11 @@
   "@allTabEmptyHint": {
     "description": "Shown when the All tab has no active codes but Trash contains codes"
   },
+  "alreadyAdded": "Уже додано",
+  "alreadyHaveAnAccount": "Уже маєте акаунт?",
+  "analysis": "Аналіз",
+  "analyzingPhotosLocally": "Аналіз фотографій на пристрої...",
+  "and1Other": "і ще 1",
   "androidBiometricHint": "Підтвердити ідентифікацію",
   "@androidBiometricHint": {
     "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
@@ -119,9 +134,27 @@
   "@androidSignInTitle": {
     "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
+  "andXOthers": "і ще {count}",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "aNewVersionOfEnteIsAvailable": "Доступна нова версія Ente.",
+  "aNewVersionOfEnteLockerIsAvailable": "Доступна нова версія Ente Locker.",
+  "anythingElse": "Щось іще?",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
+  },
+  "appearance": "Оформлення",
   "appIcon": "Іконка застосунку",
   "appleId": "Apple ID",
+  "appLock": "Блокування застосунку",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
   "appLockDescription": "Виберіть між типовим екраном блокування вашого пристрою та власним екраном блокування з PIN-кодом або паролем.",
   "@appLockDescription": {
     "description": "Description of app lock feature"
@@ -138,11 +171,16 @@
       "versionValue": {}
     }
   },
+  "architecture": "Дизайн іконок",
   "archive": "Архів",
   "@archive": {
     "description": "Action of 'Archiving' an element"
   },
   "archiveAlbum": "Архівувати альбом",
+  "archiveCollectionName": "Архів",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  },
   "archiving": "Архівуємо...",
   "areThey": "Вони ",
   "areYouSure": "Ви впевнені?",
@@ -158,7 +196,9 @@
   "areYouSureYouWantToIgnoreThisPerson": "Ви впевнені, що хочете ігнорувати цю особу?",
   "areYouSureYouWantToRenew": "Ви впевнені, що хочете поновити?",
   "areYouSureYouWantToResetThisPerson": "Ви впевнені, що хочете скинути цю особу?",
+  "askAQuestion": "Поставити запитання",
   "askCancelReason": "Передплату було скасовано. Ви хотіли б поділитися причиною?",
+  "attachLogs": "Додати журнали",
   "authenticateGeneric": "Будь ласка, авторизуйтеся",
   "authenticating": "Автентифікація...",
   "authToConfigureTwofactorAuthentication": "Авторизуйтесь, щоб налаштувати двоетапну перевірку",
@@ -185,6 +225,7 @@
     "description": "Auto lock setting title"
   },
   "autoPair": "Автоматичне створення пари",
+  "babySmiles": "Дитячі посмішки",
   "backedUpFolders": "Резервне копіювання тек",
   "background": "Тло",
   "backgroundWithThem": "Чудові краєвиди з {name}",
@@ -194,6 +235,8 @@
     }
   },
   "backup": "Резервне копіювання",
+  "backupAndSync": "Резервне копіювання і синхронізація",
+  "backupAndSyncDesc": "Автоматичне резервне копіювання, статус синхронізації та вивантаження",
   "backupCreated": "Резервну копію створено!",
   "backupFailed": "Помилка резервного копіювання",
   "backupFile": "Файл резервної копії",
@@ -205,17 +248,26 @@
   "backupSettings": "Налаштування резервного копіювання",
   "backupStatus": "Стан резервного копіювання",
   "backupStatusDescription": "Елементи, для яких було створено резервну копію, показуватимуться тут",
+  "backupToEnte": "Резервне копіювання в Ente",
   "backupVideos": "Резервне копіювання відео",
   "beach": "Пісок і море",
   "birthday": "День народження",
   "birthdays": "Дні народження",
   "blog": "Блог",
   "bothIssuerAndAccountCanNotBeEmpty": "Не може бути пустим як емітент, так і акаунт",
+  "bringYourFamilyAlong": "Запросіть свою сім'ю",
+  "brushColor": "Колір пензля",
   "cachedData": "Кешовані дані",
   "calculating": "Обчислення...",
+  "camera": "Камера",
+  "campingMoments": "Моменти близь багаття",
   "cancel": "Скасувати",
   "@cancel": {
     "description": "Cancel button label"
+  },
+  "cancelInvite": "Скасувати запрошення",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
   },
   "cancelOtherSubscription": "Спочатку скасуйте вашу передплату від {paymentProvider}",
   "@cancelOtherSubscription": {
@@ -293,6 +345,9 @@
   "@closeBy": {
     "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
   },
+  "closeFamilyConfirmBody": "Усі учасники втратять доступ до спільного сховища. Цю дію не можна скасувати.",
+  "closeFamilyConfirmTitle": "Закрити сімейний тариф?",
+  "closeFamilyPlan": "Закрити сімейний тариф",
   "clusteringProgress": "Прогрес кластеризації",
   "codeAppliedPageTitle": "Код застосовано",
   "codeChangeLimitReached": "На жаль, ви досягли ліміту змін коду.",
@@ -380,14 +435,32 @@
   },
   "couldNotUpdateSubscription": "Не вдалося оновити передплату",
   "count": "Кількість",
+  "craftingMemoriesFirstHalf": "Майстрування",
+  "craftingMemoriesSecondHalf": "спогади",
   "crashAndErrorReporting": "Звіт про аварії та помилки",
   "crashReporting": "Звіти про помилки",
   "create": "Створити",
+  "createAccount": "Створити акаунт",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
+  "createAccountTitle": "Створення акаунту",
+  "createAlbum": "Створити альбом",
   "createAlbumActionHint": "Утримуйте, щоби вибрати фотографії, та натисніть «+», щоб створити альбом",
+  "createAnEnteAccount": "Створення акаунту Ente",
   "createBackupNow": "Створити резервну копію зараз",
   "createCollaborativeLink": "Створити спільне посилання",
   "createCollage": "Створити колаж",
   "createCollection": "Створити колекцію",
+  "createdOn": "Створено {date}",
+  "@createdOn": {
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Apr 1, 2026"
+      }
+    }
+  },
   "createNewTag": "Створити нову мітку",
   "createPublicLink": "Створити публічне посилання",
   "createStream": "Створити потік",
@@ -420,8 +493,13 @@
   "@delete": {
     "description": "Delete button label"
   },
+  "deleteAccount": "Видалити акаунт",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
   "deleteAlbum": "Видалити альбом",
   "deleteAlbumDialog": "Також видалити фотографії (і відео), які є в цьому альбомі, зі <bold>всіх</bold> інших альбомів, з яких вони складаються?",
+  "deleteAlbumQuestion": "Видалити цей альбом?",
   "deleteAlbumsDialogBody": "Це призведе до видалення всіх пустих альбомів. Це зручно, коли ви бажаєте зменшити засмічення в списку альбомів.",
   "deleteAll": "Видалити все",
   "deleteCodeAuthMessage": "Авторизуйтесь, щоб видалити код",
@@ -441,6 +519,10 @@
   "@deleteCollectionFromEverywhere": {
     "description": "Checkbox label asking whether to delete collection items everywhere"
   },
+  "deleteComment": "Видалити коментар",
+  "@deleteComment": {
+    "description": "Delete comment button label"
+  },
   "deletedComment": "(видалено)",
   "@deletedComment": {
     "description": "Label for deleted comments"
@@ -448,6 +530,10 @@
   "deleteDuplicates": "Видалити дублікати",
   "deleteEmptyAlbums": "Видалити пусті альбоми",
   "deleteEmptyAlbumsWithQuestionMark": "Видалити пусті альбоми?",
+  "deleteEnteAccount": "Видалити акаунт Ente",
+  "@deleteEnteAccount": {
+    "description": "Final destructive button label for account deletion"
+  },
   "deleteFiles": "Видалити файли",
   "deleteFromBoth": "Видалити з обох",
   "deleteFromDevice": "Видалити з пристрою",
@@ -462,6 +548,22 @@
       "currentlyDeleting": {},
       "totalCount": {}
     }
+  },
+  "deleteReasonBehaviour": "Застосунок або функція не поводяться так, як очікувалося",
+  "@deleteReasonBehaviour": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonFoundAnotherService": "Я знайшов інший сервіс, який подобається мені більше",
+  "@deleteReasonFoundAnotherService": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonMissingFeature": "Мені бракує ключової функції",
+  "@deleteReasonMissingFeature": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonNotListed": "Причини немає в списку",
+  "@deleteReasonNotListed": {
+    "description": "Account deletion reason option"
   },
   "deleteSharedAlbum": "Видалити спільний альбом?",
   "deleteSharedAlbumDialogBody": "Альбом буде видалено для всіх\n\nВи втратите доступ до спільних фотографій у цьому альбомі, які належать іншим",
@@ -480,8 +582,11 @@
   },
   "deletingDash": "Видалення - ",
   "deletingFile": "Видалення елемента...",
+  "deletingFiles": "Видалення...",
   "deletingShareLink": "Видалення посилання...",
+  "description": "Опис",
   "deselectAll": "Зняти виділення",
+  "desertDreams": "Пустельні мрії",
   "details": "Подробиці",
   "deviceLock": "Блокування пристрою",
   "@deviceLock": {
@@ -507,6 +612,7 @@
   "disableTwofactor": "Вимкнути двоетапну перевірку",
   "disablingTwofactorAuthentication": "Вимкнення двоетапної перевірки...",
   "discardChanges": "Скасувати",
+  "discardEditsQuestion": "Скасувати зміни?",
   "discover": "Відкрийте для себе",
   "@discover": {
     "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
@@ -520,6 +626,7 @@
   "discover_memes": "Меми",
   "discover_notes": "Нотатки",
   "discover_pets": "Домашні тварини",
+  "discover_qr_codes": "QR-коди",
   "discover_receipts": "Квитанції",
   "discover_screenshots": "Знімки екрана",
   "discover_selfies": "Селфі",
@@ -531,7 +638,9 @@
   "@distanceInKMUnit": {
     "description": "Unit for distance in km"
   },
+  "documentSearchHint": "Пошук документів",
   "documentsHint": "Документи",
+  "dog": "Собака",
   "done": "Готово",
   "doNotSignOut": "Не виходити",
   "@doNotSignOut": {
@@ -559,6 +668,7 @@
   },
   "downloadUpdate": "Завантажити",
   "doYouWantToDiscardTheEditsYouHaveMade": "Ви хочете відхилити внесені зміни?",
+  "draw": "Малювати",
   "dropSupportEmail": "Надішліть листа на {supportEmail} з вашої зареєстрованої поштової адреси",
   "@dropSupportEmail": {
     "placeholders": {
@@ -625,6 +735,15 @@
     "description": "Error message when email is already registered"
   },
   "emailHint": "Введіть вашу адресу електронної пошти",
+  "emailNeedsEnteAccountForFamily": "У {email} немає акаунту Ente.\n\nНадішліть користувачу запрошення і додайте його до сім'ї після того, як він створить акаунт на Ente.",
+  "@emailNeedsEnteAccountForFamily": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
   "emailNoEnteAccount": "{email} не має облікового запису Ente.\n\nНадішліть їм запрошення, щоб поділитися елементами.",
   "@emailNoEnteAccount": {
     "placeholders": {
@@ -665,6 +784,11 @@
   "encryptionKeys": "Ключі шифрування",
   "@encryptionKeys": {
     "description": "Encryption keys title"
+  },
+  "ente": "Ente",
+  "enteAuth": "Ente Auth",
+  "@enteAuth": {
+    "description": "Product name"
   },
   "enterAlbumName": "Введіть назву альбому",
   "enterCode": "Введіть код",
@@ -731,6 +855,14 @@
   "exportYourData": "Експортувати дані",
   "extraPhotosFound": "Знайдено додаткові фотографії",
   "faceNotClusteredYet": "Обличчя ще не згруповані, поверніться пізніше",
+  "facesTimelineAppBarTitle": "Лінія спогадів",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineBannerTitle": "Лінія спогадів",
+  "@facesTimelineBannerTitle": {
+    "description": "Title for the Memory Lane suggestion banner shown on a person's page"
+  },
   "facesTimelinePlaybackPause": "Призупинити",
   "@facesTimelinePlaybackPause": {
     "description": "Tooltip or semantics label for the pause button"
@@ -781,7 +913,14 @@
     }
   },
   "failedToVerifyPaymentStatus": "Не вдалося перевірити стан платежу",
+  "family": "Сім'я",
+  "familyMoments": "Сімейний час",
+  "faq": "ЧаПи",
+  "@faq": {
+    "description": "FAQ link label"
+  },
   "faqs": "ЧаПи",
+  "fasterUploads": "Швидші завантаження",
   "favorite": "Додати до улюбленого",
   "featureBackupCodes": "Наскрізне шифрування\nрезервного копіювання та синхронізація",
   "featureOpenSource": "Відкритий вихідний код та\nперевірка експертами з безпеки",
@@ -789,6 +928,8 @@
   "featureSaveImportant": "Зберігайте важливі документи та облікові дані",
   "featureSearchEtc": "Пошук, мітки, поширення,\nнаступні коди та інше",
   "featureShareAnytime": "Діліться ними в будь-який час",
+  "feed": "Стрічка подій",
+  "feedToEngageWithFamily": "Стрічка подій для взаємодії з сім'єю",
   "fieldCopiedToClipboard": "{fieldName} скопійовано в буфер обміну",
   "@fieldCopiedToClipboard": {
     "description": "Message when a field is copied to clipboard",
@@ -799,31 +940,41 @@
       }
     }
   },
+  "fileAnalysisFailed": "Неможливо аналізувати файл",
   "fileDeletedSuccessfully": "Елемент успішно видалено",
   "fileInfoAddDescHint": "Додати опис...",
   "fileMarkedAsImportant": "Елемент позначено як важливий",
   "fileNotUploadedYet": "Файл ще не завантажено",
   "fileRemovedFromImportant": "Елемент видалено з важливого",
+  "files": "Файли",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
   "filesAddedByYouWillBeRemovedFromTheCollection": "Елементи, додані вами, будуть видалені з колекції",
   "fileSavedToGallery": "Файл збережено до галереї",
   "filesDeleted": "Файли видалено",
   "filesSavedToGallery": "Файли збережено до галереї",
   "fileTypes": "Типи файлів",
   "fileUpdatedSuccessfully": "Елемент успішно оновлено!",
+  "filter": "Фільтр",
   "filters": "Фільтри",
+  "findingSimilarImages": "Пошук схожих зображень...",
   "findSimilarImages": "Знайти схожі зображення",
   "findThemQuickly": "Знайдіть їх швидко",
   "@findThemQuickly": {
     "description": "Subtitle to indicate that the user can find people quickly by name"
   },
+  "fireworks": "Феєрверк",
   "flip": "Відзеркалити",
   "focusOnSearchBar": "Сфокусуватися на пошуку після запуску програми",
   "font": "Шрифт",
   "food": "Кулінарне задоволення",
+  "forestTrails": "Прогулянки лісом",
   "forgotPassword": "Нагадати пароль",
   "@forgotPassword": {
     "description": "Forgot password link label"
   },
+  "forgotRecoveryKey": "Забули ключ відновлення?",
   "free10GB": "10 ГБ вільного простору на <bold-green>ente</bold-green> Photos",
   "freeStorageOffer": "Знижка 10% на <bold-green>ente</bold-green> Photos",
   "freeStorageOfferDescription": "Скористайтеся кодом «AUTH», щоб отримати знижку в 10% на перший рік",
@@ -847,14 +998,29 @@
   "@generatingEncryptionKeysTitle": {
     "description": "Generating encryption keys title"
   },
+  "getInTouch": "Зв'язатися з нами",
   "getStarted": "Розпочати",
+  "gettingReady": "Підготовка",
+  "gettingStarted": "Початок роботи",
+  "gettingStartedDesc": "Установіть Locker, створіть акаунт і збережіть свій перший елемент",
   "giveUsAStarOnGithub": "Відзначте нас зіркою на GitHub",
   "googlePlayId": "Google Play ID",
+  "goToUrl": "Перейти до {url}",
+  "@goToUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
   "grantFullAccessPrompt": "Надайте доступ до всіх фотографій в налаштуваннях застосунку",
   "grantPermission": "Надати дозвіл",
   "greenery": "Зелене життя",
+  "grid": "Сітка",
   "groupBy": "Групувати за",
   "groupByDay": "День",
+  "groupByMonth": "Місяць",
   "guestView": "Гостьовий перегляд",
   "guestViewEnablePreSteps": "Щоб увімкнути гостьовий перегляд, встановіть пароль або блокування екрана в налаштуваннях системи.",
   "happyBirthday": "З днем народження! 🥳",
@@ -889,6 +1055,7 @@
   "ignore": "Ігнорувати",
   "ignored": "ігнорується",
   "ignorePerson": "Ігнорувати особу",
+  "imageEditorTemperature": "Температура",
   "imageNotAnalyzed": "Зображення не проаналізовано",
   "immediately": "Негайно",
   "@immediately": {
@@ -969,9 +1136,11 @@
   "@invalidEndpoint": {
     "description": "Error message when endpoint is invalid"
   },
+  "invalidKey": "Недійсний ключ",
   "invalidProtonExportMessage": "Обраний файл не є дійсним експортом Proton Authenticator.",
   "invalidProtonExportTitle": "Недійсний експорт Proton",
   "invalidQRCode": "Недійсний QR-код",
+  "invalidReferralCode": "Недійсний код",
   "invite": "Запросити",
   "inviteToEnte": "Запросити до Ente",
   "ok": "OK",
@@ -1010,10 +1179,17 @@
   "lastYearsTrip": "Тогорічна подорож",
   "layout": "Макет",
   "layoutGrouped": "Згрупований",
+  "layoutMasonry": "Мозаїка",
   "layoutTrip": "Подорож",
   "leave": "Покинути",
   "leaveAlbum": "Покинути альбом",
   "leaveCollection": "Покинути колекцію",
+  "leaveFamily": "Покинути сім'ю",
+  "leaveFamilyPlan": "Покинути сімейний тариф",
+  "@leaveFamilyPlan": {
+    "description": "Button label for leaving family plan",
+    "type": "text"
+  },
   "leaveSharedAlbum": "Покинути спільний альбом?",
   "left": "Ліворуч",
   "legacy": "Спадок",
@@ -1030,6 +1206,23 @@
   "legacyPageDesc": "«Спадок» дозволяє довіреним контактам отримати доступ до вашого облікового запису під час вашої відсутності.",
   "legacyPageDesc2": "Довірені контакти можуть ініціювати відновлення облікового запису, і якщо його не буде заблоковано протягом 30 днів, скинути пароль і отримати доступ до нього.",
   "lightTheme": "Світла",
+  "like": "Подобається",
+  "likeAll": "Уподобати все",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "likedAComment": "сподобався коментар",
+  "@likedAComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAPhoto": "сподобалося фото",
+  "@likedAPhoto": {
+    "description": "Social action text shown after a person's name, for example 'John liked a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAReply": "сподобалася відповідь",
+  "@likedAReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked a reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
   "linkCopiedToClipboard": "Посилання скопійовано в буфер обміну",
   "linkDeletedSuccessfully": "Посилання успішно видалено",
   "linkDeviceLimit": "Досягнуто ліміту пристроїв",
@@ -1044,12 +1237,22 @@
   "linkExpiry": "Термін дії посилання закінчився",
   "linkHasExpired": "Посилання прострочено",
   "linkNeverExpires": "Ніколи",
+  "links": "Посилання",
+  "list": "Список",
   "livePhotos": "Живі фото",
   "loadingExifData": "Завантаження даних EXIF...",
   "loadingGallery": "Завантаження галереї...",
   "loadingModel": "Завантаження моделей...",
   "loadingYourPhotos": "Завантажуємо фотографії...",
   "loadMessage1": "Ви можете поділитися своєю передплатою з родиною",
+  "loadMessage2": "Наразі ми зберегли понад {memoriesCountInMillions} млн ваших спогадів",
+  "@loadMessage2": {
+    "placeholders": {
+      "memoriesCountInMillions": {
+        "type": "int"
+      }
+    }
+  },
   "loadMessage3": "Ми зберігаємо 3 копії ваших даних, одну в підземному бункері",
   "loadMessage4": "Всі наші застосунки мають відкритий код",
   "loadMessage5": "Наш вихідний код та шифрування пройшли перевірку спільнотою",
@@ -1069,6 +1272,7 @@
   "localBackupDailyManualCopy": "Створює одну локальну резервну копію на день при відкриванні застосунку. Використовуйте «Створити резервну копію зараз», щоб почати створення резервної копії вручну. Зберігається до 5 файлів резервних копій.",
   "localBackupSidebarTitle": "Локальна резервна копія",
   "localGallery": "Локальна галерея",
+  "localIndexing": "Локальна обробка",
   "localSyncErrorMessage": "Схоже, щось пішло не так, оскільки локальна синхронізація фотографій займає більше часу, ніж очікувалося. Зверніться до нашої служби підтримки",
   "location": "Розташування",
   "locationName": "Назва місце розташування",
@@ -1088,12 +1292,15 @@
   "@loginSessionExpired": {
     "description": "Login session expired title"
   },
+  "loginToEnte": "Увійти до Ente",
+  "loginToExistingAccount": "Увійти до наявного акаунту",
   "loginWithAuthAccount": "Увійти з допомогою свого акаунту Auth",
   "loginWithTOTP": "Увійти за допомогою TOTP",
   "@loginWithTOTP": {
     "description": "Login with TOTP button label"
   },
   "logout": "Вийти",
+  "logs": "Журнали",
   "logsDialogBody": "Це призведе до надсилання журналів, які допоможуть нам усунути вашу проблему. Зверніть увагу, що назви файлів будуть включені, щоби допомогти відстежувати проблеми з конкретними файлами.",
   "@logsDialogBody": {
     "description": "Body text for the logs dialog explaining what will be sent"
@@ -1109,6 +1316,10 @@
     "description": "Lost device title"
   },
   "machineLearning": "Машинне навчання",
+  "magic": "Магія",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
   "manage": "Керування",
   "manageDeviceStorage": "Керування кешем пристрою",
   "manageFamily": "Керування сім'єю",
@@ -1123,17 +1334,26 @@
   "maps": "Мапи",
   "markingAsImportant": "Позначення як важливе...",
   "me": "Я",
+  "members": "Учасники",
   "memories": "Спогади",
+  "memoryLink": "Посилання на спогад",
   "merchandise": "Товари",
   "merge": "Об'єднати",
   "mergedPhotos": "Об'єднані фотографії",
   "mergeWithExisting": "Об'єднати з наявним",
+  "message": "Повідомлення",
   "minimizeAppOnCopy": "Згорнути програму після копіювання",
   "minimizeToTrayOnClose": "Згортати до панелі завдань при закритті",
+  "mixedGrouping": "Змішана група?",
   "mlConsent": "Увімкнути машинне навчання",
   "mlConsentConfirmation": "Я розумію, та бажаю увімкнути машинне навчання",
   "mlConsentDescription": "Якщо увімкнути машинне навчання, Ente вилучатиме інформацію, наприклад геометрію обличчя з файлів, включно з тими, хто поділився з вами.\n\nЦе відбуватиметься на вашому пристрої, і будь-яка згенерована біометрична інформація буде наскрізно зашифрована.",
   "mlConsentPrivacy": "Натисніть тут для більш детальної інформації про цю функцію в нашій політиці приватності",
+  "mlProgressBannerTitle": "Тримайтеся!",
+  "moderateStrength": "Середній",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
   "modifyYourQueryOrTrySearchingFor": "Змініть ваш запит або спробуйте знайти",
   "moments": "Моменти",
   "month": "місяць",
@@ -1143,6 +1363,7 @@
     "type": "text"
   },
   "moon": "У місячному сяйві",
+  "more": "Більше",
   "moreDetails": "Детальніше",
   "mostFrequentlyUsed": "Часто використовувані",
   "mostRecent": "Останні",
@@ -1165,13 +1386,36 @@
   "moveToHiddenAlbum": "Перемістити до прихованого альбому",
   "movingFilesToAlbum": "Переміщуємо файли до альбому...",
   "name": "Назва",
+  "nDays": "{count} дн",
+  "@nDays": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
   "never": "Ніколи",
   "newAlbum": "Новий альбом",
   "newCollection": "Нова колекція",
   "newest": "Найновіші",
   "newLocation": "Нове розташування",
+  "newPhotosEmoji": " нове 📸",
   "newRange": "Новий діапазон",
+  "next": "Далі",
+  "@next": {
+    "description": "Next button label"
+  },
   "nextTotpTitle": "наступний",
+  "nHours": "{count} год",
+  "@nHours": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
   "no": "Ні",
   "noChangesWereMade": "Змін не внесено",
   "noCollections": "Немає колекцій",
@@ -1248,9 +1492,14 @@
   "ocrImageDecodeFailedError": "Не вдалося прочитати файл зображення",
   "ocrImageNotFoundError": "Файл зображення не знайдено",
   "ocrNoTextDetected": "Текст не виявлено",
-  "ocrProcessingOverlayMessage": "Виявлення тексту...",
-  "ocrSelectionHint": "Проведіть або двічі торкніться, щоб обрати те, що вам потрібно",
+  "of_": "із",
+  "offlineEnableBackupTagLabel": "10 ГБ БЕЗКОШТОВНО!",
   "offlineModeWarning": "Ви збираєтеся продовжити без резервних копій. Будь ласка, зробіть ручну резервну копію, щоб переконатися, що ваші коди в безпеці.",
+  "onDevice": "На пристрої",
+  "@onDevice": {
+    "description": "The text displayed above folders/albums stored on device",
+    "type": "text"
+  },
   "onEnte": "В <branding>Ente</branding>",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
@@ -1274,10 +1523,14 @@
   "openAlbumInBrowser": "Відкрити альбом у браузері",
   "openAlbumInBrowserTitle": "Використовуйте вебзастосунок, щоби додавати фотографії до цього альбому",
   "openFile": "Відкрити файл",
+  "openLink": "Відкрити посилання",
+  "openSettings": "Відкрити налаштування",
   "openstreetmapContributors": "Учасники OpenStreetMap",
   "optionalAsShortAsYouLike": "Необов'язково, так коротко, як ви хочете...",
+  "organization": "Організація",
   "orPickAnExistingOne": "Або виберіть наявну",
   "otherDetectedFaces": "Інші виявлені обличчя",
+  "others": "Інші",
   "pair": "Створити пару",
   "panorama": "Панорама",
   "parsingError": "Помилка зчитування",
@@ -1288,6 +1541,14 @@
     }
   },
   "passkey": "Ключ доступу",
+  "passkeyAuthTitle": "Перевірка через ключ доступу",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Перевірка все ще триває",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
+  },
   "password": "Пароль",
   "@password": {
     "description": "Password field label"
@@ -1300,12 +1561,27 @@
   "passwordForDecryptingExport": "Пароль для розшифровки експорту",
   "passwordHint": "Пароль",
   "passwordLock": "Блокування паролем",
+  "passwordsDontMatch": "Паролі не збігаються",
+  "passwordsMatch": "Паролі збігаються",
+  "passwordStrength": "Надійність пароля: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
   "passwordToEncryptExport": "Пароль для зашифровування експорту",
   "passwordTooShort": "Пароль має містити принаймні 8 символів.",
   "passwordWarning": "Ми не зберігаємо цей пароль, тому, якщо ви його забудете, <underline>ми не зможемо розшифрувати ваші дані</underline>",
   "@passwordWarning": {
     "description": "Warning about password storage"
   },
+  "pastYearsMemories": "Спогади минулих років",
+  "pay": "Оплатити",
   "paymentDetails": "Деталі платежу",
   "paymentFailed": "Не вдалося оплатити",
   "paymentFailedMessage": "На жаль, ваш платіж не вдався. Зв'яжіться зі службою підтримки і ми вам допоможемо!",
@@ -1320,6 +1596,7 @@
       }
     }
   },
+  "pending": "Очікування",
   "pendingSync": "Очікування синхронізації",
   "pendingSyncs": "Увага!",
   "pendingSyncsWarningBody": "Деякі з ваших кодів не були збережені.\n\nБудь ласка, переконайтеся, що у вас є резервна копія для цих кодів перед виходом.",
@@ -1440,12 +1717,36 @@
   },
   "reassigningLoading": "Перепризначення...",
   "reassignMe": "Перепризначити «Мене»",
+  "receivedAlbumsLabel": "Отримано",
+  "@receivedAlbumsLabel": {
+    "description": "Albums tab filter label for albums received from other people"
+  },
+  "receiveRemindersOnBirthdays": "Нагадування про дні народження",
+  "recent": "Недавні",
+  "reclaimSpace": "Звільнити {sizeInMBorGB}",
+  "@reclaimSpace": {
+    "description": "Heading that shows how much device storage can be reclaimed",
+    "placeholders": {
+      "sizeInMBorGB": {
+        "example": "2.28 GB",
+        "type": "String"
+      }
+    }
+  },
   "recordLocation": "Розташування",
   "recordLocationHint": "Де зберігається цей предмет?",
   "recordNameHint": "Назва реального предмета",
   "recordNotes": "Нотатки",
   "recordNotesHint": "Додаткова інформація про предмет",
   "recordSavedSuccessfully": "Запис успішно збережено",
+  "recover": "Відновити",
+  "@recover": {
+    "description": "Recover button label"
+  },
+  "recoverAccount": "Відновити акаунт",
+  "@recoverAccount": {
+    "description": "Recover account button label"
+  },
   "recoveryInitiated": "Почато відновлення",
   "recoveryInitiatedDesc": "Ви зможете отримати доступ до облікового запису через {days} днів. Повідомлення буде надіслано на {email}.",
   "@recoveryInitiatedDesc": {
@@ -1498,6 +1799,7 @@
   "@recreatePasswordTitle": {
     "description": "Title for recreate password dialog"
   },
+  "redo": "Повторити",
   "reEnterPassword": "Введіть пароль ще раз",
   "@reEnterPassword": {
     "description": "Re-enter password prompt"
@@ -1506,9 +1808,14 @@
   "@reEnterPin": {
     "description": "Re-enter PIN prompt"
   },
+  "referralCodeHint": "Ви можете змінити цей код до 3 разів",
   "referrals": "Реферали",
   "referralsAreCurrentlyPaused": "Реферали зараз призупинені",
+  "referralStats": "Реферальна статистика",
+  "referralStep1": "1. Налаштуйте код і поділіться ним.",
+  "referralStep2": "2. Користувач зареєструється в Ente, використовуючи ваш код.",
   "rejectRecovery": "Відхилити відновлення",
+  "related": "Пов'язані",
   "remindToEmptyDeviceTrash": "Також очистьте «Нещодавно видалено» в «Налаштування» -> «Сховище», щоб отримати вільне місце",
   "remindToEmptyEnteTrash": "Також очистьте «Смітник», щоб звільнити місце",
   "remoteImages": "Віддалені зображення",
@@ -1528,8 +1835,14 @@
       "userEmail": {}
     }
   },
+  "removeContact": "Вилучити контакт",
+  "@removeContact": {
+    "description": "Button label to remove a trusted contact"
+  },
+  "removeDuplicates": "Дублікати",
   "removeFromAlbum": "Вилучити з альбому",
   "removeFromAlbumTitle": "Вилучити з альбому?",
+  "removeFromFamily": "Вилучити із сім'ї",
   "removeFromFavorite": "Вилучити з улюбленого",
   "removeLink": "Вилучити посилання",
   "removePersonLabel": "Вилучити мітку особи",
@@ -1549,6 +1862,10 @@
     }
   },
   "renewSubscription": "Поновити передплату",
+  "reply": "Відповісти",
+  "@reply": {
+    "description": "Reply action button label"
+  },
   "reportABug": "Повідомити про помилку",
   "@reportABug": {
     "description": "Label for reporting a bug"
@@ -1598,6 +1915,12 @@
   "ritualAddTooltip": "Додати ритуал",
   "ritualAlbumLabel": "Альбом",
   "ritualAlbumSelectionPlaceholder": "Вибрати альбом",
+  "ritualChooseAlbumLabel": "Вибрати альбом",
+  "ritualCreateAction": "Створити ритуал",
+  "ritualCreateNewTitle": "Створити новий ритуал",
+  "ritualCreateYourOwn": "Створіть власний ритуал",
+  "ritualCustomKeyboardLabel": "Власний (клавіатура)",
+  "ritualDefaultCameraTitle": "Зробити фото",
   "ritualEdit": "Редагувати ритуал",
   "ritualEmojiUseAction": "Використати",
   "ritualEnterDescription": "Будь ласка, введіть опис",
@@ -1759,6 +2082,10 @@
   "selectMorePhotos": "Обрати більше фотографій",
   "selectOneDateAndTime": "Оберіть одну дату і час",
   "selectOneDateAndTimeForAll": "Оберіть одну дату і час для всіх",
+  "selectReason": "Оберіть причину",
+  "@selectReason": {
+    "description": "Placeholder for account deletion reason picker"
+  },
   "selectStartOfRange": "Оберіть початок діапазону",
   "selectTime": "Обрати час",
   "selectYourFace": "Оберіть своє обличчя",
@@ -1811,9 +2138,11 @@
   "sharedAlbumSectionDescription": "Створюйте спільні альбоми з іншими користувачами Ente, включно з користувачами безплатних тарифів.",
   "sharedWith": "Поділено з",
   "shareLink": "Поділитися посиланням",
+  "shareTextRecommendUsingEnteForFamily": "Установи Ente, щоб мені можна було додати тебе до сімейного тарифу\n\nhttps://ente.com",
   "shareThisLink": "Це посилання дозволяє будь-кому, хто його отримає, отримати доступ до вашого елемента. Ви можете скасувати доступ у будь-який час, видаливши посилання.",
   "shareWithNonenteUsers": "Поділитися з користувачами без Ente",
   "sharing": "Відправлення...",
+  "sharingAndCollaborationDesc": "Альбоми, посилання та сімейні тарифи",
   "shouldHideCode": "Приховати коди",
   "showInMemories": "Показати у спогадах",
   "showLargeIcons": "Показувати великі іконки",
@@ -2151,6 +2480,7 @@
   "@uploadStorageLimitErrorTitle": {
     "description": "Title shown when uploads fail due to running out of storage"
   },
+  "usageFamily": "Сім'я",
   "useAsCover": "Використати як обкладинку",
   "usedSpace": "Використано місця",
   "useOffline": "Використовувати без резервних копій",
@@ -2213,6 +2543,10 @@
   },
   "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Ми не підтримуємо редагування фотографій та альбомів, якими ви ще не володієте",
   "whatsNew": "Що нового",
+  "whyAreYouLeaving": "Чому ви вирішили піти?",
+  "@whyAreYouLeaving": {
+    "description": "Heading asking why the user is deleting their account"
+  },
   "widgets": "Віджети",
   "yearly": "Щороку",
   "@yearly": {
@@ -2260,6 +2594,7 @@
   },
   "yourMap": "Ваша мапа",
   "yourPhotosLookUnique": "Ваші фотографії виглядають унікально",
+  "yourPlanSupportsFamily": "Ваш план уже підтримує сім'ю",
   "yourPlanWasSuccessfullyDowngraded": "Ваш план був успішно знижено",
   "yourPlanWasSuccessfullyUpgraded": "Ваш план успішно покращено",
   "yourPurchaseWasSuccessful": "Ваша покупка пройшла успішно",
@@ -2268,5 +2603,25 @@
   "yourTrashIsEmpty": "Ваш кошик порожній",
   "youveNoDuplicateCodesThatCanBeCleared": "У вас немає дублікатів кодів, які можна очистити",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "У цьому альбомі немає файлів, які можуть бути видалені",
-  "zoomOutToSeePhotos": "Збільште, щоб побачити фотографії"
+  "zoomOutToSeePhotos": "Збільште, щоб побачити фотографії",
+  "legacyKitSheetHowToRecover": "Як відновити акаунт",
+  "legacyKitSheetNameJoinerOr": " або ",
+  "@legacyKitSheetNameJoinerOr": {
+    "description": "Joins the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the surrounding spaces"
+  },
+  "legacyKitSheetNameJoinerList": ", ",
+  "@legacyKitSheetNameJoinerList": {
+    "description": "Joins all but the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the trailing space"
+  },
+  "legacyKitSheetStepVisit": "Відвідати {url}",
+  "@legacyKitSheetStepVisit": {
+    "description": "Second recovery step",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "grantAccess": "Надати доступ"
 }

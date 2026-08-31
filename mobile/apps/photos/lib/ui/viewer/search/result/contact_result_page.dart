@@ -319,7 +319,7 @@ class _ContactResultPageState extends State<ContactResultPage> {
   }
 
   String get _savedContactDisplayName {
-    final savedName = _savedContact?.data?.name.trim();
+    final savedName = _savedContact?.name?.trim();
     if (savedName != null && savedName.isNotEmpty) {
       return savedName;
     }

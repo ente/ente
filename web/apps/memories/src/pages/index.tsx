@@ -10,7 +10,7 @@ import type {
     LaneMemoryViewerProps,
     MemoryViewerProps,
 } from "../components/PublicMemoryViewerShared";
-import { usePublicMemoryPage } from "../hooks/usePublicMemoryPage";
+import { usePublicMemoryPage } from "../hooks/use-public-memory-page";
 
 function ViewerChunkLoadingFallback() {
     return <PublicMemoryLoadingContent />;

@@ -154,8 +154,10 @@ impl RetrievalIndex {
         }
         let offsets_raw = fs::read(&offsets_path)?;
         let offsets = offsets_raw
-            .chunks_exact(8)
-            .map(|chunk| u64::from_le_bytes(chunk.try_into().expect("eight-byte chunk")))
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .map(|chunk| u64::from_le_bytes(*chunk))
             .collect::<Vec<_>>();
         validate_offsets(&offsets, metadata_len)?;
 

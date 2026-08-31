@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { SlideUpTransition } from "ente-new/photos/components/mui/SlideUpTransition";
 import { t } from "i18next";
-import { uploadCompletionCounts } from "../uploadProgressStats";
+import { uploadCompletionCounts } from "../upload-progress-stats";
 import {
     uploadSheetMediaQuery,
     uploadSheetPaperSx,

@@ -33,7 +33,6 @@ struct VideoPlayerView: View {
                         cleanup()
                     }
             } else {
-                // Clean loading state
                 VStack(spacing: 24) {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 29/255, green: 185/255, blue: 84/255)))
@@ -72,7 +71,6 @@ struct VideoPlayerView: View {
                                 let playerItem = AVPlayerItem(url: tempURL)
                                 let player = AVPlayer(playerItem: playerItem)
                                 
-                                // Monitor player item status using modern async/await approach
                                 self.monitorPlayerItemStatus(playerItem)
                                 
                                 self.playerItem = playerItem
@@ -95,7 +93,6 @@ struct VideoPlayerView: View {
     }
     
     private func tryVideoFallback(originalURL: URL) {
-        // Try creating a new temp file with .mov extension as fallback
         Task {
             do {
                 let fallbackURL = originalURL.deletingPathExtension().appendingPathExtension("mov")
@@ -118,11 +115,9 @@ struct VideoPlayerView: View {
     }
     
     private func showErrorState() {
-        // Could show an error message or placeholder
     }
     
     private func monitorPlayerItemStatus(_ playerItem: AVPlayerItem) {
-        // Monitor status using a timer-based approach since we can't use KVO in SwiftUI structs
         Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
             switch playerItem.status {
             case .readyToPlay:
@@ -137,7 +132,6 @@ struct VideoPlayerView: View {
                     self.showErrorState()
                 }
             case .unknown:
-                // Keep checking
                 break
             @unknown default:
                 timer.invalidate()
@@ -148,11 +142,9 @@ struct VideoPlayerView: View {
     private func setupPlayer() {
         guard let player = player else { return }
         
-        // Configure player for TV playback
         player.actionAtItemEnd = .none
         player.automaticallyWaitsToMinimizeStalling = true
         
-        // Set audio session for proper audio handling
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
             try AVAudioSession.sharedInstance().setActive(true)
@@ -169,13 +161,11 @@ struct VideoPlayerView: View {
     private func setupPlayerObservers() {
         guard let player = player, let currentItem = player.currentItem else { return }
         
-        // Add observer for when video ends
         NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: currentItem,
             queue: .main
         ) { _ in
-            // Loop the video
             player.seek(to: .zero)
             player.play()
         }
@@ -190,7 +180,6 @@ struct VideoPlayerView: View {
             }
         }
         
-        // Add observer for app lifecycle
         NotificationCenter.default.addObserver(
             forName: UIApplication.willResignActiveNotification,
             object: nil,
@@ -217,9 +206,8 @@ struct VideoPlayerView: View {
         
         try data.write(to: tempURL)
         
-        // Schedule cleanup of temp file after some time
         Task {
-            try? await Task.sleep(nanoseconds: 60_000_000_000) // 60 seconds
+            try? await Task.sleep(nanoseconds: 60_000_000_000)
             try? FileManager.default.removeItem(at: tempURL)
         }
         
@@ -227,7 +215,7 @@ struct VideoPlayerView: View {
     }
     
     private func detectVideoExtension(from data: Data) -> String? {
-        let headerBytes = data.prefix(32)  // Read more bytes for better detection
+        let headerBytes = data.prefix(32)
         
         if headerBytes.count >= 4 {
             let signature = headerBytes.prefix(4)
@@ -277,8 +265,6 @@ struct VideoPlayerView: View {
     
     private func cleanup() {
         player?.pause()
-        
-        // KVO observer removal no longer needed as we use modern async/await approach
         
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemFailedToPlayToEndTime, object: nil)

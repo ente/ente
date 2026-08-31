@@ -8,7 +8,6 @@ import (
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/stacktrace"
-	log "github.com/sirupsen/logrus"
 )
 
 type ObjectCopiesRepository struct {
@@ -20,13 +19,7 @@ func (repo *ObjectCopiesRepository) GetAndLockUnreplicatedObject(ctx context.Con
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-
-	rollback := func() {
-		rerr := tx.Rollback()
-		if rerr != nil {
-			log.Errorf("Ignoring error when rolling back transaction: %s", rerr)
-		}
-	}
+	defer tx.Rollback()
 
 	row := tx.QueryRowContext(ctx, `
 	SELECT object_key, want_b2, b2, want_wasabi, wasabi, want_scw, scw
@@ -46,7 +39,6 @@ func (repo *ObjectCopiesRepository) GetAndLockUnreplicatedObject(ctx context.Con
 		&r.WantSCW, &r.SCW)
 
 	if err != nil {
-		rollback()
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, err
 		}
@@ -55,7 +47,6 @@ func (repo *ObjectCopiesRepository) GetAndLockUnreplicatedObject(ctx context.Con
 
 	err = repo.RegisterReplicationAttempt(tx, ctx, r.ObjectKey)
 	if err != nil {
-		rollback()
 		return nil, stacktrace.Propagate(err, "failed to register replication attempt")
 	}
 

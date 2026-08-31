@@ -5,17 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('new and short manual codes retain the entry limit', () {
-    expect(
-      SetupEnterSecretKeyPage.manualCodeTextLimitFor(null),
-      SetupEnterSecretKeyPage.manualCodeTextLimit,
-    );
-    expect(
-      SetupEnterSecretKeyPage.manualCodeTextLimitFor(_code()),
-      SetupEnterSecretKeyPage.manualCodeTextLimit,
-    );
-  });
-
   test('legacy manual codes at the limit remain unrestricted', () {
     final boundaryValue = _repeated(
       'a',

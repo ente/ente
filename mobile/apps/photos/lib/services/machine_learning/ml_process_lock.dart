@@ -24,12 +24,8 @@ enum MlLockAttempt {
 
 enum MlRunDisposition { completed, denied, stopped, failed }
 
-/// Per-engine funnel plus the process-global `ml` lock.
-///
-/// All top-level ML operations must run through [tryRunExclusive]: the funnel
-/// serializes operations within this engine, and the native lock excludes the
-/// other engine. Calls make a single attempt unless [waitForAvailability] is
-/// set for maintenance work that must complete before its caller continues.
+// All top-level ML work must enter through tryRunExclusive. The Dart funnel
+// serializes this engine; the native lock excludes the other Flutter engine.
 class MlProcessLock {
   MlProcessLock._();
   static final instance = MlProcessLock._();
@@ -40,19 +36,12 @@ class MlProcessLock {
   final Lock _funnel = Lock();
   MlOperation? _activeOperation;
 
-  /// Whether the funnel is held or has queued waiters. For asserts and
-  /// diagnostics only — never use this to skip [tryRunExclusive].
+  // Diagnostic only; do not use this to skip tryRunExclusive.
   bool get isBusy => _funnel.locked;
 
   MlOperation? get activeOperation => _activeOperation;
 
-  /// Runs [body] while holding the funnel and the native `ml` lock. The lock
-  /// is released only after [body] completes, so [body] must drain any
-  /// protected ML work it started before returning. Errors from [body]
-  /// propagate after release. [background] labels this engine's origin.
-  /// [waitForAvailability] waits for both the local funnel and the other
-  /// engine instead of returning a busy denial, bounded by [waitDeadline]
-  /// per wait when given.
+  // The callback must finish all protected work before returning.
   Future<MlLockAttempt> tryRunExclusive(
     MlOperation operation,
     Future<void> Function() body, {

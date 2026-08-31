@@ -14,7 +14,7 @@ import {
 import { t } from "i18next";
 import { useEffect, useRef } from "react";
 import { VariableSizeList } from "react-window";
-import { uploadStatColors } from "../uploadProgressStats";
+import { uploadStatColors } from "../upload-progress-stats";
 import { uploadSheetMediaQuery } from "./bottom-sheet";
 import { useUploadProgressContext } from "./context";
 import { uploadStatusText } from "./helpers";

@@ -12,7 +12,7 @@ import {
 import {
     createQrSvgData,
     decodeQrFromFile,
-} from "@/features/twoof3/utils/qrCode";
+} from "@/features/twoof3/utils/qr-code";
 import {
     combineShares,
     parseShare,

@@ -3,13 +3,13 @@ use super::{
     post_response_from_feed_item,
 };
 use crate::crypto::{decrypt_secretbox_payload, encrypt_secretbox_payload, generate_key};
-use crate::error::{Result, SpaceError};
+use crate::error::{Error, Result};
 use crate::models::{DecryptedPost, FeedItem, FeedPage, HydratedKeys, PostObjectMetadata};
 use crate::transport::{
     CreatePostRequest, CreatePostResponse, LikePostResponse, PostObjectPayload, PostPage,
     PostResponse, SpaceActorResponse, SpaceUnreadStatusResponse, UpdatePostCaptionRequest,
 };
-use ente_core::b64;
+use ente_core::{b64, http};
 
 impl AccountSpaceCtx {
     pub fn generate_post_key(&self) -> Vec<u8> {
@@ -29,7 +29,7 @@ impl AccountSpaceCtx {
             .resolve_owned_space_access(space_id)
             .await?
             .ok_or_else(|| {
-                SpaceError::InvalidInput(format!("space {space_id} is not owned by the account"))
+                Error::InvalidInput(format!("space {space_id} is not owned by the account"))
             })?;
         let caption_cipher = match caption_plaintext {
             Some(value) => Some(b64::encode(&encrypt_secretbox_payload(
@@ -54,7 +54,12 @@ impl AccountSpaceCtx {
             .json(&request)
             .send()
             .await?
-            .error_for_status()?
+            .error_for_code()
+            .await
+            .map_err(|error| match &error {
+                http::Error::Api { code, .. } if code == "CONFLICT" => Error::PostLimitReached,
+                _ => error.into(),
+            })?
             .json::<CreatePostResponse>()
             .await?;
         Ok((response.post_id, post_key_bytes))
@@ -141,12 +146,10 @@ impl AccountSpaceCtx {
         let space_id = space_id.into();
         let friend_space_id = friend_space_id.into();
         if space_id.trim().is_empty() {
-            return Err(SpaceError::InvalidInput("space id is required".into()));
+            return Err(Error::InvalidInput("space id is required".into()));
         }
         if friend_space_id.trim().is_empty() {
-            return Err(SpaceError::InvalidInput(
-                "friend space id is required".into(),
-            ));
+            return Err(Error::InvalidInput("friend space id is required".into()));
         }
         let path = format!("/spaces/{space_id}/friends/{friend_space_id}/read");
         Ok(self
@@ -266,7 +269,7 @@ impl AccountSpaceCtx {
         let space_key = self
             .resolve_space_key_for_version_for_viewer(space_id, viewer_space_id, Some(key_version))
             .await?
-            .ok_or_else(|| SpaceError::InvalidInput("missing space key for post".into()))?;
+            .ok_or_else(|| Error::InvalidInput("missing space key for post".into()))?;
         let packed = b64::decode(encrypted_post_key)?;
         decrypt_secretbox_payload(&space_key, &packed)
     }
@@ -315,10 +318,7 @@ impl AccountSpaceCtx {
             )
             .await?
             .ok_or_else(|| {
-                SpaceError::InvalidInput(format!(
-                    "no space key available for post {}",
-                    post.post_id
-                ))
+                Error::InvalidInput(format!("no space key available for post {}", post.post_id))
             })?;
         self.decrypt_post(&space_key, post)
     }

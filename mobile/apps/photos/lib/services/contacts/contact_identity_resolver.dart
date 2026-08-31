@@ -3,7 +3,11 @@ import "package:photos/models/api/collection/user.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/utils/contact_string_util.dart";
 
-typedef ResolvedUserIdentity = ({String displayName, String? knownEmail});
+typedef ResolvedUserIdentity = ({
+  String displayName,
+  bool isResolved,
+  String? knownEmail,
+});
 
 // Precedence: saved contact name → linked person name or local label → known
 // email → "Someone".
@@ -15,12 +19,13 @@ ResolvedUserIdentity resolveSuggestionIdentity(UserSuggestion suggestion) {
   final knownEmail =
       knownContactEmailOrNull(contact?.email) ??
       knownContactEmailOrNull(suggestion.email);
+  final resolvedDisplayName =
+      trimToNull(contact?.name) ??
+      trimToNull(suggestion.displayName) ??
+      knownEmail;
   return (
-    displayName:
-        trimToNull(contact?.data?.name) ??
-        trimToNull(suggestion.displayName) ??
-        knownEmail ??
-        "Someone",
+    displayName: resolvedDisplayName ?? "Someone",
+    isResolved: resolvedDisplayName != null,
     knownEmail: knownEmail,
   );
 }

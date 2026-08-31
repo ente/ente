@@ -11,23 +11,18 @@ use crate::{
     onnx,
 };
 
-#[derive(Debug)]
-struct ModelSlotState {
-    path: String,
-    onnx_session: onnx::OnnxSession,
-}
-
 #[cfg(test)]
 #[derive(Debug, PartialEq, Eq)]
-struct ModelSlotSnapshot {
+struct ModelRuntimeSnapshot {
     path: String,
     session_loaded: bool,
+    has_load_state: bool,
 }
 
 #[derive(Debug)]
-struct ModelSlot {
+struct ModelRuntime {
     model: Model,
-    state: Mutex<ModelSlotState>,
+    session: Mutex<Option<onnx::OnnxSession>>,
 }
 
 pub(crate) struct MlRuntimeView<'a> {
@@ -36,30 +31,35 @@ pub(crate) struct MlRuntimeView<'a> {
     provider_usage: Cell<onnx::ProviderUsage>,
 }
 
-impl ModelSlot {
+impl ModelRuntime {
     fn new(model: Model) -> Self {
         Self {
             model,
-            state: Mutex::new(ModelSlotState {
-                path: String::new(),
-                onnx_session: onnx::OnnxSession::new(default_execution_mode(model)),
-            }),
+            session: Mutex::new(None),
         }
     }
 
-    fn lock_state(&self) -> MutexGuard<'_, ModelSlotState> {
-        match self.state.lock() {
+    fn lock_session(&self) -> MutexGuard<'_, Option<onnx::OnnxSession>> {
+        match self.session.lock() {
             Ok(guard) => guard,
             Err(poisoned) => poisoned.into_inner(),
         }
     }
 
     #[cfg(test)]
-    fn snapshot(&self) -> ModelSlotSnapshot {
-        let state = self.lock_state();
-        ModelSlotSnapshot {
-            path: state.path.clone(),
-            session_loaded: state.onnx_session.is_loaded(),
+    fn snapshot(&self) -> ModelRuntimeSnapshot {
+        let session = self.lock_session();
+        match session.as_ref() {
+            Some(session) => ModelRuntimeSnapshot {
+                path: session.model_path().to_string(),
+                session_loaded: session.is_loaded(),
+                has_load_state: session.has_load_state(),
+            },
+            None => ModelRuntimeSnapshot {
+                path: String::new(),
+                session_loaded: false,
+                has_load_state: false,
+            },
         }
     }
 
@@ -67,23 +67,25 @@ impl ModelSlot {
         if path.trim().is_empty() {
             return;
         }
-        let mut state = self.lock_state();
-        Self::set_config_locked(&mut state, path);
+        let mut session = self.lock_session();
+        self.configure_locked(&mut session, path);
     }
 
     fn sync_indexing_residency(&self, path: &str) {
-        let mut state = self.lock_state();
+        let mut session = self.lock_session();
         if path.trim().is_empty() {
-            Self::reset_slot_locked(&mut state);
+            *session = None;
             return;
         }
 
-        Self::set_config_locked(&mut state, path);
+        self.configure_locked(&mut session, path);
     }
 
     fn release_residency(&self) {
-        let mut state = self.lock_state();
-        state.onnx_session.clear();
+        let mut session = self.lock_session();
+        if let Some(session) = session.as_mut() {
+            session.unload();
+        }
     }
 
     fn run<T>(
@@ -95,29 +97,32 @@ impl ModelSlot {
             return Err(MlError::InvalidRequest(self.model.missing_path_error()));
         }
 
-        let mut state = self.lock_state();
-        Self::set_config_locked(&mut state, path);
-        let ModelSlotState { path, onnx_session } = &mut *state;
-        onnx_session.run(path, self.model.namespace(), operation)
+        let mut session = self.lock_session();
+        self.configure_locked(&mut session, path);
+        session
+            .as_mut()
+            .expect("non-empty model path must configure a session")
+            .run(operation)
     }
 
-    fn set_config_locked(state: &mut ModelSlotState, path: &str) {
-        if state.path == path {
+    fn configure_locked(&self, session: &mut Option<onnx::OnnxSession>, path: &str) {
+        if session
+            .as_ref()
+            .is_some_and(|session| session.model_path() == path)
+        {
             return;
         }
-        state.path = path.to_string();
-        state.onnx_session.clear();
-    }
-
-    fn reset_slot_locked(state: &mut ModelSlotState) {
-        state.path.clear();
-        state.onnx_session.clear();
+        *session = Some(onnx::OnnxSession::new(
+            path,
+            self.model.namespace(),
+            default_execution_mode(self.model),
+        ));
     }
 }
 
 #[derive(Debug)]
 struct MlRuntime {
-    slots: [ModelSlot; Model::COUNT],
+    models: [ModelRuntime; Model::COUNT],
 }
 
 static GLOBAL_RUNTIME: Lazy<MlRuntime> = Lazy::new(MlRuntime::new);
@@ -125,31 +130,31 @@ static GLOBAL_RUNTIME: Lazy<MlRuntime> = Lazy::new(MlRuntime::new);
 impl MlRuntime {
     fn new() -> Self {
         Self {
-            slots: Model::ALL.map(ModelSlot::new),
+            models: Model::ALL.map(ModelRuntime::new),
         }
     }
 
-    fn slot(&self, model: Model) -> &ModelSlot {
-        &self.slots[model.index()]
+    fn model(&self, model: Model) -> &ModelRuntime {
+        &self.models[model.index()]
     }
 
     fn configure_requested_models(&self, model_paths: &ModelPaths) {
         for model in Model::ALL {
-            self.slot(model)
+            self.model(model)
                 .configure_if_requested(model_paths.get(model));
         }
     }
 
     fn prepare_indexing_models(&self, model_paths: &ModelPaths) {
         for model in Model::INDEXING {
-            self.slot(model)
+            self.model(model)
                 .sync_indexing_residency(model_paths.get(model));
         }
     }
 
     fn release_indexing_models(&self) {
         for model in Model::INDEXING {
-            self.slot(model).release_residency();
+            self.model(model).release_residency();
         }
     }
 }
@@ -166,7 +171,7 @@ impl<'a> MlRuntimeView<'a> {
     ) -> MlResult<T> {
         let (value, provider_usage) = self
             .runtime
-            .slot(model)
+            .model(model)
             .run(self.model_paths.get(model), operation)?;
         self.provider_usage
             .set(self.provider_usage.get().merge(provider_usage));
@@ -218,7 +223,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn configure_requested_models_preserves_unrequested_slots() {
+    fn configure_requested_models_preserves_unrequested_models() {
         let runtime = MlRuntime::new();
 
         runtime.configure_requested_models(&ModelPaths {
@@ -232,11 +237,11 @@ mod tests {
         });
 
         assert_eq!(
-            runtime.slot(Model::ClipText).snapshot().path,
+            runtime.model(Model::ClipText).snapshot().path,
             "clip_text.onnx"
         );
         assert_eq!(
-            runtime.slot(Model::FaceDetection).snapshot().path,
+            runtime.model(Model::FaceDetection).snapshot().path,
             "face.onnx"
         );
     }
@@ -263,17 +268,19 @@ mod tests {
         runtime.release_indexing_models();
 
         assert_eq!(
-            runtime.slot(Model::ClipText).snapshot(),
-            ModelSlotSnapshot {
+            runtime.model(Model::ClipText).snapshot(),
+            ModelRuntimeSnapshot {
                 path: "clip_text.onnx".to_string(),
                 session_loaded: false,
+                has_load_state: false,
             }
         );
         assert_eq!(
-            runtime.slot(Model::FaceDetection).snapshot(),
-            ModelSlotSnapshot {
+            runtime.model(Model::FaceDetection).snapshot(),
+            ModelRuntimeSnapshot {
                 path: "face.onnx".to_string(),
                 session_loaded: false,
+                has_load_state: false,
             }
         );
     }
@@ -290,21 +297,21 @@ mod tests {
         });
 
         assert_eq!(
-            runtime.slot(Model::FaceDetection).snapshot(),
+            runtime.model(Model::FaceDetection).snapshot(),
             unloaded_snapshot("face.onnx")
         );
         assert_eq!(
-            runtime.slot(Model::FaceEmbedding).snapshot(),
+            runtime.model(Model::FaceEmbedding).snapshot(),
             unloaded_snapshot("embed.onnx")
         );
         assert_eq!(
-            runtime.slot(Model::ClipImage).snapshot(),
+            runtime.model(Model::ClipImage).snapshot(),
             unloaded_snapshot("clip.onnx")
         );
     }
 
     #[test]
-    fn disabling_an_indexing_model_resets_its_slot() {
+    fn disabling_an_indexing_model_clears_its_runtime() {
         let runtime = MlRuntime::new();
         runtime.prepare_indexing_models(&ModelPaths {
             clip_image: "clip.onnx".to_string(),
@@ -314,9 +321,33 @@ mod tests {
         runtime.prepare_indexing_models(&ModelPaths::default());
 
         assert_eq!(
-            runtime.slot(Model::ClipImage).snapshot(),
+            runtime.model(Model::ClipImage).snapshot(),
             unloaded_snapshot("")
         );
+    }
+
+    #[test]
+    fn changing_model_path_discards_stale_session_state() {
+        let runtime = MlRuntime::new();
+        let model_runtime = runtime.model(Model::ClipText);
+        let first_path = "first.onnx";
+        let second_path = "second.onnx";
+        model_runtime.configure_if_requested(first_path);
+        model_runtime
+            .lock_session()
+            .as_mut()
+            .unwrap()
+            .initialize_load_state();
+
+        assert!(model_runtime.snapshot().has_load_state);
+
+        model_runtime.configure_if_requested(first_path);
+
+        assert!(model_runtime.snapshot().has_load_state);
+
+        model_runtime.configure_if_requested(second_path);
+
+        assert_eq!(model_runtime.snapshot(), unloaded_snapshot(second_path));
     }
 
     #[test]
@@ -333,10 +364,11 @@ mod tests {
         }
     }
 
-    fn unloaded_snapshot(path: &str) -> ModelSlotSnapshot {
-        ModelSlotSnapshot {
+    fn unloaded_snapshot(path: &str) -> ModelRuntimeSnapshot {
+        ModelRuntimeSnapshot {
             path: path.to_string(),
             session_loaded: false,
+            has_load_state: false,
         }
     }
 }

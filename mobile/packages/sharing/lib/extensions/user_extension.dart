@@ -25,7 +25,7 @@ ResolvedUserIdentity resolveUserIdentity(int? userID, String email) {
   );
   final resolvedEmail = _trimToNull(contact?.email) ?? email;
   return (
-    displayName: _trimToNull(contact?.data?.name) ?? resolvedEmail,
+    displayName: _trimToNull(contact?.name) ?? resolvedEmail,
     email: resolvedEmail,
   );
 }

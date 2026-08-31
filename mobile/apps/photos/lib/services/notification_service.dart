@@ -339,7 +339,7 @@ class NotificationService {
         );
       }
     } catch (e, s) {
-      // For now we're swallowing any exceptions here because we don't want the memories logic to get disturbed
+      // Notification failures must not interrupt memory or ritual updates.
       _logger.severe(
         "Something went wrong while scheduling notification",
         e,

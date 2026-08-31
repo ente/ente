@@ -15,12 +15,19 @@ import { logoutML, terminateMLWorker } from "ente-new/photos/services/ml";
 import { logoutSearch } from "ente-new/photos/services/search";
 import { logoutSettings } from "ente-new/photos/services/settings";
 import { logoutUserDetails } from "ente-new/photos/services/user-details";
+import { clearAuthenticatedSession } from "./authenticated-session";
 import { uploadManager } from "./upload-manager";
 
 // Individual cleanup failures must not abort logout.
 export const photosLogout = async () => {
     const ignoreError = (label: string, e: unknown) =>
         log.error(`Ignoring error during logout (${label})`, e);
+
+    try {
+        clearAuthenticatedSession();
+    } catch (e) {
+        ignoreError("Authenticated session", e);
+    }
 
     // Stop workers before clearing databases they may still access.
     try {

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use super::{AccountSpaceCtx, build_space_key_history_map};
 use crate::crypto::{encrypt_secretbox_payload, generate_key};
-use crate::error::{Result, SpaceError};
+use crate::error::{Error, Result};
 use crate::models::CreatedSpace;
 use crate::transport::{RotateSpaceKeyRequest, SpaceKeyResponse, SpaceKeyVersionResponse};
 use ente_core::b64;
@@ -45,7 +45,7 @@ impl AccountSpaceCtx {
         let access = self
             .resolve_space_access(space_id)
             .await?
-            .ok_or_else(|| SpaceError::InvalidInput(format!("no access to space {space_id}")))?;
+            .ok_or_else(|| Error::InvalidInput(format!("no access to space {space_id}")))?;
         let versions = self.list_space_key_versions(space_id, None).await?;
         build_space_key_history_map(access.key_version, &access.space_key, &versions)
     }
@@ -62,7 +62,7 @@ impl AccountSpaceCtx {
             }
             None => self.resolve_space_access(space_id).await?,
         }
-        .ok_or_else(|| SpaceError::InvalidInput(format!("no access to space {space_id}")))?;
+        .ok_or_else(|| Error::InvalidInput(format!("no access to space {space_id}")))?;
         let versions = self
             .list_space_key_versions(space_id, viewer_space_id)
             .await?;
@@ -78,7 +78,7 @@ impl AccountSpaceCtx {
             .resolve_owned_space_access(space_id)
             .await?
             .ok_or_else(|| {
-                SpaceError::InvalidInput(format!("space {space_id} is not owned by the account"))
+                Error::InvalidInput(format!("space {space_id} is not owned by the account"))
             })?;
         let current_profile = if profile.is_none() {
             Some(
@@ -93,7 +93,7 @@ impl AccountSpaceCtx {
             None => current_profile
                 .as_ref()
                 .map(|value| value.profile.clone())
-                .ok_or_else(|| SpaceError::InvalidInput("missing current profile".into()))?,
+                .ok_or_else(|| Error::InvalidInput("missing current profile".into()))?,
         };
         let next_space_key = generate_key();
         let space_root_key = self.get_or_create_space_root_key().await?;

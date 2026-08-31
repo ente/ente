@@ -2,7 +2,7 @@ import { CollectionChipRow } from "@/components/createItemDialog/CollectionChipR
 import {
     lockerItemIcon,
     lockerItemIconConfig,
-} from "@/components/lockerItemIcons";
+} from "@/components/locker-item-icons";
 import type { LockerUploadProgress } from "@/services/remote";
 import type { LockerCollection, LockerUploadCandidate } from "@/types";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
@@ -40,7 +40,7 @@ import {
     uploadItemParentPath,
     uploadProgressValue,
     uploadQueueItemKey,
-} from "./fileUploadHelpers";
+} from "./file-upload-helpers";
 
 interface FileUploadSectionProps {
     fileInputRef: React.RefObject<HTMLInputElement | null>;

@@ -8,6 +8,7 @@ crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 ente-assets.workspace = true
+ente-core.workspace = true
 ente-ensu = { workspace = true, features = ["transcription"] }
 ente-uniffi-log.workspace = true
 thiserror.workspace = true

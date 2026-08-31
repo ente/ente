@@ -785,8 +785,6 @@
   "ocrModelsNetworkRequiredError": "처음 사용에는 OCR 모델은 받기 위해 인터넷 연결이 필요합니다",
   "ocrModelsPrepareFailed": "OCR 모델 준비 실패",
   "ocrNoTextDetected": "문자가 발견되지 않았습니다",
-  "ocrProcessingOverlayMessage": "문자 검색 중...",
-  "ocrSelectionHint": "끌거나 두 번 눌러서 필요한 것을 선택하세요",
   "offlineModeWarning": "백업 없이 진행하는 것을 선택하셨습니다. 코드의 안전성을 위해 별도의 백업 대책을 마련해주세요.",
   "oopsSomethingWentWrong": "문제가 생겼습니다",
   "orPickAnExistingOne": "또는 기존 항목 선택",

@@ -2,7 +2,6 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/widgets.dart";
 import "package:intl/intl.dart";
-import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 
 enum GroupType { day, week, month, size, year, none }
@@ -67,69 +66,20 @@ extension GroupTypeExtension on GroupType {
     }
   }
 
-  bool areModifiedFilesPartOfGroup(
-    List<EnteFile> modifiedFiles,
-    EnteFile fistFile, {
-    EnteFile? lastFile,
-  }) {
-    switch (this) {
-      case GroupType.day:
-        return modifiedFiles.any(
-          (file) => areFromSameDay(fistFile.creationTime!, file.creationTime!),
-        );
-      case GroupType.week:
-        return modifiedFiles.any((file) {
-          final firstDate = DateTime.fromMicrosecondsSinceEpoch(
-            fistFile.creationTime!,
-          );
-          final fileDate = DateTime.fromMicrosecondsSinceEpoch(
-            file.creationTime!,
-          );
-          return areDatesInSameWeek(firstDate, fileDate);
-        });
-      case GroupType.month:
-        return modifiedFiles.any((file) {
-          final firstDate = DateTime.fromMicrosecondsSinceEpoch(
-            fistFile.creationTime!,
-          );
-          final fileDate = DateTime.fromMicrosecondsSinceEpoch(
-            file.creationTime!,
-          );
-          return firstDate.year == fileDate.year &&
-              firstDate.month == fileDate.month;
-        });
-      case GroupType.year:
-        return modifiedFiles.any((file) {
-          final firstDate = DateTime.fromMicrosecondsSinceEpoch(
-            fistFile.creationTime!,
-          );
-          final fileDate = DateTime.fromMicrosecondsSinceEpoch(
-            file.creationTime!,
-          );
-          return firstDate.year == fileDate.year;
-        });
-      default:
-        throw UnimplementedError("not implemented for $this");
-    }
-  }
-
   (int, int) getGroupRange(EnteFile file) {
     switch (this) {
       case GroupType.day:
         final date = DateTime.fromMicrosecondsSinceEpoch(file.creationTime!);
         final startOfDay = DateTime(date.year, date.month, date.day);
+        final endOfDay = DateTime(date.year, date.month, date.day + 1);
         return (
           startOfDay.microsecondsSinceEpoch,
-          (startOfDay.microsecondsSinceEpoch + microSecondsInDay - 1),
+          endOfDay.microsecondsSinceEpoch - 1,
         );
       case GroupType.week:
         final date = DateTime.fromMicrosecondsSinceEpoch(file.creationTime!);
-        final startOfWeek = DateTime(
-          date.year,
-          date.month,
-          date.day,
-        ).subtract(Duration(days: date.weekday - 1));
-        final endOfWeek = startOfWeek.add(const Duration(days: 7));
+        final startOfWeek = startOfISOWeek(date);
+        final endOfWeek = startOfNextISOWeek(date);
         return (
           startOfWeek.microsecondsSinceEpoch,
           endOfWeek.microsecondsSinceEpoch - 1,
@@ -150,33 +100,6 @@ extension GroupTypeExtension on GroupType {
           startOfYear.microsecondsSinceEpoch,
           endOfYear.microsecondsSinceEpoch - 1,
         );
-      default:
-        throw UnimplementedError("not implemented for $this");
-    }
-  }
-
-  bool areFromSameGroup(EnteFile first, EnteFile second) {
-    switch (this) {
-      case GroupType.day:
-        return areFromSameDay(first.creationTime!, second.creationTime!);
-      case GroupType.month:
-        return DateTime.fromMicrosecondsSinceEpoch(first.creationTime!).year ==
-                DateTime.fromMicrosecondsSinceEpoch(
-                  second.creationTime!,
-                ).year &&
-            DateTime.fromMicrosecondsSinceEpoch(first.creationTime!).month ==
-                DateTime.fromMicrosecondsSinceEpoch(second.creationTime!).month;
-      case GroupType.year:
-        return DateTime.fromMicrosecondsSinceEpoch(first.creationTime!).year ==
-            DateTime.fromMicrosecondsSinceEpoch(second.creationTime!).year;
-      case GroupType.week:
-        final firstDate = DateTime.fromMicrosecondsSinceEpoch(
-          first.creationTime!,
-        );
-        final secondDate = DateTime.fromMicrosecondsSinceEpoch(
-          second.creationTime!,
-        );
-        return areDatesInSameWeek(firstDate, secondDate);
       default:
         throw UnimplementedError("not implemented for $this");
     }
@@ -207,23 +130,25 @@ extension GroupTypeExtension on GroupType {
     final date = DateTime.fromMicrosecondsSinceEpoch(timestamp);
     final now = DateTime.now();
 
-    final startOfWeek = date.subtract(Duration(days: date.weekday - 1));
-    final nowStartOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = startOfISOWeek(date);
+    final nowStartOfWeek = startOfISOWeek(now);
 
-    if (startOfWeek.year == nowStartOfWeek.year &&
-        startOfWeek.month == nowStartOfWeek.month &&
-        startOfWeek.day == nowStartOfWeek.day) {
+    if (startOfWeek == nowStartOfWeek) {
       return context.strings.thisWeek;
     }
 
-    final lastWeekStart = nowStartOfWeek.subtract(const Duration(days: 7));
-    if (startOfWeek.year == lastWeekStart.year &&
-        startOfWeek.month == lastWeekStart.month &&
-        startOfWeek.day == lastWeekStart.day) {
+    final lastWeekStart = startOfISOWeek(
+      DateTime(now.year, now.month, now.day - 7),
+    );
+    if (startOfWeek == lastWeekStart) {
       return context.strings.lastWeek;
     }
 
-    final endOfWeek = startOfWeek.add(const Duration(days: 6));
+    final endOfWeek = DateTime(
+      startOfWeek.year,
+      startOfWeek.month,
+      startOfWeek.day + 6,
+    );
     return "${DateFormat.MMMd(Localizations.localeOf(context).languageCode).format(startOfWeek)} - ${DateFormat.MMMd(Localizations.localeOf(context).languageCode).format(endOfWeek)}, ${endOfWeek.year}";
   }
 

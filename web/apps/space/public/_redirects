@@ -10,6 +10,7 @@
 /app/profile/photo-edit    /app/profile/photo-edit    200
 /app/settings    /app/settings    200
 /app/settings/profile/name    /app/settings/profile/name    200
+/app/post    /app/post    200
 /login    /login    200
 /manifest.webmanifest    /manifest.webmanifest    200
 /manifest-public.webmanifest    /manifest-public.webmanifest    200

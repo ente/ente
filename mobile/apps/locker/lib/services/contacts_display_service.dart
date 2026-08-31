@@ -1,31 +1,76 @@
 import 'dart:async';
 
 import 'package:ente_contacts/contacts.dart' as contacts;
+import 'package:locker/services/authenticated_session.dart';
 import 'package:locker/services/configuration.dart';
+import 'package:locker/services/contacts.dart';
 import 'package:logging/logging.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LockerContactsDisplayService {
   static final Logger _logger = Logger('LockerContactsDisplayService');
-  static PackageInfo? _packageInfo;
   static Future<void> _pendingOperation = Future.value();
 
-  static Future<void> init({
-    required SharedPreferences preferences,
-    required PackageInfo packageInfo,
-  }) async {
-    contacts.ContactsDisplayService.instance.init(preferences: preferences);
-    _packageInfo = packageInfo;
+  static Future<void> init({required SharedPreferences preferences}) async {
+    contacts.ContactsDisplayService.instance.init(
+      contactsServiceFactory: () {
+        final session = authenticatedSession();
+        return contacts.ContactsService(
+          preferences: preferences,
+          createContact: (key, data) => createContact(
+            session: session,
+            wrappedRootContactKey: key,
+            data: data,
+          ),
+          getDiff: (key, sinceTime, limit) => getDiff(
+            session: session,
+            wrappedRootContactKey: key,
+            sinceTime: sinceTime,
+            limit: limit,
+          ),
+          updateContact: (key, contactId, data) => updateContact(
+            session: session,
+            wrappedRootContactKey: key,
+            contactId: contactId,
+            data: data,
+          ),
+          deleteContact: (contactId) =>
+              deleteContact(session: session, contactId: contactId),
+          setAttachment: (key, contactId, type, bytes) => setAttachment(
+            session: session,
+            wrappedRootContactKey: key,
+            contactId: contactId,
+            attachmentType: type,
+            attachmentBytes: bytes,
+          ),
+          deleteAttachment: (key, contactId, type) => deleteAttachment(
+            session: session,
+            wrappedRootContactKey: key,
+            contactId: contactId,
+            attachmentType: type,
+          ),
+          getProfilePicture: (key, contactId) => getProfilePicture(
+            session: session,
+            wrappedRootContactKey: key,
+            contactId: contactId,
+          ),
+        );
+      },
+    );
     scheduleEnsureReady();
   }
 
   static Future<void> ensureReady() async {
-    final session = buildSession();
-    if (session == null) {
+    final config = Configuration.instance;
+    final userId = config.getUserID();
+    if (userId == null || !config.hasConfiguredAccount()) {
       return;
     }
-    await contacts.ContactsDisplayService.instance.ensureReady(session);
+    authenticatedSession();
+    await contacts.ContactsDisplayService.instance.ensureReady(
+      baseUrl: config.getHttpEndpoint(),
+      userId: userId,
+    );
   }
 
   static Future<void> resetLocalState() {
@@ -66,26 +111,5 @@ class LockerContactsDisplayService {
     current = previous.catchError((_) {}).then((_) => operation());
     _pendingOperation = current.catchError((_) {});
     return current;
-  }
-
-  static contacts.ContactsSession? buildSession() {
-    final packageInfo = _packageInfo;
-    final token = Configuration.instance.getToken();
-    final userId = Configuration.instance.getUserID();
-    final accountKey = Configuration.instance.getKey();
-    if (packageInfo == null ||
-        token == null ||
-        userId == null ||
-        accountKey == null) {
-      return null;
-    }
-    return contacts.ContactsSession(
-      baseUrl: Configuration.instance.getHttpEndpoint(),
-      authToken: token,
-      userId: userId,
-      accountKey: accountKey,
-      clientPackage: packageInfo.packageName,
-      clientVersion: packageInfo.version,
-    );
   }
 }

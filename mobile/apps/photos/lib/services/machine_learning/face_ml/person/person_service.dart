@@ -339,6 +339,7 @@ class PersonService {
     final persons = await getPersonsMap();
     w?.log("Got persons");
     int orphanMappingsRemoved = 0;
+    final entityUpdates = <Future<LocalEntityData>>[];
     for (var personID in dbPersonClusterInfo.keys) {
       final person = persons[personID];
       if (person == null) {
@@ -388,23 +389,31 @@ class PersonService {
         continue;
       }
 
+      var updatedPersonData = personData;
       if (shouldUpdateAssigned) {
-        personData.assigned = dbPersonCluster.entries
-            .map((e) => ClusterInfo(id: e.key, faces: e.value))
-            .toList();
+        updatedPersonData = updatedPersonData.copyWith(
+          assigned: dbPersonCluster.entries
+              .map((e) => ClusterInfo(id: e.key, faces: e.value))
+              .toList(),
+        );
       }
 
       if (shouldUpdateManualAssignments) {
-        personData.manuallyAssigned = updatedManualAssignments ?? <int>[];
+        updatedPersonData = updatedPersonData.copyWith(
+          manuallyAssigned: updatedManualAssignments ?? <int>[],
+        );
       }
 
-      _addOrUpdateEntity(
-        EntityType.cgroup,
-        personData.toJson(),
-        id: personID,
-      ).ignore();
-      personData.logStats();
+      entityUpdates.add(
+        _addOrUpdateEntity(
+          EntityType.cgroup,
+          updatedPersonData.toJson(),
+          id: personID,
+        ),
+      );
+      updatedPersonData.logStats();
     }
+    await Future.wait(entityUpdates);
     if (orphanMappingsRemoved > 0) {
       logger.warning(
         "Removed $orphanMappingsRemoved orphaned local person mappings during reconcile",

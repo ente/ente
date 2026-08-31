@@ -27,7 +27,7 @@ class AlbumSearchResult extends SearchResult {
 
   @override
   List<EnteFile> resultFiles() {
-    // for album search result, we should open the album page directly
+    // Album results open the album directly; this method must not be called.
     throw UnimplementedError();
   }
 

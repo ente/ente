@@ -1,11 +1,11 @@
-import { SpacePageMeta } from "components/SpacePageMeta";
-import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
 import React, { useEffect } from "react";
 import { SettingsScreen, settingsBackground } from "screens/SettingsScreen";
-import { spaceLogout } from "services/spaceLogout";
-import { useSpaceAppState } from "state/spaceAppState";
-import { spaceRoutes } from "utils/spaceRoutes";
-import { useSpaceRouter } from "utils/spaceRouteTransitions";
+import { spaceLogout } from "services/logout";
+import { useSpaceAppState } from "state/app-state";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();

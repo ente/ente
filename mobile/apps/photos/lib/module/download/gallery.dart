@@ -30,14 +30,17 @@ String getDownloadSkipToastFileName(EnteFile file) {
 
 String _getGallerySaveTitle(EnteFile file, String fallbackPath) {
   final displayName = file.displayName;
-  if (displayName.trim().isNotEmpty) {
-    return displayName;
+  final title = displayName.trim().isNotEmpty
+      ? displayName
+      : ((file.title != null && file.title!.trim().isNotEmpty)
+            ? file.title!
+            : file_path.basename(fallbackPath));
+  if (file.fileType == FileType.image &&
+      file_path.extension(title).isEmpty &&
+      file_path.extension(fallbackPath).toLowerCase() == ".unknown") {
+    return "$title.jpg";
   }
-  final title = file.title;
-  if (title != null && title.trim().isNotEmpty) {
-    return title;
-  }
-  return file_path.basename(fallbackPath);
+  return title;
 }
 
 Future<String?> getExistingLocalFolderNameForDownloadSkipToast(

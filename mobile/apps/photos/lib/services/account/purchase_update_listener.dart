@@ -1,6 +1,14 @@
 import "dart:io";
 
 import "package:in_app_purchase/in_app_purchase.dart";
+import "package:in_app_purchase_storekit/in_app_purchase_storekit.dart";
+
+Future<void> configureStoreKit() async {
+  if (Platform.isIOS) {
+    // ignore: deprecated_member_use
+    await InAppPurchaseStoreKitPlatform.enableStoreKit1();
+  }
+}
 
 void listenForPurchaseUpdates({
   required bool Function() isOnSubscriptionPage,

@@ -3,6 +3,32 @@ use wasm_bindgen::prelude::*;
 
 use ente_wasm_log as _;
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Cast(#[from] ente_cast::Error),
+}
+
+impl Error {
+    fn name(&self) -> Option<&'static str> {
+        None
+    }
+
+    fn message(&self) -> String {
+        ente_core::error::chain(self)
+    }
+}
+
+impl From<Error> for JsValue {
+    fn from(error: Error) -> Self {
+        let js_error = js_sys::Error::new(&error.message());
+        if let Some(name) = error.name() {
+            js_error.set_name(name);
+        }
+        js_error.into()
+    }
+}
+
 #[wasm_bindgen]
 pub struct CastReceiver {
     inner: ReceiverCredentials,
@@ -28,8 +54,13 @@ impl CastReceiver {
         self.inner.public_key()
     }
 
+    #[wasm_bindgen(getter, js_name = pqPublicKey)]
+    pub fn pq_public_key(&self) -> String {
+        self.inner.pq_public_key()
+    }
+
     #[wasm_bindgen(js_name = openPayload)]
-    pub fn open_payload(&self, encrypted_payload: &str) -> Result<CastPayload, JsError> {
+    pub fn open_payload(&self, encrypted_payload: &str) -> Result<CastPayload, Error> {
         Ok(self.inner.open_payload(encrypted_payload)?.into())
     }
 }
@@ -90,8 +121,15 @@ impl PreparedCastPayload {
 #[wasm_bindgen(js_name = preparePayload)]
 pub fn prepare_payload(
     public_key: &str,
+    pq_public_key: Option<String>,
     collection_id: i64,
     collection_key: &str,
-) -> Result<PreparedCastPayload, JsError> {
-    Ok(ente_cast::prepare_payload(public_key, collection_id, collection_key)?.into())
+) -> Result<PreparedCastPayload, Error> {
+    Ok(ente_cast::prepare_payload(
+        public_key,
+        pq_public_key.as_deref(),
+        collection_id,
+        collection_key,
+    )?
+    .into())
 }

@@ -25,12 +25,8 @@ pub enum AssetDownloadError {
     Http { status: u16 },
     #[error("network: {detail}")]
     Network { detail: String },
-    #[error("size mismatch: expected {expected} bytes, got {actual}")]
-    SizeMismatch { expected: u64, actual: u64 },
-    #[error("range protocol violation: {detail}")]
-    Protocol { detail: String },
-    #[error("invalid download target: {detail}")]
-    InvalidTarget { detail: String },
+    #[error("{detail}")]
+    InvalidDownload { detail: String },
     #[error("not enough storage space")]
     StorageFull,
     #[error("{detail}")]
@@ -46,11 +42,15 @@ impl From<download::Error> for AssetDownloadError {
             download::Error::Validation(detail) => Self::Validation { detail },
             download::Error::Http(status) => Self::Http { status },
             download::Error::Network(detail) => Self::Network { detail },
-            download::Error::SizeMismatch { expected, actual } => {
-                Self::SizeMismatch { expected, actual }
-            }
-            download::Error::Protocol(detail) => Self::Protocol { detail },
-            download::Error::InvalidTarget(detail) => Self::InvalidTarget { detail },
+            download::Error::SizeMismatch { expected, actual } => Self::InvalidDownload {
+                detail: format!("size mismatch: expected {expected} bytes, got {actual}"),
+            },
+            download::Error::Protocol(detail) => Self::InvalidDownload {
+                detail: format!("range protocol violation: {detail}"),
+            },
+            download::Error::InvalidTarget(detail) => Self::InvalidDownload {
+                detail: format!("invalid download target: {detail}"),
+            },
             download::Error::StorageFull => Self::StorageFull,
             download::Error::Io(error) => Self::Io {
                 detail: error.to_string(),

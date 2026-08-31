@@ -1,6 +1,6 @@
 use ente_core::urls::PRODUCTION_API_ORIGIN;
 use serde::{Deserialize, Serialize};
-use zeroize::Zeroize;
+use zeroize::ZeroizeOnDrop;
 
 pub const DEFAULT_API_ORIGIN: &str = PRODUCTION_API_ORIGIN;
 
@@ -60,8 +60,7 @@ impl AccountsClientConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Zeroize)]
-#[zeroize(drop)]
+#[derive(Serialize, Deserialize, ZeroizeOnDrop)]
 pub struct AccountSecrets {
     pub token: Vec<u8>,
     pub master_key: Vec<u8>,

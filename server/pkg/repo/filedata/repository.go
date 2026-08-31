@@ -58,10 +58,14 @@ func (r *Repository) InsertOrUpdate(ctx context.Context, data filedata.Row) erro
 }
 
 func (r *Repository) InsertOrUpdatePreviewData(ctx context.Context, data filedata.Row, previewObject string) error {
+	if data.ObjectID == nil {
+		return stacktrace.NewError("object ID is required")
+	}
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	defer tx.Rollback()
 	query := `
         INSERT INTO file_data 
             (file_id, user_id, data_type, size, latest_bucket, obj_id, obj_nonce, obj_size, sync_locked_till) 
@@ -90,12 +94,10 @@ func (r *Repository) InsertOrUpdatePreviewData(ctx context.Context, data filedat
 	_, err = tx.ExecContext(ctx, query,
 		data.FileID, data.UserID, string(data.Type), data.Size, data.LatestBucket, *data.ObjectID, data.ObjectNonce, data.ObjectSize)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "failed to insert file data")
 	}
 	err = r.ObjectCleanupRepo.RemoveTempObjectFromDC(ctx, tx, previewObject, data.LatestBucket)
 	if err != nil {
-		tx.Rollback()
 		return stacktrace.Propagate(err, "failed to remove object from tempObjects")
 	}
 	return tx.Commit()

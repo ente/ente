@@ -1,9 +1,1 @@
 dist/
-
-# FVM Version Cache
-.fvm/
-
-# Generated l10n audit output
-lib/l10n/untranslated_messages.json
-
-lib/l10n/arb/*.dart

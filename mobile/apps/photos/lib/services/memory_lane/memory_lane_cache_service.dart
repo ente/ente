@@ -70,22 +70,18 @@ class MemoryLaneCacheService {
     return Map<String, MemoryLaneComputeLogEntry>.from(cache.computeLog);
   }
 
-  Future<void> upsertTimeline(MemoryLanePersonTimeline timeline) async {
+  Future<void> upsertTimelineAndLog(
+    MemoryLanePersonTimeline timeline,
+    MemoryLaneComputeLogEntry log,
+    bool Function() isCurrent,
+  ) async {
     await _ensureInitialized();
     await _lock.synchronized(() async {
+      if (!isCurrent()) return false;
       final currentCache = await _loadCacheUnsafe();
-      final updatedCache = currentCache.copyWithTimeline(timeline);
-      _cache = updatedCache;
-      await _writeCacheUnsafe();
-    });
-  }
-
-  Future<void> upsertComputeLogEntry(MemoryLaneComputeLogEntry entry) async {
-    await _ensureInitialized();
-    await _lock.synchronized(() async {
-      final currentCache = await _loadCacheUnsafe();
-      final updatedCache = currentCache.copyWithComputeLogEntry(entry);
-      _cache = updatedCache;
+      _cache = currentCache
+          .copyWithTimeline(timeline)
+          .copyWithComputeLogEntry(log);
       await _writeCacheUnsafe();
     });
   }
@@ -123,16 +119,17 @@ class MemoryLaneCacheService {
     });
   }
 
-  Future<void> removeTimeline(String personId) async {
+  Future<bool> removeTimeline(String personId) async {
     await _ensureInitialized();
-    await _lock.synchronized(() async {
+    return await _lock.synchronized(() async {
       final currentCache = await _loadCacheUnsafe();
       if (!currentCache.timelines.containsKey(personId)) {
-        return;
+        return false;
       }
       final updatedCache = currentCache.copyWithoutPerson(personId);
       _cache = updatedCache;
       await _writeCacheUnsafe();
+      return true;
     });
   }
 

@@ -83,7 +83,7 @@ contacts.ContactRecord _savedContact({
     id: id,
     contactUserId: userID,
     email: email,
-    data: contacts.ContactData(contactUserId: userID, name: name),
+    name: name,
     profilePictureAttachmentId: null,
     isDeleted: false,
     createdAt: 1,

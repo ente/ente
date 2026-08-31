@@ -15,7 +15,6 @@ import "package:ente_legacy/pages/other_contact_page.dart";
 import "package:ente_legacy/pages/select_contact_page.dart";
 import "package:ente_legacy/pages/share_legacy_kit_page.dart";
 import "package:ente_legacy/services/emergency_service.dart";
-import "package:ente_legacy/services/legacy_kit_service.dart";
 import "package:ente_sharing/extensions/user_extension.dart";
 import "package:ente_sharing/user_avator_widget.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -36,10 +35,22 @@ final _logger = Logger("EmergencyPage");
 
 class EmergencyPage extends StatefulWidget {
   final BaseConfiguration config;
+  final GetLegacyKits getLegacyKits;
+  final CreateLegacyKit createLegacyKit;
+  final DownloadLegacyKitShares downloadLegacyKitShares;
+  final UpdateLegacyKitRecoveryNotice updateLegacyKitRecoveryNotice;
+  final BlockLegacyKitRecovery blockLegacyKitRecovery;
+  final DeleteLegacyKit deleteLegacyKit;
   final LegacyKitAuthenticator? legacyKitAuthenticator;
 
   const EmergencyPage({
     required this.config,
+    required this.getLegacyKits,
+    required this.createLegacyKit,
+    required this.downloadLegacyKitShares,
+    required this.updateLegacyKitRecoveryNotice,
+    required this.blockLegacyKitRecovery,
+    required this.deleteLegacyKit,
     this.legacyKitAuthenticator,
     super.key,
   });
@@ -78,11 +89,8 @@ class _EmergencyPageState extends State<EmergencyPage> {
   }
 
   Future<List<LegacyKit>> _fetchLegacyKits() async {
-    if (!LegacyKitService.instance.isInitialized) {
-      return <LegacyKit>[];
-    }
     try {
-      return await LegacyKitService.instance.getKits();
+      return await widget.getLegacyKits();
     } catch (error, stackTrace) {
       _logger.warning("Failed to fetch legacy kits", error, stackTrace);
       return legacyKits;
@@ -132,9 +140,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
                   hasScrollBody: false,
                   child: _FullLegacyEmptyState(
                     onAddContact: _addTrustedContact,
-                    onCreateLegacyKit: LegacyKitService.instance.isInitialized
-                        ? _createLegacyKit
-                        : null,
+                    onCreateLegacyKit: _createLegacyKit,
                   ),
                 ),
               if (info == null)
@@ -205,7 +211,6 @@ class _EmergencyPageState extends State<EmergencyPage> {
                 ),
               if (info != null &&
                   !showFullEmptyState &&
-                  LegacyKitService.instance.isInitialized &&
                   (legacyKits.isNotEmpty ||
                       trustedContacts.isNotEmpty ||
                       othersTrustedContacts.isNotEmpty))
@@ -295,8 +300,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
                                 const SizedBox(height: 16),
                               ],
                               _buildAddTrustedContactButton(),
-                              if (LegacyKitService.instance.isInitialized &&
-                                  legacyKits.isEmpty) ...[
+                              if (legacyKits.isEmpty) ...[
                                 const SizedBox(height: 12),
                                 GradientButton(
                                   text: context.strings.createLegacyKit,
@@ -476,6 +480,11 @@ class _EmergencyPageState extends State<EmergencyPage> {
                   return ShareLegacyKitPage(
                     kit: legacyKits[index],
                     accountEmail: widget.config.getEmail() ?? "",
+                    getKits: widget.getLegacyKits,
+                    downloadShares: widget.downloadLegacyKitShares,
+                    updateRecoveryNotice: widget.updateLegacyKitRecoveryNotice,
+                    blockRecovery: widget.blockLegacyKitRecovery,
+                    deleteKit: widget.deleteLegacyKit,
                     authenticator: widget.legacyKitAuthenticator,
                     onChanged: _refreshLegacyData,
                   );
@@ -550,6 +559,12 @@ class _EmergencyPageState extends State<EmergencyPage> {
       context,
       accountEmail: widget.config.getEmail() ?? "",
       isFirstLegacyKit: isFirstLegacyKit,
+      createKit: widget.createLegacyKit,
+      getKits: widget.getLegacyKits,
+      downloadShares: widget.downloadLegacyKitShares,
+      updateRecoveryNotice: widget.updateLegacyKitRecoveryNotice,
+      blockRecovery: widget.blockLegacyKitRecovery,
+      deleteKit: widget.deleteLegacyKit,
       authenticator: widget.legacyKitAuthenticator,
       onCreated: _onLegacyKitCreated,
       onChanged: _refreshLegacyData,

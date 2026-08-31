@@ -1,3 +1,4 @@
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import type { EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
@@ -353,8 +354,7 @@ export class FileViewerPhotoSwipe<
                 await videoElement.play();
             } catch (e) {
                 if (
-                    e instanceof Error &&
-                    e.name == "AbortError" &&
+                    isNamedError(e, "AbortError") &&
                     e.message.startsWith("The play() request was interrupted")
                 ) {
                     // Ignore.

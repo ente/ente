@@ -5,6 +5,7 @@ edition = "2024"
 [dependencies]
 ente-assets.workspace = true
 ente-core.workspace = true
+ente-ensu-crypto.workspace = true
 ente-image.workspace = true
 memmap2 = "0.9.9"
 regex = { version = "1", optional = true }

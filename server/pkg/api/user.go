@@ -320,6 +320,11 @@ func (h *UserHandler) FinishPasskeyAuthenticationCeremony(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Failed to bind request: %s", err))
 		return
 	}
+	ceremonySessionID, err := uuid.Parse(request.CeremonySessionID)
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "invalid ceremonySessionID"))
+		return
+	}
 
 	userID, err := h.UserController.PasskeyRepo.GetUserIDWithPasskeyTwoFactorSession(request.SessionID)
 	if err != nil {
@@ -333,7 +338,7 @@ func (h *UserHandler) FinishPasskeyAuthenticationCeremony(c *gin.Context) {
 		return
 	}
 
-	err = h.UserController.PasskeyRepo.FinishAuthentication(&user, c.Request, uuid.MustParse(request.CeremonySessionID))
+	err = h.UserController.PasskeyRepo.FinishAuthentication(&user, c.Request, ceremonySessionID)
 	if err != nil {
 		reqID := requestid.Get(c)
 		logrus.WithField("req_id", reqID).

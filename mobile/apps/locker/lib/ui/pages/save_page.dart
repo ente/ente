@@ -1,14 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 
 import "package:ente_components/ente_components.dart";
 import 'package:ente_strings/ente_strings.dart';
+import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:locker/services/feature_flag_service.dart';
 import 'package:locker/ui/pages/account_credentials_page.dart';
 import 'package:locker/ui/pages/personal_note_page.dart';
 import 'package:locker/ui/pages/physical_records_page.dart';
+import 'package:locker/ui/pages/scanner/scanner_capture_page.dart';
 
-enum SaveOptionType { document, note, physicalRecord, credentials }
+enum SaveOptionType { scanDocument, file, note, physicalRecord, credentials }
 
 class SaveOption {
   const SaveOption({
@@ -24,14 +28,24 @@ class SaveOption {
   final String description;
 }
 
-List<SaveOption> saveOptions(BuildContext context) {
+List<SaveOption> saveOptions(
+  BuildContext context, {
+  bool includeScanner = true,
+}) {
   final l10n = context.strings;
   return [
+    if (includeScanner && FeatureFlagService.instance.documentScanner)
+      SaveOption(
+        type: SaveOptionType.scanDocument,
+        icon: HugeIcons.strokeRoundedFileScan,
+        title: l10n.scanDocumentTitle,
+        description: l10n.scanDocumentDescription,
+      ),
     SaveOption(
-      type: SaveOptionType.document,
+      type: SaveOptionType.file,
       icon: HugeIcons.strokeRoundedFile01,
-      title: l10n.saveDocumentTitle,
-      description: l10n.saveDocumentDescription,
+      title: l10n.saveFileTitle,
+      description: l10n.saveFileDescription,
     ),
     SaveOption(
       type: SaveOptionType.note,
@@ -58,10 +72,32 @@ void handleSaveOption(
   BuildContext context,
   SaveOptionType type, {
   required Future<bool> Function() onUploadDocument,
+  required Future<bool> Function(List<File> files) onUploadFiles,
   VoidCallback? onCancelWithoutSaving,
 }) {
   switch (type) {
-    case SaveOptionType.document:
+    case SaveOptionType.scanDocument:
+      if (!Platform.isAndroid && !Platform.isIOS) {
+        showShortToast(context, context.strings.scannerNotSupportedOnDevice);
+        onCancelWithoutSaving?.call();
+        return;
+      }
+      unawaited(
+        Navigator.of(context)
+            .push<bool>(
+              MaterialPageRoute(
+                builder: (context) =>
+                    ScannerCapturePage(onUploadFiles: onUploadFiles),
+              ),
+            )
+            .then((didSave) {
+              if (didSave != true) {
+                onCancelWithoutSaving?.call();
+              }
+            }),
+      );
+      return;
+    case SaveOptionType.file:
       unawaited(
         onUploadDocument().then((didUpload) {
           if (!didUpload) {
@@ -101,12 +137,16 @@ void handleSaveOption(
 Future<void> showSaveBottomSheet(
   BuildContext context, {
   required Future<bool> Function() onUploadDocument,
+  required Future<bool> Function(List<File> files) onUploadFiles,
+  bool includeScanner = true,
 }) {
   return showBottomSheetComponent<void>(
     context: context,
     builder: (_) => SaveBottomSheet(
       rootContext: context,
       onUploadDocument: onUploadDocument,
+      onUploadFiles: onUploadFiles,
+      includeScanner: includeScanner,
     ),
   );
 }
@@ -116,16 +156,20 @@ class SaveBottomSheet extends StatelessWidget {
     super.key,
     required this.rootContext,
     required this.onUploadDocument,
+    required this.onUploadFiles,
+    this.includeScanner = true,
   });
 
   final BuildContext rootContext;
   final Future<bool> Function() onUploadDocument;
+  final Future<bool> Function(List<File> files) onUploadFiles;
+  final bool includeScanner;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
     final maxHeight = MediaQuery.of(context).size.height * 0.75;
-    final options = saveOptions(context);
+    final options = saveOptions(context, includeScanner: includeScanner);
 
     return BottomSheetComponent(
       title: context.strings.saveToLocker,
@@ -192,6 +236,8 @@ class SaveBottomSheet extends StatelessWidget {
         showSaveBottomSheet(
           navigator.context,
           onUploadDocument: onUploadDocument,
+          onUploadFiles: onUploadFiles,
+          includeScanner: includeScanner,
         );
       });
     }
@@ -200,6 +246,7 @@ class SaveBottomSheet extends StatelessWidget {
       context,
       type,
       onUploadDocument: onUploadDocument,
+      onUploadFiles: onUploadFiles,
       onCancelWithoutSaving: reopenSheet,
     );
   }

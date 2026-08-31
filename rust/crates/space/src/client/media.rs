@@ -1,5 +1,5 @@
 use super::ONLY_PHOTOS_UPLOAD_MESSAGE;
-use crate::error::{Result, SpaceError};
+use crate::error::{Error, Result};
 
 pub(crate) fn ensure_supported_photo_media_type(
     media_type: Option<&str>,
@@ -19,7 +19,7 @@ pub(crate) fn ensure_supported_photo_media_type(
         }));
     }
 
-    Err(SpaceError::InvalidInput(ONLY_PHOTOS_UPLOAD_MESSAGE.into()))
+    Err(Error::InvalidInput(ONLY_PHOTOS_UPLOAD_MESSAGE.into()))
 }
 
 pub(crate) fn ensure_supported_photo_bytes(bytes: &[u8]) -> Result<&'static str> {
@@ -27,7 +27,7 @@ pub(crate) fn ensure_supported_photo_bytes(bytes: &[u8]) -> Result<&'static str>
         return Ok(media_type);
     }
 
-    Err(SpaceError::InvalidInput(ONLY_PHOTOS_UPLOAD_MESSAGE.into()))
+    Err(Error::InvalidInput(ONLY_PHOTOS_UPLOAD_MESSAGE.into()))
 }
 
 pub(crate) fn supported_photo_media_type_for_bytes(bytes: &[u8]) -> Option<&'static str> {

@@ -1,14 +1,8 @@
 #!/bin/bash
 
-# Make sure to go through app_init_test.dart and 
-# fill in email and password.
-# Specify destination directory for the perf results in perf_driver.dart.
-# Specify the report_key of the test in perf_driver.dart. `report_key`` of
-# `traceAction`` in app_init_test.dart.
-
-# On first run, app will start from login page. from second run onwards, 
-# app will start from home page. --keep-app-running is for starting the 
-# app from home page instead of logging in on every run.
+# Add credentials in integration_test/app_init_test.dart. Configure
+# app_init_summary and the output filename in test_driver/perf_driver.dart.
+# --keep-app-running lets later runs use the already logged-in app.
 
 export ENDPOINT="https://api.ente.com"
 

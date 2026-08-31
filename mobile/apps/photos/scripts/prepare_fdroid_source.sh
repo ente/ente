@@ -10,9 +10,9 @@ fail() {
 
 remove_direct_dependencies() {
     local count
-    count=$(rg -c "^  (firebase_core|firebase_messaging|in_app_purchase):" pubspec.yaml || true)
-    [[ "$count" == "3" ]] || fail "expected three restricted dependencies in pubspec.yaml"
-    perl -0pi -e 's/^  (firebase_core|firebase_messaging|in_app_purchase):[^\n]*\n//mg' pubspec.yaml
+    count=$(rg -c "^  (firebase_core|firebase_messaging|in_app_purchase|in_app_purchase_storekit):" pubspec.yaml || true)
+    [[ "$count" == "4" ]] || fail "expected four restricted dependencies in pubspec.yaml"
+    perl -0pi -e 's/^  (firebase_core|firebase_messaging|in_app_purchase|in_app_purchase_storekit):[^\n]*\n//mg' pubspec.yaml
 }
 
 remove_playstore_sources() {

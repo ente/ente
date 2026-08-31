@@ -1081,8 +1081,6 @@
   "ocrModelsNetworkRequiredError": "Conexiune la rețea necesară pentru a descărca modele OCR la prima utilizare",
   "ocrModelsPrepareFailed": "Nu s-au putut pregăti modelele OCR",
   "ocrNoTextDetected": "Niciun text detectat",
-  "ocrProcessingOverlayMessage": "Se detectează textul...",
-  "ocrSelectionHint": "Glisați sau atingeți dublu pentru a selecta exact ce aveți nevoie",
   "offlineModeWarning": "Ai ales să continui fără backup-uri. Te rog salvează-ți backup-urile manual ca să fii sigur că ai codurile în siguranță.",
   "onboardingDesc": "Salvați-vă fotografiile și videoclipurile. Toate aminitirle într-un singur loc.",
   "onboardingTitle": "Pentru tot ce nu vreți să uitați",

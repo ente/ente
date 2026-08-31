@@ -1,0 +1,20 @@
+{
+    "name": "ente-locker-wasm",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": {
+            "types": "./index.ts",
+            "import": "./index.ts"
+        }
+    },
+    "module": "./index.ts",
+    "types": "./index.ts",
+    "scripts": {
+        "build": "wasm-pack build ../../../../rust/bindings/wasm/locker --target bundler --out-dir ../../../../web/packages/wasm/locker/pkg --no-pack"
+    },
+    "devDependencies": {
+        "ente-build-config": "*",
+        "wasm-pack": "0.15.0"
+    }
+}

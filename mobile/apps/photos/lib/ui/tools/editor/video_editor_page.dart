@@ -19,6 +19,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/linear_progress_dialog.dart";
+import "package:photos/ui/common/photo_library_add_permission.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/tools/editor/export_video_service.dart";
 import "package:photos/ui/tools/editor/native_video_export_service.dart";
@@ -236,6 +237,9 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
   }
 
   void exportVideo() async {
+    if (!await ensurePhotoLibraryAddPermission(context)) return;
+    if (!mounted) return;
+
     final shouldUseNative = flagService.internalUser
         ? _useNativeExport
         : flagService.useNativeVideoEditor;

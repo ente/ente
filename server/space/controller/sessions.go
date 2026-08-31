@@ -42,8 +42,9 @@ func (c *SessionsController) CreateBrowserSession(ctx *gin.Context, userID int64
 	}
 	sessionToken := auth.GenerateURLSafeRandomString(32)
 	sessionHash := sha256.Sum256([]byte(sessionToken))
+	authTokenHash := auth.HashToken(authToken)
 	expiresAt := timeutil.NDaysFromNow(spaceBrowserSessionDurationDays)
-	if err := c.SessionsRepo.ExchangeBrowserSession(ctx, authToken, sessionHash[:], userID, sessionWrapKey, expiresAt); err != nil {
+	if err := c.SessionsRepo.ExchangeBrowserSession(ctx, authTokenHash[:], sessionHash[:], userID, sessionWrapKey, expiresAt); err != nil {
 		return nil, err
 	}
 	return &CreatedBrowserSession{

@@ -1,4 +1,4 @@
-import { lockerDialogPaperSx } from "@/components/lockerDialogStyles";
+import { lockerDialogPaperSx } from "@/components/locker-dialog-styles";
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {

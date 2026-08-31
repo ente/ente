@@ -139,6 +139,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Could not decode jwt-secret ", err)
 	}
+	if len(jwtSecretBytes) == 0 {
+		log.Fatal("jwt-secret must not be empty")
+	}
 
 	db := setupDatabase()
 	defer db.Close()
@@ -245,7 +248,7 @@ func main() {
 	defaultPlan := billing.GetDefaultPlans(plans)
 	stripeClients := billing.GetStripeClients()
 	commonBillController := commonbilling.NewController(emailNotificationCtrl, storagBonusRepo, userRepo, usageRepo, billingRepo)
-	appStoreController := controller.NewAppStoreController(defaultPlan,
+	appStoreController := controller.NewAppStoreController(plans,
 		billingRepo, fileRepo, userRepo, remoteStoreRepository, commonBillController, discordController)
 	playStoreController := controller.NewPlayStoreController(defaultPlan,
 		billingRepo, fileRepo, userRepo, storagBonusRepo, commonBillController)
@@ -1090,6 +1093,11 @@ func main() {
 
 	setKnownAPIs(server.Routes())
 	setupAndStartBackgroundJobs(objectCleanupController, replicationController3, fileDataCtrl, contactController, spaceModule)
+	time.AfterFunc(10*time.Minute, func() {
+		if err := remoteStoreRepository.MigrateCustomDomainCanonicalValues(context.Background()); err != nil {
+			log.WithError(err).Error("Failed to backfill custom domain canonical values")
+		}
+	})
 	setupAndStartCrons(
 		userAuthRepo, collectionLinkRepo, fileLinkRepo, pasteRepo, twoFactorRepo, passkeysRepo, fileController, taskLockingRepo, emailNotificationCtrl,
 		trashController, pushController, objectController, dataCleanupController, storageBonusCtrl, emergencyCtrl,
@@ -1416,8 +1424,8 @@ func cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", c.GetHeader("Origin"))
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Auth-Token, X-Space-Session-Token, X-Ente-Space-Link-Auth, X-Auth-Access-Token, X-Cast-Access-Token, X-Auth-Access-Token-JWT, X-Auth-Link-Device-Token, X-Client-Package, X-Client-Version, X-Paste-Consume, Authorization, accept, origin, Cache-Control, X-Requested-With, upgrade-insecure-requests, Range")
-		c.Writer.Header().Set("Access-Control-Expose-Headers", "X-Request-Id, X-Ente-Link-Device-Token")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Auth-Token, X-Space-Session-Token, X-Space-Link-Auth, X-Auth-Access-Token, X-Cast-Access-Token, X-Auth-Access-Token-JWT, X-Auth-Link-Device-Token, X-Client-Package, X-Client-Version, X-Paste-Consume, Authorization, accept, origin, Cache-Control, X-Requested-With, upgrade-insecure-requests, Range")
+		c.Writer.Header().Set("Access-Control-Expose-Headers", "X-Request-Id, X-Link-Device-Token")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
 		c.Writer.Header().Set("Access-Control-Max-Age", "1728000")
 

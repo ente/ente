@@ -1,5 +1,5 @@
 use super::AccountSpaceCtx;
-use crate::error::{Result, SpaceError};
+use crate::error::{Error, Result};
 use crate::transport::{CreateEntityKeyRequest, EntityKeyPayload, EntityKeyResponse};
 use ente_core::b64;
 
@@ -38,7 +38,7 @@ impl AccountSpaceCtx {
             .send()
             .await?;
         if response.status() == 409 {
-            return Err(SpaceError::EntityKeyConflict);
+            return Err(Error::EntityKeyConflict);
         }
         response.error_for_status()?;
         Ok(())
@@ -73,7 +73,7 @@ impl AccountSpaceCtx {
 fn split_entity_key_payload(payload: &EntityKeyPayload) -> Result<(String, String)> {
     let combined = b64::decode(&payload.encrypted_key)?;
     if combined.len() <= SPACE_ENTITY_KEY_HEADER_BYTES {
-        return Err(SpaceError::InvalidInput(
+        return Err(Error::InvalidInput(
             "entity key payload is missing header".into(),
         ));
     }

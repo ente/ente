@@ -270,11 +270,11 @@ Public links are end-to-end encrypted, but with an important caveat:
 
 ## Availability
 
-Public links (including collect links and quick links) are available on all plans, including the free tier. Free plan users can create public links with a [device limit](https://ente.com/help/photos/features/sharing-and-collaboration/public-links#device-limits) of 5.
+Public links (including collect links and quick links) are available on all plans, including the free tier. Free plan users can create public links with a [device limit](https://ente.com/help/photos/features/sharing-and-collaboration/public-links#device-limits) of 10.
 
 **Free users can:**
 
-- Create public links ([device limit](https://ente.com/help/photos/features/sharing-and-collaboration/public-links#device-limits) of 5)
+- Create public links ([device limit](https://ente.com/help/photos/features/sharing-and-collaboration/public-links#device-limits) of 10)
 - View public links shared with them
 - Add photos to collect links shared with them
 - Create and receive shared albums

@@ -24,7 +24,7 @@ export interface PublicAlbumsCredentials {
 
 export const linkDeviceTokenRequestHeader = "X-Auth-Link-Device-Token";
 
-export const linkDeviceTokenResponseHeader = "X-Ente-Link-Device-Token";
+export const linkDeviceTokenResponseHeader = "X-Link-Device-Token";
 
 export const linkDeviceTokenFromResponse = (res: Response) =>
     res.headers.get(linkDeviceTokenResponseHeader) ?? undefined;

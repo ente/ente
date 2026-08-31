@@ -92,19 +92,19 @@ Future<void> changeCollectionVisibility(
     final Map<String, dynamic> update = {magicKeyVisibility: newVisibility};
     if (isOwner) {
       await CollectionsService.instance.updateMagicMetadata(collection, update);
-      Bus.instance.fire(
-        CollectionUpdatedEvent(
-          collection.id,
-          const <EnteFile>[],
-          'collection_visibility_changed',
-        ),
-      );
     } else {
       await CollectionsService.instance.updateShareeMagicMetadata(
         collection,
         update,
       );
     }
+    Bus.instance.fire(
+      CollectionUpdatedEvent(
+        collection.id,
+        const <EnteFile>[],
+        'collection_visibility_changed',
+      ),
+    );
     // Reload so the home gallery adds or removes the collection's files.
     Bus.instance.fire(
       ForceReloadHomeGalleryEvent(

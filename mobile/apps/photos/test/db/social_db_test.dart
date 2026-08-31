@@ -5,7 +5,6 @@ import "package:path_provider_platform_interface/path_provider_platform_interfac
 import "package:photos/db/social_db.dart";
 import "package:photos/models/social/comment.dart";
 import "package:photos/models/social/reaction.dart";
-import "package:sqflite_common_ffi/sqflite_ffi.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +13,6 @@ void main() {
   late PathProviderPlatform previousPathProvider;
 
   setUpAll(() async {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
     previousPathProvider = PathProviderPlatform.instance;
     tempDir = await Directory.systemTemp.createTemp("social_db_test_");
     PathProviderPlatform.instance = _FakePathProvider(tempDir.path);

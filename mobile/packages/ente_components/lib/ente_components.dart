@@ -5,6 +5,7 @@ export 'components/banner_component.dart';
 export 'components/bottom_sheet/bottom_sheet_component.dart';
 export 'components/bottom_sheet/error_bottom_sheet_component.dart';
 export 'components/buttons/button_component.dart';
+export 'components/buttons/fab_component.dart';
 export 'components/buttons/icon_button_component.dart';
 export 'components/centered_constrained_component.dart';
 export 'components/divider_component.dart';

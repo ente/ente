@@ -1,5 +1,5 @@
 [package]
-name = "ente_photos_rust"
+name = "ente-photos-frb"
 edition = "2024"
 
 [lib]
@@ -7,8 +7,11 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 ente-cast.workspace = true
+ente-core.workspace = true
+ente-frb-lib = { workspace = true, features = ["contacts"] }
 ente-frb-log.workspace = true
 ente-image.workspace = true
+ente-location.workspace = true
 ente-ml = { workspace = true, features = ["usearch"] }
 ente-photos.workspace = true
 flutter_rust_bridge.workspace = true

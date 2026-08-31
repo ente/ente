@@ -1,0 +1,10 @@
+rust_input: crate::api, ente-frb-lib
+rust_features: ["ente-frb-lib/contacts,ente-frb-lib/legacy"]
+rust_root: ../../../rust/bindings/frb/locker/
+dart_output: lib/src/rust
+dart_entrypoint_class_name: EnteLockerRust
+
+dart_preamble: |
+  // ignore_for_file: require_trailing_commas
+
+web: false

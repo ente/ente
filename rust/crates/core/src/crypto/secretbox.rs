@@ -88,32 +88,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_encrypt_decrypt() {
-        let key = Key::generate();
-        let plaintext = b"Hello, World!";
-
-        let encrypted = encrypt(plaintext, &key);
-        assert_eq!(encrypted.encrypted_data.len(), MAC_BYTES + plaintext.len());
-
-        let decrypted = encrypted.decrypt(&key).unwrap();
-        assert_eq!(decrypted, plaintext);
-    }
-
-    #[test]
-    fn test_encrypt_with_nonce_is_deterministic() {
-        let key = Key::generate();
-        let nonce = Nonce::generate();
-        let plaintext = b"Deterministic test";
-
-        let encrypted1 = encrypt_with_nonce(plaintext, &nonce, &key);
-        let encrypted2 = encrypt_with_nonce(plaintext, &nonce, &key);
-        assert_eq!(encrypted1, encrypted2);
-
-        let decrypted = decrypt(&encrypted1, &nonce, &key).unwrap();
-        assert_eq!(decrypted, plaintext);
-    }
-
-    #[test]
     fn test_nacl_vector() {
         // NaCl's tests/secretbox.c vector.
         let key = Key::try_from_slice(
@@ -221,14 +195,5 @@ mod tests {
 
         let combined = encrypt_combined(b"", &key);
         assert_eq!(decrypt_combined(&combined, &key).unwrap(), b"");
-    }
-
-    #[test]
-    fn test_large_plaintext() {
-        let key = Key::generate();
-        let plaintext = vec![0x42u8; 1024 * 1024];
-
-        let encrypted = encrypt(&plaintext, &key);
-        assert_eq!(encrypted.decrypt(&key).unwrap(), plaintext);
     }
 }

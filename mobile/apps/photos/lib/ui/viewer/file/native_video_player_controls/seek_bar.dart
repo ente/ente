@@ -7,16 +7,17 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/seekbar_triggered_event.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
+import "package:photos/ui/viewer/file/video_seek_controller.dart";
 
 class NativeVideoProgressControls extends StatefulWidget {
   final NativeVideoPlayerController controller;
   final int? duration;
-  final ValueNotifier<bool> isSeeking;
+  final VideoSeekController seekController;
 
   const NativeVideoProgressControls(
     this.controller,
     this.duration,
-    this.isSeeking, {
+    this.seekController, {
     super.key,
   });
 
@@ -30,10 +31,6 @@ class _NativeVideoProgressControlsState
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
   int _elapsedMilliseconds = 0;
-  final _debouncer = Debouncer(
-    const Duration(milliseconds: 100),
-    executionInterval: const Duration(milliseconds: 325),
-  );
   StreamSubscription<void>? _eventsSubscription;
   StreamSubscription<SeekbarTriggeredEvent>? _seekbarSubscription;
 
@@ -59,6 +56,7 @@ class _NativeVideoProgressControlsState
     });
 
     _eventsSubscription = widget.controller.events.listen(_listen);
+    widget.seekController.addListener(_onSeekStateChanged);
 
     _startMovingSeekbar();
   }
@@ -67,8 +65,8 @@ class _NativeVideoProgressControlsState
   void dispose() {
     _seekbarSubscription?.cancel();
     _eventsSubscription?.cancel();
+    widget.seekController.removeListener(_onSeekStateChanged);
     _animationController.dispose();
-    _debouncer.cancelDebounceTimer();
     super.dispose();
   }
 
@@ -77,6 +75,7 @@ class _NativeVideoProgressControlsState
     return AnimatedBuilder(
       animation: _animationController,
       builder: (_, _) {
+        final canSeek = widget.seekController.canSeek;
         final seekBar = SliderTheme(
           data: SliderTheme.of(context).copyWith(
             trackHeight: 3.0,
@@ -94,21 +93,30 @@ class _NativeVideoProgressControlsState
             min: 0.0,
             max: 1.0,
             value: _animationController.value,
-            onChangeStart: (value) {
-              widget.isSeeking.value = true;
-            },
-            onChanged: (value) {
-              _elapsedMilliseconds = _positionInMilliseconds(value) ?? 0;
-              _animationController.value = value;
-              _seekTo(value);
-            },
+            onChangeStart: canSeek
+                ? (value) => widget.seekController.beginSliderInteraction()
+                : null,
+            onChanged: canSeek
+                ? (value) {
+                    final position = _positionInMilliseconds(value);
+                    if (position != null) {
+                      widget.seekController.updateSliderTarget(
+                        Duration(milliseconds: position),
+                      );
+                    }
+                  }
+                : null,
             divisions: 4500,
-            onChangeEnd: (value) {
-              _elapsedMilliseconds = _positionInMilliseconds(value) ?? 0;
-              _animationController.value = value;
-              _seekTo(value);
-              widget.isSeeking.value = false;
-            },
+            onChangeEnd: canSeek
+                ? (value) {
+                    final position = _positionInMilliseconds(value);
+                    widget.seekController.endSliderInteraction(
+                      position == null
+                          ? widget.seekController.position
+                          : Duration(milliseconds: position),
+                    );
+                  }
+                : null,
             allowedInteraction: SliderInteraction.tapAndSlide,
           ),
         );
@@ -123,18 +131,12 @@ class _NativeVideoProgressControlsState
     );
   }
 
-  void _seekTo(double value) {
-    _debouncer.run(() async {
-      final position = _positionInMilliseconds(value);
-      if (position == null) return;
-      unawaited(widget.controller.seekTo(Duration(milliseconds: position)));
-    });
-  }
-
   void _startMovingSeekbar() {
     // Start the seek animation after delayed video playback begins.
     Future.delayed(const Duration(milliseconds: 700), () {
-      if (!mounted) {
+      if (!mounted ||
+          widget.seekController.state.phase != VideoSeekPhase.idle ||
+          widget.controller.playbackStatus != PlaybackStatus.playing) {
         return;
       }
       final nudge = _durationNudge();
@@ -168,35 +170,45 @@ class _NativeVideoProgressControlsState
     }
   }
 
-  void _onPlaybackPositionChanged() async {
-    if (widget.controller.playbackStatus == PlaybackStatus.paused ||
-        (widget.controller.playbackStatus == PlaybackStatus.stopped &&
-            widget.controller.playbackPosition.inSeconds != 0)) {
-      return;
-    }
+  void _onPlaybackPositionChanged() {
     final target = widget.controller.playbackPosition.inMilliseconds;
-
-    // The position event after zero arrives about 350 ms late.
-    if (target == 0) {
-      await Future.delayed(const Duration(milliseconds: 450));
-    }
-    if (!mounted) {
+    if (widget.controller.playbackStatus == PlaybackStatus.stopped &&
+        target != 0) {
       return;
     }
-
-    _elapsedMilliseconds = target;
-    final duration = widget.controller.videoInfo?.durationInMilliseconds;
-    final double fractionTarget = duration == null || duration <= 0
-        ? 0
-        : target / duration;
-
-    final nudge = _durationNudge();
-    unawaited(
-      _animationController.animateTo(
-        (fractionTarget + nudge).clamp(0.0, 1.0),
-        duration: const Duration(seconds: 1),
-      ),
+    final duration = _effectiveDurationInMilliseconds();
+    widget.seekController.onPlayerPosition(
+      Duration(milliseconds: target),
+      duration: duration == null ? null : Duration(milliseconds: duration),
     );
+  }
+
+  void _onSeekStateChanged() => _syncFromController();
+
+  void _syncFromController() {
+    if (!mounted) return;
+    final duration = _effectiveDurationInMilliseconds();
+    final elapsed = widget.seekController.position.inMilliseconds;
+    if (_elapsedMilliseconds != elapsed) {
+      setState(() {
+        _elapsedMilliseconds = elapsed;
+      });
+    }
+    if (duration != null && duration > 0) {
+      final fraction = (elapsed / duration).clamp(0.0, 1.0);
+      if (widget.seekController.state.phase == VideoSeekPhase.idle &&
+          widget.controller.playbackStatus == PlaybackStatus.playing) {
+        unawaited(
+          _animationController.animateTo(
+            (fraction + _durationNudge()).clamp(0.0, 1.0),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      } else {
+        _animationController.stop();
+        _animationController.value = fraction;
+      }
+    }
   }
 
   int? _effectiveDurationInMilliseconds() {

@@ -1,0 +1,20 @@
+{
+    "name": "ente-photos-wasm",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": {
+            "types": "./index.ts",
+            "import": "./index.ts"
+        }
+    },
+    "module": "./index.ts",
+    "types": "./index.ts",
+    "scripts": {
+        "build": "wasm-pack build ../../../../rust/bindings/wasm/photos --target bundler --out-dir ../../../../web/packages/wasm/photos/pkg --no-pack"
+    },
+    "devDependencies": {
+        "ente-build-config": "*",
+        "wasm-pack": "0.15.0"
+    }
+}

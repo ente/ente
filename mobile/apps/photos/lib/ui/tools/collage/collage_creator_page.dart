@@ -7,6 +7,7 @@ import "package:photo_manager/photo_manager.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/sync/sync_service.dart";
+import "package:photos/ui/common/photo_library_add_permission.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/tools/collage/collage_app_bar.dart";
 import "package:photos/ui/tools/collage/collage_test_grid.dart";
@@ -47,6 +48,7 @@ class _CollageCreatorPageState extends State<CollageCreatorPage> {
 
   Future<void> _saveCollage() async {
     if (_controller == null || _isSaving) return;
+    if (!await ensurePhotoLibraryAddPermission(context)) return;
 
     _clearSwapSelection?.call();
     await Future<void>.delayed(const Duration(milliseconds: 16));

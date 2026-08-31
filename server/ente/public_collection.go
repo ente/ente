@@ -18,6 +18,10 @@ type CreatePublicAccessTokenRequest struct {
 	DeviceLimit int   `json:"deviceLimit"`
 }
 
+func (ct *CreatePublicAccessTokenRequest) Validate() error {
+	return validatePublicLinkDeviceLimit(ct.DeviceLimit)
+}
+
 type UpdatePublicAccessTokenRequest struct {
 	CollectionID    int64                      `json:"collectionID" binding:"required"`
 	ValidTill       *int64                     `json:"validTill"`
@@ -40,8 +44,10 @@ func (ut *UpdatePublicAccessTokenRequest) Validate() error {
 		return NewBadRequestWithMessage("all parameters are missing")
 	}
 
-	if ut.DeviceLimit != nil && (*ut.DeviceLimit < 0 || *ut.DeviceLimit > 50) {
-		return NewBadRequestWithMessage(fmt.Sprintf("device limit: %d out of range [0-50]", *ut.DeviceLimit))
+	if ut.DeviceLimit != nil {
+		if err := validatePublicLinkDeviceLimit(*ut.DeviceLimit); err != nil {
+			return err
+		}
 	}
 
 	if ut.ValidTill != nil && *ut.ValidTill != 0 && *ut.ValidTill < time.Microseconds() {
@@ -54,6 +60,9 @@ func (ut *UpdatePublicAccessTokenRequest) Validate() error {
 	if !(allPassParamsMissing || allPassParamsPresent) {
 		return NewBadRequestWithMessage("all password params should be either present or missing")
 	}
+	if err := validatePublicLinkKDFParams(ut.MemLimit, ut.OpsLimit); err != nil {
+		return err
+	}
 
 	if allPassParamsPresent && ut.DisablePassword != nil && *ut.DisablePassword {
 		return NewBadRequestWithMessage("can not set and disable password in same request")
@@ -61,6 +70,23 @@ func (ut *UpdatePublicAccessTokenRequest) Validate() error {
 
 	if ut.MinRole != nil && !ut.MinRole.IsValidShareRole() {
 		return NewBadRequestWithMessage(fmt.Sprintf("invalid min role %s", *ut.MinRole))
+	}
+	return nil
+}
+
+func validatePublicLinkDeviceLimit(deviceLimit int) error {
+	if deviceLimit < 0 || deviceLimit > 50 {
+		return NewBadRequestWithMessage(fmt.Sprintf("device limit: %d out of range [0-50]", deviceLimit))
+	}
+	return nil
+}
+
+func validatePublicLinkKDFParams(memLimit, opsLimit *int64) error {
+	if memLimit == nil && opsLimit == nil {
+		return nil
+	}
+	if memLimit == nil || opsLimit == nil || *memLimit != 67108864 || *opsLimit != 2 {
+		return NewBadRequestWithMessage("invalid KDF parameters")
 	}
 	return nil
 }

@@ -13,16 +13,16 @@ import type { PreUploadSkippedFile } from "ente-base/types/ipc";
 import { SlideUpTransition } from "ente-new/photos/components/mui/SlideUpTransition";
 import { t } from "i18next";
 import {
-    uploadSheetMediaQuery,
-    uploadSheetPaperSx,
-    useIsUploadSheet,
-} from "./upload-progress/bottom-sheet";
-import {
     finishedStatKinds,
     uploadCompletionCounts,
     uploadStatColors,
     type SegregatedFinishedUploads,
-} from "./uploadProgressStats";
+} from "./upload-progress-stats";
+import {
+    uploadSheetMediaQuery,
+    uploadSheetPaperSx,
+    useIsUploadSheet,
+} from "./upload-progress/bottom-sheet";
 
 export function UploadCompletion({
     open,

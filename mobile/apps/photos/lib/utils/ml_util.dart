@@ -751,8 +751,11 @@ Future<String> getImagePathForML(EnteFile enteFile) async {
   );
 
   if (imagePath == null) {
+    final fileIdentifier = isLocalGalleryMode
+        ? "localID ${enteFile.localID}"
+        : "uploadedFileID ${enteFile.uploadedFileID}";
     _logger.severe(
-      "Failed to get any data for enteFile with uploadedFileID ${enteFile.uploadedFileID} and format ${enteFile.displayName.split('.').last} and size ${enteFile.fileSize} since its file path is null (isVideo: $isVideo)",
+      "Failed to get any data for enteFile with $fileIdentifier and format ${enteFile.displayName.split('.').last} and size ${enteFile.fileSize} since its file path is null (isVideo: $isVideo)",
     );
     throw CouldNotRetrieveAnyFileData();
   }
@@ -1046,8 +1049,7 @@ String formatExpectedMlSkipReasonForLogs(Object error) {
 }
 
 bool _isRustImageIssue(Object error) {
-  return error is rust_ml.RustMlError_Decode ||
-      error is rust_ml.RustMlError_Image;
+  return error is rust_ml.RustMlError_InvalidImage;
 }
 
 bool _isRustCorruptModelIssue(Object error) {

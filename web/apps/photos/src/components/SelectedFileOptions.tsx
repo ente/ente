@@ -135,6 +135,7 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
         onOpenCollectionSelector({
             action: "add",
             sourceCollectionSummaryID: collectionSummary?.id,
+            showHiddenCollections: barMode == "hidden-albums",
             onCreateCollection: createOnCreateForCollectionOp("add"),
             onSelectCollection: createOnSelectForCollectionOp("add"),
         });

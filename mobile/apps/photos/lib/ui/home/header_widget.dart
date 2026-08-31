@@ -8,7 +8,7 @@ import "package:photos/events/app_mode_changed_event.dart";
 import 'package:photos/service_locator.dart';
 import "package:photos/services/wrapped/wrapped_service.dart";
 import "package:photos/ui/components/banners/get_started_banner.dart";
-import "package:photos/ui/home/memories/memories_widget.dart";
+import "package:photos/ui/home/memories/memories_strip.dart";
 import 'package:photos/ui/home/status_bar_widget.dart';
 import "package:photos/ui/wrapped/rewind_banner.dart";
 
@@ -67,7 +67,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     final List<Widget> children = <Widget>[
       const StatusBarWidget(),
       if (showGetStartedBanner) const GetStartedBanner(),
-      const MemoriesWidget(),
+      const MemoriesStripWidget(),
     ];
     if (showWrappedBanner) {
       children.add(RewindBanner(state: _wrappedState));

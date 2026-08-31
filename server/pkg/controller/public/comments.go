@@ -212,7 +212,8 @@ func (c *CommentsController) resolveModeratorActor(ctx *gin.Context) (*socialcon
 		return nil, nil
 	}
 	app := auth.GetApp(ctx)
-	userID, expired, err := c.UserAuthRepo.GetUserIDWithToken(token, app)
+	tokenHash := auth.HashToken(token)
+	userID, expired, err := c.UserAuthRepo.GetUserIDWithTokenHash(tokenHash[:], app)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ente.ErrAuthenticationRequired

@@ -13,7 +13,7 @@ import { useBaseContext } from "ente-base/context";
 import { isHTTPErrorWithStatus } from "ente-base/http";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import {
     AccountsPageContents,
     AccountsPageFooter,
@@ -21,7 +21,19 @@ import {
 } from "../../components/layouts/centered-paper";
 import { unstashRedirect } from "../../services/redirect";
 
-const Page: React.FC = () => {
+export interface TwoFactorVerifyPresentationProps {
+    onSubmit: (otp: string) => Promise<void>;
+    onRecover: () => void;
+    onChangeEmail: () => void;
+}
+
+export interface TwoFactorVerifyPageProps {
+    presentation?: ComponentType<TwoFactorVerifyPresentationProps>;
+}
+
+const Page: React.FC<TwoFactorVerifyPageProps> = ({
+    presentation: Presentation,
+}) => {
     const { logout } = useBaseContext();
 
     const [twoFactorSessionID, setTwoFactorSessionID] = useState("");
@@ -62,6 +74,21 @@ const Page: React.FC = () => {
         [logout, router, twoFactorSessionID],
     );
 
+    const handleRecover = useCallback(
+        () => void router.push("/two-factor/recover"),
+        [router],
+    );
+
+    if (Presentation) {
+        return (
+            <Presentation
+                onSubmit={handleSubmit}
+                onRecover={handleRecover}
+                onChangeEmail={logout}
+            />
+        );
+    }
+
     return (
         <AccountsPageContents>
             <AccountsPageTitle>{t("two_factor")}</AccountsPageTitle>
@@ -70,7 +97,7 @@ const Page: React.FC = () => {
                 submitButtonText={t("verify")}
             />
             <AccountsPageFooter>
-                <LinkButton onClick={() => router.push("/two-factor/recover")}>
+                <LinkButton onClick={handleRecover}>
                     {t("lost_2fa_device")}
                 </LinkButton>
                 <LinkButton onClick={logout}>{t("change_email")}</LinkButton>

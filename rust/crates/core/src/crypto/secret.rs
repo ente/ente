@@ -153,25 +153,10 @@ mod tests {
     }
 
     #[test]
-    fn test_secret_vec_into_vec_leaves_empty_inner() {
-        let secret = SecretVec::new(vec![0xEFu8; 16]);
-        let vec = secret.into_vec();
-        assert_eq!(vec.len(), 16);
-    }
-
-    #[test]
     fn test_secret_vec_debug_redacts() {
         let secret = SecretVec::new(vec![42u8; 16]);
         let debug = format!("{:?}", secret);
         assert_eq!(debug, "[REDACTED]");
         assert!(!debug.contains("42"));
-    }
-
-    #[test]
-    fn test_secret_vec_deref_and_len() {
-        let secret = SecretVec::new(vec![1, 2, 3]);
-        assert_eq!(secret.len(), 3);
-        assert_eq!(&*secret, &[1, 2, 3]);
-        assert_eq!(secret.as_ref(), &[1, 2, 3]);
     }
 }

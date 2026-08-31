@@ -1,7 +1,7 @@
 name: photos
 description: ente photos application
 
-version: 1.3.62+2158
+version: 1.3.63+2158
 publish_to: none
 
 resolution: workspace
@@ -17,7 +17,6 @@ dependencies:
   backup_exclusion:
     path: ../../packages/backup_exclusion
   bip39: 1.0.6
-  cached_network_image: 3.4.1
   camera: 0.11.2+1
   chewie: 1.13.0
   collection: 1.19.1
@@ -48,7 +47,9 @@ dependencies:
   ente_crypto_api:
     path: ../../packages/ente_crypto_api
   ente_feature_flag:
-    path: plugins/ente_feature_flag
+    path: ../../packages/feature_flag
+  ente_frb:
+    path: ../../packages/frb
   ente_icons:
     path: ../../packages/ente_icons
   ente_install_source:
@@ -59,18 +60,16 @@ dependencies:
     path: ../../packages/mail
   ente_panorama_viewer:
     path: plugins/ente_panorama_viewer
+  ente_photos_frb:
+    path: rust_builder
   ente_photos_platform:
     path: plugins/ente_photos_platform
-  ente_photos_rust:
-    path: rust_builder
   ente_pure_utils:
     path: ../../packages/ente_pure_utils
   ente_qr:
     path: ../../packages/ente_qr
   ente_qr_ui:
     path: ../../packages/qr
-  ente_rust:
-    path: ../../packages/rust
   ente_screen_brightness:
     path: ../../packages/ente_screen_brightness
   ente_strings:
@@ -79,7 +78,7 @@ dependencies:
     path: ../../packages/ui
   equatable: 2.0.7
   event_bus: 2.0.1
-  exif_reader: 4.1.0
+  exif_reader: 4.2.0
   extended_image: 9.1.0
   fade_indexed_stack: 0.2.2
   fast_base58: 0.2.1
@@ -107,8 +106,7 @@ dependencies:
   flutter_local_notifications: 19.3.0
   flutter_localizations:
     sdk: flutter
-  flutter_map: 7.0.2
-  flutter_map_marker_cluster: 1.4.0
+  flutter_map: 8.3.1
   flutter_rust_bridge: 2.12.0
   # Version 9.2.4 leaves lock-screen keys behind after an app reinstall.
   # Upgrade only after this is fixed or with a migration.
@@ -128,7 +126,8 @@ dependencies:
   http: 1.6.0
   hugeicons: 1.1.7
   image: 4.7.0
-  in_app_purchase: 3.2.1
+  in_app_purchase: 3.3.0
+  in_app_purchase_storekit: 0.4.11+1
   intl: 0.20.2
   just_audio: 0.10.5
   latlong2: 0.9.1
@@ -136,8 +135,6 @@ dependencies:
   local_auth: 3.0.1
   local_auth_android: 2.0.8
   local_auth_darwin: 2.0.3
-  log_viewer:
-    path: ../../packages/log_viewer
   logging: 1.3.0
   lottie: 3.3.1
   media_extension:
@@ -175,12 +172,11 @@ dependencies:
   permission_handler: 12.0.1
   photo_manager: 3.11.0
   photo_manager_image_provider: 2.2.0
-  photo_view: 0.15.0
   pinput: 5.0.2
   pointycastle: 3.9.1
   pro_image_editor: 11.23.0
   protobuf: 4.2.0
-  random_access_source: 4.2.1
+  random_access_source: 4.3.1
   receive_sharing_intent: # pub.dev is behind
     git:
       url: https://github.com/KasemJaffer/receive_sharing_intent.git
@@ -191,8 +187,6 @@ dependencies:
   sentry_flutter: 9.6.0
   share_plus: 12.0.0
   shared_preferences: 2.5.3
-  sqflite: 2.4.2
-  sqflite_migration: 0.3.0
   sqlite3_flutter_libs: 0.5.41
   sqlite_async: 0.11.7
   styled_text: 8.1.0
@@ -225,7 +219,6 @@ dev_dependencies:
   json_serializable: 6.11.2
   mockito: 5.5.1
   path_provider_platform_interface: 2.1.3
-  sqflite_common_ffi: 2.3.7+1
   test: 1.26.3
 
 # ------------------------------

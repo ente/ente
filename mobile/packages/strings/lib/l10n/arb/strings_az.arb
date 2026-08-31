@@ -1350,8 +1350,6 @@
   "ocrModelsNetworkRequiredError": "İlkin istifadə zamanı OCR modellərini yükləmək üçün şəbəkə bağlantısı tələb olunur",
   "ocrModelsPrepareFailed": "OCR modellərini hazırlamaq mümkün olmadı",
   "ocrNoTextDetected": "Mətn tapılmadı",
-  "ocrProcessingOverlayMessage": "Mətn müəyyən edilir...",
-  "ocrSelectionHint": "Yalnız ehtiyacınız olanı seçmək üçün sürüşdürün və ya iki dəfə toxunun",
   "offlineFacesBannerSubtitle": "İnsanları etiketləmək və onları sonra asanlıqla tapmaq üçün qeydiyyatdan keçin.",
   "offlineFacesBannerTitle": "Bu üzləri yadda saxlamaq istəyirsiniz?",
   "offlineNameFaceBannerSubtitle": "Onları etiketləmək və fotolarını sonra asanlıqla tapmaq üçün qeydiyyatdan keçin.",

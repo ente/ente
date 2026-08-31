@@ -1,15 +1,13 @@
 import 'dart:io';
 
 import 'package:logging/logging.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:photos/db/common/base.dart';
 import 'package:photos/models/ignored_file.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqlite_async/sqlite_async.dart';
 
 // Prevent files deleted from Ente from being reuploaded without user action.
-class IgnoredFilesDB {
+class IgnoredFilesDB with SqlDbBase {
   static const _databaseName = "ente.ignored_files.db";
-  static const _databaseVersion = 1;
   static final Logger _logger = Logger("IgnoredFilesDB");
   static const tableName = 'ignored_files';
 
@@ -18,8 +16,8 @@ class IgnoredFilesDB {
   static const columnDeviceFolder = 'device_folder';
   static const columnReason = 'reason';
 
-  Future _onCreate(Database db, int version) async {
-    await db.execute('''
+  static const _migrationScripts = [
+    '''
         CREATE TABLE $tableName (
           $columnLocalID TEXT NOT NULL,
           $columnTitle TEXT NOT NULL,
@@ -29,55 +27,29 @@ class IgnoredFilesDB {
         );
       CREATE INDEX IF NOT EXISTS local_id_index ON $tableName($columnLocalID);
       CREATE INDEX IF NOT EXISTS device_folder_index ON $tableName($columnDeviceFolder);
-      ''');
-  }
+      ''',
+  ];
 
   IgnoredFilesDB._privateConstructor();
 
   static final IgnoredFilesDB instance = IgnoredFilesDB._privateConstructor();
 
-  static Future<Database>? _dbFuture;
-
-  Future<Database> get database async {
-    _dbFuture ??= _initDatabase();
-    return _dbFuture!;
-  }
-
-  Future<Database> _initDatabase() async {
-    final Directory documentsDirectory =
-        await getApplicationDocumentsDirectory();
-    final String path = join(documentsDirectory.path, _databaseName);
-    return await openDatabase(
-      path,
-      version: _databaseVersion,
-      onCreate: _onCreate,
-    );
-  }
+  Future<SqliteDatabase> get database => getOrOpenDatabase(
+    () => openMigratedDatabase(_databaseName, _migrationScripts),
+  );
 
   Future<void> clearTable() async {
     final db = await instance.database;
-    await db.delete(tableName);
+    await db.execute('DELETE FROM $tableName');
   }
 
   Future<void> insertMultiple(List<IgnoredFile> ignoredFiles) async {
     final startTime = DateTime.now();
     final db = await instance.database;
-    var batch = db.batch();
-    int batchCounter = 0;
-    for (IgnoredFile file in ignoredFiles) {
-      if (batchCounter == 400) {
-        await batch.commit(noResult: true);
-        batch = db.batch();
-        batchCounter = 0;
-      }
-      batch.insert(
-        tableName,
-        _getRowForIgnoredFile(file),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      batchCounter++;
-    }
-    await batch.commit(noResult: true);
+    await _insertBatch(db, [
+      for (final file in ignoredFiles)
+        [file.localID, file.title, file.deviceFolder, file.reason],
+    ]);
     final endTime = DateTime.now();
     final duration = Duration(
       microseconds:
@@ -91,7 +63,7 @@ class IgnoredFilesDB {
 
   Future<List<IgnoredFile>> getAll() async {
     final db = await instance.database;
-    final rows = await db.query(tableName);
+    final rows = await db.getAll('SELECT * FROM $tableName');
     final result = <IgnoredFile>[];
     for (final row in rows) {
       result.add(_getIgnoredFileFromRow(row));
@@ -102,28 +74,10 @@ class IgnoredFilesDB {
   Future<void> removeIgnoredEntries(List<IgnoredFile> ignoredFiles) async {
     final startTime = DateTime.now();
     final db = await instance.database;
-    var batch = db.batch();
-    int batchCounter = 0;
-    for (IgnoredFile file in ignoredFiles) {
-      if (batchCounter == 400) {
-        await batch.commit(noResult: true);
-        batch = db.batch();
-        batchCounter = 0;
-      }
-      // on Android, we track device folder and title to track files to ignore.
-      // See IgnoredFileService#_getIgnoreID method for more detail
-      if (Platform.isAndroid) {
-        batch.rawDelete(
-          "DELETE from $tableName WHERE  $columnDeviceFolder = '${file.deviceFolder}' AND $columnTitle = '${file.title}' ",
-        );
-      } else {
-        batch.rawDelete(
-          "DELETE from $tableName WHERE $columnLocalID = '${file.localID}' ",
-        );
-      }
-      batchCounter++;
-    }
-    await batch.commit(noResult: true);
+    await _deleteBatch(db, [
+      for (final file in ignoredFiles)
+        Platform.isAndroid ? [file.deviceFolder, file.title] : [file.localID],
+    ]);
     final endTime = DateTime.now();
     final duration = Duration(
       microseconds:
@@ -144,14 +98,26 @@ class IgnoredFilesDB {
     );
   }
 
-  Map<String, dynamic> _getRowForIgnoredFile(IgnoredFile ignoredFile) {
-    assert(ignoredFile.title != null);
-    assert(ignoredFile.localID != null);
-    final row = <String, dynamic>{};
-    row[columnLocalID] = ignoredFile.localID;
-    row[columnTitle] = ignoredFile.title;
-    row[columnDeviceFolder] = ignoredFile.deviceFolder;
-    row[columnReason] = ignoredFile.reason;
-    return row;
+  Future<void> _insertBatch(
+    SqliteDatabase db,
+    List<List<Object?>> parameterSets,
+  ) async {
+    if (parameterSets.isEmpty) return;
+    await db.executeBatch('''
+      INSERT OR REPLACE INTO $tableName (
+        $columnLocalID, $columnTitle, $columnDeviceFolder, $columnReason
+      ) VALUES (?, ?, ?, ?)
+      ''', parameterSets);
+  }
+
+  Future<void> _deleteBatch(
+    SqliteDatabase db,
+    List<List<Object?>> parameterSets,
+  ) async {
+    if (parameterSets.isEmpty) return;
+    final sql = Platform.isAndroid
+        ? 'DELETE FROM $tableName WHERE $columnDeviceFolder = ? AND $columnTitle = ?'
+        : 'DELETE FROM $tableName WHERE $columnLocalID = ?';
+    await db.executeBatch(sql, parameterSets);
   }
 }

@@ -53,7 +53,7 @@ import { deriveInteractiveKey } from "ente-base/crypto";
 import { isHTTPErrorWithStatus, isMuseumHTTPError } from "ente-base/http";
 import { formattedDateTime } from "ente-base/i18n-date";
 import log from "ente-base/log";
-import { useResolvedContactDisplay } from "ente-contacts-web";
+import { useResolvedContactDisplay } from "ente-contacts";
 import { appendCollectionKeyToShareURL } from "ente-gallery/services/share";
 import type {
     Collection,

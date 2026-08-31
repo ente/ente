@@ -1,6 +1,6 @@
 use super::AccountSpaceCtx;
 use crate::crypto::seal_with_public_key;
-use crate::error::{Result, SpaceError};
+use crate::error::{Error, Result};
 use crate::transport::{
     AddFriendPayload, ConfirmFriendRequestPayload, FriendRelationshipResponse,
     FriendStatusResponse, FriendTargetPayload, RefreshFriendSharesRequest, ShareUpdatePayload,
@@ -16,14 +16,10 @@ impl AccountSpaceCtx {
         target_public_key: &[u8],
     ) -> Result<FriendStatusResponse> {
         if target_space_id.trim().is_empty() {
-            return Err(SpaceError::InvalidInput(
-                "target space id is required".into(),
-            ));
+            return Err(Error::InvalidInput("target space id is required".into()));
         }
         if target_public_key.is_empty() {
-            return Err(SpaceError::InvalidInput(
-                "target public key is required".into(),
-            ));
+            return Err(Error::InvalidInput("target public key is required".into()));
         }
         let (requester_space, requester_space_key) =
             self.profile_space_access(requester_space_id).await?;
@@ -97,18 +93,16 @@ impl AccountSpaceCtx {
         request_id: i64,
     ) -> Result<FriendStatusResponse> {
         if request_id <= 0 {
-            return Err(SpaceError::InvalidInput(
-                "friend request id is required".into(),
-            ));
+            return Err(Error::InvalidInput("friend request id is required".into()));
         }
         let request = self
             .list_friend_requests(space_id)
             .await?
             .into_iter()
             .find(|value| value.request_id == request_id)
-            .ok_or_else(|| SpaceError::InvalidInput("friend request is not available".into()))?;
+            .ok_or_else(|| Error::InvalidInput("friend request is not available".into()))?;
         if request.requester.public_key.trim().is_empty() {
-            return Err(SpaceError::InvalidInput(
+            return Err(Error::InvalidInput(
                 "requester public key is required".into(),
             ));
         }
@@ -138,9 +132,7 @@ impl AccountSpaceCtx {
 
     pub async fn delete_friend_request(&self, space_id: &str, request_id: i64) -> Result<()> {
         if request_id <= 0 {
-            return Err(SpaceError::InvalidInput(
-                "friend request id is required".into(),
-            ));
+            return Err(Error::InvalidInput("friend request id is required".into()));
         }
         let path = format!("/spaces/{space_id}/friends/requests/{request_id}");
         self.api().delete(&path).send().await?.error_for_status()?;
@@ -214,7 +206,7 @@ impl AccountSpaceCtx {
             .resolve_owned_space_access(space_id)
             .await?
             .ok_or_else(|| {
-                SpaceError::InvalidInput(format!("space {space_id} is not owned by the account"))
+                Error::InvalidInput(format!("space {space_id} is not owned by the account"))
             })?;
         let friends = self.list_space_friends(space_id).await?;
         let mut updates = Vec::new();

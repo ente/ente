@@ -16,24 +16,37 @@ type Repository struct {
 }
 
 func (r *Repository) InsertOrUpdate(ctx context.Context, userID int64, key string, value string) error {
-	_, err := r.DB.ExecContext(ctx, `INSERT INTO remote_store(user_id, key_name, key_value) VALUES ($1,$2,$3)
-						 ON CONFLICT (user_id, key_name) DO UPDATE SET key_value = $3;
+	return r.insertOrUpdate(ctx, userID, key, value, nil)
+}
+
+func (r *Repository) InsertOrUpdateCustomDomain(ctx context.Context, userID int64, value string) error {
+	canonicalDomain, err := ente.CanonicalDomain(value)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to canonicalize custom domain")
+	}
+	return r.insertOrUpdate(ctx, userID, string(ente.CustomDomain), value, &canonicalDomain)
+}
+
+func (r *Repository) insertOrUpdate(ctx context.Context, userID int64, key string, value string, canonicalValue *string) error {
+	_, err := r.DB.ExecContext(ctx, `INSERT INTO remote_store(user_id, key_name, key_value, canonical_value) VALUES ($1,$2,$3,$4)
+						 ON CONFLICT (user_id, key_name) DO UPDATE SET key_value = $3, canonical_value = $4;
 						 `,
 		userID,
 		key,
 		value,
+		canonicalValue,
 	)
 
 	if err != nil {
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			if pgErr.Constraint == "remote_store_custom_domain_unique_idx" {
+			if pgErr.Constraint == "remote_store_custom_domain_unique_idx" || pgErr.Constraint == "remote_store_custom_domain_canonical_unique_idx" {
 				return ente.NewConflictError("custom domain already exists for another user")
 			}
 		}
 		return stacktrace.Propagate(err, "failed to insert/update")
 	}
-	return stacktrace.Propagate(err, "failed to insert/update")
+	return nil
 }
 
 func (r *Repository) RemoveKey(ctx context.Context, userID int64, key string) error {
@@ -46,13 +59,21 @@ func (r *Repository) RemoveKey(ctx context.Context, userID int64, key string) er
 }
 
 func (r *Repository) DomainOwner(ctx context.Context, domain string) (*int64, error) {
-	rows := r.DB.QueryRowContext(ctx, `SELECT user_id FROM remote_store
-	   WHERE key_name = $1 AND key_value = $2`,
+	canonicalDomain, err := ente.CanonicalDomain(domain)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to canonicalize custom domain")
+	}
+	row := r.DB.QueryRowContext(ctx, `SELECT user_id FROM remote_store
+	   WHERE key_name = $1 AND canonical_value = $2`,
 		ente.CustomDomain,
-		domain,
+		canonicalDomain,
 	)
 	var userID int64
-	err := rows.Scan(&userID)
+	err = row.Scan(&userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = r.DB.QueryRowContext(ctx, `SELECT user_id FROM remote_store
+			WHERE key_name = $1 AND lower(key_value) = lower($2)`, ente.CustomDomain, domain).Scan(&userID)
+	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, stacktrace.Propagate(&ente.ErrNotFoundError, "")

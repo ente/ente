@@ -53,13 +53,13 @@ func (c *CleanupController) removeUnreportedObjects(ctx context.Context) int {
 		logger.Error(err)
 		return 0
 	}
+	defer tx.Rollback()
 
 	var deleteAfterCommit []spacerepo.SpaceTempObjectRecord
 	count := 0
 	for _, tempObject := range tempObjects {
 		action, err := c.prepareUnreportedObject(ctx, tx, tempObject)
 		if err != nil {
-			_ = tx.Rollback()
 			logger.Error(err)
 			return count
 		}

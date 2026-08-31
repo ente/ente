@@ -8,4 +8,3 @@ export 'pages/other_contact_page.dart';
 export 'pages/recover_others_account.dart';
 export 'pages/share_legacy_kit_page.dart';
 export 'services/emergency_service.dart';
-export 'services/legacy_kit_service.dart';

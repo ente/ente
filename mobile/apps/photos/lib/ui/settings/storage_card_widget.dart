@@ -210,7 +210,7 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
               ),
               showFamilyBreakup
                   ? StorageProgressWidget(
-                      color: const Color(0xFFF4D93B), // Family: yellow
+                      color: const Color(0xFFF4D93B),
                       fractionOfStorage:
                           ((usedStorageInBytes) / totalStorageInBytes),
                     )

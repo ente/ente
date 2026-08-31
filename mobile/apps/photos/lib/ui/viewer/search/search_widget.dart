@@ -31,6 +31,7 @@ class SearchWidget extends StatefulWidget {
 }
 
 class SearchWidgetState extends State<SearchWidget> {
+  static const _localFileIDsSearchPrefix = "local_ids:";
   static const _uploadedFileIDsSearchPrefix = "uploaded_ids:";
   static final ValueNotifier<Stream<List<SearchResult>>?>
   searchResultsStreamNotifier = ValueNotifier(null);
@@ -217,6 +218,18 @@ class SearchWidgetState extends State<SearchWidget> {
           .toSet();
       return Stream.fromFuture(
         _searchService.getUploadedFileIDsSearchResults(query, uploadedFileIDs),
+      );
+    }
+
+    if (query.startsWith(_localFileIDsSearchPrefix)) {
+      final localFileIDs = query
+          .substring(_localFileIDsSearchPrefix.length)
+          .split(",")
+          .map((value) => value.trim())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      return Stream.fromFuture(
+        _searchService.getLocalFileIDsSearchResults(query, localFileIDs),
       );
     }
 

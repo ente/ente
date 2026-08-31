@@ -1,0 +1,1 @@
+- Large on-device photo libraries now get organized much faster on Android.

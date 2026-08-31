@@ -17,7 +17,7 @@ import log from "ente-base/log";
 import {
     useResolvedContactAvatar,
     useResolvedContactDisplay,
-} from "ente-contacts-web";
+} from "ente-contacts";
 import { downloadManager } from "ente-gallery/services/download";
 import { getAvatarColor } from "ente-gallery/utils/avatar-colors";
 import type { EnteFile } from "ente-media/file";

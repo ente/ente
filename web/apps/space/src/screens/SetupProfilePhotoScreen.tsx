@@ -3,21 +3,21 @@ import {
     SpaceAvatarCropPage,
     spaceSetupAvatarCropFooterHeight,
     spaceSetupAvatarCropSize,
-} from "components/SpaceAvatarCropPage";
-import { SpaceAvatarImage } from "components/SpaceAvatarImage";
-import { SpaceBackIcon } from "components/SpaceBackIcon";
-import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
+} from "components/AvatarCropPage";
+import { SpaceAvatarImage } from "components/AvatarImage";
+import { SpaceBackIcon } from "components/BackIcon";
+import { SpaceButtonSpinner } from "components/ButtonSpinner";
 import log from "ente-base/log";
 import React, { useEffect, useRef, useState } from "react";
 import type { Area, Point } from "react-easy-crop";
 import { setupProfileBackground } from "screens/SetupProfileScreen";
-import { spaceTouchTargetSize } from "styles/touchTargets";
+import { spaceTouchTargetSize } from "styles/touch-targets";
 import {
     prepareSpaceAvatarImageFromCrop,
     spaceAvatarCropImageForFile,
     spaceAvatarImageErrorMessage,
     spaceAvatarImageInputAccept,
-} from "utils/spacePostImage";
+} from "utils/post-image";
 
 const green = "#08C225";
 const textBase = "#000";

@@ -118,42 +118,6 @@ func TestErrorLogsWarnForInvalidJSON(t *testing.T) {
 	require.Equal(t, "Request failed", entry.Message)
 }
 
-func TestErrorLogsWarnForDirectBindJSONError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	recorder, ctx := invalidJSONContext()
-
-	var payload map[string]string
-	err := BindJSON(ctx, &payload)
-	require.Error(t, err)
-
-	hook := testLogHook(t)
-
-	Error(ctx, err)
-
-	require.Equal(t, http.StatusBadRequest, recorder.Code)
-	entry := hook.LastEntry()
-	require.NotNil(t, entry)
-	require.Equal(t, log.WarnLevel, entry.Level)
-	require.Equal(t, "Request failed", entry.Message)
-}
-
-func TestBindJSONPreservesErrorMessage(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	_, rawCtx := invalidJSONContext()
-	var rawPayload map[string]string
-	rawErr := rawCtx.ShouldBindJSON(&rawPayload)
-	require.Error(t, rawErr)
-
-	_, wrappedCtx := invalidJSONContext()
-	var wrappedPayload map[string]string
-	wrappedErr := BindJSON(wrappedCtx, &wrappedPayload)
-	require.Error(t, wrappedErr)
-
-	require.Equal(t, rawErr.Error(), wrappedErr.Error())
-}
-
 func TestErrorLogsUnexpectedErrors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

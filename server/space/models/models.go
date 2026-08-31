@@ -315,6 +315,7 @@ type CreateMessageRequest struct {
 	SenderEncryptedMessageKey    string `json:"senderEncryptedMessageKey" binding:"required"`
 	RecipientEncryptedMessageKey string `json:"recipientEncryptedMessageKey" binding:"required"`
 	ReplyMessageID               string `json:"replyMessageId,omitempty"`
+	NotificationKind             string `json:"notificationKind,omitempty"`
 }
 
 type LikeMessageResponse struct {
@@ -365,9 +366,10 @@ type ConversationChatSummaryResponse struct {
 }
 
 type ConversationsResponse struct {
-	Friends         []SpaceFriendResponse                      `json:"friends"`
-	PendingRequests []SpaceFriendRequestResponse               `json:"pendingRequests"`
-	ChatSummaries   map[string]ConversationChatSummaryResponse `json:"chatSummaries"`
+	Friends             []SpaceFriendResponse                      `json:"friends"`
+	PendingRequests     []SpaceFriendRequestResponse               `json:"pendingRequests"`
+	ChatSummaries       map[string]ConversationChatSummaryResponse `json:"chatSummaries"`
+	LatestPostCreatedAt string                                     `json:"latestPostCreatedAt,omitempty"`
 }
 
 type PostObjectPayload struct {

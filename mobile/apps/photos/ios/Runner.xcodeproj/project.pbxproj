@@ -14,6 +14,7 @@
 		359D8BCF50FB143064FFC56F /* Pods_ShareExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D025F2F5A163F84B724D14D7 /* Pods_ShareExtension.framework */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		54D121F62F02675C00B8CC69 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 54D121EC2F02675C00B8CC69 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6DA601B38B4BCCD1C4BB0E25 /* ForegroundHeartbeat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57EEDBC4E19D917C19BF4545 /* ForegroundHeartbeat.swift */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -97,6 +98,7 @@
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		53DBFBDBE805FC6E13E3F31E /* Pods-ShareExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ShareExtension.debug.xcconfig"; path = "Target Support Files/Pods-ShareExtension/Pods-ShareExtension.debug.xcconfig"; sourceTree = "<group>"; };
 		54D121EC2F02675C00B8CC69 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		57EEDBC4E19D917C19BF4545 /* ForegroundHeartbeat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ForegroundHeartbeat.swift; sourceTree = "<group>"; };
 		6A1E2DBA51995DADEC1ED952 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		6DACD83C2B755B0600BA9516 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		6DACD83E2B755B0600BA9516 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -312,6 +314,7 @@
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
+				57EEDBC4E19D917C19BF4545 /* ForegroundHeartbeat.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
@@ -637,10 +640,9 @@
 				"${BUILT_PRODUCTS_DIR}/ente_cast/ente_cast.framework",
 				"${BUILT_PRODUCTS_DIR}/ente_mail/ente_mail.framework",
 				"${BUILT_PRODUCTS_DIR}/ente_panorama_viewer/ente_panorama_viewer.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_photos_frb/ente_photos_frb.framework",
 				"${BUILT_PRODUCTS_DIR}/ente_photos_platform/ente_photos_platform.framework",
-				"${BUILT_PRODUCTS_DIR}/ente_photos_rust/ente_photos_rust.framework",
 				"${BUILT_PRODUCTS_DIR}/ente_qr/ente_qr.framework",
-				"${BUILT_PRODUCTS_DIR}/ente_rust/ente_rust.framework",
 				"${BUILT_PRODUCTS_DIR}/ente_screen_brightness/ente_screen_brightness.framework",
 				"${BUILT_PRODUCTS_DIR}/ente_screen_cover/ente_screen_cover.framework",
 				"${BUILT_PRODUCTS_DIR}/file_saver/file_saver.framework",
@@ -734,10 +736,9 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_cast.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_mail.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_panorama_viewer.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_photos_frb.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_photos_platform.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_photos_rust.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_qr.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_rust.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_screen_brightness.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_screen_cover.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/file_saver.framework",
@@ -869,6 +870,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
+				6DA601B38B4BCCD1C4BB0E25 /* ForegroundHeartbeat.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

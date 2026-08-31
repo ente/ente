@@ -1,15 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:photos/db/common/base.dart';
 import "package:photos/gateways/collections/models/public_url.dart";
 import "package:photos/models/api/collection/user.dart";
 import 'package:photos/models/collection/collection.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_migration/sqflite_migration.dart';
+import 'package:sqlite_async/sqlite_async.dart';
 
-class CollectionsDB {
+class CollectionsDB with SqlDbBase {
   static const _databaseName = "ente.collections.db";
   static const table = 'collections';
   static const tempTable = 'temp_collections';
@@ -56,32 +53,20 @@ class CollectionsDB {
     ...addSharedAt(),
   ];
 
-  final dbConfig = MigrationConfig(
-    initializationScript: intitialScript,
-    migrationScripts: migrationScripts,
-  );
-
   CollectionsDB._privateConstructor();
 
   static final CollectionsDB instance = CollectionsDB._privateConstructor();
 
-  static Future<Database>? _dbFuture;
-
-  Future<Database> get database async {
-    _dbFuture ??= _initDatabase();
-    return _dbFuture!;
-  }
-
-  Future<Database> _initDatabase() async {
-    final Directory documentsDirectory =
-        await getApplicationDocumentsDirectory();
-    final String path = join(documentsDirectory.path, _databaseName);
-    return await openDatabaseWithMigration(path, dbConfig);
-  }
+  Future<SqliteDatabase> get database => getOrOpenDatabase(
+    () => openMigratedDatabase(_databaseName, [
+      ...intitialScript,
+      ...migrationScripts,
+    ]),
+  );
 
   Future<void> clearTable() async {
     final db = await instance.database;
-    await db.delete(table);
+    await db.execute('DELETE FROM $table');
   }
 
   static List<String> createTable(String tableName) {
@@ -203,27 +188,15 @@ class CollectionsDB {
 
   Future<void> insert(List<Collection> collections) async {
     final db = await instance.database;
-    var batch = db.batch();
-    int batchCounter = 0;
-    for (final collection in collections) {
-      if (batchCounter == 400) {
-        await batch.commit(noResult: true);
-        batch = db.batch();
-        batchCounter = 0;
-      }
-      batch.insert(
-        table,
-        _getRowForCollection(collection),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      batchCounter++;
-    }
-    await batch.commit(noResult: true);
+    await _insertBatch(db, [
+      for (final collection in collections)
+        _getParametersForCollection(collection),
+    ]);
   }
 
   Future<List<Collection>> getAllCollections() async {
     final db = await instance.database;
-    final rows = await db.query(table);
+    final rows = await db.getAll('SELECT * FROM $table');
     final collections = <Collection>[];
     for (final row in rows) {
       collections.add(_convertToCollection(row));
@@ -233,11 +206,13 @@ class CollectionsDB {
 
   Future<Map<int, int>> getActiveIDsAndRemoteUpdateTime() async {
     final db = await instance.database;
-    final rows = await db.query(
-      table,
-      where: '($columnIsDeleted = ? OR $columnIsDeleted IS NULL)',
-      whereArgs: [_sqlBoolFalse],
-      columns: [columnID, columnUpdationTime],
+    final rows = await db.getAll(
+      '''
+      SELECT $columnID, $columnUpdationTime
+      FROM $table
+      WHERE $columnIsDeleted = ? OR $columnIsDeleted IS NULL
+      ''',
+      [_sqlBoolFalse],
     );
     final collectionIDsAndUpdationTime = <int, int>{};
     for (final row in rows) {
@@ -250,44 +225,58 @@ class CollectionsDB {
 
   Future<int> deleteCollection(int collectionID) async {
     final db = await instance.database;
-    return db.delete(table, where: '$columnID = ?', whereArgs: [collectionID]);
+    final rows = await db.execute(
+      'DELETE FROM $table WHERE $columnID = ? RETURNING $columnID',
+      [collectionID],
+    );
+    return rows.length;
   }
 
-  Map<String, dynamic> _getRowForCollection(Collection collection) {
-    final row = <String, dynamic>{};
-    row[columnID] = collection.id;
-    row[columnOwner] = collection.owner.toJson();
-    row[columnEncryptedKey] = collection.encryptedKey;
-    row[columnKeyDecryptionNonce] = collection.keyDecryptionNonce;
-    // ignore: deprecated_member_use_from_same_package
-    row[columnName] = collection.name;
-    row[columnEncryptedName] = collection.encryptedName;
-    row[columnNameDecryptionNonce] = collection.nameDecryptionNonce;
-    row[columnType] = typeToString(collection.type);
-    row[columnEncryptedPath] = collection.attributes.encryptedPath;
-    row[columnPathDecryptionNonce] = collection.attributes.pathDecryptionNonce;
-    row[columnVersion] = collection.attributes.version;
-    row[columnSharees] = json.encode(
-      collection.sharees.map((x) => x.toMap()).toList(),
-    );
-    row[columnPublicURLs] = json.encode(
-      collection.publicURLs.map((x) => x.toMap()).toList(),
-    );
-    row[columnUpdationTime] = collection.updationTime;
-    row[columnSharedAt] = collection.sharedAt;
-    if (collection.isDeleted) {
-      row[columnIsDeleted] = _sqlBoolTrue;
-    } else {
-      row[columnIsDeleted] = _sqlBoolFalse;
-    }
-    row[columnMMdVersion] = collection.mMdVersion;
-    row[columnMMdEncodedJson] = collection.mMdEncodedJson ?? '{}';
-    row[columnPubMMdVersion] = collection.mMbPubVersion;
-    row[columnPubMMdEncodedJson] = collection.mMdPubEncodedJson ?? '{}';
+  Future<void> _insertBatch(
+    SqliteDatabase db,
+    List<List<Object?>> parameterSets,
+  ) async {
+    if (parameterSets.isEmpty) return;
+    await db.executeBatch('''
+      INSERT OR REPLACE INTO $table (
+        $columnID, $columnOwner, $columnEncryptedKey,
+        $columnKeyDecryptionNonce, $columnName, $columnEncryptedName,
+        $columnNameDecryptionNonce, $columnType, $columnEncryptedPath,
+        $columnPathDecryptionNonce, $columnVersion, $columnSharees,
+        $columnPublicURLs, $columnUpdationTime, $columnSharedAt,
+        $columnIsDeleted, $columnMMdVersion, $columnMMdEncodedJson,
+        $columnPubMMdVersion, $columnPubMMdEncodedJson,
+        $columnSharedMMdVersion, $columnSharedMMdJson
+      ) VALUES (${SqlDbBase.getParams(22)})
+      ''', parameterSets);
+  }
 
-    row[columnSharedMMdVersion] = collection.sharedMmdVersion;
-    row[columnSharedMMdJson] = collection.sharedMmdJson ?? '{}';
-    return row;
+  List<Object?> _getParametersForCollection(Collection collection) {
+    return [
+      collection.id,
+      collection.owner.toJson(),
+      collection.encryptedKey,
+      collection.keyDecryptionNonce,
+      // ignore: deprecated_member_use_from_same_package
+      collection.name,
+      collection.encryptedName,
+      collection.nameDecryptionNonce,
+      typeToString(collection.type),
+      collection.attributes.encryptedPath,
+      collection.attributes.pathDecryptionNonce,
+      collection.attributes.version,
+      json.encode(collection.sharees.map((x) => x.toMap()).toList()),
+      json.encode(collection.publicURLs.map((x) => x.toMap()).toList()),
+      collection.updationTime,
+      collection.sharedAt,
+      collection.isDeleted ? _sqlBoolTrue : _sqlBoolFalse,
+      collection.mMdVersion,
+      collection.mMdEncodedJson ?? '{}',
+      collection.mMbPubVersion,
+      collection.mMdPubEncodedJson ?? '{}',
+      collection.sharedMmdVersion,
+      collection.sharedMmdJson ?? '{}',
+    ];
   }
 
   Collection _convertToCollection(Map<String, dynamic> row) {

@@ -1,10 +1,10 @@
 use super::{
     AccountSpaceCtx, PostPhotoAssetOptions, UPLOAD_PURPOSE_AVATAR, UPLOAD_PURPOSE_COVER,
     encrypt_post_object_metadata, ensure_space_upload_size, ensure_supported_photo_bytes,
-    ensure_supported_photo_media_type, profile_object_id_from_key,
+    ensure_supported_photo_media_type, map_account_error, profile_object_id_from_key,
 };
 use crate::crypto::{content_md5_base64, encrypt_asset_payload};
-use crate::error::{Result, SpaceError};
+use crate::error::{Error, Result};
 use crate::models::PostObjectMetadata;
 use crate::transport::{
     AssetDownloadResponse, PostObjectPayload, PresignUploadRequest, PresignUploadResponse,
@@ -58,7 +58,8 @@ impl AccountSpaceCtx {
             .json(&request)
             .send()
             .await?
-            .error_for_status()?
+            .error_for_status()
+            .map_err(map_account_error)?
             .json()
             .await?)
     }
@@ -82,7 +83,8 @@ impl AccountSpaceCtx {
             .json(&request)
             .send()
             .await?
-            .error_for_status()?
+            .error_for_status()
+            .map_err(map_account_error)?
             .json()
             .await?)
     }
@@ -187,9 +189,7 @@ impl AccountSpaceCtx {
                     .await?
             }
             _ => {
-                return Err(SpaceError::InvalidInput(
-                    "invalid profile asset purpose".into(),
-                ));
+                return Err(Error::InvalidInput("invalid profile asset purpose".into()));
             }
         };
         self.upload_bytes(&presign, &encrypted).await?;
@@ -237,7 +237,7 @@ impl AccountSpaceCtx {
             .resolve_space_key_for_version_for_viewer(space_id, viewer_space_id, Some(key_version))
             .await?
             .ok_or_else(|| {
-                SpaceError::InvalidInput(format!(
+                Error::InvalidInput(format!(
                     "no space key available for {space_id} version {key_version}"
                 ))
             })?;

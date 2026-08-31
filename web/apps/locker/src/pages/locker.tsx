@@ -5,9 +5,9 @@ import { LockerNavbar } from "@/components/LockerNavbar";
 import { LockerSidebar } from "@/components/LockerSidebar";
 import { DeleteCollectionDialog } from "@/components/lockerPage/DeleteCollectionDialog";
 import { LockerDragOverlay } from "@/components/lockerPage/LockerDragOverlay";
-import { useLockerActions } from "@/components/lockerPage/useLockerActions";
-import { useLockerData } from "@/components/lockerPage/useLockerData";
-import { useLockerNavigation } from "@/components/lockerPage/useLockerNavigation";
+import { useLockerActions } from "@/components/lockerPage/use-locker-actions";
+import { useLockerData } from "@/components/lockerPage/use-locker-data";
+import { useLockerNavigation } from "@/components/lockerPage/use-locker-navigation";
 import { useSetupLockerI18n } from "@/i18n/locker";
 import { fetchCollectionSharees } from "@/services/remote";
 import AddIcon from "@mui/icons-material/Add";
@@ -53,6 +53,7 @@ export const LockerPage: React.FC = () => {
         trashItems,
         trashLastUpdatedAt,
         userDetails,
+        warmContacts,
     } = useLockerData({ router, logout, showMiniDialog });
 
     const {
@@ -230,6 +231,7 @@ export const LockerPage: React.FC = () => {
                 onUnshareCollection={handleUnshareCollection}
                 onLeaveCollection={handleLeaveCollection}
                 onRefreshSharees={fetchCollectionSharees}
+                warmContacts={warmContacts}
             />
             <DeleteCollectionDialog
                 dialogState={deleteCollectionDialog}

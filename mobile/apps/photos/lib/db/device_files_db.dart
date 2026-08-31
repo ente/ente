@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:photos/db/common/conflict_algo.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/models/device_collection.dart';
 import 'package:photos/models/file/file.dart';
@@ -9,7 +10,6 @@ import 'package:photos/models/file_load_result.dart';
 import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/upload_strategy.dart';
 import "package:photos/services/sync/import/model.dart";
-import 'package:sqflite/sqlite_api.dart';
 import 'package:tuple/tuple.dart';
 
 extension DeviceFiles on FilesDB {
@@ -19,7 +19,8 @@ extension DeviceFiles on FilesDB {
 
   Future<void> insertPathIDToLocalIDMapping(
     Map<String, Set<String>> mappingToAdd, {
-    ConflictAlgorithm conflictAlgorithm = ConflictAlgorithm.ignore,
+    SqliteAsyncConflictAlgorithm conflictAlgorithm =
+        SqliteAsyncConflictAlgorithm.ignore,
   }) async {
     debugPrint("Inserting missing PathIDToLocalIDMapping");
     final parameterSets = <List<Object?>>[];
@@ -484,7 +485,7 @@ extension DeviceFiles on FilesDB {
 
   Future<void> _insertBatch(
     List<List<Object?>> parameterSets,
-    ConflictAlgorithm conflictAlgorithm,
+    SqliteAsyncConflictAlgorithm conflictAlgorithm,
   ) async {
     final db = await sqliteAsyncDB;
     await db.executeBatch('''

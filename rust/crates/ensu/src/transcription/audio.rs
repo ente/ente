@@ -30,8 +30,10 @@ pub fn extract_speech_from_pcm16(
     }
 
     let samples = pcm_le
-        .chunks_exact(2)
-        .map(|chunk| i16::from_le_bytes([chunk[0], chunk[1]]) as f32 / 32768.0)
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|chunk| i16::from_le_bytes(*chunk) as f32 / 32768.0)
         .collect::<Vec<_>>();
 
     extract_speech(vad_model_path, input_sample_rate, &samples)

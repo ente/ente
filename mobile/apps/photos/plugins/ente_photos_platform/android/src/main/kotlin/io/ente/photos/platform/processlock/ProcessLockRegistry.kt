@@ -2,12 +2,6 @@ package io.ente.photos.platform.processlock
 
 import android.util.Log
 
-/**
- * Process-global registry of named, engine-owned locks. Re-acquiring a name
- * already held by the same plugin instance is granted idempotently (this is
- * what heals a holder orphaned by a Dart hot restart); a different instance
- * is denied. State lives only as long as the process.
- */
 object ProcessLockRegistry {
     private class Holder(
         val instanceId: String,
@@ -34,6 +28,7 @@ object ProcessLockRegistry {
                     holders[name] = Holder(instanceId, origin, operation, System.nanoTime())
                     true
                 }
+                // A Dart hot restart can leave this plugin instance holding the lock.
                 current.instanceId == instanceId -> {
                     Log.i(
                         TAG,

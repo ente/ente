@@ -1,88 +1,86 @@
-use ente_contacts::{
-    client::{ContactsCtx, OpenContactsCtxInput},
-    legacy_models::{LegacyContactRecord, LegacyInfo, LegacyRecoverySession},
+use std::sync::RwLock;
+
+use ente_contacts::{ContactData, ContactOutput, ContactRecord, WrappedRootContactKey};
+use ente_core::{
+    Session,
+    crypto::SecretVec,
+    http::{Api, ApiConfig, Auth, Http},
 };
 
 use crate::CLIENT_PACKAGE;
 use crate::support::auth::TestAccount;
 
-pub async fn open_ctx(endpoint: &str, account: &TestAccount) -> ContactsCtx {
-    ContactsCtx::open(OpenContactsCtxInput {
-        base_url: endpoint.to_string(),
-        auth_token: account.auth_token.clone(),
-        user_id: account.user_id,
-        master_key: account.master_key.clone(),
-        cached_wrapped_root_contact_key: None,
-        user_agent: Some("ente-contacts-e2e".to_string()),
-        client_package: Some(CLIENT_PACKAGE.to_string()),
-        client_version: Some("0.0.1".to_string()),
-    })
-    .await
-    .unwrap()
-    .ctx
+pub struct Client {
+    session: Session,
+    wrapped_root_contact_key: RwLock<Option<WrappedRootContactKey>>,
 }
 
-pub async fn establish_legacy_contact(
-    owner_ctx: &ContactsCtx,
-    owner: &TestAccount,
-    trusted_ctx: &ContactsCtx,
-    trusted: &TestAccount,
-    recovery_notice_in_days: i32,
-) {
-    owner_ctx
-        .legacy_add_contact(
-            &trusted.email,
-            &owner.key_attributes,
-            Some(recovery_notice_in_days),
-        )
-        .await
-        .unwrap();
-    trusted_ctx
-        .legacy_update_contact(
-            owner.user_id,
-            trusted.user_id,
-            ente_contacts::legacy_models::LegacyContactState::Accepted,
-        )
-        .await
-        .unwrap();
+impl Client {
+    pub async fn create_contact(&self, data: &ContactData) -> ente_contacts::Result<ContactRecord> {
+        let cached = self.wrapped_root_contact_key();
+        Ok(self.value(ente_contacts::create_contact(&self.session, cached.as_ref(), data).await?))
+    }
+
+    pub async fn get_contact(&self, contact_id: &str) -> ente_contacts::Result<ContactRecord> {
+        let cached = self.wrapped_root_contact_key();
+        Ok(self
+            .value(ente_contacts::get_contact(&self.session, cached.as_ref(), contact_id).await?))
+    }
+
+    pub async fn update_contact(
+        &self,
+        contact_id: &str,
+        data: &ContactData,
+    ) -> ente_contacts::Result<ContactRecord> {
+        let cached = self.wrapped_root_contact_key();
+        Ok(self.value(
+            ente_contacts::update_contact(&self.session, cached.as_ref(), contact_id, data).await?,
+        ))
+    }
+
+    pub async fn delete_contact(&self, contact_id: &str) -> ente_contacts::Result<()> {
+        ente_contacts::delete_contact(&self.session, contact_id).await
+    }
+
+    pub async fn get_diff(
+        &self,
+        since_time: i64,
+        limit: u16,
+    ) -> ente_contacts::Result<Vec<ContactRecord>> {
+        let cached = self.wrapped_root_contact_key();
+        Ok(self.value(
+            ente_contacts::get_diff(&self.session, cached.as_ref(), since_time, limit).await?,
+        ))
+    }
+
+    fn wrapped_root_contact_key(&self) -> Option<WrappedRootContactKey> {
+        self.wrapped_root_contact_key.read().unwrap().clone()
+    }
+
+    fn value<T>(&self, output: ContactOutput<T>) -> T {
+        if let Some(key) = output.wrapped_root_contact_key {
+            *self.wrapped_root_contact_key.write().unwrap() = Some(key);
+        }
+        output.value
+    }
 }
 
-pub fn owner_contact(
-    info: &LegacyInfo,
-    owner_user_id: i64,
-    trusted_user_id: i64,
-) -> Option<&LegacyContactRecord> {
-    info.contacts.iter().find(|record| {
-        record.user.id == owner_user_id && record.emergency_contact.id == trusted_user_id
-    })
-}
-
-pub fn trusted_contact(
-    info: &LegacyInfo,
-    owner_user_id: i64,
-    trusted_user_id: i64,
-) -> Option<&LegacyContactRecord> {
-    info.others_emergency_contact.iter().find(|record| {
-        record.user.id == owner_user_id && record.emergency_contact.id == trusted_user_id
-    })
-}
-
-pub fn owner_recovery_session(
-    info: &LegacyInfo,
-    owner_user_id: i64,
-    trusted_user_id: i64,
-) -> Option<&LegacyRecoverySession> {
-    info.recover_sessions.iter().find(|session| {
-        session.user.id == owner_user_id && session.emergency_contact.id == trusted_user_id
-    })
-}
-
-pub fn trusted_recovery_session(
-    info: &LegacyInfo,
-    owner_user_id: i64,
-    trusted_user_id: i64,
-) -> Option<&LegacyRecoverySession> {
-    info.others_recovery_session.iter().find(|session| {
-        session.user.id == owner_user_id && session.emergency_contact.id == trusted_user_id
-    })
+pub fn open_client(endpoint: &str, account: &TestAccount) -> Client {
+    let api = Api::new(
+        Http::new().unwrap(),
+        ApiConfig {
+            origin: endpoint.to_string(),
+            client_package: Some(CLIENT_PACKAGE.to_string()),
+            client_version: Some("0.0.1".to_string()),
+            user_agent: Some("ente-contacts-e2e".to_string()),
+            auth: Some(Auth::User(account.auth_token.clone())),
+        },
+    );
+    Client {
+        session: Session {
+            api,
+            master_key: SecretVec::new(account.master_key.clone()),
+        },
+        wrapped_root_contact_key: RwLock::new(None),
+    }
 }

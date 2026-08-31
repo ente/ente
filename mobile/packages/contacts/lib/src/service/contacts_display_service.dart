@@ -1,9 +1,7 @@
-import 'package:ente_contacts/src/models/contact_record.dart';
-import 'package:ente_contacts/src/models/contacts_session.dart';
 import 'package:ente_contacts/src/service/contact_directory.dart';
 import 'package:ente_contacts/src/service/contacts_service.dart';
+import 'package:ente_frb/contacts.dart';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class ContactsDisplayService {
   ContactsDisplayService._privateConstructor() : _store = ContactDirectory();
@@ -26,22 +24,20 @@ class ContactsDisplayService {
   }
 
   void init({
-    required SharedPreferences preferences,
     ContactsService? contactsService,
-    ContactsService Function()? contactsServiceFactory,
+    ContactsServiceFactory? contactsServiceFactory,
   }) {
+    if (contactsService == null && contactsServiceFactory == null) {
+      throw ArgumentError('A contacts service or factory is required');
+    }
     _store = ContactDirectory(
       contactsService: contactsService,
-      contactsServiceFactory:
-          contactsServiceFactory ??
-          (contactsService == null
-              ? () => ContactsService(preferences: preferences)
-              : null),
+      contactsServiceFactory: contactsServiceFactory,
     );
   }
 
-  Future<void> ensureReady(ContactsSession session) =>
-      _store.ensureReady(session);
+  Future<void> ensureReady({required String baseUrl, required int userId}) =>
+      _store.ensureReady(baseUrl: baseUrl, userId: userId);
 
   Future<void> resetLocalState() => _store.resetLocalState();
 

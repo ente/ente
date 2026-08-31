@@ -36,11 +36,19 @@ class ClusterAppBar extends StatefulWidget {
     GalleryType type,
     String? title,
     SelectedFiles selectedFiles,
-    String clusterID,
-  ) {
+    String clusterID, {
+    bool memoryLaneReady = false,
+    Future<void> Function()? onMemoryLaneTap,
+  }) {
     return GalleryAppBarConfig(
-      sliverBuilder: (_) =>
-          ClusterAppBar._(type, title, selectedFiles, clusterID),
+      sliverBuilder: (_) => ClusterAppBar._(
+        type,
+        title,
+        selectedFiles,
+        clusterID,
+        memoryLaneReady,
+        onMemoryLaneTap,
+      ),
       geometryBuilder: (context) => SliverAppBarComponent.resolveGeometry(
         context,
         expandedHeight: _sliverExpandedHeight,
@@ -53,12 +61,16 @@ class ClusterAppBar extends StatefulWidget {
   final String? title;
   final SelectedFiles selectedFiles;
   final String clusterID;
+  final bool memoryLaneReady;
+  final Future<void> Function()? onMemoryLaneTap;
 
   const ClusterAppBar._(
     this.type,
     this.title,
     this.selectedFiles,
     this.clusterID,
+    this.memoryLaneReady,
+    this.onMemoryLaneTap,
   );
 
   @override
@@ -70,6 +82,7 @@ enum ClusterPopupAction {
   breakupCluster,
   breakupClusterDebug,
   ignore,
+  memoryLane,
 }
 
 class _AppBarWidgetState extends State<ClusterAppBar> {
@@ -128,40 +141,51 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
 
   List<Widget> _getDefaultActions(BuildContext context) {
     final iconColor = getEnteColorScheme(context).contentLight;
+    final hasAccount = Configuration.instance.hasConfiguredAccount();
     final List<Widget> actions = <Widget>[];
-    if (widget.selectedFiles.files.isNotEmpty ||
-        isLocalGalleryMode ||
-        !Configuration.instance.hasConfiguredAccount()) {
+    if (widget.selectedFiles.files.isNotEmpty) {
       return actions;
     }
 
     final List<EntePopupMenuOption<ClusterPopupAction>> items = [
-      EntePopupMenuOption(
-        value: ClusterPopupAction.ignore,
-        label: context.strings.ignorePerson,
-        leadingWidget: galleryAppBarMenuIcon(
-          HugeIcons.strokeRoundedUserBlock01,
-          iconColor,
-        ),
-      ),
-      EntePopupMenuOption(
-        value: ClusterPopupAction.breakupCluster,
-        label: context.strings.mixedGrouping,
-        leadingWidget: galleryAppBarMenuIcon(
-          HugeIcons.strokeRoundedUserMultiple,
-          iconColor,
-        ),
-      ),
-      if (kDebugMode)
+      if (widget.memoryLaneReady && widget.onMemoryLaneTap != null)
         EntePopupMenuOption(
-          value: ClusterPopupAction.breakupClusterDebug,
-          label: "Debug mixed grouping",
+          value: ClusterPopupAction.memoryLane,
+          label: context.strings.facesTimelineAppBarTitle,
           leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedAiBrain01,
+            HugeIcons.strokeRoundedSparkles,
             iconColor,
           ),
         ),
+      if (!isLocalGalleryMode && hasAccount) ...[
+        EntePopupMenuOption(
+          value: ClusterPopupAction.ignore,
+          label: context.strings.ignorePerson,
+          leadingWidget: galleryAppBarMenuIcon(
+            HugeIcons.strokeRoundedUserBlock01,
+            iconColor,
+          ),
+        ),
+        EntePopupMenuOption(
+          value: ClusterPopupAction.breakupCluster,
+          label: context.strings.mixedGrouping,
+          leadingWidget: galleryAppBarMenuIcon(
+            HugeIcons.strokeRoundedUserMultiple,
+            iconColor,
+          ),
+        ),
+        if (kDebugMode)
+          EntePopupMenuOption(
+            value: ClusterPopupAction.breakupClusterDebug,
+            label: "Debug mixed grouping",
+            leadingWidget: galleryAppBarMenuIcon(
+              HugeIcons.strokeRoundedAiBrain01,
+              iconColor,
+            ),
+          ),
+      ],
     ];
+    if (items.isEmpty) return actions;
 
     actions.add(
       galleryAppBarPopupMenuAction<ClusterPopupAction>(
@@ -175,6 +199,8 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
             await _onIgnoredClusterClicked(context);
           } else if (value == ClusterPopupAction.breakupClusterDebug) {
             await _breakUpClusterDebug(context);
+          } else if (value == ClusterPopupAction.memoryLane) {
+            await widget.onMemoryLaneTap?.call();
           }
         },
       ),

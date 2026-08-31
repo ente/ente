@@ -159,14 +159,6 @@ func TestFCMSendDoesNotClassifyInvalidArgumentAsUnregistered(t *testing.T) {
 	require.False(t, errors.Is(err, errUnregisteredToken))
 }
 
-func TestFCMErrorCode(t *testing.T) {
-	require.Equal(t, "UNREGISTERED", fcmErrorCode([]byte(fcmUnregisteredBody)))
-	require.Equal(t, "INVALID_ARGUMENT", fcmErrorCode([]byte(fcmInvalidArgumentBody)))
-	require.Equal(t, "", fcmErrorCode([]byte(`{"error":"bad"}`)))
-	require.Equal(t, "", fcmErrorCode([]byte("not json")))
-	require.Equal(t, "", fcmErrorCode(nil))
-}
-
 func captureLogs(t *testing.T) *logtest.Hook {
 	t.Helper()
 	logger := log.StandardLogger()

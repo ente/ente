@@ -1,8 +1,4 @@
-import {
-    publishCastPayload,
-    revokeAllCastTokens,
-    unknownDeviceCodeErrorMessage,
-} from "@/services/cast";
+import { publishCastPayload, revokeAllCastTokens } from "@/services/cast";
 import { loadCast } from "@/utils/chromecast-sender";
 import { Link, Stack, Typography } from "@mui/material";
 import { TitledMiniDialog } from "ente-base/components/MiniDialog";
@@ -13,6 +9,7 @@ import {
     type SingleInputFormProps,
 } from "ente-base/components/SingleInputForm";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import { isNamedError } from "ente-base/error";
 import { ut } from "ente-base/i18n";
 import log from "ente-base/log";
 import type { Collection } from "ente-media/collection";
@@ -64,10 +61,7 @@ const AlbumCastDialogContents: React.FC<AlbumCastDialogProps> = ({
                 onClose();
             } catch (e) {
                 log.error("Failed to cast", e);
-                if (
-                    e instanceof Error &&
-                    e.message == unknownDeviceCodeErrorMessage
-                ) {
+                if (isNamedError(e, "cast_device_not_found")) {
                     setFieldError(t("tv_not_found"));
                 } else {
                     throw e;

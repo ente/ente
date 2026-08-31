@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import log from "ente-base/log";
-import { useResolvedContactAvatar } from "ente-contacts-web";
+import { useResolvedContactAvatar } from "ente-contacts";
 import { downloadManager } from "ente-gallery/services/download";
 import { getAvatarColor } from "ente-gallery/utils/avatar-colors";
 import type { EnteFile } from "ente-media/file";

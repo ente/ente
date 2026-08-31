@@ -7,9 +7,6 @@ export const streamEncryptionChunkSize = 4 * 1024 * 1024;
 // libsodium secretstream adds this many bytes per encrypted chunk.
 export const streamEncryptionChunkOverhead = 17;
 
-export const deriveKeyInsufficientMemoryErrorMessage =
-    "Failed to derive key (insufficient memory)";
-
 export type BytesOrB64 = Uint8Array | string;
 
 export interface EncryptedBox {

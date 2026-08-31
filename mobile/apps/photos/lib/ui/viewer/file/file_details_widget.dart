@@ -103,24 +103,26 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
       }
     });
 
-    if (_isImage) {
-      _exifNotifier.addListener(() {
-        if (_exifNotifier.value != null) {
-          _generateExifForDetails(_exifNotifier.value!);
-        }
-        showExifListTile =
-            _exifData["focalLength"] != null ||
-            _exifData["fNumber"] != null ||
-            _exifData["takenOnDevice"] != null ||
-            _exifData["exposureTime"] != null ||
-            _exifData["ISO"] != null;
+    if (!widget.file.isDeviceTrash) {
+      if (_isImage) {
+        _exifNotifier.addListener(() {
+          if (_exifNotifier.value != null) {
+            _generateExifForDetails(_exifNotifier.value!);
+          }
+          showExifListTile =
+              _exifData["focalLength"] != null ||
+              _exifData["fNumber"] != null ||
+              _exifData["takenOnDevice"] != null ||
+              _exifData["exposureTime"] != null ||
+              _exifData["ISO"] != null;
+        });
+      } else if (flagService.internalUser && widget.file.isVideo) {
+        getMediaInfo();
+      }
+      getExif(widget.file).then((exif) {
+        _exifNotifier.value = exif;
       });
-    } else if (flagService.internalUser && widget.file.isVideo) {
-      getMediaInfo();
     }
-    getExif(widget.file).then((exif) {
-      _exifNotifier.value = exif;
-    });
 
     super.initState();
   }
@@ -229,7 +231,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
       ]);
     }
 
-    if (_isImage) {
+    if (_isImage && !file.isDeviceTrash) {
       fileDetailsTiles.addAll([
         MenuGroupComponent(
           items: [
@@ -258,7 +260,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
             _exifData,
             _currentUserID,
           ),
-        if (flagService.internalUser)
+        if (flagService.internalUser && !file.isDeviceTrash)
           ValueListenableBuilder(
             valueListenable: _videoMetadataNotifier,
             builder: (context, value, _) => VideoExifRowItem(file, value),

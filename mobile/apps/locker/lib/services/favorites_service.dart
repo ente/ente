@@ -193,7 +193,6 @@ class FavoritesService {
   Future<void> removeFromFavorites(EnteFile file) async {
     final inUploadID = file.uploadedFileID;
     if (inUploadID == null) {
-      // Do nothing, ignore
     } else {
       final Collection? favCollection = await getFavoritesCollection();
 

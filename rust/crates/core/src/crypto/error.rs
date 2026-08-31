@@ -66,35 +66,6 @@ pub enum Error {
     Io(#[from] std::io::Error),
 }
 
-impl Error {
-    // Bindings expose these strings to non-Rust callers.
-    pub fn code(&self) -> &'static str {
-        match self {
-            Error::InvalidKeyLength { .. } => "invalid_key_length",
-            Error::InvalidNonceLength { .. } => "invalid_nonce_length",
-            Error::InvalidSaltLength { .. } => "invalid_salt_length",
-            Error::InvalidHeaderLength { .. } => "invalid_header_length",
-            Error::CiphertextTooShort { .. } => "ciphertext_too_short",
-            Error::InvalidKeyDerivationParams(_) => "invalid_kdf_params",
-            Error::KeyDerivationFailed => "key_derivation_failed",
-            Error::EncryptionFailed => "encryption_failed",
-            Error::DecryptionFailed => "decryption_failed",
-            Error::StreamInitFailed => "stream_init_failed",
-            Error::StreamPushFailed => "stream_push_failed",
-            Error::StreamPullFailed => "stream_pull_failed",
-            Error::StreamTruncated => "stream_truncated",
-            Error::StreamTrailingData => "stream_trailing_data",
-            Error::SealedBoxOpenFailed => "sealed_box_open_failed",
-            Error::InvalidPublicKey => "invalid_public_key",
-            Error::Json(_) => "json",
-            Error::Argon2(_) => "argon2",
-            Error::Aead => "aead",
-            Error::ArrayConversion => "array_conversion",
-            Error::Io(_) => "io",
-        }
-    }
-}
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl From<std::array::TryFromSliceError> for Error {

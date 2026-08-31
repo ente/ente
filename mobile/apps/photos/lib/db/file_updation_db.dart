@@ -1,13 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_migration/sqflite_migration.dart';
+import 'package:photos/db/common/base.dart';
+import 'package:sqlite_async/sqlite_async.dart';
 
-class FileUpdationDB {
+class FileUpdationDB with SqlDbBase {
   static const _databaseName = "ente.files_migration.db";
   static final Logger _logger = Logger((FileUpdationDB).toString());
 
@@ -42,54 +38,28 @@ class FileUpdationDB {
 
   static final initializationScript = [..._createTable()];
   static final migrationScripts = [...addReasonColumn()];
-  final dbConfig = MigrationConfig(
-    initializationScript: initializationScript,
-    migrationScripts: migrationScripts,
-  );
-
   FileUpdationDB._privateConstructor();
 
   static final FileUpdationDB instance = FileUpdationDB._privateConstructor();
 
-  static Future<Database>? _dbFuture;
-
-  Future<Database> get database async {
-    _dbFuture ??= _initDatabase();
-    return _dbFuture!;
-  }
-
-  Future<Database> _initDatabase() async {
-    final Directory documentsDirectory =
-        await getApplicationDocumentsDirectory();
-    final String path = join(documentsDirectory.path, _databaseName);
-    debugPrint("DB path " + path);
-    return await openDatabaseWithMigration(path, dbConfig);
-  }
+  Future<SqliteDatabase> get database => getOrOpenDatabase(
+    () => openMigratedDatabase(_databaseName, [
+      ...initializationScript,
+      ...migrationScripts,
+    ], logPath: (path) => debugPrint("DB path " + path)),
+  );
 
   Future<void> clearTable() async {
     final db = await instance.database;
-    await db.delete(tableName);
+    await db.execute('DELETE FROM $tableName');
   }
 
   Future<void> insertMultiple(List<String> fileLocalIDs, String reason) async {
     final startTime = DateTime.now();
     final db = await instance.database;
-    var batch = db.batch();
-    int batchCounter = 0;
-    for (String localID in fileLocalIDs) {
-      if (batchCounter == 400) {
-        await batch.commit(noResult: true);
-        batch = db.batch();
-        batchCounter = 0;
-      }
-      batch.insert(
-        tableName,
-        _getRowForReUploadTable(localID, reason),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      batchCounter++;
-    }
-    await batch.commit(noResult: true);
+    await _insertBatch(db, [
+      for (final localID in fileLocalIDs) [localID, reason],
+    ]);
     final endTime = DateTime.now();
     final duration = Duration(
       microseconds:
@@ -105,19 +75,28 @@ class FileUpdationDB {
     if (localIDs.isEmpty) {
       return;
     }
-    final inParam = localIDs.map((id) => "'$id'").join(',');
     final db = await instance.database;
-    await db.rawQuery('''
+    await db.executeBatch(
+      '''
       DELETE FROM $tableName
-      WHERE $columnLocalID IN ($inParam) AND $columnReason = '$reason';
-    ''');
+      WHERE $columnLocalID = ? AND $columnReason = ?;
+    ''',
+      [
+        for (final localID in localIDs) [localID, reason],
+      ],
+    );
   }
 
   Future<bool> isExisting(String localID, String reason) async {
     final db = await instance.database;
-    final String whereClause =
-        '$columnLocalID = "$localID" AND $columnReason = "$reason"';
-    final rows = await db.query(tableName, where: whereClause);
+    final rows = await db.getAll(
+      '''
+      SELECT 1 FROM $tableName
+      WHERE $columnLocalID = ? AND $columnReason = ?
+      LIMIT 1
+      ''',
+      [localID, reason],
+    );
     return rows.isNotEmpty;
   }
 
@@ -126,8 +105,14 @@ class FileUpdationDB {
     String reason,
   ) async {
     final db = await instance.database;
-    final String whereClause = '$columnReason = "$reason"';
-    final rows = await db.query(tableName, limit: limit, where: whereClause);
+    final rows = await db.getAll(
+      '''
+      SELECT $columnLocalID FROM $tableName
+      WHERE $columnReason = ?
+      LIMIT ?
+      ''',
+      [reason, limit],
+    );
     final result = <String>[];
     for (final row in rows) {
       result.add(row[columnLocalID] as String);
@@ -139,18 +124,26 @@ class FileUpdationDB {
     if (reasons.isEmpty) {
       return;
     }
-    final inParam = reasons.map((reason) => "'$reason'").join(',');
     final db = await instance.database;
-    await db.rawQuery('''
+    await db.executeBatch(
+      '''
       DELETE FROM $tableName
-      WHERE $columnReason IN ($inParam);
-    ''');
+      WHERE $columnReason = ?;
+    ''',
+      [
+        for (final reason in reasons) [reason],
+      ],
+    );
   }
 
-  Map<String, dynamic> _getRowForReUploadTable(String localID, String reason) {
-    final row = <String, dynamic>{};
-    row[columnLocalID] = localID;
-    row[columnReason] = reason;
-    return row;
+  Future<void> _insertBatch(
+    SqliteDatabase db,
+    List<List<Object?>> parameterSets,
+  ) async {
+    if (parameterSets.isEmpty) return;
+    await db.executeBatch('''
+      INSERT OR REPLACE INTO $tableName ($columnLocalID, $columnReason)
+      VALUES (?, ?)
+      ''', parameterSets);
   }
 }

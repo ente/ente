@@ -12,6 +12,22 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+repositories {
+    exclusiveContent {
+        forRepository {
+            ivy {
+                name = 'enteOnnxRuntimePackaging'
+                url = 'https://github.com/ente/ort-packaging/releases/download'
+                patternLayout {
+                    artifact 'ort-[revision]/[artifact]-[revision].[ext]'
+                }
+                metadataSources { artifact() }
+            }
+        }
+        filter { includeGroup 'io.ente.onnxruntime' }
+    }
+}
+
 android {
     namespace = "io.ente.locker"
     compileSdk = 36
@@ -49,6 +65,10 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            ndk {
+                abiFilters.clear()
+                abiFilters "arm64-v8a", "armeabi-v7a"
+            }
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -95,4 +115,6 @@ flutter {
 dependencies {
     // Needed at runtime for Tink since R8 strips these annotations otherwise.
     implementation 'com.google.errorprone:error_prone_annotations:2.24.0'
+    // Loaded at runtime via dlopen by the Rust document scanner.
+    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.28.1-r1@aar'
 }

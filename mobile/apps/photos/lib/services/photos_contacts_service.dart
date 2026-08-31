@@ -6,14 +6,56 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/contacts_changed_event.dart";
 import "package:photos/events/user_logged_out_event.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/authenticated_session.dart";
+import "package:photos/services/contacts.dart";
 
 // Photos-specific session and event adapter for the shared contact directory.
 class PhotosContactsService {
   PhotosContactsService._privateConstructor()
     : _store = contacts.ContactDirectory(
-        contactsServiceFactory: () => contacts.ContactsService(
-          preferences: ServiceLocator.instance.prefs,
-        ),
+        contactsServiceFactory: () {
+          final session = authenticatedSession();
+          return contacts.ContactsService(
+            preferences: ServiceLocator.instance.prefs,
+            createContact: (key, data) => createContact(
+              session: session,
+              wrappedRootContactKey: key,
+              data: data,
+            ),
+            getDiff: (key, sinceTime, limit) => getDiff(
+              session: session,
+              wrappedRootContactKey: key,
+              sinceTime: sinceTime,
+              limit: limit,
+            ),
+            updateContact: (key, contactId, data) => updateContact(
+              session: session,
+              wrappedRootContactKey: key,
+              contactId: contactId,
+              data: data,
+            ),
+            deleteContact: (contactId) =>
+                deleteContact(session: session, contactId: contactId),
+            setAttachment: (key, contactId, type, bytes) => setAttachment(
+              session: session,
+              wrappedRootContactKey: key,
+              contactId: contactId,
+              attachmentType: type,
+              attachmentBytes: bytes,
+            ),
+            deleteAttachment: (key, contactId, type) => deleteAttachment(
+              session: session,
+              wrappedRootContactKey: key,
+              contactId: contactId,
+              attachmentType: type,
+            ),
+            getProfilePicture: (key, contactId) => getProfilePicture(
+              session: session,
+              wrappedRootContactKey: key,
+              contactId: contactId,
+            ),
+          );
+        },
         onContactsChanged: _notifyContactsChanged,
         profilePictureFailureTtl: Duration.zero,
       ) {
@@ -23,7 +65,7 @@ class PhotosContactsService {
   @visibleForTesting
   PhotosContactsService.forTesting({
     contacts.ContactsService? contactsService,
-    contacts.ContactsService Function()? contactsServiceFactory,
+    contacts.ContactsServiceFactory? contactsServiceFactory,
   }) : _store = contacts.ContactDirectory(
          contactsService: contactsService,
          contactsServiceFactory: contactsServiceFactory,
@@ -44,12 +86,14 @@ class PhotosContactsService {
   bool get needsWarmup => _store.needsWarmup;
 
   Future<void> ensureReady() async {
-    final session = _buildSession();
-    if (session == null) {
+    final config = Configuration.instance;
+    final userId = config.getUserID();
+    if (userId == null || !config.hasConfiguredAccount()) {
       _store.clearSession();
       return;
     }
-    await _store.ensureReady(session);
+    authenticatedSession();
+    await _store.ensureReady(baseUrl: endpointConfig.endpoint, userId: userId);
   }
 
   Future<contacts.ContactRecord?> getContact({
@@ -137,8 +181,10 @@ class PhotosContactsService {
   }
 
   @visibleForTesting
-  Future<void> debugOpenAndSync(contacts.ContactsSession session) =>
-      _store.ensureReady(session);
+  Future<void> debugOpenAndSync({
+    required String baseUrl,
+    required int userId,
+  }) => _store.ensureReady(baseUrl: baseUrl, userId: userId);
 
   @visibleForTesting
   void debugHydrateContacts(
@@ -149,24 +195,7 @@ class PhotosContactsService {
   @visibleForTesting
   void debugReset({bool notify = false}) => _store.clearSession(notify: notify);
 
-  contacts.ContactsSession? _buildSession() {
-    final config = Configuration.instance;
-    final userId = config.getUserID();
-    final accountKey = config.getKey();
-    final token = config.getToken();
-    if (token == null || userId == null || accountKey == null) {
-      return null;
-    }
-    final packageInfo = ServiceLocator.instance.packageInfo;
-    return contacts.ContactsSession(
-      baseUrl: endpointConfig.endpoint,
-      authToken: token,
-      userId: userId,
-      accountKey: accountKey,
-      clientPackage: packageInfo.packageName,
-      clientVersion: packageInfo.version,
-    );
-  }
+  Future<void> close() => _store.close();
 
   Future<T?> _runReadSafely<T>(
     Future<T?> Function() task, {
@@ -177,7 +206,7 @@ class PhotosContactsService {
     } on StateError catch (error, stackTrace) {
       if (_isRustInitializationError(error)) {
         _logger.warning(
-          "Contacts integration unavailable while Rust bindings are not initialized during $description. Photos initializes EntePhotosRust in main.dart, but ente_contacts calls into package:ente_rust.",
+          "Contacts integration unavailable while Rust bindings are not initialized during $description. Photos initializes EntePhotosRust in main.dart.",
           error,
           stackTrace,
         );

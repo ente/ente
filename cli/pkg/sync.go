@@ -28,6 +28,10 @@ func (c *ClICtrl) Export(filter model.Filter) error {
 			log.Printf("Skip account %s: account is excluded by filter", account.Email)
 			continue
 		}
+		if account.App == api.AppLocker {
+			log.Printf("Skip account %s: Locker export is not supported", account.Email)
+			continue
+		}
 		if account.ExportDir == "" {
 			log.Printf("Skip account %s: no export directory configured", account.Email)
 			continue

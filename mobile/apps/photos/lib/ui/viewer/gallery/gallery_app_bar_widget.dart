@@ -19,6 +19,7 @@ import 'package:photos/events/subscription_purchased_event.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/device_collection.dart';
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_type.dart";
 import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/metadata/common_keys.dart";
@@ -27,12 +28,14 @@ import 'package:photos/module/download/gallery.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/files_service.dart";
+import "package:photos/services/ignored_files_service.dart";
 import "package:photos/services/review_service.dart";
 import "package:photos/states/location_screen_state.dart";
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import "package:photos/ui/cast/cast.dart";
 import "package:photos/ui/collections/album/smart_album_people.dart";
+import "package:photos/ui/common/photo_library_add_permission.dart";
 import "package:photos/ui/common/web_page.dart";
 import 'package:photos/ui/components/action_sheet_widget.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
@@ -43,6 +46,7 @@ import 'package:photos/ui/sharing/album_participants_page.dart';
 import "package:photos/ui/sharing/manage_links_widget.dart";
 import 'package:photos/ui/sharing/share_collection_page.dart';
 import 'package:photos/ui/tools/free_space_page.dart';
+import "package:photos/ui/viewer/album_slideshow/album_slideshow_page.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/gallery/component/album_description_header.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
@@ -52,7 +56,6 @@ import "package:photos/ui/viewer/gallery/hooks/edit_album_details_sheet.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/location/edit_location_sheet.dart";
-import 'package:photos/utils/delete_file_util.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/magic_util.dart';
 
@@ -74,6 +77,8 @@ class GalleryAppBarWidget extends StatefulWidget {
     Future<void> Function()? onDisableDeviceFolderBackup,
     Collection? collection,
     List<EnteFile>? files,
+    PreferredSizeWidget? bottom,
+    bool showOverflowMenu = true,
   }) {
     return GalleryAppBarConfig(
       sliverBuilder: (_) => GalleryAppBarWidget._(
@@ -86,11 +91,14 @@ class GalleryAppBarWidget extends StatefulWidget {
         onDisableDeviceFolderBackup: onDisableDeviceFolderBackup,
         collection: collection,
         files: files,
+        bottom: bottom,
+        showOverflowMenu: showOverflowMenu,
       ),
       geometryBuilder: (context) => _resolveSliverGeometry(
         context,
         subtitle: subtitle,
         description: collection?.displayDescription,
+        bottomHeight: bottom?.preferredSize.height,
       ),
     );
   }
@@ -99,13 +107,14 @@ class GalleryAppBarWidget extends StatefulWidget {
     BuildContext context, {
     String? subtitle,
     String? description,
+    double? bottomHeight,
   }) {
     final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
       context,
     );
     final isHierarchicalSearchable =
         inheritedSearchFilterData?.isHierarchicalSearchable ?? false;
-    final bottomHeight = isHierarchicalSearchable
+    bottomHeight ??= isHierarchicalSearchable
         ? AppBarFilterChips.preferredHeight(context)
         : 0.0;
     final collapsibleBottomHeight = AlbumDescriptionHeader.preferredHeight(
@@ -132,6 +141,8 @@ class GalleryAppBarWidget extends StatefulWidget {
   final Future<void> Function()? onDisableDeviceFolderBackup;
   final Collection? collection;
   final List<EnteFile>? files;
+  final PreferredSizeWidget? bottom;
+  final bool showOverflowMenu;
 
   const GalleryAppBarWidget._(
     this.type,
@@ -143,6 +154,8 @@ class GalleryAppBarWidget extends StatefulWidget {
     this.onDisableDeviceFolderBackup,
     this.collection,
     this.files,
+    this.bottom,
+    required this.showOverflowMenu,
   });
 
   @override
@@ -159,6 +172,7 @@ enum AlbumPopupAction {
   ownedHide,
   sharedHide,
   castAlbum,
+  albumSlideshow,
   autoAddPhotos,
   sort,
   leave,
@@ -172,7 +186,6 @@ enum AlbumPopupAction {
   downloadAlbum,
   sortByMostRecent,
   sortByMostRelevant,
-  emptyTrash,
   editLocation,
   deleteLocation,
   galleryGuestView,
@@ -269,12 +282,22 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       widget.collection?.displayDescription,
     );
 
+    if (widget.bottom != null) {
+      return _GallerySliverAppBar(
+        title: _appBarTitle,
+        subtitle: widget.subtitle,
+        actions: _getDefaultActions(context),
+        bottom: widget.bottom,
+      );
+    }
+
     if (!isHierarchicalSearchable) {
       return _GallerySliverAppBar(
         title: _appBarTitle,
         subtitle: widget.subtitle,
         actions: _getDefaultActions(context),
         collapsibleBottom: descriptionHeader,
+        bottom: widget.bottom,
       );
     }
 
@@ -417,10 +440,8 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     }
   }
 
-  // todo: In the new design, clicking on free up space will directly open
-  // the free up space page and show loading indicator while calculating
-  // the space which can be claimed up. This code duplication should be removed
-  // whenever we move to the new design for free up space.
+  // TODO: Remove this duplicate flow when the new design opens the
+  // free-up-space page directly and calculates there.
   Future<dynamic> _deleteBackedUpFiles(BuildContext context) async {
     final dialog = createProgressDialog(context, context.strings.calculating);
     await dialog.show();
@@ -554,7 +575,8 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     final bool isArchived = widget.collection?.isArchived() ?? false;
     final bool isHidden = widget.collection?.isHidden() ?? false;
 
-    if (!_hasOverflowMenuActions(userId, isArchived, isHidden)) {
+    if (!widget.showOverflowMenu ||
+        !_hasOverflowMenuActions(userId, isArchived, isHidden)) {
       return actions;
     }
 
@@ -600,6 +622,8 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             await _leaveAlbum(context);
           } else if (value == AlbumPopupAction.castAlbum) {
             await showCastSheet(context, widget.collection!);
+          } else if (value == AlbumPopupAction.albumSlideshow) {
+            await _startAlbumSlideshow();
           } else if (value == AlbumPopupAction.autoAddPhotos) {
             await routeToPage(
               context,
@@ -656,8 +680,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             await onCleanUncategorizedClick(context);
           } else if (value == AlbumPopupAction.downloadAlbum) {
             await _downloadPublicAlbumToGallery(widget.files!);
-          } else if (value == AlbumPopupAction.emptyTrash) {
-            await emptyTrash(context);
           } else if (value == AlbumPopupAction.editLocation) {
             editLocation();
           } else if (value == AlbumPopupAction.deleteLocation) {
@@ -687,7 +709,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         (!isArchived && galleryType.canHide()) ||
         widget.collection != null ||
         galleryType.canDelete() ||
-        galleryType == GalleryType.trash ||
         galleryType == GalleryType.sharedCollection ||
         (galleryType == GalleryType.localFolder && !_isICloudSharedAlbum) ||
         _canDisableDeviceFolderBackup ||
@@ -808,6 +829,15 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             iconColor,
           ),
         ),
+      if (_isAlbumSlideshowAvailable)
+        _menuOption(
+          AlbumPopupAction.albumSlideshow,
+          pendingTranslation("(i) Slideshow"),
+          galleryAppBarMenuIcon(
+            HugeIcons.strokeRoundedPresentation03,
+            iconColor,
+          ),
+        ),
       if (canAutoAdd)
         _menuOption(
           AlbumPopupAction.autoAddPhotos,
@@ -885,13 +915,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
           strings.download,
           galleryAppBarMenuIcon(HugeIcons.strokeRoundedDownload01, iconColor),
         ),
-      if (galleryType == GalleryType.trash)
-        _menuOption(
-          AlbumPopupAction.emptyTrash,
-          strings.deleteAll,
-          galleryAppBarMenuIcon(HugeIcons.strokeRoundedDelete01, warningColor),
-          labelColor: warningColor,
-        ),
     ];
   }
 
@@ -904,6 +927,9 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       galleryType == GalleryType.localFolder &&
       _isDeviceFolderBackedUp &&
       widget.onDisableDeviceFolderBackup != null;
+
+  bool get _isAlbumSlideshowAvailable =>
+      flagService.internalUser && widget.collection != null;
 
   EntePopupMenuOption<AlbumPopupAction> _menuOption(
     AlbumPopupAction value,
@@ -923,6 +949,9 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     if (files == null || files.isEmpty) {
       return;
     }
+    if (!await ensurePhotoLibraryAddPermission(context)) return;
+    if (!mounted) return;
+
     if (flagService.internalUser) {
       try {
         await galleryDownloadQueueService.enqueueFiles(
@@ -956,6 +985,62 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       await showGenericErrorDialog(context: context, error: e);
     }
     await dialog.hide();
+  }
+
+  Future<void> _startAlbumSlideshow() async {
+    final galleryFiles = await _loadAllCollectionFiles();
+    if (!mounted) return;
+    if (galleryFiles == null) {
+      showToast(context, context.strings.somethingWentWrong);
+      return;
+    }
+
+    final ignoredIDs = await IgnoredFilesService.instance.idToIgnoreReasonMap;
+    if (!mounted) return;
+    final imageFiles = galleryFiles
+        .where(
+          (file) =>
+              (file.uploadedFileID != null ||
+                  !IgnoredFilesService.instance.shouldSkipUpload(
+                    ignoredIDs,
+                    file,
+                  )) &&
+              (file.fileType == FileType.image ||
+                  file.fileType == FileType.livePhoto),
+        )
+        .toList(growable: false);
+    if (imageFiles.isEmpty) {
+      showToast(context, context.strings.noPhotosFoundHere);
+      return;
+    }
+
+    await routeToPage(
+      context,
+      AlbumSlideshowPage(
+        files: imageFiles,
+        albumName: widget.collection!.displayName,
+      ),
+      forceCustomPageRoute: true,
+    );
+  }
+
+  Future<List<EnteFile>?> _loadAllCollectionFiles() async {
+    if (widget.files != null) {
+      return widget.files!;
+    }
+
+    final collection = widget.collection;
+    if (collection == null) {
+      return null;
+    }
+
+    final filesResult = await FilesDB.instance.getFilesInCollection(
+      collection.id,
+      galleryLoadStartTime,
+      galleryLoadEndTime,
+      asc: collection.pubMagicMetadata.asc ?? false,
+    );
+    return filesResult.files;
   }
 
   void editLocation() {
@@ -1215,25 +1300,14 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
   Future<void> _onGalleryGuestViewClick() async {
     if (await LocalAuthentication().isDeviceSupported()) {
-      late final List<EnteFile> collectionFiles;
-      if (widget.files != null) {
-        collectionFiles = widget.files!;
-      } else if (widget.collection != null) {
-        final filesResult = await FilesDB.instance.getFilesInCollection(
-          widget.collection!.id,
-          galleryLoadStartTime,
-          galleryLoadEndTime,
-          asc: widget.collection!.pubMagicMetadata.asc ?? false,
-        );
-        collectionFiles = filesResult.files;
-      } else {
-        if (!mounted) return;
+      final collectionFiles = await _loadAllCollectionFiles();
+      if (!mounted) return;
+      if (collectionFiles == null) {
         showToast(context, context.strings.somethingWentWrong);
         return;
       }
 
       if (collectionFiles.isEmpty) {
-        if (!mounted) return;
         showToast(context, context.strings.nothingToSeeHere);
         return;
       }

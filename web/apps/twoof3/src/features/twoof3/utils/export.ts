@@ -376,7 +376,7 @@ const escapeScriptTagContent = (value: string) =>
     value.replace(/<\/script/giu, "<\\/script");
 
 export const createOfflineRecoveryHtml = async () => {
-    const { OFFLINE_QR_DECODER_SOURCE } = await import("./offlineQrSource");
+    const { OFFLINE_QR_DECODER_SOURCE } = await import("./offline-qr-source");
 
     return `<!doctype html>
 <html lang="en">

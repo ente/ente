@@ -131,7 +131,7 @@ export interface ElectronMLWorker {
     fsStatMtime: (path: string) => Promise<number>;
     analyzeImage: (
         request: MLWorkerAnalyzeImageRequest,
-    ) => Promise<MLWorkerAnalyzeImageResponse>;
+    ) => Promise<MLWorkerAnalyzeImageResult>;
     releaseMLRuntime: () => Promise<void>;
     computeCLIPTextEmbeddingIfAvailable: (
         text: string,
@@ -146,17 +146,6 @@ export interface MLWorkerAnalyzeImageRequest {
     runPets: boolean;
     generateFaceCrops: boolean;
 }
-
-export type MLWorkerAnalyzeImageErrorKind = "init" | "ort" | "image" | "misc";
-
-export interface MLWorkerAnalyzeImageError {
-    kind: MLWorkerAnalyzeImageErrorKind;
-    message: string;
-}
-
-export type MLWorkerAnalyzeImageResponse =
-    | { ok: true; result: MLWorkerAnalyzeImageResult }
-    | { ok: false; error: MLWorkerAnalyzeImageError };
 
 export interface MLWorkerFaceResult {
     faceId: string;

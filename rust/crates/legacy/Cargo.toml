@@ -1,0 +1,12 @@
+[package]
+name = "ente-legacy"
+edition = "2024"
+
+[dependencies]
+ente-accounts.workspace = true
+ente-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+uuid = { version = "1", features = ["v4", "js"] }

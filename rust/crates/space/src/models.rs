@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zeroize::Zeroize;
+use zeroize::ZeroizeOnDrop;
 
 use crate::transport::{
     PostObjectPayload, ProfileAvatarResponse, ProfileCoverResponse, SpaceActorResponse,
@@ -93,8 +93,7 @@ pub struct DecryptedMessage {
     pub payload: MessagePayload,
 }
 
-#[derive(Clone, Zeroize)]
-#[zeroize(drop)]
+#[derive(Clone, ZeroizeOnDrop)]
 pub struct DecryptedFriendShare {
     pub friend: String,
     pub space_id: String,

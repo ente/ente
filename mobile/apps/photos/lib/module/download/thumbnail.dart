@@ -77,9 +77,9 @@ Future<Uint8List?> getThumbnail(EnteFile file) async {
 
 void preloadThumbnail(EnteFile file) {
   if (file.isRemoteOnlyFile) {
-    getThumbnailFromServer(file);
+    getThumbnailFromServer(file).ignore();
   } else {
-    getThumbnailFromLocal(file);
+    getThumbnailFromLocal(file).ignore();
   }
 }
 

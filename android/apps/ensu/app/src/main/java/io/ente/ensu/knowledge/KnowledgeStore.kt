@@ -236,9 +236,7 @@ class KnowledgeStore(
             is AssetDownloadException.Http ->
                 "The knowledge pack is currently unavailable. Please try again later."
             is AssetDownloadException.Validation,
-            is AssetDownloadException.SizeMismatch,
-            is AssetDownloadException.Protocol,
-            is AssetDownloadException.InvalidTarget ->
+            is AssetDownloadException.InvalidDownload ->
                 "The knowledge pack couldn't be verified. Please try again."
             is AssetDownloadException.Io ->
                 "Couldn't save the knowledge pack. Please try again."

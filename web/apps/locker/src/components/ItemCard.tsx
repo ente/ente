@@ -1,7 +1,7 @@
 import {
     lockerItemIcon,
     lockerItemIconConfig,
-} from "@/components/lockerItemIcons";
+} from "@/components/locker-item-icons";
 import { downloadLockerFile } from "@/services/remote";
 import type { GenericFileData, LockerItem } from "@/types";
 import { getItemTitle, hasDownloadableObject } from "@/types";

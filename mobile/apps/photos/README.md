@@ -63,7 +63,7 @@ After updating Flutter dependencies, run `pod install` from `ios/` on macOS and 
 
 ## 🏙️ Attributions
 
-City coordinates from [Simple Maps](https://simplemaps.com/data/world-cities)
+City data from [GeoNames](https://www.geonames.org/), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ## 🌍 Translate
 

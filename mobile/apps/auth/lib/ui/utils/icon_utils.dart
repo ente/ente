@@ -216,7 +216,7 @@ class IconUtils {
     if (hexColor == null) return null;
     final theme = Theme.of(context).brightness;
     final color = Color(int.parse("0xFF$hexColor"));
-    // Color is close to neutral-grey and it's too light or dark for theme
+    // Use the theme icon color when a neutral grey lacks contrast.
     if (_isCloseToNeutralGrey(color) &&
         ((theme == Brightness.light && _getColorLuminance(color) > 0.70) ||
             (theme == Brightness.dark && _getColorLuminance(color) < 0.05))) {

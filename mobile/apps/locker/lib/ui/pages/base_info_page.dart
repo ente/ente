@@ -227,7 +227,7 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
         _hasLoadedCollectionSelection = true;
       });
     } catch (e) {
-      // Handle error silently or show a message
+      // Leave collection selection unavailable.
     }
   }
 

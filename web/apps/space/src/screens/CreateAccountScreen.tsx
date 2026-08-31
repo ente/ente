@@ -1,12 +1,12 @@
 import { Box } from "@mui/material";
-import { SpaceBackIcon } from "components/SpaceBackIcon";
-import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
+import { SpaceBackIcon } from "components/BackIcon";
+import { SpaceButtonSpinner } from "components/ButtonSpinner";
 import {
     estimatePasswordStrength,
     type PasswordStrength,
 } from "ente-accounts/utils/password";
 import React, { useId, useMemo, useState } from "react";
-import { spaceTouchTargetSize } from "styles/touchTargets";
+import { spaceTouchTargetSize } from "styles/touch-targets";
 
 export const createAccountBackground = "#FAFAFA";
 

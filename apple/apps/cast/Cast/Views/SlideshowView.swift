@@ -40,13 +40,11 @@ struct SlideshowView: View {
     }
     
     var body: some View {
-        // Use pre-decoded images to avoid decoding during render
         let mainUIImage = preDecodedImage
         let previousUIImage = previousDecodedImage
 
         return GeometryReader { geometry in
             ZStack {
-                // Background layer
                 if let uiImage = mainUIImage {
                     Image(uiImage: uiImage)
                         .resizable()
@@ -61,7 +59,6 @@ struct SlideshowView: View {
                     Color.black.ignoresSafeArea()
                 }
                 
-                // Foreground content
                 if isVideo, let videoData = videoData {
                     VideoPlayerView(
                         videoData: videoData,
@@ -82,9 +79,7 @@ struct SlideshowView: View {
                         removal: .scale(scale: 0.9).combined(with: .opacity)
                     ))
                 } else if let uiImage = mainUIImage {
-                    // Crossfade image transition
                     ZStack {
-                        // Previous image (fading out)
                         if let prevImage = previousUIImage {
                             Image(uiImage: prevImage)
                                 .resizable()
@@ -94,7 +89,6 @@ struct SlideshowView: View {
                                 .opacity(previousImageOpacity)
                         }
                         
-                        // Current image (fading in)
                         Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
@@ -103,7 +97,6 @@ struct SlideshowView: View {
                             .opacity(imageOpacity)
                     }
                     .onAppear {
-                        // Pass image data count for logging purposes
                         animateImageIn(bytes: displayImageData?.count ?? 0, isLive: isLivePhoto)
                     }
                     .onDisappear {
@@ -115,20 +108,16 @@ struct SlideshowView: View {
                     
                     
                 } else {
-                    // Check if we have an empty state vs loading state
                     if let error = slideshowService.error, 
                        (error.contains("No media files available") || error.contains("Empty file list")) {
                         EmptyState()
                     } else if slideshowService.totalSlides == 0 && !slideshowService.isPlaying {
-                        // Still loading initial file list
                         LoadingState()
                     } else {
-                        // Files exist but current slide is loading
                         LoadingState()
                     }
                 }
                 
-                // Overlays
                 actionFeedbackOverlay
                 controlsOverlay
                 toastOverlay
@@ -137,28 +126,22 @@ struct SlideshowView: View {
         .onChange(of: imageData) { newValue in
             if let newData = newValue {
                 Task {
-                    // Pre-decode image off main thread
                     let decodedImage = decodedUIImage(from: newData)
                     
                     await MainActor.run {
-                        // Store current decoded image as previous for crossfade
                         previousDecodedImage = preDecodedImage
                         previousImageData = displayImageData
                         
-                        // Set decoded image first
                         preDecodedImage = decodedImage
                         
-                        // Set up opacity states
                         if previousDecodedImage != nil {
                             previousImageOpacity = 1.0
                             imageOpacity = 0.0
                         } else {
-                            // First image - no crossfade needed
                             imageOpacity = 1.0
                             previousImageOpacity = 0.0
                         }
                         
-                        // Then update display data to trigger view update
                         displayImageData = newData
                         animateImageIn(bytes: newData.count, isLive: isLivePhoto)
                     }
@@ -181,13 +164,9 @@ struct SlideshowView: View {
         .onAppear {
             startControlsTimer()
             isFocused = true
-            // Backup screen saver prevention at view level
             ScreenSaverManager.preventScreenSaver()
             
-            // Process initial image data if present and not already processed
-            // This handles the case where SlideshowView is created with imageData already populated
-            // (e.g., when transitioning from .connecting to .slideshow state)
-            // Without this, onChange won't fire and the image won't display
+            // onChange does not fire when the view starts with imageData set.
             if let initialImageData = imageData, displayImageData == nil && !isVideo {
                 Task {
                     let decodedImage = decodedUIImage(from: initialImageData)
@@ -203,12 +182,9 @@ struct SlideshowView: View {
             }
         }
         .onDisappear {
-            // Ensure screen saver prevention is disabled when view disappears
             ScreenSaverManager.allowScreenSaver()
         }
     }
-    
-    // MARK: - Overlay Views
     
     @ViewBuilder
     private var actionFeedbackOverlay: some View {
@@ -267,7 +243,6 @@ struct SlideshowView: View {
             showToast(icon: "livephoto", message: "Live Photo Paused")
         }
         
-        // Auto-return to image after video plays
         if isPlayingLivePhotoVideo {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -282,7 +257,6 @@ struct SlideshowView: View {
         slideshowService.togglePlayPause()
         
         await MainActor.run {
-            // Show toast notification only
             if slideshowService.isPaused {
                 showToast(icon: "pause.fill", message: "Paused")
             } else {
@@ -295,10 +269,8 @@ struct SlideshowView: View {
         switch direction {
         case .left:
             await slideshowService.previousSlide()
-            // No center feedback for navigation
         case .right:
             await slideshowService.nextSlide()
-            // No center feedback for navigation
         case .up, .down:
             toggleControls()
         @unknown default:
@@ -329,18 +301,15 @@ struct SlideshowView: View {
         toastMessage = message
         showToast = true
         
-        // Auto-dismiss after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             showToast = false
         }
     }
     
-    // MARK: - Image Decoding & Animation
-    
     private func decodedUIImage(from data: Data) -> UIImage? {
         imageDecodeFailed = false
         if let uiImage = UIImage(data: data) {
-            // Force decompression by accessing cgImage
+            // Accessing cgImage forces decompression.
             if let cg = uiImage.cgImage {
                 return UIImage(cgImage: cg, scale: uiImage.scale, orientation: uiImage.imageOrientation)
             }
@@ -356,7 +325,6 @@ struct SlideshowView: View {
         lastImageBytes = bytes
         imageScale = 1.0
         
-        // Opacity states are already set up in onChange, just animate the crossfade
         withAnimation(.easeInOut(duration: 0.25)) {
             imageOpacity = 1.0
             previousImageOpacity = 0.0
@@ -364,9 +332,8 @@ struct SlideshowView: View {
         
         print("Displaying \(isLive ? "live" : "static") image (\(bytes) bytes)")
         
-        // Clean up previous image data after animation
         Task {
-            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+            try? await Task.sleep(nanoseconds: 300_000_000)
             await MainActor.run {
                 previousImageData = nil
                 previousImageOpacity = 0.0
@@ -375,8 +342,6 @@ struct SlideshowView: View {
     }
 }
 
-
-// MARK: - Supporting Views and Types
 
 struct LoadingState: View {
     @State private var animationPhase: CGFloat = 0
@@ -632,8 +597,6 @@ struct AppleStyleToast: View {
         .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
     }
 }
-
-// MARK: - Preview
 
 class MockSlideshowService: ObservableObject {
     @Published var currentFile: (title: String, isLivePhoto: Bool)? = (title: "Sample Image", isLivePhoto: false)

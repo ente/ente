@@ -265,7 +265,7 @@ class Code {
         return Algorithm.sha512;
       }
     } catch (e) {
-      // nothing
+      // Fall back to SHA-1.
     }
     return Algorithm.sha1;
   }

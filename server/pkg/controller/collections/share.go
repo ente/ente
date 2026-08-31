@@ -475,6 +475,9 @@ func (c *CollectionController) UpdateShareeMagicMetadata(ctx *gin.Context, req e
 
 func (c *CollectionController) ShareURL(ctx *gin.Context, userID int64, req ente.CreatePublicAccessTokenRequest) (
 	ente.PublicURL, error) {
+	if err := req.Validate(); err != nil {
+		return ente.PublicURL{}, stacktrace.Propagate(err, "")
+	}
 	collection, err := c.CollectionRepo.Get(req.CollectionID)
 	if err != nil {
 		return ente.PublicURL{}, stacktrace.Propagate(err, "")
@@ -517,7 +520,7 @@ func (c *CollectionController) UpdateShareURL(
 	err := c.BillingCtrl.HasActiveSelfOrFamilySubscription(userID, true)
 	if err != nil {
 		if errors.Is(err, ente.ErrSharingDisabledForFreeAccounts) {
-			if req.DeviceLimit != nil && *req.DeviceLimit != public.FreeUserDeviceLimit {
+			if req.DeviceLimit != nil && !public.IsAllowedFreeUserDeviceLimit(*req.DeviceLimit) {
 				return nil, stacktrace.Propagate(&ente.ErrLinkEditNotAllowed, "")
 			}
 		} else {

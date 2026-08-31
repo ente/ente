@@ -2,7 +2,6 @@ import { ensureArrayBufferBacked } from "ente-base/bytes";
 import { mergeUint8Arrays } from "ente-utils/array";
 import sodium from "libsodium-wrappers-sumo";
 import {
-    deriveKeyInsufficientMemoryErrorMessage,
     streamEncryptionChunkSize,
     type BytesOrB64,
     type DerivedKey,
@@ -391,42 +390,6 @@ export const deriveKey = async (
             sodium.crypto_pwhash_ALG_ARGON2ID13,
         ),
     );
-};
-
-export const deriveSensitiveKey = async (
-    passphrase: string,
-): Promise<DerivedKey> => {
-    await sodium.ready;
-
-    const salt = await generateDeriveKeySalt();
-
-    const desiredStrength =
-        sodium.crypto_pwhash_MEMLIMIT_SENSITIVE *
-        sodium.crypto_pwhash_OPSLIMIT_SENSITIVE;
-    // A 1 GiB memory cost can make weaker devices OOM after an account was
-    // created elsewhere. Preserve the same work factor with less memory.
-    let memLimit = sodium.crypto_pwhash_MEMLIMIT_MODERATE;
-    const factor = Math.floor(
-        sodium.crypto_pwhash_MEMLIMIT_SENSITIVE /
-            sodium.crypto_pwhash_MEMLIMIT_MODERATE,
-    );
-    let opsLimit = sodium.crypto_pwhash_OPSLIMIT_SENSITIVE * factor;
-    if (memLimit * opsLimit != desiredStrength) {
-        throw new Error(`Invalid mem and ops limits: ${memLimit}, ${opsLimit}`);
-    }
-
-    // Museum rejects account KDFs below 128 MiB.
-    const minMemLimit = 128 * 1024 * 1024;
-    while (memLimit >= minMemLimit) {
-        try {
-            const key = await deriveKey(passphrase, salt, opsLimit, memLimit);
-            return { key, salt, opsLimit, memLimit };
-        } catch {
-            opsLimit *= 2;
-            memLimit /= 2;
-        }
-    }
-    throw new Error(deriveKeyInsufficientMemoryErrorMessage);
 };
 
 export const deriveInteractiveKey = async (

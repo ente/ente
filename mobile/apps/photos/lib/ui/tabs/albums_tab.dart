@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:io";
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
@@ -7,6 +8,7 @@ import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/album_sort_order_change_event.dart";
 import "package:photos/events/app_mode_changed_event.dart";
@@ -34,10 +36,14 @@ import "package:photos/ui/tabs/albums/empty_states/received_empty_state.dart";
 import "package:photos/ui/tabs/albums/empty_states/shared_empty_state.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/actions/delete_empty_albums.dart";
+import "package:photos/ui/viewer/gallery/trash_page.dart";
+import "package:photos/utils/device_info.dart";
 
 enum _AlbumsFilter { ente, onDevice, shared, received }
 
 enum _AlbumsMenuAction { toggleView, name, lastUpdated }
+
+const double _albumsMoreOverlayWidth = 72;
 
 class AlbumsTab extends StatefulWidget {
   const AlbumsTab({
@@ -59,9 +65,11 @@ class _AlbumsTabState extends State<AlbumsTab>
     with AutomaticKeepAliveClientMixin {
   static const int _kAlbumsTabIndex = 1;
   static const double _kHeaderToolbarHeight = 60;
+  static const double _kSelectedFilterTrailingGap = 8;
   static const Duration _kSearchTransitionDuration = Duration(
     milliseconds: 240,
   );
+  static const Duration _kFilterScrollDuration = Duration(milliseconds: 250);
   static const Duration _kContentTransitionDuration = Duration(
     milliseconds: 150,
   );
@@ -237,11 +245,8 @@ class _AlbumsTabState extends State<AlbumsTab>
     await Future.wait([_loadEnteCollections(), _loadSharedCollections()]);
   }
 
-  bool get _isLocalGalleryMode =>
-      isLocalGalleryMode && !Configuration.instance.hasConfiguredAccount();
-
   _AlbumsFilter get _effectiveFilter =>
-      _isLocalGalleryMode ? _AlbumsFilter.onDevice : _filter.value;
+      isLocalGalleryMode ? _AlbumsFilter.onDevice : _filter.value;
 
   bool get _hasSearchQuery => _searchQuery.trim().isNotEmpty;
 
@@ -268,11 +273,15 @@ class _AlbumsTabState extends State<AlbumsTab>
     if (!RemoteSyncService.instance.isFirstRemoteSyncDone()) {
       return false;
     }
+    final userID = Configuration.instance.getUserID();
+    if (userID == null) {
+      return false;
+    }
     final collectionIDToLatestTimeCount = await CollectionsService.instance
         .getCollectionIDToNewestFileTime();
     final emptyAlbumCount = collections.where((collection) {
       final latestTimeCount = collectionIDToLatestTimeCount[collection.id];
-      return latestTimeCount == null;
+      return collection.isOwner(userID) && latestTimeCount == null;
     }).length;
     return emptyAlbumCount > 2;
   }
@@ -284,12 +293,28 @@ class _AlbumsTabState extends State<AlbumsTab>
     _receivedCollections.value = shared.incoming;
   }
 
-  void _selectFilter(_AlbumsFilter filter) {
-    if (_isLocalGalleryMode && filter != _AlbumsFilter.onDevice) return;
+  void _selectFilter(_AlbumsFilter filter, BuildContext filterContext) {
+    if (isLocalGalleryMode && filter != _AlbumsFilter.onDevice) return;
+    _revealFilter(filterContext);
     if (_filter.value == filter) return;
     widget.selectedAlbums?.clearAll();
     _resetScrollForNextContent();
     _filter.value = filter;
+  }
+
+  void _revealFilter(BuildContext filterContext) {
+    final filterRenderObject = filterContext.findRenderObject();
+    if (filterRenderObject is! RenderBox) return;
+    final revealWidth =
+        filterRenderObject.size.width +
+        _albumsMoreOverlayWidth +
+        _kSelectedFilterTrailingGap;
+
+    filterRenderObject.showOnScreen(
+      rect: Rect.fromLTWH(0, 0, revealWidth, filterRenderObject.size.height),
+      duration: _kFilterScrollDuration,
+      curve: Curves.easeOutCubic,
+    );
   }
 
   void _activateSearch() {
@@ -463,7 +488,7 @@ class _AlbumsTabState extends State<AlbumsTab>
   }
 
   Widget _buildGlobalSearchResultsSliver(StringsLocalizations strings) {
-    if (_isLocalGalleryMode) {
+    if (isLocalGalleryMode) {
       return SliverMainAxisGroup(
         slivers: [
           DeviceFolderVerticalGridSliver(
@@ -762,7 +787,6 @@ class _AlbumsTabState extends State<AlbumsTab>
     final textTheme = getEnteTextTheme(context);
     final strings = context.strings;
     final selectedAlbums = widget.selectedAlbums;
-    final localGalleryMode = _isLocalGalleryMode;
     final albumsOptionsButton = Builder(
       builder: (buttonContext) => IconButtonComponent(
         variant: IconButtonComponentVariant.primary,
@@ -870,6 +894,10 @@ class _AlbumsTabState extends State<AlbumsTab>
                               ),
                               const SizedBox(width: 6),
                               albumsOptionsButton,
+                              if (isLocalGalleryMode)
+                                const _LocalGalleryTrashButton(
+                                  before: SizedBox(width: 6),
+                                ),
                             ],
                           ),
                   ),
@@ -883,7 +911,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                   duration: _kSearchTransitionDuration,
                   switchInCurve: Curves.easeOutCubic,
                   switchOutCurve: Curves.easeInCubic,
-                  child: _isSearchActive || localGalleryMode
+                  child: _isSearchActive || isLocalGalleryMode
                       ? const SizedBox.shrink(key: ValueKey("hidden_filters"))
                       : Padding(
                           key: const ValueKey("album_filters"),
@@ -897,7 +925,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                                 child: ValueListenableBuilder<_AlbumsFilter>(
                                   valueListenable: _filter,
                                   builder: (context, selected, _) {
-                                    final effectiveFilter = localGalleryMode
+                                    final effectiveFilter = isLocalGalleryMode
                                         ? _AlbumsFilter.onDevice
                                         : selected;
                                     return Stack(
@@ -907,53 +935,52 @@ class _AlbumsTabState extends State<AlbumsTab>
                                           physics:
                                               const BouncingScrollPhysics(),
                                           padding: const EdgeInsets.only(
-                                            right: 72,
+                                            right:
+                                                _albumsMoreOverlayWidth +
+                                                _kSelectedFilterTrailingGap,
                                           ),
                                           child: Row(
                                             children: [
-                                              if (!localGalleryMode) ...[
+                                              if (!isLocalGalleryMode) ...[
                                                 _AlbumsFilterChip(
+                                                  filter: _AlbumsFilter.ente,
                                                   label: strings.ente,
                                                   selected:
                                                       effectiveFilter ==
                                                       _AlbumsFilter.ente,
-                                                  onTap: () => _selectFilter(
-                                                    _AlbumsFilter.ente,
-                                                  ),
+                                                  onTap: _selectFilter,
                                                 ),
                                                 const SizedBox(width: 8),
                                               ],
                                               _AlbumsFilterChip(
+                                                filter: _AlbumsFilter.onDevice,
                                                 label: strings.onDevice,
                                                 selected:
                                                     effectiveFilter ==
                                                     _AlbumsFilter.onDevice,
-                                                onTap: () => _selectFilter(
-                                                  _AlbumsFilter.onDevice,
-                                                ),
+                                                onTap: _selectFilter,
                                               ),
-                                              if (!localGalleryMode) ...[
+                                              if (!isLocalGalleryMode) ...[
                                                 const SizedBox(width: 8),
                                                 _AlbumsFilterChip(
+                                                  filter: _AlbumsFilter.shared,
                                                   label:
                                                       strings.sharedAlbumsLabel,
                                                   selected:
                                                       effectiveFilter ==
                                                       _AlbumsFilter.shared,
-                                                  onTap: () => _selectFilter(
-                                                    _AlbumsFilter.shared,
-                                                  ),
+                                                  onTap: _selectFilter,
                                                 ),
                                                 const SizedBox(width: 8),
                                                 _AlbumsFilterChip(
+                                                  filter:
+                                                      _AlbumsFilter.received,
                                                   label: strings
                                                       .receivedAlbumsLabel,
                                                   selected:
                                                       effectiveFilter ==
                                                       _AlbumsFilter.received,
-                                                  onTap: () => _selectFilter(
-                                                    _AlbumsFilter.received,
-                                                  ),
+                                                  onTap: _selectFilter,
                                                 ),
                                               ],
                                             ],
@@ -1071,14 +1098,16 @@ class _AlbumsTabState extends State<AlbumsTab>
 
 class _AlbumsFilterChip extends StatelessWidget {
   const _AlbumsFilterChip({
+    required this.filter,
     required this.label,
     required this.selected,
     required this.onTap,
   });
 
+  final _AlbumsFilter filter;
   final String label;
   final bool selected;
-  final VoidCallback onTap;
+  final void Function(_AlbumsFilter filter, BuildContext context) onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1087,7 +1116,7 @@ class _AlbumsFilterChip extends StatelessWidget {
       state: selected
           ? TagChipComponentState.selected
           : TagChipComponentState.unselected,
-      onTap: onTap,
+      onTap: () => onTap(filter, context),
     );
   }
 }
@@ -1112,7 +1141,7 @@ class _AlbumsMoreButtonOverlay extends StatelessWidget {
             bottom: 0,
             child: IgnorePointer(
               child: SizedBox(
-                width: 72,
+                width: _albumsMoreOverlayWidth,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -1145,6 +1174,49 @@ class _AlbumsMoreButtonOverlay extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LocalGalleryTrashButton extends StatefulWidget {
+  final Widget before;
+
+  const _LocalGalleryTrashButton({required this.before});
+
+  @override
+  State<_LocalGalleryTrashButton> createState() =>
+      _LocalGalleryTrashButtonState();
+}
+
+class _LocalGalleryTrashButtonState extends State<_LocalGalleryTrashButton> {
+  late final Future<bool> _isTrashSupported;
+
+  @override
+  void initState() {
+    _isTrashSupported = (() async {
+      return Platform.isAndroid &&
+          !await isAndroidSDKVersionLowerThan(android11SDKINT);
+    })();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: _isTrashSupported,
+      builder: (_, snapshot) => (snapshot.data ?? false)
+          ? Row(
+              children: [
+                widget.before,
+                IconButtonComponent(
+                  variant: IconButtonComponentVariant.primary,
+                  shouldSurfaceExecutionStates: false,
+                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02),
+                  onTap: () => showTrashPage(context),
+                ),
+              ],
+            )
+          : const SizedBox.shrink(),
     );
   }
 }

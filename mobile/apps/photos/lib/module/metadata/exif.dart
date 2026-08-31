@@ -165,7 +165,6 @@ ParsedExifDateTime _getStandardExifDateTimeInDeviceTimezone(
     final int offsetHours = int.parse(splitHHMM[0]);
     final int offsetMinutes =
         int.parse(splitHHMM[1]) * (offsetHours.isNegative ? -1 : 1);
-    // Adjust the date for the offset to get the photo's correct UTC time
     final photoUtcDate = result.add(
       Duration(hours: -offsetHours, minutes: -offsetMinutes),
     );
@@ -285,15 +284,14 @@ Location? locationFromExif(Map<String, IfdTag> exif) {
   }
 }
 
-Future<Map<String, IfdTag>> _readExifArgs(Map<String, dynamic> args) {
+Future<Map<String, IfdTag>> _readExifArgs(Map<String, dynamic> args) async {
   final file = args["file"] as File;
-  return FileRASource.loadFile(file).then((src) async {
-    try {
-      return _normalizeExifResult(await readExifFromSource(src));
-    } finally {
-      await src.close();
-    }
-  });
+  final src = ReadAheadRASource(await FileRASource.loadFile(file));
+  try {
+    return _normalizeExifResult(await readExifFromSource(src));
+  } finally {
+    await src.close();
+  }
 }
 
 Future<Map<String, IfdTag>> readExifAsync(File file) {

@@ -3,7 +3,10 @@ name = "ente-photos"
 edition = "2024"
 
 [dependencies]
+ente-assets.workspace = true
+ente-location.workspace = true
 quick-xml = "0.41"
+thiserror.workspace = true
 
 [dev-dependencies]
 tempfile = "3.12"

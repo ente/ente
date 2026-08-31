@@ -2,16 +2,18 @@ import "dart:async";
 import "dart:io";
 
 import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:hugeicons/hugeicons.dart";
+import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/events/force_reload_trash_page_event.dart";
 import "package:photos/events/guest_view_event.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/models/file/trash_file.dart";
 import "package:photos/models/selected_files.dart";
 import 'package:photos/module/metadata/panorama.dart';
 import "package:photos/service_locator.dart";
@@ -21,6 +23,7 @@ import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
 import "package:photos/ui/viewer/actions/suggest_delete_sheet.dart";
 import "package:photos/utils/delete_file_util.dart";
+import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/share_util.dart";
 
 class FileBottomBar extends StatefulWidget {
@@ -111,7 +114,7 @@ class FileBottomBarState extends State<FileBottomBar> {
         widget.file.isOwner &&
         widget.file.isUploaded &&
         (collection?.isHidden() ?? false);
-    if (widget.file.isEnteTrash) {
+    if (widget.file.isTrash) {
       _addTrashOptions(children);
     }
 
@@ -239,6 +242,24 @@ class FileBottomBarState extends State<FileBottomBar> {
           child: IconButton(
             icon: const Icon(CupertinoIcons.gobackward, color: Colors.white),
             onPressed: () {
+              if (widget.file.isDeviceTrash) {
+                _restoreFromDeviceTrash()
+                    .then((didRestore) {
+                      if (!didRestore || !mounted) return;
+                      showToast(
+                        context,
+                        context.strings.restoredItems(count: 1),
+                      );
+                    })
+                    .onError((e, s) {
+                      if (!mounted) return;
+                      showGenericErrorDialog(
+                        context: context,
+                        error: e,
+                      ).ignore();
+                    });
+                return;
+              }
               final selectedFiles = SelectedFiles();
               selectedFiles.toggleSelection(widget.file);
               showCollectionActionSheet(
@@ -263,11 +284,21 @@ class FileBottomBarState extends State<FileBottomBar> {
               color: Colors.white,
             ),
             onPressed: () async {
-              final trashedFile = <EnteTrashFile>[];
-              trashedFile.add(widget.file.asEnteTrashFile!);
-              if (await deleteFromTrash(context, trashedFile) == true) {
-                if (!mounted) return;
-                Navigator.pop(context);
+              if (widget.file.isDeviceTrash) {
+                final deletedIDs = await permanentlyDeleteFromDeviceTrash(
+                  context,
+                  [widget.file.localID!],
+                );
+                if (deletedIDs.isNotEmpty) {
+                  await widget.onFileRemoved(widget.file);
+                }
+                return;
+              }
+              if (await deleteFromEnteTrash(context, [
+                    widget.file.asEnteTrashFile!,
+                  ]) ==
+                  true) {
+                widget.onFileRemoved(widget.file);
               }
             },
           ),
@@ -307,5 +338,15 @@ class FileBottomBarState extends State<FileBottomBar> {
         widget.onFileRemoved(widget.file);
       },
     );
+  }
+
+  Future<bool> _restoreFromDeviceTrash() async {
+    final restoredIDs = await PhotoManager.editor.android.restoreFromTrash([
+      widget.file.asDeviceTrashFile!.toAssetEntity(),
+    ]);
+    if (restoredIDs.isEmpty) return false;
+    Bus.instance.fire(ForceReloadTrashPageEvent());
+    await widget.onFileRemoved(widget.file);
+    return true;
   }
 }

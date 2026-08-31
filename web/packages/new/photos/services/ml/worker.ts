@@ -1,13 +1,13 @@
 import { expose, wrap } from "comlink";
 import { clientIdentifier } from "ente-base/app";
 import { assertionFailed } from "ente-base/assert";
+import { isNamedError, namedError } from "ente-base/error";
 import { lowercaseExtension } from "ente-base/file-name";
 import { isHTTP4xxError, isHTTPErrorWithStatus } from "ente-base/http";
 import log from "ente-base/log";
 import { logUnhandledErrorsAndRejectionsInWorker } from "ente-base/log-web";
 import type {
     ElectronMLWorker,
-    MLWorkerAnalyzeImageErrorKind,
     MLWorkerAnalyzeImageRequest,
     MLWorkerAnalyzeImageResult,
 } from "ente-base/types/ipc";
@@ -194,7 +194,7 @@ export class MLWorker {
         this.resolvePendingIndexRequests();
     }
 
-    private suspendForMLInitError(error: MLAnalyzeError) {
+    private suspendForMLInitError(error: Error) {
         log.error(
             "Suspending ML indexing because the native runtime failed to initialize",
             error,
@@ -519,8 +519,8 @@ const analyzeImageWithConversionFallback = async (
                 conversionError instanceof Error
                     ? conversionError.message
                     : String(conversionError);
-            throw new MLAnalyzeError(
-                "image",
+            throw namedError(
+                "ml_image",
                 `JPEG conversion fallback failed: ${message}`,
             );
         }
@@ -528,44 +528,25 @@ const analyzeImageWithConversionFallback = async (
     }
 };
 
-const isMLImageError = (e: unknown): e is MLAnalyzeError =>
-    e instanceof MLAnalyzeError && e.kind == "image";
+const isMLImageError = (e: unknown): e is Error =>
+    isNamedError(e, "ml_decode") || isNamedError(e, "ml_image");
 
-const isMLDecodeError = (e: unknown) =>
-    isMLImageError(e) && e.message.startsWith("Decode: ");
+const isMLDecodeError = (e: unknown) => isNamedError(e, "ml_decode");
 
-const isMLInitError = (e: unknown): e is MLAnalyzeError =>
-    e instanceof MLAnalyzeError && e.kind == "init";
-
-class MLAnalyzeError extends Error {
-    constructor(
-        public readonly kind: MLWorkerAnalyzeImageErrorKind,
-        message: string,
-    ) {
-        super(message);
-        this.name = "MLAnalyzeError";
-    }
-}
+const isMLInitError = (e: unknown): e is Error => isNamedError(e, "ml_init");
 
 // Native model sessions serialize anyway; keep only one inference outstanding.
 let _analyzeImageQueue: Promise<unknown> = Promise.resolve();
 
-let _blockingMLInitError: MLAnalyzeError | undefined;
+let _blockingMLInitError: Error | undefined;
 
 const enqueueAnalyzeImage = (
     electron: ElectronMLWorker,
     request: MLWorkerAnalyzeImageRequest,
 ): Promise<MLWorkerAnalyzeImageResult> => {
-    const result = _analyzeImageQueue.then(async () => {
-        const response = await electron.analyzeImage(request);
-        if (!response.ok) {
-            throw new MLAnalyzeError(
-                response.error.kind,
-                response.error.message,
-            );
-        }
-        return response.result;
-    });
+    const result = _analyzeImageQueue.then(() =>
+        electron.analyzeImage(request),
+    );
     _analyzeImageQueue = result.catch(() => undefined);
     return result;
 };

@@ -1,12 +1,13 @@
 import type { FriendProfile } from "data/friends";
 import { clientPackageName, desktopAppVersion, isDesktop } from "ente-base/app";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { apiOrigin } from "ente-base/origins";
 import type {
     SpaceAccountCtxHandle,
     SpaceLinkCtxHandle,
 } from "ente-space-wasm";
-import type { PendingSpaceInvite } from "services/spaceInvite";
+import type { PendingSpaceInvite } from "services/invite";
 import {
     cachedSpaceMediaBlobURL,
     cachedSpaceMediaBlobURLIfPresent,
@@ -14,20 +15,20 @@ import {
     rememberCachedSpaceMediaBlobURL,
     spacePostMediaCacheKey,
     spaceProfileMediaCacheKey,
-} from "services/spaceMediaCache";
+} from "services/media-cache";
 import {
     ensureCurrentSpaceContext,
     loadExistingSpaceProfile,
     persistCurrentOwnedSpaces,
     releaseCurrentSpaceContext,
-} from "services/spaceProfile";
+} from "services/profile";
 import {
     parseSpaceProfilePayload,
     spaceProfileTextField,
-} from "services/spaceProfilePayload";
-import { normalizeSpaceMessageText } from "utils/spaceMessageLimits";
+} from "services/profile-payload";
+import { normalizeSpaceMessageText } from "utils/message-limits";
 
-export { clearSpaceMediaURLCache } from "services/spaceMediaCache";
+export { clearSpaceMediaURLCache } from "services/media-cache";
 
 const currentFeedPageSize = 10;
 
@@ -167,6 +168,7 @@ type SpaceConversationChatSummaries =
 interface SpaceConversationsResponse {
     chatSummaries?: SpaceConversationChatSummaries;
     friends?: SpaceFriend[];
+    latestPostCreatedAt?: string | null;
     pendingRequests?: SpaceFriendRequestResponse[];
 }
 
@@ -328,6 +330,7 @@ export interface SpaceMessageConversation {
 
 export interface SpaceMessageConversationList {
     items: SpaceMessageConversation[];
+    latestPostCreatedAtMs: number | null;
 }
 
 export interface SpaceFriendRequest {
@@ -366,16 +369,8 @@ interface SpaceConversationsContext {
     listConversations: (spaceId: string) => Promise<SpaceConversationsResponse>;
 }
 
-export const isSpaceContentError = (error: unknown) => {
-    if (!error || typeof error != "object" || !("code" in error)) return false;
-    const code = error.code;
-    return (
-        code == "crypto" ||
-        code == "base64_decode" ||
-        code == "invalid_input" ||
-        code == "missing_friend_sealed_space_key"
-    );
-};
+export const isSpaceContentError = (error: unknown) =>
+    isNamedError(error, "content_unavailable");
 
 const timestampMsFromSpaceDate = (value: string) => {
     const parsed = Date.parse(value);
@@ -980,13 +975,22 @@ const messageActivityFromSpaceActivity = (
     };
 };
 
+const isWaveMessageActivity = (activity: SpaceMessageActivity) =>
+    (activity.type == "message" || activity.type == "post_reply") &&
+    activity.text?.trim() == "👋";
+
 const isPassiveAutoReadMessageActivity = (activity: SpaceMessageActivity) =>
     activity.type == "friend_added" ||
     activity.type == "message_like" ||
-    activity.type == "post_like";
+    activity.type == "post_like" ||
+    isWaveMessageActivity(activity);
 
 const messageConversationUnreadCount = (activities: SpaceMessageActivity[]) => {
-    if (activities.length == 1 && activities[0]?.type == "post_like") {
+    const onlyActivity = activities.length == 1 ? activities[0] : undefined;
+    if (
+        onlyActivity?.type == "post_like" ||
+        (onlyActivity && isWaveMessageActivity(onlyActivity))
+    ) {
         return 0;
     }
 
@@ -1341,12 +1345,8 @@ export const createCurrentPhotoPost = async ({
     }
 };
 
-export const isSpacePostLimitReachedError = (error: unknown) => {
-    if (!error || typeof error != "object" || !("status" in error)) {
-        return false;
-    }
-    return (error as { status?: unknown }).status == 409;
-};
+export const isSpacePostLimitReachedError = (error: unknown) =>
+    isNamedError(error, "post_limit_reached");
 
 const normalizedImageDimension = (dimension: number | undefined) =>
     typeof dimension == "number" && Number.isFinite(dimension) && dimension > 0
@@ -1486,19 +1486,25 @@ export const loadCurrentMessageConversations = async (
                     summaries,
                     friendSpaceID,
                 );
+                const latestActivity = summary
+                    ? messageActivityFromSpaceActivity(summary.latestActivity)
+                    : undefined;
                 const unreadActivities = summary
-                    ? (summary.unreadActivities ?? []).map(
-                          messageActivityFromSpaceActivity,
-                      )
+                    ? (summary.unreadActivities ?? [])
+                          .map(messageActivityFromSpaceActivity)
+                          .map((activity) =>
+                              activity.id == latestActivity?.id &&
+                              isWaveMessageActivity(latestActivity)
+                                  ? { ...activity, text: latestActivity.text }
+                                  : activity,
+                          )
                     : [];
                 const unreadCount =
                     messageConversationUnreadCount(unreadActivities);
                 return {
                     friend,
-                    latestActivity: summary
-                        ? messageActivityFromSpaceActivity(
-                              summary.latestActivity,
-                          )
+                    latestActivity: latestActivity
+                        ? latestActivity
                         : {
                               createdAtMs: timestampMsFromSpaceDate(
                                   conversation.createdAt,
@@ -1529,7 +1535,12 @@ export const loadCurrentMessageConversations = async (
                 unreadCount: 1,
             }),
         );
-        return { items: [...requestItems, ...friendItems] };
+        return {
+            items: [...requestItems, ...friendItems],
+            latestPostCreatedAtMs: response.latestPostCreatedAt
+                ? timestampMsFromSpaceDate(response.latestPostCreatedAt)
+                : null,
+        };
     } finally {
         releaseCurrentSpaceContext(ctx);
     }

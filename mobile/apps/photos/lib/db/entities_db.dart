@@ -1,13 +1,14 @@
 import 'package:flutter/foundation.dart';
+import 'package:photos/db/common/conflict_algo.dart';
 import 'package:photos/db/files_db.dart';
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/local_entity_data.dart";
-import 'package:sqflite/sqlite_api.dart';
 
 extension EntitiesDB on FilesDB {
   Future<void> upsertEntities(
     List<LocalEntityData> data, {
-    ConflictAlgorithm conflictAlgorithm = ConflictAlgorithm.replace,
+    SqliteAsyncConflictAlgorithm conflictAlgorithm =
+        SqliteAsyncConflictAlgorithm.replace,
   }) async {
     debugPrint("entitiesDB: upsertEntities ${data.length} entities");
     final db = await sqliteAsyncDB;

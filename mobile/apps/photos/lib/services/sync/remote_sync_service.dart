@@ -873,8 +873,6 @@ class RemoteSyncService {
           );
 
           if (localFileEntries.isNotEmpty) {
-            // file uploaded from same device, replace the local file row by
-            // setting the generated ID of remoteFile to localFile generatedID
             existingFile = localFileEntries.first;
             localUploadedFromDevice++;
             alreadyClaimedLocalFilesGenID.add(existingFile.generatedID!);

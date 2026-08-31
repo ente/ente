@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
     fs,
+    io::Write,
     path::{Component, Path, PathBuf},
 };
 
@@ -334,6 +335,41 @@ impl MlIndexingTestContext {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn verify_corrupt_model(&self) -> Result<()> {
+        let mut model = tempfile::NamedTempFile::new()?;
+        model.write_all(b"not an ONNX protobuf")?;
+        let model_path = model.path().to_string_lossy().into_owned();
+        let unsupported = self.unsupported_decode_file_ids();
+        let image_path = self
+            .manifest
+            .files
+            .iter()
+            .zip(&self.fixture_paths)
+            .find_map(|(fixture, path)| {
+                let file_id = file_id_for_manifest_path(&fixture.path).ok()?;
+                (!unsupported.contains(&file_id)).then_some(path)
+            })
+            .context("find supported ML fixture")?;
+        let mut model_paths = self.model_paths.clone();
+        model_paths.face_detection = model_path.clone();
+
+        let error = analyze_image(AnalyzeImageRequest {
+            file_id: -1,
+            source: ImageSource::Path(image_path.to_string_lossy().into_owned()),
+            run_faces: true,
+            run_clip: false,
+            run_pets: false,
+            generate_face_crops: false,
+            model_paths,
+        })
+        .expect_err("invalid ONNX protobuf should fail");
+
+        match error {
+            MlError::CorruptModel(path) if path == model_path => Ok(()),
+            error => bail!("invalid ONNX protobuf returned {error:?}"),
+        }
     }
 
     fn manifest_file_ids(&self) -> Result<BTreeSet<String>> {

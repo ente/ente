@@ -2,7 +2,7 @@ use std::cell::OnceCell;
 
 use half::prelude::{HalfFloatSliceExt, HalfFloatVecExt};
 use ort::{
-    session::Session,
+    session::{Session, SessionInputs, SessionOutputs},
     value::{Tensor, TensorElementType, TensorRef, ValueType},
 };
 
@@ -74,16 +74,16 @@ pub(super) fn run_golden_tensor(
                     input_shape,
                     Vec::<half::f16>::from_f32_slice(data),
                 ))?;
-                session.run(ort::inputs![input_tensor])?
+                run_inference(session, ort::inputs![input_tensor])?
             } else {
                 let input_tensor =
                     TensorRef::<f32>::from_array_view((input_shape, data.as_slice()))?;
-                session.run(ort::inputs![input_tensor])?
+                run_inference(session, ort::inputs![input_tensor])?
             }
         }
         golden_test::PreparedGoldenInput::I32(data) => {
             let input_tensor = TensorRef::<i32>::from_array_view((input_shape, data.as_slice()))?;
-            session.run(ort::inputs![input_tensor])?
+            run_inference(session, ort::inputs![input_tensor])?
         }
     };
 
@@ -99,6 +99,15 @@ pub(super) fn run_golden_tensor(
         tensor_data.convert_to_f32_slice(&mut data);
         Ok(data)
     }
+}
+
+fn run_inference<'s, 'i, 'v: 'i, const N: usize>(
+    session: &'s mut Session,
+    inputs: impl Into<SessionInputs<'i, 'v, N>>,
+) -> SessionRunResult<SessionOutputs<'s>> {
+    session
+        .run(inputs)
+        .map_err(SessionRunError::from_inference_error)
 }
 
 fn ensure_finite_f32(data: &[f32]) -> SessionRunResult<()> {
@@ -138,11 +147,11 @@ pub(crate) fn run_f32<const N: usize>(
     let outputs = if session_expects_f16(session) {
         let input_tensor =
             TensorRef::<half::f16>::from_array_view((input_shape, input.f16_data()))?;
-        session.run(ort::inputs![input_tensor])?
+        run_inference(session, ort::inputs![input_tensor])?
     } else {
         let input_tensor =
             TensorRef::<f32>::from_array_view((input_shape, input.f32_data.as_slice()))?;
-        session.run(ort::inputs![input_tensor])?
+        run_inference(session, ort::inputs![input_tensor])?
     };
 
     if outputs.len() == 0 {
@@ -174,11 +183,11 @@ pub(crate) fn with_prepared_float_output<const N: usize, T>(
     let outputs = if session_expects_f16(session) {
         let input_tensor =
             TensorRef::<half::f16>::from_array_view((input_shape, input.f16_data()))?;
-        session.run(ort::inputs![input_tensor])?
+        run_inference(session, ort::inputs![input_tensor])?
     } else {
         let input_tensor =
             TensorRef::<f32>::from_array_view((input_shape, input.f32_data.as_slice()))?;
-        session.run(ort::inputs![input_tensor])?
+        run_inference(session, ort::inputs![input_tensor])?
     };
 
     if outputs.len() == 0 {
@@ -201,7 +210,7 @@ pub(crate) fn run_i32_f32<const N: usize>(
     input_shape: [i64; N],
 ) -> SessionRunResult<(Vec<i64>, Vec<f32>)> {
     let input_tensor = TensorRef::<i32>::from_array_view((input_shape, input))?;
-    let outputs = session.run(ort::inputs![input_tensor])?;
+    let outputs = run_inference(session, ort::inputs![input_tensor])?;
     if outputs.len() == 0 {
         return Err(MlError::Ort("missing first output tensor".to_string()).into());
     }

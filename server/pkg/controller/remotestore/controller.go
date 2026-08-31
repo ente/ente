@@ -9,7 +9,6 @@ import (
 
 	"github.com/ente/museum/pkg/controller"
 	"github.com/ente/museum/pkg/repo"
-	"github.com/ente/museum/pkg/utils/rollout"
 	"github.com/spf13/viper"
 	"golang.org/x/net/idna"
 
@@ -19,11 +18,6 @@ import (
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	videoStreamingRolloutPercentage = 75
-	videoStreamingRolloutNonce      = "video-streaming-v1"
 )
 
 type Controller struct {
@@ -105,7 +99,7 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		DisableCFWorker: false,
 		// Disabling this still leaves multipart enabled for internal users.
 		EnableMobMultiPart: true,
-		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions | ente.CastSessionsV2 | ente.DeferredMultipartChecksums,
+		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions | ente.CastSessionsV2 | ente.DeferredMultipartChecksums | ente.VideoStreaming | ente.LibrarySharing,
 		CastUrl:            viper.GetString("apps.cast"),
 		EmbedUrl:           viper.GetString("apps.embed-albums"),
 		CustomDomainCNAME:  viper.GetString("apps.custom-domain.cname"),
@@ -138,11 +132,9 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		}
 	}
 
-	if response.InternalUser ||
-		rollout.IsInPercentageRollout(userID, videoStreamingRolloutNonce, videoStreamingRolloutPercentage) {
-		response.ServerApiFlag |= ente.VideoStreaming
+	if response.InternalUser {
+		response.ServerApiFlag |= ente.LibrarySharing
 	}
-
 	return response, nil
 }
 
@@ -162,7 +154,7 @@ func (c *Controller) insertOrUpdateCustomDomain(ctx *gin.Context, userID int64, 
 	ownerID, err := c.DomainOwner(ctx, value)
 	if err == nil {
 		if ownerID != nil && *ownerID == userID {
-			if err := c.Repo.InsertOrUpdate(ctx, userID, string(ente.CustomDomain), value); err != nil {
+			if err := c.Repo.InsertOrUpdateCustomDomain(ctx, userID, value); err != nil {
 				return err
 			}
 			return c.updateFamilyCustomDomainsIfAdmin(ctx, userID, value)
@@ -187,15 +179,23 @@ func (c *Controller) insertOrUpdateCustomDomain(ctx *gin.Context, userID int64, 
 	if !errors.Is(err, &ente.ErrNotFoundError) {
 		return stacktrace.Propagate(err, "")
 	}
-	if err := c.Repo.InsertOrUpdate(ctx, userID, string(ente.CustomDomain), value); err != nil {
+	if err := c.Repo.InsertOrUpdateCustomDomain(ctx, userID, value); err != nil {
 		return err
 	}
 	return c.updateFamilyCustomDomainsIfAdmin(ctx, userID, value)
 }
 
 func isReservedCustomDomain(value, configuredCNAME string) bool {
+	canonicalValue, err := ente.CanonicalDomain(value)
+	if err != nil {
+		return false
+	}
 	for _, domain := range []string{configuredCNAME, "my.ente.com", "my.ente.io"} {
-		if domain != "" && strings.EqualFold(value, domain) {
+		if domain == "" {
+			continue
+		}
+		canonicalDomain, err := ente.CanonicalDomain(domain)
+		if err == nil && canonicalValue == canonicalDomain {
 			return true
 		}
 	}
@@ -309,10 +309,10 @@ func (c *Controller) DomainOwner(ctx *gin.Context, domain string) (*int64, error
 
 	// Retry with ASCII/Unicode variants so IDN domains stored in either form still resolve.
 	var candidates []string
-	if asciiDomain, convErr := idna.ToASCII(domain); convErr == nil && asciiDomain != domain {
+	if asciiDomain, convErr := ente.CanonicalDomain(domain); convErr == nil && !strings.EqualFold(asciiDomain, domain) {
 		candidates = append(candidates, asciiDomain)
 	}
-	if unicodeDomain, convErr := idna.ToUnicode(domain); convErr == nil && unicodeDomain != domain {
+	if unicodeDomain, convErr := idna.Lookup.ToUnicode(domain); convErr == nil && !strings.EqualFold(unicodeDomain, domain) {
 		candidates = append(candidates, unicodeDomain)
 	}
 

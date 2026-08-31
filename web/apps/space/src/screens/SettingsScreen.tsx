@@ -11,20 +11,20 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { Box } from "@mui/material";
+import type { SpaceActionPhase } from "components/ActionFeedback";
+import { SpaceButtonSpinner } from "components/ButtonSpinner";
 import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
-import type { SpaceActionPhase } from "components/SpaceActionFeedback";
-import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
-import { SpaceNotificationPermissionInstructions } from "components/SpaceNotificationPermissionInstructions";
-import { SpacePWAInstallInstructions } from "components/SpacePWAInstallPrompt";
+import { SpaceNotificationPermissionInstructions } from "components/NotificationPermissionInstructions";
+import { SpacePWAInstallInstructions } from "components/PWAInstallPrompt";
 import log from "ente-base/log";
 import {
     isSpaceIOS,
     isSpaceStandalone,
     useSpacePWAInstallPrompt,
-} from "hooks/useSpacePWAInstallPrompt";
-import { useSpaceWebPushPrompt } from "hooks/useSpaceWebPushPrompt";
+} from "hooks/use-pwa-install-prompt";
+import { useSpaceWebPushPrompt } from "hooks/use-web-push-prompt";
 import React from "react";
-import { spaceTouchTargetSize } from "styles/touchTargets";
+import { spaceTouchTargetSize } from "styles/touch-targets";
 
 export const settingsBackground = "#FAFAFA";
 

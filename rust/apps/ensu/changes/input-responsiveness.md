@@ -1,0 +1,1 @@
+- Fixed typing lag in the message composer and chat search.

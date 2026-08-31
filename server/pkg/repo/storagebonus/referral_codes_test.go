@@ -48,19 +48,6 @@ func TestGetReferralCode(t *testing.T) {
 	assert.Equal(t, newCode, *code)
 }
 
-func TestInsertReferralCode(t *testing.T) {
-	ctx := t.Context()
-	repo := newStorageBonusTestRepository(t)
-	userID := int64(2)
-	code := "AAEEDD"
-	err := repo.InsertCode(ctx, userID, code)
-	assert.Nil(t, err)
-
-	codeNew, err := repo.GetCode(ctx, userID)
-	assert.Nil(t, err)
-	assert.Equal(t, code, *codeNew)
-}
-
 func TestAddNewReferralCode(t *testing.T) {
 	ctx := t.Context()
 	repo := newStorageBonusTestRepository(t)

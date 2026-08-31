@@ -1,27 +1,5 @@
 import "dart:convert";
 
-enum MemoryLaneStatus { ready, ineligible }
-
-MemoryLaneStatus memoryLaneStatusFromString(String value) {
-  switch (value) {
-    case "ready":
-      return MemoryLaneStatus.ready;
-    case "ineligible":
-      return MemoryLaneStatus.ineligible;
-    default:
-      throw ArgumentError.value(value, "value", "Unsupported timeline status");
-  }
-}
-
-String memoryLaneStatusToString(MemoryLaneStatus status) {
-  switch (status) {
-    case MemoryLaneStatus.ready:
-      return "ready";
-    case MemoryLaneStatus.ineligible:
-      return "ineligible";
-  }
-}
-
 class MemoryLaneEntry {
   final String faceId;
   final int fileId;
@@ -54,69 +32,74 @@ class MemoryLaneEntry {
 
 class MemoryLanePersonTimeline {
   final String personId;
-  final MemoryLaneStatus status;
+  late final bool isCluster;
+  final bool isEligible;
   final int updatedAtMicros;
   final List<MemoryLaneEntry> entries;
 
-  const MemoryLanePersonTimeline({
+  MemoryLanePersonTimeline({
     required this.personId,
-    required this.status,
+    required this.isEligible,
     required this.updatedAtMicros,
     required this.entries,
+    this.isCluster = false,
   });
-
-  bool get isReady => status == MemoryLaneStatus.ready;
 
   Map<String, dynamic> toJson() => {
     "personId": personId,
-    "status": memoryLaneStatusToString(status),
+    "status": isEligible ? "ready" : "ineligible",
     "updatedAt": updatedAtMicros,
     "entries": entries.map((entry) => entry.toJson()).toList(),
+    "isCluster": isCluster,
   };
 
   factory MemoryLanePersonTimeline.fromJson(Map<String, dynamic> json) {
     final Iterable entriesJson = json["entries"] as Iterable? ?? [];
     return MemoryLanePersonTimeline(
       personId: json["personId"] as String,
-      status: memoryLaneStatusFromString(json["status"] as String),
+      isEligible: json["status"] == "ready",
       updatedAtMicros: json["updatedAt"] as int,
       entries: entriesJson
           .map(
             (entry) => MemoryLaneEntry.fromJson(entry as Map<String, dynamic>),
           )
           .toList(growable: false),
+      isCluster: json['isCluster'] as bool? ?? false,
     );
   }
 
   MemoryLanePersonTimeline copyWith({
-    MemoryLaneStatus? status,
+    bool? isEligible,
     int? updatedAtMicros,
     List<MemoryLaneEntry>? entries,
   }) {
     return MemoryLanePersonTimeline(
       personId: personId,
-      status: status ?? this.status,
+      isEligible: isEligible ?? this.isEligible,
       updatedAtMicros: updatedAtMicros ?? this.updatedAtMicros,
       entries: entries ?? this.entries,
+      isCluster: isCluster,
     );
   }
 }
 
 class MemoryLaneComputeLogEntry {
   final String personId;
+  late final bool isCluster;
   final String? name;
   final String? birthDate;
   final int faceCount;
   final int lastComputedMicros;
   final int logicVersion;
 
-  const MemoryLaneComputeLogEntry({
+  MemoryLaneComputeLogEntry({
     required this.personId,
     required this.faceCount,
     required this.lastComputedMicros,
     required this.logicVersion,
     this.name,
     this.birthDate,
+    this.isCluster = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -126,6 +109,7 @@ class MemoryLaneComputeLogEntry {
     "faceCount": faceCount,
     "lastComputed": lastComputedMicros,
     "logicVersion": logicVersion,
+    "isCluster": isCluster,
   };
 
   factory MemoryLaneComputeLogEntry.fromJson(Map<String, dynamic> json) {
@@ -136,6 +120,7 @@ class MemoryLaneComputeLogEntry {
       faceCount: json["faceCount"] as int? ?? 0,
       lastComputedMicros: json["lastComputed"] as int? ?? 0,
       logicVersion: json["logicVersion"] as int? ?? 0,
+      isCluster: json["isCluster"] as bool? ?? false,
     );
   }
 
@@ -153,6 +138,7 @@ class MemoryLaneComputeLogEntry {
       faceCount: faceCount ?? this.faceCount,
       lastComputedMicros: lastComputedMicros ?? this.lastComputedMicros,
       logicVersion: logicVersion ?? this.logicVersion,
+      isCluster: isCluster,
     );
   }
 }

@@ -20,7 +20,6 @@ import {
     stashReferralSource,
     stashSRPSetupAttributes,
 } from "ente-accounts/services/accounts-db";
-import { deriveKeyInsufficientMemoryErrorMessage } from "ente-accounts/services/crypto";
 import { saveMasterKeyInSessionAndSafeStore } from "ente-accounts/services/session-storage";
 import { generateSRPSetupAttributes } from "ente-accounts/services/srp";
 import {
@@ -29,17 +28,22 @@ import {
     sendOTT,
     type GenerateKeysAndAttributesResult,
 } from "ente-accounts/services/user";
-import { isWeakPassword } from "ente-accounts/utils/password";
+import {
+    estimatePasswordStrength,
+    isWeakPassword,
+    type PasswordStrength,
+} from "ente-accounts/utils/password";
 import { LinkButton } from "ente-base/components/LinkButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
+import { isNamedError } from "ente-base/error";
 import { isMuseumHTTPError } from "ente-base/http";
 import { JOIN_ALBUM_CONTEXT_KEY } from "ente-base/join-album";
 import log from "ente-base/log";
 import { useFormik } from "formik";
 import { t } from "i18next";
 import type { NextRouter } from "next/router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Trans } from "react-i18next";
 import { z } from "zod";
 import { PasswordStrengthHint } from "./PasswordStrength";
@@ -52,12 +56,45 @@ interface SignUpContentsProps {
     router: NextRouter;
     onLogin: () => void;
     host: string | undefined;
+    presentation?: React.ComponentType<SignUpPresentationProps>;
+}
+
+export interface SignUpPresentationProps {
+    email: string;
+    password: string;
+    confirmPassword: string;
+    referral: string;
+    acceptedTerms: boolean;
+    emailError: string | undefined;
+    passwordError: string | undefined;
+    confirmPasswordError: string | undefined;
+    passwordStrength: PasswordStrength | undefined;
+    isSubmitting: boolean;
+    isSubmitDisabled: boolean;
+    isJoinAlbumContext: boolean;
+    host: string | undefined;
+    onEmailChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onPasswordChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onConfirmPasswordChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onReferralChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onAcceptedTermsChange: (acceptedTerms: boolean) => void;
+    onSubmit: React.SubmitEventHandler<HTMLFormElement>;
+    onLogin: () => void;
 }
 
 export const SignUpContents: React.FC<SignUpContentsProps> = ({
     router,
     onLogin,
     host,
+    presentation: Presentation,
 }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isJoinAlbumContext, setIsJoinAlbumContext] = useState(false);
@@ -135,10 +172,7 @@ export const SignUpContents: React.FC<SignUpContentsProps> = ({
                 try {
                     gkResult = await generateKeysAndAttributes(password);
                 } catch (e) {
-                    if (
-                        e instanceof Error &&
-                        e.message == deriveKeyInsufficientMemoryErrorMessage
-                    ) {
+                    if (isNamedError(e, "insufficient_memory")) {
                         setFieldError(
                             "confirmPassword",
                             t("password_generation_failed"),
@@ -166,6 +200,49 @@ export const SignUpContents: React.FC<SignUpContentsProps> = ({
             }
         },
     });
+
+    const passwordStrength = useMemo(
+        () =>
+            Presentation && formik.values.password
+                ? estimatePasswordStrength(formik.values.password)
+                : undefined,
+        [Presentation, formik.values.password],
+    );
+
+    function handleAcceptedTermsChange(acceptedTerms: boolean) {
+        void formik.setFieldValue("acceptedTerms", acceptedTerms);
+    }
+
+    if (Presentation) {
+        return (
+            <Presentation
+                email={formik.values.email}
+                password={formik.values.password}
+                confirmPassword={formik.values.confirmPassword}
+                referral={formik.values.referral}
+                acceptedTerms={formik.values.acceptedTerms}
+                emailError={formik.errors.email}
+                passwordError={formik.errors.password}
+                confirmPasswordError={formik.errors.confirmPassword}
+                passwordStrength={passwordStrength}
+                isSubmitting={formik.isSubmitting}
+                isSubmitDisabled={
+                    !formik.values.acceptedTerms ||
+                    !passwordStrength ||
+                    passwordStrength === "weak"
+                }
+                isJoinAlbumContext={isJoinAlbumContext}
+                host={host}
+                onEmailChange={formik.handleChange}
+                onPasswordChange={formik.handleChange}
+                onConfirmPasswordChange={formik.handleChange}
+                onReferralChange={formik.handleChange}
+                onAcceptedTermsChange={handleAcceptedTermsChange}
+                onSubmit={formik.handleSubmit}
+                onLogin={onLogin}
+            />
+        );
+    }
 
     const form = (
         <form onSubmit={formik.handleSubmit}>

@@ -1,23 +1,14 @@
 import { Box } from "@mui/material";
 import { AuthenticatedFriendProfile } from "components/AuthenticatedFriendProfile";
-import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
-import { SpaceMobileBestToast } from "components/SpaceMobileBestToast";
-import { SpacePageMeta } from "components/SpacePageMeta";
-import { SpacePublicProfileNotificationControl } from "components/SpacePublicProfileNotificationControl";
-import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { SpaceButtonSpinner } from "components/ButtonSpinner";
+import { SpaceMobileBestToast } from "components/MobileBestToast";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpacePublicProfileNotificationControl } from "components/PublicProfileNotificationControl";
+import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React, { useEffect, useMemo, useState } from "react";
 import { OnboardingScreen, onboardingGreen } from "screens/OnboardingScreen";
 import { ProfileScreen, profileBackground } from "screens/ProfileScreen";
-import {
-    loadCurrentSpaceRelationship,
-    loadPublicSpaceIdentity,
-    openPublicSpaceLink,
-    requestFriendByUsername,
-    type PublicSpaceIdentity,
-    type PublicSpaceLinkSession,
-    type SpaceProfilePost,
-} from "services/space";
 import {
     clearPendingSpaceInvite,
     clearPendingSpaceInviteFriend,
@@ -32,14 +23,20 @@ import {
     type PendingSpaceInvite,
     type SpaceInviteIntent,
     type SpaceInviteRoute,
-} from "services/spaceInvite";
+} from "services/invite";
 import {
-    useSpaceAppState,
-    type OnboardingEntrySource,
-} from "state/spaceAppState";
-import { profilePostItemsFromPosts } from "utils/spacePostDisplay";
-import { spaceRoutes } from "utils/spaceRoutes";
-import { useSpaceRouter } from "utils/spaceRouteTransitions";
+    loadCurrentSpaceRelationship,
+    loadPublicSpaceIdentity,
+    openPublicSpaceLink,
+    requestFriendByUsername,
+    type PublicSpaceIdentity,
+    type PublicSpaceLinkSession,
+    type SpaceProfilePost,
+} from "services/space";
+import { useSpaceAppState, type OnboardingEntrySource } from "state/app-state";
+import { profilePostItemsFromPosts } from "utils/post-display";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
 
 type RouteMode =
     | { kind: "checking" }

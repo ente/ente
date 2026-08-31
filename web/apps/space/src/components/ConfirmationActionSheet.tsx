@@ -2,8 +2,8 @@ import { Box, Dialog, useMediaQuery } from "@mui/material";
 import {
     SpaceActionFeedbackIcon,
     type SpaceActionPhase,
-} from "components/SpaceActionFeedback";
-import { SpaceBottomSheetTransition } from "components/SpaceBottomSheetTransition";
+} from "components/ActionFeedback";
+import { SpaceBottomSheetTransition } from "components/BottomSheetTransition";
 import React from "react";
 
 const green = "#08C225";

@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { SpaceMobileBestToast } from "components/SpaceMobileBestToast";
+import { SpaceMobileBestToast } from "components/MobileBestToast";
 import React from "react";
 
 export const onboardingGreen = "#08C225";

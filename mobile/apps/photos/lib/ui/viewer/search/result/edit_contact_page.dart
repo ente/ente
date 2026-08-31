@@ -70,7 +70,7 @@ class _EditContactPageState extends State<EditContactPage> {
   void initState() {
     super.initState();
     _nameController =
-        TextEditingController(text: widget.existingContact?.data?.name ?? "")
+        TextEditingController(text: widget.existingContact?.name ?? "")
           ..addListener(() {
             if (mounted) {
               setState(() {});
@@ -89,7 +89,7 @@ class _EditContactPageState extends State<EditContactPage> {
   }
 
   bool get _canSave => !_isSaving && _nameController.text.trim().isNotEmpty;
-  String get _initialName => (widget.existingContact?.data?.name ?? "").trim();
+  String get _initialName => (widget.existingContact?.name ?? "").trim();
   bool get _hasUnsavedChanges =>
       _nameController.text.trim() != _initialName || _photoDirty || _linkDirty;
   bool get _hasLinkedPersonDraft =>
@@ -544,7 +544,7 @@ class _EditContactPageState extends State<EditContactPage> {
               error,
               stackTrace,
             );
-            return false;
+            return null;
           }),
     );
     _draftLinkedPerson = person;

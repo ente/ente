@@ -5,7 +5,12 @@ import {
     toB64URLSafeNoPadding,
 } from "ente-base/crypto";
 import { isDevBuild } from "ente-base/env";
-import { ensureOk, HTTPError, publicRequestHeaders } from "ente-base/http";
+import {
+    ensureOk,
+    HTTPError,
+    isMuseumHTTPError,
+    publicRequestHeaders,
+} from "ente-base/http";
 import { apiURL } from "ente-base/origins";
 import { nullToUndefined } from "ente-utils/transform";
 import { z } from "zod";
@@ -230,9 +235,6 @@ export interface BeginPasskeyAuthenticationResponse {
     options: { publicKey: PublicKeyCredentialRequestOptions };
 }
 
-export const passkeySessionAlreadyClaimedErrorMessage =
-    "Passkey session already claimed";
-
 export const beginPasskeyAuthentication = async (
     passkeySessionID: string,
 ): Promise<BeginPasskeyAuthenticationResponse> => {
@@ -243,9 +245,11 @@ export const beginPasskeyAuthentication = async (
         body: JSON.stringify({ sessionID: passkeySessionID }),
     });
     if (!res.ok) {
-        if (res.status == 409)
-            throw new Error(passkeySessionAlreadyClaimedErrorMessage);
-        throw new HTTPError(res);
+        const error = new HTTPError(res);
+        if (await isMuseumHTTPError(error, 409, "SESSION_ALREADY_CLAIMED")) {
+            error.name = "passkey_session_already_claimed";
+        }
+        throw error;
     }
 
     const { ceremonySessionID, options } =

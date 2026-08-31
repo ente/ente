@@ -1,1 +1,0 @@
-- Improved video editing reliability, including exports with mismatched audio and video durations.

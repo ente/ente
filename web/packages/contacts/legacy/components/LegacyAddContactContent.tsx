@@ -8,10 +8,11 @@ import {
 } from "@mui/material";
 import { ensureLocalUser } from "ente-accounts/services/user";
 import { useBaseContext } from "ente-base/context";
+import { isNamedError } from "ente-base/error";
+import { publicKey, type Session } from "ente-legacy-wasm/authenticated";
 import React, { useMemo, useState } from "react";
 import {
     legacyAddContact,
-    legacyPublicKey,
     legacyVerificationID,
     type LegacySuggestedUser,
 } from "..";
@@ -24,14 +25,12 @@ import { LegacyRecoveryDayPicker } from "./LegacyRecoveryDayPicker";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface LegacyAddContactContentProps {
+    getSession: () => Promise<Session>;
     existingEmails: string[];
     onAdded: () => Promise<void>;
     suggestedUsers: LegacySuggestedUser[];
     variant?: "page" | "sheet";
 }
-
-const getErrorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : "Something went wrong";
 
 const nonEnteDialogAttributes = (email: string) => ({
     title: "Cannot add trusted contact",
@@ -40,7 +39,13 @@ const nonEnteDialogAttributes = (email: string) => ({
 
 export const LegacyAddContactContent: React.FC<
     LegacyAddContactContentProps
-> = ({ existingEmails, onAdded, suggestedUsers, variant = "page" }) => {
+> = ({
+    getSession,
+    existingEmails,
+    onAdded,
+    suggestedUsers,
+    variant = "page",
+}) => {
     const { showMiniDialog, onGenericError } = useBaseContext();
     const currentUser = ensureLocalUser();
     const [email, setEmail] = useState("");
@@ -103,7 +108,10 @@ export const LegacyAddContactContent: React.FC<
             return;
         }
         try {
-            const verificationID = await legacyVerificationID(normalizedEmail);
+            const verificationID = await legacyVerificationID(
+                await getSession(),
+                normalizedEmail,
+            );
             if (!verificationID) {
                 showMiniDialog({
                     title: "Verification ID unavailable",
@@ -157,8 +165,11 @@ export const LegacyAddContactContent: React.FC<
 
         void (async () => {
             try {
-                const publicKey = await legacyPublicKey(normalizedEmail);
-                if (!publicKey) {
+                const key = await publicKey(
+                    await getSession(),
+                    normalizedEmail,
+                );
+                if (!key) {
                     showMiniDialog(nonEnteDialogAttributes(normalizedEmail));
                     return;
                 }
@@ -172,12 +183,14 @@ export const LegacyAddContactContent: React.FC<
                         action: async () => {
                             try {
                                 await legacyAddContact(
+                                    await getSession(),
                                     normalizedEmail,
                                     selectedRecoveryDays,
                                 );
                             } catch (error) {
-                                const message = getErrorMessage(error);
-                                if (message.includes("not on Ente")) {
+                                if (
+                                    isNamedError(error, "contact_not_on_ente")
+                                ) {
                                     setTimeout(() => {
                                         showMiniDialog(
                                             nonEnteDialogAttributes(
@@ -187,9 +200,7 @@ export const LegacyAddContactContent: React.FC<
                                     }, 0);
                                     return;
                                 }
-                                throw error instanceof Error
-                                    ? error
-                                    : new Error(message);
+                                throw error;
                             }
                             await onAdded();
                         },

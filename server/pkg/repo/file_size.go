@@ -3,6 +3,8 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"maps"
+	"slices"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/stacktrace"
@@ -34,8 +36,8 @@ func (repo *FileRepository) UpdateSizeInfo(ctx context.Context, sizeInfo map[int
 		return stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
-	for fileID, info := range sizeInfo {
-		_, err := tx.ExecContext(ctx, `UPDATE files SET info = $1 WHERE file_id = $2 and info is NULL`, info, fileID)
+	for _, fileID := range slices.Sorted(maps.Keys(sizeInfo)) {
+		_, err := tx.ExecContext(ctx, `UPDATE files SET info = $1 WHERE file_id = $2 and info is NULL`, sizeInfo[fileID], fileID)
 		if err != nil {
 			return stacktrace.Propagate(err, "")
 		}

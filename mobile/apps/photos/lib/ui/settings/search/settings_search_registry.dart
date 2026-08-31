@@ -174,16 +174,6 @@ class SettingsSearchRegistry {
             isSubPage: true,
             keywords: ["resumable", "multipart", "uploads"],
           ),
-        if (Platform.isIOS)
-          SettingsSearchItem(
-            title: l10n.disableAutoLock,
-            subtitle: l10n.backupSettings,
-            sectionPath: "${l10n.backup} > ${l10n.backupSettings}",
-            icon: HugeIcons.strokeRoundedSquareLock02,
-            routeBuilder: (_) => const BackupSettingsPage(),
-            isSubPage: true,
-            keywords: ["auto lock", "screen", "awake"],
-          ),
       ]);
     }
 

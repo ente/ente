@@ -23,13 +23,14 @@ Future<void> _pairWithCode(
   if (!flagService.enableMultiCast) {
     await gw.revokeAllTokens();
   }
-  final publicKey = await gw.getPublicKey(code);
-  if (publicKey == null) {
+  final publicKeys = await gw.getPublicKeys(code);
+  if (publicKeys == null) {
     throw const _DeviceNotFoundException();
   }
   final prepared = collectionsService.prepareCastPayloadForCollection(
     collection,
-    publicKey,
+    publicKeys.publicKey,
+    publicKeys.pqPublicKey,
   );
   await gw.publishCastPayload(
     code,

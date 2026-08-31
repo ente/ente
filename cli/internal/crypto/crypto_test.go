@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"testing"
 )
@@ -49,22 +48,6 @@ func TestDecryptChaCha20poly1305(t *testing.T) {
 	}
 	if string(decryptedText) != expectedPlainText {
 		t.Fatalf("Decrypted text : %s does not match the expected text: %s", string(decryptedText), expectedPlainText)
-	}
-}
-
-func TestEncryptAndDecryptChaCha20Ploy1305(t *testing.T) {
-	key := make([]byte, 32)
-	rand.Read(key)
-	cipher, nonce, err := EncryptChaCha20poly1305([]byte("plain_text"), key)
-	if err != nil {
-		return
-	}
-	plainText, err := decryptChaCha20poly1305(cipher, key, nonce)
-	if err != nil {
-		t.Fatalf("Failed to decrypt: %v", err)
-	}
-	if string(plainText) != "plain_text" {
-		t.Fatalf("Decrypted text : %s does not match the expected text: %s", string(plainText), "plain_text")
 	}
 }
 

@@ -137,32 +137,6 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                               ),
                             ),
                           MenuItemWidgetNew(
-                            title: "Enable database logging",
-                            leadingIconWidget: _buildIconWidget(
-                              context,
-                              HugeIcons.strokeRoundedDatabase01,
-                            ),
-                            trailingWidget: ToggleSwitchWidget(
-                              value: () => localSettings.enableDatabaseLogging,
-                              onChanged: () async {
-                                final newValue =
-                                    !localSettings.enableDatabaseLogging;
-                                await localSettings.setEnableDatabaseLogging(
-                                  newValue,
-                                );
-                                if (!mounted) return;
-                                setState(() {});
-                                if (!context.mounted) return;
-                                showShortToast(
-                                  context,
-                                  newValue
-                                      ? "Database logging enabled. Restart app."
-                                      : "Database logging disabled. Restart app.",
-                                );
-                              },
-                            ),
-                          ),
-                          MenuItemWidgetNew(
                             title: "Show local ID over thumbnails",
                             leadingIconWidget: _buildIconWidget(
                               context,

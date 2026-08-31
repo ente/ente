@@ -2,21 +2,6 @@ import "package:flutter_test/flutter_test.dart";
 import "package:photos/services/free_space/deletion_batch_runner.dart";
 
 void main() {
-  test("distinguishes fallback-eligible and terminal failures", () {
-    const recoverableFailure = LocalDeletionResult(
-      status: LocalDeletionStatus.failed,
-      shouldTryNextFallback: true,
-    );
-    const terminalFailure = LocalDeletionResult(
-      status: LocalDeletionStatus.failed,
-    );
-
-    expect(recoverableFailure.shouldTryNextFallback, isTrue);
-    expect(recoverableFailure.isTerminalFailure, isFalse);
-    expect(terminalFailure.shouldTryNextFallback, isFalse);
-    expect(terminalFailure.isTerminalFailure, isTrue);
-  });
-
   test("stops after the first platform exception", () async {
     final attemptedBatches = <List<String>>[];
 

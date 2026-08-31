@@ -2,7 +2,7 @@ import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { Notification } from "ente-base/components/Notification";
 import Head from "next/head";
 import React from "react";
-import { useFileShare } from "../../hooks/useFileShare";
+import { useFileShare } from "../../hooks/use-file-share";
 import { formatFileSize } from "../../services/file-share";
 import { getLockerFileIcon } from "../../utils/file-type";
 import { LockerTypeDisplay } from "./LockerTypeDisplay";

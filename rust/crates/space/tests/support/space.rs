@@ -1,7 +1,7 @@
 use ente_core::b64;
 use ente_core::crypto::{Key, Nonce, secretbox};
 use ente_core::http;
-use ente_space::{AccountSpaceCtx, OpenAccountSpaceCtxInput, SpaceError};
+use ente_space::{AccountSpaceCtx, Error, OpenAccountSpaceCtxInput};
 use serde::Deserialize;
 
 use super::{CLIENT_PACKAGE, USER_AGENT, auth::TestAccount};
@@ -90,17 +90,17 @@ pub fn profile_payload(display_name: &str, bio: &str) -> Vec<u8> {
     format!(r#"{{"displayName":"{display_name}","bio":"{bio}"}}"#).into_bytes()
 }
 
-pub fn assert_http_status<T>(result: Result<T, SpaceError>, expected_status: u16) {
+pub fn assert_http_status<T>(result: Result<T, Error>, expected_status: u16) {
     match result {
-        Err(SpaceError::Http(http::Error::Http { status, .. })) if status == expected_status => {}
+        Err(Error::Http(http::Error::Http { status, .. })) if status == expected_status => {}
         Err(error) => panic!("expected HTTP {expected_status}, got {error:?}"),
         Ok(_) => panic!("expected HTTP {expected_status}, got success"),
     }
 }
 
-pub fn assert_invalid_input_contains<T>(result: Result<T, SpaceError>, expected: &str) {
+pub fn assert_invalid_input_contains<T>(result: Result<T, Error>, expected: &str) {
     match result {
-        Err(SpaceError::InvalidInput(message)) if message.contains(expected) => {}
+        Err(Error::InvalidInput(message)) if message.contains(expected) => {}
         Err(error) => panic!("expected invalid input containing {expected:?}, got {error:?}"),
         Ok(_) => panic!("expected invalid input containing {expected:?}, got success"),
     }

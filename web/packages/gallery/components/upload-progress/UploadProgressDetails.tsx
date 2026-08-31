@@ -8,7 +8,7 @@ import {
     uploadProgressStatCounts,
     uploadStatColors,
     type UploadStatKind,
-} from "../uploadProgressStats";
+} from "../upload-progress-stats";
 import { uploadSheetMediaQuery } from "./bottom-sheet";
 import { useUploadProgressContext } from "./context";
 import {

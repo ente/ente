@@ -9,7 +9,6 @@ import "package:ente_ui/pages/settings_search_page.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
-import "package:log_viewer/log_viewer.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/emergency/emergency_page.dart";
 import "package:photos/models/user_details.dart";
@@ -220,18 +219,6 @@ class _SettingsBody extends StatelessWidget {
           );
         },
       ),
-      if (localSettings.enableDatabaseLogging) ...[
-        IconButtonComponent(
-          variant: IconButtonComponentVariant.primary,
-          shouldSurfaceExecutionStates: false,
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedBug02),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const LogViewerPage()),
-            );
-          },
-        ),
-      ],
     ];
   }
 

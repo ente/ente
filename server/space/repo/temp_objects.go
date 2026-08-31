@@ -133,6 +133,12 @@ func (r *AssetsRepository) GetAndLockExpiredTempObjects(ctx context.Context, now
 	if err != nil {
 		return nil, nil, stacktrace.Propagate(err, "")
 	}
+	transferred := false
+	defer func() {
+		if !transferred {
+			_ = tx.Rollback()
+		}
+	}()
 	rows, err := tx.QueryContext(ctx, `
 		SELECT object_key, space_id, purpose, bucket_id, expected_size, expires_at, cleanup_after, created_at
 		FROM space_temp_objects
@@ -142,7 +148,6 @@ func (r *AssetsRepository) GetAndLockExpiredTempObjects(ctx context.Context, now
 		FOR UPDATE SKIP LOCKED
 	`, nowMicros, limit)
 	if err != nil {
-		_ = tx.Rollback()
 		return nil, nil, stacktrace.Propagate(err, "")
 	}
 	defer rows.Close()
@@ -151,15 +156,14 @@ func (r *AssetsRepository) GetAndLockExpiredTempObjects(ctx context.Context, now
 	for rows.Next() {
 		rec, err := scanSpaceTempObject(rows)
 		if err != nil {
-			_ = tx.Rollback()
 			return nil, nil, err
 		}
 		tempObjects = append(tempObjects, *rec)
 	}
 	if err := rows.Err(); err != nil {
-		_ = tx.Rollback()
 		return nil, nil, stacktrace.Propagate(err, "")
 	}
+	transferred = true
 	return tx, tempObjects, nil
 }
 

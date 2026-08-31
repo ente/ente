@@ -26,14 +26,9 @@ pub struct AnalyzeImageRequest {
 
 #[derive(Clone, Debug)]
 pub enum RustMlError {
-    InvalidRequest(String),
-    Decode(String),
-    Image(String),
-    Preprocess(String),
-    Ort(String),
-    CorruptModel(String),
-    Postprocess(String),
-    Runtime(String),
+    InvalidImage { message: String },
+    CorruptModel { message: String },
+    Other { message: String },
 }
 
 #[derive(Clone, Debug)]
@@ -200,14 +195,13 @@ fn to_model_paths(paths: &RustModelPaths) -> ModelPaths {
 impl From<MlError> for RustMlError {
     fn from(value: MlError) -> Self {
         match value {
-            MlError::InvalidRequest(message) => RustMlError::InvalidRequest(message),
-            MlError::Decode(message) => RustMlError::Decode(message),
-            MlError::Image(message) => RustMlError::Image(message),
-            MlError::Preprocess(message) => RustMlError::Preprocess(message),
-            MlError::Ort(message) => RustMlError::Ort(message),
-            MlError::CorruptModel(message) => RustMlError::CorruptModel(message),
-            MlError::Postprocess(message) => RustMlError::Postprocess(message),
-            MlError::Runtime(message) => RustMlError::Runtime(message),
+            MlError::Decode(message) | MlError::Image(message) => Self::InvalidImage { message },
+            MlError::CorruptModel(message) => Self::CorruptModel { message },
+            MlError::InvalidRequest(message)
+            | MlError::Preprocess(message)
+            | MlError::Ort(message)
+            | MlError::Postprocess(message)
+            | MlError::Runtime(message) => Self::Other { message },
         }
     }
 }

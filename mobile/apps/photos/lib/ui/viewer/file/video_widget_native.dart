@@ -34,6 +34,8 @@ import "package:photos/ui/viewer/file/native_video_player_controls/play_pause_bu
 import "package:photos/ui/viewer/file/native_video_player_controls/seek_bar.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
+import "package:photos/ui/viewer/file/video_double_tap_seek.dart";
+import "package:photos/ui/viewer/file/video_seek_controller.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/zoomable_video_viewer.dart";
 import "package:photos/utils/dialog_util.dart";
@@ -46,9 +48,12 @@ class VideoWidgetNative extends StatefulWidget {
   final FullScreenRequestCallback? playbackCallback;
   final Function(bool)? shouldDisableScroll;
   final bool isFromMemories;
+  final bool isActive;
+  final bool? isAudioMutedOverride;
   final void Function()? onStreamChange;
   final PlaylistData? playlistData;
   final bool selectedPreview;
+  final ValueNotifier<double> playbackSpeed;
   final Function({required int memoryDuration})? onFinalFileLoad;
 
   const VideoWidgetNative(
@@ -57,11 +62,14 @@ class VideoWidgetNative extends StatefulWidget {
     this.playbackCallback,
     this.shouldDisableScroll,
     this.isFromMemories = false,
+    required this.isActive,
+    this.isAudioMutedOverride,
     required this.onStreamChange,
     super.key,
     this.playlistData,
     this.onFinalFileLoad,
     required this.selectedPreview,
+    required this.playbackSpeed,
   });
 
   @override
@@ -86,6 +94,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   bool _isCompletelyVisible = false;
   final _showControls = ValueNotifier(true);
   final _isSeeking = ValueNotifier(false);
+  late final VideoSeekController _seekController;
   final _debouncer = Debouncer(const Duration(milliseconds: 2000));
   StreamSubscription<PlaybackEvent>? _subscription;
   StreamSubscription<StreamSwitchedEvent>? _streamSwitchedSubscription;
@@ -99,6 +108,26 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       'initState for ${widget.file.generatedID} with tag ${widget.file.tag} and name ${widget.file.displayName}',
     );
     super.initState();
+    widget.playbackSpeed.addListener(_onPlaybackSpeedChanged);
+    _seekController = VideoSeekController(
+      seek: (target) async {
+        final controller = _controller;
+        if (controller != null) await controller.seekTo(target);
+      },
+      readPosition: () => _controller?.playbackPosition ?? Duration.zero,
+      readDuration: () {
+        final milliseconds = _controller?.videoInfo?.durationInMilliseconds;
+        if (milliseconds != null && milliseconds > 0) {
+          return Duration(milliseconds: milliseconds);
+        }
+        final seconds = durationToSeconds(duration);
+        return seconds == null ? null : Duration(seconds: seconds);
+      },
+      onSeekError: (error, stackTrace) {
+        _logger.warning("Could not seek video", error, stackTrace);
+      },
+    );
+    _seekController.addListener(_syncSeekInteraction);
     WidgetsBinding.instance.addObserver(this);
 
     if (widget.selectedPreview) {
@@ -113,7 +142,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     resumeVideoSubscription = Bus.instance.on<ResumeVideoEvent>().listen((
       event,
     ) {
-      _controller?.play();
+      if (widget.isActive) _controller?.play();
     });
     if (!widget.isFromMemories) {
       _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
@@ -158,7 +187,19 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     );
   }
 
+  @override
+  void didUpdateWidget(covariant VideoWidgetNative oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive != widget.isActive) {
+      unawaited(_syncPlayback());
+    }
+    if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {
+      unawaited(_applyVolume());
+    }
+  }
+
   Future<void> setVideoSource() async {
+    _seekController.reset();
     if (_filePath == null) {
       _logger.info('Stop video player, file path is null');
       await _controller?.stop();
@@ -169,10 +210,9 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       type: VideoSourceType.file,
     );
     await _controller?.loadVideo(videoSource);
-    if (!widget.isFromMemories) {
-      await _controller?.setVolume(localSettings.isMuted() ? 0.0 : 1.0);
-    }
-    await _controller?.play();
+    await _applyVolume();
+    await _controller?.setPlaybackSpeed(widget.playbackSpeed.value);
+    await _syncPlayback();
 
     Bus.instance.fire(SeekbarTriggeredEvent(position: 0));
   }
@@ -238,6 +278,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
 
   @override
   void dispose() {
+    widget.playbackSpeed.removeListener(_onPlaybackSpeedChanged);
     _subscription?.cancel();
     _controller?.stop().ignore();
     _controller?.dispose();
@@ -270,6 +311,8 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     _showControls.dispose();
     _isSeeking.removeListener(_seekListener);
     _isSeeking.dispose();
+    _seekController.removeListener(_syncSeekInteraction);
+    _seekController.dispose();
     _debouncer.cancelDebounceTimer();
     _transformationController.dispose();
     wakeLockService.updateWakeLock(
@@ -277,6 +320,10 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       wakeLockFor: WakeLockFor.videoPlayback,
     );
     super.dispose();
+  }
+
+  void _onPlaybackSpeedChanged() {
+    _controller?.setPlaybackSpeed(widget.playbackSpeed.value);
   }
 
   void _onInteractionLockChanged(bool shouldLock) {
@@ -356,9 +403,17 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                     widget.file.caption?.isNotEmpty ?? false,
                               ),
                             ),
-                          GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-                            onTap: widget.isFromMemories
+                          DoubleTapSeekOverlay(
+                            enabled: () =>
+                                !widget.isFromMemories && isPlaybackReady,
+                            position: () => _seekController.position,
+                            duration: () =>
+                                _seekController.duration ?? Duration.zero,
+                            seekBy: _seekController.seekBy,
+                            onSeekInteraction: () {
+                              _showControls.value = true;
+                            },
+                            onSingleTap: widget.isFromMemories
                                 ? null
                                 : () {
                                     _showControls.value = !_showControls.value;
@@ -369,27 +424,25 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                       );
                                     }
                                   },
-                            onLongPress: () {
-                              if (widget.isFromMemories) {
-                                widget.playbackCallback?.call(
-                                  false,
-                                  FullScreenRequestReason.userInteraction,
-                                );
-                                _controller?.pause();
-                              }
-                            },
-                            onLongPressUp: () {
-                              if (widget.isFromMemories) {
-                                widget.playbackCallback?.call(
-                                  true,
-                                  FullScreenRequestReason.userInteraction,
-                                );
-                                _controller?.play();
-                              }
-                            },
-                            child: Container(
-                              constraints: const BoxConstraints.expand(),
-                            ),
+                            onLongPress: widget.isFromMemories
+                                ? () {
+                                    widget.playbackCallback?.call(
+                                      false,
+                                      FullScreenRequestReason.userInteraction,
+                                    );
+                                    _controller?.pause();
+                                  }
+                                : null,
+                            onLongPressUp: widget.isFromMemories
+                                ? () {
+                                    if (!widget.isActive) return;
+                                    widget.playbackCallback?.call(
+                                      true,
+                                      FullScreenRequestReason.userInteraction,
+                                    );
+                                    _controller?.play();
+                                  }
+                                : null,
                           ),
                           if (!widget.isFromMemories && isPlaybackReady)
                             Positioned.fill(
@@ -429,7 +482,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                             controller: _controller!,
                                             duration: duration,
                                             showControls: _showControls,
-                                            isSeeking: _isSeeking,
+                                            seekController: _seekController,
                                           )
                                         : const SizedBox.shrink(),
                                   ),
@@ -520,6 +573,10 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
 
   void _seekListener() {
     if (widget.isFromMemories) return;
+    if (_isSeeking.value) {
+      _debouncer.cancelDebounceTimer();
+      return;
+    }
     if (!_isSeeking.value &&
         _controller?.playbackStatus == PlaybackStatus.playing) {
       _debouncer.run(() async {
@@ -537,6 +594,13 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
           }
         }
       });
+    }
+  }
+
+  void _syncSeekInteraction() {
+    final isSeeking = _seekController.state.isInteracting;
+    if (_isSeeking.value != isSeeking) {
+      _isSeeking.value = isSeeking;
     }
   }
 
@@ -569,6 +633,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
         });
       }
     } else {
+      _debouncer.cancelDebounceTimer();
       if (widget.playbackCallback != null && mounted) {
         widget.playbackCallback!(
           false,
@@ -590,20 +655,42 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
 
   Future<void> _onPlaybackReady() async {
     if (_isPlaybackReady.value) return;
-    if (!widget.isFromMemories) {
-      await _controller!.setVolume(localSettings.isMuted() ? 0.0 : 1.0);
-    }
-    await _controller!.play();
+    await _applyVolume();
+    await _controller?.setPlaybackSpeed(widget.playbackSpeed.value);
+    await _syncPlayback();
     final durationInSeconds = durationToSeconds(duration) ?? 10;
     widget.onFinalFileLoad?.call(memoryDuration: durationInSeconds);
     _isPlaybackReady.value = true;
   }
 
   void _onPlaybackEnded() async {
+    _seekController.reset(duration: _seekController.duration);
+    _debouncer.cancelDebounceTimer();
     await _controller?.stop();
-    if (localSettings.shouldLoopVideo()) {
+    if (widget.isActive && localSettings.shouldLoopVideo()) {
       Bus.instance.fire(SeekbarTriggeredEvent(position: 0));
       await _controller?.play();
+    }
+  }
+
+  Future<void> _applyVolume() async {
+    final controller = _controller;
+    if (controller == null) return;
+    final mutedOverride = widget.isAudioMutedOverride;
+    if (mutedOverride != null) {
+      await controller.setVolume(mutedOverride ? 0.0 : 1.0);
+    } else if (!widget.isFromMemories) {
+      await controller.setVolume(localSettings.isMuted() ? 0.0 : 1.0);
+    }
+  }
+
+  Future<void> _syncPlayback() async {
+    final controller = _controller;
+    if (controller == null) return;
+    if (widget.isActive) {
+      await controller.play();
+    } else {
+      await controller.pause();
     }
   }
 
@@ -849,13 +936,13 @@ class _VideoProgressControls extends StatelessWidget {
   final NativeVideoPlayerController controller;
   final String? duration;
   final ValueNotifier<bool> showControls;
-  final ValueNotifier<bool> isSeeking;
+  final VideoSeekController seekController;
 
   const _VideoProgressControls({
     required this.controller,
     required this.duration,
     required this.showControls,
-    required this.isSeeking,
+    required this.seekController,
   });
 
   @override
@@ -872,7 +959,7 @@ class _VideoProgressControls extends StatelessWidget {
             child: NativeVideoProgressControls(
               controller,
               durationToSeconds(duration),
-              isSeeking,
+              seekController,
             ),
           ),
         );

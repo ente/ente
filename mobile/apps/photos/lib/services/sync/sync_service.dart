@@ -235,14 +235,17 @@ class SyncService {
     if (isLocalGalleryMode) {
       await _localSyncService.syncAll();
       if (Platform.isAndroid) {
-        unawaited(
-          OfflineImportMetadataService.instance.processPendingFiles(
-            batchSize: isProcessBg
-                ? 10
-                : OfflineImportMetadataService.kDefaultBatchSize,
-            maxBatches: isProcessBg ? 1 : 4,
-          ),
-        );
+        final processing = OfflineImportMetadataService.instance
+            .processPendingFiles(
+              batchSize: isProcessBg
+                  ? 10
+                  : OfflineImportMetadataService.kDefaultBatchSize,
+            );
+        if (isProcessBg) {
+          await processing;
+        } else {
+          unawaited(processing);
+        }
       }
       _logger.info(
         "[SYNC] Local gallery mode${Platform.isAndroid ? '' : ' (non-Android, no metadata processing)'}, skipping remote sync",

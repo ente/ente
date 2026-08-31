@@ -1,13 +1,13 @@
 import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
-import { SpaceAvatarCropPage } from "components/SpaceAvatarCropPage";
-import { SpaceLoadingSpinner } from "components/SpaceRouteFallback";
+import { SpaceAvatarCropPage } from "components/AvatarCropPage";
+import { SpaceLoadingSpinner } from "components/RouteFallback";
 import log from "ente-base/log";
 import React, { useEffect, useRef, useState } from "react";
 import type { Area, Point } from "react-easy-crop";
 import { profileBackground } from "screens/ProfileScreen";
-import { spaceTouchTargetSize } from "styles/touchTargets";
+import { spaceTouchTargetSize } from "styles/touch-targets";
 import {
     prepareSpaceAvatarImageFromCrop,
     prepareSpaceCoverImageFromCrop,
@@ -18,7 +18,7 @@ import {
     spaceCoverImageErrorMessage,
     spaceCoverImageInputAccept,
     spaceProfileCoverAspectRatio,
-} from "utils/spacePostImage";
+} from "utils/post-image";
 
 const green = "#08C225";
 const textBase = "#000";

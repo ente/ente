@@ -1,0 +1,1 @@
+- Add menu option to control video playback speed. (@r4khul)

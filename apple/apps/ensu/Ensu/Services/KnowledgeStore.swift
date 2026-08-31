@@ -213,9 +213,7 @@ final class KnowledgeStore: ObservableObject {
         case AssetDownloadError.Http:
             return "The knowledge pack is currently unavailable. Please try again later."
         case AssetDownloadError.Validation,
-             AssetDownloadError.SizeMismatch,
-             AssetDownloadError.Protocol,
-             AssetDownloadError.InvalidTarget:
+             AssetDownloadError.InvalidDownload:
             return "The knowledge pack couldn't be verified. Please try again."
         case AssetDownloadError.Io:
             return "Couldn't save the knowledge pack. Please try again."

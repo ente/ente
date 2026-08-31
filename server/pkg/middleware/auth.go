@@ -38,9 +38,10 @@ func (m *AuthMiddleware) TokenAuthMiddleware(jwtClaimScope *jwt.ClaimScope) gin.
 		app := auth.GetApp(c)
 		var userID int64
 		if jwtClaimScope == nil {
+			tokenHash := auth.HashToken(token)
 			var expired, cached bool
 			var err error
-			userID, expired, cached, err = authsession.Authenticate(m.UserAuthRepo, m.Cache, token, app)
+			userID, expired, cached, err = authsession.Authenticate(m.UserAuthRepo, m.Cache, tokenHash[:], app)
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				logrus.Errorf("Failed to validate token: %s", err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to validate token"})
@@ -61,7 +62,7 @@ func (m *AuthMiddleware) TokenAuthMiddleware(jwtClaimScope *jwt.ClaimScope) gin.
 				// skip updating last used for requests routed via CF worker
 				if !network.IsCFWorkerIP(ip) {
 					go func() {
-						_ = m.UserAuthRepo.UpdateLastUsedAt(userID, token, ip, userAgent)
+						_ = m.UserAuthRepo.UpdateLastUsedAtByTokenHash(userID, tokenHash[:], ip, userAgent)
 					}()
 				}
 			}

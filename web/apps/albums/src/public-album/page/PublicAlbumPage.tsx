@@ -52,6 +52,7 @@ import { NavbarBase } from "ente-base/components/Navbar";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import { isDevBuild } from "ente-base/env";
+import { isNamedError } from "ente-base/error";
 import {
     isHTTP401Error,
     isHTTPErrorWithStatus,
@@ -1180,7 +1181,7 @@ const FileListHeader: React.FC<FileListHeaderProps> = ({
                 await navigator.share({ text: shareText });
                 return;
             } catch (error) {
-                if (error instanceof Error && error.name === "AbortError") {
+                if (isNamedError(error, "AbortError")) {
                     return;
                 }
             }
@@ -1539,7 +1540,12 @@ const PublicAlbumCoverHero: React.FC<PublicAlbumCoverHeroProps> = ({
                 <MobileMasonryCoverTitle>{title}</MobileMasonryCoverTitle>
                 <AlbumDescription
                     description={description}
-                    sx={{ maxWidth: "100%", mt: "-6px", opacity: 0.8 }}
+                    sx={{
+                        maxWidth: "100%",
+                        mt: "-6px",
+                        opacity: 0.8,
+                        textAlign: "center",
+                    }}
                 />
                 <Typography
                     variant="small"

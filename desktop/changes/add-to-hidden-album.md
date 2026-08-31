@@ -1,0 +1,1 @@
+- Added support for adding photos to hidden albums.

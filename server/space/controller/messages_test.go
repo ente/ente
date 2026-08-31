@@ -57,6 +57,16 @@ func TestMessageReplyValidation(t *testing.T) {
 	require.NotNil(t, reply.ReplyMessageID)
 	require.Equal(t, bobMessage.MessageID, *reply.ReplyMessageID)
 
+	_, err = controller.Create(ctx, aliceSpace, bobSpace.SpaceID, models.CreateMessageRequest{
+		MessageCipher:                spaceTestB64("wave-reply-cipher"),
+		SenderEncryptedMessageKey:    spaceTestB64("wave-reply-sender-key"),
+		RecipientEncryptedMessageKey: spaceTestB64("wave-reply-recipient-key"),
+		ReplyMessageID:               bobMessage.MessageID,
+		NotificationKind:             spaceMessageNotificationKindWave,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "wave notification is not supported for replies")
+
 	require.NoError(t, repos.Messages.DeleteMessage(ctx, bobMessage.MessageID, bobSpace.SpaceID))
 	_, err = controller.Create(ctx, aliceSpace, bobSpace.SpaceID, models.CreateMessageRequest{
 		MessageCipher:                spaceTestB64("reply-after-delete-cipher"),
@@ -118,6 +128,29 @@ func TestListThreadHidesDeletedTargetOwner(t *testing.T) {
 	page, err = controller.ListThread(ctx, aliceSpace, bobSpace.SpaceID, models.ListMessageThreadRequest{})
 	require.Nil(t, page)
 	require.True(t, errors.Is(err, ente.ErrNotFound))
+}
+
+func TestListConversationsIncludesLatestActivePostCreatedAt(t *testing.T) {
+	controller, repos, ctx := setupMessagesControllerTest(t)
+	aliceID, aliceSpace := createMessageControllerUserAndSpace(t, repos, "alice-conversation-post", "alice-post-public")
+
+	page, err := controller.ListConversations(ctx, aliceSpace)
+	require.NoError(t, err)
+	require.Empty(t, page.LatestPostCreatedAt)
+
+	postID, err := testCreatePost(ctx, repos, aliceID, aliceSpace.SpaceID, "post-key", nil, aliceSpace.CurrentVersion, nil)
+	require.NoError(t, err)
+	var createdAt int64
+	require.NoError(t, repos.Posts.DB.QueryRow(`SELECT created_at FROM space_posts WHERE post_id = $1`, postID).Scan(&createdAt))
+
+	page, err = controller.ListConversations(ctx, aliceSpace)
+	require.NoError(t, err)
+	require.Equal(t, formatMicros(createdAt), page.LatestPostCreatedAt)
+
+	require.NoError(t, repos.Posts.DeletePost(ctx, postID, aliceSpace.SpaceID))
+	page, err = controller.ListConversations(ctx, aliceSpace)
+	require.NoError(t, err)
+	require.Empty(t, page.LatestPostCreatedAt)
 }
 
 func TestValidateCreateMessageRequestLimits(t *testing.T) {

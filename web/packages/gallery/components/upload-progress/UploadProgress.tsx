@@ -1,13 +1,13 @@
 import type { PreUploadSkippedFile } from "ente-base/types/ipc";
 import type { UploadPhase } from "ente-gallery/services/upload";
 import { useEffect, useState } from "react";
-import { UploadCompletion } from "../UploadCompletion";
 import type {
     InProgressUpload,
     SegregatedFinishedUploads,
     UploadCounter,
     UploadFileNames,
-} from "../uploadProgressStats";
+} from "../upload-progress-stats";
+import { UploadCompletion } from "../UploadCompletion";
 import { UploadProgressContext, type DragPosition } from "./context";
 import { MinimizedUploadProgress } from "./MinimizedUploadProgress";
 import { StopUploadConfirmationDialog } from "./StopUploadConfirmationDialog";

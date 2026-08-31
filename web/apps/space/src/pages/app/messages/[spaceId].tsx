@@ -1,7 +1,7 @@
-import { SpaceMessagesPage } from "components/SpaceMessagesPage";
+import { SpaceMessagesPage } from "components/MessagesPage";
 import React from "react";
-import { friendSpaceIdFromQuery } from "utils/spaceRoutes";
-import { useSpaceRouter } from "utils/spaceRouteTransitions";
+import { useSpaceRouter } from "utils/route-transitions";
+import { friendSpaceIdFromQuery } from "utils/routes";
 
 const messageSpaceIdFromPath = () => {
     if (typeof window == "undefined") return "";

@@ -12,7 +12,11 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     useSetupLogs({ disableDiskLogs: true });
 
     return (
-        <ThemeProvider theme={shareTheme} defaultMode="dark">
+        <ThemeProvider
+            theme={shareTheme}
+            defaultMode="system"
+            storageManager={null}
+        >
             <CustomHead title="Ente Paste" />
             <CssBaseline enableColorScheme />
             <Component {...pageProps} />

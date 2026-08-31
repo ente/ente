@@ -1,4 +1,4 @@
-import { lockerDialogPaperSx } from "@/components/lockerDialogStyles";
+import { lockerDialogPaperSx } from "@/components/locker-dialog-styles";
 import {
     Checkbox,
     Dialog,
@@ -12,7 +12,7 @@ import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton"
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
 import React from "react";
-import type { DeleteCollectionDialogState } from "./useLockerActions";
+import type { DeleteCollectionDialogState } from "./use-locker-actions";
 
 interface DeleteCollectionDialogProps {
     dialogState: DeleteCollectionDialogState | null;

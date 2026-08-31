@@ -1,6 +1,9 @@
-use super::{AccountSpaceCtx, decrypt_space_profile, space_profile_without_payload};
+use super::{
+    AccountSpaceCtx, decrypt_space_profile, map_account_error, map_session_error,
+    space_profile_without_payload,
+};
 use crate::crypto::encrypt_secretbox_payload;
-use crate::error::{Result, SpaceError};
+use crate::error::{Error, Result};
 use crate::models::DecryptedSpaceProfile;
 use crate::transport::{
     ProfileAvatarPayload, ProfileCoverPayload, SpaceProfileResponse, UpdateSpaceProfileRequest,
@@ -29,7 +32,8 @@ impl AccountSpaceCtx {
             .query(&query)
             .send()
             .await?
-            .error_for_status()?
+            .error_for_status()
+            .map_err(map_session_error)?
             .json()
             .await?)
     }
@@ -51,7 +55,7 @@ impl AccountSpaceCtx {
             )
             .await?;
         let space_key = space_key.ok_or_else(|| {
-            SpaceError::InvalidInput(format!(
+            Error::InvalidInput(format!(
                 "no key available for space {space_id} version {}",
                 profile.version
             ))
@@ -76,7 +80,7 @@ impl AccountSpaceCtx {
             )
             .await?;
         let space_key = space_key.ok_or_else(|| {
-            SpaceError::InvalidInput(format!(
+            Error::InvalidInput(format!(
                 "no key available for space {space_id} version {}",
                 profile.version
             ))
@@ -115,7 +119,7 @@ impl AccountSpaceCtx {
             .resolve_owned_space_access(space_id)
             .await?
             .ok_or_else(|| {
-                SpaceError::InvalidInput(format!("space {space_id} is not owned by the account"))
+                Error::InvalidInput(format!("space {space_id} is not owned by the account"))
             })?;
         let request = UpdateSpaceProfileRequest {
             key_version: space_key.key_version,
@@ -135,7 +139,8 @@ impl AccountSpaceCtx {
             .json(&request)
             .send()
             .await?
-            .error_for_status()?
+            .error_for_status()
+            .map_err(map_account_error)?
             .json()
             .await?;
         self.update_cached_owned_space_profile(space_id, request.encrypted_profile)?;

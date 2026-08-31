@@ -124,6 +124,7 @@
   "after1Week": "Po 1 savaitės",
   "after1Year": "Po 1 metų",
   "albumLayout": "Albumo išdėstymas",
+  "albumName": "Albumo pavadinimas",
   "albumOwner": "Savininkas",
   "@albumOwner": {
     "description": "Role of the album owner"
@@ -624,6 +625,7 @@
   },
   "deleteSharedAlbum": "Ištrinti bendrinamą albumą?",
   "deleteSharedAlbumDialogBody": "Albumas bus ištrintas visiems.\n\nPrarasite prieigą prie bendrinamų nuotraukų, esančių šiame albume ir priklausančių kitiems.",
+  "deleteSuggestionsDesc": "Peržiūrėti elementus siūlomus ištrinti",
   "deleteSuggestionSent": "Ištrynimo pasiūlymas išsiųstas.",
   "deleteTagMessage": "Ar tikrai norite ištrinti šią žymę? Šis veiksmas negrįžtamas.",
   "deleteTagTitle": "Ištrinti žymę?",
@@ -998,6 +1000,11 @@
     }
   },
   "freeUpDeviceSpace": "Atlaisvinti įrenginio vietą",
+  "freeUpDeviceSpaceDesc": "Pašalinkite sukurtas elementų atsargines kopijas.",
+  "freeUpDeviceSpaceDescICloud": "Failų debesyje „iCloud“ bendrintų albumų negalima ištrinti.",
+  "@freeUpDeviceSpaceDescICloud": {
+    "description": "Here 'cleared' means 'deleted' from the device"
+  },
   "freeUpSpace": "Atlaisvinti vietos",
   "gallery": "Galerija",
   "galleryMemoryLimitInfo": "Galerijoje rodoma iki 1000 prisiminimų",
@@ -1067,6 +1074,13 @@
   "ignore": "Ignoruoti",
   "ignored": "ignoruota",
   "ignorePerson": "Ignoruoti asmenį",
+  "imageEditorBrightness": "Skaistis",
+  "imageEditorContrast": "Kontrastas",
+  "imageEditorHue": "Atspalvis",
+  "imageEditorLuminance": "Šviesumas",
+  "imageEditorSaturation": "Grynis",
+  "imageEditorSharpness": "Ryškumas",
+  "imageEditorTemperature": "Temperatūra",
   "imageNotAnalyzed": "Vaizdas neanalizuotas.",
   "immediately": "Iš karto",
   "@immediately": {
@@ -1368,6 +1382,7 @@
   "machineLearningBannerSubtitle": "Magiškai paieškai ir veidų atpažinimui",
   "manage": "Tvarkyti",
   "manageDeviceStorage": "Tvarkyti įrenginio podėlį",
+  "manageDeviceStorageDesc": "Peržiūrėkite ir išvalykite vietinę saugyklą",
   "manageFamily": "Tvarkyti šeimą",
   "manageLink": "Tvarkyti nuorodą",
   "manageParticipants": "Tvarkyti",
@@ -1571,8 +1586,6 @@
   "ocrModelsNetworkRequiredError": "Tinklo ryšys privalomas norint atsisiųsti OCR modelius pirmojo naudojimo metu.",
   "ocrModelsPrepareFailed": "Nepavyko parengti OCR modelių.",
   "ocrNoTextDetected": "Tekstas neaptiktas",
-  "ocrProcessingOverlayMessage": "Aptikiamas tekstas...",
-  "ocrSelectionHint": "Perbraukite arba dukart palieskite, kad pasirinktumėte, ko jums reikia.",
   "offlineEnableBackupTagLabel": "10 GB NEMOKAMAI!",
   "offlineFacesBannerSubtitle": "Užsiregistruokite, kad pažymėtumėte asmenis ir vėliau juos lengvai rastumėte.",
   "offlineFacesBannerTitle": "Norite išsaugoti šiuos veidus?",
@@ -1950,6 +1963,8 @@
       "userEmail": {}
     }
   },
+  "removeDuplicates": "Dublikatai",
+  "removeDuplicatesDesc": "Pašalinti tikslus dublikatus",
   "removeFromAlbum": "Šalinti iš albumo",
   "removeFromAlbumTitle": "Pašalinti iš albumo?",
   "removeFromFamily": "Šalinti iš šeimos",
@@ -2023,6 +2038,7 @@
     "description": "Reset password title"
   },
   "resetToDefault": "Atkurti numatytąsias reikšmes",
+  "restartAppToApplyChanges": "Paleiskite programą iš naujo, kad pritaikytume šį pakeitimą.",
   "@resetToDefault": {
     "description": "Button text to reset cover photo to default"
   },
@@ -2865,6 +2881,7 @@
   "yourPurchaseWasSuccessful": "Jūsų pirkimas buvo sėkmingas",
   "yourSubscriptionHasExpired": "Jūsų prenumerata baigėsi.",
   "yourSubscriptionWasUpdatedSuccessfully": "Jūsų prenumerata buvo sėkmingai atnaujinta",
+  "yourTrashIsEmpty": "Jūsų šiukšlinė tuščia.",
   "yourVerificationCodeHasExpired": "Jūsų patvirtinimo kodas nebegaliojantis.",
   "@yourVerificationCodeHasExpired": {
     "description": "Error message when verification code has expired"
@@ -2872,5 +2889,44 @@
   "youveNoDuplicateCodesThatCanBeCleared": "Neturite dubliuotų kodų, kuriuos būtų galima išvalyti.",
   "youveNoDuplicateFilesThatCanBeCleared": "Neturite dubliuotų failų, kuriuos būtų galima išvalyti.",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "Neturite šiame albume failų, kuriuos būtų galima ištrinti.",
-  "zoomOutToSeePhotos": "Padidinkite mastelį, kad matytumėte nuotraukas"
+  "zoomOutToSeePhotos": "Padidinkite mastelį, kad matytumėte nuotraukas",
+  "legacyKitSheetNameJoinerOr": " arba ",
+  "@legacyKitSheetNameJoinerOr": {
+    "description": "Joins the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the surrounding spaces"
+  },
+  "legacyKitSheetNameJoinerList": ", ",
+  "@legacyKitSheetNameJoinerList": {
+    "description": "Joins all but the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the trailing space"
+  },
+  "legacyKitSheetStepVisit": "Apsilankykite {url}",
+  "@legacyKitSheetStepVisit": {
+    "description": "Second recovery step",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "legacyKitSheetStepScan": "Skenuokite {count} lapus (-ų).",
+  "@legacyKitSheetStepScan": {
+    "description": "Third recovery step. {count} is how many sheets must be scanned together",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "legacyKitSheetNeedHelp": "Reikia pagalbos? Parašykite laišką adresu {email}.",
+  "@legacyKitSheetNeedHelp": {
+    "description": "Footer printed at the bottom of a Legacy kit recovery sheet",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "grantAccess": "Suteikti prieigą"
 }

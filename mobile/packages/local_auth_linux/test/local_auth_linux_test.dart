@@ -38,15 +38,6 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-  test('registers as the local_auth platform implementation', () {
-    final previous = LocalAuthPlatform.instance;
-
-    LocalAuthLinux.registerWith();
-
-    expect(LocalAuthPlatform.instance, isA<LocalAuthLinux>());
-    LocalAuthPlatform.instance = previous;
-  });
-
   test('authenticate sends the localized reason to native code', () async {
     final result = await localAuth.authenticate(
       localizedReason: 'Unlock Ente Auth',

@@ -208,7 +208,8 @@ func (h *AdminHandler) DeleteUser(c *gin.Context) {
 
 func (h *AdminHandler) isFreshAdminToken(c *gin.Context) error {
 	token := auth.GetToken(c)
-	creationTime, err := h.UserAuthRepo.GetTokenCreationTime(token)
+	tokenHash := auth.HashToken(token)
+	creationTime, err := h.UserAuthRepo.GetTokenCreationTimeByHash(tokenHash[:])
 	if err != nil {
 		return err
 	}

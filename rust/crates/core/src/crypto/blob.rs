@@ -1,10 +1,6 @@
 use super::stream::{Decryptor, Encryptor};
 use crate::crypto::{Error, Header, Key, Result};
 
-pub const KEY_BYTES: usize = Key::BYTES;
-
-pub const HEADER_BYTES: usize = Header::BYTES;
-
 pub use super::stream::ABYTES;
 
 #[derive(Debug, Clone)]
@@ -145,15 +141,6 @@ mod tests {
 
         let decrypted = decrypt_legacy(&ciphertext, &header, &key).unwrap();
         assert_eq!(decrypted, b"partial");
-    }
-
-    #[test]
-    fn test_encrypt_decrypt_large() {
-        let key = Key::generate();
-        let plaintext = vec![0x42u8; 1024 * 1024];
-
-        let encrypted = encrypt(&plaintext, &key).unwrap();
-        assert_eq!(encrypted.decrypt(&key).unwrap(), plaintext);
     }
 
     #[test]

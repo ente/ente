@@ -1,5 +1,5 @@
 import "@fontsource-variable/inter";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { staticAppTitle } from "ente-base/app";
 import { CustomHead } from "ente-base/components/Head";
 import { useSetupLogs } from "ente-base/components/utils/hooks-app";
@@ -14,6 +14,7 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
         <ThemeProvider theme={castTheme}>
             <CustomHead title={staticAppTitle} />
             <CssBaseline enableColorScheme />
+            <GlobalStyles styles={{ "html, body": { overflow: "hidden" } }} />
             <Component {...pageProps} />
         </ThemeProvider>
     );

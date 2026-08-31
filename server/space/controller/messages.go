@@ -18,6 +18,8 @@ const (
 	spaceMessageKindPostLike    = "post_like"
 	spaceMessageKindFriendAdded = "friend_added"
 
+	spaceMessageNotificationKindWave = "wave"
+
 	maxSpaceMessageCipherEncodedBytes = 8 * 1024
 	maxSpaceMessageCipherDecodedBytes = 6 * 1024
 	maxSpaceMessageKeyEncodedBytes    = 1024
@@ -41,6 +43,10 @@ func (c *MessagesController) Create(ctx context.Context, senderSpace *repo.Space
 	if err != nil {
 		return nil, err
 	}
+	notificationKind, err := normalizeMessageNotificationKind(req.NotificationKind)
+	if err != nil {
+		return nil, err
+	}
 	messageID, err := normalizeOptionalMessageID(req.MessageID)
 	if err != nil {
 		return nil, err
@@ -52,6 +58,9 @@ func (c *MessagesController) Create(ctx context.Context, senderSpace *repo.Space
 	replyMessageID, err := c.validateReplyMessage(ctx, req.ReplyMessageID, senderSpace.SpaceID, recipientSpace.SpaceID)
 	if err != nil {
 		return nil, err
+	}
+	if notificationKind == spaceMessageNotificationKindWave && replyMessageID.Valid {
+		return nil, ente.NewBadRequestWithMessage("wave notification is not supported for replies")
 	}
 	message, err := c.MessagesRepo.CreateMessage(ctx, repo.CreateSpaceMessageRecord{
 		MessageID:                    messageID,
@@ -69,11 +78,18 @@ func (c *MessagesController) Create(ctx context.Context, senderSpace *repo.Space
 		}
 		return nil, err
 	}
-	go c.ActivityNotifier.OnSpaceMessageSent(spaceActivityActor(senderSpace), recipientSpace.OwnerID)
+	if notificationKind == spaceMessageNotificationKindWave {
+		go c.ActivityNotifier.OnSpaceWaveSent(spaceActivityActor(senderSpace), recipientSpace.OwnerID)
+	} else {
+		go c.ActivityNotifier.OnSpaceMessageSent(spaceActivityActor(senderSpace), recipientSpace.OwnerID)
+	}
 	return toMessageResponse(*message), nil
 }
 
 func (c *MessagesController) ReplyToPost(ctx context.Context, senderSpace *repo.SpaceRecord, postID int64, req models.CreateMessageRequest) (*models.MessageResponse, error) {
+	if strings.TrimSpace(req.NotificationKind) != "" {
+		return nil, ente.NewBadRequestWithMessage("notificationKind is not supported for post replies")
+	}
 	messageCipher, senderEncryptedMessageKey, recipientEncryptedMessageKey, err := decodeCreateMessageRequest(req)
 	if err != nil {
 		return nil, err
@@ -146,6 +162,10 @@ func (c *MessagesController) ListConversations(ctx context.Context, viewerSpace 
 	if err != nil {
 		return nil, err
 	}
+	latestPostCreatedAt, err := c.PostsRepo.LatestPostCreatedAt(ctx, viewerSpace.SpaceID)
+	if err != nil {
+		return nil, err
+	}
 	chatSummaries := make(map[string]models.ConversationChatSummaryResponse, len(summaries))
 	for friendSpaceID, summary := range summaries {
 		unreadActivities := make([]models.MessageConversationActivityResponse, 0, len(summary.UnreadActivities))
@@ -165,11 +185,15 @@ func (c *MessagesController) ListConversations(ctx context.Context, viewerSpace 
 			CreatedAt: formatMicros(request.CreatedAt),
 		})
 	}
-	return &models.ConversationsResponse{
+	response := &models.ConversationsResponse{
 		Friends:         friendResponses,
 		PendingRequests: requestResponses,
 		ChatSummaries:   chatSummaries,
-	}, nil
+	}
+	if latestPostCreatedAt > 0 {
+		response.LatestPostCreatedAt = formatMicros(latestPostCreatedAt)
+	}
+	return response, nil
 }
 
 func (c *MessagesController) ListThread(ctx context.Context, viewerSpace *repo.SpaceRecord, targetSpaceID string, req models.ListMessageThreadRequest) (*models.MessagePage, error) {
@@ -325,6 +349,14 @@ func normalizeOptionalMessageID(messageID string) (string, error) {
 		}
 	}
 	return messageID, nil
+}
+
+func normalizeMessageNotificationKind(notificationKind string) (string, error) {
+	notificationKind = strings.TrimSpace(notificationKind)
+	if notificationKind == "" || notificationKind == spaceMessageNotificationKindWave {
+		return notificationKind, nil
+	}
+	return "", ente.NewBadRequestWithMessage("notificationKind is invalid")
 }
 
 func decodeCreateMessageRequest(req models.CreateMessageRequest) ([]byte, []byte, []byte, error) {

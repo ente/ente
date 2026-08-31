@@ -21,7 +21,6 @@ import {
     Typography,
 } from "@mui/material";
 import { savedLocalUser } from "ente-accounts/services/accounts-db";
-import { masterKeyFromSession } from "ente-accounts/services/session-storage";
 import {
     OverflowMenu,
     OverflowMenuOption,
@@ -31,10 +30,9 @@ import { useBaseContext } from "ente-base/context";
 import { isHTTPErrorWithStatus } from "ente-base/http";
 import log from "ente-base/log";
 import {
-    ensureContactsReady,
     useResolvedContactAvatar,
     useResolvedContactDisplay,
-} from "ente-contacts-web";
+} from "ente-contacts";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -48,6 +46,7 @@ interface LockerCollectionShareDrawerProps {
     onRefreshSharees?: (
         collectionID: number,
     ) => Promise<LockerCollectionParticipant[]>;
+    warmContacts: () => Promise<void>;
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -62,6 +61,7 @@ export const LockerCollectionShareDrawer: React.FC<
     onUnshareCollection,
     onLeaveCollection,
     onRefreshSharees,
+    warmContacts,
 }) => {
     const { showMiniDialog } = useBaseContext();
     const currentUser = savedLocalUser() ?? { id: Number.NaN, email: "" };
@@ -138,24 +138,13 @@ export const LockerCollectionShareDrawer: React.FC<
             return;
         }
 
-        void (async () => {
-            try {
-                const masterKeyB64 = await masterKeyFromSession();
-                if (!masterKeyB64) {
-                    return;
-                }
-                await ensureContactsReady({
-                    userID: currentUser.id,
-                    masterKeyB64,
-                });
-            } catch (error) {
-                log.warn(
-                    "[LockerCollectionShareDrawer] Failed to warm contacts display cache",
-                    error,
-                );
-            }
-        })();
-    }, [currentUser.id, open]);
+        void warmContacts().catch((error: unknown) => {
+            log.warn(
+                "[LockerCollectionShareDrawer] Failed to warm contacts display cache",
+                error,
+            );
+        });
+    }, [open, warmContacts]);
 
     const sortedSharees = useMemo(
         () =>

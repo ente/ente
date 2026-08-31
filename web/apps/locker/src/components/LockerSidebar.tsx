@@ -18,7 +18,7 @@ import { useBaseContext } from "ente-base/context";
 import {
     mergeLegacySuggestedUsers,
     type LegacySuggestedUser,
-} from "ente-contacts-web/legacy";
+} from "ente-contacts/legacy";
 import { t } from "i18next";
 import dynamic from "next/dynamic";
 import React, { useEffect, useMemo, useState } from "react";

@@ -2,13 +2,13 @@ import { CircularProgress, Stack, Typography, styled } from "@mui/material";
 import { sessionExpiredDialogAttributes } from "ente-accounts/components/utils/dialog";
 import {
     checkPasskeyVerificationStatus,
-    passkeySessionExpiredErrorMessage,
     saveCredentialsAndNavigateTo,
 } from "ente-accounts/services/passkey";
 import { LinkButton } from "ente-base/components/LinkButton";
 import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { genericErrorDialogAttributes } from "ente-base/components/utils/dialog";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { customAPIHost } from "ente-base/origins";
 import { t } from "i18next";
@@ -77,12 +77,26 @@ export const AccountsPageFooterWithHost: React.FC<React.PropsWithChildren> = ({
     );
 };
 
+export type PasskeyVerificationStatus = "waiting" | "checking" | "pending";
+
+export interface VerifyingPasskeyPresentationProps {
+    email: string | undefined;
+    host: string | undefined;
+    verificationStatus: PasskeyVerificationStatus;
+    isChecking: boolean;
+    onRetry: () => void;
+    onCheckStatus: () => void;
+    onRecover: () => void;
+    onChangeEmail: () => void;
+}
+
 interface VerifyingPasskeyProps {
     passkeySessionID: string;
     email: string | undefined;
     onRetry: () => void;
     logout: () => void;
     showMiniDialog: (attrs: MiniDialogAttributes) => void;
+    presentation?: React.ComponentType<VerifyingPasskeyPresentationProps>;
 }
 
 export const VerifyingPasskey: React.FC<VerifyingPasskeyProps> = ({
@@ -91,12 +105,17 @@ export const VerifyingPasskey: React.FC<VerifyingPasskeyProps> = ({
     onRetry,
     logout,
     showMiniDialog,
+    presentation: Presentation,
 }) => {
-    type VerificationStatus = "waiting" | "checking" | "pending";
     const [verificationStatus, setVerificationStatus] =
-        useState<VerificationStatus>("waiting");
+        useState<PasskeyVerificationStatus>("waiting");
+    const [host, setHost] = useState<string | undefined>();
 
     const router = useRouter();
+
+    useEffect(() => {
+        if (Presentation) void customAPIHost().then(setHost);
+    }, [Presentation]);
 
     const handleRetry = () => {
         setVerificationStatus("waiting");
@@ -113,8 +132,7 @@ export const VerifyingPasskey: React.FC<VerifyingPasskeyProps> = ({
         } catch (e) {
             log.error("Passkey verification status check failed", e);
             showMiniDialog(
-                e instanceof Error &&
-                    e.message == passkeySessionExpiredErrorMessage
+                isNamedError(e, "passkey_session_expired")
                     ? sessionExpiredDialogAttributes(logout)
                     : genericErrorDialogAttributes(),
             );
@@ -125,6 +143,25 @@ export const VerifyingPasskey: React.FC<VerifyingPasskeyProps> = ({
     const handleRecover = () => {
         void router.push("/passkeys/recover");
     };
+
+    const handleCheckStatusClick = () => {
+        void handleCheckStatus();
+    };
+
+    if (Presentation) {
+        return (
+            <Presentation
+                email={email}
+                host={host}
+                verificationStatus={verificationStatus}
+                isChecking={verificationStatus === "checking"}
+                onRetry={handleRetry}
+                onCheckStatus={handleCheckStatusClick}
+                onRecover={handleRecover}
+                onChangeEmail={logout}
+            />
+        );
+    }
 
     return (
         <AccountsPageContents>

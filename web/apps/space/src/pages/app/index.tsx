@@ -1,8 +1,17 @@
-import { SpacePageMeta } from "components/SpacePageMeta";
-import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React, { useEffect, useState } from "react";
 import { HomeScreen, homeBackground } from "screens/HomeScreen";
+import {
+    cacheCurrentSpaceFeedPage,
+    loadCachedSpaceFeed,
+    patchCachedSpaceFeedPost,
+    prependCachedSpaceFeedPost,
+    removeCachedSpaceFeedPost,
+} from "services/feed-cache";
+import { consumeSentSpaceInviteFriend, spaceInviteURL } from "services/invite";
+import { loadExistingSpaceId } from "services/profile";
 import {
     createCurrentPhotoPost,
     deleteCurrentPost,
@@ -17,27 +26,15 @@ import {
     updateCurrentPostCaption,
     type SpacePost,
 } from "services/space";
-import {
-    cacheCurrentSpaceFeedPage,
-    loadCachedSpaceFeed,
-    patchCachedSpaceFeedPost,
-    prependCachedSpaceFeedPost,
-    removeCachedSpaceFeedPost,
-} from "services/spaceFeedCache";
-import {
-    consumeSentSpaceInviteFriend,
-    spaceInviteURL,
-} from "services/spaceInvite";
-import { loadExistingSpaceId } from "services/spaceProfile";
-import { useSpaceAppState } from "state/spaceAppState";
+import { useSpaceAppState } from "state/app-state";
 import {
     confirmLocalFeedPost,
     createLocalFeedPostID,
     failLocalFeedPost,
-} from "utils/localFeedPost";
-import { prepareSpacePostImageFromEdit } from "utils/spacePostImage";
-import { spaceRoutes } from "utils/spaceRoutes";
-import { useSpaceRouter } from "utils/spaceRouteTransitions";
+} from "utils/local-feed-post";
+import { prepareSpacePostImageFromEdit } from "utils/post-image";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
 
 const inviteFriendsToastDelayMs = 3000;
 
@@ -46,11 +43,13 @@ const Page: React.FC = () => {
     const {
         friends,
         localFeedPosts,
+        pendingPostPhotoFile,
         profile,
         profileLoadError,
         profileLoadStatus,
         setFriends,
         setLocalFeedPosts,
+        setPendingPostPhotoFile,
         setSkipNextHomeFeedSkeleton,
         skipNextHomeFeedSkeleton,
     } = useSpaceAppState();
@@ -266,6 +265,7 @@ const Page: React.FC = () => {
                 friendRequestSentToastName={friendRequestSentToastName}
                 hasFeedLoadMoreError={hasFeedLoadMoreError}
                 hasUnreadMessages={hasUnreadMessages}
+                initialPostPhotoFile={pendingPostPhotoFile}
                 hasMoreFeedItems={Boolean(feedNextCursor)}
                 isFeedLoading={isHomeFeedLoading}
                 isFeedLoadingMore={isFeedLoadingMore}
@@ -284,6 +284,7 @@ const Page: React.FC = () => {
                 }
                 onFriendRequestSentToastClose={closeFriendRequestSentToast}
                 onInviteFriendsToastClose={closeInviteFriendsToast}
+                onInitialPostPhotoConsumed={() => setPendingPostPhotoFile(null)}
                 onCreatePost={
                     profile
                         ? async (image, caption) => {

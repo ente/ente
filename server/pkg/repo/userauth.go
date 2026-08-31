@@ -16,8 +16,8 @@ type UserAuthRepository struct {
 }
 
 type RevokedToken struct {
-	App   ente.App
-	Token string
+	App       ente.App
+	TokenHash []byte
 }
 
 func (repo *UserAuthRepository) AddOTT(emailHash string, app ente.App, ott string, expirationTime int64) error {
@@ -46,8 +46,8 @@ func (repo *UserAuthRepository) RemoveExpiredOTTs() error {
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *UserAuthRepository) GetTokenCreationTime(token string) (int64, error) {
-	row := repo.DB.QueryRow(`SELECT creation_time from tokens where token = $1`, token)
+func (repo *UserAuthRepository) GetTokenCreationTimeByHash(tokenHash []byte) (int64, error) {
+	row := repo.DB.QueryRow(`SELECT creation_time from tokens where token_hash = $1`, tokenHash)
 	var result int64
 	if err := row.Scan(&result); err != nil {
 		return 0, stacktrace.Propagate(err, "Failed to scan row")
@@ -111,25 +111,50 @@ func (repo *UserAuthRepository) GetValidOTTs(emailHash string, app ente.App) ([]
 	return otts, nil
 }
 
-func (repo *UserAuthRepository) GetMaxWrongAttempts(emailHash string, app ente.App) (int, error) {
-	row := repo.DB.QueryRow(`SELECT COALESCE(MAX(wrong_attempt),0) FROM otts WHERE email_hash = $1 AND expiration_time > $2 AND app = $3`,
-		emailHash, time.Microseconds(), app)
-	var wrongAttempt int
-	if err := row.Scan(&wrongAttempt); err != nil {
-		return 0, stacktrace.Propagate(err, "Failed to scan row")
-	}
-	return wrongAttempt, nil
-}
-
-// RecordWrongAttemptForActiveOtt increases the wrong_attempt count for given emailHash and active ott.
-// Assuming tha we keep deleting expired OTT, max(wrong_attempt) can be used to track brute-force attack
-func (repo *UserAuthRepository) RecordWrongAttemptForActiveOtt(emailHash string, app ente.App) error {
-	_, err := repo.DB.Exec(`UPDATE otts SET wrong_attempt = otts.wrong_attempt + 1
-				WHERE email_hash = $1  AND expiration_time > $2 AND app=$3`, emailHash, time.Microseconds(), app)
+func (repo *UserAuthRepository) ReserveOTTVerificationAttempt(emailHash string, app ente.App, submittedOTT string, limit int) ([]string, bool, error) {
+	tx, err := repo.DB.Begin()
 	if err != nil {
-		return stacktrace.Propagate(err, "Failed to update wrong attempt count")
+		return nil, false, stacktrace.Propagate(err, "")
 	}
-	return nil
+	defer tx.Rollback()
+
+	rows, err := tx.Query(`SELECT ott, wrong_attempt FROM otts
+		WHERE email_hash = $1 AND app = $2 AND expiration_time > $3
+		ORDER BY ott FOR UPDATE`, emailHash, app, time.Microseconds())
+	if err != nil {
+		return nil, false, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+
+	otts := make([]string, 0)
+	limited := false
+	matched := false
+	for rows.Next() {
+		var ott string
+		var wrongAttempt int
+		if err := rows.Scan(&ott, &wrongAttempt); err != nil {
+			return nil, false, stacktrace.Propagate(err, "")
+		}
+		otts = append(otts, ott)
+		limited = limited || wrongAttempt >= limit
+		matched = matched || ott == submittedOTT
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, stacktrace.Propagate(err, "")
+	}
+	if limited || len(otts) == 0 || matched {
+		return otts, limited, nil
+	}
+
+	_, err = tx.Exec(`UPDATE otts SET wrong_attempt = wrong_attempt + 1
+		WHERE email_hash = $1 AND app = $2 AND ott = ANY($3)`, emailHash, app, pq.Array(otts))
+	if err != nil {
+		return nil, false, stacktrace.Propagate(err, "")
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, false, stacktrace.Propagate(err, "")
+	}
+	return otts, false, nil
 }
 
 func (repo *UserAuthRepository) AddToken(userID int64, app ente.App, token string, ip string, userAgent string) error {
@@ -138,7 +163,7 @@ func (repo *UserAuthRepository) AddToken(userID int64, app ente.App, token strin
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *UserAuthRepository) GetUserIDWithToken(token string, app ente.App) (int64, bool, error) {
+func (repo *UserAuthRepository) GetUserIDWithTokenHash(tokenHash []byte, app ente.App) (int64, bool, error) {
 	row := repo.DB.QueryRow(`
 		SELECT 
 			user_id,
@@ -148,7 +173,7 @@ func (repo *UserAuthRepository) GetUserIDWithToken(token string, app ente.App) (
 				ELSE false 
 			END as is_expired
 		FROM tokens 
-		WHERE token = $1 AND app = $2 AND is_deleted = false`, token, app)
+		WHERE token_hash = $1 AND app = $2 AND is_deleted = false`, tokenHash, app)
 	var id int64
 	var isExpired bool
 	err := row.Scan(&id, &isExpired)
@@ -158,23 +183,23 @@ func (repo *UserAuthRepository) GetUserIDWithToken(token string, app ente.App) (
 	return id, isExpired, nil
 }
 
-func (repo *UserAuthRepository) RemoveToken(userID int64, token string) ([]RevokedToken, error) {
+func (repo *UserAuthRepository) RemoveTokenByHash(userID int64, tokenHash []byte) ([]RevokedToken, error) {
 	return repo.markTokensDeleted(
-		`UPDATE tokens SET is_deleted = true WHERE user_id = $1 AND token = $2 RETURNING app, token`,
-		userID, token,
+		`UPDATE tokens SET is_deleted = true WHERE user_id = $1 AND token_hash = $2 RETURNING app, token_hash`,
+		userID, tokenHash,
 	)
 }
 
-func (repo *UserAuthRepository) UpdateLastUsedAt(userID int64, token string, ip string, userAgent string) error {
-	_, err := repo.DB.Exec(`UPDATE tokens SET ip = $1, user_agent = $2, last_used_at = $3 WHERE user_id = $4 AND token = $5`,
-		ip, userAgent, time.Microseconds(), userID, token)
+func (repo *UserAuthRepository) UpdateLastUsedAtByTokenHash(userID int64, tokenHash []byte, ip string, userAgent string) error {
+	_, err := repo.DB.Exec(`UPDATE tokens SET ip = $1, user_agent = $2, last_used_at = $3 WHERE user_id = $4 AND token_hash = $5`,
+		ip, userAgent, time.Microseconds(), userID, tokenHash)
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *UserAuthRepository) RemoveAllOtherTokens(userID int64, token string) ([]RevokedToken, error) {
+func (repo *UserAuthRepository) RemoveAllOtherTokensByHash(userID int64, tokenHash []byte) ([]RevokedToken, error) {
 	return repo.markTokensDeleted(
-		`UPDATE tokens SET is_deleted = true WHERE user_id = $1 AND token <> $2 AND is_deleted = false RETURNING app, token`,
-		userID, token,
+		`UPDATE tokens SET is_deleted = true WHERE user_id = $1 AND token_hash <> $2 AND is_deleted = false RETURNING app, token_hash`,
+		userID, tokenHash,
 	)
 }
 
@@ -192,14 +217,14 @@ func (repo *UserAuthRepository) RemoveTokensForApps(userID int64, apps []ente.Ap
 		dbApps = append(dbApps, string(app))
 	}
 	return repo.markTokensDeleted(
-		`UPDATE tokens SET is_deleted = true WHERE user_id = $1 AND app = ANY($2) AND is_deleted = false RETURNING app, token`,
+		`UPDATE tokens SET is_deleted = true WHERE user_id = $1 AND app = ANY($2) AND is_deleted = false RETURNING app, token_hash`,
 		userID, pq.Array(dbApps),
 	)
 }
 
 func (repo *UserAuthRepository) RemoveAllTokens(userID int64) ([]RevokedToken, error) {
 	return repo.markTokensDeleted(
-		`UPDATE tokens SET is_deleted = true WHERE user_id = $1 AND is_deleted = false RETURNING app, token`,
+		`UPDATE tokens SET is_deleted = true WHERE user_id = $1 AND is_deleted = false RETURNING app, token_hash`,
 		userID,
 	)
 }
@@ -214,7 +239,7 @@ func (repo *UserAuthRepository) markTokensDeleted(query string, args ...interfac
 	tokens := make([]RevokedToken, 0)
 	for rows.Next() {
 		var token RevokedToken
-		if err = rows.Scan(&token.App, &token.Token); err != nil {
+		if err = rows.Scan(&token.App, &token.TokenHash); err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
 		tokens = append(tokens, token)

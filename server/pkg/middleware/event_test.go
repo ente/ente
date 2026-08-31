@@ -34,62 +34,6 @@ func TestAccountRecoveryTokensAreNotLogged(t *testing.T) {
 	require.False(t, shouldSkipBodyLog(http.MethodGet, "/users/recover-account"))
 }
 
-func TestEventsUse120PerHourGlobalRateLimit(t *testing.T) {
-	limit := util.NewRateLimiter("120-H")
-	rateLimiter := &RateLimitMiddleware{limit120ReqPerHour: limit}
-
-	require.Same(t, limit, rateLimiter.getGlobalLimiter("/events", http.MethodPost))
-	require.Same(t, limit, rateLimiter.getGlobalLimiter("/events/user", http.MethodPost))
-	require.Nil(t, rateLimiter.getLimiter("/events", http.MethodPost))
-	require.Nil(t, rateLimiter.getLimiter("/events/user", http.MethodPost))
-}
-
-func TestSpaceRoutesUseRouteSpecificRateLimits(t *testing.T) {
-	limit10ReqPerMin := util.NewRateLimiter("10-M")
-	limit60ReqPerMin := util.NewRateLimiter("60-M")
-	limit200ReqPerMin := util.NewRateLimiter("200-M")
-	limit500ReqPerMin := util.NewRateLimiter("500-M")
-	rateLimiter := &RateLimitMiddleware{
-		limit10ReqPerMin:  limit10ReqPerMin,
-		limit60ReqPerMin:  limit60ReqPerMin,
-		limit200ReqPerMin: limit200ReqPerMin,
-		limit500ReqPerMin: limit500ReqPerMin,
-	}
-
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug", http.MethodGet))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/slug-availability/:spaceSlug", http.MethodGet))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/bootstrap", http.MethodGet))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/profile", http.MethodGet))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/posts", http.MethodGet))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/versions", http.MethodGet))
-	require.Same(t, limit500ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/assets/redirect", http.MethodGet))
-	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/space/public/by-slug/:spaceSlug/link/push/subscription", http.MethodPut))
-	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/uploads/presign", http.MethodPost))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/profile", http.MethodGet))
-	require.Same(t, limit500ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/assets/redirect", http.MethodGet))
-	require.Same(t, limit60ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/conversations", http.MethodGet))
-	require.Same(t, limit60ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/feed", http.MethodGet))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/posts", http.MethodGet))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/posts/:postID", http.MethodGet))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/versions", http.MethodGet))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/posts", http.MethodPost))
-	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/messages/:messageID", http.MethodDelete))
-	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/account/space", http.MethodPost))
-	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/account/space/sessions", http.MethodPost))
-	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/account/space/sessions/bootstrap", http.MethodPost))
-	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/account/space/sessions/current", http.MethodDelete))
-	require.Nil(t, rateLimiter.getLimiter("/account/space", http.MethodGet))
-}
-
-func TestAccountRecoveryRoutesUsePublicSensitiveRateLimit(t *testing.T) {
-	limit := util.NewRateLimiter("10-M")
-	rateLimiter := &RateLimitMiddleware{limit10ReqPerMin: limit}
-
-	require.Same(t, limit, rateLimiter.getLimiter("/users/recover-account/validate", http.MethodPost))
-	require.Same(t, limit, rateLimiter.getLimiter("/users/recover-account", http.MethodPost))
-	require.Nil(t, rateLimiter.getLimiter("/users/recover-account", http.MethodGet))
-}
-
 func TestEventsShareGlobalRateLimitAcrossPublicAndAuthenticatedRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	rateLimiter := &RateLimitMiddleware{

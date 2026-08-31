@@ -9,6 +9,7 @@ import workmanager_apple
 @objc class AppDelegate: FlutterAppDelegate {
   private static let workmanagerDebugThreadIdentifier =
     "io.ente.frame.workmanager.debug"
+  private let foregroundHeartbeat = ForegroundHeartbeat()
 
   override func application(
     _ application: UIApplication,
@@ -46,7 +47,6 @@ import workmanager_apple
       // only accept non-homewidget urls for AppLinks
       if !url.absoluteString.contains("homeWidget") {
         AppLinks.shared.handleLink(url: url)
-        return true
       }
     }
 
@@ -84,11 +84,18 @@ import workmanager_apple
   }
 
   override func applicationDidBecomeActive(_ application: UIApplication) {
+    foregroundHeartbeat.start()
     signal(SIGPIPE, SIG_IGN)
   }
 
   override func applicationWillEnterForeground(_ application: UIApplication) {
+    foregroundHeartbeat.start()
     signal(SIGPIPE, SIG_IGN)
+  }
+
+  override func applicationDidEnterBackground(_ application: UIApplication) {
+    foregroundHeartbeat.stop()
+    super.applicationDidEnterBackground(application)
   }
 
   override func userNotificationCenter(

@@ -6,7 +6,7 @@
         "@mui/icons-material": "9.3.1",
         "ente-accounts": "*",
         "ente-base": "*",
-        "ente-wasm": "*",
+        "ente-legacy-wasm": "*",
         "pdfjs-dist": "6.2.108",
         "qr": "0.6.0",
         "zod": "4.4.3"

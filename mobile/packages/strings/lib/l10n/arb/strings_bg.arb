@@ -1,14 +1,288 @@
 {
   "about": "Относно",
+  "acceptTrustInvite": "Приеми поканата",
   "account": "Профил",
+  "accountCredentials": "Парола",
+  "accountCredentialsDescription": "Запазете данните за вход.",
+  "accountIsAlreadyConfigured": "Вече има настроен профил.",
+  "accountOwnerPersonAppbarTitle": "{title} (Аз)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "accountRecovery": "Възстановяване на профил",
+  "accountSetupIncompleteCreateAccount": "Настройката на профила не е завършена. Създайте профил, за да я завършите",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
+  },
+  "actionNotSupportedForSharedFiles": "{count, plural, one{Action is not supported for {count} shared file} other{Action is not supported for {count} shared files}}",
+  "@actionNotSupportedForSharedFiles": {
+    "description": "Message when action is not supported for shared files",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "actionNotSupportedOnFavouritesAlbum": "Action not supported on Favourites album",
+  "activeLinksWillShowUpHere": "Active links will show up here",
   "activeSessions": "Активни сесии",
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
+  "add": "Add",
+  "addAdmin": "Add admin",
+  "addAdmins": "{count, plural, =0{Add admin} one{Add admin} other{Add admins}}",
+  "@addAdmins": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Button text to add admins"
+  },
+  "addAlbumWidgetPrompt": "Add an album widget to your home screen to customize it here.",
+  "addANameAndPhoto": "Add a name and photo",
+  "addANewEmail": "Add a new email",
   "addCode": "Добавяне на код",
+  "addCollaborator": "Add collaborator",
+  "addCollaborators": "{count, plural, =0{Add collaborator} one{Add collaborator} other{Add collaborators}}",
+  "@addCollaborators": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "addedAMemoryTo": "added a memory to {albumName}",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedAs": "Added as",
+  "addedBy": "Added by {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedFilesToPerson": "{count, plural, one{Added {count} file to {personName}} other{Added {count} files to {personName}}}",
+  "@addedFilesToPerson": {
+    "description": "Toast shown after manually tagging one or more files to a person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "addedNMemoriesTo": "added {count} memories to {albumName}",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedSuccessfullyTo": "Added successfully to  {albumName}",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToAlbums": "{count, plural, one{Added successfully to {count} album} other{Added successfully to {count} albums}}",
+  "@addedToAlbums": {
+    "description": "Message shown when items are added to albums",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedToQueue": "Added to queue",
+  "addEmail": "Add email",
+  "addFamilyMember": "Add family member",
+  "addFiles": "Add files",
+  "addFromDevice": "Add from device",
+  "addingPhotos": "Adding photos",
+  "addingToFavorites": "Adding to favorites...",
+  "addItem": "{count, plural, one{Add item} other{Add items}}",
+  "@addItem": {
+    "description": "Page title while adding one or more items to album",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "addLocation": "Add location",
+  "addLocationButton": "Add",
+  "addMember": "Add member",
+  "addMemoriesWidgetPrompt": "Add a memories widget to your home screen to customize it here.",
+  "addMore": "Add more",
+  "addMoreAdmins": "Add more admins",
+  "addName": "Add name",
+  "addNew": "Add new",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addNewEmail": "Add new email",
+  "addOnPageSubtitle": "Details of add-ons",
+  "addOns": "Add-ons",
+  "addOnValidTill": "Your {storageAmount} add-on is valid till {endDate}",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
+  },
+  "addParticipants": "Add participants",
+  "addPeopleWidgetPrompt": "Add a people widget to your home screen to customize it here.",
+  "addPerson": "Add person",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "addPhotos": "Add photos",
+  "addSelected": "Add selected",
   "addTag": "Добавяне на етикет",
+  "addTo": "Add to",
+  "addToAlbum": "Add to album",
+  "addToCollection": "Add to collection",
+  "addToEnte": "Add to Ente",
+  "addToHiddenAlbum": "Add to hidden album",
+  "addToPerson": "Add to person",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
+  "addTrustedContact": "Add trusted contact",
+  "addTrustedPerson": "Add a trusted person",
+  "addUpTo5MembersFree": "Add up to 5 members free",
+  "addViewer": "Add viewer",
+  "addViewers": "{count, plural, =0{Add viewer} one{Add viewer} other{Add viewers}}",
+  "@addViewers": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "addYourPhotosNow": "Add your photos now",
+  "adjust": "Adjust",
+  "admin": "Admin",
+  "admins": "Admins",
+  "adminsAndCollaboratorsCanAddPhotosDescription": "Admins and collaborators can add photos. Admins can also manage photos & participants.",
+  "adminsCanManagePhotosAndParticipants": "Admins can manage photos & participants.",
+  "adminsSuccessfullyAdded": "{count, plural, =0{No admins were added} one{{count} admin successfully added} other{{count} admins successfully added}}",
+  "@adminsSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of admins that were successfully added."
+  },
+  "admiringThem": "Admiring {name}",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "Advanced",
+  "aerialViews": "Aerial perspectives",
+  "after1Day": "After 1 day",
+  "after1Hour": "After 1 hour",
+  "after1Month": "After 1 month",
+  "after1Week": "After 1 week",
+  "after1Year": "After 1 year",
+  "albumDescriptionHint": "Enter a description for this album",
+  "albumEditsWillNotBeSaved": "Your edits to this album won't be saved.",
+  "albumLayout": "Album layout",
+  "albumName": "Album name",
+  "albumOwner": "Owner",
+  "@albumOwner": {
+    "description": "Role of the album owner"
+  },
+  "albumParticipantsCount": "{count, plural, =0{No Participants} one{{count} Participant} other{{count} Participants}}",
+  "@albumParticipantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    },
+    "description": "Number of participants in an album, including the album owner."
+  },
+  "albums": "Albums",
+  "albumsCount": "{count, plural, one{{count} album} other{{count} albums}}",
+  "@albumsCount": {
+    "description": "Number of albums with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumsOnDevicePermissionCta": "Allow access",
+  "albumsOnDevicePermissionFeatureAllowAccessFaceRecognition": "Allow Ente to access and organize your photos with face recognition",
+  "albumsOnDevicePermissionFeatureControlUploads": "You're in control of what gets uploaded",
+  "albumsOnDevicePermissionFeatureLocalProcessing": "All processing happens on your device",
+  "albumsOnEnteEmptyCta": "Select albums to backup",
+  "albumsOnEnteEmptyFeatureAccessAnyDevice": "Access them on any device",
+  "albumsOnEnteEmptyFeaturePrivacy": "Full privacy with end-to-end encryption",
+  "albumsOnEnteEmptyFeatureShareLovedOnes": "Споделете с любими хора - те могат да добавят реакция и съобщение без профил",
+  "albumsOnEnteEmptyTitle": "Back up your memories",
+  "albumsReceivedEmptyFeatureAcceptInvites": "Accept invites to view photos and videos",
+  "albumsReceivedEmptyFeatureSaveToLibrary": "Save shared memories to your own library",
+  "albumsReceivedEmptyFeatureSharedByOthers": "Albums shared by others will appear here",
+  "albumsReceivedEmptyTitle": "View memories shared\n with you",
+  "albumsSharedEmptyFeatureReactAndComment": "Те могат да видят, добавят реакция и коментар без профил",
+  "albumsSharedEmptyFeatureShareLovedOnes": "Share your photos and videos with loved ones",
+  "albumsSharedEmptyTitle": "Share your memories",
+  "albumsWidgetDesc": "Select the albums you want to see on your home screen.",
+  "albumTitle": "Album title",
+  "albumUpdated": "Album updated",
   "algorithm": "Алгоритъм",
+  "align": "Align",
   "all": "Всички",
+  "allClear": "✨ All clear",
+  "allFilesAlreadyMarkedAsImportant": "All items are already marked as important",
+  "allMemoriesPreserved": "All memories preserved",
+  "allow": "Allow",
+  "allowAccessToYourPhotos": "Allow access to your photos",
+  "allowAddingPhotos": "Allow adding photos",
+  "@allowAddingPhotos": {
+    "description": "Switch button to enable uploading photos to a public link"
+  },
+  "allowAppToOpenSharedAlbumLinks": "Allow app to open shared album links",
+  "allowDownloads": "Allow downloads",
+  "allowJoiningAlbum": "Allow joining album",
+  "allowPermBody": "Please allow access to your photos from Settings so Ente can display and backup your library.",
+  "allowPermTitle": "Allow access to photos",
+  "allPersonGroupingWillReset": "All groupings for this person will be reset, and you will lose all suggestions made for this person",
+  "allTabEmptyHint": "Nothing here yet. Tap + to add a code or open Trash to recover one.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "allWillShiftRangeBasedOnFirst": "This is the first in the group. Other selected photos will automatically shift based on this new date",
+  "almostDone": "Almost done...",
+  "alreadyAdded": "Already added",
+  "alreadyHaveAnAccount": "Вече имате профил?",
+  "analysis": "Analysis",
+  "analyzingPhotosLocally": "Analyzing your photos locally...",
+  "and1Other": "and 1 other",
   "androidBiometricHint": "Потвърждаване на самоличността",
   "@androidBiometricHint": {
     "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
@@ -21,6 +295,27 @@
   "@androidSignInTitle": {
     "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
+  "andXOthers": "and {count} others",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aNewVersionOfEnteIsAvailable": "A new version of Ente is available.",
+  "aNewVersionOfEnteLockerIsAvailable": "A new version of Ente Locker is available.",
+  "anythingElse": "Нещо друго?",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
+  },
+  "appearance": "Appearance",
+  "appIcon": "App icon",
+  "appleId": "Apple ID",
+  "applePhotosUnsupportedResource": "This file could not be saved to Apple Photos. You can still view it in Ente.",
+  "@applePhotosUnsupportedResource": {
+    "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
   "appLock": "Заключване на приложението",
   "@appLock": {
     "description": "App lock setting title"
@@ -32,12 +327,56 @@
   "appLockNotEnabled": "Заключването на приложението не е активирано",
   "appLockNotEnabledDescription": "Моля, активирайте заключването на приложението от Сигурност > Заключване на приложението",
   "appLockOfflineModeWarning": "Избрахте да продължите без резервни копия. Ако забравите паролата на приложението си, ще бъдете заключени от достъп до вашите данни.",
+  "apply": "Apply",
+  "applyCodeTitle": "Apply code",
+  "appstoreSubscription": "AppStore subscription",
+  "appVersion": "Version {versionValue}",
+  "@appVersion": {
+    "placeholders": {
+      "versionValue": {}
+    }
+  },
+  "architecture": "Design icons",
+  "archive": "Archive",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "Archive album",
+  "archiveCollectionName": "Archive",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  },
+  "archivedItemsWillShowUpHere": "Archived items will show up here",
+  "archiving": "Archiving...",
+  "areThey": "Are they ",
+  "areYouSure": "Are you sure?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureDeleteFiles": "Сигурни ли сте, че искате да изтриете тези файлове?",
+  "areYouSureRemoveThisFaceFromPerson": "Are you sure you want to remove this face from this person?",
+  "areYouSureRemoveThisPersonTag": "Are you sure you want to remove this person tag?",
   "areYouSureThatYouWantToLeaveTheFamily": "Сигурни ли сте, че искате да напуснете семейния план?",
+  "areYouSureYouWantToCancel": "Are you sure you want to cancel?",
+  "areYouSureYouWantToChangeYourPlan": "Are you sure you want to change your plan?",
+  "areYouSureYouWantToExit": "Are you sure you want to exit?",
+  "areYouSureYouWantToIgnoreThesePersons": "Are you sure you want to ignore these persons?",
+  "areYouSureYouWantToIgnoreThisPerson": "Are you sure you want to ignore this person?",
   "areYouSureYouWantToLogout": "Наистина ли искате да излезете от профила си?",
   "@areYouSureYouWantToLogout": {
     "description": "Confirmation message before logout"
   },
+  "areYouSureYouWantToRenew": "Are you sure you want to renew?",
+  "areYouSureYouWantToResetThisPerson": "Are you sure you want to reset this person?",
+  "areYouSureYouWantToShowThesePeopleInPeopleSectionAgain": "Are you sure you want to show these people in the people section again?",
+  "areYouSureYouWantToShowThisPersonInPeopleSectionAgain": "Are you sure you want to show this person in the people section again?",
+  "artisticPortraits": "Artful portraits",
+  "askAQuestion": "Ask a question",
+  "askCancelReason": "Your subscription was cancelled. Would you like to share the reason?",
+  "attachLogs": "Attach logs",
+  "attachLogsHelper": "Helps us diagnose the issue faster",
   "authenticateGeneric": "Моля, удостоверете се",
+  "authenticating": "Authenticating...",
   "authenticationFailedPleaseTryAgain": "Неуспешно удостоверяване, моля опитайте отново",
   "@authenticationFailedPleaseTryAgain": {
     "description": "Error message when authentication fails"
@@ -46,19 +385,45 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
+  "authenticatorCodesCount": "{count, plural, one{{formattedCount} authenticator code} other{{formattedCount} authenticator codes}}",
+  "@authenticatorCodesCount": {
+    "description": "Delete impact row for Auth data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "authToChangeEmailVerificationSetting": "Моля, удостоверете се, за да промените потвърждението чрез имейл",
   "authToChangeLockscreenSetting": "Моля, удостоверете се, за да промените настройката за заключен екран",
   "authToChangeYourEmail": "Моля, удостоверете се, за да промените своя имейл",
   "authToChangeYourPassword": "Моля, удостоверете се, за да промените паролата си",
+  "authToConfigureTwofactorAuthentication": "Please authenticate to configure two-factor authentication",
   "authToExportCodes": "Моля, удостоверете се, за да експортирате Вашите кодове",
+  "authToInitiateAccountDeletion": "Отключете, за да изтриете профила си",
   "authToInitiateSignIn": "Моля, удостоверете се, за да започнете влизане за архивиране.",
+  "authToManageLegacy": "Please authenticate to manage your trusted contacts",
+  "authToManageLegacyKit": "Authenticate to manage legacy kits",
+  "authToSetBackupPassword": "Authenticate to set backup password",
+  "authToUpdateBackupPassword": "Authenticate to update backup password",
+  "authToViewPasskey": "Please authenticate to view your passkey",
   "authToViewPasskeyGeneric": "Моля, удостоверете се, за да видите Вашите ключове за парола",
   "authToViewSecrets": "Моля, удостоверете се, за да видите Вашите кодове",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
   },
+  "authToViewTrashedFiles": "Моля, удостоверете се, за да видите изтритите си файлове",
   "authToViewYourActiveSessions": "Моля, удостоверете се, за да видите Вашите активни сесии",
+  "authToViewYourHiddenFiles": "Please authenticate to view your hidden files",
+  "authToViewYourMemories": "Please authenticate to view your memories",
   "authToViewYourRecoveryKey": "Моля, удостоверете се, за да видите Вашия ключ за възстановяване",
+  "autoAddPeople": "Auto-add people",
+  "autoAddToAlbum": "Auto-add to album",
+  "autoCastDialogBody": "You'll see available Cast devices here.",
+  "autoCastiOSPermission": "Make sure Local Network permissions are turned on for the Ente Photos app, in Settings.",
   "autoLock": "Автоматично заключване",
   "@autoLock": {
     "description": "Auto lock setting title"
@@ -67,77 +432,444 @@
   "@autoLockFeatureDescription": {
     "description": "Description of auto lock feature"
   },
+  "autoLogoutMessage": "Due to a technical glitch, you have been logged out. Our apologies for the inconvenience.",
+  "automaticallyAnalyzeAndSplitGrouping": "We will automatically analyze the grouping to determine if there are multiple people present, and separate them out again. This may take a few seconds.",
+  "autoPair": "Auto pair",
+  "autoUploadFromThisDeviceFolder": "Auto-upload from this device folder",
+  "autumnColors": "Autumn splendor",
+  "babySmiles": "Baby smiles",
+  "backedUpAutomatically": "Backed up automatically",
+  "backedUpFolders": "Backed up folders",
+  "background": "Background",
+  "backgroundWithThem": "Beautiful views with {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "Backing up last 7 days' photos",
+  "backup": "Backup",
+  "backupAndSync": "Backup and sync",
+  "backupAndSyncDesc": "Auto-backup, sync status, and uploads",
   "backupCreated": "Резервното копие е създадено!",
+  "backupFailed": "Backup failed",
+  "backupFile": "Backup file",
   "backupFolderLabel": "Папка за резервни копия:",
+  "backupLocationChoiceDescription": "Where do you want to save your backups?",
+  "backupOnlyNewPhotos": "Backup only new photos",
+  "backupOnlyNewPhotosAllFoldersSelected": "All folders are currently selected for backup.\n\nYou can continue for now, or update selected folders.",
+  "backupOnlyNewPhotosNoFoldersSelectedContinue": "No folders are currently selected for backup.\n\nYou can continue for now, or update selected folders.",
+  "backupOnlyNewPhotosNoFoldersSelectedRequire": "No folders are currently selected for backup.\n\nPlease select folders to continue.",
+  "backupOnlyNewPhotosWarningBody": "You are currently backing up photos from {formattedDate}. Please update your settings to backup all photos.",
+  "@backupOnlyNewPhotosWarningBody": {
+    "description": "Warning shown when backup-only-new is enabled and user changes folders.",
+    "placeholders": {
+      "formattedDate": {
+        "type": "String",
+        "example": "Jan 5, 2026"
+      }
+    }
+  },
+  "backupOverMobileData": "Backup over mobile data",
   "backupPasswordCleared": "Паролата за резервни копия е изчистена",
+  "backupPasswordHint": "Your backup will be encrypted with this password.",
+  "backupSettings": "Backup settings",
+  "backupStatus": "Backup status",
+  "backupStatusDescription": "Items that have been backed up will show up here",
+  "backupToEnte": "Backup to Ente",
+  "backupVideos": "Backup videos",
+  "beach": "Sand and sea",
+  "birthday": "Birthday",
+  "birthdayJoy": "Birthday joy",
+  "birthdays": "Birthdays",
+  "blockLegacyKitRecoveryMessage": "Block the current recovery attempt\nNote that they can start a new recovery attempt",
   "blog": "Блог",
   "bothIssuerAndAccountCanNotBeEmpty": "И издателят, и акаунтът не могат да бъдат празни",
+  "bringYourFamilyAlong": "Bring your family along",
+  "browseHelpPages": "Browse help pages",
+  "brushColor": "Brush color",
+  "byAgreeing": "By continuing, you agree to the <terms>terms of service</terms> and <policy>privacy policy</policy>.",
+  "cachedData": "Cached data",
+  "calculating": "Calculating...",
+  "camera": "Camera",
+  "campingMoments": "Campfire moments",
   "cancel": "Отказ",
   "@cancel": {
     "description": "Cancel button label"
   },
+  "cancelInvite": "Cancel invite",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
+  },
+  "cancelInviteDesc": "If you delete this invite, you'll need to send a new one if you change your mind.",
+  "@cancelInviteDesc": {
+    "description": "Description for cancel invite confirmation dialog"
+  },
+  "cancelOtherSubscription": "Please cancel your existing subscription from {paymentProvider} first",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "Cancel recovery",
+  "cancelRecoveryDesc": "Сигурни ли сте, че искате да се откажете от възстановяването на профила на {email}'?",
+  "@cancelRecoveryDesc": {
+    "description": "Description for cancel recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "Cancel subscription",
+  "candidLaughter": "Burst of laughter",
+  "cannotAddMoreFilesAfterBecomingViewer": "{name} will no longer be able to add items to the collection after becoming a viewer.",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotAddMorePhotosAfterBecomingViewer": "{user} will not be able to add more photos to this album\n\nThey will still be able to remove existing photos added by them",
+  "@cannotAddMorePhotosAfterBecomingViewer": {
+    "placeholders": {
+      "user": {}
+    }
+  },
+  "cannotDeleteSharedFiles": "Изтриването не е възможно за споделени файлове",
+  "cannotMoveToSharedAlbums": "Can't move to shared albums",
+  "cannotMoveToSharedAlbumsMessage": "Items can only be added to shared albums, not moved. Would you like to add instead?",
+  "canNotOpenBody": "Sorry, this album cannot be opened in the app.",
+  "canNotOpenTitle": "Cannot open this album",
+  "cannotUpdateRecoveryTime": "Cannot update recovery time",
+  "cannotUpdateRecoveryTimeMessage": "Recovery time cannot be changed while there is an active recovery session. Please reject or wait for the recovery to complete.",
+  "canOnlyCreateLinkForFilesOwnedByYou": "Can only create link for files owned by you",
+  "canOnlyRemoveFilesOwnedByYou": "Can only remove files owned by you",
+  "castAlbum": "Cast album",
+  "castInstruction": "Visit {castUrl} on the device you want to pair.",
+  "@castInstruction": {
+    "description": "Instructions shown when pairing a device to play an album on TV.",
+    "placeholders": {
+      "castUrl": {
+        "type": "String",
+        "example": "https://cast.ente.com"
+      }
+    }
+  },
+  "castIPMismatchBody": "Please make sure you are on the same network as the TV.",
+  "castIPMismatchTitle": "Failed to cast album",
+  "castSessions": "Cast sessions",
+  "cat": "Cat",
+  "centerPoint": "Center point",
   "changeEmail": "Промяна на имейл",
   "@changeEmail": {
     "description": "Change email button label"
   },
+  "changeLocationOfSelectedItems": "Change location of selected items?",
   "changePassword": "Промяна на парола",
   "changePasswordTitle": "Промяна на паролата",
   "@changePasswordTitle": {
     "description": "Change password title"
   },
+  "changePermissions": "Change permissions",
+  "changePermissionsQuestion": "Change permissions?",
+  "changeYourReferralCode": "Change your code",
   "checkForUpdates": "Провери за актуализации",
   "checkInboxAndSpamFolder": "Моля, проверете входящата си поща (и спама), за да завършите проверката",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
   },
   "checking": "Извършва се проверка...",
+  "checkingModels": "Checking models...",
   "checkStatus": "Проверка на състоянието",
   "@checkStatus": {
     "description": "Check status button label"
   },
+  "chooseARecoveryTime": "Choose a recovery time",
+  "chooseBackupLocation": "Choose a backup location",
+  "chooseFromAnExistingContact": "Choose from an existing contact",
   "chooseIcon": "Изберете икона",
+  "chooseYourPlan": "Choose your plan",
+  "city": "In the city",
+  "citySunsets": "City sunset glow",
+  "claimedByYou": "claimed by you",
+  "cleanedUpSimilarImages": "You freed up {size} of space",
+  "@cleanedUpSimilarImages": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanUncategorized": "Clean Uncategorized",
+  "cleanUncategorizedDescription": "Remove all files from Uncategorized that are present in other albums",
+  "cleanupComplete": "Cleanup complete",
+  "cleanupHiddenFiles": "Clean up hidden files",
+  "cleanupHiddenFilesDescription": "Some files in hidden albums still exist in non-hidden albums making them visible outside of the hidden section. Cleaning up will remove them from non-hidden albums.",
+  "clearAllFilters": "Clear all",
   "clearBackupFolder": "Изчистване на папката за резервни копия",
   "clearBackupPassword": "Изчистване на паролата за резервни копия",
+  "clearCaches": "Clear caches",
+  "clearingTrash": "Изчистване на кошчето...",
+  "clearSelection": "Clear selection",
+  "clickToInstallOurBestVersionYet": "Click to install our best version yet",
   "close": "Затваряне",
+  "closeBy": "Close",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "closeFamilyConfirmBody": "All members will lose access to shared storage. This cannot be undone.",
+  "closeFamilyConfirmTitle": "Close family plan?",
+  "closeFamilyPlan": "Close family plan",
+  "closest": "Closest",
+  "cloudOnly": "Remove offline",
+  "clusteringProgress": "Clustering progress",
+  "coastalCliffs": "Cliffs by the sea",
+  "codeAppliedPageTitle": "Code applied",
+  "codeChangeLimitReached": "Sorry, you've reached the limit of code changes.",
+  "codeCopiedToClipboard": "Code copied to clipboard",
   "codeIssuerHint": "Издател",
+  "collabLinkSectionDescription": "Позволи да добавят снимки без да е необходим профил в Ente",
+  "collaborator": "Collaborator",
+  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Collaborators can add photos and videos to the shared album.",
+  "collaboratorsSuccessfullyAdded": "{count, plural, =0{Added 0 collaborator} one{Added {count} collaborator} other{Added {count} collaborators}}",
+  "@collaboratorsSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of collaborators that were successfully added."
+  },
+  "collageLayout": "Layout",
+  "collageSaved": "Collage saved to gallery",
+  "collectionCannotBeDeleted": "Тази колекция не може да бъде изтрита",
+  "collectionCannotBeEdited": "This collection cannot be edited",
+  "collectionCannotBeShared": "This collection cannot be shared",
+  "collectionDeletedSuccessfully": "Колекцията е изтрита успешно",
+  "collectionEmptyStateSubtitle": "There are no items in this collection",
+  "collectionLabel": "Collection",
+  "collectionRenamedSuccessfully": "Collection renamed successfully",
+  "collections": "Collections",
+  "collectionsDeletedSuccessfully": "{count, plural, one{{count} колекция е изтрита успешно} other{{count} колекции са изтрити успешно}}",
+  "@collectionsDeletedSuccessfully": {
+    "description": "Success message when collections are deleted",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "collectionUpdated": "Collection updated",
+  "collectPhotos": "Collect photos",
+  "color": "Color",
+  "colorfulMarkets": "Vibrant markets",
+  "commentedOnAPhoto": "commented on a photo",
+  "@commentedOnAPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAVideo": "commented on a video",
+  "@commentedOnAVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourPhoto": "commented on your photo",
+  "@commentedOnYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourVideo": "commented on your video",
+  "@commentedOnYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentHint": "Say something nice!",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "comments": "Comments",
+  "commentsCount": "{count, plural, =0{No comments} one{{count} comment} other{{count} comments}}",
+  "@commentsCount": {
+    "description": "Number of comments with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "compactMode": "Компактен изглед",
+  "comparingImageDetails": "Comparing image details...",
+  "concertNights": "Concert nights",
   "confirm": "Потвърждаване",
   "@confirm": {
     "description": "Confirm button label"
+  },
+  "confirm2FADisable": "Are you sure you want to disable two-factor authentication?",
+  "confirmAddingTrustedContact": "На път сте да добавите {email} като доверен контакт. Те ще могат да възстановят вашият профил, ако ви няма поне {numOfDays} дни.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmAddingTrustedContacts": "На път сте да добавите {count} доверен контакт. Те ще могат да възстановят вашият профил, ако ви няма поне {numOfDays} дни.",
+  "@confirmAddingTrustedContacts": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmDeleteAccountAcrossApps": "Аз осъзнзвам, че това ще изтрие моите данни в Ente Photos, Ente Auth и Ente Locker. ",
+  "@confirmDeleteAccountAcrossApps": {
+    "description": "Checkbox label for final account deletion confirmation"
   },
   "confirmPassword": "Потвърждаване на паролата",
   "@confirmPassword": {
     "description": "Confirm password field label"
   },
+  "confirmPlanChange": "Confirm plan change",
   "confirmRecoveryKey": "Потвърдете ключа за възстановяване",
   "confirmUpdatingkey": "Сигурни ли сте, че искате да актуализирате секретния ключ?",
   "confirmYourRecoveryKey": "Потвърдете Вашия ключ за възстановяване",
+  "congratulations": "Congratulations!",
+  "connectToDevice": "Connect to device",
+  "contactDetails": "Contact details",
+  "contactDetailsHint": "Phone number, email, or other contact information",
+  "contactName": "Contact name",
+  "contactNameHint": "Full name of the emergency contact",
+  "contactNotes": "Message for contact",
+  "contactNotesHint": "Important information to share with this person when they are contacted",
+  "contacts": "Contacts",
   "contactSupport": "Свържете се с поддръжката",
   "@contactSupport": {
     "description": "Contact support button label"
   },
+  "contactToManageSubscription": "Please contact us at support@ente.com to manage your {provider} subscription.",
+  "@contactToManageSubscription": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "continueInMailApp": "Continue in mail app",
   "continueLabel": "Продължете",
   "@continueLabel": {
     "description": "Continue button label"
   },
+  "continueWithoutAccount": "Продължаване без профил",
+  "convertToAlbum": "Convert to album",
   "copied": "Копирано",
   "copiedNextToClipboard": "Следващият код е копиран в буферната памет",
   "copiedToClipboard": "Копирано в буферната памет",
+  "copyAllToClipboard": "Copy all to clipboard",
   "copyEmailAddress": "Копиране на имейл адрес",
   "@copyEmailAddress": {
     "description": "Button to copy email address to clipboard"
   },
+  "copyEmbedHtml": "Copy embed HTML",
+  "copyLink": "Copy link",
+  "copypasteThisCodentoYourAuthenticatorApp": "Copy-paste this code\nto your authenticator app",
+  "couldNotBackUpTryLater": "We could not backup your data.\nWe will retry later.",
+  "couldNotFreeUpSpace": "Could not free up space",
+  "couldNotLoadAlbums": "Could not load albums",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "couldNotLoadLikes": "Could not load likes",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "couldNotLoadSelectedPhoto": "Could not load selected photo",
+  "@couldNotLoadSelectedPhoto": {
+    "description": "Toast when the selected contact photo cannot be loaded"
+  },
+  "couldNotOpenFile": "Could not open item: {error}",
+  "@couldNotOpenFile": {
+    "description": "Error message when item cannot be opened",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "couldNotUpdateSubscription": "Could not update subscription",
+  "count": "Count",
+  "cozyCafes": "Cozy cafe corners",
+  "craftingMemoriesFirstHalf": "Crafting",
+  "craftingMemoriesSecondHalf": "memories",
   "crashAndErrorReporting": "Отчитане на сривове и грешки",
+  "crashReporting": "Crash reporting",
   "create": "Създаване",
   "createAccount": "Създаване на акаунт",
   "@createAccount": {
     "description": "Create account button label"
   },
   "createAccountTitle": "Създаване на акаунт",
+  "createAlbum": "Create album",
+  "createAlbumActionHint": "Long press to select photos and click + to create an album",
+  "createAnEnteAccount": "Създаване на профил в Ente",
+  "createAnotherKit": "Create another kit",
   "createBackupNow": "Създаване на резервно копие сега",
+  "createCollaborativeLink": "Create collaborative link",
+  "createCollage": "Create collage",
+  "createCollection": "Create collection",
+  "createdOn": "Created {date}",
+  "@createdOn": {
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Apr 1, 2026"
+      }
+    }
+  },
+  "createKit": "Create kit",
+  "createLegacyKit": "Create legacy kit",
   "createNewTag": "Създаване на етикет",
+  "createPublicLink": "Create public link",
+  "createStream": "Create stream",
+  "creatingLink": "Creating link...",
+  "creatingStream": "Creating stream",
+  "credentialName": "Профил",
+  "credentialNameHint": "Name of the service",
+  "credentialNotes": "Additional notes",
+  "credentialNotesHint": "Recovery methods, security questions, ...",
   "criticalUpdateAvailable": "Налична е критична актуализация",
+  "crop": "Crop",
+  "curatedMemories": "Curated memories",
   "currentBackupFolder": "Текущо местоположение на резервни копия:",
+  "currentlyRunning": "currently running",
+  "currentUsageNote": "Current usage: {amount}. Set to 0 for no limit.",
+  "@currentUsageNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "custom": "Custom",
+  "@custom": {
+    "description": "Label for setting custom value for link expiry"
+  },
   "customEndpoint": "Свързан към {endpoint}",
   "@customEndpoint": {
     "description": "Text showing user is connected to a custom endpoint",
@@ -151,8 +883,14 @@
   "customOrder": "Персонализирана подредба",
   "darkTheme": "Тъмна",
   "data": "Информация",
+  "day": "Day",
+  "dayToday": "Today",
+  "dayYesterday": "Yesterday",
+  "declineTrustInvite": "Decline invite",
   "decrypting": "Дешифриране...",
+  "decryptingVideo": "Decrypting video...",
   "deduplicateCodes": "Премахване на повтарящи се кодове",
+  "deduplicateFiles": "Deduplicate files",
   "delete": "Изтриване",
   "@delete": {
     "description": "Delete button label"
@@ -161,18 +899,179 @@
   "@deleteAccount": {
     "description": "Delete account button label"
   },
+  "deleteAlbum": "Изтриване на албум",
+  "deleteAlbumDialog": "Да се изтрият ли снимките (и видеата) от този албум и от <bold>всички</bold> други албуми, в които присъстват?",
+  "deleteAlbumQuestion": "Да се изтрие ли този албум?",
+  "deleteAlbumsDialogBody": "Това ще изтрие всички празни албуми. Полезно е, когато искате да намалите бъркотията в списъка с албуми.",
+  "deleteAll": "Изтриване на всички",
   "deleteCodeAuthMessage": "Удостоверете се, за да изтриете кода",
   "deleteCodeMessage": "Сигурни ли сте, че искате да изтриете този код? Това действие е необратимо.",
   "deleteCodeTitle": "Изтриване на кода?",
+  "deleteCollectionDialogBody": "{collectionName} ще бъде изтрита завинаги.",
+  "@deleteCollectionDialogBody": {
+    "description": "Confirmation message body for deleting a single collection",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Documents"
+      }
+    }
+  },
+  "deleteCollectionFromEverywhere": "Изтриване на елементите отвсякъде",
+  "@deleteCollectionFromEverywhere": {
+    "description": "Checkbox label asking whether to delete collection items everywhere"
+  },
+  "deleteComment": "Изтриване на коментар",
+  "@deleteComment": {
+    "description": "Delete comment button label"
+  },
+  "deleteCommentConfirmation": "Вашият коментар „{comment}“ ще бъде изтрит завинаги",
+  "@deleteCommentConfirmation": {
+    "description": "Confirmation message when deleting a comment",
+    "placeholders": {
+      "comment": {
+        "type": "String"
+      }
+    }
+  },
+  "deletedComment": "(изтрит)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
+  },
+  "deletedFromEnte": "Изтрито от Ente",
+  "deletedItemsStayHereForThirtyDays": "Изтритите елементи остават тук 30 дни",
   "deleteDuplicates": "Изтриване на дубликатите",
+  "deleteEmptyAlbums": "Изтриване на празните албуми",
+  "deleteEmptyAlbumsWithQuestionMark": "Да се изтрият ли празните албуми?",
+  "deleteEnteAccount": "Изтриване на профил в Ente",
+  "@deleteEnteAccount": {
+    "description": "Final destructive button label for account deletion"
+  },
+  "deleteFiles": "Изтриване на файлове",
+  "deleteFromBoth": "Изтриване и от двете места",
+  "deleteFromDevice": "Изтриване от устройството",
+  "deleteFromDeviceQuestion": "Да се изтрие ли от устройството?",
+  "deleteFromEnte": "Изтриване от Ente",
+  "deleteHiddenFilesFromDevice": "Изтриване на скритите файлове от устройството",
+  "deleteHiddenFilesFromDeviceDescription": "Изтриване на локалните копия на скрити файлове от устройството ви",
+  "deleteItemCount": "{count, plural, one{Изтриване на {count} елемент} other{Изтриване на {count} елемента}}",
+  "@deleteItemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteItemsQuestion": "{count, plural, one{Да се изтрие ли елементът?} other{Да се изтрият ли {count} елемента?}}",
+  "@deleteItemsQuestion": {
+    "description": "Delete confirmation title for one or more selected items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteLegacyKitMessage": "Споделените листове вече не могат да се използват за възстановяване",
+  "deleteLink": "Изтриване на връзка",
+  "deleteLinkQuestion": "Да се изтрие ли връзката?",
+  "deleteLocation": "Изтриване на локация",
+  "deleteMemoryLinkMessage": "Хората, с които сте споделили тази връзка, ще загубят достъп, след като бъде изтрита.",
+  "deleteMultipleAlbumDialog": "Да се изтрият ли снимките (и видеата) от тези {count} албума и от <bold>всички</bold> други албуми, в които присъстват?",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteMultipleAlbumsQuestion": "Да се изтрият ли тези албуми?",
+  "deleteMultipleCollectionsDialogBody": "{count, plural, one{{count} колекция} other{{count} колекции}} ще бъдат изтрити завинаги.",
+  "@deleteMultipleCollectionsDialogBody": {
+    "description": "Confirmation message body for deleting multiple collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "deleteMultipleFilesDialogBody": "{count, plural, one{{count} елемент} other{{count} елемента}} ще бъдат изтрити завинаги.",
+  "@deleteMultipleFilesDialogBody": {
+    "description": "Confirmation message body for deleting multiple items",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "deleteNotSupportedForSharedFiles": "Изтриването не се поддържа за споделени файлове",
+  "deleteOnDeviceFiles": "Изтриване на файловете на устройството",
+  "deletePhotos": "Изтриване на снимки",
+  "deletePhotosWithSize": "Изтриване на {count} снимки ({size})",
+  "@deletePhotosWithSize": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteProgress": "Изтриване {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteReasonBehaviour": "Приложението или функционалността не работи както очаквам",
+  "@deleteReasonBehaviour": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonFoundAnotherService": "Намерих друга услуга, която ми допада повече",
+  "@deleteReasonFoundAnotherService": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonMissingFeature": "Липва ми ключова функционалност",
+  "@deleteReasonMissingFeature": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonNotListed": "Моята причина не е описана",
+  "@deleteReasonNotListed": {
+    "description": "Account deletion reason option"
+  },
+  "deleteSharedAlbum": "Да се изтрие ли споделеният албум?",
+  "deleteSharedAlbumDialogBody": "Албумът ще бъде изтрит за всички\n\nЩе загубите достъп до споделените в него снимки, притежавани от други",
+  "deleteShareLinkConfirmation": "Хората с тази връзка вече няма да имат достъп до елемента.",
+  "deleteSuggestions": "Предложения за изтриване",
+  "deleteSuggestionsDesc": "Преглед на елементите, предложени за изтриване",
+  "deleteSuggestionSent": "Предложението за изтриване е изпратено",
   "deleteTagMessage": "Сигурни ли сте, че искате да изтриете този етикет? Това действие е необратимо.",
   "deleteTagTitle": "Изтриване на етикета?",
+  "deleteUnparseableCodeMessage": "Това ще изтрие завинаги този код от Auth. Той няма да бъде преместен в кошчето.",
+  "deleteUnparseableCodeTitle": "Да се изтрие ли неразпознаваемият код?",
+  "deleteWithCount": "Изтриване ({count})",
+  "@deleteWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deletingDash": "Deleting - ",
+  "deletingFile": "Deleting item...",
+  "deletingFiles": "Deleting...",
+  "deletingShareLink": "Deleting link...",
+  "description": "Description",
   "deselectAll": "Демаркиране на всички",
+  "desertDreams": "Desert dreams",
+  "designedForFamilies": "Designed for families",
+  "details": "Details",
+  "detailsAboutTheIssue": "Details about the issue",
   "developerSettings": "Настройки за програмисти",
   "@developerSettings": {
     "description": "Label for developer settings"
   },
   "developerSettingsWarning": "Сигурни ли сте, че искате да промените настройките за програмисти?",
+  "deviceInfo": "Device info",
   "deviceLock": "Заключване на устройството",
   "@deviceLock": {
     "description": "Device lock option title"
@@ -181,25 +1080,193 @@
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
+  "deviceLockExplanation": "Disable the device screen lock when Ente is in the foreground and there is a backup in progress. This is normally not needed, but may help big uploads and initial imports of large libraries complete faster.",
+  "deviceNotFound": "Device not found",
+  "didYouKnow": "Did you know?",
   "digits": "Цифри",
+  "disableAutoLock": "Disable auto lock",
+  "disableBackup": "Disable backup",
+  "disableDownloadWarningBody": "Viewers can still take screenshots or save a copy of your photos using external tools",
+  "disableDownloadWarningTitle": "Please note",
+  "disableLinkMessage": "This will remove the public link for accessing \"{albumName}\".",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "disableTwofactor": "Disable two-factor",
+  "disablingTwofactorAuthentication": "Disabling two-factor authentication...",
+  "discardChanges": "Discard",
+  "discardEditsQuestion": "Discard edits?",
+  "discover": "Открий",
+  "@discover": {
+    "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
+  },
+  "discover_babies": "Бебета",
+  "discover_celebrations": "Празненства",
+  "discover_food": "Храна",
+  "discover_greenery": "Зеленина",
+  "discover_hills": "Хълмове",
+  "discover_identity": "Документи за самоличност",
+  "discover_memes": "Мемета",
+  "discover_notes": "Бележки",
+  "discover_pets": "Домашни любимци",
+  "discover_qr_codes": "QR кодове",
+  "discover_receipts": "Касови бележки",
+  "discover_screenshots": "Екранни снимки",
+  "discover_selfies": "Селфита",
+  "discover_sunset": "Залез",
+  "discover_visiting_cards": "Визитки",
+  "discover_wallpapers": "Тапети",
+  "dismiss": "Dismiss",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "documentSearchHint": "Search your documents",
+  "documentsHint": "Documents",
+  "doesGroupContainMultiplePeople": "Does this grouping contain multiple people?",
+  "dog": "Dog",
+  "done": "Done",
   "doNotSignOut": "Не излизайте",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
   },
+  "dontHaveAnAccount": "Нямате профил?",
+  "dontSave": "Don't save",
   "doThisLater": "Направете това по-късно",
   "@doThisLater": {
     "description": "Do this later button label"
   },
   "doubleTapToViewHiddenCode": "Можете да докоснете два пъти върху запис, за да видите кода",
+  "download": "Download",
+  "downloadApplicationUpdate": "Download update",
+  "downloadFailed": "Download failed",
+  "downloading": "Downloading...",
+  "downloadingProgress": "Downloading... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
+  },
+  "downloadSkippedAlreadyAvailableOnDevice": "{fileName} is already available in the {albumName} album on your device",
+  "@downloadSkippedAlreadyAvailableOnDevice": {
+    "description": "Toast shown in single-file download flow when the file already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSkippedInSelectionMultipleFiles": "Download of {fileCount} files skipped as they are already on your device",
+  "@downloadSkippedInSelectionMultipleFiles": {
+    "description": "Toast shown after multi-selection download when multiple selected files are skipped because they already exist locally",
+    "placeholders": {
+      "fileCount": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSkippedInSelectionSingleFile": "Download of {fileName} skipped as it is already available in the {albumName} album on your device",
+  "@downloadSkippedInSelectionSingleFile": {
+    "description": "Toast shown after multi-selection download when exactly one selected file is skipped because it already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "downloadUpdate": "Изтегляне",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Do you want to discard the edits you have made?",
+  "draw": "Draw",
+  "dropSupportEmail": "Please drop an email to {supportEmail} from your registered email address",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
   "duplicateCodes": "Повтарящи се кодове",
+  "duplicateFileCountWithStorageSaved": "You have cleaned up {count, plural, one{{count} duplicate file} other{{count} duplicate files}}, saving ({storageSaved}!)",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "{count} files, {formattedSize} each",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "earned": "earned",
+  "earnFreeStorage": "Earn free storage",
+  "earnMoreSpace": "Earn more space!",
   "edit": "Редактиране",
+  "editAutoAddPeople": "Edit auto-add people",
   "editCodeAuthMessage": "Удостоверете се, за да редактирате кода",
+  "editContact": "Edit contact",
+  "editDetails": "Edit details",
+  "editEmailAlreadyLinked": "This email is already linked to {name}.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "editItem": "Edit item",
+  "editLocation": "Edit location",
+  "editNotSupportedForSharedFiles": "Edit is not supported for shared files",
   "editOrder": "Промяна на подредбата",
+  "editPerson": "Edit person",
+  "editSecret": "Edit secret",
+  "@editSecret": {
+    "description": "Title shown when editing an existing secret"
+  },
+  "editsSaved": "Edits saved",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Edits to location will only be seen within Ente",
+  "editStorageLimit": "Edit storage limit",
   "editTag": "Редакция на етикет",
+  "editTime": "Edit time",
+  "eligible": "eligible",
   "email": "Имейл",
   "@email": {
     "description": "Email field label"
+  },
+  "emailAddress": "Email address",
+  "emailAlreadyRegistered": "Email already registered.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
   },
   "emailChangedTo": "Имейлът е променен на {newEmail}",
   "@emailChangedTo": {
@@ -213,6 +1280,27 @@
     }
   },
   "emailHint": "Въведете Вашият имейл адрес",
+  "emailNeedsEnteAccountForFamily": "{email} няма профил в Ente.\n\nИзпратете им покана и добавете към семейния профил, когато са създали личния си профил в Ente.",
+  "@emailNeedsEnteAccountForFamily": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "emailNoEnteAccount": "{email} няма профил в Ente.\n\nИзпратете им покана, за да може да споделяте неща.",
+  "@emailNoEnteAccount": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNoEnteAccountPhotos": "{email} няма профил в Ente.\n\nИзпратете им покана, за да може да споделяте снимки.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
   "emailNotRegistered": "Имейлът не е регистриран.",
   "@emailNotRegistered": {
     "description": "Error message when email is not registered"
@@ -231,8 +1319,25 @@
   "@emailYourLogs": {
     "description": "Title for emailing logs dialog"
   },
+  "embracingThem": "Embracing {name}",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "emergencyContact": "Emergency contact",
+  "empty": "Empty",
+  "emptyTrash": "Изпразване на кошчето",
+  "emptyTrashConfirmation": "Сигурни ли сте, че искате завинаги да изтриете всички елементи в кошчето? Това действие е необратимо.",
+  "emptyTrashQuestion": "Да се изпразни ли кошчето?",
+  "enable": "Enable",
   "enableAutomaticBackups": "Автоматични резервни копия",
+  "enableBackupsIosInstruction": "To enable backups on iOS, choose a folder in Files (for example \"On My iPhone\").",
+  "enableComment": "Comments and reactions",
+  "enabled": "Enabled",
+  "enableMaps": "Enable maps",
   "encrypted": "Шифровано",
+  "encryptingBackup": "Encrypting backup...",
   "encryptionKeys": "Ключове за шифроване",
   "@encryptionKeys": {
     "description": "Encryption keys title"
@@ -241,19 +1346,59 @@
   "@endpointUpdatedMessage": {
     "description": "Success message when endpoint is updated"
   },
+  "ente": "Ente",
+  "enteAuth": "Ente Auth",
+  "@enteAuth": {
+    "description": "Product name"
+  },
+  "enteLocker": "Ente Locker",
+  "@enteLocker": {
+    "description": "Product name"
+  },
+  "entePhotos": "Ente Photos",
+  "@entePhotos": {
+    "description": "Product name"
+  },
+  "enterAlbumName": "Enter album name",
+  "enterAnEmailAddress": "Enter an email address",
+  "enterAppLockPassword": "Enter app lock password",
+  "@enterAppLockPassword": {
+    "description": "Enter App lock password prompt for lock screen"
+  },
+  "enterAppLockPin": "Enter app lock PIN",
+  "@enterAppLockPin": {
+    "description": "Enter App lock PIN prompt for lock screen"
+  },
+  "enterAValidEmailAddress": "Enter a valid email address",
+  "enterCode": "Enter code",
+  "enterCodeDescription": "Enter the code provided by your friend to claim free storage for both of you",
   "enterCodeHint": "Въведете 6-цифрения код от\nВашето приложение за удостоверяване",
   "@enterCodeHint": {
     "description": "Hint for entering 2FA code"
   },
+  "enterCollectionName": "Enter collection name",
+  "enterDateOfBirthHint": "Enter date of birth",
   "enterDetailsManually": "Въведете подробности ръчно",
+  "enterEmail": "Enter email",
+  "enterFileName": "Enter file name",
+  "enterName": "Enter name",
+  "enterNameOrEmailToShareWith": "Enter name or email to share with",
+  "enterNewEmailHint": "Enter your new email address",
+  "@enterNewEmailHint": {
+    "description": "Hint text for entering new email address"
+  },
   "enterNewPasswordToEncrypt": "Въведете нова парола, която да използваме за шифроване на Вашите данни",
   "@enterNewPasswordToEncrypt": {
     "description": "Prompt to enter new password for encryption"
   },
+  "enterNewTitle": "Enter a new title",
   "enterPassword": "Въведете парола",
   "@enterPassword": {
     "description": "Enter password field label"
   },
+  "enterPasswordToAegisVault": "Enter password to aegis vault",
+  "enterPasswordToDecrypt2FASBackup": "Enter password to decrypt 2FAS backup",
+  "enterPasswordToDecryptAndOTP": "Enter password to decrypt andOTP backup",
   "enterPasswordToEncrypt": "Въведете парола, която да използваме за шифроване на Вашите данни",
   "@enterPasswordToEncrypt": {
     "description": "Prompt to enter password for encryption"
@@ -262,8 +1407,16 @@
   "@enterRecoveryKeyHint": {
     "description": "Hint for entering recovery key"
   },
+  "enterReferralCode": "Enter referral code",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "Enter the 6-digit code from\nyour authenticator app",
+  "enterThePasswordFor": "Enter the password for",
+  "@enterThePasswordFor": {
+    "description": "Text shown before email on login password verification page"
+  },
   "enterValidEmail": "Моля, въведете валиден имейл адрес.",
+  "enterValidEmailDetailed": "That email doesn't seem to be valid. Please enter a valid email address",
   "enterYourNewEmailAddress": "Въведете вашият нов имейл адрес",
+  "enterYourPassword": "Enter your password",
   "enterYourPasswordHint": "Въведете паролата си",
   "@enterYourPasswordHint": {
     "description": "Hint for password field"
@@ -273,8 +1426,13 @@
   "@error": {
     "description": "Generic error title"
   },
+  "errorGenericBody": "An unexpected error occurred while importing.",
   "errorGenericTitle": "Възникна грешка",
+  "errorInvalidQRCodeBody": "Сканирания QR код не е валиден.",
   "errorNoQRCode": "Не е намерен QR код",
+  "errorOpeningFile": "Error opening item",
+  "exif": "EXIF",
+  "expiredLinkInfo": "This link has expired. Please select a new expiry time or disable link expiry.",
   "export": "Експортиране",
   "exportCodes": "Експортиране на кодове",
   "exportDialogDesc": "Шифрованите експорти ще бъдат защитени с парола по Ваш избор.",
@@ -283,18 +1441,351 @@
     "description": "Button to export logs"
   },
   "exportWarningDesc": "Експортираният файл съдържа поверителна информация. Моля, съхранявайте го безопасно.",
+  "exportYourData": "Export your data",
+  "extraPhotosFound": "Extra photos found",
+  "faceNotClusteredYet": "Face not clustered yet, please come back later",
+  "facesTimelineAppBarTitle": "Memory lane",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineBannerTitle": "Memory lane",
+  "@facesTimelineBannerTitle": {
+    "description": "Title for the Memory Lane suggestion banner shown on a person's page"
+  },
+  "facesTimelineCaptionYearsAgo": "{count, plural, one{# year ago} other{# years ago}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
+  },
+  "facesTimelineCaptionYearsOld": "{name} was {count, plural, one{{count} year old} other{{count} years old}}",
+  "@facesTimelineCaptionYearsOld": {
+    "description": "Caption for frames when birthdate is known, describing the person's age",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of years old"
+      },
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      }
+    }
+  },
+  "facesTimelinePlaybackPause": "Pause",
+  "@facesTimelinePlaybackPause": {
+    "description": "Tooltip or semantics label for the pause button"
+  },
+  "facesTimelinePlaybackPlay": "Play",
+  "@facesTimelinePlaybackPlay": {
+    "description": "Tooltip or semantics label for the play button"
+  },
+  "facesTimelineUnavailable": "Faces timeline is preparing...",
+  "@facesTimelineUnavailable": {
+    "description": "Fallback message when the Memory Lane cannot be displayed yet"
+  },
+  "faceThumbnailGenerationFailed": "Unable to generate face thumbnails",
+  "failedToApplyCode": "Failed to apply code",
+  "failedToCancel": "Failed to cancel",
+  "failedToDecrypt2FASExport": "Failed to decrypt 2FAS export",
+  "failedToDecryptAegisVault": "Failed to decrypt aegis vault",
+  "failedToDecryptAndOTPBackup": "Failed to decrypt andOTP backup",
+  "failedToDeleteComment": "Неуспешно изтриване на коментара",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
+  },
+  "failedToDownloadOrDecrypt": "Failed to download item",
+  "failedToDownloadVideo": "Failed to download video",
+  "failedToFetchActiveSessions": "Failed to fetch active sessions",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "Failed to fetch original for edit",
+  "failedToFetchReferralDetails": "Unable to fetch referral details. Please try again later.",
+  "failedToInvite": "Couldn't invite {email}",
+  "@failedToInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "failedToInviteCount": "Couldn't invite {count} members",
+  "@failedToInviteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "failedToLikeAlbums": "{count, plural, one{Failed to like {count} album} other{Failed to like {count} albums}}",
+  "@failedToLikeAlbums": {
+    "description": "Error when liking albums fails",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedToLikeComment": "Failed to like comment",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
+  "failedToLoadAlbums": "Failed to load albums",
+  "failedToLoadCollections": "Failed to load collections: {error}",
+  "@failedToLoadCollections": {
+    "description": "Error message when loading collections fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToRefreshStripeSubscription": "Failed to refresh subscription",
+  "failedToRenew": "Failed to renew",
+  "failedToSaveFilesOffline": "{count, plural, one{Failed to save {count} file offline} other{Failed to save {count} files offline}}",
+  "@failedToSaveFilesOffline": {
+    "description": "Failure message when files could not be saved offline",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "failedToUpdateFile": "Failed to update item: {error}",
+  "@failedToUpdateFile": {
+    "description": "Error message when item update fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "failedToUpdateLike": "Failed to update like",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToVerifyPaymentStatus": "Failed to verify payment status",
+  "family": "Family",
+  "familyMoments": "Family time",
   "faq": "ЧЗВ",
   "@faq": {
     "description": "FAQ link label"
   },
+  "faqs": "FAQs",
+  "fasterUploads": "Faster uploads",
+  "favorite": "Favorite",
+  "feastingWithThem": "Feasting with {name}",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "End to end encrypted\nbackup and sync",
+  "featureOpenSource": "Open source and\naudited by security experts",
+  "featurePassAutomatically": "Pass them on automatically in emergencies",
+  "featureSaveImportant": "Save your important documents and credentials",
+  "featureSearchEtc": "Search, Tags, Share,\nNext code and a lot more",
+  "featureShareAnytime": "Share them anytime",
+  "feed": "Feed",
+  "feedToEngageWithFamily": "A feed to engage with family",
+  "festivities": "Festive cheer",
+  "fieldCopiedToClipboard": "{fieldName} copied to clipboard",
+  "@fieldCopiedToClipboard": {
+    "description": "Message when a field is copied to clipboard",
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Password"
+      }
+    }
+  },
+  "fileAnalysisFailed": "Unable to analyze file",
+  "fileDeletedSuccessfully": "Елементът е изтрит успешно",
+  "fileInfoAddDescHint": "Add a description...",
+  "fileMarkedAsImportant": "Item marked as important",
+  "fileNotUploadedYet": "File not uploaded yet",
+  "fileRemovedFromImportant": "Item removed from important",
+  "files": "Files",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
+  "filesAddedByYouWillBeRemovedFromTheCollection": "Items added by you will be removed from the collection",
+  "filesAlreadyLinkedToPerson": "{count, plural, one{{count} file is already linked to {personName}} other{{count} files are already linked to {personName}}}",
+  "@filesAlreadyLinkedToPerson": {
+    "description": "Toast shown when selected files are already manually tagged to the selected person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "filesAvailableOffline": "{count, plural, one{{count} file saved offline} other{{count} files saved offline}}",
+  "@filesAvailableOffline": {
+    "description": "Success message when files are saved offline",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesAvailableOfflinePartial": "{successCount, plural, one{Saved {successCount} file offline} other{Saved {successCount} files offline}}, {failureCount, plural, one{{failureCount} failed} other{{failureCount} failed}}",
+  "@filesAvailableOfflinePartial": {
+    "description": "Partial success message for offline save",
+    "placeholders": {
+      "failureCount": {
+        "type": "int",
+        "example": "1"
+      },
+      "successCount": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "fileSavedToGallery": "File saved to gallery",
+  "filesDeleted": "Файловете са изтрити",
+  "filesDeletedPermanently": "{count, plural, one{{count} елемент е изтрит завинаги} other{{count} елемента са изтрити завинаги}}",
+  "@filesDeletedPermanently": {
+    "description": "Success message when items are permanently deleted from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesInAlbumSafelyOnEnte": "{count, plural, one{This item in the album is backed up to Ente, delete the device copy to free space without losing it.} other{All {formattedNumber} items in the album are backed up to Ente, delete device copies to free space without losing them.}}",
+  "@filesInAlbumSafelyOnEnte": {
+    "description": "Explains that device copies for files in an album can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
+  "filesMarkedAsImportant": "{count, plural, one{{count} item marked as important} other{{count} items marked as important}}",
+  "@filesMarkedAsImportant": {
+    "description": "Success message when items are marked as important",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesRemovedFromOffline": "{count, plural, one{{count} file removed from offline} other{{count} files removed from offline}}",
+  "@filesRemovedFromOffline": {
+    "description": "Success message when offline copies are removed",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "filesRestoredSuccessfully": "{count, plural, one{{count} item restored successfully} other{{count} items restored successfully}}",
+  "@filesRestoredSuccessfully": {
+    "description": "Success message when items are restored from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesSafelyOnEnte": "{count, plural, one{This item is backed up to Ente, delete the device copy to free space without losing it.} other{All {formattedNumber} items are backed up to Ente, delete device copies to free space without losing them.}}",
+  "@filesSafelyOnEnte": {
+    "description": "Explains that device copies can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
+  "filesSavedToGallery": "Files saved to gallery",
+  "filesSelected": "{count, plural, =0{No items selected} one{{count} item selected} other{{count} items selected}}",
+  "@filesSelected": {
+    "description": "Number of items selected for upload",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "fileTypes": "File types",
+  "fileUpdatedSuccessfully": "Item updated successfully!",
+  "filter": "Filter",
+  "filters": "Filters",
+  "findingSimilarImages": "Finding similar images...",
+  "findSimilarImages": "Find similar images",
+  "findThemQuickly": "Find them quickly",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "fireworks": "Firework finale",
+  "flip": "Flip",
+  "flowers": "Blooming beauties",
   "focusOnSearchBar": "Фокусиране на търсенето при стартиране на приложението",
+  "font": "Font",
+  "food": "Culinary delight",
+  "forestTrails": "Forest strolls",
   "forgotPassword": "Забравена парола",
   "@forgotPassword": {
     "description": "Forgot password link label"
   },
   "forgotRecoveryKey": "Забравен ключ за възстановяване?",
+  "free10GB": "10GB free on <bold-green>ente</bold-green> Photos",
   "freeStorageOffer": "10% отстъпка в <bold-green>ente</bold-green> Photos",
   "freeStorageOfferDescription": "Използвайте промокод „AUTH“, за да получите 10% отстъпка през първата година",
+  "freeTrial": "Free trial",
+  "freeUpAmount": "Free up {sizeInMBorGB}",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "Free up device space",
+  "freeUpDeviceSpaceConfirmDesc": "{count, plural, one{{count} backed-up file} other{{count} backed-up files}} will be permanently deleted from this device.",
+  "@freeUpDeviceSpaceConfirmDesc": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "freeUpDeviceSpaceDesc": "Remove backed up items.",
+  "freeUpDeviceSpaceDescICloud": "Files in iCloud shared albums cannot be cleared",
+  "@freeUpDeviceSpaceDescICloud": {
+    "description": "Here 'cleared' means 'deleted' from the device"
+  },
+  "freeUpSpace": "Free up space",
+  "gallery": "Gallery",
+  "galleryMemoryLimitInfo": "Up to 1000 memories shown in gallery",
   "general": "Общи",
   "generatingEncryptionKeys": "Генериране на ключове за шифроване...",
   "@generatingEncryptionKeys": {
@@ -304,12 +1795,50 @@
   "@generatingEncryptionKeysTitle": {
     "description": "Generating encryption keys title"
   },
+  "getAnotherPartOfKitFrom": "Get another part of the kit from",
+  "getInTouch": "Get in touch",
   "getStarted": "Първи стъпки",
+  "gettingReady": "Getting ready",
+  "gettingStarted": "Getting started",
+  "gettingStartedDesc": "Инсталирайте Locker, създайте профил и запазете първите пароли или тайни неща.",
   "giveUsAStarOnGithub": "Дайте ни звезда в GitHub",
+  "goldenHourPortraits": "Golden hour faces",
+  "googlePlayId": "Google Play ID",
+  "goToUrl": "Go to {url}",
+  "@goToUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "grantFullAccessPrompt": "Please allow access to all photos in the Settings app",
+  "grantGalleryPermissionDesc": "Grant permission to access and organize photos with face recognition. All processing happens on your device.",
+  "grantGalleryPermissionTitle": "Let's find your favourites",
+  "grantPermission": "Grant permission",
+  "grantPermissionDesc": "Please allow Ente to access your library so we can organize it with face recognition. All processing happens on your device.",
+  "greenery": "The green life",
+  "grid": "Grid",
+  "groupBy": "Group by",
+  "groupByDay": "Day",
+  "groupByMonth": "Month",
+  "groupByWeek": "Week",
+  "groupByYear": "Year",
+  "groupSelfies": "All of us",
+  "guestView": "Guest view",
+  "guestViewEnablePreSteps": "To enable guest view, please setup device passcode or screen lock in your system settings.",
+  "happyBirthday": "Happy birthday! 🥳",
   "hearUsWhereOptionalTitle": "Как научихте за Ente? (по избор)",
   "@hearUsWhereOptionalTitle": {
     "description": "Title asking how user heard about Ente"
   },
+  "hearUsWhereTitle": "How did you hear about Ente?",
+  "help": "Help",
+  "helpAndSupport": "Help & Support",
+  "hidden": "Hidden",
+  "hiddenItemsWillShowUpHere": "Hidden items will show up here",
+  "hide": "Hide",
   "hideContent": "Скриване на съдържанието",
   "@hideContent": {
     "description": "Hide content setting title"
@@ -322,12 +1851,44 @@
   "@hideContentDescriptioniOS": {
     "description": "Description of hide content feature on iOS"
   },
+  "hideFromMemories": "Hide from memories",
+  "hideSharedItemsFromHomeGallery": "Hide shared items from home gallery",
+  "hiding": "Hiding...",
+  "hikingWithThem": "Hiking with {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "hintForDesktop": "Натиснете десен бутон върху код, за да го редактирате или премахнете.",
   "hintForMobile": "Натиснете продължително код, за да го редактирате или премахнете.",
+  "historicSites": "Echoes of history",
+  "homeEmptyStateLegacyDescription": "Setup your Legacy so loved ones can access important information, in your absence",
+  "@homeEmptyStateLegacyDescription": {
+    "description": "Description shown in the empty Locker home state above the Legacy setup action"
+  },
+  "hoorayyyy": "Hoorayyyy!",
+  "hostedAtOsmFrance": "Hosted at OSM France",
   "howItWorks": "Как работи",
   "@howItWorks": {
     "description": "How it works button label"
   },
+  "howToViewShareeVerificationID": "Please ask them to long-press their email address on the settings screen, and verify that the IDs on both devices match.",
+  "iCloudUnavailable": "iCloud unavailable",
+  "ignore": "Ignore",
+  "ignored": "ignored",
+  "ignorePerson": "Ignore person",
+  "imageEditorBrightness": "Brightness",
+  "imageEditorContrast": "Contrast",
+  "imageEditorExposure": "Exposure",
+  "imageEditorFade": "Fade",
+  "imageEditorHue": "Hue",
+  "imageEditorLuminance": "Luminance",
+  "imageEditorSaturation": "Saturation",
+  "imageEditorSharpness": "Sharpness",
+  "imageEditorTemperature": "Temperature",
+  "imageNotAnalyzed": "Image not analyzed",
+  "immediate": "Immediate",
   "immediately": "Незабавно",
   "@immediately": {
     "description": "Immediately option for auto lock timing"
@@ -335,6 +1896,9 @@
   "import2FasGuide": "Използвайте опцията \"Настройки->Архивиране -Експортиране\" в 2FAS.\n\nАко резервното Ви копие е шифровано, ще трябва да въведете паролата, за да дешифрирате архива",
   "importAccountPageTitle": "Въведете подробности за акаунта",
   "importAegisGuide": "Използвайте опцията „Експортиране на хранилището“ в настройките на Aegis.\n\nАко вашето хранилище е криптирано, ще трябва да въведете парола за хранилището, за да декриптирате хранилището.",
+  "importAndOTPGuide": "Export your backup from andOTP using the \"Backup\" option in Settings.\n\nIf your backup is encrypted, you will need to enter the backup password to decrypt it.",
+  "important": "Important",
+  "importantNotSupportedForSharedFiles": "Important is not supported for shared files",
   "importBitwardenGuide": "Използвайте опцията „Експортиране на хранилище“ в Bitwarden Tools и импортирайте некриптирания JSON файл.",
   "importCodeDelimiterInfo": "Кодовете могат да бъдат разделени със запетая или нов ред",
   "importCodes": "Импортиране на кодове",
@@ -342,9 +1906,22 @@
   "importEnterSetupKey": "Въведете първия си код",
   "importFailureDesc": "Неуспешно обработване на избрания файл.",
   "importFromGallery": "Импортиране от галерията",
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Import 1 code from Google Authenticator?} other{Import {codeCount} codes from Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "Експортирайте профилите си от Google Authenticator в QR код с възможността \"Transfer Accounts\". След това сканирайте QR кода или го импортирайте от изображение.",
   "importInstruction": "Моля, изберете файл, който съдържа списък с вашите кодове в следния формат",
   "importLabel": "Импортиране",
   "importLastpassGuide": "Използвайте опцията „Прехвърляне на акаунти“ в настройките на Lastpass Authenticator и натиснете „Експортиране на акаунти във файл“. Импортирайте изтегления JSON.",
+  "importOtpAuthGuide": "Експортирайте шифровано резервно копие от OTP Auth, след което изберете файл .otpauthdb или .otpauthdp. Поддържат се и .otpauth експорти за единичен профил.",
+  "importProtonAuthGuide": "Use the \"Export\" option in Proton Authenticator Settings to export your codes.\n\nIf your export is password protected, you will need to enter the password to decrypt it.",
   "importRaivoGuide": "Използвайте опцията „Експортиране на OTPs в Zip архив“ в настройките на Raivo.\n\nРазархивирайте zip файла и импортирайте JSON файла.",
   "importSelectAppExport": "Изберете файл за експортиране на {appName}",
   "@importSelectAppExport": {
@@ -380,6 +1957,12 @@
   },
   "incorrectRecoveryKeyBody": "Въведеният от Вас ключ за възстановяване е неправилен",
   "incorrectRecoveryKeyTitle": "Неправилен ключ за възстановяване",
+  "indexingPausedStatusDescription": "Processing is paused. It will automatically resume when the device is ready. The device is considered ready when its battery level, battery health, and thermal status are within a healthy range.",
+  "info": "Info",
+  "informationDescription": "Save and share information with loved ones.",
+  "informationTypes": "Information types",
+  "informationTypesDesc": "Documents, notes, cards, passwords, and other item types",
+  "initialBackupCreated": "Initial backup created!",
   "insecureDevice": "Несигурно устройство",
   "@insecureDevice": {
     "description": "Insecure device warning title"
@@ -402,12 +1985,49 @@
     "description": "Detailed error message when endpoint is invalid"
   },
   "invalidKey": "Невалиден ключ",
+  "invalidProtonExportMessage": "The selected file is not a valid Proton Authenticator export.",
+  "invalidProtonExportTitle": "Invalid Proton export",
   "invalidQRCode": "Невалиден QR код",
   "invalidRecoveryKey": "Въведеният от Вас ключ за възстановяване не е валиден. Моля, уверете се, че съдържа 24 думи и проверете правописа на всяка.\n\nАко сте въвели по-стар код за възстановяване, уверете се, че е дълъг 64 знака и проверете всеки от тях.",
+  "invalidReferralCode": "Invalid code",
+  "invite": "Invite",
+  "inviteLimitReached": "You've added 5 invites. Remove one to add another",
+  "inviteMembers": "Invite members",
+  "inviteResent": "Invite resent",
+  "invitesSentCount": "{count, plural, one{Invite sent} other{Invites sent}}",
+  "@invitesSentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "inviteToEnte": "Invite to Ente",
   "ok": "ОК",
   "@ok": {
     "description": "Generic OK button label"
   },
+  "iosOnMyDeviceNotSupported": "\"On My iPhone\" cannot be used directly. Please select or create a folder inside it.",
+  "itemCount": "{count, plural, one{{count} item} other{{count} items}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "items": "{count} items",
+  "@items": {
+    "description": "Number of items in a collection",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Items show the number of days remaining before permanent deletion",
+  "itemsStored": "Items stored",
+  "itemsWillBeRemovedFromAlbum": "Selected items will be removed from this album",
   "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Изглежда нещо се обърка. Моля, опитайте отново след известно време. Ако грешката продължава, моля, свържете се с нашия екип за поддръжка.",
   "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
     "description": "Generic error message for temporary issues"
@@ -416,10 +2036,207 @@
   "@iUnderStand": {
     "description": "Text for the button to confirm the user understands the warning"
   },
+  "join": "Join",
+  "joinAlbum": "Join album",
+  "joinAlbumConfirmationDialogBody": "Joining an album will make your email visible to its participants.",
+  "joinAlbumSubtext": "to view and add your photos",
+  "joinAlbumSubtextViewer": "to add this to shared albums",
+  "keepOffline": "Keep offline",
+  "keepPhotos": "Keep photos",
+  "kiloMeterUnit": "km",
+  "lakeside": "Lakeside calm",
   "language": "Език",
+  "lastMonth": "Last month",
+  "lastUpdated": "Last updated",
+  "lastWeek": "Last week",
+  "lastYearsTrip": "Last year's trip",
+  "layout": "Layout",
+  "layoutGrouped": "Grouped",
+  "layoutMasonry": "Masonry",
+  "layoutTrip": "Trip",
+  "leave": "Leave",
+  "leaveAlbum": "Leave album",
+  "leaveCollection": "Leave collection",
+  "leaveCollectionSuccessfully": "Left collection successfully",
   "leaveFamily": "Напуснете семейството",
+  "leaveFamilyPlan": "Leave family plan",
+  "@leaveFamilyPlan": {
+    "description": "Button label for leaving family plan",
+    "type": "text"
+  },
+  "leaveSharedAlbum": "Leave shared album?",
+  "left": "Left",
+  "leftCollectionsSuccessfully": "{count, plural, one{Left {count} collection successfully} other{Left {count} collections successfully}}",
+  "@leftCollectionsSuccessfully": {
+    "description": "Success message when leaving collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "legacy": "Legacy",
+  "legacyAccounts": "Наследяващи профили",
+  "legacyCongratulationsMessage": "You've successfully setup your Legacy.\nStart saving your important information.",
+  "legacyDesc": "Доверени контакти, план за наследяване и възстановяване на профил",
+  "legacyEmptyStateDescription": "In your absence, Legacy helps your loved ones access your information on Locker.",
+  "legacyIntroCard1": "We give you 3 cards",
+  "legacyIntroCard2": "Share them with\n3 people you trust",
+  "legacyIntroCard3": "Any 2 of 3 can unlock your information on Locker",
+  "legacyIntroTitle": "Help loved ones access important information, in your absence.",
+  "legacyInvite": "{email} has invited you to be a trusted contact",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyKitAllSetDescription": "You can set up more Legacy kits or revoke access anytime.",
+  "legacyKitAllSetTitle": "Your Legacy kit is all set!",
+  "legacyKitEmptyDescription": "Позволете на доверени хора да могат заедно да възстановят профила ви",
+  "legacyKitMaxReached": "You can create up to 5 legacy kits.",
+  "legacyKitRecoveryAttemptInProgress": "Recovery attempt in progress",
+  "legacyKitRecoveryAttemptMessage": "Стартирано е възстановяване чрез този наследствен комплект и достъп до профила ще бъде получен на {availableAt}.\n\nМожете да отхвърлите възстановяването по всяко време преди това.",
+  "@legacyKitRecoveryAttemptMessage": {
+    "placeholders": {
+      "availableAt": {
+        "type": "String",
+        "example": "April 7, 2026 7:34 PM"
+      }
+    }
+  },
+  "legacyKitRecoveryInProgress": "Recovery in progress",
+  "legacyKitRecoveryWarning": "Някой се опитва да възстанови профила ви чрез наследствен комплект",
+  "legacyKits": "Legacy kits",
+  "legacyPageDesc": "Наследяването позволява на доверени контакти да имат достъп до профила ви при ваша липса.",
+  "legacyPageDesc2": "Доверените контакти могат да започнат възстановяване на профила и, ако не бъде спряно в рамките на 30 дни, да нулират паролата ви и да получат достъп до профила ви.",
+  "letsTryThatAgain": "Let's try that again",
   "lightTheme": "Светла",
+  "like": "Like",
+  "likeAll": "Like all",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "likedAComment": "liked a comment",
+  "@likedAComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAPhoto": "liked a photo",
+  "@likedAPhoto": {
+    "description": "Social action text shown after a person's name, for example 'John liked a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAReply": "liked a reply",
+  "@likedAReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked a reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAVideo": "liked a video",
+  "@likedAVideo": {
+    "description": "Social action text shown after a person's name, for example 'John liked a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourComment": "liked your comment",
+  "@likedYourComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourPhoto": "liked your photo",
+  "@likedYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourReply": "liked your reply",
+  "@likedYourReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked your reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourVideo": "liked your video",
+  "@likedYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likesCount": "{count, plural, one{{count} like} other{{count} likes}}",
+  "@likesCount": {
+    "description": "Number of likes with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "limit": "Limit",
+  "linkCopiedToClipboard": "Link copied to clipboard",
+  "linkDeletedSuccessfully": "Връзката е изтрита успешно",
+  "linkDeviceLimit": "Device limit",
+  "linkEnabled": "Enabled",
+  "linkExpired": "Expired",
+  "linkExpiresOn": "Link will expire on {expiryTime}",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "Link expiry",
+  "linkHasExpired": "Link has expired",
+  "linkLabel": "Link",
+  "linkNeverExpires": "Never",
+  "linkRequestLimitExceeded": "This album has been viewed on too many devices",
+  "links": "Links",
+  "list": "List",
+  "livePhotos": "Live Photos",
+  "loadingExifData": "Loading EXIF data...",
+  "loadingGallery": "Loading gallery...",
+  "loadingModel": "Downloading models...",
+  "loadingYourPhotos": "Loading your photos...",
+  "loadMessage1": "You can share your subscription with your family",
+  "loadMessage2": "We have preserved over {memoriesCountInMillions} million memories so far",
+  "@loadMessage2": {
+    "placeholders": {
+      "memoriesCountInMillions": {
+        "type": "int"
+      }
+    }
+  },
+  "loadMessage3": "We keep 3 copies of your data, one in an underground fallout shelter",
+  "loadMessage4": "All our apps are open source",
+  "loadMessage5": "Our source code and cryptography have been externally audited",
+  "loadMessage6": "You can share links to your albums with your loved ones",
+  "loadMessage7": "Our mobile apps run in the background to encrypt and backup any new photos you click",
+  "loadMessage8": "{webUrl} has a slick uploader",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "We use Xchacha20Poly1305 to safely encrypt your data",
+  "localBackupDailyManualCopy": "Creates one local backup per day when you open the app. Use \"Backup now\" to run a manual backup. Backups are retained up to 5 files.",
   "localBackupSidebarTitle": "Локално резервно копие",
+  "localGallery": "Local gallery",
+  "localIndexing": "Local processing",
+  "localSyncErrorMessage": "Looks like something went wrong since local photos sync is taking more time than expected. Please reach out to our support team",
+  "location": "Location",
+  "locationName": "Location name",
+  "locationPickerTip": "You can also add a location centered on a photo from the photo's info screen",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "Locations",
+  "locationTagFeatureDescription": "A location tag groups all photos that were taken within some radius of a photo",
+  "locationUpdatedAndBackupCreated": "Location updated and initial backup created!",
+  "lockButtonLabel": "Lock",
+  "lockerRecordsCount": "{count, plural, one{{formattedCount} record} other{{formattedCount} records}}",
+  "@lockerRecordsCount": {
+    "description": "Delete impact row for Locker data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "loggingOut": "Излизане от профила...",
   "@loggingOut": {
     "description": "Message shown while logging out"
@@ -440,24 +2257,203 @@
   "@loginTerms": {
     "description": "Terms agreement text for login"
   },
+  "loginToEnte": "Login to Ente",
+  "loginToExistingAccount": "Вход в съществуващ профил",
+  "loginWithAuthAccount": "Вход с вашия Auth профил",
   "loginWithTOTP": "Влизане с еднократен код",
   "@loginWithTOTP": {
     "description": "Login with TOTP button label"
   },
   "logout": "Изход",
+  "logs": "Logs",
+  "logsDialogBody": "This will send across logs to help us debug your issue. Please note that file names will be included to help track issues with specific files.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "logsDialogBodyLocker": "This will send logs to help us debug your issue.",
+  "@logsDialogBodyLocker": {
+    "description": "Dialog body text for sending logs in Locker app (without file name warning)"
+  },
+  "logsNotCopiedDownloadNote": "Logs are not copied. Export the logs and attach them to your email.",
+  "longPressAnEmailToVerifyEndToEndEncryption": "Long press an email to verify end to end encryption.",
+  "lookBackOnYourMemories": "Look back on your memories 🌄",
+  "lookingForVisualSimilarities": "Looking for visual similarities...",
+  "loopVideoOff": "Enable looping",
+  "loopVideoOn": "Disable looping",
+  "lostDevice": "Lost device?",
   "lostDeviceTitle": "Загубено устройство?",
   "@lostDeviceTitle": {
     "description": "Lost device title"
   },
+  "machineLearning": "Machine learning",
+  "machineLearningBannerSubtitle": "For magic search and face recognition",
+  "magic": "Magic",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
+  "manage": "Manage",
+  "manageDeviceStorage": "Manage device cache",
+  "manageDeviceStorageDesc": "Review and clear local storage",
+  "manageFamily": "Manage family",
+  "manageLink": "Manage link",
+  "manageParticipants": "Manage",
+  "managePaymentMethod": "Manage payment method",
+  "manageSubscription": "Manage subscription",
   "manualSort": "Персонализирано",
+  "map": "Map",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "Maps",
+  "mapsPrivacyNotice": "Approximate coordinates will be sent to privacy conscious third parties like OpenStreetMap to show the map and location.",
+  "markingAsImportant": "Marking as important...",
+  "me": "Me",
+  "mediaManagementHintMessage": "Turn on media management for Ente in settings, and the prompts stop.",
+  "@mediaManagementHintMessage": {
+    "description": "Message explaining that enabling Android media management permission avoids repeated delete confirmations."
+  },
+  "mediaManagementHintTitle": "Tired of confirming every delete?",
+  "@mediaManagementHintTitle": {
+    "description": "Title of a sheet prompting Android users to enable media management permission."
+  },
+  "members": "Members",
+  "memberStorageUsed": "{amount} used",
+  "@memberStorageUsed": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "memories": "Memories",
+  "memoriesWidgetDesc": "Select the kinds of memories you want to see on your home screen.",
+  "memoryCount": "{count, plural, =0{no memories} one{{formattedCount} memory} other{{formattedCount} memories}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "memoryLink": "Memory link",
+  "memoryShareLinkDescription": "This link will automatically expire in 7 days.",
   "merchandise": "Стоки",
+  "merge": "Merge",
+  "mergedPhotos": "Merged photos",
+  "mergeWithExisting": "Merge with existing",
+  "mergeWithPersonDescription": "All photos from both face groups will be merged together under {name}.",
+  "@mergeWithPersonDescription": {
+    "description": "Description for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "mergeWithPersonTitle": "Merge with {name}?",
+  "@mergeWithPersonTitle": {
+    "description": "Title for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "menubarMode": "Menubar mode",
+  "message": "Message",
   "minimizeAppOnCopy": "Минимизиране на приложението при копиране",
+  "minimizeToTrayOnClose": "Minimize to tray on close",
+  "mixedGrouping": "Mixed grouping?",
+  "mlConsent": "Enable machine learning",
+  "mlConsentConfirmation": "I understand, and wish to enable machine learning",
+  "mlConsentDescription": "If you enable machine learning, Ente will extract information like face geometry from files, including those shared with you.\n\nThis will happen on your device, and any generated biometric information will be end-to-end encrypted.",
+  "mlConsentPrivacy": "Please click here for more details about this feature in our privacy policy",
+  "mlIndexingDescription": "Please note that machine learning will result in higher bandwidth and battery usage until all items are processed. Consider using the desktop app for faster processing, and all results will be synced automatically.",
+  "mlProgressBannerDescription": "Your photos are getting processed on device to detect faces, objects and more.",
+  "mlProgressBannerStatus": "{indexed} out of {total} photos processed",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "mlProgressBannerTitle": "Hang tight!",
   "moderateStrength": "Умерена",
   "@moderateStrength": {
     "description": "Moderate password strength label"
   },
+  "modifyYourQueryOrTrySearchingFor": "Modify your query, or try searching for",
+  "moments": "Moments",
+  "month": "month",
+  "monthly": "Monthly",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "In the moonlight",
+  "more": "More",
+  "moreDetails": "More details",
+  "moreFrom": "More from",
+  "@moreFrom": {
+    "description": "Heading shown above links to other Ente apps"
+  },
+  "moreOptions": "More options",
+  "@moreOptions": {
+    "description": "Button label for showing additional delete options."
+  },
   "mostFrequentlyUsed": "Често използвани",
+  "mostRecent": "Most recent",
   "mostRecentlyUsed": "Последно използвани",
+  "mostRelevant": "Most relevant",
+  "mountains": "Over the hills",
+  "movedSuccessfullyTo": "Moved successfully to {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "Преместено в кошчето",
+  "moveItem": "{count, plural, one{Move item} other{Move items}}",
+  "@moveItem": {
+    "description": "Page title while moving one or more items to an album",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveMultipleToTrashMessage": "Сигурни ли сте, че искате да преместите {count} елемент(а) в кошчето?",
+  "@moveMultipleToTrashMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveSelectedPhotosToOneDate": "Move selected photos to one date",
+  "moveToAlbum": "Move to album",
+  "moveToHiddenAlbum": "Move to hidden album",
+  "movingFilesToAlbum": "Moving files to album...",
+  "name": "Name",
+  "nDays": "{count} days",
+  "@nDays": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
   "networkConnectionRefusedErr": "Не може да се свърже с Ente, моля, опитайте отново след известно време. Ако проблемът продължава, моля, свържете се с поддръжката.",
   "@networkConnectionRefusedErr": {
     "description": "Error message shown when the app cannot connect to Ente due to connection refused"
@@ -466,27 +2462,114 @@
   "@networkHostLookUpErr": {
     "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
   },
+  "never": "Never",
+  "newAlbum": "New album",
+  "newCollection": "New collection",
+  "newest": "Newest",
+  "newLocation": "New location",
+  "newPhotosEmoji": " new 📸",
+  "newRange": "New range",
   "next": "Следващ",
   "@next": {
     "description": "Next button label"
   },
   "nextTotpTitle": "следващ",
+  "nHours": "{count} hours",
+  "@nHours": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "nightLights": "Neon nights",
   "no": "Не",
+  "noAlbumsOnThisDevice": "No albums\non this device",
+  "noAppToOpenFileDownloadInstead": "No app is available to preview this file. You can download it and open it with another app.",
+  "@noAppToOpenFileDownloadInstead": {
+    "description": "Message shown when Android cannot find an app to open or preview a file"
+  },
+  "noChangesWereMade": "No changes were made",
+  "noCollections": "No collections",
+  "noDefaultBackupFolder": "Could not create default backup folder.",
+  "noDeleteSuggestion": "Няма предложения за изтриване",
+  "noDeviceFound": "No device found",
+  "noDeviceLimit": "None",
+  "@noDeviceLimit": {
+    "description": "Text to indicate that there is limit on number of devices"
+  },
+  "noDeviceThatCanBeDeleted": "Нямате файлове на това устройство, които могат да бъдат изтрити",
   "noDuplicates": "✨ Няма дубликати",
+  "noEmailAppBody": "Copy your message and send it to {email} from any email service.",
+  "@noEmailAppBody": {
+    "description": "No-mail-app fallback subtitle with the target email address",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "noEmailAppFound": "No email app found",
+  "noExifData": "No EXIF data",
+  "noFacesFound": "No faces found",
+  "noFilesFound": "No items here",
+  "noHiddenFilesOnDevice": "No hidden files on device",
+  "noImagesWithLocation": "No images with location",
   "noInternetConnection": "Няма връзка с интернет",
   "@noInternetConnection": {
     "description": "No internet connection error message"
+  },
+  "noItemsMatchSelectedFilters": "No items match the selected filters",
+  "noLikesYet": "No likes yet",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "noLimit": "No limit",
+  "noLimitSet": "No limit set",
+  "noLocation": "No location",
+  "@noLocation": {
+    "description": "Search result label for files owned by the user with missing location metadata"
+  },
+  "noLocationTag": "No location tag",
+  "@noLocationTag": {
+    "description": "Search result label for files that do not have a manual location tag"
+  },
+  "noMatchesFound": "No matches found!",
+  "noPaymentAppFound": "No payment app found",
+  "noPhotosFoundHere": "No photos found here",
+  "noRecoveryKeyNoDecryption": "Due to the nature of our end-to-end encryption protocol, your data cannot be decrypted without your password or recovery key",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
   },
   "noRecoveryKeyTitle": "Няма ключ за възстановяване?",
   "@noRecoveryKeyTitle": {
     "description": "No recovery key title"
   },
   "noResult": "Няма резултати",
+  "noResultsFound": "No results found",
+  "noSessionsFound": "No sessions found!",
+  "noSimilarImagesFound": "No similar images found",
+  "noSuggestionsForPerson": "No suggestions for {personName}",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
   "noSystemLockFound": "Не е намерено заключване на системата",
   "@noSystemLockFound": {
     "description": "Error when no system lock is found"
   },
+  "notBackedUp": "Not backed up",
   "note": "Бележка",
+  "noteContent": "Content",
+  "noteContentHint": "Write down important thoughts or instructions",
+  "noteName": "Title",
+  "noteNameHint": "Note title",
   "notes": "Бележки",
   "notesLengthLimit": "Бележките могат да съдържат най-много {count} знака",
   "@notesLengthLimit": {
@@ -499,12 +2582,111 @@
       }
     }
   },
+  "nothingToSeeHere": "Nothing to see here",
+  "nothingToTidyUpHere": "Nothing to tidy up here",
+  "notifications": "Notifications",
+  "notifyMe": "Notify me",
+  "notPersonLabel": "Not {name}?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
+  "notSupportedForHOTP": "Not supported for HOTP",
+  "notThisPerson": "Not this person?",
+  "ocrGenericDetectError": "Could not detect text in image",
+  "ocrImageDecodeFailedError": "Could not read image file",
+  "ocrImageNotFoundError": "Image file not found",
+  "ocrModelsNetworkRequiredError": "Network connection required to download OCR models on first use",
+  "ocrModelsPrepareFailed": "Could not prepare OCR models",
+  "ocrNoTextDetected": "No text detected",
+  "of_": "of",
+  "offlineEnableBackupTagLabel": "10 GB FREE!",
+  "offlineFacesBannerSubtitle": "Sign up to tag people and easily find them later.",
+  "offlineFacesBannerTitle": "Want to save these faces?",
+  "offlineHomeSignupBannerAction": "Back up now",
+  "offlineHomeSignupBannerDescription": "Encrypted backups across 3 locations to keep your memories safe.",
+  "offlineHomeSignupBannerTitle": "Protect your memories forever",
   "offlineModeWarning": "Избрахте да продължите без резервни копия. Моля, направете ръчни резервни копия, за да сте сигурни, че Вашите кодове са в безопасност.",
+  "offlineNameFaceBannerSubtitle": "Sign up to tag them and easily find their photos later.",
+  "offlineNameFaceBannerTitle": "Give this face a name",
+  "offlineSettingsBannerDesc": "Zero-knowledge encryption means your memories stay yours.",
+  "offlineSettingsBannerTitle": "We can't see your photos. Ever.",
+  "onboardingDesc": "Save your photos and videos. Every memory, in one place.",
+  "onboardingTitle": "For everything you don't want to forget",
+  "onDevice": "Device",
+  "@onDevice": {
+    "description": "The text displayed above folders/albums stored on device",
+    "type": "text"
+  },
+  "oneAccountAcrossEnteApps": "Имате един общ профил за Ente Photos, Ente Auth и Ente Locker.",
+  "@oneAccountAcrossEnteApps": {
+    "description": "Explains that account deletion affects all Ente apps"
+  },
+  "oneLineAboutTheIssue": "One line about the issue",
+  "onEnte": "On <branding>ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "Please contact {familyAdminEmail} to change your code.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "Only them",
+  "onlyUploadedFilesCanBeAddedToPerson": "Only uploaded files can be added to a person",
+  "@onlyUploadedFilesCanBeAddedToPerson": {
+    "description": "Shown when user tries to manually tag files that are not uploaded yet."
+  },
+  "onTheRoad": "On the road again",
+  "onThisDay": "On this day",
+  "onThisDayMemories": "On this day memories",
+  "onThisDayNotificationExplanation": "Memories from this day in previous years",
   "oops": "Опа",
   "@oops": {
     "description": "Oops error title"
   },
+  "oopsCouldNotSaveEdits": "Oops, could not save edits",
+  "oopsSomethingWentWrong": "Oops, something went wrong",
+  "openAlbumInBrowser": "Open album in browser",
+  "openAlbumInBrowserTitle": "Please use the web app to add photos to this album",
+  "openFile": "Open file",
+  "openLink": "Open link",
+  "openSettings": "Open settings",
+  "openstreetmapContributors": "OpenStreetMap contributors",
+  "optionalAsShortAsYouLike": "Optional, as short as you like...",
+  "organization": "Organization",
+  "organizationDesc": "Collections, favorites, search, and ways to keep items organized",
+  "orPickAnExistingOne": "Or pick an existing one",
+  "orRemoveYourself": "Or remove yourself as {email}'s trusted contact",
+  "@orRemoveYourself": {
+    "description": "Text shown before remove contact button in ready state",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otherDetectedFaces": "Other detected faces",
+  "others": "Others",
+  "pair": "Pair",
+  "pairUsingCode": "Pair using code",
+  "pairWithAutoDesc": "Auto pair works only with devices that support Cast.",
+  "pairWithCodeDesc": "Pair with PIN works with any screen you wish to view your album on.",
+  "panorama": "Panorama",
   "parsingError": "Грешка при разчитане",
+  "partyWithThem": "Party with {name}",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "passkey": "Ключ за достъп (Passkey)",
   "passkeyAuthTitle": "Удостоверяване с ключ за парола",
   "@passkeyAuthTitle": {
@@ -524,6 +2706,10 @@
   },
   "passwordEmptyError": "Паролата не може да бъде празна",
   "passwordForDecryptingExport": "Парола за дешифриране на експортирането",
+  "passwordHint": "Password",
+  "passwordLock": "Password lock",
+  "passwordsDontMatch": "Passwords don't match",
+  "passwordsMatch": "Passwords match",
   "passwordStrength": "Сила на паролата: {passwordStrengthValue}",
   "@passwordStrength": {
     "description": "Text to indicate the password strength",
@@ -541,9 +2727,105 @@
   "@passwordWarning": {
     "description": "Warning about password storage"
   },
+  "pastYearsMemories": "Past years' memories",
+  "pay": "Pay",
+  "paymentDetails": "Payment details",
+  "paymentFailed": "Payment failed",
+  "paymentFailedMessage": "Unfortunately your payment failed. Please contact support and we'll help you out!",
+  "paymentFailedTalkToProvider": "Please talk to {providerName} support if you were charged",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pending": "Pending",
+  "pendingSync": "Pending sync",
   "pendingSyncs": "Предупреждение",
   "pendingSyncsWarningBody": "Някои от вашите кодове не са архивирани.\n\nМоля, уверете се, че имате резервно копие на тези кодове, преди да излезете.",
+  "people": "People",
+  "peopleAutoAddDesc": "Automatically add photos of the selected people to this album",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
+  },
+  "peopleWidgetDesc": "Select the people you want to see on your home screen.",
   "period": "Диапазон",
+  "permanentlyDelete": "Изтриване завинаги",
+  "permanentlyDeleteFilesBody": "{count, plural, one{Този елемент} other{Тези {count} елемента}} ще бъдат изтрити завинаги и не могат да бъдат възстановени.",
+  "@permanentlyDeleteFilesBody": {
+    "description": "Confirmation body for permanent deletion from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "permanentlyDeleteYourEnteAccount": "Окончателно изтриване на Ente профила?",
+  "@permanentlyDeleteYourEnteAccount": {
+    "description": "Heading for final account deletion confirmation"
+  },
+  "permDeleteWarning": "Всички елементи в кошчето ще бъдат изтрити завинаги\n\nТова действие е необратимо",
+  "personalNote": "Note",
+  "personalNoteDescription": "Write down thoughts and instructions.",
+  "personIsAge": "{name} is {age}!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name} turning {age} soon",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "Furry companions",
+  "photoGridSize": "Photo grid size",
+  "photos": "Photos",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Photos added by you will be removed from the album",
+  "photosAndVideosCount": "{count, plural, one{{formattedCount} photo & video} other{{formattedCount} photos & videos}}",
+  "@photosAndVideosCount": {
+    "description": "Delete impact row for Photos data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
+  "photosCount": "{count, plural, =0{0 photos} one{{count} photo} other{{count} photos}}",
+  "@photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "photosKeepRelativeTimeDifference": "Photos keep relative time difference",
+  "photosSharedByWillAppearHere": "Photos shared by {email} will appear here.",
+  "@photosSharedByWillAppearHere": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "a@test.test"
+      }
+    }
+  },
+  "physicalRecords": "Thing",
+  "physicalRecordsDescription": "Save locations of real-world items.",
+  "pickCenterPoint": "Pick center point",
+  "picnicDays": "Picnic memories",
+  "pin": "Pin",
   "pinLock": "Заключване с ПИН код",
   "@pinLock": {
     "description": "PIN lock option title"
@@ -554,14 +2836,56 @@
       "code": {}
     }
   },
+  "pinnedCount": "{count, plural, one{Pinned {count} item} other{Pinned {count} items}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "pinPerson": "Pin person",
   "pinText": "Закачане",
   "plainHTML": "Обикновен HTML",
   "plainText": "Обикновен текст",
+  "plansStartAt": "Plans start at {price}/month",
+  "@plansStartAt": {
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "$1.99"
+      }
+    }
+  },
+  "playfulKids": "Playful kids",
+  "playOriginal": "Play original",
+  "playstoreSubscription": "PlayStore subscription",
+  "playStream": "Play stream",
+  "pleaseCheckPasswordAndTryAgain": "Please check your password and try again.",
   "pleaseCheckYourInternetConnectionAndTryAgain": "Моля, проверете интернет връзката си и опитайте отново.",
   "@pleaseCheckYourInternetConnectionAndTryAgain": {
     "description": "Message asking user to check internet connection"
   },
+  "pleaseContactSupportAndWeWillBeHappyToHelp": "Please contact support@ente.com and we will be happy to help!",
+  "pleaseContactSupportIfTheProblemPersists": "Please contact support if the problem persists",
+  "pleaseEmailUsAt": "Please email us at {toEmail}",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseEnterADescription": "Please enter a description",
+  "pleaseEnterASubject": "Please enter a subject",
+  "pleaseGrantPermissions": "Please grant permissions",
   "pleaseLoginAgain": "Моля, впишете се отново",
+  "pleaseNamePersonInPeopleSectionFirst": "Please name a person in the People section first",
+  "@pleaseNamePersonInPeopleSectionFirst": {
+    "description": "Shown when manual tagging requires at least one named person."
+  },
+  "pleaseSelectQuickLinksToRemove": "Please select quick links to remove",
   "pleaseSendTheLogsTo": "Моля, изпратете историята на действията на \n{toEmail}",
   "@pleaseSendTheLogsTo": {
     "description": "Message asking user to send logs to email address",
@@ -577,18 +2901,53 @@
     "description": "Message asking user to try again"
   },
   "pleaseVerifyDetails": "Моля, проверете данните и опитайте отново",
+  "pleaseVerifyTheCodeYouHaveEntered": "Please verify the code you have entered",
   "pleaseWait": "Моля изчакайте...",
   "@pleaseWait": {
     "description": "Please wait message"
   },
+  "pleaseWaitDeletingAlbum": "Please wait, deleting album",
+  "pleaseWaitForSometimeBeforeRetrying": "Please wait for sometime before retrying",
+  "pleaseWaitThisWillTakeAWhile": "Please wait, this will take a while.",
+  "poolDays": "Poolside days",
+  "posingWithThem": "Posing with {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "preparingLogs": "Подготвяне на файловете с историята...",
+  "preserveMore": "Preserve more",
+  "pressAndHoldToPlayVideoDetailed": "Press and hold on the image to  play video",
+  "preview": "Preview",
+  "previous": "Previous",
   "privacy": "Поверителност",
   "privacyPolicyTitle": "Политика за поверителност",
   "@privacyPolicyTitle": {
     "description": "Privacy policy title"
   },
+  "privateSpaceForEveryMember": "Private space for every member",
+  "proceed": "Proceed",
+  "processed": "Processed",
+  "processingImport": "Processing {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLinkEnabled": "Public link enabled",
   "qr": "QR код",
   "qrCode": "QR код",
+  "questionmark": "?",
+  "queued": "Queued",
+  "radius": "Radius",
+  "rainyDays": "Rainy day feels",
+  "raiseTicket": "Raise ticket",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "Rate us",
   "rateUsOnStore": "Оценете ни в {storeName}",
   "@rateUsOnStore": {
     "placeholders": {
@@ -596,6 +2955,54 @@
     }
   },
   "rawCodeData": "Данни за необработен/чист код",
+  "readyToBackupSubtitle": "Your photos will sync in the background. The first backup may take some time.",
+  "readyToBackupTitle": "Ready to backup",
+  "reasonForLeaving": "Причина за напускане",
+  "@reasonForLeaving": {
+    "description": "Label for account deletion reason picker"
+  },
+  "reassignedToName": "Reassigned you to {name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Reassigning...",
+  "reassignMe": "Reassign \"Me\"",
+  "receivedAlbumsLabel": "Received",
+  "@receivedAlbumsLabel": {
+    "description": "Albums tab filter label for albums received from other people"
+  },
+  "receiveRemindersOnBirthdays": "Reminders when it's someone's birthday",
+  "recent": "Recent",
+  "reclaimSpace": "Reclaim {sizeInMBorGB}",
+  "@reclaimSpace": {
+    "description": "Heading that shows how much device storage can be reclaimed",
+    "placeholders": {
+      "sizeInMBorGB": {
+        "example": "2.28 GB",
+        "type": "String"
+      }
+    }
+  },
+  "recordLocation": "Location",
+  "recordLocationHint": "Where is this item kept?",
+  "recordNameHint": "Name of the real-world item",
+  "recordNotes": "Notes",
+  "recordNotesHint": "Additional information about the item",
+  "recordSavedSuccessfully": "Record saved successfully",
+  "recordSavedToMultipleCollections": "Record saved to {count, plural, one{{count} collection} other{{count} collections}} successfully",
+  "@recordSavedToMultipleCollections": {
+    "description": "Success message when record is saved to multiple collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "recover": "Възстановяване",
   "@recover": {
     "description": "Recover button label"
@@ -603,6 +3010,44 @@
   "recoverAccount": "Възстановяване на акаунт",
   "@recoverAccount": {
     "description": "Recover account button label"
+  },
+  "recoverAccountAfter": "Можете да възстановите профила на {email} след {time}.",
+  "@recoverAccountAfter": {
+    "description": "Message when recovery is waiting",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "recoverAccountDesc": "Можете да възстановите профила на {email} {days} дни след началото на процеса на възстановяване.",
+  "@recoverAccountDesc": {
+    "description": "Description for recover account page when recovery not started",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryInitiated": "Recovery initiated",
+  "recoveryInitiatedDesc": "Можете да достъпите профила след {days} дни. Ще бъде изпратено известие на {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
   },
   "recoveryKey": "Ключ за възстановяване",
   "@recoveryKey": {
@@ -624,10 +3069,34 @@
   "@recoveryKeySaveDescription": {
     "description": "Recovery key save description"
   },
+  "recoveryKeySaveShortDescription": "Please save this key in a safe place.",
   "recoveryKeySuccessBody": "Страхотно! Вашият ключ за възстановяване е валиден. Благодарим Ви за проверката.\n\nМоля, не забравяйте да запазите безопасно архивирания си ключ за възстановяване.",
   "recoveryKeyVerified": "Ключът за възстановяване е проверен",
   "recoveryKeyVerifyReason": "Вашият ключ за възстановяване е единственият начин да възстановите Вашите снимки, ако забравите паролата си. Можете да намерите своя ключ за възстановяване в Настройки > Акаунт.\n\nМоля, въведете Вашия ключ за възстановяване тук, за да проверите дали сте го запазили правилно.",
+  "recoveryReady": "Сега може да възстановите профила на {email} като зададете нова парола.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
   "recoverySuccessful": "Възстановяването е успешно!",
+  "recoveryTimeUpdated": "Recovery time updated",
+  "@recoveryTimeUpdated": {
+    "description": "Toast message shown when recovery time is updated successfully"
+  },
+  "recoveryWaitTime": "Recovery wait time",
+  "recoveryWaitTimeChangeWarning": "Changing this will cancel any ongoing attempts.",
+  "recoveryWaitTimeDescription": "Кога най-рано е възможно да се възстанови достъп до профил след сканиране на наследствен комплект",
+  "recoveryWarning": "Доверен контакт се опитва да достъпи вашия профил",
+  "recoveryWarningBody": "{email} is trying to recover your account.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
   "recreatePasswordBody": "Текущото устройство не е достатъчно мощно, за да потвърди паролата Ви, но можем да я регенерираме по начин, който работи с всички устройства.\n\nМоля, влезте с Вашия ключ за възстановяване и генерирайте отново паролата си (можете да използвате същата отново, ако желаете).",
   "@recreatePasswordBody": {
     "description": "Body text for recreate password dialog"
@@ -636,6 +3105,8 @@
   "@recreatePasswordTitle": {
     "description": "Title for recreate password dialog"
   },
+  "recreateStream": "Recreate stream",
+  "redo": "Redo",
   "reEnterPassword": "Въведете отново паролата",
   "@reEnterPassword": {
     "description": "Re-enter password prompt"
@@ -644,24 +3115,281 @@
   "@reEnterPin": {
     "description": "Re-enter PIN prompt"
   },
+  "referralCodeHint": "You can customise this code up to 3 times",
+  "referrals": "Referrals",
+  "referralsAreCurrentlyPaused": "Referrals are currently paused",
+  "referralStats": "Referral stats",
+  "referralStep1": "1. Customise and share your code.",
+  "referralStep2": "2. They sign up to Ente using your code.",
+  "referralStep3": "3. {storageInGB}GB free for them + {storageInGB}GB free for you when they upgrade.",
+  "@referralStep3": {
+    "placeholders": {
+      "storageInGB": {}
+    }
+  },
+  "referralStorageForBoth": "{storageAmountInGB} GB for them + {storageAmountInGB} GB for you when they upgrade.",
+  "@referralStorageForBoth": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "referralStorageInfo": "Referrals from paid subscribers earn bonus storage.\n\nYou can use storage up to your plan limit. Upgrade to use the rest of your earned storage.",
+  "rejectRecovery": "Reject recovery",
+  "rejectSuggestions": "Reject suggestions",
+  "related": "Related",
+  "remindToEmptyDeviceTrash": "Изпразнете и „Наскоро изтрити“ от „Настройки“ -> „Хранилище“, за да освободите пространството",
+  "remindToEmptyEnteTrash": "Изпразнете и вашето „Кошче“, за да освободите пространството",
+  "remoteImages": "Remote images",
+  "remoteThumbnails": "Remote thumbnails",
+  "remoteVideos": "Remote videos",
+  "remove": "Remove",
+  "removeAccess": "Remove access",
+  "removeAlbumParticipantBody": "{userEmail} will be removed from this shared album\n\nAny photos added by them will also be removed from the album",
+  "@removeAlbumParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeCollectionParticipantBody": "{userEmail} will be removed from this shared collection\n\nAny items added by them will also be removed from the collection",
+  "@removeCollectionParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeContact": "Remove contact",
+  "@removeContact": {
+    "description": "Button label to remove a trusted contact"
+  },
+  "removeContactDesc": "If you delete this contact, you'll need to send a new invitation, and the contact will have to accept it again.",
+  "@removeContactDesc": {
+    "description": "Description for remove contact confirmation dialog"
+  },
+  "removeContactPhoto": "Remove contact photo",
+  "removeDuplicates": "Duplicates",
+  "removeDuplicatesDesc": "Remove exact duplicates",
+  "removeFromAlbum": "Remove from album",
+  "removeFromAlbumTitle": "Remove from album?",
+  "removeFromFamily": "Remove from family",
+  "removeFromFavorite": "Remove from favorites",
+  "removeFromPersonQuestion": "Remove from person?",
+  "removeLink": "Remove link",
+  "removeMemberConfirmBody": "{email} will lose access to shared storage.",
+  "@removeMemberConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "removeMemberConfirmTitle": "Remove member?",
+  "removeParticipant": "Remove participant",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removePersonLabel": "Remove person label",
+  "removePersonTag": "Remove person tag",
+  "removePublicLink": "Remove public link",
+  "removePublicLinkConfirmation": "This will remove the public link for accessing \"{collectionName}\".",
+  "@removePublicLinkConfirmation": {
+    "description": "Confirmation message when removing public link",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Collection"
+      }
+    }
+  },
+  "removePublicLinks": "Remove public links",
+  "removeShareItemsWarning": "Selected photos will not be accessible to any viewer of this album, except the photo owners.",
+  "removeWithQuestionMark": "Remove?",
+  "removeYourselfDesc": "Ако се премахнете като доверен контакт, ще загубите достъп до профила на {email} след периода му на неактивност.",
+  "@removeYourselfDesc": {
+    "description": "Description for remove yourself as trusted contact confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "removingFromFavorites": "Removing from favorites...",
+  "removingFromImportant": "Removing from important...",
+  "rename": "Rename",
+  "renameAlbum": "Rename album",
+  "renameCollection": "Rename collection",
+  "renameFile": "Rename file",
+  "renewsOn": "Subscription renews on {endDate}",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "Renew subscription",
+  "repliedToAComment": "replied to a comment",
+  "@repliedToAComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToYourComment": "replied to your comment",
+  "@repliedToYourComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "reply": "Reply",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "replyingTo": "Replying to {name}",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replyingToYou": "Replying to you",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
   "reportABug": "Докладване на проблем",
   "@reportABug": {
     "description": "Label for reporting a bug"
   },
+  "reportAnIssue": "Report an issue",
+  "requestAFeature": "Request a feature",
+  "resendCode": "Resend code",
+  "resendInvite": "Resend invite",
+  "reset": "Reset",
+  "resetIgnoredFiles": "Reset ignored files",
+  "resetIgnoredFilesDescription": "Reset these ignored files to let Ente try uploading them again.",
   "resetPasswordTitle": "Нулиране на паролата",
   "@resetPasswordTitle": {
     "description": "Reset password title"
+  },
+  "resetToDefault": "Reset to default",
+  "restartAppToApplyChanges": "Restart the app to apply this change",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
   },
   "restore": "Възстановяване",
   "@restore": {
     "description": "Display text for an action which triggers a restore of item from trash",
     "type": "text"
   },
+  "restoreToAlbum": "Restore to album",
+  "restoringFiles": "Restoring files...",
+  "restoringItems": "Restoring...",
+  "resumableUploads": "Resumable uploads",
   "retry": "Опитайте отново",
+  "review": "Review",
+  "reviewSuggestions": "Review suggestions",
+  "revoke": "Revoke",
+  "revokeInvite": "Revoke invite",
+  "@revokeInvite": {
+    "description": "Button label to revoke a pending trusted contact invite"
+  },
+  "revokeInviteConfirmBody": "The invitation to {email} will be cancelled.",
+  "@revokeInviteConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "revokeInviteConfirmTitle": "Revoke invite?",
+  "revokeLegacyKit": "Revoke Legacy kit",
+  "right": "Right",
+  "ritualAddedToAlbum": "Ритуалът е добавен към албум",
+  "ritualAddedToAlbumWithName": "Ритуалът е добавен към {albumName}",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAddToAlbumFailure": "Ритуалът не успя да бъде добавен към албумa: {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
+  },
+  "ritualAddTooltip": "Създай ритуал",
+  "ritualAlbumLabel": "Албум",
+  "ritualAlbumMissing": "Липсва албум за ритуала. Редактирай ритуала, за да добавиш албум.",
+  "ritualAlbumNotSet": "Не е зададен албум за ритуала",
+  "ritualAlbumSelectionPlaceholder": "Избери албум",
+  "ritualBackToList": "Обратно към ритуали",
+  "ritualCameraNotFound": "Не е намерена камера на това устройство.",
+  "ritualCameraStartError": "Камерата не можа да се стартира. Моля, опитайте отново.",
+  "ritualCaptureAtLeastOne": "Първо заснемете поне една снимка.",
+  "ritualCaptureError": "Снимката не можа да бъде заснета. Моля, опитайте отново.",
+  "ritualChooseAlbumLabel": "Изберете албум",
+  "ritualChooseDaysLabel": "Изберете дни за ритуала",
+  "ritualCreateAction": "Създайте ритуал",
+  "ritualCreateNewTitle": "Създайте нов ритуал",
+  "ritualCreateYourOwn": "Създайте свой собствен ритуал",
+  "ritualCustomKeyboardLabel": "Персонализирано (клавиатура)",
+  "ritualDefaultCameraTitle": "Направете снимка",
+  "ritualEdit": "Редактирайте ритуала",
+  "ritualEditorLabel": "Редактор на ритуали",
+  "ritualEmojiKeyboardHint": "Натиснете, за да отворите клавиатурата с емотикони",
+  "ritualEmojiUseAction": "Задаване",
+  "ritualEnterDescription": "Моля, въведете описание",
+  "ritualEnterPrompt": "Въведете своя ритуал",
+  "ritualGetDailyReminders": "Задайте дневни напомняния",
+  "ritualNoAlbumsYet": "Все още няма албуми",
+  "ritualNoMatchingAlbums": "Няма съвпадащи албуми",
+  "ritualNoPhotosYet": "Все още няма снимки",
+  "ritualNotificationMessage": "Направете снимка сега",
+  "ritualNotificationsOffHint": "Известията са изключени. Изберете ден, за да ги включите.",
+  "ritualOpenCameraTooltip": "Отваряне на камерата за ритуала",
+  "ritualPhotoLimit": "Можете да добавите до {maxPhotos, plural, one{# снимка.} other{# снимки.}}",
+  "@ritualPhotoLimit": {
+    "placeholders": {
+      "maxPhotos": {
+        "type": "int",
+        "description": "Maximum number of photos allowed"
+      }
+    }
+  },
+  "ritualPickEmojiTitle": "Изберете емотикон",
+  "ritualSearchEmpty": "Създайте ритуал, за да поддържате навика си за снимане.",
+  "ritualSelectAlbumTitle": "Избор на албум",
+  "ritualSendReminderLabel": "Изпращане на напомняне",
+  "ritualSetAlbumToLaunchCamera": "Задайте албум за този ритуал, за да можете да отваряте камерата.",
+  "ritualShareUnavailable": "В момента споделянето не е възможно. Моля, опитайте отново.",
+  "ritualStartNew": "Започване на нов ритуал",
+  "ritualStartNewDescription": "Създайте ритуал, поддържайте последователно и споделяйте напредъка си.",
+  "ritualsTitle": "Ритуали",
+  "ritualUntitled": "Неозаглавен ритуал",
+  "ritualUpdate": "Обновете ритуала",
+  "riverCruises": "River cruise views",
+  "roadtripWithThem": "Road trip with {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "Rotate",
+  "sameperson": "Same person?",
   "save": "Запазване",
   "@save": {
     "description": "Label for save button"
   },
+  "saveAsAnotherPerson": "Save as another person",
+  "saveChanges": "Save changes",
+  "saveChangesBeforeLeavingQuestion": "Save changes before leaving?",
+  "saveCode": "Save code",
+  "saveCollage": "Save collage",
+  "saveContact": "Save contact",
+  "saveCopy": "Save copy",
+  "saveDocumentDescription": "Upload important docs.",
+  "saveDocumentTitle": "Document",
   "saveKey": "Запазване на ключа",
   "@saveKey": {
     "description": "Save key button label"
@@ -674,28 +3402,231 @@
   "@saveOrSendDescription": {
     "description": "Description text asking user if they want to save to storage or share with other apps"
   },
+  "savePerson": "Save person",
+  "saveToLocker": "Save to Locker",
+  "saveYourRecoveryKeyIfYouHaventAlready": "Save your recovery key if you haven't already",
+  "saving": "Saving...",
+  "savingEdits": "Saving edits...",
+  "savingOffline": "Saving offline...",
   "scan": "Сканиране",
   "scanACode": "Сканиране на код",
+  "scanAQrCode": "Scan a QR code",
+  "scanCode": "Scan code",
   "scannerTorchOff": "Изключи фенерче",
   "scannerTorchOn": "Включи фенерче",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "Scan this barcode with\nyour authenticator app",
+  "scheduleShare": "Schedule share",
   "search": "Търсене",
+  "searchAlbums": "Търсене на албуми",
+  "searchAlbumsEmptySection": "Албуми",
+  "searchAllPeople": "Търсене на всички хора",
+  "searchAndDiscovery": "Търсене и откриване",
+  "searchAndDiscoveryDesc": "Лица, локации, описания и още",
+  "searchByAlbumNameHint": "Име на албум",
+  "searchDiscoverEmptySection": "Изображенията ще се показват тук, след като обработката и синхронизацията приключат",
+  "searchEmptyDescription": "Опитайте да търсите нещо друго.",
+  "searchEmptyTitle": "Няма намерени съвпадения",
+  "searchEverywhereSubtitle": "Търсене във всички колекции и файлове.",
+  "searchEverywhereTitle": "Търсене навсякъде за „{query}“",
+  "@searchEverywhereTitle": {
+    "description": "CTA title prompting the user to search globally",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "passport"
+      }
+    }
+  },
+  "searchFileTypesAndNamesEmptySection": "Типове и имена на файлове",
   "searchHint": "Търсене...",
+  "searchHint1": "Бързо търсене на самото устройство",
+  "searchHint2": "Дати и описания на снимки",
+  "searchHint3": "Албуми, имена и типове файлове",
+  "searchHint4": "Локация",
+  "searchHint5": "Очаквайте скоро: лица и магическо търсене ✨",
+  "searchLocationEmptySection": "Групиране на снимки, направени в определен радиус от дадена снимка",
+  "searchPeopleEmptySection": "Поканете хора и ще виждате всички снимки, споделени от тях, тук",
+  "searchPersonsEmptySection": "Хората ще се показват тук, след като обработката и синхронизацията приключат",
+  "searchResultCameraMake": "Марка на камерата",
+  "@searchResultCameraMake": {
+    "description": "Search result subtitle label for camera make matches"
+  },
+  "searchResultCameraModel": "Модел на камерата",
+  "@searchResultCameraModel": {
+    "description": "Search result subtitle label for camera model matches"
+  },
+  "searchResultCount": "{count, plural, one{Намерен {count} резултат} other{Намерени {count} резултата}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchResultDescription": "Описание",
+  "@searchResultDescription": {
+    "description": "Search result subtitle label for description matches"
+  },
+  "searchResultFileExtension": "Разширение на файла",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
+  "searchResultFileName": "Име на файла",
+  "@searchResultFileName": {
+    "description": "Search result subtitle label for file name matches"
+  },
+  "searchResultPerson": "Човек",
+  "@searchResultPerson": {
+    "description": "Search result subtitle label for person results"
+  },
+  "searchResultType": "Тип",
+  "@searchResultType": {
+    "description": "Search result subtitle label for file type matches"
+  },
+  "searchResultUploadedBy": "Качено от",
+  "@searchResultUploadedBy": {
+    "description": "Search result subtitle label for uploader results"
+  },
+  "searchSectionsLengthMismatch": "Несъответствие в дължината на секциите: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "searchSettings": "Настройки на търсенето",
   "secret": "Код",
   "secretCanNotBeEmpty": "Кодът не може да бъде празен",
   "security": "Сигурност",
+  "securityDesc": "Шифроване, ключове за възстановяване, заключване на приложението и защита на профила",
+  "seeAllCollections": "All collections",
+  "seePublicAlbumLinksInApp": "See public album links in app",
+  "selectAlbumsToBackUpToEnte": "Select albums to back up to Ente",
+  "selectAlbumToLikePhoto": "Select the album to like this photo",
+  "@selectAlbumToLikePhoto": {
+    "description": "Instruction for liking photo"
+  },
+  "selectAlbumToLikeVideo": "Select the album to like this video",
+  "@selectAlbumToLikeVideo": {
+    "description": "Instruction for liking video"
+  },
   "selectAll": "Избиране на всички",
+  "selectAllShort": "All",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "Select a location",
+  "selectALocationFirst": "Select a location first",
   "selectBackupFolder": "Изберете папка за резервни копия",
+  "selectCoverPhoto": "Select cover photo",
+  "selectDate": "Select date",
   "selected": "избрани",
+  "selectedAlbums": "{count} selected",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedCount": "{count, plural, one{{count} selected} other{{count} selected}}",
+  "@selectedCount": {
+    "description": "Number of items selected",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "selectedFilesAreNotOnEnte": "Selected files are not on Ente",
+  "selectedFilesBackedUpToEnte": "These items will be deleted from all albums. You can recover them from Trash.",
+  "@selectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that are backed up to Ente."
+  },
+  "selectedFilesSavedOnDeviceOnly": "Items not backed up. Permanently delete from device?",
+  "@selectedFilesSavedOnDeviceOnly": {
+    "description": "Delete confirmation message for selected items that exist only on the device."
+  },
+  "selectedItemsWillBePermanentlyDeletedAndCannotBeRecovered": "Избраните елементи ще бъдат изтрити завинаги и не могат да бъдат възстановени.",
+  "selectedItemsWillBeRemovedFromThisPerson": "Selected items will be removed from this person, but not deleted from your library.",
+  "selectedPhotos": "{count} selected",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count} selected ({yourCount} yours)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
   "selectExportFormat": "Изберете формат за експортиране",
   "selectFile": "Избор на файл",
   "selectFolder": "Изберете папка",
+  "selectFolders": "Select folders",
+  "selectFoldersForBackup": "Select folders for backup",
   "selectFolderToContinue": "Изберете папка, за да продължите",
+  "selectItemsToAdd": "Select items to add",
   "selectLanguage": "Изберете език",
+  "selectMailApp": "Select mail app",
+  "selectMorePhotos": "Select more photos",
+  "selectOneDateAndTime": "Select one date and time",
+  "selectOneDateAndTimeForAll": "Select one date and time for all",
+  "selectPerson": "Select person",
+  "selectPersonToLinkToThisContact": "Select a person to autofill this contact",
+  "selectReason": "Изберете причина",
+  "@selectReason": {
+    "description": "Placeholder for account deletion reason picker"
+  },
+  "selectStartOfRange": "Select start of range",
+  "selectTime": "Select time",
+  "selectYourFace": "Select your face",
+  "selfiesWithThem": "Selfies with {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "send": "Изпращане",
   "@send": {
     "description": "Label for send button"
   },
+  "sendCountInvites": "{count, plural, =0{Send invites} one{Send {count} invite} other{Send {count} invites}}",
+  "@sendCountInvites": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "sendInvite": "Send invite",
+  "sendLink": "Send link",
   "sendLogsDescription": "Това ще изпрати файлове с история на действията, за да ни помогне да отстраним проблема Ви. Въпреки че вземаме предпазни мерки, за да гарантираме, че чувствителната информация не се регистрира, препоръчваме Ви да прегледате тези файлове с история на действията, преди да ги споделите.",
+  "sendQrCode": "Send QR code",
   "serverEndpoint": "Крайна точка на сървъра",
   "@serverEndpoint": {
     "description": "Label for server endpoint setting"
@@ -704,8 +3635,27 @@
   "@sessionExpired": {
     "description": "Error message when session has expired"
   },
+  "sessionIdMismatch": "Session ID mismatch",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAContactPhoto": "Set a contact photo",
+  "setAPassword": "Set a password",
+  "setAs": "Set as",
+  "setAsMyDefaultChoice": "Set as my default choice",
+  "@setAsMyDefaultChoice": {
+    "description": "Checkbox label for saving the selected delete action as the default choice."
+  },
   "setBackupFolder": "Задаване на папка за резервни копия",
   "setBackupPassword": "Задаване на парола за резервни копия",
+  "setCover": "Set cover",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Set",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
   "setNewPassword": "Задаване на нова парола",
   "@setNewPassword": {
     "description": "Set new password title"
@@ -718,14 +3668,121 @@
   "@setPasswordTitle": {
     "description": "Set password title"
   },
+  "setRadius": "Set radius",
+  "setSelectedPhoto": "Set selected photo",
   "settings": "Настройки",
+  "setupComplete": "Setup complete",
   "setupFirstAccount": "Настройте първо акаунт си",
+  "setupLegacy": "Setup Legacy",
+  "@setupLegacy": {
+    "description": "Short action label on the home banner that opens Legacy setup"
+  },
+  "setupLegacyDescription": "Choose 3 people you trust. Any 2 of them, together, can unlock your information - never just one alone.",
+  "setupYourLegacy": "Setup your Legacy",
   "share": "Споделяне",
+  "shareALink": "Share a link",
+  "shareAnAlbum": "Share an album",
+  "shareCodeEarnStorage": "Share your code, earn storage.",
   "shareCodes": "Споделяне на кодове",
   "shareCodesDuration": "Изберете продължителността, за която искате да споделите кодовете.",
+  "shareCollection": "Share collection",
+  "shared": "Shared",
+  "sharedAlbumSectionDescription": "Create shared and collaborative albums with other Ente users, including users on free plans.",
+  "sharedAlbumsLabel": "Shared",
+  "@sharedAlbumsLabel": {
+    "description": "Albums tab label for albums shared by you"
+  },
+  "sharedAlbumWithYou": "shared {albumName} with you",
+  "@sharedAlbumWithYou": {
+    "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedPhotoNotifications": "New shared photos and albums",
+  "sharedPhotoNotificationsExplanation": "New photos and albums you are in or shared with you",
+  "sharedWith": "Shared with",
+  "shareItemCount": "{count, plural, one{Share {count} item} other{Share {count} items}}",
+  "@shareItemCount": {
+    "description": "Action to share the selected number of memory items",
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    }
+  },
+  "shareKey": "Share key",
+  "shareLegacyDescription": "Send each card to the person it's for. No single card works alone.",
+  "shareLink": "Share link",
+  "shareMemory": "Share memory",
+  "shareMyVerificationID": "Here's my verification ID: {verificationID} for ente.com.",
+  "@shareMyVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareNotSupportedForSharedFiles": "Share is not supported for shared files",
+  "shareStorageWith5Members": "Share storage with 5 members",
+  "shareTextConfirmOthersVerificationID": "Hey, can you confirm that this is your ente.com verification ID: {verificationID}",
+  "@shareTextConfirmOthersVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareTextRecommendUsingEnte": "Download Ente so we can easily share original quality files\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForFamily": "Download Ente so I can add you to my family plan\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForPhotos": "Download Ente so we can easily share original quality photos and videos\n\nhttps://ente.com",
+  "shareTextReferralCode": "Ente Photos е поверителен и сигурен дом за вашите снимки\n* Изтеглете Ente Photos от https://ente.com/app\n* Създайте профил\n* Приложете код {referralCode} в Настройки->Препоръки\n* Получете допълнителни {referralStorageInGB} GB безплатно!",
+  "@shareTextReferralCode": {
+    "placeholders": {
+      "referralCode": {},
+      "referralStorageInGB": {}
+    }
+  },
+  "shareThisLink": "This link allows anyone who receives it to access your item. You can remove access at any time by deleting the link.",
+  "shareWithNonenteUsers": "Share with non-Ente users",
+  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Share with specific people} one{Shared with {numberOfPeople} person} other{Shared with {numberOfPeople} people}}",
+  "@shareWithPeopleSectionTitle": {
+    "placeholders": {
+      "numberOfPeople": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "shareYourFeedbackHere": "Споделете вашата обратната връзка тук",
+  "@shareYourFeedbackHere": {
+    "description": "Placeholder for optional account deletion feedback"
+  },
+  "shareYourLegacy": "Share your Legacy",
+  "shareYourLegacyBannerDescription": "Help loved ones access important information, in your absence.",
+  "@shareYourLegacyBannerDescription": {
+    "description": "Description of the home banner prompting the user to set up Legacy"
+  },
+  "shareYourLegacyBannerTitle": "Share your Legacy",
+  "@shareYourLegacyBannerTitle": {
+    "description": "Title of the home banner prompting the user to set up Legacy"
+  },
+  "shareYourSubscription": "Share your subscription with loved ones",
+  "sharing": "Sharing...",
+  "sharingAndCollaboration": "Sharing and collaboration",
+  "sharingAndCollaborationDesc": "Albums, links, and family plans",
+  "shiftDatesAndTime": "Shift dates and time",
   "shouldHideCode": "Скриване на кодове",
+  "shouldRemoveFilesSmartAlbumsDesc": "Should the files related to the person that were previously selected in smart albums be removed?",
+  "showIgnored": "Show ignored",
+  "showInMemories": "Show in memories",
   "showLargeIcons": "Показване на големи икони",
+  "showLessFaces": "Show fewer faces",
+  "showMemories": "Show memories",
+  "showMoreFaces": "Show more faces",
+  "showPerson": "Show person",
   "showQRAuthMessage": "Удостоверете се, за да покажете QR кода",
+  "showTextOnWidget": "Show text on widget",
+  "sigInBackupReminder": "Ente will automatically backup codes after sign-in.\n\nWe still recommend exporting codes as an extra backup.",
   "signInToBackup": "Влезте, за да архивирате Вашите кодове",
   "signOutFromOtherDevices": "Излизане от други устройства",
   "@signOutFromOtherDevices": {
@@ -739,11 +3796,47 @@
   "@signOutOtherDevices": {
     "description": "Sign out other devices button label"
   },
+  "signUp": "Sign up",
   "signUpTerms": "Съгласявам се с <u-terms>условията за ползване</u-terms> и <u-policy>политиката за поверителност</u-policy>",
   "@signUpTerms": {
     "description": "Terms agreement text for sign up"
   },
+  "similar": "Similar",
+  "similarImages": "Similar images",
+  "similarImagesCount": "{count} similar images",
+  "@similarImagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "singIn": "Вход",
+  "singleFileDeleteFromDevice": "Елементът не е архивиран. Да се изтрие ли завинаги от устройството?",
+  "@singleFileDeleteFromDevice": {
+    "description": "Delete confirmation message for a single item that exists only on the device."
+  },
+  "singleFileInBothLocalAndRemote": "This item is available on your device and Ente.",
+  "@singleFileInBothLocalAndRemote": {
+    "description": "Delete confirmation message for a single item that exists both on the device and in Ente."
+  },
+  "singleFileInRemoteOnly": "This item will be deleted from all albums. You can recover it from Trash.",
+  "@singleFileInRemoteOnly": {
+    "description": "Delete confirmation message for a single item that exists only in Ente."
+  },
+  "skip": "Skip",
+  "skippedFiles": "Skipped files",
+  "smartMemories": "Smart memories",
+  "smartSuggestions": "Smart suggestions",
+  "snowAdventures": "Winter adventures",
+  "socialNotifications": "Likes and comments",
+  "socialNotificationsExplanation": "Likes on your photos and comments on albums you are a part of",
+  "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Someone sharing albums with you should see the same ID on their device.",
+  "someSelectedFilesBackedUpToEnte": "These items are available on device and Ente.",
+  "@someSelectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that exist both on the device and in Ente."
+  },
+  "somethingWentWrong": "Something went wrong",
   "somethingWentWrongMessage": "Нещо се обърка, моля опитайте отново",
   "somethingWentWrongParsingCode": "Не успяхме да обработим {x} кода.",
   "@somethingWentWrongParsingCode": {
@@ -756,6 +3849,9 @@
     "description": "Generic error message"
   },
   "sorry": "Съжаляваме",
+  "sorryBackupFailedDesc": "Sorry, we could not backup this file right now, we will retry later.",
+  "sorryCouldNotAddToFavorites": "Sorry, could not add to favorites!",
+  "sorryCouldNotRemoveFromFavorites": "Sorry, could not remove from favorites!",
   "sorryTheCodeYouveEnteredIsIncorrect": "За съжаление кодът, който сте въвели, е неправилен",
   "@sorryTheCodeYouveEnteredIsIncorrect": {
     "description": "Detailed error message when code is incorrect"
@@ -764,21 +3860,150 @@
   "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
     "description": "Error message for insecure device"
   },
+  "sorryWeHadToPauseYourBackups": "Sorry, we had to pause your backups",
+  "sort": "Sort",
+  "sortAlbumsBy": "Sort by",
+  "sortAToZ": "A-Z",
+  "sortNewestFirst": "Newest first",
+  "sortOldestFirst": "Oldest first",
+  "sortZToA": "Z-A",
+  "sportsAction": "Game on",
+  "sportsWithThem": "Sports with {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnThem": "Spotlight on {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnYourself": "Spotlight on yourself",
+  "stargazing": "Under the stars",
+  "startBackup": "Start backup",
+  "startRecovery": "Start recovery",
+  "startRecoveryDesc": "Сигурни ли сте, че искате да започнете възстановяване на профила на {email}?",
+  "@startRecoveryDesc": {
+    "description": "Description for start recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "startSnappingYourPhotosWillShowUpHere": "Start snapping, your photos will show up here",
+  "startWithAddingPhotosOrFamiliarFaces": "Start with adding\nphotos or familiar faces",
+  "startWithLatestPhotos": "Start with latest photos",
+  "status": "Status",
+  "sticker": "Sticker",
+  "stopCastingBody": "Do you want to stop casting?",
+  "stopCastingTitle": "Stop casting",
+  "storage": "Storage",
+  "storageAndPlans": "Storage and plans",
+  "storageAndPlansDesc": "Plans, billing, and storage usage",
+  "storageBreakupFamily": "Family",
+  "storageBreakupYou": "You",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageClaimed": "{storageAmountInGB} GB claimed!",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "storageLimit": "Storage limit",
+  "storageLimitExceeded": "Storage limit exceeded",
+  "storageLimitExplanation": "Set the maximum storage this member can use. They will not be able to upload once the limit is reached.",
+  "storageUsedOfTotal": "{used} of {total} used",
+  "@storageUsedOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String",
+        "example": "200 GB"
+      },
+      "used": {
+        "type": "String",
+        "example": "67 GB"
+      }
+    }
+  },
+  "streamDetails": "Stream details",
+  "streetArt": "Street art stories",
+  "streetFood": "Street food bites",
+  "strongPassword": "Strong password",
   "strongStrength": "Силна",
   "@strongStrength": {
     "description": "Strong password strength label"
   },
+  "subAlreadyLinkedErrMessage": "Вашият {id} вече е свързан с друг Ente профил.\nАко искате да използвате вашия {id} с този профил, моля, свържете се с екипа по поддръжка.",
+  "@subAlreadyLinkedErrMessage": {
+    "placeholders": {
+      "id": {}
+    }
+  },
+  "subject": "Subject",
   "submit": "Потвърди",
+  "subscribe": "Subscribe",
+  "subscribeToChangeLinkSetting": "You need a paid subscription to change this link setting.",
+  "subscribeToEnableSharing": "You need an active paid subscription to enable sharing.",
+  "subscription": "Subscription",
+  "subscriptionRequiredForSharing": "You need a paid subscription to share links",
+  "subWillBeCancelledOn": "Your subscription will be cancelled on {endDate}",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
   "success": "Успешно",
+  "successfullyArchived": "Successfully archived",
+  "successfullyHid": "Successfully hid",
+  "successfullyUnarchived": "Successfully unarchived",
+  "successfullyUnhid": "Successfully unhid",
+  "suggestDeletion": "Suggest deletion",
+  "suggestDeletionDescription": "Selected photos will be removed from this album. Photo owners will also get a suggestion to review and delete the photos.",
   "suggestFeatures": "Предложете функции",
+  "suggestions": "Suggestions",
+  "sunrise": "On the horizon",
   "support": "Поддръжка",
   "supportEnte": "Подкрепете <bold-green>ente</bold-green>",
+  "syncing": "Syncing...",
+  "syncProgress": "{completed}/{total} memories preserved",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "Sync stopped",
   "systemTheme": "Системна",
   "tag": "Етикет",
   "tags": "Етикети",
+  "tapToCopy": "tap to copy",
   "tapToUnlock": "Докоснете, за да отключите",
   "@tapToUnlock": {
     "description": "Message prompting user to tap to unlock"
+  },
+  "tapToUpload": "Tap to upload",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "Tap to upload, upload is currently ignored due to {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
   },
   "tellUsWhatYouThink": "Кажете ни какво мислите",
   "tempErrorContactSupportIfPersists": "Изглежда нещо се обърка. Моля, опитайте отново след известно време. Ако грешката продължава, моля, свържете се с нашия екип за поддръжка.",
@@ -794,11 +4019,18 @@
   "@termsOfServicesTitle": {
     "description": "Terms of service title"
   },
+  "thankYou": "Thank you",
+  "thankYouForSubscribing": "Thank you for subscribing!",
+  "theLinkYouAreTryingToAccessHasExpired": "The link you are trying to access has expired.",
   "theme": "Тема",
+  "thePersonGroupsWillNotBeDisplayed": "The person groups will not be displayed in the people section anymore. Photos will remain untouched.",
+  "thePersonWillNotBeDisplayed": "The person will not be displayed in the people section anymore. Photos will remain untouched.",
   "theRecoveryKeyYouEnteredIsIncorrect": "Въведеният от Вас ключ за възстановяване е неправилен",
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
   },
+  "theseItemsWillBeDeletedFromYourDevice": "Тези елементи ще бъдат изтрити от устройството ви.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "Това може да се използва за възстановяване на профила ви, ако загубите втория си начин за вход",
   "thisDevice": "Това устройство",
   "@thisDevice": {
     "description": "Label for current device"
@@ -806,6 +4038,31 @@
   "thisEmailIsAlreadyInUse": "Този имейл вече се използва",
   "@thisEmailIsAlreadyInUse": {
     "description": "Error message when email is already in use"
+  },
+  "thisHelpsUsImproveEnte": "Това ни помага да подобряваме Ente",
+  "@thisHelpsUsImproveEnte": {
+    "description": "Subtitle under account deletion reason prompt"
+  },
+  "thisImageHasNoExifData": "This image has no exif data",
+  "thisIsMeExclamation": "This is me!",
+  "thisIsPersonVerificationId": "This is {email}'s Verification ID",
+  "@thisIsPersonVerificationId": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@ente.com"
+      }
+    }
+  },
+  "thisIsYourVerificationId": "This is your Verification ID",
+  "thisMonth": "This month",
+  "thisWeek": "This week",
+  "thisWeekThroughTheYears": "This week through the years",
+  "thisWeekXYearsAgo": "{count, plural, one{This week, {count} year ago} other{This week, {count} years ago}}",
+  "@thisWeekXYearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
   },
   "thisWillLogYouOutOfTheFollowingDevice": "Това ще Ви изкара от профила на следното устройство:",
   "@thisWillLogYouOutOfTheFollowingDevice": {
@@ -815,6 +4072,22 @@
   "@thisWillLogYouOutOfThisDevice": {
     "description": "Warning message for logging out of current device"
   },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "This will make the date and time of all selected photos the same.",
+  "thisYear": "This year",
+  "throughTheYears": "{dateFormat} through the years",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "throwbackWithThem": "Throwback with {name}",
+  "@throwbackWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "title": "Title",
+  "todaysLogs": "Today's logs",
   "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "За да активирате заключването на приложението, моля, задайте парола за устройството или заключване на екрана в системните настройки.",
   "tooManyIncorrectAttempts": "Твърде много неуспешни опити",
   "@tooManyIncorrectAttempts": {
@@ -824,7 +4097,10 @@
   "@toResetVerifyEmail": {
     "description": "Message asking user to verify email before password reset"
   },
+  "totalSize": "Total size",
   "trash": "Кошче",
+  "restoreOrPermanentlyDeleteItems": "Възстановяване или окончателно изтриване на елементи",
+  "trashClearedSuccessfully": "Кошчето е изчистено успешно",
   "trashCode": "Преместване в кошчето на кода?",
   "trashCodeMessage": "Сигурни ли сте, че искате да изместите кода в кошчето за {account}?",
   "@trashCodeMessage": {
@@ -832,10 +4108,69 @@
       "account": {}
     }
   },
+  "trashDaysLeft": "{count, plural, =0{Скоро} one{{count} ден} other{{count} дни}}",
+  "@trashDaysLeft": {
+    "description": "Text to indicate number of days remaining before permanent deletion",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "trashIsEmpty": "Кошчето е празно",
+  "trim": "Trim",
+  "tripInYear": "Trip in {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "Trip to {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "tropicalParadise": "Tropical escapes",
+  "troubleshooting": "Troubleshooting",
+  "troubleshootingDesc": "Common issues and their solutions",
+  "trustedContactAccepted": "You have added {email} as a trusted contact. They have accepted your invite.",
+  "@trustedContactAccepted": {
+    "description": "Description shown when a trusted contact has accepted the invite",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContactInvitePending": "You have invited {email} to be a trusted contact. They are yet to accept your invite.",
+  "@trustedContactInvitePending": {
+    "description": "Description shown when a trusted contact invite is pending",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContacts": "Trusted contacts",
+  "trustedContactsEmptyDescription": "Посочете друг потребител на Ente като доверен контакт, който да може да възстанови профила ви",
+  "trustedContactStatusAccepted": "Accepted",
+  "@trustedContactStatusAccepted": {
+    "description": "Short status label shown for an accepted trusted contact"
+  },
+  "trustedContactStatusPending": "Pending",
+  "@trustedContactStatusPending": {
+    "description": "Short status label shown for a pending trusted contact invite"
+  },
   "tryAgain": "Опитайте отново",
   "@tryAgain": {
     "description": "Try again button label"
   },
+  "twofactor": "Two-factor",
+  "twofactorAuthenticationHasBeenDisabled": "Two-factor authentication has been disabled",
   "twofactorAuthenticationSuccessfullyReset": "Двуфакторното удостоверяване бе успешно нулирано",
   "@twofactorAuthenticationSuccessfullyReset": {
     "description": "Message when two-factor authentication is successfully reset"
@@ -844,24 +4179,180 @@
   "@twoFactorAuthTitle": {
     "description": "Two-factor authentication title"
   },
+  "twofactorSetup": "Two-factor setup",
+  "twoFAVerification": "2FA verification",
   "type": "Тип",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "Type of gallery {galleryType} is not supported for rename",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unableToCheckForUpdatesRightNow": "Unable to check for updates right now",
+  "unableToExtractFileInformation": "Unable to extract information from this file",
+  "unarchive": "Unarchive",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "Unarchive album",
+  "unarchiving": "Unarchiving...",
+  "unavailableReferralCode": "Sorry, this code is unavailable.",
+  "uncategorized": "Uncategorized",
+  "uncategorizedItemsWillShowUpHere": "Uncategorized items will show up here",
+  "undo": "Undo",
+  "unhide": "Unhide",
+  "unhideToAlbum": "Unhide to album",
+  "unhiding": "Unhiding...",
+  "unhidingFilesToAlbum": "Unhiding files to album",
+  "unimportant": "Unimportant",
   "unlock": "Отключване",
   "@unlock": {
     "description": "Short action label used as the system authentication reason when unlocking the app"
   },
+  "unnamedCollection": "Unnamed collection",
+  "unnamedPeopleDoingSomethingTogether": "Doing it together",
+  "unnamedPeopleSpotlight": "A familiar face",
+  "unnamedPeopleThrowbackTogether": "Throwback together",
+  "unnamedPeopleYouAndThem": "You two",
+  "unpin": "Unpin",
   "unpinnedCodeMessage": "{code} е откачен",
   "@unpinnedCodeMessage": {
     "placeholders": {
       "code": {}
     }
   },
+  "unpinnedCount": "{count, plural, one{Unpinned {count} item} other{Unpinned {count} items}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinPerson": "Unpin person",
   "unpinText": "Откачане",
+  "unsavedChangesDescription": "You have unsaved changes. If you go back now, they will be lost.",
+  "unsavedNoteChangesDescription": "You have unsaved changes in this note. If you go back now, they will be lost.",
+  "unsavedNoteChangesTitle": "Discard changes?",
+  "unselectAll": "Unselect all",
+  "untitled": "Untitled",
   "updateAvailable": "Налична актуализация",
   "updateBackupPassword": "Обновяване на паролата за резервни копия",
+  "updated": "Updated",
+  "updateSettings": "Update settings",
+  "updateTime": "Update time",
+  "@updateTime": {
+    "description": "Button label to update the recovery time for a trusted contact"
+  },
+  "updatingFolderSelection": "Updating folder selection...",
+  "upgrade": "Upgrade",
+  "uploadedFilesProgress": "Uploaded {completed}/{total} items...",
+  "@uploadedFilesProgress": {
+    "description": "Progress message showing uploaded items",
+    "placeholders": {
+      "completed": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "uploadError": "Upload error",
+  "uploadFileCountLimitErrorBody": "You've reached your file limit. Upgrade to a paid plan for more storage.",
+  "@uploadFileCountLimitErrorBody": {
+    "description": "Body shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorTitle": "File limit reached",
+  "@uploadFileCountLimitErrorTitle": {
+    "description": "Title shown when uploads fail because the locker already has the maximum file count"
+  },
+  "uploadFileCountLimitErrorToast": "Action failed. You've reached your file limit.",
+  "@uploadFileCountLimitErrorToast": {
+    "description": "Toast shown when info items fail to save due to hitting the file count limit"
+  },
+  "uploadFiles": "Upload items",
+  "uploadFileTooLargeErrorBody": "This file is larger than the maximum supported upload size of 10GB.",
+  "@uploadFileTooLargeErrorBody": {
+    "description": "Body shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadFileTooLargeErrorTitle": "File too large",
+  "@uploadFileTooLargeErrorTitle": {
+    "description": "Title shown when uploads fail because the file exceeds the supported size"
+  },
+  "uploadingFilesToAlbum": "Uploading files to album...",
+  "uploadingMultipleMemories": "Preserving {count} memories...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "Preserving 1 memory...",
+  "uploadIsIgnoredDueToIgnorereason": "Upload is ignored due to {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "uploadStorageLimitErrorBody": "You've run out of storage space. Free up space to continue uploading.",
+  "@uploadStorageLimitErrorBody": {
+    "description": "Body shown when uploads fail due to running out of storage"
+  },
+  "uploadStorageLimitErrorTitle": "Storage limit reached",
+  "@uploadStorageLimitErrorTitle": {
+    "description": "Title shown when uploads fail due to running out of storage"
+  },
+  "uploadSubscriptionExpiredErrorBody": "Your Ente Photos subscription has expired. Renew your subscription to continue uploading.",
+  "@uploadSubscriptionExpiredErrorBody": {
+    "description": "Body shown when uploads fail because the Photos subscription is expired"
+  },
+  "uploadSubscriptionExpiredErrorTitle": "Subscription expired",
+  "@uploadSubscriptionExpiredErrorTitle": {
+    "description": "Title shown when uploads fail because the Photos subscription is expired"
+  },
+  "usable": "usable",
+  "usageFamily": "Family",
+  "usageYou": "You",
+  "useAsCover": "Use as cover",
+  "usedSpace": "Used space",
+  "usedYourCode": "used your code",
+  "useMLToFindSimilarImages": "Remove items that look similar",
   "useOffline": "Използвайте без резервни копия",
   "useRecoveryKey": "Използвайте ключ за възстановяване",
   "@useRecoveryKey": {
     "description": "Use recovery key button label"
+  },
+  "username": "Username",
+  "usernameHint": "Login ID or email",
+  "useSelectedPhoto": "Use selected photo",
+  "usingStorage": "Using {amount}",
+  "@usingStorage": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "validTill": "Valid till {endDate}",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
   },
   "verificationFailedPleaseTryAgain": "Неуспешно проверка, моля опитайте отново",
   "@verificationFailedPleaseTryAgain": {
@@ -875,34 +4366,285 @@
   "@verifyEmail": {
     "description": "Verify email title"
   },
+  "verifyIDLabel": "Verify",
+  "verifying": "Verifying...",
   "verifyingRecoveryKey": "Проверка на ключа за възстановяване...",
   "verifyPassword": "Потвърдете паролата",
   "@verifyPassword": {
     "description": "Verify password button label"
   },
+  "videoAlreadyInQueue": "Video file already present in the queue",
+  "videoExportFailed": "Video creation failed. Please try again.",
+  "videoExportSuccess": "Video successfully created at {path}",
+  "@videoExportSuccess": {
+    "description": "Toast shown when a video export completes, mentioning the filesystem path.",
+    "placeholders": {
+      "path": {
+        "description": "File path where the exported video was written",
+        "type": "String",
+        "example": "/tmp/ente_export.mp4"
+      }
+    }
+  },
+  "videoInfo": "Video info",
+  "videoPreviewAlreadyExists": "Video preview already exists",
+  "videos": "Videos",
+  "videoStreaming": "Streamable videos",
+  "videoStreamingDescriptionLine1": "Play videos instantly on any device.",
+  "videoStreamingDescriptionLine2": "Enable to process video streams on this device.",
+  "videoStreamingNote": "Only videos from last 60 days and under 1 minute are processed on this device. For older/longer videos, enable streaming in the desktop app.",
   "viewActiveSessions": "Вижте активните сесии",
+  "viewAddOnButton": "View add-ons",
+  "viewAllExifData": "View all EXIF data",
+  "viewAllHelpTopics": "View all help topics",
+  "viewer": "Viewer",
+  "viewersSuccessfullyAdded": "{count, plural, =0{Added 0 viewers} one{Added {count} viewer} other{Added {count} viewers}}",
+  "@viewersSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of viewers that were successfully added."
+  },
+  "viewLargeFiles": "Large files",
+  "viewLargeFilesDesc": "Identify items using the most space",
+  "viewLogs": "View logs",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
   "viewLogsAction": "Преглед на историята на действията",
+  "viewPersonToUnlink": "View {name} to unlink",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewPlans": "View plans",
   "viewRawCodes": "Вижте необработени/чисти кодове",
   "viewRecoveryKey": "Вижте ключа за възстановяване",
+  "vintageVibes": "Vintage vibes",
+  "visitWebToManage": "Please visit {webUrl} to manage your subscription",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
   "waitingForVerification": "Изчаква се потвърждение...",
   "@waitingForVerification": {
     "description": "Waiting for verification message"
   },
+  "waitingForWifi": "Waiting for WiFi...",
   "warning": "Предупреждение",
+  "waterfalls": "Chasing waterfalls",
   "weakStrength": "Слаба",
   "@weakStrength": {
     "description": "Weak password strength label"
   },
   "weAreOpenSource": "Ние сме с отворен код!",
+  "weddingMoments": "Wedding day glow",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "We don't support editing photos and albums that you don't own yet",
+  "weHaveSentCode": "We have sent a code to {email}",
+  "@weHaveSentCode": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "weHaveSentCodeTo": "We have sent a code to {email}",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "whatsNew": "What's new",
+  "whyAreYouLeaving": "Защо си тръгвате?",
+  "@whyAreYouLeaving": {
+    "description": "Heading asking why the user is deleting their account"
+  },
+  "widgets": "Widgets",
+  "wildlife": "Into the wild",
+  "wishThemAHappyBirthday": "Wish {name} a happy birthday! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "Yearly",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{{count} year ago} other{{count} years ago}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "yr",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
   "yes": "Да",
+  "yesCancel": "Yes, cancel",
+  "yesConvertToViewer": "Yes, convert to viewer",
+  "yesDelete": "Да, изтрий",
+  "yesDeleteCollections": "Да, изтрий {count, plural, one{колекцията} other{колекциите}}",
+  "@yesDeleteCollections": {
+    "description": "Button label for confirming deletion of one or more collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "yesDeleteFiles": "Да, изтрий {count, plural, one{елемента} other{елементите}}",
+  "@yesDeleteFiles": {
+    "description": "Button label for confirming deletion of one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "yesDiscardChanges": "Yes, discard changes",
+  "yesIgnore": "Yes, ignore",
   "yesLogout": "Да, излез",
   "@yesLogout": {
     "description": "Confirmation button for logout"
   },
+  "yesRemove": "Yes, remove",
+  "yesRenew": "Yes, renew",
+  "yesResetPerson": "Yes, reset person",
+  "yesShowPeople": "Yes, show people",
+  "yesShowPerson": "Yes, show person",
+  "you": "You",
+  "youAndThem": "You and {name}",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "youAreOnTheLatestVersion": "Вие сте с най-новата версия",
+  "youCannotAddYourselfAsLegacyContact": "You cannot add yourself as a legacy contact",
+  "youCannotDowngradeToThisPlan": "You cannot downgrade to this plan",
+  "youCannotShareWithYourself": "You cannot share with yourself",
+  "youHaveNoFileSuggestedForDeletion": "You've no files that have been suggested for deletion",
+  "youHaveSuccessfullyFreedUp": "You have successfully freed up {storageSaved}!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "Your map",
+  "yourPhotosLookUnique": "Your photos look unique",
+  "yourPlanSupportsFamily": "Your plan already supports a family",
+  "yourPlanWasSuccessfullyDowngraded": "Your plan was successfully downgraded",
+  "yourPlanWasSuccessfullyUpgraded": "Your plan was successfully upgraded",
+  "yourPurchaseWasSuccessful": "Your purchase was successful",
+  "yourSubscriptionHasExpired": "Your subscription has expired",
+  "yourSubscriptionWasUpdatedSuccessfully": "Your subscription was updated successfully",
+  "yourTrashIsEmpty": "Кошчето ви е празно",
   "yourVerificationCodeHasExpired": "Вашият код за потвърждение е изтекъл",
   "@yourVerificationCodeHasExpired": {
     "description": "Error message when verification code has expired"
   },
-  "youveNoDuplicateCodesThatCanBeCleared": "Нямате повтарящи се кодове, които могат да бъдат изчистени"
+  "youveNoDuplicateCodesThatCanBeCleared": "Нямате повтарящи се кодове, които могат да бъдат изчистени",
+  "youveNoDuplicateFilesThatCanBeCleared": "You don't have any duplicate files that can be cleared",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "Нямате файлове в този албум, които могат да бъдат изтрити",
+  "zoomOutToSeePhotos": "Zoom out to see photos",
+  "backupPausedFreeUpDeviceStorage": "Backup is paused. Free up storage on this device to resume.",
+  "cameraPermissionRequired": "Camera access is required to take photos.",
+  "cameraPermissionSettings": "Camera access is turned off. Enable it in Settings to continue.",
+  "cameraPermissionRestricted": "Camera access is restricted on this device.",
+  "legacyKitSheetGreeting": "Hi {name}, please keep this safe.",
+  "@legacyKitSheetGreeting": {
+    "description": "Greeting printed at the top of a Legacy kit recovery sheet, addressed to the person holding it",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Mom"
+      }
+    }
+  },
+  "legacyKitSheetIntro": "Ако някога не съм наоколо или загубя достъп до профила си, този списък ще ви помогне да възстановите моите снимки, документи и други.",
+  "@legacyKitSheetIntro": {
+    "description": "Written in the voice of the account owner, addressed to the sheet holder"
+  },
+  "legacyKitSheetHowToRecover": "Как да възстановя достъп до профила си",
+  "legacyKitSheetStepGetAnother": "This is {index} of {total} sheets. Ask {names} for theirs — you need just one more.",
+  "@legacyKitSheetStepGetAnother": {
+    "description": "First recovery step. {names} is a list of the other sheet holders, already joined and emphasised",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      },
+      "names": {
+        "type": "String",
+        "example": "Alex or Lawyer"
+      }
+    }
+  },
+  "legacyKitSheetNameJoinerOr": " or ",
+  "@legacyKitSheetNameJoinerOr": {
+    "description": "Joins the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the surrounding spaces"
+  },
+  "legacyKitSheetNameJoinerList": ", ",
+  "@legacyKitSheetNameJoinerList": {
+    "description": "Joins all but the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the trailing space"
+  },
+  "legacyKitSheetStepVisit": "Visit {url}",
+  "@legacyKitSheetStepVisit": {
+    "description": "Second recovery step",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "legacyKitSheetStepScan": "Scan the {count} sheets.",
+  "@legacyKitSheetStepScan": {
+    "description": "Third recovery step. {count} is how many sheets must be scanned together",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "legacyKitSheetNeedHelp": "Need help? Write to {email}",
+  "@legacyKitSheetNeedHelp": {
+    "description": "Footer printed at the bottom of a Legacy kit recovery sheet",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "grantAccess": "Grant access"
 }

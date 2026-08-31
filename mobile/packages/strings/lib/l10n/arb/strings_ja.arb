@@ -1374,7 +1374,6 @@
   "ocrModelsNetworkRequiredError": "OCRモデルのダウンロードにはネットワーク接続が必要です",
   "ocrModelsPrepareFailed": "OCRモデルを準備できませんでした",
   "ocrNoTextDetected": "テキストが見つかりませんでした",
-  "ocrProcessingOverlayMessage": "テキストを検出中…",
   "offlineEnableBackupTagLabel": "10GB 無料！",
   "offlineFacesBannerTitle": "これらの顔を保存しますか？",
   "offlineHomeSignupBannerAction": "今すぐバックアップ",

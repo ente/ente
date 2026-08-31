@@ -47,7 +47,7 @@ import React, { useState } from "react";
 import { Trans } from "react-i18next";
 
 type DeleteAccountProps = ModalVisibilityProps & {
-    onAuthenticateUser: () => Promise<void>;
+    onAuthenticateUser: () => Promise<boolean>;
 };
 
 type SummaryPhase = "loading" | "ready" | "failed";
@@ -174,7 +174,10 @@ const DeleteAccountDialogContents: React.FC<
                     await getAccountDeleteChallenge();
 
                 if (allowDelete && encryptedChallenge) {
-                    await onAuthenticateUser();
+                    if (!(await onAuthenticateUser())) {
+                        setLoading(false);
+                        return;
+                    }
                     const decryptedChallenge =
                         await decryptDeleteAccountChallenge(encryptedChallenge);
                     await deleteAccount(

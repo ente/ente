@@ -69,7 +69,7 @@ More details, including technical aspect about how the sharing features were imp
 
 ## Limitations
 
-Peer-to-peer sharing between Ente users and creating public links are available on every plan, including the free tier. Free plan users can create public links with a device limit of 5, while paid users can create public links with no device limit.
+Peer-to-peer sharing between Ente users and creating public links are available on every plan, including the free tier. Free plan users can create public links with a device limit of 10, while paid users can create public links with no device limit.
 
 ## Related topics
 

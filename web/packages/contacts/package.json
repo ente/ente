@@ -1,5 +1,5 @@
 {
-    "name": "ente-contacts-web",
+    "name": "ente-contacts",
     "version": "0.0.0",
     "private": true,
     "main": "./index.ts",
@@ -12,13 +12,17 @@
         "@mui/material": "9.3.1",
         "ente-accounts": "*",
         "ente-base": "*",
-        "ente-wasm": "*",
+        "ente-legacy-wasm": "*",
         "react": "19.2.7",
         "zod": "4.4.3"
     },
     "devDependencies": {
         "@types/react": "19.2.17",
         "ente-build-config": "*",
+        "ente-core-wasm": "*",
+        "ente-locker-wasm": "*",
+        "ente-photos-wasm": "*",
+        "vite-plugin-wasm": "3.6.0",
         "vitest": "4.1.8"
     }
 }

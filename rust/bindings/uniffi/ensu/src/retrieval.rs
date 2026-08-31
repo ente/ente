@@ -7,30 +7,14 @@ use crate::assets::{Asset, AssetStoreCore};
 
 #[derive(Debug, Error, uniffi::Error)]
 pub enum KnowledgeRetrievalError {
-    #[error("invalid retrieval input: {detail}")]
-    InvalidInput { detail: String },
-    #[error("invalid knowledge pack: {detail}")]
-    InvalidPack { detail: String },
-    #[error("knowledge pack I/O failed: {detail}")]
-    Io { detail: String },
-    #[error("knowledge pack JSON failed: {detail}")]
-    Json { detail: String },
-    #[error("knowledge pack metadata decompression failed: {detail}")]
-    Zstd { detail: String },
+    #[error("{detail}")]
+    Other { detail: String },
 }
 
 impl From<core::RetrievalError> for KnowledgeRetrievalError {
     fn from(value: core::RetrievalError) -> Self {
-        match value {
-            core::RetrievalError::InvalidInput(detail) => Self::InvalidInput { detail },
-            core::RetrievalError::InvalidPack(detail) => Self::InvalidPack { detail },
-            core::RetrievalError::Io(error) => Self::Io {
-                detail: error.to_string(),
-            },
-            core::RetrievalError::Json(error) => Self::Json {
-                detail: error.to_string(),
-            },
-            core::RetrievalError::Zstd(detail) => Self::Zstd { detail },
+        Self::Other {
+            detail: ente_core::error::chain(&value),
         }
     }
 }
@@ -38,10 +22,8 @@ impl From<core::RetrievalError> for KnowledgeRetrievalError {
 fn knowledge_dataset(
     stable_id: &str,
 ) -> Result<ente_ensu::config::KnowledgeDatasetConfig, KnowledgeRetrievalError> {
-    ente_ensu::config::knowledge_dataset(stable_id).ok_or_else(|| {
-        KnowledgeRetrievalError::InvalidInput {
-            detail: format!("unknown knowledge dataset ID: {stable_id}"),
-        }
+    ente_ensu::config::knowledge_dataset(stable_id).ok_or_else(|| KnowledgeRetrievalError::Other {
+        detail: format!("invalid retrieval input: unknown knowledge dataset ID: {stable_id}"),
     })
 }
 
@@ -163,8 +145,8 @@ pub fn reconcile_knowledge_pack(
 ) -> Result<KnowledgeReconciliation, KnowledgeRetrievalError> {
     let dataset = knowledge_dataset(&stable_id)?;
     let pack_root = core::knowledge_pack_root(store.store(), &dataset).map_err(|error| {
-        KnowledgeRetrievalError::InvalidInput {
-            detail: error.to_string(),
+        KnowledgeRetrievalError::Other {
+            detail: format!("invalid retrieval input: {error}"),
         }
     })?;
     core::reconcile_knowledge_pack(pack_root, &dataset)
@@ -180,8 +162,8 @@ pub fn cleanup_obsolete_knowledge_pack_revisions(
 ) -> Result<(), KnowledgeRetrievalError> {
     let dataset = knowledge_dataset(&stable_id)?;
     let pack_root = core::knowledge_pack_root(store.store(), &dataset).map_err(|error| {
-        KnowledgeRetrievalError::InvalidInput {
-            detail: error.to_string(),
+        KnowledgeRetrievalError::Other {
+            detail: format!("invalid retrieval input: {error}"),
         }
     })?;
     core::cleanup_obsolete_knowledge_pack_revisions(pack_root, &dataset, &active_identity)
@@ -295,7 +277,7 @@ pub fn knowledge_pack_asset(stable_id: String) -> Result<Arc<Asset>, KnowledgeRe
     let dataset = knowledge_dataset(&stable_id)?;
     core::knowledge_asset(&dataset)
         .map(Asset::new)
-        .map_err(|error| KnowledgeRetrievalError::InvalidInput {
-            detail: error.to_string(),
+        .map_err(|error| KnowledgeRetrievalError::Other {
+            detail: format!("invalid retrieval input: {error}"),
         })
 }

@@ -1930,8 +1930,6 @@
   "ocrModelsNetworkRequiredError": "Při prvním použití je vyžadováno připojení k síti pro stahování modelů OCR",
   "ocrModelsPrepareFailed": "Nebylo možné připravit OCR modely",
   "ocrNoTextDetected": "Nebyl nalezen žádný text",
-  "ocrProcessingOverlayMessage": "Detekuji text...",
-  "ocrSelectionHint": "Tažením nebo dvojitým poklepáním vyberete, co potřebujete",
   "of_": "z",
   "offlineEnableBackupTagLabel": "10 GB ZDARMA!",
   "offlineFacesBannerSubtitle": "Zaregistrujte se, abyste mohli označovat lidi a snadno je později najít.",

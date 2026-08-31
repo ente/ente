@@ -101,12 +101,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     ..._defaultMigrationScripts,
   ];
 
-  Future<SqliteDatabase>? _sqliteAsyncDBFuture;
-
-  Future<SqliteDatabase> get asyncDB async {
-    _sqliteAsyncDBFuture ??= _initSqliteAsyncDatabase();
-    return _sqliteAsyncDBFuture!;
-  }
+  Future<SqliteDatabase> get asyncDB =>
+      getOrOpenDatabase(_initSqliteAsyncDatabase);
 
   Future<SqliteDatabase> _initSqliteAsyncDatabase() async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
@@ -119,13 +115,20 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       path: databaseDirectory,
       maxReaders: 2,
     );
-    final stopwatch = Stopwatch()..start();
-    _logger.info("MLDataDB: Starting migration");
-    await migrate(asyncDBConnection, _migrationScripts);
-    _logger.info("MLDataDB Migration took ${stopwatch.elapsedMilliseconds} ms");
-    stopwatch.stop();
+    try {
+      final stopwatch = Stopwatch()..start();
+      _logger.info("MLDataDB: Starting migration");
+      await migrate(asyncDBConnection, _migrationScripts);
+      _logger.info(
+        "MLDataDB Migration took ${stopwatch.elapsedMilliseconds} ms",
+      );
+      stopwatch.stop();
 
-    return asyncDBConnection;
+      return asyncDBConnection;
+    } catch (_) {
+      await asyncDBConnection.close();
+      rethrow;
+    }
   }
 
   Iterable<List<T>> _chunkList<T>(List<T> values, int chunkSize) sync* {
@@ -2235,7 +2238,6 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
             _logger.info("All embeddings migrated, breaking out of while loop");
             break;
           }
-          // Allow some time for any GC to finish
           _logger.info("Waiting for 100ms out of precaution, for GC to finish");
           await Future.delayed(const Duration(milliseconds: 100));
         }
@@ -2783,5 +2785,38 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     ''';
     final List<Object?> params = [personOrClusterID];
     await db.execute(sql, params);
+  }
+
+  Future<Set<String>> getClustersForMemoryLane(Set<String> assigned) async {
+    const batchSize = 256;
+    final db = await asyncDB;
+    final clusters = <String>{};
+    var offset = 0;
+    const String sql =
+        '''
+        SELECT $clusterIDColumn, COUNT(*) AS count
+        FROM $faceClustersTable
+        WHERE $clusterIDColumn IS NOT NULL
+        GROUP BY $clusterIDColumn
+        ORDER BY count DESC, $clusterIDColumn
+        LIMIT ? OFFSET ?
+        ''';
+    while (clusters.length < 20) {
+      final batch = await db.getAll(sql, [batchSize, offset]);
+      for (final row in batch) {
+        final cluster = row[clusterIDColumn] as String;
+        if (!assigned.contains(cluster)) {
+          clusters.add(cluster);
+          if (clusters.length == 20) {
+            break;
+          }
+        }
+      }
+      if (batch.length < batchSize) {
+        break;
+      }
+      offset += batchSize;
+    }
+    return clusters;
   }
 }

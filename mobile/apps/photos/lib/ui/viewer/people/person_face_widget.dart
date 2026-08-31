@@ -296,7 +296,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
           email: personData.email,
         );
         _personIdentity = AvatarIdentity.account(
-          label: trimToNull(contact?.data?.name) ?? personData.name,
+          label: trimToNull(contact?.name) ?? personData.name,
           email: trimToNull(contact?.email) ?? personData.email,
           userID: personData.userID,
           personID: personEntity.remoteID,

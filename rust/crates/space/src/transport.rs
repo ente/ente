@@ -136,6 +136,8 @@ pub struct CreateMessageRequest {
     pub recipient_encrypted_message_key: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reply_message_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notification_kind: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -218,6 +220,8 @@ pub struct ConversationsResponse {
     pub pending_requests: Vec<SpaceFriendRequestResponse>,
     #[serde(default)]
     pub chat_summaries: std::collections::BTreeMap<String, ConversationChatSummaryResponse>,
+    #[serde(default)]
+    pub latest_post_created_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -532,6 +536,7 @@ mod tests {
             r#"{
                 "friends":[{"friend":{"spaceId":"space_friend","spaceSlug":"friend-main"},"createdAt":"2026-05-25T00:00:00Z"}],
                 "pendingRequests":[],
+                "latestPostCreatedAt":"2026-05-26T00:00:00Z",
                 "chatSummaries":{
                     "space_friend":{
                         "latestActivity":{
@@ -551,6 +556,10 @@ mod tests {
         let activity = &response.chat_summaries["space_friend"].latest_activity;
         assert_eq!(activity.message_id.as_deref(), Some("msg_1"));
         assert_eq!(activity.post_id, None);
+        assert_eq!(
+            response.latest_post_created_at.as_deref(),
+            Some("2026-05-26T00:00:00Z")
+        );
     }
 }
 

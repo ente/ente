@@ -23,7 +23,8 @@ func resolvePublicActor(c *gin.Context, userAuthRepo *repo.UserAuthRepository, j
 	}
 	if token := auth.GetToken(c); token != "" {
 		app := auth.GetApp(c)
-		userID, expired, err := userAuthRepo.GetUserIDWithToken(token, app)
+		tokenHash := auth.HashToken(token)
+		userID, expired, err := userAuthRepo.GetUserIDWithTokenHash(tokenHash[:], app)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return socialcontroller.Actor{}, ente.ErrAuthenticationRequired

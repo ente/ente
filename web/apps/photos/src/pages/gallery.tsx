@@ -89,7 +89,7 @@ import {
 } from "ente-base/session";
 import { savedAuthToken } from "ente-base/token";
 import type { Location } from "ente-base/types";
-import { ensureContactsReady } from "ente-contacts-web";
+import { ensureContactsReady } from "ente-contacts";
 import { DownloadStatusNotifications } from "ente-gallery/components/DownloadStatusNotifications";
 import { FullScreenDropZone } from "ente-gallery/components/FullScreenDropZone";
 import type { UploadTypeSelectorIntent } from "ente-gallery/components/Upload";
@@ -111,6 +111,7 @@ import {
     addToFavoritesCollection,
     canAddFilesToCollection,
     createAlbum,
+    createHiddenAlbum,
     createPublicURL,
     createQuickLinkCollection,
     removeFromCollection,
@@ -130,7 +131,9 @@ import {
     addManualFileAssignmentsToPerson,
     isMLEnabled,
 } from "ente-new/photos/services/ml";
+import { contactsGetDiff, contactsGetProfilePicture } from "ente-photos-wasm";
 
+import { openAuthenticatedSession } from "@/services/authenticated-session";
 import { postPullFiles, prePullFiles, pullFiles } from "@/services/pull";
 import { uploadManager } from "@/services/upload-manager";
 import watcher from "@/services/watch";
@@ -257,6 +260,7 @@ const Page: React.FC = () => {
     const [, setPostCreateAlbumOp] = useState<CollectionOp | undefined>(
         undefined,
     );
+    const postCreateAlbumHidden = useRef(false);
     const [pendingSidebarAction, setPendingSidebarAction] = useState<
         SidebarActionID | undefined
     >(undefined);
@@ -318,16 +322,14 @@ const Page: React.FC = () => {
         url?: string;
     }>({ open: false });
 
-    const onAuthenticateCallback = useRef<(() => void) | undefined>(undefined);
-    const onAuthenticateCancelCallback = useRef<(() => void) | undefined>(
-        undefined,
-    );
+    const onAuthenticateCallback = useRef<
+        ((didAuthenticate: boolean) => void) | undefined
+    >(undefined);
 
     const authenticateUserWithPasswordModal = useCallback(
         () =>
-            new Promise<void>((resolve, reject) => {
+            new Promise<boolean>((resolve) => {
                 onAuthenticateCallback.current = resolve;
-                onAuthenticateCancelCallback.current = reject;
                 showAuthenticateUser();
             }),
         [],
@@ -337,27 +339,23 @@ const Page: React.FC = () => {
         if (!isDesktop) return authenticateUserWithPasswordModal();
 
         const reauthResult = await reauthenticateWithAppLock();
-        if (reauthResult === "authenticated") return;
-        if (reauthResult === "cancelled") {
-            throw new Error("app_lock_reauthentication_cancelled");
-        }
+        if (reauthResult === "authenticated") return true;
+        if (reauthResult === "cancelled") return false;
 
         return authenticateUserWithPasswordModal();
     }, [authenticateUserWithPasswordModal]);
 
     const handleCloseAuthenticateUser = useCallback(() => {
         authenticateUserVisibilityProps.onClose();
-        // Reject the suspended caller when the modal is dismissed.
-        if (onAuthenticateCancelCallback.current) {
-            onAuthenticateCancelCallback.current();
-            onAuthenticateCancelCallback.current = undefined;
+        if (onAuthenticateCallback.current) {
+            onAuthenticateCallback.current(false);
+            onAuthenticateCallback.current = undefined;
         }
     }, [authenticateUserVisibilityProps.onClose]);
 
     const handleAuthenticate = useCallback(() => {
-        onAuthenticateCancelCallback.current = undefined;
         if (onAuthenticateCallback.current) {
-            onAuthenticateCallback.current();
+            onAuthenticateCallback.current(true);
             onAuthenticateCallback.current = undefined;
         }
     }, []);
@@ -487,7 +485,8 @@ const Page: React.FC = () => {
         let unsubscribeMainWindowFocus: (() => void) | undefined;
 
         void (async () => {
-            if (!haveMasterKeyInSession() || !(await savedAuthToken())) {
+            const authToken = await savedAuthToken();
+            if (!haveMasterKeyInSession() || !authToken) {
                 stashRedirect("/gallery");
                 void router.push("/");
                 return;
@@ -513,15 +512,21 @@ const Page: React.FC = () => {
             const user = ensureLocalUser();
             const masterKey = await masterKeyFromSession();
             if (masterKey) {
-                void ensureContactsReady({
-                    userID: user.id,
-                    masterKeyB64: masterKey,
-                }).catch((error: unknown) => {
-                    log.warn(
-                        "[gallery] Failed to warm contacts display cache",
-                        error,
-                    );
-                });
+                void openAuthenticatedSession(user.id, authToken, masterKey)
+                    .then((session) =>
+                        ensureContactsReady(
+                            user.id,
+                            session,
+                            contactsGetDiff,
+                            contactsGetProfilePicture,
+                        ),
+                    )
+                    .catch((error: unknown) => {
+                        log.warn(
+                            "[gallery] Failed to warm contacts display cache",
+                            error,
+                        );
+                    });
             }
             const userDetails = await savedUserDetailsOrTriggerPull();
             dispatch({
@@ -981,15 +986,19 @@ const Page: React.FC = () => {
     const createOnCreateForCollectionOp = useCallback(
         (op: CollectionOp) => {
             setPostCreateAlbumOp(op);
+            postCreateAlbumHidden.current =
+                op == "add" && barMode == "hidden-albums";
             return showAlbumNameInput;
         },
-        [showAlbumNameInput],
+        [showAlbumNameInput, barMode],
     );
 
     const handleAlbumNameSubmit = useCallback(
         async (name: string) => {
             try {
-                const collection = await createAlbum(name);
+                const collection = postCreateAlbumHidden.current
+                    ? await createHiddenAlbum(name)
+                    : await createAlbum(name);
 
                 if (pendingSingleFileAdd.current) {
                     await performCollectionOp(
@@ -1011,6 +1020,7 @@ const Page: React.FC = () => {
                     });
                     setOpenCollectionSelector(false);
                     setPostCreateAlbumOp(undefined);
+                    postCreateAlbumHidden.current = false;
                     return;
                 }
 
@@ -1020,6 +1030,7 @@ const Page: React.FC = () => {
                     );
                     return undefined;
                 });
+                postCreateAlbumHidden.current = false;
             } finally {
                 pendingSingleFileAdd.current = undefined;
             }
@@ -1329,7 +1340,7 @@ const Page: React.FC = () => {
                 Date.now() - lastAuthAt > 5 * 60 * 1e3
             ) {
                 try {
-                    await authenticateUser();
+                    if (!(await authenticateUser())) return;
                     lastAuthenticationForHiddenTimestamp.current = Date.now();
                 } catch {
                     return;
@@ -1598,6 +1609,7 @@ const Page: React.FC = () => {
                     handleOpenCollectionSelector({
                         action: "add",
                         sourceCollectionSummaryID: activeCollectionSummary?.id,
+                        showHiddenCollections: barMode == "hidden-albums",
                         onCreateCollection:
                             createOnCreateForCollectionOp("add"),
                         onSelectCollection:
@@ -1701,6 +1713,7 @@ const Page: React.FC = () => {
             showEditLocation,
             activeCollectionSummary,
             activeCollection,
+            barMode,
             selectedCount,
             selectedOwnCount,
         ],
@@ -1749,6 +1762,7 @@ const Page: React.FC = () => {
 
             const handleCreate = () => {
                 setPostCreateAlbumOp("add");
+                postCreateAlbumHidden.current = false;
                 showAlbumNameInput();
             };
 
@@ -2106,6 +2120,7 @@ const Page: React.FC = () => {
                 onClose={() => {
                     // Do not leak a cancelled add into the next album creation.
                     pendingSingleFileAdd.current = undefined;
+                    postCreateAlbumHidden.current = false;
                     albumNameInputVisibilityProps.onClose();
                 }}
                 onSubmit={handleAlbumNameSubmit}

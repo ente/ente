@@ -20,7 +20,7 @@ class MemoriesComputationContext {
   final Map<int, int> seenTimes;
   final List<PersonEntity> persons;
   final String? currentUserEmail;
-  final List<City> cities;
+  final CitySearchIndex citySearchIndex;
   final Map<int, List<FaceWithoutEmbedding>> fileIdToFaces;
   final Map<String, int> clusterIdToFaceCount;
   final Map<String, Iterable<String>> clusterIdToFaceIDs;
@@ -42,7 +42,7 @@ class MemoriesComputationContext {
     required this.seenTimes,
     required this.persons,
     required this.currentUserEmail,
-    required this.cities,
+    required this.citySearchIndex,
     required this.fileIdToFaces,
     required this.clusterIdToFaceCount,
     required this.clusterIdToFaceIDs,
@@ -71,7 +71,7 @@ class MemoriesComputationContext {
       seenTimes: Map<int, int>.from(args["seenTimes"] as Map),
       persons: (args["persons"] as List).cast<PersonEntity>(),
       currentUserEmail: args["currentUserEmail"] as String?,
-      cities: (args["cities"] as List).cast<City>(),
+      citySearchIndex: args["citySearchIndex"] as CitySearchIndex,
       fileIdToFaces: Map<int, List<FaceWithoutEmbedding>>.from(
         args["fileIdToFaces"] as Map,
       ),
@@ -107,7 +107,7 @@ class MemoriesComputationContext {
       "seenTimes": seenTimes,
       "persons": persons,
       "currentUserEmail": currentUserEmail,
-      "cities": cities,
+      "citySearchIndex": citySearchIndex,
       "fileIdToFaces": fileIdToFaces,
       "clusterIdToFaceCount": clusterIdToFaceCount,
       "clusterIdToFaceIDs": clusterIdToFaceIDs,

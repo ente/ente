@@ -101,9 +101,13 @@ func (r *Repository) Delete(ctx context.Context, userID int64, id string) (bool,
 }
 
 func (r *Repository) Update(ctx context.Context, userID int64, req model.UpdateEntityDataRequest) error {
-	result, err := r.DB.ExecContext(ctx,
-		`UPDATE entity_data SET encrypted_data = $1, header = $2 where id=$3 and user_id = $4 and is_deleted = FALSE`,
-		req.EncryptedData, req.Header, req.ID, userID)
+	query := `UPDATE entity_data SET encrypted_data = $1, header = $2 where id=$3 and user_id = $4 and type = $5 and is_deleted = FALSE`
+	args := []any{req.EncryptedData, req.Header, req.ID, userID, req.Type}
+	if req.ExpectedUpdatedAt != nil {
+		query += ` and updated_at = $6`
+		args = append(args, *req.ExpectedUpdatedAt)
+	}
+	result, err := r.DB.ExecContext(ctx, query, args...)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -118,9 +122,16 @@ func (r *Repository) Update(ctx context.Context, userID int64, req model.UpdateE
 		}
 		if dbEntity.IsDeleted {
 			return stacktrace.Propagate(ente.NewBadRequestWithMessage("entity is already deleted"), "")
-		} else if *dbEntity.EncryptedData == req.EncryptedData && *dbEntity.Header == req.Header {
+		}
+		if dbEntity.Type != req.Type {
+			return stacktrace.Propagate(ente.NewBadRequestWithMessage("entity type does not match"), "")
+		}
+		if *dbEntity.EncryptedData == req.EncryptedData && *dbEntity.Header == req.Header {
 			logrus.WithField("id", req.ID).Info("entity is already updated")
 			return nil
+		}
+		if req.ExpectedUpdatedAt != nil && dbEntity.UpdatedAt != *req.ExpectedUpdatedAt {
+			return stacktrace.Propagate(ente.ErrVersionMismatch, "entity was updated")
 		}
 		return stacktrace.Propagate(errors.New("exactly one row should be updated"), "")
 	}

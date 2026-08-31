@@ -1,5 +1,6 @@
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
@@ -16,6 +17,27 @@ use crate::logging;
 pub struct State {
     model: Mutex<Option<llm::ModelRef>>,
     context: Mutex<Option<llm::ContextRef>>,
+    lifecycle: async_runtime::Mutex<()>,
+    retrieval_epoch: Arc<AtomicU64>,
+}
+
+impl State {
+    pub(crate) fn lifecycle(&self) -> &async_runtime::Mutex<()> {
+        &self.lifecycle
+    }
+
+    pub(crate) fn retrieval_epoch(&self) -> Arc<AtomicU64> {
+        Arc::clone(&self.retrieval_epoch)
+    }
+
+    fn cancel_retrieval(&self) {
+        self.retrieval_epoch.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
+#[tauri::command]
+pub fn llm_retrieval_epoch(state: TauriState<'_, State>) -> u64 {
+    state.retrieval_epoch.load(Ordering::Relaxed)
 }
 
 pub struct ModelDownloadState {
@@ -34,6 +56,10 @@ impl ModelDownloadState {
             legacy_models_dir: app_data_dir.join("models"),
             active_token: Mutex::new(None),
         }
+    }
+
+    pub(crate) fn store(&self) -> Arc<AssetStore> {
+        Arc::clone(&self.store)
     }
 }
 
@@ -58,7 +84,7 @@ fn llm_error(message: impl Into<String>) -> ApiError {
     ApiError::new("llm", message)
 }
 
-fn llm_api_error(err: llm::Error) -> ApiError {
+pub(crate) fn llm_api_error(err: llm::Error) -> ApiError {
     let code = match &err {
         llm::Error::Cancelled => "cancelled",
         llm::Error::Panicked => "panicked",
@@ -71,7 +97,7 @@ fn llm_api_error(err: llm::Error) -> ApiError {
     ApiError::new(code, err.to_string())
 }
 
-fn download_code(err: &download::Error) -> &'static str {
+pub(crate) fn download_code(err: &download::Error) -> &'static str {
     match err {
         download::Error::Cancelled => "cancelled",
         download::Error::Target { source, .. } => download_code(source),
@@ -248,14 +274,29 @@ pub fn llm_model_status(
     model_id: String,
 ) -> Result<ModelStatus, ApiError> {
     let asset = desktop_asset(&model_id)?;
+    let embedding_asset = ente_ensu::model::knowledge_embedding_model_asset();
     Ok(ModelStatus {
         model_path: ente_ensu::model::llm_model_path(&state.store, &asset)
             .map(|path| path.display().to_string())
             .unwrap_or_default(),
         mmproj_path: ente_ensu::model::llm_mmproj_path(&state.store, &asset)
             .map(|path| path.display().to_string()),
-        downloaded: state.store.is_downloaded(&asset),
+        downloaded: state.store.is_downloaded(&asset)
+            && state.store.is_downloaded(&embedding_asset),
     })
+}
+
+#[tauri::command]
+pub async fn llm_model_download_size(
+    state: TauriState<'_, ModelDownloadState>,
+    model_id: String,
+) -> Result<Option<u64>, ApiError> {
+    let asset = desktop_asset(&model_id)?;
+    let embedding_asset = ente_ensu::model::knowledge_embedding_model_asset();
+    Ok(state
+        .store
+        .estimated_download_size(&[asset, embedding_asset])
+        .await)
 }
 
 #[tauri::command]
@@ -290,6 +331,7 @@ pub async fn llm_download_model(
 ) -> Result<(), ApiError> {
     let store = Arc::clone(&state.store);
     let asset = desktop_asset(&model_id)?;
+    let embedding_asset = ente_ensu::model::knowledge_embedding_model_asset();
     let token = {
         let mut slot = state
             .active_token
@@ -307,7 +349,7 @@ pub async fn llm_download_model(
     };
     let result = store
         .download(
-            std::slice::from_ref(&asset),
+            &[asset, embedding_asset],
             |progress| {
                 let display = ente_ensu::model::display_progress(&progress);
                 if let Some(line) = &display.log_line {
@@ -374,6 +416,7 @@ pub async fn llm_load_model(
     state: TauriState<'_, State>,
     params: llm::ModelLoadParams,
 ) -> Result<(), ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
     logging::log(
         "LLM",
         format!("load model requested model_path={}", params.model_path),
@@ -413,6 +456,7 @@ pub async fn llm_create_context(
     state: TauriState<'_, State>,
     params: llm::ContextParams,
 ) -> Result<(), ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
     let model = state
         .model
         .lock()
@@ -462,7 +506,8 @@ pub async fn llm_create_context(
 }
 
 #[tauri::command]
-pub fn llm_free_context(state: TauriState<State>) -> Result<(), ApiError> {
+pub async fn llm_free_context(state: TauriState<'_, State>) -> Result<(), ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
     let mut context_guard = state
         .context
         .lock()
@@ -472,7 +517,8 @@ pub fn llm_free_context(state: TauriState<State>) -> Result<(), ApiError> {
 }
 
 #[tauri::command]
-pub fn llm_free_model(state: TauriState<State>) -> Result<(), ApiError> {
+pub async fn llm_free_model(state: TauriState<'_, State>) -> Result<(), ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
     replace_state(&state, None, None)
 }
 
@@ -482,6 +528,7 @@ pub async fn llm_prewarm_multimodal_context(
     mmproj_path: String,
     media_marker: Option<String>,
 ) -> Result<(), ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
     let context = state
         .context
         .lock()
@@ -523,6 +570,7 @@ pub async fn llm_generate_chat_stream(
     window: WebviewWindow,
     request: llm::ChatRequest,
 ) -> Result<llm::GenerationSummary, ApiError> {
+    let _lifecycle = state.lifecycle.lock().await;
     let context = state
         .context
         .lock()
@@ -549,12 +597,18 @@ pub async fn llm_generate_chat_stream(
 }
 
 #[tauri::command]
-pub fn llm_cancel(job_id: i64) {
+pub async fn llm_cancel(state: TauriState<'_, State>, job_id: i64) -> Result<(), ApiError> {
+    if job_id <= 0 {
+        state.cancel_retrieval();
+    }
     llm::cancel(job_id);
+    let _lifecycle = state.lifecycle.lock().await;
+    Ok(())
 }
 
 pub(crate) fn clear_for_exit(app: &AppHandle) {
     if let Some(state) = app.try_state::<State>() {
+        state.cancel_retrieval();
         match replace_state(&state, None, None) {
             Ok(()) => {
                 logging::log("App", "cleared LLM model");

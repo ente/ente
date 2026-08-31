@@ -7,33 +7,16 @@ use thiserror::Error;
 pub enum LlmError {
     #[error("Generation cancelled")]
     Cancelled,
-    #[error("Generation panicked")]
-    Panicked,
-    #[error("{detail}")]
-    InvalidInput { detail: String },
-    #[error("{what} not found at {path}")]
-    NotFound { what: String, path: String },
-    #[error("{detail}")]
-    Unsupported { detail: String },
     #[error("Prompt length {tokens} exceeds context size {context_size}")]
     PromptTooLong { tokens: u64, context_size: u32 },
-    #[error("{op}: {detail}")]
-    Llama { op: String, detail: String },
+    #[error("{detail}")]
+    Other { detail: String },
 }
 
 impl From<llm::Error> for LlmError {
     fn from(value: llm::Error) -> Self {
         match value {
             llm::Error::Cancelled => Self::Cancelled,
-            llm::Error::Panicked => Self::Panicked,
-            llm::Error::InvalidInput(message) => Self::InvalidInput { detail: message },
-            llm::Error::NotFound { what, path } => Self::NotFound {
-                what: what.to_string(),
-                path,
-            },
-            llm::Error::Unsupported(message) => Self::Unsupported {
-                detail: message.to_string(),
-            },
             llm::Error::PromptTooLong {
                 tokens,
                 context_size,
@@ -41,9 +24,8 @@ impl From<llm::Error> for LlmError {
                 tokens: tokens as u64,
                 context_size,
             },
-            llm::Error::Llama { op, message } => Self::Llama {
-                op: op.to_string(),
-                detail: message,
+            error => Self::Other {
+                detail: ente_core::error::chain(&error),
             },
         }
     }

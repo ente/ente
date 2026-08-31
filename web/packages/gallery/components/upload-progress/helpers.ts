@@ -9,7 +9,7 @@ import {
     type FinishedStatKind,
     type FinishedUploadType,
     type UploadStatKind,
-} from "../uploadProgressStats";
+} from "../upload-progress-stats";
 import type { UploadProgressContextT } from "./context";
 
 export const finishedTypeReasonKeys: Partial<

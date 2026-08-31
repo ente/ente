@@ -24,6 +24,7 @@ import {
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import { useBaseContext } from "ente-base/context";
+import { isNamedError } from "ente-base/error";
 import type { PublicAlbumsCredentials } from "ente-base/http";
 import log from "ente-base/log";
 import type { AddSaveGroup } from "ente-gallery/components/utils/save-groups";
@@ -410,7 +411,7 @@ export const PublicAlbumSingleFileViewer: React.FC<
                 await navigator.share({ text: shareUrl });
                 return;
             } catch (error) {
-                if (error instanceof Error && error.name === "AbortError") {
+                if (isNamedError(error, "AbortError")) {
                     return;
                 }
             }

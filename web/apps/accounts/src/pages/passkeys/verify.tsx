@@ -4,7 +4,6 @@ import {
     isWebAuthnSupported,
     parseRedirectURLParam,
     passkeyAuthenticationSuccessRedirectURL,
-    passkeySessionAlreadyClaimedErrorMessage,
     redirectToPasskeyRecoverPage,
     signChallenge,
     type BeginPasskeyAuthenticationResponse,
@@ -18,6 +17,7 @@ import { EnteLogo } from "ente-base/components/EnteLogo";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { NavbarBase } from "ente-base/components/Navbar";
+import { isNamedError } from "ente-base/error";
 import { HTTPError } from "ente-base/http";
 import log from "ente-base/log";
 import { nullToUndefined } from "ente-utils/transform";
@@ -98,8 +98,7 @@ const Page = () => {
         } catch (e) {
             log.error("Failed to begin passkey authentication", e);
             setStatus(
-                e instanceof Error &&
-                    e.message == passkeySessionAlreadyClaimedErrorMessage
+                isNamedError(e, "passkey_session_already_claimed")
                     ? "sessionAlreadyClaimed"
                     : "failed",
             );
@@ -126,8 +125,7 @@ const Page = () => {
         } catch (e) {
             log.error("Failed to get credentials", e);
             if (
-                e instanceof Error &&
-                e.name == "NotAllowedError" &&
+                isNamedError(e, "NotAllowedError") &&
                 e.message == "The document is not focused."
             ) {
                 setStatus("needUserFocus");

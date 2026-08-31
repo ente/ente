@@ -8,6 +8,7 @@ pub const MAX_PASTE_CHARS: usize = 4000;
 const FRAGMENT_SECRET_LENGTH: usize = 12;
 const FRAGMENT_SECRET_ALPHABET: &[u8] =
     b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+#[cfg(not(target_arch = "wasm32"))]
 const PASTE_GUARD_COOKIE: &str = "paste_guard";
 const PASSWORD_FRAGMENT_PREFIX: &str = "p-";
 const PASSWORD_KDF_CONTEXT: &str = "ente-paste-password-v1";
@@ -26,8 +27,35 @@ pub enum Error {
     #[error("incorrect paste password")]
     IncorrectPassword,
 
-    #[error("invalid input: {0}")]
-    InvalidInput(String),
+    #[error("paste is unavailable")]
+    Unavailable,
+
+    #[error("paste text is empty")]
+    EmptyText,
+
+    #[error("paste text exceeds the maximum length")]
+    TextTooLong,
+
+    #[error("paste URL or access token is invalid")]
+    InvalidLink,
+
+    #[error("paste access token is invalid")]
+    InvalidAccessToken,
+
+    #[error("paste key is invalid")]
+    InvalidKey,
+
+    #[error("paste key is missing")]
+    MissingKey,
+
+    #[error("paste keys do not match")]
+    KeyMismatch,
+
+    #[error("paste password is required")]
+    PasswordRequired,
+
+    #[error("paste session is not open")]
+    SessionNotOpen,
 
     #[error("the paste data is malformed or corrupted")]
     MalformedPayload,
@@ -70,7 +98,7 @@ impl PasteKey {
         if self.password_required {
             let password = password
                 .filter(|password| !password.is_empty())
-                .ok_or_else(|| Error::InvalidInput("Paste password is required".to_string()))?;
+                .ok_or(Error::PasswordRequired)?;
             Ok(format!(
                 "{PASSWORD_KDF_CONTEXT}\n{}\n{password}",
                 self.fragment_secret
@@ -90,7 +118,7 @@ fn validate_fragment_secret(fragment_secret: &str) -> Result<()> {
         return Ok(());
     }
 
-    Err(Error::InvalidInput("Invalid paste key".to_string()))
+    Err(Error::InvalidKey)
 }
 
 #[derive(Debug)]
@@ -103,9 +131,7 @@ impl PasteLink {
     pub fn parse(input: &str, key: Option<&str>) -> Result<Self> {
         let input = input.trim();
         if input.is_empty() {
-            return Err(Error::InvalidInput(
-                "Paste URL or access token is empty".to_string(),
-            ));
+            return Err(Error::InvalidLink);
         }
 
         let (access_token, embedded_secret) = match url::Url::parse(input) {
@@ -113,9 +139,7 @@ impl PasteLink {
                 let token = url
                     .path_segments()
                     .and_then(|mut segments| segments.rfind(|segment| !segment.is_empty()))
-                    .ok_or_else(|| {
-                        Error::InvalidInput("Paste URL is missing an access token".into())
-                    })?;
+                    .ok_or(Error::InvalidLink)?;
                 (token.to_string(), url.fragment().map(str::to_string))
             }
             Err(_) => match input.split_once('#') {
@@ -127,24 +151,17 @@ impl PasteLink {
         };
 
         if access_token.trim().is_empty() {
-            return Err(Error::InvalidInput(
-                "Paste access token is empty".to_string(),
-            ));
+            return Err(Error::InvalidAccessToken);
         }
+        validate_access_token(&access_token)?;
 
         let key = match (embedded_secret, key) {
             (Some(embedded), Some(key)) if embedded != key => {
-                return Err(Error::InvalidInput(
-                    "Paste URL fragment and --key do not match".to_string(),
-                ));
+                return Err(Error::KeyMismatch);
             }
             (Some(embedded), _) => PasteKey::parse(&embedded)?,
             (None, Some(key)) => PasteKey::parse(key)?,
-            (None, None) => {
-                return Err(Error::InvalidInput(
-                    "Paste key missing. Pass a full paste URL or --key".to_string(),
-                ));
-            }
+            (None, None) => return Err(Error::MissingKey),
         };
 
         Ok(Self { access_token, key })
@@ -158,6 +175,21 @@ impl PasteLink {
             self.key.link_fragment()
         )
     }
+
+    pub fn password_required(&self) -> bool {
+        self.key.password_required
+    }
+}
+
+fn validate_access_token(access_token: &str) -> Result<()> {
+    if (6..=32).contains(&access_token.len())
+        && access_token
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric())
+    {
+        return Ok(());
+    }
+    Err(Error::InvalidAccessToken)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -191,6 +223,48 @@ struct PasteTokenRequest {
 
 pub struct Client {
     api: Api,
+}
+
+pub enum OpenPaste {
+    PasswordRequired,
+    Text(String),
+}
+
+pub struct PasteSession {
+    link: PasteLink,
+    payload: Option<PastePayload>,
+}
+
+impl PasteSession {
+    pub fn parse(input: &str) -> Result<Self> {
+        Ok(Self {
+            link: PasteLink::parse(input, None)?,
+            payload: None,
+        })
+    }
+
+    pub async fn open(&mut self, client: &Client) -> Result<OpenPaste> {
+        if self.link.password_required() {
+            client.check(&self.link.access_token).await?;
+            Ok(OpenPaste::PasswordRequired)
+        } else {
+            self.consume(client, None).await.map(OpenPaste::Text)
+        }
+    }
+
+    pub async fn consume(&mut self, client: &Client, password: Option<&str>) -> Result<String> {
+        if self.link.password_required() && password.filter(|value| !value.is_empty()).is_none() {
+            return Err(Error::PasswordRequired);
+        }
+        if let Some(payload) = &self.payload {
+            return decrypt(payload, &self.link.key, password);
+        }
+
+        let payload = client.consume(&self.link.access_token).await?;
+        let result = decrypt(&payload, &self.link.key, password);
+        self.payload = Some(payload);
+        result
+    }
 }
 
 impl Client {
@@ -228,28 +302,55 @@ impl Client {
     }
 
     pub async fn check(&self, access_token: &str) -> Result<()> {
+        validate_access_token(access_token)?;
         self.guard(access_token).await?;
         Ok(())
     }
 
     pub async fn consume(&self, access_token: &str) -> Result<PastePayload> {
+        validate_access_token(access_token)?;
+        #[cfg(target_arch = "wasm32")]
+        self.guard(access_token).await?;
+        #[cfg(not(target_arch = "wasm32"))]
         let cookie = self.guard(access_token).await?;
-        Ok(self
+        let request = self
             .api
             .post("/paste/consume")
             .json(&PasteTokenRequest {
                 access_token: access_token.to_string(),
             })
-            .header("X-Paste-Consume", "1")
-            .header("Cookie", &cookie)
+            .header("X-Paste-Consume", "1");
+        #[cfg(target_arch = "wasm32")]
+        let request = request.credentials_include();
+        #[cfg(not(target_arch = "wasm32"))]
+        let request = request.header("Cookie", &cookie);
+        Ok(request
             .send()
             .await?
             .error_for_code()
-            .await?
+            .await
+            .map_err(map_consume_error)?
             .json()
             .await?)
     }
 
+    #[cfg(target_arch = "wasm32")]
+    async fn guard(&self, access_token: &str) -> Result<()> {
+        self.api
+            .post("/paste/guard")
+            .json(&PasteTokenRequest {
+                access_token: access_token.to_string(),
+            })
+            .credentials_include()
+            .send()
+            .await?
+            .error_for_code()
+            .await
+            .map_err(map_consume_error)?;
+        Ok(())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     async fn guard(&self, access_token: &str) -> Result<String> {
         let response = self
             .api
@@ -260,8 +361,8 @@ impl Client {
             .send()
             .await?
             .error_for_code()
-            .await?;
-
+            .await
+            .map_err(map_consume_error)?;
         let cookie_prefix = format!("{PASTE_GUARD_COOKIE}=");
         response
             .headers()
@@ -272,6 +373,13 @@ impl Client {
             .find(|value| value.starts_with(&cookie_prefix))
             .map(str::to_string)
             .ok_or(Error::MissingGuardCookie)
+    }
+}
+
+fn map_consume_error(error: http::Error) -> Error {
+    match error.status_code() {
+        Some(404 | 410) => Error::Unavailable,
+        _ => Error::Http(error),
     }
 }
 
@@ -287,12 +395,23 @@ pub fn decrypt(payload: &PastePayload, key: &PasteKey, password: Option<&str>) -
 }
 
 pub fn encrypt(text: &str, password: Option<&str>) -> Result<(PasteKey, PastePayload)> {
+    validate_text(text)?;
     let params = if password.is_some() {
         argon::Params::MODERATE
     } else {
         argon::Params::INTERACTIVE
     };
     encrypt_with_kdf_params(text, password, params)
+}
+
+pub fn validate_text(text: &str) -> Result<()> {
+    if text.trim().is_empty() {
+        return Err(Error::EmptyText);
+    }
+    if text.chars().count() > MAX_PASTE_CHARS {
+        return Err(Error::TextTooLong);
+    }
+    Ok(())
 }
 
 fn encrypt_with_kdf_params(
@@ -408,6 +527,21 @@ mod tests {
     }
 
     #[test]
+    fn validate_paste_text() {
+        assert!(validate_text("hello").is_ok());
+        assert!(matches!(validate_text("  \n"), Err(Error::EmptyText)));
+        assert!(validate_text(&"😀".repeat(MAX_PASTE_CHARS)).is_ok());
+        assert!(matches!(
+            validate_text(&"😀".repeat(MAX_PASTE_CHARS + 1)),
+            Err(Error::TextTooLong)
+        ));
+        assert!(matches!(
+            validate_text(&"a".repeat(MAX_PASTE_CHARS + 1)),
+            Err(Error::TextTooLong)
+        ));
+    }
+
+    #[test]
     fn encrypt_password_protected_paste_payload_uses_moderate_kdf() {
         let (paste_key, payload) = encrypt("protected paste", Some("correct horse")).unwrap();
 
@@ -429,6 +563,32 @@ mod tests {
         let text = decrypt(&payload, &paste_key, Some("correct horse")).unwrap();
 
         assert_eq!(text, "protected paste");
+    }
+
+    #[test]
+    fn decrypt_legacy_web_paste_payloads() {
+        let payload: PastePayload = serde_json::from_str(
+            r#"{"encryptedData":"niesGyZo1AlMtTMfgRLskd+McdrMTLRCt6nHvSY39Aw4U2clYPI01nj8VmTOyA==","decryptionHeader":"Lqb0aj5VlGwfTNi69GFvK7Rahl4dVa17","encryptedPasteKey":"+NH/0c9+yIfTGKFfs1fxvY7vPAB6OP0QcjBcZvZ01K/qGXoJTSJobjDNOmS5Si78","encryptedPasteKeyNonce":"+NAxXQ59SDU7YqWhJHpBvWqkuGerwvlh","kdfNonce":"xzT60ys77A8WEg4SToeRYQ==","kdfMemLimit":67108864,"kdfOpsLimit":2}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            decrypt(&payload, &PasteKey::parse("AbCd1234EfGh").unwrap(), None).unwrap(),
+            "legacy web fixture"
+        );
+
+        let payload: PastePayload = serde_json::from_str(
+            r#"{"encryptedData":"FkWTCxgHGPAc+1v0B21D+4dYpZpNP33Xhd0MgmbvPg7d9EDFv5ZAt++NQ3NcfiFPtzHBrg==","decryptionHeader":"JV7V6Ba0/daql+mfQ/UpUSICw1ErDG3Q","encryptedPasteKey":"Wle7cpaMWaor0z8m1LYMufl7Qw5k3mNAF2OvjGZs4/nigJHgYbrjZaJN9KtkMGuW","encryptedPasteKeyNonce":"3gLFpRkUvzPTc7QYPzfZ9CrVOivJ5tZF","kdfNonce":"1PJBf1pkftMWXeKyJtb4tw==","kdfMemLimit":268435456,"kdfOpsLimit":3}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            decrypt(
+                &payload,
+                &PasteKey::parse("p-1234567890ab").unwrap(),
+                Some("correct horse")
+            )
+            .unwrap(),
+            "legacy protected fixture"
+        );
     }
 
     #[test]
@@ -527,7 +687,7 @@ mod tests {
         )
         .unwrap_err();
 
-        assert!(matches!(error, Error::InvalidInput(_)));
+        assert!(matches!(error, Error::KeyMismatch));
     }
 
     #[tokio::test]
@@ -567,5 +727,76 @@ mod tests {
         assert_eq!(text, "guarded paste");
         guard.assert_async().await;
         consume.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn session_retains_consumed_payload_for_password_retry() {
+        let access_token = "ABC123";
+        let password = "correct horse";
+        let (key, payload) =
+            encrypt_with_kdf_params("guarded paste", Some(password), argon::Params::MIN).unwrap();
+        let mut server = Server::new_async().await;
+
+        let guard = server
+            .mock("POST", "/paste/guard")
+            .match_body(Matcher::PartialJson(serde_json::json!({
+                "accessToken": access_token,
+            })))
+            .with_status(200)
+            .with_header("set-cookie", "paste_guard=test-cookie; Path=/; HttpOnly")
+            .with_body("{}")
+            .expect(2)
+            .create_async()
+            .await;
+        let consume = server
+            .mock("POST", "/paste/consume")
+            .match_header("x-paste-consume", "1")
+            .match_header("cookie", "paste_guard=test-cookie")
+            .with_status(200)
+            .with_body(serde_json::to_string(&payload).unwrap())
+            .create_async()
+            .await;
+
+        let client = Client::new(server.url(), None).unwrap();
+        let mut session = PasteSession {
+            link: PasteLink {
+                access_token: access_token.to_string(),
+                key,
+            },
+            payload: None,
+        };
+
+        assert!(matches!(
+            session.open(&client).await.unwrap(),
+            OpenPaste::PasswordRequired
+        ));
+        assert!(matches!(
+            session.consume(&client, Some("wrong horse")).await,
+            Err(Error::IncorrectPassword)
+        ));
+        assert_eq!(
+            session.consume(&client, Some(password)).await.unwrap(),
+            "guarded paste"
+        );
+        guard.assert_async().await;
+        consume.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn maps_unavailable_pastes() {
+        let mut server = Server::new_async().await;
+        let guard = server
+            .mock("POST", "/paste/guard")
+            .with_status(410)
+            .with_body(r#"{"code":"NOT_FOUND"}"#)
+            .create_async()
+            .await;
+        let client = Client::new(server.url(), None).unwrap();
+
+        assert!(matches!(
+            client.check("ABC123").await,
+            Err(Error::Unavailable)
+        ));
+        guard.assert_async().await;
     }
 }

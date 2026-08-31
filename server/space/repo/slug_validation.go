@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	minSpaceSlugLength = 4
-	maxSpaceSlugLength = 30
+	minSpaceSlugLength         = 4
+	maxSpaceSlugLength         = 30
+	spaceSlugReservedErrorCode = ente.ErrorCode("SPACE_SLUG_RESERVED")
 )
 
 var spaceSlugPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._]*$`)
@@ -52,7 +53,10 @@ func validateSpaceSlug(input string, allowReserved bool) (string, error) {
 		return "", ente.NewBadRequestWithMessage("spaceSlug must be 4-30 characters")
 	}
 	if !allowReserved && isReservedSpaceSlug(slug) {
-		return "", ente.NewBadRequestWithMessage("spaceSlug is reserved")
+		return "", ente.NewBadRequestError(&ente.ApiErrorParams{
+			Code:    spaceSlugReservedErrorCode,
+			Message: "spaceSlug is reserved",
+		})
 	}
 	if !spaceSlugPattern.MatchString(slug) {
 		return "", ente.NewBadRequestWithMessage("spaceSlug can only contain lowercase letters, numbers, dots, or underscores, and must start with a letter or number")

@@ -33,11 +33,8 @@ void applyCreationTimeMetadata(EnteFile file, ParsedExifDateTime? exifTime) {
   if (!hasExifTime && Platform.isAndroid && file.title != null) {
     final timeFromFileName = parseDateTimeFromFileNameV2(file.title!);
     if (timeFromFileName != null) {
-      // only use timeFromFileName if the existing creationTime and
-      // timeFromFilename belongs to different date.
-      // This is done because many times the fileTimeStamp will only give us
-      // the date, not time value but the photo_manager's creation time will
-      // contain the time.
+      // Filename dates often omit the time; keep photo_manager's timestamp
+      // when both values fall on the same day.
       final bool useFileTimeStamp =
           file.creationTime == null ||
           !areFromSameDay(

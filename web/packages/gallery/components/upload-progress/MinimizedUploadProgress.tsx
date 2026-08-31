@@ -23,7 +23,7 @@ import {
     uploadCountsText,
     uploadStatusText,
 } from "./helpers";
-import { useMinimizedUploadDrag } from "./useMinimizedUploadDrag";
+import { useMinimizedUploadDrag } from "./use-minimized-upload-drag";
 
 export function MinimizedUploadProgress() {
     const context = useUploadProgressContext();

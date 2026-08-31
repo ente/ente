@@ -262,7 +262,7 @@ Future<File?> _downloadAndCache(
           return null;
         }
         final decryptedFilePath = decryptedFile.path;
-        final String fileExtension = getExtension(file.title ?? '');
+        String fileExtension = getExtension(file.title ?? '');
         File outputFile = decryptedFile;
         if ((fileExtension == "unknown" && file.fileType == FileType.image)) {
           final compressResult = await FlutterImageCompress.compressAndGetFile(
@@ -274,6 +274,7 @@ Future<File?> _downloadAndCache(
             throw Exception("Failed to convert heic to jpg");
           } else {
             outputFile = File(compressResult.path);
+            fileExtension = "jpg";
           }
           await decryptedFile.delete();
         }

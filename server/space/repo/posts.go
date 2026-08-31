@@ -27,6 +27,18 @@ func (r *PostsRepository) CountPosts(ctx context.Context, spaceID string) (int64
 	return count, nil
 }
 
+func (r *PostsRepository) LatestPostCreatedAt(ctx context.Context, spaceID string) (int64, error) {
+	var createdAt sql.NullInt64
+	if err := r.DB.QueryRowContext(ctx, `
+		SELECT MAX(created_at)
+		FROM space_posts
+		WHERE space_id = $1 AND is_deleted = FALSE
+	`, spaceID).Scan(&createdAt); err != nil {
+		return 0, stacktrace.Propagate(err, "")
+	}
+	return createdAt.Int64, nil
+}
+
 func postRecordSelectSQL(viewerLikedExpr string) string {
 	return `
 		SELECT p.post_id, p.space_id, w.space_slug, w.owner_id,

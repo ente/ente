@@ -6,7 +6,7 @@ import type {
     SegregatedFinishedUploads,
     UploadCounter,
     UploadFileNames,
-} from "../uploadProgressStats";
+} from "../upload-progress-stats";
 
 export interface DragPosition {
     x: number;

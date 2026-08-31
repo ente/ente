@@ -1,13 +1,9 @@
-import 'dart:io';
-
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:photos/db/common/base.dart';
 import 'package:photos/models/api/memory_share/memory_share.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqlite_async/sqlite_async.dart';
 
-class MemorySharesDB {
+class MemorySharesDB with SqlDbBase {
   static const _databaseName = "ente.memory_shares.db";
-  static const _databaseVersion = 1;
 
   static const _table = 'memory_shares';
 
@@ -26,29 +22,8 @@ class MemorySharesDB {
   static const _columnPreviewUploadedFileID = 'preview_uploaded_file_id';
   static const _columnFileCount = 'file_count';
 
-  MemorySharesDB._();
-  static final MemorySharesDB instance = MemorySharesDB._();
-
-  static Future<Database>? _dbFuture;
-
-  Future<Database> get database async {
-    _dbFuture ??= _initDatabase();
-    return _dbFuture!;
-  }
-
-  Future<Database> _initDatabase() async {
-    final Directory documentsDirectory =
-        await getApplicationDocumentsDirectory();
-    final String path = join(documentsDirectory.path, _databaseName);
-    return await openDatabase(
-      path,
-      version: _databaseVersion,
-      onCreate: _onCreate,
-    );
-  }
-
-  Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
+  static const _migrationScripts = [
+    '''
       CREATE TABLE $_table (
         $_columnID INTEGER PRIMARY KEY NOT NULL,
         $_columnType TEXT NOT NULL,
@@ -65,47 +40,56 @@ class MemorySharesDB {
         $_columnPreviewUploadedFileID INTEGER,
         $_columnFileCount INTEGER
       )
-    ''');
-  }
+    ''',
+  ];
+
+  MemorySharesDB._();
+  static final MemorySharesDB instance = MemorySharesDB._();
+
+  Future<SqliteDatabase> get database => getOrOpenDatabase(
+    () => openMigratedDatabase(_databaseName, _migrationScripts),
+  );
 
   Future<void> upsert(MemoryShare share) async {
     final db = await database;
-    await db.insert(
-      _table,
-      _toRow(share),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.execute('''
+      INSERT OR REPLACE INTO $_table (
+        $_columnID, $_columnType, $_columnMetadataCipher,
+        $_columnMetadataNonce, $_columnMemEncKey,
+        $_columnMemKeyDecryptionNonce, $_columnAccessToken,
+        $_columnIsDeleted, $_columnCreatedAt, $_columnUpdatedAt, $_columnUrl,
+        $_columnMemoryHash, $_columnPreviewUploadedFileID, $_columnFileCount
+      ) VALUES (${SqlDbBase.getParams(14)})
+      ''', _toParameters(share));
   }
 
   Future<List<MemoryShare>> getAll() async {
     final db = await database;
-    final rows = await db.query(
-      _table,
-      where: '$_columnIsDeleted = 0',
-      orderBy: '$_columnCreatedAt DESC',
+    final rows = await db.getAll(
+      'SELECT * FROM $_table WHERE $_columnIsDeleted = 0 ORDER BY $_columnCreatedAt DESC',
     );
     return rows.map(_fromRow).toList();
   }
 
   Future<MemoryShare?> getById(int id) async {
     final db = await database;
-    final rows = await db.query(
-      _table,
-      where: '$_columnID = ?',
-      whereArgs: [id],
-    );
+    final rows = await db.getAll('SELECT * FROM $_table WHERE $_columnID = ?', [
+      id,
+    ]);
     if (rows.isEmpty) return null;
     return _fromRow(rows.first);
   }
 
   Future<MemoryShare?> getByMemoryHash(String memoryHash) async {
     final db = await database;
-    final rows = await db.query(
-      _table,
-      where: '$_columnMemoryHash = ? AND $_columnIsDeleted = 0',
-      whereArgs: [memoryHash],
-      orderBy: '$_columnCreatedAt DESC',
-      limit: 1,
+    final rows = await db.getAll(
+      '''
+      SELECT * FROM $_table
+      WHERE $_columnMemoryHash = ? AND $_columnIsDeleted = 0
+      ORDER BY $_columnCreatedAt DESC
+      LIMIT 1
+      ''',
+      [memoryHash],
     );
     if (rows.isEmpty) return null;
     return _fromRow(rows.first);
@@ -113,31 +97,31 @@ class MemorySharesDB {
 
   Future<void> delete(int id) async {
     final db = await database;
-    await db.delete(_table, where: '$_columnID = ?', whereArgs: [id]);
+    await db.execute('DELETE FROM $_table WHERE $_columnID = ?', [id]);
   }
 
   Future<void> clearTable() async {
     final db = await database;
-    await db.delete(_table);
+    await db.execute('DELETE FROM $_table');
   }
 
-  Map<String, dynamic> _toRow(MemoryShare share) {
-    return {
-      _columnID: share.id,
-      _columnType: share.type.name,
-      _columnMetadataCipher: share.metadataCipher,
-      _columnMetadataNonce: share.metadataNonce,
-      _columnMemEncKey: share.encryptedKey,
-      _columnMemKeyDecryptionNonce: share.keyDecryptionNonce,
-      _columnAccessToken: share.accessToken,
-      _columnIsDeleted: share.isDeleted ? 1 : 0,
-      _columnCreatedAt: share.createdAt,
-      _columnUpdatedAt: share.updatedAt,
-      _columnUrl: share.url,
-      _columnMemoryHash: share.memoryHash,
-      _columnPreviewUploadedFileID: share.previewUploadedFileID,
-      _columnFileCount: share.fileCount,
-    };
+  List<Object?> _toParameters(MemoryShare share) {
+    return [
+      share.id,
+      share.type.name,
+      share.metadataCipher,
+      share.metadataNonce,
+      share.encryptedKey,
+      share.keyDecryptionNonce,
+      share.accessToken,
+      share.isDeleted ? 1 : 0,
+      share.createdAt,
+      share.updatedAt,
+      share.url,
+      share.memoryHash,
+      share.previewUploadedFileID,
+      share.fileCount,
+    ];
   }
 
   MemoryShare _fromRow(Map<String, dynamic> row) {

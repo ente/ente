@@ -252,6 +252,19 @@ class _CatalogHomeState extends State<CatalogHome> {
         previewBuilder: (_) => const _ButtonMatrix(),
       ),
       CatalogSection(
+        title: 'Floating action button',
+        icon: HugeIcons.strokeRoundedAdd01,
+        components: const [
+          'Primary',
+          'Secondary',
+          'Icon',
+          'Medium',
+          'Medium with icon',
+        ],
+        previewBuilder: (_) => const SizedBox.shrink(),
+        routeBuilder: _buildFABDemo,
+      ),
+      CatalogSection(
         title: 'Bottom sheets',
         icon: HugeIcons.strokeRoundedLayoutTable01,
         components: const [
@@ -353,6 +366,17 @@ Widget _buildHeaderAppBarDemo(
   ValueChanged<ThemeMode> onThemeModeChanged,
 ) {
   return HeaderAppBarDemoPage(
+    themeMode: themeMode,
+    onThemeModeChanged: onThemeModeChanged,
+  );
+}
+
+Widget _buildFABDemo(
+  BuildContext context,
+  ThemeMode themeMode,
+  ValueChanged<ThemeMode> onThemeModeChanged,
+) {
+  return FABDemoPage(
     themeMode: themeMode,
     onThemeModeChanged: onThemeModeChanged,
   );
@@ -1224,6 +1248,7 @@ class _BannerPreview extends StatelessWidget {
             subtitle: 'Preparing secure upload',
             state: BannerComponentState.informative,
             leadingWidget: const _BannerLoadingLeading(),
+            trailingWidget: const Icon(Icons.arrow_forward),
             onTap: () {},
           ),
         ),
@@ -1271,6 +1296,7 @@ class _BannerStatePreview extends StatelessWidget {
       title: spec.title,
       subtitle: spec.subtitle,
       state: spec.state,
+      trailingWidget: const Icon(Icons.arrow_forward),
       onTap: () {
         ScaffoldMessenger.of(
           context,
@@ -1453,6 +1479,234 @@ class _ButtonMatrix extends StatelessWidget {
           child: _IconButtonMatrix(),
         ),
       ],
+    );
+  }
+}
+
+class FABDemoPage extends StatefulWidget {
+  const FABDemoPage({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+
+  @override
+  State<FABDemoPage> createState() => _FABDemoPageState();
+}
+
+class _FABDemoPageState extends State<FABDemoPage> {
+  late ThemeMode _themeMode = widget.themeMode;
+
+  void _setThemeMode(ThemeMode mode) {
+    setState(() => _themeMode = mode);
+    widget.onThemeModeChanged(mode);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Scaffold(
+      body: AppBarComponent(
+        title: 'Floating action button',
+        subtitle: 'Primary, Secondary, Icon, Medium',
+        onBack: () => Navigator.of(context).pop(),
+        actions: [
+          _CatalogThemeCycleButton(
+            themeMode: _themeMode,
+            onChanged: _setThemeMode,
+          ),
+        ],
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.lg,
+              Spacing.xs,
+              Spacing.lg,
+              Spacing.lg,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: _FABDemoList(
+                themeMode: _themeMode,
+                onThemeModeChanged: _setThemeMode,
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: colors.backgroundBase,
+    );
+  }
+}
+
+class _FABDemoList extends StatelessWidget {
+  const _FABDemoList({
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuGroupComponent(
+      items: [
+        _FABDemoLink(
+          title: 'Primary medium',
+          variant: FABComponentVariant.primary,
+          hasIcon: false,
+          label: 'Add',
+          themeMode: themeMode,
+          onThemeModeChanged: onThemeModeChanged,
+        ),
+        _FABDemoLink(
+          title: 'Primary medium with icon',
+          variant: FABComponentVariant.primary,
+          hasIcon: true,
+          label: 'Add',
+          themeMode: themeMode,
+          onThemeModeChanged: onThemeModeChanged,
+        ),
+        _FABDemoLink(
+          title: 'Primary icon',
+          variant: FABComponentVariant.primary,
+          hasIcon: true,
+          themeMode: themeMode,
+          onThemeModeChanged: onThemeModeChanged,
+        ),
+        _FABDemoLink(
+          title: 'Secondary medium',
+          variant: FABComponentVariant.secondary,
+          hasIcon: false,
+          label: 'Add',
+          themeMode: themeMode,
+          onThemeModeChanged: onThemeModeChanged,
+        ),
+        _FABDemoLink(
+          title: 'Secondary medium with icon',
+          variant: FABComponentVariant.secondary,
+          hasIcon: true,
+          label: 'Add',
+          themeMode: themeMode,
+          onThemeModeChanged: onThemeModeChanged,
+        ),
+        _FABDemoLink(
+          title: 'Secondary icon',
+          variant: FABComponentVariant.secondary,
+          hasIcon: true,
+          themeMode: themeMode,
+          onThemeModeChanged: onThemeModeChanged,
+        ),
+      ],
+    );
+  }
+}
+
+class _FABDemoLink extends StatelessWidget {
+  const _FABDemoLink({
+    required this.title,
+    required this.variant,
+    required this.hasIcon,
+    this.label,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
+
+  final String title;
+  final FABComponentVariant variant;
+  final bool hasIcon;
+  final String? label;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuComponent(
+      title: title,
+      trailing: const _CatalogHugeIcon(
+        HugeIcons.strokeRoundedArrowRight02,
+        size: IconSizes.small,
+      ),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => _FABDemoSubPage(
+            title: title,
+            variant: variant,
+            hasIcon: hasIcon,
+            label: label,
+            themeMode: themeMode,
+            onThemeModeChanged: onThemeModeChanged,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FABDemoSubPage extends StatefulWidget {
+  const _FABDemoSubPage({
+    required this.title,
+    required this.variant,
+    required this.hasIcon,
+    this.label,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
+
+  final String title;
+  final FABComponentVariant variant;
+  final bool hasIcon;
+  final String? label;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+
+  @override
+  State<_FABDemoSubPage> createState() => _FABDemoSubPageState();
+}
+
+class _FABDemoSubPageState extends State<_FABDemoSubPage> {
+  late ThemeMode _themeMode = widget.themeMode;
+
+  void _setThemeMode(ThemeMode mode) {
+    setState(() => _themeMode = mode);
+    widget.onThemeModeChanged(mode);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Scaffold(
+      body: AppBarComponent(
+        title: widget.title,
+        subtitle: 'Floating action button',
+        onBack: () => Navigator.of(context).pop(),
+        actions: [
+          _CatalogThemeCycleButton(
+            themeMode: _themeMode,
+            onChanged: _setThemeMode,
+          ),
+        ],
+        slivers: const [],
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: FABComponent(
+          icon: widget.hasIcon
+              ? const _CatalogHugeIcon(
+                  HugeIcons.strokeRoundedAdd01,
+                  size: IconSizes.small,
+                )
+              : null,
+          label: widget.label,
+          variant: widget.variant,
+          onTap: () {},
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      backgroundColor: colors.backgroundBase,
     );
   }
 }

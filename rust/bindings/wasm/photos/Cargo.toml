@@ -1,0 +1,10 @@
+[package]
+name = "ente-photos-wasm"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-wasm-lib = { workspace = true, features = ["contacts"] }
+ente-wasm-log.workspace = true

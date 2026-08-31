@@ -2,20 +2,20 @@ import {
     addCollectionName,
     toggleCollectionName,
     uploadQueueItemKey,
-} from "@/components/createItemDialog/fileUploadHelpers";
+} from "@/components/createItemDialog/file-upload-helpers";
 import { FileUploadSection } from "@/components/createItemDialog/FileUploadSection";
+import { typeDisplayName } from "@/components/createItemDialog/item-form-fields-utils";
 import {
     CollectionSelector,
     ItemFormFields,
 } from "@/components/createItemDialog/ItemFormFields";
-import { typeDisplayName } from "@/components/createItemDialog/itemFormFieldsUtils";
-import { lockerDialogPaperSx } from "@/components/lockerDialogStyles";
+import { lockerDialogPaperSx } from "@/components/locker-dialog-styles";
 import {
     createDocumentIcon,
     createDocumentIconConfig,
     lockerItemIcon,
     lockerItemIconConfig,
-} from "@/components/lockerItemIcons";
+} from "@/components/locker-item-icons";
 import type { LockerUploadLimitState } from "@/services/locker-limits";
 import type { LockerUploadProgress } from "@/services/remote";
 import type {
@@ -43,7 +43,7 @@ import {
     type CreateItemDialogEditItem,
     type CreateOption,
     useCreateItemDialogState,
-} from "./createItemDialog/useCreateItemDialogState";
+} from "./createItemDialog/use-create-item-dialog-state";
 
 const CREATABLE_TYPES: {
     type: CreateOption;

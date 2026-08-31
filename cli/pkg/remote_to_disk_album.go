@@ -20,7 +20,7 @@ func (c *ClICtrl) createLocalFolderForRemoteAlbums(ctx context.Context, account 
 		return err
 	}
 	userID := ctx.Value("user_id").(int64)
-	folderToMetaMap, albumIDToMetaMap, err := readFolderMetadata(path)
+	albumIDToMetaMap, err := readFolderMetadata(path)
 	if err != nil {
 		return err
 	}
@@ -35,44 +35,30 @@ func (c *ClICtrl) createLocalFolderForRemoteAlbums(ctx context.Context, account 
 				if err = os.RemoveAll(filepath.Join(path, meta.FolderName)); err != nil {
 					return err
 				}
-				delete(folderToMetaMap, meta.FolderName)
 				delete(albumIDToMetaMap, meta.ID)
 			}
 			continue
 		}
 		metaByID := albumIDToMetaMap[album.ID]
 
-		if metaByID != nil {
-			if strings.EqualFold(metaByID.AlbumName, album.AlbumName) {
-				continue
-			}
+		if metaByID != nil && strings.EqualFold(metaByID.AlbumName, album.AlbumName) &&
+			sanitizeAlbumFolderName(metaByID.FolderName) == metaByID.FolderName {
+			continue
 		}
 
-		albumFolderName := filepath.Clean(album.AlbumName)
-		albumFolderName = strings.ReplaceAll(albumFolderName, ":", "_")
-		albumFolderName = strings.ReplaceAll(albumFolderName, "/", "_")
-		albumFolderName = strings.TrimSpace(albumFolderName)
-
-		albumID := album.ID
-
-		if _, ok := folderToMetaMap[albumFolderName]; ok {
-			for i := 1; ; i++ {
-				newAlbumName := fmt.Sprintf("%s_%d", albumFolderName, i)
-				if _, ok := folderToMetaMap[newAlbumName]; !ok {
-					albumFolderName = newAlbumName
-					break
-				}
-			}
+		albumFolderName := sanitizeAlbumFolderName(album.AlbumName)
+		albumFolderName, err = uniqueAlbumFolderName(path, albumFolderName)
+		if err != nil {
+			return err
 		}
-		albumPath := filepath.Clean(filepath.Join(path, albumFolderName))
+
+		albumPath := filepath.Join(path, albumFolderName)
 		metaPath := filepath.Join(albumPath, ".meta")
 		if metaByID == nil {
 			log.Printf("Adding folder %s for album %s", albumFolderName, album.AlbumName)
 			for _, p := range []string{albumPath, metaPath} {
-				if _, err := os.Stat(p); os.IsNotExist(err) {
-					if err = os.Mkdir(p, 0755); err != nil {
-						return err
-					}
+				if err = os.Mkdir(p, 0755); err != nil {
+					return err
 				}
 			}
 		} else {
@@ -94,25 +80,63 @@ func (c *ClICtrl) createLocalFolderForRemoteAlbums(ctx context.Context, account 
 		if err = writeJSONToFile(metaFilePath, metaData); err != nil {
 			return err
 		}
-		folderToMetaMap[albumFolderName] = &metaData
-		albumIDToMetaMap[albumID] = &metaData
+		albumIDToMetaMap[album.ID] = &metaData
 	}
 	return nil
 }
 
-func readFolderMetadata(path string) (map[string]*export.AlbumMetadata, map[int64]*export.AlbumMetadata, error) {
-	result := make(map[string]*export.AlbumMetadata)
-	albumIdToMetadataMap := make(map[int64]*export.AlbumMetadata)
+func sanitizeAlbumFolderName(name string) string {
+	name = strings.Map(func(r rune) rune {
+		if r < ' ' || strings.ContainsRune(`<>:"/\|?*`, r) {
+			return '_'
+		}
+		return r
+	}, name)
+	name = strings.TrimRight(strings.TrimSpace(name), ". ")
+	if name == "" || isWindowsReservedName(name) {
+		return "_" + name
+	}
+	return name
+}
+
+func isWindowsReservedName(name string) bool {
+	base, _, _ := strings.Cut(name, ".")
+	base = strings.ToUpper(strings.TrimRight(base, " "))
+	switch base {
+	case "CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
+		"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "COM¹", "COM²", "COM³",
+		"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "LPT¹", "LPT²", "LPT³":
+		return true
+	}
+	return false
+}
+
+func uniqueAlbumFolderName(root, name string) (string, error) {
+	for i := 0; ; i++ {
+		candidate := name
+		if i > 0 {
+			candidate = fmt.Sprintf("%s_%d", name, i)
+		}
+		_, err := os.Lstat(filepath.Join(root, candidate))
+		if os.IsNotExist(err) {
+			return candidate, nil
+		}
+		if err != nil {
+			return "", err
+		}
+	}
+}
+
+func readFolderMetadata(path string) (map[int64]*export.AlbumMetadata, error) {
+	albumIDToMetadataMap := make(map[int64]*export.AlbumMetadata)
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
 			dirName := entry.Name()
 			metaFilePath := filepath.Join(path, dirName, albumMetaFolder, albumMetaFile)
-			// Initialize as nil, will remain nil if JSON file is not found or not readable
-			result[dirName] = nil
 			if _, err := os.Stat(metaFilePath); err == nil {
 				var metaData export.AlbumMetadata
 				metaDataBytes, err := os.ReadFile(metaFilePath)
@@ -122,11 +146,10 @@ func readFolderMetadata(path string) (map[string]*export.AlbumMetadata, map[int6
 
 				if err := json.Unmarshal(metaDataBytes, &metaData); err == nil {
 					metaData.FolderName = dirName
-					result[dirName] = &metaData
-					albumIdToMetadataMap[metaData.ID] = &metaData
+					albumIDToMetadataMap[metaData.ID] = &metaData
 				}
 			}
 		}
 	}
-	return result, albumIdToMetadataMap, nil
+	return albumIDToMetadataMap, nil
 }

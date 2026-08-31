@@ -24,12 +24,12 @@ dependencies:
     path: ../ente_crypto_api
   ente_events:
     path: ../events
+  ente_frb:
+    path: ../frb
   ente_network:
     path: ../network
   ente_pure_utils:
     path: ../ente_pure_utils
-  ente_rust:
-    path: ../rust
   ente_sharing:
     path: ../sharing
   ente_strings:

@@ -30,14 +30,32 @@ var latency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 	Buckets: []float64{10, 50, 100, 200, 500, 1000, 10000, 30000, 60000, 120000, 600000},
 }, []string{"code", "method", "host", "url"})
 
+var queryParamDenylist = map[string]struct{}{
+	"accesstoken":       {},
+	"accesstokenjwt":    {},
+	"casttoken":         {},
+	"ceremonysessionid": {},
+	"sessionid":         {},
+	"token":             {},
+}
+
 // Skip read-only requests and writes with large or sensitive bodies.
 func shouldSkipBodyLog(method string, path string) bool {
 	isReadOnly := method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
 	if !isReadOnly {
 		switch path {
-		case "/users/srp/setup",
+		case "/users/attributes",
+			"/users/change-email",
+			"/users/srp/setup",
+			"/users/srp/update",
+			"/users/srp/verify-session",
+			"/users/two-factor/enable",
+			"/users/two-factor/verify",
 			"/users/two-factor/remove",
+			"/users/two-factor/passkeys/begin",
+			"/users/two-factor/passkeys/finish",
 			"/users/two-factor/passkeys/configure-recovery",
+			"/users/verify-email",
 			"/emergency-contacts/init-change-password",
 			"/legacy-kits/recovery/open",
 			"/legacy-kits/recovery/session",
@@ -99,16 +117,11 @@ func Logger(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 		clientPkg := c.GetHeader("X-Client-Package")
 		clientIP := network.GetClientIP(c)
 		reqMethod := c.Request.Method
-		queryValues, _ := url.ParseQuery(c.Request.URL.RawQuery)
-		if queryValues.Has("token") {
-			queryValues.Set("token", "redacted-value")
-		}
-		queryParamsForLog := queryValues.Encode()
 		reqContextLogger := logrus.WithFields(logrus.Fields{
 			"client_ip":      clientIP,
 			"client_pkg":     clientPkg,
 			"client_version": clientVersion,
-			"query":          queryParamsForLog,
+			"query":          queryParamsForLog(c.Request.URL.RawQuery),
 			"req_id":         reqID,
 			"req_method":     reqMethod,
 			"req_uri":        c.Request.URL.Path,
@@ -151,6 +164,16 @@ func Logger(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 			"user_id":      auth.GetUserID(c.Request.Header),
 		}).Info("outgoing")
 	}
+}
+
+func queryParamsForLog(rawQuery string) string {
+	values, _ := url.ParseQuery(rawQuery)
+	for key := range values {
+		if _, denied := queryParamDenylist[strings.ToLower(key)]; denied {
+			values.Set(key, "redacted-value")
+		}
+	}
+	return values.Encode()
 }
 
 func readBody(reader io.Reader) (string, error) {

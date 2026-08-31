@@ -10,7 +10,6 @@ workspace:
   - apps/photos
   - apps/photos/plugins/ente_cast
   - apps/photos/plugins/ente_crypto
-  - apps/photos/plugins/ente_feature_flag
   - apps/photos/plugins/ente_panorama_viewer
   - apps/photos/plugins/ente_photos_platform
   - packages/accounts
@@ -30,16 +29,16 @@ workspace:
   - packages/ente_qr_scanner
   - packages/ente_screen_brightness
   - packages/events
+  - packages/feature_flag
+  - packages/frb
   - packages/legacy
   - packages/local_auth_linux
   - packages/lock_screen
-  - packages/log_viewer
   - packages/logging
   - packages/mail
   - packages/native_video_editor
   - packages/network
   - packages/qr
-  - packages/rust
   - packages/scoped_dir_access
   - packages/screen_cover
   - packages/sharing

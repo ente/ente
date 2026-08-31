@@ -18,7 +18,7 @@ import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
 import React from "react";
 import { LockerFileLinkDialog } from "../LockerFileLinkDialog";
-import { lockerDialogPaperSx } from "../lockerDialogStyles";
+import { lockerDialogPaperSx } from "../locker-dialog-styles";
 
 interface ItemListDialogsProps {
     activeFileLinkItemTitle: string;

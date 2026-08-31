@@ -166,20 +166,8 @@ const COLLECTION_PAYLOAD_VERSION = 1;
 const collectionTextDecoder = new TextDecoder();
 const DOWNLOAD_URL_REVOKE_DELAY_MS = 30_000;
 
-const describeCryptoError = (error: unknown): string => {
-    if (typeof error === "object" && error && "code" in error) {
-        const code = typeof error.code === "string" ? error.code : "unknown";
-        const message =
-            "message" in error && typeof error.message === "string"
-                ? error.message
-                : "unknown";
-        return `code=${code}, msg=${message}`;
-    }
-    if (error instanceof Error) {
-        return error.message;
-    }
-    return String(error);
-};
+const describeCryptoError = (error: unknown) =>
+    error instanceof Error ? error.message : String(error);
 
 const toEpochMicroseconds = (timestamp: unknown) => {
     if (typeof timestamp !== "number") {

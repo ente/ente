@@ -36,9 +36,12 @@ class VideoWidgetMediaKit extends StatefulWidget {
   final FullScreenRequestCallback? playbackCallback;
   final Function(bool)? shouldDisableScroll;
   final bool isFromMemories;
+  final bool isActive;
+  final bool? isAudioMutedOverride;
   final void Function() onStreamChange;
   final File? preview;
   final bool selectedPreview;
+  final ValueNotifier<double> playbackSpeed;
   final Function({required int memoryDuration})? onFinalFileLoad;
 
   const VideoWidgetMediaKit(
@@ -47,9 +50,12 @@ class VideoWidgetMediaKit extends StatefulWidget {
     this.playbackCallback,
     this.shouldDisableScroll,
     this.isFromMemories = false,
+    required this.isActive,
+    this.isAudioMutedOverride,
     required this.onStreamChange,
     this.preview,
     required this.selectedPreview,
+    required this.playbackSpeed,
     this.onFinalFileLoad,
     super.key,
   });
@@ -96,7 +102,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     resumeVideoSubscription = Bus.instance.on<ResumeVideoEvent>().listen((
       event,
     ) {
-      player.play();
+      if (widget.isActive) player.play();
     });
     if (!widget.isFromMemories) {
       _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
@@ -139,6 +145,17 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
       enable: true,
       wakeLockFor: WakeLockFor.videoPlayback,
     );
+  }
+
+  @override
+  void didUpdateWidget(covariant VideoWidgetMediaKit oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive != widget.isActive) {
+      widget.isActive ? player.play() : player.pause();
+    }
+    if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {
+      _applyVolume();
+    }
   }
 
   void loadPreview() {
@@ -202,17 +219,10 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     }
     player.dispose();
     _transformationController.dispose();
-    if (wakeLockService.shouldKeepAppAwakeAcrossSessions) {
-      wakeLockService.updateWakeLock(
-        enable: true,
-        wakeLockFor: WakeLockFor.handlingMediaKitEdgeCase,
-      );
-    } else {
-      wakeLockService.updateWakeLock(
-        enable: false,
-        wakeLockFor: WakeLockFor.videoPlayback,
-      );
-    }
+    wakeLockService.updateWakeLock(
+      enable: false,
+      wakeLockFor: WakeLockFor.videoPlayback,
+    );
     super.dispose();
   }
 
@@ -249,6 +259,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
                 isFromMemories: widget.isFromMemories,
                 onStreamChange: widget.onStreamChange,
                 isPreviewPlayer: widget.selectedPreview,
+                playbackSpeed: widget.playbackSpeed,
               )
             : Center(
                 child: ValueListenableBuilder(
@@ -342,16 +353,23 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           );
           controller = VideoController(player);
         }
-        if (!widget.isFromMemories) {
-          player.setVolume(localSettings.isMuted() ? 0.0 : 100.0);
-        }
-        player.open(Media(url), play: _isAppInFG);
+        _applyVolume();
+        player.open(Media(url), play: _isAppInFG && widget.isActive);
       });
       int duration = controller!.player.state.duration.inSeconds;
       if (duration == 0) {
         duration = 10;
       }
       widget.onFinalFileLoad?.call(memoryDuration: duration);
+    }
+  }
+
+  void _applyVolume() {
+    final mutedOverride = widget.isAudioMutedOverride;
+    if (mutedOverride != null) {
+      player.setVolume(mutedOverride ? 0.0 : 100.0);
+    } else if (!widget.isFromMemories) {
+      player.setVolume(localSettings.isMuted() ? 0.0 : 100.0);
     }
   }
 }

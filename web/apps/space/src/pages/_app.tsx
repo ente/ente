@@ -2,20 +2,20 @@ import "@fontsource-variable/inter";
 import "@fontsource/nunito/800.css";
 import { CssBaseline } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { SpaceRouteTransitionBoundary } from "components/SpaceRouteTransitionBoundary";
-import { SpaceShareLinkDialogHost } from "components/SpaceShareLinkDialog";
-import "configureZod";
+import { SpaceRouteTransitionBoundary } from "components/RouteTransitionBoundary";
+import { SpaceShareLinkDialogHost } from "components/ShareLinkDialog";
+import "configure-zod";
 import { CustomHead } from "ente-base/components/Head";
 import { useSetupLogs } from "ente-base/components/utils/hooks-app";
 import { shareTheme } from "ente-base/components/utils/theme";
-import { captureSpacePWAInstallPrompt } from "hooks/useSpacePWAInstallPrompt";
+import { captureSpacePWAInstallPrompt } from "hooks/use-pwa-install-prompt";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import "photoswipe/dist/photoswipe.css";
 import React from "react";
 import "react-easy-crop/react-easy-crop.css";
-import { registerSpaceServiceWorker } from "services/spaceWebPush";
-import { SpaceAppStateProvider } from "state/SpaceAppStateProvider";
+import { registerSpaceServiceWorker } from "services/web-push";
+import { SpaceAppStateProvider } from "state/AppStateProvider";
 import "styles/globals.css";
 
 const spaceTheme = createTheme(shareTheme, {

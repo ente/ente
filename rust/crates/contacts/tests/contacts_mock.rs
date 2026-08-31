@@ -1,8 +1,13 @@
-use ente_contacts::client::{ContactsCtx, OpenContactsCtxInput, RootKeySource};
-use ente_contacts::crypto as contacts_crypto;
-use ente_contacts::models::{AttachmentType, ContactData, WrappedRootContactKey};
-use ente_core::{b64, crypto::Key};
-use md5::Digest;
+use std::sync::RwLock;
+
+use ente_contacts::{
+    AttachmentType, ContactData, ContactOutput, ContactRecord, WrappedRootContactKey,
+};
+use ente_core::{
+    Session, b64,
+    crypto::{Key, SecretVec, blob, secretbox},
+    http::{Api, ApiConfig, Auth, Http},
+};
 use mockito::{Matcher, Server};
 
 fn sample_contact() -> ContactData {
@@ -12,21 +17,114 @@ fn sample_contact() -> ContactData {
     }
 }
 
-fn open_input(base_url: String, master_key: Vec<u8>) -> OpenContactsCtxInput {
-    OpenContactsCtxInput {
-        base_url,
-        auth_token: "auth-token".to_string(),
-        user_id: 7,
-        master_key,
-        cached_wrapped_root_contact_key: None,
-        user_agent: Some("ente-contacts-test".to_string()),
-        client_package: Some("io.ente.photos".to_string()),
-        client_version: Some("1.0.0".to_string()),
+fn open(
+    base_url: String,
+    master_key: Vec<u8>,
+    cached_wrapped_root_contact_key: Option<WrappedRootContactKey>,
+) -> ente_contacts::Result<Client> {
+    let api = Api::new(
+        Http::new()?,
+        ApiConfig {
+            origin: base_url,
+            client_package: Some("io.ente.photos".to_string()),
+            client_version: Some("1.0.0".to_string()),
+            user_agent: Some("ente-contacts-test".to_string()),
+            auth: Some(Auth::User("auth-token".to_string())),
+        },
+    );
+    Ok(Client {
+        session: Session {
+            api,
+            master_key: SecretVec::new(master_key),
+        },
+        wrapped_root_contact_key: RwLock::new(cached_wrapped_root_contact_key),
+    })
+}
+
+struct Client {
+    session: Session,
+    wrapped_root_contact_key: RwLock<Option<WrappedRootContactKey>>,
+}
+
+impl Client {
+    fn cached_root_key(&self) -> Option<WrappedRootContactKey> {
+        self.wrapped_root_contact_key.read().unwrap().clone()
+    }
+
+    fn value<T>(&self, output: ContactOutput<T>) -> T {
+        if let Some(key) = output.wrapped_root_contact_key {
+            *self.wrapped_root_contact_key.write().unwrap() = Some(key);
+        }
+        output.value
+    }
+
+    async fn create_contact(&self, data: &ContactData) -> ente_contacts::Result<ContactRecord> {
+        let cached = self.cached_root_key();
+        Ok(self.value(ente_contacts::create_contact(&self.session, cached.as_ref(), data).await?))
+    }
+
+    async fn get_contact(&self, contact_id: &str) -> ente_contacts::Result<ContactRecord> {
+        let cached = self.cached_root_key();
+        Ok(self
+            .value(ente_contacts::get_contact(&self.session, cached.as_ref(), contact_id).await?))
+    }
+
+    async fn get_diff(
+        &self,
+        since_time: i64,
+        limit: u16,
+    ) -> ente_contacts::Result<Vec<ContactRecord>> {
+        let cached = self.cached_root_key();
+        Ok(self.value(
+            ente_contacts::get_diff(&self.session, cached.as_ref(), since_time, limit).await?,
+        ))
+    }
+
+    async fn set_profile_picture(
+        &self,
+        contact_id: &str,
+        bytes: &[u8],
+    ) -> ente_contacts::Result<ContactRecord> {
+        let cached = self.cached_root_key();
+        Ok(self.value(
+            ente_contacts::set_profile_picture(&self.session, cached.as_ref(), contact_id, bytes)
+                .await?,
+        ))
+    }
+
+    async fn get_profile_picture(&self, contact_id: &str) -> ente_contacts::Result<Vec<u8>> {
+        let cached = self.cached_root_key();
+        Ok(self.value(
+            ente_contacts::get_profile_picture(&self.session, cached.as_ref(), contact_id).await?,
+        ))
+    }
+
+    async fn delete_profile_picture(
+        &self,
+        contact_id: &str,
+    ) -> ente_contacts::Result<ContactRecord> {
+        let cached = self.cached_root_key();
+        Ok(self.value(
+            ente_contacts::delete_profile_picture(&self.session, cached.as_ref(), contact_id)
+                .await?,
+        ))
+    }
+
+    async fn get_attachment_encrypted(
+        &self,
+        attachment_type: AttachmentType,
+        attachment_id: &str,
+    ) -> ente_contacts::Result<Vec<u8>> {
+        ente_contacts::get_attachment_encrypted(&self.session, attachment_type, attachment_id).await
     }
 }
 
 fn wrap_root(root_key: &[u8], master_key: &[u8]) -> WrappedRootContactKey {
-    contacts_crypto::encrypt_root_contact_key(root_key, master_key).unwrap()
+    let encrypted = secretbox::encrypt(root_key, &Key::try_from_slice(master_key).unwrap());
+    WrappedRootContactKey {
+        encrypted_key: b64::encode(&encrypted.encrypted_data),
+        header: b64::encode(encrypted.nonce.as_bytes()),
+    }
 }
 
 fn live_entity_json(
@@ -37,8 +135,13 @@ fn live_entity_json(
     profile_picture_attachment_id: Option<&str>,
 ) -> serde_json::Value {
     let contact_key = Key::generate().as_bytes().to_vec();
-    let encrypted_key = contacts_crypto::wrap_contact_key(&contact_key, root_key).unwrap();
-    let encrypted_data = contacts_crypto::encrypt_contact_data(data, &contact_key).unwrap();
+    let encrypted_key = b64::encode(&secretbox::encrypt_combined(
+        &contact_key,
+        &Key::try_from_slice(root_key).unwrap(),
+    ));
+    let encrypted_data = b64::encode(
+        &blob::encrypt_json_combined(data, &Key::try_from_slice(&contact_key).unwrap()).unwrap(),
+    );
 
     serde_json::json!({
         "id": id,
@@ -51,40 +154,6 @@ fn live_entity_json(
         "createdAt": 100,
         "updatedAt": 200
     })
-}
-
-#[tokio::test]
-async fn open_without_cached_wrapped_root_contact_key_is_unresolved() {
-    let mut server = Server::new_async().await;
-    let master_key = Key::generate().as_bytes().to_vec();
-    let root_key = Key::generate().as_bytes().to_vec();
-    let wrapped_root = wrap_root(&root_key, &master_key);
-
-    let root_mock = server
-        .mock("GET", "/user-entity/key")
-        .match_query(Matcher::UrlEncoded("type".into(), "contact".into()))
-        .with_status(200)
-        .with_body(
-            serde_json::json!({
-                "userID": 7,
-                "type": "contact",
-                "encryptedKey": wrapped_root.encrypted_key,
-                "header": wrapped_root.header,
-                "createdAt": 1
-            })
-            .to_string(),
-        )
-        .expect(0)
-        .create_async()
-        .await;
-
-    let opened = ContactsCtx::open(open_input(server.url(), master_key.clone()))
-        .await
-        .unwrap();
-
-    root_mock.assert_async().await;
-    assert_eq!(opened.root_key_source, RootKeySource::Unresolved);
-    assert_eq!(opened.wrapped_root_contact_key, None);
 }
 
 #[tokio::test]
@@ -130,18 +199,12 @@ async fn get_contact_fetches_root_key_when_unresolved_context_reads_live_contact
         .create_async()
         .await;
 
-    let opened = ContactsCtx::open(open_input(server.url(), master_key))
-        .await
-        .unwrap();
-    let fetched = opened.ctx.get_contact("ct_contact1").await.unwrap();
+    let client = open(server.url(), master_key, None).unwrap();
+    let fetched = client.get_contact("ct_contact1").await.unwrap();
 
     root_fetch_mock.assert_async().await;
     get_contact_mock.assert_async().await;
-    assert_eq!(opened.root_key_source, RootKeySource::Unresolved);
-    assert_eq!(
-        opened.ctx.current_wrapped_root_contact_key(),
-        Some(server_wrapped_root)
-    );
+    assert_eq!(client.cached_root_key(), Some(server_wrapped_root));
     assert_eq!(fetched.name.as_deref(), Some(contact.name.as_str()));
 }
 
@@ -193,13 +256,7 @@ async fn create_contact_uses_cached_wrapped_root_contact_key_without_fetching_re
         .create_async()
         .await;
 
-    let ctx = ContactsCtx::open(OpenContactsCtxInput {
-        cached_wrapped_root_contact_key: Some(wrapped_root),
-        ..open_input(server.url(), master_key)
-    })
-    .await
-    .unwrap()
-    .ctx;
+    let ctx = open(server.url(), master_key, Some(wrapped_root)).unwrap();
 
     let created = ctx.create_contact(&contact).await.unwrap();
 
@@ -298,10 +355,7 @@ async fn set_profile_picture_uses_signed_upload_url_and_commit() {
         .create_async()
         .await;
 
-    let ctx = ContactsCtx::open(open_input(server.url(), master_key))
-        .await
-        .unwrap()
-        .ctx;
+    let ctx = open(server.url(), master_key, None).unwrap();
 
     let updated = ctx
         .set_profile_picture("ct_picture1", &picture_bytes)
@@ -353,13 +407,14 @@ async fn get_profile_picture_uses_signed_download_url() {
         &root_key,
         Some("ua_picture1"),
     );
-    let contact_key = contacts_crypto::unwrap_contact_key(
-        attached_entity["encryptedKey"].as_str().unwrap(),
-        &root_key,
+    let contact_key = secretbox::decrypt_combined(
+        &b64::decode(attached_entity["encryptedKey"].as_str().unwrap()).unwrap(),
+        &Key::try_from_slice(&root_key).unwrap(),
     )
     .unwrap();
     let encrypted_picture =
-        contacts_crypto::encrypt_profile_picture(&picture_bytes, &contact_key).unwrap();
+        blob::encrypt_combined(&picture_bytes, &Key::try_from_slice(&contact_key).unwrap())
+            .unwrap();
 
     let get_contact_mock = server
         .mock("GET", "/contacts/ct_picture1")
@@ -395,10 +450,7 @@ async fn get_profile_picture_uses_signed_download_url() {
         .create_async()
         .await;
 
-    let ctx = ContactsCtx::open(open_input(server.url(), master_key))
-        .await
-        .unwrap()
-        .ctx;
+    let ctx = open(server.url(), master_key, None).unwrap();
 
     let downloaded = ctx.get_profile_picture("ct_picture1").await.unwrap();
 
@@ -454,10 +506,7 @@ async fn delete_profile_picture_fetches_root_key_when_unresolved_context_decodes
         .create_async()
         .await;
 
-    let ctx = ContactsCtx::open(open_input(server.url(), master_key))
-        .await
-        .unwrap()
-        .ctx;
+    let ctx = open(server.url(), master_key, None).unwrap();
 
     let updated = ctx.delete_profile_picture("ct_picture1").await.unwrap();
 
@@ -519,10 +568,7 @@ async fn get_attachment_uses_generic_signed_download_url() {
         .create_async()
         .await;
 
-    let ctx = ContactsCtx::open(open_input(server.url(), master_key))
-        .await
-        .unwrap()
-        .ctx;
+    let ctx = open(server.url(), master_key, None).unwrap();
 
     let downloaded = ctx
         .get_attachment_encrypted(AttachmentType::ProfilePicture, "ua_generic1")
@@ -586,10 +632,7 @@ async fn deleted_contacts_surface_as_tombstones() {
         .create_async()
         .await;
 
-    let ctx = ContactsCtx::open(open_input(server.url(), master_key))
-        .await
-        .unwrap()
-        .ctx;
+    let ctx = open(server.url(), master_key, None).unwrap();
     let diff = ctx.get_diff(0, 10).await.unwrap();
 
     root_mock.assert_async().await;
@@ -640,13 +683,7 @@ async fn get_diff_uses_cached_wrapped_root_contact_key_for_reads_without_fetchin
         .create_async()
         .await;
 
-    let ctx = ContactsCtx::open(OpenContactsCtxInput {
-        cached_wrapped_root_contact_key: Some(cached_wrapped_root),
-        ..open_input(server.url(), master_key)
-    })
-    .await
-    .unwrap()
-    .ctx;
+    let ctx = open(server.url(), master_key, Some(cached_wrapped_root)).unwrap();
 
     let diff = ctx.get_diff(0, 10).await.unwrap();
 
@@ -654,10 +691,4 @@ async fn get_diff_uses_cached_wrapped_root_contact_key_for_reads_without_fetchin
     diff_mock.assert_async().await;
     assert_eq!(diff.len(), 1);
     assert_eq!(diff[0].name.as_deref(), Some(contact.name.as_str()));
-}
-
-#[test]
-fn root_key_md5_helper_is_base64_digest() {
-    let digest = contacts_crypto::content_md5_base64(b"hello");
-    assert_eq!(digest, b64::encode(&md5::Md5::digest(b"hello")));
 }

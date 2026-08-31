@@ -28,6 +28,11 @@ class VideoWidget extends StatefulWidget {
   final Function(bool)? shouldDisableScroll;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final bool isFromMemories;
+  final bool isActive;
+  final int? itemIndex;
+  final ValueListenable<int>? activeItemIndexListenable;
+  final bool? isAudioMutedOverride;
+  final ValueNotifier<double>? playbackSpeed;
 
   const VideoWidget(
     this.file, {
@@ -36,6 +41,11 @@ class VideoWidget extends StatefulWidget {
     this.shouldDisableScroll,
     this.onFinalFileLoad,
     this.isFromMemories = false,
+    required this.isActive,
+    this.itemIndex,
+    this.activeItemIndexListenable,
+    this.isAudioMutedOverride,
+    this.playbackSpeed,
     super.key,
   });
 
@@ -52,12 +62,20 @@ class _VideoWidgetState extends State<VideoWidget> {
   PlaylistData? playlistData;
   final nativePlayerKey = GlobalKey();
   final mediaKitKey = GlobalKey();
+  late final ValueNotifier<double> _playbackSpeed =
+      widget.playbackSpeed ?? ValueNotifier<double>(1.0);
 
   bool isPreviewLoadable = false;
+
+  bool get _isActive =>
+      widget.isActive &&
+      (widget.activeItemIndexListenable == null ||
+          widget.activeItemIndexListenable!.value == widget.itemIndex);
 
   @override
   void initState() {
     super.initState();
+    widget.activeItemIndexListenable?.addListener(_onActiveItemChanged);
     useMediaKitForVideoSubscription = Bus.instance
         .on<UseMediaKitForVideo>()
         .listen((event) {
@@ -86,9 +104,28 @@ class _VideoWidgetState extends State<VideoWidget> {
 
   @override
   void dispose() {
+    widget.activeItemIndexListenable?.removeListener(_onActiveItemChanged);
     useMediaKitForVideoSubscription.cancel();
+    if (widget.playbackSpeed == null) {
+      _playbackSpeed.dispose();
+    }
     super.dispose();
   }
+
+  @override
+  void didUpdateWidget(covariant VideoWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(
+      oldWidget.activeItemIndexListenable,
+      widget.activeItemIndexListenable,
+    )) {
+      return;
+    }
+    oldWidget.activeItemIndexListenable?.removeListener(_onActiveItemChanged);
+    widget.activeItemIndexListenable?.addListener(_onActiveItemChanged);
+  }
+
+  void _onActiveItemChanged() => setState(() {});
 
   Future<void> _checkForPreview() async {
     if (!widget.file.isOwner) {
@@ -161,7 +198,9 @@ class _VideoWidgetState extends State<VideoWidget> {
     }
 
     final shouldUseNativeVideoPlayer =
-        useNativeVideoPlayer && (!playPreview || Platform.isAndroid);
+        useNativeVideoPlayer &&
+        !widget.file.isDeviceTrash &&
+        (!playPreview || Platform.isAndroid);
 
     if (shouldUseNativeVideoPlayer) {
       return VideoWidgetNative(
@@ -172,7 +211,10 @@ class _VideoWidgetState extends State<VideoWidget> {
         shouldDisableScroll: widget.shouldDisableScroll,
         playlistData: playlistData,
         selectedPreview: playPreview,
+        playbackSpeed: _playbackSpeed,
         isFromMemories: widget.isFromMemories,
+        isActive: _isActive,
+        isAudioMutedOverride: widget.isAudioMutedOverride,
         onStreamChange: () {
           setState(() {
             selectPreviewForPlay = !selectPreviewForPlay;
@@ -197,7 +239,10 @@ class _VideoWidgetState extends State<VideoWidget> {
       shouldDisableScroll: widget.shouldDisableScroll,
       preview: playlistData?.preview,
       selectedPreview: playPreview,
+      playbackSpeed: _playbackSpeed,
       isFromMemories: widget.isFromMemories,
+      isActive: _isActive,
+      isAudioMutedOverride: widget.isAudioMutedOverride,
       onStreamChange: () {
         setState(() {
           selectPreviewForPlay = !selectPreviewForPlay;

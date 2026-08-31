@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"math/big"
 	"net/http"
@@ -26,7 +27,7 @@ const (
 	AppContextKey        = "auth.app"
 
 	LinkDeviceTokenHeader         = "X-Auth-Link-Device-Token"
-	LinkDeviceTokenResponseHeader = "X-Ente-Link-Device-Token"
+	LinkDeviceTokenResponseHeader = "X-Link-Device-Token"
 	LinkDeviceTokenResponseKey    = "linkDeviceToken"
 )
 
@@ -46,6 +47,10 @@ func GenerateRandomInt(n int64) (int64, error) {
 
 func GenerateURLSafeRandomString(s int) string {
 	return base64.URLEncoding.EncodeToString(GenerateRandomBytes(s))
+}
+
+func HashToken(token string) [sha256.Size]byte {
+	return sha256.Sum256([]byte(token))
 }
 
 func GetHashedPassword(password string) (string, error) {

@@ -1,0 +1,1 @@
+- Added country-name search in the app language and each country's native languages, and improved city matching for locations and memories.

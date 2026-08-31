@@ -7,14 +7,21 @@ use crate::logging;
 
 #[derive(Debug, Serialize)]
 pub struct ApiError {
-    pub(crate) code: String,
+    pub(crate) name: Option<&'static str>,
     pub(crate) message: String,
 }
 
 impl ApiError {
-    pub(crate) fn new(code: &str, message: impl Into<String>) -> Self {
+    pub(crate) fn new(name: &'static str, message: impl Into<String>) -> Self {
         Self {
-            code: code.to_string(),
+            name: Some(name),
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn other(message: impl Into<String>) -> Self {
+        Self {
+            name: None,
             message: message.into(),
         }
     }

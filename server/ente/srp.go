@@ -43,6 +43,13 @@ type UpdateSRPAndKeysRequest struct {
 	LogOutOtherDevices *bool              `json:"logOutOtherDevices"`
 }
 
+func (r UpdateSRPAndKeysRequest) Validate() error {
+	if r.UpdateAttributes == nil {
+		return NewBadRequestWithMessage("updatedKeyAttr is required")
+	}
+	return r.UpdateAttributes.Validate()
+}
+
 type UpdateSRPSetupResponse struct {
 	SetupID uuid.UUID `json:"setupID" binding:"required"`
 	SRPM2   string    `json:"srpM2" binding:"required"`

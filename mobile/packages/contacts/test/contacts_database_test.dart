@@ -31,7 +31,7 @@ void main() {
         id: 'ct_1',
         contactUserId: 200,
         email: 'a@test.test',
-        data: ContactData(contactUserId: 200, name: 'A'),
+        name: 'A',
         profilePictureAttachmentId: null,
         isDeleted: false,
         createdAt: 10,
@@ -50,6 +50,58 @@ void main() {
     expect((await database.getContactByUserId(200))?.id, 'ct_1');
   });
 
+  test('reads and updates contacts stored by older clients', () async {
+    final oldDatabase = await databaseFactoryFfi.openDatabase(
+      '${tempDir.path}/ente.contacts.1.db',
+      options: OpenDatabaseOptions(
+        version: 1,
+        onCreate: (db, _) => db.execute('''
+          CREATE TABLE contacts (
+            id TEXT PRIMARY KEY,
+            contact_user_id INTEGER NOT NULL,
+            email TEXT,
+            data_json TEXT,
+            profile_picture_attachment_id TEXT,
+            is_deleted INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+          )
+        '''),
+      ),
+    );
+    await oldDatabase.insert('contacts', {
+      'id': 'ct_old',
+      'contact_user_id': 200,
+      'email': 'a@test.test',
+      'data_json': '{"contactUserId":200,"name":"A","birthDate":"2001-04-02"}',
+      'profile_picture_attachment_id': 'att_old',
+      'is_deleted': 0,
+      'created_at': 10,
+      'updated_at': 20,
+    });
+    await oldDatabase.close();
+
+    await database.configure(userId: 1);
+    final contact = (await database.getContact('ct_old'))!;
+    expect(contact.name, 'A');
+    expect(contact.profilePictureAttachmentId, 'att_old');
+    await database.upsertContacts([contact]);
+
+    final rows = await (await database.database).getAll(
+      'SELECT * FROM contacts',
+    );
+    expect(rows.single, {
+      'id': 'ct_old',
+      'contact_user_id': 200,
+      'email': 'a@test.test',
+      'data_json': '{"contactUserId":200,"name":"A"}',
+      'profile_picture_attachment_id': 'att_old',
+      'is_deleted': 0,
+      'created_at': 10,
+      'updated_at': 20,
+    });
+  });
+
   test('clearTable removes all contacts databases', () async {
     await database.configure(userId: 1);
     await database.upsertContacts([
@@ -57,7 +109,7 @@ void main() {
         id: 'ct_1',
         contactUserId: 200,
         email: 'a@test.test',
-        data: ContactData(contactUserId: 200, name: 'A'),
+        name: 'A',
         profilePictureAttachmentId: null,
         isDeleted: false,
         createdAt: 10,
@@ -70,7 +122,7 @@ void main() {
         id: 'ct_2',
         contactUserId: 201,
         email: 'b@test.test',
-        data: ContactData(contactUserId: 201, name: 'B'),
+        name: 'B',
         profilePictureAttachmentId: null,
         isDeleted: false,
         createdAt: 11,
@@ -95,7 +147,7 @@ void main() {
         id: 'ct_1',
         contactUserId: 200,
         email: 'a@test.test',
-        data: ContactData(contactUserId: 200, name: 'A'),
+        name: 'A',
         profilePictureAttachmentId: 'att_keep',
         isDeleted: false,
         createdAt: 10,

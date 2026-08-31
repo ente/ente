@@ -626,8 +626,12 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
         email: email,
         userID: currentUserIDForContactLinkEmail(email),
       );
-      final bool extraPhotosFound = await ClusterFeedbackService.instance
-          .checkAndDoAutomaticMerges(personEntity, personClusterID: clusterID);
+      final bool extraPhotosFound =
+          await ClusterFeedbackService.instance.checkAndDoAutomaticMerges(
+            personEntity,
+            personClusterID: clusterID,
+          ) !=
+          null;
       if (extraPhotosFound && context.mounted) {
         showShortToast(context, context.strings.extraPhotosFound);
       }

@@ -642,7 +642,6 @@
   "ocrModelsNetworkRequiredError": "در استفاده اول برای بارگیری مدل‌های OCR ارتباط شبکه لازم است",
   "ocrModelsPrepareFailed": "مدل‌های OCR آماده نشدند",
   "ocrNoTextDetected": "متنی شناسایی نشد",
-  "ocrProcessingOverlayMessage": "در حال شناسایی متن...",
   "offlineModeWarning": "شما گزینهٔ ادامه بدون پشتیبان‌گیری را برگزیده‌اید. خواهشمندیم برای حفظ امنیت کدها، می‌کنیم به‌طور دستی پشتیبان تهیه کنید.",
   "oops": "اوه",
   "@oops": {

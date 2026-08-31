@@ -8,40 +8,40 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, Menu, MenuItem, Skeleton } from "@mui/material";
-import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
 import {
     spaceActionDoneDurationMs,
     type SpaceActionPhase,
-} from "components/SpaceActionFeedback";
-import { SpaceAvatarImage } from "components/SpaceAvatarImage";
-import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
+} from "components/ActionFeedback";
+import { SpaceAvatarImage } from "components/AvatarImage";
+import { SpaceButtonSpinner } from "components/ButtonSpinner";
+import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
 import {
     SpaceFileViewer,
     SpaceViewerFeedBackdrop,
     type SpaceViewerDraftPostEdit,
     type SpaceViewerPhoto,
     type SpaceViewerPostActionMode,
-} from "components/SpaceFileViewer";
-import { SpacePostFloatingActionButton } from "components/SpacePostFloatingActionButton";
-import { SpaceLoadingSpinner } from "components/SpaceRouteFallback";
-import { SpaceShareIcon } from "components/SpaceShareInviteButton";
+} from "components/FileViewer";
+import { SpacePostFloatingActionButton } from "components/PostFloatingActionButton";
+import { SpaceLoadingSpinner } from "components/RouteFallback";
+import { SpaceShareIcon } from "components/ShareInviteButton";
 import log from "ente-base/log";
-import { useBrowserBackClose } from "hooks/useBrowserBackClose";
+import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React, { useState } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
+import type { SpaceInviteIntent } from "services/invite";
+import { openSpaceShareLinkDialog } from "services/share-link";
 import { isSpaceContentError, type SpacePostAsset } from "services/space";
-import type { SpaceInviteIntent } from "services/spaceInvite";
-import { openSpaceShareLinkDialog } from "services/spaceShareLink";
-import { spaceTouchTargetSize } from "styles/touchTargets";
-import { createLoadedLocalPostPhoto } from "utils/localPostPhoto";
-import { firstNameFrom } from "utils/spaceDisplay";
+import { spaceTouchTargetSize } from "styles/touch-targets";
+import { firstNameFrom } from "utils/display";
+import { createLoadedLocalPostPhoto } from "utils/local-post-photo";
 import {
     canPreviewSpaceImageFile,
     spaceDefaultCoverImagePath,
     spacePostImageErrorMessage,
     spacePostImageInputAccept,
     spacePostPreviewImageForFile,
-} from "utils/spacePostImage";
+} from "utils/post-image";
 import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 
 export const profileBackground = "#FFFFFF";
@@ -1018,7 +1018,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
     const shareProfile = () => {
         if (!profileLink) return;
-        openSpaceShareLinkDialog();
+        openSpaceShareLinkDialog(profileLink);
     };
 
     const deleteSelectedPost = async () => {

@@ -4,27 +4,37 @@ import {
     AccountsPageFooter,
     AccountsPageTitle,
 } from "ente-accounts/components/layouts/centered-paper";
-import { deriveKeyInsufficientMemoryErrorMessage } from "ente-accounts/services/crypto";
 import { appHomeRoute, stashRedirect } from "ente-accounts/services/redirect";
 import { changePassword, type LocalUser } from "ente-accounts/services/user";
 import { LinkButton } from "ente-base/components/LinkButton";
 import { LoadingIndicator } from "ente-base/components/loaders";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useState,
+    type ComponentType,
+} from "react";
 import {
     NewPasswordForm,
     type NewPasswordFormProps,
+    type NewPasswordPresentationProps,
 } from "../components/NewPasswordForm";
 import { savedLocalUser } from "../services/accounts-db";
 
-const Page: React.FC = () => {
+export interface ChangePasswordPageProps {
+    resetPresentation?: ComponentType<NewPasswordPresentationProps>;
+}
+
+const Page: React.FC<ChangePasswordPageProps> = ({ resetPresentation }) => {
     const [user, setUser] = useState<LocalUser | undefined>(undefined);
 
     const router = useRouter();
 
-    const isReset = router.query.op == "reset";
+    const isReset = router.isReady && router.query.op == "reset";
 
     useEffect(() => {
         const user = savedLocalUser();
@@ -36,8 +46,8 @@ const Page: React.FC = () => {
         }
     }, [router]);
 
-    return user ? (
-        <PageContents {...{ user, isReset }} />
+    return user && (!resetPresentation || router.isReady) ? (
+        <PageContents {...{ user, isReset, resetPresentation }} />
     ) : (
         <LoadingIndicator />
     );
@@ -48,9 +58,14 @@ export default Page;
 interface PageContentsProps {
     user: LocalUser;
     isReset: boolean;
+    resetPresentation?: ComponentType<NewPasswordPresentationProps>;
 }
 
-const PageContents: React.FC<PageContentsProps> = ({ user, isReset }) => {
+const PageContents: React.FC<PageContentsProps> = ({
+    user,
+    isReset,
+    resetPresentation: ResetPresentation,
+}) => {
     const router = useRouter();
 
     const handleSubmit: NewPasswordFormProps["onSubmit"] = useCallback(
@@ -60,14 +75,24 @@ const PageContents: React.FC<PageContentsProps> = ({ user, isReset }) => {
                 .catch((e: unknown) => {
                     log.error("Could not change password", e);
                     setPasswordsFieldError(
-                        e instanceof Error &&
-                            e.message == deriveKeyInsufficientMemoryErrorMessage
+                        isNamedError(e, "insufficient_memory")
                             ? t("password_generation_failed")
                             : t("generic_error"),
                     );
                 }),
         [router],
     );
+
+    if (isReset && ResetPresentation) {
+        return (
+            <NewPasswordForm
+                userEmail={user.email}
+                submitButtonTitle={t("change_password")}
+                onSubmit={handleSubmit}
+                presentation={ResetPresentation}
+            />
+        );
+    }
 
     return (
         <AccountsPageContents>

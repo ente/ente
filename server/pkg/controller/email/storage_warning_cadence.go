@@ -32,14 +32,6 @@ func storageWarningCadenceRequirementForSnapshot(snapshot storageWarningSnapshot
 	}
 }
 
-func storageWarningPreviousStageFreshnessWindowForSnapshot(snapshot storageWarningSnapshot) int64 {
-	requirement, ok := storageWarningCadenceRequirementForSnapshot(snapshot)
-	if !ok {
-		return storageWarningPreviousStageFreshnessWindow
-	}
-	return requirement.FreshnessWindow
-}
-
 func expiredWarningCadenceRequirement(snapshot storageWarningSnapshot) (storageWarningCadenceRequirement, bool) {
 	requirement := storageWarningCadenceRequirement{
 		FreshnessWindow: storageWarningPreviousStageFreshnessWindow,

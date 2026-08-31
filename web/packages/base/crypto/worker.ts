@@ -37,7 +37,6 @@ export class CryptoWorker {
     boxSealOpenBytes = libsodium.boxSealOpenBytes;
     generateDeriveKeySalt = libsodium.generateDeriveKeySalt;
     deriveKey = libsodium.deriveKey;
-    deriveSensitiveKey = libsodium.deriveSensitiveKey;
     deriveInteractiveKey = libsodium.deriveInteractiveKey;
     deriveModerateKey = libsodium.deriveModerateKey;
     deriveSubKeyBytes = libsodium.deriveSubKeyBytes;

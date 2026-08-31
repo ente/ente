@@ -105,8 +105,6 @@ class _BackupHeaderWidgetState extends State<BackupHeaderWidget> {
         return _paddedHeader(
           MenuItemWidgetNew(
             title: l10n.skippedFiles,
-            subText: l10n.chooseReasonToViewFiles,
-            titleToSubTextSpacing: 2,
             leadingIconWidget: _menuIcon(
               context,
               HugeIcons.strokeRoundedReload,

@@ -45,8 +45,6 @@
   "ocrModelsNetworkRequiredError": "முதல் பயன்பாட்டிலேயே OCR மாதிரிகளைப் பதிவிறக்க நெட்வொர்க் இணைப்புத் தேவை.",
   "ocrModelsPrepareFailed": "OCR மாதிரிகளைத் தயாரிக்க முடியவில்லை.",
   "ocrNoTextDetected": "எந்த உரையும் கண்டறியப்படவில்லை.",
-  "ocrProcessingOverlayMessage": "உரையைக் கண்டறிகிறது...",
-  "ocrSelectionHint": "உங்களுக்குத் தேவையானதை மட்டும் தேர்ந்தெடுக்க ஸ்வைப் செய்யவும் அல்லது இருமுறை தட்டவும்",
   "oops": "அச்சச்சோ",
   "@oops": {
     "description": "Oops error title"

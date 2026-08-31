@@ -8,13 +8,13 @@ import (
 	"github.com/ente/stacktrace"
 )
 
-func (r *SessionsRepository) ExchangeBrowserSession(ctx context.Context, authToken string, tokenHash []byte, userID int64, sessionWrapKey string, expiresAt int64) error {
+func (r *SessionsRepository) ExchangeBrowserSession(ctx context.Context, authTokenHash []byte, tokenHash []byte, userID int64, sessionWrapKey string, expiresAt int64) error {
 	result, err := r.DB.ExecContext(ctx, `
 		WITH consumed_token AS (
 			UPDATE tokens
 			SET is_deleted = TRUE
 			WHERE user_id = $1
-			  AND token = $2
+			  AND token_hash = $2
 			  AND is_deleted = FALSE
 			  AND (last_used_at IS NULL OR last_used_at >= now_utc_micro_seconds() - (365::BIGINT * 24 * 60 * 60 * 1000 * 1000))
 			RETURNING user_id
@@ -22,7 +22,7 @@ func (r *SessionsRepository) ExchangeBrowserSession(ctx context.Context, authTok
 		INSERT INTO space_browser_sessions (token_hash, user_id, session_wrap_key, expires_at)
 		SELECT $3, user_id, $4, $5
 		FROM consumed_token
-	`, userID, authToken, tokenHash, sessionWrapKey, expiresAt)
+	`, userID, authTokenHash, tokenHash, sessionWrapKey, expiresAt)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}

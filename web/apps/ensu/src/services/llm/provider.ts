@@ -1,3 +1,4 @@
+import { namedError } from "ente-base/error";
 import log from "ente-base/log";
 import { createInferenceBackend } from "./inference";
 import type {
@@ -133,6 +134,9 @@ const MODEL_INFO_FALLBACKS = [
     ...FALLBACK_DESKTOP_MODEL_PRESETS,
 ];
 
+const modelMissingError = () =>
+    namedError("model_missing", "Required model assets are not downloaded");
+
 export class LlmProvider {
     private backend = createInferenceBackend({
         backend: "auto",
@@ -253,12 +257,25 @@ export class LlmProvider {
         };
     }
 
+    public async estimateMissingModelDownloadSize(settings: ModelSettings) {
+        await this.initialize();
+        if (this.backend.kind !== "tauri") return undefined;
+        const { model } = this.resolveRuntimeSettings(settings);
+        const { invoke } = await import("@tauri-apps/api/core");
+        return (
+            (await invoke<number | null>("llm_model_download_size", {
+                modelId: model.id,
+            })) ?? undefined
+        );
+    }
+
     public async ensureModelReady(
         settings: ModelSettings,
-        options: { emitProgress?: boolean } = {},
+        options: { emitProgress?: boolean; downloadIfMissing?: boolean } = {},
     ) {
         await this.initialize();
         const emitProgress = options.emitProgress ?? true;
+        const downloadIfMissing = options.downloadIfMissing ?? false;
         const { model, contextSize } = this.resolveRuntimeSettings(settings);
         const contextKey = JSON.stringify({ contextSize });
 
@@ -310,7 +327,8 @@ export class LlmProvider {
                 this.currentModel?.id === model.id &&
                 this.currentModelPath === modelPath &&
                 this.currentContextKey === contextKey &&
-                this.currentMmprojPath === mmprojPath
+                this.currentMmprojPath === mmprojPath &&
+                (!status || status.downloaded)
             ) {
                 log.info("LLM model already ready", { modelId: model.id });
                 this.modelReady = true;
@@ -331,8 +349,15 @@ export class LlmProvider {
             this.currentMmprojPath = undefined;
             this.currentContextKey = undefined;
 
-            if (modelId && !(await this.modelStatus(modelId)).downloaded) {
-                await this.downloadModelNative(modelId);
+            if (modelId) {
+                const isDownloaded = (await this.modelStatus(modelId))
+                    .downloaded;
+                if (!isDownloaded && !downloadIfMissing) {
+                    throw modelMissingError();
+                }
+                if (downloadIfMissing && !isDownloaded) {
+                    await this.downloadModelNative(modelId);
+                }
             }
 
             if (emitProgress) {
@@ -396,7 +421,7 @@ export class LlmProvider {
     }
 
     public cancelGeneration(jobId: number) {
-        this.backend.cancel(jobId);
+        return this.backend.cancel(jobId);
     }
 
     public async resetContext(contextSize?: number) {
@@ -416,6 +441,33 @@ export class LlmProvider {
                 contextSize: resolvedContext,
             });
         }
+    }
+
+    private invalidateModelState() {
+        this.currentModel = undefined;
+        this.currentModelPath = undefined;
+        this.currentMmprojPath = undefined;
+        this.currentContextKey = undefined;
+        this.modelReady = false;
+    }
+
+    public async withKnowledgeRetrieval<T>(
+        operation: (retrievalEpoch: number) => Promise<T>,
+        shouldContinue: () => boolean,
+    ) {
+        if (this.backend.kind !== "tauri") {
+            throw new Error(
+                "Knowledge retrieval is only available in the desktop app",
+            );
+        }
+        const { invoke } = await import("@tauri-apps/api/core");
+        const retrievalEpoch = await invoke<number>("llm_retrieval_epoch");
+        await this.ensureInFlight?.promise.catch(() => undefined);
+        if (!shouldContinue()) {
+            throw namedError("cancelled", "Knowledge retrieval cancelled");
+        }
+        this.invalidateModelState();
+        return operation(retrievalEpoch);
     }
 
     public cancelDownload() {

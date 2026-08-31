@@ -1,0 +1,1 @@
+- Added five-second double-tap seeking for videos. (@r4khul)

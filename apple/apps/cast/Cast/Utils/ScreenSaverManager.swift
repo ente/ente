@@ -23,8 +23,7 @@ class ScreenSaverManager: ObservableObject {
         UIApplication.shared.isIdleTimerDisabled = true
         isDisabled = true
 
-        // Fallback for problematic tvOS versions where isIdleTimerDisabled doesn't work reliably
-        // This timer periodically refreshes the setting to ensure it stays disabled
+        // Refresh because this setting is unreliable on some tvOS versions.
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
             UIApplication.shared.isIdleTimerDisabled = false
             UIApplication.shared.isIdleTimerDisabled = true

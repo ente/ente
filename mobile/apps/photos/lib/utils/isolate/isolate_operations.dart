@@ -91,7 +91,7 @@ Future<dynamic> isolateFunction(
       try {
         result = await analyzeImageRust(args);
       } on rust_ml.RustMlError_CorruptModel catch (e) {
-        return RustCorruptModelException(e.field0);
+        return RustCorruptModelException(e.message);
       }
       return result.toJsonString();
 
@@ -162,7 +162,7 @@ Future<dynamic> isolateFunction(
           ),
         );
       } on rust_ml.RustMlError_CorruptModel catch (e) {
-        return RustCorruptModelException(e.field0);
+        return RustCorruptModelException(e.message);
       }
       return List<double>.from(result.embedding, growable: false);
 

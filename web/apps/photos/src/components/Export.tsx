@@ -1,6 +1,6 @@
 import exportService, {
-    CustomError,
     ExportStage,
+    isExportFolderMissingError,
     selectAndPrepareExportDirectory,
     type ExportOpts,
     type ExportProgress,
@@ -95,12 +95,7 @@ export const Export: React.FC<ExportProps> = ({
                 setLastExportTime(exportRecord.lastAttemptTimestamp);
                 setPendingFiles(await exportService.pendingFiles(exportRecord));
             } catch (e) {
-                if (
-                    !(
-                        e instanceof Error &&
-                        e.message === CustomError.EXPORT_FOLDER_DOES_NOT_EXIST
-                    )
-                ) {
+                if (!isExportFolderMissingError(e)) {
                     log.error("syncExportRecord failed", e);
                 }
             }

@@ -4,15 +4,13 @@ import {
     Attachment01Icon,
     Cancel01Icon,
     Edit01Icon,
-    Navigation06Icon,
-    Upload01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
     Box,
     Button,
+    CircularProgress,
     IconButton,
-    InputBase,
     LinearProgress,
     Menu,
     MenuItem,
@@ -20,7 +18,8 @@ import {
     Typography,
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
-import React, { memo } from "react";
+import React, { forwardRef, memo, useImperativeHandle, useRef } from "react";
+import { ChatInput, type ChatInputHandle } from "./ChatInput";
 
 interface IconProps {
     size: number;
@@ -49,6 +48,8 @@ type SuggestedModelStatus =
     | "ready"
     | "error";
 
+export type ChatComposerHandle = ChatInputHandle;
+
 export interface ChatComposerProps {
     showModelGate: boolean;
     showDownloadProgress: boolean;
@@ -63,15 +64,13 @@ export interface ChatComposerProps {
     handleCancelEdit: () => void;
     pendingDocuments: DocumentAttachment[];
     pendingImages: ImageAttachment[];
+    isAttachingImages: boolean;
     pendingImagePreviews: Record<string, string>;
     removePendingDocument: (id: string) => void;
     removePendingImage: (id: string) => void;
     formatBytes: (size: number) => string;
-    input: string;
-    onInputChange: React.Dispatch<React.SetStateAction<string>>;
-    inputRef: React.RefObject<HTMLTextAreaElement | null>;
     isGenerating: boolean;
-    handleSend: () => void | Promise<void>;
+    handleSend: (input: string) => void | Promise<void>;
     handleStopGeneration: () => void;
     showAttachmentPicker: boolean;
     openAttachmentMenu: (event: React.MouseEvent<HTMLElement>) => void;
@@ -91,60 +90,84 @@ export interface ChatComposerProps {
 }
 
 export const ChatComposer = memo(
-    ({
-        showModelGate,
-        showDownloadProgress,
-        downloadStatus,
-        downloadStatusLabel,
-        downloadSizeLabel,
-        modelGateStatus,
-        modelGateError,
-        isDownloading,
-        handleDownloadModel,
-        editingMessage,
-        handleCancelEdit,
-        pendingDocuments,
-        pendingImages,
-        pendingImagePreviews,
-        removePendingDocument,
-        removePendingImage,
-        formatBytes,
-        input,
-        onInputChange,
-        inputRef,
-        isGenerating,
-        handleSend,
-        handleStopGeneration,
-        showAttachmentPicker,
-        openAttachmentMenu,
-        attachmentAnchor,
-        closeAttachmentMenu,
-        handleAttachmentChoice,
-        showImageAttachment,
-        isImageAttachmentLimitReached,
-        getDocumentInputProps,
-        getImageInputProps,
-        actionButtonSx,
-        drawerIconButtonSx,
-        smallIconProps,
-        compactIconProps,
-        actionIconProps,
-        stopButtonColor,
-    }: ChatComposerProps) => {
-        const disableSend =
-            isDownloading ||
-            (!isGenerating &&
-                !input.trim() &&
-                pendingDocuments.length === 0 &&
-                pendingImages.length === 0);
+    forwardRef<ChatInputHandle, ChatComposerProps>(function ChatComposer(
+        {
+            showModelGate,
+            showDownloadProgress,
+            downloadStatus,
+            downloadStatusLabel,
+            downloadSizeLabel,
+            modelGateStatus,
+            modelGateError,
+            isDownloading,
+            handleDownloadModel,
+            editingMessage,
+            handleCancelEdit,
+            pendingDocuments,
+            pendingImages,
+            isAttachingImages,
+            pendingImagePreviews,
+            removePendingDocument,
+            removePendingImage,
+            formatBytes,
+            isGenerating,
+            handleSend,
+            handleStopGeneration,
+            showAttachmentPicker,
+            openAttachmentMenu,
+            attachmentAnchor,
+            closeAttachmentMenu,
+            handleAttachmentChoice,
+            showImageAttachment,
+            isImageAttachmentLimitReached,
+            getDocumentInputProps,
+            getImageInputProps,
+            actionButtonSx,
+            drawerIconButtonSx,
+            smallIconProps,
+            compactIconProps,
+            actionIconProps,
+            stopButtonColor,
+        },
+        ref,
+    ) {
+        const inputRef = useRef<ChatInputHandle>(null);
+        const draftRef = useRef("");
+
+        useImperativeHandle(
+            ref,
+            () => ({
+                focus: () => inputRef.current?.focus(),
+                setText: (text) => {
+                    draftRef.current = text;
+                    inputRef.current?.setText(text);
+                },
+            }),
+            [],
+        );
+
+        const isModelPreparationActive =
+            modelGateStatus === "checking" ||
+            modelGateStatus === "preloading" ||
+            modelGateStatus === "downloading";
         const disableAttachmentButton =
             isGenerating ||
+            isAttachingImages ||
+            isModelPreparationActive ||
             isDownloading ||
             (showImageAttachment && isImageAttachmentLimitReached);
 
         const pendingImagePreviewRow =
-            pendingImages.length > 0 ? (
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, pb: 1 }}>
+            pendingImages.length > 0 || isAttachingImages ? (
+                <Box
+                    sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        gap: 1,
+                        pb: 1,
+                    }}
+                >
                     {pendingImages.map((img) => {
                         const preview = pendingImagePreviews[img.id];
                         return (
@@ -213,6 +236,19 @@ export const ChatComposer = memo(
                             </Box>
                         );
                     })}
+                    {isAttachingImages && (
+                        <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{ alignItems: "center", color: "text.muted" }}
+                            role="status"
+                        >
+                            <CircularProgress size={16} color="inherit" />
+                            <Typography variant="small">
+                                Attaching images...
+                            </Typography>
+                        </Stack>
+                    )}
                 </Box>
             ) : null;
 
@@ -334,18 +370,23 @@ export const ChatComposer = memo(
                                             variant="contained"
                                             color="accent"
                                             disabled={
-                                                modelGateStatus ===
-                                                    "downloading" ||
-                                                isDownloading
+                                                modelGateStatus !== "missing" &&
+                                                modelGateStatus !== "error"
                                             }
                                             onClick={() =>
                                                 void handleDownloadModel()
                                             }
                                         >
-                                            {modelGateStatus ===
-                                                "downloading" || isDownloading
-                                                ? "Downloading..."
-                                                : "Download"}
+                                            {modelGateStatus === "checking"
+                                                ? "Checking..."
+                                                : modelGateStatus ===
+                                                        "preloading" ||
+                                                    modelGateStatus ===
+                                                        "downloading"
+                                                  ? "Loading..."
+                                                  : modelGateStatus === "error"
+                                                    ? "Retry"
+                                                    : "Download"}
                                         </Button>
                                     </Stack>
                                 </Stack>
@@ -504,156 +545,37 @@ export const ChatComposer = memo(
                                         </Box>
                                     )}
 
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 1,
-                                            px: 1,
-                                            py: 0.75,
-                                            borderRadius: 2,
-                                            bgcolor:
-                                                "color-mix(in srgb, var(--mui-palette-background-default) 45%, var(--mui-palette-background-paper) 55%)",
+                                    <ChatInput
+                                        ref={inputRef}
+                                        actionIconProps={actionIconProps}
+                                        disableAttachmentButton={
+                                            disableAttachmentButton
+                                        }
+                                        drawerIconButtonSx={drawerIconButtonSx}
+                                        handleSend={handleSend}
+                                        handleStopGeneration={
+                                            handleStopGeneration
+                                        }
+                                        hasPendingAttachments={
+                                            pendingDocuments.length > 0 ||
+                                            pendingImages.length > 0
+                                        }
+                                        isDownloading={isDownloading}
+                                        isAttachingImages={isAttachingImages}
+                                        isGenerating={isGenerating}
+                                        isModelPreparationActive={
+                                            isModelPreparationActive
+                                        }
+                                        initialText={draftRef.current}
+                                        onTextChange={(text) => {
+                                            draftRef.current = text;
                                         }}
-                                    >
-                                        <InputBase
-                                            multiline
-                                            maxRows={5}
-                                            inputRef={inputRef}
-                                            placeholder={
-                                                isDownloading
-                                                    ? "Downloading model..."
-                                                    : "Write a message..."
-                                            }
-                                            value={input}
-                                            onChange={(event) =>
-                                                onInputChange(
-                                                    event.target.value,
-                                                )
-                                            }
-                                            onKeyDown={(event) => {
-                                                if (
-                                                    event.key === "Enter" &&
-                                                    !event.shiftKey
-                                                ) {
-                                                    event.preventDefault();
-                                                    void handleSend();
-                                                }
-                                            }}
-                                            sx={{
-                                                flex: 1,
-                                                bgcolor: "transparent",
-                                                borderRadius: 2,
-                                                px: 1.5,
-                                                py: 1.5,
-                                                minHeight: 48,
-                                                display: "flex",
-                                                alignItems: "center",
-                                                fontFamily: "inherit",
-                                                fontSize: "15px",
-                                                lineHeight: 1.7,
-                                                color: "text.base",
-                                                "& textarea": {
-                                                    padding: 0,
-                                                    margin: 0,
-                                                },
-                                                "& code": {
-                                                    fontFamily:
-                                                        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                                                },
-                                            }}
-                                        />
-                                        {showAttachmentPicker && (
-                                            <IconButton
-                                                aria-label="Add attachment"
-                                                sx={drawerIconButtonSx}
-                                                disabled={
-                                                    disableAttachmentButton
-                                                }
-                                                onClick={openAttachmentMenu}
-                                            >
-                                                <HugeiconsIcon
-                                                    icon={Upload01Icon}
-                                                    {...actionIconProps}
-                                                />
-                                            </IconButton>
-                                        )}
-                                        <IconButton
-                                            aria-label={
-                                                isGenerating
-                                                    ? "Stop"
-                                                    : "Send message"
-                                            }
-                                            onClick={
-                                                isGenerating
-                                                    ? handleStopGeneration
-                                                    : () => void handleSend()
-                                            }
-                                            disabled={disableSend}
-                                            sx={{
-                                                width: 44,
-                                                height: 44,
-                                                borderRadius: 2,
-                                                bgcolor: "transparent",
-                                                color: isGenerating
-                                                    ? "critical.main"
-                                                    : "text.muted",
-                                                "&:hover": {
-                                                    bgcolor: "fill.faint",
-                                                },
-                                                "&.Mui-disabled": {
-                                                    color: "text.faint",
-                                                },
-                                            }}
-                                        >
-                                            {isGenerating ? (
-                                                <Box
-                                                    sx={{
-                                                        width: 22,
-                                                        height: 22,
-                                                        minWidth: 22,
-                                                        minHeight: 22,
-                                                        borderRadius: "999px",
-                                                        bgcolor: "#ffffff",
-                                                        display: "inline-flex",
-                                                        alignItems: "center",
-                                                        justifyContent:
-                                                            "center",
-                                                    }}
-                                                >
-                                                    <Box
-                                                        component="svg"
-                                                        viewBox="0 0 24 24"
-                                                        sx={{
-                                                            width: 12,
-                                                            height: 12,
-                                                            display: "block",
-                                                        }}
-                                                    >
-                                                        <path
-                                                            d="M4 12C4 8.72077 4 7.08116 4.81382 5.91891C5.1149 5.48891 5.48891 5.1149 5.91891 4.81382C7.08116 4 8.72077 4 12 4C15.2792 4 16.9188 4 18.0811 4.81382C18.5111 5.1149 18.8851 5.48891 19.1862 5.91891C20 7.08116 20 8.72077 20 12C20 15.2792 20 16.9188 19.1862 18.0811C18.8851 18.5111 18.5111 18.8851 18.0811 19.1862C16.9188 20 15.2792 20 12 20C8.72077 20 7.08116 20 5.91891 19.1862C5.48891 18.8851 5.1149 18.5111 4.81382 18.0811C4 16.9188 4 15.2792 4 12Z"
-                                                            fill={
-                                                                stopButtonColor
-                                                            }
-                                                        />
-                                                    </Box>
-                                                </Box>
-                                            ) : (
-                                                <Box
-                                                    sx={{
-                                                        transform:
-                                                            "rotate(90deg)",
-                                                        display: "flex",
-                                                    }}
-                                                >
-                                                    <HugeiconsIcon
-                                                        icon={Navigation06Icon}
-                                                        {...actionIconProps}
-                                                    />
-                                                </Box>
-                                            )}
-                                        </IconButton>
-                                    </Box>
+                                        openAttachmentMenu={openAttachmentMenu}
+                                        showAttachmentPicker={
+                                            showAttachmentPicker
+                                        }
+                                        stopButtonColor={stopButtonColor}
+                                    />
                                 </Stack>
                             </>
                         )}
@@ -692,5 +614,5 @@ export const ChatComposer = memo(
                 )}
             </>
         );
-    },
+    }),
 );

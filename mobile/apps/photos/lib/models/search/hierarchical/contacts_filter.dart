@@ -7,17 +7,19 @@ import "package:photos/services/contacts/contact_identity_resolver.dart";
 class ContactsFilter extends HierarchicalSearchFilter {
   final User user;
   final int occurrence;
+  final String? filterName;
 
   ContactsFilter({
     required this.user,
     required this.occurrence,
+    this.filterName,
     super.filterTypeName = "contactsFilter",
     super.matchedUploadedIDs,
   });
 
   @override
   String name() {
-    return resolveDisplayName(user);
+    return filterName ?? resolveDisplayName(user);
   }
 
   @override

@@ -7,22 +7,6 @@ use crate::transport::{
 
 use mockito::{Matcher, Server};
 use serde_json::json;
-use zeroize::Zeroize;
-
-#[test]
-fn decrypted_friend_share_zeroizes_its_key() {
-    let mut share = DecryptedFriendShare {
-        friend: "friend@example.com".to_owned(),
-        space_id: "space-friend".to_owned(),
-        space_slug: "friend".to_owned(),
-        space_key: vec![42; 32],
-        key_version: 1,
-    };
-
-    share.zeroize();
-
-    assert!(share.space_key.is_empty());
-}
 
 #[tokio::test]
 async fn account_api_sends_space_session_token_header() {
@@ -653,7 +637,7 @@ async fn create_space_with_key_sends_encrypted_space_and_profile_payloads() {
 }
 
 #[tokio::test]
-async fn create_space_preserves_api_error_code() {
+async fn create_space_maps_owner_limit_error() {
     let mut server = Server::new_async().await;
     let ctx = test_account_ctx(&server.url());
     let create_space = server
@@ -671,19 +655,12 @@ async fn create_space_preserves_api_error_code() {
         Err(error) => error,
     };
 
-    assert!(matches!(
-        error,
-        SpaceError::Http(ente_core::http::Error::Api {
-            status: 409,
-            ref code,
-            ..
-        }) if code == "CONFLICT"
-    ));
+    assert!(matches!(error, Error::SpaceLimitReached));
     create_space.assert_async().await;
 }
 
 #[tokio::test]
-async fn update_space_slug_preserves_api_error_code() {
+async fn update_space_slug_maps_duplicate_error() {
     let mut server = Server::new_async().await;
     let ctx = test_account_ctx(&server.url());
     let update_slug = server
@@ -698,14 +675,27 @@ async fn update_space_slug_preserves_api_error_code() {
         .await
         .expect_err("slug update should fail");
 
-    assert!(matches!(
-        error,
-        SpaceError::Http(ente_core::http::Error::Api {
-            status: 409,
-            ref code,
-            ..
-        }) if code == "ALREADY_EXISTS"
-    ));
+    assert!(matches!(error, Error::SpaceSlugAlreadyExists));
+    update_slug.assert_async().await;
+}
+
+#[tokio::test]
+async fn update_space_slug_maps_reserved_error() {
+    let mut server = Server::new_async().await;
+    let ctx = test_account_ctx(&server.url());
+    let update_slug = server
+        .mock("PUT", "/spaces/space_owner_main/slug")
+        .with_status(400)
+        .with_body(json!({ "code": "SPACE_SLUG_RESERVED" }).to_string())
+        .create_async()
+        .await;
+
+    let error = ctx
+        .update_space_slug("space_owner_main", "support")
+        .await
+        .expect_err("slug update should fail");
+
+    assert!(matches!(error, Error::SpaceSlugReserved));
     update_slug.assert_async().await;
 }
 
@@ -959,6 +949,41 @@ async fn create_post_includes_space_key_version() {
 }
 
 #[tokio::test]
+async fn create_post_maps_limit_error() {
+    let mut server = Server::new_async().await;
+    let space_root_key = generate_key();
+    let space_key = generate_key();
+    let ctx = test_account_ctx_with_space_root_key(&server.url(), space_root_key.clone());
+    let spaces = server
+        .mock("GET", "/account/space")
+        .with_status(200)
+        .with_body(owned_space_response(
+            &space_root_key,
+            &space_key,
+            "space_owner_main",
+            "owner-main",
+            3,
+        ))
+        .create_async()
+        .await;
+    let create = server
+        .mock("POST", "/spaces/space_owner_main/posts")
+        .with_status(409)
+        .with_body(json!({ "code": "CONFLICT" }).to_string())
+        .create_async()
+        .await;
+
+    let error = ctx
+        .create_post("space_owner_main", &[], None, None)
+        .await
+        .expect_err("post creation should fail");
+
+    assert!(matches!(error, Error::PostLimitReached));
+    spaces.assert_async().await;
+    create.assert_async().await;
+}
+
+#[tokio::test]
 async fn create_post_rejects_video_object_media_type() {
     let server = Server::new_async().await;
     let ctx = test_account_ctx(&server.url());
@@ -1188,7 +1213,7 @@ async fn get_space_profile_decrypted_returns_decryption_error() {
         .await
         .expect_err("profile decryption should fail");
 
-    assert!(matches!(error, SpaceError::Crypto(_)));
+    assert!(matches!(error, Error::Crypto(_)));
     profile.assert_async().await;
     spaces.assert_async().await;
 }
@@ -1464,6 +1489,72 @@ async fn message_actions_use_message_endpoints() {
     reply.assert_async().await;
     like.assert_async().await;
     delete.assert_async().await;
+}
+
+#[tokio::test]
+async fn wave_message_requests_special_notification() {
+    let mut server = Server::new_async().await;
+    let space_root_key = generate_key();
+    let ctx = test_account_ctx_with_space_root_key(&server.url(), space_root_key);
+    let (friend_public_key, _) = generate_keypair().expect("valid friend keypair");
+
+    let friends = server
+        .mock("GET", "/spaces/space_owner_main/friends")
+        .match_header("x-space-session-token", "space-session-token")
+        .with_status(200)
+        .with_body(
+            json!([{
+                "friend": {
+                    "spaceId": "space_friend",
+                    "spaceSlug": "friend",
+                    "publicKey": b64::encode(&friend_public_key),
+                    "keyVersion": 2
+                },
+                "shareKeyVersion": 2,
+                "createdAt": "2026-04-16T00:00:00Z"
+            }])
+            .to_string(),
+        )
+        .create_async()
+        .await;
+    let wave = server
+        .mock(
+            "POST",
+            "/spaces/space_owner_main/friends/space_friend/messages",
+        )
+        .match_header("x-space-session-token", "space-session-token")
+        .match_body(Matcher::AllOf(vec![
+            Matcher::Regex("\"notificationKind\":\"wave\"".into()),
+            Matcher::Regex("\"messageCipher\":\"[^\"]+\"".into()),
+            Matcher::Regex("\"senderEncryptedMessageKey\":\"[^\"]+\"".into()),
+            Matcher::Regex("\"recipientEncryptedMessageKey\":\"[^\"]+\"".into()),
+        ]))
+        .with_status(200)
+        .with_body(
+            json!({
+                "messageId": "wmsg_wave",
+                "kind": "regular",
+                "senderSpaceId": "space_owner_main",
+                "recipientSpaceId": "space_friend",
+                "liked": false,
+                "viewerLiked": false,
+                "isDeleted": false,
+                "createdAt": "2026-04-16T00:00:00Z",
+                "updatedAt": "2026-04-16T00:00:00Z"
+            })
+            .to_string(),
+        )
+        .create_async()
+        .await;
+
+    let message = ctx
+        .send_message("space_owner_main", "space_friend", "👋")
+        .await
+        .expect("wave should be sent");
+
+    assert_eq!(message.message_id, "wmsg_wave");
+    friends.assert_async().await;
+    wave.assert_async().await;
 }
 
 #[test]

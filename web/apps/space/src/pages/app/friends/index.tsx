@@ -1,9 +1,14 @@
-import { SpaceFriendRequestCanceledToast } from "components/SpaceFriendRequestCanceledToast";
-import { SpacePageMeta } from "components/SpacePageMeta";
-import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { SpaceFriendRequestCanceledToast } from "components/FriendRequestCanceledToast";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React, { useEffect } from "react";
 import { FriendsScreen, friendsBackground } from "screens/FriendsScreen";
+import {
+    invalidateCachedSpaceFeed,
+    removeCachedSpaceFeedPostsBySpace,
+} from "services/feed-cache";
+import { spaceInviteURL } from "services/invite";
 import {
     clearSpaceFriendsCache,
     confirmCurrentFriendRequest,
@@ -13,16 +18,12 @@ import {
     loadCurrentFriendRequests,
     loadCurrentSpaceFriends,
     removeCurrentSpaceFriend,
+    requestFriendByUsername,
     type SpaceFriendRequest,
 } from "services/space";
-import {
-    invalidateCachedSpaceFeed,
-    removeCachedSpaceFeedPostsBySpace,
-} from "services/spaceFeedCache";
-import { spaceInviteURL } from "services/spaceInvite";
-import { useSpaceAppState } from "state/spaceAppState";
-import { spaceRoutes } from "utils/spaceRoutes";
-import { useSpaceRouter } from "utils/spaceRouteTransitions";
+import { useSpaceAppState } from "state/app-state";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();
@@ -93,6 +94,35 @@ const Page: React.FC = () => {
                 isLoading={isFriendsLoading}
                 onLoadFriendAvatar={loadCurrentFriendAvatarURL}
                 onBack={() => void router.push(spaceRoutes.profile)}
+                onAddFriend={async (username) => {
+                    const actorSpaceId = profile.spaceId;
+                    if (!actorSpaceId) throw new Error("Missing space.");
+                    const status = await requestFriendByUsername({
+                        spaceUsername: username,
+                    });
+                    try {
+                        if (status == "friend") {
+                            clearSpaceFriendsCache();
+                            void invalidateCachedSpaceFeed(actorSpaceId);
+                            const [requests, friends] = await Promise.all([
+                                loadCurrentFriendRequests(actorSpaceId),
+                                loadCurrentSpaceFriends(actorSpaceId),
+                            ]);
+                            setFriendRequests(requests);
+                            setFriends(friends);
+                        } else {
+                            setFriendRequests(
+                                await loadCurrentFriendRequests(actorSpaceId),
+                            );
+                        }
+                    } catch (error) {
+                        log.error(
+                            "Failed to refresh friends after sending request",
+                            error,
+                        );
+                    }
+                    return status;
+                }}
                 onMessage={(friendID) => {
                     const friend = friends.find(
                         (candidate) => candidate.id == friendID,
@@ -116,6 +146,7 @@ const Page: React.FC = () => {
                 profileLink={spaceInviteURL({
                     spaceUsername: profile.username,
                 })}
+                username={profile.username}
                 onAcceptFriendRequest={async (requestID) => {
                     const actorSpaceId = profile.spaceId;
                     if (!actorSpaceId) return;

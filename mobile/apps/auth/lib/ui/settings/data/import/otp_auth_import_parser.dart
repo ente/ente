@@ -102,7 +102,7 @@ Code _accountToCode(Map<String, Object?> account) {
     3 => Algorithm.sha512,
     _ => throw const FormatException('Unsupported OTP algorithm'),
   };
-  final issuer = account['issuer'] as String;
+  final issuer = account['issuer'] as String? ?? '';
   final label = account['label'] as String;
   final secret = base32.encode(_bytes(account['secret'])).replaceAll('=', '');
   final digits = (account['digits'] as int?) ?? 0;

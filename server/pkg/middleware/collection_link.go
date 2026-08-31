@@ -13,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/net/idna"
-
 	"github.com/ente/museum/pkg/repo/remotestore"
 	"github.com/gin-contrib/requestid"
 	"github.com/spf13/viper"
@@ -88,7 +86,7 @@ func (m *CollectionLinkMiddleware) Authenticate(urlSanitizer func(_ *gin.Context
 				return
 			}
 			if isFreeUser {
-				publicCollectionSummary.DeviceLimit = public2.FreeUserDeviceLimit
+				publicCollectionSummary.DeviceLimit = capFreeUserDeviceLimit(publicCollectionSummary.DeviceLimit)
 			}
 
 			if publicCollectionSummary.ValidTill > 0 && // expiry time is defined, 0 indicates no expiry
@@ -170,6 +168,13 @@ func (m *CollectionLinkMiddleware) Authenticate(urlSanitizer func(_ *gin.Context
 
 		c.Next()
 	}
+}
+
+func capFreeUserDeviceLimit(deviceLimit int) int {
+	if deviceLimit <= 0 || deviceLimit > public2.FreeUserDeviceLimit {
+		return public2.FreeUserDeviceLimit
+	}
+	return deviceLimit
 }
 
 func (m *CollectionLinkMiddleware) checkDeviceLimit(c *gin.Context, accessToken string,
@@ -312,7 +317,7 @@ func (m *CollectionLinkMiddleware) validateOrigin(c *gin.Context, ownerID int64)
 		logger.WithError(err).Error("originParseFailedL")
 		return ente.NewPermissionDeniedError("unknown custom domain")
 	}
-	asciiDomain, err := idna.ToASCII(*domain)
+	asciiDomain, err := ente.CanonicalDomain(*domain)
 	if err != nil {
 		logger.WithError(err).Error("domainToASCIIFailed")
 		m.DiscordController.NotifyPotentialAbuse(alertMessage + " - domainToASCIIFailed")

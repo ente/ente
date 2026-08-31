@@ -1,8 +1,8 @@
-import { spaceDefaultProfilePicPath } from "components/SpaceAvatarImage";
-import { SpacePageMeta } from "components/SpacePageMeta";
-import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { spaceDefaultProfilePicPath } from "components/AvatarImage";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
-import { useBrowserBackClose } from "hooks/useBrowserBackClose";
+import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React from "react";
 import { friendsBackground } from "screens/FriendsScreen";
 import {
@@ -10,6 +10,10 @@ import {
     friendProfileImageViewerBackground,
 } from "screens/ProfileImageViewerScreen";
 import { ProfileScreen } from "screens/ProfileScreen";
+import {
+    patchCachedSpaceFeedPost,
+    removeCachedSpaceFeedPostsBySpace,
+} from "services/feed-cache";
 import {
     loadCurrentSpacePostAssetURL,
     loadCurrentSpaceProfile,
@@ -19,18 +23,11 @@ import {
     setCurrentPostLiked,
     type SpaceProfilePost,
 } from "services/space";
-import {
-    patchCachedSpaceFeedPost,
-    removeCachedSpaceFeedPostsBySpace,
-} from "services/spaceFeedCache";
-import { useSpaceAppState } from "state/spaceAppState";
-import { profilePostItemsFromPosts } from "utils/spacePostDisplay";
-import { spaceDefaultCoverImagePath } from "utils/spacePostImage";
-import { spaceRoutes } from "utils/spaceRoutes";
-import {
-    hasPreviousSpaceRoute,
-    useSpaceRouter,
-} from "utils/spaceRouteTransitions";
+import { useSpaceAppState } from "state/app-state";
+import { profilePostItemsFromPosts } from "utils/post-display";
+import { spaceDefaultCoverImagePath } from "utils/post-image";
+import { hasPreviousSpaceRoute, useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
 
 interface AuthenticatedFriendProfileProps {
     friendSpaceId: string;

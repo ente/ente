@@ -1,8 +1,6 @@
 import SwiftUI
 import Foundation
 
-// MARK: - Cast Session Management
-
 @MainActor
 class CastSession: ObservableObject {
     @Published var state: CastSessionState = .idle
@@ -35,8 +33,6 @@ class CastSession: ObservableObject {
     }
 }
 
-// MARK: - Real Cast Pairing Service
-
 class RealCastPairingService {
     private let baseURL = "https://api.ente.com"
     private var pollingTimer: Timer?
@@ -44,9 +40,9 @@ class RealCastPairingService {
     private var isFetchingPayload: Bool = false
     private var hasDeliveredPayload: Bool = false
     private var pollingStartTime: Date?
-    private let initialPollingInterval: TimeInterval = 2.0 // 2 seconds initially
-    private let extendedPollingInterval: TimeInterval = 5.0 // 5 seconds after 60 seconds
-    private let pollingIntervalSwitchTime: TimeInterval = 60.0 // Switch after 60 seconds
+    private let initialPollingInterval: TimeInterval = 2.0
+    private let extendedPollingInterval: TimeInterval = 5.0
+    private let pollingIntervalSwitchTime: TimeInterval = 60.0
     private var hasLoggedIntervalSwitch: Bool = false
     
     private func getCurrentPollingInterval() -> TimeInterval {
@@ -54,7 +50,6 @@ class RealCastPairingService {
         let elapsed = Date().timeIntervalSince(startTime)
         let newInterval = elapsed >= pollingIntervalSwitchTime ? extendedPollingInterval : initialPollingInterval
         
-        // Log when switching to extended interval for the first time
         if elapsed >= pollingIntervalSwitchTime && newInterval == extendedPollingInterval && !hasLoggedIntervalSwitch {
             print("Switched to extended polling interval (\(extendedPollingInterval)s) after \(Int(elapsed))s")
             hasLoggedIntervalSwitch = true
@@ -73,7 +68,10 @@ class RealCastPairingService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let requestBody = ["publicKey": receiver.publicKey()]
+        let requestBody = [
+            "publicKey": receiver.publicKey(),
+            "pqPublicKey": receiver.pqPublicKey(),
+        ]
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -114,7 +112,7 @@ class RealCastPairingService {
         pollingTimer = Timer.scheduledTimer(withTimeInterval: currentInterval, repeats: false) { [weak self] _ in
             Task {
                 await self?.checkForPayload(device: device, onPayloadReceived: onPayloadReceived, onError: onError)
-                // Schedule next poll after this one completes
+                // Poll again only after this request finishes.
                 await MainActor.run {
                     self?.scheduleNextPoll(device: device, onPayloadReceived: onPayloadReceived, onError: onError)
                 }
@@ -138,7 +136,7 @@ class RealCastPairingService {
             }
             
             if httpResponse.statusCode == 404 {
-                // No payload available yet - this is expected
+                // 404 means no cast payload is available yet.
                 return
             }
             

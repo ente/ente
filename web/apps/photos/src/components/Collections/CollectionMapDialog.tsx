@@ -1611,7 +1611,13 @@ const MapClusters = React.memo(function MapClusters({
     Marker,
 }: MapClustersProps) {
     const map = useMap();
-    const [features, setFeatures] = useState<MapFeature[]>([]);
+    const [featureState, setFeatureState] = useState<{
+        mapIndex: MapIndex;
+        features: MapFeature[];
+    }>(() => ({ mapIndex, features: [] }));
+
+    const features =
+        featureState.mapIndex === mapIndex ? featureState.features : [];
     const previousVisibleIdsRef = useRef<Set<number>>(new Set());
     const visibleRequestIdRef = useRef(0);
     const iconCacheRef = useRef(
@@ -1713,7 +1719,7 @@ const MapClusters = React.memo(function MapClusters({
 
         const nextZoom = Math.min(zoom + 1, MAX_MAP_ZOOM);
         const clusters = mapIndex.getClusters(bbox, zoom);
-        setFeatures(clusters);
+        setFeatureState({ mapIndex, features: clusters });
 
         const requestId = ++visibleRequestIdRef.current;
         void updateVisibleLeaves(requestId, clusters, bounds);

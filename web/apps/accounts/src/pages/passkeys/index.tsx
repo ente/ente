@@ -36,6 +36,7 @@ import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import { errorDialogAttributes } from "ente-base/components/utils/dialog";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
+import { isNamedError } from "ente-base/error";
 import { formattedDateTime } from "ente-base/i18n-date";
 import log from "ente-base/log";
 import { useFormik } from "formik";
@@ -231,7 +232,7 @@ const AddPasskeyForm: React.FC<AddPasskeyFormProps> = ({
                 // The browser throws an error named "NotAllowedError" when the
                 // user cancels the operation, and shows its own error dialog
                 // for other failures, so "NotAllowedError" is ignored here.
-                if (!(e instanceof Error && e.name == "NotAllowedError")) {
+                if (!isNamedError(e, "NotAllowedError")) {
                     setValueFieldError(t("passkey_add_failed"));
                 }
                 return;

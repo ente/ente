@@ -1,4 +1,4 @@
-import { useJoinAlbum } from "@/public-album/access/hooks/useJoinAlbum";
+import { useJoinAlbum } from "@/public-album/access/hooks/use-join-album";
 import { ActiveDownloadStatusNotifications } from "@/public-album/download/components/ActiveDownloadStatusNotifications";
 import type { FileViewerInitialSidebar } from "@/public-album/viewer/components/FileViewer";
 import type { PublicFeedItemClickInfo } from "@/public-album/viewer/components/PublicFeedSidebar";
@@ -25,14 +25,14 @@ import { TimelineProgressLine } from "./TimelineProgressLine";
 import { TopNavButtons } from "./TopNavButtons";
 import { TripCover } from "./TripCover";
 
-import { useDataProcessing } from "./hooks/useDataProcessing";
-import { useFileViewer } from "./hooks/useFileViewer";
-import { useLocationFetching } from "./hooks/useLocationFetching";
-import { useScrollHandling } from "./hooks/useScrollHandling";
-import { useThumbnailGeneration } from "./hooks/useThumbnailGeneration";
+import { useDataProcessing } from "./hooks/use-data-processing";
+import { useFileViewer } from "./hooks/use-file-viewer";
+import { useLocationFetching } from "./hooks/use-location-fetching";
+import { useScrollHandling } from "./hooks/use-scroll-handling";
+import { useThumbnailGeneration } from "./hooks/use-thumbnail-generation";
 
 import type { JourneyPoint } from "./types";
-import type { PositionInfo } from "./utils/scrollUtils";
+import type { PositionInfo } from "./utils/scroll-utils";
 
 export interface TripLayoutProps {
     files: EnteFile[];
@@ -212,7 +212,7 @@ export const TripLayout: React.FC<TripLayoutProps> = ({
             });
 
             if (journeyData.length > 0) {
-                void import("./mapHelpers").then(
+                void import("./map-helpers").then(
                     ({ clusterPhotosByProximity, calculateOptimalZoom }) => {
                         const clusters = clusterPhotosByProximity(journeyData);
 

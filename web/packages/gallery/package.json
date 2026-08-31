@@ -9,7 +9,7 @@
         "bs58": "6.0.0",
         "ente-accounts": "*",
         "ente-base": "*",
-        "ente-contacts-web": "*",
+        "ente-contacts": "*",
         "ente-utils": "*",
         "exifreader": "4.40.3",
         "hls-video-element": "1.5.11",

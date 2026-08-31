@@ -150,6 +150,10 @@
       "storageAmount": {}
     }
   },
+  "addPage": "Add page",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
   "addParticipants": "Add participants",
   "addPeopleWidgetPrompt": "Add a people widget to your home screen to customize it here.",
   "addPerson": "Add person",
@@ -180,6 +184,7 @@
   },
   "addYourPhotosNow": "Add your photos now",
   "adjust": "Adjust",
+  "adjustCrop": "Adjust crop",
   "admin": "Admin",
   "admins": "Admins",
   "adminsAndCollaboratorsCanAddPhotosDescription": "Admins and collaborators can add photos. Admins can also manage photos & participants.",
@@ -456,6 +461,33 @@
   "backupFile": "Backup file",
   "backupFolderLabel": "Backup folder:",
   "backupLocationChoiceDescription": "Where do you want to save your backups?",
+  "backupMode": "Backup mode",
+  "backupModeBackingUpItems": "{count, plural, one{Backing up {formattedCount} item} other{Backing up {formattedCount} items}}",
+  "@backupModeBackingUpItems": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12546"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "12,546"
+      }
+    }
+  },
+  "backupModeCheckingForMoreItems": "Checking for more items",
+  "backupModeFinishYourBackup": "Finish your backup",
+  "backupModeKeepAppOpen": "Keep the app open",
+  "backupModeNoBackupInProgress": "No backup in progress",
+  "backupModeNoBackupInProgressDescription": "Start a backup, then return to backup mode.",
+  "backupModePlugInPhone": "Plug in your phone. Backups use battery.",
+  "backupModePreservingYourMemories": "Preserving your memories",
+  "backupModeScreenDimmingDescription": "The screen dims to save battery. Tap it anytime to come back.",
+  "backupModeScreenWillDim": "Screen will dim automatically to save battery",
+  "backupModeSettingsDescription": "Keep the app open to finish your backup",
+  "backupModeStart": "Start backup mode",
+  "backupModeStayInEnte": "Stay in Ente. Switching apps pauses your backup.",
+  "backupModeTapToWakeScreen": "Tap to wake the screen",
   "backupOnlyNewPhotos": "Backup only new photos",
   "backupOnlyNewPhotosAllFoldersSelected": "All folders are currently selected for backup.\n\nYou can continue for now, or update selected folders.",
   "backupOnlyNewPhotosNoFoldersSelectedContinue": "No folders are currently selected for backup.\n\nYou can continue for now, or update selected folders.",
@@ -494,6 +526,7 @@
   "camera": "Camera",
   "campingMoments": "Campfire moments",
   "cancel": "Cancel",
+  "back": "Back",
   "@cancel": {
     "description": "Cancel button label"
   },
@@ -597,7 +630,6 @@
   "chooseBackupLocation": "Choose a backup location",
   "chooseFromAnExistingContact": "Choose from an existing contact",
   "chooseIcon": "Choose icon",
-  "chooseReasonToViewFiles": "Choose a reason to view these files",
   "chooseYourPlan": "Choose your plan",
   "city": "In the city",
   "citySunsets": "City sunset glow",
@@ -1081,11 +1113,9 @@
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
-  "deviceLockExplanation": "Disable the device screen lock when Ente is in the foreground and there is a backup in progress. This is normally not needed, but may help big uploads and initial imports of large libraries complete faster.",
   "deviceNotFound": "Device not found",
   "didYouKnow": "Did you know?",
   "digits": "Digits",
-  "disableAutoLock": "Disable auto lock",
   "disableBackup": "Disable backup",
   "disableDownloadWarningBody": "Viewers can still take screenshots or save a copy of your photos using external tools",
   "disableDownloadWarningTitle": "Please note",
@@ -1232,7 +1262,7 @@
     }
   },
   "earned": "earned",
-  "earnFreeStorage": "Earn free storage",
+  "earnFreeStorage": "Get free storage",
   "earnMoreSpace": "Earn more space!",
   "edit": "Edit",
   "editAutoAddPeople": "Edit auto-add people",
@@ -1660,6 +1690,16 @@
     }
   },
   "fileSavedToGallery": "File saved to gallery",
+  "filesCanBeRestoredFromTrash": "{count, plural, one{Item not backed up. It can be restored from Trash.} other{Items not backed up. They can be restored from Trash.}}",
+  "@filesCanBeRestoredFromTrash": {
+    "description": "Delete confirmation message for device-only items that will be moved to trash.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "filesDeleted": "Files deleted",
   "filesDeletedPermanently": "{count, plural, one{{count} item deleted permanently} other{{count} items deleted permanently}}",
   "@filesDeletedPermanently": {
@@ -2162,6 +2202,123 @@
       }
     }
   },
+  "librarySharingAllCurrentAlbumsShared": "All your current albums are shared",
+  "librarySharingBannerDescription": "Share all your albums",
+  "librarySharingDisable": "Disable",
+  "librarySharingDisableDescription": "Albums you have already shared will stay shared with {recipient}, including any new photos you add to them. New albums will not be shared automatically.\n\nTo stop sharing an album, tap it and select '{stopSharingLabel}'.",
+  "@librarySharingDisableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      },
+      "stopSharingLabel": {
+        "type": "String",
+        "example": "Stop sharing"
+      }
+    }
+  },
+  "librarySharingDisableTitle": "Disable library sharing?",
+  "librarySharingEnableDescription": "Your existing albums and any albums you create in the future will be automatically shared with {recipient}.",
+  "@librarySharingEnableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "librarySharingEnableTitle": "Enable library sharing?",
+  "librarySharingFailedAlbumCount": "{count, plural, one{Could not update {count} album.} other{Could not update {count} albums.}}",
+  "@librarySharingFailedAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingFailedDescription": "Could not update the selected albums.",
+  "librarySharingFailedTitle": "Sharing failed",
+  "librarySharingHiddenAlbumsDescription": "Hidden albums will not be shared. You can stop sharing any album at any time.",
+  "librarySharingMemberSubtitle": "{count, plural, =0{No albums shared • {storageUsage}} one{{count} album shared • {storageUsage}} other{{count} albums shared • {storageUsage}}}",
+  "@librarySharingMemberSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "storageUsage": {
+        "type": "String",
+        "example": "2 GB"
+      }
+    }
+  },
+  "librarySharingMixed": "Mixed",
+  "librarySharingNoAlbumsToShare": "No albums to share yet",
+  "librarySharingPreviouslyUnsharedDescription": "{count, plural, one{Sharing was stopped for this album earlier, so it wasn't shared again.} other{Sharing was stopped for these albums earlier, so they weren't shared again.}}",
+  "@librarySharingPreviouslyUnsharedDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingPreviouslyUnsharedTitle": "{count, plural, one{{count} album wasn't shared} other{{count} albums weren't shared}}",
+  "@librarySharingPreviouslyUnsharedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingRetryFailedAlbums": "Retry failed albums",
+  "librarySharingRole": "Role",
+  "librarySharingRoles": "Roles",
+  "librarySharingShareAlbumCount": "{count, plural, one{Share {count} album} other{Share {count} albums}}",
+  "@librarySharingShareAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingShareAlbums": "Share albums",
+  "librarySharingSharedAlbumCount": "{count, plural, =0{No albums shared} one{{count} album shared} other{{count} albums shared}}",
+  "@librarySharingSharedAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingShareWith": "Share with",
+  "librarySharingSharingWith": "Sharing with",
+  "librarySharingStopSharing": "Stop sharing",
+  "librarySharingStopSharingDescription": "{count, plural, one{They'll lose this album, and any photos they added leave with them. You can share again later.} other{They'll lose these albums, and any photos they added leave with them. You can share again later.}}",
+  "@librarySharingStopSharingDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingStopSharingTitle": "{count, plural, one{Stop sharing {count} album?} other{Stop sharing {count} albums?}}",
+  "@librarySharingStopSharingTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingTitle": "Library sharing",
+  "librarySharingUpdateRoles": "Update roles",
   "limit": "Limit",
   "linkCopiedToClipboard": "Link copied to clipboard",
   "linkDeletedSuccessfully": "Link deleted successfully",
@@ -2789,6 +2946,8 @@
   },
   "pets": "Furry companions",
   "photoGridSize": "Photo grid size",
+  "photoLibraryAddPermissionRequired": "Ente needs permission to save photos and videos to Apple Photos. You can allow access in Settings.",
+  "photoLibraryAddPermissionRestricted": "Photo Library access is restricted on this device.",
   "photos": "Photos",
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Photos added by you will be removed from the album",
   "photosAndVideosCount": "{count, plural, one{{formattedCount} photo & video} other{{formattedCount} photos & videos}}",
@@ -2861,6 +3020,7 @@
       }
     }
   },
+  "playbackSpeed": "Playback speed",
   "playfulKids": "Playful kids",
   "playOriginal": "Play original",
   "playstoreSubscription": "PlayStore subscription",
@@ -3120,9 +3280,14 @@
   "referrals": "Referrals",
   "referralsAreCurrentlyPaused": "Referrals are currently paused",
   "referralStats": "Referral stats",
-  "referralStep1": "1. Customise and share your code.",
-  "referralStep2": "2. They sign up to Ente using your code.",
-  "referralStep3": "3. {storageInGB}GB free for them + {storageInGB}GB free for you when they upgrade.",
+  "referralStep1": "1. Share your code with friends",
+  "referralStep2": "2. They get {storageInGB} GB free on sign up",
+  "@referralStep2": {
+    "placeholders": {
+      "storageInGB": {}
+    }
+  },
+  "referralStep3": "3. You get {storageInGB} GB free when they upgrade",
   "@referralStep3": {
     "placeholders": {
       "storageInGB": {}
@@ -3276,6 +3441,14 @@
     "description": "Display text for an action which triggers a restore of item from trash",
     "type": "text"
   },
+  "restoredItems": "{count, plural, one{Restored item} other{Restored {count} items}}",
+  "@restoredItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "restoreToAlbum": "Restore to album",
   "restoringFiles": "Restoring files...",
   "restoringItems": "Restoring...",
@@ -3389,8 +3562,8 @@
   "saveCollage": "Save collage",
   "saveContact": "Save contact",
   "saveCopy": "Save copy",
-  "saveDocumentDescription": "Upload important docs.",
-  "saveDocumentTitle": "Document",
+  "saveFileDescription": "Upload important files.",
+  "saveFileTitle": "File",
   "saveKey": "Save key",
   "@saveKey": {
     "description": "Save key button label"
@@ -3404,6 +3577,7 @@
     "description": "Description text asking user if they want to save to storage or share with other apps"
   },
   "savePerson": "Save person",
+  "saveToEnte": "Save to Ente",
   "saveToLocker": "Save to Locker",
   "saveYourRecoveryKeyIfYouHaventAlready": "Save your recovery key if you haven't already",
   "saving": "Saving...",
@@ -3413,8 +3587,43 @@
   "scanACode": "Scan a code",
   "scanAQrCode": "Scan a QR code",
   "scanCode": "Scan code",
+  "scanDocumentDescription": "Scan important docs.",
+  "scanDocumentTitle": "Document",
+  "scanFilenamePrefix": "Scan",
+  "@scanFilenamePrefix": {
+    "description": "Prefix of the default filename for a scanned document PDF, e.g. 'Scan 13 Aug 2026, 14.30.pdf'"
+  },
+  "scannerAutoCaptureOff": "Turn off automatic capture",
+  "scannerAutoCaptureOn": "Turn on automatic capture",
+  "scannerCaptureModeAuto": "Auto",
+  "@scannerCaptureModeAuto": {
+    "description": "Label on the scanner capture-mode toggle while automatic capture is on"
+  },
+  "scannerCaptureModeManual": "Manual",
+  "@scannerCaptureModeManual": {
+    "description": "Label on the scanner capture-mode toggle while capture is manual (automatic capture off)"
+  },
+  "scannerNotSupportedOnDevice": "Document scanning is not supported on this device",
   "scannerTorchOff": "Turn off torch",
   "scannerTorchOn": "Turn on torch",
+  "scannerCapture": "Capture",
+  "scannerPreparing": "Preparing scanner...",
+  "scanProcessing": "Processing your scan...",
+  "scanPageOfTotal": "Page {current} of {total}",
+  "@scanPageOfTotal": {
+    "description": "Page position indicator in the document scanner review screen",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "scanSaved": "Scan saved",
   "scanThisBarcodeWithnyourAuthenticatorApp": "Scan this barcode with\nyour authenticator app",
   "scheduleShare": "Schedule share",
   "search": "Search",
@@ -3683,7 +3892,7 @@
   "share": "Share",
   "shareALink": "Share a link",
   "shareAnAlbum": "Share an album",
-  "shareCodeEarnStorage": "Share your code, earn storage.",
+  "shareCodeEarnStorage": "Double your storage on Ente",
   "shareCodes": "Share codes",
   "shareCodesDuration": "Select the duration for which you want to share codes.",
   "shareCollection": "Share collection",
@@ -3736,11 +3945,10 @@
   "shareTextRecommendUsingEnte": "Download Ente so we can easily share original quality files\n\nhttps://ente.com",
   "shareTextRecommendUsingEnteForFamily": "Download Ente so I can add you to my family plan\n\nhttps://ente.com",
   "shareTextRecommendUsingEnteForPhotos": "Download Ente so we can easily share original quality photos and videos\n\nhttps://ente.com",
-  "shareTextReferralCode": "Ente Photos is a private and safe home for your photos\n* Download Ente Photos from https://ente.com/app\n* Create an account\n* Apply the referral code {referralCode} in Settings->Referral\n* Get extra {referralStorageInGB} GB free!",
-  "@shareTextReferralCode": {
+  "shareTextReferralInvite": "Get 20 GB free with Ente Photos! Download the app at https://ente.com/invite and use code {referralCode}.",
+  "@shareTextReferralInvite": {
     "placeholders": {
-      "referralCode": {},
-      "referralStorageInGB": {}
+      "referralCode": {}
     }
   },
   "shareThisLink": "This link allows anyone who receives it to access your item. You can remove access at any time by deleting the link.",
@@ -4200,7 +4408,7 @@
   },
   "unarchiveAlbum": "Unarchive album",
   "unarchiving": "Unarchiving...",
-  "unavailableReferralCode": "Sorry, this code is unavailable.",
+  "unavailableReferralCode": "This code is already taken",
   "uncategorized": "Uncategorized",
   "uncategorizedItemsWillShowUpHere": "Uncategorized items will show up here",
   "undo": "Undo",
@@ -4561,6 +4769,7 @@
   "yourPlanWasSuccessfullyDowngraded": "Your plan was successfully downgraded",
   "yourPlanWasSuccessfullyUpgraded": "Your plan was successfully upgraded",
   "yourPurchaseWasSuccessful": "Your purchase was successful",
+  "yourReferralCode": "Your referral code",
   "yourSubscriptionHasExpired": "Your subscription has expired",
   "yourSubscriptionWasUpdatedSuccessfully": "Your subscription was updated successfully",
   "yourTrashIsEmpty": "Your trash is empty",

@@ -21,7 +21,13 @@ import {
     Typography,
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
-import React, { memo } from "react";
+import {
+    memo,
+    startTransition,
+    useMemo,
+    useState,
+    type RefObject,
+} from "react";
 
 interface IconProps {
     size: number;
@@ -36,14 +42,13 @@ export interface ChatSidebarProps {
     tinyIconProps: IconProps;
     actionIconProps: IconProps;
     showSessionSearch: boolean;
-    sessionSearch: string;
-    setSessionSearch: React.Dispatch<React.SetStateAction<string>>;
+    sessionSearchRef: RefObject<string>;
     handleOpenSessionSearch: () => void;
     handleCloseSessionSearch: () => void;
     handleNewChat: () => void;
     handleOpenDrawer: () => void;
     handleCollapseDrawer: () => void;
-    groupedSessions: [string, ChatSession[]][];
+    sessions: ChatSession[];
     currentSessionId?: string;
     handleSelectSession: (sessionId: string) => void;
     requestRenameSession: (session: ChatSession) => void;
@@ -53,6 +58,52 @@ export interface ChatSidebarProps {
 
 export const ChatSidebar = memo(
     ({
+        sessions,
+        sessionSearchRef,
+        handleCloseSessionSearch,
+        ...props
+    }: ChatSidebarProps) => {
+        const [sessionSearch, setSessionSearch] = useState(
+            sessionSearchRef.current,
+        );
+        const groupedSessions = useMemo(() => {
+            const query = sessionSearch.trim().toLowerCase();
+            const filteredSessions = query
+                ? sessions.filter((session) => {
+                      const title = session.title.toLowerCase();
+                      const preview =
+                          session.lastMessagePreview?.toLowerCase() ?? "";
+                      return title.includes(query) || preview.includes(query);
+                  })
+                : sessions;
+            return groupSessionsByDate(filteredSessions);
+        }, [sessionSearch, sessions]);
+
+        const closeSessionSearch = () => {
+            sessionSearchRef.current = "";
+            setSessionSearch("");
+            handleCloseSessionSearch();
+        };
+
+        return (
+            <ChatSidebarView
+                {...props}
+                groupedSessions={groupedSessions}
+                handleCloseSessionSearch={closeSessionSearch}
+                sessionSearchRef={sessionSearchRef}
+                setSessionSearch={setSessionSearch}
+            />
+        );
+    },
+);
+
+interface ChatSidebarViewProps extends Omit<ChatSidebarProps, "sessions"> {
+    groupedSessions: [string, ChatSession[]][];
+    setSessionSearch: (query: string) => void;
+}
+
+const ChatSidebarView = memo(
+    ({
         drawerCollapsed,
         drawerIconButtonSx,
         actionButtonSx,
@@ -60,7 +111,7 @@ export const ChatSidebar = memo(
         tinyIconProps,
         actionIconProps,
         showSessionSearch,
-        sessionSearch,
+        sessionSearchRef,
         setSessionSearch,
         handleOpenSessionSearch,
         handleCloseSessionSearch,
@@ -73,7 +124,7 @@ export const ChatSidebar = memo(
         requestRenameSession,
         requestDeleteSession,
         openSettingsModal,
-    }: ChatSidebarProps) => (
+    }: ChatSidebarViewProps) => (
         <Stack
             sx={{
                 width: "100%",
@@ -111,44 +162,11 @@ export const ChatSidebar = memo(
                 >
                     {showSessionSearch ? (
                         <>
-                            <Box
-                                sx={{
-                                    flex: 1,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "flex-start",
-                                    gap: 1,
-                                    px: 1.5,
-                                    height: 40,
-                                    borderRadius: 2,
-                                    bgcolor: "fill.faint",
-                                    textAlign: "left",
-                                }}
-                            >
-                                <HugeiconsIcon
-                                    icon={Search01Icon}
-                                    {...tinyIconProps}
-                                />
-                                <InputBase
-                                    placeholder="Search chats"
-                                    autoFocus
-                                    value={sessionSearch}
-                                    onChange={(event) =>
-                                        setSessionSearch(event.target.value)
-                                    }
-                                    inputProps={{
-                                        style: { textAlign: "left" },
-                                    }}
-                                    sx={{
-                                        flex: 1,
-                                        color: "text.base",
-                                        fontFamily: "inherit",
-                                        fontSize: "13px",
-                                        textAlign: "left",
-                                        "& input": { textAlign: "left" },
-                                    }}
-                                />
-                            </Box>
+                            <SessionSearchInput
+                                sessionSearchRef={sessionSearchRef}
+                                setSessionSearch={setSessionSearch}
+                                tinyIconProps={tinyIconProps}
+                            />
                             <IconButton
                                 aria-label="Close search"
                                 sx={drawerIconButtonSx}
@@ -428,3 +446,121 @@ export const ChatSidebar = memo(
         </Stack>
     ),
 );
+
+interface SessionSearchInputProps {
+    sessionSearchRef: RefObject<string>;
+    setSessionSearch: (query: string) => void;
+    tinyIconProps: IconProps;
+}
+
+const SessionSearchInput = memo(
+    ({
+        sessionSearchRef,
+        setSessionSearch,
+        tinyIconProps,
+    }: SessionSearchInputProps) => {
+        const [value, setValue] = useState(sessionSearchRef.current);
+
+        return (
+            <Box
+                sx={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    gap: 1,
+                    px: 1.5,
+                    height: 40,
+                    borderRadius: 2,
+                    bgcolor: "fill.faint",
+                    textAlign: "left",
+                }}
+            >
+                <HugeiconsIcon icon={Search01Icon} {...tinyIconProps} />
+                <InputBase
+                    placeholder="Search chats"
+                    autoFocus
+                    value={value}
+                    onChange={(event) => {
+                        const query = event.target.value;
+                        sessionSearchRef.current = query;
+                        setValue(query);
+                        startTransition(() => setSessionSearch(query));
+                    }}
+                    inputProps={{ style: { textAlign: "left" } }}
+                    sx={{
+                        flex: 1,
+                        color: "text.base",
+                        fontFamily: "inherit",
+                        fontSize: "13px",
+                        textAlign: "left",
+                        "& input": { textAlign: "left" },
+                    }}
+                />
+            </Box>
+        );
+    },
+);
+
+type SessionGroupLabel =
+    | "TODAY"
+    | "YESTERDAY"
+    | "THIS WEEK"
+    | "LAST WEEK"
+    | "THIS MONTH"
+    | "OLDER";
+
+const groupSessionsByDate = (sessions: ChatSession[]) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(
+        thisWeekStart.getDate() - (thisWeekStart.getDay() || 7) + 1,
+    );
+
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const grouped: Record<SessionGroupLabel, ChatSession[]> = {
+        TODAY: [],
+        YESTERDAY: [],
+        "THIS WEEK": [],
+        "LAST WEEK": [],
+        "THIS MONTH": [],
+        OLDER: [],
+    };
+
+    sessions.forEach((session) => {
+        const sessionDate = new Date(Math.floor(session.updatedAt / 1000));
+        const sessionDay = new Date(
+            sessionDate.getFullYear(),
+            sessionDate.getMonth(),
+            sessionDate.getDate(),
+        );
+
+        let category: SessionGroupLabel = "OLDER";
+
+        if (sessionDay >= today) {
+            category = "TODAY";
+        } else if (sessionDay.getTime() === yesterday.getTime()) {
+            category = "YESTERDAY";
+        } else if (sessionDay >= thisWeekStart) {
+            category = "THIS WEEK";
+        } else if (sessionDay >= lastWeekStart) {
+            category = "LAST WEEK";
+        } else if (sessionDay >= thisMonthStart) {
+            category = "THIS MONTH";
+        }
+
+        grouped[category].push(session);
+    });
+
+    return (
+        Object.entries(grouped) as [SessionGroupLabel, ChatSession[]][]
+    ).filter(([, group]) => group.length > 0);
+};

@@ -38,6 +38,7 @@ import 'package:photos/gateways/users/models/key_gen_result.dart';
 import 'package:photos/gateways/users/models/private_key_attributes.dart';
 import 'package:photos/module/upload/upload_artifact.dart';
 import 'package:photos/service_locator.dart';
+import 'package:photos/services/authenticated_session.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/favorites_service.dart';
 import "package:photos/services/home_widget_service.dart";
@@ -48,6 +49,7 @@ import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/similar_images_service.dart";
 import "package:photos/services/memory_share_service.dart";
 import "package:photos/services/notification_service.dart";
+import 'package:photos/services/photos_contacts_service.dart';
 import 'package:photos/services/search_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
 import 'package:photos/services/video_preview_service.dart';
@@ -96,7 +98,9 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       );
       _documentsDirectory = (await getApplicationDocumentsDirectory()).path;
       final appSupportDirectory = await getApplicationSupportDirectory();
-      // Exclude Documents (SQLite, thumbnails, decrypted media) and Application Support (ML models) from backups since they’re server-derivable or must remain within the device’s E2EE boundary.
+      // Exclude Documents (SQLite, thumbnails, decrypted media) and Application
+      // Support (ML models) from backups. They are server-derivable or must
+      // remain within the device's E2EE boundary.
       await excludeFromBackup(_documentsDirectory);
       await excludeFromBackup(appSupportDirectory.path);
       _tempDocumentsDirPath = _documentsDirectory + "/temp/";
@@ -216,6 +220,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     _cachedToken = null;
     _secretKey = null;
     _volatilePassword = null;
+    clearAuthenticatedSession();
 
     await NotificationService.instance.clearAllScheduledNotifications(
       logLines: false,
@@ -229,6 +234,13 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     await MLDataDB.instance.clearTable();
     await UploadLocksDB.instance.clearTable();
     await TrashDB.instance.clearTable();
+    try {
+      await PhotosContactsService.instance.close().timeout(
+        const Duration(seconds: 5),
+      );
+    } catch (e) {
+      _logger.warning("Failed to close contacts service", e);
+    }
     await ContactsDatabase().clearTable();
     await SocialDB.instance.clearAllData();
 

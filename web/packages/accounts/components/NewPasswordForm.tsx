@@ -1,26 +1,53 @@
 import { Input, TextField, Typography } from "@mui/material";
-import { isWeakPassword } from "ente-accounts/utils/password";
+import {
+    estimatePasswordStrength,
+    type PasswordStrength,
+} from "ente-accounts/utils/password";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
 import log from "ente-base/log";
 import { useFormik } from "formik";
 import { t } from "i18next";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState, type ComponentType } from "react";
 import { Trans } from "react-i18next";
 import { PasswordStrengthHint } from "./PasswordStrength";
 
 export interface NewPasswordFormProps {
     userEmail: string;
     submitButtonTitle: string;
+    presentation?: ComponentType<NewPasswordPresentationProps>;
+    onBack?: () => void;
     onSubmit: (
         password: string,
         setPasswordsFieldError: (message: string) => void,
     ) => Promise<void>;
 }
 
+export interface NewPasswordPresentationProps {
+    userEmail: string;
+    password: string;
+    confirmPassword: string;
+    passwordError: string | undefined;
+    confirmPasswordError: string | undefined;
+    passwordStrength: PasswordStrength;
+    isSubmitting: boolean;
+    isSubmitDisabled: boolean;
+    submitButtonTitle: string;
+    onBack: (() => void) | undefined;
+    onPasswordChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onConfirmPasswordChange: React.ChangeEventHandler<
+        HTMLInputElement | HTMLTextAreaElement
+    >;
+    onSubmit: React.SubmitEventHandler<HTMLFormElement>;
+}
+
 export const NewPasswordForm: React.FC<NewPasswordFormProps> = ({
     userEmail,
     submitButtonTitle,
+    presentation: Presentation,
+    onBack,
     onSubmit,
 }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -59,6 +86,31 @@ export const NewPasswordForm: React.FC<NewPasswordFormProps> = ({
             }
         },
     });
+
+    const passwordStrength = useMemo(
+        () => estimatePasswordStrength(formik.values.password),
+        [formik.values.password],
+    );
+
+    if (Presentation) {
+        return (
+            <Presentation
+                userEmail={userEmail}
+                password={formik.values.password}
+                confirmPassword={formik.values.confirmPassword}
+                passwordError={formik.errors.password}
+                confirmPasswordError={formik.errors.confirmPassword}
+                passwordStrength={passwordStrength}
+                isSubmitting={formik.isSubmitting}
+                isSubmitDisabled={passwordStrength == "weak"}
+                submitButtonTitle={submitButtonTitle}
+                onBack={onBack}
+                onPasswordChange={formik.handleChange}
+                onConfirmPasswordChange={formik.handleChange}
+                onSubmit={formik.handleSubmit}
+            />
+        );
+    }
 
     return (
         <form onSubmit={formik.handleSubmit}>
@@ -118,7 +170,10 @@ export const NewPasswordForm: React.FC<NewPasswordFormProps> = ({
                     },
                 }}
             />
-            <PasswordStrengthHint password={formik.values.password} />
+            <PasswordStrengthHint
+                password={formik.values.password}
+                strength={passwordStrength}
+            />
 
             <Typography
                 variant="small"
@@ -131,7 +186,7 @@ export const NewPasswordForm: React.FC<NewPasswordFormProps> = ({
                 color="accent"
                 type="submit"
                 loading={formik.isSubmitting}
-                disabled={isWeakPassword(formik.values.password)}
+                disabled={passwordStrength == "weak"}
                 fullWidth
             >
                 {submitButtonTitle}

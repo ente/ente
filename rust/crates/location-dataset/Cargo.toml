@@ -1,0 +1,13 @@
+[package]
+name = "ente-location-dataset"
+edition = "2024"
+publish = false
+
+[dependencies]
+ente-location.workspace = true
+geo = { version = "0.33.1", default-features = false }
+reqwest = { workspace = true, features = ["blocking", "rustls-tls-webpki-roots"] }
+sha2.workspace = true
+shapefile = { version = "0.9.0", features = ["geo-types"] }
+thiserror.workspace = true
+zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }

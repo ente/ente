@@ -1,4 +1,4 @@
-import { SpaceProfileImageViewerPage } from "components/SpaceProfileImagePages";
+import { SpaceProfileImageViewerPage } from "components/ProfileImagePages";
 import React from "react";
 
 const Page: React.FC = () => <SpaceProfileImageViewerPage variant="cover" />;

@@ -1,8 +1,14 @@
-import { SpacePageMeta } from "components/SpacePageMeta";
-import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React, { useEffect, useMemo, useState } from "react";
 import { ProfileScreen, profileBackground } from "screens/ProfileScreen";
+import {
+    patchCachedSpaceFeedPost,
+    prependCachedSpaceFeedPost,
+    removeCachedSpaceFeedPost,
+} from "services/feed-cache";
+import { spaceInviteURL } from "services/invite";
 import {
     createCurrentPhotoPost,
     deleteCurrentPost,
@@ -14,22 +20,16 @@ import {
     updateCurrentPostCaption,
     type SpaceProfilePost,
 } from "services/space";
-import {
-    patchCachedSpaceFeedPost,
-    prependCachedSpaceFeedPost,
-    removeCachedSpaceFeedPost,
-} from "services/spaceFeedCache";
-import { spaceInviteURL } from "services/spaceInvite";
-import { useSpaceAppState } from "state/spaceAppState";
+import { useSpaceAppState } from "state/app-state";
 import {
     confirmLocalFeedPost,
     createLocalFeedPostID,
     failLocalFeedPost,
-} from "utils/localFeedPost";
-import { profilePostItemsFromPosts } from "utils/spacePostDisplay";
-import { prepareSpacePostImageFromEdit } from "utils/spacePostImage";
-import { spaceRoutes } from "utils/spaceRoutes";
-import { useSpaceRouter } from "utils/spaceRouteTransitions";
+} from "utils/local-feed-post";
+import { profilePostItemsFromPosts } from "utils/post-display";
+import { prepareSpacePostImageFromEdit } from "utils/post-image";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
 
 const initialPostLoadingIndicatorDelayMs = 350;
 

@@ -1,0 +1,7 @@
+[package]
+name = "ente-location"
+edition = "2024"
+
+[dependencies]
+thiserror.workspace = true
+unicode-normalization = "0.1.25"

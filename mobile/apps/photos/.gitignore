@@ -1,16 +1,3 @@
 .env
 
-fastlane/report.xml
-
-# FVM Version Cache
-.fvm/
-
-# Generated l10n audit output
-lib/l10n/untranslated_messages.json
-
-lib/generated/intl/app_localizations*.dart
-
-# Generated FRB dart bindings
-lib/src/rust/*
-
 test/**/*.mocks.dart

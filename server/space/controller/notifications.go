@@ -26,6 +26,7 @@ const (
 	spaceActivityPostLiked       = "post_liked"
 	spaceActivityPostReplied     = "post_replied"
 	spaceActivityMessageSent     = "message_sent"
+	spaceActivityWaveSent        = "wave_sent"
 	spaceActivityMessageLiked    = "message_liked"
 	spaceActivityFriendAdded     = "friend_added"
 	spaceActivityFriendRequested = "friend_requested"
@@ -58,6 +59,7 @@ type SpaceActivityNotifier interface {
 	OnSpacePostLiked(actor SpaceActivityActor, recipientUserID int64)
 	OnSpacePostReplied(actor SpaceActivityActor, recipientUserID int64)
 	OnSpaceMessageSent(actor SpaceActivityActor, recipientUserID int64)
+	OnSpaceWaveSent(actor SpaceActivityActor, recipientUserID int64)
 	OnSpaceMessageLiked(actor SpaceActivityActor, recipientUserID int64)
 	OnSpaceFriendAdded(actor SpaceActivityActor, recipientUserID int64)
 	OnSpaceFriendRequested(actor SpaceActivityActor, recipientUserID int64)
@@ -134,6 +136,10 @@ func (n *SpaceWebPushSender) OnSpacePostReplied(actor SpaceActivityActor, recipi
 
 func (n *SpaceWebPushSender) OnSpaceMessageSent(actor SpaceActivityActor, recipientUserID int64) {
 	n.sendAccountActivity(actor, "sent you a message", "Check it out", spaceActivityMessageSent, conversationURL(actor.SpaceID), recipientUserID)
+}
+
+func (n *SpaceWebPushSender) OnSpaceWaveSent(actor SpaceActivityActor, recipientUserID int64) {
+	n.sendAccountActivity(actor, "waved at you 👋", "Post something", spaceActivityWaveSent, "/app/post", recipientUserID)
 }
 
 func (n *SpaceWebPushSender) OnSpaceMessageLiked(actor SpaceActivityActor, recipientUserID int64) {
@@ -244,6 +250,9 @@ func (n *SpaceWebPushSender) sendSubscription(
 	payload []byte,
 	subscription repo.SpaceWebPushSubscriptionRecord,
 ) {
+	if validateWebPushEndpoint(subscription.Endpoint) != nil {
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), spaceWebPushSendTimeout)
 	defer cancel()
 	response, err := sendSpaceWebPush(ctx, payload, &webpush.Subscription{

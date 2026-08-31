@@ -77,7 +77,7 @@ func (c *WebPushController) DeleteAccountSubscription(
 	req models.SpaceWebPushUnsubscriptionRequest,
 ) error {
 	endpoint := strings.TrimSpace(req.Endpoint)
-	if err := validateWebPushEndpoint(endpoint); err != nil {
+	if _, err := parseWebPushEndpoint(endpoint); err != nil {
 		return err
 	}
 	sessionHash := sha256.Sum256([]byte(sessionToken))
@@ -126,7 +126,7 @@ func (c *WebPushController) DeleteLinkSubscription(
 	req models.SpaceWebPushUnsubscriptionRequest,
 ) error {
 	endpoint := strings.TrimSpace(req.Endpoint)
-	if err := validateWebPushEndpoint(endpoint); err != nil {
+	if _, err := parseWebPushEndpoint(endpoint); err != nil {
 		return err
 	}
 	link, err := c.links.Authorize(ctx, slug)
@@ -200,10 +200,18 @@ func decodeBase64URL(value string) ([]byte, error) {
 }
 
 func validateWebPushEndpoint(endpoint string) error {
+	parsed, err := parseWebPushEndpoint(endpoint)
+	if err != nil || !isAllowedWebPushEndpoint(parsed) {
+		return ente.NewBadRequestWithMessage("invalid web push endpoint")
+	}
+	return nil
+}
+
+func parseWebPushEndpoint(endpoint string) (*url.URL, error) {
 	if endpoint == "" ||
 		len(endpoint) > spaceWebPushEndpointMaxBytes ||
 		strings.Contains(endpoint, "#") {
-		return ente.NewBadRequestWithMessage("invalid web push endpoint")
+		return nil, ente.NewBadRequestWithMessage("invalid web push endpoint")
 	}
 	parsed, err := url.ParseRequestURI(endpoint)
 	if err != nil ||
@@ -211,7 +219,25 @@ func validateWebPushEndpoint(endpoint string) error {
 		parsed.Hostname() == "" ||
 		parsed.User != nil ||
 		parsed.Fragment != "" {
-		return ente.NewBadRequestWithMessage("invalid web push endpoint")
+		return nil, ente.NewBadRequestWithMessage("invalid web push endpoint")
 	}
-	return nil
+	return parsed, nil
+}
+
+func isAllowedWebPushEndpoint(endpoint *url.URL) bool {
+	if port := endpoint.Port(); port != "" && port != "443" {
+		return false
+	}
+	host := strings.ToLower(endpoint.Hostname())
+	switch host {
+	case "fcm.googleapis.com", "updates.push.services.mozilla.com":
+		return true
+	case "jmt17.google.com":
+		path := endpoint.EscapedPath()
+		token := strings.TrimPrefix(path, "/fcm/send/")
+		return token != path && token != "" && !strings.Contains(token, "/")
+	default:
+		return strings.HasSuffix(host, ".push.apple.com") ||
+			strings.HasSuffix(host, ".notify.windows.com")
+	}
 }

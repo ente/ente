@@ -7,22 +7,33 @@ import {
     UserRemove01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Box, Menu, MenuItem, Skeleton } from "@mui/material";
-import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
+import {
+    Box,
+    Dialog,
+    Menu,
+    MenuItem,
+    Skeleton,
+    useMediaQuery,
+} from "@mui/material";
 import {
     SpaceActionFeedbackIcon,
     spaceActionDoneDurationMs,
     type SpaceActionPhase,
-} from "components/SpaceActionFeedback";
-import { SpaceAvatarImage } from "components/SpaceAvatarImage";
-import { SpaceLoadingSpinner } from "components/SpaceRouteFallback";
-import { SpaceShareInviteButton } from "components/SpaceShareInviteButton";
+} from "components/ActionFeedback";
+import { SpaceAvatarImage } from "components/AvatarImage";
+import { SpaceBottomSheetTransition } from "components/BottomSheetTransition";
+import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
+import { SpaceLoadingSpinner } from "components/RouteFallback";
+import { SpaceShareInviteButton } from "components/ShareInviteButton";
 import type { FriendProfile } from "data/friends";
 import log from "ente-base/log";
 import React, { useState } from "react";
+import {
+    normalizeSpaceUsername,
+    spaceUsernameValidationError,
+} from "services/profile";
 import type { SpaceFriendRequest } from "services/space";
-import { openSpaceShareLinkDialog } from "services/spaceShareLink";
-import { spaceTouchTargetSize } from "styles/touchTargets";
+import { spaceTouchTargetSize } from "styles/touch-targets";
 
 export const friendsBackground = "#FFFFFF";
 
@@ -51,9 +62,11 @@ interface FriendsScreenProps {
     onDeleteFriendRequest: (requestID: number) => Promise<void>;
     onLoadFriendAvatar?: (friend: FriendProfile) => Promise<string | null>;
     onBack?: () => void;
+    onAddFriend: (username: string) => Promise<"friend" | "requested">;
     onMessage?: (friendID: string) => void;
     onOpenFriend?: (friendID: string) => void;
     profileLink?: string;
+    username: string;
     onUnfriend?: (friendID: string) => Promise<void> | void;
 }
 
@@ -593,19 +606,349 @@ const FriendRequestRow: React.FC<FriendRequestRowProps> = ({
     );
 };
 
+interface AddFriendSheetProps {
+    friendRequests: SpaceFriendRequest[];
+    friends: FriendProfile[];
+    onAddFriend: FriendsScreenProps["onAddFriend"];
+    onClose: () => void;
+    open: boolean;
+    username: string;
+}
+
+const friendRequestErrorMessage = (error: unknown, username: string) => {
+    if (!error || typeof error != "object") {
+        return "Couldn't send the friend request. Please try again.";
+    }
+
+    const { message, status } = error as {
+        message?: unknown;
+        status?: unknown;
+    };
+    if (status == 404) return `No Space profile found for @${username}.`;
+    if (
+        status == 400 &&
+        typeof message == "string" &&
+        message.includes("cannot add yourself")
+    ) {
+        return "You can't add yourself as a friend.";
+    }
+    if (status == 409) {
+        return `@${username} can't receive more friend requests right now.`;
+    }
+    return "Couldn't send the friend request. Please try again.";
+};
+
+const AddFriendSheet: React.FC<AddFriendSheetProps> = ({
+    friendRequests,
+    friends,
+    onAddFriend,
+    onClose,
+    open,
+    username: currentUsername,
+}) => {
+    const titleID = React.useId();
+    const isBottomSheet = useMediaQuery("(max-width: 599px)");
+    const [username, setUsername] = React.useState("");
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isSent, setIsSent] = React.useState(false);
+    const [errorMessage, setErrorMessage] = React.useState<string>();
+
+    const submit = () => {
+        if (isSubmitting || isSent) return;
+
+        const normalizedUsername = normalizeSpaceUsername(username);
+        const validationError = normalizedUsername
+            ? spaceUsernameValidationError(normalizedUsername)
+            : "Enter a username.";
+        if (validationError) {
+            setErrorMessage(validationError);
+            return;
+        }
+        if (normalizedUsername == normalizeSpaceUsername(currentUsername)) {
+            setErrorMessage("You can't add yourself as a friend.");
+            return;
+        }
+        if (
+            friends.some(
+                (friend) =>
+                    normalizeSpaceUsername(friend.username) ==
+                    normalizedUsername,
+            )
+        ) {
+            setErrorMessage(
+                `You're already friends with @${normalizedUsername}.`,
+            );
+            return;
+        }
+        if (
+            friendRequests.some(
+                (request) =>
+                    request.direction == "sent" &&
+                    normalizeSpaceUsername(request.friend.username) ==
+                        normalizedUsername,
+            )
+        ) {
+            setErrorMessage(
+                `Friend request already sent to @${normalizedUsername}.`,
+            );
+            return;
+        }
+
+        setErrorMessage(undefined);
+        setIsSubmitting(true);
+        void onAddFriend(normalizedUsername)
+            .then(() => setIsSent(true))
+            .catch((error: unknown) => {
+                log.error("Failed to send space friend request", error);
+                setErrorMessage(
+                    friendRequestErrorMessage(error, normalizedUsername),
+                );
+            })
+            .finally(() => setIsSubmitting(false));
+    };
+
+    React.useEffect(() => {
+        if (!open || !isSent) return;
+
+        const timeoutID = window.setTimeout(onClose, spaceActionDoneDurationMs);
+        return () => window.clearTimeout(timeoutID);
+    }, [isSent, onClose, open]);
+
+    return (
+        <Dialog
+            open={open}
+            onClose={isSubmitting ? undefined : onClose}
+            maxWidth={false}
+            aria-labelledby={titleID}
+            slots={
+                isBottomSheet
+                    ? { transition: SpaceBottomSheetTransition }
+                    : undefined
+            }
+            slotProps={{
+                paper: {
+                    sx: {
+                        bgcolor: "#FAFAFA",
+                        borderRadius: "28px 28px 0 0",
+                        bottom: 0,
+                        boxShadow: "none",
+                        boxSizing: "border-box",
+                        left: 0,
+                        m: 0,
+                        maxWidth: "none",
+                        p: "26px 20px 24px",
+                        position: "fixed",
+                        width: "100vw",
+                        "@media (min-width: 600px)": {
+                            borderRadius: "20px",
+                            bottom: "auto",
+                            left: "50%",
+                            maxWidth: 363,
+                            top: "50%",
+                            transform: "translate(-50%, -50%)",
+                            width: 363,
+                        },
+                    },
+                },
+                transition: {
+                    onExited: () => {
+                        setUsername("");
+                        setIsSent(false);
+                        setErrorMessage(undefined);
+                    },
+                },
+            }}
+        >
+            <Box
+                component="form"
+                noValidate
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    submit();
+                }}
+                sx={{
+                    maxWidth: 320,
+                    mx: "auto",
+                    width: "100%",
+                    "@media (min-width: 600px)": { maxWidth: "none" },
+                }}
+            >
+                <Box
+                    component="h2"
+                    id={titleID}
+                    sx={{
+                        color: textBase,
+                        fontFamily: '"Inter Variable", Inter, sans-serif',
+                        fontSize: 15,
+                        fontWeight: 600,
+                        lineHeight: "20px",
+                        m: 0,
+                        px: "20px",
+                        textAlign: "center",
+                    }}
+                >
+                    Add a friend
+                </Box>
+                <Box
+                    sx={{
+                        color: "#666666",
+                        fontFamily: '"Inter Variable", Inter, sans-serif',
+                        fontSize: 13,
+                        lineHeight: "18px",
+                        mt: "8px",
+                        textAlign: "center",
+                    }}
+                >
+                    Enter your friend&apos;s username to add them on Space
+                </Box>
+                <Box
+                    component="label"
+                    sx={{ display: "block", mt: "20px", width: "100%" }}
+                >
+                    <Box
+                        sx={{
+                            alignItems: "center",
+                            bgcolor: "#F2F2F2",
+                            border: `1px solid ${errorMessage ? dangerColor : "transparent"}`,
+                            borderRadius: "14px",
+                            display: "flex",
+                            height: 48,
+                            px: "14px",
+                            width: "100%",
+                            "&:focus-within": {
+                                borderColor: green,
+                                boxShadow: `0 0 0 1px ${green}`,
+                            },
+                        }}
+                    >
+                        <Box
+                            component="span"
+                            aria-hidden
+                            sx={{
+                                color: textSoft,
+                                flexShrink: 0,
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 14,
+                                fontWeight: 600,
+                            }}
+                        >
+                            @
+                        </Box>
+                        <Box
+                            component="input"
+                            autoCapitalize="none"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoFocus
+                            aria-invalid={Boolean(errorMessage) || undefined}
+                            disabled={isSubmitting || isSent}
+                            onChange={(
+                                event: React.ChangeEvent<HTMLInputElement>,
+                            ) => {
+                                const value = event.target.value;
+                                setUsername(
+                                    value.startsWith("@")
+                                        ? value.slice(1)
+                                        : value,
+                                );
+                                setErrorMessage(undefined);
+                            }}
+                            placeholder="username"
+                            spellCheck={false}
+                            value={username}
+                            sx={{
+                                bgcolor: "transparent",
+                                border: 0,
+                                color: textBase,
+                                flex: 1,
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 14,
+                                fontWeight: 500,
+                                height: "100%",
+                                minWidth: 0,
+                                outline: 0,
+                                p: 0,
+                                "&::placeholder": { color: "#888", opacity: 1 },
+                            }}
+                        />
+                    </Box>
+                </Box>
+                {errorMessage && (
+                    <Box
+                        role="alert"
+                        sx={{
+                            color: dangerColor,
+                            fontFamily: '"Inter Variable", Inter, sans-serif',
+                            fontSize: 13,
+                            fontWeight: 600,
+                            lineHeight: "18px",
+                            mt: "8px",
+                            textAlign: "center",
+                        }}
+                    >
+                        {errorMessage}
+                    </Box>
+                )}
+                <Box
+                    className="green-bg"
+                    component="button"
+                    type="submit"
+                    disabled={isSubmitting || isSent}
+                    sx={{
+                        alignItems: "center",
+                        bgcolor: green,
+                        border: 0,
+                        borderRadius: "20px",
+                        color: "#FFFFFF",
+                        cursor: isSubmitting || isSent ? "default" : "pointer",
+                        display: "flex",
+                        fontFamily: '"Inter Variable", Inter, sans-serif',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        height: 48,
+                        justifyContent: "center",
+                        lineHeight: "20px",
+                        mt: "20px",
+                        px: "24px",
+                        width: "100%",
+                        "&:disabled": { opacity: isSent ? 1 : 0.6 },
+                        "&:focus-visible": {
+                            outline: `2px solid ${green}`,
+                            outlineOffset: 2,
+                        },
+                    }}
+                >
+                    {isSubmitting ? (
+                        <SpaceActionFeedbackIcon phase="busy" />
+                    ) : isSent ? (
+                        <SpaceActionFeedbackIcon phase="done" />
+                    ) : (
+                        "Send request"
+                    )}
+                </Box>
+            </Box>
+        </Dialog>
+    );
+};
+
 export const FriendsScreen: React.FC<FriendsScreenProps> = ({
     friendRequests,
     friends,
     isLoading,
     onAcceptFriendRequest,
+    onAddFriend,
     onDeleteFriendRequest,
     onLoadFriendAvatar,
     onBack,
     onMessage,
     onOpenFriend,
     profileLink,
+    username,
     onUnfriend,
 }) => {
+    const [isAddFriendOpen, setIsAddFriendOpen] = React.useState(false);
     const [friendToUnfriend, setFriendToUnfriend] =
         React.useState<FriendProfile | null>(null);
     const [unfriendActionPhase, setUnfriendActionPhase] =
@@ -784,15 +1127,16 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                     <Box
                         component="button"
                         type="button"
-                        aria-label="Invite friends"
-                        disabled={!profileLink}
-                        onClick={() => openSpaceShareLinkDialog("invite")}
+                        aria-expanded={isAddFriendOpen}
+                        aria-label="Add friend"
+                        disabled={isLoading}
+                        onClick={() => setIsAddFriendOpen(true)}
                         sx={{
                             alignItems: "center",
                             bgcolor: "transparent",
                             border: 0,
                             color: textBase,
-                            cursor: profileLink ? "pointer" : "default",
+                            cursor: isLoading ? "default" : "pointer",
                             display: "flex",
                             height: spaceTouchTargetSize,
                             justifyContent: "flex-end",
@@ -813,6 +1157,15 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                         />
                     </Box>
                 </Box>
+
+                <AddFriendSheet
+                    friendRequests={friendRequests}
+                    friends={friends}
+                    onAddFriend={onAddFriend}
+                    onClose={() => setIsAddFriendOpen(false)}
+                    open={isAddFriendOpen}
+                    username={username}
+                />
 
                 {isLoading ? (
                     <Box

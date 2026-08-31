@@ -5,13 +5,16 @@ use crate::crypto::{
     decrypt_secretbox_payload, encrypt_secretbox_payload, generate_key, open_with_keypair,
     seal_with_public_key,
 };
-use crate::error::{Result, SpaceError};
+use crate::error::{Error, Result};
 use crate::models::{DecryptedMessage, MessagePayload};
 use crate::transport::{
     ConversationsResponse, CreateMessageRequest, LikeMessageResponse, MessagePage, MessageResponse,
     SpaceActorResponse,
 };
 use ente_core::b64;
+
+const MESSAGE_NOTIFICATION_KIND_WAVE: &str = "wave";
+const WAVE_MESSAGE_TEXT: &str = "👋";
 
 impl AccountSpaceCtx {
     pub async fn list_conversations(&self, space_id: &str) -> Result<ConversationsResponse> {
@@ -67,7 +70,13 @@ impl AccountSpaceCtx {
             text: text.to_owned(),
         };
         let request = self
-            .message_request_for_payload(sender_space_id, &friend.public_key, &payload, None)
+            .message_request_for_payload(
+                sender_space_id,
+                &friend.public_key,
+                &payload,
+                None,
+                (text == WAVE_MESSAGE_TEXT).then(|| MESSAGE_NOTIFICATION_KIND_WAVE.to_owned()),
+            )
             .await?;
         let path = format!("/spaces/{sender_space_id}/friends/{space_id}/messages");
         Ok(self
@@ -90,7 +99,7 @@ impl AccountSpaceCtx {
     ) -> Result<MessageResponse> {
         let reply_message_id = message_id.trim();
         if reply_message_id.is_empty() {
-            return Err(SpaceError::InvalidInput("message id is required".into()));
+            return Err(Error::InvalidInput("message id is required".into()));
         }
         let friend = self
             .friend_actor_for_space(sender_space_id, space_id)
@@ -106,6 +115,7 @@ impl AccountSpaceCtx {
                 &friend.public_key,
                 &payload,
                 Some(reply_message_id),
+                None,
             )
             .await?;
         let path = format!("/spaces/{sender_space_id}/friends/{space_id}/messages");
@@ -135,12 +145,10 @@ impl AccountSpaceCtx {
             .await?
             .is_some()
         {
-            return Err(SpaceError::InvalidInput(
-                "cannot reply to your own post".into(),
-            ));
+            return Err(Error::InvalidInput("cannot reply to your own post".into()));
         }
         if post.author.public_key.trim().is_empty() {
-            return Err(SpaceError::InvalidInput(
+            return Err(Error::InvalidInput(
                 "post author public key is missing".into(),
             ));
         }
@@ -150,7 +158,13 @@ impl AccountSpaceCtx {
             text: text.to_owned(),
         };
         let request = self
-            .message_request_for_payload(sender_space_id, &post.author.public_key, &payload, None)
+            .message_request_for_payload(
+                sender_space_id,
+                &post.author.public_key,
+                &payload,
+                None,
+                None,
+            )
             .await?;
         let path = format!("/spaces/{sender_space_id}/posts/{post_id}/reply");
         Ok(self
@@ -170,7 +184,7 @@ impl AccountSpaceCtx {
         message: &MessageResponse,
     ) -> Result<DecryptedMessage> {
         if message.is_deleted {
-            return Err(SpaceError::InvalidInput("message is deleted".into()));
+            return Err(Error::InvalidInput("message is deleted".into()));
         }
         let identity = self.space_identity_for(space_id).await?;
         let sealed_key = b64::decode(&message.encrypted_message_key)?;
@@ -179,7 +193,7 @@ impl AccountSpaceCtx {
         let packed_message = b64::decode(&message.message_cipher)?;
         let plaintext = decrypt_secretbox_payload(&message_key, &packed_message)?;
         let payload: MessagePayload = serde_json::from_slice(&plaintext)
-            .map_err(|err| SpaceError::InvalidInput(format!("invalid message payload: {err}")))?;
+            .map_err(|err| Error::InvalidInput(format!("invalid message payload: {err}")))?;
         Ok(DecryptedMessage {
             message_key,
             payload,
@@ -194,7 +208,7 @@ impl AccountSpaceCtx {
     ) -> Result<LikeMessageResponse> {
         let message_id = message_id.trim();
         if message_id.is_empty() {
-            return Err(SpaceError::InvalidInput("message id is required".into()));
+            return Err(Error::InvalidInput("message id is required".into()));
         }
         let path = format!("/spaces/{space_id}/messages/{message_id}/like");
         if like {
@@ -222,7 +236,7 @@ impl AccountSpaceCtx {
     pub async fn delete_message(&self, space_id: &str, message_id: &str) -> Result<()> {
         let message_id = message_id.trim();
         if message_id.is_empty() {
-            return Err(SpaceError::InvalidInput("message id is required".into()));
+            return Err(Error::InvalidInput("message id is required".into()));
         }
         let path = format!("/spaces/{space_id}/messages/{message_id}");
         self.api().delete(&path).send().await?.error_for_status()?;
@@ -239,7 +253,7 @@ impl AccountSpaceCtx {
             .into_iter()
             .map(|value| value.friend)
             .find(|friend| friend.space_id == space_id)
-            .ok_or_else(|| SpaceError::InvalidInput(format!("space {space_id} is not a friend")))
+            .ok_or_else(|| Error::InvalidInput(format!("space {space_id} is not a friend")))
     }
 
     async fn message_request_for_payload(
@@ -248,12 +262,13 @@ impl AccountSpaceCtx {
         recipient_public_key: &str,
         payload: &MessagePayload,
         reply_message_id: Option<&str>,
+        notification_kind: Option<String>,
     ) -> Result<CreateMessageRequest> {
         let identity = self.space_identity_for(sender_space_id).await?;
         let recipient_public_key = b64::decode(recipient_public_key)?;
         let message_key = generate_key();
         let plaintext = serde_json::to_vec(payload)
-            .map_err(|err| SpaceError::InvalidInput(format!("invalid message payload: {err}")))?;
+            .map_err(|err| Error::InvalidInput(format!("invalid message payload: {err}")))?;
         validate_message_payload(payload, plaintext.len())?;
         let sender_key = seal_with_public_key(&message_key, &identity.public_key)?;
         let recipient_key = seal_with_public_key(&message_key, &recipient_public_key)?;
@@ -263,6 +278,7 @@ impl AccountSpaceCtx {
             sender_encrypted_message_key: b64::encode(&sender_key),
             recipient_encrypted_message_key: b64::encode(&recipient_key),
             reply_message_id: reply_message_id.map(ToOwned::to_owned),
+            notification_kind,
         })
     }
 }

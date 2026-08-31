@@ -155,18 +155,15 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
   }
 
   bool get _shouldShowLargeBackupBanner =>
-      flagService.largeBackupStandby &&
-      Platform.isIOS &&
-      !_showErrorBanner &&
-      _largeBackupSession.isActive;
+      Platform.isIOS && !_showErrorBanner && _largeBackupSession.isActive;
 
   Widget _largeBackupBanner(BuildContext context) {
     return _bannerPadding(
       BannerComponent(
         key: const ValueKey("large-backup-standby-banner"),
         leadingIcon: HugeIcons.strokeRoundedMoon02,
-        title: pendingTranslation("Finish your backup"),
-        subtitle: pendingTranslation("Keep Ente open with the screen dimmed"),
+        title: context.strings.backupModeKeepAppOpen,
+        subtitle: context.strings.backupModeScreenWillDim,
         state: BannerComponentState.success,
         onTap: () async {
           if (!_largeBackupSession.isActive) {
@@ -186,6 +183,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
         title: l10n.machineLearning,
         subtitle: l10n.machineLearningBannerSubtitle,
         state: BannerComponentState.success,
+        trailingWidget: const Icon(Icons.arrow_forward),
         onTap: () async {
           await routeToPage(
             context,
@@ -203,6 +201,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
         leadingIcon: HugeIcons.strokeRoundedAlertCircle,
         title: context.strings.confirmYourRecoveryKey,
         state: BannerComponentState.warning,
+        trailingWidget: const Icon(Icons.arrow_forward),
         onTap: () async {
           await routeToPage(
             context,
@@ -272,7 +271,7 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
             kSleepDuration.inMicroseconds);
     if (_event == null ||
         isNotOutdatedEvent ||
-        //sync error cases are handled in StatusBarWidget
+        // StatusBarWidget handles sync errors.
         _event!.status == SyncStatus.error) {
       return const SizedBox.shrink();
     }

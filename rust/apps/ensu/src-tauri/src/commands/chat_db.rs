@@ -12,6 +12,7 @@ use uuid::Uuid;
 
 use crate::commands::chat_db_migration;
 use crate::commands::common::{ApiError, app_data_dir};
+use crate::commands::knowledge::SourceCitationDto;
 use crate::logging;
 
 #[derive(Default)]
@@ -36,29 +37,7 @@ fn image_thread_error() -> ApiError {
 
 impl From<db::Error> for ApiError {
     fn from(error: db::Error) -> Self {
-        use db::Error as E;
-
-        let code = match &error {
-            E::InvalidKeyLength { .. } => "db_invalid_key_length",
-            E::InvalidBlobLength { .. } => "db_invalid_blob_length",
-            E::InvalidEncryptedField => "db_invalid_encrypted_field",
-            E::UnsupportedValueType(_) => "db_unsupported_value_type",
-            E::Row(_) => "db_row",
-            E::InvalidSender(_) => "db_invalid_sender",
-            E::NotFound { .. } => "db_not_found",
-            E::Crypto(_) => "db_crypto",
-            E::Base64Decode(_) => "db_base64_decode",
-            E::SerdeJson(_) => "db_serde_json",
-            E::Uuid(_) => "db_uuid",
-            E::Utf8(_) => "db_utf8",
-            E::Io(_) => "db_io",
-            E::ReadonlyDatabase => "db_readonly",
-            E::Sqlite(_) => "db_sqlite",
-            E::UnsupportedOperation(_) => "db_unsupported_operation",
-            E::Migration(_) => "db_migration",
-        };
-
-        ApiError::new(code, error.to_string())
+        ApiError::other(ente_core::error::chain(&error))
     }
 }
 
@@ -92,14 +71,23 @@ pub struct ChatSessionPreviewDto {
     last_message_preview: Option<String>,
 }
 
-impl From<db::SessionWithPreview> for ChatSessionPreviewDto {
-    fn from(session: db::SessionWithPreview) -> Self {
+impl ChatSessionPreviewDto {
+    fn from_session_and_last_message(
+        session: db::Session,
+        last_message: Option<db::Message>,
+    ) -> Self {
         Self {
             session_uuid: session.uuid.to_string(),
             title: session.title,
             created_at: session.created_at,
             updated_at: session.updated_at,
-            last_message_preview: session.last_message_preview,
+            last_message_preview: last_message.map(|message| {
+                if message.sender == db::Sender::Other {
+                    ente_ensu::retrieval::clean_assistant_text(&message.text)
+                } else {
+                    message.text
+                }
+            }),
         }
     }
 }
@@ -170,6 +158,8 @@ pub struct ChatMessageDto {
     text: String,
     created_at: i64,
     attachments: Vec<ChatAttachmentDto>,
+    citations: Vec<SourceCitationDto>,
+    source_label: Option<String>,
 }
 
 impl From<db::Message> for ChatMessageDto {
@@ -178,18 +168,29 @@ impl From<db::Message> for ChatMessageDto {
             db::Sender::SelfUser => "self",
             db::Sender::Other => "assistant",
         };
+        let parsed = if message.sender == db::Sender::Other {
+            ente_ensu::retrieval::parse_assistant_text(&message.text)
+        } else {
+            ente_ensu::retrieval::ParsedAssistantText {
+                text: message.text,
+                citations: Vec::new(),
+            }
+        };
+        let source_label = ente_ensu::retrieval::knowledge_source_chip_label(&parsed.citations);
         Self {
             message_uuid: message.uuid.to_string(),
             session_uuid: message.session_uuid.to_string(),
             parent_message_uuid: message.parent_message_uuid.map(|value| value.to_string()),
             sender: sender.to_string(),
-            text: message.text,
+            text: parsed.text,
             created_at: message.created_at,
             attachments: message
                 .attachments
                 .into_iter()
                 .map(ChatAttachmentDto::from)
                 .collect(),
+            citations: parsed.citations.into_iter().map(Into::into).collect(),
+            source_label,
         }
     }
 }
@@ -202,6 +203,7 @@ pub struct ChatMessageInsertInput {
     text: String,
     parent_message_uuid: Option<String>,
     attachments: Option<Vec<ChatAttachmentInput>>,
+    citations: Option<Vec<SourceCitationDto>>,
 }
 
 #[derive(Deserialize)]
@@ -251,11 +253,16 @@ pub async fn chat_db_list_sessions_with_preview(
     state: State<'_, ChatDbState>,
 ) -> Result<Vec<ChatSessionPreviewDto>, ApiError> {
     with_chat_db_async(&state, |db| {
-        Ok(db
-            .list_sessions_with_preview()?
+        db.list_sessions()?
             .into_iter()
-            .map(ChatSessionPreviewDto::from)
-            .collect())
+            .map(|session| {
+                let last_message = db.get_messages(session.uuid)?.pop();
+                Ok(ChatSessionPreviewDto::from_session_and_last_message(
+                    session,
+                    last_message,
+                ))
+            })
+            .collect()
     })
     .await
 }
@@ -327,11 +334,28 @@ pub async fn chat_db_insert_message(
     let parent = optional_uuid(&input.parent_message_uuid)?;
     let sender = normalize_sender(&input.sender)?;
     let attachments = convert_attachments(input.attachments)?;
+    let text = if sender == "other" {
+        match finalize_assistant_text(&input.text, input.citations.unwrap_or_default()) {
+            Ok(text) => text,
+            Err(error) => {
+                logging::log(
+                    "ChatDb",
+                    format!(
+                        "assistant source finalization failed error={}",
+                        error.message
+                    ),
+                );
+                finalize_assistant_text(&input.text, Vec::new())?
+            }
+        }
+    } else {
+        input.text
+    };
     with_chat_db_async(&state, move |db| {
         Ok(ChatMessageDto::from(db.insert_message(
             session_uuid,
             sender,
-            &input.text,
+            &text,
             parent,
             attachments,
         )?))
@@ -399,7 +423,8 @@ pub async fn chat_db_open(
         let root = app_data_dir(&app)?;
         let path = chat_db_path(&app)?;
         let attachments = attachments_dir_path(&app)?;
-        let key = b64::decode(&input.key_b64).map_err(ApiError::from)?;
+        let key = b64::decode(&input.key_b64)
+            .map_err(|error| ApiError::new("base64_decode", error.to_string()))?;
         let recovery_keys = input
             .recovery_keys_b64
             .iter()
@@ -464,8 +489,13 @@ pub async fn chat_db_compress_attachment_image_file(
         let data = fs::read(canonical_path).map_err(|error| {
             ApiError::new("io", format!("failed to read image file '{path}': {error}"))
         })?;
-        ente_ensu::image::compress_attachment_image(&data)
-            .map_err(|error| ApiError::new("image", error.to_string()))
+        ente_ensu::image::compress_attachment_image(&data).map_err(|error| {
+            let name = match &error {
+                ente_ensu::image::ImageError::TooLarge(_) => "image_too_large",
+                _ => "image",
+            };
+            ApiError::new(name, ente_core::error::chain(&error))
+        })
     })
     .await
     .map_err(|_| image_thread_error())?
@@ -492,8 +522,17 @@ fn normalize_sender(sender: &str) -> Result<&'static str, ApiError> {
     }
 }
 
+fn finalize_assistant_text(
+    text: &str,
+    citations: Vec<SourceCitationDto>,
+) -> Result<String, ApiError> {
+    let citations = citations.into_iter().map(Into::into).collect::<Vec<_>>();
+    ente_ensu::retrieval::finalize_assistant_text(text, &citations)
+        .map_err(crate::commands::knowledge::retrieval_error)
+}
+
 fn parse_uuid(value: &str) -> Result<Uuid, ApiError> {
-    Uuid::parse_str(value).map_err(|error| ApiError::new("uuid", error.to_string()))
+    Ok(Uuid::parse_str(value).map_err(db::Error::from)?)
 }
 
 fn optional_uuid(value: &Option<String>) -> Result<Option<Uuid>, ApiError> {

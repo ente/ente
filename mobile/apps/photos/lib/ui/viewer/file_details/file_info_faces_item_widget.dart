@@ -561,21 +561,14 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
     if (dialog != null) {
       await dialog.show();
     }
-    var completed = 0;
-    var hasUpdates = false;
     var completedAll = false;
-    final changedPersons = <PersonEntity>[];
     try {
-      for (final clusterID in clusterIDs) {
-        final ignoredPerson = await ClusterFeedbackService.instance
-            .ignoreCluster(clusterID, firePeopleChangedEvent: false);
-        changedPersons.add(ignoredPerson);
-        completed++;
-        hasUpdates = true;
-        dialog?.update(
+      await ClusterFeedbackService.instance.ignoreClusters(
+        clusterIDs,
+        onProgress: (completed, _) => dialog?.update(
           message: _bulkIgnoreProgressMessage(l10n, completed, total),
-        );
-      }
+        ),
+      );
       completedAll = true;
     } catch (e, s) {
       _logger.severe('Error while ignoring selected face clusters', e, s);
@@ -586,19 +579,7 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
       if (completedAll && mounted) {
         _clearSelectionMode();
       }
-      if (hasUpdates) {
-        _firePeopleChangedEvents(changedPersons);
-      }
     }
-  }
-
-  void _firePeopleChangedEvents(List<PersonEntity> changedPersons) {
-    Bus.instance.fire(
-      PeopleChangedEvent(
-        person: changedPersons.isEmpty ? null : changedPersons.first,
-        source: "file_details_bulk_ignore_faces",
-      ),
-    );
   }
 
   String _bulkIgnoreProgressMessage(

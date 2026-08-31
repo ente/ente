@@ -54,7 +54,6 @@ enum SectionType {
   wrapped,
   location,
   album,
-  // People section shows the files shared by other persons
   contacts,
   fileTypesAndExtension,
 }

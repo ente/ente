@@ -46,7 +46,7 @@ final class DeviceHealthChannelAdapter: NSObject {
         }
     }
 
-    private static let methodChannelName = "io.ente.photos.platform"
+    private static let methodChannelName = "io.ente.photos.platform/device_health"
     private static let eventChannelName = "io.ente.photos.platform/device_health_events"
 }
 

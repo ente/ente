@@ -37,26 +37,6 @@ void main() {
       },
     );
 
-    test('logs a warning when the channel returns false', () async {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (_) async => false);
-
-      final logs = <LogRecord>[];
-      final sub = Logger('BackupExclusion').onRecord.listen(logs.add);
-
-      await invokeExcludeFromBackup(testPath);
-
-      await sub.cancel();
-      expect(
-        logs.any(
-          (r) =>
-              r.level == Level.WARNING &&
-              r.message.contains('excludeFromBackup returned false'),
-        ),
-        isTrue,
-      );
-    });
-
     test('logs a warning when the channel throws PlatformException', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (_) async {

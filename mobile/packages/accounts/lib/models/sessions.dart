@@ -15,6 +15,7 @@ class Sessions {
 
 class Session {
   final String token;
+  final bool? isCurrent;
   final int creationTime;
   final String ip;
   final String ua;
@@ -23,6 +24,7 @@ class Session {
 
   Session(
     this.token,
+    this.isCurrent,
     this.creationTime,
     this.ip,
     this.ua,
@@ -33,6 +35,7 @@ class Session {
   factory Session.fromMap(Map<String, dynamic> map) {
     return Session(
       map['token'],
+      map['isCurrent'],
       map['creationTime'],
       map['ip'],
       map['ua'],
@@ -40,4 +43,7 @@ class Session {
       map['lastUsedTime'],
     );
   }
+
+  bool isCurrentSession(String? currentToken) =>
+      isCurrent ?? token == currentToken;
 }

@@ -1,4 +1,4 @@
-import { SpaceMessagesPage } from "components/SpaceMessagesPage";
+import { SpaceMessagesPage } from "components/MessagesPage";
 import React from "react";
 
 const Page: React.FC = () => <SpaceMessagesPage />;

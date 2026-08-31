@@ -1,18 +1,15 @@
-import { SpacePageMeta } from "components/SpacePageMeta";
-import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { SpacePageMeta } from "components/PageMeta";
+import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React, { useEffect, useState } from "react";
 import { SetupProfilePhotoScreen } from "screens/SetupProfilePhotoScreen";
 import { setupProfileBackground } from "screens/SetupProfileScreen";
-import { savedPendingSpaceInvite } from "services/spaceInvite";
-import {
-    saveSpaceProfile,
-    spaceProfileErrorMessage,
-} from "services/spaceProfile";
-import { useSpaceAppState } from "state/spaceAppState";
-import { sendPendingSpaceFriendRequest } from "utils/spacePendingFriendRequest";
-import { spaceRoutes } from "utils/spaceRoutes";
-import { useSpaceRouter } from "utils/spaceRouteTransitions";
+import { savedPendingSpaceInvite } from "services/invite";
+import { saveSpaceProfile, spaceProfileErrorMessage } from "services/profile";
+import { useSpaceAppState } from "state/app-state";
+import { sendPendingSpaceFriendRequest } from "utils/pending-friend-request";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();

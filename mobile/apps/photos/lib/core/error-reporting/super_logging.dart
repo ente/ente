@@ -6,10 +6,9 @@ import 'dart:io';
 import "package:dio/dio.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:log_viewer/log_viewer.dart';
 import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart';
@@ -88,6 +87,8 @@ class LogConfig {
 
   String? tunnel;
 
+  Duration? sentryInitTimeout;
+
   Duration sentryRetryDelay;
 
   // Null disables file logging; empty uses the default directory.
@@ -106,6 +107,7 @@ class LogConfig {
   LogConfig({
     this.sentryDsn,
     this.tunnel,
+    this.sentryInitTimeout,
     this.sentryRetryDelay = const Duration(seconds: 30),
     this.logDirPath,
     this.maxLogFiles = 10,
@@ -128,6 +130,8 @@ class SuperLogging {
   static late LogConfig config;
 
   static late SharedPreferences _preferences;
+
+  static bool _isRootLogListenerRegistered = false;
 
   static const keyShouldReportCrashes = "should_report_crashes";
 
@@ -162,15 +166,9 @@ class SuperLogging {
 
     Logger.root.level = rootLoggerLevel;
     EnteWatch.setLogLevel(_terminalLoggerLevel);
-    Logger.root.onRecord.listen(onLogRecord);
-
-    if (_preferences.getBool("enable_db_logging") ?? kDebugMode) {
-      try {
-        await LogViewer.initialize(prefix: appConfig.prefix);
-        $.info("Log viewer initialized successfully");
-      } catch (e) {
-        $.warning("Failed to initialize log viewer: $e");
-      }
+    if (!_isRootLogListenerRegistered) {
+      Logger.root.onRecord.listen(onLogRecord);
+      _isRootLogListenerRegistered = true;
     }
 
     if (isFDroidClient) {
@@ -206,30 +204,31 @@ class SuperLogging {
     if (appConfig.body == null) return;
 
     if (enable && sentryIsEnabled) {
-      await SentryFlutter.init(
-        (options) {
-          options.dsn = appConfig!.sentryDsn;
-          options.anrEnabled = true;
-          options.anrTimeoutInterval = const Duration(seconds: 5);
-          options.httpClient = http.Client();
-          if (appConfig.tunnel != null) {
-            options.transport = TunneledTransport(
-              Uri.parse(appConfig.tunnel!),
-              options,
-            );
-          }
-          options.beforeSend = (SentryEvent event, Hint hint) async {
-            final dynamic error = event.throwable;
-            if (error != null && _shouldSkipSentry(error)) {
-              return null;
-            }
-            return event;
-          };
-        },
-        appRunner: () => kDebugMode
-            ? _runWithUnhandledErrorLogging(appConfig!.body!)
-            : appConfig!.body!(),
-      );
+      final sentryInitTimeout = appConfig.sentryInitTimeout;
+      if (sentryInitTimeout == null) {
+        await SentryFlutter.init(
+          _configureSentryOptions,
+          appRunner: () => kDebugMode
+              ? _runWithUnhandledErrorLogging(appConfig!.body!)
+              : appConfig!.body!(),
+        );
+      } else {
+        try {
+          await SentryFlutter.init(
+            _configureSentryOptions,
+          ).timeout(sentryInitTimeout);
+        } catch (e) {
+          sentryIsEnabled = false;
+          $.warning(
+            "Sentry init did not complete, running body without it: $e",
+          );
+        }
+        if (kDebugMode) {
+          await _runWithUnhandledErrorLogging(appConfig.body!);
+        } else {
+          await appConfig.body!();
+        }
+      }
     } else {
       if (kDebugMode) {
         // Keep debug-only until we're sure this doesn't cause regressions.
@@ -238,6 +237,24 @@ class SuperLogging {
         await appConfig.body!();
       }
     }
+  }
+
+  static void _configureSentryOptions(SentryFlutterOptions options) {
+    options.dsn = config.sentryDsn;
+    options.anrEnabled = true;
+    options.anrTimeoutInterval = const Duration(seconds: 5);
+    options.httpClient = http.Client();
+    final tunnel = config.tunnel;
+    if (tunnel != null) {
+      options.transport = TunneledTransport(Uri.parse(tunnel), options);
+    }
+    options.beforeSend = (SentryEvent event, Hint hint) async {
+      final dynamic error = event.throwable;
+      if (error != null && _shouldSkipSentry(error)) {
+        return null;
+      }
+      return event;
+    };
   }
 
   static Future<void> _runWithUnhandledErrorLogging(
@@ -547,12 +564,5 @@ class SuperLogging {
     }
     final pkgName = (await PackageInfo.fromPlatform()).packageName;
     return pkgName.startsWith("io.ente.photos.fdroid");
-  }
-
-  static void showLogViewer(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LogViewerPage()),
-    );
   }
 }

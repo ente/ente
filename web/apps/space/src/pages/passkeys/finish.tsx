@@ -1,13 +1,13 @@
-import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React, { useEffect, useRef } from "react";
 import { verifyEmailBackground } from "screens/VerifyEmailScreen";
-import { completeSpaceLoginPasskey } from "services/spaceLogin";
-import { clearPendingSpacePasskeyVerification } from "services/spacePasskeyVerification";
-import { useSpaceAppState } from "state/spaceAppState";
-import { routeAfterCompletedLogin } from "utils/spaceLoginNavigation";
-import { spaceRoutes } from "utils/spaceRoutes";
-import { useSpaceRouter } from "utils/spaceRouteTransitions";
+import { completeSpaceLoginPasskey } from "services/login";
+import { clearPendingSpacePasskeyVerification } from "services/passkey-verification";
+import { useSpaceAppState } from "state/app-state";
+import { routeAfterCompletedLogin } from "utils/login-navigation";
+import { useSpaceRouter } from "utils/route-transitions";
+import { spaceRoutes } from "utils/routes";
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();

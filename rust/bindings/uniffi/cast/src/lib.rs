@@ -9,19 +9,23 @@ use thiserror::Error;
 
 #[derive(Debug, Error, uniffi::Error)]
 pub enum CastCryptoError {
-    #[error("{0}")]
-    Message(String),
+    #[error("{detail}")]
+    Other { detail: String },
 }
 
 impl From<crypto::Error> for CastCryptoError {
     fn from(err: crypto::Error) -> Self {
-        CastCryptoError::Message(ente_core::error::chain(&err))
+        CastCryptoError::Other {
+            detail: ente_core::error::chain(&err),
+        }
     }
 }
 
 impl From<ente_cast::Error> for CastCryptoError {
     fn from(err: ente_cast::Error) -> Self {
-        CastCryptoError::Message(ente_core::error::chain(&err))
+        CastCryptoError::Other {
+            detail: ente_core::error::chain(&err),
+        }
     }
 }
 
@@ -58,6 +62,10 @@ impl CastReceiver {
 
     pub fn public_key(&self) -> String {
         self.inner.public_key()
+    }
+
+    pub fn pq_public_key(&self) -> String {
+        self.inner.pq_public_key()
     }
 
     pub fn open_payload(&self, encrypted_payload: String) -> Result<CastPayload, CastCryptoError> {

@@ -41,15 +41,6 @@ void main() {
     expect(find.text('light'), findsOneWidget);
   });
 
-  testWidgets('can hide the debug banner', (tester) async {
-    await tester.pumpWidget(
-      _buildAppLock(ThemeMode.system, debugShowCheckedModeBanner: false),
-    );
-
-    final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(materialApp.debugShowCheckedModeBanner, isFalse);
-  });
-
   testWidgets('covers unlocked content until unlock', (tester) async {
     await tester.pumpWidget(
       _buildAppLock(

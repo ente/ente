@@ -37,7 +37,7 @@ func TestSpaceWebPushAccountSubscriptionAPI(t *testing.T) {
 	privateKey, err := ecdh.P256().GenerateKey(rand.Reader)
 	require.NoError(t, err)
 	payload, err := json.Marshal(map[string]any{
-		"endpoint": "https://push.example/subscription",
+		"endpoint": "https://fcm.googleapis.com/wp/subscription",
 		"keys": map[string]string{
 			"p256dh": base64.RawURLEncoding.EncodeToString(privateKey.PublicKey().Bytes()),
 			"auth":   base64.RawURLEncoding.EncodeToString(make([]byte, 16)),
@@ -66,7 +66,7 @@ func TestSpaceWebPushAccountSubscriptionAPI(t *testing.T) {
 	require.Equal(t, 1, count)
 
 	unsubscriptionPayload, err := json.Marshal(map[string]string{
-		"endpoint": "https://push.example/subscription",
+		"endpoint": "https://fcm.googleapis.com/wp/subscription",
 	})
 	require.NoError(t, err)
 	unsubscriptionRequest := httptest.NewRequest(http.MethodDelete, "/account/space/push/subscription", bytes.NewReader(unsubscriptionPayload))

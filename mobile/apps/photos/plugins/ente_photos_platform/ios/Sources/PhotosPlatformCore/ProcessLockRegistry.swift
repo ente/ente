@@ -1,9 +1,5 @@
 import Foundation
 
-/// Process-global registry of named, engine-owned locks. Re-acquiring a name
-/// already held by the same plugin instance is granted idempotently (this is
-/// what heals a holder orphaned by a Dart hot restart); a different instance
-/// is denied. State lives only as long as the process.
 final class ProcessLockRegistry: @unchecked Sendable {
     static let shared = ProcessLockRegistry()
 
@@ -28,6 +24,7 @@ final class ProcessLockRegistry: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         if var current = holders[name] {
+            // A Dart hot restart can leave this plugin instance holding the lock.
             guard current.instanceId == instanceId else { return false }
             NSLog(
                 "ProcessLockRegistry: healed same-instance holder of '%@' (%@/%@ -> %@/%@)",

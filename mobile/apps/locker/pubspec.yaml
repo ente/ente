@@ -11,6 +11,7 @@ dependencies:
   adaptive_theme: 3.7.2
   app_links: 6.4.1
   bip39: 1.0.6
+  camera: 0.11.2+1
   collection: 1.19.1
   convert: 3.1.2
   crypto: 3.0.7
@@ -36,6 +37,10 @@ dependencies:
     path: ../../packages/ente_crypto_dart_adapter
   ente_events:
     path: ../../packages/events
+  ente_feature_flag:
+    path: ../../packages/feature_flag
+  ente_frb:
+    path: ../../packages/frb
   ente_icons:
     path: ../../packages/ente_icons
   ente_install_source:
@@ -44,14 +49,14 @@ dependencies:
     path: ../../packages/legacy
   ente_lock_screen:
     path: ../../packages/lock_screen
+  ente_locker_frb:
+    path: rust_builder
   ente_logging:
     path: ../../packages/logging
   ente_network:
     path: ../../packages/network
   ente_pure_utils:
     path: ../../packages/ente_pure_utils
-  ente_rust:
-    path: ../../packages/rust
   ente_sharing:
     path: ../../packages/sharing
   ente_strings:
@@ -70,7 +75,9 @@ dependencies:
   flutter_displaymode: 0.6.0
   flutter_localizations:
     sdk: flutter
+  flutter_rust_bridge: 2.12.0
   flutter_svg: 2.3.0
+  freezed_annotation: 3.1.0
   hugeicons: 1.1.7
   intl: 0.20.2
   listen_sharing_intent: 1.9.2
@@ -88,11 +95,13 @@ dependencies:
   uuid: 4.5.3
 
 dev_dependencies:
+  build_runner: 2.13.1
   flutter_launcher_icons: 0.14.4
   flutter_lints: 6.0.0
   flutter_native_splash: 2.4.7
   flutter_test:
     sdk: flutter
+  freezed: 3.2.3
 
 flutter:
   uses-material-design: true
@@ -110,15 +119,6 @@ flutter:
         - asset: assets/fonts/Inter-Light.ttf
         - asset: assets/fonts/Inter-SemiBold.ttf
         - asset: assets/fonts/Inter-Bold.ttf
-    - family: Outfit
-      fonts:
-        - asset: assets/fonts/Outfit-Regular.ttf
-        - asset: assets/fonts/Outfit-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Outfit-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Outfit-Bold.ttf
-          weight: 700
     - family: Montserrat
       fonts:
         - asset: assets/fonts/Montserrat-Bold.ttf

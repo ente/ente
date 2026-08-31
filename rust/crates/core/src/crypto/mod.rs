@@ -5,6 +5,7 @@ mod types;
 pub mod argon;
 pub mod blob;
 pub mod hash;
+pub mod hpke;
 pub mod kdf;
 pub mod sealed;
 pub mod secretbox;

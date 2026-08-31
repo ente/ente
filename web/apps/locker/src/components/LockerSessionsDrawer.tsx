@@ -12,6 +12,7 @@ import {
 import { sessionExpiredDialogAttributes } from "ente-accounts/components/utils/dialog";
 import {
     getActiveSessions,
+    isCurrentSession,
     terminateSession,
     type Session,
 } from "ente-accounts/services/sessions";
@@ -107,7 +108,7 @@ const SessionsContents: React.FC<SessionsContentsProps> = ({
 
     const handleTerminateSession = useCallback(
         (session: Session) => {
-            const isCurrentDevice = session.token === currentToken;
+            const isCurrentDevice = isCurrentSession(session, currentToken);
 
             showMiniDialog({
                 title: t("terminate_session"),
@@ -203,7 +204,10 @@ const SessionsContents: React.FC<SessionsContentsProps> = ({
                     <React.Fragment key={session.token}>
                         <SessionRow
                             session={session}
-                            isCurrentDevice={session.token === currentToken}
+                            isCurrentDevice={isCurrentSession(
+                                session,
+                                currentToken,
+                            )}
                             onTerminate={() => handleTerminateSession(session)}
                         />
                         {index < sessions.length - 1 && (

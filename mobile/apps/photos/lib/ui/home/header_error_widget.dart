@@ -23,6 +23,7 @@ class HeaderErrorWidget extends StatelessWidget {
           title: context.strings.subscribe,
           subtitle: context.strings.yourSubscriptionHasExpired,
           state: BannerComponentState.failure,
+          trailingWidget: const Icon(Icons.arrow_forward),
           onTap: () async {
             await routeToPage(
               context,
@@ -40,6 +41,7 @@ class HeaderErrorWidget extends StatelessWidget {
           title: context.strings.upgrade,
           subtitle: context.strings.storageLimitExceeded,
           state: BannerComponentState.failure,
+          trailingWidget: const Icon(Icons.arrow_forward),
           onTap: () async {
             await routeToPage(
               context,
@@ -57,6 +59,7 @@ class HeaderErrorWidget extends StatelessWidget {
           title: context.strings.freeUpDeviceSpace,
           subtitle: context.strings.backupPausedFreeUpDeviceStorage,
           state: BannerComponentState.failure,
+          trailingWidget: const Icon(Icons.arrow_forward),
           onTap: () async {
             await routeToPage(
               context,
@@ -74,6 +77,7 @@ class HeaderErrorWidget extends StatelessWidget {
           title: context.strings.backupFailed,
           subtitle: context.strings.couldNotBackUpTryLater,
           state: BannerComponentState.failure,
+          trailingWidget: const Icon(Icons.arrow_forward),
           onTap: () {
             sendLogs(
               context,

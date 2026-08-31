@@ -15,35 +15,6 @@ import "package:photos/utils/person_contact_linking_util.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 void main() {
-  group("PersonData contact link", () {
-    test("copyWith preserves link fields when omitted", () {
-      final data = PersonData(
-        name: "Alex",
-        email: "alex@example.com",
-        userID: 7,
-      );
-
-      final updated = data.copyWith(name: "Alex R");
-
-      expect(updated.name, "Alex R");
-      expect(updated.email, "alex@example.com");
-      expect(updated.userID, 7);
-    });
-
-    test("copyWith clears email and userID", () {
-      final data = PersonData(
-        name: "Alex",
-        email: "alex@example.com",
-        userID: 7,
-      );
-
-      final updated = data.copyWith(email: null, userID: null);
-
-      expect(updated.email, isNull);
-      expect(updated.userID, isNull);
-    });
-  });
-
   group("PersonService contact link", () {
     late _FakeEntityService entityService;
     late _FakePhotosContactsService contactsService;
@@ -68,7 +39,7 @@ void main() {
             id: "contact-1",
             contactUserId: 3,
             email: "old@example.com",
-            data: contacts.ContactData(contactUserId: 3, name: "Old Contact"),
+            name: "Old Contact",
             profilePictureAttachmentId: null,
             isDeleted: false,
             createdAt: 1,
@@ -153,29 +124,6 @@ void main() {
       expect(contactsService.createOrUpdateCalls, 1);
       expect(contactsService.lastUpdatedContactUserId, 3);
       expect(contactsService.lastUpdatedName, "Alex R");
-    });
-
-    test("updateAttributes does not sync unchanged person name", () async {
-      final updated = await personService.updateAttributes(
-        "person-1",
-        name: "Alex",
-      );
-
-      expect(updated.data.name, "Alex");
-      expect(contactsService.createOrUpdateCalls, 0);
-      expect(contactsService.lastUpdatedName, isNull);
-    });
-
-    test("updateAttributes can skip linked contact name sync", () async {
-      final updated = await personService.updateAttributes(
-        "person-1",
-        name: "Alex R",
-        syncLinkedContactName: false,
-      );
-
-      expect(updated.data.name, "Alex R");
-      expect(contactsService.createOrUpdateCalls, 0);
-      expect(contactsService.lastUpdatedName, isNull);
     });
 
     test(
@@ -400,10 +348,7 @@ class _FakePhotosContactsService implements PhotosContactsService {
       id: saved?.id ?? "contact-$contactUserId",
       contactUserId: contactUserId,
       email: saved?.email,
-      data: contacts.ContactData(
-        contactUserId: contactUserId,
-        name: name.trim(),
-      ),
+      name: name.trim(),
       profilePictureAttachmentId: saved?.profilePictureAttachmentId,
       isDeleted: false,
       createdAt: saved?.createdAt ?? 1,
@@ -426,7 +371,7 @@ class _FakePhotosContactsService implements PhotosContactsService {
       id: "contact-$contactUserId",
       contactUserId: contactUserId,
       email: "alex@example.com",
-      data: contacts.ContactData(contactUserId: contactUserId, name: name),
+      name: name,
       profilePictureAttachmentId: "attachment-$contactUserId",
       isDeleted: false,
       createdAt: 1,
@@ -469,6 +414,7 @@ class _FakeEntityService implements EntityService {
     Map<String, dynamic> jsonMap, {
     String? id,
     bool addWithCustomID = false,
+    int? expectedUpdatedAt,
   }) async {
     final entityID = id ?? "person-${_entities.length + 1}";
     final entity = LocalEntityData(

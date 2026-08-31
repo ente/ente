@@ -26,5 +26,6 @@ fn run_ml_indexing_test(context: MlIndexingTestContext) -> Result<()> {
         stats.print_if_requested();
     }
 
-    fail_if_any(failures, &stats)
+    fail_if_any(failures, &stats)?;
+    context.verify_corrupt_model()
 }

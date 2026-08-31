@@ -312,8 +312,6 @@
   "ocrImageDecodeFailedError": "ไม่สามารถอ่านไฟล์รูปภาพได้",
   "ocrImageNotFoundError": "ไม่พบไฟล์รูปภาพ",
   "ocrNoTextDetected": "ไม่พบข้อความ",
-  "ocrProcessingOverlayMessage": "กำลังตรวจหาข้อความ...",
-  "ocrSelectionHint": "ลากหรือแตะสองครั้ง เพื่อเลือกข้อความที่ต้องการ",
   "onEnte": "บน <branding>ente</branding>",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",

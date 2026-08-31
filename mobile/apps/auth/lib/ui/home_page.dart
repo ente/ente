@@ -79,7 +79,6 @@ class HomePage extends BaseHomePage {
   State<HomePage> createState() => _HomePageState();
 }
 
-@visibleForTesting
 String addedCodeFocusSearchQuery(Code code) {
   return code.issuer.trim().isNotEmpty ? code.issuer : code.account;
 }

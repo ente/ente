@@ -168,9 +168,7 @@ export const getUser = async (
     if (response.status === 403) {
         throw new Error("Insufficient permissions");
     }
-    if (response.status === 404) {
-        throw new Error("User not found");
-    }
+    if (response.status === 404) return undefined;
 
     await ensureOk(response, "Network response was not ok");
     return UserResponse.parse(await response.json());

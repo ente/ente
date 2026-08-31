@@ -6,7 +6,7 @@ import {
 } from "@/services/avatar";
 import { styled } from "@mui/material";
 import type { LocalUser } from "ente-accounts/services/user";
-import { useResolvedContactAvatar } from "ente-contacts-web";
+import { useResolvedContactAvatar } from "ente-contacts";
 import type { EnteFile } from "ente-media/file";
 import React, { useMemo } from "react";
 

@@ -15,8 +15,8 @@ const int microSecondsInDay = 86400000000;
 const int android11SDKINT = 30;
 const int android12SDKINT = 31;
 const int jan011981Time = 347155200000000;
-const int galleryLoadStartTime = -8000000000000000; // Wednesday, March 6, 1748
-const int galleryLoadEndTime = 9223372036854775807; // 2^63 -1
+const int galleryLoadStartTime = -8000000000000000; // June 28, 1716
+const int galleryLoadEndTime = 9223372036854775807; // 2^63 - 1
 const int batchSize = 1000;
 const int batchSizeCopy = 100;
 const photoGridSizeDefault = 4;
@@ -62,8 +62,6 @@ const kilometersPerDegree = 111.16;
 const defaultRadiusValues = <double>[1, 2, 10, 20, 40, 80, 200, 400, 1200];
 
 const defaultRadiusValue = 40.0;
-
-const defaultCityRadius = 10.0;
 
 const galleryGridSpacing = 2.0;
 

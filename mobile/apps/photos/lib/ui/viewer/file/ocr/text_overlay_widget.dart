@@ -2475,7 +2475,7 @@ class _EditableBlockPainter extends CustomPainter {
   }
 }
 
-// Reject hits outside text so PageView and PhotoView receive the gesture.
+// Reject hits outside text so PageView and the image viewer receive the gesture.
 class _TextRegionHitTestBox extends SingleChildRenderObjectWidget {
   final bool Function(Offset globalPosition) hitTest;
 

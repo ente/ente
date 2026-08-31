@@ -1,4 +1,5 @@
 import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/models/gallery/gallery_groups.dart";
@@ -15,14 +16,14 @@ class CustomScrollBar extends StatefulWidget {
   final ScrollController scrollController;
   final GalleryGroups galleryGroups;
   final ValueNotifier<bool> inUseNotifier;
-  final double heighOfViewport;
+  final double viewportHeight;
   const CustomScrollBar({
     super.key,
     required this.child,
     required this.scrollController,
     required this.galleryGroups,
     required this.inUseNotifier,
-    required this.heighOfViewport,
+    required this.viewportHeight,
     required this.bottomPadding,
     required this.topPadding,
   });
@@ -64,37 +65,32 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
   }
 
   void _init() {
-    if (widget.galleryGroups.groupType.showScrollbarDivisions() &&
-        widget.galleryGroups.groupLayouts.last.maxOffset >
-            widget.heighOfViewport * 8) {
-      _showScrollbarDivisions = true;
-    } else {
-      _showScrollbarDivisions = false;
-    }
+    final supportsScrollbarDivisions = widget.galleryGroups.groupType
+        .showScrollbarDivisions();
+    final maxOffset =
+        widget.galleryGroups.groupLayouts.lastOrNull?.maxOffset ?? 0.0;
 
-    if (widget.galleryGroups.groupLayouts.last.maxOffset >
-        widget.heighOfViewport * 3) {
-      _showThumb = true;
-    } else {
-      _showThumb = false;
-    }
+    _showScrollbarDivisions =
+        supportsScrollbarDivisions && maxOffset > widget.viewportHeight * 8;
 
-    if (_showScrollbarDivisions) {
-      getIntrinsicSizeOfWidget(
-        const ScrollBarDivider(title: "Temp"),
-        context,
-      ).then((size) {
-        if (mounted) {
-          setState(() {
-            heightOfScrollbarDivider = size.height;
-          });
-        }
+    _showThumb = maxOffset > widget.viewportHeight * 3;
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _computePositionToTitleMap();
+    if (!_showScrollbarDivisions) return;
+
+    getIntrinsicSizeOfWidget(
+      const ScrollBarDivider(title: "Temp"),
+      context,
+    ).then((size) {
+      if (mounted) {
+        setState(() {
+          heightOfScrollbarDivider = size.height;
         });
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _computePositionToTitleMap();
       });
-    }
+    });
   }
 
   // Division positions ignore header and footer heights. They are negligible

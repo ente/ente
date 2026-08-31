@@ -7,7 +7,6 @@ import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/models/user_details.dart';
-import 'package:photos/ui/sharing/library_sharing/library_sharing_strings.dart';
 import 'package:photos/ui/viewer/people/person_face_widget.dart';
 import 'package:photos/utils/avatar_util.dart';
 
@@ -184,7 +183,7 @@ class FamilyDashboard extends StatelessWidget {
       member.email.split('@').first;
 
   String? _savedNameFor(FamilyMember member) {
-    final savedName = contactsByUserId[member.userID]?.data?.name.trim();
+    final savedName = contactsByUserId[member.userID]?.name?.trim();
     return savedName == null || savedName.isEmpty ? null : savedName;
   }
 
@@ -403,7 +402,10 @@ class _FamilyMemberRow extends StatelessWidget {
         ? l10n.pending
         : isCurrentUser || member.userID == null || sharedAlbumCount == null
         ? storageUsage
-        : LibrarySharingStrings.memberSubtitle(sharedAlbumCount!, storageUsage);
+        : l10n.librarySharingMemberSubtitle(
+            count: sharedAlbumCount!,
+            storageUsage: storageUsage,
+          );
 
     return MenuComponent(
       title: displayName,

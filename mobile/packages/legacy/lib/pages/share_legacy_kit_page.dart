@@ -10,9 +10,7 @@ import "package:ente_legacy/models/legacy_kit_models.dart";
 import "package:ente_legacy/pages/legacy_congratulations_page.dart";
 import "package:ente_legacy/services/legacy_kit_local_settings.dart";
 import "package:ente_legacy/services/legacy_kit_pdf_service.dart";
-import "package:ente_legacy/services/legacy_kit_service.dart";
 import "package:ente_legacy/services/legacy_kit_share_file_service.dart";
-import "package:ente_rust/ente_rust.dart" as rust;
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/alert_bottom_sheet.dart";
 import "package:ente_ui/utils/dialog_util.dart";
@@ -26,6 +24,13 @@ import "package:share_plus/share_plus.dart";
 
 typedef LegacyKitAuthenticator =
     Future<bool> Function(BuildContext context, String reason);
+typedef GetLegacyKits = Future<List<LegacyKit>> Function();
+typedef DownloadLegacyKitShares =
+    Future<List<LegacyKitShare>> Function(String kitId);
+typedef UpdateLegacyKitRecoveryNotice =
+    Future<void> Function(String kitId, int noticePeriodInHours);
+typedef BlockLegacyKitRecovery = Future<void> Function(String kitId);
+typedef DeleteLegacyKit = Future<void> Function(String kitId);
 
 final _legacyKitShareTokens = <String, Object>{};
 
@@ -41,6 +46,11 @@ enum _KitMenuAction { revoke }
 
 class ShareLegacyKitPage extends StatefulWidget {
   final LegacyKit kit;
+  final GetLegacyKits getKits;
+  final DownloadLegacyKitShares downloadShares;
+  final UpdateLegacyKitRecoveryNotice updateRecoveryNotice;
+  final BlockLegacyKitRecovery blockRecovery;
+  final DeleteLegacyKit deleteKit;
   final List<LegacyKitShare>? initialShares;
   final String accountEmail;
   final LegacyKitAuthenticator? authenticator;
@@ -51,6 +61,11 @@ class ShareLegacyKitPage extends StatefulWidget {
   const ShareLegacyKitPage({
     required this.kit,
     required this.accountEmail,
+    required this.getKits,
+    required this.downloadShares,
+    required this.updateRecoveryNotice,
+    required this.blockRecovery,
+    required this.deleteKit,
     this.initialShares,
     this.authenticator,
     this.onChanged,
@@ -316,7 +331,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
     final dialog = createProgressDialog(context, context.strings.pleaseWait);
     await dialog.show();
     try {
-      final shares = await LegacyKitService.instance.downloadShares(_kit.id);
+      final shares = await widget.downloadShares(_kit.id);
       await dialog.hide();
       if (mounted) {
         setState(() {
@@ -455,10 +470,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
     await dialog.show();
     Object? updateError;
     try {
-      await LegacyKitService.instance.updateRecoveryNotice(
-        kitId: _kit.id,
-        noticePeriodInHours: selectedDays * 24,
-      );
+      await widget.updateRecoveryNotice(_kit.id, selectedDays * 24);
       if (mounted) {
         setState(() {
           _kit = LegacyKit(
@@ -488,7 +500,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
     }
     if (updateError == null) {
       showShortToast(context, context.strings.recoveryTimeUpdated);
-    } else if (updateError is rust.ContactsError_ActiveRecoverySession) {
+    } else if (updateError is LegacyError_ActiveRecoverySession) {
       try {
         await _refreshKit();
       } catch (_) {
@@ -518,7 +530,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
           return false;
         }
         try {
-          await LegacyKitService.instance.deleteKit(_kit.id);
+          await widget.deleteKit(_kit.id);
           return true;
         } catch (_) {
           if (mounted) {
@@ -587,7 +599,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
           return false;
         }
         try {
-          await LegacyKitService.instance.blockRecovery(_kit.id);
+          await widget.blockRecovery(_kit.id);
           return true;
         } catch (_) {
           if (mounted) {
@@ -658,7 +670,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
   }
 
   Future<void> _refreshKit() async {
-    final refreshed = await LegacyKitService.instance.getKits();
+    final refreshed = await widget.getKits();
     final current = refreshed.where((kit) => kit.id == _kit.id).firstOrNull;
     if (current != null && mounted) {
       setState(() {

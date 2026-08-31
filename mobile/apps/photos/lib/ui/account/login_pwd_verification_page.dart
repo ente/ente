@@ -210,7 +210,7 @@ class _LoginPasswordVerificationPageState
         );
         return;
       } else if (e is KeyDerivationError) {
-        // device is not powerful enough to perform derive key
+        // This device is not powerful enough to derive the key.
         if (!context.mounted) return;
         final dialogChoice = await showChoiceDialog(
           context,

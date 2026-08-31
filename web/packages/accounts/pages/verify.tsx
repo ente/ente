@@ -4,8 +4,14 @@ import {
     AccountsPageFooter,
     AccountsPageTitle,
 } from "ente-accounts/components/layouts/centered-paper";
-import { VerifyingPasskey } from "ente-accounts/components/LoginComponents";
-import { SecondFactorChoice } from "ente-accounts/components/SecondFactorChoice";
+import {
+    VerifyingPasskey,
+    type VerifyingPasskeyPresentationProps,
+} from "ente-accounts/components/LoginComponents";
+import {
+    SecondFactorChoice,
+    type SecondFactorChoicePresentationProps,
+} from "ente-accounts/components/SecondFactorChoice";
 import { useSecondFactorChoiceIfNeeded } from "ente-accounts/components/utils/second-factor-choice";
 import {
     replaceSavedLocalUser,
@@ -51,10 +57,28 @@ import log from "ente-base/log";
 import { saveAuthToken } from "ente-base/token";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ComponentType } from "react";
 import { Trans } from "react-i18next";
 
-const Page: React.FC = () => {
+export interface VerifyEmailPresentationProps {
+    email: string;
+    resend: "enable" | "sending" | "sent";
+    onSubmit: SingleInputFormProps["onSubmit"];
+    onResend: () => void;
+    onChangeEmail: () => void;
+}
+
+export interface VerifyPageProps {
+    presentation?: ComponentType<VerifyEmailPresentationProps>;
+    passkeyPresentation?: ComponentType<VerifyingPasskeyPresentationProps>;
+    secondFactorChoicePresentation?: ComponentType<SecondFactorChoicePresentationProps>;
+}
+
+const Page: React.FC<VerifyPageProps> = ({
+    presentation: Presentation,
+    passkeyPresentation,
+    secondFactorChoicePresentation,
+}) => {
     const { logout, showMiniDialog } = useBaseContext();
 
     const [email, setEmail] = useState("");
@@ -160,6 +184,12 @@ const Page: React.FC = () => {
         setTimeout(() => setResend("enable"), 3000);
     }, [email]);
 
+    const handlePasskeyRetry = useCallback(() => {
+        if (passkeyVerificationData) {
+            openPasskeyVerificationURL(passkeyVerificationData);
+        }
+    }, [passkeyVerificationData]);
+
     if (!email) {
         return <LoadingIndicator />;
     }
@@ -177,11 +207,28 @@ const Page: React.FC = () => {
             <VerifyingPasskey
                 email={email}
                 passkeySessionID={passkeyVerificationData.passkeySessionID}
-                onRetry={() =>
-                    openPasskeyVerificationURL(passkeyVerificationData)
-                }
+                onRetry={handlePasskeyRetry}
+                presentation={passkeyPresentation}
                 {...{ logout, showMiniDialog }}
             />
+        );
+    }
+
+    if (Presentation) {
+        return (
+            <>
+                <Presentation
+                    email={email}
+                    resend={resend}
+                    onSubmit={onSubmit}
+                    onResend={resendEmail}
+                    onChangeEmail={logout}
+                />
+                <SecondFactorChoice
+                    {...secondFactorChoiceProps}
+                    presentation={secondFactorChoicePresentation}
+                />
+            </>
         );
     }
 
@@ -226,7 +273,10 @@ const Page: React.FC = () => {
                 <LinkButton onClick={logout}>{t("change_email")}</LinkButton>
             </AccountsPageFooter>
 
-            <SecondFactorChoice {...secondFactorChoiceProps} />
+            <SecondFactorChoice
+                {...secondFactorChoiceProps}
+                presentation={secondFactorChoicePresentation}
+            />
         </AccountsPageContents>
     );
 };

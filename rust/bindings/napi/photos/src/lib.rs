@@ -190,7 +190,8 @@ pub struct AnalyzeImageTask {
 }
 
 impl Task for AnalyzeImageTask {
-    type Output = shared_indexing::AnalyzeImageResult;
+    // Retain MlError until resolve, where the JS thread can assign Error.name.
+    type Output = std::result::Result<shared_indexing::AnalyzeImageResult, MlError>;
     type JsValue = AnalyzeImageResult;
 
     fn compute(&mut self) -> Result<Self::Output> {
@@ -198,11 +199,14 @@ impl Task for AnalyzeImageTask {
             .req
             .take()
             .ok_or_else(|| Error::from_reason("Runtime: analyze task computed twice"))?;
-        shared_indexing::analyze_image(req).map_err(ml_error_to_napi)
+        Ok(shared_indexing::analyze_image(req))
     }
 
-    fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
-        Ok(to_napi_analyze_image_result(output))
+    fn resolve(&mut self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        match output {
+            Ok(output) => Ok(to_napi_analyze_image_result(output)),
+            Err(error) => Err(ml_error_to_napi(&env, error)?),
+        }
     }
 }
 
@@ -246,7 +250,7 @@ impl Task for RunClipTextTask {
             .req
             .take()
             .ok_or_else(|| Error::from_reason("Runtime: clip text task computed twice"))?;
-        shared_indexing::run_clip_text(req).map_err(ml_error_to_napi)
+        shared_indexing::run_clip_text(req).map_err(|error| Error::from_reason(error.to_string()))
     }
 
     fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -269,32 +273,20 @@ pub fn run_clip_text(req: RunClipTextRequest) -> AsyncTask<RunClipTextTask> {
 
 #[napi]
 pub fn tokenize_clip_text(text: String, vocab_path: String) -> Result<Vec<i32>> {
-    shared_indexing::tokenize_clip_text(&text, &vocab_path).map_err(ml_error_to_napi)
+    shared_indexing::tokenize_clip_text(&text, &vocab_path)
+        .map_err(|error| Error::from_reason(error.to_string()))
 }
 
-// Error kind prefixes survive Comlink's MessagePort serialization.
-fn ml_error_to_napi(error: MlError) -> Error {
-    let kind = match &error {
-        MlError::InvalidRequest(_) => "InvalidRequest",
-        MlError::Decode(_) => "Decode",
-        MlError::Image(_) => "Image",
-        MlError::Preprocess(_) => "Preprocess",
-        MlError::Ort(_) => "Ort",
-        MlError::CorruptModel(_) => "CorruptModel",
-        MlError::Postprocess(_) => "Postprocess",
-        MlError::Runtime(_) => "Runtime",
+fn ml_error_to_napi(env: &Env, error: MlError) -> Result<Error> {
+    let name = match &error {
+        MlError::CorruptModel(_) => "ml_init",
+        MlError::Decode(_) => "ml_decode",
+        MlError::Image(_) => "ml_image",
+        _ => return Ok(Error::from_reason(error.to_string())),
     };
-    let detail = match error {
-        MlError::InvalidRequest(message)
-        | MlError::Decode(message)
-        | MlError::Image(message)
-        | MlError::Preprocess(message)
-        | MlError::Ort(message)
-        | MlError::CorruptModel(message)
-        | MlError::Postprocess(message)
-        | MlError::Runtime(message) => message,
-    };
-    Error::from_reason(format!("{kind}: {detail}"))
+    let mut value = env.create_error(Error::from_reason(error.to_string()))?;
+    value.set_named_property("name", name)?;
+    Ok(Error::from(value.into_unknown(env)?))
 }
 
 fn asset_error_to_napi(error: ente_assets::download::Error) -> Error {

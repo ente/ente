@@ -1,10 +1,10 @@
 import { Box } from "@mui/material";
-import { SpaceBackIcon } from "components/SpaceBackIcon";
-import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
-import { SpaceOtpInput } from "components/SpaceOtpInput";
+import { SpaceBackIcon } from "components/BackIcon";
+import { SpaceButtonSpinner } from "components/ButtonSpinner";
+import { SpaceOtpInput } from "components/OtpInput";
 import React, { useEffect, useRef, useState } from "react";
-import { spaceTouchTargetSize } from "styles/touchTargets";
-import { sanitizeSpaceOTP, spaceOTPCodeLength } from "utils/spaceOtp";
+import { spaceTouchTargetSize } from "styles/touch-targets";
+import { sanitizeSpaceOTP, spaceOTPCodeLength } from "utils/otp";
 
 export const verifyEmailBackground = "#FAFAFA";
 

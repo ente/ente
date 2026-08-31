@@ -17,6 +17,7 @@ class EnteApplication : Application() {
   override fun onCreate() {
     super.onCreate()
     WorkmanagerDebug.setCurrent(InternalUserWorkmanagerDebugHandler())
+    ForegroundHeartbeat.install(this)
   }
 
   companion object {

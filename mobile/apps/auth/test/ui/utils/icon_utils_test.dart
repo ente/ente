@@ -47,12 +47,6 @@ void main() {
       final slug = icon['slug']?.toString();
       final canonicalPath = 'assets/custom-icons/icons/${slug ?? titleKey}.svg';
       _expectAssetExists(canonicalPath, missingAssets);
-
-      for (final altName
-          in (icon['altNames'] as List<dynamic>? ?? const <dynamic>[])) {
-        final altPath = 'assets/custom-icons/icons/${slug ?? titleKey}.svg';
-        _expectAssetExists('$altPath for alias $altName', missingAssets);
-      }
     }
 
     expect(missingAssets, isEmpty);
@@ -60,8 +54,7 @@ void main() {
 }
 
 void _expectAssetExists(String assetPath, List<String> missingAssets) {
-  final actualPath = assetPath.split(' for alias ').first;
-  final asset = File(actualPath);
+  final asset = File(assetPath);
   if (!asset.existsSync()) {
     missingAssets.add(assetPath);
   } else if (asset.lengthSync() == 0) {

@@ -3,7 +3,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 
 import { MapEvents } from "./MapEvents";
-import { createIcon, getMapCenter } from "./mapHelpers";
+import { createIcon, getMapCenter } from "./map-helpers";
 import type { JourneyPoint } from "./types";
 
 interface MapComponentsType {

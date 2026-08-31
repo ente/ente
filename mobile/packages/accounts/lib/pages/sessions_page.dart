@@ -146,8 +146,9 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   void _showSessionTerminationDialog(Session session) {
-    final isLoggingOutFromThisDevice =
-        session.token == widget.config.getToken();
+    final isLoggingOutFromThisDevice = session.isCurrentSession(
+      widget.config.getToken(),
+    );
     final textTheme = getEnteTextTheme(context);
 
     showBaseBottomSheet(
@@ -193,7 +194,7 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   Widget _getUAWidget(Session session) {
-    if (session.token == widget.config.getToken()) {
+    if (session.isCurrentSession(widget.config.getToken())) {
       return Text(
         context.strings.thisDevice,
         style: TextStyle(

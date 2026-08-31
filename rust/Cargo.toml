@@ -4,7 +4,8 @@ members = [
     "apps/cli",
     "apps/codegen",
     "apps/ensu/src-tauri",
-    "bindings/frb/ente-rust",
+    "bindings/frb/lib",
+    "bindings/frb/locker",
     "bindings/frb/log",
     "bindings/frb/photos",
     "bindings/napi/photos",
@@ -12,9 +13,14 @@ members = [
     "bindings/uniffi/ensu",
     "bindings/uniffi/log",
     "bindings/wasm/cast",
-    "bindings/wasm/ente-wasm",
-    "bindings/wasm/core",
+    "bindings/wasm/core-wasm",
+    "bindings/wasm/ensu",
+    "bindings/wasm/legacy",
+    "bindings/wasm/lib",
     "bindings/wasm/log",
+    "bindings/wasm/locker",
+    "bindings/wasm/paste",
+    "bindings/wasm/photos",
     "bindings/wasm/space",
     "crates/accounts",
     "crates/assets",
@@ -22,7 +28,11 @@ members = [
     "crates/contacts",
     "crates/core",
     "crates/ensu",
+    "crates/ensu-crypto",
     "crates/image",
+    "crates/legacy",
+    "crates/location",
+    "crates/location-dataset",
     "crates/ml",
     "crates/paste",
     "crates/photos",
@@ -37,17 +47,24 @@ ente-cast = { path = "crates/cast" }
 ente-contacts = { path = "crates/contacts" }
 ente-core = { path = "crates/core" }
 ente-ensu = { path = "crates/ensu" }
+ente-ensu-crypto = { path = "crates/ensu-crypto" }
+ente-frb-lib = { path = "bindings/frb/lib" }
 ente-frb-log = { path = "bindings/frb/log" }
 ente-image = { path = "crates/image" }
+ente-legacy = { path = "crates/legacy" }
+ente-location = { path = "crates/location" }
 ente-ml = { path = "crates/ml" }
 ente-paste = { path = "crates/paste" }
 ente-photos = { path = "crates/photos" }
 ente-space = { path = "crates/space" }
 ente-test-support = { path = "crates/test-support" }
 ente-uniffi-log = { path = "bindings/uniffi/log" }
+ente-wasm-lib = { path = "bindings/wasm/lib" }
 ente-wasm-log = { path = "bindings/wasm/log" }
 flutter_rust_bridge = "=2.12.0"
 flutter_rust_bridge_codegen = "=2.12.0"
+hkdf = "0.13.0"
+js-sys = "0.3.102"
 log = "0.4.29"
 md-5 = "0.11.0"
 mockito = "1.7.2"
@@ -56,14 +73,17 @@ ort-sys = { version = "=2.0.0-rc.13", default-features = false }
 reqwest = { version = "0.12.28", default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
+serde-wasm-bindgen = "0.6.5"
 sha2 = "0.11.0"
 thiserror = "2.0.18"
+tsify = { version = "0.5.8", default-features = false, features = ["js"] }
 uniffi = { version = "=0.31.0" }
 uniffi_bindgen = { version = "=0.31.0", default-features = false, features = ["cargo-metadata"] }
 url = "2.5.8"
 urlencoding = "2.1.3"
 wasm-bindgen = "0.2.125"
-zeroize = { version = "1.8.2", features = ["derive"] }
+wasm-bindgen-futures = "0.4.75"
+zeroize = { version = "1.9.0", features = ["derive"] }
 
 # Unoptimized Argon2 makes production-strength derivations dominate test runtime.
 [profile.dev.package.argon2]
