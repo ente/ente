@@ -1,0 +1,1 @@
+- Fixed incorrectly rotated photos in Android home screen widgets.
