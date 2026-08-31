@@ -21,11 +21,13 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/ignored_file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_lifecycle_service.dart";
+import "package:photos/services/device_folder_confirmed_ente_move_queue.dart";
 import "package:photos/services/ignored_files_service.dart";
 import "package:photos/services/sync/import/diff.dart";
 import "package:photos/services/sync/import/local_assets.dart";
 import "package:photos/services/sync/import/model.dart";
 import "package:photos/services/sync/origin_fetch_tracker.dart";
+import "package:photos/services/sync/remote_sync_service.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:synchronized/synchronized.dart";
 import "package:tuple/tuple.dart";
@@ -181,7 +183,29 @@ class LocalSyncService {
     return hasUpdated;
   }
 
-  Future<bool> syncAll() async {
+  Future<bool> syncAll() => _lock.synchronized(_syncAll);
+
+  Future<void> processPendingConfirmedDeviceFolderMoves() => _lock.synchronized(
+    DeviceFolderConfirmedEnteMoveQueue.instance.processPendingMoves,
+  );
+
+  Future<void> refreshAfterDeviceFolderTransfer() => _lock.synchronized(
+    () async {
+      try {
+        await _syncAll();
+        await RemoteSyncService.instance.sync(silently: true);
+        await DeviceFolderConfirmedEnteMoveQueue.instance.processPendingMoves();
+      } catch (error, stackTrace) {
+        _logger.warning(
+          'Could not refresh local state after device-folder transfer',
+          error,
+          stackTrace,
+        );
+      }
+    },
+  );
+
+  Future<bool> _syncAll() async {
     if (!Configuration.instance.isLoggedIn()) {
       if (!isLocalGalleryMode) {
         _logger.warning("syncAll called when user is not logged in");
@@ -193,6 +217,7 @@ class LocalSyncService {
     final localAssets = await getAllLocalAssets(
       needsTitle: isLocalGalleryMode ? true : null,
     );
+    final previousPathToLocalIDs = await _db.getDevicePathIDToLocalIDMap();
     _logger.info(
       "Loading allLocalAssets ${localAssets.length} took ${stopwatch.elapsedMilliseconds}ms ",
     );
@@ -202,13 +227,10 @@ class LocalSyncService {
     );
     final int ownerID = Configuration.instance.getUserIDV2();
     final existingLocalFileIDs = await _db.getExistingLocalFileIDs(ownerID);
-    final Map<String, Set<String>> pathToLocalIDs = await _db
-        .getDevicePathIDToLocalIDMap();
-
     final localDiffResult = await getDiffFromExistingImport(
       localAssets,
       existingLocalFileIDs,
-      pathToLocalIDs,
+      previousPathToLocalIDs,
     );
     bool hasAnyMappingChanged = false;
     if (localDiffResult.newPathToLocalIDs?.isNotEmpty ?? false) {

@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:io";
 import "dart:math";
 
+import "package:collection/collection.dart";
 import "package:computer/computer.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import 'package:flutter/foundation.dart';
@@ -35,6 +36,7 @@ class FilesDB with SqlDbBase {
 
   static const filesTable = 'files';
   static const tempTable = 'temp_files';
+  static const deviceFolderEnteMoveQueueTable = 'device_folder_ente_move_queue';
 
   static const columnGeneratedID = '_id';
   static const columnUploadedFileID = 'uploaded_file_id';
@@ -62,7 +64,6 @@ class FilesDB with SqlDbBase {
   static const columnThumbnailDecryptionHeader = 'thumbnail_decryption_header';
   static const columnMetadataDecryptionHeader = 'metadata_decryption_header';
   static const columnFileSize = 'file_size';
-
   // MMD is magic metadata.
   static const columnMMdEncodedJson = 'mmd_encoded_json';
   static const columnMMdVersion = 'mmd_ver';
@@ -91,6 +92,8 @@ class FilesDB with SqlDbBase {
     ...createEntityDataTable(),
     ...addAddedTime(),
     ...addFileMaterializationOrderIndex(),
+    ...createDeviceFolderEnteMoveQueue(),
+    ...addDeviceFolderEnteMoveQueueState(),
   ];
 
   static const List<String> _columnNames = [
@@ -370,6 +373,47 @@ class FilesDB with SqlDbBase {
           data TEXT NOT NULL DEFAULT '{}',
           updatedAt INTEGER NOT NULL
       );
+      ''',
+    ];
+  }
+
+  static List<String> createDeviceFolderEnteMoveQueue() {
+    return [
+      '''
+      CREATE TABLE IF NOT EXISTS $deviceFolderEnteMoveQueueTable (
+        owner_id INTEGER NOT NULL,
+        source_path_id TEXT NOT NULL,
+        destination_path_id TEXT NOT NULL,
+        source_collection_id INTEGER NOT NULL,
+        local_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE(owner_id, source_path_id, destination_path_id, source_collection_id, local_id)
+      );
+      ''',
+      '''
+      CREATE INDEX IF NOT EXISTS dfemq_owner_idx
+      ON $deviceFolderEnteMoveQueueTable (owner_id, created_at);
+      ''',
+    ];
+  }
+
+  static List<String> addDeviceFolderEnteMoveQueueState() {
+    return [
+      '''
+      ALTER TABLE $deviceFolderEnteMoveQueueTable
+      ADD COLUMN destination_collection_id INTEGER;
+      ''',
+      '''
+      ALTER TABLE $deviceFolderEnteMoveQueueTable
+      ADD COLUMN state TEXT NOT NULL DEFAULT 'ready';
+      ''',
+      '''
+      CREATE INDEX IF NOT EXISTS dfemq_owner_state_idx
+      ON $deviceFolderEnteMoveQueueTable (owner_id, state, created_at);
+      ''',
+      '''
+      DELETE FROM $deviceFolderEnteMoveQueueTable
+      WHERE destination_collection_id IS NULL;
       ''',
     ];
   }
@@ -1319,6 +1363,56 @@ class FilesDB with SqlDbBase {
       ' AND $columnLocalID IS NULL',
       [localID, uploadedID],
     );
+  }
+
+  Future<List<EnteFile>> getUploadedFilesForLocalIDs(
+    Iterable<String> localIDs, {
+    int? collectionID,
+  }) async {
+    final ids = localIDs.toSet().toList(growable: false);
+    if (ids.isEmpty) return const [];
+    final db = await sqliteAsyncDB;
+    final rows = <Map<String, Object?>>[];
+    for (final batch in ids.slices(900)) {
+      final placeholders = List.filled(batch.length, '?').join(',');
+      final collectionClause = collectionID == null
+          ? ''
+          : ' AND $columnCollectionID = ?';
+      rows.addAll(
+        await db.getAll(
+          'SELECT * FROM $filesTable WHERE $columnLocalID IN ($placeholders) '
+          'AND $columnUploadedFileID IS NOT NULL AND $columnUploadedFileID != -1'
+          '$collectionClause',
+          collectionID == null ? batch : [...batch, collectionID],
+        ),
+      );
+    }
+    return convertToFiles(rows);
+  }
+
+  Future<Set<String>> getUploadedLocalIDs(
+    Iterable<String> localIDs, {
+    int? collectionID,
+  }) async {
+    final ids = localIDs.toSet().toList(growable: false);
+    if (ids.isEmpty) return const {};
+    final db = await sqliteAsyncDB;
+    final uploaded = <String>{};
+    for (final batch in ids.slices(900)) {
+      final placeholders = List.filled(batch.length, '?').join(',');
+      final collectionClause = collectionID == null
+          ? ''
+          : ' AND $columnCollectionID = ?';
+      final rows = await db.getAll(
+        'SELECT DISTINCT $columnLocalID FROM $filesTable '
+        'WHERE $columnLocalID IN ($placeholders) '
+        'AND $columnUploadedFileID IS NOT NULL AND $columnUploadedFileID != -1'
+        '$collectionClause',
+        collectionID == null ? batch : [...batch, collectionID],
+      );
+      uploaded.addAll(rows.map((row) => row[columnLocalID] as String));
+    }
+    return uploaded;
   }
 
   Future<void> deleteByGeneratedID(int genID) async {
