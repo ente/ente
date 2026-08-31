@@ -3,8 +3,6 @@ package io.ente.photos
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.util.Log
@@ -46,12 +44,9 @@ class EnteMemoryWidgetProvider : HomeWidgetProvider() {
                                                                         null
                                                                 )
                                                 }
-                                                var imageExists: Boolean = false
-                                                if (imagePath != null) {
-                                                        val imageFile = File(imagePath)
-                                                        imageExists = imageFile.exists()
-                                                }
-                                                if (imageExists) {
+                                                val existingImagePath =
+                                                        imagePath?.takeIf { File(it).exists() }
+                                                if (existingImagePath != null) {
                                                         val data =
                                                                 widgetData.getString(
                                                                         "memory_widget_${randomNumber}_data",
@@ -85,7 +80,7 @@ class EnteMemoryWidgetProvider : HomeWidgetProvider() {
 
                                                         Log.d(
                                                                 "EnteMemoryWidgetProvider",
-                                                                "Image exists: $imagePath"
+                                                                "Image exists: $existingImagePath"
                                                         )
                                                         val hideFlags =
                                                                 widgetData.getInt(
@@ -130,8 +125,8 @@ class EnteMemoryWidgetProvider : HomeWidgetProvider() {
                                                                 View.GONE
                                                         )
 
-                                                        val bitmap: Bitmap =
-                                                                BitmapFactory.decodeFile(imagePath)
+                                                        val bitmap =
+                                                                decodeWidgetBitmap(existingImagePath)
                                                         setImageViewBitmap(R.id.widget_img, bitmap)
                                                         setTextViewText(R.id.widget_title, title)
                                                         setTextViewText(
