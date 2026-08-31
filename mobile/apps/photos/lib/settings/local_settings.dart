@@ -53,6 +53,24 @@ enum DeletePreference {
   }
 }
 
+enum LinkedDeviceMovePreference {
+  ask('ask'),
+  primaryOnly('primary_only'),
+  both('both');
+
+  const LinkedDeviceMovePreference(this._serializedValue);
+
+  final String _serializedValue;
+
+  static LinkedDeviceMovePreference _fromSerializedValue(String? value) {
+    return switch (value) {
+      'primary_only' => primaryOnly,
+      'both' => both,
+      _ => ask,
+    };
+  }
+}
+
 class LocalSettings {
   static const kCollectionSortPref = "collection_sort_pref";
   static const kGalleryGroupType = "gallery_group_type";
@@ -111,6 +129,7 @@ class LocalSettings {
   static const _kAppMode = "ls.app_mode";
   static const _kShowLocalGalleryModeOption = "ls.show_offline_mode_option";
   static const _kDeletePreference = "delete_preference";
+  static const _kLinkedDeviceMovePreference = "linked_device_move_preference";
   static const _kMediaManagementHintDeleteAttempts =
       "media_management_hint_delete_attempts";
   static const _kMediaManagementHintDismissedAt =
@@ -719,6 +738,21 @@ class LocalSettings {
     } else {
       await _prefs.setString(_kDeletePreference, preference._serializedValue);
     }
+  }
+
+  LinkedDeviceMovePreference getLinkedDeviceMovePreference() {
+    return LinkedDeviceMovePreference._fromSerializedValue(
+      _prefs.getString(_kLinkedDeviceMovePreference),
+    );
+  }
+
+  Future<void> setLinkedDeviceMovePreference(
+    LinkedDeviceMovePreference preference,
+  ) async {
+    await _prefs.setString(
+      _kLinkedDeviceMovePreference,
+      preference._serializedValue,
+    );
   }
 
   Future<void> setCraftingMemoriesBannerDismissed() async {
