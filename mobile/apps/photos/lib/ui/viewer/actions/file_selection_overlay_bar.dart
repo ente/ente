@@ -5,6 +5,7 @@ import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photos/models/collection/collection.dart';
+import 'package:photos/models/device_collection.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/search/hierarchical/face_filter.dart";
@@ -24,6 +25,7 @@ class FileSelectionOverlayBar extends StatefulWidget {
   final GalleryType galleryType;
   final SelectedFiles selectedFiles;
   final Collection? collection;
+  final DeviceCollection? deviceCollection;
   final Color? backgroundColor;
   final PersonEntity? person;
   final String? clusterID;
@@ -32,6 +34,7 @@ class FileSelectionOverlayBar extends StatefulWidget {
     this.galleryType,
     this.selectedFiles, {
     this.collection,
+    this.deviceCollection,
     this.backgroundColor,
     this.person,
     this.clusterID,
@@ -158,6 +161,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
                   selectedFiles: widget.selectedFiles,
                   galleryType: _galleryType,
                   collection: widget.collection,
+                  deviceCollection: widget.deviceCollection,
                   person: widget.person,
                   clusterID: widget.clusterID,
                   onCancel: () {
