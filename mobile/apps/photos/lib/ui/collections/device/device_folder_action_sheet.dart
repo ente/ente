@@ -25,6 +25,7 @@ class LinkedDeviceMoveChoice {
 Future<LinkedDeviceMoveChoice?> showLinkedDeviceMoveSheet(
   BuildContext context, {
   required List<EnteFile> previews,
+  required Set<String> linkedLocalIDs,
   required int selectedCount,
   required int eligibleCount,
   required bool deviceInitiated,
@@ -33,6 +34,7 @@ Future<LinkedDeviceMoveChoice?> showLinkedDeviceMoveSheet(
     context: context,
     builder: (_) => _LinkedDeviceMoveSheet(
       previews: previews,
+      linkedLocalIDs: linkedLocalIDs,
       selectedCount: selectedCount,
       eligibleCount: eligibleCount,
       deviceInitiated: deviceInitiated,
@@ -43,12 +45,14 @@ Future<LinkedDeviceMoveChoice?> showLinkedDeviceMoveSheet(
 class _LinkedDeviceMoveSheet extends StatefulWidget {
   const _LinkedDeviceMoveSheet({
     required this.previews,
+    required this.linkedLocalIDs,
     required this.selectedCount,
     required this.eligibleCount,
     required this.deviceInitiated,
   });
 
   final List<EnteFile> previews;
+  final Set<String> linkedLocalIDs;
   final int selectedCount;
   final int eligibleCount;
   final bool deviceInitiated;
@@ -79,8 +83,13 @@ class _LinkedDeviceMoveSheetState extends State<_LinkedDeviceMoveSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _PreviewRow(files: widget.previews, totalCount: widget.selectedCount),
-          const SizedBox(height: 20),
+          _PreviewRow(
+            files: widget.previews,
+            linkedLocalIDs: widget.linkedLocalIDs,
+            totalCount: widget.selectedCount,
+            deviceInitiated: widget.deviceInitiated,
+          ),
+          const SizedBox(height: Spacing.xl),
           Text(
             remaining == 0
                 ? strings.linkedDeviceMoveAllBackedUp
@@ -91,13 +100,13 @@ class _LinkedDeviceMoveSheetState extends State<_LinkedDeviceMoveSheet> {
               color: context.componentColors.textLight,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Spacing.lg),
           LabeledControlComponent(
             control: CheckboxComponent(
               selected: _remember,
               onChanged: (value) => setState(() => _remember = value),
             ),
-            label: strings.rememberMyChoice,
+            label: strings.setAsMyDefaultChoice,
             foreground: context.componentColors.textLight,
             onTap: () => setState(() => _remember = !_remember),
           ),
@@ -118,9 +127,7 @@ class _LinkedDeviceMoveSheetState extends State<_LinkedDeviceMoveSheet> {
           ),
         ),
         ButtonComponent(
-          label: widget.deviceInitiated
-              ? strings.moveOnDeviceAndEnte
-              : strings.moveInEnteAndDevice,
+          label: strings.moveOnDeviceAndEnte,
           shouldSurfaceExecutionStates: false,
           onTap: () => Navigator.of(context).pop(
             LinkedDeviceMoveChoice(
@@ -135,38 +142,68 @@ class _LinkedDeviceMoveSheetState extends State<_LinkedDeviceMoveSheet> {
 }
 
 class _PreviewRow extends StatelessWidget {
-  const _PreviewRow({required this.files, required this.totalCount});
+  static const _previewSize = 56.0;
+
+  const _PreviewRow({
+    required this.files,
+    required this.linkedLocalIDs,
+    required this.totalCount,
+    required this.deviceInitiated,
+  });
 
   final List<EnteFile> files;
+  final Set<String> linkedLocalIDs;
   final int totalCount;
+  final bool deviceInitiated;
 
   @override
   Widget build(BuildContext context) {
     final shown = files.take(4).toList(growable: false);
     return SizedBox(
-      height: 56,
+      height: _previewSize,
       child: Row(
         children: [
           ...shown.map(
             (file) => Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: ThumbnailWidget(file, rawThumbnail: true),
-                ),
+              padding: const EdgeInsets.only(right: Spacing.sm),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(Radii.sm),
+                    child: SizedBox(
+                      width: _previewSize,
+                      height: _previewSize,
+                      child: ThumbnailWidget(file, rawThumbnail: true),
+                    ),
+                  ),
+                  if (linkedLocalIDs.contains(file.localID))
+                    Positioned(
+                      left: Spacing.xs,
+                      bottom: Spacing.xs,
+                      child: Semantics(
+                        label: deviceInitiated
+                            ? context.strings.ente
+                            : context.strings.onDevice,
+                        child: HugeIcon(
+                          icon: deviceInitiated
+                              ? HugeIcons.strokeRoundedCloudSavingDone01
+                              : HugeIcons.strokeRoundedSmartPhone01,
+                          size: IconSizes.small,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
           if (totalCount > shown.length)
             Container(
-              width: 56,
-              height: 56,
+              width: _previewSize,
+              height: _previewSize,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Radii.sm),
                 color: getEnteColorScheme(context).fillFaint,
               ),
               child: Text(

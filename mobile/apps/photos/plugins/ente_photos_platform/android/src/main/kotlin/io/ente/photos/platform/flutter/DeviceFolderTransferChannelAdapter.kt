@@ -54,8 +54,10 @@ internal class DeviceFolderTransferChannelAdapter : MethodChannel.MethodCallHand
         activityBinding?.removeActivityResultListener(this)
         activityBinding = null
         activity = null
-        if (cancelPendingConsent && pendingConsentBatches != null) {
-            completeWithFailures("cancelled")
+        if (cancelPendingConsent) {
+            if (pendingResult != null) completeWithFailures("cancelled")
+        } else {
+            isConsentRequestInProgress = false
         }
     }
 

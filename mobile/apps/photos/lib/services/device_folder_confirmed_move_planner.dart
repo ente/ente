@@ -67,6 +67,7 @@ class DeviceFolderConfirmedMovePlanner {
         source.id == destination.id ||
         sourceCollectionID == null ||
         destinationCollectionID == null ||
+        sourceCollectionID == destinationCollectionID ||
         sourceCollectionID == -1 ||
         destinationCollectionID == -1 ||
         !_areLinkedCollections(sourceCollectionID, destinationCollectionID)) {

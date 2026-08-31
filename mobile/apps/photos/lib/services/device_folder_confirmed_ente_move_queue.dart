@@ -57,7 +57,7 @@ class DeviceFolderConfirmedEnteMoveQueue {
     final db = await FilesDB.instance.sqliteAsyncDB;
     final createdAt = DateTime.now().microsecondsSinceEpoch;
     await db.executeBatch(
-      'INSERT OR IGNORE INTO ${FilesDB.deviceFolderEnteMoveQueueTable} '
+      'INSERT OR REPLACE INTO ${FilesDB.deviceFolderEnteMoveQueueTable} '
       '(owner_id, source_path_id, destination_path_id, source_collection_id, '
       'destination_collection_id, local_id, state, created_at) '
       'VALUES (?, ?, ?, ?, ?, ?, \'prepared\', ?);',
@@ -228,8 +228,36 @@ class DeviceFolderConfirmedEnteMoveQueue {
       await _delete([move]);
       return;
     }
+    final currentMembership = (await _memberships([
+      move.localID,
+    ]))[move.localID];
+    final currentSourceFiles = await _sourceFiles(move);
+    final currentDestinationFiles = currentSourceFiles.isEmpty
+        ? await _destinationFiles(move)
+        : const <EnteFile>[];
+    final currentDecision = resolveReadyConfirmedMove(
+      isPendingUpload: FileUploader.instance.allBackups.containsKey(
+        move.localID,
+      ),
+      mappingsValid: _hasSavedLinkedMappings(
+        move,
+        refreshedSource,
+        refreshedDestination,
+      ),
+      onlyInDestination: _isOnlyInDestination(
+        currentMembership,
+        move.destinationFolderID,
+      ),
+      sourceRowCount: currentSourceFiles.length,
+      destinationRowCount: currentDestinationFiles.length,
+    );
+    if (currentDecision == ConfirmedMoveQueueDecision.defer) return;
+    if (currentDecision != ConfirmedMoveQueueDecision.ready) {
+      await _delete([move]);
+      return;
+    }
     await CollectionsService.instance.move(
-      [sourceFiles.single.copyWith()],
+      [currentSourceFiles.single.copyWith()],
       toCollectionID: move.destinationCollectionID,
       fromCollectionID: move.sourceCollectionID,
     );

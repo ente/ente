@@ -5006,7 +5006,5 @@
   "linkedDeviceMoveAllBackedUp": "All selected items are backed up in the linked folder.",
   "moveOnDeviceOnly": "Move on device only",
   "moveOnDeviceAndEnte": "Move on device and Ente",
-  "moveInEnteOnly": "Move in Ente only",
-  "moveInEnteAndDevice": "Move in Ente and on device",
-  "rememberMyChoice": "Remember my choice"
+  "moveInEnteOnly": "Move in Ente only"
 }

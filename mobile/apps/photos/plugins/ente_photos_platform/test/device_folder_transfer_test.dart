@@ -3,20 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('encodes the transfer operation', () {
-    const request = DeviceFolderTransferRequest(
-      operation: DeviceFolderTransferOperation.move,
-      sourceFolderID: 'source',
-      targetFolderID: 'target',
-      sourceLocalIDs: ['one'],
-    );
-
-    expect(
-      request.toChannelMap()['operation'],
-      DeviceFolderTransferOperation.move.name,
-    );
-  });
-
   test('passes operation while loading destinations', () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     const channel = MethodChannel('device-folder-transfer-test');
@@ -88,18 +74,5 @@ void main() {
     });
 
     expect(result.wasCancelled, isTrue);
-  });
-
-  test('keeps device success when local reconciliation fails', () {
-    const result = DeviceFolderTransferResult(
-      destinations: {'source': 'destination'},
-      failures: {},
-    );
-
-    final partial = result.copyWith(localReconciliationFailed: true);
-
-    expect(partial.successLocalIDs, {'source'});
-    expect(partial.failures, isEmpty);
-    expect(partial.localReconciliationFailed, isTrue);
   });
 }

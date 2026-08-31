@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:ente_components/ente_components.dart";
+import 'package:ente_photos_platform/ente_photos_platform.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
@@ -8,19 +9,28 @@ import "package:flutter/services.dart";
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
 import "package:photos/core/event_bus.dart";
+import 'package:photos/db/device_files_db.dart';
+import 'package:photos/db/files_db.dart';
 import "package:photos/events/create_new_album_event.dart";
 import "package:photos/events/tab_changed_event.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/collection/collection_items.dart';
+import 'package:photos/models/device_collection.dart';
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/module/upload/service/file_uploader.dart';
+import 'package:photos/service_locator.dart';
 import 'package:photos/services/collections_service.dart';
+import 'package:photos/services/device_folder_confirmed_move_planner.dart';
+import 'package:photos/services/device_folder_transfer_coordinator.dart';
 import "package:photos/services/hidden_service.dart";
 import 'package:photos/services/sync/remote_sync_service.dart';
+import 'package:photos/settings/local_settings.dart';
 import "package:photos/ui/actions/collection/collection_file_actions.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/collections/album/column_item.dart";
 import "package:photos/ui/collections/album/new_list_item.dart";
 import 'package:photos/ui/collections/collection_action_sheet.dart';
+import 'package:photos/ui/collections/device/device_folder_action_sheet.dart';
 import 'package:photos/ui/notification/toast.dart';
 import "package:photos/ui/sharing/share_collection_page.dart";
 import 'package:photos/ui/viewer/gallery/collection_page.dart';
@@ -447,7 +457,11 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
       case CollectionActionType.autoAddPeople:
         return _addToCollection(context, collection.id, showProgressDialog);
       case CollectionActionType.moveFiles:
-        return _moveFilesToCollection(context, collection.id);
+        return _moveFilesToCollection(
+          context,
+          collection.id,
+          destinationCollection: collection,
+        );
       case CollectionActionType.unHide:
         return _moveFilesToCollection(context, collection.id);
       case CollectionActionType.restoreFiles:
@@ -510,8 +524,9 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
 
   Future<bool> _moveFilesToCollection(
     BuildContext context,
-    int toCollectionID,
-  ) async {
+    int toCollectionID, {
+    Collection? destinationCollection,
+  }) async {
     late final String message;
     if (widget.actionType == CollectionActionType.moveFiles ||
         widget.actionType == CollectionActionType.moveToHiddenCollection) {
@@ -520,11 +535,22 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
       message = context.strings.unhidingFilesToAlbum;
     }
 
+    final fromCollectionID = widget.selectedFiles!.files.first.collectionID!;
+    if (widget.actionType == CollectionActionType.moveFiles &&
+        destinationCollection != null &&
+        DeviceFolderTransferClient.isSupportedOnCurrentPlatform) {
+      final handled = await _moveLinkedDeviceFolderFilesIfRequested(
+        context,
+        sourceCollectionID: fromCollectionID,
+        destinationCollection: destinationCollection,
+      );
+      if (handled != null) return handled;
+      if (!context.mounted) return false;
+    }
+
     final dialog = createProgressDialog(context, message, isDismissible: true);
     await dialog.show();
     try {
-      final int fromCollectionID =
-          widget.selectedFiles!.files.first.collectionID!;
       await CollectionsService.instance.move(
         widget.selectedFiles!.files.toList(),
         toCollectionID: toCollectionID,
@@ -547,6 +573,157 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
       await dialog.hide();
       if (!context.mounted) return false;
       await showGenericErrorDialog(context: context, error: e);
+      return false;
+    }
+  }
+
+  Future<bool?> _moveLinkedDeviceFolderFilesIfRequested(
+    BuildContext context, {
+    required int sourceCollectionID,
+    required Collection destinationCollection,
+  }) async {
+    final ownerID = Configuration.instance.getUserID();
+    final sourceCollection = CollectionsService.instance.getCollectionByID(
+      sourceCollectionID,
+    );
+    if (ownerID == null ||
+        sourceCollection == null ||
+        !sourceCollection.canLinkToDevicePath(ownerID) ||
+        !destinationCollection.canLinkToDevicePath(ownerID)) {
+      return null;
+    }
+    final folders = await FilesDB.instance.getDeviceCollections();
+    List<DeviceCollection> linkedFolderFor(int collectionID) => folders
+        .where(
+          (folder) =>
+              folder.shouldBackup && folder.collectionID == collectionID,
+        )
+        .toList(growable: false);
+    final sourceFolders = linkedFolderFor(sourceCollectionID);
+    final destinationFolders = linkedFolderFor(destinationCollection.id);
+    if (sourceFolders.length != 1 || destinationFolders.length != 1) {
+      return null;
+    }
+    final source = sourceFolders.single;
+    final destination = destinationFolders.single;
+    final selected = widget.selectedFiles!.files.toList(growable: false);
+    final localIDs = selected
+        .map((file) => file.localID)
+        .whereType<String>()
+        .toSet();
+    final plan = await DeviceFolderConfirmedMovePlanner.instance.planDeviceMove(
+      source: source,
+      destination: destination,
+      localIDs: localIDs,
+    );
+    if (plan == null || plan.entries.isEmpty) return null;
+
+    final preference = localSettings.getLinkedDeviceMovePreference();
+    bool includeDevice = preference == LinkedDeviceMovePreference.both;
+    if (preference == LinkedDeviceMovePreference.ask) {
+      if (!context.mounted) return false;
+      final choice = await showLinkedDeviceMoveSheet(
+        context,
+        previews: selected,
+        linkedLocalIDs: plan.entries.map((entry) => entry.localID).toSet(),
+        selectedCount: selected.length,
+        eligibleCount: plan.entries.length,
+        deviceInitiated: false,
+      );
+      if (choice == null) return false;
+      includeDevice = choice.includeLinkedSide;
+      if (choice.remember) {
+        await localSettings.setLinkedDeviceMovePreference(
+          includeDevice
+              ? LinkedDeviceMovePreference.both
+              : LinkedDeviceMovePreference.primaryOnly,
+        );
+      }
+    }
+    if (!includeDevice) return null;
+    if (!context.mounted) return false;
+
+    final dialog = createProgressDialog(
+      context,
+      context.strings.movingItemsTo(
+        count: selected.length,
+        albumName: destination.name,
+      ),
+    );
+    await dialog.show();
+    try {
+      final result = await DeviceFolderTransferCoordinator.instance.transfer(
+        source: source,
+        destination: destination,
+        request: DeviceFolderTransferRequest(
+          operation: DeviceFolderTransferOperation.move,
+          sourceFolderID: source.id,
+          targetFolderID: destination.id,
+          sourceLocalIDs: plan.entries.map((entry) => entry.localID).toList(),
+        ),
+        confirmedMovePlan: plan,
+      );
+      if (result.wasCancelled) {
+        await dialog.hide();
+        return false;
+      }
+      final eligibleLocalIDs = plan.entries
+          .map((entry) => entry.localID)
+          .toSet();
+      final cloudOnlyFiles = selected
+          .where((file) => !eligibleLocalIDs.contains(file.localID))
+          .toList(growable: false);
+      if (cloudOnlyFiles.isNotEmpty) {
+        final filesReadyToMove = await Future.wait(
+          cloudOnlyFiles.map(
+            (file) => file.uploadedFileID == null
+                ? FileUploader.instance.upload(file, sourceCollectionID)
+                : Future.value(file),
+          ),
+        );
+        await CollectionsService.instance.move(
+          filesReadyToMove,
+          toCollectionID: destinationCollection.id,
+          fromCollectionID: sourceCollectionID,
+        );
+        CollectionsService.instance.recordCollectionUsage(
+          destinationCollection.id,
+        );
+        unawaited(RemoteSyncService.instance.sync(silently: true));
+      }
+      final handledLocalIDs = {
+        ...cloudOnlyFiles.map((file) => file.localID).whereType<String>(),
+        ...result.successLocalIDs,
+      };
+      final handledFiles = {
+        ...cloudOnlyFiles,
+        ...selected.where((file) => handledLocalIDs.contains(file.localID)),
+      };
+      if (handledFiles.length == selected.length) {
+        widget.selectedFiles?.clearAll();
+      } else {
+        widget.selectedFiles?.unSelectAll(handledFiles);
+        if (context.mounted) {
+          showToast(
+            context,
+            context.strings.partiallyTransferredItems(
+              completedCount: handledFiles.length,
+              failedCount: selected.length - handledFiles.length,
+            ),
+          );
+        }
+      }
+      await dialog.hide();
+      return handledFiles.length == selected.length;
+    } catch (error, stackTrace) {
+      _logger.severe(
+        "Could not move linked device-folder files",
+        error,
+        stackTrace,
+      );
+      await dialog.hide();
+      if (!context.mounted) return false;
+      await showGenericErrorDialog(context: context, error: error);
       return false;
     }
   }

@@ -60,6 +60,7 @@ import "package:photos/ui/tools/collage/collage_creator_page.dart";
 import "package:photos/ui/viewer/actions/suggest_delete_sheet.dart";
 import "package:photos/ui/viewer/date/edit_date_sheet.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
+import "package:photos/ui/viewer/gallery/device/device_folder_page.dart";
 import "package:photos/ui/viewer/location/update_location_data_widget.dart";
 import "package:photos/ui/viewer/people/add_files_to_person_page.dart";
 import 'package:photos/utils/delete_file_util.dart';
@@ -806,6 +807,9 @@ class _FileSelectionActionsWidgetState
             final choice = await showLinkedDeviceMoveSheet(
               context,
               previews: selected,
+              linkedLocalIDs: candidatePlan.entries
+                  .map((entry) => entry.localID)
+                  .toSet(),
               selectedCount: localIDs.length,
               eligibleCount: candidatePlan.entries.length,
               deviceInitiated: true,
@@ -904,6 +908,15 @@ class _FileSelectionActionsWidgetState
         'localReconciliationFailed=${result.localReconciliationFailed}, '
         'categories=${result.failures.values.map((value) => value.name).toSet()}',
       );
+      if (result.destinations.isNotEmpty && mounted) {
+        final destinationFolder =
+            (await FilesDB.instance.getDeviceCollections()).firstWhereOrNull(
+              (folder) => folder.id == destination.id,
+            ) ??
+            destination;
+        if (!mounted) return;
+        await routeToPage(context, DeviceFolderPage(destinationFolder));
+      }
     } catch (error, stackTrace) {
       _logger.severe(
         'Device folder transfer failed: operation=${operation.name}, count=${localIDs.length}',
