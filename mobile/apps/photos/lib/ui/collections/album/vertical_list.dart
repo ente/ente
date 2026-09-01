@@ -539,14 +539,25 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
     if (widget.actionType == CollectionActionType.moveFiles &&
         destinationCollection != null &&
         DeviceFolderTransferClient.isSupportedOnCurrentPlatform) {
-      final handled = await _moveLinkedDeviceFolderFilesIfRequested(
-        context,
-        sourceCollectionID: fromCollectionID,
-        destinationCollection: destinationCollection,
-      );
-      if (handled != null) return handled;
-      if (!context.mounted) return false;
+      try {
+        final handled = await _moveLinkedDeviceFolderFilesIfRequested(
+          context,
+          sourceCollectionID: fromCollectionID,
+          destinationCollection: destinationCollection,
+        );
+        if (handled != null) return handled;
+      } catch (error, stackTrace) {
+        _logger.severe(
+          "Could not prepare linked device-folder move",
+          error,
+          stackTrace,
+        );
+        if (!context.mounted) return false;
+        await showGenericErrorDialog(context: context, error: error);
+        return false;
+      }
     }
+    if (!context.mounted) return false;
 
     final dialog = createProgressDialog(context, message, isDismissible: true);
     await dialog.show();
@@ -651,6 +662,9 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
       ),
     );
     await dialog.show();
+    bool? wasFullyHandled;
+    Object? failure;
+    StackTrace? failureStackTrace;
     try {
       final result = await DeviceFolderTransferCoordinator.instance.transfer(
         source: source,
@@ -663,69 +677,77 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
         ),
         confirmedMovePlan: plan,
       );
-      if (result.wasCancelled) {
-        await dialog.hide();
-        return false;
+      if (result.localReconciliationFailed) {
+        throw StateError(
+          'Could not reconcile the completed device-folder move',
+        );
       }
-      final eligibleLocalIDs = plan.entries
-          .map((entry) => entry.localID)
-          .toSet();
-      final cloudOnlyFiles = selected
-          .where((file) => !eligibleLocalIDs.contains(file.localID))
-          .toList(growable: false);
-      if (cloudOnlyFiles.isNotEmpty) {
-        final filesReadyToMove = await Future.wait(
-          cloudOnlyFiles.map(
-            (file) => file.uploadedFileID == null
-                ? FileUploader.instance.upload(file, sourceCollectionID)
-                : Future.value(file),
-          ),
-        );
-        await CollectionsService.instance.move(
-          filesReadyToMove,
-          toCollectionID: destinationCollection.id,
-          fromCollectionID: sourceCollectionID,
-        );
-        CollectionsService.instance.recordCollectionUsage(
-          destinationCollection.id,
-        );
-        unawaited(RemoteSyncService.instance.sync(silently: true));
-      }
-      final handledLocalIDs = {
-        ...cloudOnlyFiles.map((file) => file.localID).whereType<String>(),
-        ...result.successLocalIDs,
-      };
-      final handledFiles = {
-        ...cloudOnlyFiles,
-        ...selected.where((file) => handledLocalIDs.contains(file.localID)),
-      };
-      if (handledFiles.length == selected.length) {
-        widget.selectedFiles?.clearAll();
-      } else {
-        widget.selectedFiles?.unSelectAll(handledFiles);
-        if (context.mounted) {
-          showToast(
-            context,
-            context.strings.partiallyTransferredItems(
-              completedCount: handledFiles.length,
-              failedCount: selected.length - handledFiles.length,
+      if (!result.wasCancelled) {
+        final eligibleLocalIDs = plan.entries
+            .map((entry) => entry.localID)
+            .toSet();
+        final cloudOnlyFiles = selected
+            .where((file) => !eligibleLocalIDs.contains(file.localID))
+            .toList(growable: false);
+        if (cloudOnlyFiles.isNotEmpty) {
+          final filesReadyToMove = await Future.wait(
+            cloudOnlyFiles.map(
+              (file) => file.uploadedFileID == null
+                  ? FileUploader.instance.upload(file, sourceCollectionID)
+                  : Future.value(file),
             ),
           );
+          await CollectionsService.instance.move(
+            filesReadyToMove,
+            toCollectionID: destinationCollection.id,
+            fromCollectionID: sourceCollectionID,
+          );
+          CollectionsService.instance.recordCollectionUsage(
+            destinationCollection.id,
+          );
+          unawaited(RemoteSyncService.instance.sync(silently: true));
         }
+        final handledLocalIDs = {
+          ...cloudOnlyFiles.map((file) => file.localID).whereType<String>(),
+          ...result.successLocalIDs,
+        };
+        final handledFiles = {
+          ...cloudOnlyFiles,
+          ...selected.where((file) => handledLocalIDs.contains(file.localID)),
+        };
+        if (handledFiles.length == selected.length) {
+          widget.selectedFiles?.clearAll();
+        } else {
+          widget.selectedFiles?.unSelectAll(handledFiles);
+          if (context.mounted) {
+            showToast(
+              context,
+              context.strings.partiallyTransferredItems(
+                completedCount: handledFiles.length,
+                failedCount: selected.length - handledFiles.length,
+              ),
+            );
+          }
+        }
+        wasFullyHandled = handledFiles.length == selected.length;
       }
-      await dialog.hide();
-      return handledFiles.length == selected.length;
     } catch (error, stackTrace) {
+      failure = error;
+      failureStackTrace = stackTrace;
+    } finally {
+      await dialog.hide();
+    }
+    if (failure != null) {
       _logger.severe(
         "Could not move linked device-folder files",
-        error,
-        stackTrace,
+        failure,
+        failureStackTrace,
       );
-      await dialog.hide();
       if (!context.mounted) return false;
-      await showGenericErrorDialog(context: context, error: error);
+      await showGenericErrorDialog(context: context, error: failure);
       return false;
     }
+    return wasFullyHandled ?? false;
   }
 
   Future<bool> _restoreFilesToCollection(

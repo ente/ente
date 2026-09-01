@@ -94,6 +94,7 @@ class FilesDB with SqlDbBase {
     ...addFileMaterializationOrderIndex(),
     ...createDeviceFolderEnteMoveQueue(),
     ...addDeviceFolderEnteMoveQueueState(),
+    ...upgradeDeviceFolderEnteMoveQueueIdentity(),
   ];
 
   static const List<String> _columnNames = [
@@ -414,6 +415,54 @@ class FilesDB with SqlDbBase {
       '''
       DELETE FROM $deviceFolderEnteMoveQueueTable
       WHERE destination_collection_id IS NULL;
+      ''',
+    ];
+  }
+
+  static List<String> upgradeDeviceFolderEnteMoveQueueIdentity() {
+    const replacementTable = '${deviceFolderEnteMoveQueueTable}_replacement';
+    return [
+      '''
+      CREATE TABLE $replacementTable (
+        owner_id INTEGER NOT NULL,
+        source_path_id TEXT NOT NULL,
+        destination_path_id TEXT NOT NULL,
+        source_collection_id INTEGER NOT NULL,
+        destination_collection_id INTEGER NOT NULL,
+        local_id TEXT NOT NULL,
+        state TEXT NOT NULL DEFAULT 'ready',
+        created_at INTEGER NOT NULL,
+        UNIQUE(
+          owner_id, source_path_id, destination_path_id,
+          source_collection_id, destination_collection_id, local_id
+        )
+      );
+      ''',
+      '''
+      INSERT INTO $replacementTable (
+        owner_id, source_path_id, destination_path_id,
+        source_collection_id, destination_collection_id, local_id,
+        state, created_at
+      )
+      SELECT
+        owner_id, source_path_id, destination_path_id,
+        source_collection_id, destination_collection_id, local_id,
+        state, created_at
+      FROM $deviceFolderEnteMoveQueueTable;
+      ''',
+      '''
+      DROP TABLE $deviceFolderEnteMoveQueueTable;
+      ''',
+      '''
+      ALTER TABLE $replacementTable RENAME TO $deviceFolderEnteMoveQueueTable;
+      ''',
+      '''
+      CREATE INDEX dfemq_owner_idx
+      ON $deviceFolderEnteMoveQueueTable (owner_id, created_at);
+      ''',
+      '''
+      CREATE INDEX dfemq_owner_state_idx
+      ON $deviceFolderEnteMoveQueueTable (owner_id, state, created_at);
       ''',
     ];
   }

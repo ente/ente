@@ -69,7 +69,6 @@ void main() {
 
   test('recognizes a fully cancelled transfer', () {
     final result = DeviceFolderTransferResult.fromChannelMap({
-      'successLocalIDs': <String>[],
       'failures': {'one': 'cancelled', 'two': 'cancelled'},
     });
 

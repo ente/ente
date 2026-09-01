@@ -22,7 +22,7 @@ internal class DeviceFolderTransferService(private val context: Context) {
         sourceLocalIDs: List<String>,
     ): List<String> {
         if (!supports(operation)) return emptyList()
-        val sourcesByLocalID = mediaItems(sourceLocalIDs)
+        val sourcesByLocalID = mediaItems(sourceLocalIDs, sourceFolderID)
         val sources = sourceLocalIDs.map(sourcesByLocalID::get)
         if (sources.isEmpty() || sources.any { it?.bucketID != sourceFolderID }) return emptyList()
         val sourceKinds = sources.filterNotNull().distinctBy { it.mediaType to it.volumeName }
@@ -53,7 +53,7 @@ internal class DeviceFolderTransferService(private val context: Context) {
             return result(destinations, failures)
         }
         val targetNames = displayNames(target).toMutableSet()
-        val sourcesByLocalID = mediaItems(sourceLocalIDs)
+        val sourcesByLocalID = mediaItems(sourceLocalIDs, sourceFolderID)
         sourceLocalIDs.forEach { localID ->
             try {
                 val source = sourcesByLocalID[localID]
@@ -90,7 +90,7 @@ internal class DeviceFolderTransferService(private val context: Context) {
         val target = destination(targetFolderID) ?: return MoveConsentRequests()
         if (targetFolderID == sourceFolderID) return MoveConsentRequests()
         val writeURIs = mutableListOf<Uri>()
-        val sourcesByLocalID = mediaItems(sourceLocalIDs)
+        val sourcesByLocalID = mediaItems(sourceLocalIDs, sourceFolderID)
         sourceLocalIDs.forEach { localID ->
             val source = sourcesByLocalID[localID] ?: return@forEach
             if (source.bucketID != sourceFolderID) return@forEach
@@ -105,12 +105,15 @@ internal class DeviceFolderTransferService(private val context: Context) {
         failures: Map<String, String>,
     ): Map<String, Any> = mapOf("destinations" to destinations, "failures" to failures)
 
-    private fun mediaItems(localIDs: Collection<String>): Map<String, MediaItem> {
+    private fun mediaItems(
+        localIDs: Collection<String>,
+        sourceFolderID: String,
+    ): Map<String, MediaItem> {
         val originalIDsByMediaStoreID = localIDs
             .mapNotNull { localID -> localID.toLongOrNull()?.let { it to localID } }
             .groupBy({ it.first }, { it.second })
         if (originalIDsByMediaStoreID.isEmpty()) return emptyMap()
-        val items = mutableMapOf<String, MediaItem>()
+        val candidatesByLocalID = mutableMapOf<String, MutableList<MediaItem>>()
         originalIDsByMediaStoreID.keys.chunked(MAX_MEDIASTORE_QUERY_IDS).forEach { ids ->
             context.contentResolver.query(
                 MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
@@ -133,14 +136,25 @@ internal class DeviceFolderTransferService(private val context: Context) {
                         cursor.takeUnless { it.isNull(5) }?.getLong(5), bucketID,
                         cursor.takeUnless { it.isNull(7) }?.getString(7),
                     )
-                    originalIDsByMediaStoreID[id]?.forEach { items[it] = item }
+                    originalIDsByMediaStoreID[id]?.forEach { localID ->
+                        candidatesByLocalID
+                            .getOrPut(localID) { mutableListOf() }
+                            .add(item)
+                    }
                 }
             }
         }
-        return items
+        // A local ID does not encode its MediaStore volume. Refuse ambiguous
+        // merged-volume rows instead of choosing a potentially different file.
+        return candidatesByLocalID.mapNotNull { (localID, candidates) ->
+            candidates.singleOrNull { it.bucketID == sourceFolderID }?.let {
+                localID to it
+            }
+        }.toMap()
     }
 
-    private fun destination(bucketID: String): Destination? =
+    private fun destination(bucketID: String): Destination? {
+        val destinations = mutableSetOf<Destination>()
         context.contentResolver.query(
             MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
             arrayOf(MediaStore.MediaColumns.RELATIVE_PATH, MediaStore.MediaColumns.VOLUME_NAME),
@@ -148,14 +162,14 @@ internal class DeviceFolderTransferService(private val context: Context) {
             arrayOf(bucketID),
             null,
         )?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                cursor.getString(0)?.let { path ->
-                    cursor.getString(1)?.let { volume -> Destination(bucketID, path, volume) }
-                }
-            } else {
-                null
+            while (cursor.moveToNext()) {
+                val path = cursor.getString(0) ?: continue
+                val volume = cursor.getString(1) ?: continue
+                destinations.add(Destination(bucketID, path, volume))
             }
         }
+        return destinations.singleOrNull()
+    }
 
     private fun copy(
         source: MediaItem,

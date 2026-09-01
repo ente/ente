@@ -31,6 +31,7 @@ import 'package:photos/module/upload/service/local_file_update_service.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/app_lifecycle_service.dart';
 import 'package:photos/services/collections_service.dart';
+import 'package:photos/services/device_folder_confirmed_ente_move_queue.dart';
 import 'package:photos/services/hidden_service.dart';
 import 'package:photos/services/ignored_files_service.dart';
 import 'package:photos/services/language_service.dart';
@@ -380,6 +381,9 @@ class RemoteSyncService {
     deviceCollections.sort((a, b) => a.count.compareTo(b.count));
     final Map<String, Set<String>> pathIdToLocalIDs = await _db
         .getDevicePathIDToLocalIDMap();
+    final pendingMoveLocalIDsByDestination =
+        await DeviceFolderConfirmedEnteMoveQueue.instance
+            .pendingDestinationLocalIDsByFolder();
 
     final backNewPhotosOnly = backupPreferenceService.isOnlyNewBackupEnabled;
 
@@ -394,6 +398,9 @@ class RemoteSyncService {
     for (final deviceCollection in deviceCollections) {
       final Set<String> localIDsToSync =
           pathIdToLocalIDs[deviceCollection.id]?.toSet() ?? {};
+      localIDsToSync.removeAll(
+        pendingMoveLocalIDsByDestination[deviceCollection.id] ?? const {},
+      );
       if (deviceCollection.uploadStrategy == UploadStrategy.ifMissing) {
         final Set<String> alreadyClaimedLocalIDs = await _db
             .getLocalIDsMarkedForOrAlreadyUploaded(ownerID);

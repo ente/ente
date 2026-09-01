@@ -262,11 +262,11 @@ class SyncService {
       await _remoteSyncService.sync();
 
       final shouldSync = await _localSyncService.syncAll();
+      await _localSyncService.processPendingConfirmedDeviceFolderMoves();
       if (shouldSync) {
         _logger.info("[SYNC] Starting second remote sync");
         await _remoteSyncService.sync();
       }
-      await _localSyncService.processPendingConfirmedDeviceFolderMoves();
 
       if (!isProcessBg) {
         await smartAlbumsService.syncSmartAlbums();

@@ -26,6 +26,7 @@ internal class DeviceFolderTransferChannelAdapter : MethodChannel.MethodCallHand
     private var pendingLocalIDs: List<String> = emptyList()
     private var pendingConsentBatches: ArrayDeque<List<android.net.Uri>>? = null
     private var isConsentRequestInProgress = false
+    private var isTransferRunning = false
     private var transferExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile
@@ -54,7 +55,7 @@ internal class DeviceFolderTransferChannelAdapter : MethodChannel.MethodCallHand
         activityBinding?.removeActivityResultListener(this)
         activityBinding = null
         activity = null
-        if (cancelPendingConsent) {
+        if (cancelPendingConsent && !isTransferRunning) {
             if (pendingResult != null) completeWithFailures("cancelled")
         } else {
             isConsentRequestInProgress = false
@@ -258,6 +259,7 @@ internal class DeviceFolderTransferChannelAdapter : MethodChannel.MethodCallHand
     private fun clearPending() {
         pendingResult = null
         pendingLocalIDs = emptyList()
+        isTransferRunning = false
         clearPendingConsent()
     }
 
@@ -285,6 +287,7 @@ internal class DeviceFolderTransferChannelAdapter : MethodChannel.MethodCallHand
         result: MethodChannel.Result,
     ) {
         val generation = attachmentGeneration
+        isTransferRunning = true
         transferExecutor.execute {
             try {
                 val transferResult = service.transfer(

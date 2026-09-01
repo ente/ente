@@ -69,14 +69,8 @@ class _LinkedDeviceMoveSheetState extends State<_LinkedDeviceMoveSheet> {
     final remaining = widget.selectedCount - widget.eligibleCount;
     final strings = context.strings;
     final title = widget.deviceInitiated
-        ? strings.linkedDeviceMoveQuestion(
-            eligibleCount: widget.eligibleCount,
-            selectedCount: widget.selectedCount,
-          )
-        : strings.linkedDeviceMoveOnDeviceQuestion(
-            eligibleCount: widget.eligibleCount,
-            selectedCount: widget.selectedCount,
-          );
+        ? strings.linkedDeviceMoveQuestion
+        : strings.linkedDeviceMoveOnDeviceQuestion;
     return BottomSheetComponent(
       title: title,
       content: Column(
@@ -92,10 +86,20 @@ class _LinkedDeviceMoveSheetState extends State<_LinkedDeviceMoveSheet> {
           const SizedBox(height: Spacing.xl),
           Text(
             remaining == 0
-                ? strings.linkedDeviceMoveAllBackedUp
+                ? strings.linkedDeviceMoveAllBackedUp(
+                    count: widget.selectedCount,
+                  )
                 : widget.deviceInitiated
-                ? strings.linkedDeviceMoveRemainingDeviceOnly(count: remaining)
-                : strings.linkedDeviceMoveRemainingEnteOnly(count: remaining),
+                ? strings.linkedDeviceMoveRemainingDeviceOnly(
+                    eligibleCount: widget.eligibleCount,
+                    selectedCount: widget.selectedCount,
+                    count: remaining,
+                  )
+                : strings.linkedDeviceMoveRemainingEnteOnly(
+                    eligibleCount: widget.eligibleCount,
+                    selectedCount: widget.selectedCount,
+                    count: remaining,
+                  ),
             style: TextStyles.body.copyWith(
               color: context.componentColors.textLight,
             ),

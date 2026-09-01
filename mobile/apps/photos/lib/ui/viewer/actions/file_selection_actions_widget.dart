@@ -779,7 +779,11 @@ class _FileSelectionActionsWidgetState
         localIDs,
       );
       if (!context.mounted) return;
-      final backedUpFileCount = uploadedSourceLocalIDs.length;
+      final backedUpOrPendingLocalIDs = {
+        ...uploadedSourceLocalIDs,
+        ...FileUploader.instance.allBackups.keys.where(localIDs.contains),
+      };
+      final backedUpFileCount = backedUpOrPendingLocalIDs.length;
       if (operation == DeviceFolderTransferOperation.copy &&
           destination.shouldBackup &&
           backedUpFileCount > 0) {
@@ -908,7 +912,9 @@ class _FileSelectionActionsWidgetState
         'localReconciliationFailed=${result.localReconciliationFailed}, '
         'categories=${result.failures.values.map((value) => value.name).toSet()}',
       );
-      if (result.destinations.isNotEmpty && mounted) {
+      if (!result.localReconciliationFailed &&
+          result.destinations.isNotEmpty &&
+          mounted) {
         final destinationFolder =
             (await FilesDB.instance.getDeviceCollections()).firstWhereOrNull(
               (folder) => folder.id == destination.id,

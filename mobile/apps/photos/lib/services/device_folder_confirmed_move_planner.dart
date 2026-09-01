@@ -74,21 +74,16 @@ class DeviceFolderConfirmedMovePlanner {
       return null;
     }
     final pendingIDs = FileUploader.instance.allBackups.keys.toSet();
-    final folderIDsByLocalID = <String, Set<String>>{};
-    for (final entry
-        in (await FilesDB.instance.getDevicePathIDToLocalIDMap()).entries) {
-      for (final id in entry.value) {
-        if (ids.contains(id)) {
-          folderIDsByLocalID.putIfAbsent(id, () => <String>{}).add(entry.key);
-        }
-      }
-    }
+    final folderIDsByLocalID = await FilesDB.instance
+        .getDevicePathIDsForLocalIDs(ids);
     final uploaded = await FilesDB.instance.getUploadedFilesForLocalIDs(
       ids.difference(pendingIDs),
       collectionID: sourceCollectionID,
     );
+    final ownerID = Configuration.instance.getUserID();
     final filesByLocalID = <String, List<EnteFile>>{};
     for (final file in uploaded) {
+      if (file.ownerID != ownerID) continue;
       final id = file.localID;
       if (id != null) filesByLocalID.putIfAbsent(id, () => []).add(file);
     }
@@ -104,8 +99,6 @@ class DeviceFolderConfirmedMovePlanner {
     );
     final entries = <ConfirmedDeviceFolderMoveEntry>[];
     for (final id in eligibleLocalIDs) {
-      final files = filesByLocalID[id];
-      if (files == null) continue;
       entries.add(
         ConfirmedDeviceFolderMoveEntry(
           localID: id,

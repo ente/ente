@@ -193,8 +193,8 @@ class LocalSyncService {
     () async {
       try {
         await _syncAll();
-        await RemoteSyncService.instance.sync(silently: true);
         await DeviceFolderConfirmedEnteMoveQueue.instance.processPendingMoves();
+        await RemoteSyncService.instance.sync(silently: true);
       } catch (error, stackTrace) {
         _logger.warning(
           'Could not refresh local state after device-folder transfer',

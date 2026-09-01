@@ -154,6 +154,30 @@ extension DeviceFiles on FilesDB {
     return result;
   }
 
+  Future<Map<String, Set<String>>> getDevicePathIDsForLocalIDs(
+    Iterable<String> localIDs,
+  ) async {
+    final ids = localIDs.toSet().toList(growable: false);
+    if (ids.isEmpty) return const {};
+    final db = await sqliteAsyncDB;
+    final result = <String, Set<String>>{};
+    for (final batch in ids.slices(900)) {
+      final placeholders = List.filled(batch.length, '?').join(',');
+      final rows = await db.getAll(
+        'SELECT id, path_id FROM device_files '
+        'WHERE id IN ($placeholders)',
+        batch,
+      );
+      for (final row in rows) {
+        final localID = row['id'] as String;
+        result
+            .putIfAbsent(localID, () => <String>{})
+            .add(row['path_id'] as String);
+      }
+    }
+    return result;
+  }
+
   Future<Set<String>> getLocalIDsInBackupFolders(
     Set<String> localIDs,
     Set<int> excludedCollectionIDs,

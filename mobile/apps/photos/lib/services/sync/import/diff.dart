@@ -76,6 +76,7 @@ LocalDiffResult _getLocalAssetsDiff(Map<String, dynamic> args) {
   final Map<String, Set<String>> removedPathToLocalIDs =
       <String, Set<String>>{};
   final List<LocalPathAsset> unsyncedAssets = [];
+
   for (final localPathAsset in onDeviceLocalPathAsset) {
     final String pathID = localPathAsset.pathID;
     final Set<String> candidateLocalIDsForRemoval =
@@ -101,7 +102,6 @@ LocalDiffResult _getLocalAssetsDiff(Map<String, dynamic> args) {
       unsyncedAssets.add(localPathAsset);
     }
   }
-
   return LocalDiffResult(
     localPathAssets: unsyncedAssets,
     newPathToLocalIDs: newPathToLocalIDs,

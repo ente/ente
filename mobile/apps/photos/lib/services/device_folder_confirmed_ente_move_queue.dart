@@ -289,21 +289,8 @@ class DeviceFolderConfirmedEnteMoveQueue {
         destinationCollection.canLinkToDevicePath(ownerID);
   }
 
-  Future<Map<String, Set<String>>> _memberships(
-    Iterable<String> localIDs,
-  ) async {
-    final wanted = localIDs.toSet();
-    final result = <String, Set<String>>{};
-    for (final entry
-        in (await FilesDB.instance.getDevicePathIDToLocalIDMap()).entries) {
-      for (final localID in entry.value) {
-        if (wanted.contains(localID)) {
-          result.putIfAbsent(localID, () => <String>{}).add(entry.key);
-        }
-      }
-    }
-    return result;
-  }
+  Future<Map<String, Set<String>>> _memberships(Iterable<String> localIDs) =>
+      FilesDB.instance.getDevicePathIDsForLocalIDs(localIDs);
 
   bool _isOnlyInDestination(Set<String>? membership, String destinationID) =>
       membership?.length == 1 && membership!.single == destinationID;
@@ -325,6 +312,27 @@ class DeviceFolderConfirmedEnteMoveQueue {
       "SET state = 'ready' WHERE ${_queueWhere()} AND state = 'prepared';",
       move.params,
     );
+  }
+
+  Future<Map<String, Set<String>>> pendingDestinationLocalIDsByFolder() async {
+    if (!Platform.isAndroid) return const {};
+    final ownerID = Configuration.instance.getUserID();
+    if (ownerID == null) return const {};
+    final db = await FilesDB.instance.sqliteAsyncDB;
+    final rows = await db.getAll(
+      'SELECT destination_path_id, local_id '
+      'FROM ${FilesDB.deviceFolderEnteMoveQueueTable} '
+      "WHERE owner_id = ? AND state IN ('prepared', 'ready');",
+      [ownerID],
+    );
+    final result = <String, Set<String>>{};
+    for (final row in rows) {
+      final folderID = row['destination_path_id'] as String;
+      result
+          .putIfAbsent(folderID, () => <String>{})
+          .add(row['local_id'] as String);
+    }
+    return result;
   }
 
   Future<List<_QueuedMove>> _load(int ownerID, {String state = 'ready'}) async {

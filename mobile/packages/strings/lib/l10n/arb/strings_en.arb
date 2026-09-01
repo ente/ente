@@ -831,7 +831,7 @@
   "copiedToClipboard": "Copied to clipboard",
   "copyAllToClipboard": "Copy all to clipboard",
   "copyAnyway": "Copy anyway",
-  "copyAlreadyBackedUpFilesWarning": "{count, plural, one{This item is already backed up. The copy will be backed up too.} other{These {count} items are already backed up. Their copies will be backed up too.}}",
+  "copyAlreadyBackedUpFilesWarning": "{count, plural, one{This item is already backed up or being backed up. The copy will be backed up too.} other{These {count} items are already backed up or being backed up. Their copies will be backed up too.}}",
   "@copyAlreadyBackedUpFilesWarning": {
     "description": "Warning shown before copying already backed-up items into an automatically backed-up device folder",
     "placeholders": {
@@ -4981,29 +4981,28 @@
     }
   },
   "grantAccess": "Grant access",
-  "linkedDeviceMoveQuestion": "Move {eligibleCount} of {selectedCount} selected items in Ente too?",
-  "@linkedDeviceMoveQuestion": {
-    "placeholders": {
-      "eligibleCount": {"type": "int"},
-      "selectedCount": {"type": "int"}
-    }
-  },
-  "linkedDeviceMoveOnDeviceQuestion": "Move {eligibleCount} of {selectedCount} selected items on this device too?",
-  "@linkedDeviceMoveOnDeviceQuestion": {
-    "placeholders": {
-      "eligibleCount": {"type": "int"},
-      "selectedCount": {"type": "int"}
-    }
-  },
-  "linkedDeviceMoveRemainingDeviceOnly": "The remaining {count} {count, plural, one{item will} other{items will}} move only on this device.",
+  "linkedDeviceMoveQuestion": "Move in Ente too?",
+  "linkedDeviceMoveOnDeviceQuestion": "Move on device too?",
+  "linkedDeviceMoveRemainingDeviceOnly": "{eligibleCount} of {selectedCount} selected {selectedCount, plural, one{item} other{items}} can move on device and Ente. The remaining {count} {count, plural, one{item can} other{items can}} move only on this device.",
   "@linkedDeviceMoveRemainingDeviceOnly": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "eligibleCount": {"type": "int"},
+      "selectedCount": {"type": "int"},
+      "count": {"type": "int"}
+    }
   },
-  "linkedDeviceMoveRemainingEnteOnly": "The remaining {count} {count, plural, one{item will} other{items will}} move only in Ente.",
+  "linkedDeviceMoveRemainingEnteOnly": "{eligibleCount} of {selectedCount} selected {selectedCount, plural, one{item} other{items}} can move on device and Ente. The remaining {count} {count, plural, one{item can} other{items can}} move only in Ente.",
   "@linkedDeviceMoveRemainingEnteOnly": {
+    "placeholders": {
+      "eligibleCount": {"type": "int"},
+      "selectedCount": {"type": "int"},
+      "count": {"type": "int"}
+    }
+  },
+  "linkedDeviceMoveAllBackedUp": "{count} selected {count, plural, one{item can} other{items can}} move on device and Ente.",
+  "@linkedDeviceMoveAllBackedUp": {
     "placeholders": {"count": {"type": "int"}}
   },
-  "linkedDeviceMoveAllBackedUp": "All selected items are backed up in the linked folder.",
   "moveOnDeviceOnly": "Move on device only",
   "moveOnDeviceAndEnte": "Move on device and Ente",
   "moveInEnteOnly": "Move in Ente only"
