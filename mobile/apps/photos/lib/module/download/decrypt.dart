@@ -9,6 +9,7 @@ import 'package:photos/core/configuration.dart';
 import 'package:photos/core/network/network.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
+import 'package:photos/module/download/download_error.dart';
 import 'package:photos/module/download/file_url.dart';
 import 'package:photos/module/download/manager.dart';
 import 'package:photos/module/download/task.dart';
@@ -17,28 +18,14 @@ import 'package:photos/services/collections_service.dart';
 import 'package:photos/utils/device_storage_error.dart';
 import 'package:photos/utils/file_key.dart';
 
+export 'package:photos/module/download/download_error.dart';
+
 final _logger = Logger('file_download_util');
-
-class DownloadFailedError implements Exception {
-  final String message;
-
-  DownloadFailedError(this.message);
-
-  @override
-  String toString() => message;
-}
-
-class DownloadNoConnectionError extends DownloadFailedError {
-  DownloadNoConnectionError() : super('No connection');
-}
-
-class DownloadUnavailableError extends DownloadFailedError {
-  DownloadUnavailableError() : super('Unavailable');
-}
 
 Future<File?> _downloadAndDecryptPublicFile(
   EnteFile file, {
   ProgressCallback? progressCallback,
+  bool throwOnDecryptionFailure = false,
 }) async {
   final logPrefix = 'Public File-${file.uploadedFileID}:';
   _logger.info(
@@ -107,11 +94,17 @@ Future<File?> _downloadAndDecryptPublicFile(
         error,
         stackTrace,
       );
+      if (throwOnDecryptionFailure) {
+        throw DownloadDecryptionFailedError();
+      }
       return null;
     }
     return File(decryptedFilePath);
   } catch (error, stackTrace) {
     _logger.severe('$logPrefix failed to download', error, stackTrace);
+    if (throwOnDecryptionFailure && error is DownloadDecryptionFailedError) {
+      rethrow;
+    }
     return null;
   }
 }
@@ -121,11 +114,13 @@ Future<File?> downloadAndDecrypt(
   ProgressCallback? progressCallback,
   bool forceResumableDownload = false,
   bool throwOnFailure = false,
+  bool throwOnDecryptionFailure = false,
 }) async {
   if (CollectionsService.instance.isSharedPublicLink(file.collectionID!)) {
     return _downloadAndDecryptPublicFile(
       file,
       progressCallback: progressCallback,
+      throwOnDecryptionFailure: throwOnDecryptionFailure,
     );
   }
 
@@ -224,8 +219,8 @@ Future<File?> downloadAndDecrypt(
         error,
         stackTrace,
       );
-      if (throwOnFailure) {
-        throw DownloadFailedError('Failed to decrypt downloaded file');
+      if (throwOnFailure || throwOnDecryptionFailure) {
+        throw DownloadDecryptionFailedError();
       }
       return null;
     }
@@ -237,7 +232,8 @@ Future<File?> downloadAndDecrypt(
       error,
       stackTrace,
     );
-    if (throwOnFailure) {
+    if (throwOnFailure ||
+        (throwOnDecryptionFailure && error is DownloadDecryptionFailedError)) {
       if (error is DownloadFailedError) {
         rethrow;
       }

@@ -28,6 +28,9 @@ Future<LivePhotoFiles?> downloadLivePhotoFiles(
       progressCallback: progressCallback,
       forceResumableDownload: forGalleryDownload,
       throwOnFailure: forGalleryDownload,
+      // Keep decryption failures typed for getFileFromServer's caller-specific
+      // error handling, even when this download is shared with a prefetch.
+      throwOnDecryptionFailure: true,
     );
     if (decryptedFile == null) {
       return null;

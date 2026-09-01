@@ -1,0 +1,1 @@
+- Added a support dialog when an item cannot be decrypted in the viewer.

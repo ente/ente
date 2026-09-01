@@ -16,6 +16,7 @@ import "package:photos/events/stream_switched_event.dart";
 import "package:photos/events/video_mute_changed_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
+import 'package:photos/module/download/download_error.dart';
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/task.dart";
 import "package:photos/service_locator.dart";
@@ -302,6 +303,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   void _loadNetworkVideo() {
     getFileFromServer(
           widget.file,
+          throwOnDecryptionFailure: true,
           progressCallback: (count, total) {
             if (!mounted) {
               return;
@@ -321,11 +323,15 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
         })
         .onError((error, stackTrace) {
           if (!mounted) return;
-          showErrorDialog(
-            context,
-            context.strings.error,
-            context.strings.failedToDownloadVideo,
-          );
+          if (error is DownloadDecryptionFailedError) {
+            showDownloadDecryptionFailedDialog(context: context);
+          } else {
+            showErrorDialog(
+              context,
+              context.strings.error,
+              context.strings.failedToDownloadVideo,
+            );
+          }
         });
   }
 

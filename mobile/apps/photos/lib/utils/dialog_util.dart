@@ -6,6 +6,7 @@ import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:photos/core/constants.dart';
 import 'package:photos/models/button_result.dart';
 import 'package:photos/models/typedefs.dart';
 import "package:photos/module/download/manager.dart";
@@ -206,6 +207,37 @@ Future<ButtonResult?> showGenericErrorDialog({
     ],
   );
   return result;
+}
+
+Future<ButtonResult?> showDownloadDecryptionFailedDialog({
+  required BuildContext context,
+}) async {
+  final title = pendingTranslation('Download failed');
+  return showDialogWidget(
+    context: context,
+    title: title,
+    icon: Icons.error_outline_outlined,
+    body: pendingTranslation(
+      'This item could not be downloaded. Please reach out to us so we can help.',
+    ),
+    buttons: [
+      ButtonWidget(
+        buttonType: ButtonType.primary,
+        labelText: pendingTranslation('Contact us'),
+        buttonAction: ButtonAction.first,
+        isInAlert: true,
+        onTap: () async {
+          await sendLogs(
+            context,
+            title,
+            supportEmail,
+            subject: title,
+            postShare: () {},
+          );
+        },
+      ),
+    ],
+  );
 }
 
 Future<void> showGenericErrorBottomSheet({

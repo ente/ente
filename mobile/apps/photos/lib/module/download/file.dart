@@ -160,6 +160,7 @@ Future<File?> getFileFromServer(
   ProgressCallback? progressCallback,
   bool liveVideo = false, // only needed in case of live photos
   bool forGalleryDownload = false,
+  bool throwOnDecryptionFailure = false,
 }) async {
   final cacheManager = (file.fileType == FileType.video || liveVideo)
       ? VideoCacheManager.instance
@@ -174,33 +175,36 @@ Future<File?> getFileFromServer(
     _progressCallbacks[downloadID] = progressCallback;
   }
 
-  return _runOncePerKey(
-    _fileDownloadsInProgress,
-    downloadID,
-    () {
-      Future<File?> downloadFuture;
-      if (file.fileType == FileType.livePhoto) {
-        downloadFuture = _getLivePhotoFromServer(
-          file,
-          progressCallback: (count, total) {
-            _progressCallbacks[downloadID]?.call(count, total);
-          },
-          needLiveVideo: liveVideo,
-          forGalleryDownload: forGalleryDownload,
-        );
-      } else {
-        downloadFuture = _downloadAndCache(
-          file,
-          cacheManager,
-          progressCallback: (count, total) {
-            _progressCallbacks[downloadID]?.call(count, total);
-          },
-          forGalleryDownload: forGalleryDownload,
-        );
-      }
-      return downloadFuture;
-    },
-    onComplete: () => _progressCallbacks.remove(downloadID),
+  return handleDownloadDecryptionFailureForCaller(
+    _runOncePerKey(
+      _fileDownloadsInProgress,
+      downloadID,
+      () {
+        Future<File?> downloadFuture;
+        if (file.fileType == FileType.livePhoto) {
+          downloadFuture = _getLivePhotoFromServer(
+            file,
+            progressCallback: (count, total) {
+              _progressCallbacks[downloadID]?.call(count, total);
+            },
+            needLiveVideo: liveVideo,
+            forGalleryDownload: forGalleryDownload,
+          );
+        } else {
+          downloadFuture = _downloadAndCache(
+            file,
+            cacheManager,
+            progressCallback: (count, total) {
+              _progressCallbacks[downloadID]?.call(count, total);
+            },
+            forGalleryDownload: forGalleryDownload,
+          );
+        }
+        return downloadFuture;
+      },
+      onComplete: () => _progressCallbacks.remove(downloadID),
+    ),
+    rethrowDecryptionFailure: forGalleryDownload || throwOnDecryptionFailure,
   );
 }
 
@@ -238,7 +242,7 @@ Future<File?> _getLivePhotoFromServer(
     return needLiveVideo ? livePhoto.video : livePhoto.image;
   } catch (e, s) {
     _logger.warning("live photo get failed", e, s);
-    if (forGalleryDownload) {
+    if (forGalleryDownload || e is DownloadDecryptionFailedError) {
       rethrow;
     }
     return null;
@@ -256,6 +260,9 @@ Future<File?> _downloadAndCache(
         progressCallback: progressCallback,
         forceResumableDownload: forGalleryDownload,
         throwOnFailure: forGalleryDownload,
+        // The shared download future must retain the specific failure type.
+        // getFileFromServer decides per caller whether to surface or suppress it.
+        throwOnDecryptionFailure: true,
       )
       .then((decryptedFile) async {
         if (decryptedFile == null) {
