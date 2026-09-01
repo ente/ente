@@ -350,6 +350,10 @@ fn srgb_gray_profile() -> ColorProfile {
 }
 
 fn profile_is_effectively_srgb(profile: &ColorProfile) -> bool {
+    if profile_has_device_to_pcs_lut(profile) {
+        return false;
+    }
+
     match profile.color_space {
         DataColorSpace::Rgb => rgb_profile_is_effectively_srgb(profile),
         DataColorSpace::Gray => gray_profile_is_effectively_srgb(profile),
@@ -693,6 +697,35 @@ mod tests {
             "the LUT and matrix paths must disagree for this test to discriminate"
         );
 
+        let image =
+            DynamicImage::ImageRgb8(ImageBuffer::from_raw(4, 1, pixels).expect("valid RGB image"));
+
+        let actual = apply_icc_profile_to_srgb(image, Some(&icc))
+            .into_rgb8()
+            .into_raw();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn srgb_matrix_profile_with_lut_is_transformed_via_the_lut() {
+        let mut profile = ColorProfile::new_srgb();
+        profile.lut_a_to_b_perceptual = Some(identity_a_to_b_lut());
+        let icc = profile.encode().unwrap();
+        let parsed = ColorProfile::new_from_slice(&icc).unwrap();
+        let pixels = vec![0, 32, 64, 96, 128, 160, 192, 224, 255, 17, 91, 203];
+        let mut expected = vec![0; pixels.len()];
+        parsed
+            .create_transform_8bit(
+                Layout::Rgb,
+                &ColorProfile::new_srgb(),
+                Layout::Rgb,
+                TransformOptions::default(),
+            )
+            .unwrap()
+            .transform(&pixels, &mut expected)
+            .unwrap();
+        assert_ne!(expected, pixels);
         let image =
             DynamicImage::ImageRgb8(ImageBuffer::from_raw(4, 1, pixels).expect("valid RGB image"));
 
