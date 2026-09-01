@@ -804,6 +804,10 @@
       "provider": {}
     }
   },
+  "contactUs": "Contact us",
+  "@contactUs": {
+    "description": "Button label that opens options to contact Ente support"
+  },
   "continueInMailApp": "Continue in mail app",
   "continueLabel": "Continue",
   "@continueLabel": {
@@ -1174,6 +1178,10 @@
   "doubleTapToViewHiddenCode": "You can double tap on an entry to view code",
   "download": "Download",
   "downloadApplicationUpdate": "Download update",
+  "downloadDecryptionFailedMessage": "This item could not be downloaded. Please reach out to us so we can help.",
+  "@downloadDecryptionFailedMessage": {
+    "description": "Message shown in the viewer when a downloaded item cannot be decrypted"
+  },
   "downloadFailed": "Download failed",
   "downloading": "Downloading...",
   "downloadingProgress": "Downloading... {percentage}%",

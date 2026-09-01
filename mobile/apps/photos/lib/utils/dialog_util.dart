@@ -212,18 +212,16 @@ Future<ButtonResult?> showGenericErrorDialog({
 Future<ButtonResult?> showDownloadDecryptionFailedDialog({
   required BuildContext context,
 }) async {
-  final title = pendingTranslation('Download failed');
+  final title = context.strings.downloadFailed;
   return showDialogWidget(
     context: context,
     title: title,
     icon: Icons.error_outline_outlined,
-    body: pendingTranslation(
-      'This item could not be downloaded. Please reach out to us so we can help.',
-    ),
+    body: context.strings.downloadDecryptionFailedMessage,
     buttons: [
       ButtonWidget(
         buttonType: ButtonType.primary,
-        labelText: pendingTranslation('Contact us'),
+        labelText: context.strings.contactUs,
         buttonAction: ButtonAction.first,
         isInAlert: true,
         onTap: () async {
