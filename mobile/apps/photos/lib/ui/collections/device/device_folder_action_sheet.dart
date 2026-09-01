@@ -162,7 +162,10 @@ class _PreviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shown = files.take(4).toList(growable: false);
+    final shown = files
+        .where((file) => linkedLocalIDs.contains(file.localID))
+        .take(4)
+        .toList(growable: false);
     return SizedBox(
       height: _previewSize,
       child: Row(

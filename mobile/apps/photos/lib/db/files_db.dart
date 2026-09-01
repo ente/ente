@@ -64,6 +64,7 @@ class FilesDB with SqlDbBase {
   static const columnThumbnailDecryptionHeader = 'thumbnail_decryption_header';
   static const columnMetadataDecryptionHeader = 'metadata_decryption_header';
   static const columnFileSize = 'file_size';
+
   // MMD is magic metadata.
   static const columnMMdEncodedJson = 'mmd_encoded_json';
   static const columnMMdVersion = 'mmd_ver';
