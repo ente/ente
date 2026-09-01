@@ -618,6 +618,7 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
     final source = sourceFolders.single;
     final destination = destinationFolders.single;
     final selected = widget.selectedFiles!.files.toList(growable: false);
+    final successfulDeviceLocalIDs = <String>{};
     final localIDs = selected
         .map((file) => file.localID)
         .whereType<String>()
@@ -628,6 +629,8 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
       localIDs: localIDs,
     );
     if (plan == null || plan.entries.isEmpty) return null;
+    if (!await _supportsDeviceFolderMove()) return null;
+    if (!context.mounted) return false;
 
     final preference = localSettings.getLinkedDeviceMovePreference();
     bool includeDevice = preference == LinkedDeviceMovePreference.both;
@@ -677,6 +680,7 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
         ),
         confirmedMovePlan: plan,
       );
+      successfulDeviceLocalIDs.addAll(result.successLocalIDs);
       if (result.localReconciliationFailed) {
         throw StateError(
           'Could not reconcile the completed device-folder move',
@@ -744,10 +748,32 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
         failureStackTrace,
       );
       if (!context.mounted) return false;
+      if (successfulDeviceLocalIDs.isNotEmpty) {
+        widget.selectedFiles?.unSelectAll(
+          selected
+              .where((file) => successfulDeviceLocalIDs.contains(file.localID))
+              .toSet(),
+        );
+      }
       await showGenericErrorDialog(context: context, error: failure);
       return false;
     }
     return wasFullyHandled ?? false;
+  }
+
+  Future<bool> _supportsDeviceFolderMove() async {
+    try {
+      return (await DeviceFolderTransferClient().supportedOperations()).contains(
+        DeviceFolderTransferOperation.move,
+      );
+    } catch (error, stackTrace) {
+      _logger.warning(
+        'Could not load device-folder transfer capabilities',
+        error,
+        stackTrace,
+      );
+      return false;
+    }
   }
 
   Future<bool> _restoreFilesToCollection(

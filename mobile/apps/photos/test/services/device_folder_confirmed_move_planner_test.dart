@@ -35,16 +35,6 @@ void main() {
   test('recovers prepared rows only after full local and cloud validation', () {
     expect(
       resolvePreparedConfirmedMove(
-        localMappingAvailable: false,
-        mappingsValid: false,
-        onlyInDestination: false,
-        sourceRowCount: 0,
-      ),
-      ConfirmedMoveQueueDecision.defer,
-    );
-    expect(
-      resolvePreparedConfirmedMove(
-        localMappingAvailable: true,
         mappingsValid: true,
         onlyInDestination: true,
         sourceRowCount: 1,
@@ -53,7 +43,6 @@ void main() {
     );
     expect(
       resolvePreparedConfirmedMove(
-        localMappingAvailable: true,
         mappingsValid: false,
         onlyInDestination: true,
         sourceRowCount: 1,

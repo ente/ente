@@ -57,7 +57,7 @@ internal class DeviceFolderTransferChannelAdapter : MethodChannel.MethodCallHand
         activity = null
         if (cancelPendingConsent && !isTransferRunning) {
             if (pendingResult != null) completeWithFailures("cancelled")
-        } else {
+        } else if (cancelPendingConsent) {
             isConsentRequestInProgress = false
         }
     }

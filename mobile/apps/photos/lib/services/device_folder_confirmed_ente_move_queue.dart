@@ -15,12 +15,10 @@ import 'package:synchronized/synchronized.dart';
 enum ConfirmedMoveQueueDecision { defer, discard, ready, completed }
 
 ConfirmedMoveQueueDecision resolvePreparedConfirmedMove({
-  required bool localMappingAvailable,
   required bool mappingsValid,
   required bool onlyInDestination,
   required int sourceRowCount,
 }) {
-  if (!localMappingAvailable) return ConfirmedMoveQueueDecision.defer;
   return mappingsValid && onlyInDestination && sourceRowCount == 1
       ? ConfirmedMoveQueueDecision.ready
       : ConfirmedMoveQueueDecision.discard;
@@ -166,10 +164,12 @@ class DeviceFolderConfirmedEnteMoveQueue {
           source != null &&
           destination != null &&
           memberships[move.localID] != null;
-      if (!localMappingAvailable) continue;
+      if (!localMappingAvailable) {
+        await _delete([move]);
+        continue;
+      }
       final sourceFiles = await _sourceFiles(move);
       final decision = resolvePreparedConfirmedMove(
-        localMappingAvailable: localMappingAvailable,
         mappingsValid: _hasSavedLinkedMappings(move, source, destination),
         onlyInDestination: _isOnlyInDestination(
           memberships[move.localID],

@@ -871,12 +871,14 @@ class _FileSelectionActionsWidgetState
       }
       if (!mounted) return;
       final failures = result.failures.length;
-      final localReconciliationFailureCount = result.localReconciliationFailed
-          ? result.successLocalIDs.length
-          : 0;
-      if (failures == 0 &&
-          !result.localReconciliationFailed &&
-          result.successLocalIDs.isNotEmpty) {
+      if (result.localReconciliationFailed) {
+        widget.selectedFiles.unSelectAll(
+          selected
+              .where((file) => result.successLocalIDs.contains(file.localID))
+              .toSet(),
+        );
+        showToast(context, context.strings.somethingWentWrongPleaseTryAgain);
+      } else if (failures == 0 && result.successLocalIDs.isNotEmpty) {
         widget.selectedFiles.clearAll();
         showShortToast(
           context,
@@ -900,7 +902,7 @@ class _FileSelectionActionsWidgetState
           context,
           context.strings.partiallyTransferredItems(
             completedCount: result.successLocalIDs.length,
-            failedCount: failures + localReconciliationFailureCount,
+            failedCount: failures,
           ),
         );
       } else {
