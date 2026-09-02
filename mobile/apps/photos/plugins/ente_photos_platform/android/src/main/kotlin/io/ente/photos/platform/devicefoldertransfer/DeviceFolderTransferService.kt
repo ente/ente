@@ -23,9 +23,9 @@ internal class DeviceFolderTransferService(private val context: Context) {
     ): List<String> {
         if (!supports(operation)) return emptyList()
         val sourcesByLocalID = mediaItems(sourceLocalIDs, sourceFolderID)
-        val sources = sourceLocalIDs.map(sourcesByLocalID::get)
-        if (sources.isEmpty() || sources.any { it?.bucketID != sourceFolderID }) return emptyList()
-        val sourceKinds = sources.filterNotNull().distinctBy { it.mediaType to it.volumeName }
+        val sources = sourceLocalIDs.mapNotNull(sourcesByLocalID::get)
+        if (sources.isEmpty()) return emptyList()
+        val sourceKinds = sources.distinctBy { it.mediaType to it.volumeName }
         return candidateIDs.filter { candidateID ->
             val target = destination(candidateID) ?: return@filter false
             sourceKinds.all {

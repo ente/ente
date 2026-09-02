@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:connectivity_plus/connectivity_plus.dart";
 import "package:ente_components/ente_components.dart";
 import 'package:ente_photos_platform/ente_photos_platform.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
@@ -656,6 +657,12 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
     }
     if (!includeDevice) return null;
     if (!context.mounted) return false;
+    final connections = await Connectivity().checkConnectivity();
+    if (!context.mounted) return false;
+    if (!connections.any((result) => result != ConnectivityResult.none)) {
+      await showGenericErrorDialog(context: context, error: null);
+      return false;
+    }
 
     final dialog = createProgressDialog(
       context,
@@ -763,9 +770,8 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
 
   Future<bool> _supportsDeviceFolderMove() async {
     try {
-      return (await DeviceFolderTransferClient().supportedOperations()).contains(
-        DeviceFolderTransferOperation.move,
-      );
+      return (await DeviceFolderTransferClient().supportedOperations())
+          .contains(DeviceFolderTransferOperation.move);
     } catch (error, stackTrace) {
       _logger.warning(
         'Could not load device-folder transfer capabilities',

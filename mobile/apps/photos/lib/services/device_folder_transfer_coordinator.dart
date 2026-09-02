@@ -50,6 +50,9 @@ class DeviceFolderTransferCoordinator {
         ConfirmedDeviceFolderMovePlan? preparedPlan;
         if (confirmedMovePlan != null &&
             request.operation == DeviceFolderTransferOperation.move) {
+          final confirmedLocalIDs = confirmedMovePlan.entries
+              .map((entry) => entry.localID)
+              .toSet();
           preparedPlan = await DeviceFolderConfirmedMovePlanner.instance
               .planDeviceMove(
                 source: currentSource,
@@ -58,6 +61,13 @@ class DeviceFolderTransferCoordinator {
                   (entry) => entry.localID,
                 ),
               );
+          final revalidatedLocalIDs =
+              preparedPlan?.entries.map((entry) => entry.localID).toSet() ??
+              const <String>{};
+          if (confirmedLocalIDs.length != revalidatedLocalIDs.length ||
+              !confirmedLocalIDs.containsAll(revalidatedLocalIDs)) {
+            throw StateError('The confirmed linked move is no longer valid');
+          }
           if (preparedPlan != null && preparedPlan.entries.isNotEmpty) {
             await DeviceFolderConfirmedEnteMoveQueue.instance.prepare(
               preparedPlan,
