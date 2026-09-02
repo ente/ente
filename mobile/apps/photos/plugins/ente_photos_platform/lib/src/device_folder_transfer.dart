@@ -37,11 +37,13 @@ class DeviceFolderTransferResult {
   const DeviceFolderTransferResult({
     required this.destinations,
     required this.failures,
+    this.destinationTitles = const {},
     this.localReconciliationFailed = false,
   });
 
   final Map<String, String> destinations;
   final Map<String, DeviceFolderTransferFailure> failures;
+  final Map<String, String> destinationTitles;
   final bool localReconciliationFailed;
 
   Set<String> get successLocalIDs => destinations.keys.toSet();
@@ -50,6 +52,7 @@ class DeviceFolderTransferResult {
       DeviceFolderTransferResult(
         destinations: destinations,
         failures: failures,
+        destinationTitles: destinationTitles,
         localReconciliationFailed:
             localReconciliationFailed ?? this.localReconciliationFailed,
       );
@@ -62,6 +65,7 @@ class DeviceFolderTransferResult {
 
   factory DeviceFolderTransferResult.fromChannelMap(Map<dynamic, dynamic> map) {
     final destinations = <String, String>{};
+    final destinationTitles = <String, String>{};
     final rawDestinations =
         map['destinations'] as Map<dynamic, dynamic>? ?? const {};
     rawDestinations.forEach((sourceID, value) {
@@ -69,6 +73,10 @@ class DeviceFolderTransferResult {
         final localID = value['localID'];
         if (localID is String) {
           destinations[sourceID] = localID;
+          final title = value['title'];
+          if (title is String) {
+            destinationTitles[sourceID] = title;
+          }
         }
       }
     });
@@ -85,6 +93,7 @@ class DeviceFolderTransferResult {
     return DeviceFolderTransferResult(
       destinations: destinations,
       failures: failures,
+      destinationTitles: destinationTitles,
     );
   }
 }

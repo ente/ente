@@ -55,7 +55,7 @@ void main() {
   test('decodes valid per-file transfer outcomes', () {
     final result = DeviceFolderTransferResult.fromChannelMap({
       'destinations': {
-        'one': {'localID': 'new-one'},
+        'one': {'localID': 'new-one', 'title': 'renamed-one.jpg'},
       },
       'failures': {'two': 'missingSource', 'three': 'unknown'},
     });
@@ -63,6 +63,7 @@ void main() {
     expect(result.successLocalIDs, {'one'});
     expect(result.destinations, {'one': 'new-one'});
     expect(result.destinations['one'], 'new-one');
+    expect(result.destinationTitles, {'one': 'renamed-one.jpg'});
     expect(result.failures['two'], DeviceFolderTransferFailure.missingSource);
     expect(result.failures['three'], DeviceFolderTransferFailure.failed);
   });

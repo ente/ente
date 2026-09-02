@@ -205,7 +205,10 @@ internal class DeviceFolderTransferService(private val context: Context) {
                 throw IOException("Could not publish destination")
             }
             targetNames.add(name)
-            return mapOf("localID" to ContentUris.parseId(destination).toString())
+            return mapOf(
+                "localID" to ContentUris.parseId(destination).toString(),
+                "title" to name,
+            )
         } catch (error: Exception) {
             Log.e(TAG, "Could not copy MediaStore item; rolling back destination", error)
             try {
@@ -232,7 +235,10 @@ internal class DeviceFolderTransferService(private val context: Context) {
             throw IOException("MediaStore could not move source")
         }
         targetNames.add(name)
-        return mapOf("localID" to ContentUris.parseId(source.uri).toString())
+        return mapOf(
+            "localID" to ContentUris.parseId(source.uri).toString(),
+            "title" to name,
+        )
     }
 
     private fun plan(operation: String, source: MediaItem, target: Destination): Plan? {

@@ -516,6 +516,7 @@ class FilesDB with SqlDbBase {
     await db.execute('DELETE FROM $filesTable');
     await db.execute('DELETE FROM device_files');
     await db.execute('DELETE FROM device_collections');
+    await db.execute('DELETE FROM $deviceFolderEnteMoveQueueTable');
     await db.execute('DELETE FROM entities');
   }
 
@@ -1270,6 +1271,22 @@ class FilesDB with SqlDbBase {
         localID,
         ownerID,
       ],
+    );
+  }
+
+  Future<void> updateTitlesForLocalIDs(
+    int ownerID,
+    Map<String, String> titlesByLocalID,
+  ) async {
+    if (titlesByLocalID.isEmpty) return;
+    final db = await instance.sqliteAsyncDB;
+    await db.executeBatch(
+      'UPDATE $filesTable SET $columnTitle = ? '
+      'WHERE $columnLocalID = ? AND '
+      '($columnOwnerID = ? OR $columnOwnerID IS NULL);',
+      titlesByLocalID.entries
+          .map((entry) => [entry.value, entry.key, ownerID])
+          .toList(growable: false),
     );
   }
 

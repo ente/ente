@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:ente_photos_platform/ente_photos_platform.dart';
 import 'package:logging/logging.dart';
+import 'package:photos/core/configuration.dart';
+import 'package:photos/core/user_config.dart';
 import 'package:photos/db/device_files_db.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/models/device_collection.dart';
@@ -111,6 +113,10 @@ class DeviceFolderTransferCoordinator {
             result.destinations.isNotEmpty) {
           final movedLocalIDs = result.destinations.keys.toSet();
           try {
+            await FilesDB.instance.updateTitlesForLocalIDs(
+              Configuration.instance.getUserIDV2(),
+              result.destinationTitles,
+            );
             await FilesDB.instance.deletePathIDToLocalIDMapping({
               currentSource.id: movedLocalIDs,
             });

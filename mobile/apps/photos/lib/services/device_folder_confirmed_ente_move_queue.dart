@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
 import 'package:photos/db/device_files_db.dart';
@@ -134,15 +135,65 @@ class DeviceFolderConfirmedEnteMoveQueue {
     final memberships = await _memberships(
       queuedMoves.map((move) => move.localID),
     );
+    final readyMoves = <_ReadyQueuedMove>[];
     for (final move in queuedMoves) {
       try {
-        await _processReadyMove(move, folders, memberships[move.localID]);
+        final readyMove = await _processReadyMove(
+          move,
+          folders,
+          memberships[move.localID],
+        );
+        if (readyMove != null) readyMoves.add(readyMove);
       } catch (error, stackTrace) {
         _logger.warning(
           'Could not process confirmed device-folder move',
           error,
           stackTrace,
         );
+      }
+    }
+    final movesByCollectionPair = <(int, int), List<_ReadyQueuedMove>>{};
+    for (final readyMove in readyMoves) {
+      movesByCollectionPair
+          .putIfAbsent((
+            readyMove.move.sourceCollectionID,
+            readyMove.move.destinationCollectionID,
+          ), () => [])
+          .add(readyMove);
+    }
+    for (final readyMoves in movesByCollectionPair.values) {
+      final move = readyMoves.first.move;
+      try {
+        await CollectionsService.instance.move(
+          readyMoves.map((readyMove) => readyMove.file).toList(),
+          toCollectionID: move.destinationCollectionID,
+          fromCollectionID: move.sourceCollectionID,
+        );
+        await _delete(readyMoves.map((readyMove) => readyMove.move));
+      } catch (error, stackTrace) {
+        _logger.warning(
+          'Could not process confirmed device-folder move',
+          error,
+          stackTrace,
+        );
+        if (_shouldIsolateFailedBatch(error)) {
+          for (final readyMove in readyMoves) {
+            try {
+              await CollectionsService.instance.move(
+                [readyMove.file],
+                toCollectionID: readyMove.move.destinationCollectionID,
+                fromCollectionID: readyMove.move.sourceCollectionID,
+              );
+              await _delete([readyMove.move]);
+            } catch (error, stackTrace) {
+              _logger.warning(
+                'Could not process confirmed device-folder move',
+                error,
+                stackTrace,
+              );
+            }
+          }
+        }
       }
     }
   }
@@ -185,7 +236,7 @@ class DeviceFolderConfirmedEnteMoveQueue {
     }
   }
 
-  Future<void> _processReadyMove(
+  Future<_ReadyQueuedMove?> _processReadyMove(
     _QueuedMove move,
     Map<String, DeviceCollection> folders,
     Set<String>? membership,
@@ -210,10 +261,10 @@ class DeviceFolderConfirmedEnteMoveQueue {
           ? (await _destinationFiles(move)).length
           : 0,
     );
-    if (decision == ConfirmedMoveQueueDecision.defer) return;
+    if (decision == ConfirmedMoveQueueDecision.defer) return null;
     if (decision != ConfirmedMoveQueueDecision.ready) {
       await _delete([move]);
-      return;
+      return null;
     }
 
     final refreshed = {
@@ -226,7 +277,7 @@ class DeviceFolderConfirmedEnteMoveQueue {
         refreshedDestination == null ||
         !_hasSavedLinkedMappings(move, refreshedSource, refreshedDestination)) {
       await _delete([move]);
-      return;
+      return null;
     }
     final currentMembership = (await _memberships([
       move.localID,
@@ -251,17 +302,12 @@ class DeviceFolderConfirmedEnteMoveQueue {
       sourceRowCount: currentSourceFiles.length,
       destinationRowCount: currentDestinationFiles.length,
     );
-    if (currentDecision == ConfirmedMoveQueueDecision.defer) return;
+    if (currentDecision == ConfirmedMoveQueueDecision.defer) return null;
     if (currentDecision != ConfirmedMoveQueueDecision.ready) {
       await _delete([move]);
-      return;
+      return null;
     }
-    await CollectionsService.instance.move(
-      [currentSourceFiles.single.copyWith()],
-      toCollectionID: move.destinationCollectionID,
-      fromCollectionID: move.sourceCollectionID,
-    );
-    await _delete([move]);
+    return _ReadyQueuedMove(move, currentSourceFiles.single.copyWith());
   }
 
   bool _hasSavedLinkedMappings(
@@ -294,6 +340,12 @@ class DeviceFolderConfirmedEnteMoveQueue {
 
   bool _isOnlyInDestination(Set<String>? membership, String destinationID) =>
       membership?.length == 1 && membership!.single == destinationID;
+
+  bool _shouldIsolateFailedBatch(Object error) {
+    if (error is! DioException) return false;
+    final statusCode = error.response?.statusCode;
+    return statusCode == 400 || statusCode == 404 || statusCode == 409;
+  }
 
   Future<List<EnteFile>> _sourceFiles(_QueuedMove move) =>
       FilesDB.instance.getUploadedFilesForLocalIDs([
@@ -387,6 +439,13 @@ class DeviceFolderConfirmedEnteMoveQueue {
     entry.destinationCollectionID,
     entry.localID,
   ];
+}
+
+class _ReadyQueuedMove {
+  const _ReadyQueuedMove(this.move, this.file);
+
+  final _QueuedMove move;
+  final EnteFile file;
 }
 
 class _QueuedMove {
