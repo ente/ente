@@ -10,6 +10,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import java.io.IOException
+import java.util.TreeSet
 
 internal class DeviceFolderTransferService(private val context: Context) {
     fun supportedOperations(): List<String> =
@@ -52,7 +53,7 @@ internal class DeviceFolderTransferService(private val context: Context) {
             sourceLocalIDs.forEach { failures[it] = "ineligibleDestination" }
             return result(destinations, failures)
         }
-        val targetNames = displayNames(target).toMutableSet()
+        val targetNames = displayNames(target)
         val sourcesByLocalID = mediaItems(sourceLocalIDs, sourceFolderID)
         sourceLocalIDs.forEach { localID ->
             try {
@@ -265,18 +266,18 @@ internal class DeviceFolderTransferService(private val context: Context) {
         return candidate
     }
 
-    private fun displayNames(target: Destination): Set<String> =
-        context.contentResolver.query(
-            MediaStore.Files.getContentUri(target.volumeName),
-            arrayOf(MediaStore.MediaColumns.DISPLAY_NAME),
-            "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND ${MediaStore.MediaColumns.IS_PENDING}=0",
-            arrayOf(target.relativePath),
-            null,
-        )?.use { cursor ->
-            buildSet {
+    private fun displayNames(target: Destination): MutableSet<String> =
+        TreeSet<String>(String.CASE_INSENSITIVE_ORDER).apply {
+            context.contentResolver.query(
+                MediaStore.Files.getContentUri(target.volumeName),
+                arrayOf(MediaStore.MediaColumns.DISPLAY_NAME),
+                "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND ${MediaStore.MediaColumns.IS_PENDING}=0",
+                arrayOf(target.relativePath),
+                null,
+            )?.use { cursor ->
                 while (cursor.moveToNext()) cursor.getString(0)?.let(::add)
             }
-        } ?: emptySet()
+        }
 
     private fun destinationAnchorUri(target: Destination, mediaType: Int): Uri? {
         val id = context.contentResolver.query(

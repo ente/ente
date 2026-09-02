@@ -20,9 +20,13 @@ ConfirmedMoveQueueDecision resolvePreparedConfirmedMove({
   required bool onlyInDestination,
   required int sourceRowCount,
 }) {
-  return mappingsValid && onlyInDestination && sourceRowCount == 1
-      ? ConfirmedMoveQueueDecision.ready
-      : ConfirmedMoveQueueDecision.discard;
+  if (!mappingsValid || sourceRowCount > 1 || sourceRowCount == 0) {
+    return ConfirmedMoveQueueDecision.discard;
+  }
+  if (onlyInDestination && sourceRowCount == 1) {
+    return ConfirmedMoveQueueDecision.ready;
+  }
+  return ConfirmedMoveQueueDecision.defer;
 }
 
 ConfirmedMoveQueueDecision resolveReadyConfirmedMove({
@@ -165,7 +169,7 @@ class DeviceFolderConfirmedEnteMoveQueue {
       final move = readyMoves.first.move;
       try {
         await CollectionsService.instance.move(
-          readyMoves.map((readyMove) => readyMove.file).toList(),
+          readyMoves.map((readyMove) => readyMove.file.copyWith()).toList(),
           toCollectionID: move.destinationCollectionID,
           fromCollectionID: move.sourceCollectionID,
         );
@@ -180,7 +184,7 @@ class DeviceFolderConfirmedEnteMoveQueue {
           for (final readyMove in readyMoves) {
             try {
               await CollectionsService.instance.move(
-                [readyMove.file],
+                [readyMove.file.copyWith()],
                 toCollectionID: readyMove.move.destinationCollectionID,
                 fromCollectionID: readyMove.move.sourceCollectionID,
               );
@@ -228,6 +232,9 @@ class DeviceFolderConfirmedEnteMoveQueue {
         ),
         sourceRowCount: sourceFiles.length,
       );
+      if (decision == ConfirmedMoveQueueDecision.defer) {
+        continue;
+      }
       if (decision == ConfirmedMoveQueueDecision.discard) {
         await _delete([move]);
         continue;

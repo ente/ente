@@ -43,6 +43,14 @@ void main() {
     );
     expect(
       resolvePreparedConfirmedMove(
+        mappingsValid: true,
+        onlyInDestination: false,
+        sourceRowCount: 1,
+      ),
+      ConfirmedMoveQueueDecision.defer,
+    );
+    expect(
+      resolvePreparedConfirmedMove(
         mappingsValid: false,
         onlyInDestination: true,
         sourceRowCount: 1,
