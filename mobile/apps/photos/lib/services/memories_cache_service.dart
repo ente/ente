@@ -1395,12 +1395,7 @@ class MemoriesCacheService {
       ),
     );
     await _routeToPage(
-      flagService.internalUser
-          ? MemoryMusicSession(
-              memoryIDs: <String>[personMemory.id],
-              child: page,
-            )
-          : page,
+      MemoryMusicSession(memoryIDs: <String>[personMemory.id], child: page),
       context: context,
       forceCustomPageRoute: true,
     );

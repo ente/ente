@@ -35,6 +35,7 @@ import "package:photos/services/library_sharing_service.dart";
 import "package:photos/services/library_sharing_store.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
+import "package:photos/services/machine_learning/ml_decryption_record_store.dart";
 import "package:photos/services/magic_cache_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
@@ -62,6 +63,7 @@ class ServiceLocator {
   late final LocalSettings localSettings;
   late final BackupSettings backupSettings;
   late final EnteWakeLockService wakeLockService;
+  late final MlDecryptionRecordStore mlDecryptionRecordStore;
 
   ServiceLocator._privateConstructor();
 
@@ -83,6 +85,7 @@ class ServiceLocator {
     localSettings = LocalSettings(prefs);
     backupSettings = BackupSettings(prefs);
     wakeLockService = EnteWakeLockService();
+    mlDecryptionRecordStore = MlDecryptionRecordStore(prefs);
   }
 }
 
@@ -122,6 +125,9 @@ BackupSettings get backupSettings => ServiceLocator.instance.backupSettings;
 
 EnteWakeLockService get wakeLockService =>
     ServiceLocator.instance.wakeLockService;
+
+MlDecryptionRecordStore get mlDecryptionRecordStore =>
+    ServiceLocator.instance.mlDecryptionRecordStore;
 
 // True when showing local-device photos instead of an Ente account. Network
 // access may still be used.

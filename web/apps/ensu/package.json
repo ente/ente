@@ -15,6 +15,7 @@
         "@wllama/wllama": "2.4.0",
         "ente-base": "*",
         "ente-ensu-wasm": "*",
+        "ente-utils": "*",
         "idb": "8.0.3",
         "katex": "0.17.0",
         "react-markdown": "10.1.0",

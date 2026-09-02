@@ -718,7 +718,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
         })
         .onError((error, stackTrace) {
           if (!mounted) return;
-          if (error is DownloadDecryptionFailedError) {
+          if (error is DownloadDecryptionError) {
             showDownloadDecryptionFailedDialog(context: context);
           } else {
             showErrorDialog(

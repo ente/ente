@@ -1,22 +1,22 @@
 import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CircularProgress, styled } from "@mui/material";
-import type { DevSettingsPresentationProps } from "ente-new/photos/components/DevSettings";
-import { t } from "i18next";
-import type React from "react";
 import {
     AuthDialog,
     AuthDialogHeader,
     AuthDialogText,
     AuthDialogTitle,
-} from "./AuthDialog";
-import { Button } from "./Button";
+} from "ente-accounts/components/auth/AuthDialog";
+import { Button } from "ente-accounts/components/auth/Button";
 import {
     authBodyTypography,
     authDialogContentLayout,
     authFocusRing,
-} from "./styles";
-import { TextField } from "./TextField";
+} from "ente-accounts/components/auth/styles";
+import { TextField } from "ente-accounts/components/auth/TextField";
+import type { DevSettingsPresentationProps } from "ente-new/photos/components/DevSettings";
+import { t } from "i18next";
+import type React from "react";
 
 export function DevSettingsDialog({
     open,
@@ -82,7 +82,7 @@ export function DevSettingsDialog({
                     <StatusPill role="status">
                         <CircularProgress
                             size={18}
-                            sx={{ color: "var(--auth-app-primary)" }}
+                            sx={{ color: "var(--auth-ui-primary)" }}
                         />
                         <span>{t("auth_endpoint_checking")}</span>
                     </StatusPill>
@@ -115,8 +115,8 @@ const InfoLink = styled("a")({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: "4px",
-    color: "var(--auth-app-text-faint)",
-    "&:hover": { color: "var(--auth-app-text-muted)" },
+    color: "var(--auth-ui-text-faint)",
+    "&:hover": { color: "var(--auth-ui-text-muted)" },
     "&:focus-visible": authFocusRing,
 });
 
@@ -127,9 +127,9 @@ const StatusPill = styled("div")({
     gap: "10px",
     padding: "12px 14px",
     borderRadius: "20px",
-    backgroundColor: "var(--auth-app-button-secondary)",
-    boxShadow: "inset 0 0 0 1px var(--auth-app-stroke)",
-    color: "var(--auth-app-text-muted)",
+    backgroundColor: "var(--auth-ui-button-secondary)",
+    boxShadow: "inset 0 0 0 1px var(--auth-ui-stroke)",
+    color: "var(--auth-ui-text-muted)",
     "& > svg, & > .MuiCircularProgress-root": { flexShrink: 0 },
 });
 

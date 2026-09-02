@@ -23,10 +23,12 @@ func (c ClaimScope) Ptr() *ClaimScope {
 }
 
 type WebCommonJWTClaim struct {
-	UserID     int64       `json:"userID,omitempty"`
-	ExpiryTime int64       `json:"expiryTime,omitempty"`
-	Email      string      `json:"email,omitempty"`
-	ClaimScope *ClaimScope `json:"claimScope,omitempty"`
+	UserID           int64       `json:"userID,omitempty"`
+	ExpiryTime       int64       `json:"expiryTime,omitempty"`
+	Email            string      `json:"email,omitempty"`
+	ClaimScope       *ClaimScope `json:"claimScope,omitempty"`
+	SessionTokenHash []byte      `json:"sessionTokenHash,omitempty"`
+	SessionApp       string      `json:"sessionApp,omitempty"`
 }
 
 func (w *WebCommonJWTClaim) GetScope() ClaimScope {

@@ -24,7 +24,7 @@ type authRouteTestTokens struct {
 }
 
 func TestRejectAuthAppKeepsAuthRoutesAndBlocksStorageRoutes(t *testing.T) {
-	router, tokens := setupAuthRouteTest(t)
+	router, tokens, _ := setupAuthRouteTest(t)
 
 	tests := []struct {
 		name       string
@@ -136,7 +136,26 @@ func TestRejectAuthAppKeepsAuthRoutesAndBlocksStorageRoutes(t *testing.T) {
 	}
 }
 
-func setupAuthRouteTest(t *testing.T) (*gin.Engine, authRouteTestTokens) {
+func TestSessionBoundJWTRejectsRevokedOriginSession(t *testing.T) {
+	router, tokens, userController := setupAuthRouteTest(t)
+
+	boundJWT, err := userController.GetSessionJWTToken(91001, jwt.FAMILIES, tokens.auth, ente.Auth)
+	if err != nil {
+		t.Fatalf("failed to create session-bound JWT: %v", err)
+	}
+	if recorder := performAuthRouteRequest(router, "/family/test", boundJWT, "io.ente.photos"); recorder.Code != http.StatusNoContent {
+		t.Fatalf("active session JWT status = %d, want %d; body=%s", recorder.Code, http.StatusNoContent, recorder.Body.String())
+	}
+
+	if err := userController.TerminateSession(91001, tokens.auth); err != nil {
+		t.Fatalf("terminate origin session: %v", err)
+	}
+	if recorder := performAuthRouteRequest(router, "/family/test", boundJWT, "io.ente.photos"); recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("revoked session JWT status = %d, want %d; body=%s", recorder.Code, http.StatusUnauthorized, recorder.Body.String())
+	}
+}
+
+func setupAuthRouteTest(t *testing.T) (*gin.Engine, authRouteTestTokens, *usercontroller.UserController) {
 	t.Helper()
 
 	testutil.WithServerRoot(t)
@@ -157,7 +176,12 @@ func setupAuthRouteTest(t *testing.T) (*gin.Engine, authRouteTestTokens) {
 		photos: "auth-route-test-photos-token",
 		locker: "auth-route-test-locker-token",
 	}
-	userController := &usercontroller.UserController{JwtSecret: []byte("auth-route-test-jwt-secret")}
+	authCache := cache.New(time.Minute, time.Minute)
+	userController := &usercontroller.UserController{
+		UserAuthRepo: userAuthRepo,
+		Cache:        authCache,
+		JwtSecret:    []byte("auth-route-test-jwt-secret"),
+	}
 	var err error
 	tokens.family, err = userController.GetJWTToken(userID, jwt.FAMILIES)
 	if err != nil {
@@ -175,7 +199,7 @@ func setupAuthRouteTest(t *testing.T) (*gin.Engine, authRouteTestTokens) {
 	router := gin.New()
 	authMiddleware := &AuthMiddleware{
 		UserAuthRepo:   userAuthRepo,
-		Cache:          cache.New(time.Minute, time.Minute),
+		Cache:          authCache,
 		UserController: userController,
 	}
 	privateAPI := router.Group("/")
@@ -213,7 +237,7 @@ func setupAuthRouteTest(t *testing.T) (*gin.Engine, authRouteTestTokens) {
 		c.Status(http.StatusNoContent)
 	})
 
-	return router, tokens
+	return router, tokens, userController
 }
 
 func addTokenForTest(t *testing.T, userAuthRepo *repo.UserAuthRepository, userID int64, app ente.App, token string) {

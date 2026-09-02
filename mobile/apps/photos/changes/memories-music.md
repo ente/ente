@@ -1,1 +1,1 @@
-- (i) Added music and audio controls to memories.
+- Added music and audio controls to memories.

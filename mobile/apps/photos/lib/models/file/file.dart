@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -58,15 +60,28 @@ class EnteFile {
     if (_pubMmdEncodedJson == value) return;
     _pubMmdEncodedJson = value;
     _pubMmd = null;
+    _dimensionsDecoded = false;
   }
 
   int pubMmdVersion = 0;
   PubMagicMetadata? _pubMmd;
+  int _width = 0;
+  int _height = 0;
+  bool _dimensionsDecoded = false;
 
   PubMagicMetadata? get pubMagicMetadata =>
       _pubMmd ??= PubMagicMetadata.fromEncodedJson(pubMmdEncodedJson ?? '{}');
 
-  set pubMagicMetadata(PubMagicMetadata? val) => _pubMmd = val;
+  set pubMagicMetadata(PubMagicMetadata? val) {
+    _pubMmd = val;
+    if (val == null) {
+      _dimensionsDecoded = false;
+      return;
+    }
+    _width = val.w ?? 0;
+    _height = val.h ?? 0;
+    _dimensionsDecoded = true;
+  }
 
   // in Version 1, live photo hash is stored as zip's hash.
   // in V2: LivePhoto hash is stored as imgHash:vidHash
@@ -195,11 +210,43 @@ class EnteFile {
   }
 
   int get height {
-    return pubMagicMetadata?.h ?? 0;
+    _decodeDimensions();
+    return _height;
   }
 
   int get width {
-    return pubMagicMetadata?.w ?? 0;
+    _decodeDimensions();
+    return _width;
+  }
+
+  void _decodeDimensions() {
+    if (_dimensionsDecoded) return;
+    if (_pubMmd != null) {
+      _width = _pubMmd!.w ?? 0;
+      _height = _pubMmd!.h ?? 0;
+    } else {
+      // Gallery layout only needs these two fields. Decode them without
+      // materializing and retaining PubMagicMetadata for every gallery file.
+      _width = 0;
+      _height = 0;
+      try {
+        final metadata = jsonDecode(pubMmdEncodedJson ?? '{}');
+        if (metadata is Map<String, dynamic>) {
+          _width =
+              PubMagicMetadata.safeParseInt(metadata[widthKey], widthKey) ?? 0;
+          _height =
+              PubMagicMetadata.safeParseInt(metadata[heightKey], heightKey) ??
+              0;
+        }
+      } on FormatException catch (error, stackTrace) {
+        _logger.severe(
+          "Failed to decode public metadata dimensions for file $tag",
+          error,
+          stackTrace,
+        );
+      }
+    }
+    _dimensionsDecoded = true;
   }
 
   bool get hasDimensions {

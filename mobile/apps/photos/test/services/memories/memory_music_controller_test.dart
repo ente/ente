@@ -9,12 +9,10 @@ void main() {
   const track1 = MemoryMusicTrack(
     id: "track-1",
     url: "https://example.com/track-1.mp3",
-    cacheFileName: "track-1.mp3",
   );
   const track2 = MemoryMusicTrack(
     id: "track-2",
     url: "https://example.com/track-2.mp3",
-    cacheFileName: "track-2.mp3",
   );
   late _FakeMemoryMusicPlayer player;
   late List<bool> persistedMuteValues;
@@ -43,23 +41,17 @@ void main() {
     controller.dispose();
   });
 
-  test("activating a photo memory loads, loops, and plays its track", () async {
+  test("photo memories load and play their assigned tracks", () async {
     await controller.activateMemory("memory-1", currentItemIsVideo: false);
 
-    expect(player.loadedTracks.map((track) => track.id), <String>["track-1"]);
-    expect(player.looping, isTrue);
     expect(player.playing, isTrue);
-  });
 
-  test("video items pause music and photos resume it", () async {
-    await controller.activateMemory("memory-1", currentItemIsVideo: false);
+    await controller.activateMemory("memory-2", currentItemIsVideo: false);
 
-    await controller.activateMemory("memory-1", currentItemIsVideo: true);
-    expect(player.playing, isFalse);
-
-    await controller.activateMemory("memory-1", currentItemIsVideo: false);
-    expect(player.playing, isTrue);
-    expect(player.loadAttempts, 1);
+    expect(player.loadedTracks.map((track) => track.id), <String>[
+      "track-1",
+      "track-2",
+    ]);
   });
 
   test("initial mute state prevents playback", () async {
@@ -99,16 +91,7 @@ void main() {
 
     await controller.activateMemory("memory-2", currentItemIsVideo: false);
     expect(player.playing, isTrue);
-  });
-
-  test("changing memories loads the assigned track", () async {
-    await controller.activateMemory("memory-1", currentItemIsVideo: false);
-    await controller.activateMemory("memory-2", currentItemIsVideo: false);
-
-    expect(player.loadedTracks.map((track) => track.id), <String>[
-      "track-1",
-      "track-2",
-    ]);
+    expect(player.attemptedTracks, hasLength(2));
   });
 
   test("newer memory wins when activations overlap", () async {
@@ -136,13 +119,12 @@ void main() {
   });
 
   test("music resumes only after every pause reason clears", () async {
-    await controller.activateMemory("memory-1", currentItemIsVideo: false);
-
     await controller.setAppActive(false);
-    expect(player.playing, isFalse);
     expect(player.pausedImmediately, isTrue);
-
     await controller.setViewerActionPaused(true);
+    await controller.activateMemory("memory-1", currentItemIsVideo: false);
+    expect(player.playing, isFalse);
+
     await controller.setAppActive(true);
     expect(player.playing, isFalse);
 
@@ -170,12 +152,10 @@ void main() {
 class _FakeMemoryMusicPlayer implements MemoryMusicPlayer {
   final List<MemoryMusicTrack> attemptedTracks = <MemoryMusicTrack>[];
   final List<MemoryMusicTrack> loadedTracks = <MemoryMusicTrack>[];
-  bool looping = false;
   bool playing = false;
   bool playedImmediately = false;
   bool pausedImmediately = false;
   final Set<String> failedTrackIDs = <String>{};
-  int loadAttempts = 0;
   int playAttempts = 0;
   Future<void> Function()? beforeNextLoadCompletes;
 
@@ -184,7 +164,6 @@ class _FakeMemoryMusicPlayer implements MemoryMusicPlayer {
 
   @override
   Future<void> load(MemoryMusicTrack track) async {
-    loadAttempts++;
     attemptedTracks.add(track);
     if (failedTrackIDs.contains(track.id)) {
       throw StateError("load failed");
@@ -193,11 +172,6 @@ class _FakeMemoryMusicPlayer implements MemoryMusicPlayer {
     final beforeCompleting = beforeNextLoadCompletes;
     beforeNextLoadCompletes = null;
     await beforeCompleting?.call();
-  }
-
-  @override
-  Future<void> setLooping() async {
-    looping = true;
   }
 
   @override

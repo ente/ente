@@ -34,6 +34,7 @@ Future<File?> getFile(
   bool liveVideo = false,
   bool isOrigin = false,
   bool forGalleryDownload = false, // only relevant for live photos
+  bool throwOnDecryptionFailure = false,
 }) async {
   try {
     if (file.isRemoteOnlyFile) {
@@ -41,6 +42,7 @@ Future<File?> getFile(
         file,
         liveVideo: liveVideo,
         forGalleryDownload: forGalleryDownload,
+        throwOnDecryptionFailure: throwOnDecryptionFailure,
       );
     } else {
       final String key = file.tag + liveVideo.toString() + isOrigin.toString();
@@ -62,7 +64,8 @@ Future<File?> getFile(
     }
   } catch (e, s) {
     _logger.warning("Failed to get file", e, s);
-    if (forGalleryDownload) {
+    if (forGalleryDownload ||
+        (throwOnDecryptionFailure && e is DownloadDecryptionError)) {
       rethrow;
     }
     return null;
@@ -175,35 +178,36 @@ Future<File?> getFileFromServer(
     _progressCallbacks[downloadID] = progressCallback;
   }
 
+  final download = _runOncePerKey(
+    _fileDownloadsInProgress,
+    downloadID,
+    () {
+      Future<File?> downloadFuture;
+      if (file.fileType == FileType.livePhoto) {
+        downloadFuture = _getLivePhotoFromServer(
+          file,
+          progressCallback: (count, total) {
+            _progressCallbacks[downloadID]?.call(count, total);
+          },
+          needLiveVideo: liveVideo,
+          forGalleryDownload: forGalleryDownload,
+        );
+      } else {
+        downloadFuture = _downloadAndCache(
+          file,
+          cacheManager,
+          progressCallback: (count, total) {
+            _progressCallbacks[downloadID]?.call(count, total);
+          },
+          forGalleryDownload: forGalleryDownload,
+        );
+      }
+      return downloadFuture;
+    },
+    onComplete: () => _progressCallbacks.remove(downloadID),
+  );
   return handleDownloadDecryptionFailureForCaller(
-    _runOncePerKey(
-      _fileDownloadsInProgress,
-      downloadID,
-      () {
-        Future<File?> downloadFuture;
-        if (file.fileType == FileType.livePhoto) {
-          downloadFuture = _getLivePhotoFromServer(
-            file,
-            progressCallback: (count, total) {
-              _progressCallbacks[downloadID]?.call(count, total);
-            },
-            needLiveVideo: liveVideo,
-            forGalleryDownload: forGalleryDownload,
-          );
-        } else {
-          downloadFuture = _downloadAndCache(
-            file,
-            cacheManager,
-            progressCallback: (count, total) {
-              _progressCallbacks[downloadID]?.call(count, total);
-            },
-            forGalleryDownload: forGalleryDownload,
-          );
-        }
-        return downloadFuture;
-      },
-      onComplete: () => _progressCallbacks.remove(downloadID),
-    ),
+    download,
     rethrowDecryptionFailure: forGalleryDownload || throwOnDecryptionFailure,
   );
 }
@@ -242,7 +246,7 @@ Future<File?> _getLivePhotoFromServer(
     return needLiveVideo ? livePhoto.video : livePhoto.image;
   } catch (e, s) {
     _logger.warning("live photo get failed", e, s);
-    if (forGalleryDownload || e is DownloadDecryptionFailedError) {
+    if (forGalleryDownload || e is DownloadDecryptionError) {
       rethrow;
     }
     return null;
@@ -260,9 +264,6 @@ Future<File?> _downloadAndCache(
         progressCallback: progressCallback,
         forceResumableDownload: forGalleryDownload,
         throwOnFailure: forGalleryDownload,
-        // The shared download future must retain the specific failure type.
-        // getFileFromServer decides per caller whether to surface or suppress it.
-        throwOnDecryptionFailure: true,
       )
       .then((decryptedFile) async {
         if (decryptedFile == null) {

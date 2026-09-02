@@ -27,6 +27,7 @@ import "package:photos/services/machine_learning/face_ml/face_clustering/face_cl
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
 import "package:photos/services/machine_learning/face_ml/face_detection/detection.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import "package:photos/services/machine_learning/ml_exceptions.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_process_lock.dart";
@@ -1081,6 +1082,9 @@ class MLService {
         _logger.info(
           "Stored empty ML result markers for fileID ${instruction.fileKey}: ${storedMarkers.join(', ')}",
         );
+        if (e is RepeatedFileDecryptionError) {
+          await mlDecryptionRecordStore.add(instruction.fileKey);
+        }
         indexedOrSkipped = true;
         return true;
       }

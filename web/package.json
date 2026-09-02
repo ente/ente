@@ -33,6 +33,7 @@
         "build:space-wasm": "npm run build --workspace ente-space-wasm",
         "build:twoof3": "npm exec --workspace twoof3 -- next build --webpack",
         "build:wasm": "npm run build:core-wasm && npm run build:cast-wasm && npm run build:ensu-wasm && npm run build:legacy-wasm && npm run build:locker-wasm && npm run build:paste-wasm && npm run build:photos-wasm && npm run build:space-wasm",
+        "check:wasm-imports": "eslint --config scripts/wasm-imports/eslint.config.mjs --parser @typescript-eslint/parser --no-inline-config --max-warnings 0 apps packages && node scripts/wasm-imports/entrypoints.mjs && node --test scripts/wasm-imports/test.mjs",
         "dev": "npm run dev:photos",
         "dev:accounts": "npm run build:core-wasm && npm exec --workspace accounts -- next dev --webpack -p 3001",
         "dev:albums": "npm run build:core-wasm && npm exec --workspace albums -- next dev --webpack -p 3002",
@@ -49,7 +50,7 @@
         "dev:share": "npm run build:core-wasm && npm exec --workspace share -- next dev --webpack -p 3005",
         "dev:space": "npm run build:core-wasm && npm run build:space-wasm && npm exec --workspace space -- next dev --webpack -p 3013",
         "dev:twoof3": "npm exec --workspace twoof3 -- next dev --webpack -p 3012",
-        "lint": "concurrently --names 'prettier,eslint,tsc' \"prettier --check --log-level warn .\" \"npm exec --workspaces -- eslint --max-warnings 0\" \"npm exec --workspaces -- tsc\"",
+        "lint": "concurrently --names 'prettier,eslint,tsc,wasm-imports' \"prettier --check --log-level warn .\" \"npm exec --workspaces -- eslint --max-warnings 0\" \"npm exec --workspaces -- tsc\" \"npm run check:wasm-imports\"",
         "lint:fix": "concurrently --names 'prettier,eslint,tsc' \"prettier --write --log-level warn .\" \"npm exec --workspaces -- eslint --fix --max-warnings 0\" \"npm exec --workspaces -- tsc\"",
         "test": "npm run test --workspace ente-core-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace locker && npm run test --workspace photos"
     },

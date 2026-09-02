@@ -5,8 +5,6 @@ abstract interface class MemoryMusicPlayer {
 
   Future<void> load(MemoryMusicTrack track);
 
-  Future<void> setLooping();
-
   Future<void> play();
 
   Future<void> playImmediately();

@@ -14,6 +14,10 @@ import { ensureOk, publicRequestHeaders } from "ente-base/http";
 import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";
 import { removeAuthToken } from "ente-base/token";
+import {
+    decryptSpaceRootEntityKey,
+    encryptSpaceRootEntityKey,
+} from "ente-space-wasm";
 import { spaceBootstrapAuthHeaders } from "services/bootstrap-auth";
 import {
     clearSpaceSecureSessionStorage,
@@ -259,10 +263,8 @@ export const getOrCreateSpaceRootKey = async (
     masterKey: string,
     authToken: string,
 ) => {
-    const { decryptSpaceRootEntityKey, encryptSpaceRootEntityKey } =
-        await import("ente-space-wasm");
     const candidate = await generateKey();
-    const encryptedKey = encryptSpaceRootEntityKey(candidate, masterKey);
+    const encryptedKey = await encryptSpaceRootEntityKey(candidate, masterKey);
     const splitKey = await splitSpaceEntityKey(encryptedKey);
     const res = await fetch(await apiURL("/user-entity/key/ensure"), {
         method: "POST",
@@ -274,7 +276,7 @@ export const getOrCreateSpaceRootKey = async (
     });
     ensureOk(res);
     const ensured = SpaceEntityKeyResponse.parse(await res.json());
-    return decryptSpaceRootEntityKey(
+    return await decryptSpaceRootEntityKey(
         await combineSpaceEntityKey(ensured),
         masterKey,
     );

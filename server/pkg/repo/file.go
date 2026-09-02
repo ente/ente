@@ -99,7 +99,7 @@ func (repo *FileRepository) Create(
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
-	usage, err := repo.updateUsage(ctx, tx, file.OwnerID, usageDiff)
+	usage, err := repo.updateUsageForFileCreation(ctx, tx, file.OwnerID, usageDiff, app)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
@@ -159,6 +159,11 @@ func (repo *FileRepository) CreateMetaFile(
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
 			WHERE collection_id = $2`, metaFile.UpdationTime, metaFile.CollectionID)
 	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	_, err = repo.updateUsageForFileCreation(ctx, tx, metaFile.OwnerID, 0, app)
+	if err != nil {
+		tx.Rollback()
 		return nil, stacktrace.Propagate(err, "")
 	}
 	err = tx.Commit()
@@ -308,7 +313,7 @@ func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	_, err = repo.updateUsage(ctx, tx, file.OwnerID, usageDiff)
+	_, err = repo.updateUsage(ctx, tx, file.OwnerID, usageDiff, 0, 0)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -445,7 +450,7 @@ func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, u
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	_, err = repo.updateUsage(ctx, tx, userID, usageDiff)
+	_, err = repo.updateUsage(ctx, tx, userID, usageDiff, 0, 0)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -770,29 +775,39 @@ func (repo *FileRepository) scheduleDeletion(ctx context.Context, tx *sql.Tx, fi
 		totalObjectSize += object.FileSize
 	}
 	diff = diff - (totalObjectSize)
-	_, err = repo.updateUsage(ctx, tx, userID, diff)
+	_, err = repo.updateUsage(ctx, tx, userID, diff, 0, 0)
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *FileRepository) updateUsage(ctx context.Context, tx *sql.Tx, userID int64, diff int64) (int64, error) {
-	row := tx.QueryRowContext(ctx, `SELECT storage_consumed FROM usage WHERE user_id = $1 FOR UPDATE`, userID)
-	var usage int64
-	err := row.Scan(&usage)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			usage = 0
-		} else {
-			return -1, stacktrace.Propagate(err, "")
-		}
+func (repo *FileRepository) updateUsageForFileCreation(ctx context.Context, tx *sql.Tx, userID, storageDiff int64, app ente.App) (int64, error) {
+	switch app {
+	case ente.Photos:
+		return repo.updateUsage(ctx, tx, userID, storageDiff, 1, 0)
+	case ente.Locker:
+		return repo.updateUsage(ctx, tx, userID, storageDiff, 0, 1)
+	default:
+		return -1, stacktrace.Propagate(ente.ErrInvalidApp, "")
 	}
-	newUsage := usage + diff
-	_, err = tx.ExecContext(ctx, `INSERT INTO usage (user_id, storage_consumed)
-			VALUES ($1, $2)
-			ON CONFLICT (user_id) DO UPDATE
-				SET storage_consumed = $2`,
-		userID, newUsage)
+}
+
+func (repo *FileRepository) updateUsage(ctx context.Context, tx *sql.Tx, userID, storageDiff, photosFileCountDiff, lockerFileCountDiff int64) (int64, error) {
+	fileCountSourceVersionDiff := int64(0)
+	if photosFileCountDiff != 0 || lockerFileCountDiff != 0 {
+		fileCountSourceVersionDiff = 1
+	}
+	var usage int64
+	err := tx.QueryRowContext(ctx, `INSERT INTO usage
+			(user_id, storage_consumed, file_count_source_version)
+			VALUES ($1, $2, $5)
+			ON CONFLICT (user_id) DO UPDATE SET
+				storage_consumed = usage.storage_consumed + EXCLUDED.storage_consumed,
+				photos_file_count = usage.photos_file_count + $3,
+				locker_file_count = usage.locker_file_count + $4,
+				file_count_source_version = usage.file_count_source_version + EXCLUDED.file_count_source_version
+			RETURNING storage_consumed`,
+		userID, storageDiff, photosFileCountDiff, lockerFileCountDiff, fileCountSourceVersionDiff).Scan(&usage)
 	if err != nil {
 		return -1, stacktrace.Propagate(err, "")
 	}
-	return newUsage, nil
+	return usage, nil
 }

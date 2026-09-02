@@ -2,7 +2,10 @@ import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
 import { clientPackageName, desktopAppVersion, isDesktop } from "ente-base/app";
 import { isNamedError } from "ente-base/error";
 import { apiOrigin, apiURL } from "ente-base/origins";
-import type { SpaceAccountCtxHandle } from "ente-space-wasm";
+import {
+    openSpaceAccountContext,
+    type SpaceAccountCtxHandle,
+} from "ente-space-wasm";
 import type {
     SetupProfile,
     SetupProfileInput,
@@ -101,14 +104,7 @@ const defaultOwnedSpace = (spaces: OwnedSpace[]) => spaces[0];
 
 const currentSpaceContextConfig = async () => {
     const sessionRestore = restoreSpaceBrowserSessionIfNeeded();
-    const spaceWasm = savedSpaceSessionToken()
-        ? import("ente-space-wasm")
-        : undefined;
-    const [, baseUrl, prefetchedSpaceWasm] = await Promise.all([
-        sessionRestore,
-        apiOrigin(),
-        spaceWasm,
-    ]);
+    const [, baseUrl] = await Promise.all([sessionRestore, apiOrigin()]);
     const spaceRootKeyB64 = spaceRootKeyFromSpaceSession();
     const user = savedPartialLocalUser();
     const spaceSessionToken = savedSpaceSessionToken();
@@ -116,9 +112,6 @@ const currentSpaceContextConfig = async () => {
     if (!spaceRootKeyB64 || !user?.id || !spaceSessionToken) {
         return undefined;
     }
-    const { spaceOpenAccountCtx } =
-        prefetchedSpaceWasm ?? (await import("ente-space-wasm"));
-
     return {
         cacheKey: [user.id, baseUrl, spaceSessionToken].join(":"),
         input: {
@@ -129,7 +122,6 @@ const currentSpaceContextConfig = async () => {
             spaceRootKeyB64,
             spaceSessionToken,
         },
-        spaceOpenAccountCtx,
     };
 };
 
@@ -161,7 +153,7 @@ export const openCurrentSpaceContext = async () => {
     const config = await currentSpaceContextConfig();
     if (!config) return undefined;
 
-    return await config.spaceOpenAccountCtx(config.input);
+    return await openSpaceAccountContext(config.input);
 };
 
 export const clearCurrentSpaceContext = () => {
@@ -193,8 +185,7 @@ export const ensureCurrentSpaceContext = async () => {
     }
 
     const generation = currentSpaceContextGeneration;
-    const promise = config
-        .spaceOpenAccountCtx(config.input)
+    const promise = openSpaceAccountContext(config.input)
         .then((ctx) => {
             if (
                 currentSpaceContextGeneration != generation ||

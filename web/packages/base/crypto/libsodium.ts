@@ -1,5 +1,5 @@
-import { ensureArrayBufferBacked } from "ente-base/bytes";
 import { mergeUint8Arrays } from "ente-utils/array";
+import { ensureArrayBufferBacked } from "ente-utils/bytes";
 import sodium from "libsodium-wrappers-sumo";
 import {
     streamEncryptionChunkSize,

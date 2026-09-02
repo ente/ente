@@ -1,19 +1,19 @@
 import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CircularProgress, styled } from "@mui/material";
-import type { VerifyingPasskeyPresentationProps } from "ente-accounts/components/LoginComponents";
-import { t } from "i18next";
-import type React from "react";
-import { Trans } from "react-i18next";
-import { Button } from "./Button";
-import { FormFooter } from "./FormFooter";
-import { ScreenHeader } from "./ScreenHeader";
+import { Button } from "ente-accounts/components/auth/Button";
+import { FormFooter } from "ente-accounts/components/auth/FormFooter";
+import { ScreenHeader } from "ente-accounts/components/auth/ScreenHeader";
 import {
     authBodyTypography,
     authMiniTypography,
     authTransientProps,
-} from "./styles";
-import { TextLink } from "./TextLink";
+} from "ente-accounts/components/auth/styles";
+import { TextLink } from "ente-accounts/components/auth/TextLink";
+import type { VerifyingPasskeyPresentationProps } from "ente-accounts/components/LoginComponents";
+import { t } from "i18next";
+import type React from "react";
+import { Trans } from "react-i18next";
 
 export function PasskeyVerificationForm({
     email,
@@ -78,10 +78,7 @@ export function PasskeyVerificationForm({
                 ) : (
                     <CircularProgress
                         size={20}
-                        sx={{
-                            color: "var(--photos-auth-primary)",
-                            flexShrink: 0,
-                        }}
+                        sx={{ color: "var(--auth-ui-primary)", flexShrink: 0 }}
                     />
                 )}
                 <StatusText>
@@ -124,7 +121,7 @@ export function PasskeyVerificationForm({
 }
 
 const Email = styled("strong")({
-    color: "var(--photos-auth-text)",
+    color: "var(--auth-ui-text)",
     wordBreak: "break-word",
 });
 
@@ -138,19 +135,19 @@ const StatusCard = styled(
     alignItems: $stalled ? "flex-start" : "center",
     gap: "12px",
     backgroundColor: $stalled
-        ? "color-mix(in srgb, var(--photos-auth-caution) 12%, transparent)"
-        : "var(--photos-auth-field)",
+        ? "color-mix(in srgb, var(--auth-ui-caution) 12%, transparent)"
+        : "var(--auth-ui-field)",
     boxShadow: `inset 0 0 0 1px ${
         $stalled
-            ? "color-mix(in srgb, var(--photos-auth-caution) 32%, transparent)"
-            : "var(--photos-auth-stroke)"
+            ? "color-mix(in srgb, var(--auth-ui-caution) 32%, transparent)"
+            : "var(--auth-ui-stroke)"
     }`,
 }));
 
 const StatusIcon = styled("div")({
     flexShrink: 0,
     display: "flex",
-    color: "var(--photos-auth-caution)",
+    color: "var(--auth-ui-caution)",
 });
 
 const StatusText = styled("div")({
@@ -162,14 +159,14 @@ const StatusText = styled("div")({
 const StatusTitle = styled("div")({
     ...authBodyTypography,
     fontWeight: 600,
-    color: "var(--photos-auth-text)",
+    color: "var(--auth-ui-text)",
 });
 
 const StatusCaption = styled("p")({
     ...authMiniTypography,
     margin: 0,
     textWrap: "pretty",
-    color: "var(--photos-auth-text-muted)",
+    color: "var(--auth-ui-text-muted)",
 });
 
 const FooterLinks = styled("div")({
@@ -182,5 +179,5 @@ const Host = styled("div")({
     ...authMiniTypography,
     minHeight: "16px",
     textAlign: "center",
-    color: "var(--photos-auth-text-faint)",
+    color: "var(--auth-ui-text-faint)",
 });

@@ -1,9 +1,9 @@
 import { FFFSType, FFmpeg } from "@ffmpeg/ffmpeg";
-import { ensureArrayBufferBacked } from "ente-base/bytes";
 import { joinPath } from "ente-base/file-name";
 import { newID } from "ente-base/id";
 import log from "ente-base/log";
 import type { FFmpegCommand } from "ente-base/types/ipc";
+import { ensureArrayBufferBacked } from "ente-utils/bytes";
 import { PromiseQueue } from "ente-utils/promise";
 import { z } from "zod";
 import {

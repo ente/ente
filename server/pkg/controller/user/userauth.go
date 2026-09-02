@@ -631,7 +631,7 @@ func (c *UserController) onVerificationSuccess(context *gin.Context, email strin
 			if viper.GetBool("internal.disable-registration") {
 				return ente.EmailAuthorizationResponse{}, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 			} else {
-				userID, _, err = c.createUser(email, source)
+				userID, _, err = c.createUser(context, email, source)
 				if err != nil {
 					return ente.EmailAuthorizationResponse{}, stacktrace.Propagate(err, "")
 				}

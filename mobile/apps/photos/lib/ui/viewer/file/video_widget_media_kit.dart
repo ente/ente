@@ -323,7 +323,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
         })
         .onError((error, stackTrace) {
           if (!mounted) return;
-          if (error is DownloadDecryptionFailedError) {
+          if (error is DownloadDecryptionError) {
             showDownloadDecryptionFailedDialog(context: context);
           } else {
             showErrorDialog(

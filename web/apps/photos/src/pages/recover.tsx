@@ -1,6 +1,5 @@
-import { RecoverAccountForm } from "@/components/auth/RecoveryForm";
 import { PhotosAuthShell } from "@/components/PhotosAuthShell";
-import { featureFlags } from "@/feature-flags";
+import { RecoverAccountForm } from "ente-accounts/components/auth/RecoveryForm";
 import AccountsRecoverPage, {
     type RecoverAccountPresentationProps,
 } from "ente-accounts/pages/recover";
@@ -17,10 +16,6 @@ function RecoverAccountPresentation(
 }
 
 function RecoverPage(): React.JSX.Element {
-    if (!featureFlags.enableNewPhotosAuthFlow) {
-        return <AccountsRecoverPage />;
-    }
-
     return <AccountsRecoverPage presentation={RecoverAccountPresentation} />;
 }
 

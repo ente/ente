@@ -1,6 +1,5 @@
-import { TwoFactorForm } from "@/components/auth/TwoFactorForm";
 import { LockerAuthShell } from "@/components/LockerAuthShell";
-import { featureFlags } from "@/feature-flags";
+import { TwoFactorForm } from "ente-accounts/components/auth/TwoFactorForm";
 import AccountsTwoFactorVerifyPage, {
     type TwoFactorVerifyPresentationProps,
 } from "ente-accounts/pages/two-factor/verify";
@@ -17,10 +16,6 @@ function TwoFactorPresentation(
 }
 
 function TwoFactorVerifyPage(): React.JSX.Element {
-    if (!featureFlags.enableNewLockerAuthFlow) {
-        return <AccountsTwoFactorVerifyPage />;
-    }
-
     return <AccountsTwoFactorVerifyPage presentation={TwoFactorPresentation} />;
 }
 

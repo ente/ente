@@ -1242,6 +1242,59 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   }
 
   @override
+  Future<void> pruneResolvedFaceErrorResults(List<int> fileIDs) async {
+    if (fileIDs.isEmpty) return;
+    final db = await asyncDB;
+    for (final chunk in fileIDs.chunks(_maxSqlBindParamsPerQuery)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      await db.execute('''
+        DELETE FROM $facesTable
+        WHERE $fileIDColumn IN ($placeholders)
+          AND $faceScore < 0
+          AND EXISTS (
+            SELECT 1 FROM $facesTable AS successful
+            WHERE successful.$fileIDColumn = $facesTable.$fileIDColumn
+              AND successful.$faceScore >= 0
+              AND successful.$mlVersionColumn >= $facesTable.$mlVersionColumn
+          )
+        ''', chunk);
+    }
+  }
+
+  @override
+  Future<Set<int>> getFileIDsWithErrorResults(List<int> fileIDs) async {
+    if (fileIDs.isEmpty) return {};
+    final db = await asyncDB;
+    final result = <int>{};
+    const chunkSize = _maxSqlBindParamsPerQuery ~/ 3;
+    for (final chunk in fileIDs.chunks(chunkSize)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      final rows = await db.getAll(
+        '''
+        SELECT failed.$fileIDColumn FROM $facesTable AS failed
+        WHERE failed.$fileIDColumn IN ($placeholders)
+          AND failed.$faceScore < 0
+          AND NOT EXISTS (
+            SELECT 1 FROM $facesTable AS successful
+            WHERE successful.$fileIDColumn = failed.$fileIDColumn
+              AND successful.$faceScore >= 0
+              AND successful.$mlVersionColumn >= failed.$mlVersionColumn
+          )
+        UNION
+        SELECT $fileIDColumn FROM $clipTable
+        WHERE $fileIDColumn IN ($placeholders) AND LENGTH($embeddingColumn) = 0
+        UNION
+        SELECT $fileIDColumn FROM $petFacesTable
+        WHERE $fileIDColumn IN ($placeholders) AND $faceScore < 0
+        ''',
+        [...chunk, ...chunk, ...chunk],
+      );
+      result.addAll(rows.map((row) => row[fileIDColumn] as int));
+    }
+    return result;
+  }
+
+  @override
   Future<void> deleteFaceIndexForFiles(List<int> fileIDs) async {
     final db = await asyncDB;
     final String sql =

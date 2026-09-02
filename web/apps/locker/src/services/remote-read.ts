@@ -11,7 +11,6 @@ import { fetchFile } from "ente-base/file-download";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import log from "ente-base/log";
 import { apiURL, customAPIOrigin } from "ente-base/origins";
-import { z } from "zod";
 import {
     boxSealOpen,
     createStreamDecryptor,
@@ -20,7 +19,8 @@ import {
     decryptMetadataJSON,
     encryptBox,
     stringToB64,
-} from "./crypto";
+} from "ente-core-wasm";
+import { z } from "zod";
 import { fromInfoTypeWireValue } from "./info-type-wire";
 import {
     type StoredTrashFileRecord,

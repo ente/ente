@@ -53,6 +53,16 @@ class RemoteAssetsService {
     });
   }
 
+  Future<void> deleteAsset(String remotePath, {String? cacheFileName}) {
+    return _lockFor(remotePath).synchronized(() async {
+      final localPath = await _getLocalPath(
+        remotePath,
+        cacheFileName: cacheFileName,
+      );
+      await _deleteAssetArtifacts(localPath);
+    });
+  }
+
   Future<String> getAssetPath(
     String remotePath, {
     bool refetch = false,
@@ -114,9 +124,12 @@ class RemoteAssetsService {
     });
   }
 
-  Future<bool> hasAsset(String remotePath) async {
+  Future<bool> hasAsset(String remotePath, {String? cacheFileName}) {
     return _lockFor(remotePath).synchronized(() async {
-      final path = await _getLocalPath(remotePath);
+      final path = await _getLocalPath(
+        remotePath,
+        cacheFileName: cacheFileName,
+      );
       return File(path).exists();
     });
   }

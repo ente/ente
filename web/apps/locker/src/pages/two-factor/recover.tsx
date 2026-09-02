@@ -1,6 +1,5 @@
-import { RecoverTwoFactorForm } from "@/components/auth/RecoveryForm";
 import { LockerAuthShell } from "@/components/LockerAuthShell";
-import { featureFlags } from "@/feature-flags";
+import { RecoverTwoFactorForm } from "ente-accounts/components/auth/RecoveryForm";
 import AccountsTwoFactorRecoverPage, {
     type TwoFactorRecoverPresentationProps,
 } from "ente-accounts/pages/two-factor/recover";
@@ -17,10 +16,6 @@ function RecoverTwoFactorPresentation(
 }
 
 function TwoFactorRecoverPage(): React.JSX.Element {
-    if (!featureFlags.enableNewLockerAuthFlow) {
-        return <AccountsTwoFactorRecoverPage twoFactorType="totp" />;
-    }
-
     return (
         <AccountsTwoFactorRecoverPage
             twoFactorType="totp"

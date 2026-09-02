@@ -1,6 +1,6 @@
 import { isTauriRuntime } from "@/services/tauri-runtime";
+import * as wasmCrypto from "ente-ensu-wasm";
 
-type EnsuWasmModule = typeof import("ente-ensu-wasm");
 type TauriCoreModule = typeof import("@tauri-apps/api/core");
 
 export interface EncryptedChatPayload {
@@ -8,26 +8,12 @@ export interface EncryptedChatPayload {
     header: string;
 }
 
-const ensuWasm = () => import("ente-ensu-wasm");
-
 const tauriInvoke = async <T>(
     ...args: Parameters<TauriCoreModule["invoke"]>
 ) => {
     const { invoke } = await import("@tauri-apps/api/core");
     return invoke<T>(...args);
 };
-
-const encryptedChatPayloadValue = (
-    payload: ReturnType<EnsuWasmModule["encryptChatPayload"]>,
-) => {
-    try {
-        return { encryptedData: payload.encryptedData, header: payload.header };
-    } finally {
-        payload.free();
-    }
-};
-
-const wasmBytes = (bytes: Uint8Array) => bytes as Uint8Array<ArrayBuffer>;
 
 const invokeAttachmentCommand = async (
     command: string,
@@ -44,7 +30,7 @@ const invokeAttachmentCommand = async (
 export const generateChatKey = async () =>
     isTauriRuntime()
         ? tauriInvoke<string>("chat_crypto_generate_key")
-        : (await ensuWasm()).generateChatKey();
+        : wasmCrypto.generateChatKey();
 
 export const encryptChatPayload = async (
     payload: unknown,
@@ -56,9 +42,7 @@ export const encryptChatPayload = async (
             input: { value, keyB64: chatKeyB64 },
         });
     }
-    return encryptedChatPayloadValue(
-        (await ensuWasm()).encryptChatPayload(value, chatKeyB64),
-    );
+    return wasmCrypto.encryptChatPayload(value, chatKeyB64);
 };
 
 export const decryptChatPayload = async (
@@ -73,7 +57,7 @@ export const decryptChatPayload = async (
                   keyB64: chatKeyB64,
               },
           })
-        : (await ensuWasm()).decryptChatPayload(
+        : await wasmCrypto.decryptChatPayload(
               encryptedData,
               header,
               chatKeyB64,
@@ -89,7 +73,7 @@ export const encryptChatField = async (
         ? tauriInvoke("chat_crypto_encrypt_field", {
               input: { value, keyB64: chatKeyB64 },
           })
-        : (await ensuWasm()).encryptChatField(value, chatKeyB64);
+        : wasmCrypto.encryptChatField(value, chatKeyB64);
 
 export const decryptChatField = async (
     value: string,
@@ -99,13 +83,13 @@ export const decryptChatField = async (
         ? tauriInvoke("chat_crypto_decrypt_field", {
               input: { value, keyB64: chatKeyB64 },
           })
-        : (await ensuWasm()).decryptChatField(value, chatKeyB64);
+        : wasmCrypto.decryptChatField(value, chatKeyB64);
 
 export const encryptAttachmentBytes = async (
     data: Uint8Array,
     chatKeyB64: string,
     sessionUuid: string,
-): Promise<Uint8Array<ArrayBuffer>> =>
+): Promise<Uint8Array> =>
     isTauriRuntime()
         ? invokeAttachmentCommand(
               "chat_crypto_encrypt_attachment",
@@ -113,19 +97,13 @@ export const encryptAttachmentBytes = async (
               chatKeyB64,
               sessionUuid,
           )
-        : wasmBytes(
-              (await ensuWasm()).encryptChatAttachment(
-                  data,
-                  chatKeyB64,
-                  sessionUuid,
-              ),
-          );
+        : wasmCrypto.encryptChatAttachment(data, chatKeyB64, sessionUuid);
 
 export const decryptAttachmentBytes = async (
     data: Uint8Array,
     chatKeyB64: string,
     sessionUuid: string,
-): Promise<Uint8Array<ArrayBuffer>> =>
+): Promise<Uint8Array> =>
     isTauriRuntime()
         ? invokeAttachmentCommand(
               "chat_crypto_decrypt_attachment",
@@ -133,10 +111,4 @@ export const decryptAttachmentBytes = async (
               chatKeyB64,
               sessionUuid,
           )
-        : wasmBytes(
-              (await ensuWasm()).decryptChatAttachment(
-                  data,
-                  chatKeyB64,
-                  sessionUuid,
-              ),
-          );
+        : wasmCrypto.decryptChatAttachment(data, chatKeyB64, sessionUuid);

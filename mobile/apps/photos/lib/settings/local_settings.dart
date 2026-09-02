@@ -13,6 +13,8 @@ enum AlbumSortDirection { ascending, descending }
 
 enum AlbumViewType { grid, list }
 
+enum GalleryLayoutType { grid, justified }
+
 enum PeopleSortKey { mostPhotos, name, lastUpdated }
 
 // Stored as bit positions. Append only; never reorder or remove values.
@@ -54,6 +56,7 @@ enum DeletePreference {
 class LocalSettings {
   static const kCollectionSortPref = "collection_sort_pref";
   static const kGalleryGroupType = "gallery_group_type";
+  static const kGalleryLayoutType = "gallery_layout_type";
   static const kPhotoGridSize = "photo_grid_size";
   static const _kisMLLocalIndexingEnabled = "ls.ml_local_indexing";
   static const _kLocalGalleryMLLocalIndexingEnabled =
@@ -263,6 +266,17 @@ class LocalSettings {
 
   Future<void> setGalleryGroupType(GroupType groupType) async {
     await _prefs.setString(kGalleryGroupType, groupType.toString());
+  }
+
+  GalleryLayoutType getGalleryLayoutType() {
+    return switch (_prefs.getString(kGalleryLayoutType)) {
+      "justified" => GalleryLayoutType.justified,
+      _ => GalleryLayoutType.grid,
+    };
+  }
+
+  Future<void> setGalleryLayoutType(GalleryLayoutType layoutType) async {
+    await _prefs.setString(kGalleryLayoutType, layoutType.name);
   }
 
   int getPhotoGridSize() {

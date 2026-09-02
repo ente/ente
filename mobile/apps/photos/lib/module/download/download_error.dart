@@ -15,8 +15,11 @@ class DownloadUnavailableError extends DownloadFailedError {
   DownloadUnavailableError() : super('Unavailable');
 }
 
-class DownloadDecryptionFailedError extends DownloadFailedError {
-  DownloadDecryptionFailedError() : super('Failed to decrypt downloaded file');
+class DownloadDecryptionError extends DownloadFailedError {
+  final String encryptedFileSha1;
+
+  DownloadDecryptionError(this.encryptedFileSha1)
+    : super('Failed to decrypt downloaded file');
 }
 
 Future<T?> handleDownloadDecryptionFailureForCaller<T>(
@@ -25,7 +28,7 @@ Future<T?> handleDownloadDecryptionFailureForCaller<T>(
 }) async {
   try {
     return await download;
-  } on DownloadDecryptionFailedError {
+  } on DownloadDecryptionError {
     if (rethrowDecryptionFailure) {
       rethrow;
     }

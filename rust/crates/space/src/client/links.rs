@@ -103,14 +103,16 @@ impl AccountSpaceCtx {
 
     async fn get_space_link_status(&self, space_id: &str) -> Result<SpaceLinkStatusResponse> {
         let path = format!("/spaces/{space_id}/link");
-        Ok(self
+        let status = self
             .api()
             .get(&path)
             .send()
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        validate_link_status_space(&status, space_id)?;
+        Ok(status)
     }
 
     async fn write_space_link(&self, space_id: &str, rotate: bool) -> Result<CreatedSpaceLink> {
@@ -152,6 +154,7 @@ impl AccountSpaceCtx {
             .error_for_status()?
             .json()
             .await?;
+        validate_link_status_space(&status, space_id)?;
         if status.encrypted_access_key == request.encrypted_access_key {
             Ok(CreatedSpaceLink {
                 space_id: status.space_id,
@@ -183,6 +186,15 @@ impl AccountSpaceCtx {
         validate_access_key(&access_key)?;
         Ok(access_key)
     }
+}
+
+fn validate_link_status_space(status: &SpaceLinkStatusResponse, space_id: &str) -> Result<()> {
+    if status.space_id != space_id {
+        return Err(Error::InvalidInput(
+            "space link response does not match the requested space".into(),
+        ));
+    }
+    Ok(())
 }
 
 impl SpaceLinkCtx {
@@ -540,6 +552,39 @@ mod tests {
         assert_eq!(first.auth, second.auth);
         assert_eq!(first.wrap, second.wrap);
         assert_ne!(first.auth, first.wrap);
+    }
+
+    #[tokio::test]
+    async fn account_link_rejects_status_for_different_space() {
+        let mut server = Server::new_async().await;
+        let status = server
+            .mock("GET", "/spaces/space-a/link")
+            .match_header("x-space-session-token", "space-session-token")
+            .with_status(200)
+            .with_body(
+                json!({
+                    "spaceId": "space-b",
+                    "spaceSlug": "bob",
+                    "active": true,
+                    "encryptedAccessKey": "not-base64"
+                })
+                .to_string(),
+            )
+            .create_async()
+            .await;
+        let ctx = crate::client::test_support::test_account_ctx(&server.url());
+
+        let error = ctx
+            .get_or_create_space_link("space-a")
+            .await
+            .expect_err("mismatched space status should fail");
+
+        assert!(matches!(
+            error,
+            Error::InvalidInput(message)
+                if message == "space link response does not match the requested space"
+        ));
+        status.assert_async().await;
     }
 
     #[tokio::test]

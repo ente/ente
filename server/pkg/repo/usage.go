@@ -42,12 +42,9 @@ func (repo *UsageRepository) GetUsage(userID int64) (int64, error) {
 	return usage, stacktrace.Propagate(err, "")
 }
 
-func (repo *UsageRepository) Create(userID int64) error {
-	_, err := repo.DB.Exec(`INSERT INTO usage(user_id, storage_consumed) VALUES ($1,$2) ON CONFLICT DO NOTHING;`,
-		userID,
-		0,
-	)
-	return stacktrace.Propagate(err, "failed to insert/update")
+func (repo *UsageRepository) CreateTx(ctx context.Context, tx *sql.Tx, userID int64) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO usage(user_id, storage_consumed) VALUES ($1, 0)`, userID)
+	return stacktrace.Propagate(err, "failed to insert usage")
 }
 
 func (repo *UsageRepository) GetCombinedUsage(ctx context.Context, userIDs []int64) (int64, error) {

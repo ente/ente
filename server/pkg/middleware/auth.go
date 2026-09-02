@@ -1,9 +1,9 @@
 package middleware
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -67,18 +67,29 @@ func (m *AuthMiddleware) TokenAuthMiddleware(jwtClaimScope *jwt.ClaimScope) gin.
 				}
 			}
 		} else {
-			cacheKey := fmt.Sprintf("%s:%s:%s", app, token, *jwtClaimScope)
-			cachedUserID, found := m.Cache.Get(cacheKey)
-			if found {
-				userID = cachedUserID.(int64)
-			} else {
-				claim, err := m.UserController.ValidateJWTToken(token, *jwtClaimScope)
-				if err != nil {
+			claim, err := m.UserController.ValidateJWTToken(token, *jwtClaimScope)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+				return
+			}
+			userID = claim.UserID
+			// TODO: Reject missing session fields after the 24-hour rollout window.
+			if len(claim.SessionTokenHash) != 0 || claim.SessionApp != "" {
+				sessionApp := ente.App(claim.SessionApp)
+				if len(claim.SessionTokenHash) != sha256.Size || !sessionApp.IsValid() {
 					c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 					return
 				}
-				userID = claim.UserID
-				m.Cache.Set(cacheKey, userID, cache.DefaultExpiration)
+				sessionUserID, expired, _, err := authsession.Authenticate(m.UserAuthRepo, m.Cache, claim.SessionTokenHash, sessionApp)
+				if err != nil && !errors.Is(err, sql.ErrNoRows) {
+					logrus.Errorf("Failed to validate JWT session: %s", err)
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to validate token"})
+					return
+				}
+				if err != nil || expired || sessionUserID != userID {
+					c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+					return
+				}
 			}
 		}
 		c.Request.Header.Set("X-Auth-User-ID", strconv.FormatInt(userID, 10))

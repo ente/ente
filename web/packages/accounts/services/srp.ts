@@ -1,6 +1,6 @@
 import {
     deriveSubKeyBytes,
-    generateSRPSetupAttributesRust,
+    generateSRPSetup,
     toB64,
 } from "ente-accounts/services/crypto";
 import { namedError } from "ente-base/error";
@@ -10,6 +10,7 @@ import {
     publicRequestHeaders,
 } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
+import { createSRPSession } from "ente-core-wasm";
 import { ensure } from "ente-utils/ensure";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
@@ -62,10 +63,7 @@ export const generateSRPSetupAttributes = async (
     kek: string,
 ): Promise<SRPSetupAttributes> => {
     const srpUserID = uuidv4();
-    return {
-        srpUserID,
-        ...(await generateSRPSetupAttributesRust(kek, srpUserID)),
-    };
+    return { srpUserID, ...(await generateSRPSetup(kek, srpUserID)) };
 };
 
 export const setupSRP = async (srpSetupAttributes: SRPSetupAttributes) =>
@@ -98,15 +96,6 @@ const srpSetupOrReconfigure = async (
     });
 
     session.verify_m2(srpM2);
-};
-
-const createSRPSession = async (
-    srpSalt: string,
-    srpUserID: string,
-    loginSubKey: string,
-) => {
-    const wasm = await import("ente-core-wasm");
-    return new wasm.SrpSession(srpUserID, srpSalt, loginSubKey);
 };
 
 interface SetupSRPRequest {

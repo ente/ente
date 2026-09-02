@@ -25,7 +25,6 @@ final _logger = Logger('file_download_util');
 Future<File?> _downloadAndDecryptPublicFile(
   EnteFile file, {
   ProgressCallback? progressCallback,
-  bool throwOnDecryptionFailure = false,
 }) async {
   final logPrefix = 'Public File-${file.uploadedFileID}:';
   _logger.info(
@@ -90,21 +89,21 @@ Future<File?> _downloadAndDecryptPublicFile(
       fakeProgress?.stop();
       final metadata = await _fileMetadataForLogging(file, encryptedFilePath);
       _logger.severe(
-        'Critical: $logPrefix failed to decrypt, $metadata',
+        'Critical: $logPrefix failed to decrypt, ${metadata.log}',
         error,
         stackTrace,
       );
-      if (throwOnDecryptionFailure) {
-        throw DownloadDecryptionFailedError();
+      if (error is StreamPullErr && metadata.encryptedFileSha1 != null) {
+        throw DownloadDecryptionError(metadata.encryptedFileSha1!);
       }
       return null;
     }
     return File(decryptedFilePath);
   } catch (error, stackTrace) {
-    _logger.severe('$logPrefix failed to download', error, stackTrace);
-    if (throwOnDecryptionFailure && error is DownloadDecryptionFailedError) {
+    if (error is DownloadDecryptionError) {
       rethrow;
     }
+    _logger.severe('$logPrefix failed to download', error, stackTrace);
     return null;
   }
 }
@@ -114,13 +113,11 @@ Future<File?> downloadAndDecrypt(
   ProgressCallback? progressCallback,
   bool forceResumableDownload = false,
   bool throwOnFailure = false,
-  bool throwOnDecryptionFailure = false,
 }) async {
   if (CollectionsService.instance.isSharedPublicLink(file.collectionID!)) {
     return _downloadAndDecryptPublicFile(
       file,
       progressCallback: progressCallback,
-      throwOnDecryptionFailure: throwOnDecryptionFailure,
     );
   }
 
@@ -215,25 +212,35 @@ Future<File?> downloadAndDecrypt(
       fakeProgress?.stop();
       final metadata = await _fileMetadataForLogging(file, encryptedFilePath);
       _logger.severe(
-        'Critical: $logPrefix failed to decrypt, $metadata',
+        'Critical: $logPrefix failed to decrypt, ${metadata.log}',
         error,
         stackTrace,
       );
-      if (throwOnFailure || throwOnDecryptionFailure) {
-        throw DownloadDecryptionFailedError();
+      await _deleteFailedDecryptionArtifacts(
+        file,
+        encryptedFilePath,
+        decryptedFilePath,
+      );
+      if (error is StreamPullErr && metadata.encryptedFileSha1 != null) {
+        throw DownloadDecryptionError(metadata.encryptedFileSha1!);
+      }
+      if (throwOnFailure) {
+        throw DownloadFailedError('Failed to decrypt downloaded file');
       }
       return null;
     }
     await encryptedFile.delete();
     return File(decryptedFilePath);
   } catch (error, stackTrace) {
+    if (error is DownloadDecryptionError) {
+      rethrow;
+    }
     _logger.severe(
       '$logPrefix failed to download or decrypt',
       error,
       stackTrace,
     );
-    if (throwOnFailure ||
-        (throwOnDecryptionFailure && error is DownloadDecryptionFailedError)) {
+    if (throwOnFailure) {
       if (error is DownloadFailedError) {
         rethrow;
       }
@@ -259,20 +266,44 @@ Exception _toDownloadFailure(String? error) {
   return DownloadFailedError(error ?? 'Download failed');
 }
 
-Future<String> _fileMetadataForLogging(
+Future<({String log, String? encryptedFileSha1})> _fileMetadataForLogging(
   EnteFile file,
   String encryptedFilePath,
 ) async {
   final buffer = StringBuffer();
   final encryptedFile = File(encryptedFilePath);
+  String? encryptedFileSha1;
   if (encryptedFile.existsSync()) {
-    final hash = await sha1.bind(encryptedFile.openRead()).first;
-    buffer.write('encFileSha1: $hash, ');
+    encryptedFileSha1 = (await sha1.bind(encryptedFile.openRead()).first)
+        .toString();
+    buffer.write('encFileSha1: $encryptedFileSha1, ');
   } else {
     buffer.write('encFileSha1: file not found, ');
   }
   buffer.write('metadataVersion: ${file.metadataVersion}, ');
   buffer.write('fileSize: ${file.fileSize ?? "null"}, ');
   buffer.write('viaMobile: ${(file.deviceFolder ?? '') != ''}');
-  return buffer.toString();
+  return (log: buffer.toString(), encryptedFileSha1: encryptedFileSha1);
+}
+
+Future<void> _deleteFailedDecryptionArtifacts(
+  EnteFile file,
+  String encryptedFilePath,
+  String decryptedFilePath,
+) async {
+  try {
+    await downloadManager.cancel(file.uploadedFileID!);
+    for (final path in [encryptedFilePath, decryptedFilePath]) {
+      final artifact = File(path);
+      if (await artifact.exists()) {
+        await artifact.delete();
+      }
+    }
+  } catch (error, stackTrace) {
+    _logger.warning(
+      'Failed to delete decryption artifacts for File-${file.uploadedFileID}',
+      error,
+      stackTrace,
+    );
+  }
 }

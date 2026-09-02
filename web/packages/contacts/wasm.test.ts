@@ -1,9 +1,9 @@
 import {
-    crypto_box_seal_open,
-    crypto_encrypt_blob,
-    crypto_encrypt_box,
-    crypto_generate_key,
-    crypto_generate_keypair,
+    boxSealOpen,
+    encryptBlob,
+    encryptBox,
+    generateKey,
+    generateKeyPair,
 } from "ente-core-wasm";
 import * as legacy from "ente-legacy-wasm/authenticated";
 import * as locker from "ente-locker-wasm";
@@ -18,7 +18,7 @@ for (const [name, api] of [
 ] as const) {
     describe(name, () => {
         test("returns decrypted contacts and picture bytes as plain values", async () => {
-            const fixture = encryptedContact();
+            const fixture = await encryptedContact();
             mockFetch((request) => {
                 switch (new URL(request.url).pathname) {
                     case "/contacts/diff":
@@ -94,7 +94,7 @@ for (const [name, api] of [
             const session = await api.openSession({
                 baseUrl: "http://localhost",
                 authToken: "test-token",
-                masterKeyB64: crypto_generate_key(),
+                masterKeyB64: await generateKey(),
             });
             try {
                 expect(
@@ -177,7 +177,7 @@ describe("Legacy", () => {
         const session = await legacy.openSession({
             baseUrl: "http://localhost",
             authToken: "token",
-            masterKeyB64: crypto_generate_key(),
+            masterKeyB64: await generateKey(),
         });
         try {
             expect(await legacy.getInfo(session)).toStrictEqual(info);
@@ -199,10 +199,10 @@ describe("Legacy", () => {
     });
 
     test("uses the typed key attributes to share a decryptable recovery key", async () => {
-        const masterKey = crypto_generate_key();
-        const recoveryKey = crypto_generate_key();
-        const encryptedRecoveryKey = crypto_encrypt_box(recoveryKey, masterKey);
-        const recipient = crypto_generate_keypair();
+        const masterKey = await generateKey();
+        const recoveryKey = await generateKey();
+        const encryptedRecoveryKey = await encryptBox(recoveryKey, masterKey);
+        const recipient = await generateKeyPair();
         const keyAttributes = {
             kekSalt: "",
             encryptedKey: "",
@@ -213,14 +213,14 @@ describe("Legacy", () => {
             memLimit: 0,
             opsLimit: 0,
             recoveryKeyEncryptedWithMasterKey:
-                encryptedRecoveryKey.encrypted_data,
+                encryptedRecoveryKey.encryptedData,
             recoveryKeyDecryptionNonce: encryptedRecoveryKey.nonce,
         };
         let sharedRecoveryKey: string | undefined;
         mockFetch(async (request) => {
             switch (new URL(request.url).pathname) {
                 case "/users/public-key":
-                    return Response.json({ publicKey: recipient.public_key });
+                    return Response.json({ publicKey: recipient.publicKey });
                 case "/emergency-contacts/add": {
                     const body = (await request.json()) as {
                         email: string;
@@ -229,10 +229,9 @@ describe("Legacy", () => {
                     };
                     expect(body.email).toBe("friend@example.com");
                     expect(body.recoveryNoticeInDays).toBe(30);
-                    sharedRecoveryKey = crypto_box_seal_open(
+                    sharedRecoveryKey = await boxSealOpen(
                         body.encryptedKey,
-                        recipient.public_key,
-                        recipient.secret_key,
+                        recipient,
                     );
                     return new Response(null, { status: 204 });
                 }
@@ -255,8 +254,6 @@ describe("Legacy", () => {
             expect(sharedRecoveryKey).toBe(recoveryKey);
         } finally {
             session.free();
-            encryptedRecoveryKey.free();
-            recipient.free();
         }
     });
 });
@@ -271,27 +268,27 @@ const mockFetch = (
         return response;
     });
 
-const encryptedContact = () => {
-    const masterKey = crypto_generate_key();
-    const rootKey = crypto_generate_key();
-    const contactKey = crypto_generate_key();
-    const wrappedRootKey = crypto_encrypt_box(rootKey, masterKey);
-    const wrappedContactKey = crypto_encrypt_box(contactKey, rootKey);
-    const data = crypto_encrypt_blob(
+const encryptedContact = async () => {
+    const masterKey = await generateKey();
+    const rootKey = await generateKey();
+    const contactKey = await generateKey();
+    const wrappedRootKey = await encryptBox(rootKey, masterKey);
+    const wrappedContactKey = await encryptBox(contactKey, rootKey);
+    const data = await encryptBlob(
         Buffer.from(
             JSON.stringify({ contactUserId: 42, name: "Zoë 🦋" }),
         ).toString("base64"),
         contactKey,
     );
     const picture = Uint8Array.from({ length: 4096 }, (_, i) => i % 256);
-    const encryptedPicture = crypto_encrypt_blob(
+    const encryptedPicture = await encryptBlob(
         Buffer.from(picture).toString("base64"),
         contactKey,
     );
     const fixture = {
         masterKey,
         wrappedRootContactKey: {
-            encryptedKey: wrappedRootKey.encrypted_data,
+            encryptedKey: wrappedRootKey.encryptedData,
             header: wrappedRootKey.nonce,
         },
         contact: {
@@ -301,11 +298,11 @@ const encryptedContact = () => {
             profilePictureAttachmentID: "att_test",
             encryptedKey: combined(
                 wrappedContactKey.nonce,
-                wrappedContactKey.encrypted_data,
+                wrappedContactKey.encryptedData,
             ).toString("base64"),
             encryptedData: combined(
-                data.decryption_header,
-                data.encrypted_data,
+                data.decryptionHeader,
+                data.encryptedData,
             ).toString("base64"),
             isDeleted: false,
             createdAt: 100,
@@ -313,14 +310,10 @@ const encryptedContact = () => {
         },
         picture,
         encryptedPicture: combined(
-            encryptedPicture.decryption_header,
-            encryptedPicture.encrypted_data,
+            encryptedPicture.decryptionHeader,
+            encryptedPicture.encryptedData,
         ),
     };
-    wrappedRootKey.free();
-    wrappedContactKey.free();
-    data.free();
-    encryptedPicture.free();
     return fixture;
 };
 

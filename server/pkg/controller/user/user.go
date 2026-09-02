@@ -380,17 +380,7 @@ func (c *UserController) NotifyAccountDeletion(userID int64, userEmail string, i
 	}
 }
 
-func (c *UserController) attachFreeSubscription(userID int64) (ente.Subscription, error) {
-	subscription := billing.GetFreeSubscription(userID)
-	generatedID, err := c.BillingRepo.AddSubscription(subscription)
-	if err != nil {
-		return subscription, stacktrace.Propagate(err, "")
-	}
-	subscription.ID = generatedID
-	return subscription, nil
-}
-
-func (c *UserController) createUser(email string, source *string) (int64, ente.Subscription, error) {
+func (c *UserController) createUser(ctx context.Context, email string, source *string) (int64, ente.Subscription, error) {
 	encryptedEmail, err := crypto.Encrypt(email, c.SecretEncryptionKey)
 	if err != nil {
 		return -1, ente.Subscription{}, stacktrace.Propagate(err, "")
@@ -399,17 +389,25 @@ func (c *UserController) createUser(email string, source *string) (int64, ente.S
 	if err != nil {
 		return -1, ente.Subscription{}, stacktrace.Propagate(err, "")
 	}
-	userID, err := c.UserRepo.Create(encryptedEmail, emailHash, source)
+	transaction, err := c.UserRepo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return -1, ente.Subscription{}, stacktrace.Propagate(err, "failed to start user creation transaction")
+	}
+	defer transaction.Rollback()
+	userID, err := c.UserRepo.CreateTx(ctx, transaction, encryptedEmail, emailHash, source)
 	if err != nil {
 		return -1, ente.Subscription{}, stacktrace.Propagate(err, "")
 	}
-	err = c.UsageRepo.Create(userID)
-	if err != nil {
+	if err := c.UsageRepo.CreateTx(ctx, transaction, userID); err != nil {
 		return -1, ente.Subscription{}, stacktrace.Propagate(err, "failed to add entry in usage")
 	}
-	subscription, err := c.attachFreeSubscription(userID)
+	subscription := billing.GetFreeSubscription(userID)
+	subscription.ID, err = c.BillingRepo.AddSubscriptionTx(ctx, transaction, subscription)
 	if err != nil {
 		return -1, ente.Subscription{}, stacktrace.Propagate(err, "")
+	}
+	if err := transaction.Commit(); err != nil {
+		return -1, ente.Subscription{}, stacktrace.Propagate(err, "failed to commit user creation")
 	}
 	// Mailing list failures must not block user creation.
 	go func() {

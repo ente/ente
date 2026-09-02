@@ -3,9 +3,10 @@ import { clientPackageName, desktopAppVersion, isDesktop } from "ente-base/app";
 import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { apiOrigin } from "ente-base/origins";
-import type {
-    SpaceAccountCtxHandle,
-    SpaceLinkCtxHandle,
+import {
+    openSpaceLinkContext,
+    type SpaceAccountCtxHandle,
+    type SpaceLinkCtxHandle,
 } from "ente-space-wasm";
 import type { PendingSpaceInvite } from "services/invite";
 import {
@@ -723,13 +724,9 @@ export const openPublicSpaceLink = async (
     spaceUsername: string,
     accessKey: string,
 ): Promise<PublicSpaceLinkSession> => {
-    const [{ spaceOpenLinkCtx }, baseUrl] = await Promise.all([
-        import("ente-space-wasm"),
-        apiOrigin(),
-    ]);
-    const ctx = await spaceOpenLinkCtx({
+    const ctx = await openSpaceLinkContext({
         accessKey,
-        baseUrl,
+        baseUrl: await apiOrigin(),
         clientPackage: clientPackageName,
         clientVersion: isDesktop ? desktopAppVersion : undefined,
         spaceUsername,

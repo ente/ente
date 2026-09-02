@@ -10,6 +10,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/filter/db_filters.dart";
 import "package:photos/services/location_service.dart";
+import "package:photos/settings/local_settings.dart";
 import 'package:photos/states/location_state.dart';
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
@@ -108,6 +109,7 @@ class _DynamicLocationGalleryWidgetState
                         },
                     tagPrefix: widget.tagPrefix,
                     enableFileGrouping: false,
+                    layoutTypeOverride: GalleryLayoutType.grid,
                     showSelectAll: false,
                   ),
                 ),

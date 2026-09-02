@@ -49,14 +49,13 @@ import "package:photos/services/machine_learning/face_ml/person/person_service.d
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import 'package:photos/services/machine_learning/ml_service.dart';
 import 'package:photos/services/machine_learning/semantic_search/semantic_search_service.dart';
-import "package:photos/services/memories/memory_music_tracks.dart";
+import "package:photos/services/memories/memory_music_service.dart";
 import 'package:photos/services/memory_lane/memory_lane_service.dart';
 import 'package:photos/services/memory_share_service.dart';
 import "package:photos/services/notification_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/services/process_activity.dart";
 import 'package:photos/services/push_service.dart';
-import "package:photos/services/remote_assets_service.dart";
 import 'package:photos/services/search_service.dart';
 import 'package:photos/services/social_notification_coordinator.dart';
 import 'package:photos/services/sync/local_sync_service.dart';
@@ -186,9 +185,7 @@ Future<void> _runInForeground(
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(SemanticSearchService.instance.init());
       unawaited(MemoryLaneService.instance.init());
-      if (flagService.internalUser) {
-        unawaited(_downloadMemoryMusicTracks());
-      }
+      unawaited(MemoryMusicService.instance.prepare());
       unawaited(
         Future.delayed(
           const Duration(seconds: 5),
@@ -198,25 +195,6 @@ Future<void> _runInForeground(
     });
     unawaited(_scheduleFGSync('appStart in FG'));
   });
-}
-
-Future<void> _downloadMemoryMusicTracks() async {
-  await Future.wait(
-    memoryMusicTracks.map((track) async {
-      try {
-        await RemoteAssetsService.instance.getAsset(
-          track.url,
-          cacheFileName: track.cacheFileName,
-        );
-      } catch (error, stackTrace) {
-        _logger.warning(
-          "Failed to download memory music track ${track.id}",
-          error,
-          stackTrace,
-        );
-      }
-    }),
-  );
 }
 
 Future<void> _warmPickerFilesDb() async {

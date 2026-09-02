@@ -1,34 +1,17 @@
 import { DevSettingsDialog } from "@/components/auth/DevSettingsDialog";
-import { LoginForm } from "@/components/auth/LoginForm";
 import { AuthShell } from "@/components/AuthShell";
-import { featureFlags } from "@/feature-flags";
-import { Paper, Stack, styled } from "@mui/material";
+import { styled } from "@mui/material";
+import { LoginForm } from "ente-accounts/components/auth/LoginForm";
 import {
     LoginContents,
     type LoginPresentationProps,
 } from "ente-accounts/components/LoginContents";
 import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
-import { CenteredFill } from "ente-base/components/containers";
-import { EnteLogo } from "ente-base/components/EnteLogo";
 import { LoadingIndicator } from "ente-base/components/loaders";
-import { NavbarBase } from "ente-base/components/Navbar";
 import { customAPIHost } from "ente-base/origins";
 import { DevSettings } from "ente-new/photos/components/DevSettings";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-
-const AccountsPagePaper = styled(Paper)(({ theme }) => ({
-    marginBlock: theme.spacing(2),
-    padding: theme.spacing(5, 3),
-    [theme.breakpoints.up("sm")]: { padding: theme.spacing(5) },
-    width: "min(420px, 85vw)",
-    minHeight: "375px",
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(4),
-    boxShadow: "none",
-    borderRadius: "20px",
-}));
 
 function LoginPresentation(props: LoginPresentationProps): React.JSX.Element {
     return (
@@ -38,7 +21,7 @@ function LoginPresentation(props: LoginPresentationProps): React.JSX.Element {
     );
 }
 
-const LoginPage: React.FC = () => {
+function LoginPage(): React.JSX.Element {
     const [loading, setLoading] = useState(true);
     const [host, setHost] = useState<string | undefined>(undefined);
     const [showDevSettings, setShowDevSettings] = useState(false);
@@ -67,14 +50,7 @@ const LoginPage: React.FC = () => {
         }
     };
 
-    const handleLegacyBackgroundClick: React.MouseEventHandler = (event) => {
-        if (!shouldAllowChangingAPIOrigin()) return;
-        if (event.target !== event.currentTarget) return;
-        if (showDevSettings) return;
-        countDevSettingsTap();
-    };
-
-    const handleNewAuthBackgroundClick: React.MouseEventHandler = (event) => {
+    const handleBackgroundClick: React.MouseEventHandler = (event) => {
         if (!shouldAllowChangingAPIOrigin()) return;
         if (showDevSettings) return;
         if (
@@ -95,59 +71,20 @@ const LoginPage: React.FC = () => {
 
     if (loading) return <LoadingIndicator />;
 
-    if (featureFlags.enableNewAuthFlow) {
-        return (
-            <NewAuthRoot onClick={handleNewAuthBackgroundClick}>
-                <LoginContents
-                    {...{ host, onSignUp }}
-                    presentation={LoginPresentation}
-                />
-                <DevSettings
-                    open={showDevSettings}
-                    onClose={handleClose}
-                    presentation={DevSettingsDialog}
-                />
-            </NewAuthRoot>
-        );
-    }
-
     return (
-        <Stack
-            sx={[
-                { minHeight: "100svh", bgcolor: "secondary.main" },
-                (theme) =>
-                    theme.applyStyles("dark", {
-                        bgcolor: "background.default",
-                    }),
-            ]}
-        >
-            <NavbarBase
-                sx={{
-                    boxShadow: "none",
-                    borderBottom: "none",
-                    bgcolor: "transparent",
-                }}
-            >
-                <EnteLogo />
-            </NavbarBase>
-            <CenteredFill
-                onClick={handleLegacyBackgroundClick}
-                sx={[
-                    { bgcolor: "secondary.main" },
-                    (theme) =>
-                        theme.applyStyles("dark", {
-                            bgcolor: "background.default",
-                        }),
-                ]}
-            >
-                <AccountsPagePaper>
-                    <LoginContents {...{ host, onSignUp }} />
-                </AccountsPagePaper>
-            </CenteredFill>
-            <DevSettings open={showDevSettings} onClose={handleClose} />
-        </Stack>
+        <NewAuthRoot onClick={handleBackgroundClick}>
+            <LoginContents
+                {...{ host, onSignUp }}
+                presentation={LoginPresentation}
+            />
+            <DevSettings
+                open={showDevSettings}
+                onClose={handleClose}
+                presentation={DevSettingsDialog}
+            />
+        </NewAuthRoot>
     );
-};
+}
 
 export default LoginPage;
 

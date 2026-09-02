@@ -12,7 +12,6 @@ import {
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";
-import { z } from "zod";
 import {
     b64ToBytes,
     boxSeal,
@@ -23,7 +22,8 @@ import {
     encryptBox,
     generateKey,
     stringToB64,
-} from "./crypto";
+} from "ente-core-wasm";
+import { z } from "zod";
 import {
     clearLockerCache,
     findCollectionByType,

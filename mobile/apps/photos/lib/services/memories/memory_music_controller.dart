@@ -53,9 +53,7 @@ class MemoryMusicController extends ChangeNotifier {
       _MemoryMusicPauseReason.videoItem,
       currentItemIsVideo,
     );
-    if (sameMemory &&
-        (_status == _MemoryMusicPlaybackStatus.ready ||
-            _status == _MemoryMusicPlaybackStatus.loading)) {
+    if (sameMemory && _status != _MemoryMusicPlaybackStatus.idle) {
       if (itemPauseChanged) await _synchronizePlayback();
       return;
     }
@@ -154,8 +152,6 @@ class MemoryMusicController extends ChangeNotifier {
     await _ensureAudioSessionInitialized();
     if (!_isCurrentLoad(generation)) return;
     await _player.load(track);
-    if (!_isCurrentLoad(generation)) return;
-    await _player.setLooping();
     if (!_isCurrentLoad(generation)) return;
     _status = _MemoryMusicPlaybackStatus.ready;
     await _synchronizePlayback();

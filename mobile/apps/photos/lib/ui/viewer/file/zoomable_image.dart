@@ -318,7 +318,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
               e,
               s,
             );
-            if (e is DownloadDecryptionFailedError) {
+            if (e is DownloadDecryptionError) {
               _onFinalImageDecryptionFailed();
             } else {
               _onFinalImageFetchFailed();

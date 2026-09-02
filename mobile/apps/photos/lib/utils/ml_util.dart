@@ -29,6 +29,7 @@ import "package:photos/services/filedata/model/response.dart";
 import "package:photos/services/machine_learning/face_ml/face_alignment/alignment_result.dart";
 import "package:photos/services/machine_learning/face_ml/face_detection/detection.dart";
 import "package:photos/services/machine_learning/ml_exceptions.dart";
+import "package:photos/services/machine_learning/ml_file_retrieval.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/search_service.dart";
@@ -739,7 +740,11 @@ Future<String> getImagePathForML(EnteFile enteFile) async {
           modificationTime: enteFile.modificationTime,
         );
       }
-      file = await getFile(enteFile, isOrigin: true);
+      file = await downloadAndLoadFileForMlWithDecryptionRetry(
+        () => getFile(enteFile, isOrigin: true, throwOnDecryptionFailure: true),
+      );
+    } on RepeatedFileDecryptionError {
+      rethrow;
     } catch (e, s) {
       _logger.severe("Could not get file for $enteFile", e, s);
     }
@@ -1020,6 +1025,9 @@ Future<MLResult> analyzeImageRust(Map args) async {
 }
 
 bool isExpectedMlSkipError(Object error) {
+  if (error is RepeatedFileDecryptionError) {
+    return true;
+  }
   final message = _normalizedErrorMessage(error);
   const acceptedIssueMarkers = <String>[
     "thumbnailretrievalexception",
@@ -1031,6 +1039,9 @@ bool isExpectedMlSkipError(Object error) {
 }
 
 String formatExpectedMlSkipReasonForLogs(Object error) {
+  if (error is RepeatedFileDecryptionError) {
+    return "origin decryption failed after three retries with identical ciphertext";
+  }
   final normalized = _normalizedErrorMessage(error);
   if (normalized.contains("invalidimageformatexception")) {
     return "image decode failed";

@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -17,9 +18,9 @@ type BillingRepository struct {
 	DB *sql.DB
 }
 
-func (repo *BillingRepository) AddSubscription(s ente.Subscription) (int64, error) {
+func (repo *BillingRepository) AddSubscriptionTx(ctx context.Context, tx *sql.Tx, s ente.Subscription) (int64, error) {
 	var subscriptionID int64
-	err := repo.DB.QueryRow(`INSERT INTO subscriptions(user_id, storage, original_transaction_id, expiry_time, product_id, payment_provider, attributes) 
+	err := tx.QueryRowContext(ctx, `INSERT INTO subscriptions(user_id, storage, original_transaction_id, expiry_time, product_id, payment_provider, attributes)
 			VALUES($1, $2, $3, $4, $5, $6, $7)
 			RETURNING subscription_id`, s.UserID, s.Storage,
 		s.OriginalTransactionID, s.ExpiryTime, s.ProductID, s.PaymentProvider,

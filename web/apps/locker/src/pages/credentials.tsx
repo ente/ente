@@ -1,10 +1,9 @@
+import { LockerAuthShell } from "@/components/LockerAuthShell";
 import {
     CredentialsForm,
     PasswordForm,
-} from "@/components/auth/CredentialsForm";
-import { SecondFactorChoiceDialog } from "@/components/auth/SecondFactorChoiceDialog";
-import { LockerAuthShell } from "@/components/LockerAuthShell";
-import { featureFlags } from "@/feature-flags";
+} from "ente-accounts/components/auth/CredentialsForm";
+import { SecondFactorChoiceDialog } from "ente-accounts/components/auth/SecondFactorChoiceDialog";
 import AccountsCredentialsPage, {
     type CredentialsPresentationProps,
 } from "ente-accounts/pages/credentials";
@@ -21,10 +20,6 @@ function CredentialsPresentation(
 }
 
 function CredentialsPage(): React.JSX.Element {
-    if (!featureFlags.enableNewLockerAuthFlow) {
-        return <AccountsCredentialsPage />;
-    }
-
     return (
         <AccountsCredentialsPage
             presentation={CredentialsPresentation}

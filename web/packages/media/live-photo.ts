@@ -1,9 +1,9 @@
-import { ensureArrayBufferBacked } from "ente-base/bytes";
 import {
     fileNameFromComponents,
     lowercaseExtension,
     nameAndExtension,
 } from "ente-base/file-name";
+import { ensureArrayBufferBacked } from "ente-utils/bytes";
 import JSZip from "jszip";
 import { FileType } from "./file-type";
 

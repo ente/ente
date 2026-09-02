@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/models/memories/smart_memory.dart";
-import "package:photos/service_locator.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/home/memories/full_screen_memory.dart";
 import "package:photos/ui/home/memories/memory_cover_util.dart";
@@ -107,12 +106,10 @@ class _AllMemoriesPageState extends State<AllMemoriesPage>
         },
       ),
     );
-    return flagService.internalUser
-        ? MemoryMusicSession(
-            memoryIDs: _memories.map((memory) => memory.id).toList(),
-            child: page,
-          )
-        : page;
+    return MemoryMusicSession(
+      memoryIDs: _memories.map((memory) => memory.id).toList(),
+      child: page,
+    );
   }
 
   int _initialItemIndexForPage(int pageIndex) {

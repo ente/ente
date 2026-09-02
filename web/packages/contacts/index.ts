@@ -1,8 +1,8 @@
-import { ensureArrayBufferBacked } from "ente-base/bytes";
 import { retryAsyncOperation } from "ente-base/http";
 import log from "ente-base/log";
 import { apiOrigin } from "ente-base/origins";
 import { savedAuthToken } from "ente-base/token";
+import { ensureArrayBufferBacked } from "ente-utils/bytes";
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import {
     saveContactDisplayRecords,

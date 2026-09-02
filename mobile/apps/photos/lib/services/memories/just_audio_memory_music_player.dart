@@ -5,6 +5,7 @@ import "package:just_audio/just_audio.dart";
 import "package:logging/logging.dart";
 import "package:photos/models/memories/memory_music_track.dart";
 import "package:photos/services/memories/memory_music_player.dart";
+import "package:photos/services/memories/memory_music_service.dart";
 import "package:photos/services/remote_assets_service.dart";
 
 class JustAudioMemoryMusicPlayer implements MemoryMusicPlayer {
@@ -28,15 +29,30 @@ class JustAudioMemoryMusicPlayer implements MemoryMusicPlayer {
 
   @override
   Future<void> load(MemoryMusicTrack track) async {
+    final cacheFileName = memoryMusicCacheFileName(track.url);
     final file = await RemoteAssetsService.instance.getAsset(
       track.url,
-      cacheFileName: track.cacheFileName,
+      cacheFileName: cacheFileName,
     );
-    await _player.setFilePath(file.path, preload: true);
+    try {
+      await _player.setFilePath(file.path, preload: true);
+    } on PlayerException {
+      try {
+        await RemoteAssetsService.instance.deleteAsset(
+          track.url,
+          cacheFileName: cacheFileName,
+        );
+      } catch (error, stackTrace) {
+        _logger.warning(
+          "Failed to invalidate memory music track ${track.id}",
+          error,
+          stackTrace,
+        );
+      }
+      rethrow;
+    }
+    await _player.setLoopMode(LoopMode.one);
   }
-
-  @override
-  Future<void> setLooping() => _player.setLoopMode(LoopMode.one);
 
   @override
   Future<void> play() {
@@ -78,8 +94,7 @@ class JustAudioMemoryMusicPlayer implements MemoryMusicPlayer {
   @override
   Future<void> dispose() async {
     await pauseImmediately();
-    final generation = ++_fadeGeneration;
-    await _enqueueFade(generation, _player.dispose);
+    await _enqueueFade(++_fadeGeneration, _player.dispose);
   }
 
   Future<void> _fadeTo(

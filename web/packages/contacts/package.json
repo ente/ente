@@ -13,6 +13,7 @@
         "ente-accounts": "*",
         "ente-base": "*",
         "ente-legacy-wasm": "*",
+        "ente-utils": "*",
         "react": "19.2.7",
         "zod": "4.4.3"
     },

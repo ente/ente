@@ -3,6 +3,8 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
+        "@hugeicons/core-free-icons": "1.2.1",
+        "@hugeicons/react": "1.1.6",
         "comlink": "4.4.2",
         "ente-base": "*",
         "ente-core-wasm": "*",

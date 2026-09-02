@@ -1,0 +1,1 @@
+- (i) Added a Justified layout option for the photo gallery.

@@ -4,19 +4,17 @@ import {
     encryptBox,
     generateKey,
     recoveryKeyFromMnemonicOrHex,
-    recoveryKeyToMnemonicRust,
 } from "ente-accounts/services/crypto";
 import { ensureMasterKeyFromSession } from "ente-accounts/services/session-storage";
 import { saveKeyAttributes } from "./accounts-db";
 import { putUserRecoveryKeyAttributes, type KeyAttributes } from "./user";
 
+export { recoveryKeyToMnemonic } from "ente-core-wasm";
+
 // For legacy compatibility, the hex representation of the recovery key is
 // accepted in addition to the 24 word BIP-39 mnemonic.
 export const recoveryKeyFromMnemonic = (recoveryKeyMnemonicOrHex: string) =>
     recoveryKeyFromMnemonicOrHex(recoveryKeyMnemonicOrHex);
-
-export const recoveryKeyToMnemonic = async (recoveryKey: string) =>
-    recoveryKeyToMnemonicRust(recoveryKey);
 
 export const getUserRecoveryKey = async () => {
     const masterKey = await ensureMasterKeyFromSession();

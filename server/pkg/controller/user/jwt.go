@@ -7,6 +7,7 @@ import (
 
 	"github.com/ente/museum/ente"
 	enteJWT "github.com/ente/museum/ente/jwt"
+	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/ente/museum/pkg/utils/time"
 	"github.com/ente/stacktrace"
 	"github.com/golang-jwt/jwt/v4"
@@ -21,14 +22,25 @@ var errJWTExpired = &ente.ApiError{
 }
 
 func (c *UserController) GetJWTToken(userID int64, scope enteJWT.ClaimScope) (string, error) {
+	return c.getJWTToken(userID, scope, nil, "")
+}
+
+func (c *UserController) GetSessionJWTToken(userID int64, scope enteJWT.ClaimScope, sessionToken string, sessionApp ente.App) (string, error) {
+	tokenHash := auth.HashToken(sessionToken)
+	return c.getJWTToken(userID, scope, tokenHash[:], sessionApp)
+}
+
+func (c *UserController) getJWTToken(userID int64, scope enteJWT.ClaimScope, sessionTokenHash []byte, sessionApp ente.App) (string, error) {
 	tokenExpiry := time.NDaysFromNow(1)
 	if scope == enteJWT.ACCOUNTS {
 		tokenExpiry = time.NMinFromNow(30)
 	}
 	claim := enteJWT.WebCommonJWTClaim{
-		UserID:     userID,
-		ExpiryTime: tokenExpiry,
-		ClaimScope: &scope,
+		UserID:           userID,
+		ExpiryTime:       tokenExpiry,
+		ClaimScope:       &scope,
+		SessionTokenHash: sessionTokenHash,
+		SessionApp:       string(sessionApp),
 	}
 	return c.GetJWTTokenForClaim(&claim)
 }

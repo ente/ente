@@ -1,6 +1,7 @@
 import { namedError } from "ente-base/error";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
+import { prepareCastPayload } from "ente-cast-wasm";
 import type { Collection } from "ente-media/collection";
 import { z } from "zod";
 
@@ -32,11 +33,10 @@ export const publishCastPayload = async (
         throw namedError("cast_device_not_found", "Unknown device code");
     }
 
-    const { preparePayload } = await import("ente-cast-wasm");
-    const { castToken, encryptedPayload } = preparePayload(
+    const { castToken, encryptedPayload } = await prepareCastPayload(
         publicKeys.publicKey,
         publicKeys.pqPublicKey,
-        BigInt(collection.id),
+        collection.id,
         collection.key,
     );
     const res = await fetch(await apiURL("/cast/cast-data"), {

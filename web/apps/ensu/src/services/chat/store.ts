@@ -2,6 +2,7 @@ import type { SourceCitation } from "@/services/knowledge";
 import { isTauriRuntime } from "@/services/tauri-runtime";
 import { getKV, removeKV, setKV } from "ente-base/kv";
 import log from "ente-base/log";
+import { ensureArrayBufferBacked } from "ente-utils/bytes";
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import {
     decryptAttachmentBytes,
@@ -857,10 +858,7 @@ const attachmentPath = async (id: string) => {
     return join(dir, id);
 };
 
-export const writeAttachmentBytes = async (
-    id: string,
-    data: Uint8Array<ArrayBuffer>,
-) => {
+export const writeAttachmentBytes = async (id: string, data: Uint8Array) => {
     if (isTauriRuntime()) {
         const { writeFile } = await import("@tauri-apps/plugin-fs");
         await writeFile(await attachmentPath(id), data);
@@ -868,7 +866,10 @@ export const writeAttachmentBytes = async (
     }
 
     const db = await chatDb();
-    await db.put("attachmentBytes", { id, data });
+    await db.put("attachmentBytes", {
+        id,
+        data: ensureArrayBufferBacked(data),
+    });
 };
 
 export const deleteAttachmentBytes = async (id: string) => {
@@ -918,7 +919,7 @@ export const readDecryptedAttachmentBytes = async (
     id: string,
     chatKey: string,
     sessionUuid: string,
-): Promise<Uint8Array<ArrayBuffer>> => {
+): Promise<Uint8Array> => {
     const encrypted = await readAttachmentBytes(id);
     return decryptAttachmentBytes(encrypted, chatKey, sessionUuid);
 };

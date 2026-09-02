@@ -302,9 +302,9 @@ func (repo *UserRepository) GetUserUsageWithSubData(ctx context.Context, userIds
 	return result, nil
 }
 
-func (repo *UserRepository) Create(encryptedEmail ente.EncryptionResult, emailHash string, source *string) (int64, error) {
+func (repo *UserRepository) CreateTx(ctx context.Context, tx *sql.Tx, encryptedEmail ente.EncryptionResult, emailHash string, source *string) (int64, error) {
 	var userID int64
-	err := repo.DB.QueryRow(`INSERT INTO users(encrypted_email, email_decryption_nonce, email_hash, creation_time, source) VALUES($1, $2, $3, $4, $5) RETURNING user_id`,
+	err := tx.QueryRowContext(ctx, `INSERT INTO users(encrypted_email, email_decryption_nonce, email_hash, creation_time, source) VALUES($1, $2, $3, $4, $5) RETURNING user_id`,
 		encryptedEmail.Cipher, encryptedEmail.Nonce, emailHash, time.Microseconds(), source).Scan(&userID)
 	if err != nil {
 		return -1, stacktrace.Propagate(err, "")

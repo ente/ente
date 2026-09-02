@@ -445,7 +445,7 @@ func (h *UserHandler) ReportEvent(c *gin.Context) {
 
 func (h *UserHandler) GetPaymentToken(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
-	token, err := h.UserController.GetJWTToken(userID, jwt.PAYMENT)
+	token, err := h.UserController.GetSessionJWTToken(userID, jwt.PAYMENT, auth.GetToken(c), auth.GetApp(c))
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -457,7 +457,7 @@ func (h *UserHandler) GetPaymentToken(c *gin.Context) {
 
 func (h *UserHandler) GetFamiliesToken(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
-	token, err := h.UserController.GetJWTToken(userID, jwt.FAMILIES)
+	token, err := h.UserController.GetSessionJWTToken(userID, jwt.FAMILIES, auth.GetToken(c), auth.GetApp(c))
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -470,7 +470,7 @@ func (h *UserHandler) GetFamiliesToken(c *gin.Context) {
 
 func (h *UserHandler) GetAccountsToken(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
-	token, err := h.UserController.GetJWTToken(userID, jwt.ACCOUNTS)
+	token, err := h.UserController.GetSessionJWTToken(userID, jwt.ACCOUNTS, auth.GetToken(c), auth.GetApp(c))
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return

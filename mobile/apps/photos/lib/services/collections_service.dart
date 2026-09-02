@@ -353,7 +353,7 @@ class CollectionsService {
   }
 
   Future<List<Collection>> getArchivedCollection() async {
-    final allCollections = getCollectionsForUI();
+    final allCollections = getCollectionsForUI(includedShared: true);
     return allCollections
         .where((c) => c.isArchived() && !c.isHidden())
         .toList();
@@ -636,12 +636,13 @@ class CollectionsService {
     );
     for (final c in collections) {
       if (c.owner.id == Configuration.instance.getUserID()) {
-        if (c.hasSharees || c.hasLink && !c.isQuickLinkCollection()) {
+        if (!c.isArchived() &&
+            (c.hasSharees || c.hasLink && !c.isQuickLinkCollection())) {
           outgoing.add(c);
         } else if (c.isQuickLinkCollection()) {
           quickLinks.add(c);
         }
-      } else {
+      } else if (!c.isArchived()) {
         incoming.add(c);
       }
     }

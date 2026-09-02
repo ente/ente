@@ -5,8 +5,10 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/core/event_bus.dart";
-import "package:photos/events/force_reload_home_gallery_event.dart";
+import "package:photos/events/gallery_layout_changed_event.dart";
+import "package:photos/models/gallery/gallery_layout_config.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:photos/ui/settings/gallery_settings_screen.dart";
 import "package:photos/ui/viewer/gallery/component/group/type.dart";
 
@@ -18,22 +20,35 @@ class GalleryLayoutSettings extends StatefulWidget {
 }
 
 class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
-  bool isDayLayout =
-      localSettings.getGalleryGroupType() == GroupType.day &&
-      localSettings.getPhotoGridSize() == 3;
-  bool isMonthLayout =
-      localSettings.getGalleryGroupType() == GroupType.month &&
-      localSettings.getPhotoGridSize() == 5;
+  late bool isDayLayout;
+  late bool isMonthLayout;
+  late bool isJustifiedLayout;
+
+  @override
+  void initState() {
+    super.initState();
+    _readLatestSetting();
+  }
+
+  void _readLatestSetting() {
+    final layoutType = resolveGalleryLayoutType(
+      localSettings.getGalleryLayoutType(),
+    );
+    isDayLayout =
+        layoutType == GalleryLayoutType.grid &&
+        localSettings.getGalleryGroupType() == GroupType.day &&
+        localSettings.getPhotoGridSize() == 3;
+    isMonthLayout =
+        layoutType == GalleryLayoutType.grid &&
+        localSettings.getGalleryGroupType() == GroupType.month &&
+        localSettings.getPhotoGridSize() == 5;
+    isJustifiedLayout = layoutType == GalleryLayoutType.justified;
+  }
 
   void _reloadWithLatestSetting() {
     if (!mounted) return;
     setState(() {
-      isDayLayout =
-          localSettings.getGalleryGroupType() == GroupType.day &&
-          localSettings.getPhotoGridSize() == 3;
-      isMonthLayout =
-          localSettings.getGalleryGroupType() == GroupType.month &&
-          localSettings.getPhotoGridSize() == 5;
+      _readLatestSetting();
     });
   }
 
@@ -62,12 +77,22 @@ class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
             showOnlyLoadingState: true,
             onTap: () => _applyLayout(GroupType.month, 5),
           ),
+          if (isJustifiedLayoutAvailable)
+            MenuComponent(
+              title: context.strings.layoutJustified,
+              leading: const Icon(Icons.view_quilt_outlined),
+              trailing: isJustifiedLayout
+                  ? Icon(Icons.check, color: colors.primary)
+                  : null,
+              showOnlyLoadingState: true,
+              onTap: _applyJustifiedLayout,
+            ),
           MenuComponent(
             title: context.strings.custom,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (!isDayLayout && !isMonthLayout) ...[
+                if (!isDayLayout && !isMonthLayout && !isJustifiedLayout) ...[
                   Icon(Icons.check, color: colors.primary),
                   const SizedBox(width: 8),
                 ],
@@ -90,11 +115,29 @@ class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
   }
 
   Future<void> _applyLayout(GroupType groupType, int gridSize) async {
-    await Future.wait([
-      localSettings.setGalleryGroupType(groupType),
-      localSettings.setPhotoGridSize(gridSize),
-    ]);
-    Bus.instance.fire(ForceReloadHomeGalleryEvent("Gallery layout changed"));
+    final alreadyApplied =
+        localSettings.getGalleryLayoutType() == GalleryLayoutType.grid &&
+        localSettings.getGalleryGroupType() == groupType &&
+        localSettings.getPhotoGridSize() == gridSize;
+    if (!alreadyApplied) {
+      await Future.wait([
+        localSettings.setGalleryLayoutType(GalleryLayoutType.grid),
+        localSettings.setGalleryGroupType(groupType),
+        localSettings.setPhotoGridSize(gridSize),
+      ]);
+      Bus.instance.fire(GalleryLayoutChangedEvent());
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context);
+  }
+
+  Future<void> _applyJustifiedLayout() async {
+    if (!isJustifiedLayoutAvailable) return;
+    if (localSettings.getGalleryLayoutType() != GalleryLayoutType.justified) {
+      await localSettings.setGalleryLayoutType(GalleryLayoutType.justified);
+      Bus.instance.fire(GalleryLayoutChangedEvent());
+    }
 
     if (!mounted) return;
     Navigator.pop(context);

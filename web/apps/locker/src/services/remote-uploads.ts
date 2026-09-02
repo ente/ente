@@ -5,7 +5,6 @@ import {
     retryEnsuringHTTPOk,
 } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
-import { z } from "zod";
 import {
     b64ToBytes,
     createStreamEncryptor,
@@ -14,7 +13,8 @@ import {
     encryptFileStreamWithKey,
     md5Base64,
     stringToB64,
-} from "./crypto";
+} from "ente-core-wasm";
+import { z } from "zod";
 import {
     RemoteIDResponseSchema,
     RemoteUploadURLResponseSchema,
@@ -309,7 +309,7 @@ export const uploadLockerFileWithDeps = async <TCollectionRecord>(
         if (plaintextChunkCount >= MULTIPART_CHUNKS_PER_PART) {
             const parts: Uint8Array<ArrayBuffer>[] = [];
             const partMd5s: string[] = [];
-            let pendingEncryptedChunks: Uint8Array<ArrayBuffer>[] = [];
+            let pendingEncryptedChunks: Uint8Array[] = [];
 
             for (
                 let chunkIndex = 0;
@@ -383,7 +383,7 @@ export const uploadLockerFileWithDeps = async <TCollectionRecord>(
             );
             encryptedFileObjectKey = multipartUpload.objectKey;
         } else {
-            const encryptedChunks: Uint8Array<ArrayBuffer>[] = [];
+            const encryptedChunks: Uint8Array[] = [];
 
             for (
                 let chunkIndex = 0;

@@ -7,6 +7,7 @@ import type { SRPSetupAttributes } from "ente-accounts/services/srp";
 import type { KeyAttributes } from "ente-accounts/services/user";
 import { ensureOk, publicRequestHeaders } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
+import { createSRPSession } from "ente-core-wasm";
 import { z } from "zod";
 
 export const spaceBootstrapAuthHeaders = (authToken: string) => ({
@@ -54,8 +55,7 @@ export const setupSpaceSignupSRP = async (
     { srpSalt, srpUserID, srpVerifier, loginSubKey }: SRPSetupAttributes,
     authToken: string,
 ) => {
-    const wasm = await import("ente-core-wasm");
-    const session = new wasm.SrpSession(srpUserID, srpSalt, loginSubKey);
+    const session = await createSRPSession(srpSalt, srpUserID, loginSubKey);
 
     const setupRes = await fetch(await apiURL("/users/srp/setup"), {
         method: "POST",

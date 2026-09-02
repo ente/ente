@@ -1,9 +1,8 @@
-import { RecoveryKeyForm } from "@/components/auth/RecoveryKeyForm";
-import { SetPasswordForm } from "@/components/auth/SetPasswordForm";
 import { PhotosAuthShell } from "@/components/PhotosAuthShell";
-import { featureFlags } from "@/feature-flags";
 import type { NewPasswordPresentationProps } from "ente-accounts/components/NewPasswordForm";
 import type { RecoveryKeyPresentationProps } from "ente-accounts/components/RecoveryKey";
+import { RecoveryKeyForm } from "ente-accounts/components/auth/RecoveryKeyForm";
+import { SetPasswordForm } from "ente-accounts/components/auth/SetPasswordForm";
 import AccountsGeneratePage from "ente-accounts/pages/generate";
 import type React from "react";
 
@@ -28,10 +27,6 @@ function SetPasswordPresentation(
 }
 
 function GeneratePage(): React.JSX.Element {
-    if (!featureFlags.enableNewPhotosAuthFlow) {
-        return <AccountsGeneratePage />;
-    }
-
     return (
         <AccountsGeneratePage
             passwordPresentation={SetPasswordPresentation}

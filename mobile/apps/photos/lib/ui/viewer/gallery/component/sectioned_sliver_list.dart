@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import "package:photos/models/gallery/fixed_extent_section_layout.dart";
+import "package:photos/models/gallery/section_layout.dart";
 
 // Based on code from https://github.com/deckerst/aves
 // Copyright (c) 2020-2023 Thibault Deckers and contributors
@@ -18,7 +18,7 @@ import "package:photos/models/gallery/fixed_extent_section_layout.dart";
 // https://github.com/flutter/flutter/issues/95028
 
 class SectionedListSliver<T> extends StatelessWidget {
-  final List<FixedExtentSectionLayout> sectionLayouts;
+  final List<SectionLayout> sectionLayouts;
   const SectionedListSliver({super.key, required this.sectionLayouts});
 
   @override
@@ -43,7 +43,7 @@ class SectionedListSliver<T> extends StatelessWidget {
 }
 
 class _SliverKnownExtentList extends SliverMultiBoxAdaptorWidget {
-  final List<FixedExtentSectionLayout> sectionLayouts;
+  final List<SectionLayout> sectionLayouts;
 
   const _SliverKnownExtentList({
     required super.delegate,
@@ -69,11 +69,11 @@ class _SliverKnownExtentList extends SliverMultiBoxAdaptorWidget {
 }
 
 class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
-  List<FixedExtentSectionLayout> _sectionLayouts;
+  List<SectionLayout> _sectionLayouts;
 
-  List<FixedExtentSectionLayout> get sectionLayouts => _sectionLayouts;
+  List<SectionLayout> get sectionLayouts => _sectionLayouts;
 
-  set sectionLayouts(List<FixedExtentSectionLayout> value) {
+  set sectionLayouts(List<SectionLayout> value) {
     if (_sectionLayouts == value) return;
     _sectionLayouts = value;
     markNeedsLayout();
@@ -81,13 +81,13 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
 
   _RenderSliverKnownExtentBoxAdaptor({
     required super.childManager,
-    required List<FixedExtentSectionLayout> sectionLayouts,
+    required List<SectionLayout> sectionLayouts,
   }) : _sectionLayouts = sectionLayouts;
 
-  FixedExtentSectionLayout? sectionAtIndex(int index) =>
+  SectionLayout? sectionAtIndex(int index) =>
       sectionLayouts.sectionForIndex(index);
 
-  FixedExtentSectionLayout? sectionAtOffset(double scrollOffset) =>
+  SectionLayout? sectionAtOffset(double scrollOffset) =>
       sectionLayouts.sectionForOffset(scrollOffset);
 
   double indexToLayoutOffset(int index) {

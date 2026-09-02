@@ -798,15 +798,15 @@
   "@contactSupport": {
     "description": "Contact support button label"
   },
+  "contactUs": "Contact us",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
+  },
   "contactToManageSubscription": "Please contact us at support@ente.com to manage your {provider} subscription.",
   "@contactToManageSubscription": {
     "placeholders": {
       "provider": {}
     }
-  },
-  "contactUs": "Contact us",
-  "@contactUs": {
-    "description": "Button label that opens options to contact Ente support"
   },
   "continueInMailApp": "Continue in mail app",
   "continueLabel": "Continue",
@@ -2104,6 +2104,7 @@
   "lastYearsTrip": "Last year's trip",
   "layout": "Layout",
   "layoutGrouped": "Grouped",
+  "layoutJustified": "Justified",
   "layoutMasonry": "Masonry",
   "layoutTrip": "Trip",
   "leave": "Leave",
@@ -2547,7 +2548,29 @@
   "mlConsentConfirmation": "I understand, and wish to enable machine learning",
   "mlConsentDescription": "If you enable machine learning, Ente will extract information like face geometry from files, including those shared with you.\n\nThis will happen on your device, and any generated biometric information will be end-to-end encrypted.",
   "mlConsentPrivacy": "Please click here for more details about this feature in our privacy policy",
+  "mlCouldNotProcessItems": "{count, plural, one{Could not process {count} item} other{Could not process {count} items}}",
+  "@mlCouldNotProcessItems": {
+    "description": "Title shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mlIndexingDescription": "Please note that machine learning will result in higher bandwidth and battery usage until all items are processed. Consider using the desktop app for faster processing, and all results will be synced automatically.",
+  "mlItemsCouldNotBeProcessed": "{count, plural, one{{count} item could not be processed for machine learning. Please reach out to us so we can help.} other{{count} items could not be processed for machine learning. Please reach out to us so we can help.}}",
+  "@mlItemsCouldNotBeProcessed": {
+    "description": "Description shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mlProcessingIssueReachOut": "Please reach out to us so we can help.",
+  "@mlProcessingIssueReachOut": {
+    "description": "Support prompt shown when machine learning could not process one or more items"
+  },
   "mlProgressBannerDescription": "Your photos are getting processed on device to detect faces, objects and more.",
   "mlProgressBannerStatus": "{indexed} out of {total} photos processed",
   "@mlProgressBannerStatus": {
@@ -2613,6 +2636,7 @@
   "moveToAlbum": "Move to album",
   "moveToHiddenAlbum": "Move to hidden album",
   "movingFilesToAlbum": "Moving files to album...",
+  "muteAudio": "Mute audio",
   "name": "Name",
   "nDays": "{count} days",
   "@nDays": {
@@ -4460,6 +4484,7 @@
   "unnamedPeopleSpotlight": "A familiar face",
   "unnamedPeopleThrowbackTogether": "Throwback together",
   "unnamedPeopleYouAndThem": "You two",
+  "unmuteAudio": "Unmute audio",
   "unpin": "Unpin",
   "unpinnedCodeMessage": "{code} has been unpinned",
   "@unpinnedCodeMessage": {

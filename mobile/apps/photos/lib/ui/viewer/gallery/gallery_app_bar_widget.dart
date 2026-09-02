@@ -787,7 +787,8 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
           galleryAppBarMenuIcon(HugeIcons.strokeRoundedDelete01, warningColor),
           labelColor: warningColor,
         ),
-      if (isArchived || (galleryType.canArchive() && !isHidden))
+      if (galleryType != GalleryType.sharedCollection &&
+          (isArchived || (galleryType.canArchive() && !isHidden)))
         _menuOption(
           AlbumPopupAction.ownedArchive,
           isArchived ? strings.unarchiveAlbum : strings.archiveAlbum,

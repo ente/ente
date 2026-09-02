@@ -26,7 +26,6 @@ import "package:photos/models/selected_files.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/services/memories/memory_music_controller.dart";
 import "package:photos/services/memory_share_service.dart";
 import "package:photos/services/smart_memories_service.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
@@ -357,6 +356,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
   // invalidates the prior delayed forward.
   Object? _kenBurnsStartToken;
   bool _isViewerPaused = false;
+  bool _isMusicViewerActionPaused = false;
   bool _isPlaybackPaused = false;
   bool get _isAnimationPaused =>
       !widget.isActive || _isViewerPaused || _isPlaybackPaused;
@@ -422,13 +422,10 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final memoryData = FullScreenMemoryData.of(context);
-    final previousMemoryData = _memoryData;
     _memoryData = memoryData;
     final nextNotifier = memoryData?.indexNotifier;
     if (identical(nextNotifier, _itemIndexNotifier)) {
-      if (!identical(previousMemoryData, memoryData)) {
-        _activateCurrentItemMusic();
-      }
+      _activateCurrentItemMusic();
       return;
     }
     _itemIndexNotifier?.removeListener(_activateCurrentItemMusic);
@@ -465,8 +462,12 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
     );
     if (index == null) return;
     final file = inheritedData.memories[index].file;
-    final controller = MemoryMusicScope.maybeOf(context, listen: false);
+    final controller = MemoryMusicScope.maybeOf(
+      context,
+      listen: false,
+    )?.controller;
     if (controller == null) return;
+    unawaited(controller.setViewerActionPaused(_isMusicViewerActionPaused));
     unawaited(
       controller.activateMemory(
         widget.memoryID,
@@ -676,7 +677,11 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
 
   void _pauseViewer() {
     if (!mounted) return;
-    final controller = MemoryMusicScope.maybeOf(context, listen: false);
+    _isMusicViewerActionPaused = true;
+    final controller = MemoryMusicScope.maybeOf(
+      context,
+      listen: false,
+    )?.controller;
     if (controller != null) {
       unawaited(controller.setViewerActionPaused(true));
     }
@@ -686,9 +691,13 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
 
   void _resumeViewer() {
     if (!mounted) return;
+    _isMusicViewerActionPaused = false;
     Bus.instance.fire(ResumeVideoEvent());
     _toggleAnimation(pause: false);
-    final controller = MemoryMusicScope.maybeOf(context, listen: false);
+    final controller = MemoryMusicScope.maybeOf(
+      context,
+      listen: false,
+    )?.controller;
     if (controller != null) {
       unawaited(controller.setViewerActionPaused(false));
     }
@@ -697,7 +706,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
   @override
   Widget build(BuildContext context) {
     final inheritedData = FullScreenMemoryData.of(context);
-    final memoryMusicController = MemoryMusicScope.maybeOf(context);
+    final memoryMusic = MemoryMusicScope.maybeOf(context);
     if (inheritedData == null || inheritedData.memories.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -797,7 +806,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
                             color: Colors.transparent,
                           ),
                           isFromMemories: true,
-                          isAudioMutedOverride: memoryMusicController?.isMuted,
+                          isAudioMutedOverride: memoryMusic?.isMuted,
                           shouldDisableScroll: (isLocked) {
                             _isMediaInteractionLocked = isLocked;
                             widget.onMediaInteractionLockChanged?.call(
@@ -838,7 +847,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
             _MemoryViewerScrimsAndCaption(
               socialControlsVisible: _socialControlsVisible,
             ),
-            if (memoryMusicController != null)
+            if (memoryMusic != null)
               Positioned(
                 left:
                     MediaQuery.paddingOf(context).left +
@@ -847,7 +856,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
                     MediaQuery.paddingOf(context).bottom +
                     kMemoryBottomActionBarHeight +
                     _socialToActionBarGap,
-                child: _MemoryMusicMuteButton(memoryMusicController),
+                child: _MemoryMusicMuteButton(memoryMusic),
               ),
             ValueListenableBuilder<int>(
               valueListenable: inheritedData.indexNotifier,
@@ -1069,19 +1078,19 @@ class _MemoryActionButton extends StatelessWidget {
 }
 
 class _MemoryMusicMuteButton extends StatelessWidget {
-  final MemoryMusicController controller;
+  final MemoryMusicScope memoryMusic;
 
-  const _MemoryMusicMuteButton(this.controller);
+  const _MemoryMusicMuteButton(this.memoryMusic);
 
   @override
   Widget build(BuildContext context) {
-    final isMuted = controller.isMuted;
+    final isMuted = memoryMusic.isMuted;
     return SizedBox.square(
       dimension: 48,
       child: IconButton(
         tooltip: isMuted
-            ? pendingTranslation("Unmute audio")
-            : pendingTranslation("Mute audio"),
+            ? context.strings.unmuteAudio
+            : context.strings.muteAudio,
         padding: const EdgeInsets.all(7),
         style: IconButton.styleFrom(
           shape: const CircleBorder(),
@@ -1090,7 +1099,7 @@ class _MemoryMusicMuteButton extends StatelessWidget {
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           overlayColor: Colors.transparent,
         ),
-        onPressed: () => unawaited(controller.toggleMuted()),
+        onPressed: () => unawaited(memoryMusic.toggleMuted()),
         icon: DecoratedBox(
           decoration: const BoxDecoration(
             color: Color(0x66000000),

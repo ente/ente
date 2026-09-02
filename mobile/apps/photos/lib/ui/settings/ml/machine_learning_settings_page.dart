@@ -5,7 +5,10 @@ import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
+import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/db.dart";
 import "package:photos/events/notification_event.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
@@ -18,6 +21,7 @@ import "package:photos/services/remote_assets_service.dart";
 import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/common/web_page.dart";
 import "package:photos/ui/settings/ml/ml_user_dev_screen.dart";
+import "package:photos/utils/email_util.dart";
 import "package:photos/utils/ml_util.dart";
 import "package:photos/utils/network_util.dart";
 
@@ -31,15 +35,18 @@ class MachineLearningSettingsPage extends StatefulWidget {
 
 class _MachineLearningSettingsPageState
     extends State<MachineLearningSettingsPage> {
+  static final _logger = Logger("MachineLearningSettingsPage");
   Timer? _timer;
   int _titleTapCount = 0;
   Timer? _advancedOptionsTimer;
   bool _hasAcknowledgedMLConsent = false;
   bool _hasHandledDisabledExit = false;
+  bool _mlDecryptionRecordsReady = false;
 
   @override
   void initState() {
     super.initState();
+    unawaited(_pruneMlDecryptionRecords());
     wakeLockService.updateWakeLock(
       enable: true,
       wakeLockFor: WakeLockFor.machineLearningSettingsScreen,
@@ -57,6 +64,39 @@ class _MachineLearningSettingsPageState
     _advancedOptionsTimer = Timer.periodic(const Duration(seconds: 7), (timer) {
       _titleTapCount = 0;
     });
+  }
+
+  Future<void> _pruneMlDecryptionRecords() async {
+    final recordedFileIDs = mlDecryptionRecordStore.fileIDs;
+    try {
+      if (recordedFileIDs.isNotEmpty) {
+        await MLDataDB.instance.pruneResolvedFaceErrorResults(recordedFileIDs);
+        final existingFiles = await FilesDB.instance.getFileIDToFileFromIDs(
+          recordedFileIDs,
+        );
+        final errorResultFileIDs = await MLDataDB.instance
+            .getFileIDsWithErrorResults(recordedFileIDs);
+        final staleFileIDs = recordedFileIDs
+            .where(
+              (fileID) =>
+                  !existingFiles.containsKey(fileID) ||
+                  !errorResultFileIDs.contains(fileID),
+            )
+            .toSet();
+        await mlDecryptionRecordStore.removeAll(staleFileIDs);
+      }
+    } catch (error, stackTrace) {
+      _logger.warning(
+        "Failed to prune ML decryption records",
+        error,
+        stackTrace,
+      );
+    } finally {
+      mlDecryptionRecordStore.logFileIDs();
+      if (mounted) {
+        setState(() => _mlDecryptionRecordsReady = true);
+      }
+    }
   }
 
   @override
@@ -334,7 +374,7 @@ class _MachineLearningSettingsPageState
                   onlyIndexingModels: true,
                 ) ||
                 !localSettings.isMLLocalIndexingEnabled
-            ? const MLStatusWidget()
+            ? MLStatusWidget(showDecryptionWarning: _mlDecryptionRecordsReady)
             : const ModelLoadingState(),
       ],
     );
@@ -450,7 +490,9 @@ class _ModelLoadingStateState extends State<ModelLoadingState> {
 }
 
 class MLStatusWidget extends StatefulWidget {
-  const MLStatusWidget({super.key});
+  final bool showDecryptionWarning;
+
+  const MLStatusWidget({required this.showDecryptionWarning, super.key});
 
   @override
   State<MLStatusWidget> createState() => MLStatusWidgetState();
@@ -459,6 +501,7 @@ class MLStatusWidget extends StatefulWidget {
 class MLStatusWidgetState extends State<MLStatusWidget> {
   Timer? _timer;
   bool _isDeviceHealthy = computeController.isDeviceHealthy;
+
   @override
   void initState() {
     super.initState();
@@ -483,6 +526,9 @@ class MLStatusWidgetState extends State<MLStatusWidget> {
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
+    final decryptionIssueCount = widget.showDecryptionWarning
+        ? mlDecryptionRecordStore.count
+        : 0;
     return Column(
       children: [
         Padding(
@@ -564,7 +610,113 @@ class MLStatusWidgetState extends State<MLStatusWidget> {
             return const EnteLoadingWidget();
           },
         ),
+        if (decryptionIssueCount > 0) ...[
+          const SizedBox(height: 8),
+          _MLProcessingIssuesBlurb(itemCount: decryptionIssueCount),
+        ],
       ],
+    );
+  }
+}
+
+class _MLProcessingIssuesBlurb extends StatelessWidget {
+  final int itemCount;
+
+  const _MLProcessingIssuesBlurb({required this.itemCount});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.fillLight,
+        borderRadius: BorderRadius.circular(Radii.button),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: Spacing.lg,
+          top: Spacing.lg,
+          right: Spacing.lg,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.cautionLight,
+                shape: BoxShape.circle,
+              ),
+              child: SizedBox.square(
+                dimension: 32,
+                child: Center(
+                  child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedAlert02,
+                    size: IconSizes.small,
+                    color: colors.caution,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: Spacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.strings.mlCouldNotProcessItems(count: itemCount),
+                    style: TextStyles.bodyBold.copyWith(color: colors.textBase),
+                  ),
+                  const SizedBox(height: Spacing.sm),
+                  Text(
+                    context.strings.mlProcessingIssueReachOut,
+                    style: TextStyles.mini.copyWith(color: colors.textLight),
+                  ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      mlDecryptionRecordStore.logFileIDs();
+                      sendLogs(
+                        context,
+                        context.strings.contactUs,
+                        "support@ente.com",
+                        postShare: () {},
+                        subject: "Machine learning processing issue",
+                        body: context.strings.mlItemsCouldNotBeProcessed(
+                          count: itemCount,
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        top: Spacing.sm,
+                        bottom: Spacing.lg,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            context.strings.contactUs,
+                            style: TextStyles.bodyBold.copyWith(
+                              color: colors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: Spacing.xs),
+                          HugeIcon(
+                            icon: HugeIcons.strokeRoundedArrowRight01,
+                            color: colors.primary,
+                            size: 16,
+                            strokeWidth: 1.6,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
