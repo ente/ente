@@ -2727,6 +2727,7 @@ dependencies = [
  "ente-ml",
  "ente-photos",
  "flutter_rust_bridge",
+ "log",
 ]
 
 [[package]]
