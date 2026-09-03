@@ -9,8 +9,8 @@ use anyhow::{Context, Result, bail};
 use ente_assets::AssetStore;
 use ente_image::decode::decode_image_from_path;
 use ente_ml::ocr::{
-    DetectRegionsRequest, OcrEngine, OcrModelPaths, Point, ProbabilityMap, RegionDetectionDebug,
-    TextRegion, assets,
+    CropDebug, DetectRegionsRequest, OcrEngine, OcrModelPaths, Orientation, Point, ProbabilityMap,
+    RegionDetectionDebug, TextRegion, assets,
 };
 use image::{GrayImage, Rgb, RgbImage};
 use imageproc::drawing::draw_line_segment_mut;
@@ -99,7 +99,9 @@ fn detect_regions(engine: &OcrEngine, image_path: &str, dump_dir: Option<&Path>)
         println!("  {}", format_region(region));
     }
     if let Some(dir) = dump_dir {
-        dump(dir, image_path, &debug)?;
+        let target = dump_target(dir, image_path)?;
+        dump(&target, image_path, &debug)?;
+        dump_crops(engine, image_path, &target)?;
     }
     Ok(())
 }
@@ -114,13 +116,17 @@ fn format_region(region: &TextRegion) -> String {
     format!("[{:.3}] {corners}", region.confidence)
 }
 
-fn dump(dir: &Path, image_path: &str, debug: &RegionDetectionDebug) -> Result<()> {
+fn dump_target(dir: &Path, image_path: &str) -> Result<PathBuf> {
     let stem = Path::new(image_path)
         .file_stem()
         .and_then(|stem| stem.to_str())
         .with_context(|| format!("no file stem in {image_path}"))?;
     let target = dir.join(stem);
     std::fs::create_dir_all(&target).with_context(|| format!("create {}", target.display()))?;
+    Ok(target)
+}
+
+fn dump(target: &Path, image_path: &str, debug: &RegionDetectionDebug) -> Result<()> {
     probability_map_image(&debug.probability_map)?
         .save(target.join("probmap.png"))
         .context("write probmap.png")?;
@@ -129,6 +135,62 @@ fn dump(dir: &Path, image_path: &str, debug: &RegionDetectionDebug) -> Result<()
         .context("write overlay.png")?;
     println!("  wrote {}", target.display());
     Ok(())
+}
+
+fn dump_crops(engine: &OcrEngine, image_path: &str, target: &Path) -> Result<()> {
+    let debug = engine.detect_and_crop_debug(&DetectRegionsRequest {
+        image_path: image_path.to_string(),
+        request_id: None,
+    })?;
+    let crops_dir = target.join("crops");
+    std::fs::create_dir_all(&crops_dir)
+        .with_context(|| format!("create {}", crops_dir.display()))?;
+    for (index, crop) in debug.crops.iter().enumerate() {
+        println!("  {}", format_crop(index, crop));
+        let name = crop_file_name(index, crop);
+        crop_image(crop)?
+            .save(crops_dir.join(&name))
+            .with_context(|| format!("write {name}"))?;
+    }
+    println!(
+        "  wrote {} crops for {} candidates to {}",
+        debug.crops.len(),
+        debug.candidates.len(),
+        crops_dir.display()
+    );
+    Ok(())
+}
+
+fn orientation_label(orientation: Orientation) -> &'static str {
+    match orientation {
+        Orientation::Horizontal => "horizontal",
+        Orientation::Vertical => "vertical",
+    }
+}
+
+fn format_crop(index: usize, crop: &CropDebug) -> String {
+    let rotated = if crop.rotated { " rotated" } else { "" };
+    format!(
+        "{index:03} {}x{} {} p180={:.3}{rotated}",
+        crop.width,
+        crop.height,
+        orientation_label(crop.orientation),
+        crop.p180
+    )
+}
+
+fn crop_file_name(index: usize, crop: &CropDebug) -> String {
+    let rotated = if crop.rotated { "_rot180" } else { "" };
+    format!(
+        "{index:03}_{}_{:.2}{rotated}.png",
+        orientation_label(crop.orientation),
+        crop.p180
+    )
+}
+
+fn crop_image(crop: &CropDebug) -> Result<RgbImage> {
+    RgbImage::from_raw(crop.width, crop.height, crop.rgb.clone())
+        .context("crop size does not match its buffer")
 }
 
 fn probability_map_image(map: &ProbabilityMap) -> Result<GrayImage> {

@@ -4,6 +4,7 @@ use super::Point;
 use super::geometry::{
     clip_to_bounds, mean_inside_quad, min_area_rect, min_edge, order_corners, scale_points, unclip,
 };
+use super::tensor::{BgrNormalization, write_bgr_planes};
 use crate::cv;
 use crate::cv::image::{Contour, ImageU8};
 use crate::error::{MlError, MlResult};
@@ -12,8 +13,6 @@ use crate::onnx::{ExecutionMode, OnnxSession, PreparedF32Input, SessionRunError,
 const MODEL_NAMESPACE: &str = "ocr-detection";
 const MAX_INPUT_SIDE: i32 = 960;
 const INPUT_STRIDE: i32 = 32;
-const CHANNEL_MEAN_BGR: [f32; 3] = [0.485, 0.456, 0.406];
-const CHANNEL_STD_BGR: [f32; 3] = [0.229, 0.224, 0.225];
 const BITMAP_THRESHOLD: f32 = 0.3;
 const BOX_SCORE_THRESHOLD: f32 = 0.6;
 const UNCLIP_RATIO: f32 = 1.5;
@@ -58,7 +57,7 @@ impl TextDetector {
         let (input_width, input_height) = detector_input_size(working.width, working.height);
         let resized = cv::resize_u8(working, input_width, input_height, cv::Interp::Bilinear)
             .map_err(MlError::Preprocess)?;
-        let input = PreparedF32Input::new(normalized_bgr_planes(&resized));
+        let input = PreparedF32Input::new(normalized_bgr_planes(&resized)?);
         let values = self.infer(&input, input_width, input_height)?;
         let probability_map = ProbabilityMap {
             width: input_width as usize,
@@ -114,20 +113,15 @@ fn rounded_to_stride(side: f64) -> i32 {
     ((side.trunc() / stride).round_ties_even() as i32 * INPUT_STRIDE).max(INPUT_STRIDE)
 }
 
-fn normalized_bgr_planes(rgb: &ImageU8) -> Vec<f32> {
-    let pixels = rgb.width as usize * rgb.height as usize;
-    let mut planes = vec![0.0f32; pixels * 3];
-    let (blue, rest) = planes.split_at_mut(pixels);
-    let (green, red) = rest.split_at_mut(pixels);
-    let normalize = |channel: usize, value: u8| {
-        (value as f32 / 255.0 - CHANNEL_MEAN_BGR[channel]) / CHANNEL_STD_BGR[channel]
-    };
-    for (index, px) in rgb.data.as_chunks::<3>().0.iter().enumerate() {
-        blue[index] = normalize(0, px[2]);
-        green[index] = normalize(1, px[1]);
-        red[index] = normalize(2, px[0]);
-    }
-    planes
+fn normalized_bgr_planes(rgb: &ImageU8) -> MlResult<Vec<f32>> {
+    let mut planes = vec![0.0f32; rgb.width as usize * rgb.height as usize * 3];
+    write_bgr_planes(
+        rgb,
+        &mut planes,
+        rgb.width as usize,
+        BgrNormalization::IMAGENET,
+    )?;
+    Ok(planes)
 }
 
 impl DetectionCandidate {
@@ -466,7 +460,7 @@ mod tests {
     #[test]
     fn detector_planes_are_bgr_and_normalised_per_channel() {
         let pixel = ImageU8::new(1, 1, 3, vec![10, 20, 30]).unwrap();
-        let planes = normalized_bgr_planes(&pixel);
+        let planes = normalized_bgr_planes(&pixel).unwrap();
         let expected = [
             (30.0 / 255.0 - 0.485) / 0.229,
             (20.0 / 255.0 - 0.456) / 0.224,
@@ -481,7 +475,7 @@ mod tests {
     #[test]
     fn detector_planes_are_laid_out_plane_by_plane() {
         let two_pixels = ImageU8::new(2, 1, 3, vec![255, 0, 0, 0, 0, 255]).unwrap();
-        let planes = normalized_bgr_planes(&two_pixels);
+        let planes = normalized_bgr_planes(&two_pixels).unwrap();
         let blue_of = |value: f32| (value / 255.0 - 0.485) / 0.229;
         let red_of = |value: f32| (value / 255.0 - 0.406) / 0.225;
         assert!((planes[0] - blue_of(0.0)).abs() <= 1e-6);
