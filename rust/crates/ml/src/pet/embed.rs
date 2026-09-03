@@ -8,7 +8,7 @@ use crate::{
 };
 
 use super::{
-    COCO_CAT, PET_EMBEDDING_CHANNELS, PET_EMBEDDING_INPUT_SIZE, PET_SPECIES_CAT, PET_SPECIES_DOG,
+    COCO_CAT, PET_EMBEDDING_CHANNELS, PET_EMBEDDING_INPUT_SIZE,
     preprocess::{IndexedEmbeddingBatch, PetEmbeddingPreprocessor, PetFaceEmbeddingInputs},
 };
 
@@ -31,9 +31,9 @@ pub(crate) fn run_pet_face_embedding(
 
     let per_face_len = PET_EMBEDDING_INPUT_SIZE * PET_EMBEDDING_INPUT_SIZE * PET_EMBEDDING_CHANNELS;
 
-    for (species, batch) in [
-        (PET_SPECIES_DOG, aligned_faces.dog),
-        (PET_SPECIES_CAT, aligned_faces.cat),
+    for (model, batch) in [
+        (Model::PetFaceEmbeddingDog, aligned_faces.dog),
+        (Model::PetFaceEmbeddingCat, aligned_faces.cat),
     ] {
         if batch.is_empty() {
             continue;
@@ -46,30 +46,16 @@ pub(crate) fn run_pet_face_embedding(
             )));
         }
 
-        let input = onnx::PreparedF32Input::new(batch.input);
-        let input_shape = [
-            batch.indices.len() as i64,
-            PET_EMBEDDING_CHANNELS as i64,
-            PET_EMBEDDING_INPUT_SIZE as i64,
-            PET_EMBEDDING_INPUT_SIZE as i64,
-        ];
-        let model = if species == PET_SPECIES_DOG {
-            Model::PetFaceEmbeddingDog
-        } else {
-            Model::PetFaceEmbeddingCat
-        };
-        let (shape, output) =
-            runtime.run(model, |session| onnx::run_f32(session, &input, input_shape))?;
-
-        let embedding_size =
-            validate_embedding_batch_output("face", &shape, output.len(), batch.indices.len())?;
-
-        for (batch_idx, &orig_idx) in batch.indices.iter().enumerate() {
-            let start = batch_idx * embedding_size;
-            let mut embedding = output[start..(start + embedding_size)].to_vec();
-            l2_normalize(&mut embedding, 1e-12);
-            face_results[orig_idx].face_embedding = embedding;
-        }
+        run_pet_embedding_batch(
+            runtime,
+            "face",
+            model,
+            batch,
+            face_results,
+            |result, embedding| {
+                result.face_embedding = embedding;
+            },
+        )?;
     }
 
     Ok(())
@@ -121,35 +107,54 @@ pub(crate) fn run_pet_body_embedding(
         );
     }
 
-    for (is_cat, batch) in [(false, dog_batch), (true, cat_batch)] {
+    for (model, batch) in [
+        (Model::PetBodyEmbeddingDog, dog_batch),
+        (Model::PetBodyEmbeddingCat, cat_batch),
+    ] {
         if batch.is_empty() {
             continue;
         }
 
-        let input = onnx::PreparedF32Input::new(batch.input);
-        let input_shape = [
-            batch.indices.len() as i64,
-            PET_EMBEDDING_CHANNELS as i64,
-            PET_EMBEDDING_INPUT_SIZE as i64,
-            PET_EMBEDDING_INPUT_SIZE as i64,
-        ];
-        let model = if is_cat {
-            Model::PetBodyEmbeddingCat
-        } else {
-            Model::PetBodyEmbeddingDog
-        };
-        let (shape, output) =
-            runtime.run(model, |session| onnx::run_f32(session, &input, input_shape))?;
+        run_pet_embedding_batch(
+            runtime,
+            "body",
+            model,
+            batch,
+            body_results,
+            |result, embedding| {
+                result.body_embedding = embedding;
+            },
+        )?;
+    }
 
-        let embedding_size =
-            validate_embedding_batch_output("body", &shape, output.len(), batch.indices.len())?;
+    Ok(())
+}
 
-        for (batch_idx, &orig_idx) in batch.indices.iter().enumerate() {
-            let start = batch_idx * embedding_size;
-            let mut embedding = output[start..(start + embedding_size)].to_vec();
-            l2_normalize(&mut embedding, 1e-12);
-            body_results[orig_idx].body_embedding = embedding;
-        }
+fn run_pet_embedding_batch<T>(
+    runtime: &MlRuntimeView<'_>,
+    kind: &str,
+    model: Model,
+    batch: IndexedEmbeddingBatch,
+    results: &mut [T],
+    assign_embedding: impl Fn(&mut T, Vec<f32>),
+) -> MlResult<()> {
+    let batch_size = batch.indices.len();
+    let input = onnx::PreparedF32Input::new(batch.input);
+    let input_shape = [
+        batch_size as i64,
+        PET_EMBEDDING_CHANNELS as i64,
+        PET_EMBEDDING_INPUT_SIZE as i64,
+        PET_EMBEDDING_INPUT_SIZE as i64,
+    ];
+    let (shape, output) =
+        runtime.run(model, |session| onnx::run_f32(session, &input, input_shape))?;
+    let embedding_size = validate_embedding_batch_output(kind, &shape, output.len(), batch_size)?;
+
+    for (batch_index, original_index) in batch.indices.into_iter().enumerate() {
+        let start = batch_index * embedding_size;
+        let mut embedding = output[start..start + embedding_size].to_vec();
+        l2_normalize(&mut embedding, 1e-12);
+        assign_embedding(&mut results[original_index], embedding);
     }
 
     Ok(())
