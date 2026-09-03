@@ -157,6 +157,11 @@ class FlagService {
   String? _fetchToken;
   int? _fetchUserID;
 
+  // Bumped on every locally-applied flag change (e.g. setMapEnabled). A
+  // fetch in flight when a local change lands is racing against data that is
+  // now known to be stale, so it must not clobber the newer local value.
+  int _generation = 0;
+
   Future<void> _fetch() async {
     final requestToken = _prefs.getString("token");
     final requestUserID = _prefs.getInt(_userIdKey);
@@ -180,12 +185,24 @@ class FlagService {
     _fetchCompleter = fetchCompleter;
     _fetchToken = requestToken;
     _fetchUserID = requestUserID;
+    final generationAtFetchStart = _generation;
     try {
       log("fetching feature flags", name: "FlagService");
       final response = await _enteDio.get("/remote-store/feature-flags");
       if (!_isCurrentAccount(requestToken, requestUserID)) {
         log(
           "discarding feature flags fetched for a stale account",
+          name: "FlagService",
+        );
+        return;
+      }
+      if (generationAtFetchStart != _generation) {
+        // A local flag change was applied while this request was in
+        // flight. That local value is guaranteed to be at least as fresh
+        // (it was written after this request started), so keep it instead
+        // of overwriting it with this now-stale response.
+        log(
+          "discarding feature flags fetched before a newer local update",
           name: "FlagService",
         );
         return;
@@ -227,6 +244,7 @@ class FlagService {
     final flagsJson = flags.toJson();
     _flags = flags;
     _flagsJson = flagsJson;
+    _generation++;
     _prefs.setString("remote_flags", flagsJson);
     _fetch().ignore();
   }
