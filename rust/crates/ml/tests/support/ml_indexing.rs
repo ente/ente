@@ -188,11 +188,7 @@ impl MlIndexingTestContext {
         let golden_results = load_golden_results(&golden_path)?;
         let fixture_paths = fetch_fixtures(&store, &asset_lock.fixture_base_url, &manifest).await?;
 
-        let onnx_runtime_library =
-            resolve_onnx_runtime_library(&store, &asset_lock.onnx_runtime).await?;
-        let _ = ort::init_from(&onnx_runtime_library)
-            .context("load ONNX Runtime dynamic library")?
-            .commit();
+        init_onnx_runtime(&store, &asset_lock).await?;
 
         let model_paths = resolve_model_paths(&store, &asset_lock.models).await?;
 
@@ -415,11 +411,7 @@ impl GoldenTestAssets {
         let cache_dir = cache_dir(&repo_root);
         let store = AssetStore::new(&cache_dir);
 
-        let onnx_runtime_library =
-            resolve_onnx_runtime_library(&store, &asset_lock.onnx_runtime).await?;
-        let _ = ort::init_from(&onnx_runtime_library)
-            .context("load ONNX Runtime dynamic library")?
-            .commit();
+        init_onnx_runtime(&store, &asset_lock).await?;
 
         let models = &asset_lock.models;
         Ok(Self {
@@ -553,6 +545,28 @@ struct ComparableFace {
     landmarks: Vec<[f64; 2]>,
     score: f64,
     embedding: Vec<f64>,
+}
+
+#[allow(dead_code)]
+pub(crate) async fn load_onnx_runtime() -> Result<()> {
+    let repo_root = repo_root()?;
+    let asset_lock = load_asset_lock(&repo_root)?;
+    let store = AssetStore::new(cache_dir(&repo_root));
+    init_onnx_runtime(&store, &asset_lock).await
+}
+
+#[allow(dead_code)]
+pub(crate) fn asset_cache_dir() -> Result<PathBuf> {
+    Ok(cache_dir(&repo_root()?))
+}
+
+async fn init_onnx_runtime(store: &AssetStore, asset_lock: &AssetLock) -> Result<()> {
+    let onnx_runtime_library =
+        resolve_onnx_runtime_library(store, &asset_lock.onnx_runtime).await?;
+    let _ = ort::init_from(&onnx_runtime_library)
+        .context("load ONNX Runtime dynamic library")?
+        .commit();
+    Ok(())
 }
 
 fn repo_root() -> Result<PathBuf> {

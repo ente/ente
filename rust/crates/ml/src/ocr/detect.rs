@@ -1,3 +1,5 @@
+use std::sync::{Mutex, PoisonError};
+
 use super::Point;
 use super::geometry::{
     clip_to_bounds, mean_inside_quad, min_area_rect, min_edge, order_corners, scale_points, unclip,
@@ -5,7 +7,13 @@ use super::geometry::{
 use crate::cv;
 use crate::cv::image::{Contour, ImageU8};
 use crate::error::{MlError, MlResult};
+use crate::onnx::{ExecutionMode, OnnxSession, PreparedF32Input, SessionRunError, run_f32};
 
+const MODEL_NAMESPACE: &str = "ocr-detection";
+const MAX_INPUT_SIDE: i32 = 960;
+const INPUT_STRIDE: i32 = 32;
+const CHANNEL_MEAN_BGR: [f32; 3] = [0.485, 0.456, 0.406];
+const CHANNEL_STD_BGR: [f32; 3] = [0.229, 0.224, 0.225];
 const BITMAP_THRESHOLD: f32 = 0.3;
 const BOX_SCORE_THRESHOLD: f32 = 0.6;
 const UNCLIP_RATIO: f32 = 1.5;
@@ -15,9 +23,111 @@ const MAX_CANDIDATES: usize = 1000;
 const READING_LINE_TOLERANCE: f32 = 10.0;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct DetectionCandidate {
+pub(crate) struct DetectionCandidate {
     pub points: [Point; 4],
     pub score: f32,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProbabilityMap {
+    pub width: usize,
+    pub height: usize,
+    pub values: Vec<f32>,
+}
+
+pub(crate) struct TextDetection {
+    pub(crate) candidates: Vec<DetectionCandidate>,
+    pub(crate) probability_map: ProbabilityMap,
+}
+
+pub(crate) struct TextDetector {
+    session: Mutex<OnnxSession>,
+}
+
+impl TextDetector {
+    pub(crate) fn new(model_path: &str) -> Self {
+        Self {
+            session: Mutex::new(
+                OnnxSession::new(model_path, MODEL_NAMESPACE, ExecutionMode::CpuAccelerated)
+                    .with_unvalidated_acceleration(),
+            ),
+        }
+    }
+
+    pub(crate) fn detect(&self, working: &ImageU8) -> MlResult<TextDetection> {
+        let (input_width, input_height) = detector_input_size(working.width, working.height);
+        let resized = cv::resize_u8(working, input_width, input_height, cv::Interp::Bilinear)
+            .map_err(MlError::Preprocess)?;
+        let input = PreparedF32Input::new(normalized_bgr_planes(&resized));
+        let values = self.infer(&input, input_width, input_height)?;
+        let probability_map = ProbabilityMap {
+            width: input_width as usize,
+            height: input_height as usize,
+            values,
+        };
+        let mut candidates = candidates_from_probability_map(
+            &probability_map.values,
+            probability_map.width,
+            probability_map.height,
+            working.width as u32,
+            working.height as u32,
+        )?;
+        sort_reading_order(&mut candidates);
+        Ok(TextDetection {
+            candidates,
+            probability_map,
+        })
+    }
+
+    fn infer(&self, input: &PreparedF32Input, width: i32, height: i32) -> MlResult<Vec<f32>> {
+        let expected_shape = [1i64, 1, i64::from(height), i64::from(width)];
+        let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
+        let (values, _usage) = session.run(|session| {
+            let (shape, values) =
+                run_f32(session, input, [1, 3, i64::from(height), i64::from(width)])?;
+            if shape != expected_shape {
+                return Err(SessionRunError::from(MlError::CorruptModel(format!(
+                    "text detector produced output shape {shape:?}, expected {expected_shape:?}"
+                ))));
+            }
+            Ok(values)
+        })?;
+        Ok(values)
+    }
+}
+
+pub(crate) fn detector_input_size(width: i32, height: i32) -> (i32, i32) {
+    let longest = width.max(height);
+    let ratio = if longest > MAX_INPUT_SIDE {
+        f64::from(MAX_INPUT_SIDE) / f64::from(longest)
+    } else {
+        1.0
+    };
+    (
+        rounded_to_stride(f64::from(width) * ratio),
+        rounded_to_stride(f64::from(height) * ratio),
+    )
+}
+
+fn rounded_to_stride(side: f64) -> i32 {
+    let stride = f64::from(INPUT_STRIDE);
+    ((side.trunc() / stride).round_ties_even() as i32 * INPUT_STRIDE).max(INPUT_STRIDE)
+}
+
+fn normalized_bgr_planes(rgb: &ImageU8) -> Vec<f32> {
+    let pixels = rgb.width as usize * rgb.height as usize;
+    let mut planes = vec![0.0f32; pixels * 3];
+    let (blue, rest) = planes.split_at_mut(pixels);
+    let (green, red) = rest.split_at_mut(pixels);
+    let normalize = |channel: usize, value: u8| {
+        (value as f32 / 255.0 - CHANNEL_MEAN_BGR[channel]) / CHANNEL_STD_BGR[channel]
+    };
+    for (index, px) in rgb.data.as_chunks::<3>().0.iter().enumerate() {
+        blue[index] = normalize(0, px[2]);
+        green[index] = normalize(1, px[1]);
+        red[index] = normalize(2, px[0]);
+    }
+    planes
 }
 
 impl DetectionCandidate {
@@ -33,13 +143,13 @@ impl DetectionCandidate {
     }
 }
 
-struct ProbabilityMap<'a> {
+struct MapView<'a> {
     values: &'a [f32],
     width: usize,
     height: usize,
 }
 
-pub fn candidates_from_probability_map(
+pub(crate) fn candidates_from_probability_map(
     values: &[f32],
     map_width: usize,
     map_height: usize,
@@ -52,7 +162,7 @@ pub fn candidates_from_probability_map(
             values.len()
         )));
     }
-    let map = ProbabilityMap {
+    let map = MapView {
         values,
         width: map_width,
         height: map_height,
@@ -67,7 +177,7 @@ pub fn candidates_from_probability_map(
     Ok(candidates)
 }
 
-fn threshold_bitmap(map: &ProbabilityMap<'_>) -> MlResult<ImageU8> {
+fn threshold_bitmap(map: &MapView<'_>) -> MlResult<ImageU8> {
     let data = map
         .values
         .iter()
@@ -76,7 +186,7 @@ fn threshold_bitmap(map: &ProbabilityMap<'_>) -> MlResult<ImageU8> {
     ImageU8::new(map.width as i32, map.height as i32, 1, data).map_err(MlError::Postprocess)
 }
 
-fn largest_outer_contours(map: &ProbabilityMap<'_>) -> MlResult<Vec<Contour>> {
+fn largest_outer_contours(map: &MapView<'_>) -> MlResult<Vec<Contour>> {
     let bitmap = threshold_bitmap(map)?;
     let mut contours: Vec<Contour> = cv::find_contours(&bitmap)
         .map_err(MlError::Postprocess)?
@@ -88,10 +198,7 @@ fn largest_outer_contours(map: &ProbabilityMap<'_>) -> MlResult<Vec<Contour>> {
     Ok(contours)
 }
 
-fn candidate_from_contour(
-    contour: &Contour,
-    map: &ProbabilityMap<'_>,
-) -> Option<DetectionCandidate> {
+fn candidate_from_contour(contour: &Contour, map: &MapView<'_>) -> Option<DetectionCandidate> {
     let rect = order_corners(min_area_rect(&contour.points)?);
     if min_edge(&rect) < MIN_BOX_SIDE {
         return None;
@@ -108,7 +215,7 @@ fn candidate_from_contour(
     Some(DetectionCandidate { points, score })
 }
 
-pub fn sort_reading_order(candidates: &mut [DetectionCandidate]) {
+pub(crate) fn sort_reading_order(candidates: &mut [DetectionCandidate]) {
     candidates.sort_by(|a, b| a.top_left().y.total_cmp(&b.top_left().y));
     let mut start = 0;
     while start < candidates.len() {
@@ -341,5 +448,45 @@ mod tests {
     fn rejects_probability_map_with_wrong_length() {
         let error = candidates_from_probability_map(&[0.0; 10], 4, 4, 4, 4).unwrap_err();
         assert!(matches!(error, MlError::Postprocess(_)), "{error}");
+    }
+
+    #[test]
+    fn detector_input_truncates_then_rounds_half_to_even_to_a_multiple_of_32() {
+        assert_eq!(detector_input_size(1000, 700), (960, 672));
+        assert_eq!(detector_input_size(500, 300), (512, 288));
+        assert_eq!(detector_input_size(33, 33), (32, 32));
+        assert_eq!(detector_input_size(4000, 3000), (960, 704));
+        assert_eq!(detector_input_size(1280, 960), (960, 704));
+        assert_eq!(detector_input_size(752, 720), (768, 704));
+        assert_eq!(detector_input_size(1920, 1441), (960, 704));
+        assert_eq!(detector_input_size(960, 960), (960, 960));
+        assert_eq!(detector_input_size(1, 1), (32, 32));
+    }
+
+    #[test]
+    fn detector_planes_are_bgr_and_normalised_per_channel() {
+        let pixel = ImageU8::new(1, 1, 3, vec![10, 20, 30]).unwrap();
+        let planes = normalized_bgr_planes(&pixel);
+        let expected = [
+            (30.0 / 255.0 - 0.485) / 0.229,
+            (20.0 / 255.0 - 0.456) / 0.224,
+            (10.0 / 255.0 - 0.406) / 0.225,
+        ];
+        assert_eq!(planes.len(), 3);
+        for (actual, expected) in planes.iter().zip(expected) {
+            assert!((actual - expected).abs() <= 1e-6, "{planes:?}");
+        }
+    }
+
+    #[test]
+    fn detector_planes_are_laid_out_plane_by_plane() {
+        let two_pixels = ImageU8::new(2, 1, 3, vec![255, 0, 0, 0, 0, 255]).unwrap();
+        let planes = normalized_bgr_planes(&two_pixels);
+        let blue_of = |value: f32| (value / 255.0 - 0.485) / 0.229;
+        let red_of = |value: f32| (value / 255.0 - 0.406) / 0.225;
+        assert!((planes[0] - blue_of(0.0)).abs() <= 1e-6);
+        assert!((planes[1] - blue_of(255.0)).abs() <= 1e-6);
+        assert!((planes[4] - red_of(255.0)).abs() <= 1e-6);
+        assert!((planes[5] - red_of(0.0)).abs() <= 1e-6);
     }
 }

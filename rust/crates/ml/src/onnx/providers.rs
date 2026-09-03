@@ -48,6 +48,7 @@ const ENABLE_PERSISTENT_COREML_CACHE: bool = true;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ExecutionMode {
     PlatformDefault,
+    CpuAccelerated,
     CpuOnly,
 }
 
@@ -77,6 +78,7 @@ impl ProviderPlan {
     ) -> Self {
         let providers = match mode {
             ExecutionMode::PlatformDefault => platform_default_providers(model_path, validation),
+            ExecutionMode::CpuAccelerated => cpu_accelerated_providers(),
             ExecutionMode::CpuOnly => vec![ExecutionProvider::Cpu],
         };
         Self::from_providers(providers)
@@ -268,6 +270,16 @@ fn platform_default_providers(
     _model_path: &str,
     _validation: AccelerationValidation,
 ) -> Vec<ExecutionProvider> {
+    vec![ExecutionProvider::Cpu]
+}
+
+#[cfg(target_os = "android")]
+fn cpu_accelerated_providers() -> Vec<ExecutionProvider> {
+    vec![ExecutionProvider::Xnnpack, ExecutionProvider::Cpu]
+}
+
+#[cfg(not(target_os = "android"))]
+fn cpu_accelerated_providers() -> Vec<ExecutionProvider> {
     vec![ExecutionProvider::Cpu]
 }
 
@@ -476,6 +488,21 @@ mod tests {
         assert_eq!(attempts, 2);
         assert_eq!(plan.selected_provider(), Some(ExecutionProvider::Cpu));
         assert!(!plan.has_fallback());
+    }
+
+    #[test]
+    fn cpu_accelerated_plan_ends_with_cpu_and_never_uses_gpu_providers() {
+        let plan = ProviderPlan::new(
+            ExecutionMode::CpuAccelerated,
+            "model.onnx",
+            AccelerationValidation::Unvalidated,
+        );
+
+        assert_eq!(plan.providers.last(), Some(&ExecutionProvider::Cpu));
+        assert!(!plan.providers.iter().any(|provider| matches!(
+            provider,
+            ExecutionProvider::WebGpu | ExecutionProvider::CoreMl
+        )));
     }
 
     fn accelerated_provider_plan() -> ProviderPlan {
