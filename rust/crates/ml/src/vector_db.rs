@@ -117,6 +117,13 @@ impl VectorDB {
     }
 
     pub fn bulk_add_vectors(&mut self, keys: Vec<u64>, vectors: &[Vec<f32>]) -> Result<(), String> {
+        if keys.len() != vectors.len() {
+            return Err(format!(
+                "Cannot bulk add {} keys with {} vectors",
+                keys.len(),
+                vectors.len()
+            ));
+        }
         self.ensure_capacity(keys.len())?;
         for (key, vector) in keys.iter().zip(vectors.iter()) {
             if self.contains_vector(*key) {
@@ -475,5 +482,17 @@ mod tests {
         assert_eq!(matched_keys[1].first(), Some(&2));
         assert_eq!(distances[0].first(), Some(&0.0));
         assert_eq!(distances[1].first(), Some(&0.0));
+    }
+
+    #[test]
+    fn bulk_add_vectors_rejects_mismatched_keys_and_vectors() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let index_path = temp_dir.path().join("vectors.usearch");
+        let mut db = VectorDB::new(index_path.to_str().unwrap(), 3).unwrap();
+
+        let result = db.bulk_add_vectors(vec![1, 2], &[vec![1.0, 0.0, 0.0]]);
+
+        assert!(result.is_err());
+        assert!(!db.contains_vector(1));
     }
 }
