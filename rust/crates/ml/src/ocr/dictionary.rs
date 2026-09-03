@@ -5,7 +5,7 @@ use crate::error::{MlError, MlResult};
 const BLANK_TOKEN: &str = "blank";
 const SPACE_TOKEN: &str = " ";
 
-pub fn load_dictionary(path: &Path, expected_size: usize) -> MlResult<Vec<String>> {
+pub(crate) fn load_dictionary(path: &Path, expected_size: usize) -> MlResult<Vec<String>> {
     let contents = std::fs::read_to_string(path).map_err(|error| {
         MlError::CorruptModel(format!(
             "cannot read OCR dictionary {}: {error}",

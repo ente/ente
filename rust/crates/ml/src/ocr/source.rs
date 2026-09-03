@@ -13,6 +13,11 @@ pub(crate) struct WorkingSizeCap {
     max_pixels: u32,
 }
 
+pub(crate) const FULL_TEXT_CAP: WorkingSizeCap = WorkingSizeCap {
+    max_side: 4096,
+    max_pixels: 12_000_000,
+};
+
 pub(crate) const REGIONS_CAP: WorkingSizeCap = WorkingSizeCap {
     max_side: 1280,
     max_pixels: 2_000_000,
@@ -86,11 +91,6 @@ mod tests {
     use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 
     use super::*;
-
-    const FULL_TEXT_CAP: WorkingSizeCap = WorkingSizeCap {
-        max_side: 4096,
-        max_pixels: 12_000_000,
-    };
 
     fn write_png(dir: &Path, name: &str, width: u32, height: u32) -> String {
         let path = dir.join(name);
