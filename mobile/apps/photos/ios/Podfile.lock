@@ -30,6 +30,8 @@ PODS:
     - Flutter
   - ente_screen_cover (0.0.1):
     - Flutter
+  - ente_vision (0.0.1):
+    - Flutter
   - EnteOnnxRuntime (1.28.1-r1)
   - ffmpeg_kit_custom (6.0.3)
   - ffmpeg_kit_flutter (6.0.3):
@@ -255,6 +257,7 @@ DEPENDENCIES:
   - ente_qr (from `.symlinks/plugins/ente_qr/ios`)
   - ente_screen_brightness (from `.symlinks/plugins/ente_screen_brightness/ios`)
   - ente_screen_cover (from `.symlinks/plugins/ente_screen_cover/ios`)
+  - ente_vision (from `.symlinks/plugins/ente_vision/ios`)
   - EnteOnnxRuntime (from `../../../../apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec`)
   - ffmpeg_kit_flutter (from `.symlinks/plugins/ffmpeg_kit_flutter/ios`)
   - file_saver (from `.symlinks/plugins/file_saver/ios`)
@@ -350,6 +353,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/ente_screen_brightness/ios"
   ente_screen_cover:
     :path: ".symlinks/plugins/ente_screen_cover/ios"
+  ente_vision:
+    :path: ".symlinks/plugins/ente_vision/ios"
   EnteOnnxRuntime:
     :podspec: "../../../../apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec"
   ffmpeg_kit_flutter:
@@ -451,6 +456,7 @@ SPEC CHECKSUMS:
   ente_qr: 86beaf5d2644705db9b565b32dd8b82c05fb36af
   ente_screen_brightness: 7dd13c361508ee6098a2578908ebf35e9f567e28
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
+  ente_vision: 260965fb4a3bda0c0cb72c5f15eb8748fef7c897
   EnteOnnxRuntime: 7baa83a95717a6c9c8d0d4599f9f2c90b72d2905
   ffmpeg_kit_custom: 682b4f2f1ff1f8abae5a92f6c3540f2441d5be99
   ffmpeg_kit_flutter: 915b345acc97d4142e8a9a8549d177ff10f043f5
