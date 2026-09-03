@@ -155,3 +155,63 @@ class PetBodyEmbeddingCatModel extends MlModelAsset {
   @override
   String get modelSha256 => _sha256;
 }
+
+class OcrDetectionModel extends MlModelAsset {
+  static const remoteFileName = "PP-OCRv5/det.onnx";
+  static const _sha256 =
+      "d7fe3ea74652890722c0f4d02458b7261d9f5ae6c92904d05707c9eb155c7924";
+
+  OcrDetectionModel._();
+  static final instance = OcrDetectionModel._();
+
+  @override
+  String get modelRemotePath => kModelBucketEndpoint + remoteFileName;
+
+  @override
+  String get modelSha256 => _sha256;
+}
+
+class OcrClassificationModel extends MlModelAsset {
+  static const remoteFileName = "PP-OCRv5/cls.onnx";
+  static const _sha256 =
+      "f4bb53707100c5f3d59ba834eb05bb400369f20aed35d4b26807b1bfadd2a70e";
+
+  OcrClassificationModel._();
+  static final instance = OcrClassificationModel._();
+
+  @override
+  String get modelRemotePath => kModelBucketEndpoint + remoteFileName;
+
+  @override
+  String get modelSha256 => _sha256;
+}
+
+class OcrRecognitionModel extends MlModelAsset {
+  static const remoteFileName = "PP-OCRv5/rec.onnx";
+  static const _sha256 =
+      "bf66820f48fa99f779974c4df78e5274a9d8e0458c4137e8c5357e40e2c3faf2";
+
+  OcrRecognitionModel._();
+  static final instance = OcrRecognitionModel._();
+
+  @override
+  String get modelRemotePath => kModelBucketEndpoint + remoteFileName;
+
+  @override
+  String get modelSha256 => _sha256;
+}
+
+class OcrDictionaryAsset extends MlModelAsset {
+  static const remoteFileName = "PP-OCRv5/ppocrv5_dict.txt";
+  static const _sha256 =
+      "d1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b";
+
+  OcrDictionaryAsset._();
+  static final instance = OcrDictionaryAsset._();
+
+  @override
+  String get modelRemotePath => kModelBucketEndpoint + remoteFileName;
+
+  @override
+  String get modelSha256 => _sha256;
+}

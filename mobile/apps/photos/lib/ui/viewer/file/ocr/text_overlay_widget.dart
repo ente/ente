@@ -5,7 +5,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:mobile_ocr/mobile_ocr.dart' show CharacterBox, TextBlock;
+import 'package:photos/services/machine_learning/ocr/ocr_models.dart'
+    show CharacterBox, TextBlock;
 import 'package:photos/theme/colors.dart';
 import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/viewer/file/ocr/text_reading_order.dart';
