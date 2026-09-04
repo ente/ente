@@ -1,1 +1,1 @@
-- Added a support dialog when an item cannot be decrypted in the viewer.
+- Added a support dialog for items that cannot be decrypted in the file viewer.
