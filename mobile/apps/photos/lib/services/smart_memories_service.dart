@@ -14,6 +14,7 @@ import "package:photos/core/configuration.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/memories_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/locale.dart";
@@ -107,7 +108,7 @@ class SmartMemoriesService {
     })
   >
   _loadUnnamedClusterData({
-    required MLDataDB mlDataDB,
+    required IMLDataDB<int> mlDataDB,
     required List<PersonEntity> allPersons,
     required bool shouldLoadUnnamedClusterData,
     required TimeLogger t,

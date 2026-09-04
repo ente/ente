@@ -8,6 +8,7 @@ import "package:flutter/foundation.dart" show kDebugMode;
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/ml/db_pet_model_mappers.dart";
 import "package:photos/db/offline_files_db.dart";
@@ -81,10 +82,10 @@ class MLService {
         : _kForceClusteringFaceCount;
   }
 
-  MLDataDB get _mlDataDB =>
+  IMLDataDB<int> get _mlDataDB =>
       isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
 
-  MLDataDB _dbForMode(MLMode mode) {
+  IMLDataDB<int> _dbForMode(MLMode mode) {
     return mode == MLMode.localGallery
         ? MLDataDB.localGalleryInstance
         : MLDataDB.instance;

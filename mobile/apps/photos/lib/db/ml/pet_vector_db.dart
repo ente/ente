@@ -1,5 +1,4 @@
 import "dart:io" show File;
-import "dart:math" show min;
 import "dart:typed_data" show Float32List;
 
 import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Uint64List;
@@ -7,9 +6,7 @@ import "package:logging/logging.dart";
 import "package:path/path.dart";
 import "package:path_provider/path_provider.dart";
 import "package:photos/db/ml/clip_vector_db.dart" show VectorDbStats;
-import "package:photos/db/ml/schema.dart";
 import "package:photos/src/rust/api/usearch_api.dart";
-import "package:sqlite_async/sqlite_async.dart";
 import "package:synchronized/synchronized.dart";
 
 // Each model needs its own vector space; their embeddings are not comparable.
@@ -133,84 +130,6 @@ class PetVectorDB {
     final stats = await getIndexStats(vectorDB);
     _logger.info("Pet VectorDB opened with stats: ${stats.toString()}");
     return vectorDB;
-  }
-
-  // usearch needs integer keys; faces and bodies use separate ID spaces.
-
-  Future<Map<String, int>> getPetFaceVectorIdMap(
-    Iterable<String> petFaceIds, {
-    required SqliteDatabase db,
-    bool createIfMissing = false,
-  }) async {
-    final uniqueIds = petFaceIds.toSet().toList(growable: false);
-    if (uniqueIds.isEmpty) return {};
-
-    if (createIfMissing) {
-      const insertSql =
-          '''
-        INSERT OR IGNORE INTO $petFaceVectorIdMappingTable ($petFaceIDColumn)
-        VALUES (?)
-      ''';
-      final insertParams = <List<Object?>>[];
-      for (final id in uniqueIds) {
-        insertParams.add([id]);
-      }
-      await db.executeBatch(insertSql, insertParams);
-    }
-
-    final result = <String, int>{};
-    const chunkSize = 800;
-    for (int i = 0; i < uniqueIds.length; i += chunkSize) {
-      final chunk = uniqueIds.sublist(i, min(i + chunkSize, uniqueIds.length));
-      final rows = await db.getAll('''
-          SELECT $petFaceIDColumn, $petFaceVectorIdColumn
-          FROM $petFaceVectorIdMappingTable
-          WHERE $petFaceIDColumn IN (${List.filled(chunk.length, '?').join(',')})
-        ''', chunk);
-      for (final row in rows) {
-        result[row[petFaceIDColumn] as String] =
-            row[petFaceVectorIdColumn] as int;
-      }
-    }
-    return result;
-  }
-
-  Future<Map<String, int>> getObjectVectorIdMap(
-    Iterable<String> objectIds, {
-    required SqliteDatabase db,
-    bool createIfMissing = false,
-  }) async {
-    final uniqueIds = objectIds.toSet().toList(growable: false);
-    if (uniqueIds.isEmpty) return {};
-
-    if (createIfMissing) {
-      const insertSql =
-          '''
-        INSERT OR IGNORE INTO $petBodyVectorIdMappingTable ($petBodyIDColumn)
-        VALUES (?)
-      ''';
-      final insertParams = <List<Object?>>[];
-      for (final id in uniqueIds) {
-        insertParams.add([id]);
-      }
-      await db.executeBatch(insertSql, insertParams);
-    }
-
-    final result = <String, int>{};
-    const chunkSize = 800;
-    for (int i = 0; i < uniqueIds.length; i += chunkSize) {
-      final chunk = uniqueIds.sublist(i, min(i + chunkSize, uniqueIds.length));
-      final rows = await db.getAll('''
-          SELECT $petBodyIDColumn, $petBodyVectorIdColumn
-          FROM $petBodyVectorIdMappingTable
-          WHERE $petBodyIDColumn IN (${List.filled(chunk.length, '?').join(',')})
-        ''', chunk);
-      for (final row in rows) {
-        result[row[petBodyIDColumn] as String] =
-            row[petBodyVectorIdColumn] as int;
-      }
-    }
-    return result;
   }
 
   Future<void> _runWriteOperation(

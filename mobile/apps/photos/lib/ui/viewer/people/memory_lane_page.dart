@@ -9,6 +9,7 @@ import "package:flutter/services.dart";
 import "package:intl/intl.dart";
 import "package:logging/logging.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/ente_theme_data.dart";
 import "package:photos/models/file/file.dart";
@@ -88,7 +89,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   static const int _frameBuildConcurrency = 6;
 
   final Logger _logger = Logger("MemoryLanePage");
-  MLDataDB get _mlDataDB =>
+  IMLDataDB<int> get _mlDataDB =>
       isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
   late final AnimationController _cardTransitionController;
   double _stackProgress = 0;
