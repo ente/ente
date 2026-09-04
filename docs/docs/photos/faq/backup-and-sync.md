@@ -106,10 +106,9 @@ Large videos and interrupted uploads can increase this storage. Ente removes the
 
 Try these steps:
 
-1. Open `Settings > Free up space > Manage device cache` and tap **Clear caches**. This removes thumbnails and previews that Ente can recreate. It does not remove files shown under **Pending sync** because Ente still needs them to finish your backup.
-2. If your phone has enough space, let the backup finish. For large uploads on iPhone, open [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) under `Settings > Backup > Backup settings` and tap **Start backup mode**. Connect your phone to power and stable WiFi. Keep Ente open on screen until the backup finishes.
-3. If your phone does not have enough space, turn off **Backup videos** under `Settings > Backup > Backup settings` for two days. You can continue using Ente during this time. After two days, close and reopen Ente once. Ente will remove old upload data when it starts. Then turn **Backup videos** back on and use Backup mode to finish the backup.
-4. If **Pending sync** is still large, [share your logs with support](/photos/faq/troubleshooting#sharing-logs). Include a screenshot of the **Manage device cache** screen.
+1. If your phone has enough space, let the backup finish. For large uploads on iPhone, open [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) under `Settings > Backup > Backup settings` and tap **Start backup mode**. Connect your phone to power and stable WiFi. Keep Ente open on screen until the backup finishes.
+2. If your phone does not have enough space, turn off **Backup videos** under `Settings > Backup > Backup settings` for two days. You can continue using Ente during this time. After two days, close and reopen Ente once. Ente will remove old upload data when it starts. Then turn **Backup videos** back on and use Backup mode to finish the backup.
+3. If **Pending sync** is still large, [share your logs with support](/photos/faq/troubleshooting#sharing-logs). Include a screenshot of the **Manage device cache** screen.
 
 ### Do deleted photos on my device also delete from Ente? {#deletion-sync}
 

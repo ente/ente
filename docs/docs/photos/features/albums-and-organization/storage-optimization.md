@@ -45,14 +45,6 @@ The app will delete all photos and videos that have been successfully backed up 
 - All photos remain in Ente's cloud
 - Any photos in albums you haven't selected for backup
 
-## Manage device cache
-
-Ente saves thumbnails and previews on your device so photos and videos open faster. You can review this storage under `Settings > Free up space > Manage device cache`.
-
-Tap **Clear caches** to remove files that Ente can recreate. This does not remove files shown under **Pending sync** because Ente still needs them to finish your backup.
-
-Storage may grow during a large or interrupted backup. Learn [why backups need temporary space and how to reduce it](/photos/faq/backup-and-sync#backup-device-storage).
-
 ### Re-downloading photos
 
 When you free up space, photos are removed from your device but stay in Ente. To view a photo:
@@ -62,6 +54,14 @@ When you free up space, photos are removed from your device but stay in Ente. To
 - To download and view the photo in any other gallery
     - Long press the thumbnail and choose download option
     - Open the photo, choose the three dots at top right and choose download option.
+
+## Manage device cache
+
+Ente saves thumbnails and previews on your device so photos and videos open faster. You can review this storage under `Settings > Free up space > Manage device cache`.
+
+Tap **Clear caches** to remove files that Ente can recreate. This does not remove files shown under **Pending sync** because Ente still needs them to finish your backup.
+
+Storage may grow during a large or interrupted backup. Learn [why backups need temporary space and how to reduce it](/photos/faq/backup-and-sync#backup-device-storage).
 
 ## Remove exact duplicates
 
