@@ -5,6 +5,7 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:fluttertoast/fluttertoast.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
@@ -202,61 +203,65 @@ class _VideoWidgetState extends State<VideoWidget> {
         !widget.file.isDeviceTrash &&
         (!playPreview || Platform.isAndroid);
 
-    if (shouldUseNativeVideoPlayer) {
-      return VideoWidgetNative(
-        widget.file,
-        key: nativePlayerKey,
-        tagPrefix: widget.tagPrefix,
-        playbackCallback: widget.playbackCallback,
-        shouldDisableScroll: widget.shouldDisableScroll,
-        playlistData: playlistData,
-        selectedPreview: playPreview,
-        playbackSpeed: _playbackSpeed,
-        isFromMemories: widget.isFromMemories,
-        isActive: _isActive,
-        isAudioMutedOverride: widget.isAudioMutedOverride,
-        onStreamChange: () {
-          setState(() {
-            selectPreviewForPlay = !selectPreviewForPlay;
-            Bus.instance.fire(
-              StreamSwitchedEvent(
-                selectPreviewForPlay,
-                Platform.isAndroid && useNativeVideoPlayer
-                    ? PlayerType.nativeVideoPlayer
-                    : PlayerType.mediaKit,
-              ),
-            );
-          });
-        },
-        onFinalFileLoad: widget.onFinalFileLoad,
-      );
-    }
-    return VideoWidgetMediaKit(
-      widget.file,
-      key: mediaKitKey,
-      tagPrefix: widget.tagPrefix,
-      playbackCallback: widget.playbackCallback,
-      shouldDisableScroll: widget.shouldDisableScroll,
-      preview: playlistData?.preview,
-      selectedPreview: playPreview,
-      playbackSpeed: _playbackSpeed,
-      isFromMemories: widget.isFromMemories,
-      isActive: _isActive,
-      isAudioMutedOverride: widget.isAudioMutedOverride,
-      onStreamChange: () {
-        setState(() {
-          selectPreviewForPlay = !selectPreviewForPlay;
-          Bus.instance.fire(
-            StreamSwitchedEvent(
-              selectPreviewForPlay,
-              Platform.isAndroid
-                  ? PlayerType.nativeVideoPlayer
-                  : PlayerType.mediaKit,
-            ),
+    final Widget videoWidget = shouldUseNativeVideoPlayer
+        ? VideoWidgetNative(
+            widget.file,
+            key: nativePlayerKey,
+            tagPrefix: widget.tagPrefix,
+            playbackCallback: widget.playbackCallback,
+            shouldDisableScroll: widget.shouldDisableScroll,
+            playlistData: playlistData,
+            selectedPreview: playPreview,
+            playbackSpeed: _playbackSpeed,
+            isFromMemories: widget.isFromMemories,
+            isActive: _isActive,
+            isAudioMutedOverride: widget.isAudioMutedOverride,
+            onStreamChange: () {
+              setState(() {
+                selectPreviewForPlay = !selectPreviewForPlay;
+                Bus.instance.fire(
+                  StreamSwitchedEvent(
+                    selectPreviewForPlay,
+                    Platform.isAndroid && useNativeVideoPlayer
+                        ? PlayerType.nativeVideoPlayer
+                        : PlayerType.mediaKit,
+                  ),
+                );
+              });
+            },
+            onFinalFileLoad: widget.onFinalFileLoad,
+          )
+        : VideoWidgetMediaKit(
+            widget.file,
+            key: mediaKitKey,
+            tagPrefix: widget.tagPrefix,
+            playbackCallback: widget.playbackCallback,
+            shouldDisableScroll: widget.shouldDisableScroll,
+            preview: playlistData?.preview,
+            selectedPreview: playPreview,
+            playbackSpeed: _playbackSpeed,
+            isFromMemories: widget.isFromMemories,
+            isActive: _isActive,
+            isAudioMutedOverride: widget.isAudioMutedOverride,
+            onStreamChange: () {
+              setState(() {
+                selectPreviewForPlay = !selectPreviewForPlay;
+                Bus.instance.fire(
+                  StreamSwitchedEvent(
+                    selectPreviewForPlay,
+                    Platform.isAndroid
+                        ? PlayerType.nativeVideoPlayer
+                        : PlayerType.mediaKit,
+                  ),
+                );
+              });
+            },
+            onFinalFileLoad: widget.onFinalFileLoad,
           );
-        });
-      },
-      onFinalFileLoad: widget.onFinalFileLoad,
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: videoWidget,
     );
   }
 
