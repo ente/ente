@@ -1,6 +1,6 @@
 ---
 title: Albums and Organization FAQ
-description: Frequently asked questions about organizing photos with albums, hiding, archiving, and deletion in Ente Photos
+description: Frequently asked questions about albums, slideshows, hiding, archiving, and deleting photos in Ente Photos
 ---
 
 # Albums and Organization
@@ -73,6 +73,51 @@ The best way to export shared albums is to manually download each shared album:
 4. Import that folder into Ente → the album is preserved correctly
 
 This will reliably preserve the shared album name and contents.
+
+## Slideshows {#album-slideshows-section}
+
+### How do I start a slideshow from an album? {#start-album-slideshow}
+
+Album slideshows are available in Ente Photos on iOS and Android.
+
+**On mobile:**
+
+1. Open the **Albums** tab.
+2. Open an Ente album.
+3. Tap the three dots in the top-right corner.
+4. Tap **Slideshow**.
+
+### Can I create one slideshow from multiple albums? {#slideshow-multiple-albums}
+
+Yes. Open the **Albums** tab. Press and hold an Ente album, then select the other albums. Tap **Slideshow** at the bottom of the screen.
+
+You can select albums you own and albums shared with you.
+
+### What can I change during a slideshow? {#album-slideshow-settings}
+
+Tap the middle of the screen to show the controls. Then tap the settings button in the top-right corner. You can choose:
+
+- **Time per photo:** 5, 10, 15, or 30 seconds
+- **Photo order:** In order or Shuffle
+- **Background:** Blurred or Black
+
+### How do I control a slideshow? {#control-album-slideshow}
+
+Tap the left side of the screen to see the previous photo. Tap the right side to see the next photo. Tap the middle to show or hide the controls.
+
+Tap pause to stop the slideshow or play to continue.
+
+### Which items appear in an album slideshow? {#album-slideshow-supported-items}
+
+Slideshows show photos and Live Photos. Videos are not included.
+
+### Can I use an album slideshow without an internet connection? {#album-slideshow-offline}
+
+Yes, for photos that are already on your device. Ente needs an internet connection to download any photos stored only in Ente.
+
+### Can I start a slideshow from On device albums or Gallery mode? {#album-slideshow-gallery-mode}
+
+No. Album slideshows are available only for Ente albums after you sign in. You cannot start one from an **On device** album or while using [Gallery mode](/photos/faq/gallery-mode).
 
 ## Uncategorized
 
