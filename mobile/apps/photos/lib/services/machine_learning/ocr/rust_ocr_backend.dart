@@ -1,27 +1,16 @@
-import "dart:convert";
 import "dart:io";
 import "dart:ui";
 
-import "package:crypto/crypto.dart";
 import "package:logging/logging.dart";
-import "package:path/path.dart" as p;
-import "package:path_provider/path_provider.dart";
 import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ocr/ocr_backend.dart";
 import "package:photos/services/machine_learning/ocr/ocr_models.dart";
-import "package:photos/src/rust/api/image_processing_api.dart"
-    show decodeToJpeg;
 import "package:photos/src/rust/api/ocr_api.dart";
 import "package:synchronized/synchronized.dart";
 
 class RustOcrBackend implements OcrBackend {
   static final _logger = Logger("RustOcrBackend");
   static const _modelVersion = "pp-ocrv5";
-  static const _transcodableExtensions = {"heic", "heif", "heics", "avif"};
-  static const _displayCacheDirectoryName = "ocr_display";
-  static const _displayCacheMaxEntries = 32;
-  static const _displayCacheMaxBytes = 256 * 1024 * 1024;
-  static const _displayJpegQuality = 95;
   static const _noModelPaths = RustOcrModelPaths(
     detection: "",
     classification: "",
@@ -32,8 +21,6 @@ class RustOcrBackend implements OcrBackend {
   final _engineLock = Lock();
   OcrEngine? _engine;
   RustOcrModelPaths _enginePaths = _noModelPaths;
-  final Map<String, String> _displayCache = {};
-  final Map<String, Future<String>> _displayInFlight = {};
 
   @override
   Future<ModelPreparationStatus> prepareModels(
@@ -146,18 +133,7 @@ class RustOcrBackend implements OcrBackend {
 
   @override
   Future<String> ensureDisplayablePath(String imagePath) {
-    if (!_needsTranscode(imagePath)) {
-      return Future.value(imagePath);
-    }
-    final inFlight = _displayInFlight[imagePath];
-    if (inFlight != null) {
-      return inFlight;
-    }
-    final future = _displayablePath(imagePath).whenComplete(() {
-      _displayInFlight.remove(imagePath);
-    });
-    _displayInFlight[imagePath] = future;
-    return future;
+    return Future.value(imagePath);
   }
 
   OcrEngine _requireEngine() {
@@ -187,82 +163,6 @@ class RustOcrBackend implements OcrBackend {
       _logger.warning("Rust OCR failed: $exception");
     }
     return exception;
-  }
-
-  bool _needsTranscode(String imagePath) {
-    final extension = p.extension(imagePath).toLowerCase();
-    return extension.isNotEmpty &&
-        _transcodableExtensions.contains(extension.substring(1));
-  }
-
-  Future<String> _displayablePath(String imagePath) async {
-    try {
-      final stat = await File(imagePath).stat();
-      if (stat.type == FileSystemEntityType.notFound) {
-        return imagePath;
-      }
-      final cacheDirectory = Directory(
-        p.join(
-          (await getTemporaryDirectory()).path,
-          _displayCacheDirectoryName,
-        ),
-      );
-      final cacheFile = File(
-        p.join(cacheDirectory.path, "${_displayCacheKey(imagePath, stat)}.jpg"),
-      );
-      final cached = _displayCache.remove(imagePath);
-      if (cached == cacheFile.path && await cacheFile.exists()) {
-        _displayCache[imagePath] = cached!;
-        await cacheFile.setLastModified(DateTime.now());
-        return cached;
-      }
-      await cacheDirectory.create(recursive: true);
-      final jpeg = await decodeToJpeg(
-        imagePath: imagePath,
-        quality: _displayJpegQuality,
-      );
-      await cacheFile.writeAsBytes(jpeg, flush: true);
-      _displayCache[imagePath] = cacheFile.path;
-      if (_displayCache.length > _displayCacheMaxEntries) {
-        _displayCache.remove(_displayCache.keys.first);
-      }
-      await _trimDisplayCache(cacheDirectory);
-      return cacheFile.path;
-    } catch (e, s) {
-      _logger.warning("Could not transcode $imagePath for display", e, s);
-      return imagePath;
-    }
-  }
-
-  String _displayCacheKey(String imagePath, FileStat stat) {
-    final modified = stat.modified.millisecondsSinceEpoch;
-    return md5
-        .convert(utf8.encode("$imagePath:$modified:${stat.size}"))
-        .toString();
-  }
-
-  Future<void> _trimDisplayCache(Directory cacheDirectory) async {
-    final files = <(File, FileStat)>[];
-    await for (final entity in cacheDirectory.list()) {
-      if (entity is File) {
-        files.add((entity, await entity.stat()));
-      }
-    }
-    files.sort((a, b) => b.$2.modified.compareTo(a.$2.modified));
-    var retainedBytes = 0;
-    for (final (index, (file, stat)) in files.indexed) {
-      final retain =
-          index < _displayCacheMaxEntries &&
-          retainedBytes + stat.size <= _displayCacheMaxBytes;
-      if (retain) {
-        retainedBytes += stat.size;
-      } else {
-        await file.delete();
-      }
-    }
-    _displayCache.removeWhere(
-      (_, cachedPath) => !File(cachedPath).existsSync(),
-    );
   }
 }
 

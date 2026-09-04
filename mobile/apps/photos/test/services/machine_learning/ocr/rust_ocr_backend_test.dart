@@ -156,22 +156,10 @@ void main() {
       await backend.cancelRequest("request");
     });
 
-    test("ensureDisplayablePath leaves non-HEIC paths untouched", () async {
-      expect(
-        await backend.ensureDisplayablePath("/tmp/photo.JPG"),
-        "/tmp/photo.JPG",
-      );
-      expect(await backend.ensureDisplayablePath("/tmp/photo"), "/tmp/photo");
+    test("ensureDisplayablePath returns every path unchanged", () async {
+      for (final path in ["/tmp/photo.JPG", "/tmp/photo", "/tmp/photo.heic"]) {
+        expect(await backend.ensureDisplayablePath(path), path);
+      }
     });
-
-    test(
-      "ensureDisplayablePath returns a missing HEIC path unchanged",
-      () async {
-        expect(
-          await backend.ensureDisplayablePath("/tmp/does-not-exist.heic"),
-          "/tmp/does-not-exist.heic",
-        );
-      },
-    );
   });
 }
