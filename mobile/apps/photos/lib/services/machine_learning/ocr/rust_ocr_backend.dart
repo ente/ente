@@ -5,6 +5,7 @@ import "package:logging/logging.dart";
 import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ocr/ocr_backend.dart";
 import "package:photos/services/machine_learning/ocr/ocr_models.dart";
+import "package:photos/services/remote_assets_service.dart";
 import "package:photos/src/rust/api/ocr_api.dart";
 import "package:synchronized/synchronized.dart";
 
@@ -92,7 +93,7 @@ class RustOcrBackend implements OcrBackend {
     bool includeAllConfidenceScores = false,
     String? requestId,
   }) async {
-    final engine = _requireEngine();
+    final engine = await _recognitionEngine();
     try {
       final result = await engine.detectText(
         imagePath: imagePath,
@@ -114,7 +115,7 @@ class RustOcrBackend implements OcrBackend {
     required String imagePath,
     String? requestId,
   }) async {
-    final engine = _requireEngine();
+    final engine = await _detectionEngine();
     try {
       final result = await engine.detectTextRegions(
         imagePath: imagePath,
@@ -134,6 +135,33 @@ class RustOcrBackend implements OcrBackend {
   @override
   Future<String> ensureDisplayablePath(String imagePath) {
     return Future.value(imagePath);
+  }
+
+  Future<OcrEngine> _recognitionEngine() async {
+    final engine = _engine;
+    if (engine != null && _enginePaths.recognition.isNotEmpty) {
+      return engine;
+    }
+    await prepareModels(OcrModelComponent.values.toSet());
+    return _requireEngine();
+  }
+
+  Future<OcrEngine> _detectionEngine() async {
+    final engine = _engine;
+    if (engine != null) {
+      return engine;
+    }
+    final detectorAvailable = await RemoteAssetsService.instance.hasAsset(
+      OcrDetectionModel.instance.modelRemotePath,
+    );
+    if (!detectorAvailable) {
+      throw const OcrException(
+        code: "MODEL_NOT_READY",
+        message: "The OCR detector model is not available locally",
+      );
+    }
+    await prepareModels({OcrModelComponent.detector});
+    return _requireEngine();
   }
 
   OcrEngine _requireEngine() {

@@ -134,24 +134,6 @@ void main() {
   group("without a prepared engine", () {
     final backend = RustOcrBackend();
 
-    test("detectText throws MODEL_NOT_READY", () {
-      expect(
-        backend.detectText(imagePath: "/tmp/photo.jpg"),
-        throwsA(
-          isA<OcrException>().having((e) => e.code, "code", "MODEL_NOT_READY"),
-        ),
-      );
-    });
-
-    test("detectTextRegions throws MODEL_NOT_READY", () {
-      expect(
-        backend.detectTextRegions(imagePath: "/tmp/photo.jpg"),
-        throwsA(
-          isA<OcrException>().having((e) => e.code, "code", "MODEL_NOT_READY"),
-        ),
-      );
-    });
-
     test("cancelRequest completes", () async {
       await backend.cancelRequest("request");
     });

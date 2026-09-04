@@ -139,19 +139,16 @@ void main() {
     expect(harness.service.backendKind, OcrBackendKind.legacy);
   });
 
-  test("creates each backend once and follows flag changes per call", () async {
+  test("pins the backend chosen on first use", () async {
     final harness = _Harness(rustOcr: false, isAndroid: true, isIOS: false);
 
     await harness.service.cancelRequest("a");
     harness.rustOcr = true;
     await harness.service.cancelRequest("b");
-    await harness.service.cancelRequest("c");
-    harness.rustOcr = false;
-    await harness.service.cancelRequest("d");
 
-    expect(harness.legacy.calls, ["cancelRequest:a", "cancelRequest:d"]);
-    expect(harness.rust.calls, ["cancelRequest:b", "cancelRequest:c"]);
-    expect(harness.created, ["legacy", "rust"]);
+    expect(harness.legacy.calls, ["cancelRequest:a", "cancelRequest:b"]);
+    expect(harness.rust.calls, isEmpty);
+    expect(harness.created, ["legacy"]);
   });
 
   test("detectText forwards to the backend for an existing image", () async {

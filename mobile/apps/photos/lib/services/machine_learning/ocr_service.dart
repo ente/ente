@@ -39,10 +39,16 @@ class OcrService {
   final OcrBackend Function() _createLegacyBackend;
   final OcrBackend Function() _createRustBackend;
   final OcrBackend Function() _createVisionBackend;
-  final Map<OcrBackendKind, OcrBackend> _backends = {};
-  OcrBackendKind? _activeKind;
+  late final OcrBackendKind backendKind = _chooseBackendKind();
+  late final OcrBackend _backend = _createBackend(backendKind);
 
-  OcrBackendKind get backendKind {
+  OcrBackendKind _chooseBackendKind() {
+    final kind = _preferredBackendKind();
+    _logger.info("Using the ${kind.name} OCR backend");
+    return kind;
+  }
+
+  OcrBackendKind _preferredBackendKind() {
     if (!_rustOcrEnabled()) {
       return OcrBackendKind.legacy;
     }
@@ -93,15 +99,6 @@ class OcrService {
 
   Future<String> ensureDisplayablePath(String imagePath) {
     return _backend.ensureDisplayablePath(imagePath);
-  }
-
-  OcrBackend get _backend {
-    final kind = backendKind;
-    if (kind != _activeKind) {
-      _logger.info("Using the ${kind.name} OCR backend");
-      _activeKind = kind;
-    }
-    return _backends.putIfAbsent(kind, () => _createBackend(kind));
   }
 
   OcrBackend _createBackend(OcrBackendKind kind) => switch (kind) {
