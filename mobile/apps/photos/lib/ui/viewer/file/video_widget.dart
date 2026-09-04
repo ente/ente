@@ -178,8 +178,9 @@ class _VideoWidgetState extends State<VideoWidget> {
   @override
   Widget build(BuildContext context) {
     final playPreview = isPreviewLoadable && selectPreviewForPlay;
+    final Widget child;
     if (playPreview && playlistData == null) {
-      return Center(
+      child = Center(
         child: Container(
           width: 48,
           height: 48,
@@ -196,72 +197,72 @@ class _VideoWidgetState extends State<VideoWidget> {
           ),
         ),
       );
+    } else {
+      final shouldUseNativeVideoPlayer =
+          useNativeVideoPlayer &&
+          !widget.file.isDeviceTrash &&
+          (!playPreview || Platform.isAndroid);
+
+      child = shouldUseNativeVideoPlayer
+          ? VideoWidgetNative(
+              widget.file,
+              key: nativePlayerKey,
+              tagPrefix: widget.tagPrefix,
+              playbackCallback: widget.playbackCallback,
+              shouldDisableScroll: widget.shouldDisableScroll,
+              playlistData: playlistData,
+              selectedPreview: playPreview,
+              playbackSpeed: _playbackSpeed,
+              isFromMemories: widget.isFromMemories,
+              isActive: _isActive,
+              isAudioMutedOverride: widget.isAudioMutedOverride,
+              onStreamChange: () {
+                setState(() {
+                  selectPreviewForPlay = !selectPreviewForPlay;
+                  Bus.instance.fire(
+                    StreamSwitchedEvent(
+                      selectPreviewForPlay,
+                      Platform.isAndroid && useNativeVideoPlayer
+                          ? PlayerType.nativeVideoPlayer
+                          : PlayerType.mediaKit,
+                    ),
+                  );
+                });
+              },
+              onFinalFileLoad: widget.onFinalFileLoad,
+            )
+          : VideoWidgetMediaKit(
+              widget.file,
+              key: mediaKitKey,
+              tagPrefix: widget.tagPrefix,
+              playbackCallback: widget.playbackCallback,
+              shouldDisableScroll: widget.shouldDisableScroll,
+              preview: playlistData?.preview,
+              selectedPreview: playPreview,
+              playbackSpeed: _playbackSpeed,
+              isFromMemories: widget.isFromMemories,
+              isActive: _isActive,
+              isAudioMutedOverride: widget.isAudioMutedOverride,
+              onStreamChange: () {
+                setState(() {
+                  selectPreviewForPlay = !selectPreviewForPlay;
+                  Bus.instance.fire(
+                    StreamSwitchedEvent(
+                      selectPreviewForPlay,
+                      Platform.isAndroid
+                          ? PlayerType.nativeVideoPlayer
+                          : PlayerType.mediaKit,
+                    ),
+                  );
+                });
+              },
+              onFinalFileLoad: widget.onFinalFileLoad,
+            );
     }
-
-    final shouldUseNativeVideoPlayer =
-        useNativeVideoPlayer &&
-        !widget.file.isDeviceTrash &&
-        (!playPreview || Platform.isAndroid);
-
-    final Widget videoWidget = shouldUseNativeVideoPlayer
-        ? VideoWidgetNative(
-            widget.file,
-            key: nativePlayerKey,
-            tagPrefix: widget.tagPrefix,
-            playbackCallback: widget.playbackCallback,
-            shouldDisableScroll: widget.shouldDisableScroll,
-            playlistData: playlistData,
-            selectedPreview: playPreview,
-            playbackSpeed: _playbackSpeed,
-            isFromMemories: widget.isFromMemories,
-            isActive: _isActive,
-            isAudioMutedOverride: widget.isAudioMutedOverride,
-            onStreamChange: () {
-              setState(() {
-                selectPreviewForPlay = !selectPreviewForPlay;
-                Bus.instance.fire(
-                  StreamSwitchedEvent(
-                    selectPreviewForPlay,
-                    Platform.isAndroid && useNativeVideoPlayer
-                        ? PlayerType.nativeVideoPlayer
-                        : PlayerType.mediaKit,
-                  ),
-                );
-              });
-            },
-            onFinalFileLoad: widget.onFinalFileLoad,
-          )
-        : VideoWidgetMediaKit(
-            widget.file,
-            key: mediaKitKey,
-            tagPrefix: widget.tagPrefix,
-            playbackCallback: widget.playbackCallback,
-            shouldDisableScroll: widget.shouldDisableScroll,
-            preview: playlistData?.preview,
-            selectedPreview: playPreview,
-            playbackSpeed: _playbackSpeed,
-            isFromMemories: widget.isFromMemories,
-            isActive: _isActive,
-            isAudioMutedOverride: widget.isAudioMutedOverride,
-            onStreamChange: () {
-              setState(() {
-                selectPreviewForPlay = !selectPreviewForPlay;
-                Bus.instance.fire(
-                  StreamSwitchedEvent(
-                    selectPreviewForPlay,
-                    Platform.isAndroid
-                        ? PlayerType.nativeVideoPlayer
-                        : PlayerType.mediaKit,
-                  ),
-                );
-              });
-            },
-            onFinalFileLoad: widget.onFinalFileLoad,
-          );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
-      child: videoWidget,
+      child: child,
     );
   }
 
