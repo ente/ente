@@ -1,0 +1,1 @@
+- Align video stream button to left and constrain comment bubble. (@r4khul)
