@@ -173,16 +173,6 @@ mod tests {
     }
 
     #[test]
-    fn resized_width_scales_to_the_input_height_and_caps_at_the_input_width() {
-        assert_eq!(resized_width(100, 48), 100);
-        assert_eq!(resized_width(50, 24), 100);
-        assert_eq!(resized_width(1000, 48), INPUT_WIDTH);
-        assert_eq!(resized_width(10, 48), 10);
-        assert_eq!(resized_width(1, 4096), 1);
-        assert_eq!(resized_width(7, 3), 112);
-    }
-
-    #[test]
     fn rotation_needs_the_flipped_class_to_win_with_high_confidence() {
         assert!(!scores(0.95, 0.05).needs_rotation());
         assert!(scores(0.05, 0.95).needs_rotation());

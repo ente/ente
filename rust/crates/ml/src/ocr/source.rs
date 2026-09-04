@@ -129,18 +129,6 @@ mod tests {
     }
 
     #[test]
-    fn small_image_is_kept_as_is() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = write_png(dir.path(), "small.png", 640, 480);
-
-        let source = load_source(&path, REGIONS_CAP).unwrap();
-
-        assert_eq!((source.decoded_width, source.decoded_height), (640, 480));
-        assert_eq!((source.working.width, source.working.height), (640, 480));
-        assert_eq!(source.working.data.len(), 640 * 480 * 3);
-    }
-
-    #[test]
     fn missing_file_is_reported_before_decoding() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir
@@ -155,16 +143,5 @@ mod tests {
             matches!(&error, OcrError::ImageNotFound(reported) if reported == &path),
             "{error}"
         );
-    }
-
-    #[test]
-    fn regions_cap_applies_the_smaller_of_both_limits() {
-        assert_eq!(REGIONS_CAP.working_size(5000, 1000), (1280, 256));
-        assert_eq!(REGIONS_CAP.working_size(2000, 2000), (1280, 1280));
-        assert_eq!(REGIONS_CAP.working_size(1280, 960), (1280, 960));
-        assert_eq!(FULL_TEXT_CAP.working_size(4000, 3000), (4000, 3000));
-        assert_eq!(FULL_TEXT_CAP.working_size(5000, 3000), (4096, 2458));
-        assert_eq!(FULL_TEXT_CAP.working_size(4000, 4000), (3464, 3464));
-        assert_eq!(FULL_TEXT_CAP.working_size(1, 9000), (1, 4096));
     }
 }

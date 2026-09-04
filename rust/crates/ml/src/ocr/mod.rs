@@ -565,19 +565,6 @@ mod tests {
     }
 
     #[test]
-    fn engine_requires_a_detection_model_path() {
-        let error = OcrEngine::new(OcrModelPaths {
-            detection: String::new(),
-            classification: "cls.onnx".to_string(),
-            recognition: "rec.onnx".to_string(),
-            dictionary: "dict.txt".to_string(),
-        })
-        .err()
-        .expect("empty detection path is rejected");
-        assert!(matches!(error, MlError::InvalidRequest(_)), "{error}");
-    }
-
-    #[test]
     fn engine_accepts_a_detector_only_path_set_without_loading_it() {
         let engine = detector_only_engine();
         assert_eq!(

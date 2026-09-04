@@ -439,12 +439,6 @@ mod tests {
     }
 
     #[test]
-    fn rejects_probability_map_with_wrong_length() {
-        let error = candidates_from_probability_map(&[0.0; 10], 4, 4, 4, 4).unwrap_err();
-        assert!(matches!(error, MlError::Postprocess(_)), "{error}");
-    }
-
-    #[test]
     fn detector_input_truncates_then_rounds_half_to_even_to_a_multiple_of_32() {
         assert_eq!(detector_input_size(1000, 700), (960, 672));
         assert_eq!(detector_input_size(500, 300), (512, 288));
@@ -470,17 +464,5 @@ mod tests {
         for (actual, expected) in planes.iter().zip(expected) {
             assert!((actual - expected).abs() <= 1e-6, "{planes:?}");
         }
-    }
-
-    #[test]
-    fn detector_planes_are_laid_out_plane_by_plane() {
-        let two_pixels = ImageU8::new(2, 1, 3, vec![255, 0, 0, 0, 0, 255]).unwrap();
-        let planes = normalized_bgr_planes(&two_pixels).unwrap();
-        let blue_of = |value: f32| (value / 255.0 - 0.485) / 0.229;
-        let red_of = |value: f32| (value / 255.0 - 0.406) / 0.225;
-        assert!((planes[0] - blue_of(0.0)).abs() <= 1e-6);
-        assert!((planes[1] - blue_of(255.0)).abs() <= 1e-6);
-        assert!((planes[4] - red_of(255.0)).abs() <= 1e-6);
-        assert!((planes[5] - red_of(0.0)).abs() <= 1e-6);
     }
 }

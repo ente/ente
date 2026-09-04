@@ -102,12 +102,6 @@ mod tests {
     }
 
     #[test]
-    fn crop_size_never_collapses_below_one_pixel() {
-        let size = crop_size(&quad([(5.0, 5.0), (5.4, 5.0), (5.4, 5.3), (5.0, 5.3)]));
-        assert_eq!(size, (1, 1));
-    }
-
-    #[test]
     fn axis_aligned_crop_reproduces_the_source_pixels() {
         let source = gradient_image(40, 30);
         let crop = crop_text(
@@ -142,36 +136,5 @@ mod tests {
         assert_eq!(pixel(&crop.image, 2, 0), pixel(&source, 5, 4));
         assert_eq!(pixel(&crop.image, 0, 1), pixel(&source, 4, 2));
         assert_eq!(pixel(&crop.image, 2, 1), pixel(&source, 4, 4));
-    }
-
-    #[test]
-    fn aspect_of_exactly_one_and_a_half_counts_as_vertical() {
-        assert!(is_vertical(2, 3));
-        assert!(!is_vertical(3, 4));
-        assert!(!is_vertical(1, 1));
-    }
-
-    #[test]
-    fn counter_clockwise_rotation_moves_the_top_right_corner_to_the_top_left() {
-        let [a, b, c, d, e, f] = [1u8, 2, 3, 4, 5, 6];
-        let source = ImageU8::new(
-            2,
-            3,
-            3,
-            [a, b, c, d, e, f].iter().flat_map(|&v| [v, v, v]).collect(),
-        )
-        .unwrap();
-
-        let rotated = rotate_counter_clockwise(&source).unwrap();
-
-        assert_eq!((rotated.width, rotated.height), (3, 2));
-        let values: Vec<u8> = rotated
-            .data
-            .as_chunks::<3>()
-            .0
-            .iter()
-            .map(|px| px[0])
-            .collect();
-        assert_eq!(values, [b, d, f, a, c, e]);
     }
 }

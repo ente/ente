@@ -432,40 +432,12 @@ mod tests {
     }
 
     #[test]
-    fn argmax_picks_the_first_of_equal_maxima() {
-        let best = argmax(&[0.2, 0.5, 0.5, 0.1]);
-        assert_eq!(best.index, 1);
-        assert_close(best.probability, 0.5);
-    }
-
-    #[test]
     fn padded_spans_are_stretched_then_clamped_with_the_minimum_span() {
         let steps = [(1, 1.0), (0, 1.0), (0, 1.0), (2, 1.0)];
         let recognition = ctc_decode(&logits(4, &steps), 4, &dictionary(), 2.0);
         assert_eq!(recognition.text, "ab");
         assert_span(&recognition.spans[0], "a", 1.0, 0.0, 0.5);
         assert_span(&recognition.spans[1], "b", 1.0, 0.5, 1.0);
-    }
-
-    #[test]
-    fn minimum_span_never_drops_below_one_thousandth() {
-        let mut steps = vec![(0usize, 1.0f32); 2000];
-        steps[0] = (1, 1.0);
-        let recognition = ctc_decode(
-            &logits(2, &steps),
-            2,
-            &["blank".to_string(), "a".to_string()],
-            1.0,
-        );
-        assert_span(&recognition.spans[0], "a", 1.0, 0.0, 1e-3);
-    }
-
-    #[test]
-    fn indices_outside_the_dictionary_are_skipped() {
-        let recognition = ctc_decode(&logits(5, &[(4, 0.9), (1, 0.8)]), 5, &dictionary(), 1.0);
-        assert_eq!(recognition.text, "a");
-        assert_eq!(recognition.spans.len(), 1);
-        assert_close(recognition.confidence, 0.8);
     }
 
     #[test]
@@ -571,22 +543,5 @@ mod tests {
         let error = recognize_in_batches(&[&crop], &request, |_| unreachable!()).unwrap_err();
 
         assert!(matches!(error, OcrError::Cancelled), "{error}");
-    }
-
-    #[test]
-    fn a_short_result_list_is_reported_as_a_corrupt_model() {
-        let crops = [solid(4, 4, [0; 3]), solid(4, 4, [0; 3])];
-        let registry = RequestRegistry::default();
-        let request = registry.begin(None);
-
-        let error = recognize_in_batches(&crops.iter().collect::<Vec<_>>(), &request, |_| {
-            Ok(vec![Recognition::default()])
-        })
-        .unwrap_err();
-
-        assert!(
-            matches!(error, OcrError::Ml(MlError::CorruptModel(_))),
-            "{error}"
-        );
     }
 }

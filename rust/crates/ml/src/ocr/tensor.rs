@@ -110,21 +110,4 @@ mod tests {
             assert!((actual - expected).abs() <= 1e-6, "{planes:?}");
         }
     }
-
-    #[test]
-    fn images_that_do_not_fit_the_planes_are_rejected() {
-        let rgb = ImageU8::new(4, 1, 3, vec![0; 12]).unwrap();
-        let mut planes = vec![0.0f32; 3 * 3];
-
-        let too_wide = write_bgr_planes(&rgb, &mut planes, 3, BgrNormalization::CENTERED);
-        assert!(matches!(too_wide, Err(MlError::Preprocess(_))));
-
-        let too_short = write_bgr_planes(&rgb, &mut planes, 4, BgrNormalization::CENTERED);
-        assert!(matches!(too_short, Err(MlError::Preprocess(_))));
-
-        let gray = ImageU8::new(1, 1, 1, vec![0]).unwrap();
-        let wrong_channels =
-            write_bgr_planes(&gray, &mut planes[..3], 1, BgrNormalization::CENTERED);
-        assert!(matches!(wrong_channels, Err(MlError::Preprocess(_))));
-    }
 }

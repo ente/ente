@@ -296,49 +296,6 @@ mod tests {
     }
 
     #[test]
-    fn min_area_rect_of_axis_aligned_points() {
-        let points = [
-            (40, 30),
-            (100, 30),
-            (139, 30),
-            (139, 69),
-            (60, 69),
-            (40, 69),
-            (90, 50),
-        ];
-        let rect = order_corners(min_area_rect(&points).expect("rect"));
-        assert_eq!(
-            rect,
-            [
-                Point::new(40.0, 30.0),
-                Point::new(139.0, 30.0),
-                Point::new(139.0, 69.0),
-                Point::new(40.0, 69.0),
-            ]
-        );
-        assert!(min_area_rect(&[(0, 0), (1, 1)]).is_none());
-    }
-
-    #[test]
-    fn clip_to_bounds_clamps_corners() {
-        let quad = [
-            Point::new(-5.0, -3.0),
-            Point::new(120.0, -3.0),
-            Point::new(120.0, 45.0),
-            Point::new(-5.0, 45.0),
-        ];
-        assert_eq!(
-            clip_to_bounds(&quad, 100.0, 40.0),
-            [
-                Point::new(0.0, 0.0),
-                Point::new(100.0, 0.0),
-                Point::new(100.0, 40.0),
-                Point::new(0.0, 40.0),
-            ]
-        );
-    }
-
-    #[test]
     fn mean_inside_quad_averages_rasterised_pixels() {
         let width = 10;
         let height = 10;

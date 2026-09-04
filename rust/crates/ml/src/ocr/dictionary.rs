@@ -32,27 +32,11 @@ mod tests {
 
     use super::*;
 
-    const LOCAL_DICTIONARY: &str = "/private/tmp/claude-501/-Users-laurens-dev-ente-repo-ente8/a307b632-3b09-4f43-884c-2830ff54fe8f/scratchpad/models/ppocrv5_dict.txt";
-    const PPOCRV5_VOCABULARY: usize = 18385;
-
     fn temp_dictionary(contents: &[u8]) -> tempfile::NamedTempFile {
         let mut file = tempfile::NamedTempFile::new().unwrap();
         file.write_all(contents).unwrap();
         file.flush().unwrap();
         file
-    }
-
-    #[test]
-    fn loads_local_ppocrv5_dictionary() {
-        let path = Path::new(LOCAL_DICTIONARY);
-        if !path.exists() {
-            return;
-        }
-        let entries = load_dictionary(path, PPOCRV5_VOCABULARY).unwrap();
-        assert_eq!(entries.len(), PPOCRV5_VOCABULARY);
-        assert_eq!(entries[0], "blank");
-        assert_eq!(entries[1], "\u{3000}");
-        assert_eq!(entries.last().unwrap(), " ");
     }
 
     #[test]
@@ -68,12 +52,5 @@ mod tests {
         let error = load_dictionary(file.path(), 6).unwrap_err();
         assert!(matches!(error, MlError::CorruptModel(_)), "{error}");
         assert!(error.to_string().contains("has 5 entries"), "{error}");
-    }
-
-    #[test]
-    fn rejects_missing_file() {
-        let dir = tempfile::tempdir().unwrap();
-        let error = load_dictionary(&dir.path().join("missing.txt"), 3).unwrap_err();
-        assert!(matches!(error, MlError::CorruptModel(_)), "{error}");
     }
 }

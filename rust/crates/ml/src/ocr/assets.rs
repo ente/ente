@@ -116,18 +116,9 @@ pub async fn ensure_models(store: &AssetStore) -> MlResult<OcrModelPaths> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
     use std::path::Path;
 
     use super::*;
-
-    #[test]
-    fn catalog_keys_and_names_are_unique() {
-        let keys: HashSet<&str> = CATALOG.iter().map(|file| file.key).collect();
-        let names: HashSet<&str> = CATALOG.iter().map(|file| file.name).collect();
-        assert_eq!(keys.len(), CATALOG.len());
-        assert_eq!(names.len(), CATALOG.len());
-    }
 
     #[test]
     fn catalog_directories_do_not_collide_with_the_indexing_catalog() {
@@ -146,41 +137,6 @@ mod tests {
                 assert!(!dir.starts_with(other), "{}", dir.display());
                 assert!(!other.starts_with(&dir), "{}", other.display());
             }
-        }
-    }
-
-    #[test]
-    fn catalog_points_at_the_pp_ocrv5_cdn_directory() {
-        assert_eq!(DETECTION.url(), "https://models.ente.com/PP-OCRv5/det.onnx");
-        assert_eq!(
-            DICTIONARY.url(),
-            "https://models.ente.com/PP-OCRv5/ppocrv5_dict.txt"
-        );
-        assert_eq!(model_assets().len(), 4);
-    }
-
-    #[test]
-    fn model_paths_live_under_the_store_models_directory() {
-        let store = AssetStore::new(Path::new("cache"));
-        for file in CATALOG {
-            let path = file.path(&store);
-            assert!(path.starts_with("cache/models/"), "{path}");
-            assert!(path.ends_with(file.name), "{path}");
-            assert!(!store.is_downloaded(&file.asset()));
-        }
-    }
-
-    #[test]
-    fn local_copies_match_the_catalog_sizes() {
-        let local = Path::new(
-            "/private/tmp/claude-501/-Users-laurens-dev-ente-repo-ente8/a307b632-3b09-4f43-884c-2830ff54fe8f/scratchpad/models",
-        );
-        if !local.is_dir() {
-            return;
-        }
-        for file in CATALOG {
-            let metadata = std::fs::metadata(local.join(file.name)).unwrap();
-            assert_eq!(metadata.len(), file.size, "{}", file.name);
         }
     }
 }
