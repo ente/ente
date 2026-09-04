@@ -79,9 +79,9 @@ The initial backup can take time depending on:
 
 **On iOS:**
 
-- Keep the app open in foreground for large initial uploads
-- Disable automatic screen lock temporarily (`Settings > Backup > Backup settings > Disable auto lock`)
-- Videos won't backup in background - keep the app open for them
+- Open [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) under `Settings > Backup > Backup settings` and tap **Start backup mode**
+- Keep Ente open on screen. Switching apps pauses Backup mode
+- Keep your phone connected to power and stable WiFi until the backup finishes
 
 **On Android:**
 
@@ -97,6 +97,19 @@ The initial backup can take time depending on:
 ### What happens if my backup is interrupted? {#backup-interrupted}
 
 If your backup is interrupted (due to network issues, closing the app, or other reasons), Ente will automatically resume from where it left off the next time you have connectivity. You don't need to restart the entire backup process.
+
+### Why is Ente using more device storage during backup? {#backup-device-storage}
+
+Ente needs temporary space while preparing and uploading your photos and videos. On iPhone, Ente may first download the full-resolution original from iCloud. Ente also creates an encrypted copy for upload. Encryption protects the file before it leaves your phone.
+
+Large videos and interrupted uploads can increase this storage. Ente removes the temporary data after an upload finishes. If an upload is interrupted, Ente keeps the data so it can continue instead of starting over.
+
+Try these steps:
+
+1. Open `Settings > Free up space > Manage device cache` and tap **Clear caches**. This removes thumbnails and previews that Ente can recreate. It does not remove files shown under **Pending sync** because Ente still needs them to finish your backup.
+2. If your phone has enough space, let the backup finish. For large uploads on iPhone, open [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) under `Settings > Backup > Backup settings` and tap **Start backup mode**. Connect your phone to power and stable WiFi. Keep Ente open on screen until the backup finishes.
+3. If your phone does not have enough space, turn off **Backup videos** under `Settings > Backup > Backup settings` for two days. You can continue using Ente during this time. After two days, close and reopen Ente once. Ente will remove old upload data when it starts. Then turn **Backup videos** back on and use Backup mode to finish the backup.
+4. If **Pending sync** is still large, [share your logs with support](/photos/faq/troubleshooting#sharing-logs). Include a screenshot of the **Manage device cache** screen.
 
 ### Do deleted photos on my device also delete from Ente? {#deletion-sync}
 
@@ -148,7 +161,7 @@ Yes! Once photos are safely backed up to Ente, you can delete them from your dev
 
 **On mobile:**
 
-Use Ente's "Free up space" feature at `Settings > Backup > Free up space`. Ente will show photos that are backed up and can be safely deleted. Review and confirm deletion.
+Use Ente's "Free up space" feature at `Settings > Free up space`. Ente will show photos that are backed up and can be safely deleted. Review and confirm deletion.
 
 This feature only deletes photos that have been successfully uploaded to Ente. Photos remain in Ente and can be re-downloaded anytime.
 
@@ -443,17 +456,17 @@ If you're using the web version, you'll need to keep the browser tab open for up
 
 ### How does background sync work on iOS? {#ios-background-sync}
 
-On iOS, background sync works through silent push notifications:
+On iOS, background sync uses silent notifications:
 
-- Our servers "tickle" your device periodically
-- This wakes up the app and gives it 30 seconds to sync
+- Ente asks iOS to start a short backup from time to time
+- iOS briefly wakes Ente to upload new photos
 - Videos may not upload in background due to size limitations
 
 > [!IMPORTANT]
 >
-> If you force-kill the app from recents, iOS won't deliver push notifications and background sync will stop working.
+> Do not swipe Ente away from the app switcher. iOS cannot wake Ente for background backups after the app has been closed this way.
 
-For large initial backups, keep the app open in foreground on iOS.
+For large initial backups and videos, use [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) and keep Ente open on screen.
 
 ### How does background sync work on Android? {#android-background-sync}
 

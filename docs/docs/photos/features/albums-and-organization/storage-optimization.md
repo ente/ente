@@ -15,7 +15,7 @@ Once your photos are safely backed up to Ente, you can free up storage space on 
 
 **On mobile (iOS and Android):**
 
-Open `Settings > Backup > Free up space > Free up device space`, review how much space will be freed, and confirm to delete backed-up photos from your device.
+Open `Settings > Free up space > Free up device space`, review how much space will be freed, and confirm to delete backed-up photos from your device.
 
 <div align="center">
 
@@ -45,6 +45,14 @@ The app will delete all photos and videos that have been successfully backed up 
 - All photos remain in Ente's cloud
 - Any photos in albums you haven't selected for backup
 
+## Manage device cache
+
+Ente saves thumbnails and previews on your device so photos and videos open faster. You can review this storage under `Settings > Free up space > Manage device cache`.
+
+Tap **Clear caches** to remove files that Ente can recreate. This does not remove files shown under **Pending sync** because Ente still needs them to finish your backup.
+
+Storage may grow during a large or interrupted backup. Learn [why backups need temporary space and how to reduce it](/photos/faq/backup-and-sync#backup-device-storage).
+
 ### Re-downloading photos
 
 When you free up space, photos are removed from your device but stay in Ente. To view a photo:
@@ -73,7 +81,7 @@ The deduplication tool:
 
 **On mobile:**
 
-Open `Settings > Backup > Free up space > Remove duplicates`, review the duplicates found, and confirm to remove them.
+Open `Settings > Free up space > Remove duplicates`, review the duplicates found, and confirm to remove them.
 
 **On desktop:**
 
@@ -109,7 +117,7 @@ The similar images feature:
 
 **On mobile:**
 
-Open `Settings > Backup > Free up space > Similar images`, review each group of similar photos, choose which to keep and which to delete, and confirm your selections.
+Open `Settings > Free up space > Similar images`, review each group of similar photos, choose which to keep and which to delete, and confirm your selections.
 
 **On desktop:**
 
@@ -151,7 +159,7 @@ The large files feature:
 
 **On mobile:**
 
-Open `Settings > Backup > Free up space > Large files` to see your largest files sorted by size.
+Open `Settings > Free up space > Large files` to see your largest files sorted by size.
 
 **On desktop:**
 
@@ -192,7 +200,7 @@ When a suggestion is made:
 
 **On mobile:**
 
-Open `Settings > Backup > Free up space > Delete suggestions` to see photos that have been suggested for deletion.
+Open `Settings > Free up space > Delete suggestions` to see photos that have been suggested for deletion.
 
 For each suggestion, you can:
 
