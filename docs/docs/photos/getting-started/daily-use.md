@@ -36,7 +36,7 @@ Once you've selected your albums, Ente will:
 **On mobile:**
 
 - **WiFi vs mobile data**: Open `Settings > Backup` and toggle "Backup over mobile data" if you want to back up without WiFi
-- **Background backup**: On iOS, videos won't backup in background - keep the app open for large video uploads
+- **Background backup**: On iOS, use [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) for large video uploads
 - **Battery optimization**: On Android, disable battery optimization for Ente to ensure reliable background backup
 
 The initial backup of your existing photos may take some time depending on how many photos you have. Subsequent backups of new photos happen quickly in the background.

@@ -612,15 +612,15 @@ Overheating usually happens when Ente works through a large historical backup at
 
 **Steps to take:**
 
-1. Plug in your iPhone, remove the case if you use one, connect to WiFi, and leave Ente open in the foreground.
-2. Disable auto-lock.
+1. Plug in your iPhone, remove the case if you use one, and connect to WiFi.
+2. Open [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) under `Settings > Backup > Backup settings`, tap **Start backup mode**, and leave Ente open on screen.
 3. Close all other apps before starting.
 4. If the phone still overheats, turn off ML and video streaming: `Settings > Machine learning` and `Settings > Video streaming`.
 5. Let it run overnight, then re-enable ML and video streaming once the upload completes.
 
 > [!NOTE]
 >
-> iOS can still throttle, suspend, or terminate apps under heat pressure even with auto-lock disabled - that setting only keeps the screen from sleeping while the app is active, not the app from being suspended by the system. This can slow uploads considerably.
+> iOS can still throttle, suspend, or close apps under heat pressure while Backup mode is running. This can slow uploads considerably.
 >
 > If iCloud Photos "Optimize iPhone Storage" is enabled, originals may need to download from iCloud first, which can also slow or stall uploads.
 >
@@ -638,20 +638,15 @@ If you're running into repeated crashes on a low-RAM device:
 
 ### How can I clear the cache from the Ente app? {#clear-cache}
 
-If you notice storage usage growing or temporary files not clearing automatically, you can safely remove the cache:
+If Ente uses more storage during backup, see [why backups need temporary space](/photos/faq/backup-and-sync#backup-device-storage).
 
 **Clear the cache manually:**
 
 1. Open Ente Photos.
-2. Go to `Settings → Backup → Free up space → Manage device cache`.
-3. Tap **Clear cache**.
+2. Go to `Settings > Free up space > Manage device cache`.
+3. Tap **Clear caches**.
 
-This deletes temporary files such as thumbnails and preloaded images that can be regenerated when needed.
-
-**Automatic cache cleanup:**
-
-- Ente clears upload-related temporary files and pending syncs every 6 hours.
-- If the cache or sync state still hasn't cleared after 6 hours, force-close (kill) and reopen Ente Photos to trigger the manual cleanup.
+This removes thumbnails and previews that Ente can recreate. It does not remove files shown under **Pending sync** because Ente still needs them to finish your backup. Ente removes this data after the upload finishes. Old upload data is removed after it is no longer needed for another attempt.
 
 ## Getting Help
 

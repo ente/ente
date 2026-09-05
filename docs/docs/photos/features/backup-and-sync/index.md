@@ -46,13 +46,25 @@ Day to day sync will work automatically. However, there are some platform specif
 
 ### iOS
 
-On iOS, if you have a very large number of photos and videos, then you might need to keep Ente running in the foreground for the first backup to happen (since we get only a limited amount of background execution time). To help with this, under `Settings > Backup` there is an option to disable the automatic device screen lock. But once your initial backup has completed, subsequent backups will work fine in the background and don't need disabling the screen lock.
+Day-to-day backups run automatically on iOS. However, iOS gives Ente limited time to work when the app is not open. Your initial backup and large videos may need more time.
 
-On iOS, Ente will not backup videos in the background (since videos are usually much larger and need more time to upload than what we get). However, they will get backed up the next time the Ente app is opened.
+#### Backup mode {#backup-mode-ios}
 
-Note that the Ente app will not be able to backup in the background if you force kill the app.
+Backup mode helps large backups finish by keeping Ente open and the screen awake. The screen dims to save battery.
 
-> If you're curious, the way this works is, our servers "tickle" your device every once in a while by sending a silent push notification, which wakes up our app and gives it 30 seconds to execute a background sync. However, if you have killed the app from recents, iOS will not deliver the push to the app, breaking the background sync.
+To use Backup mode:
+
+1. Connect your iPhone to power and stable WiFi.
+2. Open `Settings > Backup > Backup settings > Backup mode`.
+3. Tap **Start backup mode** and keep Ente open on screen. Switching apps pauses Backup mode.
+
+You only need Backup mode for large uploads. New photos will continue to back up in the background afterwards.
+
+Large videos may not finish during the short time iOS gives Ente in the background. Ente will continue the upload when iOS gives it more time or when you open the app.
+
+Do not swipe Ente away from the app switcher. iOS cannot wake Ente for a background backup after the app has been closed this way.
+
+> Ente uses silent notifications to ask iOS to start a short background backup. iOS does not deliver these notifications after you swipe the app away.
 
 ### Android
 
@@ -66,7 +78,7 @@ In addition to our mobile apps, the background sync also works on our desktop ap
 
 ### Troubleshooting background sync
 
-- On iOS, make sure that you're not killing the Ente app.
+- On iOS, do not swipe Ente away from the app switcher.
 - On Android, make sure that "Optimize battery usage" is not turned on in system settings for the Ente app.
 
 ## Understanding backup behavior
