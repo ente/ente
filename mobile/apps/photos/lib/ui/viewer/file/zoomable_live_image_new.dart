@@ -3,6 +3,7 @@ import "dart:io";
 
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import "package:media_kit/media_kit.dart";
 import "package:media_kit_video/media_kit_video.dart";
@@ -221,14 +222,18 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       ],
     );
 
-    if (!widget.isFromMemories) {
-      return GestureDetector(
-        onLongPressStart: _onLongPressStart,
-        onLongPressEnd: (_) => _setPlaybackPressed(false),
-        child: content,
-      );
-    }
-    return content;
+    final Widget child = widget.isFromMemories
+        ? content
+        : GestureDetector(
+            onLongPressStart: _onLongPressStart,
+            onLongPressEnd: (_) => _setPlaybackPressed(false),
+            child: content,
+          );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: child,
+    );
   }
 
   @override
