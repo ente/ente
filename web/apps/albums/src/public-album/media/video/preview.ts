@@ -6,6 +6,7 @@ import {
     fetchFileData,
     fetchFilePreviewData,
 } from "ente-gallery/services/file-data";
+import { reconstructHLSPlaylist } from "ente-gallery/utils/hls";
 import { fileLogID, type EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
 import { ensurePrecondition } from "ente-utils/ensure";
@@ -54,10 +55,11 @@ export const hlsPlaylistDataForFile = async (
     );
     if (!videoURL) return undefined;
 
-    const playlist = playlistTemplate.replaceAll(
-        "\noutput.ts",
-        `\n${videoURL}`,
-    );
+    const playlist = reconstructHLSPlaylist(playlistTemplate, videoURL);
+    if (!playlist) {
+        log.warn(`Ignoring invalid HLS playlist for ${fileLogID(file)}`);
+        return undefined;
+    }
 
     const playlistURL = await blobToDataURL(
         new Blob([playlist], { type: "application/vnd.apple.mpegurl" }),

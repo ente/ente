@@ -11,6 +11,7 @@ import { apiURL } from "ente-base/origins";
 import type { PublicMemoryCredentials } from "ente-base/public-memory";
 import { ensureAuthToken } from "ente-base/token";
 import { uniqueFilesByID } from "ente-gallery/utils/file";
+import { reconstructHLSPlaylist } from "ente-gallery/utils/hls";
 import { fileLogID, type EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
 import { updateFilePublicMagicMetadata } from "ente-new/photos/services/file";
@@ -181,11 +182,11 @@ export const hlsPlaylistDataForFile = async (
     );
     if (!videoURL) return undefined;
 
-    // Native playlists use this placeholder for the signed range-request URL.
-    const playlist = playlistTemplate.replaceAll(
-        "\noutput.ts",
-        `\n${videoURL}`,
-    );
+    const playlist = reconstructHLSPlaylist(playlistTemplate, videoURL);
+    if (!playlist) {
+        log.warn(`Ignoring invalid HLS playlist for ${fileLogID(file)}`);
+        return undefined;
+    }
 
     // HLS clients require a recognizable playlist MIME type or filename.
     const playlistURL = await blobToDataURL(

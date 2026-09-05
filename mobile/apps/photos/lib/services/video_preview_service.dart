@@ -44,6 +44,7 @@ import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/utils/file_key.dart";
 import "package:photos/utils/gzip.dart";
+import "package:photos/utils/hls_playlist.dart";
 import "package:photos/utils/network_util.dart";
 
 const _maxRetryCount = 3;
@@ -956,9 +957,9 @@ class VideoPreviewService {
       final detailsCache = await cacheManager.getFileFromCache(
         _getDetailsCacheKey(objectID),
       );
-      String finalPlaylist;
+      late final String playlistTemplate;
       if (playlistCache != null) {
-        finalPlaylist = playlistCache.file.readAsStringSync();
+        playlistTemplate = playlistCache.file.readAsStringSync();
         if (detailsCache != null) {
           final details = json.decode(detailsCache.file.readAsStringSync());
           width = details["width"];
@@ -967,14 +968,56 @@ class VideoPreviewService {
         }
       } else {
         final Map<String, dynamic> playlistData = await _getPlaylistData(file);
-        finalPlaylist = playlistData["playlist"];
+        playlistTemplate = playlistData["playlist"];
         width = playlistData["width"];
         height = playlistData["height"];
         size = playlistData["size"];
+      }
+      final videoFile = (await videoCacheManager.getFileFromCache(
+        _getVideoPreviewKey(objectID),
+      ))?.file;
+      final effectiveSize = size ?? previewInfo?.objectSize;
+      final maxPreviewCacheSize =
+          maxPreviewSizeBytes ?? _maxPreviewSizeLimitForCache;
+      late final String segmentUrl;
+      if (videoFile == null) {
+        previewURLResult = previewURLResult ?? await _getPreviewUrl(file);
+        final canCachePreview =
+            effectiveSize != null &&
+            effectiveSize <= maxPreviewCacheSize &&
+            (tryReserveBytes == null || tryReserveBytes(effectiveSize));
+        if (canCachePreview) {
+          if (awaitPreviewCache) {
+            final previewFile = await videoCacheManager.downloadFile(
+              previewURLResult.$1,
+              key: _getVideoPreviewKey(objectID),
+            );
+            segmentUrl = previewFile.file.path;
+          } else {
+            unawaited(
+              _downloadVideoPreviewForCache(
+                previewURLResult.$1,
+                objectID,
+                file,
+              ),
+            );
+            segmentUrl = previewURLResult.$1;
+          }
+        } else {
+          segmentUrl = previewURLResult.$1;
+        }
+      } else {
+        segmentUrl = videoFile.path;
+      }
+      final finalPlaylist = reconstructHlsPlaylist(
+        playlistTemplate,
+        segmentUrl,
+      );
+      if (playlistCache == null) {
         unawaited(
           cacheManager.putFile(
             _getCacheKey(objectID),
-            Uint8List.fromList((playlistData["playlist"] as String).codeUnits),
+            Uint8List.fromList(playlistTemplate.codeUnits),
           ),
         );
         unawaited(
@@ -988,53 +1031,6 @@ class VideoPreviewService {
               }).codeUnits,
             ),
           ),
-        );
-      }
-      final videoFile = (await videoCacheManager.getFileFromCache(
-        _getVideoPreviewKey(objectID),
-      ))?.file;
-      final effectiveSize = size ?? previewInfo?.objectSize;
-      final maxPreviewCacheSize =
-          maxPreviewSizeBytes ?? _maxPreviewSizeLimitForCache;
-      if (videoFile == null) {
-        previewURLResult = previewURLResult ?? await _getPreviewUrl(file);
-        final canCachePreview =
-            effectiveSize != null &&
-            effectiveSize <= maxPreviewCacheSize &&
-            (tryReserveBytes == null || tryReserveBytes(effectiveSize));
-        if (canCachePreview) {
-          if (awaitPreviewCache) {
-            final previewFile = await videoCacheManager.downloadFile(
-              previewURLResult.$1,
-              key: _getVideoPreviewKey(objectID),
-            );
-            finalPlaylist = finalPlaylist.replaceAll(
-              '\noutput.ts',
-              '\n${previewFile.file.path}',
-            );
-          } else {
-            unawaited(
-              _downloadVideoPreviewForCache(
-                previewURLResult.$1,
-                objectID,
-                file,
-              ),
-            );
-            finalPlaylist = finalPlaylist.replaceAll(
-              '\noutput.ts',
-              '\n${previewURLResult.$1}',
-            );
-          }
-        } else {
-          finalPlaylist = finalPlaylist.replaceAll(
-            '\noutput.ts',
-            '\n${previewURLResult.$1}',
-          );
-        }
-      } else {
-        finalPlaylist = finalPlaylist.replaceAll(
-          '\noutput.ts',
-          '\n${videoFile.path}',
         );
       }
       final tempDir = await getTemporaryDirectory();
