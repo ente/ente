@@ -786,13 +786,22 @@ func (repo *CollectionRepository) RestoreFiles(ctx context.Context, userID int64
 	if !canRestoreAllFiles {
 		return stacktrace.Propagate(ente.ErrBadRequest, "some fileIDs are not restorable")
 	}
+	filesBecomingActive, err := inactiveOwnedFileCount(ctx, tx, userID, fileIDs)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to calculate file count transition")
+	}
 
 	if err := upsertCollectionFiles(ctx, tx, collectionID, userID, newCollectionFiles, userID, updationTime); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
-		 WHERE collection_id = $2`, updationTime, collectionID)
-	if err != nil {
+	// Match SuggestAction's membership-before-collection lock order.
+	var app ente.App
+	if err := tx.QueryRowContext(ctx, `UPDATE collections SET updation_time = $1
+		WHERE collection_id = $2 AND owner_id = $3 AND is_deleted = FALSE
+		RETURNING app`, updationTime, collectionID, userID).Scan(&app); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return stacktrace.Propagate(ente.ErrPermissionDenied, "restore destination is not an active owned collection")
+		}
 		return stacktrace.Propagate(err, "")
 	}
 
@@ -800,6 +809,15 @@ func (repo *CollectionRepository) RestoreFiles(ctx context.Context, userID int64
 		 WHERE user_id = $1 and file_id = ANY ($2)`, userID, pq.Array(fileIDs))
 	if err != nil {
 		return stacktrace.Propagate(err, "")
+	}
+	if filesBecomingActive != 0 {
+		photosFileDelta, lockerFileDelta, ok := fileCountDelta(app, filesBecomingActive)
+		if !ok {
+			return stacktrace.Propagate(ente.ErrInvalidApp, "unsupported collection app %s", app)
+		}
+		if _, err := applyUsageDelta(ctx, tx, userID, 0, photosFileDelta, lockerFileDelta, false); err != nil {
+			return stacktrace.Propagate(err, "failed to update file counts")
+		}
 	}
 	return stacktrace.Propagate(tx.Commit(), "")
 }

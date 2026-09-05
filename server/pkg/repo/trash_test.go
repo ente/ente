@@ -16,6 +16,7 @@ func TestTrashFilesUsesRequestItemsAsItsScope(t *testing.T) {
 		Email:        "trash-owner@ente.com",
 		CreationTime: 1,
 	})
+	testutil.InsertUsage(t, db, ownerID, 0)
 	collectionID := insertObjectTestCollection(t, db, ownerID)
 	requestedFileID := insertObjectTestFile(t, db, ownerID)
 	untouchedFileID := insertObjectTestFile(t, db, ownerID)
@@ -86,6 +87,7 @@ func TestTrashFilesRollsBackWhenFileLinkCleanupFails(t *testing.T) {
 		Email:        "trash-owner@ente.com",
 		CreationTime: 1,
 	})
+	testutil.InsertUsage(t, db, ownerID, 0)
 	collectionID := insertObjectTestCollection(t, db, ownerID)
 	fileID := insertObjectTestFile(t, db, ownerID)
 	linkObjectTestFileToCollection(t, db, collectionID, fileID, ownerID)

@@ -127,6 +127,16 @@ func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash en
 	if err := lockFiles(ctx, tx, userID, fileIDs); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	photosFileDelta, lockerFileDelta, ambiguousFileApp, err := activeOwnedFileCountDeltas(ctx, tx, userID, fileIDs)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to calculate file count transition")
+	}
+	if ambiguousFileApp {
+		logrus.WithFields(logrus.Fields{
+			"user_id":    userID,
+			"file_count": len(fileIDs),
+		}).Error("found cross-app or invalid app memberships while trashing files")
+	}
 	updationTime := time.Microseconds()
 	rows, err := tx.QueryContext(ctx, `SELECT DISTINCT collection_id FROM 
 			collection_files WHERE file_id = ANY($1) AND is_deleted = $2`, pq.Array(fileIDs), false)
@@ -159,6 +169,11 @@ func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash en
 	}
 	if err = t.FileLinkRepo.DisableLinkForFilesTx(ctx, tx, fileIDs); err != nil {
 		return stacktrace.Propagate(err, "failed to disable file links for files being trashed")
+	}
+	if photosFileDelta != 0 || lockerFileDelta != 0 || ambiguousFileApp {
+		if _, err := applyUsageDelta(ctx, tx, userID, 0, photosFileDelta, lockerFileDelta, ambiguousFileApp); err != nil {
+			return stacktrace.Propagate(err, "failed to update file counts")
+		}
 	}
 	return stacktrace.Propagate(tx.Commit(), "")
 }

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/ente/museum/ente"
@@ -83,8 +84,12 @@ func TestUpdateUsageRequiresUsageRow(t *testing.T) {
 	}
 	defer tx.Rollback()
 
-	if _, err := (&FileRepository{}).updateUsage(t.Context(), tx, userID, 5, 1, 0); err == nil {
+	_, err = (&FileRepository{}).updateUsage(t.Context(), tx, userID, 5, 1, 0)
+	if err == nil {
 		t.Fatal("updateUsage() created a missing usage row")
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		t.Fatal("updateUsage() exposed missing usage row as not found")
 	}
 
 	var count int
