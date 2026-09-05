@@ -19,6 +19,10 @@ If the person you want to share with has an Ente account, you can share an album
 
 **To invite someone to Ente**: Send them an invite from the app. Once they create an account, you can share albums with them.
 
+### Share your library with family
+
+[Library sharing](/photos/features/sharing-and-collaboration/library-sharing) lets you share all the albums you own with a family member and automatically share new albums as you create them.
+
 ### Share via public links
 
 Create shareable links that anyone can access without an Ente account. Public links are perfect for sharing with large groups or people who don't use Ente.
@@ -39,7 +43,7 @@ You can read more about the features supported by Links [here](https://ente.com/
 
 If your loved ones are already on Ente, you can share an album with their registered email address.
 
-If they are your partner, you can share your `Camera` folder on Android, or `Recents` on iOS. Whenever you click new photos, they will automatically be accessible on your partner's device.
+If they are on your family plan, you can use [library sharing](/photos/features/sharing-and-collaboration/library-sharing) to share your current and future albums.
 
 ## Collaboration
 
@@ -73,12 +77,14 @@ Peer-to-peer sharing between Ente users and creating public links are available 
 
 ## Related topics
 
+- [Library sharing](/photos/features/sharing-and-collaboration/library-sharing) - Share current and future albums with family
 - [Collaboration](/photos/features/sharing-and-collaboration/collaboration) - Collaborate with Ente users or collect photos from anyone
 - [Public links](/photos/features/sharing-and-collaboration/public-links) - Share via links (includes quick links and collect mode)
 - [Custom domains](/photos/features/sharing-and-collaboration/custom-domains/) - Use your own domain for public links
 
 ## Related FAQs
 
+- [Can I share my entire library with my partner?](/photos/faq/sharing-and-collaboration#partner-sharing)
 - [What are the different ways to share in Ente?](/photos/faq/sharing-and-collaboration#sharing-methods)
 - [What's the difference between public links and quick links?](/photos/faq/sharing-and-collaboration#link-types)
 - [Can I use my own domain for public links?](/photos/faq/sharing-and-collaboration#custom-domains)

@@ -43,7 +43,7 @@ Multiple albums can be selected (long press to select), and choosing Share will 
 - Everything viewers can do, plus:
 - Add new photos and videos to the shared album
 - Remove photos they uploaded
-- Comment and react (coming soon)
+- Comment and react
 
 **Admins can:**
 

@@ -17,6 +17,12 @@ In brief,
 
 - You can invite 5 family members. So including yourself, it will be 6 people who can share a single subscription, paying only once.
 
+## Library sharing
+
+Family members keep separate libraries by default. To share the albums you own with a family member, open `Settings > Family`, select them, and tap **Share albums**.
+
+You can share existing albums in one action and enable [library sharing](/photos/features/sharing-and-collaboration/library-sharing) to automatically share new albums as you create them.
+
 ## Storage Limits
 
 If you're an admin of a family, you will be able to set storage limits for the members in your family plan.

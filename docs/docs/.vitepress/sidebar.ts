@@ -158,6 +158,10 @@ export const sidebar = [
                                 link: "/photos/features/sharing-and-collaboration/share",
                             },
                             {
+                                text: "Library sharing",
+                                link: "/photos/features/sharing-and-collaboration/library-sharing",
+                            },
+                            {
                                 text: "Collaboration",
                                 link: "/photos/features/sharing-and-collaboration/collaboration",
                             },
