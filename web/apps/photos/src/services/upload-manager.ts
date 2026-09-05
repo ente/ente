@@ -91,6 +91,7 @@ export interface UploadBatchResult {
 interface UploadItemsOptions {
     skipDuplicateAddToUploadCollection?: boolean;
     includePartnerSharedFiles?: boolean;
+    onChunkResult?: (batchResult: UploadBatchResult) => Promise<void>;
 }
 
 export const successfulFilesFromUploadBatchResult = (
@@ -154,6 +155,9 @@ interface ProgressUpdater {
 }
 
 const maxConcurrentUploads = 4;
+
+/** Maximum files retained in one folder-watch upload chunk. */
+const folderWatchUploadChunkSize = 200;
 
 export type UploadItemWithCollection = UploadAsset & {
     localID: number;
@@ -406,7 +410,46 @@ class UploadManager {
                     mediaItems.length != clusteredMediaItems.length,
                 );
 
-                await this.uploadMediaItems(clusteredMediaItems, options);
+                this.uiService.reset(clusteredMediaItems.length);
+                await UploadService.setFileCount(clusteredMediaItems.length);
+                this.uiService.setUploadPhase("uploading");
+
+                // Bound per-item results retained during large folder-watch uploads.
+                const chunkSize =
+                    isDesktop && watcher.isUploadRunning()
+                        ? folderWatchUploadChunkSize
+                        : clusteredMediaItems.length;
+                for (
+                    let i = 0;
+                    i < clusteredMediaItems.length;
+                    i += chunkSize
+                ) {
+                    await this.uploadMediaItems(
+                        clusteredMediaItems.slice(i, i + chunkSize),
+                        options,
+                    );
+
+                    if (options?.onChunkResult) {
+                        const chunkResult = {
+                            processedAny: this.uiService.hasFilesInResultList(),
+                            itemResults: [...this.itemResults],
+                        };
+                        const partnerSharedCount =
+                            chunkResult.itemResults.filter(
+                                ({ result }) => result.type == "partnerShared",
+                            ).length;
+                        if (partnerSharedCount) {
+                            log.info(
+                                `Skipped ${partnerSharedCount} partner shared files`,
+                            );
+                        }
+                        try {
+                            await options.onChunkResult(chunkResult);
+                        } finally {
+                            this.itemResults = [];
+                        }
+                    }
+                }
             }
         } catch (e) {
             if (!isUploadCancelledError(e)) {
@@ -511,9 +554,6 @@ class UploadManager {
         options?: UploadItemsOptions,
     ) {
         this.itemsToBeUploaded = [...this.itemsToBeUploaded, ...mediaItems];
-        this.uiService.reset(mediaItems.length);
-        await UploadService.setFileCount(mediaItems.length);
-        this.uiService.setUploadPhase("uploading");
 
         const uploadProcesses = new Array<Promise<void>>();
         for (
@@ -521,6 +561,7 @@ class UploadManager {
             i < maxConcurrentUploads && this.itemsToBeUploaded.length > 0;
             i++
         ) {
+            this.comlinkCryptoWorkers[i]?.terminate();
             this.comlinkCryptoWorkers[i] = createComlinkCryptoWorker();
             const worker = await this.comlinkCryptoWorkers[i]!.remote;
             uploadProcesses.push(this.uploadNextItemInQueue(worker, options));
