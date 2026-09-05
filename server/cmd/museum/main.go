@@ -588,11 +588,12 @@ func main() {
 	publicAPI.POST("/events", eventHandler.Create)
 	privateAPI.POST("/events/user", eventHandler.CreateForUser)
 	fileCopyCtrl := &file_copy.FileCopyController{
-		FileController: fileController,
-		CollectionCtrl: collectionController,
-		S3Config:       s3Config,
-		ObjectRepo:     objectRepo,
-		FileRepo:       fileRepo,
+		FileController:    fileController,
+		CollectionCtrl:    collectionController,
+		S3Config:          s3Config,
+		ObjectRepo:        objectRepo,
+		ObjectCleanupRepo: objectCleanupRepo,
+		FileRepo:          fileRepo,
 	}
 
 	fileHandler := &api.FileHandler{

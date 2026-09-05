@@ -33,6 +33,22 @@ func (repo *ObjectCleanupRepository) AddTempObject(tempObject ente.TempObject, e
 	return stacktrace.Propagate(err, "")
 }
 
+func (repo *ObjectCleanupRepository) MarkTempObjectMultipart(ctx context.Context, objectKey string, uploadID string, dc string) error {
+	res, err := repo.DB.ExecContext(ctx, `UPDATE temp_objects SET is_multipart = true, upload_id = $1
+		WHERE object_key = $2 AND bucket_id = $3`, uploadID, objectKey, dc)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if rowsAffected != 1 {
+		return stacktrace.NewError("expected one temporary object, found %d", rowsAffected)
+	}
+	return nil
+}
+
 func (repo *ObjectCleanupRepository) RemoveTempObjectKey(ctx context.Context, tx *sql.Tx, objectKey string, dc string) error {
 	res, err := tx.ExecContext(ctx, `DELETE FROM temp_objects WHERE object_key = $1`, objectKey)
 	if err != nil {
