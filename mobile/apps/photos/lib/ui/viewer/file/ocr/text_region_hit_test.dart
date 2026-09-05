@@ -1,5 +1,5 @@
 import "package:flutter/widgets.dart";
-import "package:mobile_ocr/models/text_region.dart";
+import "package:photos/services/machine_learning/ocr/ocr_models.dart";
 
 bool shouldCaptureOcrGesture({
   required bool pointOnInteractiveSelectionUi,

@@ -12,6 +12,7 @@ workspace:
   - apps/photos/plugins/ente_crypto
   - apps/photos/plugins/ente_panorama_viewer
   - apps/photos/plugins/ente_photos_platform
+  - apps/photos/plugins/ente_vision
   - apps/photos/plugins/media_extension
   - packages/accounts
   - packages/account_deletion

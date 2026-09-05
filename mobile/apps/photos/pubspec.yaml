@@ -76,6 +76,8 @@ dependencies:
     path: ../../packages/strings
   ente_ui:
     path: ../../packages/ui
+  ente_vision:
+    path: plugins/ente_vision
   equatable: 2.0.7
   event_bus: 2.0.1
   exif_reader: 4.2.0

@@ -3,8 +3,9 @@ import 'dart:io';
 
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile_ocr/mobile_ocr.dart'
-    show DisplayImageHelper, MobileOcr, TextBlock;
+import 'package:photos/services/machine_learning/ocr/ocr_models.dart'
+    show TextBlock;
+import 'package:photos/services/machine_learning/ocr_service.dart';
 import 'package:photos/theme/colors.dart';
 import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/viewer/file/ocr/text_overlay_widget.dart';
@@ -88,7 +89,7 @@ class TextDetectorWidget extends StatefulWidget {
 }
 
 class _TextDetectorWidgetState extends State<TextDetectorWidget> {
-  final MobileOcr _ocr = MobileOcr();
+  final OcrService _ocr = OcrService.instance;
   final TextOverlayController _textOverlayController = TextOverlayController();
   List<TextBlock>? _detectedTextBlocks;
   bool _isProcessing = false;
@@ -146,9 +147,7 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
     });
 
     try {
-      final resolvedPath = await DisplayImageHelper.ensureDisplayablePath(
-        requestedPath,
-      );
+      final resolvedPath = await _ocr.ensureDisplayablePath(requestedPath);
       if (!mounted || widget.imagePath != requestedPath) {
         return;
       }

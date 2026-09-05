@@ -1,4 +1,5 @@
 use image::GrayImage;
+use imageproc::contours::BorderType;
 
 use crate::cv::OpResult;
 use crate::cv::image::{Contour, ImageU8};
@@ -16,9 +17,11 @@ pub(crate) fn find_contours(src: &ImageU8) -> OpResult<Vec<Contour>> {
         .into_iter()
         .map(|c| {
             let area = imageproc::geometry::contour_area(&c.points);
+            let outer = c.border_type == BorderType::Outer;
             Contour {
                 points: c.points.into_iter().map(|p| (p.x, p.y)).collect(),
                 area,
+                outer,
             }
         })
         .collect())

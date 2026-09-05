@@ -7,6 +7,7 @@ pub mod face;
 pub mod indexing;
 mod models;
 pub use models::ModelPaths;
+pub mod ocr;
 mod onnx;
 pub use onnx::golden_tooling;
 mod pet;

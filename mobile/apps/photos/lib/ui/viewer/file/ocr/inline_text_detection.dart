@@ -6,16 +6,13 @@ import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
-import "package:mobile_ocr/mobile_ocr.dart"
-    show
-        DisplayImageHelper,
-        MobileOcr,
-        OcrModelComponent,
-        TextRegionDetectionResult;
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/module/download/file.dart";
+import "package:photos/services/machine_learning/ocr/ocr_models.dart"
+    show OcrModelComponent, TextRegionDetectionResult;
+import "package:photos/services/machine_learning/ocr_service.dart";
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/viewer/file/ocr/ocr_dot_wave_overlay.dart";
 import "package:photos/ui/viewer/file/ocr/text_detector_widget.dart";
@@ -68,7 +65,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
   static const double _textRegionHitSlop = 8.0;
   static final Map<String, _RegionCacheEntry> _regionCache = {};
   final Logger _logger = Logger("InlineTextDetection");
-  final MobileOcr _mobileOcr = MobileOcr();
+  final OcrService _ocrService = OcrService.instance;
   final TextDetectorController _detectorController = TextDetectorController();
 
   bool _isEligible = false;
@@ -189,7 +186,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
     final requestId = _activeRegionRequestId;
     _activeRegionRequestId = null;
     if (requestId != null) {
-      unawaited(_mobileOcr.cancelRequest(requestId).catchError((_) {}));
+      unawaited(_ocrService.cancelRequest(requestId).catchError((_) {}));
     }
   }
 
@@ -252,7 +249,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
       setState(() {
         _localFilePath = localFile.path;
       });
-      final detectorStatus = await _mobileOcr.prepareModels(
+      final detectorStatus = await _ocrService.prepareModels(
         components: {OcrModelComponent.detector},
       );
       if (!mounted || generation != _evaluationGeneration) return;
@@ -264,14 +261,14 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
       _activeRegionRequestId = regionRequestId;
       late final TextRegionDetectionResult result;
       try {
-        result = await _mobileOcr
+        result = await _ocrService
             .detectTextRegions(
               imagePath: localFile.path,
               requestId: regionRequestId,
             )
             .timeout(_regionDetectionTimeout);
       } on TimeoutException {
-        await _mobileOcr.cancelRequest(regionRequestId);
+        await _ocrService.cancelRequest(regionRequestId);
         rethrow;
       } finally {
         if (_activeRegionRequestId == regionRequestId) {
@@ -350,9 +347,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
     }
 
     try {
-      final displayPath = await DisplayImageHelper.ensureDisplayablePath(
-        localPath,
-      );
+      final displayPath = await _ocrService.ensureDisplayablePath(localPath);
       final imageSize = await getImageSize(FileImage(File(displayPath)));
       if (!mounted ||
           requestId != _imageSizeRequestId ||

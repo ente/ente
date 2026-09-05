@@ -208,4 +208,5 @@ impl ImageF32 {
 pub(crate) struct Contour {
     pub points: Vec<(i32, i32)>,
     pub area: f64,
+    pub outer: bool,
 }

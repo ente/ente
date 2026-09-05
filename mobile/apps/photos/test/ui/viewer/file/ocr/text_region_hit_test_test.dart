@@ -1,6 +1,6 @@
 import "package:flutter/widgets.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:mobile_ocr/models/text_region.dart";
+import "package:photos/services/machine_learning/ocr/ocr_models.dart";
 import "package:photos/ui/viewer/file/ocr/text_region_hit_test.dart";
 
 void main() {

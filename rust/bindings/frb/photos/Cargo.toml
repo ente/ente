@@ -15,6 +15,7 @@ ente-location.workspace = true
 ente-ml = { workspace = true, features = ["usearch"] }
 ente-photos.workspace = true
 flutter_rust_bridge.workspace = true
+log.workspace = true
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
