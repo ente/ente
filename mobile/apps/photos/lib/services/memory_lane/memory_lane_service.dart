@@ -155,7 +155,7 @@ class MemoryLaneService {
       pendingRequest.isRevoked = true;
       _precomputeQueue.removeTask(pendingRequest);
     }
-    final request = _TimelineRequest(force);
+    final request = _TimelineRequest(force, _cacheService.cacheGeneration);
     _pendingRequests[personId] = request;
     _precomputeQueue
         .addTask(request, () async {
@@ -588,7 +588,7 @@ class MemoryLaneService {
       _eligibleCreationTimeCutoffMicros(person?.data.birthDate),
       isCluster: isCluster,
     );
-    await _cacheService.upsertTimelineAndLog(
+    final wasWritten = await _cacheService.upsertTimelineAndLog(
       timeline,
       MemoryLaneComputeLogEntry(
         personId: personId,
@@ -601,7 +601,11 @@ class MemoryLaneService {
       ),
       () =>
           !request.isRevoked && identical(_pendingRequests[personId], request),
+      request.cacheGeneration,
     );
+    if (!wasWritten) {
+      return;
+    }
     if (!timeline.isEligible) {
       await _refreshReadyPersonIds();
       return;
@@ -902,9 +906,10 @@ class MemoryLaneService {
 
 class _TimelineRequest {
   final bool force;
+  final int cacheGeneration;
   bool isRevoked = false;
 
-  _TimelineRequest(this.force);
+  _TimelineRequest(this.force, this.cacheGeneration);
 }
 
 class _TimelineFaceData {

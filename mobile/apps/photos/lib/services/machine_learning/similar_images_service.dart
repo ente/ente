@@ -16,11 +16,14 @@ import "package:photos/services/machine_learning/ml_computer.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/utils/cache_util.dart";
+import "package:synchronized/synchronized.dart";
 
 class SimilarImagesService {
   static const double _groupedClipEmbeddingLossRefreshRatio = 0.05;
 
   final _logger = Logger("SimilarImagesService");
+  final Lock _cacheLock = Lock();
+  int _cacheGeneration = 0;
 
   SimilarImagesService._privateConstructor();
   static final SimilarImagesService instance =
@@ -31,12 +34,14 @@ class SimilarImagesService {
     bool exact = false,
     bool forceRefresh = false,
   }) async {
+    final cacheGeneration = _cacheGeneration;
     try {
       final now = DateTime.now();
       final List<SimilarFiles> result = await _getSimilarFiles(
         distanceThreshold,
         exact,
         forceRefresh,
+        cacheGeneration,
       );
       final duration = DateTime.now().difference(now);
       _logger.info(
@@ -53,6 +58,7 @@ class SimilarImagesService {
     double distanceThreshold,
     bool exact,
     bool forceRefresh,
+    int cacheGeneration,
   ) async {
     final w = (kDebugMode ? EnteWatch('getSimilarFiles') : null)?..start();
     final mlDataDB = MLDataDB.instance;
@@ -113,6 +119,7 @@ class SimilarImagesService {
         distanceThreshold,
         exact,
         DateTime.now().millisecondsSinceEpoch,
+        cacheGeneration,
       );
       return result;
     }
@@ -193,6 +200,7 @@ class SimilarImagesService {
         distanceThreshold,
         exact,
         DateTime.now().millisecondsSinceEpoch,
+        cacheGeneration,
       );
       return result;
     } else {
@@ -203,6 +211,7 @@ class SimilarImagesService {
         fileIDToPersonIDs,
         distanceThreshold,
         exact,
+        cacheGeneration,
       );
     }
   }
@@ -214,6 +223,7 @@ class SimilarImagesService {
     Map<int, Set<String>> fileIDToPersonIDs,
     double distanceThreshold,
     bool exact,
+    int cacheGeneration,
   ) async {
     _logger.info("Performing incremental update for similar files");
     final existingGroups = await cachedData.similarFilesList();
@@ -245,6 +255,7 @@ class SimilarImagesService {
           distanceThreshold,
           exact,
           cachedData.cachedTime,
+          cacheGeneration,
         );
       }
       return existingGroups;
@@ -351,6 +362,7 @@ class SimilarImagesService {
       distanceThreshold,
       exact,
       cachedData.cachedTime,
+      cacheGeneration,
     );
 
     return existingGroups;
@@ -434,8 +446,8 @@ class SimilarImagesService {
     double distanceThreshold,
     bool exact,
     int cachedTimeOfOriginalComputation,
+    int cacheGeneration,
   ) async {
-    final cachePath = await _getCachePath();
     final similarGroupsJsonStringList = similarGroups
         .map((group) => group.toJsonString())
         .toList();
@@ -446,11 +458,16 @@ class SimilarImagesService {
       exact: exact,
       cachedTime: cachedTimeOfOriginalComputation,
     );
-    await writeToJsonFile<SimilarFilesCache>(
-      cachePath,
-      cacheObject,
-      SimilarFilesCache.encodeToJsonString,
-    );
+    await _cacheLock.synchronized(() async {
+      if (cacheGeneration != _cacheGeneration) {
+        return;
+      }
+      await writeToJsonFile<SimilarFilesCache>(
+        await _getCachePath(),
+        cacheObject,
+        SimilarFilesCache.encodeToJsonString,
+      );
+    });
   }
 
   Future<SimilarFilesCache?> _readCachedSimilarFiles() async {
@@ -463,13 +480,16 @@ class SimilarImagesService {
   }
 
   Future<void> clearCache() async {
+    _cacheGeneration++;
     try {
-      final cachePath = await _getCachePath();
-      final file = File(cachePath);
-      if (await file.exists()) {
-        await file.delete();
-        _logger.info("Cleared similar files cache at $cachePath");
-      }
+      await _cacheLock.synchronized(() async {
+        final cachePath = await _getCachePath();
+        final file = File(cachePath);
+        if (await file.exists()) {
+          await file.delete();
+          _logger.info("Cleared similar files cache at $cachePath");
+        }
+      });
     } catch (e, s) {
       _logger.severe("Error clearing similar files cache", e, s);
       rethrow;

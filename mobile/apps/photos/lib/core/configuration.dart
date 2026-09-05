@@ -47,6 +47,7 @@ import "package:photos/services/machine_learning/face_ml/person/person_service.d
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/similar_images_service.dart";
+import "package:photos/services/memory_lane/memory_lane_cache_service.dart";
 import "package:photos/services/memory_share_service.dart";
 import "package:photos/services/notification_service.dart";
 import 'package:photos/services/photos_contacts_service.dart';
@@ -275,6 +276,15 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     } catch (e) {
       _logger.info(
         "MemoriesCacheService not initialized or failed to clear",
+        e,
+      );
+    }
+
+    try {
+      await MemoryLaneCacheService.instance.clear();
+    } catch (e) {
+      _logger.info(
+        "MemoryLaneCacheService not initialized or failed to clear",
         e,
       );
     }

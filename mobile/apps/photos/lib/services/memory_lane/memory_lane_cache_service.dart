@@ -18,10 +18,13 @@ class MemoryLaneCacheService {
 
   final Logger _logger = Logger("MemoryLaneCacheService");
   final Lock _lock = Lock();
+  int _cacheGeneration = 0;
 
   MemoryLaneCachePayload? _cache;
   File? _cacheFile;
   bool _initialized = false;
+
+  int get cacheGeneration => _cacheGeneration;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -70,19 +73,23 @@ class MemoryLaneCacheService {
     return Map<String, MemoryLaneComputeLogEntry>.from(cache.computeLog);
   }
 
-  Future<void> upsertTimelineAndLog(
+  Future<bool> upsertTimelineAndLog(
     MemoryLanePersonTimeline timeline,
     MemoryLaneComputeLogEntry log,
     bool Function() isCurrent,
+    int cacheGeneration,
   ) async {
     await _ensureInitialized();
-    await _lock.synchronized(() async {
-      if (!isCurrent()) return false;
+    return _lock.synchronized(() async {
+      if (cacheGeneration != _cacheGeneration || !isCurrent()) {
+        return false;
+      }
       final currentCache = await _loadCacheUnsafe();
       _cache = currentCache
           .copyWithTimeline(timeline)
           .copyWithComputeLogEntry(log);
       await _writeCacheUnsafe();
+      return true;
     });
   }
 
@@ -142,6 +149,7 @@ class MemoryLaneCacheService {
   }
 
   Future<void> clear() async {
+    _cacheGeneration++;
     await _ensureInitialized();
     await _lock.synchronized(() async {
       _cache = MemoryLaneCachePayload.empty();

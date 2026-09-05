@@ -71,6 +71,8 @@ class MemoriesCacheService {
 
   final _memoriesUpdateLock = Lock();
   final _memoriesGetLock = Lock();
+  final _cacheWriteLock = Lock();
+  int _cacheGeneration = 0;
 
   MemoriesCacheService(this._prefs) {
     _logger.info("MemoriesCacheService constructor");
@@ -285,12 +287,16 @@ class MemoriesCacheService {
   }
 
   Future<void> _invalidateDeletedFiles(List<EnteFile> deletedFiles) async {
+    final cacheGeneration = _cacheGeneration;
     final deletedMemoryFileIds = await _deletedMemoryFileIds(deletedFiles);
-    if (deletedMemoryFileIds.isEmpty) {
+    if (cacheGeneration != _cacheGeneration || deletedMemoryFileIds.isEmpty) {
       return;
     }
 
     await _memoriesUpdateLock.synchronized(() async {
+      if (cacheGeneration != _cacheGeneration) {
+        return;
+      }
       bool cacheChanged = false;
 
       if (_cachedMemories != null) {
@@ -311,11 +317,17 @@ class MemoriesCacheService {
         _cachedMemories = filteredMemories;
       }
 
-      if (await _removeDeletedFilesFromDiskCache(deletedMemoryFileIds)) {
+      if (await _removeDeletedFilesFromDiskCache(
+        deletedMemoryFileIds,
+        cacheGeneration,
+      )) {
         cacheChanged = true;
       }
 
       if (!cacheChanged) {
+        return;
+      }
+      if (cacheGeneration != _cacheGeneration) {
         return;
       }
 
@@ -376,6 +388,7 @@ class MemoriesCacheService {
 
   Future<bool> _removeDeletedFilesFromDiskCache(
     Set<int> deletedMemoryFileIds,
+    int cacheGeneration,
   ) async {
     final cache = await _readCacheFromDisk();
     if (cache == null) {
@@ -405,12 +418,7 @@ class MemoriesCacheService {
     cache.toShowMemories
       ..clear()
       ..addAll(filteredToShowMemories);
-    await writeToJsonFile<MemoriesCache>(
-      await _getCachePath(),
-      cache,
-      MemoriesCache.encodeToJsonString,
-    );
-    return true;
+    return _writeCacheIfCurrent(cache, cacheGeneration);
   }
 
   bool _removeDeletedFilesFromCacheMemory(
@@ -473,7 +481,11 @@ class MemoriesCacheService {
   }
 
   Future<void> purgeMlOnlyMemoriesFromCache() async {
+    final cacheGeneration = _cacheGeneration;
     await _memoriesUpdateLock.synchronized(() async {
+      if (cacheGeneration != _cacheGeneration) {
+        return;
+      }
       bool cacheChanged = false;
       final removedPersonIDs = <String>{};
 
@@ -524,12 +536,7 @@ class MemoriesCacheService {
         if (cache.toShowMemories.length != originalToShowLength) {
           cache.peopleShownLogs.addAll(activeRemovedPeopleLogs);
           cache.clipShownLogs.addAll(activeRemovedClipLogs);
-          await writeToJsonFile<MemoriesCache>(
-            await _getCachePath(),
-            cache,
-            MemoriesCache.encodeToJsonString,
-          );
-          cacheChanged = true;
+          cacheChanged = await _writeCacheIfCurrent(cache, cacheGeneration);
         }
       }
 
@@ -547,7 +554,11 @@ class MemoriesCacheService {
   }
 
   Future<void> purgePersonFromMemoriesCache(String personID) async {
+    final cacheGeneration = _cacheGeneration;
     await _memoriesUpdateLock.synchronized(() async {
+      if (cacheGeneration != _cacheGeneration) {
+        return;
+      }
       final removedMemoryIDs = <String>{};
       bool cacheChanged = false;
 
@@ -584,12 +595,7 @@ class MemoriesCacheService {
             cache.toShowMemories.length != originalToShowLength ||
             cache.peopleShownLogs.length != originalLogLength;
         if (shouldWriteCache) {
-          await writeToJsonFile<MemoriesCache>(
-            await _getCachePath(),
-            cache,
-            MemoriesCache.encodeToJsonString,
-          );
-          cacheChanged = true;
+          cacheChanged = await _writeCacheIfCurrent(cache, cacheGeneration);
         }
       }
 
@@ -607,12 +613,16 @@ class MemoriesCacheService {
   }
 
   Future<List<SmartMemory>> getMemories({bool onlyUseCache = false}) async {
+    final cacheGeneration = _cacheGeneration;
     _logger.info("getMemories called");
     if (!showAnyMemories) {
       _logger.info('Showing memories is disabled in settings, showing none');
       return [];
     }
     return _memoriesGetLock.synchronized(() async {
+      if (cacheGeneration != _cacheGeneration) {
+        return [];
+      }
       if (_cachedMemories != null && _cachedMemories!.isNotEmpty) {
         final currentMemories = _cachedMemories!
             .where((memory) => memory.shouldShowNow())
@@ -630,11 +640,18 @@ class MemoriesCacheService {
       }
       try {
         if (!enableSmartMemories) {
-          await _calculateRegularFillers();
+          await _calculateRegularFillers(cacheGeneration);
+          if (cacheGeneration != _cacheGeneration) {
+            return [];
+          }
           return _cachedMemories!;
         }
         final cacheFileExists = await _cacheFileExists();
-        _cachedMemories = await _getMemoriesFromCache();
+        final cachedMemories = await _getMemoriesFromCache();
+        if (cacheGeneration != _cacheGeneration) {
+          return [];
+        }
+        _cachedMemories = cachedMemories;
         if (_cachedMemories == null || _cachedMemories!.isEmpty) {
           final shouldRefreshEmptyCache =
               _cachedMemories == null ||
@@ -654,7 +671,12 @@ class MemoriesCacheService {
               "No disk cache (fresh install): serving simple memories, "
               "smart memories will upgrade in background",
             );
-            _cachedMemories = await smartMemoriesService.calcSimpleMemories();
+            final simpleMemories = await smartMemoriesService
+                .calcSimpleMemories();
+            if (cacheGeneration != _cacheGeneration) {
+              return [];
+            }
+            _cachedMemories = simpleMemories;
             if (_shouldDeferInitialOfflineCacheUpgrade()) {
               _pendingInitialOfflineCacheUpgrade = true;
               _logger.info(
@@ -673,6 +695,9 @@ class MemoriesCacheService {
             "No memories found in cache, force updating cache. Possible severe caching issue",
           );
           await updateCache(forced: true);
+          if (cacheGeneration != _cacheGeneration) {
+            return [];
+          }
         } else {
           _logger.info("Found memories in cache");
         }
@@ -680,7 +705,10 @@ class MemoriesCacheService {
           _logger.severe(
             "No memories found in (computed) cache, getting fillers",
           );
-          await _calculateRegularFillers();
+          await _calculateRegularFillers(cacheGeneration);
+        }
+        if (cacheGeneration != _cacheGeneration) {
+          return [];
         }
         return _cachedMemories!;
       } catch (e, s) {
@@ -690,9 +718,13 @@ class MemoriesCacheService {
     });
   }
 
-  Future<void> _calculateRegularFillers() async {
+  Future<void> _calculateRegularFillers(int cacheGeneration) async {
     if (_cachedMemories == null) {
-      _cachedMemories = await smartMemoriesService.calcSimpleMemories();
+      final simpleMemories = await smartMemoriesService.calcSimpleMemories();
+      if (cacheGeneration != _cacheGeneration) {
+        return;
+      }
+      _cachedMemories = simpleMemories;
       Bus.instance.fire(MemoriesChangedEvent());
     }
     return;
@@ -825,16 +857,20 @@ class MemoriesCacheService {
   }
 
   Future<void> updateCache({bool forced = false}) async {
+    final cacheGeneration = _cacheGeneration;
     if (!showAnyMemories) {
       return;
     }
     if (!enableSmartMemories) {
-      await _calculateRegularFillers();
+      await _calculateRegularFillers(cacheGeneration);
       return;
     }
     _checkIfTimeToUpdateCache();
 
     return _memoriesUpdateLock.synchronized(() async {
+      if (cacheGeneration != _cacheGeneration) {
+        return;
+      }
       if ((!_shouldUpdate && !forced)) {
         _logger.info(
           "No update needed (shouldUpdate: $_shouldUpdate, forced: $forced)",
@@ -882,6 +918,9 @@ class MemoriesCacheService {
           return;
         }
         w?.log("calculated new memories");
+        if (cacheGeneration != _cacheGeneration) {
+          return;
+        }
         final localIdToIntId = isLocalGalleryMode
             ? await _buildLocalIntIdMapForMemories([
                 ...nowResult.memories,
@@ -925,19 +964,28 @@ class MemoriesCacheService {
           ..addAll(dedupedMemories);
         newCache.baseLocations.addAll(nowResult.baseLocations);
         w?.log("added memories to cache");
-        _cachedMemories = await fromCacheToMemories(newCache);
+        final cachedMemories = await fromCacheToMemories(newCache);
+        if (cacheGeneration != _cacheGeneration) {
+          return;
+        }
+        _cachedMemories = cachedMemories;
         await _scheduleMemoryNotifications([
           ...nowResult.memories,
           ...nextResult.memories,
         ]);
+        if (cacheGeneration != _cacheGeneration) {
+          return;
+        }
         locationService.baseLocations = newCache.baseLocations;
-        await writeToJsonFile<MemoriesCache>(
-          await _getCachePath(),
+        final cacheWritten = await _writeCacheIfCurrent(
           newCache,
-          MemoriesCache.encodeToJsonString,
+          cacheGeneration,
+          markUpdated: true,
         );
+        if (!cacheWritten) {
+          return;
+        }
         w?.log("cacheWritten");
-        await _cacheUpdated();
         w?.logAndReset('_cacheUpdated method done');
       } catch (e, s) {
         _logger.severe("Error updating memories cache", e, s);
@@ -948,6 +996,7 @@ class MemoriesCacheService {
   }
 
   Future<void> refreshCache() async {
+    final cacheGeneration = _cacheGeneration;
     if (!showAnyMemories) {
       return;
     }
@@ -957,7 +1006,11 @@ class MemoriesCacheService {
 
     return _memoriesUpdateLock.synchronized(() async {
       try {
-        _cachedMemories = await _getMemoriesFromCache();
+        final cachedMemories = await _getMemoriesFromCache();
+        if (cacheGeneration != _cacheGeneration) {
+          return;
+        }
+        _cachedMemories = cachedMemories;
         Bus.instance.fire(MemoriesChangedEvent());
       } catch (e, s) {
         _logger.info("Error refreshing memories cache", e, s);
@@ -1114,12 +1167,33 @@ class MemoriesCacheService {
 
   Future<void> _cacheUpdated() async {
     _shouldUpdate = false;
-    unawaited(_prefs.setBool(_shouldUpdateKey, false));
+    await _prefs.setBool(_shouldUpdateKey, false);
     await _prefs.setInt(
       _lastCacheUpdateKey,
       DateTime.now().microsecondsSinceEpoch,
     );
     Bus.instance.fire(MemoriesChangedEvent());
+  }
+
+  Future<bool> _writeCacheIfCurrent(
+    MemoriesCache cache,
+    int cacheGeneration, {
+    bool markUpdated = false,
+  }) {
+    return _cacheWriteLock.synchronized(() async {
+      if (cacheGeneration != _cacheGeneration) {
+        return false;
+      }
+      await writeToJsonFile<MemoriesCache>(
+        await _getCachePath(),
+        cache,
+        MemoriesCache.encodeToJsonString,
+      );
+      if (markUpdated) {
+        await _cacheUpdated();
+      }
+      return true;
+    });
   }
 
   // WARNING: Use for testing only, TODO: lau: remove later
@@ -1209,13 +1283,18 @@ class MemoriesCacheService {
   }
 
   Future<void> clearMemoriesCache({bool fromDisk = true}) async {
-    if (fromDisk) {
-      final file = File(await _getCachePath());
-      if (file.existsSync()) {
-        await file.delete();
-      }
-    }
+    _cacheGeneration++;
     _cachedMemories = null;
+    await _cacheWriteLock.synchronized(() async {
+      if (fromDisk) {
+        final file = File(await _getCachePath());
+        if (file.existsSync()) {
+          await file.delete();
+        }
+        await _prefs.remove(_lastCacheUpdateKey);
+        await _prefs.remove(_shouldUpdateKey);
+      }
+    });
   }
 
   Future<List<SmartMemory>> getMemoriesForWidget({
