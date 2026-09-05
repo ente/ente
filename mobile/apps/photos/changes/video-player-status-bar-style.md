@@ -1,1 +1,0 @@
-- Fixed video player status bar style. (@r4khul)
