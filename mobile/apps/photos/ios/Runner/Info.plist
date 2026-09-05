@@ -5,6 +5,7 @@
 		<key>BGTaskSchedulerPermittedIdentifiers</key>
 		<array>
 			<string>io.ente.frame.iOSBackgroundAppRefresh</string>
+			<string>io.ente.frame.iOSBackgroundProcessing</string>
 		</array>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>

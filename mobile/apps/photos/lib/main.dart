@@ -77,11 +77,16 @@ const kHeartBeatFrequency = Duration(seconds: 1);
 const kFGSyncFrequency = Duration(minutes: 5);
 const kFGHomeWidgetSyncFrequency = Duration(minutes: 15);
 const kBGTaskTimeout = Duration(seconds: 28);
+const kBGProcessingTaskTimeout = Duration(minutes: 4);
 const kBGPushTimeout = Duration(seconds: 28);
-// ML self-stops before the platform hard-kills the BG engine (kBGTaskTimeout
-// on iOS, the ~10-minute WorkManager system stop on Android), leaving margin
-// to drain in-flight work and release the process lock cleanly.
+// ML self-stops before the platform hard-kills the BG engine (the task
+// timeouts above on iOS, the ~10-minute WorkManager system stop on Android),
+// leaving margin to drain in-flight work and release the process lock cleanly.
 const kBGTaskMLSelfStopIOS = Duration(seconds: 26);
+const kBGProcessingTaskMLSelfStopIOS = Duration(minutes: 3, seconds: 45);
+// A suspended main engine can still hold the ml lock when a processing window
+// opens; it drains its latched stop within seconds once the process is woken.
+const kBGProcessingTaskMLLockWaitIOS = Duration(seconds: 60);
 const kBGTaskMLSelfStopAndroid = Duration(minutes: 9);
 bool isProcessBg = true;
 bool _stopHearBeat = false;
@@ -232,12 +237,15 @@ Future<void> runBackgroundTask(
   String taskId,
   TimeLogger tlog, {
   String mode = 'normal',
+  Duration? mlSelfStop,
+  Duration? mlLockWait,
 }) async {
   // Created at task start so a stop that fires before ML begins stays
   // latched for the whole task.
   final mlRunControl = MlRunControl();
   final mlSelfStopTimer = Timer(
-    Platform.isIOS ? kBGTaskMLSelfStopIOS : kBGTaskMLSelfStopAndroid,
+    mlSelfStop ??
+        (Platform.isIOS ? kBGTaskMLSelfStopIOS : kBGTaskMLSelfStopAndroid),
     () => mlRunControl.requestStop(MlStopReason.backgroundDeadline),
   );
   final mlForegroundWatchTimer = Timer.periodic(
@@ -263,7 +271,7 @@ Future<void> runBackgroundTask(
       "[BG TASK] No recent foreground activity, proceeding with background work",
     );
 
-    await _runMinimally(taskId, tlog, mlRunControl);
+    await _runMinimally(taskId, tlog, mlRunControl, mlLockWait);
   } finally {
     mlSelfStopTimer.cancel();
     mlForegroundWatchTimer.cancel();
@@ -274,6 +282,7 @@ Future<void> _runMinimally(
   String taskId,
   TimeLogger tlog,
   MlRunControl mlRunControl,
+  Duration? mlLockWait,
 ) async {
   try {
     final PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -368,6 +377,7 @@ Future<void> _runMinimally(
           final disposition = await MLService.instance.runAllML(
             force: false,
             control: mlRunControl,
+            lockWait: mlLockWait,
           );
           _logger.info("[BG TASK] ML run disposition: ${disposition.name}");
         } finally {
@@ -666,10 +676,17 @@ Future<void> _scheduleHeartBeat(
   SharedPreferences prefs,
   bool isBackground,
 ) async {
-  await prefs.setInt(
-    isBackground ? kLastBGTaskHeartBeatTime : kLastFGTaskHeartBeatTime,
-    DateTime.now().microsecondsSinceEpoch,
-  );
+  // iOS background wakes run main() without resuming the app.
+  final bool skipFGWrite =
+      !isBackground &&
+      Platform.isIOS &&
+      WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed;
+  if (!skipFGWrite) {
+    await prefs.setInt(
+      isBackground ? kLastBGTaskHeartBeatTime : kLastFGTaskHeartBeatTime,
+      DateTime.now().microsecondsSinceEpoch,
+    );
+  }
   Future.delayed(kHeartBeatFrequency, () async {
     // ignore: unawaited_futures
     _scheduleHeartBeat(prefs, isBackground);
@@ -690,7 +707,14 @@ Future<void> _homeWidgetSyncPeriodic() async {
 }
 
 Future<void> _scheduleFGSync(String caller) async {
-  await _sync(caller);
+  final bool isIOSWokenInBackground =
+      Platform.isIOS &&
+      WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed;
+  if (isIOSWokenInBackground) {
+    _logger.info("Skipping $caller sync, app is not resumed");
+  } else {
+    await _sync(caller);
+  }
   Future.delayed(kFGSyncFrequency, () async {
     unawaited(_scheduleFGSync('fgSyncCron'));
   });
@@ -705,6 +729,13 @@ Future<void> _handleBackgroundPush(Object message) async {
     );
     if (PushService.shouldSync(message)) {
       _logger.info("Foreground is active, skipping background sync from push");
+    }
+  } else if (!isProcessBg) {
+    // This engine already ran SuperLogging.main: re-entering runWithLogs here
+    // would attach a duplicate log listener and clobber the log prefix.
+    _logger.info("Background push received in backgrounded main engine");
+    if (PushService.shouldSync(message)) {
+      await _sync('firebaseBgSyncMainEngine');
     }
   } else {
     runWithLogs(() async {

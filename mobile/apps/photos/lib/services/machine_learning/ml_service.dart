@@ -5,6 +5,7 @@ import "dart:math" show min;
 import "dart:typed_data" show Uint8List;
 
 import "package:flutter/foundation.dart" show kDebugMode;
+import "package:flutter/widgets.dart" show AppLifecycleState, WidgetsBinding;
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
@@ -341,6 +342,7 @@ class MLService {
   Future<MlRunDisposition> runAllML({
     bool force = false,
     MlRunControl? control,
+    Duration? lockWait,
   }) async {
     final runControl = control ?? MlRunControl();
     // A latched stop always wins, force included.
@@ -358,6 +360,15 @@ class MLService {
     }
     if (!hasGrantedMLConsent) {
       _logger.info("runAllML called without ML consent, skipping");
+      return MlRunDisposition.denied;
+    }
+    // On iOS the main engine may be woken without being resumed; the resume
+    // hook re-triggers ML, so no retry is scheduled here.
+    if (!force &&
+        !isProcessBg &&
+        Platform.isIOS &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      _logger.info("runAllML skipped, app is not resumed");
       return MlRunDisposition.denied;
     }
     final MLMode mode = isLocalGalleryMode
@@ -384,6 +395,7 @@ class MLService {
             control: runControl,
           );
         },
+        lockWait: lockWait,
       );
       if (attempt != MlLockAttempt.ran) {
         _logger.info("runAllML denied the ml process lock (${attempt.name})");
@@ -498,18 +510,25 @@ class MLService {
   Future<MlLockAttempt> _runExclusiveWithControl(
     MlOperation operation,
     MlRunControl control,
-    Future<void> Function() body,
-  ) async {
+    Future<void> Function() body, {
+    Duration? lockWait,
+  }) async {
     _runControls.add(control);
     try {
-      return await MlProcessLock.instance.tryRunExclusive(operation, () async {
-        _installRunControl(control);
-        try {
-          await body();
-        } finally {
-          _clearRunControl(control);
-        }
-      }, background: isProcessBg);
+      return await MlProcessLock.instance.tryRunExclusive(
+        operation,
+        () async {
+          _installRunControl(control);
+          try {
+            await body();
+          } finally {
+            _clearRunControl(control);
+          }
+        },
+        background: isProcessBg,
+        waitForAvailability: lockWait != null,
+        waitDeadline: lockWait,
+      );
     } finally {
       _runControls.remove(control);
     }
@@ -533,7 +552,7 @@ class MLService {
   }
 
   void triggerML() {
-    if (_mlControllerStatus && !MlProcessLock.instance.isBusy) {
+    if (_mlControllerStatus) {
       unawaited(runAllML());
     }
   }
