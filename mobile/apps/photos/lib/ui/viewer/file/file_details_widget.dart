@@ -119,9 +119,20 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
       } else if (flagService.internalUser && widget.file.isVideo) {
         getMediaInfo();
       }
-      getExif(widget.file).then((exif) {
-        _exifNotifier.value = exif;
-      });
+      getExif(widget.file).then<void>(
+        (exif) {
+          if (mounted) {
+            _exifNotifier.value = exif;
+          }
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          _logger.warning(
+            "Failed to load file details EXIF",
+            error,
+            stackTrace,
+          );
+        },
+      );
     }
 
     super.initState();

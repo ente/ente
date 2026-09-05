@@ -65,6 +65,9 @@ class FileWidget extends StatelessWidget {
         onFinalImageLoaded: onFinalImageLoaded,
         qrDetectionsNotifier: qrDetectionsNotifier,
         onTextSelectionStart: onTextSelectionStart,
+        isActive: isActive,
+        itemIndex: itemIndex,
+        activeItemIndexListenable: activeItemIndexListenable,
       );
     } else if (file.fileType == FileType.video) {
       // use old video widget on iOS simulator as the new one crashes while

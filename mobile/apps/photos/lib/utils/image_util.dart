@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -161,25 +160,21 @@ Future<({int width, int height})?> getImageDimensions({
     throw ArgumentError("imagePath and imageBytes cannot be null");
   }
   try {
-    late Uint8List bytes;
-    if (imagePath != null) {
-      bytes = await File(imagePath).readAsBytes();
-    } else {
-      bytes = imageBytes!;
-    }
-    final codec = await ui.instantiateImageCodec(bytes);
+    final buffer = imagePath != null
+        ? await ui.ImmutableBuffer.fromFilePath(imagePath)
+        : await ui.ImmutableBuffer.fromUint8List(imageBytes!);
     try {
-      final frameInfo = await codec.getNextFrame();
+      final descriptor = await ui.ImageDescriptor.encoded(buffer);
       try {
-        if (frameInfo.image.width == 0 || frameInfo.image.height == 0) {
+        if (descriptor.width == 0 || descriptor.height == 0) {
           return null;
         }
-        return (width: frameInfo.image.width, height: frameInfo.image.height);
+        return (width: descriptor.width, height: descriptor.height);
       } finally {
-        frameInfo.image.dispose();
+        descriptor.dispose();
       }
     } finally {
-      codec.dispose();
+      buffer.dispose();
     }
   } catch (e) {
     _logger.severe("Failed to get image size", e);

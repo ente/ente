@@ -480,6 +480,8 @@ class _BodyState extends State<_Body> {
           },
           qrDetectionsNotifier: _qrHelper?.qrDetectionsNotifier,
           playbackSpeed: _playbackSpeed,
+          itemIndex: index,
+          activeItemIndexListenable: _selectedIndexNotifier,
           onTextSelectionStart:
               flagService.ocrOverlayEnabled &&
                   widget.config.mode != DetailPageMode.minimalistic &&
