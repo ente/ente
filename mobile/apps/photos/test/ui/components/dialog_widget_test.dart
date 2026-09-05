@@ -1,8 +1,8 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:photos/ente_theme_data.dart";
-import "package:ente_strings/ente_strings.dart";
 import "package:photos/models/button_result.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/dialog_widget.dart";
@@ -38,6 +38,34 @@ void main() {
       await tester.tap(find.text("OK"));
       await tester.pumpAndSettle();
       expect(find.byType(BottomSheetComponent), findsNothing);
+    });
+
+    testWidgets("shows the download decryption failure support action", (
+      tester,
+    ) async {
+      await _pumpLauncher(
+        tester,
+        (context) => showDownloadDecryptionFailedDialog(context: context),
+      );
+
+      await _openLauncher(tester);
+
+      expect(find.text("Download failed"), findsOneWidget);
+      expect(
+        find.text(
+          "This item could not be downloaded. Please reach out to us so we can help.",
+        ),
+        findsOneWidget,
+      );
+      expect(find.text("Contact us"), findsOneWidget);
+      expect(find.byType(BottomSheetComponent), findsOneWidget);
+
+      await tester.tap(find.text("Contact us"));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Report a bug"), findsWidgets);
+      expect(find.text("View logs"), findsOneWidget);
+      expect(find.text("Export logs"), findsOneWidget);
     });
   });
 

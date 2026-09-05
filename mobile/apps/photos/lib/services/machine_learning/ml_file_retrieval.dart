@@ -1,6 +1,6 @@
 import "dart:io";
 
-import "package:photos/module/download/decrypt.dart";
+import "package:photos/module/download/download_error.dart";
 import "package:photos/services/machine_learning/ml_exceptions.dart";
 
 typedef MlFileDownloadAndLoader = Future<File?> Function();

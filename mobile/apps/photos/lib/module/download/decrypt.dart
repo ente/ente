@@ -9,6 +9,7 @@ import 'package:photos/core/configuration.dart';
 import 'package:photos/core/network/network.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
+import 'package:photos/module/download/download_error.dart';
 import 'package:photos/module/download/file_url.dart';
 import 'package:photos/module/download/manager.dart';
 import 'package:photos/module/download/task.dart';
@@ -17,31 +18,9 @@ import 'package:photos/services/collections_service.dart';
 import 'package:photos/utils/device_storage_error.dart';
 import 'package:photos/utils/file_key.dart';
 
+export 'package:photos/module/download/download_error.dart';
+
 final _logger = Logger('file_download_util');
-
-class DownloadFailedError implements Exception {
-  final String message;
-
-  DownloadFailedError(this.message);
-
-  @override
-  String toString() => message;
-}
-
-class DownloadDecryptionError extends DownloadFailedError {
-  final String encryptedFileSha1;
-
-  DownloadDecryptionError(this.encryptedFileSha1)
-    : super('Failed to decrypt downloaded file');
-}
-
-class DownloadNoConnectionError extends DownloadFailedError {
-  DownloadNoConnectionError() : super('No connection');
-}
-
-class DownloadUnavailableError extends DownloadFailedError {
-  DownloadUnavailableError() : super('Unavailable');
-}
 
 Future<File?> _downloadAndDecryptPublicFile(
   EnteFile file, {
@@ -114,10 +93,16 @@ Future<File?> _downloadAndDecryptPublicFile(
         error,
         stackTrace,
       );
+      if (error is StreamPullErr && metadata.encryptedFileSha1 != null) {
+        throw DownloadDecryptionError(metadata.encryptedFileSha1!);
+      }
       return null;
     }
     return File(decryptedFilePath);
   } catch (error, stackTrace) {
+    if (error is DownloadDecryptionError) {
+      rethrow;
+    }
     _logger.severe('$logPrefix failed to download', error, stackTrace);
     return null;
   }
