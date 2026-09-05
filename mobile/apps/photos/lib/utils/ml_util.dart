@@ -7,8 +7,8 @@ import "package:flutter/services.dart" show PlatformException;
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
-import "package:photos/db/ml/filedata.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
@@ -455,7 +455,7 @@ Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
 }
 
 Future<RemoteMLHydrationSummary> hydrateOwnedRemoteMLData({
-  required MLDataDB mlDataDB,
+  required IMLDataDB<int> mlDataDB,
   MlRunControl? control,
   int? skipHydrationIfCandidateFileCountAtMost,
 }) async {
@@ -582,7 +582,7 @@ Future<FileDataResponse> _fetchFilesDataForMlHydrationWithRecovery(
 
 Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
   List<FileMLInstruction> instructions, {
-  required MLDataDB mlDataDB,
+  required IMLDataDB<int> mlDataDB,
 }) async {
   if (instructions.isEmpty) {
     return <FileMLInstruction>[];

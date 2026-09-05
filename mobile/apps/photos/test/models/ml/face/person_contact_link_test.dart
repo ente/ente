@@ -4,7 +4,7 @@ import "dart:typed_data";
 
 import "package:ente_contacts/contacts.dart" as contacts;
 import "package:flutter_test/flutter_test.dart";
-import "package:photos/db/ml/db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/local_entity_data.dart";
 import "package:photos/models/ml/face/person.dart";
@@ -435,7 +435,7 @@ class _FakeEntityService implements EntityService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _FakeMLDataDB implements MLDataDB {
+class _FakeMLDataDB implements IMLDataDB<int> {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

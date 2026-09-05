@@ -9,7 +9,7 @@ import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
-import "package:photos/db/ml/db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/events/diff_sync_complete_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/gateways/entity/models/type.dart";
@@ -42,7 +42,7 @@ class PersonService {
   static const String _appliedCGroupSyncTimeKeyPrefix =
       "person_feedback_applied_cgroup_sync_time";
   final EntityService entityService;
-  final MLDataDB faceMLDataDB;
+  final IMLDataDB<int> faceMLDataDB;
   final SharedPreferences prefs;
   final PhotosContactsService _contactsService;
   final Future<Uint8List?> Function(PersonEntity) _contactPhotoBuilder;
@@ -93,7 +93,7 @@ class PersonService {
 
   static void init(
     EntityService entityService,
-    MLDataDB faceMLDataDB,
+    IMLDataDB<int> faceMLDataDB,
     SharedPreferences prefs,
   ) {
     final bool isFirstInit = _instance == null;

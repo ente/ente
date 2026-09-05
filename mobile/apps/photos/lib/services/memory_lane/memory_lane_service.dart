@@ -7,6 +7,7 @@ import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/ml_consent_changed_event.dart";
@@ -38,7 +39,7 @@ class MemoryLaneService {
 
   final Logger _logger = Logger("MemoryLaneService");
   final MemoryLaneCacheService _cacheService = MemoryLaneCacheService.instance;
-  MLDataDB get _mlDataDB =>
+  IMLDataDB<int> get _mlDataDB =>
       isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
   final FilesDB _filesDB = FilesDB.instance;
   final OfflineFilesDB _offlineFilesDB = OfflineFilesDB.instance;

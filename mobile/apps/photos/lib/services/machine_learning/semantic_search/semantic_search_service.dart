@@ -5,6 +5,7 @@ import "package:logging/logging.dart";
 import "package:photos/core/cache/lru_map.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
@@ -30,7 +31,7 @@ class SemanticSearchService {
 
   final LRUMap<String, List<double>> _queryEmbeddingCache = LRUMap(20);
   static const kMinimumSimilarityThreshold = 0.175;
-  MLDataDB get _mlDataDB =>
+  IMLDataDB<int> get _mlDataDB =>
       isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
   ClipVectorDB get _vectorDB => isLocalGalleryMode
       ? ClipVectorDB.localGalleryInstance

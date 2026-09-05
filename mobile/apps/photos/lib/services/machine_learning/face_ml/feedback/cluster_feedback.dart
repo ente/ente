@@ -9,6 +9,7 @@ import "package:logging/logging.dart";
 import "package:ml_linalg/linalg.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/cluster_centroid_vector_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/events/people_changed_event.dart";
@@ -50,7 +51,7 @@ class ClusterFeedbackService<T> {
   ClusterFeedbackService._privateConstructor();
   late final mlDataDB = MLDataDB.instance;
   // Person suggestions belong to the Ente account, not the local gallery.
-  MLDataDB get _mlDataDBForCentroidVectorDb => MLDataDB.instance;
+  IMLDataDB<int> get _mlDataDBForCentroidVectorDb => MLDataDB.instance;
   ClusterCentroidVectorDB get _clusterCentroidVectorDB =>
       ClusterCentroidVectorDB.instance;
   Future<void>? _prepareClusterCentroidVectorDbFuture;
