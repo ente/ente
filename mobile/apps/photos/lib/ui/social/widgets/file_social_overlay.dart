@@ -434,7 +434,9 @@ class _FileSocialOverlayState extends State<FileSocialOverlay> {
               width: _latestCommentPillWidth(
                 context,
                 latestComment.data,
-                MediaQuery.sizeOf(context).width * 0.6,
+                (MediaQuery.sizeOf(context).width * 0.6) -
+                    _socialControlsSize -
+                    24,
               ),
               currentUserID: widget.currentUserID!,
               onTap: () =>

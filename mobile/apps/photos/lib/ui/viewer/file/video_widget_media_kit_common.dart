@@ -257,7 +257,7 @@ class _VideoWidgetState extends State<VideoWidget> {
                           left: 0,
                           child: SafeArea(
                             top: false,
-                            left: false,
+                            left: true,
                             right: false,
                             child: VideoStreamChangeWidget(
                               showControls: value,

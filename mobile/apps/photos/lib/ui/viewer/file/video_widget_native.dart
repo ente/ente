@@ -519,7 +519,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                                   left: 0,
                                   child: SafeArea(
                                     top: false,
-                                    left: false,
+                                    left: true,
                                     right: false,
                                     child: ValueListenableBuilder(
                                       valueListenable: _showControls,

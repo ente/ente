@@ -102,13 +102,13 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
     return IgnorePointer(
       ignoring: !widget._showControls,
       child: Align(
-        alignment: Alignment.centerRight,
+        alignment: Alignment.centerLeft,
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInQuad,
           opacity: widget._showControls ? 1 : 0,
           child: Padding(
-            padding: const EdgeInsets.only(right: 10, bottom: 4),
+            padding: const EdgeInsets.only(left: 10, bottom: 4),
             child: GestureDetector(
               onTap: isCurrentlyProcessing ? null : widget.onStreamChange,
               child: Container(
