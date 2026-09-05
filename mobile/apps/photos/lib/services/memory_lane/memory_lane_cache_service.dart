@@ -60,6 +60,25 @@ class MemoryLaneCacheService {
     return cache[personId];
   }
 
+  Future<MemoryLaneSchedule?> getCurrentMemoriesStripSchedule() async {
+    final cache = await getCache();
+    final nowMicros = DateTime.now().microsecondsSinceEpoch;
+    for (final entry in cache.memoriesStripSchedule.entries) {
+      final timeline = cache.timelines[entry.key];
+      final endShowingAt =
+          entry.value.beginShowingAt +
+          MemoryLaneSchedule.displayDuration.inMicroseconds;
+      if (entry.value.beginShowingAt <= nowMicros &&
+          nowMicros < endShowingAt &&
+          timeline != null &&
+          timeline.isEligible &&
+          timeline.entries.isNotEmpty) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
   Future<MemoryLaneComputeLogEntry?> getComputeLogEntry(String personId) async {
     final cache = await getCache();
     return cache.computeLog[personId];
@@ -68,6 +87,30 @@ class MemoryLaneCacheService {
   Future<Map<String, MemoryLaneComputeLogEntry>> getComputeLog() async {
     final cache = await getCache();
     return Map<String, MemoryLaneComputeLogEntry>.from(cache.computeLog);
+  }
+
+  Future<void> updateMemoriesStripSchedule(
+    Set<String> invalid,
+    MemoryLaneSchedule? schedule,
+  ) async {
+    if (invalid.isEmpty && schedule == null) {
+      return;
+    }
+    await _ensureInitialized();
+    await _lock.synchronized(() async {
+      final currentCache = await _loadCacheUnsafe();
+      var updatedCache = currentCache.copyWithoutMemoriesStripScheduleEntries(
+        invalid,
+      );
+      if (schedule != null) {
+        updatedCache = updatedCache.copyWithMemoriesStripScheduleEntry(
+          schedule.personID,
+          schedule,
+        );
+      }
+      _cache = updatedCache;
+      await _writeCacheUnsafe();
+    });
   }
 
   Future<void> upsertTimelineAndLog(

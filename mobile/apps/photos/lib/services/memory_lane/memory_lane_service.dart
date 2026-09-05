@@ -108,6 +108,33 @@ class MemoryLaneService {
         return;
       }
       persons.addAll(await PersonService.instance.getPersons());
+    }
+    if (flagService.internalUser) {
+      final assigned = <String>{};
+      for (final person in persons) {
+        for (final cluster in person.data.assigned) {
+          assigned.add(cluster.id);
+        }
+      }
+      try {
+        _topNClusters = await _mlDataDB.getClustersForMemoryLane(assigned);
+      } catch (e, s) {
+        _logger.severe("getClustersForMemoryLane failed:", e, s);
+        final cache = await _cacheService.getCache();
+        _topNClusters = cache.timelines.entries
+            .where((entry) => entry.value.isCluster)
+            .map((entry) => entry.key)
+            .toSet();
+      }
+    }
+    if (flagService.internalUser) {
+      try {
+        await _scheduleTimelinesForMemoriesStrip(persons);
+      } catch (e, s) {
+        _logger.severe("_scheduleTimelinesForMemoriesStrip failed:", e, s);
+      }
+    }
+    if (!isLocalGalleryMode) {
       for (final person in persons) {
         if (person.data.isIgnored) {
           await _invalidateTimeline(person.remoteID);
@@ -117,13 +144,6 @@ class MemoryLaneService {
       }
     }
     if (flagService.internalUser) {
-      final assigned = <String>{};
-      for (final person in persons) {
-        for (final cluster in person.data.assigned) {
-          assigned.add(cluster.id);
-        }
-      }
-      _topNClusters = await _mlDataDB.getClustersForMemoryLane(assigned);
       final cache = await _cacheService.getCache();
       final List<Future<void>> tasks = [];
       for (final timeline in cache.allTimelines) {
@@ -219,29 +239,65 @@ class MemoryLaneService {
     if (timeline == null || timeline.entries.isEmpty) {
       return timeline;
     }
-
-    final hiddenFiles = await SearchService.instance.getHiddenFiles();
-    final hiddenFileIds = hiddenFiles
-        .map((e) => e.uploadedFileID)
+    final hiddenFileIds = (await SearchService.instance.getHiddenFiles())
+        .map((file) => file.uploadedFileID)
         .whereType<int>()
         .toSet();
-    final containsHiddenEntry = timeline.entries.any(
-      (entry) => hiddenFileIds.contains(entry.fileId),
-    );
-    if (!containsHiddenEntry) {
-      if (timeline.isEligible && !await _areTimelineFaceCropsCached(timeline)) {
-        _logger.info("Missing face crops for $personId");
-        _queueTimelineCropReadiness(personId, isCluster: isCluster);
-        await _refreshReadyPersonIds();
+    if (timeline.entries.any((entry) => hiddenFileIds.contains(entry.fileId))) {
+      _logger.info("Removing timeline with hidden files for $personId");
+      await _invalidateTimeline(personId);
+      schedulePersonRecompute(personId, isCluster: isCluster, force: true);
+      return null;
+    }
+    if (timeline.isEligible && !await _areTimelineFaceCropsCached(timeline)) {
+      _logger.info("Missing face crops for $personId");
+      _queueTimelineCropReadiness(personId, isCluster: isCluster);
+      await _refreshReadyPersonIds();
+      return null;
+    }
+    return timeline;
+  }
+
+  Future<MemoryLanePersonTimeline?> getScheduledMemoriesStripTimeline() async {
+    if (!isFeatureEnabled) {
+      return null;
+    }
+    final schedule = await _cacheService.getCurrentMemoriesStripSchedule();
+    if (schedule == null) {
+      return null;
+    }
+    final timeline = await _cacheService.getTimeline(schedule.personID);
+    if (timeline == null || timeline.entries.isEmpty) {
+      return null;
+    }
+    if (!schedule.isCluster) {
+      if (!PersonService.isInitialized) {
         return null;
       }
-      return timeline;
+      final person = await PersonService.instance.getPerson(schedule.personID);
+      if (person == null) {
+        await _invalidateTimeline(schedule.personID);
+        return null;
+      }
+      if (person.data.isIgnored || person.data.hideFromMemories) {
+        return null;
+      }
+    }
+    final hiddenFileIds = (await SearchService.instance.getHiddenFiles())
+        .map((file) => file.uploadedFileID)
+        .whereType<int>()
+        .toSet();
+    if (timeline.entries.any((entry) => hiddenFileIds.contains(entry.fileId))) {
+      return null;
     }
 
-    _logger.info("Removing timeline with hidden files for $personId");
-    await _invalidateTimeline(personId);
-    schedulePersonRecompute(personId, isCluster: isCluster, force: true);
-    return null;
+    if (!await areFullFaceCropsCached({
+      timeline.entries.first.faceId,
+      timeline.entries.last.faceId,
+    }, useTempCache: false)) {
+      return null;
+    }
+    return timeline;
   }
 
   bool hasReadyTimelineSync(String personId, {bool isCluster = false}) {
@@ -896,6 +952,84 @@ class MemoryLaneService {
     );
     return Map.fromEntries(
       files.map((file) => MapEntry(localIdToId[file.localID]!, file)),
+    );
+  }
+
+  Future<void> _scheduleTimelinesForMemoriesStrip(
+    List<PersonEntity> persons,
+  ) async {
+    if (!isFeatureEnabled) {
+      return;
+    }
+    final scheduleWindowMicros =
+        MemoryLaneSchedule.displayDuration.inMicroseconds;
+    final cooldownMicros = const Duration(days: 30).inMicroseconds;
+    final cache = await _cacheService.getCache();
+    final nowMicros = DateTime.now().microsecondsSinceEpoch;
+    final eligiblePersonIds = persons
+        .where(
+          (person) => !person.data.isIgnored && !person.data.hideFromMemories,
+        )
+        .map((person) => person.remoteID)
+        .toSet();
+
+    final invalid = <String>{};
+    for (final entry in cache.memoriesStripSchedule.entries) {
+      final isInCooldown =
+          nowMicros - entry.value.beginShowingAt < cooldownMicros;
+      if ((entry.value.isCluster
+              ? !_topNClusters.contains(entry.key)
+              : !eligiblePersonIds.contains(entry.key)) ||
+          !isInCooldown) {
+        invalid.add(entry.key);
+      }
+    }
+
+    final valid = cache.memoriesStripSchedule.entries.where(
+      (entry) => !invalid.contains(entry.key),
+    );
+    final alreadyScheduledAhead = valid.any(
+      (s) => s.value.beginShowingAt >= nowMicros + scheduleWindowMicros,
+    );
+    if (alreadyScheduledAhead) {
+      await _cacheService.updateMemoriesStripSchedule(invalid, null);
+      return;
+    }
+
+    final timelines = cache.allTimelines.toList()..shuffle();
+    final timeline = timelines.firstWhereOrNull(
+      (t) =>
+          t.isEligible &&
+          t.entries.isNotEmpty &&
+          (t.isCluster
+              ? _topNClusters.contains(t.personId)
+              : eligiblePersonIds.contains(t.personId)) &&
+          (!cache.memoriesStripSchedule.containsKey(t.personId) ||
+              invalid.contains(t.personId)),
+    );
+    if (timeline == null) {
+      await _cacheService.updateMemoriesStripSchedule(invalid, null);
+      return;
+    }
+
+    final newBeginShowingAt = valid
+        .map((entry) => entry.value.beginShowingAt + scheduleWindowMicros)
+        .followedBy([nowMicros])
+        .max;
+    await _cacheService.updateMemoriesStripSchedule(
+      invalid,
+      MemoryLaneSchedule(
+        personID: timeline.personId,
+        isCluster: timeline.isCluster,
+        beginShowingAt: newBeginShowingAt,
+      ),
+    );
+
+    unawaited(
+      ensureTimelineReachability(
+        timeline.personId,
+        isCluster: timeline.isCluster,
+      ),
     );
   }
 }
