@@ -372,11 +372,11 @@ class _RitualActionsSheet extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: colorScheme.backgroundElevated,
+        child: Material(
+          color: colorScheme.backgroundElevated,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: colorScheme.strokeFaint, width: 0.5),
+            side: BorderSide(color: colorScheme.strokeFaint, width: 0.5),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

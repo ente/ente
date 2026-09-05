@@ -121,7 +121,7 @@ class _CommentInputWidgetState extends State<CommentInputWidget>
               if (_showReplyPreview && widget.replyingToUser != null)
                 SizeTransition(
                   sizeFactor: _animation,
-                  axisAlignment: -1.0,
+                  alignment: AlignmentDirectional.topStart,
                   child: FadeTransition(
                     opacity: _animation,
                     child: ReplyPreviewWidget(

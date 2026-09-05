@@ -1600,7 +1600,7 @@ class SearchService {
       if (facesResult.isEmpty) {
         if (fallbackMinClusterSize != null &&
             fallbackMinClusterSize < minClusterSize) {
-          return getAllFace(
+          return await getAllFace(
             limit,
             minClusterSize: fallbackMinClusterSize,
             showIgnoredOnly: showIgnoredOnly,

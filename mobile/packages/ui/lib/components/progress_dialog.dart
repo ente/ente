@@ -130,10 +130,10 @@ class ProgressDialog {
           Navigator.of(_dismissingContext!).pop();
         }
         if (_showLogs) debugPrint('ProgressDialog dismissed');
-        return Future.value(true);
+        return true;
       } else {
         if (_showLogs) debugPrint('ProgressDialog already dismissed');
-        return Future.value(false);
+        return false;
       }
     } catch (err) {
       debugPrint('Seems there is an issue hiding dialog');

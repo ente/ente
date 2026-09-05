@@ -59,7 +59,7 @@ Future<String> getFileContentIdentity(EnteFile file) async {
       await CryptoUtil.getHash(sourceFile),
     );
     if (file.fileType == FileType.livePhoto && Platform.isIOS) {
-      return getLivePhotoFileHash(file, sourceHash);
+      return await getLivePhotoFileHash(file, sourceHash);
     }
     return sourceHash;
   } finally {
@@ -226,7 +226,7 @@ Future<Uint8List?> _getThumbnailForUpload(
         InvalidReason.thumbnailMissing,
       );
     }
-    return compressThumbnailToSizeLimit(thumbnailData);
+    return await compressThumbnailToSizeLimit(thumbnailData);
   } catch (e) {
     if (isDeviceStorageFullError(e)) {
       rethrow;

@@ -409,7 +409,7 @@ class _ScannerReviewPageState extends State<ScannerReviewPage>
           vertical: Spacing.xs,
         ),
         itemCount: pages.length,
-        onReorder: _onReorder,
+        onReorderItem: _onReorder,
         onReorderStart: (_) => unawaited(HapticFeedback.mediumImpact()),
         itemBuilder: (context, index) {
           final page = pages[index];

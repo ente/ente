@@ -345,7 +345,7 @@ class VideoPreviewService {
         onlyFilesWithLocalId: false,
       );
 
-      return calcStatus(files, fileDataService.previewIds);
+      return await calcStatus(files, fileDataService.previewIds);
     } catch (e, s) {
       _logger.severe('Error getting Streaming status', e, s);
       rethrow;

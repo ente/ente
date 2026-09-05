@@ -71,7 +71,7 @@ void main() {
   }
 
   vec2 clamped_uv = clamp(texture_uv, vec2(0.00001), vec2(0.99999));
-#ifdef IMPELLER_TARGET_OPENGLES
+#if defined(IMPELLER_TARGET_OPENGLES) && !defined(IMPELLER_OPENGLES_UNFLIPPED_DEPRECATED)
   clamped_uv.y = 1.0 - clamped_uv.y;
 #endif
   vec4 sharp_color = texture(u_texture, clamped_uv);

@@ -35,7 +35,7 @@ You can view your 2FA codes at [auth.ente.com](https://auth.ente.com). For addin
 
 ## 🧑‍💻 Build from source
 
-1. [Install Flutter v3.38.10](https://flutter.dev/docs/get-started/install).
+1. [Install Flutter v3.47.2](https://flutter.dev/docs/get-started/install).
 
 2. Pull in submodules with `git submodule update --init --recursive`
 

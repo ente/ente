@@ -9,7 +9,7 @@ class FillerMemory extends SmartMemory {
     this.yearsAgo,
     int firstDateToShow,
     int lastDateToShow, {
-    String? id,
+    super.id,
     super.firstCreationTime,
     super.lastCreationTime,
   }) : super(
@@ -18,7 +18,6 @@ class FillerMemory extends SmartMemory {
          'filler',
          firstDateToShow,
          lastDateToShow,
-         id: id,
        );
 
   @override

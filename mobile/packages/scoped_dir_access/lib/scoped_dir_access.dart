@@ -372,7 +372,7 @@ class DirUtils {
       if (!await dir.exists()) return [];
 
       final entries = await dir.list().toList();
-      return Future.wait(
+      return await Future.wait(
         entries.map((e) async {
           final stat = await e.stat();
           return FileInfo(

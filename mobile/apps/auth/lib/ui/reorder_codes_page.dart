@@ -79,7 +79,7 @@ class _ReorderCodesPageState extends State<ReorderCodesPage> {
                       isCompactMode: isCompactMode,
                     );
                   },
-                  onReorder: updateCodeIndex,
+                  onReorderItem: updateCodeIndex,
                 ),
               ),
             ],
@@ -115,7 +115,6 @@ class _ReorderCodesPageState extends State<ReorderCodesPage> {
 
   void updateCodeIndex(int oldIndex, int newIndex) {
     setState(() {
-      if (oldIndex < newIndex) newIndex -= 1;
       final code = widget.codes.removeAt(oldIndex);
       widget.codes.insert(newIndex, code);
       hasChanged = true;

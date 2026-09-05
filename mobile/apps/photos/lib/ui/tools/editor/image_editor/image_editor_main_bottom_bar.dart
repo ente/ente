@@ -62,7 +62,7 @@ class ImageEditorMainBottomBarState extends State<ImageEditorMainBottomBar>
             child: SizeTransition(
               sizeFactor: animation,
               axis: Axis.vertical,
-              axisAlignment: -1,
+              alignment: AlignmentDirectional.topStart,
               child: child,
             ),
           );

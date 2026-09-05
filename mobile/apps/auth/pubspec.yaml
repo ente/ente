@@ -90,7 +90,7 @@ dependencies:
   http: 1.6.0
   hugeicons: 1.1.7
   image: 4.7.0
-  intl: 0.20.2
+  intl: 0.20.3
   io: 1.0.5
   json_annotation: 4.9.0
   launcher_icon_switcher: 0.0.2
@@ -145,6 +145,13 @@ dev_dependencies:
   shared_preferences_platform_interface: 2.4.2
 
 flutter:
+  # Temporary Flutter 3.47 rollout guards: preserve CocoaPods and existing
+  # app lifecycle wiring. Remove after CI and Xcode support SwiftPM and each
+  # app has deliberately migrated to UIScene.
+  config:
+    enable-swift-package-manager: false
+    enable-uiscene-migration: false
+
   uses-material-design: true
   generate: true
 

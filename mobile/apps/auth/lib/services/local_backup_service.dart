@@ -286,7 +286,7 @@ class LocalBackupService {
 
   Future<String?> _readPassword() async {
     try {
-      return Configuration.instance.getBackupPassword();
+      return await Configuration.instance.getBackupPassword();
     } catch (e, s) {
       _logger.severe('Unable to read backup password', e, s);
       return null;

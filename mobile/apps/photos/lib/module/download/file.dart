@@ -38,7 +38,7 @@ Future<File?> getFile(
 }) async {
   try {
     if (file.isRemoteOnlyFile) {
-      return getFileFromServer(
+      return await getFileFromServer(
         file,
         liveVideo: liveVideo,
         forGalleryDownload: forGalleryDownload,
@@ -178,34 +178,29 @@ Future<File?> getFileFromServer(
     _progressCallbacks[downloadID] = progressCallback;
   }
 
-  final download = _runOncePerKey(
-    _fileDownloadsInProgress,
-    downloadID,
-    () {
-      Future<File?> downloadFuture;
-      if (file.fileType == FileType.livePhoto) {
-        downloadFuture = _getLivePhotoFromServer(
-          file,
-          progressCallback: (count, total) {
-            _progressCallbacks[downloadID]?.call(count, total);
-          },
-          needLiveVideo: liveVideo,
-          forGalleryDownload: forGalleryDownload,
-        );
-      } else {
-        downloadFuture = _downloadAndCache(
-          file,
-          cacheManager,
-          progressCallback: (count, total) {
-            _progressCallbacks[downloadID]?.call(count, total);
-          },
-          forGalleryDownload: forGalleryDownload,
-        );
-      }
-      return downloadFuture;
-    },
-    onComplete: () => _progressCallbacks.remove(downloadID),
-  );
+  final download = _runOncePerKey(_fileDownloadsInProgress, downloadID, () {
+    Future<File?> downloadFuture;
+    if (file.fileType == FileType.livePhoto) {
+      downloadFuture = _getLivePhotoFromServer(
+        file,
+        progressCallback: (count, total) {
+          _progressCallbacks[downloadID]?.call(count, total);
+        },
+        needLiveVideo: liveVideo,
+        forGalleryDownload: forGalleryDownload,
+      );
+    } else {
+      downloadFuture = _downloadAndCache(
+        file,
+        cacheManager,
+        progressCallback: (count, total) {
+          _progressCallbacks[downloadID]?.call(count, total);
+        },
+        forGalleryDownload: forGalleryDownload,
+      );
+    }
+    return downloadFuture;
+  }, onComplete: () => _progressCallbacks.remove(downloadID));
   try {
     return await download;
   } on DownloadDecryptionError {

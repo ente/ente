@@ -496,7 +496,7 @@ class _InviteEmailListState extends State<_InviteEmailList> {
       opacity: curvedAnimation,
       child: SizeTransition(
         sizeFactor: curvedAnimation,
-        axisAlignment: -1,
+        alignment: AlignmentDirectional.topStart,
         child: SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(0, -0.04),

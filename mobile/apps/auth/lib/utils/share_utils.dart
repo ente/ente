@@ -89,7 +89,7 @@ Future<ShareResult> shareText(
 }) async {
   try {
     final sharePosOrigin = _sharePosOrigin(context, key);
-    return SharePlus.instance.share(
+    return await SharePlus.instance.share(
       ShareParams(text: text, sharePositionOrigin: sharePosOrigin),
     );
   } catch (e, s) {

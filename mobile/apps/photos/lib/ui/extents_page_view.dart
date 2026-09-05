@@ -175,7 +175,7 @@ class _PageViewState extends State<ExtentsPageView> {
               }
 
               return Viewport(
-                cacheExtent: cacheExtent,
+                scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
                 axisDirection: axisDirection,
                 offset: position,
                 slivers: <Widget>[

@@ -21,11 +21,7 @@ class LinksClient {
     try {
       final response = await _enteDio.post(
         '/files/share-url',
-        data: {
-          'fileID': fileID,
-          'app': 'locker',
-          if (metadata != null) ...metadata,
-        },
+        data: {'fileID': fileID, 'app': 'locker', ...?metadata},
       );
       return ShareableLink.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

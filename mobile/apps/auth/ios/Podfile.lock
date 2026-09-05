@@ -238,7 +238,7 @@ SPEC CHECKSUMS:
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_local_notifications: a5a732f069baa862e728d839dd2ebb904737effb
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
   flutter_secure_storage: 2c2ff13db9e0a5647389bff88b0ecac56e3f3418
@@ -261,6 +261,6 @@ SPEC CHECKSUMS:
   ua_client_hints: 92fe0d139619b73ec9fcb46cc7e079a26178f586
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
-PODFILE CHECKSUM: 83fe2d620a933a6e1d7b8075770247a0766fa30e
+PODFILE CHECKSUM: a65747ad82de7c2358d8a738a8ac05e680f531aa
 
 COCOAPODS: 1.17.0

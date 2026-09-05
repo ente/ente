@@ -284,11 +284,11 @@ class DateAndTimeWidget extends StatelessWidget {
               ),
             ),
           if (!singleFile) const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              color: colorScheme.backgroundElevated2,
-              border: Border.all(color: colorScheme.strokeFaint, width: 0.5),
+          Material(
+            color: colorScheme.backgroundElevated2,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
+              side: BorderSide(color: colorScheme.strokeFaint, width: 0.5),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -418,11 +418,11 @@ class SelectDateOrShiftWidget extends StatelessWidget {
     final colorScheme = getEnteColorScheme(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.backgroundElevated2,
-          border: Border.all(color: colorScheme.strokeFaint, width: 0.5),
+      child: Material(
+        color: colorScheme.backgroundElevated2,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: colorScheme.strokeFaint, width: 0.5),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

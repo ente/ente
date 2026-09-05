@@ -144,6 +144,7 @@ class _QrCodeDialogState extends State<QrCodeDialog> {
 
   PrettyQrDecoration _buildDefaultDecoration(Color finderColor) {
     return PrettyQrDecoration(
+      // ignore: experimental_member_use
       shape: PrettyQrShape.custom(
         const PrettyQrDotsSymbol(
           color: _kDefaultQrTextColor,

@@ -10,7 +10,7 @@ runs:
               # https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json
               # https://storage.googleapis.com/flutter_infra_release/releases/releases_macos.json
               # https://storage.googleapis.com/flutter_infra_release/releases/releases_windows.json
-              FLUTTER_VERSION: "3.38.10"
+              FLUTTER_VERSION: "3.47.2"
           run: |
               set -euo pipefail
 
@@ -18,19 +18,19 @@ runs:
               case "$RUNNER_OS-$RUNNER_ARCH" in
               Linux-X64)
                   archive="stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
-                  archive_sha256="385e2629a0a585a835f351ca1605d2c7996377ce2fa16e68296e8fc9a78ccf7a"
+                  archive_sha256="447878859d01ca9bfdb99a85f245af07ed8a15fedcd9d189c4749e8e92d1f185"
                   ;;
               macOS-X64)
                   archive="stable/macos/flutter_macos_${FLUTTER_VERSION}-stable.zip"
-                  archive_sha256="b7056ba00082b9b814415e7516287bb94633c1108838bfe10f8f665307b99afa"
+                  archive_sha256="b6fd6ba98c8503d5ee06a6670627b5b1c36167ece3427435ec83b66e9b28c6b5"
                   ;;
               macOS-ARM64)
                   archive="stable/macos/flutter_macos_arm64_${FLUTTER_VERSION}-stable.zip"
-                  archive_sha256="b3a8c004385273bfd9b9b901a72e3eb93ecaa65f4a7ca801ab22588aa05c490c"
+                  archive_sha256="f456fd6733053d9301828a2e702d6cbec872923126809aa8c48eb0a696d6cc01"
                   ;;
               Windows-X64)
                   archive="stable/windows/flutter_windows_${FLUTTER_VERSION}-stable.zip"
-                  archive_sha256="97e560d028f1b0b414e5f19ac2c4ebf079c001e8a18563a0e940c4d84700d334"
+                  archive_sha256="37934f2128a55d77a38baba12fd611157ed23a47bf7d2b7d17e9e84da118409d"
                   ;;
               *) echo "Unsupported runner: $RUNNER_OS-$RUNNER_ARCH" >&2; exit 1 ;;
               esac

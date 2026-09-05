@@ -15,20 +15,13 @@ class TripMemory extends SmartMemory {
     int firstDateToShow,
     int lastDateToShow,
     this.location, {
-    String? id,
+    super.id,
     this.locationName,
     this.tripYear,
     this.tripKey,
     super.firstCreationTime,
     super.lastCreationTime,
-  }) : super(
-         memories,
-         MemoryType.trips,
-         '',
-         firstDateToShow,
-         lastDateToShow,
-         id: id,
-       );
+  }) : super(memories, MemoryType.trips, '', firstDateToShow, lastDateToShow);
 
   TripMemory copyWith({
     List<Memory>? memories,

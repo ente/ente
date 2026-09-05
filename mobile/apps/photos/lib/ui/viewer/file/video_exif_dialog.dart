@@ -155,7 +155,7 @@ class VideoExifDialog extends StatelessWidget {
           ],
         ),
       );
-    } catch (e, _) {
+    } catch (e) {
       return const SizedBox.shrink();
     }
   }

@@ -116,7 +116,7 @@ class PeopleMemory extends SmartMemory {
     this.personID,
     this.personName, {
     String? title,
-    String? id,
+    super.id,
     super.firstCreationTime,
     super.lastCreationTime,
     this.activity,
@@ -129,7 +129,6 @@ class PeopleMemory extends SmartMemory {
          title ?? '',
          firstDateToShow,
          lastDateToShow,
-         id: id,
        );
 
   PeopleMemory copyWith({

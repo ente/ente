@@ -226,7 +226,7 @@ SPEC CHECKSUMS:
   EnteOnnxRuntime: 7baa83a95717a6c9c8d0d4599f9f2c90b72d2905
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
   flutter_secure_storage: 2c2ff13db9e0a5647389bff88b0ecac56e3f3418
   fluttertoast: 2c67e14dce98bbdb200df9e1acf610d7a6264ea1

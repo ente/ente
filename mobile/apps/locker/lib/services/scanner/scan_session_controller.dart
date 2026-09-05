@@ -146,7 +146,6 @@ class ScanSessionController extends ChangeNotifier {
 
   void reorderPage(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= _pages.length) return;
-    if (newIndex > oldIndex) newIndex -= 1;
     newIndex = newIndex.clamp(0, _pages.length - 1);
     if (newIndex == oldIndex) return;
     final page = _pages.removeAt(oldIndex);

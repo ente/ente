@@ -48,7 +48,7 @@
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>MinimumOSVersion</key>
-		<string>13.0</string>
+		<string>15.0</string>
 		<key>NSCameraUsageDescription</key>
 		<string>This app needs camera access to scan QR codes</string>
 		<key>NSFaceIDUsageDescription</key>

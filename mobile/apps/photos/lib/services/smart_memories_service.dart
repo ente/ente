@@ -177,7 +177,7 @@ class SmartMemoriesService {
       _logger.info(
         '${memoriesResult.memories.length} memories computed in computer $t',
       );
-      return _finalizeMemoriesResult(memoriesResult, s, languageCode, t);
+      return await _finalizeMemoriesResult(memoriesResult, s, languageCode, t);
     } catch (e, s) {
       _logger.severe("Error calculating smart memories", e, s);
       return _fallbackAfterCalculationError();
@@ -791,7 +791,7 @@ class SmartMemoriesService {
       final computationContext = MemoriesComputationContext.fromIsolateArgs(
         args,
       );
-      return _calculateMemories(
+      return await _calculateMemories(
         computationContext,
         _prepareMemoriesData(computationContext),
       );

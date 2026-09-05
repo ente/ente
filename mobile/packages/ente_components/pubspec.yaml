@@ -4,7 +4,7 @@ description: Production-ready Flutter design-system components for mobile apps.
 resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
-  flutter: ">=3.32.0"
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:

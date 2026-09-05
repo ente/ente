@@ -385,7 +385,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
 
   Future<String?> _readStoredPassword() async {
     try {
-      return Configuration.instance.getBackupPassword();
+      return await Configuration.instance.getBackupPassword();
     } catch (e) {
       _logger.severe('Failed to read backup password: $e');
       return null;

@@ -4,7 +4,7 @@ Ente's secure document storage app. An end-to-end encrypted app for storing impo
 
 ## 🧑‍💻 Build from source
 
-1. Install [Flutter v3.38.10](https://flutter.dev/docs/get-started/install) and [Rust](https://www.rust-lang.org/tools/install).
+1. Install [Flutter v3.47.2](https://flutter.dev/docs/get-started/install) and [Rust](https://www.rust-lang.org/tools/install).
 
 2. From any folder inside `mobile/`, install the workspace dependencies with `flutter pub get --enforce-lockfile`. Then, from `rust/`, generate the Rust bindings with `cargo codegen frb`.
 

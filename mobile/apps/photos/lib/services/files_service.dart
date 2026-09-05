@@ -50,10 +50,10 @@ class FilesService {
       final List<int> uploadIDsWithMissingSize = await _filesDB
           .getUploadIDsWithMissingSize(_config.getUserID()!);
       if (uploadIDsWithMissingSize.isEmpty) {
-        return Future.value(true);
+        return true;
       }
       await backFillSizes(uploadIDsWithMissingSize);
-      return Future.value(true);
+      return true;
     } catch (e, s) {
       _logger.severe("error during has migrated sizes", e, s);
       return Future.value(false);

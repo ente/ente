@@ -613,7 +613,7 @@ class MemoryShareService {
           Uri.parse(existingShare.url).fragment.isNotEmpty) {
         return (existingShare.url, existingShare.id);
       }
-      return _createMemoryLink(
+      return await _createMemoryLink(
         files: filesForShare,
         title: title,
         memoryHash: memoryHash,

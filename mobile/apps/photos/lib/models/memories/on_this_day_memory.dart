@@ -7,7 +7,7 @@ class OnThisDayMemory extends SmartMemory {
     List<Memory> memories,
     int firstDateToShow,
     int lastDateToShow, {
-    String? id,
+    super.id,
     super.firstCreationTime,
     super.lastCreationTime,
   }) : super(
@@ -16,7 +16,6 @@ class OnThisDayMemory extends SmartMemory {
          '',
          firstDateToShow,
          lastDateToShow,
-         id: id,
        );
 
   @override

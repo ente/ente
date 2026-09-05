@@ -3,6 +3,7 @@ import "dart:developer";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/event_bus.dart';
@@ -97,7 +98,7 @@ class _DeduplicatePageState extends State<DeduplicatePage> {
         Expanded(
           child: _duplicates.isNotEmpty
               ? ListView.builder(
-                  cacheExtent: 400,
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(400),
                   itemBuilder: (context, index) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),

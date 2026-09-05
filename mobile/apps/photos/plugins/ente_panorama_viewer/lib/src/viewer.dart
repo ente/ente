@@ -102,7 +102,7 @@ class _EntePanoramaViewerState extends State<EntePanoramaViewer>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final tickerModeActive = TickerMode.of(context);
+    final tickerModeActive = TickerMode.valuesOf(context).enabled;
     final motionStateChanged =
         !_dependenciesReady || tickerModeActive != _tickerModeActive;
     _dependenciesReady = true;

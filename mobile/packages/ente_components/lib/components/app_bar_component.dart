@@ -8,6 +8,7 @@ import 'package:ente_components/theme/spacing.dart';
 import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 typedef HeaderAppBarTitleBuilder =
     Widget Function(BuildContext context, HeaderAppBarTitleState state);
@@ -226,7 +227,9 @@ class _AppBarComponentState extends State<AppBarComponent> {
       child: CustomScrollView(
         controller: _controller,
         physics: widget.physics,
-        cacheExtent: widget.cacheExtent,
+        scrollCacheExtent: widget.cacheExtent == null
+            ? null
+            : ScrollCacheExtent.pixels(widget.cacheExtent!),
         slivers: [
           SliverAppBarComponent(
             title: widget.title,

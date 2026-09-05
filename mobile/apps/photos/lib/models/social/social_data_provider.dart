@@ -158,7 +158,7 @@ class SocialDataProvider {
     try {
       await _api.deleteComment(id);
 
-      return _db.deleteComment(id);
+      return await _db.deleteComment(id);
     } catch (e) {
       _logger.severe('Failed to delete comment $id', e);
       rethrow;

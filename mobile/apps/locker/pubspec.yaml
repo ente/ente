@@ -79,7 +79,7 @@ dependencies:
   flutter_svg: 2.3.0
   freezed_annotation: 3.1.0
   hugeicons: 1.1.7
-  intl: 0.20.2
+  intl: 0.20.3
   listen_sharing_intent: 1.9.2
   logging: 1.3.0
   open_file: 3.5.11
@@ -104,6 +104,13 @@ dev_dependencies:
   freezed: 3.2.3
 
 flutter:
+  # Temporary Flutter 3.47 rollout guards: preserve CocoaPods and existing
+  # app lifecycle wiring. Remove after CI and Xcode support SwiftPM and each
+  # app has deliberately migrated to UIScene.
+  config:
+    enable-swift-package-manager: false
+    enable-uiscene-migration: false
+
   uses-material-design: true
   generate: true
 
