@@ -96,10 +96,16 @@ class JustifiedLayoutCalculator {
   static const double _minimumAspectRatio = 1 / 3;
   static const double _maximumAspectRatio = 4.0;
   static const double _maximumRowHeightFactor = 2.4;
-  static const double _minimumLandscapeTrioHeightFactor = 0.88;
-  // Product decision: cap visual density at three items per row,
+  static const double _maximumWideFinalRowHeightFactor = 1.25;
+  static const double _minimumLandscapeRowHeightFactor = 0.88;
+  static const double _mediumWidthBreakpoint = 600;
+  static const double _expandedWidthBreakpoint = 1008;
+  // Product decision: cap visual density based on the available gallery width,
   // independently of tap-target sizing.
-  static const int _maximumItemsPerRow = 3;
+  static const int _compactMaximumItemsPerRow = 3;
+  static const int _mediumMaximumItemsPerRow = 4;
+  static const int _expandedMaximumItemsPerRow = 5;
+  static const int _minimumLandscapeDensityItemCount = 3;
   // Logical pixels map to density-independent tap extents on both platforms.
   static const double _minimumTappableExtent = 48.0;
 
@@ -110,6 +116,16 @@ class JustifiedLayoutCalculator {
     return (width / height)
         .clamp(_minimumAspectRatio, _maximumAspectRatio)
         .toDouble();
+  }
+
+  static int _maximumItemsPerRowFor(double availableWidth) {
+    if (availableWidth < _mediumWidthBreakpoint) {
+      return _compactMaximumItemsPerRow;
+    }
+    if (availableWidth < _expandedWidthBreakpoint) {
+      return _mediumMaximumItemsPerRow;
+    }
+    return _expandedMaximumItemsPerRow;
   }
 
   static List<JustifiedRowLayout> computeRows({
@@ -132,6 +148,15 @@ class JustifiedLayoutCalculator {
     final rows = <JustifiedRowLayout>[];
     final pendingRatios = <double>[];
     final maximumRowHeight = targetRowHeight * _maximumRowHeightFactor;
+    final maximumItemsPerRow = _maximumItemsPerRowFor(availableWidth);
+    // Product decision: on wider galleries, prefer a partial final row over
+    // enlarging its items by more than 25%. Compact layouts retain their
+    // existing tail treatment.
+    final limitsFinalRowGrowth = availableWidth >= _mediumWidthBreakpoint;
+    final maximumFinalRowHeightFactor = limitsFinalRowGrowth
+        ? _maximumWideFinalRowHeightFactor
+        : _maximumRowHeightFactor;
+    final maximumFinalRowHeight = targetRowHeight * maximumFinalRowHeightFactor;
     final lastCommittedRatios = <double>[];
     var pendingRatioSum = 0.0;
     var pendingMinimumRatio = double.infinity;
@@ -191,24 +216,20 @@ class JustifiedLayoutCalculator {
       pendingMinimumRatio = double.infinity;
     }
 
-    bool canFillWidth(
-      List<double> ratios, {
-      bool applyLandscapeDensityRule = false,
-    }) {
+    bool canJustifyFinalRow(List<double> ratios) {
       final ratioSum = ratios.fold<double>(0, (sum, ratio) => sum + ratio);
       final height = widthWithoutGaps(ratios.length) / ratioSum;
       final minimumWidth =
           height * ratios.reduce((left, right) => math.min(left, right));
       final isTappableAndBounded =
           height >= _minimumTappableExtent &&
-          height <= maximumRowHeight &&
+          height <= maximumFinalRowHeight &&
           minimumWidth >= _minimumTappableExtent;
       if (!isTappableAndBounded) return false;
 
-      return !applyLandscapeDensityRule ||
-          ratios.length != _maximumItemsPerRow ||
+      return ratios.length < _minimumLandscapeDensityItemCount ||
           ratios.any((ratio) => ratio < 1) ||
-          height >= targetRowHeight * _minimumLandscapeTrioHeightFactor;
+          height >= targetRowHeight * _minimumLandscapeRowHeightFactor;
     }
 
     void replacePendingRatios(Iterable<double> ratios) {
@@ -232,6 +253,12 @@ class JustifiedLayoutCalculator {
     }
 
     for (final rawRatio in aspectRatios) {
+      // Reaching the item cap only proves that a row is non-final once another
+      // item arrives. An exact-cap group tail still uses the final-row policy.
+      if (pendingRatios.length == maximumItemsPerRow) {
+        addPendingRow(fillWidth: true);
+      }
+
       final ratio = rawRatio.isFinite && rawRatio > 0
           ? rawRatio.clamp(_minimumAspectRatio, _maximumAspectRatio).toDouble()
           : 1.0;
@@ -248,11 +275,11 @@ class JustifiedLayoutCalculator {
             candidateHeight < _minimumTappableExtent ||
             candidateMinimumWidth < _minimumTappableExtent;
         final violatesLandscapeDensity =
-            candidateCount == _maximumItemsPerRow &&
+            candidateCount >= _minimumLandscapeDensityItemCount &&
             pendingMinimumRatio >= 1 &&
             ratio >= 1 &&
             candidateHeight <
-                targetRowHeight * _minimumLandscapeTrioHeightFactor;
+                targetRowHeight * _minimumLandscapeRowHeightFactor;
 
         if (violatesTapTarget || violatesLandscapeDensity) {
           final leaveSingletonRagged = pendingRatios.length == 1;
@@ -267,13 +294,6 @@ class JustifiedLayoutCalculator {
       pendingRatioSum += ratio;
       pendingMinimumRatio = math.min(pendingMinimumRatio, ratio);
 
-      if (pendingRatios.length == _maximumItemsPerRow) {
-        // A three-item row may exceed maximumRowHeight: the three-item cap and
-        // fully justified non-final rows take precedence over that soft limit.
-        addPendingRow(fillWidth: true);
-        continue;
-      }
-
       final naturalWidth =
           pendingRatioSum * targetRowHeight +
           spacing * (pendingRatios.length - 1);
@@ -282,42 +302,52 @@ class JustifiedLayoutCalculator {
       }
     }
 
+    // Compact galleries retain the established behavior of filling a row that
+    // ends exactly at their item cap. Wider galleries defer it to the bounded
+    // final-row treatment below.
+    if (!limitsFinalRowGrowth && pendingRatios.length == maximumItemsPerRow) {
+      addPendingRow(fillWidth: true);
+    }
+
     // Product decision: avoid one-item group tails by rebalancing the preceding
     // row when the replacement rows meet tap-target, height, and density limits.
     if (pendingRatios.length == 1 && rows.isNotEmpty) {
       final tailRatios = <double>[...lastCommittedRatios, pendingRatios.single];
-      if (lastCommittedRatios.length < _maximumItemsPerRow &&
-          canFillWidth(tailRatios, applyLandscapeDensityRule: true)) {
+      if (lastCommittedRatios.length < maximumItemsPerRow &&
+          canJustifyFinalRow(tailRatios)) {
         rewindLastRow();
         replacePendingRatios(tailRatios);
         addPendingRow(fillWidth: true);
-      } else if (lastCommittedRatios.length == _maximumItemsPerRow) {
-        final firstPair = tailRatios.sublist(0, 2);
-        final secondPair = tailRatios.sublist(2);
-        if (canFillWidth(firstPair) && canFillWidth(secondPair)) {
+      } else if (tailRatios.length >= 4) {
+        final firstRowItemCount = (tailRatios.length + 1) ~/ 2;
+        final firstRow = tailRatios.sublist(0, firstRowItemCount);
+        final secondRow = tailRatios.sublist(firstRowItemCount);
+        if (canJustifyFinalRow(firstRow) && canJustifyFinalRow(secondRow)) {
           rewindLastRow();
-          replacePendingRatios(firstPair);
+          replacePendingRatios(firstRow);
           addPendingRow(fillWidth: true);
-          replacePendingRatios(secondPair);
+          replacePendingRatios(secondRow);
           addPendingRow(fillWidth: true);
         }
       }
     }
 
     if (pendingRatios.isNotEmpty) {
-      final canJustifyFinalRow = canFillWidth(
-        pendingRatios,
-        applyLandscapeDensityRule: true,
-      );
+      final shouldJustifyFinalRow = canJustifyFinalRow(pendingRatios);
       final singletonHeightFactor =
           pendingRatios.length == 1 && pendingRatios.single < 1
           ? math.min(_maximumRowHeightFactor, 1 / pendingRatios.single)
           : 1.0;
+      final finalRowHeightFactor = pendingRatios.length == 1
+          ? math.min(singletonHeightFactor, maximumFinalRowHeightFactor)
+          : limitsFinalRowGrowth
+          ? maximumFinalRowHeightFactor
+          : 1.0;
       addPendingRow(
-        fillWidth: pendingRatios.length > 1 && canJustifyFinalRow,
-        // Give a lone portrait roughly one target-width column without
-        // making landscape singletons or forced non-final rows taller.
-        raggedHeightFactor: singletonHeightFactor,
+        fillWidth: pendingRatios.length > 1 && shouldJustifyFinalRow,
+        // Give compact portrait singletons roughly one target-width column;
+        // wider tails also obey their 25% growth limit.
+        raggedHeightFactor: finalRowHeightFactor,
       );
     }
     return UnmodifiableListView(rows);

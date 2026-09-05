@@ -183,6 +183,35 @@ void main() {
     },
   );
 
+  test(
+    "caps the target height only when the grid-derived target is taller",
+    () async {
+      final file = _file(
+        index: 0,
+        creationTime: DateTime(2026, 8, 19).microsecondsSinceEpoch,
+        width: 1,
+        height: 1,
+      );
+      double rowHeight() {
+        final section =
+            _galleryGroups(
+                  files: [file],
+                  groupType: GroupType.none,
+                  groupHeaderExtent: GalleryGroups.spacing,
+                  widthAvailable: 1024,
+                ).groupLayouts.single
+                as JustifiedSectionLayout;
+        return section.rows.single.height;
+      }
+
+      await localSettings.setPhotoGridSize(2);
+      expect(rowHeight(), 320);
+
+      await localSettings.setPhotoGridSize(4);
+      expect(rowHeight(), (1024 - 3 * GalleryGroups.spacing) / 4);
+    },
+  );
+
   testWidgets("justified rows request large thumbnails for every tile", (
     tester,
   ) async {
@@ -312,6 +341,7 @@ GalleryGroups _galleryGroups({
   required List<EnteFile> files,
   required GroupType groupType,
   required double groupHeaderExtent,
+  double widthAvailable = 430,
   bool sortOrderAsc = false,
   GalleryLayoutType? layoutTypeOverride,
 }) {
@@ -319,7 +349,7 @@ GalleryGroups _galleryGroups({
     allFiles: files,
     groupType: groupType,
     sortOrderAsc: sortOrderAsc,
-    widthAvailable: 430,
+    widthAvailable: widthAvailable,
     selectedFiles: null,
     tagPrefix: "test_",
     groupHeaderExtent: groupHeaderExtent,

@@ -51,13 +51,37 @@ void main() {
       expect(_occupiedWidth(row, spacing), closeTo(availableWidth, 1e-9));
     });
 
+    test("caps wide final-row growth and leaves trailing space", () {
+      for (final testCase in const [
+        (width: 744.0, ratios: [0.75, 0.75]),
+        (width: 1024.0, ratios: [0.75, 0.75, 0.75]),
+      ]) {
+        final row = JustifiedLayoutCalculator.computeRows(
+          aspectRatios: testCase.ratios,
+          availableWidth: testCase.width,
+          targetRowHeight: 320,
+          spacing: 2,
+        ).single;
+
+        expect(row.height, 400, reason: "available width ${testCase.width}");
+        expect(
+          _occupiedWidth(row, 2),
+          lessThan(testCase.width),
+          reason: "available width ${testCase.width}",
+        );
+      }
+    });
+
     test("sizes final singletons by orientation and caps extremes", () {
-      const targetRowHeight = 200.0;
-      JustifiedRowLayout rowFor(double ratio) {
+      JustifiedRowLayout rowFor(
+        double ratio, {
+        double width = 402,
+        double targetHeight = 200,
+      }) {
         return JustifiedLayoutCalculator.computeRows(
           aspectRatios: [ratio],
-          availableWidth: 402,
-          targetRowHeight: targetRowHeight,
+          availableWidth: width,
+          targetRowHeight: targetHeight,
           spacing: 2,
         ).single;
       }
@@ -65,17 +89,27 @@ void main() {
       final portrait = rowFor(9 / 16);
       final extremePortrait = rowFor(0.25);
       final landscape = rowFor(3 / 2);
+      final mediumPortrait = rowFor(0.5, width: 744, targetHeight: 320);
+      final minimumTappablePortrait = rowFor(
+        0.25,
+        width: 600,
+        targetHeight: (600 - 10) / 6,
+      );
 
-      expect(portrait.itemWidths.single, targetRowHeight);
-      expect(extremePortrait.height, targetRowHeight * 2.4);
+      expect(portrait.itemWidths.single, 200);
+      expect(extremePortrait.height, 200 * 2.4);
       expect(
         extremePortrait.itemWidths.single / extremePortrait.height,
         closeTo(1 / 3, 1e-9),
       );
-      expect(landscape.height, targetRowHeight);
+      expect(landscape.height, 200);
+      expect(mediumPortrait.height, 400);
+      expect(mediumPortrait.itemWidths.single, 200);
+      expect(minimumTappablePortrait.height, 144);
+      expect(minimumTappablePortrait.itemWidths.single, 48);
     });
 
-    test("rebalances a portrait orphan without disturbing earlier rows", () {
+    test("rebalances a compact portrait orphan", () {
       final rows = JustifiedLayoutCalculator.computeRows(
         aspectRatios: List.filled(7, 9 / 16),
         availableWidth: 393,
@@ -83,7 +117,18 @@ void main() {
         spacing: 2,
       );
 
-      expect(rows.map((row) => row.lastIndex - row.firstIndex + 1), [3, 2, 2]);
+      expect(rows.map((row) => row.itemWidths.length), [3, 2, 2]);
+    });
+
+    test("does not create oversized tablet rows to avoid an orphan", () {
+      final rows = JustifiedLayoutCalculator.computeRows(
+        aspectRatios: List.filled(5, 0.5),
+        availableWidth: 744,
+        targetRowHeight: 320,
+        spacing: 2,
+      );
+
+      expect(rows.map((row) => row.itemWidths.length), [4, 1]);
     });
 
     test("keeps a tappable portrait with the following panorama", () {
@@ -169,30 +214,74 @@ void main() {
       expect(rows.single.itemWidths, [192]);
     });
 
-    test("caps rows at three items even when more would fit", () {
-      final rows = JustifiedLayoutCalculator.computeRows(
-        aspectRatios: const [0.4, 0.4, 1.0, 0.4],
-        availableWidth: 393,
-        targetRowHeight: 195.5,
-        spacing: 2,
-      );
+    test("caps row density based on available width", () {
+      for (final testCase in const [
+        (width: 393.0, maximumItems: 3),
+        (width: 599.9, maximumItems: 3),
+        (width: 600.0, maximumItems: 4),
+        (width: 1007.9, maximumItems: 4),
+        (width: 1008.0, maximumItems: 5),
+      ]) {
+        final targetHeight =
+            (testCase.width - 2 * (testCase.maximumItems - 1)) /
+            testCase.maximumItems;
+        final rows = JustifiedLayoutCalculator.computeRows(
+          aspectRatios: List.filled(testCase.maximumItems * 2, 1 / 3),
+          availableWidth: testCase.width,
+          targetRowHeight: targetHeight,
+          spacing: 2,
+        );
 
-      expect(rows.expand((row) => row.itemWidths), hasLength(4));
-      expect(
-        rows.map((row) => row.itemWidths.length),
-        everyElement(lessThanOrEqualTo(3)),
-      );
+        expect(
+          rows.map((row) => row.itemWidths.length),
+          [testCase.maximumItems, testCase.maximumItems],
+          reason: "available width ${testCase.width}",
+        );
+        expect(
+          rows.first.height,
+          closeTo(3 * targetHeight, 1e-9),
+          reason: "non-final row at width ${testCase.width}",
+        );
+        final expectedFinalHeight = testCase.width < 600
+            ? 3 * targetHeight
+            : 1.25 * targetHeight;
+        expect(
+          rows.last.height,
+          closeTo(expectedFinalHeight, 1e-9),
+          reason: "final row at width ${testCase.width}",
+        );
+      }
     });
 
-    test("keeps typical landscapes to pairs", () {
-      final rows = JustifiedLayoutCalculator.computeRows(
-        aspectRatios: const [4 / 3, 4 / 3, 4 / 3],
-        availableWidth: 393,
-        targetRowHeight: (393 - 4) / 3,
-        spacing: 2,
-      );
+    test("keeps cramped landscape rows independent of responsive cap", () {
+      for (final testCase in const [
+        (
+          ratios: [4 / 3, 4 / 3, 4 / 3],
+          width: 393.0,
+          targetHeight: (393 - 4) / 3,
+          rowCounts: [2, 1],
+        ),
+        (
+          ratios: [1.0, 1.0, 1.0, 1.0],
+          width: 1024.0,
+          targetHeight: 320.0,
+          rowCounts: [3, 1],
+        ),
+      ]) {
+        final rows = JustifiedLayoutCalculator.computeRows(
+          aspectRatios: testCase.ratios,
+          availableWidth: testCase.width,
+          targetRowHeight: testCase.targetHeight,
+          spacing: 2,
+        );
 
-      expect(rows.map((row) => row.itemWidths.length), [2, 1]);
+        expect(
+          rows.map((row) => row.itemWidths.length),
+          testCase.rowCounts,
+          reason: "available width ${testCase.width}",
+        );
+        expect(rows.last.height, testCase.targetHeight);
+      }
     });
 
     test("merges a final portrait with a tappable two-item row", () {
@@ -205,6 +294,21 @@ void main() {
 
       expect(rows, hasLength(1));
       expect(rows.single.itemWidths, hasLength(3));
+    });
+
+    test("rebalances a wide orphan when replacement rows stay bounded", () {
+      final rows = JustifiedLayoutCalculator.computeRows(
+        aspectRatios: const [0.8, 0.8, 0.8, 0.4, 2.0],
+        availableWidth: 600,
+        targetRowHeight: 200,
+        spacing: 2,
+      );
+
+      expect(rows.map((row) => row.itemWidths.length), [3, 2]);
+      for (final row in rows) {
+        expect(row.height, lessThanOrEqualTo(250));
+        expect(_occupiedWidth(row, 2), closeTo(600, 1e-9));
+      }
     });
 
     test("forced non-final singleton uses the target row height", () {

@@ -1,4 +1,5 @@
 import "dart:core";
+import "dart:math" as math;
 
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
@@ -61,6 +62,9 @@ class GalleryGroups {
   }
 
   static const double spacing = 2.0;
+  // Product decision: limit how tall the preferred justified row can grow as
+  // the gallery widens.
+  static const double _maximumJustifiedTargetRowHeight = 320.0;
 
   late final int crossAxisCount;
   late final GalleryLayoutType layoutType;
@@ -440,8 +444,11 @@ class GalleryGroups {
 
   List<SectionLayout> _computeJustifiedGroupLayouts() {
     final stopwatch = Stopwatch()..start();
-    final targetRowHeight =
+    final gridTargetRowHeight =
         (widthAvailable - (crossAxisCount - 1) * spacing) / crossAxisCount;
+    final targetRowHeight = gridTargetRowHeight.isFinite
+        ? math.min(gridTargetRowHeight, _maximumJustifiedTargetRowHeight)
+        : gridTargetRowHeight;
     final groupLayouts = <SectionLayout>[];
     var currentIndex = 0;
     var currentOffset = 0.0;
