@@ -1,0 +1,1 @@
+- Added support for moving and copying photos between device folders on Android. (@r4khul)

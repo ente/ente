@@ -1,7 +1,9 @@
 import "dart:async";
 import "dart:io";
+import "package:collection/collection.dart";
 
 import "package:ente_icons/ente_icons.dart";
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
@@ -14,6 +16,9 @@ import "package:photo_manager/photo_manager.dart";
 import 'package:photos/core/configuration.dart';
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/db/device_files_db.dart";
+import "package:photos/db/files_db.dart";
+import "package:photos/events/backup_updated_event.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/force_reload_trash_page_event.dart";
 import "package:photos/events/guest_view_event.dart";
@@ -30,16 +35,21 @@ import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/models/ml/face/person.dart";
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/module/download/gallery.dart';
+import 'package:photos/module/upload/service/file_uploader.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/collections_service.dart';
+import 'package:photos/services/device_folder_confirmed_move_planner.dart';
+import 'package:photos/services/device_folder_transfer_coordinator.dart';
 import 'package:photos/services/hidden_service.dart';
 import 'package:photos/services/machine_learning/face_ml/feedback/cluster_feedback.dart';
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import 'package:photos/settings/local_settings.dart';
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_file_actions.dart';
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import 'package:photos/ui/collections/collection_action_sheet.dart';
+import 'package:photos/ui/collections/device/device_folder_action_sheet.dart';
 import "package:photos/ui/common/photo_library_add_permission.dart";
 import 'package:photos/ui/components/action_sheet_widget.dart';
 import "package:photos/ui/components/bottom_action_bar/selection_action_button_widget.dart";
@@ -50,6 +60,7 @@ import "package:photos/ui/tools/collage/collage_creator_page.dart";
 import "package:photos/ui/viewer/actions/suggest_delete_sheet.dart";
 import "package:photos/ui/viewer/date/edit_date_sheet.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
+import "package:photos/ui/viewer/gallery/device/device_folder_page.dart";
 import "package:photos/ui/viewer/location/update_location_data_widget.dart";
 import "package:photos/ui/viewer/people/add_files_to_person_page.dart";
 import 'package:photos/utils/delete_file_util.dart';
@@ -93,6 +104,30 @@ class _FileSelectionActionsWidgetState
   final GlobalKey sendLinkButtonKey = GlobalKey();
   final StreamController<double> _progressController =
       StreamController<double>();
+  final DeviceFolderTransferClient _deviceFolderTransferClient =
+      DeviceFolderTransferClient();
+  Set<DeviceFolderTransferOperation> _supportedDeviceFolderTransferOperations =
+      const {};
+  bool _isDeviceFolderTransferInProgress = false;
+  StreamSubscription<BackupUpdatedEvent>? _backupUpdatedSubscription;
+
+  DeviceCollection? get _deviceFolderTransferSource => widget.deviceCollection;
+
+  bool get _canTransferWithinDeviceFolders =>
+      DeviceFolderTransferClient.isSupportedOnCurrentPlatform &&
+      widget.type == GalleryType.localFolder &&
+      _deviceFolderTransferSource != null;
+
+  bool _supportsDeviceFolderTransfer(DeviceFolderTransferOperation operation) =>
+      _canTransferWithinDeviceFolders &&
+      _supportedDeviceFolderTransferOperations.contains(operation);
+
+  bool get _hasPendingDeviceFolderMoveUploads {
+    final pending = FileUploader.instance.allBackups;
+    return widget.selectedFiles.files.any(
+      (file) => file.localID != null && pending.containsKey(file.localID),
+    );
+  }
 
   bool get _canRemoveOthersFiles =>
       widget.collection != null &&
@@ -107,14 +142,39 @@ class _FileSelectionActionsWidgetState
 
     split = FilesSplit.split(<EnteFile>[], currentUserID);
     widget.selectedFiles.addListener(_selectFileChangeListener);
+    _backupUpdatedSubscription = Bus.instance.on<BackupUpdatedEvent>().listen(
+      _onBackupUpdated,
+    );
     collectionActions = CollectionActions(CollectionsService.instance);
+    if (DeviceFolderTransferClient.isSupportedOnCurrentPlatform &&
+        widget.type == GalleryType.localFolder) {
+      unawaited(_loadSupportedDeviceFolderTransferOperations());
+    }
     if (widget.selectedFiles.files.isNotEmpty) {
       _selectFileChangeListener();
     }
   }
 
+  Future<void> _loadSupportedDeviceFolderTransferOperations() async {
+    try {
+      final supportedOperations = await _deviceFolderTransferClient
+          .supportedOperations();
+      if (!context.mounted) return;
+      setState(() {
+        _supportedDeviceFolderTransferOperations = supportedOperations;
+      });
+    } catch (error, stackTrace) {
+      _logger.warning(
+        'Could not load supported device-folder transfer operations',
+        error,
+        stackTrace,
+      );
+    }
+  }
+
   @override
   void dispose() {
+    _backupUpdatedSubscription?.cancel();
     _progressController.close();
     widget.selectedFiles.removeListener(_selectFileChangeListener);
     super.dispose();
@@ -127,6 +187,16 @@ class _FileSelectionActionsWidgetState
     split = FilesSplit.split(widget.selectedFiles.files, currentUserID);
     if (mounted) {
       setState(() => {});
+    }
+  }
+
+  void _onBackupUpdated(BackupUpdatedEvent event) {
+    if (!mounted) return;
+    final changedLocalIDs = {...event.upserts.keys, ...event.removedLocalIDs};
+    if (widget.selectedFiles.files.any(
+      (file) => file.localID != null && changedLocalIDs.contains(file.localID),
+    )) {
+      setState(() {});
     }
   }
 
@@ -289,6 +359,34 @@ class _FileSelectionActionsWidgetState
             labelText: context.strings.moveToAlbum,
             onTap: anyUploadedFiles ? _moveFiles : null,
             shouldShow: ownedFilesCount > 0,
+          ),
+        );
+      }
+
+      if (_supportsDeviceFolderTransfer(DeviceFolderTransferOperation.copy)) {
+        items.add(
+          SelectionActionButton(
+            hugeIcon: HugeIcons.strokeRoundedCopy01,
+            labelText: context.strings.copyToAlbum,
+            onTap: _isDeviceFolderTransferInProgress
+                ? null
+                : () => _transferToDeviceFolder(
+                    DeviceFolderTransferOperation.copy,
+                  ),
+          ),
+        );
+      }
+      if (_supportsDeviceFolderTransfer(DeviceFolderTransferOperation.move) &&
+          !_hasPendingDeviceFolderMoveUploads) {
+        items.add(
+          SelectionActionButton(
+            hugeIcon: HugeIcons.strokeRoundedArrowRight01,
+            labelText: context.strings.moveToAlbum,
+            onTap: _isDeviceFolderTransferInProgress
+                ? null
+                : () => _transferToDeviceFolder(
+                    DeviceFolderTransferOperation.move,
+                  ),
           ),
         );
       }
@@ -644,6 +742,222 @@ class _FileSelectionActionsWidgetState
       selectedFiles: widget.selectedFiles,
       actionType: CollectionActionType.moveFiles,
     );
+  }
+
+  Future<void> _transferToDeviceFolder(
+    DeviceFolderTransferOperation operation,
+  ) async {
+    if (!_supportsDeviceFolderTransfer(operation)) return;
+    final source = _deviceFolderTransferSource;
+    if (source == null) return;
+    final selected = widget.selectedFiles.files.toList();
+    final localIDs = selected
+        .map((file) => file.localID)
+        .whereType<String>()
+        .toSet()
+        .toList(growable: false);
+    if (localIDs.isEmpty) return;
+    try {
+      final destination = await showDeviceFolderActionSheet(
+        context,
+        title: operation == DeviceFolderTransferOperation.move
+            ? context.strings.moveToAlbum
+            : context.strings.copyToAlbum,
+        destinations: _loadDeviceFolderDestinations(
+          source,
+          operation,
+          localIDs,
+        ),
+      );
+      if (destination == null || !context.mounted) return;
+      final effectiveSource =
+          (await FilesDB.instance.getDeviceCollections()).firstWhereOrNull(
+            (folder) => folder.id == source.id,
+          ) ??
+          source;
+      final uploadedSourceLocalIDs = await FilesDB.instance.getUploadedLocalIDs(
+        localIDs,
+      );
+      if (!context.mounted) return;
+      final backedUpOrPendingLocalIDs = {
+        ...uploadedSourceLocalIDs,
+        ...FileUploader.instance.allBackups.keys.where(localIDs.contains),
+      };
+      final backedUpFileCount = backedUpOrPendingLocalIDs.length;
+      if (operation == DeviceFolderTransferOperation.copy &&
+          destination.shouldBackup &&
+          backedUpFileCount > 0) {
+        if (!mounted) return;
+        final confirmed = await showBackedUpDeviceFolderCopyWarningSheet(
+          context,
+          backedUpFileCount: backedUpFileCount,
+        );
+        if (!confirmed || !context.mounted) return;
+      }
+      ConfirmedDeviceFolderMovePlan? confirmedMovePlan;
+      if (operation == DeviceFolderTransferOperation.move) {
+        final candidatePlan = await DeviceFolderConfirmedMovePlanner.instance
+            .planDeviceMove(
+              source: effectiveSource,
+              destination: destination,
+              localIDs: localIDs,
+            );
+        if (!mounted) return;
+        if (candidatePlan != null && candidatePlan.entries.isNotEmpty) {
+          final preference = localSettings.getLinkedDeviceMovePreference();
+          if (preference == LinkedDeviceMovePreference.both) {
+            confirmedMovePlan = candidatePlan;
+          } else if (preference == LinkedDeviceMovePreference.ask) {
+            final choice = await showLinkedDeviceMoveSheet(
+              context,
+              previews: selected,
+              linkedLocalIDs: candidatePlan.entries
+                  .map((entry) => entry.localID)
+                  .toSet(),
+              selectedCount: localIDs.length,
+              eligibleCount: candidatePlan.entries.length,
+              deviceInitiated: true,
+            );
+            if (choice == null || !mounted) return;
+            if (choice.remember) {
+              await localSettings.setLinkedDeviceMovePreference(
+                choice.includeLinkedSide
+                    ? LinkedDeviceMovePreference.both
+                    : LinkedDeviceMovePreference.primaryOnly,
+              );
+            }
+            if (choice.includeLinkedSide) confirmedMovePlan = candidatePlan;
+          }
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _isDeviceFolderTransferInProgress = true;
+      });
+      final dialog = createProgressDialog(
+        context,
+        operation == DeviceFolderTransferOperation.move
+            ? context.strings.movingItemsTo(
+                count: localIDs.length,
+                albumName: destination.name,
+              )
+            : context.strings.copyingItemsTo(
+                count: localIDs.length,
+                albumName: destination.name,
+              ),
+      );
+      await dialog.show();
+      late final DeviceFolderTransferResult result;
+      try {
+        result = await DeviceFolderTransferCoordinator.instance.transfer(
+          source: effectiveSource,
+          destination: destination,
+          request: DeviceFolderTransferRequest(
+            operation: operation,
+            sourceFolderID: effectiveSource.id,
+            targetFolderID: destination.id,
+            sourceLocalIDs: localIDs,
+          ),
+          confirmedMovePlan: confirmedMovePlan,
+        );
+        if (result.wasCancelled) return;
+      } finally {
+        await dialog.hide();
+        if (mounted) {
+          setState(() {
+            _isDeviceFolderTransferInProgress = false;
+          });
+        }
+      }
+      if (!mounted) return;
+      final failures = result.failures.length;
+      if (result.localReconciliationFailed) {
+        widget.selectedFiles.unSelectAll(
+          selected
+              .where((file) => result.successLocalIDs.contains(file.localID))
+              .toSet(),
+        );
+        showToast(context, context.strings.somethingWentWrongPleaseTryAgain);
+      } else if (failures == 0 && result.successLocalIDs.isNotEmpty) {
+        widget.selectedFiles.clearAll();
+        showShortToast(
+          context,
+          operation == DeviceFolderTransferOperation.move
+              ? context.strings.movedItemsTo(
+                  count: result.successLocalIDs.length,
+                  albumName: destination.name,
+                )
+              : context.strings.copiedItemsTo(
+                  count: result.successLocalIDs.length,
+                  albumName: destination.name,
+                ),
+        );
+      } else if (result.successLocalIDs.isNotEmpty) {
+        widget.selectedFiles.unSelectAll(
+          selected
+              .where((file) => result.successLocalIDs.contains(file.localID))
+              .toSet(),
+        );
+        showToast(
+          context,
+          context.strings.partiallyTransferredItems(
+            completedCount: result.successLocalIDs.length,
+            failedCount: failures,
+          ),
+        );
+      } else {
+        showToast(context, context.strings.somethingWentWrongPleaseTryAgain);
+      }
+      _logger.info(
+        'Device folder transfer completed: operation=${operation.name}, '
+        'success=${result.successLocalIDs.length}, failures=$failures, '
+        'localReconciliationFailed=${result.localReconciliationFailed}, '
+        'categories=${result.failures.values.map((value) => value.name).toSet()}',
+      );
+      if (!result.localReconciliationFailed &&
+          result.destinations.isNotEmpty &&
+          mounted) {
+        final destinationFolder =
+            (await FilesDB.instance.getDeviceCollections()).firstWhereOrNull(
+              (folder) => folder.id == destination.id,
+            ) ??
+            destination;
+        if (!mounted) return;
+        await routeToPage(context, DeviceFolderPage(destinationFolder));
+      }
+    } catch (error, stackTrace) {
+      _logger.severe(
+        'Device folder transfer failed: operation=${operation.name}, count=${localIDs.length}',
+        error,
+        stackTrace,
+      );
+      if (mounted) {
+        showToast(context, context.strings.somethingWentWrongPleaseTryAgain);
+      }
+    }
+  }
+
+  Future<List<DeviceCollection>> _loadDeviceFolderDestinations(
+    DeviceCollection source,
+    DeviceFolderTransferOperation operation,
+    List<String> sourceLocalIDs,
+  ) async {
+    final folders = await FilesDB.instance.getDeviceCollections(
+      includeCoverThumbnail: true,
+    );
+    final candidates = folders
+        .where((folder) => folder.id != source.id && folder.thumbnail != null)
+        .toList();
+    final eligibleIDs = await _deviceFolderTransferClient
+        .eligibleDestinationIDs(
+          sourceFolderID: source.id,
+          operation: operation,
+          sourceLocalIDs: sourceLocalIDs,
+          candidateFolderIDs: candidates.map((folder) => folder.id).toList(),
+        );
+    return candidates
+        .where((folder) => eligibleIDs.contains(folder.id))
+        .toList();
   }
 
   Future<void> _moveFilesToHiddenAlbum() async {

@@ -816,15 +816,49 @@
   "continueWithoutAccount": "Continue without an account",
   "convertToAlbum": "Convert to album",
   "copied": "Copied",
+  "copiedItemsTo": "{count, plural, one{Copied {count} item to {albumName}} other{Copied {count} items to {albumName}}}",
+  "@copiedItemsTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
   "copiedNextToClipboard": "Copied next code to clipboard",
   "copiedToClipboard": "Copied to clipboard",
   "copyAllToClipboard": "Copy all to clipboard",
+  "copyAnyway": "Copy anyway",
+  "copyAlreadyBackedUpFilesWarning": "{count, plural, one{This item is already backed up or being backed up. The copy will be backed up too.} other{These {count} items are already backed up or being backed up. Their copies will be backed up too.}}",
+  "@copyAlreadyBackedUpFilesWarning": {
+    "description": "Warning shown before copying already backed-up items into an automatically backed-up device folder",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "copyEmailAddress": "Copy email address",
   "@copyEmailAddress": {
     "description": "Button to copy email address to clipboard"
   },
   "copyEmbedHtml": "Copy embed HTML",
   "copyLink": "Copy link",
+  "copyToAlbum": "Copy to album",
+  "copyingItemsTo": "{count, plural, one{Copying {count} item to {albumName}} other{Copying {count} items to {albumName}}}",
+  "@copyingItemsTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
   "copypasteThisCodentoYourAuthenticatorApp": "Copy-paste this code\nto your authenticator app",
   "couldNotBackUpTryLater": "We could not backup your data.\nWe will retry later.",
   "couldNotFreeUpSpace": "Could not free up space",
@@ -868,6 +902,7 @@
   "createAnEnteAccount": "Create an Ente account",
   "createAnotherKit": "Create another kit",
   "createBackupNow": "Create backup now",
+  "createDuplicateBackupsQuestion": "Create duplicate backups?",
   "createCollaborativeLink": "Create collaborative link",
   "createCollage": "Create collage",
   "createCollection": "Create collection",
@@ -2608,6 +2643,17 @@
   "mostRecentlyUsed": "Recently used",
   "mostRelevant": "Most relevant",
   "mountains": "Over the hills",
+  "movedItemsTo": "{count, plural, one{Moved {count} item to {albumName}} other{Moved {count} items to {albumName}}}",
+  "@movedItemsTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
   "movedSuccessfullyTo": "Moved successfully to {albumName}",
   "@movedSuccessfullyTo": {
     "placeholders": {
@@ -2632,6 +2678,17 @@
   "moveToAlbum": "Move to album",
   "moveToHiddenAlbum": "Move to hidden album",
   "movingFilesToAlbum": "Moving files to album...",
+  "movingItemsTo": "{count, plural, one{Moving {count} item to {albumName}} other{Moving {count} items to {albumName}}}",
+  "@movingItemsTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
   "muteAudio": "Mute audio",
   "name": "Name",
   "nDays": "{count} days",
@@ -2929,6 +2986,18 @@
       "providerName": {
         "example": "AppStore|PlayStore",
         "type": "String"
+      }
+    }
+  },
+  "partiallyTransferredItems": "{completedCount, plural, one{Transferred {completedCount} item} other{Transferred {completedCount} items}}; {failedCount} failed.",
+  "@partiallyTransferredItems": {
+    "description": "Shown after a device-folder copy or move when some items completed and some did not.",
+    "placeholders": {
+      "completedCount": {
+        "type": "int"
+      },
+      "failedCount": {
+        "type": "int"
       }
     }
   },
@@ -4911,5 +4980,30 @@
       }
     }
   },
-  "grantAccess": "Grant access"
+  "grantAccess": "Grant access",
+  "linkedDeviceMoveQuestion": "Move in Ente too?",
+  "linkedDeviceMoveOnDeviceQuestion": "Move on device too?",
+  "linkedDeviceMoveRemainingDeviceOnly": "{eligibleCount} of {selectedCount} selected {selectedCount, plural, one{item} other{items}} can move on device and Ente. The remaining {count} {count, plural, one{item can} other{items can}} move only on this device.",
+  "@linkedDeviceMoveRemainingDeviceOnly": {
+    "placeholders": {
+      "eligibleCount": {"type": "int"},
+      "selectedCount": {"type": "int"},
+      "count": {"type": "int"}
+    }
+  },
+  "linkedDeviceMoveRemainingEnteOnly": "{eligibleCount} of {selectedCount} selected {selectedCount, plural, one{item} other{items}} can move on device and Ente. The remaining {count} {count, plural, one{item can} other{items can}} move only in Ente.",
+  "@linkedDeviceMoveRemainingEnteOnly": {
+    "placeholders": {
+      "eligibleCount": {"type": "int"},
+      "selectedCount": {"type": "int"},
+      "count": {"type": "int"}
+    }
+  },
+  "linkedDeviceMoveAllBackedUp": "{count} selected {count, plural, one{item can} other{items can}} move on device and Ente.",
+  "@linkedDeviceMoveAllBackedUp": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "moveOnDeviceOnly": "Move on device only",
+  "moveOnDeviceAndEnte": "Move on device and Ente",
+  "moveInEnteOnly": "Move in Ente only"
 }

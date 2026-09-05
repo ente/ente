@@ -11,8 +11,9 @@ import 'package:photos/ui/viewer/gallery/device/device_folder_page.dart';
 
 class DeviceFolderListItem extends StatelessWidget {
   final DeviceCollection deviceCollection;
+  final VoidCallback? onTap;
 
-  const DeviceFolderListItem(this.deviceCollection, {super.key});
+  const DeviceFolderListItem(this.deviceCollection, {super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -21,9 +22,11 @@ class DeviceFolderListItem extends StatelessWidget {
 
     return ThumbnailListItem(
       backgroundColor: thumbnailListItemBackgroundColor(context),
-      onTap: () {
-        routeToPage(context, DeviceFolderPage(deviceCollection));
-      },
+      onTap:
+          onTap ??
+          () {
+            routeToPage(context, DeviceFolderPage(deviceCollection));
+          },
       leading: Stack(
         clipBehavior: Clip.none,
         children: [

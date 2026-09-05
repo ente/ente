@@ -27,4 +27,16 @@ class DeviceCollection {
     this.uploadStrategy = UploadStrategy.ifMissing,
     this.shouldBackup = false,
   });
+
+  DeviceCollection copyWith({bool? shouldBackup}) => DeviceCollection(
+    id,
+    name,
+    coverId: coverId,
+    count: count,
+    collectionID: collectionID,
+    modifiedAt: modifiedAt,
+    thumbnail: thumbnail,
+    uploadStrategy: uploadStrategy,
+    shouldBackup: shouldBackup ?? this.shouldBackup,
+  );
 }
