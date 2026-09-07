@@ -507,7 +507,7 @@
   "@contactUs": {
     "description": "Button label for contacting Ente support"
   },
-  "contactToManageSubscription": "Kontakta oss på support@ente.com för att hantera din {provider} prenumeration.",
+  "contactToManageSubscription": "Kontakta oss på support@ente.com för att hantera din prenumeration hos {provider}.",
   "@contactToManageSubscription": {
     "placeholders": {
       "provider": {}
