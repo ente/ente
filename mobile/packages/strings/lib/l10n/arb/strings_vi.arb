@@ -1837,7 +1837,7 @@
   "informationDescription": "Luu va chia se thong tin voi nguoi than.",
   "informationTypes": "Kiểu thông tin",
   "initialBackupCreated": "Bản sao lưu ban đầu đã được tạo!",
-  "inOrder": "Trong trật tự",
+  "inOrder": "Theo thứ tự",
   "insecureDevice": "Thiết bị không an toàn",
   "@insecureDevice": {
     "description": "Insecure device warning title"

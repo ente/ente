@@ -548,6 +548,7 @@
   },
   "couldNotUpdateSubscription": "Kunde inte uppdatera prenumeration",
   "count": "Antal",
+  "craftingMemoriesFirstHalf": "Skapar",
   "craftingMemoriesSecondHalf": "minnen",
   "crashAndErrorReporting": "Krasch och felrapportering",
   "crashReporting": "Kraschrapportering",
@@ -1168,7 +1169,7 @@
   "filesAddedByYouWillBeRemovedFromTheCollection": "Objekt som lagts till av dig kommer att tas bort fraan samlingen",
   "fileSavedToGallery": "Fil sparad i galleri",
   "filesDeleted": "Filer borttagna",
-  "filesDeletedPermanently": "{count, plural, one{{count} objekt raderas permanent} other{{count} objekt raderas permanent}}",
+  "filesDeletedPermanently": "{count, plural, one{{count} objekt har raderats permanent} other{{count} objekt har raderats permanent}}",
   "@filesDeletedPermanently": {
     "description": "Success message when items are permanently deleted from trash",
     "placeholders": {
@@ -1178,7 +1179,7 @@
       }
     }
   },
-  "filesMarkedAsImportant": "{count, plural, one{{count} objekt markerade som viktigt} other{{count} objekt markerade som viktiga}}",
+  "filesMarkedAsImportant": "{count, plural, one{{count} objekt markerat som viktigt} other{{count} objekt markerade som viktiga}}",
   "@filesMarkedAsImportant": {
     "description": "Success message when items are marked as important",
     "placeholders": {
@@ -1425,7 +1426,7 @@
   "kiloMeterUnit": "km",
   "lakeside": "Sjönära lugn",
   "language": "Språk",
-  "lastMonth": "Senaste månaden",
+  "lastMonth": "Förra månaden",
   "lastUpdated": "Senast uppdaterad",
   "lastWeek": "Förra veckan",
   "lastYearsTrip": "Förra årets resa",

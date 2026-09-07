@@ -1877,7 +1877,7 @@
   "indexingPausedStatusDescription": "Die Indizierung ist pausiert. Sie wird automatisch fortgesetzt, wenn das Gerät bereit ist. Das Gerät wird als bereit angesehen, wenn sich der Akkustand, die Akkugesundheit und der thermische Zustand in einem gesunden Bereich befinden.",
   "informationDescription": "Speichere und teile Informationen mit deinen Liebsten.",
   "initialBackupCreated": "Initiale Sicherung erstellt!",
-  "inOrder": "In Bestellung",
+  "inOrder": "Der Reihe nach",
   "insecureDevice": "Unsicheres Gerät",
   "@insecureDevice": {
     "description": "Insecure device warning title"
@@ -2810,7 +2810,7 @@
   "photoGridSize": "Fotorastergröße",
   "photoLibraryAddPermissionRequired": "Ente benötigt die Berechtigung, um Fotos und Videos in Apple Fotos zu speichern. Sie können den Zugriff in den Einstellungen erlauben.",
   "photoLibraryAddPermissionRestricted": "Der Zugriff auf die Fotobibliothek ist auf diesem Gerät eingeschränkt.",
-  "photoOrder": "Fotobestellung",
+  "photoOrder": "Fotoreihenfolge",
   "photos": "Fotos",
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Von dir hinzugefügte Fotos werden vom Album entfernt",
   "photosAndVideosCount": "{count, plural, one{{formattedCount} Foto & Video} other{{formattedCount} Fotos & Videos}}",
