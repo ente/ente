@@ -514,8 +514,10 @@
   "birthday": "Geburtstag",
   "birthdayJoy": "Geburtstagsfreude",
   "birthdays": "Geburtstage",
+  "black": "Schwarz",
   "blockLegacyKitRecoveryMessage": "Den aktuellen Wiederherstellungsversuch blockieren. \nHinweis: Es kann ein neuer Versuch gestartet werden.",
   "blog": "Blog",
+  "blurred": "Unscharf",
   "bothIssuerAndAccountCanNotBeEmpty": "Sowohl Aussteller als auch Konto können nicht leer sein",
   "bringYourFamilyAlong": "Bring deine Familie mit",
   "browseHelpPages": "Hilfe-Seiten durchsuchen",
@@ -795,6 +797,10 @@
   "contactSupport": "Support kontaktieren",
   "@contactSupport": {
     "description": "Contact support button label"
+  },
+  "contactUs": "Kontaktiere uns",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
   },
   "contactToManageSubscription": "Bitte kontaktiere uns über support@ente.com, um dein {provider}-Abo zu verwalten.",
   "@contactToManageSubscription": {
@@ -1871,6 +1877,7 @@
   "indexingPausedStatusDescription": "Die Indizierung ist pausiert. Sie wird automatisch fortgesetzt, wenn das Gerät bereit ist. Das Gerät wird als bereit angesehen, wenn sich der Akkustand, die Akkugesundheit und der thermische Zustand in einem gesunden Bereich befinden.",
   "informationDescription": "Speichere und teile Informationen mit deinen Liebsten.",
   "initialBackupCreated": "Initiale Sicherung erstellt!",
+  "inOrder": "In Bestellung",
   "insecureDevice": "Unsicheres Gerät",
   "@insecureDevice": {
     "description": "Insecure device warning title"
@@ -1946,6 +1953,7 @@
   "lastWeek": "Letzte Woche",
   "lastYearsTrip": "Reise im letzten Jahr",
   "layoutGrouped": "Gruppiert",
+  "layoutJustified": "Bündig",
   "layoutMasonry": "Mauerwerk",
   "layoutTrip": "Reise",
   "leave": "Verlassen",
@@ -2367,7 +2375,29 @@
   "mlConsentConfirmation": "Ich verstehe und möchte das maschinelle Lernen aktivieren",
   "mlConsentDescription": "Wenn du das maschinelle Lernen aktivierst, wird Ente Informationen wie etwa Gesichtsgeometrie aus Dateien extrahieren, einschließlich derjenigen, die mit dir geteilt werden.\n\nDies geschieht auf deinem Gerät und alle erzeugten biometrischen Informationen werden Ende-zu-Ende-verschlüsselt.",
   "mlConsentPrivacy": "Bitte klicke hier für weitere Details zu dieser Funktion in unserer Datenschutzerklärung",
+  "mlCouldNotProcessItems": "{count, plural, one{Konnte ein Element nicht verarbeiten} other{Konnte {count} Elemente nicht verarbeiten}}",
+  "@mlCouldNotProcessItems": {
+    "description": "Title shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mlIndexingDescription": "Bitte beachte, dass das maschinelle Lernen zu einem höheren Daten- und Akkuverbrauch führen wird, bis alle Elemente indiziert sind. Du kannst die Desktop-App für eine schnellere Indizierung verwenden, alle Ergebnisse werden automatisch synchronisiert.",
+  "mlItemsCouldNotBeProcessed": "{count, plural, one{Ein Element konnte nicht für das maschinelle Lernen verarbeitet werden. Bitte kontaktiere uns, damit wir helfen können.} other{{count} Elemente konnten nicht für das maschinelle Lernen verarbeitet werden. Bitte kontaktiere uns, damit wir helfen können.}}",
+  "@mlItemsCouldNotBeProcessed": {
+    "description": "Description shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mlProcessingIssueReachOut": "Bitte kontaktiere uns, damit wir helfen können.",
+  "@mlProcessingIssueReachOut": {
+    "description": "Support prompt shown when machine learning could not process one or more items"
+  },
   "mlProgressBannerDescription": "Deine Fotos werden auf dem Gerät verarbeitet, um Gesichter, Objekte und mehr zu erkennen.",
   "mlProgressBannerStatus": "{indexed} von {total} Fotos verarbeitet",
   "@mlProgressBannerStatus": {
@@ -2433,6 +2463,7 @@
   "moveToAlbum": "Zum Album verschieben",
   "moveToHiddenAlbum": "Zu verstecktem Album verschieben",
   "movingFilesToAlbum": "Verschiebe Dateien in Album...",
+  "muteAudio": "Ton stummschalten",
   "name": "Name",
   "nDays": "{count} Tage",
   "@nDays": {
@@ -2779,6 +2810,7 @@
   "photoGridSize": "Fotorastergröße",
   "photoLibraryAddPermissionRequired": "Ente benötigt die Berechtigung, um Fotos und Videos in Apple Fotos zu speichern. Sie können den Zugriff in den Einstellungen erlauben.",
   "photoLibraryAddPermissionRestricted": "Der Zugriff auf die Fotobibliothek ist auf diesem Gerät eingeschränkt.",
+  "photoOrder": "Fotobestellung",
   "photos": "Fotos",
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Von dir hinzugefügte Fotos werden vom Album entfernt",
   "photosAndVideosCount": "{count, plural, one{{formattedCount} Foto & Video} other{{formattedCount} Fotos & Videos}}",
@@ -3541,6 +3573,15 @@
     }
   },
   "searchSettings": "Sucheinstellungen",
+  "secondsCount": "{count, plural, one{Eine Sekunde} other{{count} Sekunden}}",
+  "@secondsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
   "secret": "Geheimnis",
   "secretCanNotBeEmpty": "Geheimnis darf nicht leer sein",
   "security": "Sicherheit",
@@ -3664,6 +3705,15 @@
   "sendLink": "Link senden",
   "sendLogsDescription": "Dadurch werden Protokolle übermittelt, die uns bei der Behebung Ihres Problems helfen. Obwohl wir Vorkehrungen treffen, um sicherzustellen, dass keine sensiblen Informationen protokolliert werden, empfehlen wir Ihnen, diese Protokolle anzusehen, bevor Sie sie weitergeben.",
   "sendQrCode": "QR-Code senden",
+  "sendToEmail": "An {email} senden",
+  "@sendToEmail": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
   "serverEndpoint": "Server Endpunkt",
   "@serverEndpoint": {
     "description": "Label for server endpoint setting"
@@ -3818,6 +3868,7 @@
   "showPerson": "Person anzeigen",
   "showQRAuthMessage": "Authentifizieren, um QR-Code anzuzeigen",
   "showTextOnWidget": "Text auf Widget anzeigen",
+  "shuffle": "Zufällig",
   "sigInBackupReminder": "Ente wird die Codes automatisch nach einer Anmeldung sichern.\n\nWir empfehlen aber, als ein extra Backup, die Codes zu exportieren.",
   "signInToBackup": "Melden Sie sich an, um Ihre Codes zu sichern",
   "signOutFromOtherDevices": "Von anderen Geräten abmelden",
@@ -3862,6 +3913,8 @@
   },
   "skip": "Überspringen",
   "skippedFiles": "Übersprungene Dateien",
+  "slideshow": "Präsentation",
+  "slideshowSettings": "Einstellungen für die Präsentation",
   "smartMemories": "Smarte Erinnerungen",
   "smartSuggestions": "Intelligente Vorschläge",
   "snowAdventures": "Winterabenteuer",
@@ -4122,6 +4175,7 @@
       "name": {}
     }
   },
+  "timePerPhoto": "Zeit pro Foto",
   "title": "Titel",
   "todaysLogs": "Heutiges Protokoll",
   "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Um die Anwendungssperre zu aktivieren, richten Sie bitte einen Gerätesperrcode oder eine Bildschirmsperre in Ihren Systemeinstellungen ein.",
@@ -4238,6 +4292,7 @@
   "unnamedPeopleSpotlight": "Ein vertrautes Gesicht",
   "unnamedPeopleThrowbackTogether": "Gemeinsamer Rückblick",
   "unnamedPeopleYouAndThem": "Ihr beide",
+  "unmuteAudio": "Ton einschalten",
   "unpin": "Lösen",
   "unpinnedCodeMessage": "{code} wurde losgelöst",
   "@unpinnedCodeMessage": {

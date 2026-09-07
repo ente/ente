@@ -1,4 +1,5 @@
 {
+  "about": "À propos",
   "acceptTrustInvite": "Accepter l'invitation",
   "account": "Compte",
   "accountCredentials": "Confidentiel",
@@ -13,6 +14,7 @@
       }
     }
   },
+  "accountRecovery": "Récupération de compte",
   "accountSetupIncompleteCreateAccount": "La configuration du compte est incomplète. Créez un compte pour terminer l'installation.",
   "@accountSetupIncompleteCreateAccount": {
     "description": "Error shown when account exists but signup is incomplete"
@@ -137,6 +139,10 @@
       "storageAmount": {}
     }
   },
+  "addPage": "Ajouter une page",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
   "addParticipants": "Ajouter des participants",
   "addPeopleWidgetPrompt": "Ajoutez un widget de personnes à votre écran d'accueil pour le personnaliser ici.",
   "addPerson": "Ajouter une personne",
@@ -146,6 +152,7 @@
   "addPhotos": "Ajouter des photos",
   "addSelected": "Ajouter la sélection",
   "addTag": "Ajouter une étiquette",
+  "addTo": "Ajouter à",
   "addToAlbum": "Ajouter à l'album",
   "addToCollection": "Ajouter a la collection",
   "addToEnte": "Ajouter à Ente",
@@ -155,6 +162,7 @@
     "description": "Action label to add selected files to an existing person."
   },
   "addTrustedContact": "Ajouter un contact de confiance",
+  "addTrustedPerson": "Ajouter une personne de confiance",
   "addUpTo5MembersFree": "Ajoutez jusqu'à 5 membres gratuitement",
   "addViewer": "Ajouter un observateur",
   "addViewers": "{count, plural, =0{Ajouter un observateur} one{Ajouter un observateur} other{Ajouter des observateurs}}",
@@ -165,6 +173,9 @@
   },
   "addYourPhotosNow": "Ajoutez vos photos maintenant",
   "adjust": "Ajuster",
+  "adjustCrop": "Ajuster le recadrage",
+  "admin": "Administrateur",
+  "admins": "Administrateurs",
   "adminsAndCollaboratorsCanAddPhotosDescription": "Les administrateurs et les collaborateurs peuvent ajouter des photos. Les administrateurs peuvent en plus gérer les photos et les participants.",
   "adminsCanManagePhotosAndParticipants": "Les admins peuvent gérer les photos et les participants.",
   "adminsSuccessfullyAdded": "{count, plural, =0{Aucun admin ajouté} one{{count} admin ajouté} other{{count} admins ajoutés}}",
@@ -190,7 +201,10 @@
   "after1Month": "Après 1 mois",
   "after1Week": "Après 1 semaine",
   "after1Year": "Après 1 an",
+  "albumDescriptionHint": "Saisir une description pour cet album",
+  "albumEditsWillNotBeSaved": "Vos modifications à cet album ne seront pas sauvegardées.",
   "albumLayout": "Disposition de l'album",
+  "albumName": "Nom de l'album",
   "albumOwner": "Propriétaire",
   "@albumOwner": {
     "description": "Role of the album owner"
@@ -204,6 +218,16 @@
       }
     },
     "description": "Number of participants in an album, including the album owner."
+  },
+  "albums": "Albums",
+  "albumsCount": "{count, plural, one{{count} album} other{{count} albums}}",
+  "@albumsCount": {
+    "description": "Number of albums with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "albumsOnDevicePermissionCta": "Autoriser l'accès",
   "albumsOnDevicePermissionFeatureAllowAccessFaceRecognition": "Autoriser Ente à accéder et organiser vos photos avec reconnaissance faciale",
@@ -226,6 +250,7 @@
   "albumUpdated": "Album mis à jour",
   "algorithm": "Algorithme",
   "align": "Aligner",
+  "all": "Tout",
   "allClear": "✨ Tout est effacé",
   "allFilesAlreadyMarkedAsImportant": "Tous les elements sont deja marques comme importants",
   "allMemoriesPreserved": "Tous les souvenirs sont sauvegardés",
@@ -274,11 +299,20 @@
   },
   "aNewVersionOfEnteIsAvailable": "Une nouvelle version de Ente est disponible.",
   "aNewVersionOfEnteLockerIsAvailable": "Une nouvelle version de Ente Locker est disponible.",
+  "anythingElse": "Autre chose ?",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
+  },
   "appearance": "Apparence",
+  "appIcon": "Icône de l'application",
   "appleId": "Apple ID",
   "applePhotosUnsupportedResource": "Ce fichier n'a pas pu être sauvegardé dans Apple Photos. Vous pouvez toujours le voir dans Ente.",
   "@applePhotosUnsupportedResource": {
     "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
+  "appLock": "Verrouillage de l'application",
+  "@appLock": {
+    "description": "App lock setting title"
   },
   "appLockDescription": "Choisissez entre l'écran de verrouillage par défaut de votre appareil et un écran de verrouillage par code PIN ou mot de passe personnalisé.",
   "@appLockDescription": {
@@ -345,10 +379,24 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
+  "authenticatorCodesCount": "{count, plural, one{{formattedCount} code d'authentification} other{{formattedCount} codes d'authentification}}",
+  "@authenticatorCodesCount": {
+    "description": "Delete impact row for Auth data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "authToChangeLockscreenSetting": "Veuillez vous authentifier pour modifier les paramètres de l'écran de verrouillage",
+  "authToChangeYourEmail": "Veuillez vous authentifier pour modifier votre adresse e-mail",
   "authToChangeYourPassword": "Veuillez vous authentifier pour modifier votre mot de passe",
   "authToConfigureTwofactorAuthentication": "Veuillez vous authentifier pour configurer l'authentification à deux facteurs",
   "authToExportCodes": "Veuillez vous authentifier pour exporter vos codes",
+  "authToInitiateAccountDeletion": "Déverrouiller pour supprimer votre compte",
   "authToInitiateSignIn": "Veuillez vous authentifier pour ouvrir une session de sauvegarde.",
   "authToManageLegacy": "Veuillez vous authentifier pour gérer vos contacts de confiance",
   "authToSetBackupPassword": "Authentification pour définir le mot de passe de sauvegarde",
@@ -430,6 +478,7 @@
   "camera": "Appareil photo",
   "campingMoments": "Moments au pied d'un feu de camp",
   "cancel": "Annuler",
+  "back": "Retour",
   "@cancel": {
     "description": "Cancel button label"
   },

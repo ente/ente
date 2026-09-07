@@ -514,8 +514,10 @@
   "birthday": "Sinh nhật",
   "birthdayJoy": "Niềm vui sinh nhật",
   "birthdays": "Sinh nhật",
+  "black": "Đen",
   "blockLegacyKitRecoveryMessage": "Chặn nỗ lực khôi phục hiện tại\nLưu ý rằng họ có thể bắt đầu một nỗ lực khôi phục mới",
   "blog": "Blog",
+  "blurred": "Mờ",
   "bothIssuerAndAccountCanNotBeEmpty": "Không được để trống dịch vụ và tài khoản",
   "bringYourFamilyAlong": "Mang cả gia đình bạn theo",
   "browseHelpPages": "Duyệt các trang hỗ trợ",
@@ -795,6 +797,10 @@
   "contactSupport": "Liên hệ hỗ trợ",
   "@contactSupport": {
     "description": "Contact support button label"
+  },
+  "contactUs": "Liên hệ chúng tôi",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
   },
   "contactToManageSubscription": "Vui lòng liên hệ với chúng tôi qua support@ente.com để quản lý gói {provider} của bạn.",
   "@contactToManageSubscription": {
@@ -1831,6 +1837,7 @@
   "informationDescription": "Luu va chia se thong tin voi nguoi than.",
   "informationTypes": "Kiểu thông tin",
   "initialBackupCreated": "Bản sao lưu ban đầu đã được tạo!",
+  "inOrder": "Trong trật tự",
   "insecureDevice": "Thiết bị không an toàn",
   "@insecureDevice": {
     "description": "Insecure device warning title"
@@ -1914,6 +1921,7 @@
   "lastYearsTrip": "Phượt năm ngoái",
   "layout": "Bố cục",
   "layoutGrouped": "Đã phân nhóm",
+  "layoutJustified": "Căn đều",
   "layoutTrip": "Chuyến đi",
   "leave": "Rời",
   "leaveAlbum": "Rời khỏi album",
@@ -2308,7 +2316,29 @@
   "mlConsentConfirmation": "Tôi hiểu và muốn bật học máy",
   "mlConsentDescription": "Nếu bạn bật học máy, Ente sẽ trích xuất thông tin như hình dạng khuôn mặt từ các tệp, gồm cả những tệp mà bạn được chia sẻ.\n\nViệc này sẽ diễn ra trên thiết bị của bạn, với mọi thông tin sinh trắc học tạo ra đều được mã hóa đầu cuối.",
   "mlConsentPrivacy": "Vui lòng nhấn vào đây để biết thêm chi tiết về tính năng này trong chính sách quyền riêng tư của chúng tôi",
+  "mlCouldNotProcessItems": "{count, plural, other{Không thể xử lý {count} mục}}",
+  "@mlCouldNotProcessItems": {
+    "description": "Title shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "mlIndexingDescription": "Lưu ý rằng việc học máy sẽ khiến tốn băng thông và pin nhiều hơn cho đến khi tất cả mục được xử lý. Hãy sử dụng ứng dụng máy tính để xử lý nhanh hơn. Mọi kết quả sẽ được tự động đồng bộ.",
+  "mlItemsCouldNotBeProcessed": "{count, plural, other{{count} mục không thể xử lý cho mục đích học máy. Vui lòng liên hệ với chúng tôi để được hỗ trợ.}}",
+  "@mlItemsCouldNotBeProcessed": {
+    "description": "Description shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mlProcessingIssueReachOut": "Vui lòng liên hệ với chúng tôi để được hỗ trợ.",
+  "@mlProcessingIssueReachOut": {
+    "description": "Support prompt shown when machine learning could not process one or more items"
+  },
   "mlProgressBannerDescription": "Ảnh của bạn đang được xử lý trên thiết bị để nhận diện khuôn mặt, sự vật và nhiều khác.",
   "mlProgressBannerStatus": "{indexed} trong {total} ảnh đã được xử lý",
   "@mlProgressBannerStatus": {
@@ -2370,6 +2400,7 @@
   "moveToAlbum": "Chuyển đến album",
   "moveToHiddenAlbum": "Di chuyển đến album ẩn",
   "movingFilesToAlbum": "Đang di chuyển tệp vào album...",
+  "muteAudio": "Tắt âm thanh",
   "name": "Tên",
   "networkConnectionRefusedErr": "Không thể kết nối với Ente, vui lòng thử lại sau ít phút. Nếu lỗi vẫn tiếp diễn, hãy liên hệ với bộ phận hỗ trợ.",
   "@networkConnectionRefusedErr": {
@@ -2665,6 +2696,7 @@
   "photoGridSize": "Kích thước lưới ảnh",
   "photoLibraryAddPermissionRequired": "Ente cần quyền lưu ảnh và video vào Apple Photos. Bạn có thể cấp quyền truy cập trong phần Cài đặt.",
   "photoLibraryAddPermissionRestricted": "Quyền truy cập Thư viện ảnh bị hạn chế trên thiết bị này.",
+  "photoOrder": "Thứ tự ảnh",
   "photos": "Ảnh",
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Ảnh bạn đã thêm sẽ bị xóa khỏi album",
   "photosCount": "{count, plural, =0{Chưa có ảnh} other{{count} ảnh}}",
@@ -3335,6 +3367,15 @@
     }
   },
   "searchSettings": "Tìm kiếm cài đặt",
+  "secondsCount": "{count, plural, other{{count} giây}}",
+  "@secondsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
   "secret": "Khóa bí mật",
   "secretCanNotBeEmpty": "Không được để trống khóa bí mật",
   "security": "Bảo mật",
@@ -3453,6 +3494,15 @@
   "sendLink": "Gửi liên kết",
   "sendLogsDescription": "Gửi nhật ký để giúp chúng tôi xử lý vấn đề của bạn. Dù chúng tôi thực hiện các biện pháp phòng ngừa để đảm bảo rằng thông tin nhạy cảm không được ghi lại, bạn vẫn nên xem các nhật ký này trước khi chia sẻ chúng.",
   "sendQrCode": "Gửi mã QR",
+  "sendToEmail": "Gửi tới {email}",
+  "@sendToEmail": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
   "serverEndpoint": "Điểm cuối máy chủ",
   "@serverEndpoint": {
     "description": "Label for server endpoint setting"
@@ -3581,6 +3631,7 @@
   "showPerson": "Hiện người",
   "showQRAuthMessage": "Xác thực để hiện mã QR",
   "showTextOnWidget": "Hiện chữ trên widget",
+  "shuffle": "Ngẫu nhiên",
   "sigInBackupReminder": "Ente sẽ tự động sao lưu mã sau khi đăng nhập.\n\nChúng tôi vẫn khuyên bạn nên xuất mã để sao lưu thêm.",
   "signInToBackup": "Đăng nhập để sao lưu mã của bạn",
   "signOutFromOtherDevices": "Đăng xuất khỏi các thiết bị khác",
@@ -3624,6 +3675,8 @@
   },
   "skip": "Bỏ qua",
   "skippedFiles": "Những tệp bị bỏ qua",
+  "slideshow": "Trình chiếu",
+  "slideshowSettings": "Cài đặt trình chiếu",
   "smartMemories": "Gợi nhớ kỷ niệm",
   "smartSuggestions": "Đề xuất thông minh",
   "snowAdventures": "Phiêu lưu mùa đông",
@@ -3874,6 +3927,7 @@
       "name": {}
     }
   },
+  "timePerPhoto": "Thời lượng mỗi ảnh",
   "title": "Tieu de",
   "todaysLogs": "Nhật ký hôm nay",
   "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Để bật khóa ứng dụng, vui lòng thiết lập mã khóa thiết bị hoặc khóa màn hình trong cài đặt hệ thống của bạn.",
@@ -3992,6 +4046,7 @@
   "unnamedPeopleSpotlight": "Khuôn mặt giống",
   "unnamedPeopleThrowbackTogether": "Mãi mãi bên nhau",
   "unnamedPeopleYouAndThem": "Cả hai",
+  "unmuteAudio": "Bật âm thanh",
   "unpin": "Bỏ ghim",
   "unpinnedCodeMessage": "{code} đã được bỏ ghim",
   "@unpinnedCodeMessage": {
