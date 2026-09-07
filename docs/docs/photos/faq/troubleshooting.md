@@ -421,15 +421,13 @@ Open device `Settings > Apps > Ente > Storage` and tap "Clear cache" (NOT "Clear
 
 ### Why does Android ask me to confirm every photo when I delete from Ente? {#android-media-management-delete}
 
-When Ente deletes a photo or video that also exists in your device gallery, Android shows a system confirmation dialog for each item. This is an Android security measure for third-party apps. It is especially noticeable when using **Free up space**, where you may have to confirm a large number of files one by one.
+Android may request confirmation to trash, restore, or permanently delete device photos. Large operations may prompt for several batches.
 
-To stop these repeated prompts, grant Ente the **media management** special access:
+**On Android 12 and newer:**
 
-**On Android:**
+To avoid repeated system prompts, open device `Settings > Apps > Special app access > Media management apps > Ente Photos` and enable "Allow app to manage media". Names may vary by device.
 
-Open device `Settings > Apps > Special app access > Media management apps > Ente Photos` and enable "Allow app to manage media".
-
-Once granted, Ente can delete media that it manages without asking for confirmation each time.
+Android 11 supports device trash but lacks this permission. Learn more about [Device Trash](/photos/features/albums-and-organization/deleting#device-trash).
 
 ### Why is the Linux desktop app still showing the old icon after updating? {#linux-icon-update}
 

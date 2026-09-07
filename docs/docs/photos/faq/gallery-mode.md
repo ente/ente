@@ -21,6 +21,12 @@ Ente needs access to your photo library to display your photos. On iOS, grant "A
 
 ## Features {#features}
 
+### Can I recover photos deleted in gallery mode? {#gallery-mode-device-trash}
+
+On Android 11 and newer, tap the trash icon in **Albums**, select photos, and tap **Restore** before their remaining days expire. Learn more about [Device Trash](/photos/features/albums-and-organization/deleting#device-trash).
+
+On iOS, use Apple Photos' **Recently Deleted** album. Device deletion is permanent on Android 10 and older.
+
 ### Does face recognition work without an account? {#offline-face-recognition}
 
 Yes. Face recognition runs entirely on your device in gallery mode. Enable it from the banner on the Search tab or from `Settings > Machine learning`. All processing happens locally -- no data leaves your phone.

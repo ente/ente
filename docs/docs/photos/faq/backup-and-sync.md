@@ -127,7 +127,7 @@ If you want to delete a photo from Ente, you must do it manually within the Ente
 
 **Changes in Ente → Your device:**
 
-- ❌ Deleting a photo in Ente does NOT delete it from your device
+- ❌ **Delete from Ente** does NOT delete the device copy
 - ❌ Moving photos between albums in Ente does NOT affect your device albums
 - ❌ Renaming albums in Ente does NOT rename device albums
 
@@ -148,11 +148,13 @@ If you want to delete a photo from Ente, you must do it manually within the Ente
 
 ✅ **Uploading**: Happens automatically for selected albums ✅ **Re-upload protection**: Ente won't re-upload photos you've already uploaded, even if you delete them from Ente and they're still on your device ❌ **Two-way sync**: Not supported - changes in Ente don't reflect on your device
 
-**If you want to delete a photo everywhere:**
+**To delete both the Ente copy and the copy on your current phone:**
 
-1. Delete from Ente app
-2. Delete from your device's native Photos app
-3. Both deletions must be done manually
+1. Select the photo in the Ente mobile app and tap the trash icon
+2. Tap **More options** if needed, then choose **Delete from both**
+3. Confirm the deletion and any system prompt
+
+Copies on other devices are unaffected. Learn more about [Deletion and Device Trash](/photos/features/albums-and-organization/deleting).
 
 ### Can I delete photos from my device after backing up to Ente? {#free-up-space-after-backup}
 
@@ -391,9 +393,9 @@ During migration, Ente rechecks all local photos against what is already uploade
 
 This is temporary. Once verification finishes, the duplicate view disappears and only the synced photo remains.
 
-### When I choose "Delete Both" on a photo, why do I still see it in my device's native gallery? {#delete-both-photo-still-visible}
+### When I choose "Delete from both" on a photo, why do I still see it in my device's native gallery? {#delete-both-photo-still-visible}
 
-When you select "Delete Both", Ente deletes the copy stored in Ente as well as the copy stored on your device. However, if you have Google Photos backup or iCloud backup enabled, the cloud copy from those services will still be visible in your native gallery. That copy is managed by Google or Apple, not by Ente.
+The device copy may appear in [Device Trash](/photos/features/albums-and-organization/deleting#device-trash) on Android 11 and newer, or Apple Photos' **Recently Deleted** on iOS. Other apps may still show their own cloud copies; manage those in the corresponding service.
 
 ## Background Sync
 

@@ -50,6 +50,8 @@ Ente scans your device for photos and videos and groups them by their native alb
 
 **Gallery and viewing** -- The full photo and video viewer works, including pinch-to-zoom, swiping between photos, and sharing to other apps. Photos appear in the home timeline sorted by date and in the Albums tab grouped by device folder.
 
+**Device trash (Android 11 and newer)** -- Tap the trash icon in **Albums** to restore or permanently delete photos, without an account. Learn more about [Device Trash](/photos/features/albums-and-organization/deleting#device-trash).
+
 **On-device ML** -- Face recognition and magic search (natural language search) run entirely on your device. Enable these from the banner that appears on the Search tab or from `Settings > Machine learning`. Processing happens locally and no data leaves your phone.
 
 **Search and discovery** -- The Search tab shows people (faces), device albums, and location-based results. In gallery mode, the albums section shows device folders instead of Ente cloud albums.

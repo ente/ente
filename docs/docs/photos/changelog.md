@@ -12,7 +12,7 @@ A short summary list of changes to the Ente Photos mobile and desktop apps. For 
 - Added Library Sharing for automatically sharing current and future albums with family members.
 - Added album descriptions, including on shared links. The “Ente” album filter now includes albums shared with you, and shared and received albums can be archived and restored.
 - Added album slideshows, with controls for slide duration, photo order, and background style.
-- On Android 11 and newer, device photos deleted through Ente now move to the system trash and can be recovered from the app.
+- On Android 11 and newer, deleted gallery photos can be recovered from [Device Trash](/photos/features/albums-and-organization/deleting#device-trash), including in gallery mode.
 - Edited photos now retain key camera, date, and location details. JPEGs also retain their original quality when only rotated or flipped.
 - Added music and audio controls to memories.
 - Improved Search with country names in the app language and each country’s native languages, more accurate city matching, better result ordering, and faster performance on large libraries.
