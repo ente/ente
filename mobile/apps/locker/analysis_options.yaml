@@ -6,3 +6,6 @@ analyzer:
   exclude:
     - rust_builder/**
     - lib/src/rust/**
+    - build/**
+    - android/**
+    - ios/**

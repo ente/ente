@@ -48,3 +48,10 @@ analyzer:
   exclude:
     - thirdparty/**
     - flutter/**
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**

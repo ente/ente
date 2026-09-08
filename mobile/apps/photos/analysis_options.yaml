@@ -11,3 +11,6 @@ analyzer:
     - lib/src/rust/**
     - rust/src/**
     - test/**
+    - build/**
+    - android/**
+    - ios/**
