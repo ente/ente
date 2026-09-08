@@ -20,6 +20,9 @@ import {
 import type { SxProps, Theme } from "@mui/material/styles";
 import React, { forwardRef, memo, useImperativeHandle, useRef } from "react";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
+import { ContextMeter } from "./ContextMeter";
+
+const PROTOTYPE_CONTEXT_USAGE = { usedTokens: 1000, totalTokens: 12000 };
 
 interface IconProps {
     size: number;
@@ -546,6 +549,16 @@ export const ChatComposer = memo(
                                     )}
 
                                     <ChatInput
+                                        contextIndicator={
+                                            <ContextMeter
+                                                usedTokens={
+                                                    PROTOTYPE_CONTEXT_USAGE.usedTokens
+                                                }
+                                                totalTokens={
+                                                    PROTOTYPE_CONTEXT_USAGE.totalTokens
+                                                }
+                                            />
+                                        }
                                         ref={inputRef}
                                         actionIconProps={actionIconProps}
                                         disableAttachmentButton={
