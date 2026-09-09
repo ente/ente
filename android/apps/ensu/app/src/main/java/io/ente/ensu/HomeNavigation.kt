@@ -26,6 +26,7 @@ import androidx.navigation.NavHostController
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import io.ente.ensu.chat.ChatView
+import io.ente.ensu.notes.NotesSettingsScreen
 import io.ente.ensu.settings.AdvancedSettingsDataStore
 import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.chat.Attachment
@@ -92,6 +93,9 @@ internal fun HomeNavigation(
                 HomeRoute.Settings -> {
                     SimpleTopBar(title = "Settings") { navController.popBackStack() }
                 }
+                HomeRoute.Notes -> {
+                    SimpleTopBar(title = "Your Notes") { navController.popBackStack() }
+                }
                 HomeRoute.Knowledge -> {
                     SimpleTopBar(title = "Ensu Packs") { navController.popBackStack() }
                 }
@@ -152,6 +156,7 @@ internal fun HomeNavigation(
                         isAdvancedUnlocked = appState.developerSettings.isAdvancedUnlocked,
                         onOpenLogs = { navController.navigate(HomeRoute.Logs) },
                         onOpenKnowledge = { navController.navigate(HomeRoute.Knowledge) },
+                        onOpenNotes = { navController.navigate(HomeRoute.Notes) },
                         onOpenModelSettings = { navController.navigate(HomeRoute.ModelSettings) },
                         onOpenSystemPromptSettings = { navController.navigate(HomeRoute.SystemPromptSettings) },
                         onUnlockAdvanced = {
@@ -160,6 +165,15 @@ internal fun HomeNavigation(
                         },
                         onSignIn = onSignIn
                     )
+                }
+                composable(
+                    route = HomeRoute.Notes,
+                    enterTransition = { forwardEnter() },
+                    exitTransition = { forwardExit() },
+                    popEnterTransition = { backEnter() },
+                    popExitTransition = { backExit() }
+                ) {
+                    NotesSettingsScreen(store.notesStore)
                 }
                 composable(
                     route = HomeRoute.Knowledge,
@@ -244,6 +258,7 @@ internal object HomeRoute {
     const val ModelSettings = "model-settings"
     const val SystemPromptSettings = "system-prompt-settings"
     const val Knowledge = "knowledge"
+    const val Notes = "notes"
 }
 
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.forwardEnter() =

@@ -54,6 +54,11 @@ class LlmProvider(
     private val modelLoadMutex = Mutex()
     private val activeDownloads = AtomicInteger()
     private val embeddingAsset = knowledgeEmbeddingModelAsset()
+    internal var modelMaintenance: ModelMaintenance? = null
+
+    private suspend fun <T> withModelContext(block: suspend () -> T): T = modelMaintenance.withMaintenanceSuspended {
+        withContext(ioDispatcher) { block() }
+    }
 
     class EmbeddingAssetInvalid : Exception("Embedding model asset is invalid")
 
@@ -76,7 +81,7 @@ class LlmProvider(
         selection: LlmModelSelection,
         onProgress: (DownloadProgress) -> Unit
     ) {
-        withContext(ioDispatcher) {
+        withModelContext {
             modelLoadMutex.withLock {
                 ensureModelReadyLocked(selection, onProgress)
             }
@@ -87,7 +92,7 @@ class LlmProvider(
         selection: LlmModelSelection,
         onProgress: (DownloadProgress) -> Unit
     ) {
-        withContext(ioDispatcher) {
+        withModelContext {
             deviceCapabilityProvider.chatCapability().requireChatSupported()
             val asset = chatAsset(selection)
             val missingAssets = modelLoadMutex.withLock {
@@ -132,7 +137,7 @@ class LlmProvider(
         temperature: Float,
         maxTokens: Int?,
         onToken: (String) -> Unit
-    ): GenerationSummary = withContext(ioDispatcher) {
+    ): GenerationSummary = withModelContext {
         modelLoadMutex.withLock {
             deviceCapabilityProvider.chatCapability().requireChatSupported()
             val context = loadedContext ?: throw IllegalStateException("Model context not loaded")
@@ -173,8 +178,16 @@ class LlmProvider(
 
     suspend fun <T> withChatModelReleasedForRetrieval(
         block: suspend (embed: (String) -> List<Float>) -> T
+    ): T = withModelContext {
+        withEmbeddingContext { embedding -> block(embedding::embed) }
+    }
+
+    internal suspend fun <T> withEmbeddingContext(
+        checkCancellation: () -> Unit = {},
+        block: suspend (LlmContext) -> T
     ): T = withContext(ioDispatcher) {
         modelLoadMutex.withLock {
+            checkCancellation()
             deviceCapabilityProvider.chatCapability().requireChatSupported()
             if (!isEmbeddingModelReady()) throw EmbeddingAssetInvalid()
             unloadTranscriptionModelIfLoaded()
@@ -196,7 +209,7 @@ class LlmProvider(
             try {
                 val threads = max(1, Runtime.getRuntime().availableProcessors() - 1)
                 embeddingContext = embeddingModel.newEmbeddingContext(threads)
-                block { text -> embeddingContext.embed(text) }
+                block(embeddingContext)
             } finally {
                 embeddingContext?.destroy()
                 embeddingModel.destroy()
@@ -205,7 +218,7 @@ class LlmProvider(
     }
 
     suspend fun prewarmImageInference(selection: LlmModelSelection) {
-        withContext(ioDispatcher) {
+        withModelContext {
             runCatching {
                 modelLoadMutex.withLock {
                     val asset = chatAsset(selection)
@@ -244,7 +257,7 @@ class LlmProvider(
     }
 
     suspend fun resetContext() {
-        withContext(ioDispatcher) {
+        withModelContext {
             modelLoadMutex.withLock {
                 val model = loadedModel ?: return@withLock
                 val contextParams = LlmContextParams(

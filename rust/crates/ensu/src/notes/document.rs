@@ -4,6 +4,8 @@ use super::{
     validate_document_id,
 };
 
+const EMBEDDING_TITLE_MAX_UTF8_BYTES: usize = 512;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NotesSourceDocument {
     pub document_id: String,
@@ -35,6 +37,36 @@ pub struct PreparedNotesDocument {
 pub struct PreparedNotesChunk {
     pub section: Option<String>,
     pub text: String,
+}
+
+impl PreparedNotesDocument {
+    pub fn embed(
+        &self,
+        mut embed_chunk: impl FnMut(&str, &str) -> Result<Vec<f32>, crate::llm::Error>,
+    ) -> Result<Option<Vec<Vec<f32>>>, crate::llm::Error> {
+        let mut embeddings = Vec::with_capacity(self.chunks.len());
+        for chunk in &self.chunks {
+            match embed_chunk(&self.embedding_title(chunk), &chunk.text) {
+                Ok(vector) => embeddings.push(vector),
+                Err(crate::llm::Error::PromptTooLong { .. }) => return Ok(None),
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(Some(embeddings))
+    }
+
+    fn embedding_title(&self, chunk: &PreparedNotesChunk) -> String {
+        let mut title = match chunk.section.as_deref() {
+            Some(section) if section != self.title => format!("{} — {section}", self.title),
+            _ => self.title.clone(),
+        };
+        let mut end = title.len().min(EMBEDDING_TITLE_MAX_UTF8_BYTES);
+        while !title.is_char_boundary(end) {
+            end -= 1;
+        }
+        title.truncate(end);
+        title
+    }
 }
 
 pub fn prepare_notes_document(
@@ -76,6 +108,28 @@ mod tests {
     use crate::notes::{
         NOTES_CHUNK_OVERLAP_UTF8_BYTES, NOTES_CHUNK_UTF8_BYTES, NOTES_HEADING_MAX_UTF8_BYTES,
     };
+
+    #[test]
+    fn oversized_chunks_discard_partial_document_embeddings() {
+        let prepared =
+            prepare_notes_document("note.md", b"# Note\n\nFirst\n\n## Second\n\nSecond").unwrap();
+        let mut calls = 0;
+        let result = prepared
+            .embed(|_, _| {
+                calls += 1;
+                if calls == 1 {
+                    Ok(vec![1.0])
+                } else {
+                    Err(crate::llm::Error::PromptTooLong {
+                        tokens: 2,
+                        context_size: 1,
+                    })
+                }
+            })
+            .unwrap();
+        assert_eq!(calls, 2);
+        assert!(result.is_none());
+    }
 
     #[test]
     fn prepares_and_chunks_markdown() {

@@ -249,23 +249,17 @@ struct AssistantMessageBubbleView: View {
     @State private var showSources = false
 
     var body: some View {
-        let parsed = parseAssistantText(storedText: message.text)
+        let parsed = parseGroundedAssistantText(storedText: message.text)
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: EnsuSpacing.sm) {
                     AssistantMessageRenderer(text: parsed.text, isStreaming: false, storageId: message.id.uuidString)
 
-                    if let sourceLabel = parsed.sourceLabel {
-                        Button(sourceLabel) {
-                            showSources = true
+                    if !parsed.sourceLabels.isEmpty {
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: EnsuSpacing.sm) { sourceChips(parsed.sourceLabels) }
+                            VStack(alignment: .leading, spacing: EnsuSpacing.sm) { sourceChips(parsed.sourceLabels) }
                         }
-                        .font(EnsuTypography.small)
-                        .foregroundStyle(EnsuColor.textPrimary)
-                        .padding(.horizontal, EnsuSpacing.md)
-                        .padding(.vertical, EnsuSpacing.sm)
-                        .background(EnsuColor.fillFaint)
-                        .clipShape(RoundedRectangle(cornerRadius: EnsuCornerRadius.button))
-                        .buttonStyle(.plain)
                     }
 
                     if message.isInterrupted {
@@ -313,84 +307,119 @@ struct AssistantMessageBubbleView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .sheet(isPresented: $showSources) {
-            KnowledgeSourcesSheet(citations: parsed.citations)
+            KnowledgeSourcesSheet(citations: parsed.sources)
+        }
+    }
+
+    private func sourceChips(_ labels: [String]) -> some View {
+        ForEach(Array(labels.enumerated()), id: \.offset) { _, label in
+            Button { showSources = true } label: {
+                Text(label)
+                    .font(EnsuTypography.small)
+                    .foregroundStyle(EnsuColor.textPrimary)
+                    .padding(.horizontal, EnsuSpacing.md)
+                    .padding(.vertical, EnsuSpacing.sm)
+                    .frame(minHeight: 44)
+                    .background(EnsuColor.fillFaint)
+                    .clipShape(RoundedRectangle(cornerRadius: EnsuCornerRadius.button))
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("View sources used in this response")
         }
     }
 }
 
 private struct KnowledgeSourcesSheet: View {
-    let citations: [SourceCitation]
-    @Environment(\.dismiss) private var dismiss
+    let citations: [GroundedSource]
+    @EnvironmentObject private var notes: NotesStore
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: EnsuSpacing.lg) {
-                    Text(sourceCountLabel)
-                        .font(EnsuTypography.small)
+        AttributionSheet(title: "Sources") {
+            if hasLocalNotes, let error = notes.operationError {
+                Text(error)
+                    .font(EnsuTypography.small)
+                    .foregroundStyle(EnsuColor.error)
+            }
+            ForEach(Array(citations.enumerated()), id: \.offset) { index, source in
+                EnsuCard(padding: EnsuSpacing.md) {
+                    Text(sourceHeader(source, number: index + 1))
+                        .font(EnsuTypography.mini)
                         .foregroundStyle(EnsuColor.textMuted)
 
-                    ForEach(Array(citations.enumerated()), id: \.offset) { index, citation in
-                        VStack(alignment: .leading, spacing: EnsuSpacing.sm) {
-                            Text("SOURCE \(index + 1) · \(citation.datasetLabel.uppercased())")
-                                .font(EnsuTypography.mini)
-                                .foregroundStyle(EnsuColor.textMuted)
+                    Text(sourceTitle(source))
+                        .font(EnsuTypography.large)
+                        .foregroundStyle(EnsuColor.textPrimary)
 
-                            Text(citation.title)
-                                .font(EnsuTypography.large)
-                                .foregroundStyle(EnsuColor.textPrimary)
-
-                            Divider()
-
-                            Text("Attribution")
-                                .font(EnsuTypography.mini)
-                                .foregroundStyle(EnsuColor.textMuted)
-
-                            Text(citation.credit)
-                                .font(EnsuTypography.small)
-                                .foregroundStyle(EnsuColor.textPrimary)
-
-                            HStack(spacing: EnsuSpacing.lg) {
-                                Link(destination: URL(string: citation.sourceUrl)!) {
-                                    Label("Open source", systemImage: "arrow.up.right.square")
-                                }
-                                Link(destination: URL(string: citation.licenseUrl)!) {
-                                    Label(citation.licenseLabel, systemImage: "doc.text")
-                                }
-                            }
+                    if case .localNote(let reference) = source, let section = reference.section {
+                        Text(section)
                             .font(EnsuTypography.small)
-                        }
-                        .padding(EnsuSpacing.md)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(EnsuColor.fillFaint)
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: EnsuCornerRadius.card,
-                                style: .continuous
-                            )
-                        )
+                            .foregroundStyle(EnsuColor.textMuted)
                     }
-                }
-                .padding(EnsuSpacing.lg)
-            }
-            .background(EnsuColor.backgroundBase)
-            .navigationTitle("Sources")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Done") { dismiss() }
+
+                    Divider()
+
+                    switch source {
+                    case .localNote(let reference):
+                        Text(reference.documentId)
+                            .font(EnsuTypography.small)
+                            .foregroundStyle(EnsuColor.textMuted)
+                        Button { notes.open(reference) } label: {
+                            Label("Open note", systemImage: "arrow.up.right.square")
+                                .frame(minHeight: 44)
+                        }
+                        .font(EnsuTypography.small)
+                    case .ensuPack(let citation):
+                        Text(citation.credit)
+                            .font(EnsuTypography.small)
+                            .foregroundStyle(EnsuColor.textMuted)
+
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: EnsuSpacing.lg) { sourceLinks(citation) }
+                            VStack(alignment: .leading, spacing: EnsuSpacing.sm) { sourceLinks(citation) }
+                        }
+                        .font(EnsuTypography.small)
+                    }
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .sheet(item: $notes.preview) { preview in NotesPreviewView(url: preview.url) }
     }
 
-    private var sourceCountLabel: String {
-        citations.count == 1
-            ? "1 source used in this response"
-            : "\(citations.count) sources used in this response"
+    private var hasLocalNotes: Bool {
+        citations.contains {
+            if case .localNote = $0 { return true }
+            return false
+        }
     }
+
+    private func sourceHeader(_ source: GroundedSource, number: Int) -> String {
+        switch source {
+        case .localNote(let reference):
+            return "SOURCE \(number) · YOUR NOTES" + (reference.collectionLabel.map { " · \($0.uppercased())" } ?? "")
+        case .ensuPack(let citation):
+            return "SOURCE \(number) · ENSU PACK · \(citation.datasetLabel.uppercased())"
+        }
+    }
+
+    private func sourceTitle(_ source: GroundedSource) -> String {
+        switch source {
+        case .localNote(let reference): return reference.title
+        case .ensuPack(let citation): return citation.title
+        }
+    }
+
+    @ViewBuilder
+    private func sourceLinks(_ citation: SourceCitation) -> some View {
+        Link(destination: URL(string: citation.sourceUrl)!) {
+            Label("Open source", systemImage: "arrow.up.right.square")
+                .frame(minHeight: 44)
+        }
+        Link(destination: URL(string: citation.licenseUrl)!) {
+            Label(citation.licenseLabel, systemImage: "arrow.up.right.square")
+                .frame(minHeight: 44)
+        }
+    }
+
 }
 
 private enum StreamingCursor {

@@ -5,6 +5,7 @@ let isEnsuPacksEnabled = true
 
 struct SettingsView: View {
     @ObservedObject var knowledgeStore: KnowledgeStore
+    @ObservedObject var notesStore: NotesStore
     let onSignIn: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -165,7 +166,11 @@ struct SettingsView: View {
     private var signInTitle: String { "Sign In to Backup" }
 
     private var allItems: [SettingsItem] {
-        var items: [SettingsItem] = []
+        var items = [SettingsItem(
+            title: "Your Notes",
+            iconName: "Folder01Icon",
+            destination: AnyView(NotesSettingsView(store: notesStore))
+        )]
         if isEnsuPacksEnabled {
             items.append(SettingsItem(
                 title: "Ensu Packs",

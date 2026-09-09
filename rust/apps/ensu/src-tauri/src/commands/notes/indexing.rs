@@ -4,7 +4,7 @@ use ente_ensu::llm;
 use ente_ensu::notes::{
     NotesCollectionIndex, NotesDocumentLoad, NotesError, NotesIndexInput, NotesIndexOutcome,
     NotesIndexProgress, NotesIndexingError, NotesRevisionStatus, index_notes_collection,
-    notes_content_revision, prepare_notes_document,
+    notes_content_revision, prepare_notes_document, remove_notes_collection,
 };
 
 use crate::commands::common::ApiError;
@@ -13,10 +13,7 @@ use super::registry::RegisteredCollection;
 use super::source::{
     canonical_source_root, inventory_source_root, read_collection_source, source_root_is_available,
 };
-use super::{
-    NOTES_EMBEDDING_TITLE_MAX_UTF8_BYTES, UpdateSnapshot, check_cancelled, notes_error,
-    path_exists, remove_owned_entry,
-};
+use super::{UpdateSnapshot, check_cancelled, notes_error};
 
 pub(super) fn index_collection(
     index_root: &Path,
@@ -39,10 +36,7 @@ pub(super) fn index_collection(
         check_cancelled(cancellation_epoch, retrieval_epoch)
     })?;
     if update.rebuild_derived_index {
-        let derived_directory = index_root.join(&collection.id);
-        if path_exists(&derived_directory)? {
-            remove_owned_entry(&derived_directory)?;
-        }
+        remove_notes_collection(index_root, &collection.id).map_err(notes_error)?;
     }
     let mut embedding_context = None;
     index_notes_collection(
@@ -71,26 +65,13 @@ pub(super) fn index_collection(
             let context = embedding_context
                 .as_ref()
                 .expect("embedding context was initialized");
-            let mut embeddings = Vec::with_capacity(prepared.chunks.len());
-            for chunk in &prepared.chunks {
-                check_cancelled(cancellation_epoch, retrieval_epoch)?;
-                let full_embedding_title = match chunk.section.as_deref() {
-                    Some(section) if section != prepared.title => {
-                        format!("{} — {section}", prepared.title)
-                    }
-                    _ => prepared.title.clone(),
-                };
-                let embedding_title = truncate_utf8_bytes(
-                    &full_embedding_title,
-                    NOTES_EMBEDDING_TITLE_MAX_UTF8_BYTES,
-                );
-                match context.embed_document(embedding_title, &chunk.text) {
-                    Ok(embedding) => embeddings.push(embedding),
-                    Err(llm::Error::PromptTooLong { .. }) => return Ok(None),
-                    Err(error) => return Err(crate::commands::llm::llm_api_error(error)),
-                }
-            }
-            Ok(Some(embeddings))
+            prepared
+                .embed(|title, text| {
+                    check_cancelled(cancellation_epoch, retrieval_epoch)
+                        .map_err(|_| llm::Error::Cancelled)?;
+                    context.embed_document(title, text)
+                })
+                .map_err(crate::commands::llm::llm_api_error)
         },
         |document_id, revision| {
             verify_notes_document_revision(&canonical_root, document_id, revision)
@@ -161,15 +142,4 @@ fn notes_indexing_error(error: NotesIndexingError<ApiError>) -> ApiError {
         NotesIndexingError::Notes(error) => notes_error(error),
         NotesIndexingError::Adapter(error) => error,
     }
-}
-
-fn truncate_utf8_bytes(value: &str, max_bytes: usize) -> &str {
-    if value.len() <= max_bytes {
-        return value;
-    }
-    let mut end = max_bytes;
-    while !value.is_char_boundary(end) {
-        end -= 1;
-    }
-    &value[..end]
 }

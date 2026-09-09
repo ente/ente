@@ -1,6 +1,7 @@
 import { CollectionChipRow } from "@/components/createItemDialog/CollectionChipRow";
+import { lockerFieldSx } from "@/components/createItemDialog/create-item-dialog-styles";
+import { CreateCollectionRow } from "@/components/createItemDialog/CreateCollectionRow";
 import type { LockerCollection, LockerItemType } from "@/types";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import {
@@ -10,10 +11,69 @@ import {
     Stack,
     TextField,
     Typography,
+    type TextFieldProps,
 } from "@mui/material";
-import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useId, useMemo, useState } from "react";
+
+type FormFieldProps = Omit<TextFieldProps, "label"> & {
+    label: string;
+    multilineMinHeight?: number;
+};
+
+function FormField({
+    label,
+    required,
+    multiline,
+    multilineMinHeight,
+    ...rest
+}: FormFieldProps) {
+    const id = useId();
+
+    return (
+        <Stack sx={{ gap: "8px" }}>
+            <Typography
+                variant="small"
+                component="label"
+                htmlFor={id}
+                sx={{
+                    fontWeight: 500,
+                    lineHeight: "20px",
+                    display: "flex",
+                    gap: "2px",
+                    color: "text.base",
+                }}
+            >
+                {label}
+                {required && (
+                    <Box
+                        component="span"
+                        aria-hidden
+                        sx={{ color: "critical.main", fontWeight: 600 }}
+                    >
+                        *
+                    </Box>
+                )}
+            </Typography>
+            <TextField
+                {...rest}
+                id={id}
+                required={required}
+                multiline={multiline}
+                hiddenLabel
+                fullWidth
+                variant="outlined"
+                margin="none"
+                sx={(theme) =>
+                    lockerFieldSx(theme, {
+                        multiline,
+                        minHeight: multilineMinHeight,
+                    })
+                }
+            />
+        </Stack>
+    );
+}
 
 export const ItemFormFields: React.FC<{
     type: LockerItemType;
@@ -25,26 +85,25 @@ export const ItemFormFields: React.FC<{
     switch (type) {
         case "note":
             return (
-                <Stack sx={{ gap: 2 }}>
-                    <TextField
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
                         label={t("noteName")}
                         value={data.title ?? ""}
                         onChange={(event) =>
                             onChange("title", event.target.value)
                         }
-                        fullWidth
                         required
                         autoFocus
                     />
-                    <TextField
+                    <FormField
                         label={t("noteContent")}
                         value={data.content ?? ""}
                         onChange={(event) =>
                             onChange("content", event.target.value)
                         }
-                        fullWidth
                         required
                         multiline
+                        multilineMinHeight={152}
                         minRows={4}
                         maxRows={10}
                     />
@@ -52,33 +111,30 @@ export const ItemFormFields: React.FC<{
             );
         case "accountCredential":
             return (
-                <Stack sx={{ gap: 2 }}>
-                    <TextField
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
                         label={t("credentialName")}
                         value={data.name ?? ""}
                         onChange={(event) =>
                             onChange("name", event.target.value)
                         }
-                        fullWidth
                         required
                         autoFocus
                     />
-                    <TextField
+                    <FormField
                         label={t("username")}
                         value={data.username ?? ""}
                         onChange={(event) =>
                             onChange("username", event.target.value)
                         }
-                        fullWidth
                         required
                     />
-                    <TextField
+                    <FormField
                         label={t("password")}
                         value={data.password ?? ""}
                         onChange={(event) =>
                             onChange("password", event.target.value)
                         }
-                        fullWidth
                         required
                         type={showPassword ? "text" : "password"}
                         slotProps={{
@@ -89,6 +145,7 @@ export const ItemFormFields: React.FC<{
                                             onClick={onTogglePassword}
                                             edge="end"
                                             size="small"
+                                            sx={{ color: "text.faint", p: 0 }}
                                         >
                                             {showPassword ? (
                                                 <VisibilityOffIcon />
@@ -101,14 +158,14 @@ export const ItemFormFields: React.FC<{
                             },
                         }}
                     />
-                    <TextField
+                    <FormField
                         label={t("credentialNotes")}
                         value={data.notes ?? ""}
                         onChange={(event) =>
                             onChange("notes", event.target.value)
                         }
-                        fullWidth
                         multiline
+                        multilineMinHeight={92}
                         minRows={2}
                         maxRows={5}
                     />
@@ -116,34 +173,32 @@ export const ItemFormFields: React.FC<{
             );
         case "physicalRecord":
             return (
-                <Stack sx={{ gap: 2 }}>
-                    <TextField
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
                         label={t("recordName")}
                         value={data.name ?? ""}
                         onChange={(event) =>
                             onChange("name", event.target.value)
                         }
-                        fullWidth
                         required
                         autoFocus
                     />
-                    <TextField
+                    <FormField
                         label={t("recordLocation")}
                         value={data.location ?? ""}
                         onChange={(event) =>
                             onChange("location", event.target.value)
                         }
-                        fullWidth
                         required
                     />
-                    <TextField
+                    <FormField
                         label={t("recordNotes")}
                         value={data.notes ?? ""}
                         onChange={(event) =>
                             onChange("notes", event.target.value)
                         }
-                        fullWidth
                         multiline
+                        multilineMinHeight={92}
                         minRows={2}
                         maxRows={5}
                     />
@@ -151,34 +206,32 @@ export const ItemFormFields: React.FC<{
             );
         case "emergencyContact":
             return (
-                <Stack sx={{ gap: 2 }}>
-                    <TextField
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
                         label={t("contactName")}
                         value={data.name ?? ""}
                         onChange={(event) =>
                             onChange("name", event.target.value)
                         }
-                        fullWidth
                         required
                         autoFocus
                     />
-                    <TextField
+                    <FormField
                         label={t("contactDetails")}
                         value={data.contactDetails ?? ""}
                         onChange={(event) =>
                             onChange("contactDetails", event.target.value)
                         }
-                        fullWidth
                         required
                     />
-                    <TextField
+                    <FormField
                         label={t("contactNotes")}
                         value={data.notes ?? ""}
                         onChange={(event) =>
                             onChange("notes", event.target.value)
                         }
-                        fullWidth
                         multiline
+                        multilineMinHeight={92}
                         minRows={2}
                         maxRows={5}
                     />
@@ -186,14 +239,13 @@ export const ItemFormFields: React.FC<{
             );
         case "file":
             return (
-                <Stack sx={{ gap: 2 }}>
-                    <TextField
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
                         label={t("fileTitle")}
                         value={data.name ?? ""}
                         onChange={(event) =>
                             onChange("name", event.target.value)
                         }
-                        fullWidth
                         required
                         autoFocus
                     />
@@ -303,60 +355,20 @@ export const CollectionSelector: React.FC<{
             />
 
             {createOpen && onCreateCollection && (
-                <Stack sx={{ gap: 1, mt: 1.5 }}>
-                    <Stack
-                        direction="row"
-                        sx={{ gap: 1, alignItems: "center" }}
-                    >
-                        <TextField
-                            size="small"
-                            fullWidth
-                            autoFocus
-                            placeholder={t("enterCollectionName")}
-                            sx={{
-                                "& .MuiInputBase-root": {
-                                    height: 48,
-                                    borderRadius: "14px",
-                                },
-                                "& .MuiInputBase-input": { pt: 1, pb: 0.5 },
-                            }}
-                            value={createName}
-                            onChange={(event) => {
-                                setCreateName(event.target.value);
-                                setCreateError(null);
-                            }}
-                            onKeyDown={(event) => {
-                                if (event.key === "Escape") {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    setCreateOpen(false);
-                                    setCreateError(null);
-                                    return;
-                                }
-                                if (event.key === "Enter") {
-                                    event.preventDefault();
-                                    void handleCreateCollection();
-                                }
-                            }}
-                        />
-                        <LoadingButton
-                            color="accent"
-                            loading={creating}
-                            disabled={!createName.trim()}
-                            aria-label={t("create")}
-                            onClick={() => void handleCreateCollection()}
-                            sx={{
-                                minWidth: 0,
-                                width: 48,
-                                height: 48,
-                                p: 0,
-                                borderRadius: "14px",
-                                flexShrink: 0,
-                            }}
-                        >
-                            <CheckRoundedIcon />
-                        </LoadingButton>
-                    </Stack>
+                <Stack sx={{ gap: "8px", mt: 0 }}>
+                    <CreateCollectionRow
+                        value={createName}
+                        onChange={(v) => {
+                            setCreateName(v);
+                            setCreateError(null);
+                        }}
+                        onSubmit={() => void handleCreateCollection()}
+                        onCancel={() => {
+                            setCreateOpen(false);
+                            setCreateError(null);
+                        }}
+                        loading={creating}
+                    />
                     {createError && (
                         <Typography
                             variant="small"

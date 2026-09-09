@@ -1,6 +1,7 @@
 import { expose, wrap, type Remote } from "comlink";
 import { ensureElectron } from "ente-base/electron";
 import log, { logToDisk } from "ente-base/log";
+import { workerReady } from "ente-utils/worker";
 
 // The worker exposes T through remote.
 // This thread exposes workerBridge back through the same worker endpoint.
@@ -20,7 +21,10 @@ export class ComlinkWorker<T extends new () => InstanceType<T>> {
         };
         log.debug(() => `Created ${name} web worker`);
         const comlink = wrap<T>(worker);
-        this.remote = new comlink() as Promise<Remote<InstanceType<T>>>;
+        this.remote = workerReady(
+            worker,
+            new comlink() as Promise<Remote<InstanceType<T>>>,
+        );
         expose(workerBridge, worker);
     }
 

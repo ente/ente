@@ -17,6 +17,11 @@ pub struct NoteSourceReference {
 }
 
 impl NoteSourceReference {
+    pub fn with_collection_label(mut self, label: String) -> Self {
+        self.collection_label = is_valid_label(&label).then_some(label);
+        self
+    }
+
     pub fn validate(&self) -> Result<(), NotesError> {
         validate_collection_id(&self.collection_id)?;
         if let Some(label) = &self.collection_label {

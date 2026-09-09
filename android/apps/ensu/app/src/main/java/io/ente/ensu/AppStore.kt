@@ -17,6 +17,7 @@ import io.ente.ensu.chat.Attachment
 import io.ente.ensu.chat.ChatMessage
 import io.ente.ensu.bindings.ConfigDefaults
 import io.ente.ensu.logging.LogLevel
+import io.ente.ensu.notes.NotesStore
 import io.ente.ensu.settings.SessionPreferencesDataStore
 import io.ente.ensu.AppState
 import io.ente.ensu.settings.DeveloperSettingsState
@@ -45,6 +46,8 @@ class AppStore(
     private val _state = MutableStateFlow(AppState())
     val state: StateFlow<AppState> = _state.asStateFlow()
 
+    val notesStore = NotesStore(context, llmProvider, logRepository).also { llmProvider.modelMaintenance = it }
+
     private val messageStore = mutableMapOf<String, MutableList<ChatMessage>>()
     private val attachmentActions = AttachmentStoreActions(_state, messageStore)
     private val knowledgeStore = KnowledgeStore(
@@ -68,9 +71,11 @@ class AppStore(
         attachmentActions = attachmentActions,
         modelSettingsActions = modelSettingsActions,
         configDefaults = configDefaults,
+        notesStore = notesStore,
         awaitKnowledgeReady = knowledgeStore::awaitEnabledPacksReady
     )
     fun bootstrap(scope: CoroutineScope) {
+        notesStore.bootstrap(scope)
         chatActions.setScope(scope)
         modelSettingsActions.setScope(scope)
         refreshDeviceCapability(scope)

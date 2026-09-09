@@ -135,6 +135,7 @@ struct ChatView: View {
                 viewModel.refreshModelDownloadInfo()
             }
             .onChange(of: scenePhase) { newValue in
+                viewModel.notesStore.setForeground(newValue == .active)
                 if newValue == .active {
                     viewModel.refreshModelDownloadInfo()
                 } else {
@@ -142,9 +143,12 @@ struct ChatView: View {
                 }
             }
         }
+        .environmentObject(viewModel.notesStore)
+        .onAppear { viewModel.notesStore.setForeground(scenePhase == .active) }
         .sheet(isPresented: $viewState.showSettings) {
             SettingsView(
                 knowledgeStore: viewModel.knowledgeStore,
+                notesStore: viewModel.notesStore,
                 onSignIn: {
                     viewState.pendingSignInRequest = true
                     viewState.showSettings = false

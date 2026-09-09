@@ -75,6 +75,7 @@ final class ChatViewModel: ObservableObject {
     @Published var voiceInputState: VoiceInputState = .idle
     @Published var draftCursorMoveToken = UUID()
     let knowledgeStore: KnowledgeStore
+    let notesStore: NotesStore
 
     private let provider: LlmProvider
     private let knowledgeEmbedding: KnowledgeEmbeddingConfig
@@ -125,7 +126,10 @@ final class ChatViewModel: ObservableObject {
             vadModelPath: assetStore.voiceActivityModelPath(voiceActivity).path
         )
         let provider = LlmProvider(assetStore: assetStore, transcriber: transcriber, knowledgeEmbedding: config.knowledgeEmbedding)
+        let notesStore = NotesStore(provider: provider)
+        provider.modelMaintenance = notesStore
         let voiceTranscriber = VoiceTranscriptionService(transcriber: transcriber, assetStore: assetStore)
+        voiceTranscriber.modelMaintenance = notesStore
         let knowledgeProvider = KnowledgeProvider(assetStore: assetStore)
         let knowledgeStore = KnowledgeStore(datasets: config.knowledgeDatasets, provider: knowledgeProvider)
 
@@ -166,6 +170,7 @@ final class ChatViewModel: ObservableObject {
         self.knowledgeEmbedding = config.knowledgeEmbedding
         self.knowledgeProvider = knowledgeProvider
         self.knowledgeStore = knowledgeStore
+        self.notesStore = notesStore
         self.voiceTranscriber = voiceTranscriber
         self.chatDb = chatDb
         self.attachmentsDir = attachmentsDir
@@ -189,7 +194,9 @@ final class ChatViewModel: ObservableObject {
         refreshDeviceCapability()
         refreshModelDownloadInfo()
         Task {
-            await knowledgeStore.bootstrap()
+            async let knowledge: Void = knowledgeStore.bootstrap()
+            async let notes: Void = notesStore.bootstrap()
+            _ = await (knowledge, notes)
         }
     }
 
@@ -682,6 +689,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     func refreshModelDownloadInfo() {
+        notesStore.modelReadinessChanged()
         guard !isChatUnsupported else {
             isDownloading = false
             downloadToast = nil
@@ -1009,32 +1017,39 @@ final class ChatViewModel: ObservableObject {
         seedDownloadProgressMemory()
         rebuildMessages(for: userNode.sessionId)
 
+        let notesScope = notesStore.suspendMaintenance()
         generationTask = Task {
             defer {
+                notesScope.close()
                 settleGenerationIfActive(generationId: generationId, sessionId: userNode.sessionId)
             }
+            await notesStore.awaitMaintenance()
             _ = await priorGeneration?.result
             _ = await priorSummary?.result
             guard !Task.isCancelled, activeGenerationId == generationId else { return }
             await knowledgeStore.bootstrap()
+            await notesStore.bootstrap()
             guard !Task.isCancelled, activeGenerationId == generationId else { return }
             var embeddingAssetInvalid = false
-            var knowledgeHits: [KnowledgeSearchHit] = []
+            var knowledgeHits: [GroundedExcerpt] = []
             let enabledDatasets = knowledgeStore.enabledReadyDatasets
-            if !userNode.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-               !enabledDatasets.isEmpty {
+            let queryText = userNode.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !queryText.isEmpty,
+               (!enabledDatasets.isEmpty || notesStore.collections.contains(where: { $0.eligible })) {
                 do {
                     let hits = try await provider.withChatModelReleasedForRetrieval { embed in
                         try Task.checkCancellation()
-                        let query = try embed(
-                            userNode.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                        )
+                        let query = try embed(queryText)
                         try Task.checkCancellation()
-                        return await knowledgeProvider.search(
-                            datasets: enabledDatasets,
-                            query: query,
-                            maxHits: knowledgeEmbedding.maxHits
+                        let packs = await knowledgeProvider.search(
+                            datasets: enabledDatasets, query: query, maxHits: knowledgeEmbedding.maxHits
                         )
+                        let notes = try await notesStore.retrieve(query: query)
+                        let candidates = try selectMixedGroundingCandidates(
+                            packHits: packs.map { KnowledgePromptHit(datasetId: $0.dataset.stableId, hit: $0.hit) },
+                            notesHits: notes, notesLimit: UInt32(notes.count)
+                        )
+                        return try await notesStore.verify(candidates)
                     }
                     try Task.checkCancellation()
                     knowledgeHits = hits
@@ -1120,10 +1135,8 @@ final class ChatViewModel: ObservableObject {
                 0,
                 (normalHistorySelection.inputBudget - normalHistorySelection.inputTokens) * 4 - 2
             )
-            let knowledgeContext = try? buildKnowledgePromptContext(
-                hits: knowledgeHits.map {
-                    KnowledgePromptHit(datasetId: $0.dataset.stableId, hit: $0.hit)
-                },
+            let knowledgeContext = try? buildGroundedPromptContext(
+                excerpts: knowledgeHits,
                 maxUtf8Bytes: UInt32(min(
                     Int(knowledgeEmbedding.maxContextUtf8Bytes),
                     remainingKnowledgeBytes
@@ -1145,7 +1158,7 @@ final class ChatViewModel: ObservableObject {
             let useKnowledge = knowledgeHistorySelection?.wasTrimmed == false
             let historySelection = useKnowledge ?
                 (knowledgeHistorySelection ?? normalHistorySelection) : normalHistorySelection
-            var activeCitations = useKnowledge ? (knowledgeContext?.citations ?? []) : []
+            var activeCitations = useKnowledge ? (knowledgeContext?.sources ?? []) : []
             let effectiveSystemPrompt = useKnowledge ?
                 (candidateSystemPrompt ?? normalSystemPrompt) : normalSystemPrompt
             let userMessage = LlmMessage(
@@ -1266,22 +1279,22 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
-    private func finishGeneration(parent: MessageNode, response: String, tokenCount: Int, totalTimeMs: Int64?, interrupted: Bool, generationId: UUID, citations: [SourceCitation] = []) {
+    private func finishGeneration(parent: MessageNode, response: String, tokenCount: Int, totalTimeMs: Int64?, interrupted: Bool, generationId: UUID, citations: [GroundedSource] = []) {
         let rawText = response.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmed: String
         if rawText.isEmpty {
             trimmed = rawText
         } else {
             do {
-                trimmed = try finalizeAssistantText(
+                trimmed = try finalizeGroundedAssistantText(
                     rawAssistantText: rawText,
-                    citations: citations
+                    sources: citations
                 )
             } catch {
                 logger.error("Assistant source finalization failed", error)
-                trimmed = (try? finalizeAssistantText(
+                trimmed = (try? finalizeGroundedAssistantText(
                     rawAssistantText: rawText,
-                    citations: []
+                    sources: []
                 )) ?? ""
             }
         }
@@ -1736,7 +1749,11 @@ final class ChatViewModel: ObservableObject {
         let selection = modelSettings.currentSelection()
         let provider = provider
 
+        let notes = notesStore
+        let notesScope = notes.suspendMaintenance()
         sessionSummaryTask = Task.detached(priority: .utility) { [weak self] in
+            defer { notesScope.close() }
+            await notes.awaitMaintenance()
             guard let self else { return }
             do {
                 try await Task.sleep(nanoseconds: 200_000_000)
@@ -1851,6 +1868,7 @@ final class ChatViewModel: ObservableObject {
         var buffer = ""
 
         do {
+            try await provider.ensureModelReady(selection) { _ in }
             _ = try await provider.generateChat(
                 selection,
                 messages: messages,

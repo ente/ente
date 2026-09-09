@@ -86,13 +86,8 @@ class PublicLinkEnabledActionsWidget extends StatelessWidget {
                   dialogTitle: context.strings.qrCode,
                   shareButtonText: context.strings.share,
                   logoAssetPath: 'assets/qr_logo.png',
-                  branding: const QrTextBranding(
-                    text: 'ente',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Montserrat',
-                    ),
+                  branding: const QrSvgBranding(
+                    assetPath: 'assets/ente-branding.svg',
                   ),
                 );
               },

@@ -1,8 +1,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use super::queries::CLIP_ML_VERSION;
-use super::vector_encoding::{decode_f32, encode_f32};
-use super::{MlDb, Result};
+use super::clip::CLIP_ML_VERSION;
+use crate::ml_db::vector_encoding::{decode_f32, encode_f32};
+use crate::ml_db::{MlDb, Result};
 
 const THREE_MONTHS_MILLIS: i64 = 90 * 24 * 60 * 60 * 1000;
 
@@ -10,7 +10,10 @@ impl MlDb {
     pub fn put_repeated_text_embedding_cache(&self, query: &str, embedding: &[f64]) -> Result<()> {
         let embedding_bytes = encode_f32(embedding.iter().map(|value| *value as f32));
         self.db.execute(
-            "INSERT OR REPLACE INTO text_embeddings_cache (text_query, embedding, ml_version, created_at) VALUES (?, ?, ?, ?)",
+            r#"
+            INSERT OR REPLACE INTO text_embeddings_cache (text_query, embedding, ml_version, created_at)
+            VALUES (?, ?, ?, ?)
+            "#,
             (query, embedding_bytes, CLIP_ML_VERSION, now_millis()),
         )?;
         Ok(())
@@ -18,7 +21,11 @@ impl MlDb {
 
     pub fn get_repeated_text_embedding_cache(&self, query: &str) -> Result<Option<Vec<f32>>> {
         let results: Vec<(Vec<u8>, i64, i64)> = self.db.read_all(
-            "SELECT embedding, ml_version, created_at FROM text_embeddings_cache WHERE text_query = ?",
+            r#"
+            SELECT embedding, ml_version, created_at
+            FROM text_embeddings_cache
+            WHERE text_query = ?
+            "#,
             [query],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )?;
@@ -82,7 +89,7 @@ fn now_millis() -> i64 {
 }
 
 #[cfg(test)]
-pub(super) mod tests {
+pub(in crate::ml_db) mod tests {
     use super::MlDb;
     use crate::db::Connection;
     use crate::ml_db::tests::{cases, check, open};

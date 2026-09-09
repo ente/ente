@@ -24,7 +24,7 @@ struct KnowledgeSettingsView: View {
     @ViewBuilder
     private func packCard(_ pack: KnowledgePackState) -> some View {
         let attribution = pack.config.attribution
-        VStack(alignment: .leading, spacing: EnsuSpacing.sm) {
+        EnsuCard {
             HStack {
                 VStack(alignment: .leading, spacing: EnsuSpacing.xs) {
                     Text(pack.config.label)
@@ -64,16 +64,9 @@ struct KnowledgeSettingsView: View {
                     .labelsHidden()
                     .tint(EnsuColor.accent)
                 } else if store.downloadsAllowed && pack.status == .download && !pack.isMutating {
-                    Button {
+                    CompactButton(text: "Download") {
                         store.downloadOrUpdate(stableId: pack.id)
-                    } label: {
-                        Text("Download")
-                            .font(EnsuTypography.small)
-                            .padding(.horizontal, EnsuSpacing.xs)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .tint(EnsuColor.accent)
                 }
             }
 
@@ -96,16 +89,9 @@ struct KnowledgeSettingsView: View {
                     .accessibilityLabel("Cancel download")
                 }
             } else if store.downloadsAllowed && pack.status == .updateAvailable {
-                Button {
+                CompactButton(text: "Update") {
                     store.downloadOrUpdate(stableId: pack.id)
-                } label: {
-                    Text("Update")
-                        .font(EnsuTypography.small)
-                        .padding(.horizontal, EnsuSpacing.xs)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .tint(EnsuColor.accent)
             }
 
             if let error = pack.errorMessage {
@@ -114,76 +100,50 @@ struct KnowledgeSettingsView: View {
                     .foregroundStyle(EnsuColor.error)
             }
         }
-        .padding(EnsuSpacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(EnsuColor.fillFaint)
-        .clipShape(RoundedRectangle(cornerRadius: EnsuCornerRadius.card, style: .continuous))
     }
 }
 
 private struct PackAttributionSheet: View {
     let config: KnowledgeDatasetConfig
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         let attribution = config.attribution
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: EnsuSpacing.sm) {
-                    Text(config.label)
-                        .font(EnsuTypography.large)
-                        .foregroundStyle(EnsuColor.textPrimary)
+        AttributionSheet(title: "Attribution") {
+            EnsuCard(padding: EnsuSpacing.md) {
+                Text(config.label)
+                    .font(EnsuTypography.large)
+                    .foregroundStyle(EnsuColor.textPrimary)
 
-                    Divider()
+                Divider()
 
-                    Text("From \(attribution.credit)")
-                        .font(EnsuTypography.body)
-                        .foregroundStyle(EnsuColor.textPrimary)
+                Text("From \(attribution.credit)")
+                    .font(EnsuTypography.body)
+                    .foregroundStyle(EnsuColor.textPrimary)
 
-                    Text(attribution.modificationNotice)
-                        .font(EnsuTypography.body)
-                        .foregroundStyle(EnsuColor.textPrimary)
+                Text(attribution.modificationNotice)
+                    .font(EnsuTypography.body)
+                    .foregroundStyle(EnsuColor.textPrimary)
 
-                    HStack(spacing: EnsuSpacing.md) {
-                        Link(destination: URL(string: attribution.publicPackUrl)!) {
-                            Label("Source", systemImage: "arrow.up.right.square")
-                        }
-                        Link(destination: URL(string: attribution.licenseUrl)!) {
-                            Label("License", systemImage: "doc.text")
-                        }
+                HStack(spacing: EnsuSpacing.md) {
+                    Link(destination: URL(string: attribution.publicPackUrl)!) {
+                        Label("Source", systemImage: "arrow.up.right.square")
+                            .frame(minHeight: 44)
                     }
-                    .font(EnsuTypography.mini)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Divider()
-
-                    Text("Wikimedia and Ensu are not affiliated. Wikimedia project names identify the source material only.")
-                        .font(EnsuTypography.small)
-                        .foregroundStyle(EnsuColor.textMuted)
+                    Link(destination: URL(string: attribution.licenseUrl)!) {
+                        Label("License", systemImage: "doc.text")
+                            .frame(minHeight: 44)
+                    }
                 }
-                .padding(EnsuSpacing.md)
+                .font(EnsuTypography.mini)
+                .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(EnsuColor.fillFaint)
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: EnsuCornerRadius.card,
-                        style: .continuous
-                    )
-                )
-                .padding(EnsuSpacing.lg)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .background(EnsuColor.backgroundBase)
-            .navigationTitle("Attribution")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Done") { dismiss() }
-                }
+
+                Divider()
+
+                Text("Wikimedia and Ensu are not affiliated. Wikimedia project names identify the source material only.")
+                    .font(EnsuTypography.small)
+                    .foregroundStyle(EnsuColor.textMuted)
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
     }
 }

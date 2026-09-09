@@ -345,8 +345,6 @@ const readUrlCredentials = () => {
     return { email: urlParams.get("email"), token: urlParams.get("token") };
 };
 
-const subscriptionDataNotFoundMessage = "No subscription record for this user";
-
 const noSearchableAccountMessage =
     "No active account or searchable scheduled deletion found. For older deletions, find the user ID in logs and use the existing recovery flow.";
 
@@ -357,10 +355,6 @@ const buildUserDetailsData = (
     userResponse: UserResponse,
     userSearchInput: string,
 ): UserDetailsData => {
-    if (!userResponse.subscription) {
-        throw new Error(subscriptionDataNotFoundMessage);
-    }
-
     const { subscription } = userResponse;
     const emailMFAEnabled =
         userResponse.details?.profileData?.isEmailMFAEnabled ?? false;
@@ -373,6 +367,10 @@ const buildUserDetailsData = (
     const { photosFileCount, lockerFileCount } = userResponse;
     const fileCountsAvailable =
         photosFileCount !== undefined && lockerFileCount !== undefined;
+    const storageConsumed =
+        userResponse.storageConsumedStatus === "unavailable"
+            ? undefined
+            : (userResponse.storageConsumed ?? userResponse.details?.usage);
 
     return {
         email: userResponse.user.email || userSearchInput,
@@ -404,14 +402,17 @@ const buildUserDetailsData = (
                 kind: "text",
                 label: "Total",
                 value:
-                    subscription.storage === 0
+                    !subscription || subscription.storage === 0
                         ? "None"
                         : formatStorageSize(subscription.storage),
             },
             {
                 kind: "text",
                 label: "Consumed",
-                value: formatStorageSize(userResponse.details?.usage),
+                value:
+                    storageConsumed === undefined
+                        ? "Unavailable"
+                        : formatStorageSize(storageConsumed),
             },
             {
                 kind: "text",
@@ -423,20 +424,21 @@ const buildUserDetailsData = (
             {
                 kind: "text",
                 label: "Product ID",
-                value: subscription.productID || "None",
+                value: subscription?.productID || "None",
             },
             {
                 kind: "text",
                 label: "Provider",
-                value: subscription.paymentProvider || "None",
+                value: subscription?.paymentProvider || "None",
             },
             {
                 kind: "expiry",
                 label: "Expiry time",
-                value:
-                    dateFromMicroseconds(
-                        subscription.expiryTime,
-                    ).toISOString() || "None",
+                value: subscription
+                    ? dateFromMicroseconds(
+                          subscription.expiryTime,
+                      ).toISOString()
+                    : "None",
             },
         ],
         security: [

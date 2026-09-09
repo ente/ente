@@ -25,11 +25,6 @@ pub enum NotesRevisionStatus {
     Changed,
 }
 
-struct PreparedSummary {
-    revision_and_chunks: Option<(String, u32)>,
-    source: NotesSourceDocument,
-}
-
 #[derive(Debug)]
 pub enum NotesIndexingError<E> {
     Notes(NotesError),
@@ -89,72 +84,13 @@ pub fn index_notes_collection<E>(
     } = input;
     check_for_cancellation().map_err(NotesIndexingError::Adapter)?;
     NotesIndexWriter::validate_inventory_capacity(&collection_id, &inventory)?;
-    let mut writer = NotesIndexWriter::open(index_root, collection_id.clone())?;
+    let mut writer = NotesIndexWriter::open(index_root, collection_id)?;
     let index_was_ready = writer.initial_inventory_complete();
     let plan = writer.plan_reconciliation(&inventory, forced_document_ids, force_full_hash)?;
     writer.commit_deletions(&plan.deleted_document_ids)?;
 
     let source_document_count = inventory.len() as u64;
     let requested = plan.content_required_document_ids;
-    let mut prepared_summaries = BTreeMap::<String, PreparedSummary>::new();
-    let mut prepared_chunk_counts = BTreeMap::<String, u32>::new();
-    for document_id in &requested {
-        check_for_cancellation().map_err(NotesIndexingError::Adapter)?;
-        let (prepared, source) =
-            match load_document(document_id).map_err(NotesIndexingError::Adapter)? {
-                NotesDocumentLoad::Prepared { document, source } => (Some(document), source),
-                NotesDocumentLoad::Unindexable { source } => (None, source),
-                NotesDocumentLoad::Changed => {
-                    return changed_during_indexing_outcome(
-                        &mut writer,
-                        index_was_ready,
-                        document_id,
-                        &requested,
-                        0,
-                    );
-                }
-            };
-        if source.document_id != *document_id {
-            return Err(NotesError::InvalidInput(
-                "loaded source metadata does not match its document ID".to_string(),
-            )
-            .into());
-        }
-        let revision_and_chunks = prepared
-            .map(|prepared| {
-                let chunk_count = u32::try_from(prepared.chunks.len()).map_err(|_| {
-                    NotesError::CollectionTooLarge(
-                        "The folder contains too many note chunks to index".to_string(),
-                    )
-                })?;
-                Ok::<_, NotesError>((prepared.revision, chunk_count))
-            })
-            .transpose()?;
-        let chunk_count = revision_and_chunks.as_ref().map_or(0, |(_, count)| *count);
-        prepared_chunk_counts.insert(document_id.clone(), chunk_count);
-        prepared_summaries.insert(
-            document_id.clone(),
-            PreparedSummary {
-                revision_and_chunks,
-                source,
-            },
-        );
-    }
-    let mut verified_inventory = inventory.clone();
-    let inventory_positions = verified_inventory
-        .iter()
-        .enumerate()
-        .map(|(index, source)| (source.document_id.clone(), index))
-        .collect::<BTreeMap<_, _>>();
-    for (document_id, summary) in &prepared_summaries {
-        let index = *inventory_positions
-            .get(document_id)
-            .expect("reconciliation returns a source inventory document");
-        verified_inventory[index] = summary.source.clone();
-    }
-    NotesIndexWriter::validate_inventory_capacity(&collection_id, &verified_inventory)?;
-    writer.validate_reconciliation_capacity(&verified_inventory, &prepared_chunk_counts)?;
-
     let mut checkpointed_document_count =
         source_document_count.saturating_sub(requested.len() as u64);
     report_indexing_progress(
@@ -163,17 +99,18 @@ pub fn index_notes_collection<E>(
         source_document_count,
         &mut on_progress,
     );
-    let mut processed_requested = 0_usize;
+    let mut source_bytes = inventory.iter().map(|source| source.size).sum::<u64>();
+    let source_sizes = inventory
+        .into_iter()
+        .map(|source| (source.document_id, source.size))
+        .collect::<BTreeMap<_, _>>();
+
     let mut documents_since_checkpoint = 0_usize;
     let mut chunks_since_checkpoint = 0_usize;
     let document_checkpoint = checkpoint_interval(requested.len(), MIN_CHECKPOINT_DOCUMENTS);
-    let requested_chunk_count = prepared_chunk_counts
-        .values()
-        .fold(0_usize, |total, count| {
-            total.saturating_add(*count as usize)
-        });
-    let chunk_checkpoint = checkpoint_interval(requested_chunk_count, MIN_CHECKPOINT_CHUNKS);
-    for document_id in &requested {
+    let mut processed_chunks = 0_usize;
+    let mut first_checkpoint = true;
+    for (processed_requested, document_id) in requested.iter().enumerate() {
         check_for_cancellation().map_err(NotesIndexingError::Adapter)?;
         let (prepared, source_metadata) =
             match load_document(document_id).map_err(NotesIndexingError::Adapter)? {
@@ -189,62 +126,48 @@ pub fn index_notes_collection<E>(
                     );
                 }
             };
-        let prepared_matches_preflight =
-            prepared_summaries.get(document_id).is_some_and(|summary| {
-                summary.source == source_metadata
-                    && match (&summary.revision_and_chunks, prepared.as_ref()) {
-                        (None, None) => true,
-                        (Some((revision, chunk_count)), Some(prepared)) => {
-                            prepared.revision == *revision
-                                && prepared.chunks.len() == *chunk_count as usize
-                        }
-                        _ => false,
-                    }
-            });
-        if !prepared_matches_preflight {
-            return changed_during_indexing_outcome(
-                &mut writer,
-                index_was_ready,
-                document_id,
-                &requested,
-                processed_requested,
-            );
+        if source_metadata.document_id != *document_id {
+            return Err(NotesError::InvalidInput(
+                "loaded source metadata does not match its document ID".to_string(),
+            )
+            .into());
+        }
+        source_metadata.validate()?;
+        source_bytes = source_bytes - source_sizes[document_id] + source_metadata.size;
+        if source_bytes > super::NOTES_MAX_COLLECTION_SOURCE_BYTES {
+            return Err(NotesError::CollectionTooLarge(
+                "The folder contains too much note content to index".to_string(),
+            )
+            .into());
         }
         let Some(prepared) = prepared else {
             writer.commit_deletions(std::slice::from_ref(document_id))?;
-            processed_requested += 1;
             continue;
         };
         let validated = match writer.validate_document(&prepared, &source_metadata) {
             Ok(validated) => validated,
             Err(NotesError::InvalidInput(_)) => {
                 writer.commit_deletions(std::slice::from_ref(document_id))?;
-                processed_requested += 1;
                 continue;
             }
             Err(error) => return Err(error.into()),
         };
-        let Some(embeddings) = embed_document(&prepared).map_err(NotesIndexingError::Adapter)?
-        else {
-            writer.commit_deletions(std::slice::from_ref(document_id))?;
-            processed_requested += 1;
-            continue;
+        let embeddings = if validated.needs_embedding() {
+            let Some(embeddings) =
+                embed_document(&prepared).map_err(NotesIndexingError::Adapter)?
+            else {
+                writer.commit_deletions(std::slice::from_ref(document_id))?;
+                continue;
+            };
+            Some(embeddings)
+        } else {
+            None
         };
         check_for_cancellation().map_err(NotesIndexingError::Adapter)?;
-        let NotesRevisionStatus::Matches {
-            source: verified_source,
-        } = verify_revision(document_id, &prepared.revision)
-            .map_err(NotesIndexingError::Adapter)?
-        else {
-            return changed_during_indexing_outcome(
-                &mut writer,
-                index_was_ready,
-                document_id,
-                &requested,
-                processed_requested,
-            );
-        };
-        if verified_source != source_metadata {
+        let revision = verify_revision(document_id, &prepared.revision)
+            .map_err(NotesIndexingError::Adapter)?;
+        if !matches!(revision, NotesRevisionStatus::Matches { source } if source == source_metadata)
+        {
             return changed_during_indexing_outcome(
                 &mut writer,
                 index_was_ready,
@@ -253,12 +176,17 @@ pub fn index_notes_collection<E>(
                 processed_requested,
             );
         }
-        writer.commit_validated_document(validated, &embeddings)?;
-        processed_requested += 1;
+        writer.commit_validated_document(validated, embeddings.as_deref())?;
         documents_since_checkpoint += 1;
         chunks_since_checkpoint += prepared.chunks.len();
-        if processed_requested < requested.len()
-            && (documents_since_checkpoint >= document_checkpoint
+        processed_chunks += prepared.chunks.len();
+        let chunk_checkpoint = checkpoint_interval(
+            processed_chunks.saturating_mul(requested.len()) / (processed_requested + 1),
+            MIN_CHECKPOINT_CHUNKS,
+        );
+        if processed_requested + 1 < requested.len()
+            && (first_checkpoint
+                || documents_since_checkpoint >= document_checkpoint
                 || chunks_since_checkpoint >= chunk_checkpoint)
         {
             writer.publish(index_was_ready)?;
@@ -270,6 +198,7 @@ pub fn index_notes_collection<E>(
                 source_document_count,
                 &mut on_progress,
             );
+            first_checkpoint = false;
             documents_since_checkpoint = 0;
             chunks_since_checkpoint = 0;
         }
@@ -385,6 +314,7 @@ mod tests {
             },
             || Ok(()),
             |_| {
+                assert!(!progress.borrow().is_empty());
                 Ok(NotesDocumentLoad::Prepared {
                     document: prepared.clone(),
                     source: verified_source.clone(),
@@ -431,88 +361,218 @@ mod tests {
     }
 
     #[test]
-    fn preserves_the_previous_publication_when_a_source_changes() {
+    fn resumes_a_cancelled_checkpoint_without_reembedding_committed_documents() {
         let temp = tempfile::tempdir().unwrap();
-        let previous = prepare_notes_document("note.md", b"previous note").unwrap();
-        let mut writer = NotesIndexWriter::open(temp.path(), COLLECTION_ID.to_string()).unwrap();
-        writer
-            .commit_document(&previous, &embedding(&previous), &source())
-            .unwrap();
-        writer.publish(true).unwrap();
-
-        let prepared = prepare_notes_document("note.md", b"updated note").unwrap();
-        let updated_source = source_at(2);
-        let load_count = Cell::new(0);
-        let outcome = index_notes_collection::<()>(
-            NotesIndexInput {
-                index_root: temp.path(),
-                collection_id: COLLECTION_ID.to_string(),
-                inventory: vec![updated_source.clone()],
-                forced_document_ids: &[],
-                force_full_hash: false,
-            },
-            || Ok(()),
-            |_| {
-                load_count.set(load_count.get() + 1);
-                Ok(if load_count.get() == 1 {
-                    NotesDocumentLoad::Prepared {
-                        document: prepared.clone(),
-                        source: updated_source.clone(),
-                    }
+        let source_for = |document_id: &str| NotesSourceDocument {
+            document_id: document_id.to_string(),
+            ..source()
+        };
+        let inventory = (0..2)
+            .map(|index| source_for(&format!("note-{index:02}.md")))
+            .collect::<Vec<_>>();
+        let forced_document_ids = inventory
+            .iter()
+            .map(|source| source.document_id.clone())
+            .collect::<Vec<_>>();
+        let input = NotesIndexInput {
+            index_root: temp.path(),
+            collection_id: COLLECTION_ID.to_string(),
+            inventory: inventory.clone(),
+            forced_document_ids: &forced_document_ids,
+            force_full_hash: false,
+        };
+        let load_document = |document_id: &str| {
+            Ok(NotesDocumentLoad::Prepared {
+                document: prepare_notes_document(document_id, b"note").unwrap(),
+                source: source_for(document_id),
+            })
+        };
+        let verify_revision = |document_id: &str, _: &str| {
+            Ok(NotesRevisionStatus::Matches {
+                source: source_for(document_id),
+            })
+        };
+        let cancelled = Cell::new(false);
+        let mut embedded = Vec::new();
+        let result = index_notes_collection(
+            input.clone(),
+            || {
+                if cancelled.get() {
+                    Err("cancelled")
                 } else {
-                    NotesDocumentLoad::Changed
-                })
+                    Ok(())
+                }
             },
-            |document| Ok(Some(embedding(document))),
-            |_, _| {
-                Ok(NotesRevisionStatus::Matches {
-                    source: updated_source.clone(),
-                })
+            load_document,
+            |document| {
+                embedded.push(document.document_id.clone());
+                Ok(Some(embedding(document)))
             },
+            verify_revision,
+            |progress| {
+                if progress.processed_document_count > 0
+                    && progress.processed_document_count < progress.total_document_count
+                {
+                    cancelled.set(true);
+                }
+            },
+        );
+
+        assert!(matches!(
+            result,
+            Err(NotesIndexingError::Adapter("cancelled"))
+        ));
+        assert_eq!(embedded.len(), 1);
+        {
+            let writer = NotesIndexWriter::open(temp.path(), COLLECTION_ID.to_string()).unwrap();
+            assert!(!writer.initial_inventory_complete());
+            assert_eq!(writer.indexed_document_ids().collect::<Vec<_>>(), embedded);
+        }
+        let outcome = index_notes_collection(
+            input,
+            || Ok(()),
+            load_document,
+            |document| {
+                embedded.push(document.document_id.clone());
+                Ok(Some(embedding(document)))
+            },
+            verify_revision,
             |_| {},
         )
         .unwrap();
 
-        assert_eq!(outcome.changed_during_indexing.as_deref(), Some("note.md"));
-        assert_eq!(outcome.unchecked_document_ids, ["note.md"]);
+        assert!(outcome.ready());
+        let document_ids = inventory
+            .iter()
+            .map(|source| source.document_id.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(embedded, document_ids);
         let index = NotesCollectionIndex::open(temp.path(), COLLECTION_ID.to_string()).unwrap();
-        let hits = index.search(&embedding(&previous)[0]).unwrap();
-        assert_eq!(hits.len(), 1);
-        assert_eq!(hits[0].text, "previous note");
+        assert_eq!(index.document_count(), inventory.len());
     }
 
     #[test]
-    fn stops_before_embedding_when_source_metadata_changes_after_preflight() {
+    fn preserves_the_previous_publication_when_a_source_changes() {
+        for phase in ["load", "revision", "metadata"] {
+            let temp = tempfile::tempdir().unwrap();
+            let previous = prepare_notes_document("note.md", b"previous note").unwrap();
+            let mut writer =
+                NotesIndexWriter::open(temp.path(), COLLECTION_ID.to_string()).unwrap();
+            writer
+                .commit_document(&previous, &embedding(&previous), &source())
+                .unwrap();
+            writer.publish(true).unwrap();
+
+            let prepared = prepare_notes_document("note.md", b"updated note").unwrap();
+            let updated_source = source_at(2);
+            let embedded = Cell::new(false);
+            let outcome = index_notes_collection::<()>(
+                NotesIndexInput {
+                    index_root: temp.path(),
+                    collection_id: COLLECTION_ID.to_string(),
+                    inventory: vec![updated_source.clone()],
+                    forced_document_ids: &[],
+                    force_full_hash: false,
+                },
+                || Ok(()),
+                |_| {
+                    Ok(if phase == "load" {
+                        NotesDocumentLoad::Changed
+                    } else {
+                        NotesDocumentLoad::Prepared {
+                            document: prepared.clone(),
+                            source: updated_source.clone(),
+                        }
+                    })
+                },
+                |document| {
+                    embedded.set(true);
+                    Ok(Some(embedding(document)))
+                },
+                |_, _| {
+                    Ok(if phase == "revision" {
+                        NotesRevisionStatus::Changed
+                    } else {
+                        NotesRevisionStatus::Matches {
+                            source: source_at(3),
+                        }
+                    })
+                },
+                |_| {},
+            )
+            .unwrap();
+
+            assert_eq!(embedded.get(), phase != "load", "{phase}");
+            assert_eq!(outcome.changed_during_indexing.as_deref(), Some("note.md"));
+            assert_eq!(outcome.unchecked_document_ids, ["note.md"]);
+            let index = NotesCollectionIndex::open(temp.path(), COLLECTION_ID.to_string()).unwrap();
+            let hits = index.search(&embedding(&previous)[0]).unwrap();
+            assert_eq!(hits.len(), 1);
+            assert_eq!(hits[0].text, "previous note");
+        }
+    }
+
+    #[test]
+    fn stops_before_embedding_when_updated_inventory_exceeds_capacity() {
         let temp = tempfile::tempdir().unwrap();
-        let prepared = prepare_notes_document("note.md", b"note").unwrap();
-        let load_count = Cell::new(0);
-        let embed_count = Cell::new(0);
-        let outcome = index_notes_collection::<()>(
+        let inventory = (0..65)
+            .map(|i| NotesSourceDocument {
+                document_id: format!("note-{i:02}.md"),
+                size: match i {
+                    0 => 4,
+                    1 => super::super::NOTES_MAX_SOURCE_BYTES as u64 - 4,
+                    _ => super::super::NOTES_MAX_SOURCE_BYTES as u64,
+                },
+                modified_at_ms: Some(1),
+            })
+            .collect::<Vec<_>>();
+        let embedded = Cell::new(0);
+        let result = index_notes_collection::<()>(
             NotesIndexInput {
                 index_root: temp.path(),
                 collection_id: COLLECTION_ID.to_string(),
-                inventory: vec![source()],
+                inventory: inventory.clone(),
                 forced_document_ids: &[],
                 force_full_hash: false,
             },
             || Ok(()),
-            |_| {
-                load_count.set(load_count.get() + 1);
+            |id| {
+                let mut source = inventory
+                    .iter()
+                    .find(|source| source.document_id == id)
+                    .unwrap()
+                    .clone();
+                if id == "note-01.md" {
+                    source.size += 1;
+                }
+                let bytes = vec![b'x'; source.size as usize];
                 Ok(NotesDocumentLoad::Prepared {
-                    document: prepared.clone(),
-                    source: source_at(load_count.get()),
+                    document: prepare_notes_document(id, &bytes).unwrap(),
+                    source,
                 })
             },
-            |_| {
-                embed_count.set(embed_count.get() + 1);
-                Ok(Some(embedding(&prepared)))
+            |document| {
+                embedded.set(embedded.get() + 1);
+                Ok(Some(embedding(document)))
             },
-            |_, _| Ok(NotesRevisionStatus::Matches { source: source() }),
+            |id, _| {
+                Ok(NotesRevisionStatus::Matches {
+                    source: inventory
+                        .iter()
+                        .find(|source| source.document_id == id)
+                        .unwrap()
+                        .clone(),
+                })
+            },
             |_| {},
-        )
-        .unwrap();
-
-        assert_eq!(outcome.changed_during_indexing.as_deref(), Some("note.md"));
-        assert_eq!(embed_count.get(), 0);
+        );
+        assert!(matches!(
+            result,
+            Err(NotesIndexingError::Notes(NotesError::CollectionTooLarge(_)))
+        ));
+        assert_eq!(embedded.get(), 1);
+        let writer = NotesIndexWriter::open(temp.path(), COLLECTION_ID.to_string()).unwrap();
+        assert_eq!(writer.indexed_document_count(), 1);
+        assert!(!writer.initial_inventory_complete());
     }
 }

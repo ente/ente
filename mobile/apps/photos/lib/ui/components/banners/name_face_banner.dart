@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_components/theme/text_styles.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -73,12 +74,7 @@ class _NameFaceBannerState extends State<NameFaceBanner> {
                     child: Text(
                       l10n.offlineNameFaceBannerTitle,
                       textAlign: TextAlign.center,
-                      style: textTheme.largeBold.copyWith(
-                        fontFamily: "Nunito",
-                        fontWeight: FontWeight.w800,
-                        fontSize: 20,
-                        height: 24 / 18,
-                        letterSpacing: -1,
+                      style: TextStyles.display2.copyWith(
                         color: colorScheme.textBase,
                       ),
                     ),

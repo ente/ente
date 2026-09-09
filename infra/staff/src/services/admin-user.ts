@@ -105,6 +105,11 @@ const UserResponse = z.object({
     photosFileCount: z.number().nullish().transform(nullToUndefined),
     lockerFileCount: z.number().nullish().transform(nullToUndefined),
     tokens: z.array(TokenData).nullish().transform(nullishToEmpty),
+    storageConsumed: z.number().nullish().transform(nullToUndefined),
+    storageConsumedStatus: z
+        .enum(["available", "unavailable"])
+        .nullish()
+        .transform(nullToUndefined),
     details: UserDetails,
 });
 

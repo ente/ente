@@ -281,3 +281,174 @@ pub fn knowledge_pack_asset(stable_id: String) -> Result<Arc<Asset>, KnowledgeRe
             detail: format!("invalid retrieval input: {error}"),
         })
 }
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct NoteSourceReference {
+    pub collection_id: String,
+    pub collection_label: Option<String>,
+    pub document_id: String,
+    pub indexed_revision: String,
+    pub title: String,
+    pub section: Option<String>,
+}
+
+impl From<ente_ensu::notes::NoteSourceReference> for NoteSourceReference {
+    fn from(value: ente_ensu::notes::NoteSourceReference) -> Self {
+        Self {
+            collection_id: value.collection_id,
+            collection_label: value.collection_label,
+            document_id: value.document_id,
+            indexed_revision: value.indexed_revision,
+            title: value.title,
+            section: value.section,
+        }
+    }
+}
+
+impl From<NoteSourceReference> for ente_ensu::notes::NoteSourceReference {
+    fn from(value: NoteSourceReference) -> Self {
+        Self {
+            collection_id: value.collection_id,
+            collection_label: value.collection_label,
+            document_id: value.document_id,
+            indexed_revision: value.indexed_revision,
+            title: value.title,
+            section: value.section,
+        }
+    }
+}
+
+#[uniffi::export]
+pub fn with_notes_collection_label(
+    reference: NoteSourceReference,
+    label: String,
+) -> NoteSourceReference {
+    ente_ensu::notes::NoteSourceReference::from(reference)
+        .with_collection_label(label)
+        .into()
+}
+
+#[derive(Debug, Clone, uniffi::Enum)]
+pub enum GroundedSource {
+    EnsuPack { citation: SourceCitation },
+    LocalNote { reference: NoteSourceReference },
+}
+
+impl From<core::GroundedSource> for GroundedSource {
+    fn from(value: core::GroundedSource) -> Self {
+        match value {
+            core::GroundedSource::EnsuPack { citation } => Self::EnsuPack {
+                citation: citation.into(),
+            },
+            core::GroundedSource::LocalNote { reference } => Self::LocalNote {
+                reference: reference.into(),
+            },
+        }
+    }
+}
+
+impl From<GroundedSource> for core::GroundedSource {
+    fn from(value: GroundedSource) -> Self {
+        match value {
+            GroundedSource::EnsuPack { citation } => Self::EnsuPack {
+                citation: citation.into(),
+            },
+            GroundedSource::LocalNote { reference } => Self::LocalNote {
+                reference: reference.into(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct GroundedExcerpt {
+    pub score: f32,
+    pub source: GroundedSource,
+    pub text: String,
+}
+
+impl From<core::GroundedExcerpt> for GroundedExcerpt {
+    fn from(value: core::GroundedExcerpt) -> Self {
+        Self {
+            score: value.score,
+            source: value.source.into(),
+            text: value.text,
+        }
+    }
+}
+
+impl From<GroundedExcerpt> for core::GroundedExcerpt {
+    fn from(value: GroundedExcerpt) -> Self {
+        Self {
+            score: value.score,
+            source: value.source.into(),
+            text: value.text,
+        }
+    }
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct GroundedPromptContext {
+    pub text: String,
+    pub sources: Vec<GroundedSource>,
+}
+
+impl From<core::GroundedPromptContext> for GroundedPromptContext {
+    fn from(value: core::GroundedPromptContext) -> Self {
+        Self {
+            text: value.text,
+            sources: value.sources.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[uniffi::export]
+pub fn select_mixed_grounding_candidates(
+    pack_hits: Vec<KnowledgePromptHit>,
+    notes_hits: Vec<crate::notes::NotesHit>,
+    notes_limit: u32,
+) -> Result<Vec<GroundedExcerpt>, KnowledgeRetrievalError> {
+    let packs = pack_hits.into_iter().map(Into::into).collect::<Vec<_>>();
+    let notes = notes_hits.into_iter().map(Into::into).collect::<Vec<_>>();
+    core::select_mixed_grounding_candidates(&packs, &notes, notes_limit as usize)
+        .map(|hits| hits.into_iter().map(Into::into).collect())
+        .map_err(Into::into)
+}
+
+#[uniffi::export]
+pub fn build_grounded_prompt_context(
+    excerpts: Vec<GroundedExcerpt>,
+    max_utf8_bytes: u32,
+) -> Result<Option<GroundedPromptContext>, KnowledgeRetrievalError> {
+    let excerpts = excerpts.into_iter().map(Into::into).collect::<Vec<_>>();
+    core::build_grounded_prompt_context(&excerpts, max_utf8_bytes as usize)
+        .map(|context| context.map(Into::into))
+        .map_err(Into::into)
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct ParsedGroundedAssistantText {
+    pub text: String,
+    pub sources: Vec<GroundedSource>,
+    pub source_labels: Vec<String>,
+}
+
+#[uniffi::export]
+pub fn parse_grounded_assistant_text(stored_text: String) -> ParsedGroundedAssistantText {
+    let parsed = core::parse_grounded_assistant_text(&stored_text);
+    let source_labels = core::grounded_source_chip_labels(&parsed.sources);
+    ParsedGroundedAssistantText {
+        text: parsed.text,
+        sources: parsed.sources.into_iter().map(Into::into).collect(),
+        source_labels,
+    }
+}
+
+#[uniffi::export]
+pub fn finalize_grounded_assistant_text(
+    raw_assistant_text: String,
+    sources: Vec<GroundedSource>,
+) -> Result<String, KnowledgeRetrievalError> {
+    let sources = sources.into_iter().map(Into::into).collect::<Vec<_>>();
+    core::finalize_grounded_assistant_text(&raw_assistant_text, &sources).map_err(Into::into)
+}

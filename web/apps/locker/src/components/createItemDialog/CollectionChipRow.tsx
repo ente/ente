@@ -1,8 +1,8 @@
-import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import { Box, ButtonBase, Stack, Typography } from "@mui/material";
+import { Add01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Box, ButtonBase, Typography } from "@mui/material";
 import { t } from "i18next";
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 
 interface CollectionChipRowItem {
     key: string;
@@ -17,215 +17,108 @@ export const CollectionChipRow: React.FC<{
     disabled?: boolean;
     onCreateClick?: () => void;
 }> = ({ items, createOpen, disabled, onCreateClick }) => {
-    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(false);
-
-    const scrollBy = (direction: number) => {
-        const container = scrollContainerRef.current;
-        if (!container) {
-            return;
-        }
-
-        container.scrollBy({
-            left: direction * Math.max(container.clientWidth * 0.6, 160),
-            behavior: "smooth",
-        });
-    };
-
-    useEffect(() => {
-        const container = scrollContainerRef.current;
-        if (!container) {
-            return;
-        }
-
-        const updateScrollHints = () => {
-            setCanScrollLeft(container.scrollLeft > 8);
-            const remainingScroll =
-                container.scrollWidth -
-                container.clientWidth -
-                container.scrollLeft;
-            setCanScrollRight(remainingScroll > 8);
-        };
-
-        updateScrollHints();
-        container.addEventListener("scroll", updateScrollHints, {
-            passive: true,
-        });
-        window.addEventListener("resize", updateScrollHints);
-
-        return () => {
-            container.removeEventListener("scroll", updateScrollHints);
-            window.removeEventListener("resize", updateScrollHints);
-        };
-    }, [createOpen, items.length]);
-
     return (
         <Box>
-            <Stack
-                direction="row"
+            <Typography
+                variant="small"
                 sx={{
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 1,
-                    mb: 1.25,
+                    fontWeight: 600,
+                    lineHeight: "20px",
+                    mb: "8px",
+                    display: "block",
                 }}
             >
-                <Typography
-                    variant="small"
-                    sx={{
-                        color: "text.faint",
-                        fontWeight: "bold",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        display: "block",
-                    }}
-                >
-                    {t("collections")}
-                </Typography>
-            </Stack>
-            <Box sx={{ position: "relative", minWidth: 0 }}>
-                <Box
-                    sx={{
-                        position: "absolute",
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        zIndex: 1,
-                        display: "flex",
-                        alignItems: "center",
-                    }}
-                >
-                    {canScrollLeft && (
-                        <ButtonBase
-                            onClick={() => scrollBy(-1)}
-                            disabled={disabled}
-                            sx={(theme) => ({
-                                width: 28,
-                                height: 28,
-                                color: "#4A4A4A",
-                                borderRadius: "999px",
+                {t("collections")}
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "12px 8px" }}>
+                {onCreateClick && (
+                    <ButtonBase
+                        onClick={onCreateClick}
+                        disabled={disabled}
+                        sx={(theme) => ({
+                            minHeight: 42,
+                            maxWidth: "100%",
+                            minWidth: 0,
+                            px: "16px",
+                            py: "8px",
+                            gap: "6px",
+                            borderRadius: "16px",
+                            border: `1px dashed ${theme.vars.palette.stroke.muted}`,
+                            color: theme.vars.palette.text.muted,
+                            backgroundColor: createOpen
+                                ? theme.vars.palette.background.paper
+                                : "transparent",
+                            "&:hover": {
                                 backgroundColor:
-                                    theme.vars.palette.background.paper,
-                                ...theme.applyStyles("dark", {
-                                    color: "#FFFFFF",
-                                }),
-                            })}
-                        >
-                            <ChevronLeftRoundedIcon sx={{ fontSize: 28 }} />
-                        </ButtonBase>
-                    )}
-                </Box>
-                <Box sx={{ position: "relative", minWidth: 0 }}>
-                    <Stack
-                        ref={scrollContainerRef}
-                        direction="row"
-                        sx={{
-                            gap: 1,
-                            flexWrap: "nowrap",
-                            overflowX: "auto",
-                            overflowY: "hidden",
-                            px: 0.5,
-                            pb: 0.5,
-                            maskImage:
-                                canScrollLeft && canScrollRight
-                                    ? "linear-gradient(90deg, rgba(0,0,0,0) 0%, #000 64px, #000 calc(100% - 64px), rgba(0,0,0,0) 100%)"
-                                    : canScrollLeft
-                                      ? "linear-gradient(90deg, rgba(0,0,0,0) 0%, #000 64px)"
-                                      : canScrollRight
-                                        ? "linear-gradient(90deg, #000 0%, #000 calc(100% - 64px), rgba(0,0,0,0) 100%)"
-                                        : undefined,
-                            WebkitMaskImage:
-                                canScrollLeft && canScrollRight
-                                    ? "linear-gradient(90deg, rgba(0,0,0,0) 0%, #000 64px, #000 calc(100% - 64px), rgba(0,0,0,0) 100%)"
-                                    : canScrollLeft
-                                      ? "linear-gradient(90deg, rgba(0,0,0,0) 0%, #000 64px)"
-                                      : canScrollRight
-                                        ? "linear-gradient(90deg, #000 0%, #000 calc(100% - 64px), rgba(0,0,0,0) 100%)"
-                                        : undefined,
-                            scrollbarWidth: "none",
-                            "&::-webkit-scrollbar": { display: "none" },
-                        }}
+                                    theme.vars.palette.fill.faintHover,
+                            },
+                            "&.Mui-disabled": {
+                                backgroundColor:
+                                    theme.vars.palette.fill.faintHover,
+                                color: theme.vars.palette.text.faint,
+                            },
+                        })}
                     >
-                        {onCreateClick && (
-                            <ButtonBase
-                                onClick={onCreateClick}
-                                disabled={disabled}
-                                sx={(theme) => ({
-                                    borderRadius: "999px",
-                                    px: 1.5,
-                                    py: 0.875,
-                                    whiteSpace: "nowrap",
-                                    flexShrink: 0,
-                                    border: `1px dotted ${theme.vars.palette.stroke.muted}`,
-                                    color: theme.vars.palette.text.muted,
-                                    backgroundColor: createOpen
-                                        ? theme.vars.palette.fill.faint
-                                        : "transparent",
-                                })}
-                            >
-                                <Typography variant="small">
-                                    + {t("collection")}
-                                </Typography>
-                            </ButtonBase>
-                        )}
-                        {items.map((item) => (
-                            <ButtonBase
-                                key={item.key}
-                                onClick={item.onClick}
-                                disabled={disabled}
-                                sx={(theme) => ({
-                                    borderRadius: "999px",
-                                    px: 1.5,
-                                    py: 0.875,
-                                    whiteSpace: "nowrap",
-                                    flexShrink: 0,
-                                    backgroundColor: item.selected
-                                        ? "#1071FF"
-                                        : theme.vars.palette.fill.faint,
-                                    color: item.selected
-                                        ? "#FFFFFF"
-                                        : theme.vars.palette.text.base,
-                                })}
-                            >
-                                <Typography variant="small">
-                                    {item.label}
-                                </Typography>
-                            </ButtonBase>
-                        ))}
-                    </Stack>
-                </Box>
-                <Box
-                    sx={{
-                        position: "absolute",
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        zIndex: 1,
-                        display: "flex",
-                        alignItems: "center",
-                    }}
-                >
-                    {canScrollRight && (
-                        <ButtonBase
-                            onClick={() => scrollBy(1)}
-                            disabled={disabled}
-                            sx={(theme) => ({
-                                width: 28,
-                                height: 28,
-                                color: "#4A4A4A",
-                                borderRadius: "999px",
-                                backgroundColor:
-                                    theme.vars.palette.background.paper,
-                                ...theme.applyStyles("dark", {
-                                    color: "#FFFFFF",
-                                }),
-                            })}
+                        <Box sx={{ display: "flex", flexShrink: 0 }}>
+                            <HugeiconsIcon
+                                icon={Add01Icon}
+                                size={18}
+                                strokeWidth={1.5}
+                            />
+                        </Box>
+                        <Typography
+                            variant="small"
+                            noWrap
+                            sx={{ fontWeight: 500, lineHeight: "20px" }}
                         >
-                            <ChevronRightRoundedIcon sx={{ fontSize: 28 }} />
-                        </ButtonBase>
-                    )}
-                </Box>
+                            {t("collection")}
+                        </Typography>
+                    </ButtonBase>
+                )}
+                {items.map((item) => (
+                    <ButtonBase
+                        key={item.key}
+                        title={item.label}
+                        onClick={item.onClick}
+                        disabled={disabled}
+                        sx={(theme) => ({
+                            minHeight: 44,
+                            maxWidth: "100%",
+                            minWidth: 0,
+                            px: "20px",
+                            py: "12px",
+                            borderRadius: "16px",
+                            backgroundColor: item.selected
+                                ? theme.vars.palette.accent.main
+                                : theme.vars.palette.background.paper,
+                            color: item.selected
+                                ? theme.vars.palette.accent.contrastText
+                                : theme.vars.palette.text.muted,
+                            transition: "background-color 0.15s",
+                            "&:hover": {
+                                backgroundColor: item.selected
+                                    ? theme.vars.palette.accent.dark
+                                    : theme.vars.palette.fill.faintHover,
+                            },
+                            "&.Mui-disabled": {
+                                backgroundColor: item.selected
+                                    ? theme.vars.palette.accent.main
+                                    : theme.vars.palette.fill.faintHover,
+                                color: item.selected
+                                    ? theme.vars.palette.accent.contrastText
+                                    : theme.vars.palette.text.faint,
+                            },
+                        })}
+                    >
+                        <Typography
+                            variant="small"
+                            noWrap
+                            sx={{ fontWeight: 500, lineHeight: "20px" }}
+                        >
+                            {item.label}
+                        </Typography>
+                    </ButtonBase>
+                ))}
             </Box>
         </Box>
     );

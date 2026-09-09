@@ -3,7 +3,8 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
-        "build:post": "rm -f out/404.html"
+        "build:post": "rm -f out/404.html",
+        "test": "vitest --run"
     },
     "dependencies": {
         "@fontsource/gochi-hand": "5.2.8",
@@ -14,6 +15,7 @@
         "qr-code-styling": "1.9.2"
     },
     "devDependencies": {
-        "ente-build-config": "*"
+        "ente-build-config": "*",
+        "vitest": "4.1.11"
     }
 }

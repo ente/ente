@@ -1,1 +1,0 @@
-- New accounts now choose a storage plan before entering their gallery.

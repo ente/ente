@@ -122,7 +122,7 @@ impl LlmModel {
 
 #[derive(uniffi::Object)]
 pub struct LlmContext {
-    handle: llm::ContextRef,
+    pub(crate) handle: llm::ContextRef,
 }
 
 #[uniffi::export]

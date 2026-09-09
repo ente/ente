@@ -8,13 +8,21 @@ use super::{Match, SearchParams, VecDbError};
 const M: usize = 16;
 const LEVEL_ZERO_NEIGHBOR_CAP: usize = 2 * M;
 const UPPER_LEVEL_NEIGHBOR_CAP: usize = M;
-const EF_CONSTRUCTION: usize = 128;
-const EF_SEARCH_FLOOR: usize = 64;
+const EF_CONSTRUCTION: usize = 96;
+const SELECTION_WINDOW_FACTOR: usize = 2;
+const EF_SEARCH_UPPER: usize = 1;
+const EF_SEARCH_FLOOR_SMALL: usize = 72;
+const EF_SEARCH_FLOOR_LARGE: usize = 56;
+const EF_SEARCH_FLOOR_CROSSOVER: usize = 20_000;
 const EF_SEARCH_LIMIT_FACTOR: usize = 4;
 const SMALL_FILTER_FLOOR: usize = 1024;
 const SMALL_FILTER_LIMIT_FACTOR: usize = 4;
-const THRESHOLD_STEP_COUNTS: [usize; 5] = [200, 500, 2000, 5000, 10000];
+const RANGE_SEARCH_FLOOR: usize = 200;
+const RANGE_EXPANSION_SLACK: f32 = 0.10;
 const LEVEL_SEED: u64 = 0x9E37_79B9_7F4A_7C15;
+const NEIGHBOR_BATCH: usize = LEVEL_ZERO_NEIGHBOR_CAP;
+const ABSENT_LEVEL: u16 = u16::MAX;
+const ABSENT_DENSE: u32 = u32::MAX;
 
 fn neighbor_cap(level: usize) -> usize {
     if level == 0 {
@@ -22,6 +30,40 @@ fn neighbor_cap(level: usize) -> usize {
     } else {
         UPPER_LEVEL_NEIGHBOR_CAP
     }
+}
+
+fn select_neighbors(
+    arena: &VectorArena,
+    candidates: &[Scored],
+    cap: usize,
+    selected: &mut [u32; LEVEL_ZERO_NEIGHBOR_CAP],
+) -> usize {
+    let window = candidates
+        .len()
+        .min(cap.saturating_mul(SELECTION_WINDOW_FACTOR));
+    let mut count = 0;
+    for candidate in &candidates[..window] {
+        if count == cap {
+            break;
+        }
+        let diverse = selected[..count]
+            .iter()
+            .all(|&kept| arena.distance_between_slots(candidate.slot, kept) > candidate.distance);
+        if diverse {
+            selected[count] = candidate.slot;
+            count += 1;
+        }
+    }
+    for candidate in candidates {
+        if count == cap {
+            break;
+        }
+        if !selected[..count].contains(&candidate.slot) {
+            selected[count] = candidate.slot;
+            count += 1;
+        }
+    }
+    count
 }
 
 #[derive(Clone, Copy)]
@@ -74,13 +116,28 @@ impl VisitedSet {
     }
 }
 
-struct Node {
-    neighbors: Vec<Vec<u32>>,
+struct UpperLevel {
+    dense_of_slot: Vec<u32>,
+    neighbors: Vec<u32>,
+    lengths: Vec<u16>,
+    free: Vec<u32>,
 }
 
-impl Node {
-    fn level(&self) -> usize {
-        self.neighbors.len() - 1
+impl UpperLevel {
+    fn new() -> Self {
+        Self {
+            dense_of_slot: Vec::new(),
+            neighbors: Vec::new(),
+            lengths: Vec::new(),
+            free: Vec::new(),
+        }
+    }
+
+    fn memory_bytes(&self) -> usize {
+        self.dense_of_slot.capacity() * size_of::<u32>()
+            + self.neighbors.capacity() * size_of::<u32>()
+            + self.lengths.capacity() * size_of::<u16>()
+            + self.free.capacity() * size_of::<u32>()
     }
 }
 
@@ -91,7 +148,10 @@ pub(crate) struct GraphNodeParts {
 }
 
 pub(crate) struct Graph {
-    nodes: Vec<Option<Node>>,
+    node_levels: Vec<u16>,
+    zero_neighbors: Vec<u32>,
+    zero_lengths: Vec<u16>,
+    upper: Vec<UpperLevel>,
     entry_point: Option<u32>,
     insert_ordinal: u64,
 }
@@ -99,7 +159,10 @@ pub(crate) struct Graph {
 impl Graph {
     pub(crate) fn new() -> Self {
         Self {
-            nodes: Vec::new(),
+            node_levels: Vec::new(),
+            zero_neighbors: Vec::new(),
+            zero_lengths: Vec::new(),
+            upper: Vec::new(),
             entry_point: None,
             insert_ordinal: 0,
         }
@@ -141,6 +204,16 @@ impl Graph {
                     part.slot
                 )));
             }
+            for (layer, list) in part.neighbors.iter().enumerate() {
+                let cap = neighbor_cap(layer);
+                if list.len() > cap {
+                    return Err(VecDbError::Corrupt(format!(
+                        "graph node {} level {layer} has {} neighbors above the {cap} cap",
+                        part.slot,
+                        list.len()
+                    )));
+                }
+            }
         }
         for part in &parts {
             for list in &part.neighbors {
@@ -172,22 +245,22 @@ impl Graph {
             .map(|part| part.slot as usize + 1)
             .max()
             .unwrap_or(0);
-        let mut nodes: Vec<Option<Node>> = Vec::new();
-        nodes.resize_with(capacity, || None);
+        let mut graph = Self::new();
+        graph.entry_point = entry_point;
+        graph.insert_ordinal = insert_ordinal;
+        graph.reserve_slots(capacity);
         for part in parts {
-            nodes[part.slot as usize] = Some(Node {
-                neighbors: part.neighbors,
-            });
+            graph.attach_empty_node(part.slot, part.level as usize);
+            for (layer, list) in part.neighbors.iter().enumerate() {
+                graph.write_level_list(part.slot, layer, list);
+            }
         }
-        Ok(Self {
-            nodes,
-            entry_point,
-            insert_ordinal,
-        })
+        Ok(graph)
     }
 
     pub(crate) fn insert(&mut self, slot: u32, arena: &VectorArena) {
         let level = self.next_level();
+        self.reserve_slots(arena.slot_count().max(slot as usize + 1));
         self.attach_empty_node(slot, level);
         let Some(entry) = self.entry_point else {
             self.entry_point = Some(slot);
@@ -217,25 +290,13 @@ impl Graph {
                 context.search_layer(&entries, link_level, EF_CONSTRUCTION, Some(slot), &|_| true)
             };
             let cap = neighbor_cap(link_level);
-            let chosen: Vec<u32> = candidates
-                .iter()
-                .take(cap)
-                .map(|candidate| candidate.slot)
-                .collect();
-            if let Some(list) = self.level_list_mut(slot, link_level) {
-                *list = chosen.clone();
+            let mut selected = [0u32; LEVEL_ZERO_NEIGHBOR_CAP];
+            let count = select_neighbors(arena, &candidates, cap, &mut selected);
+            if self.holds_level(slot, link_level) {
+                self.write_level_list(slot, link_level, &selected[..count]);
             }
-            for neighbor in chosen {
-                let Some(list) = self.level_list_mut(neighbor, link_level) else {
-                    continue;
-                };
-                if list.contains(&slot) {
-                    continue;
-                }
-                list.push(slot);
-                if list.len() > cap {
-                    self.prune_list(neighbor, link_level, cap, arena);
-                }
+            for &neighbor in &selected[..count] {
+                self.link_back(neighbor, link_level, slot, cap, arena);
             }
             entries = candidates;
         }
@@ -262,99 +323,235 @@ impl Graph {
     }
 
     pub(crate) fn slots(&self) -> impl Iterator<Item = u32> {
-        self.nodes
+        self.node_levels
             .iter()
             .enumerate()
-            .filter_map(|(index, node)| node.as_ref().map(|_| index as u32))
+            .filter_map(|(index, &level)| (level != ABSENT_LEVEL).then_some(index as u32))
     }
 
     pub(crate) fn level_of(&self, slot: u32) -> Option<u8> {
-        self.nodes
-            .get(slot as usize)?
-            .as_ref()
-            .map(|node| node.level() as u8)
+        match self.node_levels.get(slot as usize) {
+            Some(&level) if level != ABSENT_LEVEL => Some(level as u8),
+            _ => None,
+        }
     }
 
     pub(crate) fn neighbors_of(&self, slot: u32, level: u8) -> &[u32] {
         self.level_neighbors(slot, level as usize)
     }
 
-    fn level_neighbors(&self, slot: u32, level: usize) -> &[u32] {
-        match self
-            .nodes
-            .get(slot as usize)
-            .and_then(|entry| entry.as_ref())
-            .and_then(|node| node.neighbors.get(level))
-        {
-            Some(list) => list,
-            None => &[],
-        }
+    pub(crate) fn memory_bytes(&self) -> usize {
+        self.node_levels.capacity() * size_of::<u16>()
+            + self.zero_neighbors.capacity() * size_of::<u32>()
+            + self.zero_lengths.capacity() * size_of::<u16>()
+            + self.upper.capacity() * size_of::<UpperLevel>()
+            + self
+                .upper
+                .iter()
+                .map(UpperLevel::memory_bytes)
+                .sum::<usize>()
     }
 
-    fn level_list_mut(&mut self, slot: u32, level: usize) -> Option<&mut Vec<u32>> {
-        self.nodes
-            .get_mut(slot as usize)?
-            .as_mut()?
-            .neighbors
-            .get_mut(level)
+    fn slot_span(&self) -> usize {
+        self.node_levels.len()
+    }
+
+    fn level_neighbors(&self, slot: u32, level: usize) -> &[u32] {
+        if level == 0 {
+            let Some(&length) = self.zero_lengths.get(slot as usize) else {
+                return &[];
+            };
+            let base = slot as usize * LEVEL_ZERO_NEIGHBOR_CAP;
+            return &self.zero_neighbors[base..base + length as usize];
+        }
+        let Some(upper) = self.upper.get(level - 1) else {
+            return &[];
+        };
+        let Some(&dense) = upper.dense_of_slot.get(slot as usize) else {
+            return &[];
+        };
+        if dense == ABSENT_DENSE {
+            return &[];
+        }
+        let base = dense as usize * UPPER_LEVEL_NEIGHBOR_CAP;
+        &upper.neighbors[base..base + upper.lengths[dense as usize] as usize]
+    }
+
+    fn holds_level(&self, slot: u32, level: usize) -> bool {
+        self.level_of(slot)
+            .is_some_and(|node_level| usize::from(node_level) >= level)
+    }
+
+    fn write_level_list(&mut self, slot: u32, level: usize, values: &[u32]) {
+        debug_assert!(values.len() <= neighbor_cap(level));
+        if level == 0 {
+            let base = slot as usize * LEVEL_ZERO_NEIGHBOR_CAP;
+            self.zero_neighbors[base..base + values.len()].copy_from_slice(values);
+            self.zero_lengths[slot as usize] = values.len() as u16;
+            return;
+        }
+        let upper = &mut self.upper[level - 1];
+        let dense = upper.dense_of_slot[slot as usize] as usize;
+        let base = dense * UPPER_LEVEL_NEIGHBOR_CAP;
+        upper.neighbors[base..base + values.len()].copy_from_slice(values);
+        upper.lengths[dense] = values.len() as u16;
+    }
+
+    fn reserve_slots(&mut self, capacity: usize) {
+        if self.node_levels.len() >= capacity {
+            return;
+        }
+        let extra = capacity - self.node_levels.len();
+        self.node_levels.reserve_exact(extra);
+        self.node_levels.resize(capacity, ABSENT_LEVEL);
+        self.zero_lengths.reserve_exact(extra);
+        self.zero_lengths.resize(capacity, 0);
+        let blocks = capacity * LEVEL_ZERO_NEIGHBOR_CAP;
+        self.zero_neighbors
+            .reserve_exact(blocks - self.zero_neighbors.len());
+        self.zero_neighbors.resize(blocks, 0);
     }
 
     fn attach_empty_node(&mut self, slot: u32, level: usize) {
-        if self.nodes.len() <= slot as usize {
-            self.nodes.resize_with(slot as usize + 1, || None);
+        self.reserve_slots(slot as usize + 1);
+        debug_assert!(self.node_levels[slot as usize] == ABSENT_LEVEL);
+        self.node_levels[slot as usize] = level as u16;
+        self.zero_lengths[slot as usize] = 0;
+        for layer in 1..=level {
+            self.claim_upper_block(slot, layer);
         }
-        debug_assert!(self.nodes[slot as usize].is_none());
-        self.nodes[slot as usize] = Some(Node {
-            neighbors: vec![Vec::new(); level + 1],
-        });
+    }
+
+    fn claim_upper_block(&mut self, slot: u32, layer: usize) {
+        while self.upper.len() < layer {
+            self.upper.push(UpperLevel::new());
+        }
+        let span = self.node_levels.len();
+        let upper = &mut self.upper[layer - 1];
+        if upper.dense_of_slot.len() < span {
+            upper
+                .dense_of_slot
+                .reserve_exact(span - upper.dense_of_slot.len());
+            upper.dense_of_slot.resize(span, ABSENT_DENSE);
+        }
+        let dense = match upper.free.pop() {
+            Some(dense) => dense,
+            None => {
+                let dense = upper.lengths.len() as u32;
+                upper.lengths.push(0);
+                upper
+                    .neighbors
+                    .resize(upper.lengths.len() * UPPER_LEVEL_NEIGHBOR_CAP, 0);
+                dense
+            }
+        };
+        upper.lengths[dense as usize] = 0;
+        upper.dense_of_slot[slot as usize] = dense;
+    }
+
+    fn release_node(&mut self, slot: u32, level: usize) {
+        self.zero_lengths[slot as usize] = 0;
+        for layer in 1..=level {
+            let upper = &mut self.upper[layer - 1];
+            let dense = upper.dense_of_slot[slot as usize];
+            if dense == ABSENT_DENSE {
+                continue;
+            }
+            upper.dense_of_slot[slot as usize] = ABSENT_DENSE;
+            upper.lengths[dense as usize] = 0;
+            upper.free.push(dense);
+        }
     }
 
     fn detach(&mut self, slot: u32) {
-        let Some(node) = self.nodes.get_mut(slot as usize).and_then(Option::take) else {
+        let Some(level) = self.level_of(slot).map(usize::from) else {
             return;
         };
-        for (level, neighbors) in node.neighbors.into_iter().enumerate() {
-            for neighbor in neighbors {
-                if let Some(list) = self.level_list_mut(neighbor, level) {
-                    list.retain(|&other| other != slot);
-                }
+        self.node_levels[slot as usize] = ABSENT_LEVEL;
+        for layer in 0..=level {
+            let mut buffer = [0u32; LEVEL_ZERO_NEIGHBOR_CAP];
+            let count = {
+                let list = self.level_neighbors(slot, layer);
+                buffer[..list.len()].copy_from_slice(list);
+                list.len()
+            };
+            for &neighbor in &buffer[..count] {
+                self.unlink(neighbor, layer, slot);
             }
         }
+        self.release_node(slot, level);
         if self.entry_point == Some(slot) {
             self.entry_point = self.highest_slot();
         }
     }
 
+    fn unlink(&mut self, slot: u32, level: usize, other: u32) {
+        if !self.holds_level(slot, level) {
+            return;
+        }
+        let mut buffer = [0u32; LEVEL_ZERO_NEIGHBOR_CAP];
+        let count = {
+            let list = self.level_neighbors(slot, level);
+            if !list.contains(&other) {
+                return;
+            }
+            let mut count = 0;
+            for &value in list {
+                if value != other {
+                    buffer[count] = value;
+                    count += 1;
+                }
+            }
+            count
+        };
+        self.write_level_list(slot, level, &buffer[..count]);
+    }
+
+    fn link_back(&mut self, slot: u32, level: usize, other: u32, cap: usize, arena: &VectorArena) {
+        if !self.holds_level(slot, level) {
+            return;
+        }
+        let mut buffer = [0u32; LEVEL_ZERO_NEIGHBOR_CAP + 1];
+        let count = {
+            let list = self.level_neighbors(slot, level);
+            if list.contains(&other) {
+                return;
+            }
+            buffer[..list.len()].copy_from_slice(list);
+            list.len() + 1
+        };
+        buffer[count - 1] = other;
+        if count <= cap {
+            self.write_level_list(slot, level, &buffer[..count]);
+            return;
+        }
+        let mut scored = [Scored {
+            distance: 0.0,
+            slot: 0,
+        }; LEVEL_ZERO_NEIGHBOR_CAP + 1];
+        for (entry, &neighbor) in scored.iter_mut().zip(&buffer[..count]) {
+            *entry = Scored {
+                distance: arena.distance_between_slots(slot, neighbor),
+                slot: neighbor,
+            };
+        }
+        scored[..count].sort_unstable();
+        let mut kept = [0u32; LEVEL_ZERO_NEIGHBOR_CAP];
+        let kept_count = select_neighbors(arena, &scored[..count], cap, &mut kept);
+        self.write_level_list(slot, level, &kept[..kept_count]);
+    }
+
     fn highest_slot(&self) -> Option<u32> {
-        let mut best: Option<(usize, u32)> = None;
-        for (index, node) in self.nodes.iter().enumerate() {
-            let Some(node) = node else { continue };
-            let level = node.level();
+        let mut best: Option<(u16, u32)> = None;
+        for (index, &level) in self.node_levels.iter().enumerate() {
+            if level == ABSENT_LEVEL {
+                continue;
+            }
             if best.is_none_or(|(best_level, _)| level > best_level) {
                 best = Some((level, index as u32));
             }
         }
         best.map(|(_, slot)| slot)
-    }
-
-    fn prune_list(&mut self, slot: u32, level: usize, cap: usize, arena: &VectorArena) {
-        let Some(list) = self.level_list_mut(slot, level) else {
-            return;
-        };
-        let taken = std::mem::take(list);
-        let mut scored: Vec<Scored> = taken
-            .into_iter()
-            .map(|neighbor| Scored {
-                distance: arena.distance_between_slots(slot, neighbor),
-                slot: neighbor,
-            })
-            .collect();
-        scored.sort_unstable();
-        scored.truncate(cap);
-        let pruned: Vec<u32> = scored.into_iter().map(|scored| scored.slot).collect();
-        if let Some(list) = self.level_list_mut(slot, level) {
-            *list = pruned;
-        }
     }
 
     fn next_level(&mut self) -> usize {
@@ -378,6 +575,26 @@ impl QueryContext<'_> {
             distance: self.arena.distance_to_query(self.query, slot),
             slot,
         }
+    }
+
+    fn evaluate_batch(
+        &self,
+        chunk: &[u32],
+        visited: &mut VisitedSet,
+        slots: &mut [u32; NEIGHBOR_BATCH],
+        distances: &mut [f32; NEIGHBOR_BATCH],
+    ) -> usize {
+        let mut count = 0;
+        for &neighbor in chunk {
+            if visited.insert(neighbor) {
+                slots[count] = neighbor;
+                count += 1;
+            }
+        }
+        for (distance, &slot) in distances.iter_mut().zip(slots.iter()).take(count) {
+            *distance = self.arena.distance_to_query(self.query, slot);
+        }
+        count
     }
 
     fn greedy_descend(&self, mut best: Scored, level: usize, banned: Option<u32>) -> Scored {
@@ -408,7 +625,7 @@ impl QueryContext<'_> {
         admit: &impl Fn(u32) -> bool,
     ) -> Vec<Scored> {
         debug_assert!(ef > 0);
-        let mut visited = VisitedSet::with_capacity(self.graph.nodes.len());
+        let mut visited = VisitedSet::with_capacity(self.graph.slot_span());
         if let Some(banned) = banned {
             visited.insert(banned);
         }
@@ -426,23 +643,29 @@ impl QueryContext<'_> {
                 }
             }
         }
+        let mut slots = [0u32; NEIGHBOR_BATCH];
+        let mut distances = [0.0f32; NEIGHBOR_BATCH];
         while let Some(Reverse(current)) = candidates.pop() {
             if results.len() >= ef && results.peek().is_some_and(|worst| current > *worst) {
                 break;
             }
-            for &neighbor in self.graph.level_neighbors(current.slot, level) {
-                if !visited.insert(neighbor) {
-                    continue;
-                }
-                let scored = self.scored(neighbor);
-                if results.len() >= ef && results.peek().is_some_and(|worst| scored > *worst) {
-                    continue;
-                }
-                candidates.push(Reverse(scored));
-                if admit(neighbor) {
-                    results.push(scored);
-                    if results.len() > ef {
-                        results.pop();
+            for chunk in self
+                .graph
+                .level_neighbors(current.slot, level)
+                .chunks(NEIGHBOR_BATCH)
+            {
+                let count = self.evaluate_batch(chunk, &mut visited, &mut slots, &mut distances);
+                for (&distance, &slot) in distances.iter().zip(slots.iter()).take(count) {
+                    let scored = Scored { distance, slot };
+                    if results.len() >= ef && results.peek().is_some_and(|worst| scored > *worst) {
+                        continue;
+                    }
+                    candidates.push(Reverse(scored));
+                    if admit(slot) {
+                        results.push(scored);
+                        if results.len() > ef {
+                            results.pop();
+                        }
                     }
                 }
             }
@@ -450,16 +673,101 @@ impl QueryContext<'_> {
         results.into_sorted_vec()
     }
 
-    fn top_scored(&self, ef: usize, admit: &impl Fn(u32) -> bool) -> Vec<Scored> {
+    fn level_zero_entries(&self) -> Vec<Scored> {
         let Some(entry) = self.graph.entry_point else {
             return Vec::new();
         };
         let top = self.graph.level_of(entry).map_or(0, usize::from);
         let mut entries = vec![self.scored(entry)];
         for level in (1..=top).rev() {
-            entries = self.search_layer(&entries, level, ef, None, &|_| true);
+            entries = self.search_layer(&entries, level, EF_SEARCH_UPPER, None, &|_| true);
+        }
+        entries
+    }
+
+    fn top_scored(&self, ef: usize, admit: &impl Fn(u32) -> bool) -> Vec<Scored> {
+        let entries = self.level_zero_entries();
+        if entries.is_empty() {
+            return Vec::new();
         }
         self.search_layer(&entries, 0, ef, None, admit)
+    }
+
+    fn top_scored_near(
+        &self,
+        slot: u32,
+        ef: usize,
+        fill: usize,
+        admit: &impl Fn(u32) -> bool,
+    ) -> Vec<Scored> {
+        if self.graph.level_neighbors(slot, 0).is_empty() {
+            return self.top_scored(ef, admit);
+        }
+        let near = self.search_layer(&[self.scored(slot)], 0, ef, None, admit);
+        if near.len() >= fill {
+            return near;
+        }
+        let mut entries = vec![self.scored(slot)];
+        entries.extend(self.level_zero_entries());
+        self.search_layer(&entries, 0, ef, None, admit)
+    }
+
+    fn range_scored(&self, max_distance: f32, admit: &impl Fn(u32) -> bool) -> Vec<Scored> {
+        let expansion_bound = max_distance * (1.0 + RANGE_EXPANSION_SLACK);
+        let mut visited = VisitedSet::with_capacity(self.graph.slot_span());
+        let mut candidates: BinaryHeap<Reverse<Scored>> = BinaryHeap::new();
+        let mut frontier: BinaryHeap<Scored> = BinaryHeap::new();
+        let mut results: Vec<Scored> = Vec::new();
+        for entry in self.level_zero_entries() {
+            if !visited.insert(entry.slot) {
+                continue;
+            }
+            if entry.distance <= max_distance && admit(entry.slot) {
+                results.push(entry);
+            }
+            candidates.push(Reverse(entry));
+            keep_frontier(&mut frontier, entry);
+        }
+        let mut slots = [0u32; NEIGHBOR_BATCH];
+        let mut distances = [0.0f32; NEIGHBOR_BATCH];
+        while let Some(Reverse(current)) = candidates.pop() {
+            if current.distance > expansion_bound && trails_frontier(&frontier, current) {
+                break;
+            }
+            for chunk in self
+                .graph
+                .level_neighbors(current.slot, 0)
+                .chunks(NEIGHBOR_BATCH)
+            {
+                let count = self.evaluate_batch(chunk, &mut visited, &mut slots, &mut distances);
+                for (&distance, &slot) in distances.iter().zip(slots.iter()).take(count) {
+                    let scored = Scored { distance, slot };
+                    if scored.distance <= max_distance && admit(slot) {
+                        results.push(scored);
+                    }
+                    let trails = trails_frontier(&frontier, scored);
+                    if !trails || scored.distance <= expansion_bound {
+                        candidates.push(Reverse(scored));
+                    }
+                    if !trails {
+                        keep_frontier(&mut frontier, scored);
+                    }
+                }
+            }
+        }
+        results.sort_unstable();
+        results
+    }
+}
+
+fn trails_frontier(frontier: &BinaryHeap<Scored>, scored: Scored) -> bool {
+    frontier.len() >= RANGE_SEARCH_FLOOR && frontier.peek().is_some_and(|worst| scored > *worst)
+}
+
+fn keep_frontier(frontier: &mut BinaryHeap<Scored>, scored: Scored) {
+    frontier.push(scored);
+    if frontier.len() > RANGE_SEARCH_FLOOR {
+        frontier.pop();
     }
 }
 
@@ -470,16 +778,33 @@ pub(crate) fn search(
     params: &SearchParams,
     allowed_slots: Option<&HashSet<u32>>,
 ) -> Vec<Match> {
-    search_excluding(graph, arena, query, params, allowed_slots, None)
+    search_from(graph, arena, query, params, allowed_slots, None)
 }
 
-pub(crate) fn search_excluding(
+pub(crate) fn search_stored(
+    graph: &Graph,
+    arena: &VectorArena,
+    slot: u32,
+    params: &SearchParams,
+    allowed_slots: Option<&HashSet<u32>>,
+) -> Vec<Match> {
+    search_from(
+        graph,
+        arena,
+        arena.vector_lanes(slot),
+        params,
+        allowed_slots,
+        Some(slot),
+    )
+}
+
+fn search_from(
     graph: &Graph,
     arena: &VectorArena,
     query: &[Lane],
     params: &SearchParams,
     allowed_slots: Option<&HashSet<u32>>,
-    banned_slot: Option<u32>,
+    stored_slot: Option<u32>,
 ) -> Vec<Match> {
     debug_assert!(params.limit.is_some() || params.max_distance.is_some());
     if let Some(max_distance) = params.max_distance {
@@ -493,15 +818,15 @@ pub(crate) fn search_excluding(
         return Vec::new();
     }
     if params.exact {
-        return brute_force(arena, query, params, allowed_slots, banned_slot);
+        return brute_force(arena, query, params, allowed_slots, stored_slot);
     }
     if let Some(allowed) = allowed_slots
         && allowed.len() <= small_filter_cap(params.limit)
     {
-        return brute_force(arena, query, params, allowed_slots, banned_slot);
+        return brute_force(arena, query, params, allowed_slots, stored_slot);
     }
     if graph.entry_point.is_none() {
-        return brute_force(arena, query, params, allowed_slots, banned_slot);
+        return brute_force(arena, query, params, allowed_slots, stored_slot);
     }
     let context = QueryContext {
         graph,
@@ -509,18 +834,12 @@ pub(crate) fn search_excluding(
         query,
     };
     match params.limit {
-        Some(limit) => approx_limited(
-            &context,
-            limit,
-            params.max_distance,
-            allowed_slots,
-            banned_slot,
-        ),
+        Some(limit) => approx_limited(&context, limit, params, allowed_slots, stored_slot),
         None => approx_threshold(
             &context,
             params.max_distance.unwrap_or(f32::MAX),
             allowed_slots,
-            banned_slot,
+            stored_slot,
         ),
     }
 }
@@ -544,33 +863,51 @@ fn result_bound(arena: &VectorArena, allowed: Option<&HashSet<u32>>) -> usize {
     allowed.map_or(live, |set| set.len().min(live))
 }
 
+fn ef_search_floor(live: usize) -> usize {
+    if live < EF_SEARCH_FLOOR_CROSSOVER {
+        EF_SEARCH_FLOOR_SMALL
+    } else {
+        EF_SEARCH_FLOOR_LARGE
+    }
+}
+
+fn admissible(arena: &VectorArena, allowed: Option<&HashSet<u32>>, slot: u32) -> bool {
+    arena.is_alive(slot) && allowed.is_none_or(|set| set.contains(&slot))
+}
+
 fn admission<'a>(
     arena: &'a VectorArena,
     allowed: Option<&'a HashSet<u32>>,
     banned: Option<u32>,
 ) -> impl Fn(u32) -> bool + 'a {
-    move |slot| {
-        banned != Some(slot)
-            && arena.is_alive(slot)
-            && allowed.is_none_or(|set| set.contains(&slot))
-    }
+    move |slot| banned != Some(slot) && admissible(arena, allowed, slot)
 }
 
 fn approx_limited(
     context: &QueryContext<'_>,
     limit: usize,
-    max_distance: Option<f32>,
+    params: &SearchParams,
     allowed: Option<&HashSet<u32>>,
-    banned: Option<u32>,
+    stored_slot: Option<u32>,
 ) -> Vec<Match> {
     let bound = result_bound(context.arena, allowed);
-    let ef = limit
-        .saturating_mul(EF_SEARCH_LIMIT_FACTOR)
-        .max(EF_SEARCH_FLOOR)
-        .min(bound);
-    let admit = admission(context.arena, allowed, banned);
-    let scored = context.top_scored(ef, &admit);
-    to_matches(context.arena, scored, Some(limit), max_distance)
+    let ef = match stored_slot {
+        Some(_) => limit,
+        None => limit.saturating_mul(EF_SEARCH_LIMIT_FACTOR),
+    }
+    .max(ef_search_floor(context.arena.live_count()))
+    .min(bound);
+    let admit = admission(context.arena, allowed, stored_slot);
+    let excluded = stored_slot.is_some_and(|slot| admissible(context.arena, allowed, slot));
+    let available = bound - usize::from(excluded);
+    let scored = match stored_slot {
+        Some(slot) => context.top_scored_near(slot, ef, ef.min(available), &admit),
+        None => context.top_scored(ef, &admit),
+    };
+    if scored.len() < limit.min(available) {
+        return brute_force(context.arena, context.query, params, allowed, stored_slot);
+    }
+    to_matches(context.arena, scored, Some(limit), params.max_distance)
 }
 
 fn approx_threshold(
@@ -579,29 +916,9 @@ fn approx_threshold(
     allowed: Option<&HashSet<u32>>,
     banned: Option<u32>,
 ) -> Vec<Match> {
-    let bound = result_bound(context.arena, allowed);
     let admit = admission(context.arena, allowed, banned);
-    let mut previous = 0usize;
-    for step in THRESHOLD_STEP_COUNTS
-        .into_iter()
-        .chain(std::iter::once(bound))
-    {
-        let count = step.min(bound);
-        if count <= previous {
-            continue;
-        }
-        previous = count;
-        let scored = context.top_scored(count, &admit);
-        let full_step = scored.len() == count;
-        let tail_within = scored
-            .last()
-            .is_some_and(|last| last.distance <= max_distance);
-        if count < bound && full_step && tail_within {
-            continue;
-        }
-        return to_matches(context.arena, scored, None, Some(max_distance));
-    }
-    Vec::new()
+    let scored = context.range_scored(max_distance, &admit);
+    to_matches(context.arena, scored, None, Some(max_distance))
 }
 
 fn brute_force(
@@ -810,6 +1127,39 @@ mod tests {
         let arena = build_arena(count, dims, seed);
         let graph = Graph::rebuild(&arena);
         (arena, graph)
+    }
+
+    const DUPLICATE_GROUP_SEED: u64 = 0x1DEA_0000;
+
+    fn build_duplicate_groups(groups: usize, per_group: usize) -> (VectorArena, Graph) {
+        let mut arena = VectorArena::new(16).unwrap();
+        for index in 0..groups * per_group {
+            let vector = seeded_unit_vector(DUPLICATE_GROUP_SEED + (index / per_group) as u64, 16);
+            arena.upsert(&format!("key-{index}"), &vector).unwrap();
+        }
+        let graph = Graph::rebuild(&arena);
+        (arena, graph)
+    }
+
+    fn group_of(arena: &VectorArena, key: &str, per_group: usize) -> usize {
+        arena.slot_of_key(key).unwrap() as usize / per_group
+    }
+
+    fn assert_leading_group(
+        arena: &VectorArena,
+        found: &[Match],
+        count: usize,
+        group: usize,
+        per_group: usize,
+    ) {
+        let (head, tail) = found.split_at(count);
+        for hit in head {
+            assert_eq!(group_of(arena, &hit.key, per_group), group);
+            assert_eq!(hit.distance, head[0].distance);
+        }
+        for hit in tail {
+            assert!(hit.distance > head[0].distance);
+        }
     }
 
     fn params(limit: Option<usize>, max_distance: Option<f32>, exact: bool) -> SearchParams {
@@ -1074,14 +1424,7 @@ mod tests {
         let reference = reference_ranking(arena, &query, None);
         assert_eq!(reference[0].1, entry);
         for exact in [true, false] {
-            let found = search_excluding(
-                graph,
-                arena,
-                &query,
-                &params(Some(10), None, exact),
-                None,
-                Some(entry),
-            );
+            let found = search_stored(graph, arena, entry, &params(Some(10), None, exact), None);
             assert_eq!(found.len(), 10);
             assert_sorted(&found);
             assert!(found.iter().all(|hit| hit.key != entry_key));
@@ -1093,36 +1436,27 @@ mod tests {
                 assert_eq!(keys(&found), expected);
             }
         }
-        let everything = search_excluding(
-            graph,
-            arena,
-            &query,
-            &params(None, Some(2.5), false),
-            None,
-            Some(entry),
-        );
+        let everything = search_stored(graph, arena, entry, &params(None, Some(2.5), false), None);
         assert_eq!(everything.len(), FIXTURE_COUNT - 1);
         assert!(everything.iter().all(|hit| hit.key != entry_key));
         let large_filter: HashSet<u32> = (0..1200).chain([entry]).collect();
         assert!(large_filter.len() > small_filter_cap(Some(10)));
-        let filtered = search_excluding(
+        let filtered = search_stored(
             graph,
             arena,
-            &query,
+            entry,
             &params(Some(10), None, false),
             Some(&large_filter),
-            Some(entry),
         );
         assert_eq!(filtered.len(), 10);
         assert!(filtered.iter().all(|hit| hit.key != entry_key));
         let small_filter: HashSet<u32> = reference[..12].iter().map(|&(_, slot)| slot).collect();
-        let brute = search_excluding(
+        let brute = search_stored(
             graph,
             arena,
-            &query,
+            entry,
             &params(Some(12), None, false),
             Some(&small_filter),
-            Some(entry),
         );
         let expected: Vec<&str> = reference[1..12]
             .iter()
@@ -1136,30 +1470,93 @@ mod tests {
         let mut arena = VectorArena::new(8).unwrap();
         arena.upsert("only", &axis_vector(8, 0)).unwrap();
         let graph = Graph::rebuild(&arena);
-        let query = arena.vector_lanes(0).to_vec();
         let allowed: HashSet<u32> = [0].into_iter().collect();
         for exact in [true, false] {
             for filter in [None, Some(&allowed)] {
-                let by_limit = search_excluding(
-                    &graph,
-                    &arena,
-                    &query,
-                    &params(Some(5), None, exact),
-                    filter,
-                    Some(0),
-                );
+                let by_limit =
+                    search_stored(&graph, &arena, 0, &params(Some(5), None, exact), filter);
                 assert!(by_limit.is_empty());
-                let by_threshold = search_excluding(
-                    &graph,
-                    &arena,
-                    &query,
-                    &params(None, Some(2.5), exact),
-                    filter,
-                    Some(0),
-                );
+                let by_threshold =
+                    search_stored(&graph, &arena, 0, &params(None, Some(2.5), exact), filter);
                 assert!(by_threshold.is_empty());
             }
         }
+    }
+
+    #[test]
+    fn stored_key_search_fills_across_duplicate_groups() {
+        let (arena, graph) = build_duplicate_groups(4, 80);
+        let stored = 120;
+        let found = search_stored(
+            &graph,
+            &arena,
+            stored,
+            &params(Some(100), None, false),
+            None,
+        );
+        assert_eq!(found.len(), 100.min(arena.live_count() - 1));
+        assert_sorted(&found);
+        assert!(found.iter().all(|hit| hit.key != "key-120"));
+        assert_leading_group(&arena, &found, 79, 1, 80);
+    }
+
+    #[test]
+    fn stored_key_search_reaches_its_own_group_from_a_node_linked_elsewhere() {
+        let (arena, graph) = build_duplicate_groups(4, 80);
+        let stray = 80;
+        assert!(
+            graph
+                .neighbors_of(stray, 0)
+                .iter()
+                .all(|&neighbor| neighbor / 80 == 0)
+        );
+        let found = search_stored(&graph, &arena, stray, &params(Some(10), None, false), None);
+        assert_eq!(found.len(), 10);
+        assert_leading_group(&arena, &found, 10, 1, 80);
+    }
+
+    #[test]
+    fn filtered_stored_key_search_fills_from_other_duplicate_groups() {
+        let (arena, graph) = build_duplicate_groups(4, 400);
+        let stored = 600;
+        let allowed: HashSet<u32> = arena.live_slots().filter(|slot| slot / 400 != 1).collect();
+        assert!(allowed.len() > small_filter_cap(Some(100)));
+        let found = search_stored(
+            &graph,
+            &arena,
+            stored,
+            &params(Some(100), None, false),
+            Some(&allowed),
+        );
+        assert_eq!(found.len(), 100);
+        assert_sorted(&found);
+        for hit in &found {
+            assert!(allowed.contains(&arena.slot_of_key(&hit.key).unwrap()));
+        }
+        let nearest = group_of(&arena, &found[0].key, 400);
+        assert_ne!(nearest, 1);
+        assert_leading_group(&arena, &found, 100, nearest, 400);
+    }
+
+    #[test]
+    fn cold_search_fills_across_duplicate_groups() {
+        let (arena, graph) = build_duplicate_groups(4, 80);
+        let query = arena
+            .pack_query(&seeded_unit_vector(DUPLICATE_GROUP_SEED, 16))
+            .unwrap();
+        let ten = search(&graph, &arena, &query, &params(Some(10), None, false), None);
+        assert_eq!(ten.len(), 10);
+        assert_leading_group(&arena, &ten, 10, 0, 80);
+        let hundred = search(
+            &graph,
+            &arena,
+            &query,
+            &params(Some(100), None, false),
+            None,
+        );
+        assert_eq!(hundred.len(), 100);
+        assert_sorted(&hundred);
+        assert_leading_group(&arena, &hundred, 80, 0, 80);
     }
 
     #[test]
@@ -1420,7 +1817,7 @@ mod tests {
             .iter()
             .filter(|hit| expected.contains(hit.key.as_str()))
             .count();
-        assert!(hits >= 8, "filtered recall@10 was {hits}/10");
+        assert!(hits >= 9, "filtered recall@10 was {hits}/10");
         let within = search(
             graph,
             arena,
@@ -1671,9 +2068,7 @@ mod tests {
     }
 
     #[test]
-    fn tolerated_self_edges_duplicates_and_overfull_lists_stay_safe() {
-        let dims = 16;
-        let mut arena = build_arena(40, dims, 0x00E0_0000);
+    fn overfull_neighbor_lists_are_rejected() {
         let parts: Vec<GraphNodeParts> = (0..40u32)
             .map(|slot| GraphNodeParts {
                 slot,
@@ -1681,12 +2076,26 @@ mod tests {
                 neighbors: vec![if slot == 0 {
                     (0..40).collect()
                 } else {
-                    vec![0, 0, slot, 0]
+                    vec![0]
                 }],
             })
             .collect();
+        assert!(Graph::from_parts(Some(0), parts, 40, 0).is_err());
+    }
+
+    #[test]
+    fn tolerated_self_edges_and_duplicates_stay_safe() {
+        let dims = 16;
+        let mut arena = build_arena(40, dims, 0x00E0_0000);
+        let parts: Vec<GraphNodeParts> = (0..40u32)
+            .map(|slot| GraphNodeParts {
+                slot,
+                level: 0,
+                neighbors: vec![vec![0, 0, slot, (slot + 1) % 40]],
+            })
+            .collect();
         let graph = Graph::from_parts(Some(0), parts, arena.slot_count(), 0).unwrap();
-        assert!(graph.neighbors_of(0, 0).len() > neighbor_cap(0));
+        assert_eq!(graph.neighbors_of(0, 0), [0, 0, 0, 1]);
         let query = arena
             .pack_query(&seeded_unit_vector(0x00E1_0000, dims))
             .unwrap();
@@ -1894,7 +2303,7 @@ mod tests {
                     .filter(|hit| expected.contains(hit.key.as_str()))
                     .count();
                 assert!(
-                    hits + 2 >= top.len(),
+                    hits + 1 >= top.len(),
                     "churn recall was {hits}/{}",
                     top.len()
                 );
@@ -2022,7 +2431,7 @@ mod tests {
         let recall = measured_recall(&arena, &graph, 50, |index| {
             clustered_unit_vector(seed + index % 64, seed + 0x0200_0000 + index, 64)
         });
-        assert!(recall >= 0.95, "recall@10 was {recall}");
+        assert!(recall >= 0.98, "recall@10 was {recall}");
     }
 
     #[test]
@@ -2045,6 +2454,6 @@ mod tests {
                 clustered_unit_vector(seed + index % 512, seed + 0x0200_0000 + index, LATENT_DIMS);
             projected_unit_vector(&projection, &latent)
         });
-        assert!(recall >= 0.95, "recall@10 was {recall}");
+        assert!(recall >= 0.97, "recall@10 was {recall}");
     }
 }

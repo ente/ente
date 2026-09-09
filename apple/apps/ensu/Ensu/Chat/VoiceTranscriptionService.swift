@@ -82,6 +82,7 @@ final class VoiceTranscriptionService {
     typealias StateHandler = @MainActor @Sendable (VoiceInputState) -> Void
     typealias TranscriptHandler = @MainActor @Sendable (String) -> Void
 
+    weak var modelMaintenance: (any ModelMaintenance)?
     private let transcriber: Transcriber
     private let assetStore: AssetStore
     private let modelAssets: [Asset]
@@ -148,7 +149,11 @@ final class VoiceTranscriptionService {
         let sampleRate = recording.sampleRate
         let pcm = recording.pcm
 
+        let maintenance = modelMaintenance
+        let maintenanceScope = maintenance?.suspendMaintenance()
         transcriptionTask = Task.detached(priority: .userInitiated) { [weak self] in
+            defer { maintenanceScope?.close() }
+            await maintenance?.awaitMaintenance()
             do {
                 try await self?.downloadModelsIfNeeded(
                     taskId: taskId,
@@ -218,7 +223,11 @@ final class VoiceTranscriptionService {
         let taskId = beginVoiceTask()
         let downloadId = beginDownload(taskId: taskId)
 
+        let maintenance = modelMaintenance
+        let maintenanceScope = maintenance?.suspendMaintenance()
         transcriptionTask = Task.detached(priority: .userInitiated) { [weak self] in
+            defer { maintenanceScope?.close() }
+            await maintenance?.awaitMaintenance()
             do {
                 try await self?.downloadModelsIfNeeded(
                     taskId: taskId,
@@ -285,7 +294,11 @@ final class VoiceTranscriptionService {
     private func preloadTranscriptionModel() {
         let transcriber = transcriber
         preloadTask?.cancel()
+        let maintenance = modelMaintenance
+        let maintenanceScope = maintenance?.suspendMaintenance()
         preloadTask = Task.detached(priority: .utility) {
+            defer { maintenanceScope?.close() }
+            await maintenance?.awaitMaintenance()
             do {
                 try transcriber.loadModel()
             } catch is CancellationError {

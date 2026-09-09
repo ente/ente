@@ -52,7 +52,7 @@
         "dev:twoof3": "npm exec --workspace twoof3 -- next dev --webpack -p 3012",
         "lint": "concurrently --names 'prettier,eslint,tsc,wasm-imports' \"prettier --check --log-level warn .\" \"npm exec --workspaces -- eslint --max-warnings 0\" \"npm exec --workspaces -- tsc\" \"npm run check:wasm-imports\"",
         "lint:fix": "concurrently --names 'prettier,eslint,tsc' \"prettier --write --log-level warn .\" \"npm exec --workspaces -- eslint --fix --max-warnings 0\" \"npm exec --workspaces -- tsc\"",
-        "test": "npm run test --workspace ente-prelogin-wasm && npm run test --workspace ente-locker-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace locker && npm run test --workspace photos && npm run test --workspace space"
+        "test": "npm run test --workspace ente-prelogin-wasm && npm run test --workspace ente-locker-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace locker && npm run test --workspace paste && npm run test --workspace photos && npm run test --workspace space"
     },
     "overrides": {
         "@types/react": "19.2.17",

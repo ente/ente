@@ -3,6 +3,7 @@
     "compilerOptions": { "paths": { "@/*": ["./src/*"] } },
     "include": [
         "src",
+        "tests",
         "next-env.d.ts",
         "../../packages/base/global-electron.d.ts",
         "../../packages/base/global-css.d.ts",

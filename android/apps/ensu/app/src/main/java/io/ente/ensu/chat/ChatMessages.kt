@@ -7,12 +7,9 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,7 +32,6 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -44,7 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -68,6 +64,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import io.ente.ensu.components.AttributionDialog
+import io.ente.ensu.components.AttributionLink
+import io.ente.ensu.components.KnowledgeCard
 import io.ente.ensu.components.BranchSwitcher
 import io.ente.ensu.components.ImageAttachmentThumbnail
 import io.ente.ensu.designsystem.EnsuColor
@@ -81,6 +80,7 @@ import io.ente.ensu.chat.ChatMessage
 import io.ente.ensu.chat.MessageAuthor
 import io.ente.ensu.format.formatBytes
 import io.ente.ensu.format.formattedFileSize
+import io.ente.ensu.notes.LocalNotesStore
 import io.ente.ensu.platform.rememberHaptics
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
@@ -91,8 +91,8 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import io.ente.ensu.llm.DownloadPhase
-import io.ente.ensu.bindings.SourceCitation
-import io.ente.ensu.bindings.parseAssistantText
+import io.ente.ensu.bindings.GroundedSource
+import io.ente.ensu.bindings.parseGroundedAssistantText
 
 @Composable
 internal fun MessageList(
@@ -622,6 +622,7 @@ private fun UserMessageBubble(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AssistantMessageBubble(
     message: ChatMessage,
@@ -632,7 +633,7 @@ private fun AssistantMessageBubble(
     showsMetadata: Boolean
 ) {
     val clipboard = LocalClipboardManager.current
-    val parsed = remember(message.text) { parseAssistantText(message.text) }
+    val parsed = remember(message.text) { parseGroundedAssistantText(message.text) }
     val haptic = rememberHaptics()
     var showMenu by remember { mutableStateOf(false) }
     var showSources by remember { mutableStateOf(false) }
@@ -677,22 +678,29 @@ private fun AssistantMessageBubble(
                     enableSelection = false
                 )
 
-                parsed.sourceLabel?.let { label ->
+                if (parsed.sourceLabels.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(EnsuSpacing.sm.dp))
-                    Surface(
-                        color = EnsuColor.fillFaint(),
-                        shape = RoundedCornerShape(EnsuCornerRadius.button.dp),
-                        modifier = Modifier.clickable { showSources = true }
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp),
+                        verticalArrangement = Arrangement.spacedBy(EnsuSpacing.xs.dp)
                     ) {
-                        Text(
-                            text = label,
-                            style = EnsuTypography.small,
-                            color = EnsuColor.textPrimary(),
-                            modifier = Modifier.padding(
-                                horizontal = EnsuSpacing.md.dp,
-                                vertical = EnsuSpacing.sm.dp
-                            )
-                        )
+                        parsed.sourceLabels.forEach { label ->
+                            Surface(
+                                onClick = { showSources = true },
+                                color = EnsuColor.fillFaint(),
+                                shape = RoundedCornerShape(EnsuCornerRadius.button.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = EnsuTypography.small,
+                                    color = EnsuColor.textPrimary(),
+                                    modifier = Modifier.padding(
+                                        horizontal = EnsuSpacing.md.dp,
+                                        vertical = EnsuSpacing.sm.dp
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -743,98 +751,68 @@ private fun AssistantMessageBubble(
 
         if (showSources) {
             KnowledgeSourcesDialog(
-                citations = parsed.citations,
+                citations = parsed.sources,
                 onDismiss = { showSources = false }
             )
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun KnowledgeSourcesDialog(
-    citations: List<SourceCitation>,
+    citations: List<GroundedSource>,
     onDismiss: () -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Sources", style = EnsuTypography.h3) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(EnsuSpacing.lg.dp)
-            ) {
+    val notes = LocalNotesStore.current
+    val notesState = if (citations.any { it is GroundedSource.LocalNote }) notes?.state?.collectAsState()?.value else null
+    AttributionDialog(title = "Sources", onDismiss = onDismiss) {
+        notesState?.error?.let { error ->
+            Text(error, style = EnsuTypography.small, color = EnsuColor.error)
+        }
+        citations.forEachIndexed { index, source ->
+            val note = (source as? GroundedSource.LocalNote)?.reference
+            val citation = (source as? GroundedSource.EnsuPack)?.citation
+            KnowledgeCard(padding = EnsuSpacing.md.dp, spacing = EnsuSpacing.sm.dp) {
                 Text(
-                    text = if (citations.size == 1) {
-                        "1 source used in this response"
-                    } else {
-                        "${citations.size} sources used in this response"
+                    text = buildString {
+                        append("SOURCE ${index + 1} · ")
+                        if (note != null) {
+                            append("YOUR NOTES")
+                            note.collectionLabel?.let { append(" · ${it.uppercase()}") }
+                        } else if (citation != null) {
+                            append("ENSU PACK · ${citation.datasetLabel.uppercase()}")
+                        }
                     },
+                    style = EnsuTypography.mini,
+                    color = EnsuColor.textMuted()
+                )
+                Text(
+                    text = note?.title ?: citation?.title.orEmpty(),
+                    style = EnsuTypography.large,
+                    color = EnsuColor.textPrimary()
+                )
+                note?.section?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = EnsuTypography.small, color = EnsuColor.textMuted())
+                }
+                HorizontalDivider(color = EnsuColor.border())
+                Text(
+                    text = note?.documentId ?: citation?.credit.orEmpty(),
                     style = EnsuTypography.small,
                     color = EnsuColor.textMuted()
                 )
-
-                citations.forEachIndexed { index, citation ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                EnsuColor.fillFaint(),
-                                RoundedCornerShape(EnsuCornerRadius.card.dp)
-                            )
-                            .padding(EnsuSpacing.md.dp),
-                        verticalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp)
-                    ) {
-                        Text(
-                            text = "SOURCE ${index + 1} · ${citation.datasetLabel.uppercase()}",
-                            style = EnsuTypography.mini,
-                            color = EnsuColor.textMuted()
-                        )
-                        Text(
-                            text = citation.title,
-                            style = EnsuTypography.large,
-                            color = EnsuColor.textPrimary()
-                        )
-                        HorizontalDivider(color = EnsuColor.border())
-                        Text(
-                            text = "Attribution",
-                            style = EnsuTypography.mini,
-                            color = EnsuColor.textMuted()
-                        )
-                        Text(
-                            citation.credit,
-                            style = EnsuTypography.small,
-                            color = EnsuColor.textPrimary()
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.lg.dp)) {
-                            SourceAttributionLink("Open source ↗") {
-                                uriHandler.openUri(citation.sourceUrl)
-                            }
-                            SourceAttributionLink("${citation.licenseLabel} ↗") {
-                                uriHandler.openUri(citation.licenseUrl)
-                            }
-                        }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.lg.dp)) {
+                    if (note != null) {
+                        AttributionLink("Open note ↗") { notes?.open(note) }
+                    } else if (citation != null) {
+                        AttributionLink("Open source ↗") { uriHandler.openUri(citation.sourceUrl) }
+                        AttributionLink("${citation.licenseLabel} ↗") { uriHandler.openUri(citation.licenseUrl) }
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Done") }
-        },
-        containerColor = EnsuColor.backgroundBase()
-    )
-}
-
-@Composable
-private fun SourceAttributionLink(label: String, onClick: () -> Unit) {
-    Text(
-        text = label,
-        style = EnsuTypography.small,
-        color = EnsuColor.accent(),
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(vertical = EnsuSpacing.xs.dp)
-    )
+        }
+    }
 }
 
 private data class MessageAction(

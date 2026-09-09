@@ -1,10 +1,8 @@
 package io.ente.ensu.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,10 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
@@ -25,7 +19,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,8 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import io.ente.ensu.components.AttributionDialog
+import io.ente.ensu.components.AttributionLink
+import io.ente.ensu.components.CompactButton
+import io.ente.ensu.components.KnowledgeCard
 import io.ente.ensu.designsystem.EnsuColor
-import io.ente.ensu.designsystem.EnsuCornerRadius
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.designsystem.EnsuTypography
 import io.ente.ensu.designsystem.HugeIcons
@@ -90,15 +86,7 @@ private fun KnowledgePackCard(
     onSetEnabled: (Boolean) -> Unit,
     onOpenAttribution: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                EnsuColor.fillFaint(),
-                RoundedCornerShape(EnsuCornerRadius.card.dp)
-            )
-            .padding(EnsuSpacing.lg.dp)
-    ) {
+    KnowledgeCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(
                 modifier = Modifier.weight(1f),
@@ -114,7 +102,7 @@ private fun KnowledgePackCard(
                 pack.status == KnowledgeReconciliationStatus.DOWNLOAD &&
                 !pack.isMutating
             ) {
-                CompactPackButton(label = "Download", onClick = onDownloadOrUpdate)
+                CompactButton(label = "Download", onClick = onDownloadOrUpdate)
             }
         }
 
@@ -148,7 +136,7 @@ private fun KnowledgePackCard(
             pack.status == KnowledgeReconciliationStatus.UPDATE_AVAILABLE
         ) {
             Spacer(Modifier.height(EnsuSpacing.md.dp))
-            CompactPackButton(label = "Update", onClick = onDownloadOrUpdate)
+            CompactButton(label = "Update", onClick = onDownloadOrUpdate)
         }
 
         pack.errorMessage?.let {
@@ -194,20 +182,6 @@ private fun PackMetadataLine(
 }
 
 @Composable
-private fun CompactPackButton(label: String, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(containerColor = EnsuColor.accent()),
-        contentPadding = PaddingValues(
-            horizontal = EnsuSpacing.md.dp,
-            vertical = EnsuSpacing.xs.dp
-        )
-    ) {
-        Text(label, style = EnsuTypography.mini)
-    }
-}
-
-@Composable
 private fun PackAttributionDialog(
     config: KnowledgeDatasetConfig,
     onDismiss: () -> Unit
@@ -215,71 +189,41 @@ private fun PackAttributionDialog(
     val attribution = config.attribution
     val uriHandler = LocalUriHandler.current
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Attribution", style = EnsuTypography.h3) },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        EnsuColor.fillFaint(),
-                        RoundedCornerShape(EnsuCornerRadius.card.dp)
-                    )
-                    .padding(EnsuSpacing.md.dp),
-                verticalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp)
+    AttributionDialog(title = "Attribution", onDismiss = onDismiss) {
+        KnowledgeCard(padding = EnsuSpacing.md.dp, spacing = EnsuSpacing.sm.dp) {
+            Text(
+                text = config.label,
+                style = EnsuTypography.large,
+                color = EnsuColor.textPrimary()
+            )
+            HorizontalDivider(color = EnsuColor.border())
+            Text(
+                text = "From ${attribution.credit}",
+                style = EnsuTypography.small,
+                color = EnsuColor.textPrimary()
+            )
+            Text(
+                text = attribution.modificationNotice,
+                style = EnsuTypography.small,
+                color = EnsuColor.textPrimary()
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.md.dp)
             ) {
-                Text(
-                    text = config.label,
-                    style = EnsuTypography.large,
-                    color = EnsuColor.textPrimary()
-                )
-                HorizontalDivider(color = EnsuColor.border())
-                Text(
-                    text = "From ${attribution.credit}",
-                    style = EnsuTypography.small,
-                    color = EnsuColor.textPrimary()
-                )
-                Text(
-                    text = attribution.modificationNotice,
-                    style = EnsuTypography.small,
-                    color = EnsuColor.textPrimary()
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.md.dp)
-                ) {
-                    AttributionLink("Source ↗") {
-                        uriHandler.openUri(attribution.publicPackUrl)
-                    }
-                    AttributionLink("License ↗") {
-                        uriHandler.openUri(attribution.licenseUrl)
-                    }
+                AttributionLink("Source ↗") {
+                    uriHandler.openUri(attribution.publicPackUrl)
                 }
-                HorizontalDivider(color = EnsuColor.border())
-                Text(
-                    text = "Wikimedia and Ensu are not affiliated. Wikimedia project names identify the source material only.",
-                    style = EnsuTypography.small,
-                    color = EnsuColor.textMuted()
-                )
+                AttributionLink("License ↗") {
+                    uriHandler.openUri(attribution.licenseUrl)
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Done") }
-        },
-        containerColor = EnsuColor.backgroundBase()
-    )
-}
-
-@Composable
-private fun AttributionLink(label: String, onClick: () -> Unit) {
-    Text(
-        text = label,
-        style = EnsuTypography.mini,
-        color = EnsuColor.accent(),
-        maxLines = 1,
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(vertical = EnsuSpacing.xs.dp)
-    )
+            HorizontalDivider(color = EnsuColor.border())
+            Text(
+                text = "Wikimedia and Ensu are not affiliated. Wikimedia project names identify the source material only.",
+                style = EnsuTypography.small,
+                color = EnsuColor.textMuted()
+            )
+        }
+    }
 }

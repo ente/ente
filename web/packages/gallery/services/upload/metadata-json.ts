@@ -96,7 +96,7 @@ export const matchJSONMetadata = (
     takeoutMetadata = parsedMetadataJSONMap.get(key);
     if (takeoutMetadata) return takeoutMetadata;
 
-    // Newer exports append this suffix before clipping.
+    // Newer exports append this suffix, sometimes without clipping.
     const supplSuffix = ".supplemental-metadata";
     baseFileName = `${name}${extension}${supplSuffix}`;
     key = makeKey(
@@ -110,6 +110,17 @@ export const matchJSONMetadata = (
     if (numberedSuffix) {
         const originalBaseFileName = `${originalName}${extension}${supplSuffix}`;
         key = makeKey(originalBaseFileName.slice(0, maxGoogleFileNameLength));
+        takeoutMetadata = parsedMetadataJSONMap.get(key);
+        if (takeoutMetadata) return takeoutMetadata;
+    }
+
+    // Prefer existing clipped matches before trying untruncated sidecars.
+    key = makeKey(`${baseFileName}${numberedSuffix}`);
+    takeoutMetadata = parsedMetadataJSONMap.get(key);
+    if (takeoutMetadata) return takeoutMetadata;
+
+    if (numberedSuffix) {
+        key = makeKey(`${originalName}${extension}${supplSuffix}`);
         takeoutMetadata = parsedMetadataJSONMap.get(key);
         if (takeoutMetadata) return takeoutMetadata;
     }

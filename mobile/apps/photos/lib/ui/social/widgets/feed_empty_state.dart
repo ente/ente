@@ -51,12 +51,7 @@ class FeedEmptyState extends StatelessWidget {
                           Text(
                             content.title,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: "Nunito",
-                              fontWeight: FontWeight.w800,
-                              fontSize: 24,
-                              height: 28 / 24,
-                              letterSpacing: 0,
+                            style: TextStyles.display2.copyWith(
                               color: colors.textBase,
                             ),
                           ),

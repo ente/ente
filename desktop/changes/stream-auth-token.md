@@ -1,1 +1,0 @@
-- Improved video streaming security by keeping auth tokens out of stream URLs.

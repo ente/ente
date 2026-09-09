@@ -695,6 +695,16 @@ func (h *AdminHandler) alertIfAdminMissing2FA(ctx adminAlertContext) {
 }
 
 func (h *AdminHandler) attachSubscription(ctx *gin.Context, userID int64, response gin.H) {
+	storageConsumed, photos, locker, err := h.UsageRepo.GetStoredFileCounts(ctx.Request.Context(), userID)
+	if err != nil {
+		logrus.WithError(err).WithField("user_id", userID).Error("failed to get user storage usage")
+		response["storageConsumedStatus"] = "unavailable"
+	} else {
+		response["storageConsumed"] = storageConsumed
+		response["storageConsumedStatus"] = "available"
+		response["photosFileCount"] = photos
+		response["lockerFileCount"] = locker
+	}
 	subscription, err := h.BillingRepo.GetUserSubscription(userID)
 	if err == nil {
 		response["subscription"] = subscription
@@ -702,11 +712,6 @@ func (h *AdminHandler) attachSubscription(ctx *gin.Context, userID int64, respon
 	details, err := h.UserController.GetDetailsV2(ctx, userID, false, ente.Photos)
 	if err == nil {
 		response["details"] = details
-	}
-	photos, locker, err := h.UsageRepo.GetStoredFileCounts(ctx.Request.Context(), userID)
-	if err == nil {
-		response["photosFileCount"] = photos
-		response["lockerFileCount"] = locker
 	}
 	tokenInfos, err := h.UserAuthRepo.GetUserTokenInfo(userID)
 	if err == nil {

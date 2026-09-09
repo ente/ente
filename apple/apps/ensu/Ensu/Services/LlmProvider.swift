@@ -125,6 +125,15 @@ final class LlmProvider {
     private var backendInitialized = false
     private var currentJobId: Int64?
     private let modelLoadGate = AsyncSerialGate()
+    weak var modelMaintenance: (any ModelMaintenance)?
+
+    private func withModelLock<T>(_ operation: () async throws -> T) async throws -> T {
+        let maintenance = modelMaintenance
+        let scope = await maintenance?.suspendMaintenance()
+        defer { scope?.close() }
+        await maintenance?.awaitMaintenance()
+        return try await modelLoadGate.withLock(operation)
+    }
 
     init(assetStore: AssetStore, transcriber: Transcriber, knowledgeEmbedding: KnowledgeEmbeddingConfig) {
         self.assetStore = assetStore
@@ -174,7 +183,7 @@ final class LlmProvider {
         }
 
         let asset = chatAsset(selection)
-        let missingAssets: [Asset] = try await modelLoadGate.withLock {
+        let missingAssets: [Asset] = try await withModelLock {
             let embeddingReady = isEmbeddingModelReady()
             if isEnsuPacksEnabled && !embeddingReady {
                 _ = assetStore.removeDownloaded(embeddingAsset)
@@ -190,7 +199,7 @@ final class LlmProvider {
             try await downloadAssets(missingAssets, onProgress: onProgress)
         }
 
-        try await modelLoadGate.withLock {
+        try await withModelLock {
             guard !isEnsuPacksEnabled || isEmbeddingModelReady() else {
                 _ = assetStore.removeDownloaded(embeddingAsset)
                 throw RequiredModelValidationError(modelId: knowledgeEmbedding.targetId)
@@ -211,7 +220,7 @@ final class LlmProvider {
         _ selection: LlmModelSelection,
         onProgress: @escaping (DownloadProgress) -> Void
     ) async throws {
-        try await modelLoadGate.withLock {
+        try await withModelLock {
             try await ensureModelReadyLocked(selection, onProgress: onProgress, allowRecovery: true)
         }
     }
@@ -283,7 +292,7 @@ final class LlmProvider {
         maxTokens: Int?,
         onToken: @escaping (String) -> Void
     ) async throws -> GenerationSummary {
-        try await modelLoadGate.withLock {
+        try await withModelLock {
             try await generateChatLocked(
                 selection,
                 messages: messages,
@@ -374,7 +383,21 @@ final class LlmProvider {
     func withChatModelReleasedForRetrieval<T>(
         _ operation: (_ embed: (String) throws -> [Float]) async throws -> T
     ) async throws -> T {
+        let maintenance = modelMaintenance
+        let scope = await maintenance?.suspendMaintenance()
+        defer { scope?.close() }
+        await maintenance?.awaitMaintenance()
+        return try await withEmbeddingContext { context in
+            try await operation { try context.embed(text: $0) }
+        }
+    }
+
+    func withEmbeddingContext<T>(
+        checkCancellation: () throws -> Void = {},
+        _ operation: (LlmContext) async throws -> T
+    ) async throws -> T {
         try await modelLoadGate.withLock {
+            try checkCancellation()
             let capability = currentChatDeviceCapability()
             if !capability.isChatSupported {
                 throw UnsupportedDeviceMemoryError(capability: capability)
@@ -416,9 +439,7 @@ final class LlmProvider {
             guard let context = embeddingContext else {
                 throw EmbeddingAssetInvalidError()
             }
-            return try await operation { text in
-                try context.embed(text: text)
-            }
+            return try await operation(context)
         }
     }
 
@@ -436,7 +457,7 @@ final class LlmProvider {
         do {
             try await Task.detached(priority: .utility) { [weak self] in
                 guard let self else { return }
-                try await self.modelLoadGate.withLock {
+                try await self.withModelLock {
                     let asset = self.chatAsset(selection)
                     guard self.assetStore.isDownloaded(asset) else { return }
                     guard let mmprojPath = self.assetStore.llmMmprojPath(asset),
@@ -462,7 +483,7 @@ final class LlmProvider {
     }
 
     func resetContext() async {
-        try? await modelLoadGate.withLock {
+        try? await withModelLock {
             guard let model = loadedModel else { return }
             let contextParams = LlmContextParams(contextSize: currentContextLength.map(Int32.init), nThreads: nil, nBatch: nil)
             loadedContext = nil

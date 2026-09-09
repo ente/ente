@@ -14,7 +14,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use ente_ensu::model;
 use ente_ensu::notes::{
     NoteSourceReference, NotesCollectionIndex, NotesError, NotesIndexOutcome, NotesIndexProgress,
-    cleanup_unreferenced_notes_shards, notes_content_revision,
+    cleanup_unreferenced_notes_shards, notes_content_revision, remove_notes_collection,
 };
 use notify::RecommendedWatcher;
 use serde::Serialize;
@@ -47,7 +47,6 @@ pub(crate) use watcher::{mark_collection_dirty, mark_reference_stale};
 const NOTES_DIRECTORY: &str = "notes";
 const NOTES_INDEX_DIRECTORY: &str = "indexes";
 const NOTES_OWNERSHIP_LOCK_FILE: &str = ".owner.lock";
-const NOTES_EMBEDDING_TITLE_MAX_UTF8_BYTES: usize = 512;
 const NOTES_QUIET_PERIOD_MS: i64 = 5 * 60 * 1_000;
 const NOTES_STATE_CHANGED_EVENT: &str = "notes-state-changed";
 const NOTES_MAX_SCAN_ENTRIES: usize = 250_000;
@@ -861,7 +860,6 @@ pub async fn notes_remove_collection(
 
 fn remove_collection(notes_state: &State, collection_id: &str) -> Result<(), ApiError> {
     let collection = notes_state.registered_collection(collection_id)?;
-    let derived_directory = notes_state.index_root.join(&collection.id);
     {
         let mut store = notes_state
             .registry
@@ -890,18 +888,12 @@ fn remove_collection(notes_state: &State, collection_id: &str) -> Result<(), Api
         .lock()
         .unwrap_or_else(PoisonError::into_inner)
         .remove(collection_id);
-    let cleanup_result = (|| -> Result<(), ApiError> {
-        if path_exists(&derived_directory)? {
-            remove_owned_entry(&derived_directory)?;
-        }
-        Ok(())
-    })();
-    if let Err(error) = cleanup_result {
+    if let Err(error) = remove_notes_collection(&notes_state.index_root, &collection.id) {
         crate::logging::log(
             "Notes",
             format!(
                 "removed collection but could not clean derived index collection={} error={}",
-                collection_id, error.message
+                collection_id, error
             ),
         );
     }

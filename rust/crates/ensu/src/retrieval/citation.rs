@@ -137,16 +137,47 @@ pub fn parse_grounded_assistant_text(stored_text: &str) -> ParsedGroundedAssista
 }
 
 pub fn knowledge_source_chip_label(citations: &[SourceCitation]) -> Option<String> {
-    let first = citations.first()?;
-    let mut distinct = HashSet::new();
-    for citation in citations {
-        distinct.insert(citation.dataset_id.as_str());
-    }
-    let additional = distinct.len().saturating_sub(1);
+    source_chip_label(citations.iter().map(|citation| {
+        (
+            citation.dataset_id.as_str(),
+            citation.dataset_label.as_str(),
+        )
+    }))
+}
+
+pub fn grounded_source_chip_labels(sources: &[GroundedSource]) -> Vec<String> {
+    let packs = source_chip_label(sources.iter().filter_map(|source| match source {
+        GroundedSource::EnsuPack { citation } => Some((
+            citation.dataset_id.as_str(),
+            citation.dataset_label.as_str(),
+        )),
+        GroundedSource::LocalNote { .. } => None,
+    }));
+    let notes = source_chip_label(sources.iter().filter_map(|source| {
+        match source {
+            GroundedSource::LocalNote { reference } => Some((
+                reference.collection_id.as_str(),
+                reference
+                    .collection_label
+                    .as_deref()
+                    .unwrap_or("Your Notes"),
+            )),
+            GroundedSource::EnsuPack { .. } => None,
+        }
+    }));
+    packs.into_iter().chain(notes).collect()
+}
+
+fn source_chip_label<'a>(sources: impl IntoIterator<Item = (&'a str, &'a str)>) -> Option<String> {
+    let mut sources = sources.into_iter();
+    let (first_id, label) = sources.next()?;
+    let mut distinct = HashSet::from([first_id]);
+    distinct.extend(sources.map(|(id, _)| id));
+    let additional = distinct.len() - 1;
     if additional == 0 {
-        Some(first.dataset_label.clone())
+        Some(label.to_owned())
     } else {
-        Some(format!("{} +{additional}", first.dataset_label))
+        Some(format!("{label} +{additional}"))
     }
 }
 

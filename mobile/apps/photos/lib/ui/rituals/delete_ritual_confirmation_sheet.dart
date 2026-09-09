@@ -1,3 +1,4 @@
+import "package:ente_components/theme/text_styles.dart";
 import "package:flutter/material.dart";
 import "package:photos/theme/ente_theme.dart";
 
@@ -103,15 +104,9 @@ class _DeleteRitualConfirmationSheet extends StatelessWidget {
                       Text(
                         "Are you sure?",
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: "Nunito",
-                          fontStyle: FontStyle.normal,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.72,
-                          height: 1.15,
-                          decoration: TextDecoration.none,
-                        ).copyWith(color: colorScheme.textBase),
+                        style: TextStyles.display2.copyWith(
+                          color: colorScheme.textBase,
+                        ),
                         textHeightBehavior: _tightTextHeightBehavior,
                       ),
                       const SizedBox(height: 10),

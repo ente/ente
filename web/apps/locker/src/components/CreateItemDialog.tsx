@@ -1,4 +1,9 @@
 import {
+    lockerHeaderIconButtonSx,
+    lockerPrimaryButtonSx,
+    lockerScrollAreaSx,
+} from "@/components/createItemDialog/create-item-dialog-styles";
+import {
     addCollectionName,
     toggleCollectionName,
     uploadQueueItemKey,
@@ -9,11 +14,8 @@ import {
     CollectionSelector,
     ItemFormFields,
 } from "@/components/createItemDialog/ItemFormFields";
-import { lockerDialogPaperSx } from "@/components/locker-dialog-styles";
 import {
-    createDocumentIcon,
     createDocumentIconConfig,
-    lockerItemIcon,
     lockerItemIconConfig,
 } from "@/components/locker-item-icons";
 import type { LockerUploadLimitState } from "@/services/locker-limits";
@@ -23,6 +25,12 @@ import type {
     LockerItemType,
     LockerUploadCandidate,
 } from "@/types";
+import {
+    ArrowLeft01Icon,
+    Cancel01Icon,
+    CancelCircleIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import {
     Box,
@@ -30,14 +38,14 @@ import {
     Dialog,
     DialogContent,
     DialogTitle,
+    IconButton,
     Link,
     Stack,
     Typography,
 } from "@mui/material";
-import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
-import React, { useRef } from "react";
+import React, { type ComponentProps, useRef } from "react";
 import { Trans } from "react-i18next";
 import {
     type CreateItemDialogEditItem,
@@ -49,39 +57,31 @@ const CREATABLE_TYPES: {
     type: CreateOption;
     labelKey: string;
     descriptionKey: string;
-    icon: React.ReactNode;
-    bgColor: string;
+    icon: ComponentProps<typeof HugeiconsIcon>["icon"];
 }[] = [
     {
         type: "file",
         labelKey: "saveDocumentTitle",
         descriptionKey: "saveDocumentDescription",
-        icon: createDocumentIcon(28, 1.9),
-        bgColor: createDocumentIconConfig.backgroundColor,
+        icon: createDocumentIconConfig.icon,
     },
     {
         type: "note",
         labelKey: "personalNote",
         descriptionKey: "personalNoteDescription",
-        icon: lockerItemIcon("note", { size: 28, strokeWidth: 1.9 }),
-        bgColor: lockerItemIconConfig("note").backgroundColor,
+        icon: lockerItemIconConfig("note").icon,
     },
     {
         type: "physicalRecord",
         labelKey: "thing",
         descriptionKey: "physicalRecordsDescription",
-        icon: lockerItemIcon("physicalRecord", { size: 28, strokeWidth: 1.9 }),
-        bgColor: lockerItemIconConfig("physicalRecord").backgroundColor,
+        icon: lockerItemIconConfig("physicalRecord").icon,
     },
     {
         type: "accountCredential",
         labelKey: "secret",
         descriptionKey: "accountCredentialsDescription",
-        icon: lockerItemIcon("accountCredential", {
-            size: 28,
-            strokeWidth: 1.9,
-        }),
-        bgColor: lockerItemIconConfig("accountCredential").backgroundColor,
+        icon: lockerItemIconConfig("accountCredential").icon,
     },
 ];
 
@@ -147,6 +147,7 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
         handleFileSelect,
         handleSave,
         handleSelectOption,
+        handleStepBackToOptions,
         handleUpload,
         isEditMode,
         isFileMode,
@@ -193,31 +194,80 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
             onClose={handleDialogClose}
             fullWidth
             maxWidth="sm"
+            sx={(theme) => ({
+                "& .MuiBackdrop-root": { backgroundColor: "rgba(0 0 0 / 0.6)" },
+                "& .MuiDialogTitle-root": { padding: 0 },
+                "& .MuiDialogContent-root": {
+                    padding: 0,
+                    paddingTop: "16px",
+                    paddingRight: isFileMode ? 0 : "14px",
+                    marginRight: isFileMode ? 0 : "-14px",
+                },
+                [theme.breakpoints.down("sm")]: {
+                    "& .MuiDialog-container": { alignItems: "flex-end" },
+                },
+            })}
             slotProps={{
                 paper: {
-                    sx: {
-                        ...lockerDialogPaperSx,
+                    sx: (theme) => ({
                         display: "flex",
                         flexDirection: "column",
                         maxHeight: "min(720px, 90vh)",
-                        width: "min(100%, 520px)",
-                    },
+                        width: "min(100%, 440px)",
+                        borderRadius: "24px",
+                        backgroundColor: theme.vars.palette.background.default,
+                        padding: "20px",
+                        margin: "16px",
+                        [theme.breakpoints.down("sm")]: {
+                            width: "100%",
+                            maxWidth: "100%",
+                            margin: 0,
+                            borderRadius: "20px 20px 0 0",
+                            paddingBottom:
+                                "max(34px, env(safe-area-inset-bottom))",
+                            maxHeight: "90vh",
+                        },
+                    }),
                 },
             }}
         >
-            <DialogTitle
+            <Box
                 sx={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 2,
-                    fontWeight: "bold",
-                    px: { xs: 4, sm: 5 },
-                    pt: { xs: 4, sm: 4.5 },
-                    pb: { xs: 2, sm: 2.5 },
+                    gap: "12px",
+                    minHeight: 38,
+                    flexShrink: 0,
                 }}
             >
-                <Box sx={{ minWidth: 0 }}>
+                {!isEditMode &&
+                    selectedOption !== null &&
+                    !(isFileMode && selectedUploadItems.length > 0) && (
+                        <IconButton
+                            onClick={handleStepBackToOptions}
+                            disabled={saving || uploading}
+                            aria-label={t("go_back")}
+                            sx={lockerHeaderIconButtonSx}
+                        >
+                            <HugeiconsIcon
+                                icon={ArrowLeft01Icon}
+                                size={18}
+                                strokeWidth={1.5}
+                            />
+                        </IconButton>
+                    )}
+                <DialogTitle
+                    sx={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontSize: 18,
+                        lineHeight: "24px",
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                    }}
+                >
                     {isEditMode
                         ? t("editItem")
                         : isFileMode
@@ -227,27 +277,23 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                           : selectedType
                             ? typeDisplayName(selectedType)
                             : t("saveToLocker")}
-                </Box>
-                {showUploadCounter && (
-                    <Typography
-                        variant="small"
-                        sx={{
-                            flexShrink: 0,
-                            color: "text.muted",
-                            opacity: 0.8,
-                            fontWeight: 500,
-                            alignSelf: "center",
-                        }}
-                    >
-                        {savedUploadCount} / {totalUploadCount} {t("saved")}
-                    </Typography>
-                )}
-            </DialogTitle>
+                </DialogTitle>
+                <IconButton
+                    onClick={handleClose}
+                    disabled={saving || uploading}
+                    aria-label={t("close")}
+                    sx={lockerHeaderIconButtonSx}
+                >
+                    <HugeiconsIcon
+                        icon={Cancel01Icon}
+                        size={18}
+                        strokeWidth={1.5}
+                    />
+                </IconButton>
+            </Box>
 
             <DialogContent
-                sx={{
-                    px: { xs: 4, sm: 5 },
-                    py: { xs: 2.5, sm: 3 },
+                sx={(theme) => ({
                     ...(isFileMode
                         ? {
                               display: "flex",
@@ -256,23 +302,40 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                               minHeight: 0,
                               overflow: "hidden",
                           }
-                        : {}),
-                }}
+                        : lockerScrollAreaSx(theme)),
+                })}
             >
                 {shouldShowDialogErrorCard && (
                     <Box
-                        sx={(theme) => ({
-                            mb: 2.5,
-                            px: 2,
-                            py: 1.5,
-                            borderRadius: "16px",
-                            border: `1px solid ${theme.vars.palette.critical.main}22`,
-                            backgroundColor: `${theme.vars.palette.critical.main}12`,
-                        })}
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "16px",
+                            minHeight: 66,
+                            px: "16px",
+                            py: "12px",
+                            mb: "16px",
+                            borderRadius: "20px",
+                            backgroundColor: "background.paper",
+                            flexShrink: 0,
+                        }}
                     >
+                        <Box
+                            sx={{
+                                color: "critical.main",
+                                flexShrink: 0,
+                                display: "flex",
+                            }}
+                        >
+                            <HugeiconsIcon
+                                icon={CancelCircleIcon}
+                                size={24}
+                                strokeWidth={1.5}
+                            />
+                        </Box>
                         <Typography
-                            variant="small"
-                            sx={{ color: "critical.main", fontWeight: 600 }}
+                            variant="mini"
+                            sx={{ color: "text.muted", minWidth: 0 }}
                         >
                             {upgradeCTAType === "fileCountLimit" ? (
                                 <Trans
@@ -285,8 +348,8 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                                                 rel="noopener"
                                                 underline="always"
                                                 sx={{
-                                                    color: "critical.main",
-                                                    fontWeight: 700,
+                                                    color: "accent.main",
+                                                    fontWeight: 600,
                                                 }}
                                             />
                                         ),
@@ -300,18 +363,20 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                 )}
 
                 {!isEditMode && !selectedOption && (
-                    <Stack sx={{ gap: 2, pt: 0.5 }}>
-                        <Typography variant="body" sx={{ color: "text.muted" }}>
+                    <Stack sx={{ gap: "24px" }}>
+                        <Typography
+                            variant="small"
+                            sx={{ color: "text.muted" }}
+                        >
                             {t("informationDescription")}
                         </Typography>
-                        <Stack sx={{ gap: 1 }}>
+                        <Stack sx={{ gap: "16px" }}>
                             {CREATABLE_TYPES.map((option) => (
                                 <TypeCard
                                     key={option.type}
                                     label={t(option.labelKey)}
                                     description={t(option.descriptionKey)}
                                     icon={option.icon}
-                                    bgColor={option.bgColor}
                                     onClick={() =>
                                         handleSelectOption(option.type)
                                     }
@@ -322,80 +387,99 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                 )}
 
                 {isFileMode && !isEditMode && (
-                    <FileUploadSection
-                        fileInputRef={fileInputRef}
-                        selectedUploadItems={selectedUploadItems}
-                        collections={displayCollections}
-                        availableCollectionNames={customCollectionNames}
-                        selectedCollectionNamesByFileKey={
-                            selectedCollectionNamesByFileKey
-                        }
-                        completedFileKeys={completedFileKeys}
-                        failedFileKeys={failedFileKeys}
-                        uploadingFileKeys={uploadingFileKeys}
-                        uploadProgressByFileKey={uploadProgressByFileKey}
-                        uploadCapByFileKey={uploadCapByFileKey}
-                        uploading={uploading}
-                        canUpload={canUpload}
-                        onFileSelect={handleFileSelect}
-                        onToggleCollectionName={(fileKey, name) =>
-                            setSelectedCollectionNamesByFileKey((current) => ({
-                                ...current,
-                                [fileKey]: toggleCollectionName(
-                                    current[fileKey] ?? [],
-                                    name,
-                                ),
-                            }))
-                        }
-                        onAddCollectionName={(fileKey, name) => {
-                            setCustomCollectionNames((current) =>
-                                addCollectionName(current, name),
-                            );
-                            setSelectedCollectionNamesByFileKey((current) => ({
-                                ...current,
-                                [fileKey]: addCollectionName(
-                                    current[fileKey] ?? [],
-                                    name,
-                                ),
-                            }));
-                        }}
-                        onAddAvailableCollectionName={(name) =>
-                            setCustomCollectionNames((current) =>
-                                addCollectionName(current, name),
-                            )
-                        }
-                        onSetCollectionNamesForAllItems={(names) =>
-                            setSelectedCollectionNamesByFileKey(
-                                Object.fromEntries(
-                                    selectedUploadItems.map((item) => [
-                                        uploadQueueItemKey(item),
-                                        names,
-                                    ]),
-                                ),
-                            )
-                        }
-                        onRemoveItem={(fileKey) => {
-                            setSelectedUploadItems((current) =>
-                                current.filter(
-                                    (item) =>
-                                        uploadQueueItemKey(item) !== fileKey,
-                                ),
-                            );
-                            setSelectedCollectionNamesByFileKey((current) =>
-                                Object.fromEntries(
-                                    Object.entries(current).filter(
-                                        ([key]) => key !== fileKey,
+                    <>
+                        {showUploadCounter && (
+                            <Typography
+                                variant="small"
+                                sx={{
+                                    color: "text.muted",
+                                    mb: "16px",
+                                    flexShrink: 0,
+                                }}
+                            >
+                                {savedUploadCount} / {totalUploadCount}{" "}
+                                {t("saved")}
+                            </Typography>
+                        )}
+                        <FileUploadSection
+                            fileInputRef={fileInputRef}
+                            selectedUploadItems={selectedUploadItems}
+                            collections={displayCollections}
+                            availableCollectionNames={customCollectionNames}
+                            selectedCollectionNamesByFileKey={
+                                selectedCollectionNamesByFileKey
+                            }
+                            completedFileKeys={completedFileKeys}
+                            failedFileKeys={failedFileKeys}
+                            uploadingFileKeys={uploadingFileKeys}
+                            uploadProgressByFileKey={uploadProgressByFileKey}
+                            uploadCapByFileKey={uploadCapByFileKey}
+                            uploading={uploading}
+                            canUpload={canUpload}
+                            onFileSelect={handleFileSelect}
+                            onToggleCollectionName={(fileKey, name) =>
+                                setSelectedCollectionNamesByFileKey(
+                                    (current) => ({
+                                        ...current,
+                                        [fileKey]: toggleCollectionName(
+                                            current[fileKey] ?? [],
+                                            name,
+                                        ),
+                                    }),
+                                )
+                            }
+                            onAddCollectionName={(fileKey, name) => {
+                                setCustomCollectionNames((current) =>
+                                    addCollectionName(current, name),
+                                );
+                                setSelectedCollectionNamesByFileKey(
+                                    (current) => ({
+                                        ...current,
+                                        [fileKey]: addCollectionName(
+                                            current[fileKey] ?? [],
+                                            name,
+                                        ),
+                                    }),
+                                );
+                            }}
+                            onAddAvailableCollectionName={(name) =>
+                                setCustomCollectionNames((current) =>
+                                    addCollectionName(current, name),
+                                )
+                            }
+                            onSetCollectionNamesForAllItems={(names) =>
+                                setSelectedCollectionNamesByFileKey(
+                                    Object.fromEntries(
+                                        selectedUploadItems.map((item) => [
+                                            uploadQueueItemKey(item),
+                                            names,
+                                        ]),
                                     ),
-                                ),
-                            );
-                        }}
-                        onClose={handleClose}
-                        onUpload={handleUpload}
-                    />
+                                )
+                            }
+                            onRemoveItem={(fileKey) => {
+                                setSelectedUploadItems((current) =>
+                                    current.filter(
+                                        (item) =>
+                                            uploadQueueItemKey(item) !==
+                                            fileKey,
+                                    ),
+                                );
+                                setSelectedCollectionNamesByFileKey((current) =>
+                                    Object.fromEntries(
+                                        Object.entries(current).filter(
+                                            ([key]) => key !== fileKey,
+                                        ),
+                                    ),
+                                );
+                            }}
+                            onUpload={handleUpload}
+                        />
+                    </>
                 )}
 
                 {formType && (!isFileMode || isEditMode) && (
-                    <Stack sx={{ gap: 2.5, pt: 0.5 }}>
+                    <Stack sx={{ gap: "24px" }}>
                         <ItemFormFields
                             type={formType}
                             data={formData}
@@ -436,25 +520,20 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                             </Typography>
                         )}
 
-                        <Stack direction="row" sx={{ gap: 1, pt: 1 }}>
-                            <FocusVisibleButton
-                                fullWidth
-                                color="secondary"
-                                onClick={handleClose}
-                                disabled={saving}
-                            >
-                                {t("cancel")}
-                            </FocusVisibleButton>
-                            <LoadingButton
-                                fullWidth
-                                color="accent"
-                                loading={saving}
-                                disabled={!canSave}
-                                onClick={() => void handleSave()}
-                            >
-                                {t("saveRecord")}
-                            </LoadingButton>
-                        </Stack>
+                        <LoadingButton
+                            fullWidth
+                            color="accent"
+                            loading={saving}
+                            disabled={!canSave}
+                            onClick={() => void handleSave()}
+                            sx={(theme) =>
+                                lockerPrimaryButtonSx(theme, {
+                                    loading: saving,
+                                })
+                            }
+                        >
+                            {t("saveRecord")}
+                        </LoadingButton>
                     </Stack>
                 )}
             </DialogContent>
@@ -465,61 +544,65 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
 const TypeCard: React.FC<{
     label: string;
     description: string;
-    icon: React.ReactNode;
-    bgColor: string;
+    icon: ComponentProps<typeof HugeiconsIcon>["icon"];
     onClick: () => void;
-}> = ({ label, description, icon, bgColor, onClick }) => (
+}> = ({ label, description, icon, onClick }) => (
     <ButtonBase
         onClick={onClick}
         sx={(theme) => ({
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
             width: "100%",
-            gap: 2,
-            px: 1,
-            py: 1.25,
-            borderRadius: "12px",
+            gap: "12px",
+            px: "12px",
+            py: "9px",
+            minHeight: 58,
+            borderRadius: "20px",
+            backgroundColor: theme.vars.palette.background.paper,
             transition: "background-color 0.15s",
             textAlign: "left",
             "&:hover": { backgroundColor: theme.vars.palette.fill.faintHover },
         })}
     >
         <Box
-            sx={{
+            sx={(theme) => ({
                 display: "flex",
                 alignItems: "center",
-                gap: 2,
-                minWidth: 0,
-                flex: 1,
+                justifyContent: "center",
+                width: 36,
+                height: 36,
+                flexShrink: 0,
+                color: theme.vars.palette.accent.main,
+            })}
+        >
+            <HugeiconsIcon
+                icon={icon}
+                size={20}
+                strokeWidth={1.5}
+                color="currentColor"
+            />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="small" sx={{ fontWeight: 500 }}>
+                {label}
+            </Typography>
+            <Typography variant="mini" sx={{ color: "text.muted", mt: "4px" }}>
+                {description}
+            </Typography>
+        </Box>
+        <Box
+            sx={{
+                width: 36,
+                height: 36,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
             }}
         >
-            <Box
-                sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 48,
-                    height: 48,
-                    borderRadius: "50%",
-                    backgroundColor: bgColor,
-                    flexShrink: 0,
-                }}
-            >
-                {icon}
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography variant="body" sx={{ fontWeight: "medium" }}>
-                    {label}
-                </Typography>
-                <Typography
-                    variant="small"
-                    sx={{ color: "text.muted", textWrap: "balance" }}
-                >
-                    {description}
-                </Typography>
-            </Box>
+            <ChevronRightRoundedIcon
+                sx={{ fontSize: 24, color: "text.base" }}
+            />
         </Box>
-        <ChevronRightRoundedIcon sx={{ color: "text.faint", flexShrink: 0 }} />
     </ButtonBase>
 );

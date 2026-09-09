@@ -51,6 +51,7 @@ fun SettingsScreen(
     isAdvancedUnlocked: Boolean,
     onOpenLogs: () -> Unit,
     onOpenKnowledge: () -> Unit,
+    onOpenNotes: () -> Unit,
     onOpenModelSettings: () -> Unit,
     onOpenSystemPromptSettings: () -> Unit,
     onUnlockAdvanced: () -> Unit,
@@ -61,7 +62,7 @@ fun SettingsScreen(
     var lastBuildVersionTapAt by remember { mutableStateOf<Long?>(null) }
     val context = LocalContext.current
 
-    val allItems = remember(context, onOpenLogs, onOpenKnowledge, onSignIn) {
+    val allItems = remember(context, onOpenLogs, onOpenKnowledge, onOpenNotes, onSignIn) {
         buildList {
             add(
                 SettingsItem(
@@ -70,6 +71,8 @@ fun SettingsScreen(
                     onClick = { context.openExternalLink("https://ente.com/blog/ensu/") }
                 )
             )
+
+            add(SettingsItem(title = "Your Notes", iconRes = HugeIcons.Folder01Icon, onClick = onOpenNotes))
 
             if (IS_ENSU_PACKS_ENABLED) {
                 add(

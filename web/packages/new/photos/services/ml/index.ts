@@ -72,21 +72,32 @@ const createComlinkWorker = async () => {
 
     const messagePort = await createUtilityProcess(electron, "ml");
 
-    const cw = new ComlinkWorker<typeof MLWorker>(
-        "ML",
-        new Worker(new URL("worker.ts", import.meta.url)),
-    );
+    let worker: Worker | undefined;
+    try {
+        worker = new Worker(new URL("worker.ts", import.meta.url));
+        const cw = new ComlinkWorker<typeof MLWorker>("ML", worker);
 
-    await cw.remote.then((w) =>
-        w.init(transfer(messagePort, [messagePort]), proxy(delegate)),
-    );
-
-    return cw;
+        await cw.remote.then((w) =>
+            w.init(transfer(messagePort, [messagePort]), proxy(delegate)),
+        );
+        return cw;
+    } catch (error) {
+        messagePort.close();
+        worker?.terminate();
+        throw error;
+    }
 };
 
 export const terminateMLWorker = async () => {
     if (_state.comlinkWorker) {
-        await _state.comlinkWorker.then((cw) => cw.terminate());
+        await _state.comlinkWorker.then(
+            (cw) => cw.terminate(),
+            (error: unknown) =>
+                log.warn(
+                    "ML worker initialization failed before shutdown",
+                    error,
+                ),
+        );
         _state.comlinkWorker = undefined;
     }
 };

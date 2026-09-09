@@ -1,9 +1,8 @@
 import { UserAdd02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
-import { SpaceShareInviteButton } from "components/ShareInviteButton";
-import log from "ente-base/log";
 import React from "react";
+import { spaceEmptyStateButtonSx } from "styles/buttons";
 import {
     spaceSurface,
     spaceSurfaceHover,
@@ -19,18 +18,14 @@ import type {
 interface SpaceAddFriendTileProps {
     onClick: () => void;
     placement: HomeTilePlacement;
-    profileLink?: string;
     variant: AddFriendTileVariant;
 }
 
 export const SpaceAddFriendTile: React.FC<SpaceAddFriendTileProps> = ({
     onClick,
     placement,
-    profileLink,
     variant,
 }) => {
-    const [isSharing, setIsSharing] = React.useState(false);
-
     return (
         <Box
             component="li"
@@ -102,17 +97,20 @@ export const SpaceAddFriendTile: React.FC<SpaceAddFriendTileProps> = ({
                         Space.
                     </Box>
                     <Box sx={{ mt: "24px" }}>
-                        <SpaceShareInviteButton
-                            profileLink={profileLink}
-                            sharing={isSharing}
-                            onSharingChange={setIsSharing}
-                            onShareError={(error) =>
-                                log.error(
-                                    "Failed to share Space invite link",
-                                    error,
-                                )
-                            }
-                        />
+                        <Box
+                            className="green-bg"
+                            component="button"
+                            type="button"
+                            onClick={onClick}
+                            sx={spaceEmptyStateButtonSx}
+                        >
+                            <HugeiconsIcon
+                                icon={UserAdd02Icon}
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                            Add a friend
+                        </Box>
                     </Box>
                 </Box>
             ) : (

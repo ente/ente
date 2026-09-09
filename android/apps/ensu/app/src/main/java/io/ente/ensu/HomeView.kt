@@ -30,6 +30,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -50,6 +51,7 @@ import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import io.ente.ensu.chat.SessionDrawer
 import io.ente.ensu.components.ImageAttachmentPreviewDialog
 import io.ente.ensu.components.NativeChoiceDialog
+import io.ente.ensu.notes.LocalNotesStore
 import io.ente.ensu.settings.AdvancedSettingsDataStore
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.storage.FilePathManager
@@ -82,7 +84,7 @@ fun HomeView(
     advancedSettingsDataStore: AdvancedSettingsDataStore,
     appVersion: String,
     configDefaults: ConfigDefaults
-) {
+) = CompositionLocalProvider(LocalNotesStore provides store.notesStore) {
     val drawerState = androidx.compose.material3.rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -177,9 +179,13 @@ fun HomeView(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                latestStore.notesStore.setForeground(true)
                 latestStore.refreshModelDownloadInfo()
+            } else if (event == Lifecycle.Event.ON_STOP) {
+                latestStore.notesStore.setForeground(false)
             }
         }
+        latestStore.notesStore.setForeground(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }

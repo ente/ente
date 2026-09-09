@@ -60,6 +60,7 @@ internal class ModelSettingsActions(
     }
 
     fun refreshModelDownloadInfo() {
+        llmProvider.modelMaintenance?.modelReadinessChanged()
         if (!state.value.chat.deviceCapability.isChatSupported()) {
             modelDownloadJob?.cancel()
             persistModelDownloadRequested(false)

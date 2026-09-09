@@ -20,12 +20,14 @@ import io.ente.ensu.bindings.ConfigDefaults
 import io.ente.ensu.logging.LogLevel
 import io.ente.ensu.chat.MessageAuthor
 import io.ente.ensu.chat.sessionTitleFromText
+import io.ente.ensu.notes.NotesStore
 import io.ente.ensu.settings.SessionPreferencesDataStore
 import io.ente.ensu.AppState
-import io.ente.ensu.bindings.SourceCitation
-import io.ente.ensu.bindings.buildKnowledgePromptContext
+import io.ente.ensu.bindings.GroundedSource
+import io.ente.ensu.bindings.selectMixedGroundingCandidates
+import io.ente.ensu.bindings.buildGroundedPromptContext
 import io.ente.ensu.bindings.cleanAssistantText
-import io.ente.ensu.bindings.finalizeAssistantText
+import io.ente.ensu.bindings.finalizeGroundedAssistantText
 import io.ente.ensu.knowledge.KnowledgeProvider
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -56,6 +58,7 @@ internal class ChatStoreActions(
     private val attachmentActions: AttachmentStoreActions,
     private val modelSettingsActions: ModelSettingsActions,
     private val configDefaults: ConfigDefaults,
+    private val notesStore: NotesStore,
     private val awaitKnowledgeReady: suspend () -> Unit
 ) {
     private val branchSelections = mutableMapOf<String, MutableMap<String, String>>()
@@ -478,29 +481,35 @@ internal class ChatStoreActions(
         }
         rebuildChatState(sessionId)
 
+        val notesScope = notesStore.suspendMaintenance()
         val activeJob = scope.launch {
+            notesStore.awaitMaintenance()
             priorGeneration?.join()
             priorSummary?.join()
             val isActive = { isGenerationActive(generationToken, sessionId) }
             if (!isActive()) return@launch
             awaitKnowledgeReady()
+            notesStore.awaitReady()
             if (!isActive()) return@launch
             val progressTracker = DownloadProgressTracker()
             var embeddingAssetInvalid = false
             val enabledDatasets = state.value.knowledge.enabledReadyDatasets
             val knowledgeHits = if (
-                userMessage.text.isNotBlank() && enabledDatasets.isNotEmpty()
+                userMessage.text.isNotBlank() &&
+                (enabledDatasets.isNotEmpty() || notesStore.state.value.collections.any { it.eligible })
             ) {
                 try {
                     val hits = llmProvider.withChatModelReleasedForRetrieval { embed ->
                         if (!isActive()) throw kotlinx.coroutines.CancellationException()
                         val query = embed(userMessage.text.trim())
                         if (!isActive()) throw kotlinx.coroutines.CancellationException()
-                        knowledgeProvider.search(
+                        val packs = knowledgeProvider.search(
                             datasets = enabledDatasets,
                             query = query,
                             maxHits = configDefaults.knowledgeEmbedding.maxHits
                         )
+                        val notes = notesStore.retrieve(query)
+                        notesStore.verify(selectMixedGroundingCandidates(packs, notes, notes.size.toUInt()))
                     }
                     if (!isActive()) return@launch
                     hits
@@ -607,8 +616,8 @@ internal class ChatStoreActions(
                     .coerceAtLeast(0) * 4 - 2
                 ).coerceAtLeast(0)
             val knowledgeContext = runCatching {
-                buildKnowledgePromptContext(
-                    hits = knowledgeHits,
+                buildGroundedPromptContext(
+                    excerpts = knowledgeHits,
                     maxUtf8Bytes = min(
                         configDefaults.knowledgeEmbedding.maxContextUtf8Bytes.toInt(),
                         remainingKnowledgeBytes
@@ -634,7 +643,7 @@ internal class ChatStoreActions(
             } else {
                 normalHistorySelection
             }
-            var activeCitations = if (useKnowledge) knowledgeContext?.citations.orEmpty() else emptyList()
+            var activeCitations = if (useKnowledge) knowledgeContext?.sources.orEmpty() else emptyList()
             val systemPrompt = if (useKnowledge) candidateSystemPrompt ?: normalSystemPrompt else normalSystemPrompt
             val systemMessage = LlmMessage(
                 text = systemPrompt,
@@ -724,6 +733,7 @@ internal class ChatStoreActions(
         }
         generationJob = activeJob
         activeJob.invokeOnCompletion {
+            notesScope.close()
             scope.launch {
                 settleGenerationIfActive(generationToken, sessionId)
             }
@@ -738,11 +748,11 @@ internal class ChatStoreActions(
         totalTimeMs: Long?,
         interrupted: Boolean,
         shouldUpdateUi: Boolean,
-        citations: List<SourceCitation> = emptyList()
+        citations: List<GroundedSource> = emptyList()
     ) {
         val rawText = buffer.toString().trim()
         val finalText = if (rawText.isNotEmpty()) {
-            runCatching { finalizeAssistantText(rawText, citations) }.getOrElse { error ->
+            runCatching { finalizeGroundedAssistantText(rawText, citations) }.getOrElse { error ->
                 logRepository.log(
                     LogLevel.Warning,
                     "Assistant source finalization failed",
@@ -750,7 +760,7 @@ internal class ChatStoreActions(
                     tag = "Chat",
                     throwable = error
                 )
-                runCatching { finalizeAssistantText(rawText, emptyList()) }.getOrDefault("")
+                runCatching { finalizeGroundedAssistantText(rawText, emptyList()) }.getOrDefault("")
             }
         } else {
             rawText
@@ -875,7 +885,9 @@ internal class ChatStoreActions(
         val summaryInput = buildSessionSummaryInput(sessionId) ?: return
         val selection = modelSettingsActions.resolveSelection(state.value.modelSettings)
 
+        val notesScope = notesStore.suspendMaintenance()
         sessionSummaryJob = scope.launch(Dispatchers.Default) {
+            notesStore.awaitMaintenance()
             val summary = generateSessionSummary(
                 input = summaryInput.text,
                 fallback = summaryInput.fallback,
@@ -885,7 +897,7 @@ internal class ChatStoreActions(
             withContext(Dispatchers.Main) {
                 applySessionSummary(sessionId, summary)
             }
-        }
+        }.also { it.invokeOnCompletion { notesScope.close() } }
     }
 
     private data class SessionSummaryInput(val text: String, val fallback: String)
@@ -928,6 +940,7 @@ internal class ChatStoreActions(
 
         val buffer = StringBuilder()
         try {
+            llmProvider.ensureModelReady(selection) {}
             llmProvider.generateChat(
                 selection = selection,
                 messages = messages,

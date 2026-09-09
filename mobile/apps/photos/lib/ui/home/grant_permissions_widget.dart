@@ -124,12 +124,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
           child: Text(
             context.strings.readyToBackupTitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: "Nunito",
-              fontWeight: FontWeight.w900,
-              fontSize: 32,
-              letterSpacing: -1.4,
-            ).copyWith(color: colorScheme.content),
+            style: TextStyles.display1.copyWith(color: colorScheme.content),
           ),
         ),
         const SizedBox(height: 16),

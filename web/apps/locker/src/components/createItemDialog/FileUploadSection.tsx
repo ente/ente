@@ -1,25 +1,26 @@
 import { CollectionChipRow } from "@/components/createItemDialog/CollectionChipRow";
 import {
-    lockerItemIcon,
-    lockerItemIconConfig,
-} from "@/components/locker-item-icons";
+    lockerPrimaryButtonSx,
+    lockerScrollAreaSx,
+} from "@/components/createItemDialog/create-item-dialog-styles";
+import { CreateCollectionRow } from "@/components/createItemDialog/CreateCollectionRow";
+import { lockerItemIcon } from "@/components/locker-item-icons";
 import type { LockerUploadProgress } from "@/services/remote";
 import type { LockerCollection, LockerUploadCandidate } from "@/types";
+import { Cancel01Icon, FileUploadIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import {
     Box,
     ButtonBase,
+    CircularProgress,
     IconButton,
     LinearProgress,
     Stack,
-    TextField,
     Typography,
 } from "@mui/material";
-import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
 import React, {
@@ -61,7 +62,6 @@ interface FileUploadSectionProps {
     onAddAvailableCollectionName: (name: string) => void;
     onSetCollectionNamesForAllItems: (names: string[]) => void;
     onRemoveItem: (fileKey: string) => void;
-    onClose: () => void;
     onUpload: () => Promise<void>;
 }
 
@@ -84,7 +84,6 @@ export function FileUploadSection({
     onAddAvailableCollectionName,
     onSetCollectionNamesForAllItems,
     onRemoveItem,
-    onClose,
     onUpload,
 }: FileUploadSectionProps) {
     const [settledCompletedFileKeys, setSettledCompletedFileKeys] = useState<
@@ -242,7 +241,7 @@ export function FileUploadSection({
     }, [orderedUploadItems]);
 
     return (
-        <Stack sx={{ flex: 1, minHeight: 0, pt: 0.5 }}>
+        <Stack sx={{ flex: 1, minHeight: 0 }}>
             <input
                 ref={fileInputRef}
                 type="file"
@@ -252,14 +251,13 @@ export function FileUploadSection({
             />
 
             <Stack
-                sx={{
+                sx={(theme) => ({
+                    ...lockerScrollAreaSx(theme),
                     flex: 1,
                     minHeight: 0,
-                    overflowY: "auto",
-                    gap: 2.5,
-                    pr: 0.5,
-                    pb: 2,
-                }}
+                    gap: "16px",
+                    pb: "8px",
+                })}
             >
                 {selectedUploadItems.length === 0 ? (
                     <ButtonBase
@@ -268,11 +266,14 @@ export function FileUploadSection({
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
-                            gap: 1.5,
-                            p: 4,
-                            borderRadius: "16px",
-                            border: `2px dashed ${theme.vars.palette.divider}`,
-                            backgroundColor: theme.vars.palette.fill.faint,
+                            gap: "4px",
+                            px: "20px",
+                            py: "28px",
+                            borderRadius: "20px",
+                            border: `1px dashed ${theme.vars.palette.stroke.muted}`,
+                            backgroundColor:
+                                theme.vars.palette.background.paper,
+                            textAlign: "center",
                             transition: "background-color 0.15s",
                             "&:hover": {
                                 backgroundColor:
@@ -280,21 +281,34 @@ export function FileUploadSection({
                             },
                         })}
                     >
-                        <CloudUploadOutlinedIcon
-                            sx={{ fontSize: 40, color: "text.faint" }}
-                        />
-                        <Typography variant="body" sx={{ fontWeight: 600 }}>
+                        <Box
+                            sx={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: "12px",
+                                backgroundColor: "background.default",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                mb: "8px",
+                                color: "accent.main",
+                            }}
+                        >
+                            <HugeiconsIcon
+                                icon={FileUploadIcon}
+                                size={24}
+                                strokeWidth={1.5}
+                            />
+                        </Box>
+                        <Typography variant="small" sx={{ fontWeight: 600 }}>
                             {t("saveDocumentsTitle")}
                         </Typography>
-                        <Typography
-                            variant="small"
-                            sx={{ color: "text.muted" }}
-                        >
+                        <Typography variant="mini" sx={{ color: "text.muted" }}>
                             {t("dropToSaveToLocker")}
                         </Typography>
                     </ButtonBase>
                 ) : (
-                    <Stack sx={{ gap: 1.25 }}>
+                    <Stack sx={{ gap: "8px" }}>
                         {orderedUploadItems.map((item) => {
                             const fileKey = uploadQueueItemKey(item);
                             const isSettledCompleted =
@@ -375,66 +389,51 @@ export function FileUploadSection({
                         })}
                     </Stack>
                 )}
-            </Stack>
-
-            <Stack
-                sx={(theme) => ({
-                    gap: 1.5,
-                    pt: 2,
-                    borderTop: `1px solid ${theme.vars.palette.stroke.faint}`,
-                    backgroundColor: theme.vars.palette.background.paper,
-                })}
-            >
                 {!uploading &&
                     !shouldShowPerItemCollectionSelector &&
                     selectedUploadItems.length > 0 && (
-                        <CollectionNameSelector
-                            collections={collections}
-                            availableNames={availableCollectionNames}
-                            selectedNames={sharedSelectedCollectionNames}
-                            suggestedNames={sharedSuggestedCollectionNames}
-                            onToggleName={(name) =>
-                                onSetCollectionNamesForAllItems(
-                                    toggleCollectionName(
-                                        sharedSelectedCollectionNames,
-                                        name,
-                                    ),
-                                )
-                            }
-                            onAddCollectionName={(name) => {
-                                onAddAvailableCollectionName(name);
-                                onSetCollectionNamesForAllItems(
-                                    addCollectionName(
-                                        sharedSelectedCollectionNames,
-                                        name,
-                                    ),
-                                );
-                            }}
-                            disabled={uploading}
-                        />
+                        <Box sx={{ pt: "8px" }}>
+                            <CollectionNameSelector
+                                collections={collections}
+                                availableNames={availableCollectionNames}
+                                selectedNames={sharedSelectedCollectionNames}
+                                suggestedNames={sharedSuggestedCollectionNames}
+                                onToggleName={(name) =>
+                                    onSetCollectionNamesForAllItems(
+                                        toggleCollectionName(
+                                            sharedSelectedCollectionNames,
+                                            name,
+                                        ),
+                                    )
+                                }
+                                onAddCollectionName={(name) => {
+                                    onAddAvailableCollectionName(name);
+                                    onSetCollectionNamesForAllItems(
+                                        addCollectionName(
+                                            sharedSelectedCollectionNames,
+                                            name,
+                                        ),
+                                    );
+                                }}
+                                disabled={uploading}
+                            />
+                        </Box>
                     )}
+            </Stack>
 
-                <Stack direction="row" sx={{ gap: 1 }}>
-                    <FocusVisibleButton
-                        fullWidth
-                        color="secondary"
-                        onClick={onClose}
-                        disabled={uploading}
-                        sx={{ borderRadius: "16px", py: 1.25 }}
-                    >
-                        {t("cancel")}
-                    </FocusVisibleButton>
-                    <LoadingButton
-                        fullWidth
-                        color="accent"
-                        loading={uploading}
-                        disabled={!canUpload}
-                        sx={{ borderRadius: "16px", py: 1.25 }}
-                        onClick={() => void onUpload()}
-                    >
-                        {t("saveRecord")}
-                    </LoadingButton>
-                </Stack>
+            <Stack sx={{ pt: "16px", flexShrink: 0 }}>
+                <LoadingButton
+                    fullWidth
+                    color="accent"
+                    loading={uploading}
+                    disabled={!canUpload}
+                    sx={(theme) =>
+                        lockerPrimaryButtonSx(theme, { loading: uploading })
+                    }
+                    onClick={() => void onUpload()}
+                >
+                    {t("saveRecord")}
+                </LoadingButton>
             </Stack>
         </Stack>
     );
@@ -481,115 +480,116 @@ const UploadItemCard = React.memo(function UploadItemCard({
 }: UploadItemCardProps) {
     return (
         <Stack
-            sx={{
-                borderRadius: "12px",
-                backgroundColor: (theme) => theme.vars.palette.fill.faint,
+            sx={(theme) => ({
+                position: "relative",
                 overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-            }}
+                borderRadius: "20px",
+                backgroundColor: theme.vars.palette.background.paper,
+            })}
         >
             <Stack
                 direction="row"
-                sx={{
-                    alignItems: "center",
-                    gap: 1.5,
-                    p: 2,
-                    position: "relative",
-                }}
+                sx={{ alignItems: "center", gap: "12px", p: "12px" }}
             >
                 <Box
-                    sx={{
+                    sx={(theme) => ({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        width: 48,
-                        height: 48,
+                        width: 40,
+                        height: 40,
                         borderRadius: "12px",
-                        backgroundColor: lockerItemIconConfig(
-                            "file",
-                            item.file.name,
-                        ).backgroundColor,
+                        backgroundColor: theme.vars.palette.background.default,
                         flexShrink: 0,
-                    }}
+                    })}
                 >
                     {lockerItemIcon("file", {
                         fileName: item.file.name,
                         size: 24,
-                        strokeWidth: 1.9,
+                        strokeWidth: 1.5,
                     })}
                 </Box>
-                <Box sx={{ flex: 1, minWidth: 0, pr: canRemove ? 5 : 0 }}>
-                    <Typography variant="body" noWrap>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="small" noWrap>
                         {item.file.name}
                     </Typography>
-                    <Typography variant="small" sx={{ color: "text.faint" }}>
+                    <Typography variant="mini" sx={{ color: "text.muted" }}>
                         {formatFileSize(item.file.size)}
                     </Typography>
                 </Box>
-                {isDone && (
-                    <Box
-                        sx={() => ({
-                            width: 24,
-                            height: 24,
-                            borderRadius: "50%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            backgroundColor: "#1071FF",
-                            color: "#FFFFFF",
-                            flexShrink: 0,
-                        })}
-                    >
-                        <CheckRoundedIcon sx={{ fontSize: 16 }} />
-                    </Box>
-                )}
-                {isFailed && (
-                    <ErrorOutlineRoundedIcon
-                        sx={{
-                            color: "critical.main",
-                            fontSize: 20,
-                            flexShrink: 0,
-                        }}
-                    />
-                )}
-                {isQueued && (
-                    <ScheduleRoundedIcon
-                        sx={{
-                            color: "text.muted",
-                            fontSize: 20,
-                            flexShrink: 0,
-                        }}
-                    />
-                )}
-                {canRemove && !isDone && !isFailed && (
-                    <IconButton
-                        aria-label={t("delete")}
-                        onClick={onRemove}
-                        size="small"
-                        sx={(theme) => ({
-                            position: "absolute",
-                            top: 12,
-                            right: 12,
-                            width: 30,
-                            height: 30,
-                            borderRadius: "10px",
-                            backgroundColor: "transparent",
-                            color: theme.vars.palette.text.muted,
-                            flexShrink: 0,
-                            "&:hover": {
+                <Box
+                    sx={{
+                        width: 28,
+                        height: 28,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                    }}
+                >
+                    {isUploading && (
+                        <CircularProgress
+                            size={18}
+                            thickness={4}
+                            sx={{ color: "text.muted" }}
+                        />
+                    )}
+                    {isDone && (
+                        <Box
+                            sx={(theme) => ({
+                                width: 18,
+                                height: 18,
+                                borderRadius: "50%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: theme.vars.palette.accent.main,
+                                color: theme.vars.palette.accent.contrastText,
+                            })}
+                        >
+                            <CheckRoundedIcon sx={{ fontSize: 12 }} />
+                        </Box>
+                    )}
+                    {isFailed && (
+                        <ErrorOutlineRoundedIcon
+                            sx={{ color: "critical.main", fontSize: 20 }}
+                        />
+                    )}
+                    {isQueued && (
+                        <ScheduleRoundedIcon
+                            sx={{ color: "text.muted", fontSize: 20 }}
+                        />
+                    )}
+                    {canRemove && !isDone && !isFailed && (
+                        <IconButton
+                            aria-label={t("delete")}
+                            onClick={onRemove}
+                            size="small"
+                            sx={(theme) => ({
+                                width: 28,
+                                height: 28,
+                                p: 0,
+                                borderRadius: "50%",
                                 backgroundColor:
                                     theme.vars.palette.fill.faintHover,
                                 color: theme.vars.palette.text.base,
-                            },
-                        })}
-                    >
-                        <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                )}
+                                "&:hover": {
+                                    backgroundColor:
+                                        theme.vars.palette.fill.faintHover,
+                                },
+                            })}
+                        >
+                            <HugeiconsIcon
+                                icon={Cancel01Icon}
+                                size={16}
+                                strokeWidth={1.5}
+                            />
+                        </IconButton>
+                    )}
+                </Box>
             </Stack>
             {showCollectionSelector && (
-                <Box sx={{ px: 2, pt: 1.5, pb: 2, flexShrink: 0 }}>
+                <Box sx={{ px: "12px", pb: "12px" }}>
                     <CollectionNameSelector
                         collections={collections}
                         availableNames={availableCollectionNames}
@@ -601,32 +601,36 @@ const UploadItemCard = React.memo(function UploadItemCard({
                     />
                 </Box>
             )}
-            <Box sx={{ mt: "auto", height: 4, flexShrink: 0 }}>
-                <LinearProgress
-                    variant="determinate"
-                    value={
-                        isUploading
-                            ? uploadProgressValue(uploadProgress, uploadCap)
-                            : isDone
-                              ? 100
-                              : 0
-                    }
-                    sx={(theme) => ({
-                        height: 4,
-                        borderRadius: 0,
-                        opacity: isUploading || isDone ? 1 : 0,
-                        "& .MuiLinearProgress-bar": {
-                            transition:
-                                uploadProgress?.phase === "finalizing"
-                                    ? theme.transitions.create("transform", {
-                                          duration: 2200,
-                                          easing: "ease-out",
-                                      })
-                                    : undefined,
-                        },
-                    })}
-                />
-            </Box>
+            <LinearProgress
+                variant="determinate"
+                value={
+                    isUploading
+                        ? uploadProgressValue(uploadProgress, uploadCap)
+                        : isDone
+                          ? 100
+                          : 0
+                }
+                sx={(theme) => ({
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 3,
+                    borderRadius: 0,
+                    opacity: isUploading || isDone ? 1 : 0,
+                    backgroundColor: "rgba(16 113 255 / 0.12)",
+                    "& .MuiLinearProgress-bar": {
+                        backgroundColor: theme.vars.palette.accent.main,
+                        transition:
+                            uploadProgress?.phase === "finalizing"
+                                ? theme.transitions.create("transform", {
+                                      duration: 2200,
+                                      easing: "ease-out",
+                                  })
+                                : undefined,
+                    },
+                })}
+            />
         </Stack>
     );
 }, areUploadItemCardPropsEqual);
@@ -737,59 +741,13 @@ const CollectionNameSelector: React.FC<{
                 onCreateClick={() => setCreateOpen((open) => !open)}
             />
             {createOpen && (
-                <Stack sx={{ gap: 1, mt: 1.25 }}>
-                    <Stack
-                        direction="row"
-                        sx={{ gap: 1, alignItems: "center" }}
-                    >
-                        <TextField
-                            size="small"
-                            fullWidth
-                            autoFocus
-                            placeholder={t("enterCollectionName")}
-                            sx={{
-                                "& .MuiInputBase-root": {
-                                    height: 44,
-                                    borderRadius: "14px",
-                                },
-                                "& .MuiInputBase-input": { pt: 1, pb: 0.5 },
-                            }}
-                            value={createName}
-                            onChange={(event) =>
-                                setCreateName(event.target.value)
-                            }
-                            onKeyDown={(event) => {
-                                if (event.key === "Escape") {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    setCreateOpen(false);
-                                    return;
-                                }
-                                if (event.key === "Enter") {
-                                    event.preventDefault();
-                                    handleAddCollectionName();
-                                }
-                            }}
-                            disabled={disabled}
-                        />
-                        <LoadingButton
-                            color="accent"
-                            disabled={!createName.trim() || disabled}
-                            aria-label={t("create")}
-                            onClick={handleAddCollectionName}
-                            sx={{
-                                minWidth: 0,
-                                width: 44,
-                                height: 44,
-                                p: 0,
-                                borderRadius: "14px",
-                                flexShrink: 0,
-                            }}
-                        >
-                            <CheckRoundedIcon />
-                        </LoadingButton>
-                    </Stack>
-                </Stack>
+                <CreateCollectionRow
+                    value={createName}
+                    onChange={setCreateName}
+                    onSubmit={handleAddCollectionName}
+                    onCancel={() => setCreateOpen(false)}
+                    disabled={disabled}
+                />
             )}
         </Box>
     );

@@ -1,3 +1,4 @@
+import "package:ente_components/theme/text_styles.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/theme/colors.dart";
@@ -47,12 +48,10 @@ class BannerActionButton extends StatelessWidget {
     final resolvedTagForegroundColor = stickTagToLightTheme
         ? contentLight
         : colorScheme.contentReverse;
-    final tagTextStyle = textTheme.miniBold.copyWith(
+    final tagTextStyle = TextStyles.tiny.copyWith(
       color: resolvedTagForegroundColor,
-      fontWeight: FontWeight.w900,
-      fontFamily: "Nunito",
-      fontSize: 9,
-      height: 11 / 9,
+      fontFamily: TextStyles.outfitFontFamily,
+      fontWeight: FontWeight.w700,
     );
 
     final button = GestureDetector(

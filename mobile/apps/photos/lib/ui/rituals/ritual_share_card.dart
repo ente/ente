@@ -1,3 +1,4 @@
+import "package:ente_components/theme/text_styles.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
@@ -123,9 +124,10 @@ class _RitualDuckyShareArt extends StatelessWidget {
     final streakText = streak.toString();
     final fontSize = _streakFontSize(streakText);
     final textStyle = TextStyle(
-      fontFamily: "Nunito",
+      fontFamily: TextStyles.outfitFontFamily,
+      package: TextStyles.fontPackage,
       fontSize: fontSize,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w700,
       color: Colors.white,
       decoration: TextDecoration.none,
       height: 1,

@@ -9,7 +9,7 @@ import (
 var ErrFileCountIneligible = errors.New("file counts are ineligible")
 
 func (repo *UsageRepository) InitializeFileCounts(ctx context.Context, userID int64) (bool, error) {
-	photos, _, err := repo.GetStoredFileCounts(ctx, userID)
+	_, photos, _, err := repo.GetStoredFileCounts(ctx, userID)
 	if err != nil || photos != -1 {
 		return false, err
 	}
@@ -24,6 +24,28 @@ func (repo *UsageRepository) InitializeFileCounts(ctx context.Context, userID in
 		return false, fmt.Errorf("%w: %s", ErrFileCountIneligible, counts.ineligibilityReason)
 	}
 	return repo.publishInitialFileCounts(ctx, userID, counts)
+}
+
+func (repo *UsageRepository) GetFileCountInitializationCandidates(ctx context.Context, afterUserID int64, limit int) ([]int64, error) {
+	rows, err := repo.DB.QueryContext(ctx, `SELECT usage.user_id FROM usage
+		JOIN users ON users.user_id = usage.user_id AND users.encrypted_email IS NOT NULL
+		WHERE usage.user_id > $1 AND usage.storage_consumed > 0
+			AND photos_file_count IS NULL AND locker_file_count IS NULL
+		ORDER BY usage.user_id LIMIT $2`, afterUserID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userIDs []int64
+	for rows.Next() {
+		var userID int64
+		if err := rows.Scan(&userID); err != nil {
+			return nil, err
+		}
+		userIDs = append(userIDs, userID)
+	}
+	return userIDs, rows.Err()
 }
 
 type fileCountInitSnapshot struct {

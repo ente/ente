@@ -1,6 +1,7 @@
 import { ArrowLeft02Icon, ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
+import { SpaceAddFriendDialog } from "components/AddFriendDialog";
 import { SpaceAddFriendTile } from "components/AddFriendTile";
 import { SpaceFileViewer } from "components/FileViewer";
 import { SpaceHomeHeader, spaceHomeHeaderHeight } from "components/HomeHeader";
@@ -9,6 +10,7 @@ import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React from "react";
 import { FriendPostTile } from "screens/HomeScreen";
 import type { SetupProfile } from "screens/SetupProfileScreen";
+import { spaceInviteURL } from "services/invite";
 import type { SpacePost } from "services/space";
 import { spaceAppBackground, spaceSurface, spaceText } from "styles/colors";
 import {
@@ -145,6 +147,8 @@ const LayoutDemoPost: React.FC<LayoutDemoPostProps> = ({
 
 const LayoutDemoPage: React.FC = () => {
     const router = useSpaceRouter();
+    const [isAddFriendOpen, setIsAddFriendOpen] = React.useState(false);
+    const [profileLink, setProfileLink] = React.useState<string>();
     const [{ friendCount, ownPosts }, setDemo] = React.useState({
         friendCount: 0,
         ownPosts: [] as SpacePost[],
@@ -196,7 +200,7 @@ const LayoutDemoPage: React.FC = () => {
     }, []);
 
     React.useEffect(() => {
-        if (ownViewerOpen) return;
+        if (ownViewerOpen || isAddFriendOpen) return;
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key == "ArrowLeft") {
@@ -207,7 +211,7 @@ const LayoutDemoPage: React.FC = () => {
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [changeFriendCount, ownViewerOpen]);
+    }, [changeFriendCount, isAddFriendOpen, ownViewerOpen]);
 
     const layout = homeTileLayout(
         friendCount,
@@ -287,7 +291,15 @@ const LayoutDemoPage: React.FC = () => {
                                     <SpaceAddFriendTile
                                         placement={layout.addFriend}
                                         variant={layout.addFriendVariant}
-                                        onClick={() => changeFriendCount(1)}
+                                        onClick={() => {
+                                            setProfileLink(
+                                                spaceInviteURL({
+                                                    spaceUsername:
+                                                        demoProfile.username,
+                                                }),
+                                            );
+                                            setIsAddFriendOpen(true);
+                                        }}
                                     />
                                 )}
                             </>
@@ -392,6 +404,18 @@ const LayoutDemoPage: React.FC = () => {
                         </Box>
                     </Box>
                 </Box>
+                <SpaceAddFriendDialog
+                    friendRequests={[]}
+                    friends={[]}
+                    open={isAddFriendOpen}
+                    onClose={() => setIsAddFriendOpen(false)}
+                    onAddFriend={() => {
+                        changeFriendCount(1);
+                        return Promise.resolve("requested");
+                    }}
+                    profileLink={profileLink}
+                    username={demoProfile.username}
+                />
                 {ownPostIndex !== undefined && (
                     <SpaceFileViewer
                         photo={ownPostPhotos[ownPostIndex]!}

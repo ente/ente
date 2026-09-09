@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_components/theme/text_styles.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -29,14 +30,7 @@ class _OfflineSettingsBannerState extends State<OfflineSettingsBanner> {
 
     final textTheme = getEnteTextTheme(context);
     final l10n = context.strings;
-    final titleStyle = textTheme.largeBold.copyWith(
-      fontFamily: "Nunito",
-      fontWeight: FontWeight.w800,
-      fontSize: 20,
-      height: 24 / 18,
-      letterSpacing: -1,
-      color: Colors.white,
-    );
+    final titleStyle = TextStyles.display3.copyWith(color: Colors.white);
 
     return GestureDetector(
       onTap: widget.onGetStarted,

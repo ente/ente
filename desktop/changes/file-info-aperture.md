@@ -1,1 +1,0 @@
-- Fixed invalid aperture values appearing as NaN in file info.

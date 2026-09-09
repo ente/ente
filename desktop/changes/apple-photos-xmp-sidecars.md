@@ -1,1 +1,0 @@
-- (i) Added support for importing Apple Photos folders with XMP sidecars, preserving dates, locations, and captions.

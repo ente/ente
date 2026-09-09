@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
@@ -64,7 +65,8 @@ class SubscriptionPlanWidget extends StatelessWidget {
                         text: TextSpan(
                           style: TextStyle(
                             color: colorScheme.contentDarker,
-                            fontFamily: "Nunito",
+                            fontFamily: TextStyles.outfitFontFamily,
+                            package: TextStyles.fontPackage,
                             fontWeight: FontWeight.w900,
                           ),
                           children: [
@@ -138,15 +140,13 @@ class SubscriptionPlanWidget extends StatelessWidget {
                     horizontal: 8,
                     vertical: 2,
                   ),
-                  child: const Text(
+                  child: Text(
                     "Most popular",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: TextStyles.tiny.copyWith(
                       color: Colors.white,
-                      fontFamily: "Nunito",
-                      fontWeight: FontWeight.w800,
-                      fontSize: 10,
-                      height: 20 / 10,
+                      fontFamily: TextStyles.outfitFontFamily,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

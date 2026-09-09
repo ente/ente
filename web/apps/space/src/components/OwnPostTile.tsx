@@ -7,7 +7,11 @@ import React from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import type { SpacePost, SpacePostAssetURLLoader } from "services/space";
 import { useSpaceAppState, type SpacePostPublishPhase } from "state/app-state";
-import { spaceSurface, spaceTextMuted } from "styles/colors";
+import {
+    spaceAppBackground,
+    spaceSurface,
+    spaceTextMuted,
+} from "styles/colors";
 import {
     spacePostTileRadius,
     spaceTileCircleInset,
@@ -17,7 +21,7 @@ import { spaceDefaultCoverImagePath } from "utils/post-image";
 import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 
 const green = "#08C225";
-const actionSize = 56;
+const actionSize = 64;
 
 const PostStatus: React.FC<{
     phase: SpacePostPublishPhase;
@@ -294,7 +298,7 @@ export const SpaceOwnPostTile: React.FC<SpaceOwnPostTileProps> = ({
                                 py: "3px",
                             }}
                         >
-                            Your latest posts will show up here
+                            Your latest post will show up here
                         </Box>
                         <Box
                             component="span"
@@ -350,9 +354,9 @@ export const SpaceOwnPostTile: React.FC<SpaceOwnPostTileProps> = ({
                 >
                     <Box
                         sx={{
-                            border: avatarUrl
-                                ? "2px solid rgba(255, 255, 255, 0.36)"
-                                : "2px solid rgba(255, 255, 255, 0.28)",
+                            backgroundClip: "padding-box",
+                            bgcolor: spaceAppBackground,
+                            border: "3px solid rgba(28, 28, 30, 0.75)",
                             borderRadius: "50%",
                             boxSizing: "border-box",
                             flexShrink: 0,
@@ -389,7 +393,7 @@ export const SpaceOwnPostTile: React.FC<SpaceOwnPostTileProps> = ({
                         border: 0,
                         borderRadius: "50%",
                         bottom: spaceTileCircleInset(actionSize),
-                        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.16)",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.32)",
                         color: "#FFFFFF",
                         cursor: isNewPostDisabled ? "default" : "pointer",
                         display: "flex",
@@ -405,7 +409,7 @@ export const SpaceOwnPostTile: React.FC<SpaceOwnPostTileProps> = ({
                         "&:focus-visible": { outlineColor: "#FFFFFF" },
                     }}
                 >
-                    <HugeiconsIcon icon={Add01Icon} size={28} strokeWidth={2} />
+                    <HugeiconsIcon icon={Add01Icon} size={32} strokeWidth={2} />
                 </Box>
             </Box>
             {publishPhase && (

@@ -121,3 +121,7 @@ allow_attributes_without_reason = "deny"
 # Unoptimized Argon2 makes production-strength derivations dominate test runtime.
 [profile.dev.package.argon2]
 opt-level = 3
+
+# Unoptimized HNSW construction makes the vecdb recall fixtures dominate test runtime.
+[profile.dev.package.ente-ml]
+opt-level = 3

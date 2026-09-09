@@ -305,15 +305,6 @@ flutter:
         - asset: fonts/Inter-Light.ttf
         - asset: fonts/Inter-SemiBold.ttf
         - asset: fonts/Inter-Bold.ttf
-    - family: Montserrat
-      fonts:
-        - asset: fonts/Montserrat-Bold.ttf
-    - family: Nunito
-      fonts:
-        - asset: fonts/Nunito-Regular.ttf
-        - asset: fonts/Nunito-Black.ttf
-          weight: 900
-
   uses-material-design: true
 
   generate: true

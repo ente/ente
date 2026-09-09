@@ -10,7 +10,8 @@ use uuid::Uuid;
 use super::manifest::{
     NOTES_DOCUMENTS_DIRECTORY, NOTES_MANIFEST_BACKUP_FILE, NOTES_MANIFEST_FILE, NotesManifest,
     NotesManifestDocument, collection_directory, empty_manifest, load_manifest_file,
-    load_published_manifest, notes_index_contract, serialize_manifest_for_publish, shard_directory,
+    load_published_manifest, manifest_document_entry_size, manifest_updated_at_ms,
+    notes_index_contract, serialize_manifest_for_publish, shard_directory, validate_manifest_size,
 };
 use super::reconcile::{IndexedNotesDocument, plan_notes_reconciliation};
 use super::shard::{
@@ -31,6 +32,7 @@ pub struct NotesIndexWriter {
     manifest: NotesManifest,
     source_bytes: u64,
     chunk_count: u64,
+    manifest_bytes: u64,
 }
 
 pub struct ValidatedNotesDocument<'a> {
@@ -39,6 +41,24 @@ pub struct ValidatedNotesDocument<'a> {
     source_metadata: &'a NotesSourceDocument,
     shard_bytes: Vec<u8>,
     shard_sha256: String,
+    cached_vectors_sha256: Option<String>,
+}
+
+impl ValidatedNotesDocument<'_> {
+    pub fn needs_embedding(&self) -> bool {
+        self.cached_vectors_sha256.is_none()
+    }
+}
+
+pub fn remove_notes_collection(
+    index_root: impl AsRef<Path>,
+    collection_id: &str,
+) -> Result<(), NotesError> {
+    validate_collection_id(collection_id)?;
+    match remove_owned_entry(&collection_directory(index_root.as_ref(), collection_id)) {
+        Err(NotesError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        result => result,
+    }
 }
 
 pub fn cleanup_unreferenced_notes_shards(
@@ -88,56 +108,6 @@ impl NotesIndexWriter {
         serialize_manifest_for_publish(&manifest, collection_id).map(|_| ())
     }
 
-    pub fn validate_reconciliation_capacity(
-        &self,
-        inventory: &[NotesSourceDocument],
-        prepared_chunk_counts: &BTreeMap<String, u32>,
-    ) -> Result<(), NotesError> {
-        let digest = "a".repeat(64);
-        let mut manifest = empty_manifest(&self.collection_id);
-        let mut source_bytes = 0_u64;
-        let mut chunks = 0_u64;
-        for source in inventory {
-            source.validate()?;
-            let chunk_count = prepared_chunk_counts
-                .get(&source.document_id)
-                .copied()
-                .or_else(|| {
-                    self.manifest
-                        .documents
-                        .get(&source.document_id)
-                        .map(|document| document.chunk_count)
-                })
-                .ok_or_else(|| {
-                    NotesError::InvalidInput(
-                        "source document has no prepared or indexed chunk count".to_string(),
-                    )
-                })?;
-            if chunk_count == 0 {
-                continue;
-            }
-            source_bytes = source_bytes
-                .checked_add(source.size)
-                .ok_or_else(source_content_too_large)?;
-            chunks = chunks
-                .checked_add(u64::from(chunk_count))
-                .ok_or_else(chunk_count_too_large)?;
-            manifest.documents.insert(
-                source.document_id.clone(),
-                NotesManifestDocument {
-                    revision: digest.clone(),
-                    source_size: source.size,
-                    source_modified_at_ms: source.modified_at_ms,
-                    chunk_count,
-                    shard_sha256: digest.clone(),
-                    vectors_sha256: digest.clone(),
-                },
-            );
-        }
-        ensure_collection_capacity(source_bytes, chunks)?;
-        serialize_manifest_for_publish(&manifest, &self.collection_id).map(|_| ())
-    }
-
     pub fn open(index_root: impl AsRef<Path>, collection_id: String) -> Result<Self, NotesError> {
         validate_collection_id(&collection_id)?;
         ensure_directory(index_root.as_ref())?;
@@ -154,6 +124,8 @@ impl NotesIndexWriter {
             empty_manifest(&collection_id)
         };
         let (source_bytes, chunk_count) = manifest_capacity(&manifest)?;
+        let manifest_bytes =
+            serialize_manifest_for_publish(&manifest, &collection_id)?.len() as u64;
         let _ = cleanup_unreferenced_shards(&collection_directory, &manifest.documents);
         Ok(Self {
             collection_id,
@@ -161,11 +133,18 @@ impl NotesIndexWriter {
             manifest,
             source_bytes,
             chunk_count,
+            manifest_bytes,
         })
     }
 
     pub fn initial_inventory_complete(&self) -> bool {
         self.manifest.initial_inventory_complete
+    }
+
+    pub fn last_updated_at_ms(&self) -> Option<i64> {
+        self.initial_inventory_complete()
+            .then(|| manifest_updated_at_ms(&self.collection_directory.join(NOTES_MANIFEST_FILE)))
+            .flatten()
     }
 
     pub fn indexed_document_ids(&self) -> impl Iterator<Item = &str> {
@@ -210,13 +189,13 @@ impl NotesIndexWriter {
         source_metadata: &NotesSourceDocument,
     ) -> Result<(), NotesError> {
         let validated = self.validate_document(prepared, source_metadata)?;
-        self.commit_validated_document(validated, embeddings)
+        self.commit_validated_document(validated, Some(embeddings))
     }
 
     pub fn commit_validated_document(
         &mut self,
         validated: ValidatedNotesDocument<'_>,
-        embeddings: &[Vec<f32>],
+        embeddings: Option<&[Vec<f32>]>,
     ) -> Result<(), NotesError> {
         let ValidatedNotesDocument {
             collection_id,
@@ -224,6 +203,7 @@ impl NotesIndexWriter {
             source_metadata,
             shard_bytes,
             shard_sha256,
+            cached_vectors_sha256,
         } = validated;
         if collection_id != self.collection_id {
             return Err(NotesError::InvalidInput(
@@ -232,6 +212,18 @@ impl NotesIndexWriter {
         }
         validate_prepared_document(prepared, source_metadata)?;
         self.validate_document_capacity(prepared, source_metadata)?;
+        let Some(embeddings) = embeddings else {
+            let vectors_sha256 = cached_vectors_sha256.ok_or_else(|| {
+                NotesError::InvalidInput("document requires embeddings".to_string())
+            })?;
+            self.validate_existing_shard(prepared, &shard_sha256, &vectors_sha256)?;
+            return self.activate_document(
+                prepared,
+                source_metadata,
+                &shard_sha256,
+                &vectors_sha256,
+            );
+        };
         if embeddings.len() != prepared.chunks.len() {
             return Err(NotesError::InvalidInput(
                 "embedding count does not match prepared chunks".to_string(),
@@ -270,32 +262,23 @@ impl NotesIndexWriter {
             &prepared.revision,
         );
         if path_exists(&final_directory)? {
-            match load_and_validate_shard(
-                &final_directory,
-                &self.collection_id,
-                &prepared.document_id,
-                &prepared.revision,
-                prepared.chunks.len(),
-                NotesShardIntegrity {
-                    shard_sha256: &shard_sha256,
-                    vectors_sha256: &vectors_sha256,
-                },
-                Some(prepared),
-            ) {
-                Ok(_) => {
-                    self.activate_document(
+            match self.validate_existing_shard(prepared, &shard_sha256, &vectors_sha256) {
+                Ok(()) => {
+                    return self.activate_document(
                         prepared,
                         source_metadata,
                         &shard_sha256,
                         &vectors_sha256,
-                    )?;
-                    return Ok(());
+                    );
                 }
                 Err(
                     NotesError::InvalidIndex(_)
                     | NotesError::IncompatibleIndex
                     | NotesError::Json(_),
                 ) => remove_owned_entry(&final_directory)?,
+                Err(NotesError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => {
+                    remove_owned_entry(&final_directory)?;
+                }
                 Err(error) => return Err(error),
             }
         }
@@ -328,19 +311,7 @@ impl NotesIndexWriter {
             match fs::rename(&temporary_directory, &final_directory) {
                 Ok(()) => Ok(()),
                 Err(_) if path_exists(&final_directory)? => {
-                    load_and_validate_shard(
-                        &final_directory,
-                        &self.collection_id,
-                        &prepared.document_id,
-                        &prepared.revision,
-                        prepared.chunks.len(),
-                        NotesShardIntegrity {
-                            shard_sha256: &shard_sha256,
-                            vectors_sha256: &vectors_sha256,
-                        },
-                        Some(prepared),
-                    )?;
-                    Ok(())
+                    self.validate_existing_shard(prepared, &shard_sha256, &vectors_sha256)
                 }
                 Err(rename_error) => Err(NotesError::Io(rename_error)),
             }
@@ -362,13 +333,57 @@ impl NotesIndexWriter {
         let shard_bytes =
             serialize_shard(&NotesShard::from_prepared(&self.collection_id, prepared))?;
         let shard_sha256 = sha256_hex(&shard_bytes);
+        let cached_vectors_sha256 = if let Some(existing) =
+            self.manifest.documents.get(&prepared.document_id)
+            && existing.revision == prepared.revision
+            && existing.shard_sha256 == shard_sha256
+            && existing.chunk_count as usize == prepared.chunks.len()
+        {
+            match self.validate_existing_shard(prepared, &shard_sha256, &existing.vectors_sha256) {
+                Ok(()) => Some(existing.vectors_sha256.clone()),
+                Err(
+                    NotesError::InvalidIndex(_)
+                    | NotesError::IncompatibleIndex
+                    | NotesError::Json(_),
+                ) => None,
+                Err(NotesError::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => None,
+                Err(error) => return Err(error),
+            }
+        } else {
+            None
+        };
         Ok(ValidatedNotesDocument {
             collection_id: self.collection_id.clone(),
             prepared,
             source_metadata,
             shard_bytes,
             shard_sha256,
+            cached_vectors_sha256,
         })
+    }
+
+    fn validate_existing_shard(
+        &self,
+        prepared: &PreparedNotesDocument,
+        shard_sha256: &str,
+        vectors_sha256: &str,
+    ) -> Result<(), NotesError> {
+        load_and_validate_shard(
+            &shard_directory(
+                &self.collection_directory,
+                &prepared.document_id,
+                &prepared.revision,
+            ),
+            &self.collection_id,
+            &prepared.document_id,
+            &prepared.revision,
+            prepared.chunks.len(),
+            NotesShardIntegrity {
+                shard_sha256,
+                vectors_sha256,
+            },
+            Some(prepared),
+        )
     }
 
     fn validate_document_capacity(
@@ -389,7 +404,51 @@ impl NotesIndexWriter {
             .checked_sub(existing.map_or(0, |document| u64::from(document.chunk_count)))
             .and_then(|total| total.checked_add(document_chunks))
             .ok_or_else(chunk_count_too_large)?;
-        ensure_collection_capacity(source_bytes, chunks)
+        ensure_collection_capacity(source_bytes, chunks)?;
+        if self
+            .manifest
+            .documents
+            .len()
+            .saturating_add(usize::from(existing.is_none()))
+            > NOTES_MAX_COLLECTION_DOCUMENTS
+        {
+            return Err(NotesError::CollectionTooLarge(
+                "The folder contains too many notes to index".to_string(),
+            ));
+        }
+        let document = manifest_document(
+            prepared,
+            source_metadata,
+            &prepared.revision,
+            &prepared.revision,
+        )?;
+        validate_manifest_size(self.updated_manifest_size(&prepared.document_id, Some(&document))?)
+    }
+
+    fn updated_manifest_size(
+        &self,
+        document_id: &str,
+        document: Option<&NotesManifestDocument>,
+    ) -> Result<u64, NotesError> {
+        let existing = self.manifest.documents.get(document_id);
+        let existing_bytes = existing
+            .map(|entry| manifest_document_entry_size(document_id, entry))
+            .transpose()?
+            .unwrap_or(0);
+        let document_bytes = document
+            .map(|entry| manifest_document_entry_size(document_id, entry))
+            .transpose()?
+            .unwrap_or(0);
+        let document_count = self.manifest.documents.len() - usize::from(existing.is_some())
+            + usize::from(document.is_some());
+        let old_object_spacing = 2 * u64::from(!self.manifest.documents.is_empty());
+        let new_object_spacing = 2 * u64::from(document_count > 0);
+        self.manifest_bytes
+            .checked_sub(existing_bytes + old_object_spacing)
+            .and_then(|bytes| bytes.checked_add(document_bytes + new_object_spacing))
+            .ok_or_else(|| {
+                NotesError::InvalidIndex("manifest byte total is inconsistent".to_string())
+            })
     }
 
     pub fn commit_deletions(&mut self, document_ids: &[String]) -> Result<(), NotesError> {
@@ -412,14 +471,18 @@ impl NotesIndexWriter {
                 .ok_or_else(|| {
                     NotesError::InvalidIndex("manifest chunk total is inconsistent".to_string())
                 })?;
+            let manifest_bytes = self.updated_manifest_size(document_id, None)?;
             self.manifest.documents.remove(document_id);
             self.source_bytes = source_bytes;
             self.chunk_count = chunk_count;
+            self.manifest_bytes = manifest_bytes;
         }
         Ok(())
     }
 
     pub fn publish(&mut self, initial_complete: bool) -> Result<(), NotesError> {
+        self.manifest_bytes += u64::from(self.manifest.initial_inventory_complete);
+        self.manifest_bytes -= u64::from(initial_complete);
         self.manifest.initial_inventory_complete = initial_complete;
         publish_manifest_atomically(
             &self.collection_directory,
@@ -437,11 +500,7 @@ impl NotesIndexWriter {
         shard_sha256: &str,
         vectors_sha256: &str,
     ) -> Result<(), NotesError> {
-        validate_revision(shard_sha256)?;
-        validate_revision(vectors_sha256)?;
-        let chunk_count = u32::try_from(prepared.chunks.len()).map_err(|_| {
-            NotesError::InvalidInput("prepared document has too many chunks".to_string())
-        })?;
+        let document = manifest_document(prepared, source_metadata, shard_sha256, vectors_sha256)?;
         let existing = self.manifest.documents.get(&prepared.document_id);
         let source_bytes = self
             .source_bytes
@@ -451,24 +510,38 @@ impl NotesIndexWriter {
         let total_chunks = self
             .chunk_count
             .checked_sub(existing.map_or(0, |document| u64::from(document.chunk_count)))
-            .and_then(|total| total.checked_add(u64::from(chunk_count)))
+            .and_then(|total| total.checked_add(u64::from(document.chunk_count)))
             .ok_or_else(chunk_count_too_large)?;
         ensure_collection_capacity(source_bytes, total_chunks)?;
-        self.manifest.documents.insert(
-            prepared.document_id.clone(),
-            NotesManifestDocument {
-                revision: prepared.revision.clone(),
-                source_size: source_metadata.size,
-                source_modified_at_ms: source_metadata.modified_at_ms,
-                chunk_count,
-                shard_sha256: shard_sha256.to_string(),
-                vectors_sha256: vectors_sha256.to_string(),
-            },
-        );
+        let manifest_bytes = self.updated_manifest_size(&prepared.document_id, Some(&document))?;
+        validate_manifest_size(manifest_bytes)?;
+        self.manifest
+            .documents
+            .insert(prepared.document_id.clone(), document);
         self.source_bytes = source_bytes;
         self.chunk_count = total_chunks;
+        self.manifest_bytes = manifest_bytes;
         Ok(())
     }
+}
+
+fn manifest_document(
+    prepared: &PreparedNotesDocument,
+    source_metadata: &NotesSourceDocument,
+    shard_sha256: &str,
+    vectors_sha256: &str,
+) -> Result<NotesManifestDocument, NotesError> {
+    validate_revision(shard_sha256)?;
+    validate_revision(vectors_sha256)?;
+    let chunk_count = u32::try_from(prepared.chunks.len()).map_err(|_| chunk_count_too_large())?;
+    Ok(NotesManifestDocument {
+        revision: prepared.revision.clone(),
+        source_size: source_metadata.size,
+        source_modified_at_ms: source_metadata.modified_at_ms,
+        chunk_count,
+        shard_sha256: shard_sha256.to_string(),
+        vectors_sha256: vectors_sha256.to_string(),
+    })
 }
 
 fn manifest_capacity(manifest: &NotesManifest) -> Result<(u64, u64), NotesError> {
@@ -757,12 +830,25 @@ mod tests {
     }
 
     #[test]
+    fn collection_removal_is_confined_to_canonical_uuid_children() {
+        let root = tempfile::tempdir().unwrap();
+        assert!(remove_notes_collection(root.path(), "../source").is_err());
+        let directory = publish_ready_manifest(root.path());
+        fs::write(root.path().join("source.md"), b"keep").unwrap();
+        remove_notes_collection(root.path(), &collection()).unwrap();
+        assert!(root.path().join("source.md").exists());
+        assert!(!directory.exists());
+        remove_notes_collection(root.path(), &collection()).unwrap();
+    }
+
+    #[test]
     fn writes_opens_and_searches_documents() {
         let temp = tempfile::tempdir().unwrap();
         let first_text = "first document";
         let first = prepared("first.md", first_text);
         let second = prepared("second.md", "second document");
         let mut writer = NotesIndexWriter::open(temp.path(), collection()).unwrap();
+        assert!(writer.last_updated_at_ms().is_none());
         writer
             .commit_document(
                 &first,
@@ -782,6 +868,7 @@ mod tests {
         let index = NotesCollectionIndex::open(temp.path(), collection()).unwrap();
         assert_eq!(index.document_count(), 2);
         assert!(index.last_updated_at_ms().is_some());
+        assert_eq!(writer.last_updated_at_ms(), index.last_updated_at_ms());
         let mut query = vec![0.0; 512];
         query[0] = 1.0;
         let hits = index.search(&query).unwrap();
@@ -803,6 +890,37 @@ mod tests {
             NotesCollectionIndex::open(temp.path(), collection()),
             Err(NotesError::InvalidIndex(_))
         ));
+    }
+
+    #[test]
+    fn repairs_missing_shard_files_in_complete_and_partial_indexes() {
+        for complete in [false, true] {
+            for missing in [NOTES_SHARD_FILE, NOTES_VECTORS_FILE] {
+                let temp = tempfile::tempdir().unwrap();
+                let document = prepared("note.md", "note");
+                let vectors = embeddings(&document, &[1.0]);
+                let source = metadata(&document, 4);
+                let mut writer = NotesIndexWriter::open(temp.path(), collection()).unwrap();
+                writer
+                    .commit_document(&document, &vectors, &source)
+                    .unwrap();
+                writer.publish(complete).unwrap();
+                let directory = shard_directory(
+                    &collection_directory(temp.path(), &collection()),
+                    &document.document_id,
+                    &document.revision,
+                );
+                fs::remove_file(directory.join(missing)).unwrap();
+                let mut writer = NotesIndexWriter::open(temp.path(), collection()).unwrap();
+                assert_eq!(writer.initial_inventory_complete(), complete);
+                writer
+                    .commit_document(&document, &vectors, &source)
+                    .unwrap();
+                writer.publish(true).unwrap();
+                let index = NotesCollectionIndex::open(temp.path(), collection()).unwrap();
+                assert_eq!(index.search(&vectors[0]).unwrap()[0].document_id, "note.md");
+            }
+        }
     }
 
     #[test]
@@ -863,23 +981,25 @@ mod tests {
             Err(NotesError::CollectionTooLarge(_))
         ));
 
-        let inventory = (0..129)
-            .map(|index| NotesSourceDocument {
-                document_id: format!("note-{index:03}.md"),
-                size: 7_168,
-                modified_at_ms: Some(1),
-            })
-            .collect::<Vec<_>>();
-        NotesIndexWriter::validate_inventory_capacity(&collection(), &inventory).unwrap();
-        let prepared_chunk_counts = inventory
-            .iter()
-            .map(|source| (source.document_id.clone(), 1_024))
-            .collect::<BTreeMap<_, _>>();
         let temp = tempfile::tempdir().unwrap();
-        let writer = NotesIndexWriter::open(temp.path(), collection()).unwrap();
-
+        let mut writer = NotesIndexWriter::open(temp.path(), collection()).unwrap();
+        let document = prepared("note.md", "note");
+        let source = metadata(&document, 4);
+        writer.chunk_count = NOTES_MAX_COLLECTION_CHUNKS;
         assert!(matches!(
-            writer.validate_reconciliation_capacity(&inventory, &prepared_chunk_counts),
+            writer.validate_document(&document, &source),
+            Err(NotesError::CollectionTooLarge(_))
+        ));
+        writer.chunk_count = 0;
+        writer.source_bytes = NOTES_MAX_COLLECTION_SOURCE_BYTES;
+        assert!(matches!(
+            writer.validate_document(&document, &source),
+            Err(NotesError::CollectionTooLarge(_))
+        ));
+        writer.source_bytes = 0;
+        writer.manifest_bytes = 8 * 1024 * 1024;
+        assert!(matches!(
+            writer.validate_document(&document, &source),
             Err(NotesError::CollectionTooLarge(_))
         ));
     }

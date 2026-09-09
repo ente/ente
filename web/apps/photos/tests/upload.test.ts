@@ -60,8 +60,20 @@ const metadataCases = [
         "PXL_20241231_151646544.MP.jpg.supplemental-met.json",
     ],
     [
+        "PXL_20241231_151646544.MP.jpg",
+        "PXL_20241231_151646544.MP.jpg.supplemental-metadata.json",
+    ],
+    [
         "PXL_20240827_094331806.PORTRAIT(1).jpg",
         "PXL_20240827_094331806.PORTRAIT.jpg.supplement(1).json",
+    ],
+    [
+        "PXL_20240827_094331806.PORTRAIT(1).jpg",
+        "PXL_20240827_094331806.PORTRAIT.jpg.supplemental-metadata(1).json",
+    ],
+    [
+        "PXL_20240827_094331806.PORTRAIT(1).jpg",
+        "PXL_20240827_094331806.PORTRAIT(1).jpg.supplemental-metadata.json",
     ],
     [
         "PXL_20240506_142610305.LONG_EXPOSURE-01.COVER.jpg",
@@ -138,6 +150,65 @@ describe("upload filename metadata", () => {
 
         expect(matchJSONMetadata(undefined, 0, fileName, map)).toBe(metadata);
     });
+
+    test.each([
+        [
+            "PXL_20241231_151646544.MP.jpg",
+            "PXL_20241231_151646544.MP.jpg.supplemental-metadata.json",
+            "PXL_20241231_151646544.MP.jpg.supplemental-met.json",
+        ],
+        [
+            "PXL_20240827_094331806.PORTRAIT(1).jpg",
+            "PXL_20240827_094331806.PORTRAIT.jpg.supplemental-metadata(1).json",
+            "PXL_20240827_094331806.PORTRAIT.jpg.supplement(1).json",
+        ],
+        [
+            "PXL_20240827_094331806.PORTRAIT(1).jpg",
+            "PXL_20240827_094331806.PORTRAIT(1).jpg.supplemental-metadata.json",
+            "PXL_20240827_094331806.PORTRAIT(1).jpg.supplem.json",
+        ],
+        [
+            "PXL_20240827_094331806.PORTRAIT(1).jpg",
+            "PXL_20240827_094331806.PORTRAIT.jpg.supplemental-metadata(1).json",
+            "PXL_20240827_094331806.PORTRAIT(1).jpg.supplem.json",
+        ],
+        [
+            "PXL_20240827_094331806.PORTRAIT(1).jpg",
+            "PXL_20240827_094331806.PORTRAIT(1).jpg.supplemental-metadata.json",
+            "PXL_20240827_094331806.PORTRAIT.jpg.supplement(1).json",
+        ],
+    ])(
+        "for %s uses %s only when %s is absent",
+        (fileName, fullJSONFileName, clippedJSONFileName) => {
+            const fullMetadata = { description: "full" };
+            const clippedMetadata = { description: "clipped" };
+            const map = new Map([
+                [
+                    metadataJSONMapKeyForJSON(undefined, 0, fullJSONFileName),
+                    fullMetadata,
+                ],
+                [
+                    metadataJSONMapKeyForJSON(
+                        undefined,
+                        0,
+                        clippedJSONFileName,
+                    ),
+                    clippedMetadata,
+                ],
+            ]);
+
+            expect(matchJSONMetadata(undefined, 0, fileName, map)).toBe(
+                clippedMetadata,
+            );
+
+            map.delete(
+                metadataJSONMapKeyForJSON(undefined, 0, clippedJSONFileName),
+            );
+            expect(matchJSONMetadata(undefined, 0, fileName, map)).toBe(
+                fullMetadata,
+            );
+        },
+    );
 });
 
 describe("Apple Photos XMP sidecars", () => {

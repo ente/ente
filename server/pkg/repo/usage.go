@@ -43,15 +43,21 @@ func (repo *UsageRepository) GetUsage(userID int64) (int64, error) {
 	return usage, stacktrace.Propagate(err, "")
 }
 
-func (repo *UsageRepository) GetStoredFileCounts(ctx context.Context, userID int64) (int64, int64, error) {
-	var photos, locker int64
-	err := repo.DB.QueryRowContext(ctx, `SELECT photos_file_count, locker_file_count
-		FROM usage WHERE user_id = $1
-		AND photos_file_count IS NOT NULL AND locker_file_count IS NOT NULL`, userID).Scan(&photos, &locker)
+func (repo *UsageRepository) GetStoredFileCounts(ctx context.Context, userID int64) (int64, int64, int64, error) {
+	var photos, locker sql.NullInt64
+	var storageConsumed int64
+	err := repo.DB.QueryRowContext(ctx, `SELECT storage_consumed, photos_file_count, locker_file_count
+		FROM usage WHERE user_id = $1`, userID).Scan(&storageConsumed, &photos, &locker)
 	if errors.Is(err, sql.ErrNoRows) {
-		return -1, -1, nil
+		return 0, -1, -1, nil
 	}
-	return photos, locker, stacktrace.Propagate(err, "")
+	if err != nil {
+		return 0, 0, 0, stacktrace.Propagate(err, "")
+	}
+	if !photos.Valid || !locker.Valid {
+		return storageConsumed, -1, -1, nil
+	}
+	return storageConsumed, photos.Int64, locker.Int64, nil
 }
 
 func (repo *UsageRepository) CreateTx(ctx context.Context, tx *sql.Tx, userID int64) error {

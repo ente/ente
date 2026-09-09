@@ -2,7 +2,6 @@ import { lowercaseExtension, nameAndExtension } from "ente-base/file-name";
 import { isHEICExtension } from "ente-media/formats";
 import { heicToJPEG } from "ente-media/heic-convert";
 import { thumbHashBase64FromCanvas } from "utils/thumbhash";
-import defaultCoverImage from "../../public/images/default-cover-image.jpg";
 
 export interface PreparedSpaceImage {
     file: File;
@@ -48,7 +47,7 @@ export const spaceCoverImageInputAccept = spaceAvatarImageInputAccept;
 export const spacePostImageInputAccept =
     "image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif";
 
-export const spaceDefaultCoverImagePath = defaultCoverImage.src;
+export const spaceDefaultCoverImagePath = "/images/default-cover-image.jpg";
 export const spaceProfileCoverAspectRatio = 39 / 17;
 const spaceAvatarImageMaxEdge = 512;
 const spaceCoverImageMaxWidth = 1170;

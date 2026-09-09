@@ -42,6 +42,6 @@
         "@types/react-dom": "19.2.3",
         "@types/react-window": "1.8.8",
         "ente-build-config": "*",
-        "vitest": "4.1.8"
+        "vitest": "4.1.11"
     }
 }

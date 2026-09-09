@@ -738,6 +738,7 @@ export const useCreateItemDialogState = ({
         handleFileSelect,
         handleSave,
         handleSelectOption,
+        handleStepBackToOptions,
         handleUpload,
         isEditMode,
         isFileMode,

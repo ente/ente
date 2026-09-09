@@ -4,7 +4,6 @@ import { CssBaseline } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { SpacePostComposerHost } from "components/PostComposer";
 import { SpaceRouteTransitionBoundary } from "components/RouteTransitionBoundary";
-import { SpaceShareLinkDialogHost } from "components/ShareLinkDialog";
 import "configure-zod";
 import { CustomHead } from "ente-base/components/Head";
 import { useSetupLogs } from "ente-base/components/utils/hooks-app";
@@ -155,7 +154,6 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
                 <SpaceAppStateProvider>
                     <Component {...pageProps} />
                     <SpacePostComposerHost />
-                    <SpaceShareLinkDialogHost />
                 </SpaceAppStateProvider>
             </SpaceRouteTransitionBoundary>
         </ThemeProvider>

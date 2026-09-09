@@ -122,22 +122,7 @@ pub(super) fn validate_manifest(
     let mut total_source_bytes = 0_u64;
     let mut total_chunks = 0_u64;
     for (document_id, document) in &manifest.documents {
-        validate_document_id(document_id).map_err(invalid_index_input)?;
-        validate_revision(&document.revision).map_err(invalid_index_input)?;
-        validate_revision(&document.shard_sha256).map_err(invalid_index_input)?;
-        validate_revision(&document.vectors_sha256).map_err(invalid_index_input)?;
-        if document.source_size > NOTES_MAX_SOURCE_BYTES as u64 {
-            return Err(NotesError::InvalidIndex(
-                "manifest source size exceeds the supported limit".to_string(),
-            ));
-        }
-        if document.chunk_count == 0
-            || u64::from(document.chunk_count) > document.source_size.max(1)
-        {
-            return Err(NotesError::InvalidIndex(
-                "manifest document chunk count is invalid".to_string(),
-            ));
-        }
+        validate_manifest_document(document_id, document)?;
         total_source_bytes = total_source_bytes
             .checked_add(document.source_size)
             .ok_or_else(|| {
@@ -159,6 +144,46 @@ pub(super) fn validate_manifest(
     Ok(())
 }
 
+fn validate_manifest_document(
+    document_id: &str,
+    document: &NotesManifestDocument,
+) -> Result<(), NotesError> {
+    validate_document_id(document_id).map_err(invalid_index_input)?;
+    validate_revision(&document.revision).map_err(invalid_index_input)?;
+    validate_revision(&document.shard_sha256).map_err(invalid_index_input)?;
+    validate_revision(&document.vectors_sha256).map_err(invalid_index_input)?;
+    if document.source_size > NOTES_MAX_SOURCE_BYTES as u64 {
+        return Err(NotesError::InvalidIndex(
+            "manifest source size exceeds the supported limit".to_string(),
+        ));
+    }
+    if document.chunk_count == 0 || u64::from(document.chunk_count) > document.source_size.max(1) {
+        return Err(NotesError::InvalidIndex(
+            "manifest document chunk count is invalid".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+pub(super) fn manifest_document_entry_size(
+    document_id: &str,
+    document: &NotesManifestDocument,
+) -> Result<u64, NotesError> {
+    validate_manifest_document(document_id, document)?;
+    let bytes = serde_json::to_vec_pretty(&BTreeMap::from([(document_id, document)]))?;
+    let nested_indent_bytes = 2 * bytes.iter().filter(|&&byte| byte == b'\n').count();
+    Ok((bytes.len() + nested_indent_bytes - 4) as u64)
+}
+
+pub(super) fn validate_manifest_size(bytes: u64) -> Result<(), NotesError> {
+    if bytes > MAX_MANIFEST_BYTES {
+        return Err(NotesError::CollectionTooLarge(
+            "The folder contains too many notes to index".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 pub(super) fn serialize_manifest_for_publish(
     manifest: &NotesManifest,
     collection_id: &str,
@@ -166,11 +191,7 @@ pub(super) fn serialize_manifest_for_publish(
     validate_manifest(manifest, collection_id, false)?;
     let mut bytes = serde_json::to_vec_pretty(manifest)?;
     bytes.push(b'\n');
-    if bytes.len() as u64 > MAX_MANIFEST_BYTES {
-        return Err(NotesError::CollectionTooLarge(
-            "The folder contains too many notes to index".to_string(),
-        ));
-    }
+    validate_manifest_size(bytes.len() as u64)?;
     Ok(bytes)
 }
 
@@ -218,7 +239,7 @@ pub(super) fn load_published_manifest(
     }
 }
 
-fn manifest_updated_at_ms(path: &Path) -> Option<i64> {
+pub(super) fn manifest_updated_at_ms(path: &Path) -> Option<i64> {
     fs::metadata(path)
         .ok()?
         .modified()

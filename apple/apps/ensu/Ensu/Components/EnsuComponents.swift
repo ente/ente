@@ -1,6 +1,61 @@
 import SwiftUI
 import UIKit
 
+struct EnsuCard<Content: View>: View {
+    var padding: CGFloat = EnsuSpacing.lg
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: EnsuSpacing.sm, content: content)
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(EnsuColor.fillFaint)
+            .clipShape(RoundedRectangle(cornerRadius: EnsuCornerRadius.card, style: .continuous))
+    }
+}
+
+struct AttributionSheet<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: () -> Content
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: EnsuSpacing.lg, content: content)
+                    .padding(EnsuSpacing.lg)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(EnsuColor.backgroundBase)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+struct CompactButton: View {
+    let text: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(text)
+                .font(EnsuTypography.small)
+                .padding(.horizontal, EnsuSpacing.xs)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.small)
+        .tint(EnsuColor.accent)
+    }
+}
+
 struct PrimaryButton: View {
     let text: String
     var isLoading: Bool = false
@@ -64,6 +119,7 @@ struct ActionButton: View {
     var isSystemSymbol: Bool = false
     var tooltip: String? = nil
     var color: Color = EnsuColor.textMuted
+    var size: CGFloat = 36
     let action: () -> Void
 
     var body: some View {
@@ -82,7 +138,7 @@ struct ActionButton: View {
                         .frame(width: 16, height: 16)
                 }
             }
-            .frame(width: 36, height: 36)
+            .frame(width: size, height: size)
         }
         .buttonStyle(ActionButtonStyle(color: color))
         .accessibilityLabel(tooltip ?? "")

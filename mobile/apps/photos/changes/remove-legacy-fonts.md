@@ -1,0 +1,1 @@
+- Replaced legacy Nunito and Montserrat text styles with Outfit.

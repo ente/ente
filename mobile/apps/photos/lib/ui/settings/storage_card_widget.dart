@@ -1,3 +1,4 @@
+import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
@@ -169,10 +170,8 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
             isMobileScreenSmall
                 ? context.strings.usedSpace
                 : context.strings.storage,
-            style: const TextStyle(
-              fontFamily: 'Montserrat',
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+            style: TextStyles.tiny.copyWith(
+              fontFamily: TextStyles.outfitFontFamily,
               color: textMutedDark,
             ),
           ),
@@ -181,10 +180,8 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
             text: TextSpan(
-              style: const TextStyle(
-                fontFamily: 'Montserrat',
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+              style: TextStyles.display2.copyWith(
+                fontWeight: FontWeight.w700,
                 color: textBaseDark,
                 letterSpacing: -1,
               ),
@@ -239,9 +236,8 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
                         const SizedBox(width: 4),
                         Text(
                           context.strings.storageBreakupYou,
-                          style: const TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontSize: 9,
+                          style: TextStyles.tiny.copyWith(
+                            fontFamily: TextStyles.outfitFontFamily,
                             fontWeight: FontWeight.w600,
                             color: textBaseDark,
                           ),
@@ -258,9 +254,8 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
                         const SizedBox(width: 4),
                         Text(
                           context.strings.storageBreakupFamily,
-                          style: const TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontSize: 9,
+                          style: TextStyles.tiny.copyWith(
+                            fontFamily: TextStyles.outfitFontFamily,
                             fontWeight: FontWeight.w600,
                             color: textBaseDark,
                           ),
@@ -273,11 +268,10 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
                   count: userDetails.fileCount,
                   formattedCount: NumberFormat().format(userDetails.fileCount),
                 ),
-                style: const TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontSize: 10,
+                style: TextStyles.tiny.copyWith(
+                  fontFamily: TextStyles.outfitFontFamily,
                   fontWeight: FontWeight.w600,
-                  color: Color.fromRGBO(165, 165, 165, 0.79),
+                  color: const Color.fromRGBO(165, 165, 165, 0.79),
                 ),
               ),
             ],

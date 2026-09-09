@@ -29,7 +29,6 @@ import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React, { useState } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import { markSpaceHomePostRead } from "services/home-posts";
-import { openSpaceShareLinkDialog } from "services/share-link";
 import {
     isSpaceContentError,
     type SpaceFriendRequest,
@@ -103,6 +102,7 @@ interface HomeScreenProps {
     onLoadPostImage?: SpacePostAssetURLLoader;
     onFriendRequestSentToastClose?: () => void;
     onAcceptFriendRequest?: (requestID: number) => Promise<void>;
+    onAddFriend: () => void;
     onDiscardFriendRequest?: (requestID: number) => Promise<void>;
     onOpenFriend?: (friendID: string, username?: string) => void;
     onOpenFriendRequests?: () => void;
@@ -118,7 +118,6 @@ interface HomeScreenProps {
     ) => Promise<void>;
     onSetPostLiked?: (postId: number, liked: boolean) => Promise<void>;
     profile: SetupProfile | null;
-    profileLink?: string;
     viewerSpaceId?: string;
 }
 
@@ -656,10 +655,9 @@ export const FriendPostTile: React.FC<FriendPostTileProps> = ({
                         onClick={openAvatar}
                         sx={{
                             appearance: "none",
-                            bgcolor: "transparent",
-                            border: displayAvatarUrl
-                                ? "2px solid rgba(255, 255, 255, 0.36)"
-                                : "2px solid rgba(255, 255, 255, 0.28)",
+                            backgroundClip: "padding-box",
+                            bgcolor: spaceAppBackground,
+                            border: "3px solid rgba(28, 28, 30, 0.75)",
                             borderRadius: "50%",
                             bottom: spaceTileCircleInset(avatarSize),
                             boxSizing: "border-box",
@@ -992,6 +990,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     onDeletePost,
     onUpdatePostCaption,
     onAcceptFriendRequest,
+    onAddFriend,
     onDiscardFriendRequest,
     onLoadFriendAvatar,
     onLoadPostImage,
@@ -1006,7 +1005,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     onReplyToPost,
     onSetPostLiked,
     profile,
-    profileLink,
     viewerSpaceId,
 }) => {
     const [selectedViewer, setSelectedViewer] =
@@ -1737,16 +1735,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     {postLayout.addFriend && (
                                         <SpaceAddFriendTile
                                             placement={postLayout.addFriend}
-                                            profileLink={profileLink}
                                             variant={
                                                 postLayout.addFriendVariant
                                             }
-                                            onClick={() => {
-                                                if (profileLink)
-                                                    openSpaceShareLinkDialog(
-                                                        profileLink,
-                                                    );
-                                            }}
+                                            onClick={onAddFriend}
                                         />
                                     )}
                                 </Box>

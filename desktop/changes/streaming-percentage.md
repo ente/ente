@@ -1,1 +1,0 @@
-- Added a processed percentage under Streamable videos in Preferences.

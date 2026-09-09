@@ -32,7 +32,12 @@ const errorMessage = (
 let client: Promise<PasteClient> | undefined;
 
 export const pasteClient = () =>
-    (client ??= apiOrigin().then((origin) => PasteClient.init(origin)));
+    (client ??= apiOrigin()
+        .then((origin) => PasteClient.init(origin))
+        .catch((error: unknown) => {
+            client = undefined;
+            throw error;
+        }));
 
 export const createPasteErrorMessage = (error: unknown) =>
     errorMessage(error, createErrorMessages, "Failed to create paste");

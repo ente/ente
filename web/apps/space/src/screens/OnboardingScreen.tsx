@@ -93,9 +93,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                     minHeight: "100svh",
                     mx: "auto",
                     overflow: "hidden",
-                    px: 3,
+                    px: 2,
                     width: "100%",
-                    "@media (min-width: 600px)": { maxWidth: 390 },
+                    "@media (min-width: 600px)": { maxWidth: 422 },
                 }}
             >
                 <Box
@@ -106,8 +106,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                         flexShrink: 0,
                         gridTemplateColumns: "40px 1fr 40px",
                         height: 40,
+                        maxWidth: { sm: 342 },
                         mt: "clamp(24px, 5.5svh, 44px)",
-                        width: "100%",
+                        width: "calc(100% - 16px)",
                     }}
                 >
                     <Box />
@@ -190,6 +191,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                                     maxWidth: 320,
                                     overflowWrap: "anywhere",
                                     textWrap: "balance",
+                                    width: "calc(100% - 16px)",
                                 }}
                             >
                                 {title}
@@ -220,8 +222,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                         flexDirection: "column",
                         flexShrink: 0,
                         gap: "12px",
+                        maxWidth: { sm: 342 },
                         mb: "calc(32px + env(safe-area-inset-bottom))",
-                        width: "100%",
+                        width: "calc(100% - 16px)",
                         "@media (min-width: 600px)": { mb: "44px" },
                     }}
                 >

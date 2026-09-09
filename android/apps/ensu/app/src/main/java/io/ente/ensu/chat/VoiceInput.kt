@@ -21,6 +21,9 @@ import io.ente.ensu.bindings.TranscriptionException
 import io.ente.ensu.bindings.transcriptionModelAsset
 import io.ente.ensu.bindings.voiceActivityModelAsset
 import io.ente.ensu.assets.AssetStore
+import io.ente.ensu.notes.LocalNotesStore
+import io.ente.ensu.llm.ModelMaintenance
+import io.ente.ensu.llm.withMaintenanceSuspended
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -74,8 +77,9 @@ internal fun rememberVoiceTranscriptionController(
     onTranscript: (String) -> Unit
 ): VoiceTranscriptionController {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val controller = remember(transcriber) {
-        VoiceTranscriptionController(assetStore, transcriber, onTranscript)
+    val notes = LocalNotesStore.current
+    val controller = remember(transcriber, notes) {
+        VoiceTranscriptionController(assetStore, transcriber, onTranscript, notes)
     }
     DisposableEffect(controller, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -97,7 +101,8 @@ internal fun rememberVoiceTranscriptionController(
 internal class VoiceTranscriptionController(
     private val assetStore: AssetStore,
     private val transcriber: Transcriber,
-    private val onTranscript: (String) -> Unit
+    private val onTranscript: (String) -> Unit,
+    private val maintenance: ModelMaintenance?
 ) {
     private val modelAssets = listOf(
         transcriptionModelAsset(),
@@ -280,7 +285,7 @@ internal class VoiceTranscriptionController(
         audioRecord = null
     }
 
-    private suspend fun transcribeRecording(pcm: ByteArray, sampleRate: Int) {
+    private suspend fun transcribeRecording(pcm: ByteArray, sampleRate: Int) = maintenance.withMaintenanceSuspended {
         try {
             ensureTranscriptionModelDownloaded()
             awaitTranscriptionModelPreload()
@@ -311,14 +316,14 @@ internal class VoiceTranscriptionController(
         } catch (error: AssetDownloadException) {
             if (error is AssetDownloadException.Cancelled) {
                 state = VoiceInputState.Idle
-                return
+                return@withMaintenanceSuspended
             }
             Log.w(TAG, "Voice model download failed: ${error.message}", error)
             state = VoiceInputState.Error(downloadErrorMessage())
         } catch (error: LlmException) {
             if (error is LlmException.Cancelled) {
                 state = VoiceInputState.Idle
-                return
+                return@withMaintenanceSuspended
             }
             Log.w(TAG, "Voice model download failed: ${error.message}", error)
             state = VoiceInputState.Error(downloadErrorMessage())
@@ -336,7 +341,7 @@ internal class VoiceTranscriptionController(
         transcriptionPreloadJob?.cancel()
         transcriptionPreloadJob = scope.launch(Dispatchers.IO) {
             try {
-                transcriber.loadModel()
+                maintenance.withMaintenanceSuspended { transcriber.loadModel() }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {

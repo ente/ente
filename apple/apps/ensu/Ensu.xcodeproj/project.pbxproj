@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A20000012F11111100AA0001 = {isa = PBXBuildFile; fileRef = A20000022F11111100AA0001; };
 		A10000012F11111100AA0001 /* LlmIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000022F11111100AA0001 /* LlmIntegrationTests.swift */; };
 		DAE20A022F00000100000002 /* EnteOnnxRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = DAE20A012F00000100000001 /* EnteOnnxRuntime */; };
 		DAF584672E61BB8300F8A08F /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DAF584662E61BB8300F8A08F /* ZIPFoundation */; };
@@ -25,6 +26,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A20000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesIntegrationTests.swift; sourceTree = "<group>"; };
 		A10000022F11111100AA0001 /* LlmIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlmIntegrationTests.swift; sourceTree = "<group>"; };
 		A10000032F11111100AA0001 /* EnsuTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EnsuTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DA72BC612E5F87A000D128FF /* Ensu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ensu.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -77,6 +79,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000022F11111100AA0001 /* LlmIntegrationTests.swift */,
+				A20000022F11111100AA0001,
 			);
 			path = EnsuTests;
 			sourceTree = "<group>";
@@ -244,6 +247,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000012F11111100AA0001 /* LlmIntegrationTests.swift in Sources */,
+				A20000012F11111100AA0001,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

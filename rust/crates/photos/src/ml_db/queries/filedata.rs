@@ -1,8 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::db::optional_parameter;
-
-use super::{MlDb, Result};
+use crate::ml_db::{MlDb, Result};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FdStatus {
@@ -26,20 +25,27 @@ impl MlDb {
         if fd_status_list.is_empty() {
             return Ok(());
         }
-        self.db.write_batch(
-            "INSERT OR REPLACE INTO filedata (file_id, user_id, type, size, obj_id, obj_nonce, updated_at ) values(?, ?, ?, ?, ?, ?, ?)",
-            fd_status_list.iter().map(|status| {
-                (
-                    status.file_id,
-                    status.user_id,
-                    &status.data_type,
-                    status.size,
-                    &status.object_id,
-                    &status.object_nonce,
-                    status.updated_at,
+        self.db
+            .write_batch_atomic(
+                r#"
+                INSERT OR REPLACE INTO filedata (
+                    file_id, user_id, type, size, obj_id, obj_nonce, updated_at
                 )
-            }),
-        ).map_err(Into::into)
+                values (?, ?, ?, ?, ?, ?, ?)
+                "#,
+                fd_status_list.iter().map(|status| {
+                    (
+                        status.file_id,
+                        status.user_id,
+                        &status.data_type,
+                        status.size,
+                        &status.object_id,
+                        &status.object_nonce,
+                        status.updated_at,
+                    )
+                }),
+            )
+            .map_err(Into::into)
     }
 
     pub fn get_file_ids_vid_preview(&self) -> Result<HashMap<i64, PreviewInfo>> {
@@ -72,7 +78,7 @@ impl MlDb {
 }
 
 #[cfg(test)]
-pub(super) mod tests {
+pub(in crate::ml_db) mod tests {
     use std::collections::{HashMap, HashSet};
 
     use super::{FdStatus, MlDb, PreviewInfo};

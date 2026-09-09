@@ -12,13 +12,13 @@ func TestGetStoredFileCountsReturnsMinusOneUntilInitialized(t *testing.T) {
 	_, db, userID := setupCollectionMembershipTest(t)
 	usageRepo := &UsageRepository{DB: db}
 	for _, tt := range []struct {
-		name           string
-		sql            string
-		photos, locker int64
+		name                            string
+		sql                             string
+		storageConsumed, photos, locker int64
 	}{
-		{"uninitialized", "", -1, -1},
-		{"ready", `UPDATE usage SET photos_file_count = 0, locker_file_count = 7 WHERE user_id = $1`, 0, 7},
-		{"missing", `DELETE FROM usage WHERE user_id = $1`, -1, -1},
+		{"uninitialized", "", 0, -1, -1},
+		{"ready", `UPDATE usage SET storage_consumed = 42, photos_file_count = 0, locker_file_count = 7 WHERE user_id = $1`, 42, 0, 7},
+		{"missing", `DELETE FROM usage WHERE user_id = $1`, 0, -1, -1},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.sql != "" {
@@ -26,9 +26,9 @@ func TestGetStoredFileCountsReturnsMinusOneUntilInitialized(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			photos, locker, err := usageRepo.GetStoredFileCounts(t.Context(), userID)
-			if err != nil || photos != tt.photos || locker != tt.locker {
-				t.Fatalf("GetStoredFileCounts() = (%d, %d, %v), want (%d, %d, nil)", photos, locker, err, tt.photos, tt.locker)
+			storageConsumed, photos, locker, err := usageRepo.GetStoredFileCounts(t.Context(), userID)
+			if err != nil || storageConsumed != tt.storageConsumed || photos != tt.photos || locker != tt.locker {
+				t.Fatalf("GetStoredFileCounts() = (%d, %d, %d, %v), want (%d, %d, %d, nil)", storageConsumed, photos, locker, err, tt.storageConsumed, tt.photos, tt.locker)
 			}
 		})
 	}

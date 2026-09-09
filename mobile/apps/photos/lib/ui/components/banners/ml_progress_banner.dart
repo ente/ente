@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_components/theme/text_styles.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
@@ -145,12 +146,7 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
     final progress = total > 0 ? status.indexedItems.toDouble() / total : 0.0;
     final showModelDownloadPhase = _shouldShowModelDownloadPhase(status);
 
-    final titleStyle = textTheme.largeBold.copyWith(
-      fontFamily: "Nunito",
-      fontWeight: FontWeight.w800,
-      fontSize: 20,
-      height: 24 / 18,
-      letterSpacing: -1,
+    final titleStyle = TextStyles.display3.copyWith(
       color: colorScheme.greenBase,
     );
 

@@ -2,6 +2,7 @@ import "dart:io";
 import "dart:math" as math;
 import "dart:ui" as ui;
 
+import "package:ente_components/theme/text_styles.dart";
 import "package:ente_icons/ente_icons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -440,7 +441,8 @@ class _StreakCircle extends StatelessWidget {
     final text = streak.toString();
 
     const style = TextStyle(
-      fontFamily: "Nunito",
+      fontFamily: TextStyles.outfitFontFamily,
+      package: TextStyles.fontPackage,
       fontSize: 64,
       fontWeight: FontWeight.w900,
       letterSpacing: -1.6,
@@ -613,7 +615,8 @@ class _StreakStatCard extends StatelessWidget {
               Text(
                 streak.toString(),
                 style: TextStyle(
-                  fontFamily: "Nunito",
+                  fontFamily: TextStyles.outfitFontFamily,
+                  package: TextStyles.fontPackage,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.2,

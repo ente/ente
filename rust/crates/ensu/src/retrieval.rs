@@ -42,7 +42,8 @@ const END_CONTEXT_SENTINEL: &str = "----- END KNOWLEDGE CONTEXT -----";
 pub use citation::{
     MAX_GROUNDED_SOURCES, ParsedAssistantText, ParsedGroundedAssistantText, SourceCitation,
     clean_assistant_text, finalize_assistant_text, finalize_grounded_assistant_text,
-    knowledge_source_chip_label, parse_assistant_text, parse_grounded_assistant_text,
+    grounded_source_chip_labels, knowledge_source_chip_label, parse_assistant_text,
+    parse_grounded_assistant_text,
 };
 pub use grounded::{
     GroundedExcerpt, GroundedPromptContext, GroundedSource, MAX_NOTES_GROUNDING_HITS,

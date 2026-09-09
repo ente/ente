@@ -2,6 +2,7 @@ mod chunk;
 mod document;
 mod index;
 mod indexing;
+mod maintenance;
 mod manifest;
 mod reconcile;
 mod shard;
@@ -51,9 +52,15 @@ pub use indexing::{
     NotesDocumentLoad, NotesIndexInput, NotesIndexOutcome, NotesIndexProgress, NotesIndexingError,
     NotesRevisionStatus, index_notes_collection,
 };
+pub use maintenance::{
+    NotesDocumentContent, NotesFreshness, inspect_notes_freshness, notes_index_needs_rebuild,
+};
 pub use reconcile::NotesReconciliationPlan;
 pub use source::NoteSourceReference;
-pub use writer::{NotesIndexWriter, ValidatedNotesDocument, cleanup_unreferenced_notes_shards};
+pub use writer::{
+    NotesIndexWriter, ValidatedNotesDocument, cleanup_unreferenced_notes_shards,
+    remove_notes_collection,
+};
 
 pub fn notes_content_revision(bytes: &[u8]) -> String {
     sha256_hex(bytes)
