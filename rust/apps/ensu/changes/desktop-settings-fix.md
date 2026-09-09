@@ -1,0 +1,1 @@
+- Fixed issue with settings on desktop
