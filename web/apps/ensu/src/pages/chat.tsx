@@ -108,6 +108,62 @@ const DEFAULT_WEB_CONTEXT_SIZE = 4096;
 const ADVANCED_SETTINGS_UNLOCK_KEY = "ensu.advancedSettingsUnlocked";
 const MODEL_SETTINGS_STORAGE_KEY = "ensu.modelSettings";
 const SYSTEM_PROMPT_STORAGE_KEY = "ensu.systemPrompt";
+const CONTEXT_USAGE_STORAGE_KEY = "ensu.contextUsageBySession.v1";
+
+interface ContextUsage {
+    settingsKey: string;
+    usedTokens: number;
+    totalTokens: number;
+}
+
+type ContextUsageBySession = Record<string, ContextUsage>;
+
+const loadContextUsageBySession = (): ContextUsageBySession => {
+    if (typeof window === "undefined") return {};
+    try {
+        const parsed: unknown = JSON.parse(
+            window.localStorage.getItem(CONTEXT_USAGE_STORAGE_KEY) ?? "{}",
+        );
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            return {};
+        }
+
+        return Object.fromEntries(
+            Object.entries(parsed).filter(([, candidate]) => {
+                if (
+                    !candidate ||
+                    typeof candidate !== "object" ||
+                    Array.isArray(candidate)
+                ) {
+                    return false;
+                }
+                const usage = candidate as Partial<ContextUsage>;
+                return (
+                    typeof usage.settingsKey === "string" &&
+                    typeof usage.usedTokens === "number" &&
+                    Number.isFinite(usage.usedTokens) &&
+                    usage.usedTokens >= 0 &&
+                    typeof usage.totalTokens === "number" &&
+                    Number.isFinite(usage.totalTokens) &&
+                    usage.totalTokens > 0
+                );
+            }),
+        );
+    } catch {
+        return {};
+    }
+};
+
+const persistContextUsageBySession = (usage: ContextUsageBySession) => {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.setItem(
+            CONTEXT_USAGE_STORAGE_KEY,
+            JSON.stringify(usage),
+        );
+    } catch {
+    }
+};
 
 const formatImageProcessingErrorForLog = (error: unknown) => {
     const { name, message } = tauriCommandError(error);
@@ -597,12 +653,8 @@ const Page: React.FC = () => {
         number | null
     >(null);
     const [loadedModelName, setLoadedModelName] = useState<string | null>(null);
-    const [contextUsage, setContextUsage] = useState<{
-        sessionId: string;
-        settingsKey: string;
-        usedTokens: number;
-        totalTokens: number;
-    }>();
+    const [contextUsageBySession, setContextUsageBySession] =
+        useState<ContextUsageBySession>({});
     const [modelGateStatus, setModelGateStatus] = useState<
         | "checking"
         | "missing"
@@ -619,6 +671,7 @@ const Page: React.FC = () => {
 
     const providerRef = useRef<LlmProvider | null>(null);
     const currentJobIdRef = useRef<number | null>(null);
+    const contextUsageBySessionRef = useRef<ContextUsageBySession>({});
     const activeKnowledgeSourcesRef = useRef<GroundedSource[]>([]);
     const activeKnowledgeDownloadsRef = useRef(new Set<string>());
     const knowledgeCatalogPromiseRef = useRef<Promise<KnowledgePack[]> | null>(
@@ -692,6 +745,12 @@ const Page: React.FC = () => {
     }>({ sessionId: undefined, promise: null });
 
     const chatKeyInitCancelledRef = useRef(false);
+
+    useEffect(() => {
+        const stored = loadContextUsageBySession();
+        contextUsageBySessionRef.current = stored;
+        setContextUsageBySession(stored);
+    }, []);
 
     const scheduleIdleTask = useCallback(
         (callback: () => void, timeout = 1200) => {
@@ -1858,6 +1917,23 @@ const Page: React.FC = () => {
         [getModelSettings],
     );
 
+    const updateContextUsageForSession = useCallback(
+        (sessionId: string, settingsKey: string, event: GenerateEvent) => {
+            if (event.type !== "context_usage") return;
+            const next = {
+                ...contextUsageBySessionRef.current,
+                [sessionId]: {
+                    settingsKey,
+                    usedTokens: event.used,
+                    totalTokens: event.capacity,
+                },
+            };
+            contextUsageBySessionRef.current = next;
+            setContextUsageBySession(next);
+        },
+        [],
+    );
+
     const formatErrorMessage = useCallback((error: unknown) => {
         if (isNamedError(error, "prompt_too_long")) {
             return "Prompt exceeds the model context window. Reduce history, lower max tokens, or increase context length.";
@@ -2484,6 +2560,14 @@ const Page: React.FC = () => {
     const removeSessionFromState = useCallback(
         (sessionId: string) => {
             manuallyRenamedSessionIdsRef.current.delete(sessionId);
+            const remainingContextUsage = Object.fromEntries(
+                Object.entries(contextUsageBySessionRef.current).filter(
+                    ([storedSessionId]) => storedSessionId !== sessionId,
+                ),
+            );
+            contextUsageBySessionRef.current = remainingContextUsage;
+            setContextUsageBySession(remainingContextUsage);
+            persistContextUsageBySession(remainingContextUsage);
             setSessions((prev) =>
                 prev.filter((session) => session.sessionUuid !== sessionId),
             );
@@ -2942,7 +3026,6 @@ const Page: React.FC = () => {
                 return;
             }
             generationStartingRef.current = true;
-            setContextUsage(undefined);
             generationActiveRef.current = true;
             setIsGenerating(true);
             currentJobIdRef.current = null;
@@ -3012,6 +3095,7 @@ const Page: React.FC = () => {
                 }
             }
 
+            const settingsKey = JSON.stringify(settings);
             let errorMessage: string | null = null;
             activeKnowledgeSourcesRef.current = [];
 
@@ -3175,6 +3259,11 @@ const Page: React.FC = () => {
                         },
                         (event: GenerateEvent) => {
                             if (!isActiveGeneration()) {
+                                updateContextUsageForSession(
+                                    activeSessionId,
+                                    settingsKey,
+                                    event,
+                                );
                                 const jobId =
                                     event.type === "done"
                                         ? event.summary.job_id
@@ -3184,12 +3273,11 @@ const Page: React.FC = () => {
                             }
                             if (event.type === "context_usage") {
                                 currentJobIdRef.current = event.job_id;
-                                setContextUsage({
-                                    sessionId: activeSessionId,
-                                    settingsKey: JSON.stringify(settings),
-                                    usedTokens: event.used,
-                                    totalTokens: event.capacity,
-                                });
+                                updateContextUsageForSession(
+                                    activeSessionId,
+                                    settingsKey,
+                                    event,
+                                );
                             } else if (event.type === "text") {
                                 if (!currentJobIdRef.current) {
                                     currentJobIdRef.current = event.job_id;
@@ -3312,6 +3400,7 @@ const Page: React.FC = () => {
                     );
                 }
             } finally {
+                persistContextUsageBySession(contextUsageBySessionRef.current);
                 if (isActiveGeneration()) {
                     activeKnowledgeSourcesRef.current = [];
                     generationActiveRef.current = false;
@@ -3349,6 +3438,7 @@ const Page: React.FC = () => {
             enabledKnowledgePackIds,
             knowledgePacks,
             loadEnabledKnowledgeCatalogOnce,
+            updateContextUsageForSession,
         ],
     );
 
@@ -4600,9 +4690,10 @@ const Page: React.FC = () => {
 
                     <ChatComposer
                         contextUsage={
-                            contextUsage?.sessionId === currentSessionId &&
-                            contextUsage?.settingsKey === modelSettingsKey
-                                ? contextUsage
+                            currentSessionId &&
+                            contextUsageBySession[currentSessionId]
+                                ?.settingsKey === modelSettingsKey
+                                ? contextUsageBySession[currentSessionId]
                                 : undefined
                         }
                         ref={composerRef}
