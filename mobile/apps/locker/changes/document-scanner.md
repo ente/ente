@@ -1,1 +1,0 @@
-- Document scanner enabled for all users
