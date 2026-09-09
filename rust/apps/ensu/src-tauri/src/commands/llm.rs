@@ -194,6 +194,11 @@ pub(crate) fn load_knowledge_embedding_context(
 #[derive(Serialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum Event {
+    ContextUsage {
+        job_id: llm::JobId,
+        used: u32,
+        capacity: u32,
+    },
     Text {
         job_id: llm::JobId,
         text: String,
@@ -230,6 +235,8 @@ struct EventSink {
     buffered_job_id: Option<llm::JobId>,
     buffered_token_id: Option<i32>,
     last_emit: Instant,
+    pending_usage: Option<Event>,
+    last_usage_emit: Option<Instant>,
 }
 
 impl EventSink {
@@ -240,6 +247,8 @@ impl EventSink {
             buffered_job_id: None,
             buffered_token_id: None,
             last_emit: Instant::now(),
+            pending_usage: None,
+            last_usage_emit: None,
         }
     }
 
@@ -265,9 +274,37 @@ impl EventSink {
 
         self.last_emit = Instant::now();
     }
+
+    fn flush_usage(&mut self) {
+        if let Some(event) = self.pending_usage.take() {
+            let _ = self.window.emit("llm-event", event);
+            self.last_usage_emit = Some(Instant::now());
+        }
+    }
+}
+
+impl Drop for EventSink {
+    fn drop(&mut self) {
+        // Preserve the final occupancy on cancellation and error exits too.
+        self.flush_usage();
+    }
 }
 
 impl llm::EventSink for EventSink {
+    fn context_usage(&mut self, job_id: llm::JobId, used: u32, capacity: u32) {
+        self.pending_usage = Some(Event::ContextUsage {
+            job_id,
+            used,
+            capacity,
+        });
+        if self
+            .last_usage_emit
+            .is_none_or(|last| last.elapsed() >= Duration::from_millis(EVENT_BATCH_MS))
+        {
+            self.flush_usage();
+        }
+    }
+
     fn add(&mut self, event: llm::GenerationEvent) {
         match event {
             llm::GenerationEvent::Text {
@@ -298,6 +335,7 @@ impl llm::EventSink for EventSink {
             }
             llm::GenerationEvent::Done { summary } => {
                 self.flush_text();
+                self.flush_usage();
                 let _ = self.window.emit("llm-event", Event::Done { summary });
             }
         }

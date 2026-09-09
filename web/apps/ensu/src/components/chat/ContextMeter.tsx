@@ -30,7 +30,7 @@ export const ContextMeter = memo(function ContextMeter({
         <Tooltip
             arrow
             placement="top"
-            title={`${formatTokenCount(usedTokens)} / ${formatTokenCount(totalTokens)} tokens — ${Math.round(percentage)}% of the available context is in use. Older messages may be left out as it fills up.`}
+            title={`${formatTokenCount(usedTokens)} / ${formatTokenCount(totalTokens)} context positions — ${Math.round(percentage)}% used by the latest generation. Includes retained history, system instructions and processed output. Older messages may be left out as it fills up.`}
         >
             <Box
                 role="meter"

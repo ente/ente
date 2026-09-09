@@ -337,6 +337,8 @@ impl GenerationJob<'_> {
         let mut stop_triggered = false;
         let n_ctx = ctx.n_ctx();
 
+        self.sink.context_usage(self.job_id, pos as u32, n_ctx);
+
         for _ in 0..self.max_tokens {
             if self.cancel_flag.load(Ordering::Relaxed) {
                 return Err(Error::Cancelled);
@@ -391,6 +393,7 @@ impl GenerationJob<'_> {
 
             logits_index = 0;
             pos += 1;
+            self.sink.context_usage(self.job_id, pos as u32, n_ctx);
         }
 
         if !stop_triggered {

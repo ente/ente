@@ -597,6 +597,12 @@ const Page: React.FC = () => {
         number | null
     >(null);
     const [loadedModelName, setLoadedModelName] = useState<string | null>(null);
+    const [contextUsage, setContextUsage] = useState<{
+        sessionId: string;
+        settingsKey: string;
+        usedTokens: number;
+        totalTokens: number;
+    }>();
     const [modelGateStatus, setModelGateStatus] = useState<
         | "checking"
         | "missing"
@@ -2936,6 +2942,7 @@ const Page: React.FC = () => {
                 return;
             }
             generationStartingRef.current = true;
+            setContextUsage(undefined);
             generationActiveRef.current = true;
             setIsGenerating(true);
             currentJobIdRef.current = null;
@@ -3169,13 +3176,21 @@ const Page: React.FC = () => {
                         (event: GenerateEvent) => {
                             if (!isActiveGeneration()) {
                                 const jobId =
-                                    event.type === "text"
-                                        ? event.job_id
-                                        : event.summary.job_id;
+                                    event.type === "done"
+                                        ? event.summary.job_id
+                                        : event.job_id;
                                 void provider.cancelGeneration(jobId);
                                 return;
                             }
-                            if (event.type === "text") {
+                            if (event.type === "context_usage") {
+                                currentJobIdRef.current = event.job_id;
+                                setContextUsage({
+                                    sessionId: activeSessionId,
+                                    settingsKey: JSON.stringify(settings),
+                                    usedTokens: event.used,
+                                    totalTokens: event.capacity,
+                                });
+                            } else if (event.type === "text") {
                                 if (!currentJobIdRef.current) {
                                     currentJobIdRef.current = event.job_id;
                                 }
@@ -4584,6 +4599,12 @@ const Page: React.FC = () => {
                     )}
 
                     <ChatComposer
+                        contextUsage={
+                            contextUsage?.sessionId === currentSessionId &&
+                            contextUsage?.settingsKey === modelSettingsKey
+                                ? contextUsage
+                                : undefined
+                        }
                         ref={composerRef}
                         showModelGate={showModelGate}
                         showDownloadProgress={showDownloadProgress}
