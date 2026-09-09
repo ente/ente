@@ -162,6 +162,7 @@ const persistContextUsageBySession = (usage: ContextUsageBySession) => {
             JSON.stringify(usage),
         );
     } catch {
+        // Keep live usage available when WebView storage is unavailable or full.
     }
 };
 
@@ -672,6 +673,7 @@ const Page: React.FC = () => {
     const providerRef = useRef<LlmProvider | null>(null);
     const currentJobIdRef = useRef<number | null>(null);
     const contextUsageBySessionRef = useRef<ContextUsageBySession>({});
+    const deletedSessionIdsRef = useRef(new Set<string>());
     const activeKnowledgeSourcesRef = useRef<GroundedSource[]>([]);
     const activeKnowledgeDownloadsRef = useRef(new Set<string>());
     const knowledgeCatalogPromiseRef = useRef<Promise<KnowledgePack[]> | null>(
@@ -1919,7 +1921,12 @@ const Page: React.FC = () => {
 
     const updateContextUsageForSession = useCallback(
         (sessionId: string, settingsKey: string, event: GenerateEvent) => {
-            if (event.type !== "context_usage") return;
+            if (
+                event.type !== "context_usage" ||
+                deletedSessionIdsRef.current.has(sessionId)
+            ) {
+                return;
+            }
             const next = {
                 ...contextUsageBySessionRef.current,
                 [sessionId]: {
@@ -2559,6 +2566,7 @@ const Page: React.FC = () => {
 
     const removeSessionFromState = useCallback(
         (sessionId: string) => {
+            deletedSessionIdsRef.current.add(sessionId);
             manuallyRenamedSessionIdsRef.current.delete(sessionId);
             const remainingContextUsage = Object.fromEntries(
                 Object.entries(contextUsageBySessionRef.current).filter(
