@@ -5,7 +5,6 @@ pub type JobId = i64;
 pub trait EventSink {
     fn add(&mut self, event: GenerationEvent);
 
-    /// Actual sequence positions consumed, including multimodal input.
     fn context_usage(&mut self, _job_id: JobId, _used: u32, _capacity: u32) {}
 }
 

@@ -285,7 +285,6 @@ impl EventSink {
 
 impl Drop for EventSink {
     fn drop(&mut self) {
-        // Preserve the final occupancy on cancellation and error exits too.
         self.flush_usage();
     }
 }
