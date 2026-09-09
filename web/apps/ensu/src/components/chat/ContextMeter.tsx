@@ -41,19 +41,17 @@ export const ContextMeter = memo(function ContextMeter({
                 aria-valuenow={usedTokens}
                 sx={{
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    alignItems: "flex-end",
                     position: "absolute",
-                    left: "50%",
+                    left: 16,
+                    right: 16,
                     bottom: 0,
-                    transform: "translateX(-50%)",
-                    gap: "3px",
-                    width: 76,
-                    height: 12,
-                    borderRadius: 1,
+                    height: 10,
+                    pb: "3px",
                     color: meterColor,
                     cursor: "help",
-                    "&:hover": { bgcolor: "fill.faint" },
+                    "&:hover .context-meter-fill, &:focus-visible .context-meter-fill":
+                        { opacity: 1 },
                     "&:focus-visible": {
                         outline: "2px solid",
                         outlineColor: "accent.main",
@@ -61,21 +59,26 @@ export const ContextMeter = memo(function ContextMeter({
                     },
                 }}
             >
-                {Array.from({ length: 10 }, (_, index) => (
+                <Box
+                    aria-hidden="true"
+                    sx={{
+                        width: "100%",
+                        height: 2,
+                        bgcolor: "divider",
+                        borderRadius: "1px",
+                        overflow: "hidden",
+                    }}
+                >
                     <Box
-                        key={index}
-                        aria-hidden="true"
+                        className="context-meter-fill"
                         sx={{
-                            width: 3,
-                            height: 3,
-                            borderRadius: "1px",
-                            bgcolor:
-                                percentage > index * 10
-                                    ? "currentColor"
-                                    : "divider",
+                            width: `${percentage}%`,
+                            height: "100%",
+                            bgcolor: "currentColor",
+                            opacity: percentage >= 70 ? 1 : 0.6,
                         }}
                     />
-                ))}
+                </Box>
             </Box>
         </Tooltip>
     );
