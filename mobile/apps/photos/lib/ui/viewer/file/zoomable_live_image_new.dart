@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:io";
 
 import "package:ente_strings/ente_strings.dart";
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
@@ -32,6 +33,9 @@ class ZoomableLiveImageNew extends StatefulWidget {
   final ValueChanged<File>? onFinalImageLoaded;
   final ValueNotifier<QrCodeDetectionResult?>? qrDetectionsNotifier;
   final GestureLongPressStartCallback? onTextSelectionStart;
+  final bool isActive;
+  final int? itemIndex;
+  final ValueListenable<int>? activeItemIndexListenable;
 
   const ZoomableLiveImageNew(
     this.enteFile, {
@@ -44,6 +48,9 @@ class ZoomableLiveImageNew extends StatefulWidget {
     this.onFinalImageLoaded,
     this.qrDetectionsNotifier,
     this.onTextSelectionStart,
+    this.isActive = true,
+    this.itemIndex,
+    this.activeItemIndexListenable,
   });
 
   @override
@@ -200,6 +207,9 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       isFromMemories: widget.isFromMemories,
       onFinalFileLoad: widget.onFinalFileLoad,
       onFinalImageLoaded: widget.onFinalImageLoaded,
+      isActive: widget.isActive,
+      itemIndex: widget.itemIndex,
+      activeItemIndexListenable: widget.activeItemIndexListenable,
     );
 
     final shouldShowVideo =

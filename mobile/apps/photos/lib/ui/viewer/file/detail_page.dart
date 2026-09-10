@@ -591,6 +591,8 @@ class _BodyState extends State<_Body> {
           },
           qrDetectionsNotifier: _qrHelper?.qrDetectionsNotifier,
           playbackSpeed: _playbackSpeed,
+          itemIndex: index,
+          activeItemIndexListenable: _selectedIndexNotifier,
           streamChangeController: _videoStreamChangeControllerFor(file),
           onTextSelectionStart:
               flagService.ocrOverlayEnabled &&
