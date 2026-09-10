@@ -6,40 +6,44 @@ use ente_assets::{Asset, AssetFile, AssetStore};
 use super::OcrModelPaths;
 use crate::error::{MlError, MlResult};
 
-const MODEL_BASE_URL: &str = "https://models.ente.com/PP-OCRv5";
 const MODELS: &str = "models";
 
 struct OcrModelFile {
     key: &'static str,
     name: &'static str,
+    url: &'static str,
     size: u64,
     sha256: &'static str,
 }
 
 const DETECTION: OcrModelFile = OcrModelFile {
-    key: "ppocrv5_det",
+    key: "ppocrv5_det_gpu_v1",
     name: "det.onnx",
-    size: 4_748_769,
-    sha256: "d7fe3ea74652890722c0f4d02458b7261d9f5ae6c92904d05707c9eb155c7924",
+    url: "https://entedevassets.priem.dev/det_opt.onnx",
+    size: 4_750_896,
+    sha256: "3e658f85236f1984e186070048d7cdc99ddbb84e12c91a6fd80922b85bd9487a",
 };
 
 const CLASSIFICATION: OcrModelFile = OcrModelFile {
-    key: "ppocrv5_cls",
+    key: "ppocrv5_cls_gpu_v1",
     name: "cls.onnx",
-    size: 582_663,
-    sha256: "f4bb53707100c5f3d59ba834eb05bb400369f20aed35d4b26807b1bfadd2a70e",
+    url: "https://entedevassets.priem.dev/cls_opt.onnx",
+    size: 574_875,
+    sha256: "8675903197a1bab7060e830e9bcc63d29c5cf7d372735338bd9501f829e94ed1",
 };
 
 const RECOGNITION: OcrModelFile = OcrModelFile {
-    key: "ppocrv5_rec",
+    key: "ppocrv5_rec_gpu_v1",
     name: "rec.onnx",
-    size: 16_517_247,
-    sha256: "bf66820f48fa99f779974c4df78e5274a9d8e0458c4137e8c5357e40e2c3faf2",
+    url: "https://entedevassets.priem.dev/rec_opt.onnx",
+    size: 16_686_404,
+    sha256: "667691bb173a94106b595aa87c7d176b53b68cf831b6ffa09569018754265e57",
 };
 
 const DICTIONARY: OcrModelFile = OcrModelFile {
     key: "ppocrv5_dict",
     name: "ppocrv5_dict.txt",
+    url: "https://models.ente.com/PP-OCRv5/ppocrv5_dict.txt",
     size: 74_012,
     sha256: "d1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b",
 };
@@ -47,10 +51,6 @@ const DICTIONARY: OcrModelFile = OcrModelFile {
 const CATALOG: [&OcrModelFile; 4] = [&DETECTION, &CLASSIFICATION, &RECOGNITION, &DICTIONARY];
 
 impl OcrModelFile {
-    fn url(&self) -> String {
-        format!("{MODEL_BASE_URL}/{}", self.name)
-    }
-
     fn asset(&self) -> Asset {
         #[expect(
             clippy::expect_used,
@@ -60,7 +60,7 @@ impl OcrModelFile {
             vec![MODELS.to_string(), self.key.to_string()],
             AssetFile {
                 name: self.name.to_string(),
-                url: self.url(),
+                url: self.url.to_string(),
                 size: self.size,
                 sha256: self.sha256.to_string(),
             },
@@ -111,7 +111,7 @@ pub async fn ensure_models(
                 "ocr models: downloading {} ({} bytes) from {}",
                 file.name,
                 file.size,
-                file.url()
+                file.url
             );
         }
         let start = Instant::now();
@@ -175,6 +175,26 @@ mod tests {
         assert!(is_detector_downloaded(&store));
 
         store.remove(&DETECTION.asset()).unwrap();
+        assert!(!is_detector_downloaded(&store));
+    }
+
+    #[test]
+    fn legacy_models_do_not_satisfy_the_optimized_catalog() {
+        let root = tempfile::tempdir().unwrap();
+        let store = AssetStore::new(root.path());
+        for (model, legacy_key) in [
+            (&DETECTION, "ppocrv5_det"),
+            (&CLASSIFICATION, "ppocrv5_cls"),
+            (&RECOGNITION, "ppocrv5_rec"),
+        ] {
+            let legacy = OcrModelFile {
+                key: legacy_key,
+                ..*model
+            };
+            cache_model(&store, &legacy);
+            assert!(!store.is_downloaded(&model.asset()));
+            assert_ne!(model.path(&store), legacy.path(&store));
+        }
         assert!(!is_detector_downloaded(&store));
     }
 

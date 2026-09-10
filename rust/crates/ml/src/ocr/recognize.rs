@@ -9,11 +9,10 @@ use crate::cv;
 use crate::cv::image::ImageU8;
 use crate::error::{MlError, MlResult};
 use crate::onnx::{
-    BorrowedFloatTensor, ExecutionMode, FloatTensorData, OnnxSession, PreparedF32Input,
-    with_prepared_float_output,
+    BorrowedFloatTensor, FloatTensorData, PreparedF32Input, with_prepared_float_output,
 };
 
-const MODEL_NAMESPACE: &str = "ocr-recognition";
+use super::session::{OcrModel, OcrSession};
 const REC_VOCABULARY_SIZE: usize = 18385;
 const REC_HEIGHT: i32 = 48;
 const REC_BASE_WIDTH: i32 = 320;
@@ -61,18 +60,14 @@ impl LazyDictionary {
 }
 
 pub(crate) struct TextRecognizer {
-    session: Mutex<OnnxSession>,
+    session: Mutex<OcrSession>,
     dictionary: LazyDictionary,
 }
 
 impl TextRecognizer {
     pub(crate) fn new(model_path: &str, dictionary_path: &str) -> Self {
         Self {
-            session: Mutex::new(OnnxSession::new(
-                model_path,
-                MODEL_NAMESPACE,
-                ExecutionMode::CpuOnly,
-            )),
+            session: Mutex::new(OcrSession::new(model_path, OcrModel::Recognition)),
             dictionary: LazyDictionary::new(dictionary_path),
         }
     }
@@ -106,7 +101,7 @@ impl TextRecognizer {
             i64::from(layout.target_width),
         ];
         let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
-        let (recognized, _usage) = session.run(|session| {
+        let (recognized, _usage) = session.run(input_shape, |session| {
             with_prepared_float_output(session, &input, input_shape, |shape, values| match values {
                 BorrowedFloatTensor::F32(values) => {
                     decode_output(shape, values, layout, dictionary)
@@ -129,20 +124,59 @@ fn decode_output<'a, T>(
 where
     &'a [T]: FloatTensorData,
 {
-    let output = SequenceOutput::new(shape, values, layout.content_widths.len(), dictionary.len())?;
-    Ok(layout
+    let compact = shape.get(2) == Some(&2);
+    let values_per_step = if compact { 2 } else { dictionary.len() };
+    let output = SequenceOutput::new(shape, values, layout.content_widths.len(), values_per_step)?;
+    layout
         .content_widths
         .iter()
         .zip(output.sequences())
         .map(|(&content_width, logits)| {
-            ctc_decode(
-                logits,
-                output.vocabulary,
-                dictionary,
-                layout.padding_scale(content_width),
-            )
+            let padding_scale = layout.padding_scale(content_width);
+            if compact {
+                let best = compact_steps(logits, dictionary.len())?;
+                Ok(decode_steps(&best, dictionary, padding_scale))
+            } else {
+                Ok(ctc_decode(
+                    logits,
+                    output.vocabulary,
+                    dictionary,
+                    padding_scale,
+                ))
+            }
         })
-        .collect())
+        .collect()
+}
+
+fn compact_steps<'a, T>(values: &'a [T], vocabulary: usize) -> MlResult<Vec<StepBest>>
+where
+    &'a [T]: FloatTensorData,
+{
+    values
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|step| {
+            let step = step.as_slice();
+            let index = step.value(0);
+            let probability = step.value(1);
+            if !index.is_finite()
+                || index < 0.0
+                || index >= vocabulary as f32
+                || index.fract() != 0.0
+                || !probability.is_finite()
+                || probability < 0.0
+            {
+                return Err(MlError::CorruptModel(format!(
+                    "text recognizer produced invalid index/probability [{index}, {probability}]"
+                )));
+            }
+            Ok(StepBest {
+                index: index as usize,
+                probability,
+            })
+        })
+        .collect()
 }
 
 fn recognize_in_batches(
@@ -354,7 +388,11 @@ where
     &'a [T]: FloatTensorData,
 {
     let best = best_per_step(logits, vocabulary);
-    let spans: Vec<CharacterSpan> = character_runs(&best)
+    decode_steps(&best, dictionary, padding_scale)
+}
+
+fn decode_steps(best: &[StepBest], dictionary: &[String], padding_scale: f32) -> Recognition {
+    let spans: Vec<CharacterSpan> = character_runs(best)
         .iter()
         .filter_map(|run| run.span(best.len(), dictionary, padding_scale))
         .collect();
@@ -532,6 +570,55 @@ mod tests {
             1.0,
         );
         assert_eq!(recognition, Recognition::default());
+    }
+
+    #[test]
+    fn compact_output_preserves_text_confidences_and_character_spans() {
+        let sequences = [
+            [(1, 0.9), (1, 0.7), (0, 0.8), (1, 0.6), (2, 0.5), (3, 0.9)],
+            [(0, 0.9), (0, 0.8), (0, 0.7), (0, 0.6), (0, 0.5), (0, 0.9)],
+        ];
+        let full: Vec<_> = sequences
+            .iter()
+            .flat_map(|steps| logits(4, steps))
+            .collect();
+        let compact: Vec<_> = sequences
+            .iter()
+            .flatten()
+            .flat_map(|&(index, probability)| [index as f32, probability])
+            .collect();
+        let layout = BatchLayout {
+            target_width: 320,
+            content_widths: vec![160, 320],
+        };
+        let expected = decode_output(&[2, 6, 4], &full, &layout, &dictionary()).unwrap();
+        let actual = decode_output(&[2, 6, 2], &compact, &layout, &dictionary()).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(actual[0].text, "aabc");
+        assert_eq!(actual[1], Recognition::default());
+    }
+
+    #[test]
+    fn compact_output_rejects_invalid_indices_probabilities_and_shapes() {
+        let layout = BatchLayout {
+            target_width: 320,
+            content_widths: vec![320],
+        };
+        for values in [
+            [-1.0, 0.9],
+            [4.0, 0.9],
+            [1.5, 0.9],
+            [f32::NAN, 0.9],
+            [f32::INFINITY, 0.9],
+            [1.0, f32::NAN],
+            [1.0, f32::INFINITY],
+            [1.0, -0.1],
+        ] {
+            assert!(decode_output(&[1, 1, 2], &values, &layout, &dictionary()).is_err());
+        }
+        for shape in [[2, 1, 2], [1, 0, 2], [1, 2, 2]] {
+            assert!(decode_output(&shape, &[1.0, 0.9], &layout, &dictionary()).is_err());
+        }
     }
 
     #[test]

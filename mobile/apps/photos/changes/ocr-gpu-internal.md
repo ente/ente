@@ -1,0 +1,1 @@
+- Internal users can test GPU-accelerated text recognition on Android and iOS.

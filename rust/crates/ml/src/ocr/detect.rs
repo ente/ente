@@ -4,13 +4,13 @@ use super::Point;
 use super::geometry::{
     clip_to_bounds, mean_inside_quad, min_area_rect, min_edge, order_corners, scale_points, unclip,
 };
+use super::session::{OcrModel, OcrSession};
 use super::tensor::{BgrNormalization, write_bgr_planes};
 use crate::cv;
 use crate::cv::image::{Contour, ImageU8};
 use crate::error::{MlError, MlResult};
-use crate::onnx::{ExecutionMode, OnnxSession, PreparedF32Input, SessionRunError, run_f32};
+use crate::onnx::{PreparedF32Input, SessionRunError, run_f32};
 
-const MODEL_NAMESPACE: &str = "ocr-detection";
 const MAX_INPUT_SIDE: i32 = 960;
 const INPUT_STRIDE: i32 = 32;
 const BITMAP_THRESHOLD: f32 = 0.3;
@@ -40,17 +40,13 @@ pub(crate) struct TextDetection {
 }
 
 pub(crate) struct TextDetector {
-    session: Mutex<OnnxSession>,
+    session: Mutex<OcrSession>,
 }
 
 impl TextDetector {
     pub(crate) fn new(model_path: &str) -> Self {
         Self {
-            session: Mutex::new(OnnxSession::new(
-                model_path,
-                MODEL_NAMESPACE,
-                ExecutionMode::CpuOnly,
-            )),
+            session: Mutex::new(OcrSession::new(model_path, OcrModel::Detection)),
         }
     }
 
@@ -82,9 +78,9 @@ impl TextDetector {
     fn infer(&self, input: &PreparedF32Input, width: i32, height: i32) -> MlResult<Vec<f32>> {
         let expected_shape = [1i64, 1, i64::from(height), i64::from(width)];
         let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
-        let (values, _usage) = session.run(|session| {
-            let (shape, values) =
-                run_f32(session, input, [1, 3, i64::from(height), i64::from(width)])?;
+        let input_shape = [1, 3, i64::from(height), i64::from(width)];
+        let (values, _usage) = session.run(input_shape, |session| {
+            let (shape, values) = run_f32(session, input, input_shape)?;
             if shape != expected_shape {
                 return Err(SessionRunError::from(MlError::CorruptModel(format!(
                     "text detector produced output shape {shape:?}, expected {expected_shape:?}"

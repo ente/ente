@@ -39,7 +39,7 @@ use super::golden_test;
 use super::model_file_label;
 #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
 use super::webgpu;
-use super::{AccelerationValidation, session_load_error};
+use super::{AccelerationValidation, GpuOptions, session_load_error};
 use crate::error::MlResult;
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
@@ -48,6 +48,7 @@ const ENABLE_PERSISTENT_COREML_CACHE: bool = true;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ExecutionMode {
     PlatformDefault,
+    GpuPreferred,
     CpuOnly,
 }
 
@@ -57,10 +58,6 @@ pub(crate) enum ExecutionMode {
 pub(super) enum ExecutionProvider {
     CoreMl,
     WebGpu,
-    #[cfg_attr(
-        not(any(test, target_os = "android")),
-        expect(dead_code, reason = "XNNPACK is only selected on Android")
-    )]
     Xnnpack,
     Cpu,
 }
@@ -79,6 +76,10 @@ impl ProviderPlan {
     ) -> Self {
         let providers = match mode {
             ExecutionMode::PlatformDefault => platform_default_providers(model_path, validation),
+            ExecutionMode::GpuPreferred => platform_default_providers(model_path, validation)
+                .into_iter()
+                .filter(|provider| *provider != ExecutionProvider::Xnnpack)
+                .collect(),
             ExecutionMode::CpuOnly => vec![ExecutionProvider::Cpu],
         };
         Self::from_providers(providers)
@@ -149,18 +150,23 @@ pub(super) fn provider_attempt(
     provider: ExecutionProvider,
     _model_path: &str,
     _model_namespace: &str,
+    _gpu_options: Option<&GpuOptions>,
 ) -> ProviderAttempt {
     match provider {
         ExecutionProvider::Cpu => ProviderAttempt::cpu_only(),
         #[cfg(any(target_os = "ios", target_os = "macos"))]
         ExecutionProvider::CoreMl => {
             let (coreml_provider, coreml_cache_dir) =
-                coreml_provider(_model_path, _model_namespace);
+                coreml_provider(_model_path, _model_namespace, _gpu_options.is_some());
             ProviderAttempt {
-                providers: vec![
-                    coreml_provider,
-                    CPU::default().with_arena_allocator(true).build(),
-                ],
+                providers: if _gpu_options.is_some() {
+                    vec![coreml_provider]
+                } else {
+                    vec![
+                        coreml_provider,
+                        CPU::default().with_arena_allocator(true).build(),
+                    ]
+                },
                 disable_intra_op_spinning: false,
                 coreml_cache_dir,
                 execution_provider: ExecutionProvider::CoreMl,
@@ -168,7 +174,11 @@ pub(super) fn provider_attempt(
         }
         #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
         ExecutionProvider::WebGpu => ProviderAttempt {
-            providers: webgpu_attempt_providers(),
+            providers: if let Some(options) = _gpu_options {
+                vec![webgpu_provider(options.prefer_nhwc)]
+            } else {
+                webgpu_attempt_providers()
+            },
             disable_intra_op_spinning: true,
             coreml_cache_dir: None,
             execution_provider: ExecutionProvider::WebGpu,
@@ -179,11 +189,27 @@ pub(super) fn provider_attempt(
     }
 }
 
-pub(super) fn build_session(model_path: &str, attempt: ProviderAttempt) -> MlResult<Session> {
+pub(super) fn build_session(
+    model_path: &str,
+    attempt: ProviderAttempt,
+    gpu_options: Option<&GpuOptions>,
+) -> MlResult<Session> {
     let mut builder = Session::builder()?
         .with_optimization_level(GraphOptimizationLevel::All)?
         .with_intra_threads(1)?
         .with_inter_threads(1)?;
+
+    if let Some(options) = gpu_options
+        && matches!(
+            attempt.execution_provider,
+            ExecutionProvider::CoreMl | ExecutionProvider::WebGpu
+        )
+    {
+        builder = builder.with_disable_cpu_fallback()?;
+        for &(name, value) in &options.dimensions {
+            builder = builder.with_dimension_override(name, value)?;
+        }
+    }
 
     if attempt.disable_intra_op_spinning {
         builder = builder.with_intra_op_spinning(false)?;
@@ -284,11 +310,19 @@ fn accelerated_provider_allowed(
 fn coreml_provider(
     model_path: &str,
     model_namespace: &str,
+    full_gpu: bool,
 ) -> (ExecutionProviderDispatch, Option<PathBuf>) {
     let mut provider = CoreML::default()
         .with_model_format(ModelFormat::MLProgram)
         .with_compute_units(ComputeUnits::All)
         .with_specialization_strategy(SpecializationStrategy::Default);
+
+    if full_gpu {
+        provider = provider
+            .with_compute_units(ComputeUnits::CPUAndGPU)
+            .with_low_precision_accumulation_on_gpu(false)
+            .with_static_input_shapes(true);
+    }
 
     let mut prepared_cache_dir = None;
     if ENABLE_PERSISTENT_COREML_CACHE {
@@ -312,8 +346,13 @@ fn coreml_provider(
 }
 
 #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
-fn webgpu_provider() -> ExecutionProviderDispatch {
-    let provider = WebGPU::default().with_preferred_layout(PreferredLayout::NCHW);
+fn webgpu_provider(prefer_nhwc: bool) -> ExecutionProviderDispatch {
+    let layout = if prefer_nhwc {
+        PreferredLayout::NHWC
+    } else {
+        PreferredLayout::NCHW
+    };
+    let provider = WebGPU::default().with_preferred_layout(layout);
     #[cfg(any(target_os = "android", target_os = "linux"))]
     let provider = provider.with_dawn_backend_type(DawnBackendType::Vulkan);
     #[cfg(target_os = "windows")]
@@ -324,7 +363,7 @@ fn webgpu_provider() -> ExecutionProviderDispatch {
 #[cfg(target_os = "android")]
 fn webgpu_attempt_providers() -> Vec<ExecutionProviderDispatch> {
     vec![
-        webgpu_provider(),
+        webgpu_provider(false),
         xnnpack_provider().fail_silently(),
         CPU::default().with_arena_allocator(true).build(),
     ]
@@ -333,7 +372,7 @@ fn webgpu_attempt_providers() -> Vec<ExecutionProviderDispatch> {
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 fn webgpu_attempt_providers() -> Vec<ExecutionProviderDispatch> {
     vec![
-        webgpu_provider(),
+        webgpu_provider(false),
         CPU::default().with_arena_allocator(true).build(),
     ]
 }
@@ -365,6 +404,28 @@ mod tests {
     use super::{
         AccelerationValidation, ExecutionMode, ExecutionProvider, ProviderPlan, run_provider_plan,
     };
+
+    #[test]
+    fn gpu_preferred_falls_back_directly_to_cpu() {
+        let mut plan = ProviderPlan::new(
+            ExecutionMode::GpuPreferred,
+            "model.onnx",
+            AccelerationValidation::Unvalidated,
+        );
+        let mut attempted = Vec::new();
+        let selected = run_provider_plan(&mut plan, |provider| {
+            attempted.push(provider);
+            if provider == ExecutionProvider::Cpu {
+                Ok(provider)
+            } else {
+                Err(())
+            }
+        })
+        .unwrap();
+        assert_eq!(selected, (ExecutionProvider::Cpu, ExecutionProvider::Cpu));
+        assert!(!attempted.contains(&ExecutionProvider::Xnnpack));
+        assert!(!plan.has_fallback());
+    }
 
     #[test]
     fn construction_falls_through_and_selects_the_successful_provider() {

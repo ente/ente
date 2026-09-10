@@ -1,0 +1,93 @@
+{
+  "source_base_url": "https://models.ente.com/PP-OCRv5",
+  "source_sha256": {
+    "cls.onnx": "f4bb53707100c5f3d59ba834eb05bb400369f20aed35d4b26807b1bfadd2a70e",
+    "det.onnx": "d7fe3ea74652890722c0f4d02458b7261d9f5ae6c92904d05707c9eb155c7924",
+    "ppocrv5_dict.txt": "d1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b",
+    "rec.onnx": "bf66820f48fa99f779974c4df78e5274a9d8e0458c4137e8c5357e40e2c3faf2"
+  },
+  "onnx": "1.22.0",
+  "models": [
+    {
+      "file": "det.onnx",
+      "sha256": "3e658f85236f1984e186070048d7cdc99ddbb84e12c91a6fd80922b85bd9487a",
+      "bytes": 4750896,
+      "operators": [
+        "Add",
+        "BatchNormalization",
+        "Concat",
+        "Constant",
+        "Conv",
+        "ConvTranspose",
+        "GlobalAveragePool",
+        "HardSigmoid",
+        "Mul",
+        "Relu",
+        "Reshape",
+        "Resize",
+        "Sigmoid"
+      ],
+      "output": "unchanged"
+    },
+    {
+      "file": "cls.onnx",
+      "sha256": "8675903197a1bab7060e830e9bcc63d29c5cf7d372735338bd9501f829e94ed1",
+      "bytes": 574875,
+      "operators": [
+        "Add",
+        "BatchNormalization",
+        "Cast",
+        "Concat",
+        "Constant",
+        "Conv",
+        "GlobalAveragePool",
+        "HardSigmoid",
+        "MatMul",
+        "MaxPool",
+        "Mul",
+        "Relu",
+        "Reshape",
+        "Shape",
+        "Slice",
+        "Softmax"
+      ],
+      "output": "unchanged"
+    },
+    {
+      "file": "rec.onnx",
+      "sha256": "667691bb173a94106b595aa87c7d176b53b68cf831b6ffa09569018754265e57",
+      "bytes": 16686404,
+      "operators": [
+        "Add",
+        "AveragePool",
+        "BatchNormalization",
+        "Ceil",
+        "Concat",
+        "Constant",
+        "Conv",
+        "Div",
+        "GlobalAveragePool",
+        "HardSigmoid",
+        "LayerNormalization",
+        "MatMul",
+        "Mul",
+        "Pow",
+        "ReduceMax",
+        "ReduceMean",
+        "ReduceMin",
+        "Relu",
+        "Reshape",
+        "Shape",
+        "Sigmoid",
+        "Slice",
+        "Softmax",
+        "Sqrt",
+        "Squeeze",
+        "Sub",
+        "Transpose",
+        "Unsqueeze"
+      ],
+      "output": "FP32 [N,T,2]: first winning index, original winning probability"
+    }
+  ]
+}

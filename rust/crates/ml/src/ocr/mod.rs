@@ -7,6 +7,7 @@ mod detect;
 mod dictionary;
 mod geometry;
 mod recognize;
+mod session;
 mod source;
 mod tensor;
 

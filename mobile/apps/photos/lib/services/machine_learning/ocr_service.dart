@@ -52,11 +52,8 @@ class OcrService {
     if (!_rustOcrEnabled()) {
       return OcrBackendKind.legacy;
     }
-    if (_isAndroid) {
+    if (_isAndroid || _isIOS) {
       return OcrBackendKind.rust;
-    }
-    if (_isIOS) {
-      return OcrBackendKind.vision;
     }
     return OcrBackendKind.legacy;
   }

@@ -24,6 +24,13 @@ pub(crate) use tensor::{
 
 use providers::{ExecutionProvider, ProviderPlan};
 
+#[derive(Clone, Debug)]
+pub(crate) struct GpuOptions {
+    pub(crate) dimensions: Vec<(&'static str, i64)>,
+    #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
+    pub(crate) prefer_nhwc: bool,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum AccelerationValidation {
     GoldenRequired,
@@ -58,6 +65,7 @@ pub(crate) struct OnnxSession {
     model_namespace: String,
     mode: ExecutionMode,
     validation: AccelerationValidation,
+    gpu_options: Option<GpuOptions>,
     provider_plan: Option<ProviderPlan>,
     session: Option<(Session, ExecutionProvider)>,
     first_run_canary: Option<webgpu::ArmedCanary>,
@@ -70,6 +78,7 @@ impl OnnxSession {
             model_namespace: model_namespace.to_string(),
             mode,
             validation: AccelerationValidation::GoldenRequired,
+            gpu_options: None,
             provider_plan: None,
             session: None,
             first_run_canary: None,
@@ -80,6 +89,11 @@ impl OnnxSession {
     // silently poison stored data.
     pub(crate) fn with_unvalidated_acceleration(mut self) -> Self {
         self.validation = AccelerationValidation::Unvalidated;
+        self
+    }
+
+    pub(crate) fn with_gpu_options(mut self, options: GpuOptions) -> Self {
+        self.gpu_options = Some(options);
         self
     }
 
@@ -152,8 +166,13 @@ impl OnnxSession {
         let model_name = model_file_label(model_path);
         log::info!("loading {model_name} with {:?} execution", self.mode);
         let started_at = std::time::Instant::now();
-        let (loaded, execution_provider) =
-            build_next_session(model_path, provider_plan, model_namespace, self.validation)?;
+        let (loaded, execution_provider) = build_next_session(
+            model_path,
+            provider_plan,
+            model_namespace,
+            self.validation,
+            self.gpu_options.as_ref(),
+        )?;
         log::info!(
             "loaded {model_name} with {execution_provider:?} in {:?}",
             started_at.elapsed()
@@ -276,9 +295,15 @@ fn build_next_session(
     plan: &mut ProviderPlan,
     model_namespace: &str,
     validation: AccelerationValidation,
+    gpu_options: Option<&GpuOptions>,
 ) -> MlResult<(LoadedSession, ExecutionProvider)> {
     let result = providers::run_provider_plan(plan, |execution_provider| {
-        let attempt = providers::provider_attempt(execution_provider, model_path, model_namespace);
+        let attempt = providers::provider_attempt(
+            execution_provider,
+            model_path,
+            model_namespace,
+            gpu_options,
+        );
         if attempt.execution_provider() == ExecutionProvider::WebGpu {
             #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
             {
@@ -287,6 +312,7 @@ fn build_next_session(
                     model_namespace,
                     attempt,
                     validation,
+                    gpu_options,
                 );
             }
             #[cfg(not(any(target_os = "android", target_os = "linux", target_os = "windows")))]
@@ -294,7 +320,7 @@ fn build_next_session(
         }
 
         let coreml_cache_dir = attempt.coreml_cache_dir().map(Path::to_path_buf);
-        match build_and_validate_session(model_path, attempt, validation) {
+        match build_and_validate_session(model_path, attempt, validation, gpu_options) {
             Ok(session) => {
                 if let Some(cache_dir) = coreml_cache_dir {
                     coreml_cache::finalize(&cache_dir, model_path);
@@ -348,6 +374,7 @@ fn build_cpu_session(model_path: &str) -> MlResult<Session> {
         &mut plan,
         "golden-tooling",
         AccelerationValidation::GoldenRequired,
+        None,
     )
     .map(|(loaded, _)| loaded.session)
 }
@@ -359,6 +386,7 @@ fn build_and_validate_session(
     model_path: &str,
     attempt: providers::ProviderAttempt,
     _validation: AccelerationValidation,
+    gpu_options: Option<&GpuOptions>,
 ) -> MlResult<Session> {
     #[cfg(any(
         target_os = "android",
@@ -369,7 +397,7 @@ fn build_and_validate_session(
     ))]
     let execution_provider = attempt.execution_provider();
 
-    let session = match providers::build_session(model_path, attempt) {
+    let session = match providers::build_session(model_path, attempt, gpu_options) {
         Ok(session) => session,
         Err(error) => {
             #[cfg(any(
@@ -410,6 +438,7 @@ fn build_webgpu_session_with_canary(
     model_namespace: &str,
     attempt: providers::ProviderAttempt,
     validation: AccelerationValidation,
+    gpu_options: Option<&GpuOptions>,
 ) -> MlResult<LoadedSession> {
     // Fail closed: without a durable failure record, a crash during the
     // attempt would go unnoticed and the crash loop protection would be lost.
@@ -448,7 +477,7 @@ fn build_webgpu_session_with_canary(
             }
         }
     }
-    let mut session = match providers::build_session(model_path, attempt) {
+    let mut session = match providers::build_session(model_path, attempt, gpu_options) {
         Ok(session) => session,
         Err(error) => {
             record_provider_attempt_failure(
