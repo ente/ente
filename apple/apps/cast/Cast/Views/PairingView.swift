@@ -91,7 +91,9 @@ struct PairingView: View {
                             Spacer()
                                 .frame(height: geometry.size.height * 0.06)
                             
-                            Text("Visit ente.com/cast for help")
+                            Text(EndpointConfig.isSelfHosted
+                                 ? EndpointConfig.apiOrigin
+                                 : "Visit ente.com/cast for help")
                                 .font(FontUtils.interMedium(size: geometry.size.width * 0.012))
                                 .foregroundColor(.white)
                             

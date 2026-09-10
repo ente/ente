@@ -40,6 +40,10 @@ struct ContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.6), value: viewModel.currentView)
+        .developerSettingsGesture(
+            isEnabled: viewModel.currentView != .slideshow,
+            onEndpointChanged: viewModel.restartForEndpointChange
+        )
     }
 }
 

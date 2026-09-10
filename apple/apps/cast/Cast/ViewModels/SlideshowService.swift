@@ -51,8 +51,17 @@ class RealSlideshowService: ObservableObject {
     
     private var didDisplayFirstFile: Bool = false
     
-    private let baseURL = "https://api.ente.com"
-    private let castDownloadURL = "https://cast-albums.ente.com/download"
+    private var baseURL: String { EndpointConfig.apiOrigin }
+
+    // Bumped when the endpoint changes. stop() does not cancel work already in
+    // flight, so a download started against the previous server could otherwise
+    // finish after clearCache() and write straight back into it.
+    private var cacheEpoch: Int = 0
+
+    // Mirrors the web client: once the v3 download route 404s, stop probing it
+    // for an hour rather than paying a failed round trip per file.
+    private static var v3RetryAfter: Date = .distantPast
+    private static let v3RetryDelay: TimeInterval = 60 * 60
     
     private let verboseFileLogging = false
     private let verboseDecryptionLogging = false
@@ -219,6 +228,16 @@ class RealSlideshowService: ObservableObject {
         }
     }
     
+    // The file cache is keyed by file ID alone, and file IDs are only unique
+    // within one deployment. Entries downloaded from the previous server would
+    // otherwise be served under the new server's metadata, showing one
+    // instance's photos in another's album.
+    func resetForEndpointChange() async {
+        cacheEpoch += 1
+        await stop()
+        await clearCache()
+    }
+
     func clearExpiredTokenState() async {
         
         ScreenSaverManager.allowScreenSaver()
@@ -841,33 +860,83 @@ class RealSlideshowService: ObservableObject {
     }
     
     private func downloadEncryptedFile(castPayload: CastPayload, fileID: Int) async throws -> Data {
-        let url = URL(string: "\(castDownloadURL)/?fileID=\(fileID)")!
-        
-        var request = URLRequest(url: url)
-        request.setValue(castPayload.castToken, forHTTPHeaderField: "X-Cast-Access-Token")
-        
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw CastError.networkError("Invalid response")
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            let snippet = (String(data: data, encoding: .utf8) ?? "").prefix(160)
-            print("Download error [\(httpResponse.statusCode)] fileID=\(fileID): \(snippet)")
-            if httpResponse.statusCode == 401 {
-                await handleUnauthorizedError()
-                throw CastError.serverError(401, "Authentication expired - resetting to pairing mode")
+        // Museum's v3 route answers with {"url": ...} pointing at object storage
+        // rather than with the encrypted bytes, and 404s when the deployment is
+        // too old to have the route at all. Production's cast-albums worker
+        // serves the bytes directly, so it only has the one step.
+        if Date() >= Self.v3RetryAfter,
+           let v3URL = EndpointConfig.fileDownloadV3URL(fileID: fileID) {
+            let (body, status) = try await fetch(v3URL, castToken: castPayload.castToken)
+            if status == 404 {
+                Self.v3RetryAfter = Date().addingTimeInterval(Self.v3RetryDelay)
             } else {
-                throw CastError.serverError(httpResponse.statusCode, String(snippet))
+                try await ensureOK(status, body: body, fileID: fileID)
+                guard let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+                      let urlString = json["url"] as? String,
+                      let objectURL = URL(string: urlString) else {
+                    throw CastError.networkError("Malformed download URL response for file \(fileID)")
+                }
+                guard objectURL.scheme?.lowercased() != "http" else {
+                    throw CastError.networkError(
+                        "This server hands out object storage URLs over http, which tvOS refuses to load. Serve the bucket endpoint over https.")
+                }
+                let (data, objectStatus) = try await fetch(objectURL, castToken: nil)
+                try await ensureOK(
+                    objectStatus,
+                    body: data,
+                    fileID: fileID,
+                    treatUnauthorizedAsSessionExpiry: false
+                )
+                if verboseFileLogging { print("Successfully downloaded \(data.count) bytes for file \(fileID)") }
+                return data
             }
         }
+
+        guard let url = EndpointConfig.fileDownloadURL(fileID: fileID) else {
+            throw CastError.networkError("Invalid download URL")
+        }
+        let (data, status) = try await fetch(url, castToken: castPayload.castToken)
+        try await ensureOK(status, body: data, fileID: fileID)
         if verboseFileLogging { print("Successfully downloaded \(data.count) bytes for file \(fileID)") }
         return data
     }
+
+    private func fetch(_ url: URL, castToken: String?) async throws -> (Data, Int) {
+        var request = URLRequest(url: url)
+        if let castToken {
+            request.setValue(castToken, forHTTPHeaderField: "X-Cast-Access-Token")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw CastError.networkError("Invalid response")
+        }
+        return (data, httpResponse.statusCode)
+    }
+
+    // treatUnauthorizedAsSessionExpiry is false for object storage, where a 401
+    // means the pre-signed URL expired rather than the cast session ending, and
+    // tearing the session down would be the wrong response.
+    private func ensureOK(
+        _ status: Int,
+        body: Data,
+        fileID: Int,
+        treatUnauthorizedAsSessionExpiry: Bool = true
+    ) async throws {
+        guard status != 200 else { return }
+
+        let snippet = (String(data: body, encoding: .utf8) ?? "").prefix(160)
+        print("Download error [\(status)] fileID=\(fileID): \(snippet)")
+        if status == 401, treatUnauthorizedAsSessionExpiry {
+            await handleUnauthorizedError()
+            throw CastError.serverError(401, "Authentication expired - resetting to pairing mode")
+        }
+        throw CastError.serverError(status, String(snippet))
+    }
     
     private func downloadAndDecryptFileContent(castPayload: CastPayload, file: CastFile) async throws -> Data {
+        let epoch = cacheEpoch
         let stopping = await MainActor.run { isStopping }
         if stopping {
             throw CastError.networkError("Service is stopping")
@@ -897,7 +966,12 @@ class RealSlideshowService: ObservableObject {
         )
             
         
-        await cacheFileContent(fileID: file.id, data: decryptedData)
+        // Discard rather than cache if the endpoint changed while this was in
+        // flight: file IDs repeat across deployments, so this would reappear as
+        // another instance's photo under an ID the new server also uses.
+        if epoch == cacheEpoch {
+            await cacheFileContent(fileID: file.id, data: decryptedData)
+        }
         
         return decryptedData
     }

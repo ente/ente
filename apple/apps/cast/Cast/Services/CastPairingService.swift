@@ -34,7 +34,12 @@ class CastSession: ObservableObject {
 }
 
 class RealCastPairingService {
-    private let baseURL = "https://api.ente.com"
+    private var baseURL: String { EndpointConfig.apiOrigin }
+    // Bumped whenever polling starts or stops. A request already in flight
+    // against the previous server finishes with a stale generation and is then
+    // ignored, instead of rescheduling the shared timer or reporting an error
+    // that belongs to a server the user has already moved away from.
+    private var pollingGeneration: Int = 0
     private var pollingTimer: Timer?
     private var isPolling: Bool = false
     private var isFetchingPayload: Bool = false
@@ -101,26 +106,28 @@ class RealCastPairingService {
         isPolling = true
         pollingStartTime = Date()
         hasLoggedIntervalSwitch = false
+        pollingGeneration += 1
         
-        scheduleNextPoll(device: device, onPayloadReceived: onPayloadReceived, onError: onError)
+        scheduleNextPoll(generation: pollingGeneration, device: device, onPayloadReceived: onPayloadReceived, onError: onError)
     }
     
-    private func scheduleNextPoll(device: CastDevice, onPayloadReceived: @escaping (CastPayload) -> Void, onError: @escaping (Error) -> Void) {
-        guard isPolling && !hasDeliveredPayload else { return }
+    private func scheduleNextPoll(generation: Int, device: CastDevice, onPayloadReceived: @escaping (CastPayload) -> Void, onError: @escaping (Error) -> Void) {
+        guard generation == pollingGeneration, isPolling, !hasDeliveredPayload else { return }
         
         let currentInterval = getCurrentPollingInterval()
         pollingTimer = Timer.scheduledTimer(withTimeInterval: currentInterval, repeats: false) { [weak self] _ in
             Task {
-                await self?.checkForPayload(device: device, onPayloadReceived: onPayloadReceived, onError: onError)
+                await self?.checkForPayload(generation: generation, device: device, onPayloadReceived: onPayloadReceived, onError: onError)
                 // Poll again only after this request finishes.
                 await MainActor.run {
-                    self?.scheduleNextPoll(device: device, onPayloadReceived: onPayloadReceived, onError: onError)
+                    self?.scheduleNextPoll(generation: generation, device: device, onPayloadReceived: onPayloadReceived, onError: onError)
                 }
             }
         }
     }
     
-    private func checkForPayload(device: CastDevice, onPayloadReceived: @escaping (CastPayload) -> Void, onError: @escaping (Error) -> Void) async {
+    private func checkForPayload(generation: Int, device: CastDevice, onPayloadReceived: @escaping (CastPayload) -> Void, onError: @escaping (Error) -> Void) async {
+        if generation != pollingGeneration { return }
         if hasDeliveredPayload { return }
         if isFetchingPayload { return }
         isFetchingPayload = true
@@ -153,6 +160,7 @@ class RealCastPairingService {
             
             let payload = try device.receiver.openPayload(encryptedPayload: encryptedData)
             
+            guard generation == pollingGeneration else { return }
             hasDeliveredPayload = true
             stopPolling()
             
@@ -162,6 +170,7 @@ class RealCastPairingService {
             
         } catch {
             print("Polling error: \(error)")
+            guard generation == pollingGeneration else { return }
             await MainActor.run {
                 onError(error)
             }
@@ -169,6 +178,12 @@ class RealCastPairingService {
     }
     
     func stopPolling() {
+        pollingGeneration += 1
+        // A request suspended against the previous server holds this flag until
+        // it returns, and would make the replacement session's polls take the
+        // early return instead of reaching the newly configured endpoint. Its
+        // own defer clearing the flag again afterwards is harmless.
+        isFetchingPayload = false
         guard isPolling else { return }
         pollingTimer?.invalidate()
         pollingTimer = nil

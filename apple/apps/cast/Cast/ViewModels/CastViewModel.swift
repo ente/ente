@@ -12,6 +12,11 @@ class CastViewModel: ObservableObject {
     @Published var statusMessage: String = ""
     @Published var errorMessage: String?
 
+    // Incremented on every (re)start. Registration and polling that was still
+    // in flight against the previous endpoint compares against this and drops
+    // its result rather than overwriting the new session's state.
+    private var sessionGeneration: Int = 0
+
     private var cancellables = Set<AnyCancellable>()
     private let pairingService: RealCastPairingService
     private let castSession: CastSession
@@ -120,6 +125,9 @@ class CastViewModel: ObservableObject {
     }
 
     func startCastSession() {
+        sessionGeneration += 1
+        let generation = sessionGeneration
+
         castSession.setState(.registering)
         deviceCode = ""
         currentView = .pairing
@@ -127,6 +135,8 @@ class CastViewModel: ObservableObject {
         Task {
             do {
                 let device = try await pairingService.registerDevice()
+
+                guard generation == self.sessionGeneration else { return }
 
                 await MainActor.run {
                     deviceCode = device.deviceCode
@@ -139,17 +149,20 @@ class CastViewModel: ObservableObject {
                     device: device,
                     onPayloadReceived: { [weak self] payload in
                         Task { @MainActor in
-                            self?.handlePayloadReceived(payload)
+                            guard let self, generation == self.sessionGeneration else { return }
+                            self.handlePayloadReceived(payload)
                         }
                     },
                     onError: { [weak self] error in
                         Task { @MainActor in
-                            self?.handleNetworkError(error)
+                            guard let self, generation == self.sessionGeneration else { return }
+                            self.handleNetworkError(error)
                         }
                     }
                 )
 
             } catch {
+                guard generation == self.sessionGeneration else { return }
                 handleNetworkError(error)
             }
         }
@@ -180,14 +193,24 @@ class CastViewModel: ObservableObject {
         currentView = .connecting
         statusMessage = ""
 
+        // This payload belongs to whichever server issued it. If the endpoint
+        // changes while it is still loading, starting the slideshow anyway
+        // would request the old album from the new server and the resulting
+        // 401 would tear down the pairing session that just replaced it.
+        let generation = sessionGeneration
+
         Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
+
+            guard generation == self.sessionGeneration else { return }
 
             await slideshowService.start(castPayload: payload)
 
             try? await Task.sleep(nanoseconds: 1_000_000_000)
 
             await MainActor.run {
+                guard generation == self.sessionGeneration else { return }
+
                 let hasError = slideshowService.error != nil && !slideshowService.error!.isEmpty
 
                 if hasError {
@@ -197,6 +220,23 @@ class CastViewModel: ObservableObject {
                     statusMessage = ""
                 }
             }
+        }
+    }
+
+    // Re-registers with the server after the endpoint changes. The old device
+    // code was issued by the old server, so it is no longer valid, and
+    // startCastSession bumps the generation that retires any work still in
+    // flight against it.
+    func restartForEndpointChange() {
+        // Bump first, so anything already in flight against the old server is
+        // retired before the awaits below rather than after them.
+        sessionGeneration += 1
+        pairingService.resetForNewSession()
+        errorMessage = nil
+
+        Task {
+            await slideshowService.resetForEndpointChange()
+            startCastSession()
         }
     }
 
@@ -280,9 +320,13 @@ class CastViewModel: ObservableObject {
     private func handleNetworkError(_ error: Error) {
         handleError("An error occurred: \(error.localizedDescription)")
 
+        // Without this guard, changing the endpoint during the retry delay
+        // would leave the old session's timer to start a second one.
+        let generation = sessionGeneration
         Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             await MainActor.run {
+                guard generation == self.sessionGeneration else { return }
                 startCastSession()
             }
         }
