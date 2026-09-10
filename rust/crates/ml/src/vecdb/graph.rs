@@ -10,6 +10,7 @@ const LEVEL_ZERO_NEIGHBOR_CAP: usize = 2 * M;
 const UPPER_LEVEL_NEIGHBOR_CAP: usize = M;
 const EF_CONSTRUCTION: usize = 96;
 const SELECTION_WINDOW_FACTOR: usize = 2;
+const REVERSE_PRUNE_SLACK: usize = 4;
 const EF_SEARCH_UPPER: usize = 1;
 const EF_SEARCH_FLOOR_SMALL: usize = 72;
 const EF_SEARCH_FLOOR_LARGE: usize = 56;
@@ -40,6 +41,17 @@ fn neighbor_cap(level: usize) -> usize {
         LEVEL_ZERO_NEIGHBOR_CAP
     } else {
         UPPER_LEVEL_NEIGHBOR_CAP
+    }
+}
+
+fn reverse_prune_target(cap: usize, sorted_by_distance: &[Scored]) -> usize {
+    let holds_equal_distances = sorted_by_distance
+        .windows(2)
+        .any(|pair| pair[0].distance == pair[1].distance);
+    if holds_equal_distances {
+        cap
+    } else {
+        cap.saturating_sub(REVERSE_PRUNE_SLACK).max(1)
     }
 }
 
@@ -543,7 +555,8 @@ impl Graph {
         }
         scored[..count].sort_unstable();
         let mut kept = [0u32; LEVEL_ZERO_NEIGHBOR_CAP];
-        let kept_count = select_neighbors(arena, &scored[..count], cap, &mut kept);
+        let target = reverse_prune_target(cap, &scored[..count]);
+        let kept_count = select_neighbors(arena, &scored[..count], target, &mut kept);
         self.write_level_list(slot, level, &kept[..kept_count]);
     }
 
@@ -999,9 +1012,9 @@ mod tests {
     use std::f32::consts::FRAC_1_SQRT_2;
     use std::sync::LazyLock;
 
-    use super::super::StorageKind;
     use super::super::arena::UpsertOutcome;
     use super::super::test_support::{assert_identical_graphs, stale_downward_edge_exists};
+    use super::super::{DistanceMetric, StorageKind};
     use super::*;
 
     const FIXTURE_DIMS: usize = 16;
@@ -1141,15 +1154,82 @@ mod tests {
     }
 
     const DUPLICATE_GROUP_SEED: u64 = 0x1DEA_0000;
+    const PEAKY_GROUP_SEED: u64 = 0x9EA4_0000;
+    const PEAKY_TAIL: f32 = 0.04;
+    const BACKGROUND_SEED: u64 = 0x8AC0_0000;
+    const JITTER_SEED: u64 = 0x71E7_0000;
 
     fn build_duplicate_groups(groups: usize, per_group: usize) -> (VectorArena, Graph) {
-        let mut arena = VectorArena::new(16).unwrap();
+        build_duplicate_groups_with(
+            16,
+            StorageKind::F32,
+            DistanceMetric::InnerProduct,
+            groups,
+            per_group,
+        )
+    }
+
+    fn build_duplicate_groups_with(
+        dims: usize,
+        storage: StorageKind,
+        metric: DistanceMetric,
+        groups: usize,
+        per_group: usize,
+    ) -> (VectorArena, Graph) {
+        build_groups(dims, storage, metric, groups, per_group, |group, _| {
+            group_center(group, dims)
+        })
+    }
+
+    fn build_groups(
+        dims: usize,
+        storage: StorageKind,
+        metric: DistanceMetric,
+        groups: usize,
+        per_group: usize,
+        member: impl Fn(usize, usize) -> Vec<f32>,
+    ) -> (VectorArena, Graph) {
+        let mut arena = VectorArena::with_metric(dims, storage, metric).unwrap();
         for index in 0..groups * per_group {
-            let vector = seeded_unit_vector(DUPLICATE_GROUP_SEED + (index / per_group) as u64, 16);
+            let vector = member(index / per_group, index % per_group);
             arena.upsert(&format!("key-{index}"), &vector).unwrap();
         }
         let graph = Graph::rebuild(&arena);
         (arena, graph)
+    }
+
+    fn group_center(group: usize, dims: usize) -> Vec<f32> {
+        seeded_unit_vector(DUPLICATE_GROUP_SEED + group as u64, dims)
+    }
+
+    fn scaled(values: &[f32], factor: f32) -> Vec<f32> {
+        values.iter().map(|value| value * factor).collect()
+    }
+
+    fn peaky_unit_vector(group: usize, dims: usize) -> Vec<f32> {
+        let mut state = PEAKY_GROUP_SEED + group as u64;
+        let mut values: Vec<f32> = (0..dims)
+            .map(|_| {
+                if splitmix64(&mut state).is_multiple_of(2) {
+                    PEAKY_TAIL
+                } else {
+                    -PEAKY_TAIL
+                }
+            })
+            .collect();
+        values[group % dims] = 1.0;
+        normalized(values)
+    }
+
+    fn jittered(center: &[f32], seed: u64, spread: f32) -> Vec<f32> {
+        let noise = seeded_unit_vector(seed, center.len());
+        normalized(
+            center
+                .iter()
+                .zip(&noise)
+                .map(|(center, noise)| center + spread * noise)
+                .collect(),
+        )
     }
 
     fn group_of(arena: &VectorArena, key: &str, per_group: usize) -> usize {
@@ -1170,6 +1250,18 @@ mod tests {
         }
         for hit in tail {
             assert!(hit.distance > head[0].distance);
+        }
+    }
+
+    fn assert_leading_group_members(
+        arena: &VectorArena,
+        found: &[Match],
+        count: usize,
+        group: usize,
+        per_group: usize,
+    ) {
+        for hit in &found[..count] {
+            assert_eq!(group_of(arena, &hit.key, per_group), group, "{}", hit.key);
         }
     }
 
@@ -1547,6 +1639,238 @@ mod tests {
         let nearest = group_of(&arena, &found[0].key, 400);
         assert_ne!(nearest, 1);
         assert_leading_group(&arena, &found, 100, nearest, 400);
+    }
+
+    #[test]
+    fn duplicate_groups_near_the_neighbor_cap_stay_whole_at_production_dims() {
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            for metric in [DistanceMetric::Cosine, DistanceMetric::InnerProduct] {
+                for (groups, per_group, limit) in [(4, 40, 60), (8, 40, 60), (4, 80, 100)] {
+                    let (arena, graph) =
+                        build_duplicate_groups_with(512, storage, metric, groups, per_group);
+                    let query = arena.pack_query(&group_center(0, 512)).unwrap();
+                    let found = search(
+                        &graph,
+                        &arena,
+                        &query,
+                        &params(Some(limit), None, false),
+                        None,
+                    );
+                    assert_eq!(found.len(), limit);
+                    assert_sorted(&found);
+                    assert_leading_group(&arena, &found, per_group, 0, per_group);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn duplicate_groups_of_peaky_vectors_stay_whole_in_int8() {
+        for metric in [DistanceMetric::Cosine, DistanceMetric::InnerProduct] {
+            for (groups, per_group, limit) in [(4, 40, 60), (8, 40, 60), (4, 80, 10), (4, 80, 80)] {
+                let (arena, graph) = build_groups(
+                    512,
+                    StorageKind::I8,
+                    metric,
+                    groups,
+                    per_group,
+                    |group, _| peaky_unit_vector(group, 512),
+                );
+                let query = arena.pack_query(&peaky_unit_vector(0, 512)).unwrap();
+                let found = search(
+                    &graph,
+                    &arena,
+                    &query,
+                    &params(Some(limit), None, false),
+                    None,
+                );
+                assert_eq!(found.len(), limit);
+                assert_sorted(&found);
+                assert_leading_group(&arena, &found, per_group.min(limit), 0, per_group);
+            }
+        }
+    }
+
+    #[test]
+    fn duplicate_groups_stored_below_unit_norm_stay_whole() {
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            for (groups, per_group, limit) in [(4, 40, 60), (8, 40, 60), (4, 80, 100)] {
+                let (arena, graph) = build_groups(
+                    512,
+                    storage,
+                    DistanceMetric::InnerProduct,
+                    groups,
+                    per_group,
+                    |group, _| scaled(&group_center(group, 512), 0.5),
+                );
+                let query = arena
+                    .pack_query(&scaled(&group_center(0, 512), 0.5))
+                    .unwrap();
+                let found = search(
+                    &graph,
+                    &arena,
+                    &query,
+                    &params(Some(limit), None, false),
+                    None,
+                );
+                assert_eq!(found.len(), limit);
+                assert_sorted(&found);
+                assert_leading_group(&arena, &found, per_group, 0, per_group);
+            }
+        }
+    }
+
+    #[test]
+    fn a_duplicate_burst_at_the_neighbor_cap_survives_background_and_churn() {
+        const BURST: usize = LEVEL_ZERO_NEIGHBOR_CAP;
+        const BACKGROUND: usize = 2000;
+        for metric in [DistanceMetric::Cosine, DistanceMetric::InnerProduct] {
+            let duplicate = group_center(0, 512);
+            let mut arena = VectorArena::with_metric(512, StorageKind::I8, metric).unwrap();
+            let mut graph = Graph::new();
+            for index in 0..BACKGROUND {
+                apply_upsert(
+                    &mut arena,
+                    &mut graph,
+                    &format!("background-{index}"),
+                    &seeded_unit_vector(BACKGROUND_SEED + index as u64, 512),
+                );
+            }
+            for index in 0..BURST {
+                apply_upsert(
+                    &mut arena,
+                    &mut graph,
+                    &format!("duplicate-{index}"),
+                    &duplicate,
+                );
+            }
+            let query = arena.pack_query(&duplicate).unwrap();
+            assert_whole_burst(&graph, &arena, &query, BURST);
+            for index in (0..BURST).step_by(2) {
+                let key = format!("duplicate-{index}");
+                assert!(arena.remove(&key).is_some());
+                apply_upsert(&mut arena, &mut graph, &key, &duplicate);
+            }
+            assert_whole_burst(&graph, &arena, &query, BURST);
+        }
+    }
+
+    fn assert_whole_burst(graph: &Graph, arena: &VectorArena, query: &PackedQuery, burst: usize) {
+        let found = search(graph, arena, query, &params(Some(burst), None, false), None);
+        let members = found
+            .iter()
+            .filter(|hit| hit.key.starts_with("duplicate-"))
+            .count();
+        assert_eq!(members, burst, "{members} of {burst} burst members");
+    }
+
+    #[test]
+    fn link_back_fills_to_the_cap_only_beside_equal_distances() {
+        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
+        for (twins, expected) in [(false, cap - REVERSE_PRUNE_SLACK), (true, cap)] {
+            let mut arena = VectorArena::new(16).unwrap();
+            for index in 0..=cap + 1 {
+                let source = if twins && index == 2 { 1 } else { index };
+                let vector = seeded_unit_vector(0x11B0_0000 + source as u64, 16);
+                arena.upsert(&format!("key-{index}"), &vector).unwrap();
+            }
+            let mut graph = Graph::rebuild(&arena);
+            let full: Vec<u32> = (1..=cap as u32).collect();
+            graph.write_level_list(0, 0, &full);
+            graph.link_back(0, 0, cap as u32 + 1, cap, &arena);
+            assert_eq!(graph.level_neighbors(0, 0).len(), expected);
+        }
+    }
+
+    #[test]
+    fn jittered_groups_near_the_neighbor_cap_stay_whole() {
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            for spread in [1e-3, 1e-5, 1e-6] {
+                let (arena, graph) = build_groups(
+                    512,
+                    storage,
+                    DistanceMetric::Cosine,
+                    4,
+                    80,
+                    |group, member| {
+                        jittered(
+                            &group_center(group, 512),
+                            JITTER_SEED + (group * 80 + member) as u64,
+                            spread,
+                        )
+                    },
+                );
+                let query = arena.pack_query(&group_center(0, 512)).unwrap();
+                let found = search(
+                    &graph,
+                    &arena,
+                    &query,
+                    &params(Some(100), None, false),
+                    None,
+                );
+                assert_eq!(found.len(), 100);
+                assert_sorted(&found);
+                assert_leading_group_members(&arena, &found, 80, 0, 80);
+            }
+        }
+    }
+
+    fn scored_at(distances: &[f32]) -> Vec<Scored> {
+        distances
+            .iter()
+            .enumerate()
+            .map(|(slot, &distance)| Scored {
+                distance,
+                slot: slot as u32,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn reverse_prune_target_keeps_the_full_cap_only_on_equal_distances() {
+        let tied = scored_at(&[0.2, 0.4, 0.4, 0.9]);
+        let tied_far = scored_at(&[0.2, 0.4, 0.9, 0.9]);
+        let apart = scored_at(&[0.2, 0.4, 0.400_001, 0.9]);
+        assert_eq!(
+            reverse_prune_target(LEVEL_ZERO_NEIGHBOR_CAP, &tied),
+            LEVEL_ZERO_NEIGHBOR_CAP
+        );
+        assert_eq!(
+            reverse_prune_target(LEVEL_ZERO_NEIGHBOR_CAP, &tied_far),
+            LEVEL_ZERO_NEIGHBOR_CAP
+        );
+        assert_eq!(
+            reverse_prune_target(LEVEL_ZERO_NEIGHBOR_CAP, &apart),
+            LEVEL_ZERO_NEIGHBOR_CAP - REVERSE_PRUNE_SLACK
+        );
+        assert_eq!(
+            reverse_prune_target(UPPER_LEVEL_NEIGHBOR_CAP, &[]),
+            UPPER_LEVEL_NEIGHBOR_CAP - REVERSE_PRUNE_SLACK
+        );
+        for cap in 1..=REVERSE_PRUNE_SLACK {
+            assert_eq!(reverse_prune_target(cap, &apart), 1);
+        }
+    }
+
+    #[test]
+    fn reverse_pruning_leaves_slack_below_the_level_zero_cap() {
+        let (arena, graph) = build_fixture(4000, 16, 0x51AC_0000);
+        let lengths: Vec<usize> = arena
+            .live_slots()
+            .map(|slot| graph.level_neighbors(slot, 0).len())
+            .collect();
+        let full = lengths
+            .iter()
+            .filter(|&&len| len == LEVEL_ZERO_NEIGHBOR_CAP)
+            .count();
+        let mean = lengths.iter().sum::<usize>() as f64 / lengths.len() as f64;
+        assert!(lengths.iter().all(|&len| len <= LEVEL_ZERO_NEIGHBOR_CAP));
+        assert!(mean < 31.0, "mean level-zero degree {mean}");
+        assert!(
+            full * 2 < lengths.len(),
+            "{full} full lists of {}",
+            lengths.len()
+        );
     }
 
     #[test]
