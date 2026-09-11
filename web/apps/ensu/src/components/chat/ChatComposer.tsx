@@ -52,7 +52,12 @@ type SuggestedModelStatus =
 export type ChatComposerHandle = ChatInputHandle;
 
 export interface ChatComposerProps {
-    contextUsage?: { usedTokens: number; totalTokens: number };
+    contextUsage?: {
+        usedTokens: number;
+        totalTokens: number;
+        estimated?: boolean;
+    };
+    onDraftChange: (text: string) => void;
     showModelGate: boolean;
     showDownloadProgress: boolean;
     downloadStatus: DownloadProgress | null;
@@ -95,6 +100,7 @@ export const ChatComposer = memo(
     forwardRef<ChatInputHandle, ChatComposerProps>(function ChatComposer(
         {
             contextUsage,
+            onDraftChange,
             showModelGate,
             showDownloadProgress,
             downloadStatus,
@@ -143,10 +149,11 @@ export const ChatComposer = memo(
                 focus: () => inputRef.current?.focus(),
                 setText: (text) => {
                     draftRef.current = text;
+                    onDraftChange(text);
                     inputRef.current?.setText(text);
                 },
             }),
-            [],
+            [onDraftChange],
         );
 
         const isModelPreparationActive =
@@ -552,6 +559,9 @@ export const ChatComposer = memo(
                                         contextIndicator={
                                             contextUsage && (
                                                 <ContextMeter
+                                                    estimated={
+                                                        contextUsage.estimated
+                                                    }
                                                     usedTokens={
                                                         contextUsage.usedTokens
                                                     }
@@ -584,6 +594,7 @@ export const ChatComposer = memo(
                                         initialText={draftRef.current}
                                         onTextChange={(text) => {
                                             draftRef.current = text;
+                                            onDraftChange(text);
                                         }}
                                         openAttachmentMenu={openAttachmentMenu}
                                         showAttachmentPicker={

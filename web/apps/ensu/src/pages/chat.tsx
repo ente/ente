@@ -87,6 +87,7 @@ import { saveStringAsFile } from "ente-base/utils/web";
 import { useRouter } from "next/router";
 import React, {
     useCallback,
+    useDeferredValue,
     useEffect,
     useMemo,
     useRef,
@@ -656,6 +657,8 @@ const Page: React.FC = () => {
     const [loadedModelName, setLoadedModelName] = useState<string | null>(null);
     const [contextUsageBySession, setContextUsageBySession] =
         useState<ContextUsageBySession>({});
+    const [contextDraft, setContextDraft] = useState("");
+    const deferredContextDraft = useDeferredValue(contextDraft);
     const [modelGateStatus, setModelGateStatus] = useState<
         | "checking"
         | "missing"
@@ -2531,6 +2534,74 @@ const Page: React.FC = () => {
         },
         [approxTokens, slicePathUntil, stripHiddenParts, systemPrompt],
     );
+
+    const displayedContextUsage = useMemo(() => {
+        const saved = currentSessionId
+            ? contextUsageBySession[currentSessionId]
+            : undefined;
+        const hasDraft =
+            !!deferredContextDraft.trim() ||
+            pendingDocuments.length > 0 ||
+            pendingImages.length > 0;
+        if (
+            saved?.settingsKey === modelSettingsKey &&
+            (isGenerating || !hasDraft)
+        )
+            return saved;
+        if (
+            isGenerating ||
+            !modelSettingsLoaded ||
+            modelGateStatus === "checking" ||
+            !providerRef.current
+        )
+            return undefined;
+        const { contextSize, maxTokens: outputBudget } =
+            providerRef.current.resolveRuntimeSettings(getModelSettings());
+        const prompt = buildPromptWithImages(
+            buildPromptWithDocuments(
+                deferredContextDraft.trim().replaceAll("\0", ""),
+                pendingDocuments,
+            ),
+            pendingImages.length,
+        );
+        const path = messageState.path.filter(
+            (message) => message.sessionUuid === currentSessionId,
+        );
+        const history = buildHistory(
+            path,
+            prompt,
+            contextSize,
+            outputBudget,
+            editingMessage?.messageUuid,
+        );
+        return {
+            usedTokens:
+                approxTokens(buildChatSystemPrompt(systemPrompt)) +
+                approxTokens(prompt) +
+                history.reduce(
+                    (total, message) => total + approxTokens(message.content),
+                    0,
+                ),
+            totalTokens: contextSize,
+            estimated: true,
+        };
+    }, [
+        currentSessionId,
+        contextUsageBySession,
+        deferredContextDraft,
+        pendingDocuments,
+        pendingImages,
+        modelSettingsKey,
+        isGenerating,
+        modelSettingsLoaded,
+        modelGateStatus,
+        getModelSettings,
+        messageState.path,
+        buildHistory,
+        editingMessage,
+        approxTokens,
+        systemPrompt,
+    ]);
 
     const handleNewChat = useCallback(() => {
         cancelActiveGenerationForNavigation();
@@ -4735,13 +4806,8 @@ const Page: React.FC = () => {
                     )}
 
                     <ChatComposer
-                        contextUsage={
-                            currentSessionId &&
-                            contextUsageBySession[currentSessionId]
-                                ?.settingsKey === modelSettingsKey
-                                ? contextUsageBySession[currentSessionId]
-                                : undefined
-                        }
+                        contextUsage={displayedContextUsage}
+                        onDraftChange={setContextDraft}
                         ref={composerRef}
                         showModelGate={showModelGate}
                         showDownloadProgress={showDownloadProgress}
