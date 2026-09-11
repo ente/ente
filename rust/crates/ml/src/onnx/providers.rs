@@ -157,7 +157,7 @@ pub(super) fn provider_attempt(
         #[cfg(any(target_os = "ios", target_os = "macos"))]
         ExecutionProvider::CoreMl => {
             let (coreml_provider, coreml_cache_dir) =
-                coreml_provider(_model_path, _model_namespace, _gpu_options.is_some());
+                coreml_provider(_model_path, _model_namespace, _gpu_options);
             ProviderAttempt {
                 providers: if _gpu_options.is_some() {
                     vec![coreml_provider]
@@ -175,7 +175,7 @@ pub(super) fn provider_attempt(
         #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
         ExecutionProvider::WebGpu => ProviderAttempt {
             providers: if let Some(options) = _gpu_options {
-                vec![webgpu_provider(options.prefer_nhwc)]
+                vec![ocr_webgpu_provider(options.prefer_nhwc)]
             } else {
                 webgpu_attempt_providers()
             },
@@ -200,15 +200,10 @@ pub(super) fn build_session(
         .with_inter_threads(1)?;
 
     if let Some(options) = gpu_options
-        && matches!(
-            attempt.execution_provider,
-            ExecutionProvider::CoreMl | ExecutionProvider::WebGpu
-        )
+        && (attempt.execution_provider == ExecutionProvider::WebGpu
+            || (attempt.execution_provider == ExecutionProvider::CoreMl && !options.subgraphs))
     {
         builder = builder.with_disable_cpu_fallback()?;
-        for &(name, value) in &options.dimensions {
-            builder = builder.with_dimension_override(name, value)?;
-        }
     }
 
     if attempt.disable_intra_op_spinning {
@@ -310,18 +305,19 @@ fn accelerated_provider_allowed(
 fn coreml_provider(
     model_path: &str,
     model_namespace: &str,
-    full_gpu: bool,
+    options: Option<&GpuOptions>,
 ) -> (ExecutionProviderDispatch, Option<PathBuf>) {
     let mut provider = CoreML::default()
         .with_model_format(ModelFormat::MLProgram)
         .with_compute_units(ComputeUnits::All)
         .with_specialization_strategy(SpecializationStrategy::Default);
 
-    if full_gpu {
+    if let Some(options) = options {
         provider = provider
             .with_compute_units(ComputeUnits::CPUAndGPU)
             .with_low_precision_accumulation_on_gpu(false)
-            .with_static_input_shapes(true);
+            .with_static_input_shapes(true)
+            .with_subgraphs(options.subgraphs);
     }
 
     let mut prepared_cache_dir = None;
@@ -358,6 +354,23 @@ fn webgpu_provider(prefer_nhwc: bool) -> ExecutionProviderDispatch {
     #[cfg(target_os = "windows")]
     let provider = provider.with_dawn_backend_type(DawnBackendType::D3D12);
     provider.build().error_on_failure()
+}
+
+#[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
+fn ocr_webgpu_provider(prefer_nhwc: bool) -> ExecutionProviderDispatch {
+    use ort::ep::ArbitrarilyConfigurableExecutionProvider;
+
+    let backend = if cfg!(target_os = "windows") {
+        "D3D12"
+    } else {
+        "Vulkan"
+    };
+    WebGPU::default()
+        .with_arbitrary_config("preferredLayout", if prefer_nhwc { "NHWC" } else { "NCHW" })
+        .with_arbitrary_config("dawnBackendType", backend)
+        .with_arbitrary_config("enableGraphCapture", "0")
+        .build()
+        .error_on_failure()
 }
 
 #[cfg(target_os = "android")]

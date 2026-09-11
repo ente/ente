@@ -2,6 +2,7 @@ pub mod assets;
 mod cancel;
 mod characters;
 mod classify;
+mod context;
 mod crop;
 mod detect;
 mod dictionary;

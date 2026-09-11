@@ -26,7 +26,7 @@ use providers::{ExecutionProvider, ProviderPlan};
 
 #[derive(Clone, Debug)]
 pub(crate) struct GpuOptions {
-    pub(crate) dimensions: Vec<(&'static str, i64)>,
+    pub(crate) subgraphs: bool,
     #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
     pub(crate) prefer_nhwc: bool,
 }
@@ -237,7 +237,7 @@ impl SessionRunError {
         Self::Retryable(error)
     }
 
-    fn from_inference_error(error: ort::Error) -> Self {
+    pub(crate) fn from_inference_error(error: ort::Error) -> Self {
         match error.code() {
             ort::ErrorCode::GenericFailure
             | ort::ErrorCode::RuntimeException

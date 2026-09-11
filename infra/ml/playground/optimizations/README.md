@@ -17,21 +17,23 @@ uv run --no-project --with numpy==2.5.3 --with onnx==1.22.0 python \
   --output-dir infra/ml/playground/optimizations/models/ocr
 ```
 
-The script keeps FP32 weights and applies these transformations:
+The script produces three shared FP32 models (23.17 MB total) with fixed inputs:
 
-- Detection: fold the transposed-convolution head's bias and batch normalization,
-  and expand `HardSwish` into `HardSigmoid * x` for CoreML compatibility.
-- Classification: canonicalize scalar constants and simplify expanded activations
-  to `HardSigmoid * x`.
-- Recognition: fold affine operations into unpadded convolutions, fuse layer
-  normalization, expand `HardSwish`, and align the final matrix multiplication
-  for WebGPU without changing the vocabulary. Return FP32 `[N,T,2]` containing
-  the first winning token index and its probability; Rust retains CTC decoding.
+- Detection: a 960×960 canvas with five fixed computation paths. Masks preserve
+  the original image boundaries and pooling when selecting a smaller path.
+- Classification: six 48×192 crops; Rust pads incomplete batches.
+- Recognition: a 48×7168 canvas with 2048- and 7168-wide paths. Rust packs lines;
+  masks isolate their convolutions, pooling, and attention. Aligned matrix
+  operations return winning token indices and probabilities for Rust CTC decoding.
 
-Missing sources are downloaded from `https://models.ente.com/PP-OCRv5`. The script
-verifies source and output hashes and writes three ONNX files, the unchanged
-dictionary, and `ocr_model_manifest.json`. Publish the ONNX files at new URLs:
-the recognizer's output contract differs from the original model.
+Affine folding and equivalent activation rewrites improve GPU support. Shared
+weights keep the fixed paths compact. These models require the matching Rust
+input adapter; they cannot replace the original models independently.
+
+Missing sources are downloaded from `https://models.ente.com/PP-OCRv5`. Source and
+output hashes are verified. Upload only `det_fixed_v1.onnx`, `cls_fixed_v1.onnx`,
+and `rec_fixed_v1.onnx`; the dictionary is unchanged. The generated
+`ocr_model_manifest.json` records the input shapes, hashes, and sizes.
 
 ## Rebuilding the models
 

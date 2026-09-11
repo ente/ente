@@ -17,27 +17,27 @@ struct OcrModelFile {
 }
 
 const DETECTION: OcrModelFile = OcrModelFile {
-    key: "ppocrv5_det_gpu_v1",
+    key: "ppocrv5_det_fixed_v1",
     name: "det.onnx",
-    url: "https://entedevassets.priem.dev/det_opt.onnx",
-    size: 4_750_896,
-    sha256: "3e658f85236f1984e186070048d7cdc99ddbb84e12c91a6fd80922b85bd9487a",
+    url: "https://entedevassets.priem.dev/det_fixed_v1.onnx",
+    size: 5_548_458,
+    sha256: "f655f119225b579fa8c3cbf64f6bb7cf56a26c9dc211706a25234d70a543ec8c",
 };
 
 const CLASSIFICATION: OcrModelFile = OcrModelFile {
-    key: "ppocrv5_cls_gpu_v1",
+    key: "ppocrv5_cls_fixed_v1",
     name: "cls.onnx",
-    url: "https://entedevassets.priem.dev/cls_opt.onnx",
-    size: 574_875,
-    sha256: "8675903197a1bab7060e830e9bcc63d29c5cf7d372735338bd9501f829e94ed1",
+    url: "https://entedevassets.priem.dev/cls_fixed_v1.onnx",
+    size: 590_475,
+    sha256: "378d52a73263828d08d4dda37f1d0aac2e36cbd486fdc6351bf309d515610654",
 };
 
 const RECOGNITION: OcrModelFile = OcrModelFile {
-    key: "ppocrv5_rec_gpu_v1",
+    key: "ppocrv5_rec_fixed_v1",
     name: "rec.onnx",
-    url: "https://entedevassets.priem.dev/rec_opt.onnx",
-    size: 16_686_404,
-    sha256: "667691bb173a94106b595aa87c7d176b53b68cf831b6ffa09569018754265e57",
+    url: "https://entedevassets.priem.dev/rec_fixed_v1.onnx",
+    size: 17_031_601,
+    sha256: "6dda4c0891af5a70c5b0f618b62588df7f3140616d1c560be5ec6496747b54fd",
 };
 
 const DICTIONARY: OcrModelFile = OcrModelFile {

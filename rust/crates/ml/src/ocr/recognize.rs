@@ -8,9 +8,7 @@ use super::tensor::{BgrNormalization, prepare_crops, write_bgr_planes};
 use crate::cv;
 use crate::cv::image::ImageU8;
 use crate::error::{MlError, MlResult};
-use crate::onnx::{
-    BorrowedFloatTensor, FloatTensorData, PreparedF32Input, with_prepared_float_output,
-};
+use crate::onnx::{FloatTensorData, SessionRunError};
 
 use super::session::{OcrModel, OcrSession};
 const REC_VOCABULARY_SIZE: usize = 18385;
@@ -81,37 +79,95 @@ impl TextRecognizer {
             return Ok(Vec::new());
         }
         let dictionary = self.dictionary.entries()?;
-        recognize_in_batches(crops, request, |batch, layout| {
-            self.infer_batch(batch, layout, dictionary)
-        })
-    }
-
-    fn infer_batch(
-        &self,
-        batch: &[&ImageU8],
-        layout: &BatchLayout,
-        dictionary: &[String],
-    ) -> MlResult<Vec<Recognition>> {
-        let input = PreparedF32Input::new(prepare_crops(|| layout.tensor(batch))?);
-        let count = batch.len();
-        let input_shape = [
-            count as i64,
-            3,
-            i64::from(REC_HEIGHT),
-            i64::from(layout.target_width),
-        ];
-        let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
-        let (recognized, _usage) = session.run(input_shape, |session| {
-            with_prepared_float_output(session, &input, input_shape, |shape, values| match values {
-                BorrowedFloatTensor::F32(values) => {
-                    decode_output(shape, values, layout, dictionary)
-                }
-                BorrowedFloatTensor::F16(values) => {
-                    decode_output(shape, values, layout, dictionary)
-                }
-            })
+        let mut lines = Vec::new();
+        let mut line_crops = Vec::new();
+        let ordered = recognize_in_batches(crops, request, |batch, layout| {
+            let mut indices = Vec::with_capacity(batch.len());
+            for (&crop, &content_width) in batch.iter().zip(&layout.content_widths) {
+                indices.push(lines.len());
+                line_crops.push(crop);
+                lines.push(super::context::Line {
+                    values: Vec::new(),
+                    width: layout.target_width as usize,
+                    content_width,
+                });
+            }
+            Ok(indices)
         })?;
-        Ok(recognized)
+        let mut results = vec![Recognition::default(); lines.len()];
+        let mut pending: Vec<usize> = (0..lines.len()).collect();
+        pending.sort_by_key(|&i| std::cmp::Reverse(lines[i].width));
+        while !pending.is_empty() {
+            request.check()?;
+            let width = choose_packed_width(&pending, &lines);
+            let slots = width / 336;
+            let mut selected = Vec::new();
+            let mut used = 0;
+            pending.retain(|&index| {
+                let size = lines[index].width.div_ceil(8) * 8;
+                if selected.len() < slots && used + size <= width {
+                    selected.push(index);
+                    used += size + 16;
+                    false
+                } else {
+                    true
+                }
+            });
+            if selected.is_empty() {
+                return Err(
+                    MlError::Preprocess("line exceeds fixed packed canvas".to_owned()).into(),
+                );
+            }
+            prepare_crops(|| {
+                for &index in &selected {
+                    let line = &mut lines[index];
+                    line.values = BatchLayout {
+                        target_width: line.width as i32,
+                        content_widths: vec![line.content_width],
+                    }
+                    .tensor(&[line_crops[index]])?;
+                }
+                Ok(())
+            })?;
+            let batch: Vec<_> = selected.iter().map(|&index| &lines[index]).collect();
+            let (inputs, offsets) = super::context::packed(&batch, width, slots);
+            let inputs = super::context::recognizer_paths(inputs, width);
+            let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
+            let (values, _) = session.run(|session| {
+                let (shape, values) = super::context::infer(session, &inputs)?;
+                if shape != [1, 896, 2] || values.len() != 896 * 2 {
+                    return Err(SessionRunError::from(MlError::CorruptModel(format!(
+                        "text recognizer produced output shape {shape:?}, expected [1, 896, 2]"
+                    ))));
+                }
+                Ok(values)
+            })?;
+            for (&index, &offset) in selected.iter().zip(&offsets) {
+                let line = &lines[index];
+                let start = offset / 8 * 2;
+                let count = line.width.div_ceil(4) / 2;
+                let layout = BatchLayout {
+                    target_width: line.width as i32,
+                    content_widths: vec![line.content_width],
+                };
+                let mut decoded = decode_output(
+                    &[1, count as i64, 2],
+                    &values[start..start + count * 2],
+                    &layout,
+                    dictionary,
+                )?;
+                results[index] = decoded.remove(0);
+                lines[index].values = Vec::new();
+            }
+        }
+        ordered
+            .into_iter()
+            .map(|index| {
+                results.get(index).cloned().ok_or_else(|| {
+                    MlError::Preprocess("packed line index out of range".to_owned()).into()
+                })
+            })
+            .collect()
     }
 }
 
@@ -179,12 +235,12 @@ where
         .collect()
 }
 
-fn recognize_in_batches(
-    crops: &[&ImageU8],
+fn recognize_in_batches<'a, T>(
+    crops: &[&'a ImageU8],
     request: &RequestGuard<'_>,
-    mut infer_batch: impl FnMut(&[&ImageU8], &BatchLayout) -> MlResult<Vec<Recognition>>,
-) -> Result<Vec<Recognition>, OcrError> {
-    let mut results: Vec<Option<Recognition>> = vec![None; crops.len()];
+    mut infer_batch: impl FnMut(&[&'a ImageU8], &BatchLayout) -> MlResult<Vec<T>>,
+) -> Result<Vec<T>, OcrError> {
+    let mut results: Vec<Option<T>> = std::iter::repeat_with(|| None).take(crops.len()).collect();
     for indices in ascending_aspect_order(crops).chunks(REC_BATCH_SIZE) {
         request.check()?;
         let batch: Vec<&ImageU8> = indices.iter().map(|&index| crops[index]).collect();
@@ -855,7 +911,8 @@ mod tests {
         let request = registry.begin(Some("cancelled"));
         registry.cancel("cancelled");
 
-        let error = recognize_in_batches(&[&crop], &request, |_, _| unreachable!()).unwrap_err();
+        let error = recognize_in_batches::<Recognition>(&[&crop], &request, |_, _| unreachable!())
+            .unwrap_err();
 
         assert!(matches!(error, OcrError::Cancelled), "{error}");
     }
@@ -1151,4 +1208,33 @@ mod tests {
         assert_eq!(calls, 1);
         assert!(matches!(error, OcrError::Cancelled));
     }
+}
+
+fn choose_packed_width(pending: &[usize], lines: &[super::context::Line]) -> usize {
+    let mut best_width = 7168;
+    let mut best_cost = f64::INFINITY;
+    for &width in super::context::branch_widths() {
+        if width < lines[pending[0]].width {
+            continue;
+        }
+        let mut used = 0;
+        let mut payload = 0;
+        let mut count = 0;
+        for &index in pending {
+            let size = lines[index].width.div_ceil(8) * 8;
+            if count < width / 336 && used + size <= width {
+                used += size + 16;
+                payload += lines[index].width;
+                count += 1;
+            }
+        }
+        if payload > 0 {
+            let cost = (width + 128) as f64 / payload as f64;
+            if cost < best_cost {
+                best_cost = cost;
+                best_width = width;
+            }
+        }
+    }
+    best_width
 }

@@ -3,10 +3,11 @@ import copy
 import hashlib
 import json
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import numpy as np
 import onnx
+from ocr_fixed_inputs import fixed_models
 from onnx import helper, numpy_helper
 
 SOURCE_BASE_URL = "https://models.ente.com/PP-OCRv5"
@@ -17,9 +18,9 @@ SOURCE_HASHES = {
     "rec.onnx": "bf66820f48fa99f779974c4df78e5274a9d8e0458c4137e8c5357e40e2c3faf2",
 }
 OUTPUT_HASHES = {
-    "det.onnx": "3e658f85236f1984e186070048d7cdc99ddbb84e12c91a6fd80922b85bd9487a",
-    "cls.onnx": "8675903197a1bab7060e830e9bcc63d29c5cf7d372735338bd9501f829e94ed1",
-    "rec.onnx": "667691bb173a94106b595aa87c7d176b53b68cf831b6ffa09569018754265e57",
+    "det_fixed_v1.onnx": "f655f119225b579fa8c3cbf64f6bb7cf56a26c9dc211706a25234d70a543ec8c",
+    "cls_fixed_v1.onnx": "378d52a73263828d08d4dda37f1d0aac2e36cbd486fdc6351bf309d515610654",
+    "rec_fixed_v1.onnx": "6dda4c0891af5a70c5b0f618b62588df7f3140616d1c560be5ec6496747b54fd",
 }
 
 
@@ -462,7 +463,11 @@ def load_sources(directory):
     for name, expected in SOURCE_HASHES.items():
         path = directory / name
         if not path.exists():
-            with urlopen(f"{SOURCE_BASE_URL}/{name}", timeout=120) as response:
+            request = Request(
+                f"{SOURCE_BASE_URL}/{name}",
+                headers={"User-Agent": "ente-ml-model-optimizer"},
+            )
+            with urlopen(request, timeout=120) as response:
                 data = response.read()
             if hashlib.sha256(data).hexdigest() != expected:
                 raise ValueError(f"Unexpected SHA-256 for downloaded {name}")
@@ -505,10 +510,18 @@ def main():
     args = parser.parse_args()
     if onnx.__version__ != "1.22.0":
         raise ValueError("Reproducible model output requires onnx==1.22.0")
+    if np.__version__ != "2.5.3":
+        raise ValueError("Reproducible model output requires numpy==2.5.3")
     sources = load_sources(args.source_dir)
     records = []
-    for name, model in optimize(sources).items():
-        onnx.checker.check_model(model)
+    for name, model in fixed_models(optimize(sources)).items():
+        onnx.checker.check_model(model, full_check=True)
+        for value in model.graph.input:
+            if any(
+                not d.HasField("dim_value") or d.dim_value <= 0
+                for d in value.type.tensor_type.shape.dim
+            ):
+                raise ValueError(f"Non-static input {value.name} in {name}")
         data = model.SerializeToString()
         digest = hashlib.sha256(data).hexdigest()
         if digest != OUTPUT_HASHES[name]:
@@ -523,15 +536,24 @@ def main():
                 "file": name,
                 "sha256": digest,
                 "bytes": len(data),
-                "operators": sorted({node.op_type for node in model.graph.node}),
-                "output": "FP32 [N,T,2]: first winning index, original winning probability"
-                if name == "rec.onnx"
+                "inputs": {
+                    value.name: [d.dim_value for d in value.type.tensor_type.shape.dim]
+                    for value in model.graph.input
+                },
+                "output": "FP32 [1,896,2]: packed first winning index and probability"
+                if name == "rec_fixed_v1.onnx"
                 else "unchanged",
             }
         )
+    if sum(record["bytes"] for record in records) > 25_000_000:
+        raise ValueError("The combined OCR models exceed 25 MB")
     dictionary = args.source_dir / "ppocrv5_dict.txt"
     (args.output_dir / dictionary.name).write_bytes(dictionary.read_bytes())
     metadata = {
+        "format": "ente-ocr-fixed-v1",
+        "requires_context_adapter": True,
+        "detector_paths": [[960, 480], [480, 960], [960, 704], [704, 960], [960, 960]],
+        "recognizer_widths": [2048, 7168],
         "source_base_url": SOURCE_BASE_URL,
         "source_sha256": SOURCE_HASHES,
         "onnx": onnx.__version__,

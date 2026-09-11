@@ -12,7 +12,7 @@ import "package:synchronized/synchronized.dart";
 
 class RustOcrBackend implements OcrBackend {
   static final _logger = Logger("RustOcrBackend");
-  static const _modelVersion = "pp-ocrv5-gpu-v1";
+  static const _modelVersion = "pp-ocrv5-fixed-v1";
 
   final _engineLock = Lock();
   OcrEngine? _engine;

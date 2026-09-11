@@ -13,6 +13,8 @@ mod stats;
 mod structuring;
 mod transform;
 mod warp;
+#[cfg(any(target_os = "android", test))]
+mod warp_rgb;
 
 use rayon::prelude::*;
 

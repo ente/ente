@@ -1,4 +1,32 @@
 {
+  "format": "ente-ocr-fixed-v1",
+  "requires_context_adapter": true,
+  "detector_paths": [
+    [
+      960,
+      480
+    ],
+    [
+      480,
+      960
+    ],
+    [
+      960,
+      704
+    ],
+    [
+      704,
+      960
+    ],
+    [
+      960,
+      960
+    ]
+  ],
+  "recognizer_widths": [
+    2048,
+    7168
+  ],
   "source_base_url": "https://models.ente.com/PP-OCRv5",
   "source_sha256": {
     "cls.onnx": "f4bb53707100c5f3d59ba834eb05bb400369f20aed35d4b26807b1bfadd2a70e",
@@ -9,85 +37,467 @@
   "onnx": "1.22.0",
   "models": [
     {
-      "file": "det.onnx",
-      "sha256": "3e658f85236f1984e186070048d7cdc99ddbb84e12c91a6fd80922b85bd9487a",
-      "bytes": 4750896,
-      "operators": [
-        "Add",
-        "BatchNormalization",
-        "Concat",
-        "Constant",
-        "Conv",
-        "ConvTranspose",
-        "GlobalAveragePool",
-        "HardSigmoid",
-        "Mul",
-        "Relu",
-        "Reshape",
-        "Resize",
-        "Sigmoid"
-      ],
+      "file": "det_fixed_v1.onnx",
+      "sha256": "f655f119225b579fa8c3cbf64f6bb7cf56a26c9dc211706a25234d70a543ec8c",
+      "bytes": 5548458,
+      "inputs": {
+        "x": [
+          1,
+          3,
+          960,
+          960
+        ],
+        "p0_mask_960_480": [
+          1,
+          1,
+          960,
+          480
+        ],
+        "p0_mask_480_240": [
+          1,
+          1,
+          480,
+          240
+        ],
+        "p0_mask_240_120": [
+          1,
+          1,
+          240,
+          120
+        ],
+        "p0_mask_120_60": [
+          1,
+          1,
+          120,
+          60
+        ],
+        "p0_mask_60_30": [
+          1,
+          1,
+          60,
+          30
+        ],
+        "p0_mask_30_15": [
+          1,
+          1,
+          30,
+          15
+        ],
+        "p0_pool_scale_30_15": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p0_pool_scale_60_30": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p0_pool_scale_120_60": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p0_pool_scale_240_120": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p1_mask_480_960": [
+          1,
+          1,
+          480,
+          960
+        ],
+        "p1_mask_240_480": [
+          1,
+          1,
+          240,
+          480
+        ],
+        "p1_mask_120_240": [
+          1,
+          1,
+          120,
+          240
+        ],
+        "p1_mask_60_120": [
+          1,
+          1,
+          60,
+          120
+        ],
+        "p1_mask_30_60": [
+          1,
+          1,
+          30,
+          60
+        ],
+        "p1_mask_15_30": [
+          1,
+          1,
+          15,
+          30
+        ],
+        "p1_pool_scale_15_30": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p1_pool_scale_30_60": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p1_pool_scale_60_120": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p1_pool_scale_120_240": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p2_mask_960_704": [
+          1,
+          1,
+          960,
+          704
+        ],
+        "p2_mask_480_352": [
+          1,
+          1,
+          480,
+          352
+        ],
+        "p2_mask_240_176": [
+          1,
+          1,
+          240,
+          176
+        ],
+        "p2_mask_120_88": [
+          1,
+          1,
+          120,
+          88
+        ],
+        "p2_mask_60_44": [
+          1,
+          1,
+          60,
+          44
+        ],
+        "p2_mask_30_22": [
+          1,
+          1,
+          30,
+          22
+        ],
+        "p2_pool_scale_30_22": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p2_pool_scale_60_44": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p2_pool_scale_120_88": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p2_pool_scale_240_176": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p3_mask_704_960": [
+          1,
+          1,
+          704,
+          960
+        ],
+        "p3_mask_352_480": [
+          1,
+          1,
+          352,
+          480
+        ],
+        "p3_mask_176_240": [
+          1,
+          1,
+          176,
+          240
+        ],
+        "p3_mask_88_120": [
+          1,
+          1,
+          88,
+          120
+        ],
+        "p3_mask_44_60": [
+          1,
+          1,
+          44,
+          60
+        ],
+        "p3_mask_22_30": [
+          1,
+          1,
+          22,
+          30
+        ],
+        "p3_pool_scale_22_30": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p3_pool_scale_44_60": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p3_pool_scale_88_120": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p3_pool_scale_176_240": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p4_mask_960_960": [
+          1,
+          1,
+          960,
+          960
+        ],
+        "p4_mask_480_480": [
+          1,
+          1,
+          480,
+          480
+        ],
+        "p4_mask_240_240": [
+          1,
+          1,
+          240,
+          240
+        ],
+        "p4_mask_120_120": [
+          1,
+          1,
+          120,
+          120
+        ],
+        "p4_mask_60_60": [
+          1,
+          1,
+          60,
+          60
+        ],
+        "p4_mask_30_30": [
+          1,
+          1,
+          30,
+          30
+        ],
+        "p4_pool_scale_30_30": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p4_pool_scale_60_60": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p4_pool_scale_120_120": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "p4_pool_scale_240_240": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "path_3": [],
+        "path_2": [],
+        "path_1": [],
+        "path_0": []
+      },
       "output": "unchanged"
     },
     {
-      "file": "cls.onnx",
-      "sha256": "8675903197a1bab7060e830e9bcc63d29c5cf7d372735338bd9501f829e94ed1",
-      "bytes": 574875,
-      "operators": [
-        "Add",
-        "BatchNormalization",
-        "Cast",
-        "Concat",
-        "Constant",
-        "Conv",
-        "GlobalAveragePool",
-        "HardSigmoid",
-        "MatMul",
-        "MaxPool",
-        "Mul",
-        "Relu",
-        "Reshape",
-        "Shape",
-        "Slice",
-        "Softmax"
-      ],
+      "file": "cls_fixed_v1.onnx",
+      "sha256": "378d52a73263828d08d4dda37f1d0aac2e36cbd486fdc6351bf309d515610654",
+      "bytes": 590475,
+      "inputs": {
+        "x": [
+          6,
+          3,
+          48,
+          192
+        ]
+      },
       "output": "unchanged"
     },
     {
-      "file": "rec.onnx",
-      "sha256": "667691bb173a94106b595aa87c7d176b53b68cf831b6ffa09569018754265e57",
-      "bytes": 16686404,
-      "operators": [
-        "Add",
-        "AveragePool",
-        "BatchNormalization",
-        "Ceil",
-        "Concat",
-        "Constant",
-        "Conv",
-        "Div",
-        "GlobalAveragePool",
-        "HardSigmoid",
-        "LayerNormalization",
-        "MatMul",
-        "Mul",
-        "Pow",
-        "ReduceMax",
-        "ReduceMean",
-        "ReduceMin",
-        "Relu",
-        "Reshape",
-        "Shape",
-        "Sigmoid",
-        "Slice",
-        "Softmax",
-        "Sqrt",
-        "Squeeze",
-        "Sub",
-        "Transpose",
-        "Unsqueeze"
-      ],
-      "output": "FP32 [N,T,2]: first winning index, original winning probability"
+      "file": "rec_fixed_v1.onnx",
+      "sha256": "6dda4c0891af5a70c5b0f618b62588df7f3140616d1c560be5ec6496747b54fd",
+      "bytes": 17031601,
+      "inputs": {
+        "x": [
+          1,
+          3,
+          48,
+          7168
+        ],
+        "p0_mask_48_2048": [
+          1,
+          1,
+          1,
+          2048
+        ],
+        "p0_mask_24_1024": [
+          1,
+          1,
+          1,
+          1024
+        ],
+        "p0_mask_12_1024": [
+          1,
+          1,
+          1,
+          1024
+        ],
+        "p0_mask_12_512": [
+          1,
+          1,
+          1,
+          512
+        ],
+        "p0_pool_weights_512": [
+          1,
+          512,
+          6
+        ],
+        "p0_gate_weights_512": [
+          1,
+          6,
+          512
+        ],
+        "p0_mask_6_512": [
+          1,
+          1,
+          1,
+          512
+        ],
+        "p0_mask_3_512": [
+          1,
+          1,
+          1,
+          512
+        ],
+        "p0_mask_1_256": [
+          1,
+          1,
+          1,
+          256
+        ],
+        "p0_attention_bias": [
+          1,
+          1,
+          256,
+          256
+        ],
+        "p1_mask_48_7168": [
+          1,
+          1,
+          1,
+          7168
+        ],
+        "p1_mask_24_3584": [
+          1,
+          1,
+          1,
+          3584
+        ],
+        "p1_mask_12_3584": [
+          1,
+          1,
+          1,
+          3584
+        ],
+        "p1_mask_12_1792": [
+          1,
+          1,
+          1,
+          1792
+        ],
+        "p1_pool_weights_1792": [
+          1,
+          1792,
+          21
+        ],
+        "p1_gate_weights_1792": [
+          1,
+          21,
+          1792
+        ],
+        "p1_mask_6_1792": [
+          1,
+          1,
+          1,
+          1792
+        ],
+        "p1_mask_3_1792": [
+          1,
+          1,
+          1,
+          1792
+        ],
+        "p1_mask_1_896": [
+          1,
+          1,
+          1,
+          896
+        ],
+        "p1_attention_bias": [
+          1,
+          1,
+          896,
+          896
+        ],
+        "path_0": []
+      },
+      "output": "FP32 [1,896,2]: packed first winning index and probability"
     }
   ]
 }
