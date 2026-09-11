@@ -74,7 +74,7 @@ impl fmt::Debug for GeneratedSrpSetup {
 
 pub fn derive_srp_credentials(password: &str, srp_attrs: &SrpAttributes) -> Result<SrpCredentials> {
     let kek_salt =
-        b64::decode(&srp_attrs.kek_salt).map_err(|e| Error::Decode(format!("kek_salt: {}", e)))?;
+        b64::decode(&srp_attrs.kek_salt).map_err(|e| Error::Decode(format!("kek_salt: {e}")))?;
     let salt = crypto::Salt::try_from_slice(&kek_salt)?;
 
     let kek = argon::derive_key(
@@ -100,8 +100,7 @@ pub fn derive_kek(
     mem_limit: u32,
     ops_limit: u32,
 ) -> Result<SecretVec> {
-    let salt_bytes =
-        b64::decode(kek_salt).map_err(|e| Error::Decode(format!("kek_salt: {}", e)))?;
+    let salt_bytes = b64::decode(kek_salt).map_err(|e| Error::Decode(format!("kek_salt: {e}")))?;
     let salt = crypto::Salt::try_from_slice(&salt_bytes)?;
 
     let key = argon::derive_key(
@@ -172,9 +171,9 @@ pub fn generate_srp_setup_with_login_key(
 
 pub fn decrypt_keys_only(kek: &[u8], key_attrs: &KeyAttributes) -> Result<(Key, SecretKey)> {
     let encrypted_key = b64::decode(&key_attrs.encrypted_key)
-        .map_err(|e| Error::Decode(format!("encrypted_key: {}", e)))?;
+        .map_err(|e| Error::Decode(format!("encrypted_key: {e}")))?;
     let key_nonce = b64::decode(&key_attrs.key_decryption_nonce)
-        .map_err(|e| Error::Decode(format!("key_decryption_nonce: {}", e)))?;
+        .map_err(|e| Error::Decode(format!("key_decryption_nonce: {e}")))?;
 
     let master_key = secretbox::decrypt(
         &encrypted_key,
@@ -185,11 +184,11 @@ pub fn decrypt_keys_only(kek: &[u8], key_attrs: &KeyAttributes) -> Result<(Key, 
     let master_key = Key::try_from_slice(&master_key)?;
 
     let encrypted_secret_key = b64::decode(&key_attrs.encrypted_secret_key)
-        .map_err(|e| Error::Decode(format!("encrypted_secret_key: {}", e)))?;
+        .map_err(|e| Error::Decode(format!("encrypted_secret_key: {e}")))?;
     let secret_key_nonce = b64::decode(&key_attrs.secret_key_decryption_nonce)
-        .map_err(|e| Error::Decode(format!("secret_key_decryption_nonce: {}", e)))?;
+        .map_err(|e| Error::Decode(format!("secret_key_decryption_nonce: {e}")))?;
     let public_key = b64::decode(&key_attrs.public_key)
-        .map_err(|e| Error::Decode(format!("public_key: {}", e)))?;
+        .map_err(|e| Error::Decode(format!("public_key: {e}")))?;
     let public_key = crypto::PublicKey::try_from_slice(&public_key)?;
     let secret_key = SecretKey::open(
         &secretbox::EncryptedBox {
@@ -211,8 +210,8 @@ pub fn decrypt_secrets(
 ) -> Result<DecryptedSecrets> {
     let (master_key, secret_key) = decrypt_keys_only(kek, key_attrs)?;
 
-    let sealed_token = b64::decode(encrypted_token)
-        .map_err(|e| Error::Decode(format!("encrypted_token: {}", e)))?;
+    let sealed_token =
+        b64::decode(encrypted_token).map_err(|e| Error::Decode(format!("encrypted_token: {e}")))?;
 
     let token = sealed::open(&sealed_token, &secret_key.public_key(), &secret_key)
         .map_err(|_| Error::InvalidKeyAttributes)?;

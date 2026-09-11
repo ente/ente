@@ -58,7 +58,12 @@ func (c *UserController) GetDetailsV2(ctx *gin.Context, userID int64, fetchMemor
 		if bonusErr != nil {
 			return stacktrace.Propagate(bonusErr, "failed to fetch storage bonus")
 		}
-		lockerUsage, err = c.UsageRepo.GetLockerUsage(ctx, subscriptionUserIDs)
+		switch app {
+		case ente.Locker:
+			lockerUsage, err = c.UsageRepo.GetLockerUsage(ctx, subscriptionUserIDs)
+		case ente.Photos:
+			lockerUsage, err = c.UsageRepo.GetLockerStorageUsage(ctx, subscriptionUserIDs)
+		}
 		if err != nil {
 			return stacktrace.Propagate(err, "failed to fetch locker usage")
 		}

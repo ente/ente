@@ -1,8 +1,15 @@
+#![expect(
+    clippy::expect_used,
+    reason = "Benchmark failures should abort the run"
+)]
+
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use ente_ml::vecdb::{AttrValue, Attribute, Match, SearchParams, VecDb};
+use ente_ml::vecdb::{
+    AttrValue, Attribute, DistanceMetric, Match, SearchParams, StorageKind, VecDb,
+};
 
 const SEED: u64 = 0xE47E_0000_0000_0001;
 const LATENT_DIMS: usize = 24;
@@ -20,6 +27,7 @@ struct Config {
     scales: Vec<usize>,
     dims: usize,
     attrs: bool,
+    storage: StorageKind,
 }
 
 struct BenchData {
@@ -30,6 +38,7 @@ struct BenchData {
 }
 
 struct VecdbReport {
+    storage: StorageKind,
     single_count: usize,
     single_total: Duration,
     bulk_count: usize,
@@ -38,6 +47,7 @@ struct VecdbReport {
     approx_total: Duration,
     exact_total: Duration,
     recall: f64,
+    truth_recall: Option<f64>,
     threshold: f32,
     threshold_total: Duration,
     threshold_avg_hits: f64,
@@ -58,8 +68,9 @@ struct VecdbReport {
 fn main() {
     let config = parse_args();
     println!(
-        "vecdb bench  dims={}  queries={}  seed={:#018x}{}",
+        "vecdb bench  dims={}  storage={}  queries={}  seed={:#018x}{}",
         config.dims,
+        storage_name(config.storage),
         QUERY_COUNT,
         SEED,
         if config.attrs { "  attrs=on" } else { "" }
@@ -69,13 +80,19 @@ fn main() {
         config
             .scales
             .iter()
-            .map(|scale| scale.to_string())
+            .map(ToString::to_string)
             .collect::<Vec<_>>()
             .join(", ")
     );
     let temp_root = tempfile::TempDir::new().expect("create bench temp dir");
     for &scale in &config.scales {
-        run_scale(scale, config.dims, config.attrs, temp_root.path());
+        run_scale(
+            scale,
+            config.dims,
+            config.attrs,
+            config.storage,
+            temp_root.path(),
+        );
     }
 }
 
@@ -83,6 +100,7 @@ fn parse_args() -> Config {
     let mut scales = parse_scales(DEFAULT_SCALES);
     let mut dims = DEFAULT_DIMS;
     let mut attrs = false;
+    let mut storage = StorageKind::I8;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -93,17 +111,32 @@ fn parse_args() -> Config {
                     .unwrap_or_else(|_| usage_exit())
             }
             "--attrs" => attrs = true,
+            "--storage" => {
+                storage = match required_value(args.next()).as_str() {
+                    "f32" => StorageKind::F32,
+                    "i8" => StorageKind::I8,
+                    _ => usage_exit(),
+                }
+            }
             _ => usage_exit(),
         }
     }
-    if dims == 0 || !dims.is_multiple_of(8) {
-        eprintln!("--dims must be a nonzero multiple of 8");
+    let lane_width = match storage {
+        StorageKind::F32 => 8,
+        StorageKind::I8 => 32,
+    };
+    if dims == 0 || !dims.is_multiple_of(lane_width) {
+        eprintln!(
+            "--dims must be a nonzero multiple of {lane_width} for {} storage",
+            storage_name(storage)
+        );
         std::process::exit(2);
     }
     Config {
         scales,
         dims,
         attrs,
+        storage,
     }
 }
 
@@ -128,20 +161,39 @@ fn parse_scales(list: &str) -> Vec<usize> {
 fn usage_exit() -> ! {
     eprintln!(
         "usage: cargo run -p ente-ml --example vecdb_bench --release -- \
-         [--scales 10000,100000] [--dims 512] [--attrs]"
+         [--scales 10000,100000] [--dims 512] [--attrs] [--storage f32|i8]"
     );
     std::process::exit(2);
 }
 
-fn run_scale(scale: usize, dims: usize, attrs: bool, temp_root: &Path) {
+fn storage_name(storage: StorageKind) -> &'static str {
+    match storage {
+        StorageKind::F32 => "f32",
+        StorageKind::I8 => "i8",
+    }
+}
+
+fn run_scale(scale: usize, dims: usize, attrs: bool, storage: StorageKind, temp_root: &Path) {
     let clusters = (scale / 150).max(1) as u64;
     println!();
-    println!("=== scale {scale}  dims {dims}  clusters {clusters} ===");
-    eprintln!("[scale {scale}] generating data");
-    let data = generate_data(scale, dims, clusters);
+    println!(
+        "=== scale {scale}  dims {dims}  storage {}  clusters {clusters} ===",
+        storage_name(storage)
+    );
     let dir = temp_root.join(format!("scale-{scale}-{dims}"));
     std::fs::create_dir_all(&dir).expect("create bench dir");
-    let vecdb = run_vecdb(&data, dims, attrs, &dir, scale);
+    drop(
+        VecDb::open(
+            &dir.join("bench.vecdb"),
+            dims,
+            Some(storage),
+            DistanceMetric::Cosine,
+        )
+        .expect("open vecdb"),
+    );
+    eprintln!("[scale {scale}] generating data");
+    let data = generate_data(scale, dims, clusters);
+    let vecdb = run_vecdb(&data, dims, attrs, storage, &dir, scale);
     print_vecdb_report(&vecdb);
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -245,6 +297,7 @@ struct SearchTimings {
     approx_total: Duration,
     exact_total: Duration,
     recall: f64,
+    truth_recall: Option<f64>,
     threshold: f32,
     threshold_total: Duration,
     threshold_avg_hits: f64,
@@ -265,21 +318,30 @@ struct CompactionTimings {
     compaction_fired: bool,
 }
 
-fn run_vecdb(data: &BenchData, dims: usize, attrs: bool, dir: &Path, scale: usize) -> VecdbReport {
+fn run_vecdb(
+    data: &BenchData,
+    dims: usize,
+    attrs: bool,
+    storage: StorageKind,
+    dir: &Path,
+    scale: usize,
+) -> VecdbReport {
     let path = dir.join("bench.vecdb");
-    let mut db = VecDb::open(&path, dims).expect("open vecdb");
+    let mut db =
+        VecDb::open(&path, dims, Some(storage), DistanceMetric::Cosine).expect("open vecdb");
     let ingest = ingest_phase(&mut db, data, attrs, scale);
-    let searches = search_phase(&db, data, scale);
+    let searches = search_phase(&db, data, storage, scale);
     let stats = db.stats().expect("vecdb stats");
     let snapshot_file = PathBuf::from(format!("{}.graph", path.display()));
     let snapshot_bytes = std::fs::metadata(&snapshot_file)
         .map(|meta| meta.len())
         .unwrap_or(0);
     drop(db);
-    let (reopens, mut db) = reopen_phase(&path, dims, &snapshot_file, scale);
+    let (reopens, mut db) = reopen_phase(&path, dims, storage, &snapshot_file, scale);
     let compaction = compaction_phase(&mut db, data, scale);
     db.delete().expect("vecdb delete");
     VecdbReport {
+        storage,
         single_count: ingest.single_count,
         single_total: ingest.single_total,
         bulk_count: ingest.bulk_count,
@@ -288,6 +350,7 @@ fn run_vecdb(data: &BenchData, dims: usize, attrs: bool, dir: &Path, scale: usiz
         approx_total: searches.approx_total,
         exact_total: searches.exact_total,
         recall: searches.recall,
+        truth_recall: searches.truth_recall,
         threshold: searches.threshold,
         threshold_total: searches.threshold_total,
         threshold_avg_hits: searches.threshold_avg_hits,
@@ -391,7 +454,7 @@ fn ingest_phase(db: &mut VecDb, data: &BenchData, attrs: bool, scale: usize) -> 
     }
 }
 
-fn search_phase(db: &VecDb, data: &BenchData, scale: usize) -> SearchTimings {
+fn search_phase(db: &VecDb, data: &BenchData, storage: StorageKind, scale: usize) -> SearchTimings {
     eprintln!("[scale {scale}] vecdb searches");
     let approx_params = limit_params(SEARCH_K, false);
     let exact_params = limit_params(SEARCH_K, true);
@@ -400,6 +463,14 @@ fn search_phase(db: &VecDb, data: &BenchData, scale: usize) -> SearchTimings {
     warm(db, &data.queries, &exact_params);
     let (exact_total, exact_results) = timed_searches(db, &data.queries, &exact_params);
     let recall = recall_at_k(&exact_results, &approx_results, SEARCH_K);
+    let truth_recall = match storage {
+        StorageKind::F32 => None,
+        StorageKind::I8 => {
+            eprintln!("[scale {scale}] f32 ground truth (brute force)");
+            let truth = f32_ground_truth(data, SEARCH_K);
+            Some(recall_at_k(&truth, &exact_results, SEARCH_K))
+        }
+    };
     let threshold = one_percent_threshold(db, data);
     let threshold_params = SearchParams {
         limit: None,
@@ -409,10 +480,7 @@ fn search_phase(db: &VecDb, data: &BenchData, scale: usize) -> SearchTimings {
     };
     warm(db, &data.queries, &threshold_params);
     let (threshold_total, threshold_results) = timed_searches(db, &data.queries, &threshold_params);
-    let threshold_avg_hits = threshold_results
-        .iter()
-        .map(|found| found.len())
-        .sum::<usize>() as f64
+    let threshold_avg_hits = threshold_results.iter().map(Vec::len).sum::<usize>() as f64
         / threshold_results.len().max(1) as f64;
     let filtered_params = SearchParams {
         limit: Some(SEARCH_K),
@@ -458,6 +526,7 @@ fn search_phase(db: &VecDb, data: &BenchData, scale: usize) -> SearchTimings {
         approx_total,
         exact_total,
         recall,
+        truth_recall,
         threshold,
         threshold_total,
         threshold_avg_hits,
@@ -471,18 +540,21 @@ fn search_phase(db: &VecDb, data: &BenchData, scale: usize) -> SearchTimings {
 fn reopen_phase(
     path: &Path,
     dims: usize,
+    storage: StorageKind,
     snapshot_file: &Path,
     scale: usize,
 ) -> (ReopenTimings, VecDb) {
     eprintln!("[scale {scale}] vecdb cold open with snapshot");
     let started = Instant::now();
-    let reopened = VecDb::open(path, dims).expect("vecdb reopen with snapshot");
+    let reopened = VecDb::open(path, dims, Some(storage), DistanceMetric::Cosine)
+        .expect("vecdb reopen with snapshot");
     let open_with_snapshot = started.elapsed();
     drop(reopened);
     std::fs::remove_file(snapshot_file).expect("remove snapshot");
     eprintln!("[scale {scale}] vecdb cold open without snapshot (full rebuild)");
     let started = Instant::now();
-    let db = VecDb::open(path, dims).expect("vecdb reopen without snapshot");
+    let db = VecDb::open(path, dims, Some(storage), DistanceMetric::Cosine)
+        .expect("vecdb reopen without snapshot");
     let open_full_rebuild = started.elapsed();
     (
         ReopenTimings {
@@ -535,6 +607,49 @@ fn timed_searches(
         .map(|query| db.search(query, params).expect("search"))
         .collect();
     (started.elapsed(), results)
+}
+
+fn dot(a: &[f32], b: &[f32]) -> f32 {
+    let mut partials = [0.0f32; 8];
+    for (x, y) in a.as_chunks::<8>().0.iter().zip(b.as_chunks::<8>().0) {
+        for (partial, (left, right)) in partials.iter_mut().zip(x.iter().zip(y)) {
+            *partial += left * right;
+        }
+    }
+    partials.iter().sum()
+}
+
+fn f32_ground_truth(data: &BenchData, k: usize) -> Vec<Vec<Match>> {
+    let corpus: Vec<(&str, &[f32])> = data
+        .entries
+        .iter()
+        .map(|(key, vector)| (key.as_str(), vector.as_slice()))
+        .chain(std::iter::once(("bench-probe", data.probe.as_slice())))
+        .collect();
+    data.queries
+        .iter()
+        .map(|query| {
+            let mut scored: Vec<(f32, &str)> = corpus
+                .iter()
+                .map(|(key, vector)| (1.0 - dot(query, vector), *key))
+                .collect();
+            let keep = k.min(scored.len());
+            if keep < scored.len() {
+                scored.select_nth_unstable_by(keep, |a, b| {
+                    a.0.total_cmp(&b.0).then_with(|| a.1.cmp(b.1))
+                });
+            }
+            scored.truncate(keep);
+            scored.sort_unstable_by(|a, b| a.0.total_cmp(&b.0).then_with(|| a.1.cmp(b.1)));
+            scored
+                .into_iter()
+                .map(|(distance, key)| Match {
+                    key: key.to_string(),
+                    distance,
+                })
+                .collect()
+        })
+        .collect()
 }
 
 fn recall_at_k(truth: &[Vec<Match>], found: &[Vec<Match>], k: usize) -> f64 {
@@ -608,8 +723,18 @@ fn print_vecdb_report(report: &VecdbReport) {
     );
     println!(
         "    {:<44} {:.4}",
-        "recall@10 (approx vs exact)", report.recall
+        match report.storage {
+            StorageKind::F32 => "recall@10 (approx vs exact)",
+            StorageKind::I8 => "recall@10 (approx vs i8-exact)",
+        },
+        report.recall
     );
+    if let Some(truth_recall) = report.truth_recall {
+        println!(
+            "    {:<44} {:.4}",
+            "recall@10 (i8-exact vs f32 truth)", truth_recall
+        );
+    }
     row(
         &format!("search approx threshold d<={:.4} (~1%)", report.threshold),
         format!("{QUERY_COUNT} queries"),

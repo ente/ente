@@ -1,4 +1,4 @@
-use crate::binary::{array, range, u16_at, u32_at};
+use crate::binary::{ByteReader, range, u16_at, u32_at};
 use crate::geometry::{Point, Reader};
 use crate::{CountryCode, Error};
 
@@ -115,19 +115,18 @@ impl CountryGeometry {
     fn dense_cell_index(&self, cell_index: usize) -> Option<usize> {
         let block_index = cell_index / BLOCK_SIZE;
         let bit_index = cell_index % BLOCK_SIZE;
-        let offset = self.layout.blocks + block_index * BLOCK_LEN;
-        let mask = u64::from_le_bytes(array(&self.bytes, offset).expect("validated block"));
+        let mut reader = ByteReader::at(&self.bytes, self.layout.blocks + block_index * BLOCK_LEN);
+        let mask = reader.u64();
         let bit = 1_u64 << bit_index;
         if mask & bit == 0 {
             return None;
         }
-        let first = u32_at(&self.bytes, offset + 8).expect("validated block") as usize;
+        let first = reader.u32() as usize;
         Some(first + (mask & bit.wrapping_sub(1)).count_ones() as usize)
     }
 
     fn cell_offset(&self, dense_index: usize) -> usize {
-        u32_at(&self.bytes, self.layout.cell_offsets + dense_index * 4)
-            .expect("validated cell offset") as usize
+        ByteReader::at(&self.bytes, self.layout.cell_offsets + dense_index * 4).u32() as usize
     }
 
     fn country_code(&self, index: u8) -> CountryCode {
@@ -265,10 +264,10 @@ fn validate_layout(bytes: &[u8], layout: Layout, declared_length: usize) -> crat
     }
 
     let mut expected_dense = 0;
+    let mut reader = ByteReader::at(bytes, layout.blocks);
     for block in 0..layout.block_count {
-        let offset = layout.blocks + block * BLOCK_LEN;
-        let mask = u64::from_le_bytes(array(bytes, offset).expect("validated block range"));
-        let first = u32_at(bytes, offset + 8).expect("validated block range") as usize;
+        let mask = reader.u64();
+        let first = reader.u32() as usize;
         if first != expected_dense {
             return Err(invalid("invalid block dense offset"));
         }
@@ -286,9 +285,9 @@ fn validate_layout(bytes: &[u8], layout: Layout, declared_length: usize) -> crat
 
     let cells_length = bytes.len() - layout.cells;
     let mut previous = 0;
+    let mut reader = ByteReader::at(bytes, layout.cell_offsets);
     for index in 0..=layout.nonempty_count {
-        let offset = u32_at(bytes, layout.cell_offsets + index * 4).expect("validated offset range")
-            as usize;
+        let offset = reader.u32() as usize;
         if offset < previous || offset > cells_length {
             return Err(invalid("invalid cell offset"));
         }

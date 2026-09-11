@@ -1,5 +1,5 @@
 use crate::Mode;
-use crate::read::{Error, State};
+use crate::read::{Error, OutputBudget, State};
 use quick_xml::events::Event;
 use quick_xml::name::ResolveResult;
 use quick_xml::{NsReader, XmlVersion};
@@ -171,17 +171,12 @@ pub(crate) fn read(bytes: &[u8], state: &mut State) -> Result<(), Error> {
                         .decoded_and_normalized_value(XmlVersion::Implicit1_0, reader.decoder())
                         .map_err(|_| Error::Malformed("XML attribute value"))?;
                     let language = stack.last().and_then(|f| f.language.as_deref());
-                    store(state, ans, aname, &value, language, item)?;
-                    if state.structure.is_some() {
-                        let parent = path(&mut paths, state)?;
-                        *state
-                            .structure
-                            .as_mut()
-                            .unwrap()
-                            .parents
-                            .last_mut()
-                            .unwrap() = parent;
-                    }
+                    let parent = if let Some(structure) = &mut state.structure {
+                        path(&mut paths, &mut structure.nodes, &mut state.output)?
+                    } else {
+                        None
+                    };
+                    store(state, ans, aname, &value, language, item, parent)?;
                 }
                 if empty {
                     finish(&mut stack, &mut paths, state)?;
@@ -275,6 +270,7 @@ pub(crate) fn store(
     value: &str,
     language: Option<&str>,
     item: Option<u32>,
+    parent: Option<u32>,
 ) -> Result<(), Error> {
     if !wanted(state.mode, ns, name) {
         return Ok(());
@@ -289,9 +285,9 @@ pub(crate) fn store(
             + value.len()
             + language.map_or(0, str::len),
     )?;
-    if state.structure.is_some() {
-        state.retain(std::mem::size_of::<Option<u32>>())?;
-        state.structure.as_mut().unwrap().parents.push(None);
+    if let Some(structure) = &mut state.structure {
+        state.output.retain(std::mem::size_of::<Option<u32>>())?;
+        structure.parents.push(parent);
     }
     state.metadata.xmp.push(Property {
         namespace: ns.to_owned(),
@@ -360,21 +356,24 @@ struct PathFrame {
     ready: bool,
 }
 
-fn path(stack: &mut [PathFrame], state: &mut State) -> Result<Option<u32>, Error> {
+fn path(
+    stack: &mut [PathFrame],
+    nodes: &mut Vec<XmpNode>,
+    output: &mut OutputBudget,
+) -> Result<Option<u32>, Error> {
     let Some((frame, rest)) = stack.split_last_mut() else {
         return Ok(None);
     };
     if frame.ready {
         return Ok(frame.node);
     }
-    let parent = path(rest, state)?;
+    let parent = path(rest, nodes, output)?;
     frame.ready = true;
     let Some((ns, name)) = &frame.key else {
         frame.node = parent;
         return Ok(parent);
     };
-    state.retain(std::mem::size_of::<XmpNode>() + ns.len() + name.len())?;
-    let nodes = &mut state.structure.as_mut().unwrap().nodes;
+    output.retain(std::mem::size_of::<XmpNode>() + ns.len() + name.len())?;
     let index = u32::try_from(nodes.len()).map_err(|_| Error::Limit("XMP nodes"))?;
     nodes.push(XmpNode {
         namespace: ns.to_owned(),
@@ -410,6 +409,16 @@ fn finish(
     if let Some((ns, name)) = frame.key
         && !frame.text.trim().is_empty()
     {
+        let parent = if let Some(structure) = &mut state.structure {
+            let is_item = paths
+                .last()
+                .and_then(|p| p.key.as_ref())
+                .is_some_and(|(ns, n)| ns == namespace::RDF && n == "li");
+            let len = paths.len() - usize::from(!is_item);
+            path(&mut paths[..len], &mut structure.nodes, &mut state.output)?
+        } else {
+            None
+        };
         store(
             state,
             &ns,
@@ -417,22 +426,8 @@ fn finish(
             frame.text.trim(),
             frame.language.as_deref(),
             frame.item,
+            parent,
         )?;
-        if state.structure.is_some() {
-            let is_item = paths
-                .last()
-                .and_then(|p| p.key.as_ref())
-                .is_some_and(|(ns, n)| ns == namespace::RDF && n == "li");
-            let len = paths.len() - usize::from(!is_item);
-            let parent = path(&mut paths[..len], state)?;
-            *state
-                .structure
-                .as_mut()
-                .unwrap()
-                .parents
-                .last_mut()
-                .unwrap() = parent;
-        }
     }
     paths.pop();
     Ok(())

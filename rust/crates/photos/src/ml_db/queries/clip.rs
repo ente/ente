@@ -23,7 +23,7 @@ pub struct EmbeddingVector {
     pub embedding: Vec<f32>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClipRow {
     pub file_id: i64,
     pub embedding: Vec<u8>,

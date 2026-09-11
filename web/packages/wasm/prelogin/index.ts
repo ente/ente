@@ -102,21 +102,15 @@ export const decryptBox = async (
         toB64String(key),
     );
 
-export const boxSealOpen = async (
+export const boxSealOpenBytes = async (
     encryptedData: string,
     keyPair: KeyPair,
-): Promise<string> =>
+): Promise<Uint8Array> =>
     (await wasm()).cryptoBoxSealOpen(
         encryptedData,
         keyPair.publicKey,
         keyPair.privateKey,
     );
-
-export const boxSealOpenBytes = async (
-    encryptedData: string,
-    keyPair: KeyPair,
-): Promise<Uint8Array<ArrayBuffer>> =>
-    fromB64String(await boxSealOpen(encryptedData, keyPair));
 
 const derivedKeyValue = (key: DerivedKey): DerivedKey => ({
     key: key.key,
@@ -130,11 +124,4 @@ const toB64String = (value: Uint8Array | string): string => {
     let binary = "";
     for (const byte of value) binary += String.fromCharCode(byte);
     return btoa(binary);
-};
-
-const fromB64String = (value: string): Uint8Array<ArrayBuffer> => {
-    const binary = atob(value);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
 };

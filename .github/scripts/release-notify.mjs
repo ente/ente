@@ -19,16 +19,21 @@ const apps = {
         testFlightId: "6758197006",
         accentColor: 16633363,
     },
-    "photos-desktop": {
+    cast: {
+        testFlightId: "6751903820",
+        testFlightPlatform: "tvos",
         accentColor: 65280,
     },
+    "photos-desktop": { accentColor: 65280 },
 };
 
 const app = process.argv[2];
 const config = apps[app];
 const releaseTag = process.argv[3];
 if (!config || !releaseTag) {
-    throw new Error(`Usage: node .github/scripts/release-notify.mjs ${Object.keys(apps).join("|")} <release-tag>`);
+    throw new Error(
+        `Usage: node .github/scripts/release-notify.mjs ${Object.keys(apps).join("|")} <release-tag>`,
+    );
 }
 
 const releaseUrl = `https://github.com/ente/nightly/releases/tag/${releaseTag}`;
@@ -62,10 +67,14 @@ const releaseBodyDiscord =
 
 const downloadLinks = [];
 if (config.packageId) {
-    downloadLinks.push(`[Play Store](https://play.google.com/store/apps/details?id=${config.packageId})`);
+    downloadLinks.push(
+        `[Play Store](https://play.google.com/store/apps/details?id=${config.packageId})`,
+    );
 }
 if (config.testFlightId) {
-    downloadLinks.push(`[TestFlight](https://appstoreconnect.apple.com/apps/${config.testFlightId}/testflight/ios)`);
+    downloadLinks.push(
+        `[TestFlight](https://appstoreconnect.apple.com/apps/${config.testFlightId}/testflight/${config.testFlightPlatform ?? "ios"})`,
+    );
 }
 downloadLinks.push(`[GitHub Release](${releaseUrl})`);
 const downloadLine = `-# Download: ${downloadLinks.join(" | ")}`;
@@ -83,15 +92,13 @@ const response = await fetch(`${env("DISCORD_WEBHOOK")}?with_components=true`, {
     body: JSON.stringify({
         flags: 32768,
         components: [
-            {
-                type: 17,
-                accent_color: config.accentColor,
-                components,
-            },
+            { type: 17, accent_color: config.accentColor, components },
         ],
     }),
 });
 
 if (!response.ok) {
-    throw new Error(`Discord notification failed: ${response.status} ${await response.text()}`);
+    throw new Error(
+        `Discord notification failed: ${response.status} ${await response.text()}`,
+    );
 }

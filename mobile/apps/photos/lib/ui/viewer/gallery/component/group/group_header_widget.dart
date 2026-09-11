@@ -177,12 +177,7 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
   }
 
   void _selectedFilesListener() {
-    if (widget.selectedFiles == null) return;
-    final nonDummyFiles = widget.filesInGroup
-        .where((file) => file is! DummyFile)
-        .toSet();
-    _areAllFromGroupSelectedNotifier.value = widget.selectedFiles!.files
-        .containsAll(nonDummyFiles);
+    _areAllFromGroupSelectedNotifier.value = _areAllFromGroupSelected();
   }
 
   Widget _buildSelectionIcon(bool isSelected) {
@@ -209,15 +204,11 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
   }
 
   bool _areAllFromGroupSelected() {
-    final nonDummyFiles = widget.filesInGroup
+    final selectedFiles = widget.selectedFiles?.files;
+    if (selectedFiles == null || selectedFiles.isEmpty) return false;
+    return widget.filesInGroup
         .where((file) => file is! DummyFile)
-        .toSet();
-    if (widget.selectedFiles != null &&
-        widget.selectedFiles!.files.length >= nonDummyFiles.length) {
-      return widget.selectedFiles!.files.containsAll(nonDummyFiles);
-    } else {
-      return false;
-    }
+        .every(selectedFiles.contains);
   }
 
   void _showLayoutSettingsOverflowMenu(BuildContext context) {

@@ -12,7 +12,7 @@ use crate::storage::Storage;
 use crate::sync::SyncEngine;
 use ente_core::b64;
 use ente_core::crypto;
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map::Entry};
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
@@ -37,7 +37,7 @@ async fn load_album_metadata(
     let mut entries = match fs::read_dir(&meta_dir).await {
         Ok(entries) => entries,
         Err(e) => {
-            log::warn!("Failed to read metadata directory {:?}: {}", meta_dir, e);
+            log::warn!("Failed to read metadata directory {meta_dir:?}: {e}");
             return Ok(existing_files);
         }
     };
@@ -59,7 +59,7 @@ async fn load_album_metadata(
         let json_content = match fs::read_to_string(&meta_path).await {
             Ok(content) => content,
             Err(e) => {
-                log::warn!("Failed to read metadata file {:?}: {}", meta_path, e);
+                log::warn!("Failed to read metadata file {meta_path:?}: {e}");
                 continue;
             }
         };
@@ -67,7 +67,7 @@ async fn load_album_metadata(
         let disk_metadata: DiskFileMetadata = match serde_json::from_str(&json_content) {
             Ok(metadata) => metadata,
             Err(e) => {
-                log::warn!("Failed to parse metadata file {:?}: {}", meta_path, e);
+                log::warn!("Failed to parse metadata file {meta_path:?}: {e}");
                 continue;
             }
         };
@@ -312,7 +312,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
             }
         };
 
-        if collection.name.as_ref().is_none_or(|n| n.is_empty())
+        if collection.name.as_ref().is_none_or(String::is_empty)
             && let Some(ref encrypted_name) = collection.encrypted_name
             && let Some(ref nonce) = collection.name_decryption_nonce
         {
@@ -370,16 +370,13 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
 
         total_files += 1;
 
-        let collection_info = match collection_map.get(&file.collection_id) {
-            Some(info) => info,
-            None => {
-                log::debug!(
-                    "File {} belongs to unknown/deleted collection {}",
-                    file.id,
-                    file.collection_id
-                );
-                continue;
-            }
+        let Some(collection_info) = collection_map.get(&file.collection_id) else {
+            log::debug!(
+                "File {} belongs to unknown/deleted collection {}",
+                file.id,
+                file.collection_id
+            );
+            continue;
         };
 
         let (collection, collection_key) = collection_info;
@@ -401,7 +398,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
         );
 
         if !filter.should_include_collection(collection_name, is_shared, is_hidden) {
-            log::debug!("Skipping file in filtered collection: {}", collection_name);
+            log::debug!("Skipping file in filtered collection: {collection_name}");
             continue;
         }
 
@@ -479,17 +476,18 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
             "Uncategorized".to_string()
         };
 
-        if !album_existing_files.contains_key(&album_folder) {
-            let existing = load_album_metadata(export_path, &album_folder).await?;
-            log::debug!(
-                "Loaded {} existing files for album {}",
-                existing.len(),
-                album_folder
-            );
-            album_existing_files.insert(album_folder.clone(), existing);
-        }
-
-        let existing_files = album_existing_files.get_mut(&album_folder).unwrap();
+        let existing_files = match album_existing_files.entry(album_folder.clone()) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => {
+                let existing = load_album_metadata(export_path, entry.key()).await?;
+                log::debug!(
+                    "Loaded {} existing files for album {}",
+                    existing.len(),
+                    entry.key()
+                );
+                entry.insert(existing)
+            }
+        };
         // Remove current files so only deleted files remain after the loop.
         if let Some(existing) = existing_files.remove(&file.id) {
             if existing.file_path == file_path {
@@ -519,21 +517,20 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
 
                 let is_live_photo = metadata
                     .as_ref()
-                    .map(|m| m.is_live_photo())
+                    .map(FileMetadata::is_live_photo)
                     .unwrap_or(false);
 
                 if is_live_photo {
                     let old_mov_path = existing.file_path.with_extension("MOV");
                     if old_mov_path.exists() {
-                        log::debug!("Removing old live photo MOV component: {:?}", old_mov_path);
+                        log::debug!("Removing old live photo MOV component: {old_mov_path:?}");
                         fs::remove_file(&old_mov_path).await.ok();
                     }
 
                     let old_mov_path_lower = existing.file_path.with_extension("mov");
                     if old_mov_path_lower.exists() && old_mov_path_lower != old_mov_path {
                         log::debug!(
-                            "Removing old live photo mov component: {:?}",
-                            old_mov_path_lower
+                            "Removing old live photo mov component: {old_mov_path_lower:?}"
                         );
                         fs::remove_file(&old_mov_path_lower).await.ok();
                     }
@@ -571,7 +568,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
 
             let is_live_photo = metadata
                 .as_ref()
-                .map(|m| m.is_live_photo())
+                .map(FileMetadata::is_live_photo)
                 .unwrap_or(false);
 
             if is_live_photo {
@@ -579,9 +576,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
                 let new_mov = file_path.with_extension("MOV");
                 if existing_mov.exists() {
                     log::debug!(
-                        "Copying live photo MOV component from {:?} to {:?}",
-                        existing_mov,
-                        new_mov
+                        "Copying live photo MOV component from {existing_mov:?} to {new_mov:?}"
                     );
                     fs::copy(&existing_mov, &new_mov).await.ok();
                 } else {
@@ -589,9 +584,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
                     let new_mov_lower = file_path.with_extension("mov");
                     if existing_mov_lower.exists() {
                         log::debug!(
-                            "Copying live photo mov component from {:?} to {:?}",
-                            existing_mov_lower,
-                            new_mov_lower
+                            "Copying live photo mov component from {existing_mov_lower:?} to {new_mov_lower:?}"
                         );
                         fs::copy(&existing_mov_lower, &new_mov_lower).await.ok();
                     }
@@ -643,7 +636,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
 
             let is_live_photo = metadata
                 .as_ref()
-                .map(|m| m.is_live_photo())
+                .map(FileMetadata::is_live_photo)
                 .unwrap_or(false);
 
             if is_live_photo {
@@ -676,7 +669,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
         let filename = file_path
             .file_name()
             .and_then(|n| n.to_str())
-            .ok_or_else(|| crate::Error::Generic(format!("Invalid file path: {:?}", file_path)))?;
+            .ok_or_else(|| crate::Error::Generic(format!("Invalid file path: {file_path:?}")))?;
         write_file_metadata(
             export_path,
             &album_folder,
@@ -690,7 +683,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
         *file_index += 1;
 
         if exported_files % 10 == 0 || exported_files == 1 {
-            println!("  [{}/{}] Exported files...", exported_files, total_files);
+            println!("  [{exported_files}/{total_files}] Exported files...");
         }
     }
 
@@ -718,13 +711,13 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
 
             let mov_path = existing_file.file_path.with_extension("MOV");
             if mov_path.exists() {
-                log::debug!("Removing live photo MOV component: {:?}", mov_path);
+                log::debug!("Removing live photo MOV component: {mov_path:?}");
                 fs::remove_file(&mov_path).await.ok();
             }
 
             let mov_path_lower = existing_file.file_path.with_extension("mov");
             if mov_path_lower.exists() && mov_path_lower != mov_path {
-                log::debug!("Removing live photo mov component: {:?}", mov_path_lower);
+                log::debug!("Removing live photo mov component: {mov_path_lower:?}");
                 fs::remove_file(&mov_path_lower).await.ok();
             }
 
@@ -745,7 +738,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
     }
 
     if removed_files > 0 {
-        log::info!("Removed {} deleted files from disk", removed_files);
+        log::info!("Removed {removed_files} deleted files from disk");
     }
 
     println!("\n{}", "=".repeat(50));
@@ -875,7 +868,7 @@ fn decrypt_collection_name(
     )?;
 
     String::from_utf8(decrypted)
-        .map_err(|e| crate::Error::Generic(format!("Invalid UTF-8 in collection name: {}", e)))
+        .map_err(|e| crate::Error::Generic(format!("Invalid UTF-8 in collection name: {e}")))
 }
 
 fn decrypt_file_key(encrypted_key: &str, nonce: &str, collection_key: &[u8]) -> Result<Vec<u8>> {
@@ -940,11 +933,13 @@ fn decrypt_file_metadata(
     file: &crate::api::models::File,
     file_key: &[u8],
 ) -> Result<Option<FileMetadata>> {
-    if file.metadata.encrypted_data.is_none() || file.metadata.decryption_header.is_empty() {
+    let Some(encrypted_data) = &file.metadata.encrypted_data else {
+        return Ok(None);
+    };
+    if file.metadata.decryption_header.is_empty() {
         return Ok(None);
     }
 
-    let encrypted_data = file.metadata.encrypted_data.as_ref().unwrap();
     let encrypted_bytes = b64::decode(encrypted_data)?;
     let header_bytes = b64::decode(&file.metadata.decryption_header)?;
 
@@ -985,7 +980,9 @@ fn check_collection_visibility(
 ) -> bool {
     if let Some(ref magic_metadata) = collection.magic_metadata
         && let Ok(Some(decrypted_json)) = decrypt_magic_metadata(magic_metadata, collection_key)
-        && let Some(visibility) = decrypted_json.get("visibility").and_then(|v| v.as_i64())
+        && let Some(visibility) = decrypted_json
+            .get("visibility")
+            .and_then(serde_json::Value::as_i64)
     {
         log::debug!(
             "Collection {} has visibility: {} (hidden={})",
@@ -1045,7 +1042,7 @@ async fn write_file_metadata(
         .and_then(|s| s.to_str())
         .unwrap_or("");
 
-    let meta_filename = format!("{}_{}.{}.json", base_name, file_index, extension);
+    let meta_filename = format!("{base_name}_{file_index}.{extension}.json");
 
     let mut disk_metadata = DiskFileMetadata::from_file(file, metadata, filename.to_string());
     disk_metadata.meta_file_name = meta_filename.clone();

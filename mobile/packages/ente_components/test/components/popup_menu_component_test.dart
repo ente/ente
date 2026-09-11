@@ -56,4 +56,37 @@ void main() {
       expect(selected, isFalse);
     },
   );
+
+  testWidgets('EntePopupMenuButton does not select disabled options', (
+    tester,
+  ) async {
+    String? selected;
+
+    await pumpPopupMenu(
+      tester,
+      EntePopupMenuButton<String>(
+        child: const SizedBox.square(
+          key: ValueKey('disabled-popup-anchor'),
+          dimension: 48,
+          child: Icon(Icons.more_vert),
+        ),
+        optionsBuilder: () => const [
+          EntePopupMenuOption(
+            value: 'processing',
+            label: 'Creating stream',
+            enabled: false,
+          ),
+        ],
+        onSelected: (value) => selected = value,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('disabled-popup-anchor')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Creating stream'));
+    await tester.pumpAndSettle();
+
+    expect(selected, isNull);
+    expect(find.text('Creating stream'), findsOneWidget);
+  });
 }

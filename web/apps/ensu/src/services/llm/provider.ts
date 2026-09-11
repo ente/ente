@@ -19,10 +19,10 @@ const OVERFLOW_SAFETY_TOKENS = 256;
 export const DEFAULT_MODEL: ModelInfo = {
     id: "lfm-vl-1.6b",
     name: "LFM 2.5 VL 1.6B (Q4_0)",
-    url: "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/LFM2.5-VL-1.6B-Q4_0.gguf?download=true",
+    url: "https://huggingface.co/ente-ai/LFM2.5-VL-1.6B-GGUF/resolve/b2995f54e17fd7ec31e9cb399ade8fedfd51624d/LFM2.5-VL-1.6B-Q4_0.gguf?download=true",
     sha256: "8186364a4e7c3ad30f6dd3d3b7a4e0074c77dd91eed6cad5d8be9090ce285804",
     mmprojUrl:
-        "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf",
+        "https://huggingface.co/ente-ai/LFM2.5-VL-1.6B-GGUF/resolve/b2995f54e17fd7ec31e9cb399ade8fedfd51624d/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf",
     mmprojSha256:
         "2ce89e610c56f3198ece2b86cf61743a08b9307279c89125eb2412ebb908689d",
     sizeBytes: 695_752_160,
@@ -81,20 +81,20 @@ const FALLBACK_SHARED_MODEL_PRESETS: ModelInfo[] = [
     {
         id: "qwen-0.8b",
         name: "Qwen 3.5 0.8B (Q4_K_M)",
-        url: "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true",
+        url: "https://huggingface.co/ente-ai/Qwen3.5-0.8B-GGUF/resolve/f44fc9bf306e407078288aee9ff7a83b457d260a/Qwen3.5-0.8B-Q4_K_M.gguf?download=true",
         sha256: "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517",
         mmprojUrl:
-            "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/mmproj-F16.gguf",
+            "https://huggingface.co/ente-ai/Qwen3.5-0.8B-GGUF/resolve/f44fc9bf306e407078288aee9ff7a83b457d260a/mmproj-F16.gguf",
         mmprojSha256:
             "56e4c6cfe73b0c82e3e82bc518d7591997e61d81f723fc41a586f4fa69ea2453",
     },
     {
         id: "qwen-2b-q8",
         name: "Qwen 3.5 2B (Q8_0)",
-        url: "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q8_0.gguf?download=true",
+        url: "https://huggingface.co/ente-ai/Qwen3.5-2B-GGUF/resolve/4cd5d68754a443dc390533792bf345ad219c0b41/Qwen3.5-2B-Q8_0.gguf?download=true",
         sha256: "1b04acba824817554f4ce23639bc8495ff70453b8fcb047900c731521021f2c1",
         mmprojUrl:
-            "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/mmproj-F16.gguf",
+            "https://huggingface.co/ente-ai/Qwen3.5-2B-GGUF/resolve/4cd5d68754a443dc390533792bf345ad219c0b41/mmproj-F16.gguf",
         mmprojSha256:
             "7035e9cb8d7c6a9681d07eef9a364783e86ea4cd73faab2eabb4f43a101830c7",
     },
@@ -118,10 +118,10 @@ export const FALLBACK_DESKTOP_MODEL_PRESETS: ModelInfo[] = [
     {
         id: "qwen-4b-q4km",
         name: "Qwen 3.5 4B (Q4_K_M)",
-        url: "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf?download=true",
+        url: "https://huggingface.co/ente-ai/Qwen3.5-4B-GGUF/resolve/9b67f8db9bedc8c10f524ac08193b58fa9b20ac7/Qwen3.5-4B-Q4_K_M.gguf?download=true",
         sha256: "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
         mmprojUrl:
-            "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf",
+            "https://huggingface.co/ente-ai/Qwen3.5-4B-GGUF/resolve/9b67f8db9bedc8c10f524ac08193b58fa9b20ac7/mmproj-F16.gguf",
         mmprojSha256:
             "cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864",
     },

@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 mod cli;
 
 pub use cli::Cli;

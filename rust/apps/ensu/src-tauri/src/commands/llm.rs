@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -165,7 +166,7 @@ pub(crate) fn replace_state(
 
 fn default_threads() -> i32 {
     let available = std::thread::available_parallelism()
-        .map(|count| count.get())
+        .map(NonZeroUsize::get)
         .unwrap_or(2);
     let half = available / 2;
     let threads = if half == 0 { 1 } else { half };

@@ -443,7 +443,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     <Box
                         component="button"
                         type="button"
-                        aria-label="Back to home"
+                        aria-label="Back to profile"
                         onClick={onBack}
                         sx={{
                             alignItems: "center",

@@ -1,48 +1,13 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
 group 'io.ente.mail'
 version '1.0'
 
-buildscript {
-    ext.kotlin_version = '1.9.25'
-    repositories {
-        google()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.7.3'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
-
-rootProject.allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-
-def mailCompileSdkVersion = rootProject.ext.has('compileSdkVersion') ?
-        rootProject.ext.compileSdkVersion : 35
-
 android {
     namespace 'io.ente.mail'
-    compileSdkVersion mailCompileSdkVersion
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
 
     defaultConfig {
         minSdkVersion 24

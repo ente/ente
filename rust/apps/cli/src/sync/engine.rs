@@ -249,7 +249,7 @@ impl SyncEngine {
         Ok(result)
     }
 
-    pub async fn get_pending_downloads(&self) -> Result<Vec<RemoteFile>> {
+    pub fn get_pending_downloads(&self) -> Result<Vec<RemoteFile>> {
         let sync_store = self.storage.sync();
 
         let collections = sync_store.get_collections(self.account.user_id)?;
@@ -266,7 +266,7 @@ impl SyncEngine {
         Ok(pending)
     }
 
-    pub async fn get_collections(&self) -> Result<Vec<crate::models::collection::Collection>> {
+    pub fn get_collections(&self) -> Result<Vec<crate::models::collection::Collection>> {
         let sync_store = self.storage.sync();
         sync_store.get_collections(self.account.user_id)
     }

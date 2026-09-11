@@ -14,6 +14,15 @@ export default tseslint.config(
     { ignores: ["eslint.config.mjs"] },
     {
         rules: {
+            "@typescript-eslint/ban-ts-comment": [
+                "error",
+                {
+                    "ts-ignore": true,
+                    "ts-expect-error": true,
+                    "ts-nocheck": true,
+                    "ts-check": false,
+                },
+            ],
             "@typescript-eslint/no-import-type-side-effects": "error",
             "@typescript-eslint/restrict-template-expressions": [
                 "error",

@@ -234,6 +234,144 @@ void main() {
     expect(find.text('Menu items'), findsWidgets);
   });
 
+  testWidgets(
+    'header back target includes surrounding space without stealing title taps',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      var backTaps = 0;
+      var titleTaps = 0;
+      var actionTaps = 0;
+
+      await pumpComponent(
+        tester,
+        CustomScrollView(
+          controller: controller,
+          slivers: [
+            SliverAppBarComponent(
+              title: 'A long album title that should stay constrained',
+              onBack: () => backTaps++,
+              onTitleTap: () => titleTaps++,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () => actionTaps++,
+                ),
+              ],
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 1000)),
+          ],
+        ),
+        width: 320,
+        height: 600,
+      );
+
+      final title = find.text(
+        'A long album title that should stay constrained',
+      );
+      for (final offset in [0.0, 300.0]) {
+        controller.jumpTo(offset);
+        await tester.pump();
+        final backButton = find.bySemanticsLabel('Back');
+        expect(tester.getSemantics(backButton).rect.size, const Size(48, 48));
+        expect(tester.getRect(backButton), const Rect.fromLTWH(4, 4, 48, 48));
+        expect(
+          tester.getRect(find.byIcon(Icons.arrow_back)),
+          const Rect.fromLTWH(16, 16, 24, 24),
+        );
+        expect(tester.getTopLeft(title).dx, offset == 0 ? 16 : 52);
+
+        // The expanded title owns taps from y=48, so use y=47 for Back.
+        for (final point in [
+          const Offset(5, 5),
+          const Offset(51, 5),
+          const Offset(5, 51),
+          Offset(51, offset == 0 ? 47 : 51),
+        ]) {
+          final previousBackTaps = backTaps;
+          await tester.tapAt(point);
+          expect(backTaps, previousBackTaps + 1);
+        }
+
+        final previousBackTaps = backTaps;
+        final previousTitleTaps = titleTaps;
+        for (final point in const [
+          Offset(3, 28),
+          Offset(53, 5),
+          Offset(28, 3),
+          Offset(5, 53),
+        ]) {
+          await tester.tapAt(point);
+          expect(backTaps, previousBackTaps);
+        }
+        await tester.tapAt(tester.getTopLeft(title) + const Offset(1, 1));
+        expect(titleTaps, previousTitleTaps + 1);
+        await tester.tap(find.byIcon(Icons.more_vert));
+        expect(backTaps, previousBackTaps);
+      }
+      expect(actionTaps, 2);
+
+      controller.jumpTo(20);
+      await tester.pump();
+      final previousBackTaps = backTaps;
+      final previousTitleTaps = titleTaps;
+      await tester.tapAt(tester.getTopLeft(title) + const Offset(1, 1));
+      expect(titleTaps, previousTitleTaps + 1);
+      expect(backTaps, previousBackTaps);
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets('header preserves custom and hidden back controls', (
+    tester,
+  ) async {
+    var backTaps = 0;
+    var closeTaps = 0;
+    for (final showBack in [true, false]) {
+      await pumpComponent(
+        tester,
+        AppBarComponent(
+          title: 'Settings',
+          showExpandedBackButton: showBack,
+          onBack: () => backTaps++,
+          backButton: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => closeTaps++,
+          ),
+          slivers: const [],
+        ),
+      );
+      expect(find.byIcon(Icons.arrow_back), findsNothing);
+      if (showBack) {
+        expect(
+          tester.getCenter(find.byIcon(Icons.close)),
+          const Offset(35, 28),
+        );
+        await tester.tap(find.byIcon(Icons.close));
+      } else {
+        expect(find.byIcon(Icons.close), findsNothing);
+      }
+      await tester.tapAt(const Offset(5, 5));
+    }
+
+    await pumpComponent(
+      tester,
+      AppBarComponent(
+        title: 'Onboarding',
+        showExpandedBackButton: false,
+        onBack: () => backTaps++,
+        slivers: const [],
+      ),
+    );
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+    await tester.tapAt(const Offset(5, 5));
+    expect(backTaps, 0);
+    expect(closeTaps, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('SliverAppBarComponent supports tap tooltip title reveal', (
     tester,
   ) async {
@@ -560,11 +698,13 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text(title), findsOneWidget);
     expect(tester.getBottomLeft(find.text(title)).dy, lessThanOrEqualTo(128));
+    expect(tester.getSize(find.bySemanticsLabel('Back')), const Size(48, 48));
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -240));
     await tester.pump();
 
     expect(tester.takeException(), isNull);
     expect(find.text(title), findsOneWidget);
+    expect(tester.getSize(find.bySemanticsLabel('Back')), const Size(48, 48));
   });
 }

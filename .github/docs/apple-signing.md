@@ -118,9 +118,9 @@ Create the profile in Apple Developer > Certificates, Identifiers & Profiles > P
 
 Regenerate the profile when the App ID entitlements or Developer ID certificate change.
 
-## Per-app iOS setup
+## Per-app App Store setup
 
-Each iOS app needs its own App ID, App Store Connect app, and App Store provisioning profile. The Apple Distribution certificate and App Store Connect API key are reused across apps.
+Each App Store app needs its own App ID, App Store Connect app, and App Store provisioning profile. The Apple Distribution certificate and App Store Connect API key are reused across apps.
 
 ### App ID
 
@@ -132,7 +132,7 @@ In App Store Connect > Apps, create the app record and select the App ID from th
 
 ### App Store provisioning profile
 
-The iOS archive is manually signed. `-allowProvisioningUpdates` lets Xcode download the existing profile from Apple; the profile itself is not stored in GitHub secrets, but it does need to exist in the portal.
+The App Store archive is manually signed. `-allowProvisioningUpdates` lets Xcode download the existing profile from Apple; the profile itself is not stored in GitHub secrets, but it does need to exist in the portal.
 
 In Apple Developer > Certificates, Identifiers & Profiles > Profiles, create a new distribution profile:
 
@@ -168,6 +168,10 @@ Locker:
 Ensu:
 
 - `io.ente.ensu` -> `Ensu App Store`
+
+Cast:
+
+- `io.ente.frame.tv.cast` -> `Cast App Store`
 
 ### Entitlements
 

@@ -503,7 +503,7 @@ fn link_post_to_js(post: PostResponse, decrypted: DecryptedPost) -> Result<PostJ
     })
 }
 
-async fn account_message_to_js(
+fn account_message_to_js(
     mut message: MessageResponse,
     decrypted: DecryptedMessage,
 ) -> Result<MessageJs, Error> {
@@ -557,7 +557,7 @@ async fn account_message_response_to_js(
     }
     if message.kind != "post_like" && message.kind != "friend_added" {
         let decrypted = ctx.decrypt_message(viewer_space_id, &message).await?;
-        return account_message_to_js(message, decrypted).await;
+        return account_message_to_js(message, decrypted);
     }
 
     let text = message.text.clone();
@@ -683,7 +683,7 @@ async fn resilient_message_conversation_activity_to_js(
 }
 
 #[wasm_bindgen(js_name = spaceOpenAccountCtx)]
-pub async fn space_open_account_ctx(input: JsValue) -> Result<SpaceAccountCtxHandle, Error> {
+pub fn space_open_account_ctx(input: JsValue) -> Result<SpaceAccountCtxHandle, Error> {
     let input: OpenAccountSpaceCtxJsInput = swb::from_value(input)?;
     let space_root_key = decode_b64_field(&input.space_root_key_b64)?;
     let ctx = AccountSpaceCtx::open(OpenAccountSpaceCtxInput {
@@ -1110,7 +1110,7 @@ impl SpaceAccountCtxHandle {
             .create_post(
                 &space_id,
                 &[object],
-                caption.as_ref().map(|value| value.as_bytes()),
+                caption.as_ref().map(String::as_bytes),
                 Some(&post_key),
             )
             .await?;
@@ -1225,7 +1225,7 @@ impl SpaceAccountCtxHandle {
             .inner
             .decrypt_message(&sender_space_id, &message)
             .await?;
-        swb::to_value(&account_message_to_js(message, decrypted).await?).map_err(Into::into)
+        swb::to_value(&account_message_to_js(message, decrypted)?).map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = sendPoke)]
@@ -1239,7 +1239,7 @@ impl SpaceAccountCtxHandle {
             .inner
             .decrypt_message(&sender_space_id, &message)
             .await?;
-        swb::to_value(&account_message_to_js(message, decrypted).await?).map_err(Into::into)
+        swb::to_value(&account_message_to_js(message, decrypted)?).map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = replyToMessage)]
@@ -1258,7 +1258,7 @@ impl SpaceAccountCtxHandle {
             .inner
             .decrypt_message(&sender_space_id, &message)
             .await?;
-        swb::to_value(&account_message_to_js(message, decrypted).await?).map_err(Into::into)
+        swb::to_value(&account_message_to_js(message, decrypted)?).map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = replyToPost)]
@@ -1277,7 +1277,7 @@ impl SpaceAccountCtxHandle {
             .inner
             .decrypt_message(&sender_space_id, &message)
             .await?;
-        swb::to_value(&account_message_to_js(message, decrypted).await?).map_err(Into::into)
+        swb::to_value(&account_message_to_js(message, decrypted)?).map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = likeMessage)]
@@ -1403,7 +1403,7 @@ impl SpaceAccountCtxHandle {
                 &space_id,
                 post_id,
                 &decrypted_post.post_key,
-                caption.as_ref().map(|value| value.as_bytes()),
+                caption.as_ref().map(String::as_bytes),
             )
             .await
             .map_err(Into::into)

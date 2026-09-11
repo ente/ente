@@ -148,8 +148,7 @@ fn derive_sensitive_adaptive(password: &[u8], salt: &Salt) -> Result<DerivedKey>
 
     if u64::from(mem_limit) * u64::from(ops_limit) != desired_strength {
         return Err(Error::InvalidKeyDerivationParams(format!(
-            "Unexpected mem/ops limits: mem_limit {}, ops_limit {}",
-            mem_limit, ops_limit
+            "Unexpected mem/ops limits: mem_limit {mem_limit}, ops_limit {ops_limit}"
         )));
     }
 

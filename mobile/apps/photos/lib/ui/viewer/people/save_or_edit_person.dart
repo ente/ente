@@ -187,7 +187,6 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
                               hintText: context.strings.enterName,
                               initialValue: widget.person?.data.name,
                               focusNode: _nameFocsNode,
-                              keyboardType: TextInputType.name,
                               textCapitalization: TextCapitalization.words,
                               autocorrect: false,
                               isRequired: true,

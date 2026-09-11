@@ -1,3 +1,4 @@
+#![cfg(test)]
 #![cfg(feature = "museum")]
 
 mod support;

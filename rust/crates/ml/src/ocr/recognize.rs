@@ -4,16 +4,21 @@ use std::sync::{Mutex, OnceLock, PoisonError};
 use super::OcrError;
 use super::cancel::RequestGuard;
 use super::dictionary::load_dictionary;
-use super::tensor::{BgrNormalization, write_bgr_planes};
+use super::tensor::{BgrNormalization, prepare_crops, write_bgr_planes};
 use crate::cv;
 use crate::cv::image::ImageU8;
 use crate::error::{MlError, MlResult};
-use crate::onnx::{ExecutionMode, OnnxSession, PreparedF32Input, SessionRunError, run_f32};
+use crate::onnx::{
+    BorrowedFloatTensor, ExecutionMode, FloatTensorData, OnnxSession, PreparedF32Input,
+    with_prepared_float_output,
+};
 
 const MODEL_NAMESPACE: &str = "ocr-recognition";
 const REC_VOCABULARY_SIZE: usize = 18385;
 const REC_HEIGHT: i32 = 48;
 const REC_BASE_WIDTH: i32 = 320;
+const REC_MAX_WIDTH: i32 = 7168;
+const REC_BATCH_COLUMNS: usize = 7168;
 const REC_BATCH_SIZE: usize = 6;
 const BLANK_INDEX: usize = 0;
 const MIN_SPAN: f32 = 1e-3;
@@ -81,12 +86,18 @@ impl TextRecognizer {
             return Ok(Vec::new());
         }
         let dictionary = self.dictionary.entries()?;
-        recognize_in_batches(crops, request, |batch| self.infer_batch(batch, dictionary))
+        recognize_in_batches(crops, request, |batch, layout| {
+            self.infer_batch(batch, layout, dictionary)
+        })
     }
 
-    fn infer_batch(&self, batch: &[&ImageU8], dictionary: &[String]) -> MlResult<Vec<Recognition>> {
-        let layout = BatchLayout::new(batch);
-        let input = PreparedF32Input::new(layout.tensor(batch)?);
+    fn infer_batch(
+        &self,
+        batch: &[&ImageU8],
+        layout: &BatchLayout,
+        dictionary: &[String],
+    ) -> MlResult<Vec<Recognition>> {
+        let input = PreparedF32Input::new(prepare_crops(|| layout.tensor(batch))?);
         let count = batch.len();
         let input_shape = [
             count as i64,
@@ -95,47 +106,91 @@ impl TextRecognizer {
             i64::from(layout.target_width),
         ];
         let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
-        let (output, _usage) = session.run(|session| {
-            let (shape, values) = run_f32(session, &input, input_shape)?;
-            SequenceOutput::new(&shape, values, count, dictionary.len())
-                .map_err(SessionRunError::from)
-        })?;
-        Ok(layout
-            .content_widths
-            .iter()
-            .zip(output.sequences())
-            .map(|(&content_width, logits)| {
-                ctc_decode(
-                    logits,
-                    output.vocabulary,
-                    dictionary,
-                    layout.padding_scale(content_width),
-                )
+        let (recognized, _usage) = session.run(|session| {
+            with_prepared_float_output(session, &input, input_shape, |shape, values| match values {
+                BorrowedFloatTensor::F32(values) => {
+                    decode_output(shape, values, layout, dictionary)
+                }
+                BorrowedFloatTensor::F16(values) => {
+                    decode_output(shape, values, layout, dictionary)
+                }
             })
-            .collect())
+        })?;
+        Ok(recognized)
     }
+}
+
+fn decode_output<'a, T>(
+    shape: &[i64],
+    values: &'a [T],
+    layout: &BatchLayout,
+    dictionary: &[String],
+) -> MlResult<Vec<Recognition>>
+where
+    &'a [T]: FloatTensorData,
+{
+    let output = SequenceOutput::new(shape, values, layout.content_widths.len(), dictionary.len())?;
+    Ok(layout
+        .content_widths
+        .iter()
+        .zip(output.sequences())
+        .map(|(&content_width, logits)| {
+            ctc_decode(
+                logits,
+                output.vocabulary,
+                dictionary,
+                layout.padding_scale(content_width),
+            )
+        })
+        .collect())
 }
 
 fn recognize_in_batches(
     crops: &[&ImageU8],
     request: &RequestGuard<'_>,
-    mut infer_batch: impl FnMut(&[&ImageU8]) -> MlResult<Vec<Recognition>>,
+    mut infer_batch: impl FnMut(&[&ImageU8], &BatchLayout) -> MlResult<Vec<Recognition>>,
 ) -> Result<Vec<Recognition>, OcrError> {
     let mut results: Vec<Option<Recognition>> = vec![None; crops.len()];
     for indices in ascending_aspect_order(crops).chunks(REC_BATCH_SIZE) {
         request.check()?;
         let batch: Vec<&ImageU8> = indices.iter().map(|&index| crops[index]).collect();
-        let recognized = infer_batch(&batch)?;
-        if recognized.len() != batch.len() {
-            return Err(MlError::CorruptModel(format!(
-                "text recognizer decoded {} crops out of {}",
-                recognized.len(),
-                batch.len()
-            ))
-            .into());
-        }
-        for (&index, recognition) in indices.iter().zip(recognized) {
-            results[index] = Some(recognition);
+        let layout = BatchLayout::new(&batch)?;
+        let initial_width = if batch.len() * layout.target_width as usize <= REC_BATCH_COLUMNS {
+            layout.target_width
+        } else {
+            REC_BASE_WIDTH
+        };
+        let mut start = 0;
+        while start < batch.len() {
+            request.check()?;
+            let mut end = start;
+            let mut target_width = initial_width;
+            for &content_width in &layout.content_widths[start..] {
+                let next_width = target_width.max(content_width);
+                if (end - start + 1) * next_width as usize > REC_BATCH_COLUMNS {
+                    break;
+                }
+                target_width = next_width;
+                end += 1;
+            }
+            let split = &batch[start..end];
+            let split_layout = BatchLayout {
+                target_width,
+                content_widths: layout.content_widths[start..end].to_vec(),
+            };
+            let recognized = infer_batch(split, &split_layout)?;
+            if recognized.len() != split.len() {
+                return Err(MlError::CorruptModel(format!(
+                    "text recognizer decoded {} crops out of {}",
+                    recognized.len(),
+                    split.len()
+                ))
+                .into());
+            }
+            for (&index, recognition) in indices[start..end].iter().zip(recognized) {
+                results[index] = Some(recognition);
+            }
+            start = end;
         }
     }
     results
@@ -160,7 +215,27 @@ struct BatchLayout {
 }
 
 impl BatchLayout {
-    fn new(batch: &[&ImageU8]) -> Self {
+    fn new(batch: &[&ImageU8]) -> MlResult<Self> {
+        for crop in batch {
+            let expected = usize::try_from(crop.width)
+                .ok()
+                .zip(usize::try_from(crop.height).ok())
+                .and_then(|(width, height)| width.checked_mul(height))
+                .and_then(|pixels| pixels.checked_mul(3));
+            if crop.width <= 0
+                || crop.height <= 0
+                || crop.channels != 3
+                || expected != Some(crop.data.len())
+            {
+                return Err(MlError::Preprocess(format!(
+                    "invalid text crop {}x{}x{} with {} bytes",
+                    crop.width,
+                    crop.height,
+                    crop.channels,
+                    crop.data.len()
+                )));
+            }
+        }
         let base_ratio = f64::from(REC_BASE_WIDTH) / f64::from(REC_HEIGHT);
         let max_wh_ratio = batch
             .iter()
@@ -171,10 +246,10 @@ impl BatchLayout {
             .iter()
             .map(|crop| content_width(crop, target_width))
             .collect();
-        Self {
+        Ok(Self {
             target_width,
             content_widths,
-        }
+        })
     }
 
     fn padding_scale(&self, content_width: i32) -> f32 {
@@ -182,12 +257,33 @@ impl BatchLayout {
     }
 
     fn tensor(&self, batch: &[&ImageU8]) -> MlResult<Vec<f32>> {
-        let plane = (self.target_width * REC_HEIGHT) as usize;
-        let mut tensor = vec![0.0f32; batch.len() * 3 * plane];
+        let columns = batch.len().checked_mul(self.target_width as usize);
+        if !(REC_BASE_WIDTH..=REC_MAX_WIDTH).contains(&self.target_width)
+            || batch.is_empty()
+            || batch.len() > REC_BATCH_SIZE
+            || batch.len() != self.content_widths.len()
+            || columns.is_none_or(|columns| columns > REC_BATCH_COLUMNS)
+        {
+            return Err(MlError::Preprocess(
+                "text recognition batch exceeds its tensor budget".to_string(),
+            ));
+        }
+        let plane = self.target_width as usize * REC_HEIGHT as usize;
+        let mut tensor = Vec::new();
+        let length = batch.len() * 3 * plane;
+        tensor.try_reserve_exact(length).map_err(|error| {
+            MlError::Preprocess(format!("cannot allocate text recognition input: {error}"))
+        })?;
+        tensor.resize(length, 0.0f32);
         let slots = tensor.chunks_exact_mut(3 * plane);
         for ((crop, &content_width), slot) in batch.iter().zip(&self.content_widths).zip(slots) {
-            let resized = cv::resize_u8(crop, content_width, REC_HEIGHT, cv::Interp::Bilinear)
-                .map_err(MlError::Preprocess)?;
+            let resized = cv::resize_u8(
+                crop,
+                content_width,
+                content_height(crop),
+                cv::Interp::Bilinear,
+            )
+            .map_err(MlError::Preprocess)?;
             write_bgr_planes(
                 &resized,
                 slot,
@@ -200,23 +296,29 @@ impl BatchLayout {
 }
 
 fn target_width(max_wh_ratio: f64) -> i32 {
-    ((f64::from(REC_HEIGHT) * max_wh_ratio).trunc() as i32).max(1)
+    ((f64::from(REC_HEIGHT) * max_wh_ratio).trunc() as i32).clamp(1, REC_MAX_WIDTH)
 }
 
 fn content_width(crop: &ImageU8, target_width: i32) -> i32 {
-    let scaled = (f64::from(REC_HEIGHT * crop.width) / f64::from(crop.height)).ceil() as i32;
+    let scaled =
+        (f64::from(REC_HEIGHT) * f64::from(crop.width) / f64::from(crop.height)).ceil() as i32;
     scaled.min(target_width)
 }
 
-#[derive(Debug)]
-struct SequenceOutput {
-    steps: usize,
-    vocabulary: usize,
-    values: Vec<f32>,
+fn content_height(crop: &ImageU8) -> i32 {
+    ((f64::from(REC_MAX_WIDTH) * f64::from(crop.height) / f64::from(crop.width)).round() as i32)
+        .clamp(1, REC_HEIGHT)
 }
 
-impl SequenceOutput {
-    fn new(shape: &[i64], values: Vec<f32>, count: usize, vocabulary: usize) -> MlResult<Self> {
+#[derive(Debug)]
+struct SequenceOutput<'a, T> {
+    steps: usize,
+    vocabulary: usize,
+    values: &'a [T],
+}
+
+impl<'a, T> SequenceOutput<'a, T> {
+    fn new(shape: &[i64], values: &'a [T], count: usize, vocabulary: usize) -> MlResult<Self> {
         match *shape {
             [n, steps, v]
                 if n == count as i64
@@ -237,17 +339,20 @@ impl SequenceOutput {
         }
     }
 
-    fn sequences(&self) -> impl Iterator<Item = &[f32]> {
+    fn sequences(&self) -> impl Iterator<Item = &'a [T]> {
         self.values.chunks_exact(self.steps * self.vocabulary)
     }
 }
 
-fn ctc_decode(
-    logits: &[f32],
+fn ctc_decode<'a, T>(
+    logits: &'a [T],
     vocabulary: usize,
     dictionary: &[String],
     padding_scale: f32,
-) -> Recognition {
+) -> Recognition
+where
+    &'a [T]: FloatTensorData,
+{
     let best = best_per_step(logits, vocabulary);
     let spans: Vec<CharacterSpan> = character_runs(&best)
         .iter()
@@ -266,24 +371,43 @@ struct StepBest {
     probability: f32,
 }
 
-fn best_per_step(logits: &[f32], vocabulary: usize) -> Vec<StepBest> {
+fn best_per_step<'a, T>(logits: &'a [T], vocabulary: usize) -> Vec<StepBest>
+where
+    &'a [T]: FloatTensorData,
+{
     if vocabulary == 0 {
         return Vec::new();
     }
     logits.chunks_exact(vocabulary).map(argmax).collect()
 }
 
-fn argmax(step: &[f32]) -> StepBest {
-    let mut best = StepBest {
-        index: 0,
-        probability: f32::NEG_INFINITY,
-    };
-    for (index, &probability) in step.iter().enumerate() {
-        if probability > best.probability {
-            best = StepBest { index, probability };
+fn argmax<'a, T>(step: &'a [T]) -> StepBest
+where
+    &'a [T]: FloatTensorData,
+{
+    let mut maxima = [f32::NEG_INFINITY; 8];
+    let (chunks, remainder) = step.as_chunks::<8>();
+    for chunk in chunks {
+        for (lane, maximum) in maxima.iter_mut().enumerate() {
+            *maximum = maximum.max(chunk.as_slice().value(lane));
         }
     }
-    best
+    let mut maximum = maxima.into_iter().fold(f32::NEG_INFINITY, f32::max);
+    for index in 0..remainder.len() {
+        maximum = maximum.max(remainder.value(index));
+    }
+    if maximum > f32::NEG_INFINITY {
+        for index in 0..step.len() {
+            let probability = step.value(index);
+            if probability == maximum {
+                return StepBest { index, probability };
+            }
+        }
+    }
+    StepBest {
+        index: 0,
+        probability: f32::NEG_INFINITY,
+    }
 }
 
 struct CharacterRun {
@@ -461,13 +585,13 @@ mod tests {
             solid(400, 48, [0; 3]),
             solid(7, 3, [0; 3]),
         ];
-        let layout = BatchLayout::new(&crops.iter().collect::<Vec<_>>());
+        let layout = BatchLayout::new(&crops.iter().collect::<Vec<_>>()).unwrap();
         assert_eq!(layout.target_width, 400);
         assert_eq!(layout.content_widths, [100, 400, 112]);
         assert_close(layout.padding_scale(100), 4.0);
 
         let narrow = [solid(10, 48, [0; 3])];
-        let layout = BatchLayout::new(&narrow.iter().collect::<Vec<_>>());
+        let layout = BatchLayout::new(&narrow.iter().collect::<Vec<_>>()).unwrap();
         assert_eq!(layout.target_width, 320);
         assert_eq!(layout.content_widths, [10]);
     }
@@ -475,7 +599,7 @@ mod tests {
     #[test]
     fn batch_tensor_left_aligns_each_crop_and_zero_pads_the_rest() {
         let crops = [solid(100, 48, [10, 20, 30]), solid(400, 48, [0; 3])];
-        let layout = BatchLayout::new(&crops.iter().collect::<Vec<_>>());
+        let layout = BatchLayout::new(&crops.iter().collect::<Vec<_>>()).unwrap();
         let tensor = layout.tensor(&crops.iter().collect::<Vec<_>>()).unwrap();
         let plane = 48 * 400;
         assert_eq!(tensor.len(), 2 * 3 * plane);
@@ -497,15 +621,117 @@ mod tests {
 
     #[test]
     fn sequence_output_requires_the_dictionary_vocabulary() {
-        let ok = SequenceOutput::new(&[1, 2, 4], vec![0.0; 8], 1, 4).unwrap();
+        let ok = SequenceOutput::new(&[1, 2, 4], &[0.0f32; 8], 1, 4).unwrap();
         assert_eq!((ok.steps, ok.vocabulary), (2, 4));
         assert_eq!(ok.sequences().count(), 1);
         for shape in [[1, 2, 5], [2, 2, 4], [1, 0, 4]] {
-            let error = SequenceOutput::new(&shape, vec![0.0; 8], 1, 4).unwrap_err();
+            let error = SequenceOutput::new(&shape, &[0.0f32; 8], 1, 4).unwrap_err();
             assert!(matches!(error, MlError::CorruptModel(_)), "{error}");
         }
-        let short = SequenceOutput::new(&[1, 2, 4], vec![0.0; 7], 1, 4).unwrap_err();
+        let short = SequenceOutput::new(&[1, 2, 4], &[0.0f32; 7], 1, 4).unwrap_err();
         assert!(matches!(short, MlError::CorruptModel(_)), "{short}");
+    }
+
+    #[test]
+    fn crop_preparation_preserves_resized_batch_values() {
+        let crops: Vec<_> = [(79, 11), (12, 160), (611, 53)]
+            .into_iter()
+            .map(|(width, height)| {
+                let pixels = (0..width * height * 3)
+                    .map(|index| (index * 37 % 256) as u8)
+                    .collect();
+                ImageU8::new(width, height, 3, pixels).unwrap()
+            })
+            .collect();
+        let batch = crops.iter().collect::<Vec<_>>();
+        let layout = BatchLayout::new(&batch).unwrap();
+        let parallel = rayon::ThreadPoolBuilder::new()
+            .num_threads(4)
+            .build()
+            .unwrap();
+        let expected = parallel.install(|| layout.tensor(&batch)).unwrap();
+        let prepared = prepare_crops(|| layout.tensor(&batch)).unwrap();
+        assert_eq!(prepared, expected);
+    }
+
+    #[test]
+    fn argmax_matches_scalar_for_lane_boundaries_ties_and_both_precisions() {
+        fn reference(values: impl FloatTensorData) -> StepBest {
+            let mut best = StepBest {
+                index: 0,
+                probability: f32::NEG_INFINITY,
+            };
+            for index in 0..values.len() {
+                let probability = values.value(index);
+                if probability > best.probability {
+                    best = StepBest { index, probability };
+                }
+            }
+            best
+        }
+
+        fn check<'a, T>(values: &'a [T])
+        where
+            &'a [T]: FloatTensorData,
+        {
+            let expected = reference(values);
+            let actual = argmax(values);
+            assert_eq!(actual.index, expected.index);
+            assert_eq!(actual.probability.to_bits(), expected.probability.to_bits());
+        }
+
+        let mut state = 37u32;
+        for len in (0..40).chain([191, 320, REC_VOCABULARY_SIZE]) {
+            let mut values: Vec<f32> = (0..len)
+                .map(|_| {
+                    state = state.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                    (state >> 16) as f32 / 65536.0 - 0.5
+                })
+                .collect();
+            for first in 0..len.min(17) {
+                for last in [first, len / 2, len - 1] {
+                    values[first] = 1.0;
+                    values[last] = 1.0;
+                    check(values.as_slice());
+                    let half_values: Vec<_> =
+                        values.iter().map(|&v| half::f16::from_f32(v)).collect();
+                    check(half_values.as_slice());
+                    values[first] = -0.25;
+                    values[last] = -0.25;
+                }
+            }
+            check(values.as_slice());
+        }
+        for values in [
+            vec![],
+            vec![-0.0, 0.0, -0.0, 0.0, -0.0, 0.0, -0.0, 0.0, 0.0],
+            vec![f32::NEG_INFINITY; 19],
+            vec![f32::NAN; 19],
+            vec![f32::NAN, 0.25, f32::INFINITY, f32::INFINITY],
+        ] {
+            check(values.as_slice());
+            let half_values: Vec<_> = values.iter().map(|&v| half::f16::from_f32(v)).collect();
+            check(half_values.as_slice());
+        }
+    }
+
+    #[test]
+    fn borrowed_outputs_preserve_ties_blanks_and_half_precision_confidences() {
+        let values = [
+            0.0, 0.75, 0.75, 0.0, 0.0, 0.5, 0.0, 0.0, 0.875, 0.0, 0.0, 0.0, 0.0, 0.625, 0.0, 0.0,
+        ];
+        let half_values = values.map(half::f16::from_f32);
+        let layout = BatchLayout {
+            target_width: 320,
+            content_widths: vec![320],
+        };
+        let full = decode_output(&[1, 4, 4], &values, &layout, &dictionary()).unwrap();
+        let half = decode_output(&[1, 4, 4], &half_values, &layout, &dictionary()).unwrap();
+        assert_eq!(full, half);
+        assert_eq!(full[0].text, "aa");
+        assert_span(&full[0].spans[0], "a", 0.625, 0.0, 0.5);
+        assert_span(&full[0].spans[1], "a", 0.625, 0.75, 1.0);
+        assert_eq!(full[0].confidence, 0.625);
     }
 
     #[test]
@@ -516,21 +742,22 @@ mod tests {
         let request = registry.begin(None);
         let mut batches = Vec::new();
 
-        let results = recognize_in_batches(&crops.iter().collect::<Vec<_>>(), &request, |batch| {
-            batches.push(batch.iter().map(|crop| crop.width).collect::<Vec<_>>());
-            Ok(batch
-                .iter()
-                .map(|crop| Recognition {
-                    text: crop.width.to_string(),
-                    ..Recognition::default()
-                })
-                .collect())
-        })
-        .unwrap();
+        let results =
+            recognize_in_batches(&crops.iter().collect::<Vec<_>>(), &request, |batch, _| {
+                batches.push(batch.iter().map(|crop| crop.width).collect::<Vec<_>>());
+                Ok(batch
+                    .iter()
+                    .map(|crop| Recognition {
+                        text: crop.width.to_string(),
+                        ..Recognition::default()
+                    })
+                    .collect())
+            })
+            .unwrap();
 
         assert_eq!(batches, [vec![10, 20, 30, 40, 50, 60], vec![70, 80]]);
         let texts: Vec<String> = results.into_iter().map(|r| r.text).collect();
-        let expected: Vec<String> = widths.iter().map(|w| w.to_string()).collect();
+        let expected: Vec<String> = widths.iter().map(ToString::to_string).collect();
         assert_eq!(texts, expected);
     }
 
@@ -541,8 +768,300 @@ mod tests {
         let request = registry.begin(Some("cancelled"));
         registry.cancel("cancelled");
 
-        let error = recognize_in_batches(&[&crop], &request, |_| unreachable!()).unwrap_err();
+        let error = recognize_in_batches(&[&crop], &request, |_, _| unreachable!()).unwrap_err();
 
         assert!(matches!(error, OcrError::Cancelled), "{error}");
+    }
+
+    fn legacy_tensor(batch: &[&ImageU8]) -> Vec<f32> {
+        let ratio = batch
+            .iter()
+            .map(|crop| aspect(crop))
+            .fold(320.0 / 48.0, f64::max);
+        let width = (48.0 * ratio).trunc() as usize;
+        let plane = width * 48;
+        let mut tensor = vec![0.0; batch.len() * 3 * plane];
+        for (crop, slot) in batch.iter().zip(tensor.chunks_exact_mut(3 * plane)) {
+            let content_width = ((48 * crop.width) as f64 / crop.height as f64).ceil() as i32;
+            let resized = cv::resize_u8(
+                crop,
+                content_width.min(width as i32),
+                48,
+                cv::Interp::Bilinear,
+            )
+            .unwrap();
+            for (y, row) in resized
+                .data
+                .chunks_exact(resized.width as usize * 3)
+                .enumerate()
+            {
+                for (x, pixel) in row.as_chunks::<3>().0.iter().enumerate() {
+                    for channel in 0..3 {
+                        slot[channel * plane + y * width + x] =
+                            (pixel[2 - channel] as f32 / 255.0 - 0.5) / 0.5;
+                    }
+                }
+            }
+        }
+        tensor
+    }
+
+    #[test]
+    fn bounded_batches_preserve_resized_pixels_and_input_order() {
+        for (sizes, expected_shapes) in [
+            (vec![(79, 11), (12, 160), (611, 53)], vec![(3, 553)]),
+            (
+                vec![
+                    (1381, 48),
+                    (1200, 48),
+                    (287, 10),
+                    (1300, 48),
+                    (1100, 48),
+                    (1350, 48),
+                ],
+                vec![(5, 1378), (1, 1381)],
+            ),
+            (
+                vec![(7167, 48), (7168, 48), (6281, 48)],
+                vec![(1, 6281), (1, 7167), (1, 7168)],
+            ),
+            (
+                vec![
+                    (7168, 48),
+                    (79, 13),
+                    (99, 20),
+                    (320, 48),
+                    (200, 50),
+                    (120, 30),
+                ],
+                vec![(5, 320), (1, 7168)],
+            ),
+        ] {
+            let crops: Vec<_> = sizes
+                .into_iter()
+                .map(|(width, height)| {
+                    ImageU8::new(
+                        width,
+                        height,
+                        3,
+                        (0..width * height * 3)
+                            .map(|index| (index * 37 % 256) as u8)
+                            .collect(),
+                    )
+                    .unwrap()
+                })
+                .collect();
+            let references: Vec<_> = crops.iter().collect();
+            let order = ascending_aspect_order(&references);
+            let sorted: Vec<_> = order.iter().map(|&index| references[index]).collect();
+            let expected = legacy_tensor(&sorted);
+            let original_layout = BatchLayout::new(&sorted).unwrap();
+            let original_width = original_layout.target_width as usize;
+            let mut expected_rows = expected.chunks_exact(original_width);
+            let registry = RequestRegistry::default();
+            let request = registry.begin(None);
+            let mut shapes = Vec::new();
+            let results = recognize_in_batches(&references, &request, |batch, layout| {
+                assert!(batch.len() <= REC_BATCH_SIZE);
+                assert!(batch.len() * layout.target_width as usize <= REC_BATCH_COLUMNS);
+                shapes.push((batch.len(), layout.target_width));
+                let tensor = layout.tensor(batch)?;
+                for row in tensor.chunks_exact(layout.target_width as usize) {
+                    let expected = expected_rows.next().unwrap();
+                    assert_eq!(row, &expected[..row.len()]);
+                    assert!(expected[row.len()..].iter().all(|&value| value == 0.0));
+                }
+                Ok(batch
+                    .iter()
+                    .map(|crop| Recognition {
+                        text: crop.width.to_string(),
+                        ..Recognition::default()
+                    })
+                    .collect())
+            })
+            .unwrap();
+            assert!(expected_rows.next().is_none());
+            assert_eq!(shapes, expected_shapes);
+            assert_eq!(
+                results
+                    .iter()
+                    .map(|result| result.text.clone())
+                    .collect::<Vec<_>>(),
+                crops
+                    .iter()
+                    .map(|crop| crop.width.to_string())
+                    .collect::<Vec<_>>()
+            );
+        }
+    }
+
+    #[test]
+    fn oversized_outlier_does_not_expand_narrow_crops_or_delay_cancellation() {
+        let narrow = solid(320, 48, [127; 3]);
+        let outlier = solid(4096, 1, [0; 3]);
+        let crops = [&outlier, &narrow, &narrow, &narrow, &narrow, &narrow];
+        for cancel in [false, true] {
+            let registry = RequestRegistry::default();
+            let request = registry.begin(Some("mixed"));
+            let mut shapes = Vec::new();
+            let result = recognize_in_batches(&crops, &request, |batch, layout| {
+                shapes.push((batch.len(), layout.target_width));
+                assert_eq!(
+                    layout.tensor(batch)?.len(),
+                    batch.len() * 3 * 48 * layout.target_width as usize
+                );
+                if cancel {
+                    registry.cancel("mixed");
+                }
+                Ok(vec![Recognition::default(); batch.len()])
+            });
+            if cancel {
+                assert!(matches!(result, Err(OcrError::Cancelled)));
+                assert_eq!(shapes, [(5, 320)]);
+            } else {
+                assert_eq!(result.unwrap().len(), crops.len());
+                assert_eq!(shapes, [(5, 320), (1, 7168)]);
+            }
+        }
+    }
+
+    #[test]
+    fn oversized_crops_fit_proportionally_and_keep_all_columns_with_vertical_padding() {
+        for (width, height, resized_height) in [
+            (7168, 48, 48),
+            (7169, 48, 48),
+            (8192, 48, 42),
+            (14336, 48, 24),
+            (4096, 1, 2),
+            (200000, 1, 1),
+        ] {
+            let mut crop = solid(width, height, [0; 3]);
+            for row in crop.data.chunks_exact_mut(width as usize * 3) {
+                row[width as usize / 2 * 3..].fill(255);
+            }
+            let layout = BatchLayout::new(&[&crop]).unwrap();
+            assert_eq!(layout.target_width, REC_MAX_WIDTH);
+            assert_eq!(layout.content_widths, [REC_MAX_WIDTH]);
+            assert_eq!(content_height(&crop), resized_height);
+            assert_eq!(layout.padding_scale(REC_MAX_WIDTH), 1.0);
+            let tensor = layout.tensor(&[&crop]).unwrap();
+            assert_eq!(tensor.len(), 3 * 48 * 7168);
+            let top = (48 - resized_height) as usize / 2;
+            for plane in tensor.as_chunks::<{ 48 * 7168 }>().0 {
+                for (y, row) in plane.as_chunks::<7168>().0.iter().enumerate() {
+                    if (top..top + resized_height as usize).contains(&y) {
+                        assert_eq!(row[0], -1.0);
+                        assert_eq!(row[7167], 1.0);
+                    } else {
+                        assert!(row.iter().all(|&value| value == 0.0));
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn invalid_crop_geometry_is_rejected_before_tensor_allocation() {
+        for (width, height, channels, len) in [
+            (0, 48, 3, 0),
+            (320, -1, 3, 0),
+            (1, 1, 4, 4),
+            (1, 1, 3, 2),
+            (i32::MAX, i32::MAX, 3, 0),
+        ] {
+            let crop = ImageU8 {
+                width,
+                height,
+                channels,
+                data: vec![0; len],
+            };
+            assert!(matches!(
+                BatchLayout::new(&[&crop]),
+                Err(MlError::Preprocess(_))
+            ));
+        }
+        let geometry = ImageU8 {
+            width: i32::MAX,
+            height: 1,
+            channels: 3,
+            data: Vec::new(),
+        };
+        assert_eq!(target_width(aspect(&geometry)), REC_MAX_WIDTH);
+        assert_eq!(content_width(&geometry, REC_MAX_WIDTH), REC_MAX_WIDTH);
+        assert_eq!(content_height(&geometry), 1);
+    }
+
+    #[test]
+    fn vertical_padding_keeps_character_spans_on_the_original_quad_in_both_orientations() {
+        use super::super::characters::character_boxes;
+        use super::super::{Orientation, Point};
+
+        let crop = solid(4096, 1, [0; 3]);
+        let layout = BatchLayout::new(&[&crop]).unwrap();
+        let values = logits(4, &[(0, 1.0), (1, 0.9), (0, 1.0), (0, 1.0)]);
+        let results = decode_output(&[1, 4, 4], &values, &layout, &dictionary()).unwrap();
+        assert_span(&results[0].spans[0], "a", 0.9, 0.25, 0.5);
+        for rotated in [false, true] {
+            for orientation in [Orientation::Horizontal, Orientation::Vertical] {
+                let (width, height) = match orientation {
+                    Orientation::Horizontal => (4096.0, 1.0),
+                    Orientation::Vertical => (1.0, 4096.0),
+                };
+                let quad = [
+                    Point::new(0.0, 0.0),
+                    Point::new(width, 0.0),
+                    Point::new(width, height),
+                    Point::new(0.0, height),
+                ];
+                let boxes = character_boxes(&quad, &results[0].spans, orientation, rotated);
+                assert_eq!(boxes.len(), 1);
+                let (start, end) = if rotated {
+                    (2048.0, 3072.0)
+                } else {
+                    (1024.0, 2048.0)
+                };
+                let points = boxes[0].points;
+                match orientation {
+                    Orientation::Horizontal => {
+                        assert_eq!(points[0], Point::new(start, 0.0));
+                        assert_eq!(points[2], Point::new(end, 1.0));
+                    }
+                    Orientation::Vertical => {
+                        assert_eq!(points[0], Point::new(0.0, start));
+                        assert_eq!(points[2], Point::new(1.0, end));
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn extreme_aspect_batches_are_bounded_and_cancellation_stops_the_next_split() {
+        let crop = solid(4096, 1, [0; 3]);
+        let crops = [&crop; 6];
+        let layout = BatchLayout::new(&crops).unwrap();
+        assert!(matches!(layout.tensor(&crops), Err(MlError::Preprocess(_))));
+        let registry = RequestRegistry::default();
+        let request = registry.begin(None);
+        let mut calls = 0;
+        recognize_in_batches(&crops, &request, |batch, layout| {
+            calls += 1;
+            assert_eq!(batch.len(), 1);
+            assert_eq!(layout.tensor(batch)?.len(), 3 * 48 * 7168);
+            Ok(vec![Recognition::default()])
+        })
+        .unwrap();
+        assert_eq!(calls, 6);
+
+        let request = registry.begin(Some("split"));
+        calls = 0;
+        let error = recognize_in_batches(&crops, &request, |_, _| {
+            calls += 1;
+            registry.cancel("split");
+            Ok(vec![Recognition::default()])
+        })
+        .unwrap_err();
+        assert_eq!(calls, 1);
+        assert!(matches!(error, OcrError::Cancelled));
     }
 }

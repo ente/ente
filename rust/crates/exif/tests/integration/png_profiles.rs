@@ -21,9 +21,9 @@ fn profiles_use_existing_exif_xmp_and_iptc_readers() {
     .concat();
     for kind in [b"tEXt", b"zTXt", b"iTXt"] {
         let bytes = png(&[
-            profile(kind, "exif", &[b"Exif\0\0".as_slice(), &exif].concat()),
-            profile(kind, "iptc", &resource),
-            profile(kind, "xmp", packet.as_bytes()),
+            profile(*kind, "exif", &[b"Exif\0\0".as_slice(), &exif].concat()),
+            profile(*kind, "iptc", &resource),
+            profile(*kind, "xmp", packet.as_bytes()),
         ]);
         for mode in [Mode::Summary, Mode::Details] {
             let metadata = read(&bytes, mode);
@@ -52,9 +52,9 @@ fn app1_profiles_and_direct_iim_are_supported() {
     ]
     .concat();
     let bytes = png(&[
-        profile(b"zTXt", "APP1", &[b"Exif\0\0".as_slice(), &exif].concat()),
-        profile(b"zTXt", "APP1", &xml),
-        profile(b"tEXt", "iptc", b"\x1c\x02\x78\0\x04dawn"),
+        profile(*b"zTXt", "APP1", &[b"Exif\0\0".as_slice(), &exif].concat()),
+        profile(*b"zTXt", "APP1", &xml),
+        profile(*b"tEXt", "iptc", b"\x1c\x02\x78\0\x04dawn"),
     ]);
     let metadata = read(&bytes, Mode::Summary);
     assert!(metadata.issues.is_empty());
@@ -69,7 +69,7 @@ fn app1_profiles_and_direct_iim_are_supported() {
 #[test]
 fn malformed_profiles_do_not_hide_later_metadata() {
     let good = profile(
-        b"tEXt",
+        *b"tEXt",
         "xmp",
         xmp("<d:description>later</d:description>").as_bytes(),
     );
@@ -82,7 +82,7 @@ fn malformed_profiles_do_not_hide_later_metadata() {
         "\nexif\n184467440737095516160\n00",
     ] {
         let bad = png_chunk(
-            b"tEXt",
+            *b"tEXt",
             &[b"Raw profile type exif\0".as_slice(), text.as_bytes()].concat(),
         );
         let metadata = read(&png(&[bad, good.clone()]), Mode::Summary);
@@ -100,7 +100,7 @@ fn decoded_profiles_share_the_expansion_budget() {
         ],
         false,
     );
-    let bytes = png(&[profile(b"zTXt", "exif", &exif)]);
+    let bytes = png(&[profile(*b"zTXt", "exif", &exif)]);
     let limits = Limits {
         value_bytes: 32,
         ..Default::default()
@@ -120,7 +120,7 @@ fn decoded_profiles_share_the_expansion_budget() {
 #[test]
 fn raw_profiles_tolerate_hex_case_and_ascii_whitespace() {
     let text = b"Raw profile type iptc\0\ngeneric profile\n  8\n1c 02 78 00 03 73\t65\r\n41\n";
-    let metadata = read(&png(&[png_chunk(b"tEXt", text)]), Mode::Summary);
+    let metadata = read(&png(&[png_chunk(*b"tEXt", text)]), Mode::Summary);
     assert!(metadata.issues.is_empty());
     assert_eq!(
         metadata.iptc_caption(TextEncoding::Ascii).as_deref(),
@@ -128,7 +128,7 @@ fn raw_profiles_tolerate_hex_case_and_ascii_whitespace() {
     );
 }
 
-fn profile(kind: &[u8; 4], name: &str, bytes: &[u8]) -> Vec<u8> {
+fn profile(kind: [u8; 4], name: &str, bytes: &[u8]) -> Vec<u8> {
     use std::fmt::Write;
     let mut text = format!("\n{name}\n{:8}\n", bytes.len());
     for (index, byte) in bytes.iter().enumerate() {
@@ -139,14 +139,14 @@ fn profile(kind: &[u8; 4], name: &str, bytes: &[u8]) -> Vec<u8> {
     }
     text.push('\n');
     let mut data = format!("Raw profile type {name}\0").into_bytes();
-    if kind == b"zTXt" {
+    if kind == *b"zTXt" {
         data.push(0);
         data.extend(miniz_oxide::deflate::compress_to_vec_zlib(
             text.as_bytes(),
             6,
         ));
     } else {
-        if kind == b"iTXt" {
+        if kind == *b"iTXt" {
             data.extend([0; 4]);
         }
         data.extend(text.as_bytes());
@@ -163,9 +163,9 @@ fn png(chunks: &[Vec<u8>]) -> Vec<u8> {
     .concat();
     [
         b"\x89PNG\r\n\x1a\n".to_vec(),
-        png_chunk(b"IHDR", &ihdr),
+        png_chunk(*b"IHDR", &ihdr),
         chunks.concat(),
-        png_chunk(b"IEND", &[]),
+        png_chunk(*b"IEND", &[]),
     ]
     .concat()
 }

@@ -1,33 +1,13 @@
+plugins {
+    id "com.android.library"
+    id "org.jetbrains.kotlin.android"
+}
+
 group = "io.ente.photos.media_extension"
 version = "1.0-SNAPSHOT"
 
-buildscript {
-    ext.kotlin_version = "1.8.22"
-    repositories {
-        google()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath("com.android.tools.build:gradle:8.1.0")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
-    }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-apply plugin: "com.android.library"
-apply plugin: "kotlin-android"
-
 android {
     namespace = "io.ente.photos.media_extension"
-
-    compileSdk = 35
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -36,11 +16,6 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11
-    }
-
-    sourceSets {
-        main.java.srcDirs += "src/main/kotlin"
-        test.java.srcDirs += "src/test/kotlin"
     }
 
     defaultConfig {

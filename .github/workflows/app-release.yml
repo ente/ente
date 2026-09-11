@@ -14,6 +14,7 @@ on:
                     - auth
                     - locker
                     - ensu
+                    - cast
                     - photos-desktop
             action:
                 description: "Release action"
@@ -138,6 +139,8 @@ jobs:
                   CHANGES_DIR="mobile/apps/${APP}/changes"
                   if [ "${APP}" = "ensu" ]; then
                       CHANGES_DIR="rust/apps/ensu/changes"
+                  elif [ "${APP}" = "cast" ]; then
+                      CHANGES_DIR="apple/apps/cast/changes"
                   elif [ "${APP}" = "photos-desktop" ]; then
                       CHANGES_DIR="desktop/changes"
                   fi
@@ -228,7 +231,7 @@ jobs:
 
     sync-docs:
         needs: release
-        if: inputs.action == 'promote'
+        if: inputs.action == 'promote' && inputs.app != 'cast'
         runs-on: ubuntu-latest
         environment:
             name: release-branch-push

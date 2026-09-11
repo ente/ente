@@ -58,6 +58,7 @@ mod tests {
             },
             42,
             master_key,
+            Key::generate(),
             secret_key,
         )
         .unwrap();

@@ -4,6 +4,8 @@ import { beforeEach, expect, test, vi } from "vitest";
 const {
     apiOrigin,
     bindCollectionKeyOpener,
+    encryptBoxWithRecoveryKey,
+    generateKey,
     keyAttributes,
     masterKeyFromSession,
     openCollectionKey,
@@ -16,10 +18,15 @@ const {
         vi.fn<
             typeof import("ente-new/photos/services/collection").bindCollectionKeyOpener
         >(),
+    encryptBoxWithRecoveryKey:
+        vi.fn<typeof import("ente-photos-wasm").encryptBoxWithRecoveryKey>(),
+    generateKey: vi.fn<typeof import("ente-photos-wasm").generateKey>(),
     keyAttributes: {
         publicKey: "public-key",
         encryptedSecretKey: "encrypted-secret-key",
         secretKeyDecryptionNonce: "secret-key-nonce",
+        recoveryKeyEncryptedWithMasterKey: "encrypted-recovery-key",
+        recoveryKeyDecryptionNonce: "recovery-key-nonce",
     },
     masterKeyFromSession: vi.fn<() => Promise<string | undefined>>(),
     openCollectionKey:
@@ -45,7 +52,12 @@ vi.mock("ente-new/photos/services/collection", () => ({
     bindCollectionKeyOpener,
     unbindCollectionKeyOpener,
 }));
-vi.mock("ente-photos-wasm", () => ({ openCollectionKey, openSession }));
+vi.mock("ente-photos-wasm", () => ({
+    encryptBoxWithRecoveryKey,
+    generateKey,
+    openCollectionKey,
+    openSession,
+}));
 
 let sessions: typeof import("../src/services/authenticated-session");
 
@@ -60,7 +72,9 @@ beforeEach(async () => {
 
 const mockSession = () =>
     ({
+        encryptWithRecoveryKey: vi.fn(),
         free: vi.fn(),
+        recoveryKeyMnemonic: vi.fn(),
         updateAuthToken: vi.fn(),
         [Symbol.dispose]: vi.fn(),
     }) satisfies Session;

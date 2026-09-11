@@ -7,6 +7,8 @@ const {
     masterKeyFromSession,
     keyAttributes,
     user,
+    encryptBoxWithRecoveryKey,
+    generateKey,
     openLocker,
     openLegacy,
 } = vi.hoisted(() => ({
@@ -17,8 +19,13 @@ const {
         publicKey: "public-key",
         encryptedSecretKey: "encrypted-secret-key",
         secretKeyDecryptionNonce: "secret-key-nonce",
+        recoveryKeyEncryptedWithMasterKey: "encrypted-recovery-key",
+        recoveryKeyDecryptionNonce: "recovery-key-nonce",
     },
     user: { id: 1 },
+    encryptBoxWithRecoveryKey:
+        vi.fn<typeof import("ente-locker-wasm").encryptBoxWithRecoveryKey>(),
+    generateKey: vi.fn<typeof import("ente-locker-wasm").generateKey>(),
     openLocker: vi.fn<typeof import("ente-locker-wasm").openSession>(),
     openLegacy:
         vi.fn<typeof import("ente-legacy-wasm/authenticated").openSession>(),
@@ -36,7 +43,11 @@ vi.mock("ente-accounts/services/user", () => ({
     ensureLocalUser: () => user,
     ensureSavedKeyAttributes: () => keyAttributes,
 }));
-vi.mock("ente-locker-wasm", () => ({ openSession: openLocker }));
+vi.mock("ente-locker-wasm", () => ({
+    encryptBoxWithRecoveryKey,
+    generateKey,
+    openSession: openLocker,
+}));
 vi.mock("ente-legacy-wasm/authenticated", () => ({ openSession: openLegacy }));
 
 let sessions: typeof import("../src/services/authenticated-session");
@@ -164,7 +175,9 @@ test("failed opens can be retried and account changes replace the cached Legacy 
 
 const mockSession = () =>
     ({
+        encryptWithRecoveryKey: vi.fn(),
         free: vi.fn(),
+        recoveryKeyMnemonic: vi.fn(),
         updateAuthToken: vi.fn(),
         [Symbol.dispose]: vi.fn(),
     }) satisfies Session;

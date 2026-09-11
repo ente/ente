@@ -1,6 +1,6 @@
 # App release process
 
-Photos, Auth, Locker, Ensu, and Photos desktop use the same release process, as described here.
+Photos, Auth, Locker, Ensu, Cast, and Photos desktop use the same release process, as described here.
 
 > For simplicity, the following assumes we're trying to release Ensu, that main is `0.1.16-beta`, we want to release `0.1.16` and move main to `0.1.17-beta`.
 >
@@ -9,6 +9,7 @@ Photos, Auth, Locker, Ensu, and Photos desktop use the same release process, as 
 ## App specifics
 
 - Photos desktop follows the same flow, but its stable releases live in [ente/photos-desktop](https://github.com/ente/photos-desktop). See [desktop/docs/release.md](../../desktop/docs/release.md) for more details.
+- Cast has no scheduled nightly builds and skips the docs changelog PR on promotion.
 
 ## Normal development
 

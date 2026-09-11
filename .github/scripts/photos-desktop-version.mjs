@@ -4,7 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const root = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../..",
+);
 const files = {
     packageJson: path.join(root, "desktop/package.json"),
     packageLock: path.join(root, "desktop/package-lock.json"),
@@ -38,27 +41,53 @@ function replace(file, regex, replacement) {
     let count = 0;
     const next = text.replace(regex, (...args) => {
         count += 1;
-        return typeof replacement === "function" ? replacement(...args) : replacement;
+        return typeof replacement === "function"
+            ? replacement(...args)
+            : replacement;
     });
     if (!count) throw new Error(`No match in ${path.relative(root, file)}`);
     write(file, next);
 }
 
 function expect(label, actual, wanted) {
-    if (actual !== wanted) throw new Error(`${label}: expected ${wanted}, found ${actual}`);
+    if (actual !== wanted)
+        throw new Error(`${label}: expected ${wanted}, found ${actual}`);
 }
 
 function check() {
     const version = sourceVersion();
-    expect("package-lock.json", value(files.packageLock, /"name": "ente",\n\s+"version": "([^"]+)"/), version);
-    expect('package-lock.json packages[""]', value(files.packageLock, /"": \{\n\s+"name": "ente",\n\s+"version": "([^"]+)"/), version);
+    expect(
+        "package-lock.json",
+        value(files.packageLock, /"name": "ente",\n\s+"version": "([^"]+)"/),
+        version,
+    );
+    expect(
+        'package-lock.json packages[""]',
+        value(
+            files.packageLock,
+            /"": \{\n\s+"name": "ente",\n\s+"version": "([^"]+)"/,
+        ),
+        version,
+    );
 }
 
 function setVersion(version) {
     validateVersion(version);
-    replace(files.packageJson, /("name": "ente",\n\s+"version": ")[^"]+(")/, (_m, a, b) => `${a}${version}${b}`);
-    replace(files.packageLock, /("name": "ente",\n\s+"version": ")[^"]+(")/, (_m, a, b) => `${a}${version}${b}`);
-    replace(files.packageLock, /("": \{\n\s+"name": "ente",\n\s+"version": ")[^"]+(")/, (_m, a, b) => `${a}${version}${b}`);
+    replace(
+        files.packageJson,
+        /("name": "ente",\n\s+"version": ")[^"]+(")/,
+        (_m, a, b) => `${a}${version}${b}`,
+    );
+    replace(
+        files.packageLock,
+        /("name": "ente",\n\s+"version": ")[^"]+(")/,
+        (_m, a, b) => `${a}${version}${b}`,
+    );
+    replace(
+        files.packageLock,
+        /("": \{\n\s+"name": "ente",\n\s+"version": ")[^"]+(")/,
+        (_m, a, b) => `${a}${version}${b}`,
+    );
     check();
 }
 

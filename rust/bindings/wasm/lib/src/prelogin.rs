@@ -59,7 +59,9 @@ pub fn auth_recovery_key_from_mnemonic_or_hex(input: &str) -> Result<String, Acc
 
 #[wasm_bindgen(js_name = authRecoveryKeyToMnemonic)]
 pub fn auth_recovery_key_to_mnemonic(recovery_key_b64: &str) -> Result<String, AccountsError> {
-    auth::recovery_key_to_mnemonic(recovery_key_b64).map_err(Into::into)
+    let recovery_key = b64::decode(recovery_key_b64)
+        .map_err(|e| ente_accounts::Error::Decode(format!("recovery_key: {e}")))?;
+    auth::recovery_key_to_mnemonic(&recovery_key).map_err(Into::into)
 }
 
 #[wasm_bindgen]

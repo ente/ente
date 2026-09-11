@@ -8,7 +8,7 @@ import "package:photos/ui/components/buttons/button_widget_v2.dart";
 
 Future<TrustedContactResult?> showTrustedContactSheet(
   BuildContext context, {
-  required EmergencyContact contact,
+  required LegacyContactRecord contact,
 }) {
   return showBaseBottomSheet<TrustedContactResult>(
     context,
@@ -30,7 +30,7 @@ class TrustedContactResult {
 }
 
 class TrustedContactSheet extends StatefulWidget {
-  final EmergencyContact contact;
+  final LegacyContactRecord contact;
 
   const TrustedContactSheet({required this.contact, super.key});
 

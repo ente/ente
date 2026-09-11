@@ -96,7 +96,7 @@ class JustifiedLayoutCalculator {
   static const double _minimumAspectRatio = 1 / 3;
   static const double _maximumAspectRatio = 4.0;
   static const double _maximumRowHeightFactor = 2.4;
-  static const double _maximumWideFinalRowHeightFactor = 1.25;
+  static const double _maximumWideFinalRowHeightFactor = 1.0;
   static const double _minimumLandscapeRowHeightFactor = 0.88;
   static const double _mediumWidthBreakpoint = 600;
   static const double _expandedWidthBreakpoint = 1008;
@@ -133,6 +133,9 @@ class JustifiedLayoutCalculator {
     required double availableWidth,
     required double targetRowHeight,
     required double spacing,
+    double maximumRowHeightFactor = _maximumRowHeightFactor,
+    double wideFinalMaximumRowHeightFactor = _maximumWideFinalRowHeightFactor,
+    double minimumLandscapeRowHeightFactor = _minimumLandscapeRowHeightFactor,
   }) {
     if (aspectRatios.isEmpty) return const [];
     if (!availableWidth.isFinite || availableWidth <= 0) {
@@ -144,18 +147,37 @@ class JustifiedLayoutCalculator {
     if (!spacing.isFinite || spacing < 0) {
       throw ArgumentError.value(spacing, "spacing");
     }
+    if (!maximumRowHeightFactor.isFinite || maximumRowHeightFactor < 1) {
+      throw ArgumentError.value(
+        maximumRowHeightFactor,
+        "maximumRowHeightFactor",
+      );
+    }
+    if (!wideFinalMaximumRowHeightFactor.isFinite ||
+        wideFinalMaximumRowHeightFactor < 1) {
+      throw ArgumentError.value(
+        wideFinalMaximumRowHeightFactor,
+        "wideFinalMaximumRowHeightFactor",
+      );
+    }
+    if (!minimumLandscapeRowHeightFactor.isFinite ||
+        minimumLandscapeRowHeightFactor <= 0) {
+      throw ArgumentError.value(
+        minimumLandscapeRowHeightFactor,
+        "minimumLandscapeRowHeightFactor",
+      );
+    }
 
     final rows = <JustifiedRowLayout>[];
     final pendingRatios = <double>[];
-    final maximumRowHeight = targetRowHeight * _maximumRowHeightFactor;
+    final maximumRowHeight = targetRowHeight * maximumRowHeightFactor;
     final maximumItemsPerRow = _maximumItemsPerRowFor(availableWidth);
-    // Product decision: on wider galleries, prefer a partial final row over
-    // enlarging its items by more than 25%. Compact layouts retain their
-    // existing tail treatment.
+    // On wider galleries, prefer a partial final row once its configured
+    // growth limit is reached. Compact layouts retain their tail treatment.
     final limitsFinalRowGrowth = availableWidth >= _mediumWidthBreakpoint;
     final maximumFinalRowHeightFactor = limitsFinalRowGrowth
-        ? _maximumWideFinalRowHeightFactor
-        : _maximumRowHeightFactor;
+        ? wideFinalMaximumRowHeightFactor
+        : maximumRowHeightFactor;
     final maximumFinalRowHeight = targetRowHeight * maximumFinalRowHeightFactor;
     final lastCommittedRatios = <double>[];
     var pendingRatioSum = 0.0;
@@ -229,7 +251,7 @@ class JustifiedLayoutCalculator {
 
       return ratios.length < _minimumLandscapeDensityItemCount ||
           ratios.any((ratio) => ratio < 1) ||
-          height >= targetRowHeight * _minimumLandscapeRowHeightFactor;
+          height >= targetRowHeight * minimumLandscapeRowHeightFactor;
     }
 
     void replacePendingRatios(Iterable<double> ratios) {
@@ -278,8 +300,7 @@ class JustifiedLayoutCalculator {
             candidateCount >= _minimumLandscapeDensityItemCount &&
             pendingMinimumRatio >= 1 &&
             ratio >= 1 &&
-            candidateHeight <
-                targetRowHeight * _minimumLandscapeRowHeightFactor;
+            candidateHeight < targetRowHeight * minimumLandscapeRowHeightFactor;
 
         if (violatesTapTarget || violatesLandscapeDensity) {
           final leaveSingletonRagged = pendingRatios.length == 1;
@@ -336,7 +357,7 @@ class JustifiedLayoutCalculator {
       final shouldJustifyFinalRow = canJustifyFinalRow(pendingRatios);
       final singletonHeightFactor =
           pendingRatios.length == 1 && pendingRatios.single < 1
-          ? math.min(_maximumRowHeightFactor, 1 / pendingRatios.single)
+          ? math.min(maximumRowHeightFactor, 1 / pendingRatios.single)
           : 1.0;
       final finalRowHeightFactor = pendingRatios.length == 1
           ? math.min(singletonHeightFactor, maximumFinalRowHeightFactor)
@@ -346,7 +367,7 @@ class JustifiedLayoutCalculator {
       addPendingRow(
         fillWidth: pendingRatios.length > 1 && shouldJustifyFinalRow,
         // Give compact portrait singletons roughly one target-width column;
-        // wider tails also obey their 25% growth limit.
+        // wider tails also obey their configured growth limit.
         raggedHeightFactor: finalRowHeightFactor,
       );
     }

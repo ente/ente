@@ -421,13 +421,6 @@ const saveAsZip = async (
 
         const file = files[currentIndex]!;
         try {
-            // Event handlers can change this between awaits.
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (networkState.isOffline) {
-                onError(file, new Error("Network offline"));
-                return false;
-            }
-
             const downloadedData = await downloadFileForZip(downloader, file);
 
             await withZipLock(async () => {

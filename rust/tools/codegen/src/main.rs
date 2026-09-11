@@ -175,16 +175,20 @@ fn generate_frb(target: FrbTarget) -> Result<(), DynError> {
     let mut shared_types = HashMap::new();
     for app in apps {
         let package_dir = repo_root.join("mobile/apps").join(app);
-        generate_frb_package(&package_dir)?;
-        let mut modules = vec![("contacts", "contacts/types")];
-        if *app == "locker" {
-            modules.push(("legacy", "legacy"));
+        let generated_dir = package_dir.join("lib/src/rust");
+        if generated_dir.exists() {
+            fs::remove_dir_all(&generated_dir)?;
         }
-        for (name, module) in modules {
+        generate_frb_package(&package_dir)?;
+        for name in ["contacts", "legacy"] {
             let types_path = package_dir
                 .join("lib/src/rust/third_party/ente_frb_lib")
-                .join(format!("{module}.dart"));
+                .join(format!("{name}/types.dart"));
             let types = fs::read_to_string(&types_path)?
+                .replace(
+                    "part 'types.freezed.dart';",
+                    &format!("part '{name}.freezed.dart';"),
+                )
                 .lines()
                 .filter(|line| !line.ends_with("/frb_generated.dart';"))
                 .collect::<Vec<_>>()
@@ -198,10 +202,11 @@ fn generate_frb(target: FrbTarget) -> Result<(), DynError> {
             }
             let freezed_file = format!("{name}.freezed.dart");
             if types.contains(&format!("part '{freezed_file}';")) {
-                fs::rename(
-                    types_path.with_extension("freezed.dart"),
-                    shared_dir.join(freezed_file),
-                )?;
+                let freezed_path = types_path.with_extension("freezed.dart");
+                let freezed = fs::read_to_string(&freezed_path)?
+                    .replace("part of 'types.dart';", &format!("part of '{name}.dart';"));
+                fs::write(shared_dir.join(freezed_file), freezed)?;
+                fs::remove_file(freezed_path)?;
             }
             fs::write(shared_dir.join(format!("{name}.dart")), &types)?;
             fs::write(

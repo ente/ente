@@ -17,13 +17,10 @@ import log from "ente-base/log";
 import { saveStringAsFile } from "ente-base/utils/web";
 import { t } from "i18next";
 import { useCallback, useEffect, useState, type ComponentType } from "react";
-import {
-    getUserRecoveryKey,
-    recoveryKeyToMnemonic,
-} from "../services/recovery-key";
 import { CodeBlock } from "./CodeBlock";
 
 type RecoveryKeyProps = ModalVisibilityProps & {
+    getRecoveryKeyMnemonic: () => Promise<string>;
     showMiniDialog: (attributes: MiniDialogAttributes) => void;
 };
 
@@ -36,6 +33,7 @@ export interface RecoveryKeyPresentationProps {
 export const RecoveryKey: React.FC<RecoveryKeyProps> = ({
     open,
     onClose,
+    getRecoveryKeyMnemonic,
     showMiniDialog,
 }) => {
     const fullScreen = useIsSmallWidth();
@@ -55,7 +53,9 @@ export const RecoveryKey: React.FC<RecoveryKeyProps> = ({
                 <DialogTitle variant="h3">{t("recovery_key")}</DialogTitle>
                 <DialogCloseIconButton {...{ onClose }} />
             </SpacedRow>
-            <RecoveryKeyContents {...{ open, onClose, showMiniDialog }} />
+            <RecoveryKeyContents
+                {...{ open, onClose, getRecoveryKeyMnemonic, showMiniDialog }}
+            />
         </Dialog>
     );
 };
@@ -67,6 +67,7 @@ interface RecoveryKeyContentsProps extends RecoveryKeyProps {
 export function RecoveryKeyContents({
     open,
     onClose,
+    getRecoveryKeyMnemonic,
     showMiniDialog,
     presentation: Presentation,
 }: RecoveryKeyContentsProps): React.JSX.Element {
@@ -86,10 +87,10 @@ export function RecoveryKeyContents({
     useEffect(() => {
         if (!open) return;
 
-        void getUserRecoveryKeyMnemonic()
+        void getRecoveryKeyMnemonic()
             .then((key) => setRecoveryKey(key))
             .catch(handleLoadError);
-    }, [open, handleLoadError]);
+    }, [open, getRecoveryKeyMnemonic, handleLoadError]);
 
     function handleSaveClick() {
         saveRecoveryKeyMnemonicAsFile(recoveryKey!);
@@ -144,9 +145,6 @@ export function RecoveryKeyContents({
         </>
     );
 }
-
-const getUserRecoveryKeyMnemonic = async () =>
-    recoveryKeyToMnemonic(await getUserRecoveryKey());
 
 const saveRecoveryKeyMnemonicAsFile = (key: string) =>
     saveStringAsFile(key, "ente-recovery-key.txt");

@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn test_secret_vec_debug_redacts() {
         let secret = SecretVec::new(vec![42u8; 16]);
-        let debug = format!("{:?}", secret);
+        let debug = format!("{secret:?}");
         assert_eq!(debug, "[REDACTED]");
         assert!(!debug.contains("42"));
     }

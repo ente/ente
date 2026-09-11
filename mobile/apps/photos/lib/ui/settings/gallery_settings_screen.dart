@@ -9,6 +9,7 @@ import "package:photos/models/gallery/gallery_layout_config.dart";
 import "package:photos/models/gallery/justified_layout_strategy.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/settings/local_settings.dart";
+import "package:photos/ui/settings/justified_layout_tuning_screen.dart";
 import "package:photos/ui/viewer/gallery/component/group/type.dart";
 import "package:photos/ui/viewer/gallery/justified_layout_strategy_label.dart";
 
@@ -55,6 +56,17 @@ class _GallerySettingsScreenState extends State<GallerySettingsScreen> {
               _layoutTypeLabel(context, _layoutType, _justifiedStrategy),
             ),
             onTap: () async => _showLayoutTypeSheet(context),
+          ),
+          const SizedBox(height: 8),
+          SettingsItem(
+            title: "Justified layout tuning",
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const JustifiedLayoutTuningScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 8),
         ],

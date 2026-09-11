@@ -6,7 +6,6 @@ import io.ente.ensu.bindings.RustLogSink
 import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.bindings.initRustLogging
 import io.ente.ensu.bindings.transcriptionModelAsset
-import io.ente.ensu.bindings.voiceActivityModelAsset
 import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.knowledge.KnowledgeProvider
 import io.ente.ensu.logging.FileLogRepository
@@ -19,10 +18,9 @@ class EnsuApplication : Application() {
     val transcriber by lazy {
         val store = assetStore
         val transcription = transcriptionModelAsset()
-        val voiceActivity = voiceActivityModelAsset()
         Transcriber(
             store.assetDir(transcription).absolutePath,
-            store.voiceActivityModelPath(voiceActivity).absolutePath
+            store.voiceActivityModelPath().absolutePath
         )
     }
 

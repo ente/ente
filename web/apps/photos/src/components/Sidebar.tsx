@@ -8,6 +8,10 @@ import { ReferralSettings } from "@/components/sidebar/ReferralSettings";
 import { SessionsSettings } from "@/components/sidebar/SessionsSettings";
 import { TwoFactorSettings } from "@/components/sidebar/TwoFactorSettings";
 import { downloadAppDialogAttributes } from "@/components/utils/download";
+import {
+    generatePasskeyRecovery,
+    recoveryKeyMnemonic,
+} from "@/services/authenticated-session";
 import exportService from "@/services/export";
 import { performSidebarAction as performSidebarRegistryAction } from "@/services/search/sidebar-search-registry";
 import {
@@ -1011,7 +1015,7 @@ const Account: React.FC<AccountProps> = ({
         if (isDesktop) {
             suppressAutoLockOnBlurForTrustedPrompt();
         }
-        await openAccountsManagePasskeysPage();
+        await openAccountsManagePasskeysPage(generatePasskeyRecovery);
     }, [onRootClose]);
 
     const handleActiveSessions = useCallback(async () => {
@@ -1127,6 +1131,7 @@ const Account: React.FC<AccountProps> = ({
             </Stack>
             <RecoveryKey
                 {...recoveryKeyVisibilityProps}
+                getRecoveryKeyMnemonic={recoveryKeyMnemonic}
                 {...{ showMiniDialog }}
             />
             {isNonAdminFamilyMember && userDetails && (

@@ -212,9 +212,8 @@ fn model_dir(model_path: &str) -> Option<PathBuf> {
     test
 ))]
 fn quarantined(dir: &Path) -> bool {
-    let entries = match fs::read_dir(dir) {
-        Ok(entries) => entries,
-        Err(_) => return true,
+    let Ok(entries) = fs::read_dir(dir) else {
+        return true;
     };
     for entry in entries {
         let Ok(entry) = entry else {

@@ -276,7 +276,7 @@ export class DownloadManagerCore {
             file.key,
         );
 
-        let leftoverBytes = new Uint8Array();
+        let leftoverBytes: Uint8Array = new Uint8Array();
 
         return new ReadableStream({
             pull: async (controller) => {
@@ -327,8 +327,6 @@ export class DownloadManagerCore {
                         didEnqueue = true;
                         controller.close();
                     } else {
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-ignore
                         leftoverBytes = data;
                     }
                 } while (!didEnqueue);

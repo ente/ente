@@ -63,11 +63,11 @@ fn lfm_vl_1_6b() -> ModelPreset {
     ModelPreset {
         id: "lfm-vl-1.6b".to_string(),
         title: "LFM 2.5 VL 1.6B (Q4_0)".to_string(),
-        url: "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/LFM2.5-VL-1.6B-Q4_0.gguf?download=true".to_string(),
+        url: "https://huggingface.co/ente-ai/LFM2.5-VL-1.6B-GGUF/resolve/b2995f54e17fd7ec31e9cb399ade8fedfd51624d/LFM2.5-VL-1.6B-Q4_0.gguf?download=true".to_string(),
         size: 695_752_480,
         sha256: "8186364a4e7c3ad30f6dd3d3b7a4e0074c77dd91eed6cad5d8be9090ce285804".to_string(),
         mmproj_url: Some(
-            "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf"
+            "https://huggingface.co/ente-ai/LFM2.5-VL-1.6B-GGUF/resolve/b2995f54e17fd7ec31e9cb399ade8fedfd51624d/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf"
                 .to_string(),
         ),
         mmproj_size: Some(583_109_888),
@@ -79,11 +79,11 @@ fn qwen_0_8b() -> ModelPreset {
     ModelPreset {
         id: "qwen-0.8b".to_string(),
         title: "Qwen 3.5 0.8B (Q4_K_M)".to_string(),
-        url: "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true".to_string(),
+        url: "https://huggingface.co/ente-ai/Qwen3.5-0.8B-GGUF/resolve/f44fc9bf306e407078288aee9ff7a83b457d260a/Qwen3.5-0.8B-Q4_K_M.gguf?download=true".to_string(),
         size: 532_517_120,
         sha256: "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517".to_string(),
         mmproj_url: Some(
-            "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/mmproj-F16.gguf"
+            "https://huggingface.co/ente-ai/Qwen3.5-0.8B-GGUF/resolve/f44fc9bf306e407078288aee9ff7a83b457d260a/mmproj-F16.gguf"
                 .to_string(),
         ),
         mmproj_size: Some(204_987_232),
@@ -95,11 +95,11 @@ fn qwen_2b_q8() -> ModelPreset {
     ModelPreset {
         id: "qwen-2b-q8".to_string(),
         title: "Qwen 3.5 2B (Q8_0)".to_string(),
-        url: "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q8_0.gguf?download=true".to_string(),
+        url: "https://huggingface.co/ente-ai/Qwen3.5-2B-GGUF/resolve/4cd5d68754a443dc390533792bf345ad219c0b41/Qwen3.5-2B-Q8_0.gguf?download=true".to_string(),
         size: 2_012_012_800,
         sha256: "1b04acba824817554f4ce23639bc8495ff70453b8fcb047900c731521021f2c1".to_string(),
         mmproj_url: Some(
-            "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/mmproj-F16.gguf"
+            "https://huggingface.co/ente-ai/Qwen3.5-2B-GGUF/resolve/4cd5d68754a443dc390533792bf345ad219c0b41/mmproj-F16.gguf"
                 .to_string(),
         ),
         mmproj_size: Some(668_227_264),
@@ -111,11 +111,11 @@ fn qwen_4b_q4km() -> ModelPreset {
     ModelPreset {
         id: "qwen-4b-q4km".to_string(),
         title: "Qwen 3.5 4B (Q4_K_M)".to_string(),
-        url: "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf?download=true".to_string(),
+        url: "https://huggingface.co/ente-ai/Qwen3.5-4B-GGUF/resolve/9b67f8db9bedc8c10f524ac08193b58fa9b20ac7/Qwen3.5-4B-Q4_K_M.gguf?download=true".to_string(),
         size: 2_740_937_888,
         sha256: "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4".to_string(),
         mmproj_url: Some(
-            "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf"
+            "https://huggingface.co/ente-ai/Qwen3.5-4B-GGUF/resolve/9b67f8db9bedc8c10f524ac08193b58fa9b20ac7/mmproj-F16.gguf"
                 .to_string(),
         ),
         mmproj_size: Some(672_423_616),
@@ -256,6 +256,10 @@ pub fn resolve_effective_model(
 }
 
 fn catalog_preset(catalog: &[ModelPreset], id: &str) -> ModelPreset {
+    #[expect(
+        clippy::expect_used,
+        reason = "Built-in defaults refer to IDs defined in the same catalog"
+    )]
     catalog
         .iter()
         .find(|preset| preset.id == id)

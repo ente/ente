@@ -1,4 +1,4 @@
-import { LockerAuthShell } from "@/components/LockerAuthShell";
+import { LockerAuthShell } from "@/components/auth/LockerAuthShell";
 import { TwoFactorForm } from "ente-accounts/components/auth/TwoFactorForm";
 import AccountsTwoFactorVerifyPage, {
     type TwoFactorVerifyPresentationProps,

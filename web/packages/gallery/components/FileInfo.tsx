@@ -45,13 +45,13 @@ import {
     type ModalVisibilityProps,
 } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
-import { haveWindow } from "ente-base/env";
 import { nameAndExtension } from "ente-base/file-name";
 import { formattedDate, formattedTime } from "ente-base/i18n-date";
 import log from "ente-base/log";
 import type { Location } from "ente-base/types";
 import { CopyButton } from "ente-gallery/components/FileInfoComponents";
 import { tagNumericValue, type RawExifTags } from "ente-gallery/services/exif";
+import { getLeafletWithDefaultIcons } from "ente-gallery/utils/leaflet";
 import { formattedByteSize } from "ente-gallery/utils/units";
 import type { EnteFile } from "ente-media/file";
 import {
@@ -90,13 +90,7 @@ import { Trans } from "react-i18next";
 
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.webpack.css";
 import "leaflet/dist/leaflet.css";
-// Reuse Leaflet's bundled marker images.
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-expressions
-haveWindow() && require("leaflet-defaulticon-compatibility");
-const leaflet = haveWindow()
-    ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-      (require("leaflet") as typeof import("leaflet"))
-    : null;
+const leaflet = getLeafletWithDefaultIcons();
 
 // TODO: Indicate missing exif (e.g. videos) better, both in the data type, and
 // in the UI (e.g. by omitting the entire row).
@@ -1067,25 +1061,25 @@ const RawExif: React.FC<RawExifProps> = ({
         tags,
     )
         .map(([namespace, namespaceTags]) => {
-            return Object.entries(namespaceTags).map(([tagName, tag]) => {
-                const key = `${namespace}:${tagName}`;
-                let description = "<...>";
-                if (typeof tag == "string") {
-                    description = tag;
-                } else if (typeof tag == "number") {
-                    description = `${tag}`;
-                } else if (
-                    tag &&
-                    typeof tag == "object" &&
-                    "description" in tag &&
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                    typeof tag.description == "string"
-                ) {
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-                    description = tag.description;
-                }
-                return [key, namespace, tagName, description] as const;
-            });
+            return Object.entries(namespaceTags).map(
+                ([tagName, tag]: [string, unknown]) => {
+                    const key = `${namespace}:${tagName}`;
+                    let description = "<...>";
+                    if (typeof tag == "string") {
+                        description = tag;
+                    } else if (typeof tag == "number") {
+                        description = `${tag}`;
+                    } else if (
+                        tag &&
+                        typeof tag == "object" &&
+                        "description" in tag &&
+                        typeof tag.description == "string"
+                    ) {
+                        description = tag.description;
+                    }
+                    return [key, namespace, tagName, description] as const;
+                },
+            );
         })
         .flat()
         .filter(([, , , description]) => description);

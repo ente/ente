@@ -15,5 +15,5 @@ pub use kit::{
     LEGACY_KIT_PAYLOAD_VERSION, LegacyKit, LegacyKitCreateResult, LegacyKitMetadata,
     LegacyKitOwnerRecoverySession, LegacyKitPart, LegacyKitRecoveryBundle, LegacyKitRecoveryClient,
     LegacyKitRecoveryHandle, LegacyKitRecoveryInitiator, LegacyKitRecoverySession,
-    LegacyKitRecoveryStatus, LegacyKitShare, LegacyKitVariant,
+    LegacyKitRecoveryStatus, LegacyKitShare, LegacyKitVariant, validate_share_pair,
 };

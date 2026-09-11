@@ -1,0 +1,155 @@
+name: "Build (Cast)"
+
+on:
+    push:
+        branches:
+            - "release/cast-v*"
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+concurrency:
+    group: cast-build
+    cancel-in-progress: false
+
+jobs:
+    release:
+        runs-on: macos-26
+        environment:
+            name: production
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+              with:
+                  ref: ${{ github.ref_name }}
+
+            - name: Prepare release
+              id: metadata
+              run: |
+                  set -euo pipefail
+
+                  version="$(node .github/scripts/cast-version.mjs get)"
+                  build_base="$(node .github/scripts/cast-version.mjs get-build-base)"
+
+                  if [[ "${GITHUB_REF_NAME}" == release/cast-v* ]]; then
+                      if [[ "${GITHUB_REF_NAME}" != "release/cast-v${version}" ]]; then
+                          echo "::error::Branch ${GITHUB_REF_NAME} does not match Cast version ${version}"
+                          exit 1
+                      fi
+                      build_number="${build_base}"
+                      release_tag="cast-v${version}-rc"
+                      release_title="📺 Cast release candidate · ${version} (build ${build_number})"
+                  else
+                      build_number="$((build_base + GITHUB_RUN_NUMBER))"
+                      release_tag="cast-v${version}-beta"
+                      release_title="📺 Cast beta · ${version} (build ${build_number})"
+                  fi
+
+                  git fetch --force --depth=1 --no-tags origin "refs/tags/${release_tag}:refs/tags/${release_tag}" || true
+
+                  echo "build_number=${build_number}" >> "${GITHUB_OUTPUT}"
+                  echo "commit_sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+                  echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+                  echo "release_title=${release_title}" >> "${GITHUB_OUTPUT}"
+                  node .github/scripts/release-notes.mjs apple/apps/cast/changes "${release_tag}" >> "${GITHUB_OUTPUT}"
+
+            - name: Generate Cast bindings
+              working-directory: rust
+              run: cargo codegen native cast
+
+            - name: Import Apple Distribution certificate
+              uses: Apple-Actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7.0.0
+              with:
+                  p12-file-base64: ${{ secrets.APPLE_DISTRIBUTION_CERT_BASE64 }}
+                  p12-password: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+
+            - name: Archive and upload Cast to TestFlight
+              working-directory: apple/apps/cast
+              env:
+                  ASC_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+                  ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+                  ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+                  APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+                  BUILD_NUMBER: ${{ steps.metadata.outputs.build_number }}
+              run: |
+                  key_path="${RUNNER_TEMP}/AuthKey_${ASC_KEY_ID}.p8"
+                  printf '%s' "${ASC_API_KEY_BASE64}" | base64 --decode > "${key_path}"
+
+                  xcodebuild archive \
+                      -project Cast.xcodeproj \
+                      -scheme Cast \
+                      -configuration Release \
+                      -destination 'generic/platform=tvOS' \
+                      -archivePath build/Cast.xcarchive \
+                      -allowProvisioningUpdates \
+                      -authenticationKeyPath "${key_path}" \
+                      -authenticationKeyID "${ASC_KEY_ID}" \
+                      -authenticationKeyIssuerID "${ASC_ISSUER_ID}" \
+                      CODE_SIGN_STYLE=Manual \
+                      CODE_SIGN_IDENTITY="Apple Distribution" \
+                      DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
+                      APP_STORE_PROFILE_SPECIFIER="Cast App Store" \
+                      CURRENT_PROJECT_VERSION="${BUILD_NUMBER}"
+
+                  xcodebuild -exportArchive \
+                      -archivePath build/Cast.xcarchive \
+                      -exportPath build/Export \
+                      -exportOptionsPlist scripts/ExportOptions-AppStore-CI.plist \
+                      -allowProvisioningUpdates \
+                      -authenticationKeyPath "${key_path}" \
+                      -authenticationKeyID "${ASC_KEY_ID}" \
+                      -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
+
+            - name: Mint nightly token
+              id: nightly_token
+              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              with:
+                  client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
+                  private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
+                  repositories: nightly
+                  permission-contents: write
+
+            - name: Publish prerelease notes
+              uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+              with:
+                  repo: nightly
+                  token: ${{ steps.nightly_token.outputs.token }}
+                  tag: ${{ steps.metadata.outputs.release_tag }}
+                  name: ${{ steps.metadata.outputs.release_tag }}
+                  body: ${{ steps.metadata.outputs.release_body }}
+                  commit: main
+                  prerelease: true
+                  makeLatest: false
+                  allowUpdates: true
+                  updateOnlyUnreleased: true
+
+            - name: Create RC draft
+              if: startsWith(github.ref_name, 'release/cast-v')
+              uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+              with:
+                  tag: ${{ steps.metadata.outputs.release_tag }}
+                  name: ${{ steps.metadata.outputs.release_tag }}
+                  body: ${{ steps.metadata.outputs.release_body }}
+                  commit: ${{ steps.metadata.outputs.commit_sha }}
+                  draft: true
+                  allowUpdates: true
+                  updateOnlyUnreleased: true
+
+            - name: Point release tag at the successfully uploaded commit
+              env:
+                  COMMIT_SHA: ${{ steps.metadata.outputs.commit_sha }}
+                  RELEASE_TAG: ${{ steps.metadata.outputs.release_tag }}
+              run: |
+                  git tag --force "${RELEASE_TAG}" "${COMMIT_SHA}"
+                  git push --force origin "refs/tags/${RELEASE_TAG}"
+
+            - name: Notify Discord
+              continue-on-error: true
+              env:
+                  DISCORD_WEBHOOK: ${{ secrets.DISCORD_INTERNAL_RELEASE_WEBHOOK }}
+                  RELEASE_TITLE: ${{ steps.metadata.outputs.release_title }}
+                  RELEASE_BODY_GROUPED: ${{ steps.metadata.outputs.release_body_grouped }}
+                  RELEASE_TAG: ${{ steps.metadata.outputs.release_tag }}
+              run: node .github/scripts/release-notify.mjs cast "${RELEASE_TAG}"

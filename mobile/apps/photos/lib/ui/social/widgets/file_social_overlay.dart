@@ -7,6 +7,8 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
+import "package:photos/core/event_bus.dart";
+import "package:photos/events/social_data_updated_event.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/file.dart";
@@ -70,6 +72,9 @@ class FileSocialOverlay extends StatefulWidget {
 }
 
 class _FileSocialOverlayState extends State<FileSocialOverlay> {
+  late final StreamSubscription<SocialDataUpdatedEvent>
+  _socialDataUpdatedSubscription;
+
   bool _hasEligibleSharedCollections = false;
   bool _hasLiked = false;
   int _commentCount = 0;
@@ -82,6 +87,9 @@ class _FileSocialOverlayState extends State<FileSocialOverlay> {
   @override
   void initState() {
     super.initState();
+    _socialDataUpdatedSubscription = Bus.instance
+        .on<SocialDataUpdatedEvent>()
+        .listen((_) => unawaited(_refreshSocialState()));
     unawaited(_refreshSocialState());
   }
 
@@ -91,6 +99,12 @@ class _FileSocialOverlayState extends State<FileSocialOverlay> {
     if (oldWidget.file.uploadedFileID != widget.file.uploadedFileID) {
       unawaited(_refreshSocialState());
     }
+  }
+
+  @override
+  void dispose() {
+    _socialDataUpdatedSubscription.cancel();
+    super.dispose();
   }
 
   void _clearSocialState() {
@@ -103,7 +117,11 @@ class _FileSocialOverlayState extends State<FileSocialOverlay> {
   }
 
   bool _isCurrentSocialRefresh(int refreshID) {
-    return mounted && refreshID == _latestRefreshID;
+    return mounted &&
+        refreshID == _latestRefreshID &&
+        !_fileIDsWithReactionUpdateInProgress.contains(
+          widget.file.uploadedFileID,
+        );
   }
 
   bool _isOpenedFromHiddenCollection() {
@@ -275,6 +293,9 @@ class _FileSocialOverlayState extends State<FileSocialOverlay> {
       );
     } finally {
       _fileIDsWithReactionUpdateInProgress.remove(fileID);
+      if (mounted && widget.file.uploadedFileID == fileID) {
+        unawaited(_refreshSocialState());
+      }
     }
   }
 

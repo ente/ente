@@ -22,6 +22,7 @@ class EntePopupMenuOption<T> {
     this.trailingWidget,
     this.activeTrailingWidget,
     this.showDivider = true,
+    this.enabled = true,
   });
 
   final T value;
@@ -34,6 +35,7 @@ class EntePopupMenuOption<T> {
   final Widget? trailingWidget;
   final Widget? activeTrailingWidget;
   final bool showDivider;
+  final bool enabled;
 }
 
 class EntePopupMenuButton<T> extends StatelessWidget {
@@ -143,6 +145,7 @@ Future<T?> showEntePopupMenu<T>({
       final option = options[index];
       return PopupMenuItem<T>(
         value: option.value,
+        enabled: option.enabled,
         padding: EdgeInsets.zero,
         height: itemHeight,
         child: Container(
@@ -215,31 +218,34 @@ class _EntePopupMenuRow<T> extends StatelessWidget {
             ],
           );
 
-    return Row(
-      children: [
-        if (option.leadingWidget != null) ...[
-          SizedBox.square(
-            dimension: 24,
-            child: Center(
-              child: IconTheme.merge(
-                data: IconThemeData(
-                  color: colors.textLight,
-                  size: IconSizes.small,
+    return Opacity(
+      opacity: option.enabled ? 1 : 0.5,
+      child: Row(
+        children: [
+          if (option.leadingWidget != null) ...[
+            SizedBox.square(
+              dimension: 24,
+              child: Center(
+                child: IconTheme.merge(
+                  data: IconThemeData(
+                    color: colors.textLight,
+                    size: IconSizes.small,
+                  ),
+                  child: option.leadingWidget!,
                 ),
-                child: option.leadingWidget!,
               ),
             ),
-          ),
-          const SizedBox(width: 6),
+            const SizedBox(width: 6),
+          ],
+          Expanded(child: title),
+          if (option.trailingWidget != null)
+            option.trailingWidget!
+          else if (option.activeTrailingWidget != null)
+            option.isActive
+                ? option.activeTrailingWidget!
+                : const SizedBox(width: Spacing.md),
         ],
-        Expanded(child: title),
-        if (option.trailingWidget != null)
-          option.trailingWidget!
-        else if (option.activeTrailingWidget != null)
-          option.isActive
-              ? option.activeTrailingWidget!
-              : const SizedBox(width: Spacing.md),
-      ],
+      ),
     );
   }
 }

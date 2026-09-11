@@ -23,8 +23,7 @@ pub(super) fn finish_embedding(
     let mut embedding = if shape.len() == 2 {
         if shape[0] != 1 {
             return Err(MlError::Postprocess(format!(
-                "unexpected {name} batch size in shape {:?}",
-                shape
+                "unexpected {name} batch size in shape {shape:?}"
             )));
         }
         output
@@ -32,8 +31,7 @@ pub(super) fn finish_embedding(
         output
     } else {
         return Err(MlError::Postprocess(format!(
-            "unsupported {name} output shape {:?}",
-            shape
+            "unsupported {name} output shape {shape:?}"
         )));
     };
 

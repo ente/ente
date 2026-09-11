@@ -1,5 +1,4 @@
-import "dart:async";
-
+import "package:ente_cast/ente_cast.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/widgets.dart";
@@ -12,32 +11,53 @@ import "package:photos/service_locator.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/cast/pair_with_auto.dart";
 import "package:photos/ui/cast/pair_with_code.dart";
+import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/settings/cast/cast_settings_page.dart";
 import "package:photos/utils/dialog_util.dart";
 
-Future<void> showCastSheet(BuildContext context, Collection collection) async {
+Future<void> showCastSheet(
+  BuildContext context,
+  Collection collection, {
+  CastGateway? gateway,
+  CastService? transport,
+}) async {
   final l10n = context.strings;
   final textStyle = getEnteTextTheme(context);
-  final gw = CastGateway(NetworkClient.instance.enteDio);
-  final showAutoPair = castService.isSupported;
+  final gw = gateway ?? CastGateway(NetworkClient.instance.enteDio);
+  final service = transport ?? castService;
+  final showAutoPair = service.isSupported;
+  final logger = Logger("showCastSheet");
   if (!flagService.enableMultiCast) {
-    if (castService.getActiveSessions().isNotEmpty) {
-      await showChoiceDialog(
+    final shouldStop = service.getActiveSessions().isNotEmpty;
+    if (shouldStop) {
+      final result = await showChoiceDialog(
         context,
         title: l10n.stopCastingTitle,
         body: l10n.stopCastingBody,
         firstButtonLabel: l10n.yes,
         secondButtonLabel: l10n.no,
-        firstButtonOnTap: () async {
-          unawaited(gw.revokeAllTokens());
-          await castService.closeActiveCasts();
-        },
       );
+      if (result?.action != ButtonAction.first || !context.mounted) {
+        return;
+      }
+    }
+    final dialog = createProgressDialog(context, l10n.pleaseWait);
+    await dialog.show();
+    try {
+      await gw.revokeAllTokens();
+      if (shouldStop) {
+        await service.closeActiveCasts();
+      }
+      await dialog.hide();
+    } catch (e, s) {
+      await dialog.hide();
+      logger.warning("Failed to revoke or stop cast sessions", e, s);
+      if (!context.mounted) return;
+      await showGenericErrorDialog(context: context, error: e);
       return;
     }
-    unawaited(gw.revokeAllTokens());
+    if (shouldStop) return;
   }
-  final logger = Logger("showCastSheet");
   List<CastInfo> sessions = [];
   if (flagService.enableMultiCast) {
     try {

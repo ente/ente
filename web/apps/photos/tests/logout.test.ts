@@ -2,8 +2,16 @@ import { afterEach, expect, test, vi } from "vitest";
 import { openAuthenticatedSession } from "../src/services/authenticated-session";
 import { photosLogout } from "../src/services/logout";
 
-const { apiOrigin, openSession, terminateMLWorker } = vi.hoisted(() => ({
+const {
+    apiOrigin,
+    encryptBoxWithRecoveryKey,
+    generateKey,
+    openSession,
+    terminateMLWorker,
+} = vi.hoisted(() => ({
     apiOrigin: vi.fn<() => Promise<string>>(),
+    encryptBoxWithRecoveryKey: vi.fn(),
+    generateKey: vi.fn(),
     openSession: vi.fn(() =>
         Promise.resolve({ free: vi.fn(), updateAuthToken: vi.fn() }),
     ),
@@ -21,13 +29,19 @@ vi.mock("ente-base/token", () => ({ savedAuthToken: vi.fn() }));
 vi.mock("ente-base/log", () => ({
     default: { info: vi.fn(), error: vi.fn() },
 }));
-vi.mock("ente-photos-wasm", () => ({ openSession }));
+vi.mock("ente-photos-wasm", () => ({
+    encryptBoxWithRecoveryKey,
+    generateKey,
+    openSession,
+}));
 vi.mock("ente-accounts/services/user", () => ({
     ensureLocalUser: () => ({ id: 1 }),
     ensureSavedKeyAttributes: () => ({
         publicKey: "public-key",
         encryptedSecretKey: "encrypted-secret-key",
         secretKeyDecryptionNonce: "secret-key-nonce",
+        recoveryKeyEncryptedWithMasterKey: "encrypted-recovery-key",
+        recoveryKeyDecryptionNonce: "recovery-key-nonce",
     }),
 }));
 vi.mock("ente-accounts/services/logout", () => ({

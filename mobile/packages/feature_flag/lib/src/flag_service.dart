@@ -83,6 +83,11 @@ class FlagService {
 
   bool get usearchForSuggestions => true;
 
+  // Kept false until the heavy ML DB queries no longer round-trip data between
+  // Rust and Dart. Then internal users; then everyone, once no heavy queries
+  // run in Dart at all and internal users have soaked it for a while.
+  bool get rustMlDb => false;
+
   String get castUrl => flags.castUrl;
 
   String get customDomain => flags.customDomain;

@@ -1,1 +1,0 @@
-- Added a progress indicator while attaching images.

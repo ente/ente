@@ -7,7 +7,6 @@ import type { SxProps, Theme } from "@mui/material";
 import {
     Alert,
     Box,
-    Button,
     CircularProgress,
     Snackbar,
     Stack,
@@ -24,20 +23,18 @@ import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { apiOrigin } from "ente-base/origins";
 import {
+    loadLegacyKitParser,
     openKitRecovery,
+    type LegacyKitParser,
     type LegacyKitRecoveryHandle,
     type LegacyKitRecoverySession,
+    type LegacyKitShare,
 } from "ente-legacy-wasm";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     LegacyKitQRDecodeError,
     readLegacyKitCodeFromFile,
 } from "../features/legacy-kit/scan";
-import {
-    parseLegacyKitShare,
-    validateLegacyKitSharePair,
-    type LegacyKitShare,
-} from "../features/legacy-kit/share";
 
 type SlotID = "first" | "second";
 
@@ -68,13 +65,16 @@ const getErrorMessage = (error: unknown) =>
 const isInactiveLegacyKitError = (error: unknown) =>
     isNamedError(error, "legacy_kit_inactive");
 
-const parseSlotCode = (rawCode: string): Pick<SheetSlot, "error" | "share"> => {
+const parseSlotCode = (
+    rawCode: string,
+    parser: LegacyKitParser,
+): Pick<SheetSlot, "error" | "share"> => {
     if (!rawCode.trim()) {
         return {};
     }
 
     try {
-        return { share: parseLegacyKitShare(rawCode) };
+        return { share: parser.parseLegacyKitShare(rawCode) };
     } catch {
         return { error: "Invalid sheet." };
     }
@@ -136,7 +136,44 @@ const buttonSx = {
 };
 
 const Page: React.FC = () => {
-    const [hasStarted, setHasStarted] = useState(false);
+    const [parser, setParser] = useState<LegacyKitParser>();
+    const [isStarting, setIsStarting] = useState(false);
+    const [startError, setStartError] = useState<string>();
+
+    const start = async () => {
+        if (startError) {
+            window.location.reload();
+            return;
+        }
+        setIsStarting(true);
+        try {
+            setParser(await loadLegacyKitParser());
+        } catch (error) {
+            log.error("Could not load Legacy Kit recovery", error);
+            setStartError(
+                "Could not load recovery. Please reload the page to try again.",
+            );
+        } finally {
+            setIsStarting(false);
+        }
+    };
+
+    return (
+        <LegacyShell>
+            {parser ? (
+                <RecoveryFlow parser={parser} />
+            ) : (
+                <LandingStep
+                    onStart={() => void start()}
+                    isStarting={isStarting}
+                    error={startError}
+                />
+            )}
+        </LegacyShell>
+    );
+};
+
+const RecoveryFlow: React.FC<{ parser: LegacyKitParser }> = ({ parser }) => {
     const [slots, setSlots] = useState<Record<SlotID, SheetSlot>>({
         first: emptySlot(),
         second: emptySlot(),
@@ -162,12 +199,18 @@ const Page: React.FC = () => {
             return undefined;
         }
         try {
-            validateLegacyKitSharePair(shares[0], shares[1]);
+            parser.validateLegacyKitSharePair(shares[0], shares[1]);
             return undefined;
         } catch (error) {
+            if (isNamedError(error, "different_legacy_kits")) {
+                return "These sheets are from different Legacy Kits.";
+            }
+            if (isNamedError(error, "duplicate_legacy_kit_share")) {
+                return "Use two different sheets from the same Legacy Kit.";
+            }
             return getErrorMessage(error);
         }
-    }, [shares]);
+    }, [parser, shares]);
 
     const canOpen = !!shares && !pairError && !isOpening;
 
@@ -183,7 +226,7 @@ const Page: React.FC = () => {
 
     const handleCodeChange = useCallback(
         (slotID: SlotID, rawCode: string) => {
-            const parsed = parseSlotCode(rawCode);
+            const parsed = parseSlotCode(rawCode, parser);
             setOpenError(undefined);
             updateSlot(slotID, {
                 error: parsed.error,
@@ -192,7 +235,7 @@ const Page: React.FC = () => {
                 share: parsed.share,
             });
         },
-        [updateSlot],
+        [parser, updateSlot],
     );
 
     const handleFile = useCallback(
@@ -212,7 +255,7 @@ const Page: React.FC = () => {
 
             void readLegacyKitCodeFromFile(file)
                 .then((rawCode) => {
-                    const parsed = parseSlotCode(rawCode);
+                    const parsed = parseSlotCode(rawCode, parser);
                     updateSlot(slotID, {
                         error: parsed.error,
                         fileName: file.name,
@@ -234,7 +277,7 @@ const Page: React.FC = () => {
                     });
                 });
         },
-        [updateSlot],
+        [parser, updateSlot],
     );
 
     const openRecovery = useCallback(async () => {
@@ -321,15 +364,8 @@ const Page: React.FC = () => {
     );
 
     return (
-        <LegacyShell>
-            {!hasStarted ? (
-                <LandingStep
-                    onStart={() => {
-                        setIsKitInactive(false);
-                        setHasStarted(true);
-                    }}
-                />
-            ) : isKitInactive ? (
+        <>
+            {isKitInactive ? (
                 <InactiveLegacyKitStep />
             ) : !session ? (
                 <UploadStep
@@ -361,7 +397,7 @@ const Page: React.FC = () => {
                     onClose={() => setShowQRDecodeWarning(false)}
                 />
             )}
-        </LegacyShell>
+        </>
     );
 };
 
@@ -417,9 +453,15 @@ const LegacyShell: React.FC<LegacyShellProps> = ({ children }) => (
 
 interface LandingStepProps {
     onStart: () => void;
+    isStarting: boolean;
+    error: string | undefined;
 }
 
-const LandingStep: React.FC<LandingStepProps> = ({ onStart }) => (
+const LandingStep: React.FC<LandingStepProps> = ({
+    onStart,
+    isStarting,
+    error,
+}) => (
     <Stack
         direction={{ xs: "column", lg: "row" }}
         sx={{
@@ -520,9 +562,11 @@ const LandingStep: React.FC<LandingStepProps> = ({ onStart }) => (
                 ))}
             </Stack>
 
-            <Button
+            {error && <Alert severity="error">{error}</Alert>}
+            <LoadingButton
                 color="accent"
                 onClick={onStart}
+                loading={isStarting}
                 sx={{
                     ...buttonSx,
                     borderRadius: { xs: "20px", md: "25px" },
@@ -532,8 +576,8 @@ const LandingStep: React.FC<LandingStepProps> = ({ onStart }) => (
                     width: "100%",
                 }}
             >
-                Start recovery
-            </Button>
+                {error ? "Reload page" : "Start recovery"}
+            </LoadingButton>
         </Stack>
     </Stack>
 );

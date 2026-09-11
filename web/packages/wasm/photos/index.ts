@@ -1,3 +1,4 @@
+import { readAndFree } from "ente-utils/wasm";
 import type {
     OpenSessionInput,
     Session,
@@ -10,6 +11,14 @@ export type { OpenSessionInput, Session } from "./pkg/ente_photos_wasm";
 
 export const openSession = async (input: OpenSessionInput): Promise<Session> =>
     (await wasm()).openSession(input);
+
+export const encryptBoxWithRecoveryKey = (session: Session, dataB64: string) =>
+    readAndFree(session.encryptWithRecoveryKey(dataB64), (box) => ({
+        encryptedData: box.encryptedData,
+        nonce: box.nonce,
+    }));
+
+export const generateKey = async () => (await wasm()).cryptoGenerateKey();
 
 export const contactsGetDiff = async (
     session: Session,

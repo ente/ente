@@ -75,9 +75,8 @@ fn extract_motion_video(
     index: Option<VideoIndex>,
 ) -> Result<Vec<u8>, MotionPhotoError> {
     let video_index = index.or_else(|| get_motion_video_index(bytes));
-    let video_index = match video_index {
-        Some(value) => value,
-        None => return Err(MotionPhotoError::VideoNotFound),
+    let Some(video_index) = video_index else {
+        return Err(MotionPhotoError::VideoNotFound);
     };
 
     if video_index.start >= video_index.end || video_index.end > bytes.len() {
@@ -95,9 +94,8 @@ pub fn extract_motion_video_file_from_path<P: AsRef<Path>, Q: AsRef<Path>>(
 ) -> Result<Option<PathBuf>, MotionPhotoError> {
     validate_output_file_name(file_name)?;
 
-    let video = match extract_motion_video_from_path(file_path, index)? {
-        Some(data) => data,
-        None => return Ok(None),
+    let Some(video) = extract_motion_video_from_path(file_path, index)? else {
+        return Ok(None);
     };
     fs::create_dir_all(destination_directory.as_ref())?;
     let output = destination_directory.as_ref().join(file_name);
@@ -173,11 +171,11 @@ mod tests {
     use std::fs;
     use tempfile::tempdir;
 
-    fn make_ftyp_box(brand: &[u8; 4]) -> Vec<u8> {
+    fn make_ftyp_box(brand: [u8; 4]) -> Vec<u8> {
         let mut buf = Vec::with_capacity(16);
         buf.extend_from_slice(&16u32.to_be_bytes());
         buf.extend_from_slice(b"ftyp");
-        buf.extend_from_slice(brand);
+        buf.extend_from_slice(&brand);
         buf.extend_from_slice(&0u32.to_be_bytes());
         buf
     }
@@ -202,7 +200,7 @@ mod tests {
     #[test]
     fn finds_ftyp_box_in_jpeg_like_file() {
         let mut bytes = b"jpeg-prefix".to_vec();
-        bytes.extend_from_slice(&make_ftyp_box(b"mp42"));
+        bytes.extend_from_slice(&make_ftyp_box(*b"mp42"));
         bytes.extend_from_slice(&[1, 2, 3, 4]);
 
         let index = get_motion_video_index(&bytes).expect("video index should exist");
@@ -214,10 +212,10 @@ mod tests {
     fn picks_largest_segment_when_multiple_ftyp_exist() {
         let mut bytes = b"jpeg-prefix".to_vec();
         let first_start = bytes.len();
-        bytes.extend_from_slice(&make_ftyp_box(b"mp42"));
+        bytes.extend_from_slice(&make_ftyp_box(*b"mp42"));
         bytes.extend_from_slice(&[0xAA; 500]);
         let second_start = bytes.len();
-        bytes.extend_from_slice(&make_ftyp_box(b"isom"));
+        bytes.extend_from_slice(&make_ftyp_box(*b"isom"));
         bytes.extend_from_slice(&[0xBB; 50]);
 
         let index = get_motion_video_index(&bytes).expect("video index should exist");
@@ -228,10 +226,10 @@ mod tests {
         assert_eq!(extracted.len(), second_start - first_start);
 
         let mut bytes2 = b"jpeg-prefix".to_vec();
-        bytes2.extend_from_slice(&make_ftyp_box(b"mp42"));
+        bytes2.extend_from_slice(&make_ftyp_box(*b"mp42"));
         bytes2.extend_from_slice(&[0xCC; 50]);
         let second_start = bytes2.len();
-        bytes2.extend_from_slice(&make_ftyp_box(b"isom"));
+        bytes2.extend_from_slice(&make_ftyp_box(*b"isom"));
         bytes2.extend_from_slice(&[0xDD; 500]);
 
         let index2 = get_motion_video_index(&bytes2).expect("video index should exist");
@@ -245,7 +243,7 @@ mod tests {
             b"isom", b"mp41", b"mp42", b"avc1", b"iso2", b"M4V ", b"qt  ",
         ] {
             let mut bytes = b"jpeg-prefix-data".to_vec();
-            bytes.extend_from_slice(&make_ftyp_box(brand));
+            bytes.extend_from_slice(&make_ftyp_box(*brand));
             bytes.extend_from_slice(&[0xDE, 0xAD]);
             let index = get_motion_video_index(&bytes)
                 .unwrap_or_else(|| panic!("should detect brand {:?}", std::str::from_utf8(brand)));
@@ -257,7 +255,7 @@ mod tests {
     fn rejects_non_video_ftyp_brands() {
         for brand in [b"heic", b"heif", b"mif1", b"avif"] {
             let mut bytes = b"jpeg-prefix-data".to_vec();
-            bytes.extend_from_slice(&make_ftyp_box(brand));
+            bytes.extend_from_slice(&make_ftyp_box(*brand));
             bytes.extend_from_slice(&[0xDE, 0xAD]);
             assert_eq!(
                 get_motion_video_index(&bytes),
@@ -285,7 +283,7 @@ mod tests {
 
     #[test]
     fn rejects_ftyp_at_file_start() {
-        let mut bytes = make_ftyp_box(b"mp42");
+        let mut bytes = make_ftyp_box(*b"mp42");
         bytes.extend_from_slice(b"moov-data-here");
         assert_eq!(get_motion_video_index(&bytes), None);
     }

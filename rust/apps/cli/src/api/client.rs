@@ -2,7 +2,7 @@ use crate::models::account::App;
 use crate::models::error::Result;
 use ente_core::http::{self, Api, ApiConfig, Auth, Http, RetryProfile};
 use ente_core::urls::PRODUCTION_API_ORIGIN;
-use std::sync::RwLock;
+use std::sync::{PoisonError, RwLock};
 
 pub(crate) const USER_AGENT: &str = concat!("ente-rs/", env!("CARGO_PKG_VERSION"));
 const FILES_ORIGIN: &str = "https://files.ente.com";
@@ -48,11 +48,14 @@ impl AppClient {
                 .thumbnails
                 .set_auth(Some(Auth::User(token.to_owned())));
         }
-        *self.token.write().unwrap() = Some(token.to_owned());
+        *self.token.write().unwrap_or_else(PoisonError::into_inner) = Some(token.to_owned());
     }
 
     pub fn token(&self) -> Option<String> {
-        self.token.read().unwrap().clone()
+        self.token
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
     }
 
     pub fn origin(&self) -> &str {

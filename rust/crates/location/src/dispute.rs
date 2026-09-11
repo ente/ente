@@ -1,6 +1,6 @@
 use std::str;
 
-use crate::binary::{range, u16_at, u32_at};
+use crate::binary::{ByteReader, range, u16_at, u32_at};
 use crate::country::{CountryGeometry, PreparedCell};
 use crate::{CountryCode, Error};
 
@@ -103,6 +103,10 @@ impl DisputeIndex {
             .into_iter()
             .map(|code| DisputeMatch {
                 index: self,
+                #[expect(
+                    clippy::expect_used,
+                    reason = "Index construction checks every geometry code against the territory catalog"
+                )]
                 territory: territory_index_for_code(&self.bytes, self.layout, code)
                     .expect("geometry was validated against the catalog"),
             })
@@ -176,11 +180,11 @@ impl<'a> DisputeMatch<'a> {
     fn record(self) -> TerritoryRecord {
         let offset = self.record_offset();
         TerritoryRecord {
-            id: u16_at(&self.index.bytes, offset).expect("validated territory"),
+            id: ByteReader::at(&self.index.bytes, offset).u16(),
             default_country: self.index.bytes[offset + 4],
             candidate_count: self.index.bytes[offset + 5],
-            candidate_start: u16_at(&self.index.bytes, offset + 6).expect("validated territory"),
-            name_start: u16_at(&self.index.bytes, offset + 8).expect("validated territory"),
+            candidate_start: ByteReader::at(&self.index.bytes, offset + 6).u16(),
+            name_start: ByteReader::at(&self.index.bytes, offset + 8).u16(),
             name_length: self.index.bytes[offset + 10],
         }
     }
@@ -191,6 +195,10 @@ impl<'a> DisputeMatch<'a> {
 
     fn string(self, start: u16, length: usize) -> &'a str {
         let start = self.index.layout.strings + usize::from(start);
+        #[expect(
+            clippy::expect_used,
+            reason = "Index construction validates the string table as UTF-8"
+        )]
         str::from_utf8(&self.index.bytes[start..start + length]).expect("validated UTF-8")
     }
 }
@@ -301,7 +309,7 @@ fn validate_layout(bytes: &[u8], layout: Layout, declared_length: usize) -> crat
     let mut geometry_codes = Vec::with_capacity(layout.territory_count);
     for territory in 0..layout.territory_count {
         let offset = layout.territories + territory * TERRITORY_LEN;
-        let id = read_u16_infallible(bytes, offset);
+        let id = ByteReader::at(bytes, offset).u16();
         if id == 0 || ids.contains(&id) {
             return Err(invalid("invalid or duplicate territory ID"));
         }
@@ -313,7 +321,7 @@ fn validate_layout(bytes: &[u8], layout: Layout, declared_length: usize) -> crat
         geometry_codes.push(geometry_code);
         validate_optional_country(bytes[offset + 4], layout.country_count)?;
 
-        let candidate_start = usize::from(read_u16_infallible(bytes, offset + 6));
+        let candidate_start = usize::from(ByteReader::at(bytes, offset + 6).u16());
         let candidate_end = candidate_start
             .checked_add(usize::from(bytes[offset + 5]))
             .ok_or(invalid("candidate range overflow"))?;
@@ -331,7 +339,7 @@ fn validate_layout(bytes: &[u8], layout: Layout, declared_length: usize) -> crat
             validate_optional_country(country, layout.country_count)?;
         }
 
-        let name_start = usize::from(read_u16_infallible(bytes, offset + 8));
+        let name_start = usize::from(ByteReader::at(bytes, offset + 8).u16());
         let name_length = usize::from(bytes[offset + 10]);
         if name_length == 0 {
             return Err(invalid("empty territory name"));
@@ -438,10 +446,6 @@ fn read_u16(bytes: &[u8], offset: usize) -> crate::Result<u16> {
 
 fn read_usize(bytes: &[u8], offset: usize) -> crate::Result<usize> {
     Ok(u32_at(bytes, offset).ok_or(invalid("truncated"))? as usize)
-}
-
-fn read_u16_infallible(bytes: &[u8], offset: usize) -> u16 {
-    u16_at(bytes, offset).expect("validated territory field")
 }
 
 fn invalid(reason: &'static str) -> Error {

@@ -2332,7 +2332,7 @@ checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 
 [[package]]
 name = "ensu-desktop"
-version = "0.1.20-beta"
+version = "0.1.21-beta"
 dependencies = [
  "ente-assets",
  "ente-core",
@@ -2426,6 +2426,31 @@ dependencies = [
  "js-sys",
  "thiserror 2.0.18",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "ente-cli-next"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "dialoguer",
+ "dirs 5.0.1",
+ "ente-accounts",
+ "ente-core",
+ "ente-photos",
+ "ente-test-support",
+ "keyring",
+ "mockito",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "url",
+ "uuid",
+ "zeroize",
 ]
 
 [[package]]
@@ -2609,7 +2634,6 @@ dependencies = [
 name = "ente-legacy-wasm"
 version = "0.0.0"
 dependencies = [
- "ente-accounts",
  "ente-core",
  "ente-legacy",
  "ente-wasm-lib",
@@ -2656,12 +2680,10 @@ dependencies = [
 name = "ente-locker-frb"
 version = "0.0.0"
 dependencies = [
- "ente-accounts",
  "ente-assets",
  "ente-core",
  "ente-frb-lib",
  "ente-frb-log",
- "ente-legacy",
  "ente-ml",
  "flutter_rust_bridge",
 ]
@@ -2735,9 +2757,13 @@ name = "ente-photos"
 version = "0.0.0"
 dependencies = [
  "ente-assets",
+ "ente-collections",
+ "ente-core",
+ "ente-exif",
  "ente-location",
  "quick-xml",
  "rusqlite",
+ "serde",
  "tempfile",
  "thiserror 2.0.18",
 ]

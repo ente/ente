@@ -19,9 +19,11 @@ import { useTheme } from "@mui/material/styles";
 import { ensureLocalUser } from "ente-accounts/services/user";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import { isSxArray } from "ente-base/components/utils/sx";
 import { useBaseContext } from "ente-base/context";
 import { downloadManager } from "ente-gallery/services/download";
 import { uniqueFilesByID } from "ente-gallery/utils/file";
+import { getLeaflet } from "ente-gallery/utils/leaflet";
 import type { EnteFile } from "ente-media/file";
 import {
     fileCreationPhotoSortTime,
@@ -901,10 +903,8 @@ function createMarkerIcon(
     clusterCount?: number,
     interactive = true,
 ): import("leaflet").DivIcon | null {
-    if (typeof window === "undefined") return null;
-
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const leaflet = require("leaflet") as typeof import("leaflet");
+    const leaflet = getLeaflet();
+    if (!leaflet) return null;
 
     const pinSize = 84;
     const triangleHeight = 10;
@@ -1850,12 +1850,7 @@ const FloatingIconButton: React.FC<IconButtonProps> = ({ sx, ...props }) => {
     };
 
     const mergedSx =
-        sx == null
-            ? baseSx
-            : Array.isArray(sx)
-              ? // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                [baseSx, ...sx]
-              : [baseSx, sx];
+        sx == null ? baseSx : isSxArray(sx) ? [baseSx, ...sx] : [baseSx, sx];
 
     return <IconButton {...props} sx={mergedSx} />;
 };

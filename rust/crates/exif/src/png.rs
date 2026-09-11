@@ -147,7 +147,7 @@ fn text<R: Read + Seek>(
     if language.is_some_and(|value| value.len() > state.limits.value_bytes) {
         return Err(Error::Limit("PNG language"));
     }
-    xmp::store(state, "urn:png:text", &key, &text, language, None)
+    xmp::store(state, "urn:png:text", &key, &text, language, None, None)
 }
 
 fn profile(key: &[u8], text: &[u8], state: &mut State) -> Result<(), Error> {

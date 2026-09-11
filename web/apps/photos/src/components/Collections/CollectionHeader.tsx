@@ -431,16 +431,6 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
             break;
 
         case "hiddenItems":
-            menuOptions = [
-                fileCount && (
-                    <DownloadOption
-                        key="download-hidden"
-                        onClick={downloadCollection}
-                    >
-                        {t("download_hidden_items")}
-                    </DownloadOption>
-                ),
-            ];
             break;
 
         case "sharedIncoming":
@@ -1008,27 +998,6 @@ const CastQuickOption: React.FC<OptionProps> = ({ onClick }) => (
             </Box>
         </IconButton>
     </Tooltip>
-);
-
-type DownloadOptionProps = OptionProps & {
-    isDownloadInProgress?: () => boolean;
-};
-
-const DownloadOption: React.FC<
-    React.PropsWithChildren<DownloadOptionProps>
-> = ({ isDownloadInProgress, onClick, children }) => (
-    <OverflowMenuOption
-        startIcon={
-            isDownloadInProgress?.() ? (
-                <ActivityIndicator size="20px" sx={{ cursor: "not-allowed" }} />
-            ) : (
-                <DownloadIcon />
-            )
-        }
-        onClick={onClick}
-    >
-        {children}
-    </OverflowMenuOption>
 );
 
 interface CollectionSortOrderMenuProps {

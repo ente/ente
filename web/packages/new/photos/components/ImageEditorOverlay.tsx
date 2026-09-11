@@ -639,8 +639,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                 >
                     <Tabs
                         value={currentTab}
-                        onChange={(_, value) => {
-                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                        onChange={(_, value: OperationTab) => {
                             setCurrentTab(value);
                         }}
                     >
@@ -738,11 +737,10 @@ const canvasToFile = async (
             break;
     }
 
-    const blob = await new Promise<Blob>((resolve) =>
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
+    const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, mimeType),
     );
+    if (!blob) throw new Error("Failed to encode edited image");
 
     const [originalName] = nameAndExtension(originalFileName);
     const fileName = `${originalName}-edited.${extension}`;

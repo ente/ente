@@ -15,11 +15,10 @@ struct CastApp: App {
 
 private final class CastRustLogSink: RustLogSink, @unchecked Sendable {
     func log(level: RustLogLevel, target: String, message: String) {
-        let levelName: String
-        switch level {
-        case .error: levelName = "error"
-        case .warn: levelName = "warn"
-        case .info: levelName = "info"
+        let levelName = switch level {
+        case .error: "error"
+        case .warn: "warn"
+        case .info: "info"
         }
         print("[\(levelName)][rust][\(target)] \(message)")
     }

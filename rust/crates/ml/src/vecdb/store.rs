@@ -9,17 +9,20 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
-use super::arena::{UpsertOutcome, VECTORS_PER_CHUNK, VectorArena};
+use super::arena::{UpsertOutcome, VectorArena};
 use super::graph::{Graph, search as graph_search, search_stored};
+use super::kernel::{StoredVector, VectorPayload, quantize_for};
 use super::lock::WriterLock;
 use super::log::{
-    HEADER_LEN, Log, LogEntry, LogRecord, header_generation, remove_if_present,
-    remove_stale_temp_sibling, sync_parent_dir,
+    HEADER_LEN, Log, LogCheckpoint, LogEntry, LogRecord, header_generation, open_writer_file,
+    remove_if_present, remove_stale_temp_sibling, sync_parent_dir,
 };
 use super::snapshot::{
     LoadedSnapshot, load_snapshot, remove_snapshot, snapshot_path, write_snapshot,
 };
-use super::{AttrValue, Attribute, KeyMatches, Match, SearchParams, VecDbError};
+use super::{
+    AttrValue, Attribute, DistanceMetric, KeyMatches, Match, SearchParams, StorageKind, VecDbError,
+};
 
 const SNAPSHOT_HARD_CAP: usize = 5000;
 const SNAPSHOT_QUIET_THRESHOLD: usize = 1000;
@@ -62,6 +65,8 @@ pub struct Stats {
     pub live_count: usize,
     pub dead_count: usize,
     pub dims: usize,
+    pub storage: StorageKind,
+    pub metric: DistanceMetric,
     pub log_bytes: u64,
     pub records_since_snapshot: usize,
     pub approximate_memory_bytes: usize,
@@ -75,6 +80,8 @@ pub struct VecDb {
 struct Shared {
     path: PathBuf,
     dims: usize,
+    storage: StorageKind,
+    metric: DistanceMetric,
     registry_key: Option<PathBuf>,
     closed: AtomicBool,
     writer: Mutex<WriterHalf>,
@@ -181,8 +188,8 @@ enum WriterMode {
 }
 
 struct WriterState {
-    lock: WriterLock,
     log: Log,
+    lock: WriterLock,
     mutations_since_snapshot: usize,
     last_write: Option<Instant>,
 }
@@ -297,11 +304,29 @@ fn registry_key_for(path: &Path) -> Result<PathBuf, VecDbError> {
     Ok(canonical_parent.join(file_name))
 }
 
-fn join_live(shared: Arc<Shared>, dims: usize, read_only: bool) -> Result<VecDb, VecDbError> {
+fn join_live(
+    shared: Arc<Shared>,
+    dims: usize,
+    storage: StorageKind,
+    metric: DistanceMetric,
+    read_only: bool,
+) -> Result<VecDb, VecDbError> {
     if shared.dims != dims {
         return Err(VecDbError::DimensionMismatch {
             expected: dims,
             actual: shared.dims,
+        });
+    }
+    if storage != shared.storage {
+        return Err(VecDbError::StorageMismatch {
+            expected: storage,
+            actual: shared.storage,
+        });
+    }
+    if metric != shared.metric {
+        return Err(VecDbError::MetricMismatch {
+            expected: metric,
+            actual: shared.metric,
         });
     }
     Ok(VecDb { shared, read_only })
@@ -354,7 +379,13 @@ fn warn_handoff_cap(path: &Path) {
 }
 
 impl VecDb {
-    pub fn open(path: &Path, dims: usize) -> Result<Self, VecDbError> {
+    pub fn open(
+        path: &Path,
+        dims: usize,
+        storage: Option<StorageKind>,
+        metric: DistanceMetric,
+    ) -> Result<Self, VecDbError> {
+        let storage = storage.unwrap_or(StorageKind::I8);
         let key = registry_key_for(path)?;
         let slot = path_slot(&key);
         let mut guard = lock_slot(&slot);
@@ -362,17 +393,21 @@ impl VecDb {
             let observed = guard.live.as_ref().and_then(Weak::upgrade);
             drop(guard);
             match observed {
-                Some(shared) if !shared.is_closed() => return join_live(shared, dims, false),
+                Some(shared) if !shared.is_closed() => {
+                    return join_live(shared, dims, storage, metric, false);
+                }
                 observed => drop(observed),
             }
             match wait_for_teardown_handoff(&slot, &key) {
-                SlotHandoff::Join(shared) => return join_live(shared, dims, false),
+                SlotHandoff::Join(shared) => {
+                    return join_live(shared, dims, storage, metric, false);
+                }
                 SlotHandoff::Released(reacquired) | SlotHandoff::Expired(reacquired) => {
                     guard = reacquired;
                 }
             }
         }
-        let built = match build_writer(&key, key.clone(), dims) {
+        let built = match build_writer(&key, key.clone(), dims, storage, metric) {
             Ok(built) => built,
             Err(error) => {
                 drop(guard);
@@ -417,16 +452,26 @@ impl VecDb {
         open_cost_from_files(&key)
     }
 
-    pub fn open_read_only(path: &Path, dims: usize) -> Result<Self, VecDbError> {
+    pub fn open_read_only(
+        path: &Path,
+        dims: usize,
+        storage: Option<StorageKind>,
+        metric: DistanceMetric,
+    ) -> Result<Self, VecDbError> {
+        let storage = storage.unwrap_or(StorageKind::I8);
         let resolved = registry_key_for(path).unwrap_or_else(|_| path.to_path_buf());
         if let Some(slot) = existing_path_slot(&resolved) {
             let observed = lock_slot(&slot).live.as_ref().and_then(Weak::upgrade);
             match observed {
-                Some(shared) if !shared.is_closed() => return join_live(shared, dims, true),
+                Some(shared) if !shared.is_closed() => {
+                    return join_live(shared, dims, storage, metric, true);
+                }
                 Some(closing) => {
                     drop(closing);
                     match wait_for_teardown_handoff(&slot, &resolved) {
-                        SlotHandoff::Join(shared) => return join_live(shared, dims, true),
+                        SlotHandoff::Join(shared) => {
+                            return join_live(shared, dims, storage, metric, true);
+                        }
                         SlotHandoff::Released(released) | SlotHandoff::Expired(released) => {
                             drop(released);
                         }
@@ -436,7 +481,7 @@ impl VecDb {
             }
         }
         Ok(Self {
-            shared: Arc::new(build_read_only(&resolved, dims)?),
+            shared: Arc::new(build_read_only(&resolved, dims, storage, metric)?),
             read_only: true,
         })
     }
@@ -455,8 +500,16 @@ impl VecDb {
         let mut half = self.writable_half()?;
         let state = active_state(&mut half)?;
         ensure_finite(key, vector)?;
-        state.log.append(&[LogEntry::Add { key, vector, attrs }])?;
-        apply_add(&self.shared, key, vector, attrs)?;
+        let quantized = quantize_for(self.shared.storage, vector);
+        let payload = quantized
+            .as_ref()
+            .map_or(VectorPayload::F32(vector), StoredVector::as_payload);
+        state.log.append(&[LogEntry::Add {
+            key,
+            vector: payload,
+            attrs,
+        }])?;
+        apply_add(&self.shared, key, payload, attrs)?;
         apply_policy(&self.shared, &mut half, 1, now)
     }
 
@@ -505,19 +558,31 @@ impl VecDb {
         for (key, vector) in keys.iter().zip(vectors) {
             ensure_finite(key, vector)?;
         }
+        let quantized: Option<Vec<StoredVector>> = match self.shared.storage {
+            StorageKind::F32 => None,
+            StorageKind::I8 => Some(
+                vectors
+                    .iter()
+                    .map(|vector| StoredVector::quantize(vector))
+                    .collect(),
+            ),
+        };
+        let payload_of = |index: usize| match &quantized {
+            Some(stored) => stored[index].as_payload(),
+            None => VectorPayload::F32(&vectors[index]),
+        };
         let records: Vec<LogEntry<'_>> = keys
             .iter()
-            .zip(vectors)
             .enumerate()
-            .map(|(index, (key, vector))| LogEntry::Add {
+            .map(|(index, key)| LogEntry::Add {
                 key,
-                vector,
+                vector: payload_of(index),
                 attrs: attrs_of(index),
             })
             .collect();
         state.log.append(&records)?;
-        for (index, (key, vector)) in keys.iter().zip(vectors).enumerate() {
-            apply_add(&self.shared, key, vector, attrs_of(index))?;
+        for (index, key) in keys.iter().enumerate() {
+            apply_add(&self.shared, key, payload_of(index), attrs_of(index))?;
         }
         apply_policy(&self.shared, &mut half, keys.len(), now)
     }
@@ -719,11 +784,12 @@ impl VecDb {
             mutations_since_snapshot,
             ..
         } = take_writer_state(&mut half)?;
-        let old_generation = log.generation();
+        let old_checkpoint = log.checkpoint();
         drop(log);
         let dims = self.shared.dims;
+        let storage = self.shared.storage;
         let recreated = remove_data_files(&self.shared.path)
-            .and_then(|()| Log::create(&self.shared.path, dims));
+            .and_then(|()| Log::create(&self.shared.path, dims, storage, self.shared.metric));
         let log = match recreated {
             Ok(log) => log,
             Err(error) => {
@@ -731,13 +797,13 @@ impl VecDb {
                     &self.shared,
                     &mut half,
                     lock,
-                    old_generation,
+                    old_checkpoint,
                     mutations_since_snapshot,
                 );
                 return Err(error);
             }
         };
-        let arena = VectorArena::new(dims)?;
+        let arena = VectorArena::with_metric(dims, storage, self.shared.metric)?;
         {
             let mut st = self.shared.state_write();
             st.arena = arena;
@@ -822,6 +888,8 @@ impl VecDb {
             live_count,
             dead_count: st.total_records.saturating_sub(live_count as u64) as usize,
             dims: st.arena.dims(),
+            storage: self.shared.storage,
+            metric: self.shared.metric,
             log_bytes,
             records_since_snapshot,
             approximate_memory_bytes: approximate_memory_bytes(&st),
@@ -912,9 +980,8 @@ fn registry_holds_live(key: &Path) -> bool {
 }
 
 fn open_cost_from_files(path: &Path) -> OpenCost {
-    let mut file = match File::open(path) {
-        Ok(file) => file,
-        Err(_) => return OpenCost::Absent,
+    let Ok(mut file) = File::open(path) else {
+        return OpenCost::Absent;
     };
     let log_len = match file.metadata() {
         Ok(meta) => meta.len(),
@@ -949,7 +1016,7 @@ fn close_live_instance(shared: &Arc<Shared>) -> Result<(), VecDbError> {
     shared.closed.store(true, Ordering::Release);
     drop(log);
     let removed = remove_data_files(&shared.path);
-    if let Ok(empty) = VectorArena::new(shared.dims) {
+    if let Ok(empty) = VectorArena::with_metric(shared.dims, shared.storage, shared.metric) {
         st.arena = empty;
         st.graph = Some(Graph::new());
         st.attrs.reset();
@@ -976,7 +1043,7 @@ fn close_live_instance(shared: &Arc<Shared>) -> Result<(), VecDbError> {
 fn apply_add(
     shared: &Shared,
     key: &str,
-    vector: &[f32],
+    vector: VectorPayload<'_>,
     attrs: &[Attribute],
 ) -> Result<(), VecDbError> {
     let mut st = shared.state_write();
@@ -986,7 +1053,7 @@ fn apply_add(
         attrs: attr_table,
         total_records,
     } = &mut *st;
-    let outcome = arena.upsert(key, vector)?;
+    let outcome = arena.upsert_payload(key, vector)?;
     attr_table.set(slot_of_outcome(outcome), attrs);
     if let Some(graph) = graph {
         apply_outcome(graph, arena, outcome);
@@ -1064,8 +1131,8 @@ fn write_snapshot_now(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecD
 
 fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
     active_state(half)?;
-    let dims = shared.dims;
-    let (mut temp_log, temp_path) = Log::create_temp_sibling(&shared.path, dims)?;
+    let (mut temp_log, temp_path) =
+        Log::create_temp_sibling(&shared.path, shared.dims, shared.storage, shared.metric)?;
     let staged = {
         let st = shared.state_read();
         stage_live_entries(&st, &mut temp_log)
@@ -1075,6 +1142,7 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
         let _ = std::fs::remove_file(&temp_path);
         return Err(error);
     }
+    let compacted_checkpoint = temp_log.checkpoint();
     let temp_file = temp_log.into_file();
     if let Err(source) = temp_file.sync_all() {
         drop(temp_file);
@@ -1088,11 +1156,12 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
         mutations_since_snapshot,
         last_write,
     } = take_writer_state(half)?;
+    let old_checkpoint = log.checkpoint();
     drop(log);
     let promoted = promote_compacted_log(&temp_path, &shared.path);
-    let pending = if temp_path.exists() {
+    let (pending, expected_checkpoint) = if temp_path.exists() {
         let _ = std::fs::remove_file(&temp_path);
-        mutations_since_snapshot
+        (mutations_since_snapshot, old_checkpoint)
     } else {
         let live_records = {
             let mut st = shared.state_write();
@@ -1113,9 +1182,10 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
             Graph::rebuild(&st.arena)
         };
         shared.state_write().graph = Some(graph);
-        live_records
+        (live_records, compacted_checkpoint)
     };
-    let restored = restore_writer_mode(shared, half, lock, last_write, pending);
+    let restored =
+        restore_writer_mode(shared, half, lock, last_write, pending, expected_checkpoint);
     promoted?;
     restored?;
     write_snapshot_now(shared, half)
@@ -1127,13 +1197,49 @@ fn restore_writer_mode(
     lock: WriterLock,
     last_write: Option<Instant>,
     mutations_since_snapshot: usize,
+    expected_checkpoint: LogCheckpoint,
 ) -> Result<(), VecDbError> {
-    match reopen_log(&shared.path, shared.dims) {
-        Ok(log) => {
+    let restored = (|| {
+        let file = open_writer_file(&shared.path, false)?;
+        if file
+            .metadata()
+            .map_err(|source| VecDbError::io(&shared.path, source))?
+            .len()
+            < HEADER_LEN as u64
+        {
+            return Err(VecDbError::Corrupt(
+                "log header was truncated while the writer was closed".to_string(),
+            ));
+        }
+        let mut log = Log::open(
+            file,
+            &shared.path,
+            shared.dims,
+            shared.storage,
+            shared.metric,
+        )?;
+        let mut pending = mutations_since_snapshot;
+        if log.checkpoint() != expected_checkpoint {
+            let replayed = replay(&mut log, shared.dims, ReplayMode::Writer)?;
+            log.truncate_to(replayed.recoverable_end)?;
+            let graph = Graph::rebuild(&replayed.arena);
+            pending = replayed.total_records as usize;
+            *shared.state_write() = SearchState {
+                arena: replayed.arena,
+                graph: Some(graph),
+                attrs: replayed.attrs,
+                total_records: replayed.total_records,
+            };
+            half.compaction_retry_at_dead = 0;
+        }
+        Ok((log, pending))
+    })();
+    match restored {
+        Ok((log, pending)) => {
             half.mode = WriterMode::Active(WriterState {
                 lock,
                 log,
-                mutations_since_snapshot,
+                mutations_since_snapshot: pending,
                 last_write,
             });
             Ok(())
@@ -1156,24 +1262,19 @@ fn recover_after_failed_reset(
     shared: &Shared,
     half: &mut WriterHalf,
     lock: WriterLock,
-    old_generation: [u8; 16],
+    old_checkpoint: LogCheckpoint,
     old_pending: usize,
 ) {
-    let old_log_restored = restore_writer_mode(shared, half, lock, None, old_pending).is_ok()
-        && matches!(&half.mode, WriterMode::Active(state) if state.log.generation() == old_generation);
-    if old_log_restored {
+    if restore_writer_mode(shared, half, lock, None, old_pending, old_checkpoint).is_ok() {
         return;
     }
-    if let Ok(empty) = VectorArena::new(shared.dims) {
+    if let Ok(empty) = VectorArena::with_metric(shared.dims, shared.storage, shared.metric) {
         let mut st = shared.state_write();
         st.arena = empty;
         st.graph = Some(Graph::new());
         st.attrs.reset();
         st.total_records = 0;
         half.compaction_retry_at_dead = 0;
-    }
-    if let WriterMode::Active(state) = &mut half.mode {
-        state.mutations_since_snapshot = 0;
     }
 }
 
@@ -1190,15 +1291,22 @@ fn build_writer(
     path: &Path,
     registry_key: PathBuf,
     dims: usize,
+    storage: StorageKind,
+    metric: DistanceMetric,
 ) -> Result<BuiltWriter, VecDbError> {
     let lock = WriterLock::acquire(path)?;
-    let mut log = match Log::create(path, dims) {
-        Ok(created) => created,
-        Err(VecDbError::Io { source, .. }) if source.kind() == ErrorKind::AlreadyExists => {
-            reopen_log(path, dims)?
+    let mut log = if std::fs::metadata(path).is_ok() {
+        open_existing_writer_log(path, dims, storage, metric)?
+    } else {
+        match Log::create(path, dims, storage, metric) {
+            Ok(created) => created,
+            Err(VecDbError::Io { source, .. }) if source.kind() == ErrorKind::AlreadyExists => {
+                open_existing_writer_log(path, dims, storage, metric)?
+            }
+            Err(error) => return Err(error),
         }
-        Err(error) => return Err(error),
     };
+    let storage = log.storage();
     remove_stale_temp_sibling(path)?;
     let snapshot_present = std::fs::metadata(snapshot_path(path)).is_ok();
     let replayed = replay(&mut log, dims, ReplayMode::Writer)?;
@@ -1234,6 +1342,7 @@ fn build_writer(
                 path,
                 registry_key,
                 dims,
+                storage,
                 WriterState {
                     lock,
                     log,
@@ -1253,6 +1362,7 @@ fn build_writer(
                 path,
                 registry_key,
                 dims,
+                storage,
                 WriterState {
                     lock,
                     log,
@@ -1276,12 +1386,15 @@ fn writer_shared(
     path: &Path,
     registry_key: PathBuf,
     dims: usize,
+    storage: StorageKind,
     writer: WriterState,
     state: SearchState,
 ) -> Shared {
     Shared {
         path: path.to_path_buf(),
         dims,
+        storage,
+        metric: state.arena.metric(),
         registry_key: Some(registry_key),
         closed: AtomicBool::new(false),
         writer: Mutex::new(WriterHalf {
@@ -1334,11 +1447,16 @@ fn install_graph(shared: &Shared, graph: Graph) {
     }
 }
 
-fn build_read_only(path: &Path, dims: usize) -> Result<Shared, VecDbError> {
+fn build_read_only(
+    path: &Path,
+    dims: usize,
+    storage: StorageKind,
+    metric: DistanceMetric,
+) -> Result<Shared, VecDbError> {
     let file = match File::open(path) {
         Ok(file) => file,
         Err(error) if error.kind() == ErrorKind::NotFound => {
-            return empty_read_only(path, dims);
+            return empty_read_only(path, dims, storage, metric);
         }
         Err(source) => return Err(VecDbError::io(path, source)),
     };
@@ -1347,9 +1465,9 @@ fn build_read_only(path: &Path, dims: usize) -> Result<Shared, VecDbError> {
         .map_err(|source| VecDbError::io(path, source))?
         .len();
     if file_len < HEADER_LEN as u64 {
-        return empty_read_only(path, dims);
+        return empty_read_only(path, dims, storage, metric);
     }
-    let mut log = Log::open(file, path, dims)?;
+    let mut log = Log::open(file, path, dims, storage, metric)?;
     let replayed = replay(&mut log, dims, ReplayMode::ReadOnly)?;
     drop(log);
     let ReplayedState {
@@ -1363,7 +1481,6 @@ fn build_read_only(path: &Path, dims: usize) -> Result<Shared, VecDbError> {
     let graph = graph.unwrap_or_else(|| Graph::rebuild(&arena));
     Ok(read_only_shared(
         path,
-        dims,
         arena,
         graph,
         attrs,
@@ -1372,11 +1489,15 @@ fn build_read_only(path: &Path, dims: usize) -> Result<Shared, VecDbError> {
     ))
 }
 
-fn empty_read_only(path: &Path, dims: usize) -> Result<Shared, VecDbError> {
+fn empty_read_only(
+    path: &Path,
+    dims: usize,
+    storage: StorageKind,
+    metric: DistanceMetric,
+) -> Result<Shared, VecDbError> {
     Ok(read_only_shared(
         path,
-        dims,
-        VectorArena::new(dims)?,
+        VectorArena::with_metric(dims, storage, metric)?,
         Graph::new(),
         AttrTable::default(),
         0,
@@ -1386,7 +1507,6 @@ fn empty_read_only(path: &Path, dims: usize) -> Result<Shared, VecDbError> {
 
 fn read_only_shared(
     path: &Path,
-    dims: usize,
     arena: VectorArena,
     graph: Graph,
     attrs: AttrTable,
@@ -1395,7 +1515,9 @@ fn read_only_shared(
 ) -> Shared {
     Shared {
         path: path.to_path_buf(),
-        dims,
+        dims: arena.dims(),
+        storage: arena.storage_kind(),
+        metric: arena.metric(),
         registry_key: None,
         closed: AtomicBool::new(false),
         writer: Mutex::new(WriterHalf {
@@ -1412,10 +1534,7 @@ fn read_only_shared(
 }
 
 fn approximate_memory_bytes(state: &SearchState) -> usize {
-    let vector_bytes = state.arena.slot_count().div_ceil(VECTORS_PER_CHUNK)
-        * VECTORS_PER_CHUNK
-        * state.arena.dims()
-        * size_of::<f32>();
+    let vector_bytes = state.arena.vector_memory_bytes();
     let key_bytes: usize = state
         .arena
         .live_slots()
@@ -1462,7 +1581,7 @@ fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState,
     let snapshot_covered = snapshot.as_ref().map(|loaded| loaded.covered_log_offset);
     let covered = snapshot_covered.unwrap_or(u64::MAX);
     let path = log.path().to_path_buf();
-    let mut arena = VectorArena::new(dims)?;
+    let mut arena = VectorArena::with_metric(dims, log.storage(), log.metric())?;
     let mut attrs = AttrTable::default();
     let mut graph: Option<Graph> = None;
     let mut tail_records = 0u64;
@@ -1482,7 +1601,7 @@ fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState,
                     vector,
                     attrs: record_attrs,
                 } => {
-                    let outcome = arena.upsert(&key, &vector)?;
+                    let outcome = arena.upsert_payload(&key, vector.as_payload())?;
                     attrs.set(slot_of_outcome(outcome), &record_attrs);
                     if let Some(graph) = &mut graph {
                         apply_outcome(graph, &arena, outcome);
@@ -1567,13 +1686,14 @@ fn ensure_finite(key: &str, vector: &[f32]) -> Result<(), VecDbError> {
     Ok(())
 }
 
-fn reopen_log(path: &Path, dims: usize) -> Result<Log, VecDbError> {
-    let file = File::options()
-        .read(true)
-        .write(true)
-        .open(path)
-        .map_err(|source| VecDbError::io(path, source))?;
-    Log::open(file, path, dims)
+fn open_existing_writer_log(
+    path: &Path,
+    dims: usize,
+    storage: StorageKind,
+    metric: DistanceMetric,
+) -> Result<Log, VecDbError> {
+    let file = open_writer_file(path, false)?;
+    Log::open(file, path, dims, storage, metric)
 }
 
 fn promote_compacted_log(temp_path: &Path, path: &Path) -> Result<(), VecDbError> {
@@ -1589,7 +1709,7 @@ fn remove_data_files(path: &Path) -> Result<(), VecDbError> {
 }
 
 fn stage_live_entries(source: &SearchState, log: &mut Log) -> Result<(), VecDbError> {
-    let mut batch: Vec<(String, Vec<f32>, Vec<Attribute>)> =
+    let mut batch: Vec<(String, StoredVector, Vec<Attribute>)> =
         Vec::with_capacity(COMPACTION_BATCH_SIZE);
     for slot in source.arena.live_slots() {
         let Some(key) = source.arena.key_of_slot(slot) else {
@@ -1597,7 +1717,7 @@ fn stage_live_entries(source: &SearchState, log: &mut Log) -> Result<(), VecDbEr
         };
         batch.push((
             key.to_string(),
-            source.arena.vector_values(slot),
+            source.arena.stored_vector(slot),
             source
                 .attrs
                 .get(slot)
@@ -1612,7 +1732,7 @@ fn stage_live_entries(source: &SearchState, log: &mut Log) -> Result<(), VecDbEr
 }
 
 fn flush_stage_batch(
-    batch: &mut Vec<(String, Vec<f32>, Vec<Attribute>)>,
+    batch: &mut Vec<(String, StoredVector, Vec<Attribute>)>,
     log: &mut Log,
 ) -> Result<(), VecDbError> {
     if batch.is_empty() {
@@ -1620,7 +1740,11 @@ fn flush_stage_batch(
     }
     let records: Vec<LogEntry<'_>> = batch
         .iter()
-        .map(|(key, vector, attrs)| LogEntry::Add { key, vector, attrs })
+        .map(|(key, vector, attrs)| LogEntry::Add {
+            key,
+            vector: vector.as_payload(),
+            attrs,
+        })
         .collect();
     log.append_unsynced_for_staging(&records)?;
     batch.clear();
@@ -1644,6 +1768,340 @@ mod tests {
     const DIMS: usize = 16;
     const ADD_RECORD_LEN: u64 = 3 + 5 + (DIMS as u64) * 4 + 1 + 4;
     const TOMBSTONE_RECORD_LEN: u64 = 3 + 5 + 4;
+
+    #[test]
+    fn omitted_storage_requires_i8_for_creation_and_every_reopen() {
+        let dir = TempDir::new().unwrap();
+        for metric in [DistanceMetric::Cosine, DistanceMetric::InnerProduct] {
+            let path = dir.path().join(metric.to_string());
+            let reader = VecDb::open_read_only(&path, 32, None, metric).unwrap();
+            assert_eq!(reader.stats().unwrap().storage, StorageKind::I8);
+            assert_eq!(reader.stats().unwrap().metric, metric);
+            assert!(!path.exists());
+            drop(reader);
+            let db = VecDb::open(&path, 32, None, metric).unwrap();
+            db.add("kept", &[1.0; 32]).unwrap();
+            db.flush().unwrap();
+            let verify = || {
+                for open in [VecDb::open, VecDb::open_read_only] {
+                    let reopened = open(&path, 32, None, metric).unwrap();
+                    assert_eq!(reopened.stats().unwrap().storage, StorageKind::I8);
+                    assert_eq!(reopened.stats().unwrap().metric, metric);
+                    assert!(reopened.contains("kept"));
+                }
+            };
+            verify();
+            drop(db);
+            verify();
+            let f32_path = dir.path().join(format!("f32-{metric}"));
+            let db = VecDb::open(&f32_path, 32, Some(StorageKind::F32), metric).unwrap();
+            let reject = || {
+                let before = fs::read(&f32_path).unwrap();
+                for open in [VecDb::open, VecDb::open_read_only] {
+                    assert!(matches!(
+                        open(&f32_path, 32, None, metric),
+                        Err(VecDbError::StorageMismatch {
+                            expected: StorageKind::I8,
+                            actual: StorageKind::F32
+                        })
+                    ));
+                }
+                assert_eq!(fs::read(&f32_path).unwrap(), before);
+            };
+            reject();
+            drop(db);
+            reject();
+        }
+        let path = dir.path().join("invalid");
+        for open in [VecDb::open, VecDb::open_read_only] {
+            assert!(matches!(
+                open(&path, 8, None, DistanceMetric::Cosine),
+                Err(VecDbError::InvalidDimensions {
+                    dims: 8,
+                    storage: StorageKind::I8
+                })
+            ));
+            assert!(!path.exists());
+        }
+    }
+
+    #[test]
+    fn explicit_configuration_is_verified_on_live_and_disk_opens() {
+        let dir = TempDir::new().unwrap();
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            for metric in [DistanceMetric::Cosine, DistanceMetric::InnerProduct] {
+                let path = dir.path().join(format!("{storage}-{metric}"));
+                let other_storage = match storage {
+                    StorageKind::F32 => StorageKind::I8,
+                    StorageKind::I8 => StorageKind::F32,
+                };
+                let other_metric = match metric {
+                    DistanceMetric::Cosine => DistanceMetric::InnerProduct,
+                    DistanceMetric::InnerProduct => DistanceMetric::Cosine,
+                };
+                let db = VecDb::open(&path, 32, Some(storage), metric).unwrap();
+                db.add("kept", &seeded_unit_vector(1, 32)).unwrap();
+                db.flush().unwrap();
+                let verify = |live: Option<&VecDb>| {
+                    let before = fs::read(&path).unwrap();
+                    let snapshot_before = fs::read(snapshot_path(&path)).unwrap();
+                    for open in [VecDb::open, VecDb::open_read_only] {
+                        assert!(matches!(open(&path, 32, Some(other_storage), metric),
+                            Err(VecDbError::StorageMismatch { expected, actual })
+                                if expected == other_storage && actual == storage));
+                        assert!(matches!(open(&path, 32, Some(storage), other_metric),
+                            Err(VecDbError::MetricMismatch { expected, actual })
+                                if expected == other_metric && actual == metric));
+                        assert!(matches!(
+                            open(&path, 64, Some(storage), metric),
+                            Err(VecDbError::DimensionMismatch {
+                                expected: 64,
+                                actual: 32
+                            })
+                        ));
+                        assert_eq!(fs::read(&path).unwrap(), before);
+                        assert_eq!(fs::read(snapshot_path(&path)).unwrap(), snapshot_before);
+                        let reopened = open(&path, 32, Some(storage), metric).unwrap();
+                        assert_eq!(reopened.stats().unwrap().storage, storage);
+                        assert_eq!(reopened.stats().unwrap().metric, metric);
+                        assert!(reopened.contains("kept"));
+                        if let Some(live) = live {
+                            assert!(Arc::ptr_eq(&live.shared, &reopened.shared));
+                        }
+                    }
+                };
+                verify(Some(&db));
+                drop(db);
+                verify(None);
+            }
+        }
+    }
+
+    #[test]
+    fn missing_and_incomplete_indexes_use_the_explicit_configuration() {
+        let dir = TempDir::new().unwrap();
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            for metric in [DistanceMetric::Cosine, DistanceMetric::InnerProduct] {
+                for incomplete in [false, true] {
+                    let path = dir.path().join(format!("{storage}-{metric}-{incomplete}"));
+                    let dims = storage.lane_width();
+                    if incomplete {
+                        fs::write(&path, [1, 2, 3]).unwrap();
+                    }
+                    let reader = VecDb::open_read_only(&path, dims, Some(storage), metric).unwrap();
+                    let stats = reader.stats().unwrap();
+                    assert_eq!(stats.dims, dims);
+                    assert_eq!(stats.storage, storage);
+                    assert_eq!(stats.metric, metric);
+                    assert!(reader.is_empty());
+                    assert!(matches!(
+                        reader.add("no", &vec![1.0; dims]),
+                        Err(VecDbError::ReadOnly)
+                    ));
+                    if incomplete {
+                        assert_eq!(fs::read(&path).unwrap(), [1, 2, 3]);
+                    } else {
+                        assert!(!path.exists());
+                    }
+                    drop(reader);
+                    let writer = VecDb::open(&path, dims, Some(storage), metric).unwrap();
+                    assert_eq!(writer.stats().unwrap().storage, storage);
+                    assert_eq!(writer.stats().unwrap().metric, metric);
+                    writer.add("kept", &vec![1.0; dims]).unwrap();
+                    drop(writer);
+                    let reopened =
+                        VecDb::open_read_only(&path, dims, Some(storage), metric).unwrap();
+                    assert!(reopened.contains("kept"));
+                    assert_eq!(reopened.stats().unwrap().metric, metric);
+                }
+            }
+        }
+        for open in [VecDb::open, VecDb::open_read_only] {
+            let path = dir.path().join("invalid");
+            assert!(matches!(
+                open(&path, 8, Some(StorageKind::I8), DistanceMetric::Cosine),
+                Err(VecDbError::InvalidDimensions {
+                    dims: 8,
+                    storage: StorageKind::I8
+                })
+            ));
+            assert!(!path.exists());
+        }
+    }
+
+    #[test]
+    fn cosine_scores_unnormalized_vectors_in_every_search_path() {
+        let dir = TempDir::new().unwrap();
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            let db = VecDb::open(
+                &dir.path().join(storage.to_string()),
+                32,
+                Some(storage),
+                DistanceMetric::Cosine,
+            )
+            .unwrap();
+            let vector = |x, y| {
+                let mut values = vec![0.0; 32];
+                values[0] = x;
+                values[1] = y;
+                values
+            };
+            db.add("aligned", &vector(2.0, 0.0)).unwrap();
+            db.add("angled", &vector(30.0, 40.0)).unwrap();
+            db.add("orthogonal", &vector(0.0, 3.0)).unwrap();
+            db.add("opposite", &vector(-4.0, 0.0)).unwrap();
+            db.add("zero", &vector(0.0, 0.0)).unwrap();
+            for exact in [false, true] {
+                let params = SearchParams {
+                    limit: Some(5),
+                    exact,
+                    ..Default::default()
+                };
+                for scale in [0.125, 1.0, 100.0] {
+                    let query = vector(scale, 0.0);
+                    let matches = db.search(&query, &params).unwrap();
+                    assert_eq!(matches[0].key, "aligned");
+                    for (key, distance) in [
+                        ("aligned", 0.0),
+                        ("angled", 0.4),
+                        ("orthogonal", 1.0),
+                        ("opposite", 2.0),
+                        ("zero", 1.0),
+                    ] {
+                        let found = matches.iter().find(|found| found.key == key).unwrap();
+                        assert!(
+                            (found.distance - distance).abs() < 0.005,
+                            "{storage}: {found:?}"
+                        );
+                    }
+                    assert_eq!(
+                        db.bulk_search(&[query.clone(), query.clone()], &params)
+                            .unwrap(),
+                        vec![matches.clone(), matches]
+                    );
+                    for limit in [None, Some(5)] {
+                        let filtered = SearchParams {
+                            limit,
+                            max_distance: Some(0.5),
+                            exact,
+                            allowed_keys: Some(vec!["angled".into(), "orthogonal".into()]),
+                        };
+                        let matches = db.search(&query, &filtered).unwrap();
+                        assert_eq!(matches.len(), 1);
+                        assert_eq!(matches[0].key, "angled");
+                        let threshold = SearchParams {
+                            allowed_keys: None,
+                            ..filtered
+                        };
+                        assert_eq!(db.search(&query, &threshold).unwrap().len(), 2);
+                    }
+                }
+                let stored = db
+                    .bulk_search_stored(&["aligned".into()], 4, Some(0.5), exact, false)
+                    .unwrap();
+                assert_eq!(stored[0].matches.len(), 1);
+                assert_eq!(stored[0].matches[0].key, "angled");
+                assert!((stored[0].matches[0].distance - 0.4).abs() < 0.005);
+                assert!(
+                    db.search(&vector(0.0, 0.0), &params)
+                        .unwrap()
+                        .iter()
+                        .all(|found| found.distance == 1.0)
+                );
+            }
+            assert_eq!(db.get("aligned").unwrap(), vector(2.0, 0.0));
+        }
+    }
+
+    #[test]
+    fn metrics_survive_replacement_compaction_snapshot_replay_and_reset() {
+        let dir = TempDir::new().unwrap();
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            for metric in [DistanceMetric::Cosine, DistanceMetric::InnerProduct] {
+                let path = dir.path().join(format!("{storage}-{metric}"));
+                let db = VecDb::open(&path, 32, Some(storage), metric).unwrap();
+                let mut vector = vec![0.0; 32];
+                vector[0] = 4.0;
+                db.add("removed", &vector).unwrap();
+                db.add("kept", &vector).unwrap();
+                db.remove("removed").unwrap();
+                vector[0] = 3.0;
+                db.add("kept", &vector).unwrap();
+                let recycled: Vec<f32> = vector.iter().map(|value| value * 2.0).collect();
+                db.add("recycled", &recycled).unwrap();
+                db.remove("recycled").unwrap();
+                compact(&db.shared, &mut db.shared.writer_half()).unwrap();
+                db.flush().unwrap();
+                let expected = if metric == DistanceMetric::Cosine {
+                    0.0
+                } else {
+                    -8.0
+                };
+                let assert_score = |db: &VecDb| {
+                    assert_eq!(db.stats().unwrap().metric, metric);
+                    for exact in [false, true] {
+                        let found = db
+                            .search(
+                                &vector,
+                                &SearchParams {
+                                    limit: Some(1),
+                                    exact,
+                                    ..Default::default()
+                                },
+                            )
+                            .unwrap();
+                        assert_eq!(found[0].key, "kept");
+                        assert!((found[0].distance - expected).abs() < 1.0e-5);
+                    }
+                };
+                assert_score(&db);
+                drop(db);
+                for snapshot in [true, false] {
+                    if !snapshot {
+                        remove_snapshot(&path).unwrap();
+                    }
+                    assert_score(&VecDb::open_read_only(&path, 32, Some(storage), metric).unwrap());
+                    assert_score(&VecDb::open(&path, 32, Some(storage), metric).unwrap());
+                }
+                let db = VecDb::open(&path, 32, Some(storage), metric).unwrap();
+                db.reset().unwrap();
+                db.add("kept", &vector).unwrap();
+                assert_score(&db);
+                drop(db);
+                assert_score(&VecDb::open(&path, 32, Some(storage), metric).unwrap());
+            }
+        }
+    }
+
+    #[test]
+    fn cosine_f32_handles_extreme_finite_magnitudes() {
+        let dir = TempDir::new().unwrap();
+        let db = VecDb::open(
+            &dir.path().join("db"),
+            8,
+            Some(StorageKind::F32),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        for magnitude in [f32::MAX, f32::MIN_POSITIVE, f32::from_bits(1)] {
+            let vector = vec![magnitude; 8];
+            db.add("same", &vector).unwrap();
+            db.add("opposite", &[-magnitude; 8]).unwrap();
+            let found = db
+                .search(
+                    &vector,
+                    &SearchParams {
+                        limit: Some(2),
+                        exact: true,
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            assert_eq!(found[0].key, "same");
+            assert!(found[0].distance.abs() < 1.0e-6);
+            assert_eq!(found[1].distance, 2.0);
+        }
+    }
 
     fn seeded_unit_vector(seed: u64, dims: usize) -> Vec<f32> {
         let mut state = seed;
@@ -1694,7 +2152,7 @@ mod tests {
     }
 
     fn open_writer(path: &Path) -> VecDb {
-        VecDb::open(path, DIMS).unwrap()
+        VecDb::open(path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap()
     }
 
     fn generation_of(path: &Path) -> [u8; 16] {
@@ -1832,7 +2290,9 @@ mod tests {
         db.flush().unwrap();
         assert_eq!(db.stats().unwrap().records_since_snapshot, 0);
         drop(db);
-        let read_only = VecDb::open_read_only(&path, DIMS).unwrap();
+        let read_only =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         let reopened = open_writer(&path);
         let mut index = 0;
         for query in &queries {
@@ -1987,11 +2447,11 @@ mod tests {
         let log_bytes = fs::read(path).unwrap();
         let snapshot_bytes = snapshot_exists(path).then(|| fs::read(snapshot_path(path)).unwrap());
         assert!(matches!(
-            VecDb::open(path, DIMS),
+            VecDb::open(path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
             Err(VecDbError::Corrupt(_))
         ));
         assert!(matches!(
-            VecDb::open_read_only(path, DIMS),
+            VecDb::open_read_only(path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
             Err(VecDbError::Corrupt(_))
         ));
         assert_eq!(fs::read(path).unwrap(), log_bytes);
@@ -2028,8 +2488,22 @@ mod tests {
         bulk_add(&db, &bulk_entries(0, 2, 500)).unwrap();
         db.flush().unwrap();
         drop(db);
-        let mut captured_for_read_only = reopen_log(&path, DIMS).unwrap();
-        let mut captured_for_writer = reopen_log(&path, DIMS).unwrap();
+        let mut captured_for_read_only = Log::open(
+            File::open(&path).unwrap(),
+            &path,
+            DIMS,
+            StorageKind::F32,
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        let mut captured_for_writer = Log::open(
+            File::open(&path).unwrap(),
+            &path,
+            DIMS,
+            StorageKind::F32,
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
         let stale_end = captured_for_read_only.current_end_offset();
         let racer = open_writer(&path);
         bulk_add(&racer, &bulk_entries(2, 2, 500)).unwrap();
@@ -2064,7 +2538,14 @@ mod tests {
         bulk_add(&db, &bulk_entries(0, 2, 700)).unwrap();
         db.flush().unwrap();
         drop(db);
-        let mut captured_for_read_only = reopen_log(&path, DIMS).unwrap();
+        let mut captured_for_read_only = Log::open(
+            File::open(&path).unwrap(),
+            &path,
+            DIMS,
+            StorageKind::F32,
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
         let stale_end = captured_for_read_only.current_end_offset();
         let racer = open_writer(&path);
         bulk_add(&racer, &bulk_entries(2, 2, 700)).unwrap();
@@ -2217,7 +2698,9 @@ mod tests {
         let last_start = bytes.len() - ADD_RECORD_LEN as usize;
         bytes[last_start + 10] ^= 0x01;
         fs::write(&path, &bytes).unwrap();
-        let read_only = VecDb::open_read_only(&path, DIMS).unwrap();
+        let read_only =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         assert_eq!(read_only.len(), 3);
         assert!(!read_only.contains("key-3"));
         drop(read_only);
@@ -2246,11 +2729,11 @@ mod tests {
         fs::write(&path, &bytes).unwrap();
         let snapshot_bytes = fs::read(snapshot_path(&path)).unwrap();
         assert!(matches!(
-            VecDb::open(&path, DIMS),
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
             Err(VecDbError::Corrupt(message)) if message.contains("version")
         ));
         assert!(matches!(
-            VecDb::open_read_only(&path, DIMS),
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
             Err(VecDbError::Corrupt(message)) if message.contains("version")
         ));
         assert_eq!(fs::read(&path).unwrap(), bytes);
@@ -2338,7 +2821,8 @@ mod tests {
         let path = dir.path().join("db");
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 3, 120)).unwrap();
-        let joined = VecDb::open(&path, DIMS).unwrap();
+        let joined =
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
         assert!(Arc::ptr_eq(&db.shared, &joined.shared));
         assert_eq!(joined.len(), 3);
         joined.add("joined", &seeded_unit_vector(9, DIMS)).unwrap();
@@ -2359,7 +2843,8 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
         let first = open_writer(&path);
-        let second = VecDb::open(&path, DIMS).unwrap();
+        let second =
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
         assert!(Arc::ptr_eq(&first.shared, &second.shared));
         let via_first = seeded_unit_vector(11, DIMS);
         let via_second = seeded_unit_vector(22, DIMS);
@@ -2374,12 +2859,232 @@ mod tests {
         assert!(first.contains("via-second"));
         assert_eq!(first.len(), 2);
         assert!(matches!(
-            VecDb::open(&path, DIMS + 8),
+            VecDb::open(&path, DIMS + 8, Some(StorageKind::F32), DistanceMetric::Cosine),
             Err(VecDbError::DimensionMismatch {
                 expected,
                 actual
             }) if expected == DIMS + 8 && actual == DIMS
         ));
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn hard_link_cannot_admit_a_second_writer() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let alias = dir.path().join("alias");
+        let first = open_writer(&path);
+        fs::hard_link(&path, &alias).unwrap();
+        let bytes = fs::read(&path).unwrap();
+        assert!(matches!(
+            VecDb::open(&alias, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
+            Err(VecDbError::Locked(_))
+        ));
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+        let second = open_writer(&path);
+        let reader =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
+        first.add("first", &basis_vector(0)).unwrap();
+        second.add("second", &basis_vector(1)).unwrap();
+        assert!(reader.contains("first"));
+        assert!(reader.contains("second"));
+        drop(reader);
+        drop(second);
+        drop(first);
+        let reopened = open_writer(&path);
+        assert!(reopened.contains("first"));
+        assert!(reopened.contains("second"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn writer_lock_contention_preserves_incomplete_logs() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let alias = dir.path().join("alias");
+        let partial = b"EVDB";
+        fs::write(&path, partial).unwrap();
+        let holder = File::options().read(true).write(true).open(&path).unwrap();
+        holder.try_lock().unwrap();
+        fs::hard_link(&path, &alias).unwrap();
+        for name in [&path, &alias] {
+            assert!(matches!(
+                VecDb::open(name, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
+                Err(VecDbError::Locked(_))
+            ));
+        }
+        assert_eq!(fs::read(&path).unwrap(), partial);
+        assert!(
+            VecDb::open_read_only(
+                &alias,
+                I8_DIMS,
+                Some(StorageKind::I8),
+                DistanceMetric::Cosine
+            )
+            .unwrap()
+            .is_empty()
+        );
+        drop(holder);
+        let writer = open_writer(&alias);
+        assert!(writer.is_empty());
+        writer.add("first", &basis_vector(0)).unwrap();
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn hard_link_writer_process() {
+        let Some(path) = std::env::var_os("VECDB_HARD_LINK_TEST_PATH") else {
+            return;
+        };
+        let path = PathBuf::from(path);
+        match std::env::var("VECDB_HARD_LINK_TEST_ACTION")
+            .unwrap()
+            .as_str()
+        {
+            "blocked" => {
+                let result =
+                    VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine);
+                assert!(matches!(result, Err(VecDbError::Locked(_))));
+                let reader = VecDb::open_read_only(
+                    &path,
+                    DIMS,
+                    Some(StorageKind::F32),
+                    DistanceMetric::Cosine,
+                )
+                .unwrap();
+                assert!(reader.contains("first"));
+            }
+            "write" => {
+                let writer = open_writer(&path);
+                assert!(writer.contains("first"));
+                writer.add("next", &basis_vector(1)).unwrap();
+            }
+            action => panic!("unexpected hard-link test action: {action}"),
+        }
+    }
+
+    #[cfg(any(unix, windows))]
+    fn run_hard_link_writer_process(path: &Path, action: &str) {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .arg("--exact")
+            .arg(format!(
+                "{}::hard_link_writer_process",
+                module_path!().split_once("::").unwrap().1
+            ))
+            .arg("--nocapture")
+            .env("VECDB_HARD_LINK_TEST_PATH", path)
+            .env("VECDB_HARD_LINK_TEST_ACTION", action)
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert!(
+            String::from_utf8_lossy(&output.stdout).contains("1 passed"),
+            "{output:?}"
+        );
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn hard_link_exclusion_and_writer_handoff_work_across_processes() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let alias = dir.path().join("alias");
+        let first = open_writer(&path);
+        first.add("first", &basis_vector(0)).unwrap();
+        fs::hard_link(&path, &alias).unwrap();
+        run_hard_link_writer_process(&alias, "blocked");
+        assert_eq!(first.len(), 1);
+        drop(first);
+        run_hard_link_writer_process(&alias, "write");
+        let reader =
+            VecDb::open_read_only(&alias, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
+        assert_eq!(reader.len(), 2);
+        assert!(reader.contains("first"));
+        assert!(reader.contains("next"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn writer_exclusion_survives_removing_or_renaming_the_original_name() {
+        use std::os::unix::fs::MetadataExt;
+
+        for reopen in [false, true] {
+            for unlink in [false, true] {
+                let dir = TempDir::new().unwrap();
+                let path = dir.path().join("db");
+                let alias = dir.path().join("alias");
+                let mut first = open_writer(&path);
+                first.add("first", &basis_vector(0)).unwrap();
+                if reopen {
+                    drop(first);
+                    first = open_writer(&path);
+                }
+                if unlink {
+                    fs::hard_link(&path, &alias).unwrap();
+                    fs::remove_file(&path).unwrap();
+                } else {
+                    fs::rename(&path, &alias).unwrap();
+                }
+                assert_eq!(fs::metadata(&alias).unwrap().nlink(), 1);
+                assert!(matches!(
+                    VecDb::open(&alias, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
+                    Err(VecDbError::Locked(_))
+                ));
+                let reader = VecDb::open_read_only(
+                    &alias,
+                    DIMS,
+                    Some(StorageKind::F32),
+                    DistanceMetric::Cosine,
+                )
+                .unwrap();
+                assert!(reader.contains("first"));
+                drop(reader);
+                run_hard_link_writer_process(&alias, "blocked");
+                first.add("after", &basis_vector(2)).unwrap();
+                drop(first);
+                run_hard_link_writer_process(&alias, "write");
+                let reopened = open_writer(&alias);
+                assert_eq!(reopened.len(), 3);
+                assert!(reopened.contains("first"));
+                assert!(reopened.contains("after"));
+                assert!(reopened.contains("next"));
+            }
+        }
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn a_late_hard_link_does_not_interrupt_writer_maintenance() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let alias = dir.path().join("alias");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 10, 800)).unwrap();
+        fs::hard_link(&path, &alias).unwrap();
+        let observer =
+            VecDb::open_read_only(&alias, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
+        assert_eq!(observer.len(), 10);
+        compact(&db.shared, &mut db.shared.writer_half()).unwrap();
+        assert_eq!(db.len(), 10);
+        fs::remove_file(&alias).unwrap();
+        fs::hard_link(&path, &alias).unwrap();
+        assert!(matches!(
+            VecDb::open(&alias, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
+            Err(VecDbError::Locked(_))
+        ));
+        db.reset().unwrap();
+        db.add("after", &basis_vector(0)).unwrap();
+        fs::remove_file(&alias).unwrap();
+        fs::hard_link(&path, &alias).unwrap();
+        assert!(matches!(
+            VecDb::open(&alias, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
+            Err(VecDbError::Locked(_))
+        ));
+        assert_eq!(db.len(), 1);
+        assert_eq!(observer.len(), 10);
     }
 
     #[test]
@@ -2389,8 +3094,14 @@ mod tests {
         fs::create_dir(&subdir).unwrap();
         let plain = subdir.join("db");
         let dotted = subdir.join("..").join("indexes").join("db");
-        let first = VecDb::open(&plain, DIMS).unwrap();
-        let second = VecDb::open(&dotted, DIMS).unwrap();
+        let first = open_writer(&plain);
+        let second = VecDb::open(
+            &dotted,
+            DIMS,
+            Some(StorageKind::F32),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
         assert!(Arc::ptr_eq(&first.shared, &second.shared));
         let vector = seeded_unit_vector(5, DIMS);
         first.add("shared", &vector).unwrap();
@@ -2403,7 +3114,8 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
         let first = open_writer(&path);
-        let second = VecDb::open(&path, DIMS).unwrap();
+        let second =
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
         first.add("kept", &seeded_unit_vector(3, DIMS)).unwrap();
         drop(first);
         assert!(second.contains("kept"));
@@ -2417,7 +3129,8 @@ mod tests {
         assert_eq!(reopened.len(), 2);
         assert!(reopened.contains("kept"));
         assert!(reopened.contains("still-open"));
-        let again = VecDb::open(&path, DIMS).unwrap();
+        let again =
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
         assert!(Arc::ptr_eq(&reopened.shared, &again.shared));
     }
 
@@ -2437,7 +3150,13 @@ mod tests {
                 thread::spawn(move || {
                     barrier.wait();
                     for _ in 0..CYCLES {
-                        let db = VecDb::open(&path, DIMS).unwrap();
+                        let db = VecDb::open(
+                            &path,
+                            DIMS,
+                            Some(StorageKind::F32),
+                            DistanceMetric::Cosine,
+                        )
+                        .unwrap();
                         assert!(db.contains("seed"));
                         drop(db);
                     }
@@ -2537,7 +3256,7 @@ mod tests {
         let closed = closed_instance(&path);
         let key = registry_key_for(&path).unwrap();
         let slot = plant_closed_marker(&key, &closed);
-        let reopened = VecDb::open(&path, DIMS).unwrap();
+        let reopened = open_writer(&path);
         assert!(!Arc::ptr_eq(&reopened.shared, &closed));
         reopened
             .add("fresh", &seeded_unit_vector(78, DIMS))
@@ -2581,7 +3300,9 @@ mod tests {
             }
             let opener = {
                 let path = path.clone();
-                thread::spawn(move || VecDb::open(&path, DIMS))
+                thread::spawn(move || {
+                    VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                })
             };
             thread::sleep(Duration::from_millis(5));
             drop(frozen);
@@ -2618,13 +3339,17 @@ mod tests {
         let key = registry_key_for(&stalled_path).unwrap();
         let slot = path_slot(&key);
         let build_in_progress = lock_slot(&slot);
+        #[expect(
+            clippy::needless_collect,
+            reason = "Start both worker threads before releasing the slot lock"
+        )]
         let stalled_openers: Vec<_> = (0..2)
             .map(|_| {
                 let path = stalled_path.clone();
-                thread::spawn(move || VecDb::open(&path, DIMS).unwrap())
+                thread::spawn(move || open_writer(&path))
             })
             .collect();
-        let other = VecDb::open(&other_path, DIMS).unwrap();
+        let other = open_writer(&other_path);
         other.add("other", &seeded_unit_vector(1, DIMS)).unwrap();
         assert_eq!(other.len(), 1);
         drop(build_in_progress);
@@ -2648,7 +3373,7 @@ mod tests {
         fs::create_dir(&path).unwrap();
         let key = registry_key_for(&path).unwrap();
         assert!(matches!(
-            VecDb::open(&path, DIMS),
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine),
             Err(VecDbError::Io { .. })
         ));
         assert!(!registry().contains_key(&key));
@@ -2700,7 +3425,9 @@ mod tests {
         let path = dir.path().join("db");
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 3, 130)).unwrap();
-        let read_only = VecDb::open_read_only(&path, DIMS).unwrap();
+        let read_only =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         assert!(Arc::ptr_eq(&db.shared, &read_only.shared));
         assert_eq!(read_only.len(), 3);
         assert!(read_only.contains("key-1"));
@@ -2723,7 +3450,9 @@ mod tests {
         ));
         assert!(matches!(read_only.flush(), Err(VecDbError::ReadOnly)));
         assert!(matches!(read_only.reset(), Err(VecDbError::ReadOnly)));
-        let another = VecDb::open_read_only(&path, DIMS).unwrap();
+        let another =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         assert!(matches!(another.delete(), Err(VecDbError::ReadOnly)));
         assert!(db.contains("later"));
         assert!(path.exists());
@@ -2731,9 +3460,11 @@ mod tests {
 
     #[test]
     fn read_only_open_of_missing_file_is_empty() {
+        const DIMS: usize = I8_DIMS;
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("absent");
-        let db = VecDb::open_read_only(&path, DIMS).unwrap();
+        let db = VecDb::open_read_only(&path, DIMS, Some(StorageKind::I8), DistanceMetric::Cosine)
+            .unwrap();
         assert_eq!(db.len(), 0);
         assert!(db.is_empty());
         assert!(!db.contains("anything"));
@@ -2749,6 +3480,8 @@ mod tests {
                 live_count: 0,
                 dead_count: 0,
                 dims: DIMS,
+                storage: StorageKind::I8,
+                metric: DistanceMetric::Cosine,
                 log_bytes: 0,
                 records_since_snapshot: 0,
                 approximate_memory_bytes: 0,
@@ -2766,7 +3499,9 @@ mod tests {
         let db = open_writer(&path);
         db.add("kept", &seeded_unit_vector(3, DIMS)).unwrap();
         drop(db);
-        let read_only = VecDb::open_read_only(&path, DIMS).unwrap();
+        let read_only =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         let vector = seeded_unit_vector(4, DIMS);
         assert!(matches!(
             read_only.add("x", &vector),
@@ -2802,7 +3537,9 @@ mod tests {
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 100, 140)).unwrap();
         drop(db);
-        let snapshot_view = VecDb::open_read_only(&path, DIMS).unwrap();
+        let snapshot_view =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         assert_eq!(snapshot_view.len(), 100);
         let db = open_writer(&path);
         assert!(!Arc::ptr_eq(&snapshot_view.shared, &db.shared));
@@ -2819,11 +3556,15 @@ mod tests {
         assert!(snapshot_view.contains("key-5"));
         assert!(!snapshot_view.contains("fresh"));
         assert_own_nearest(&snapshot_view, "key-5", &seeded_unit_vector(145, DIMS));
-        let live_view = VecDb::open_read_only(&path, DIMS).unwrap();
+        let live_view =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         assert!(Arc::ptr_eq(&live_view.shared, &db.shared));
         assert!(live_view.contains("fresh"));
         drop(db);
-        let fresh_view = VecDb::open_read_only(&path, DIMS).unwrap();
+        let fresh_view =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         assert_eq!(fresh_view.len(), 69);
         assert!(!fresh_view.contains("key-5"));
         assert!(fresh_view.contains("fresh"));
@@ -3249,7 +3990,7 @@ mod tests {
         assert_eq!(
             db.bulk_search(std::slice::from_ref(&query), &approx)
                 .unwrap(),
-            vec![expected.clone()]
+            vec![expected]
         );
         assert_eq!(
             db.bulk_search_stored(&stored_keys, 5, None, false, false)
@@ -3320,7 +4061,13 @@ mod tests {
         let path = dir.path().join("db");
         let partial = [0x45u8, 0x56, 0x44, 0x42, 0x01, 0x00, 0x00];
         fs::write(&path, partial).unwrap();
-        let db = VecDb::open_read_only(&path, DIMS).unwrap();
+        let db = VecDb::open_read_only(
+            &path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
         assert!(db.is_empty());
         assert_eq!(db.stats().unwrap().log_bytes, 0);
         assert_eq!(fs::read(&path).unwrap(), partial);
@@ -3332,16 +4079,26 @@ mod tests {
     fn promote_compacted_log_replaces_the_log_durably() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
-        drop(Log::create(&path, DIMS).unwrap().into_file());
+        drop(
+            Log::create(&path, DIMS, StorageKind::F32, DistanceMetric::Cosine)
+                .unwrap()
+                .into_file(),
+        );
         let old_generation = generation_of(&path);
         let temp = temp_sibling(&path);
-        drop(Log::create(&temp, DIMS).unwrap().into_file());
+        drop(
+            Log::create(&temp, DIMS, StorageKind::F32, DistanceMetric::InnerProduct)
+                .unwrap()
+                .into_file(),
+        );
         let new_generation = generation_of(&temp);
         promote_compacted_log(&temp, &path).unwrap();
         assert!(!temp.exists());
         assert_eq!(generation_of(&path), new_generation);
         assert_ne!(generation_of(&path), old_generation);
-        let log = reopen_log(&path, DIMS).unwrap();
+        let log =
+            open_existing_writer_log(&path, DIMS, StorageKind::F32, DistanceMetric::InnerProduct)
+                .unwrap();
         assert_eq!(log.generation(), new_generation);
         drop(log);
         assert!(matches!(
@@ -3363,6 +4120,7 @@ mod tests {
             mutations_since_snapshot,
             ..
         } = take_writer(&db);
+        let checkpoint = log.checkpoint();
         drop(log);
         assert_eq!(mutations_since_snapshot, 3);
         assert!(is_degraded(&db));
@@ -3377,8 +4135,15 @@ mod tests {
         ));
         {
             let mut half = db.shared.writer_half();
-            restore_writer_mode(&db.shared, &mut half, lock, None, mutations_since_snapshot)
-                .unwrap();
+            restore_writer_mode(
+                &db.shared,
+                &mut half,
+                lock,
+                None,
+                mutations_since_snapshot,
+                checkpoint,
+            )
+            .unwrap();
         }
         assert_eq!(mutations(&db), 3);
         db.add("after", &vector).unwrap();
@@ -3394,12 +4159,146 @@ mod tests {
     }
 
     #[test]
+    fn restore_writer_mode_replays_writes_made_while_the_log_was_closed() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        db.add("first", &basis_vector(0)).unwrap();
+        db.flush().unwrap();
+        let WriterState { lock, log, .. } = take_writer(&db);
+        let checkpoint = log.checkpoint();
+        drop(log);
+        let mut foreign =
+            open_existing_writer_log(&path, DIMS, StorageKind::F32, DistanceMetric::Cosine)
+                .unwrap();
+        foreign
+            .append(&[LogEntry::Add {
+                key: "foreign",
+                vector: VectorPayload::F32(&basis_vector(1)),
+                attrs: &[],
+            }])
+            .unwrap();
+        drop(foreign);
+        {
+            let mut half = db.shared.writer_half();
+            restore_writer_mode(&db.shared, &mut half, lock, None, 0, checkpoint).unwrap();
+        }
+        assert!(db.contains("foreign"));
+        assert_own_nearest(&db, "foreign", &basis_vector(1));
+        db.add("after", &basis_vector(2)).unwrap();
+        db.flush().unwrap();
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.len(), 3);
+        assert_own_nearest(&reopened, "foreign", &basis_vector(1));
+    }
+
+    #[test]
+    fn restore_writer_mode_reloads_a_new_generation_of_the_same_length() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        db.add("first", &basis_vector(0)).unwrap();
+        db.flush().unwrap();
+        let WriterState { lock, log, .. } = take_writer(&db);
+        let checkpoint = log.checkpoint();
+        let old_len = log.current_end_offset();
+        drop(log);
+        fs::remove_file(&path).unwrap();
+        let mut replacement =
+            Log::create(&path, DIMS, StorageKind::F32, DistanceMetric::Cosine).unwrap();
+        replacement
+            .append(&[LogEntry::Add {
+                key: "other",
+                vector: VectorPayload::F32(&basis_vector(1)),
+                attrs: &[],
+            }])
+            .unwrap();
+        assert_eq!(replacement.current_end_offset(), old_len);
+        drop(replacement);
+        {
+            let mut half = db.shared.writer_half();
+            restore_writer_mode(&db.shared, &mut half, lock, None, 0, checkpoint).unwrap();
+        }
+        assert!(!db.contains("first"));
+        assert_own_nearest(&db, "other", &basis_vector(1));
+        db.add("after", &basis_vector(2)).unwrap();
+        db.flush().unwrap();
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.len(), 2);
+        assert!(!reopened.contains("first"));
+        assert_own_nearest(&reopened, "other", &basis_vector(1));
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn restore_writer_mode_cannot_rejoin_an_alias_writer() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let alias = dir.path().join("alias");
+        let db = open_writer(&path);
+        db.add("first", &basis_vector(0)).unwrap();
+        fs::hard_link(&path, &alias).unwrap();
+        let WriterState { lock, log, .. } = take_writer(&db);
+        let checkpoint = log.checkpoint();
+        drop(log);
+        let foreign = open_writer(&alias);
+        foreign.add("other", &basis_vector(1)).unwrap();
+        {
+            let mut half = db.shared.writer_half();
+            assert!(matches!(
+                restore_writer_mode(&db.shared, &mut half, lock, None, 1, checkpoint),
+                Err(VecDbError::Locked(_))
+            ));
+        }
+        assert!(matches!(
+            db.add("lost", &basis_vector(2)),
+            Err(VecDbError::ReadOnly)
+        ));
+        drop(db);
+        foreign.add("after", &basis_vector(2)).unwrap();
+        drop(foreign);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.len(), 3);
+        assert!(!reopened.contains("lost"));
+        assert_own_nearest(&reopened, "after", &basis_vector(2));
+    }
+
+    #[test]
+    fn restore_writer_mode_preserves_a_truncated_header_and_disables_writes() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        db.add("first", &basis_vector(0)).unwrap();
+        let WriterState { lock, log, .. } = take_writer(&db);
+        let checkpoint = log.checkpoint();
+        drop(log);
+        let bytes = b"EVDB";
+        fs::write(&path, bytes).unwrap();
+        {
+            let mut half = db.shared.writer_half();
+            assert!(matches!(
+                restore_writer_mode(&db.shared, &mut half, lock, None, 1, checkpoint),
+                Err(VecDbError::Corrupt(_))
+            ));
+        }
+        assert!(matches!(
+            db.add("after", &basis_vector(1)),
+            Err(VecDbError::ReadOnly)
+        ));
+        drop(db);
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+    }
+
+    #[test]
     fn restore_writer_mode_degrades_to_accurate_read_only_when_reopen_fails() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 3, 270)).unwrap();
         let WriterState { lock, log, .. } = take_writer(&db);
+        let checkpoint = log.checkpoint();
         drop(log);
         let mut bytes = fs::read(&path).unwrap();
         bytes[20] ^= 0x5A;
@@ -3407,7 +4306,7 @@ mod tests {
         {
             let mut half = db.shared.writer_half();
             assert!(matches!(
-                restore_writer_mode(&db.shared, &mut half, lock, None, 3),
+                restore_writer_mode(&db.shared, &mut half, lock, None, 3, checkpoint),
                 Err(VecDbError::Corrupt(_))
             ));
             assert!(
@@ -3538,6 +4437,8 @@ mod tests {
                 live_count: 0,
                 dead_count: 0,
                 dims: DIMS,
+                storage: StorageKind::F32,
+                metric: DistanceMetric::Cosine,
                 log_bytes: 32,
                 records_since_snapshot: 0,
                 approximate_memory_bytes: 0,
@@ -3557,7 +4458,8 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
         let first = open_writer(&path);
-        let second = VecDb::open(&path, DIMS).unwrap();
+        let second =
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
         bulk_add(&first, &bulk_entries(0, 10, 220)).unwrap();
         assert_eq!(second.len(), 10);
         second.reset().unwrap();
@@ -3624,14 +4526,18 @@ mod tests {
         let path = dir.path().join("db");
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 5, 330)).unwrap();
-        let old_generation = generation_of(&path);
         let WriterState { lock, log, .. } = take_writer(&db);
+        let old_checkpoint = log.checkpoint();
         drop(log);
         remove_data_files(&path).unwrap();
-        drop(Log::create(&path, DIMS).unwrap().into_file());
+        drop(
+            Log::create(&path, DIMS, StorageKind::F32, DistanceMetric::Cosine)
+                .unwrap()
+                .into_file(),
+        );
         {
             let mut half = db.shared.writer_half();
-            recover_after_failed_reset(&db.shared, &mut half, lock, old_generation, 5);
+            recover_after_failed_reset(&db.shared, &mut half, lock, old_checkpoint, 5);
         }
         assert!(db.is_empty());
         assert!(!db.contains("key-0"));
@@ -3729,8 +4635,11 @@ mod tests {
         let first = open_writer(&path);
         bulk_add(&first, &bulk_entries(0, 5, 400)).unwrap();
         first.flush().unwrap();
-        let survivor = VecDb::open(&path, DIMS).unwrap();
-        let observer = VecDb::open_read_only(&path, DIMS).unwrap();
+        let survivor =
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
+        let observer =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         first.delete().unwrap();
         assert!(!path.exists());
         assert!(!snapshot_exists(&path));
@@ -3787,7 +4696,8 @@ mod tests {
         let barrier = Arc::new(Barrier::new(READERS + 2));
         let mut readers = Vec::new();
         for reader_index in 0..READERS {
-            let handle = VecDb::open(&path, DIMS).unwrap();
+            let handle =
+                VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
             let stop = Arc::clone(&stop);
             let barrier = Arc::clone(&barrier);
             let expected = Arc::clone(&expected);
@@ -3810,7 +4720,8 @@ mod tests {
             }));
         }
         let flusher = {
-            let handle = VecDb::open(&path, DIMS).unwrap();
+            let handle =
+                VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
             let stop = Arc::clone(&stop);
             let barrier = Arc::clone(&barrier);
             thread::spawn(move || {
@@ -4212,7 +5123,9 @@ mod tests {
         assert_eq!(db.len(), 1);
         assert!(!db.contains("x"));
         assert_eq!(db.stats().unwrap().log_bytes, log_bytes);
-        let read_only = VecDb::open_read_only(&path, DIMS).unwrap();
+        let read_only =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         assert!(matches!(
             read_only.bulk_add(&keys, &vectors),
             Err(VecDbError::LengthMismatch { .. })
@@ -4227,8 +5140,11 @@ mod tests {
         bulk_add(&first, &bulk_entries(0, 5, 950)).unwrap();
         first.flush().unwrap();
         fs::write(temp_sibling(&path), [7u8; 10]).unwrap();
-        let survivor = VecDb::open(&path, DIMS).unwrap();
-        let observer = VecDb::open_read_only(&path, DIMS).unwrap();
+        let survivor =
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
+        let observer =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         VecDb::purge(&path).unwrap();
         assert!(!path.exists());
         assert!(!snapshot_exists(&path));
@@ -4332,7 +5248,8 @@ mod tests {
         let alias = dir.path().join("alias");
         let via_path = open_writer(&path);
         std::os::unix::fs::symlink(&path, &alias).unwrap();
-        let via_alias = VecDb::open(&alias, DIMS).unwrap();
+        let via_alias =
+            VecDb::open(&alias, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
         via_path
             .add("through-real", &seeded_unit_vector(5, DIMS))
             .unwrap();
@@ -4344,7 +5261,9 @@ mod tests {
         assert_eq!(via_path.len(), 2);
         assert!(lock_path(&path).exists());
         assert!(!lock_path(&alias).exists());
-        let read_alias = VecDb::open_read_only(&alias, DIMS).unwrap();
+        let read_alias =
+            VecDb::open_read_only(&alias, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         via_path.add("late", &seeded_unit_vector(7, DIMS)).unwrap();
         assert!(read_alias.contains("late"));
     }
@@ -4489,7 +5408,9 @@ mod tests {
         assert!(!snapshot_exists(&path));
         let opener = {
             let path = path.clone();
-            thread::spawn(move || VecDb::open(&path, DIMS).unwrap())
+            thread::spawn(move || {
+                VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap()
+            })
         };
         let key = registry_key_for(&path).unwrap();
         let deadline = Instant::now() + Duration::from_secs(60);
@@ -4498,7 +5419,13 @@ mod tests {
             let registered =
                 existing_path_slot(&key).is_some_and(|slot| lock_slot(&slot).holds_live());
             if registered {
-                break VecDb::open_read_only(&path, DIMS).unwrap();
+                break VecDb::open_read_only(
+                    &path,
+                    DIMS,
+                    Some(StorageKind::F32),
+                    DistanceMetric::Cosine,
+                )
+                .unwrap();
             }
             thread::yield_now();
         };
@@ -4517,7 +5444,8 @@ mod tests {
             expected_stored
         );
         assert!(!opener.is_finished());
-        let writer = VecDb::open(&path, DIMS).unwrap();
+        let writer =
+            VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
         assert!(Arc::ptr_eq(&writer.shared, &joined.shared));
         let adder = {
             let vector = replacement.clone();
@@ -4672,7 +5600,9 @@ mod tests {
             assert_eq!(db.get_attrs("removed"), None);
             assert_eq!(db.get_attrs("recycled").unwrap(), sample_attrs(22));
         };
-        let read_only = VecDb::open_read_only(&path, DIMS).unwrap();
+        let read_only =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         verify(&read_only);
         drop(read_only);
         let reopened = open_writer(&path);
@@ -4778,7 +5708,7 @@ mod tests {
         db.add("seed", &vector).unwrap();
         let log_bytes = db.stats().unwrap().log_bytes;
         let keys = vec!["x".to_string(), "y".to_string()];
-        let vectors = vec![vector.clone(), vector.clone()];
+        let vectors = vec![vector.clone(), vector];
         assert!(matches!(
             db.bulk_add_with_attrs(&keys, &vectors, &[None]),
             Err(VecDbError::LengthMismatch {
@@ -4812,7 +5742,9 @@ mod tests {
             vec![Some(sample_attrs(7)), None, None, None]
         );
         assert_eq!(db.get_attrs("x").unwrap(), sample_attrs(7));
-        let read_only = VecDb::open_read_only(&path, DIMS).unwrap();
+        let read_only =
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine)
+                .unwrap();
         assert!(matches!(
             read_only.bulk_add_with_attrs(&keys, &vectors, &[None]),
             Err(VecDbError::LengthMismatch { .. })
@@ -4852,5 +5784,589 @@ mod tests {
         .unwrap();
         let with_attrs = db.stats().unwrap().approximate_memory_bytes;
         assert!(with_attrs > without_attrs + 512);
+    }
+
+    const I8_DIMS: usize = 32;
+
+    fn i8_entries(start: usize, count: usize, seed: u64) -> Vec<(String, Vec<f32>)> {
+        (start..start + count)
+            .map(|index| {
+                (
+                    format!("key-{index}"),
+                    seeded_unit_vector(seed + index as u64, I8_DIMS),
+                )
+            })
+            .collect()
+    }
+
+    fn open_i8(path: &Path) -> VecDb {
+        VecDb::open(path, I8_DIMS, Some(StorageKind::I8), DistanceMetric::Cosine).unwrap()
+    }
+
+    fn stored_vectors(db: &VecDb) -> Vec<(String, StoredVector)> {
+        let st = db.shared.state_read();
+        st.arena
+            .live_slots()
+            .map(|slot| {
+                (
+                    st.arena.key_of_slot(slot).unwrap().to_string(),
+                    st.arena.stored_vector(slot),
+                )
+            })
+            .collect()
+    }
+
+    fn assert_same_stored(left: &[(String, StoredVector)], right: &[(String, StoredVector)]) {
+        assert_eq!(left.len(), right.len());
+        for ((left_key, left_vector), (right_key, right_vector)) in left.iter().zip(right) {
+            assert_eq!(left_key, right_key);
+            assert_eq!(format!("{left_vector:?}"), format!("{right_vector:?}"));
+        }
+    }
+
+    fn assert_own_nearest_i8(db: &VecDb, key: &str, vector: &[f32]) {
+        let matches = db.search(vector, &limit_params(1)).unwrap();
+        assert_eq!(matches[0].key, key);
+        assert!(matches[0].distance.abs() < 0.02);
+    }
+
+    fn logged_add_records(path: &Path, dims: usize) -> Vec<(String, StoredVector)> {
+        let mut log = Log::open(
+            File::open(path).unwrap(),
+            path,
+            dims,
+            StorageKind::I8,
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        let mut scanner = log.scan().unwrap();
+        let mut records = Vec::new();
+        while let Some((record, _)) = scanner.next_record().unwrap() {
+            if let LogRecord::Add { key, vector, .. } = record {
+                records.push((key, vector));
+            }
+        }
+        records
+    }
+
+    #[test]
+    fn existing_index_reports_storage_mismatch_before_its_dimensions_are_judged() {
+        let dir = TempDir::new().unwrap();
+        let narrow = dir.path().join("narrow");
+        let wide = dir.path().join("wide");
+        let live = VecDb::open(&narrow, 8, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
+        live.add("n", &seeded_unit_vector(1, 8)).unwrap();
+        assert!(matches!(
+            VecDb::open(&narrow, 8, Some(StorageKind::I8), DistanceMetric::Cosine),
+            Err(VecDbError::StorageMismatch {
+                expected: StorageKind::I8,
+                actual: StorageKind::F32
+            })
+        ));
+        drop(live);
+        assert!(matches!(
+            VecDb::open(&narrow, 8, Some(StorageKind::I8), DistanceMetric::Cosine),
+            Err(VecDbError::StorageMismatch {
+                expected: StorageKind::I8,
+                actual: StorageKind::F32
+            })
+        ));
+        drop(
+            VecDb::open(
+                &wide,
+                I8_DIMS,
+                Some(StorageKind::F32),
+                DistanceMetric::Cosine,
+            )
+            .unwrap(),
+        );
+        assert!(matches!(
+            VecDb::open(&wide, 8, Some(StorageKind::I8), DistanceMetric::Cosine),
+            Err(VecDbError::StorageMismatch {
+                expected: StorageKind::I8,
+                actual: StorageKind::F32
+            })
+        ));
+        assert!(matches!(
+            VecDb::open(&wide, 8, Some(StorageKind::F32), DistanceMetric::Cosine),
+            Err(VecDbError::DimensionMismatch {
+                expected: 8,
+                actual: I8_DIMS
+            })
+        ));
+        drop(open_i8(&dir.path().join("i8")));
+        assert!(matches!(
+            VecDb::open_read_only(
+                &dir.path().join("i8"),
+                8,
+                Some(StorageKind::I8),
+                DistanceMetric::Cosine
+            ),
+            Err(VecDbError::DimensionMismatch {
+                expected: 8,
+                actual: I8_DIMS
+            })
+        ));
+        assert!(matches!(
+            VecDb::open(
+                &dir.path().join("fresh"),
+                8,
+                Some(StorageKind::I8),
+                DistanceMetric::Cosine
+            ),
+            Err(VecDbError::InvalidDimensions {
+                dims: 8,
+                storage: StorageKind::I8
+            })
+        ));
+        assert!(!dir.path().join("fresh").exists());
+    }
+
+    #[test]
+    fn storage_kind_is_verified_on_every_open_path() {
+        let dir = TempDir::new().unwrap();
+        let f32_path = dir.path().join("f32");
+        let i8_path = dir.path().join("i8");
+        let f32_db = VecDb::open(
+            &f32_path,
+            I8_DIMS,
+            Some(StorageKind::F32),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        f32_db.add("f", &seeded_unit_vector(1, I8_DIMS)).unwrap();
+        assert_eq!(f32_db.stats().unwrap().storage, StorageKind::F32);
+        assert!(matches!(
+            VecDb::open(
+                &f32_path,
+                I8_DIMS,
+                Some(StorageKind::I8),
+                DistanceMetric::Cosine
+            ),
+            Err(VecDbError::StorageMismatch {
+                expected: StorageKind::I8,
+                actual: StorageKind::F32
+            })
+        ));
+        let verified = VecDb::open(
+            &f32_path,
+            I8_DIMS,
+            Some(StorageKind::F32),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        assert!(Arc::ptr_eq(&verified.shared, &f32_db.shared));
+        drop(verified);
+        drop(f32_db);
+        assert!(matches!(
+            VecDb::open(
+                &f32_path,
+                I8_DIMS,
+                Some(StorageKind::I8),
+                DistanceMetric::Cosine
+            ),
+            Err(VecDbError::StorageMismatch {
+                expected: StorageKind::I8,
+                actual: StorageKind::F32
+            })
+        ));
+        assert_eq!(
+            VecDb::open(
+                &f32_path,
+                I8_DIMS,
+                Some(StorageKind::F32),
+                DistanceMetric::Cosine
+            )
+            .unwrap()
+            .stats()
+            .unwrap()
+            .storage,
+            StorageKind::F32
+        );
+        let i8_db = VecDb::open(
+            &i8_path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        let vector = seeded_unit_vector(2, I8_DIMS);
+        i8_db.add("i", &vector).unwrap();
+        assert_eq!(i8_db.stats().unwrap().storage, StorageKind::I8);
+        let joined = VecDb::open(
+            &i8_path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        assert!(Arc::ptr_eq(&joined.shared, &i8_db.shared));
+        assert_eq!(joined.stats().unwrap().storage, StorageKind::I8);
+        assert!(matches!(
+            VecDb::open(
+                &i8_path,
+                I8_DIMS,
+                Some(StorageKind::F32),
+                DistanceMetric::Cosine
+            ),
+            Err(VecDbError::StorageMismatch {
+                expected: StorageKind::F32,
+                actual: StorageKind::I8
+            })
+        ));
+        let read_alias = VecDb::open_read_only(
+            &i8_path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        assert!(Arc::ptr_eq(&read_alias.shared, &i8_db.shared));
+        assert_eq!(read_alias.stats().unwrap().storage, StorageKind::I8);
+        i8_db.flush().unwrap();
+        drop(read_alias);
+        drop(joined);
+        drop(i8_db);
+        assert_eq!(VecDb::open_cost(&i8_path), OpenCost::Ready);
+        let standalone = VecDb::open_read_only(
+            &i8_path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        assert_eq!(standalone.stats().unwrap().storage, StorageKind::I8);
+        assert!(standalone.contains("i"));
+        assert_own_nearest_i8(&standalone, "i", &vector);
+        drop(standalone);
+        assert!(matches!(
+            VecDb::open(
+                &i8_path,
+                I8_DIMS,
+                Some(StorageKind::F32),
+                DistanceMetric::Cosine
+            ),
+            Err(VecDbError::StorageMismatch {
+                expected: StorageKind::F32,
+                actual: StorageKind::I8
+            })
+        ));
+        let detected = VecDb::open(
+            &i8_path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        assert_eq!(detected.stats().unwrap().storage, StorageKind::I8);
+        assert!(detected.contains("i"));
+        assert_own_nearest_i8(&detected, "i", &vector);
+        assert!(matches!(
+            VecDb::open(
+                &dir.path().join("narrow"),
+                16,
+                Some(StorageKind::I8),
+                DistanceMetric::Cosine
+            ),
+            Err(VecDbError::InvalidDimensions {
+                dims: 16,
+                storage: StorageKind::I8
+            })
+        ));
+        assert!(
+            VecDb::open(
+                &dir.path().join("narrow"),
+                16,
+                Some(StorageKind::F32),
+                DistanceMetric::Cosine
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            VecDb::open_read_only(
+                &dir.path().join("absent"),
+                I8_DIMS,
+                Some(StorageKind::I8),
+                DistanceMetric::Cosine
+            )
+            .unwrap()
+            .stats()
+            .unwrap()
+            .storage,
+            StorageKind::I8
+        );
+    }
+
+    #[test]
+    fn i8_add_paths_log_exactly_the_quantized_bytes_the_arena_holds() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_i8(&path);
+        let single = seeded_unit_vector(10, I8_DIMS);
+        db.add_with_attrs("single", &single, &sample_attrs(1))
+            .unwrap();
+        let entries = i8_entries(0, 5, 20);
+        bulk_add(&db, &entries).unwrap();
+        let expected: Vec<(String, StoredVector)> =
+            std::iter::once(("single".to_string(), single.clone()))
+                .chain(entries.iter().cloned())
+                .map(|(key, vector)| (key, StoredVector::quantize(&vector)))
+                .collect();
+        assert_same_stored(&logged_add_records(&path, I8_DIMS), &expected);
+        assert_same_stored(&stored_vectors(&db), &expected);
+        assert_eq!(db.get_attrs("single").unwrap(), sample_attrs(1));
+        let restored = db.get("single").unwrap();
+        let StoredVector::I8 { scale, .. } = &expected[0].1 else {
+            panic!("expected i8 storage");
+        };
+        for (original, restored) in single.iter().zip(&restored) {
+            assert!((original - restored).abs() <= scale / 2.0 + scale * 1.0e-6);
+        }
+        let stats = db.stats().unwrap();
+        assert_eq!(stats.storage, StorageKind::I8);
+        let record_len = 3 + "key-0".len() as u64 + 4 + I8_DIMS as u64 + 1 + 4;
+        let single_len = 3 + "single".len() as u64 + 4 + I8_DIMS as u64 + 1 + 4;
+        let attr_len: u64 = sample_attrs(1)
+            .iter()
+            .map(|attr| {
+                2 + attr.name.len() as u64
+                    + match &attr.value {
+                        AttrValue::Str(value) => 2 + value.len() as u64,
+                        AttrValue::Bool(_) => 1,
+                        AttrValue::I64(_) | AttrValue::F64(_) => 8,
+                    }
+            })
+            .sum();
+        assert_eq!(
+            stats.log_bytes,
+            HEADER_LEN as u64 + single_len + attr_len + 5 * record_len
+        );
+    }
+
+    #[test]
+    fn i8_index_survives_compaction_replay_and_snapshot_with_identical_bytes_and_results() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let copy_path = dir.path().join("copy");
+        let db = open_i8(&path);
+        bulk_add(&db, &i8_entries(0, 300, 500)).unwrap();
+        for index in 0..20u64 {
+            db.add(
+                &format!("key-{}", index * 3),
+                &seeded_unit_vector(9000 + index, I8_DIMS),
+            )
+            .unwrap();
+        }
+        let query = seeded_unit_vector(31337, I8_DIMS);
+        let approx = limit_params(10);
+        let exact = SearchParams {
+            limit: Some(80),
+            exact: true,
+            ..SearchParams::default()
+        };
+        let stored_keys: Vec<String> = ["key-1", "key-50", "key-100", "key-299"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        let exact_before = db.search(&query, &exact).unwrap();
+        assert_eq!(exact_before.len(), 80);
+        let stored_before = stored_vectors(&db);
+        let removals: Vec<String> = (0..40).map(|index| format!("key-{}", index * 7)).collect();
+        let generation_before = generation_of(&path);
+        assert_eq!(db.bulk_remove(&removals).unwrap(), 40);
+        assert_ne!(generation_of(&path), generation_before);
+        let stats = db.stats().unwrap();
+        assert_eq!(stats.live_count, 260);
+        assert_eq!(stats.dead_count, 0);
+        assert_eq!(stats.storage, StorageKind::I8);
+        let survivors: Vec<(String, StoredVector)> = stored_before
+            .into_iter()
+            .filter(|(key, _)| !removals.contains(key))
+            .collect();
+        assert_same_stored(&stored_vectors(&db), &survivors);
+        assert_same_stored(&logged_add_records(&path, I8_DIMS), &survivors);
+        let expected_exact: Vec<Match> = exact_before
+            .into_iter()
+            .filter(|hit| !removals.contains(&hit.key))
+            .take(10)
+            .collect();
+        let exact_ten = SearchParams {
+            limit: Some(10),
+            exact: true,
+            ..SearchParams::default()
+        };
+        assert_eq!(db.search(&query, &exact_ten).unwrap(), expected_exact);
+        let threshold = SearchParams {
+            max_distance: Some(expected_exact[9].distance),
+            ..SearchParams::default()
+        };
+        let approx_after = db.search(&query, &approx).unwrap();
+        let threshold_after = db.search(&query, &threshold).unwrap();
+        let stored_after = db
+            .bulk_search_stored(&stored_keys, 10, None, false, false)
+            .unwrap();
+        assert_eq!(approx_after.len(), 10);
+        assert!(!threshold_after.is_empty());
+        assert_eq!(stored_after.len(), 4);
+        db.flush().unwrap();
+        fs::copy(&path, &copy_path).unwrap();
+        drop(db);
+        let verify = |db: &VecDb| {
+            assert_eq!(db.stats().unwrap().storage, StorageKind::I8);
+            assert_same_stored(&stored_vectors(db), &survivors);
+            assert_eq!(db.search(&query, &exact_ten).unwrap(), expected_exact);
+            assert_eq!(db.search(&query, &approx).unwrap(), approx_after);
+            assert_eq!(db.search(&query, &threshold).unwrap(), threshold_after);
+            assert_eq!(
+                db.bulk_search_stored(&stored_keys, 10, None, false, false)
+                    .unwrap(),
+                stored_after
+            );
+        };
+        let read_only = VecDb::open_read_only(
+            &path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        verify(&read_only);
+        drop(read_only);
+        let with_snapshot = VecDb::open(
+            &path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        verify(&with_snapshot);
+        drop(with_snapshot);
+        fs::remove_file(snapshot_path(&path)).unwrap();
+        let rebuilt = VecDb::open(
+            &path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        verify(&rebuilt);
+        let from_copy = open_i8(&copy_path);
+        verify(&from_copy);
+        let rebuilt_state = rebuilt.shared.state_read();
+        let copy_state = from_copy.shared.state_read();
+        test_support::assert_identical_graphs(
+            rebuilt_state.graph.as_ref().unwrap(),
+            copy_state.graph.as_ref().unwrap(),
+        );
+    }
+
+    #[test]
+    fn i8_interrupted_sessions_build_the_same_graph_as_one_uninterrupted_session() {
+        let dir = TempDir::new().unwrap();
+        let split_path = dir.path().join("split");
+        let whole_path = dir.path().join("whole");
+        let tail_new = seeded_unit_vector(4242, I8_DIMS);
+        let older_upsert = {
+            let mut values = tail_new.clone();
+            values[0] += 0.05;
+            let norm = values.iter().map(|value| value * value).sum::<f32>().sqrt();
+            for value in &mut values {
+                *value /= norm;
+            }
+            values
+        };
+        {
+            let db = open_i8(&split_path);
+            bulk_add(&db, &i8_entries(0, 40, 500)).unwrap();
+            db.flush().unwrap();
+        }
+        {
+            let db = VecDb::open(
+                &split_path,
+                I8_DIMS,
+                Some(StorageKind::I8),
+                DistanceMetric::Cosine,
+            )
+            .unwrap();
+            assert_eq!(db.stats().unwrap().storage, StorageKind::I8);
+            db.add("tail-new", &tail_new).unwrap();
+            db.add("key-3", &older_upsert).unwrap();
+        }
+        let split = VecDb::open(
+            &split_path,
+            I8_DIMS,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        let whole = open_i8(&whole_path);
+        bulk_add(&whole, &i8_entries(0, 40, 500)).unwrap();
+        whole.add("tail-new", &tail_new).unwrap();
+        whole.add("key-3", &older_upsert).unwrap();
+        assert_same_stored(&stored_vectors(&split), &stored_vectors(&whole));
+        let split_state = split.shared.state_read();
+        let whole_state = whole.shared.state_read();
+        let split_graph = split_state.graph.as_ref().unwrap();
+        let whole_graph = whole_state.graph.as_ref().unwrap();
+        assert_eq!(split_graph.insert_ordinal(), 42);
+        assert_eq!(whole_graph.insert_ordinal(), 42);
+        assert!(
+            split_graph
+                .slots()
+                .any(|slot| split_graph.level_of(slot).unwrap() > 0)
+        );
+        test_support::assert_identical_graphs(split_graph, whole_graph);
+    }
+
+    #[test]
+    fn i8_stats_report_the_storage_and_a_quarter_of_the_vector_memory() {
+        let dir = TempDir::new().unwrap();
+        let dims = 512;
+        let f32_db = VecDb::open(
+            &dir.path().join("f32"),
+            dims,
+            Some(StorageKind::F32),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        let i8_db = VecDb::open(
+            &dir.path().join("i8"),
+            dims,
+            Some(StorageKind::I8),
+            DistanceMetric::Cosine,
+        )
+        .unwrap();
+        let entries: Vec<(String, Vec<f32>)> = (0..200u64)
+            .map(|index| (format!("key-{index}"), seeded_unit_vector(index, dims)))
+            .collect();
+        bulk_add(&f32_db, &entries).unwrap();
+        bulk_add(&i8_db, &entries).unwrap();
+        let f32_stats = f32_db.stats().unwrap();
+        let i8_stats = i8_db.stats().unwrap();
+        assert_eq!(f32_stats.storage, StorageKind::F32);
+        assert_eq!(i8_stats.storage, StorageKind::I8);
+        assert_eq!(i8_stats.live_count, 200);
+        assert_eq!(i8_stats.dims, dims);
+        assert!(i8_stats.approximate_memory_bytes < f32_stats.approximate_memory_bytes / 3);
+        assert!(i8_stats.log_bytes < f32_stats.log_bytes / 3);
+        let key = "key-7".to_string();
+        let restored = i8_db.get(&key).unwrap();
+        let original = &entries[7].1;
+        let max_abs = original
+            .iter()
+            .fold(0.0f32, |acc, value| acc.max(value.abs()));
+        for (original, restored) in original.iter().zip(&restored) {
+            assert!((original - restored).abs() <= max_abs / 254.0 + 1.0e-6);
+        }
+        assert_eq!(f32_db.get(&key).unwrap(), *original);
+        assert_own_nearest_i8(&i8_db, &key, original);
+        i8_db.reset().unwrap();
+        assert_eq!(i8_db.stats().unwrap().storage, StorageKind::I8);
+        i8_db.add("again", original).unwrap();
+        assert_own_nearest_i8(&i8_db, "again", original);
+        assert_same_stored(
+            &logged_add_records(&dir.path().join("i8"), dims),
+            &[("again".to_string(), StoredVector::quantize(original))],
+        );
     }
 }

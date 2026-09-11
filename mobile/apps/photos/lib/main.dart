@@ -64,6 +64,7 @@ import "package:photos/services/sync/sync_service.dart";
 import "package:photos/services/video_preview_service.dart";
 import "package:photos/src/rust/api/log.dart" as photos_rust_log;
 import "package:photos/src/rust/frb_generated.dart";
+import 'package:photos/ui/wallpaper/wallpaper_page.dart';
 import "package:photos/utils/bg_task_utils.dart";
 import "package:photos/utils/device_info.dart";
 import "package:photos/utils/email_util.dart";
@@ -89,6 +90,7 @@ const kBGProcessingTaskMLSelfStopIOS = Duration(minutes: 3, seconds: 45);
 // opens; it drains its latched stop within seconds once the process is woken.
 const kBGProcessingTaskMLLockWaitIOS = Duration(seconds: 60);
 const kBGTaskMLSelfStopAndroid = Duration(minutes: 9);
+const kBGProcessingTaskMLSelfStopAndroid = Duration(minutes: 8);
 bool isProcessBg = true;
 bool _stopHearBeat = false;
 bool _isSyncInitialized = false;
@@ -97,6 +99,9 @@ Future<void>? _rustInitFuture;
 late final photos_rust_log.LogSinkGuard _photosRustLogSinkGuard;
 
 enum ForegroundStartupMode { normal, picker }
+
+@pragma('vm:entry-point')
+Future<void> wallpaperMain() => runWallpaperApp();
 
 void main() async {
   debugRepaintRainbowEnabled = false;
@@ -244,11 +249,18 @@ Future<void> runBackgroundTask(
   // Created at task start so a stop that fires before ML begins stays
   // latched for the whole task.
   final mlRunControl = MlRunControl();
-  final mlSelfStopTimer = Timer(
-    mlSelfStop ??
-        (Platform.isIOS ? kBGTaskMLSelfStopIOS : kBGTaskMLSelfStopAndroid),
-    () => mlRunControl.requestStop(MlStopReason.backgroundDeadline),
-  );
+  final mlBudget =
+      mlSelfStop ??
+      (Platform.isIOS ? kBGTaskMLSelfStopIOS : kBGTaskMLSelfStopAndroid);
+  if (mlBudget <= Duration.zero) {
+    mlRunControl.requestStop(MlStopReason.backgroundDeadline);
+  }
+  final mlSelfStopTimer = mlBudget > Duration.zero
+      ? Timer(
+          mlBudget,
+          () => mlRunControl.requestStop(MlStopReason.backgroundDeadline),
+        )
+      : null;
   final mlForegroundWatchTimer = Timer.periodic(
     const Duration(milliseconds: 500),
     (_) async {
@@ -274,7 +286,7 @@ Future<void> runBackgroundTask(
 
     await _runMinimally(taskId, tlog, mlRunControl, mlLockWait);
   } finally {
-    mlSelfStopTimer.cancel();
+    mlSelfStopTimer?.cancel();
     mlForegroundWatchTimer.cancel();
   }
 }
@@ -301,6 +313,9 @@ Future<void> _runMinimally(
       NetworkClient.instance.getDio(),
       NetworkClient.instance.downloadDio,
       packageInfo,
+    );
+    MLDataDB.initialize(
+      preferRust: flagService.rustMlDb || localSettings.rustMlDbOverride,
     );
     NotificationService.instance.init(prefs);
 
@@ -377,9 +392,7 @@ Future<void> _runMinimally(
           await MLService.instance.init();
           final disposition = await MLService.instance.runAllML(
             force: false,
-            allowImageIndexing:
-                !Platform.isIOS ||
-                taskId == BgTaskUtils.iOSBackgroundProcessingTask,
+            allowImageIndexing: BgTaskUtils.allowsImageIndexing(taskId),
             control: mlRunControl,
             lockWait: mlLockWait,
           );
@@ -451,6 +464,10 @@ Future<void> _init(
       NetworkClient.instance.getDio(),
       NetworkClient.instance.downloadDio,
       packageInfo,
+    );
+
+    MLDataDB.initialize(
+      preferRust: flagService.rustMlDb || localSettings.rustMlDbOverride,
     );
 
     _logger.info("Configuration init $tlog");

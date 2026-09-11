@@ -1,7 +1,4 @@
-ext {
-    compileSdkVersion   = 35
-    targetSdkVersion    = 35
-}
+apply from: "../../../gradle/ente-android.gradle"
 
 allprojects {
     repositories {

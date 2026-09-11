@@ -205,7 +205,7 @@ impl Task for AnalyzeImageTask {
     fn resolve(&mut self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
         match output {
             Ok(output) => Ok(to_napi_analyze_image_result(output)),
-            Err(error) => Err(ml_error_to_napi(&env, error)?),
+            Err(error) => Err(ml_error_to_napi(env, error)?),
         }
     }
 }
@@ -277,7 +277,7 @@ pub fn tokenize_clip_text(text: String, vocab_path: String) -> Result<Vec<i32>> 
         .map_err(|error| Error::from_reason(error.to_string()))
 }
 
-fn ml_error_to_napi(env: &Env, error: MlError) -> Result<Error> {
+fn ml_error_to_napi(env: Env, error: MlError) -> Result<Error> {
     let name = match &error {
         MlError::CorruptModel(_) => "ml_init",
         MlError::Decode(_) => "ml_decode",
@@ -286,7 +286,7 @@ fn ml_error_to_napi(env: &Env, error: MlError) -> Result<Error> {
     };
     let mut value = env.create_error(Error::from_reason(error.to_string()))?;
     value.set_named_property("name", name)?;
-    Ok(Error::from(value.into_unknown(env)?))
+    Ok(Error::from(value.into_unknown(&env)?))
 }
 
 fn asset_error_to_napi(error: ente_assets::download::Error) -> Error {

@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:convert";
 import "dart:io";
 import "dart:math";
 
@@ -16,6 +17,7 @@ import 'package:photos/models/file_load_result.dart';
 import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/location/location.dart';
 import "package:photos/models/metadata/common_keys.dart";
+import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/services/filter/db_filters.dart";
 import 'package:sqlite_async/sqlite_async.dart';
 
@@ -1179,33 +1181,82 @@ class FilesDB with SqlDbBase {
     );
   }
 
-  Future<void> updateOfflineImportMetadataForLocalID(
+  Future<void> refreshModifiedLocalFiles(List<EnteFile> files) async {
+    final db = await instance.sqliteAsyncDB;
+    await db.writeTransaction((tx) async {
+      for (final file in files) {
+        await tx.execute(
+          '''
+          UPDATE $filesTable
+          SET $columnModificationTime = ?,
+              $columnLatitude = NULL,
+              $columnLongitude = NULL,
+              $columnPubMMdEncodedJson = json_patch(COALESCE($columnPubMMdEncodedJson, '{}'), ?),
+              $columnMetadataVersion = -1
+          WHERE $columnLocalID = ? AND $columnModificationTime != ?
+            AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)
+          ''',
+          [
+            file.modificationTime,
+            jsonEncode({
+              widthKey: file.hasDimensions ? file.width : null,
+              heightKey: file.hasDimensions ? file.height : null,
+              mediaTypeKey: null,
+              motionVideoIndexKey: null,
+            }),
+            file.localID,
+            file.modificationTime,
+          ],
+        );
+      }
+    });
+  }
+
+  Future<bool> updateOfflineImportMetadataForLocalID(
     String localID, {
     required int processingVersion,
+    required int modificationTime,
     int? creationTime,
     Location? location,
     int? fileSize,
+    ({int width, int height})? dimensions,
+    int? mediaType,
+    int? motionVideoIndex,
   }) async {
     final db = await instance.sqliteAsyncDB;
-    await db.execute(
+    final result = await db.execute(
       '''
       UPDATE $filesTable
       SET  $columnCreationTime = COALESCE(?, $columnCreationTime),
             $columnLatitude = COALESCE(?, $columnLatitude),
             $columnLongitude = COALESCE(?, $columnLongitude),
             $columnFileSize = COALESCE(?, $columnFileSize),
+            $columnPubMMdEncodedJson = json_patch(COALESCE($columnPubMMdEncodedJson, '{}'), ?),
             $columnMetadataVersion = ?
-      WHERE $columnLocalID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1);
+      WHERE $columnLocalID = ? AND $columnModificationTime = ?
+        AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)
+      RETURNING $columnLocalID;
     ''',
       [
         creationTime,
         location?.latitude,
         location?.longitude,
         fileSize,
+        jsonEncode({
+          if (dimensions != null) ...{
+            widthKey: dimensions.width,
+            heightKey: dimensions.height,
+          },
+          mediaTypeKey: ?mediaType,
+          if (mediaType != null || motionVideoIndex != null)
+            motionVideoIndexKey: motionVideoIndex,
+        }),
         processingVersion,
         localID,
+        modificationTime,
       ],
     );
+    return result.isNotEmpty;
   }
 
   Future<List<EnteFile>> getUnlinkedLocalMatchesForRemoteFile(

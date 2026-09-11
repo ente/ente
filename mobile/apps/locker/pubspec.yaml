@@ -1,7 +1,7 @@
 name: locker
 description: "Ente Locker – Safe space for your important documents"
 publish_to: "none"
-version: 1.0.9+182
+version: 1.0.10+182
 
 resolution: workspace
 environment:

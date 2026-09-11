@@ -1,16 +1,14 @@
-import "package:ente_events/event_bus.dart";
-import "package:ente_legacy/events/legacy_kit_created_event.dart";
-import "package:ente_legacy/models/legacy_kit_models.dart";
 import "package:ente_legacy/pages/create_legacy_kit_sheet.dart";
 import "package:ente_legacy/pages/emergency_page.dart";
 import "package:ente_legacy/pages/legacy_kit_intro_page.dart";
 import "package:ente_lock_screen/local_authentication_service.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:locker/services/authenticated_session.dart";
 import "package:locker/services/configuration.dart";
-import "package:locker/services/legacy_kit.dart" as legacy;
+import "package:locker/services/legacy_api.dart";
 import "package:logging/logging.dart";
+
+const _legacy = LockerLegacyApi();
 
 final _logger = Logger("LegacyUtils");
 
@@ -61,12 +59,7 @@ Future<void> _openLegacy(
       context,
       accountEmail: config.getEmail() ?? "",
       isFirstLegacyKit: true,
-      createKit: _createLegacyKit,
-      getKits: _getLegacyKits,
-      downloadShares: _downloadLegacyKitShares,
-      updateRecoveryNotice: _updateLegacyKitRecoveryNotice,
-      blockRecovery: _blockLegacyKitRecovery,
-      deleteKit: _deleteLegacyKit,
+      legacy: _legacy,
       authenticator: legacyKitAuthenticator,
     );
     return;
@@ -80,12 +73,7 @@ Future<void> _openLegacy(
       builder: (BuildContext context) {
         return EmergencyPage(
           config: config,
-          getLegacyKits: _getLegacyKits,
-          createLegacyKit: _createLegacyKit,
-          downloadLegacyKitShares: _downloadLegacyKitShares,
-          updateLegacyKitRecoveryNotice: _updateLegacyKitRecoveryNotice,
-          blockLegacyKitRecovery: _blockLegacyKitRecovery,
-          deleteLegacyKit: _deleteLegacyKit,
+          legacy: _legacy,
           legacyKitAuthenticator: legacyKitAuthenticator,
         );
       },
@@ -95,51 +83,12 @@ Future<void> _openLegacy(
 
 Future<bool?> hasLegacyKit() async {
   try {
-    return (await _getLegacyKits()).isNotEmpty;
+    return (await _legacy.kits()).isNotEmpty;
   } catch (e, s) {
     _logger.warning("Failed to fetch legacy kits", e, s);
     return null;
   }
 }
-
-Future<List<LegacyKit>> _getLegacyKits() =>
-    legacy.kits(session: authenticatedSession());
-
-Future<LegacyKitCreateResult> _createLegacyKit(
-  List<String> partNames,
-  int noticePeriodInHours,
-) async {
-  final keyAttributes = Configuration.instance.getKeyAttributes();
-  if (keyAttributes == null) {
-    throw StateError("Missing account key attributes");
-  }
-  final result = await legacy.createKit(
-    session: authenticatedSession(),
-    currentUserKeyAttrs: keyAttributes,
-    partNames: partNames,
-    noticePeriodInHours: noticePeriodInHours,
-  );
-  Bus.instance.fire(LegacyKitCreatedEvent());
-  return result;
-}
-
-Future<List<LegacyKitShare>> _downloadLegacyKitShares(String kitId) =>
-    legacy.downloadKitShares(session: authenticatedSession(), kitId: kitId);
-
-Future<void> _updateLegacyKitRecoveryNotice(
-  String kitId,
-  int noticePeriodInHours,
-) => legacy.updateKitRecoveryNotice(
-  session: authenticatedSession(),
-  kitId: kitId,
-  noticePeriodInHours: noticePeriodInHours,
-);
-
-Future<void> _blockLegacyKitRecovery(String kitId) =>
-    legacy.blockKitRecovery(session: authenticatedSession(), kitId: kitId);
-
-Future<void> _deleteLegacyKit(String kitId) =>
-    legacy.deleteKit(session: authenticatedSession(), kitId: kitId);
 
 Future<bool> _authenticateForLegacyFlow(BuildContext context, String reason) {
   return LocalAuthenticationService.instance.requestLocalAuthentication(

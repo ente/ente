@@ -85,6 +85,10 @@ fn take_rgb_image(decoded: &mut DecodedImage) -> MlResult<RgbImage> {
     }
 
     let rgb = std::mem::take(&mut decoded.rgb);
+    #[expect(
+        clippy::expect_used,
+        reason = "RGB dimensions and exact buffer length are checked before conversion"
+    )]
     Ok(ImageBuffer::<Rgb<u8>, _>::from_raw(
         decoded.dimensions.width,
         decoded.dimensions.height,

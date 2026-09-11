@@ -51,12 +51,27 @@ If you wish to run Ente from source without using Docker, follow the steps descr
     ```shell
     sudo apt install npm nodejs
     ```
+5. **rust and rustup:** Needed for WASM build
 
-5. **Git:** Needed for cloning the repository and pulling in latest changes
+   Rust and rustup are required for the web application builds.
 
-6. **Caddy:** Used for setting reverse proxy and file servers
+   ```shell
+   # Install the Rust installer
+   sudo apt install rustup
 
-7. **Object Storage:** Ensure you have an object storage configured for usage, needed for storing files. You can choose to run MinIO or Garage locally without Docker, however, an external bucket will be reliable and suited for long-term storage.
+   # Install the rust compiler from the stable channel and set as default toolchain
+   rustup default stable
+   ```
+
+   > [!TIP]
+   > `rustup` is available in Debian since Trixie (13). For older builds or other platforms where `rustup` is not available,
+   > please refer to the official installation steps [here](https://rustup.rs/)
+
+6. **Git:** Needed for cloning the repository and pulling in latest changes
+
+7. **Caddy:** Used for setting reverse proxy and file servers
+
+8. **Object Storage:** Ensure you have an object storage configured for usage, needed for storing files. You can choose to run MinIO or Garage locally without Docker, however, an external bucket will be reliable and suited for long-term storage.
 
 ## Step 1: Clone the repository
 

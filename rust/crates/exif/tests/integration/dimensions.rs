@@ -221,28 +221,28 @@ fn transformed_heif(order: &[u8]) -> Vec<u8> {
         .flat_map(u32::to_be_bytes)
         .collect();
     let properties = [
-        box_bytes(b"ispe", &ispe),
-        box_bytes(b"clap", &clap),
-        box_bytes(b"irot", &[1]),
-        box_bytes(b"imir", &[0]),
-        box_bytes(b"irot", &[2]),
+        box_bytes(*b"ispe", &ispe),
+        box_bytes(*b"clap", &clap),
+        box_bytes(*b"irot", &[1]),
+        box_bytes(*b"imir", &[0]),
+        box_bytes(*b"irot", &[2]),
     ]
     .concat();
     let mut associations = vec![0, 0, 0, 0, 0, 0, 0, 2, 0, 1, order.len() as u8];
     associations.extend(order);
     associations.extend([0, 2, 1, 5]);
     [
-        box_bytes(b"ftyp", b"heic\0\0\0\0mif1"),
+        box_bytes(*b"ftyp", b"heic\0\0\0\0mif1"),
         box_bytes(
-            b"meta",
+            *b"meta",
             &[
                 vec![0; 4],
-                box_bytes(b"pitm", &[0, 0, 0, 0, 0, 1]),
+                box_bytes(*b"pitm", &[0, 0, 0, 0, 0, 1]),
                 box_bytes(
-                    b"iprp",
+                    *b"iprp",
                     &[
-                        box_bytes(b"ipco", &properties),
-                        box_bytes(b"ipma", &associations),
+                        box_bytes(*b"ipco", &properties),
+                        box_bytes(*b"ipma", &associations),
                     ]
                     .concat(),
                 ),

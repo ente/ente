@@ -330,9 +330,7 @@ export const Upload: React.FC<UploadProps> = ({
                 setInProgressUploads,
                 setFinishedUploads,
                 setUploadPhase,
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                setUploadFilenames: setUploadFileNames,
+                setUploadFileNames,
                 setHasLivePhotos,
                 setUploadProgressView,
             },

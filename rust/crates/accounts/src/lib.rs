@@ -13,4 +13,4 @@ pub use flow::{
     CheckSessionValidityParams, CreateAccountParams, LoginParams, OtpPurpose, RecoveryKeyResult,
     SecondFactorMethod, SessionValidity, SetupTwoFactorParams, SetupTwoFactorResult, TotpPurpose,
 };
-pub use types::{AccountSecrets, AccountsClientConfig};
+pub use types::{AccountSecrets, AccountsClientConfig, DEFAULT_API_ORIGIN};

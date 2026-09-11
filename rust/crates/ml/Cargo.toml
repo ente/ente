@@ -78,7 +78,7 @@ ort = { workspace = true, features = [
 ] }
 
 [dev-dependencies]
-anyhow = "1.0.0"
+anyhow.workspace = true
 flate2.workspace = true
 serde.workspace = true
 serde_json.workspace = true

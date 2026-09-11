@@ -9,7 +9,6 @@ import 'package:ente_components/ente_components.dart' as components;
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_crypto_dart_adapter/ente_crypto_dart_adapter.dart';
 import 'package:ente_install_source/ente_install_source.dart';
-import "package:ente_legacy/services/emergency_service.dart";
 import "package:ente_legacy/services/legacy_kit_share_file_service.dart";
 import 'package:ente_lock_screen/lock_screen_settings.dart';
 import 'package:ente_lock_screen/ui/app_lock.dart';
@@ -219,10 +218,6 @@ Future<void> _init(bool bool, {String? via}) async {
     );
     await UpdateService.instance.init(preferences, packageInfo);
     await TrashService.instance.init(preferences);
-    await EmergencyContactService.instance.init(
-      UserService.instance,
-      Configuration.instance,
-    );
     await LockerContactsDisplayService.init(preferences: preferences);
     unawaited(cleanStaleLegacyKitShareFiles());
     unawaited(

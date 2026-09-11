@@ -156,6 +156,26 @@ class _HomeWidgetState extends State<HomeWidget> {
     });
   }
 
+  void _handleMissingRecoveryKey() {
+    final config = Configuration.instance;
+    if (!config.hasConfiguredAccount()) {
+      return;
+    }
+    final keyAttributes = config.getKeyAttributes();
+    if (keyAttributes == null) {
+      return;
+    }
+    final encryptedRecoveryKey =
+        keyAttributes.recoveryKeyEncryptedWithMasterKey;
+    final recoveryKeyNonce = keyAttributes.recoveryKeyDecryptionNonce;
+    if (encryptedRecoveryKey == null ||
+        encryptedRecoveryKey.isEmpty ||
+        recoveryKeyNonce == null ||
+        recoveryKeyNonce.isEmpty) {
+      Bus.instance.fire(TriggerLogoutEvent());
+    }
+  }
+
   @override
   void initState() {
     _logger.info("initstate");
@@ -209,6 +229,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     ) {
       _startWithoutAccount = false;
       setState(() {});
+      _handleMissingRecoveryKey();
       if (!isLocalGalleryMode) {
         flagService.flags;
       }
@@ -318,6 +339,11 @@ class _HomeWidgetState extends State<HomeWidget> {
     if (!isLocalGalleryMode && Configuration.instance.hasConfiguredAccount()) {
       MemoryShareService.instance.listMemoryShares().ignore();
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _handleMissingRecoveryKey();
+      }
+    });
   }
 
   Future<void> syncWidget() async {

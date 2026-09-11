@@ -605,7 +605,7 @@ fn classify_watch_paths(
             }
             continue;
         }
-        if metadata.as_ref().is_some_and(|metadata| metadata.is_dir())
+        if metadata.as_ref().is_some_and(fs::Metadata::is_dir)
             || (metadata.is_none() && overflow_or_ambiguity)
         {
             change.force_full_hash = true;
@@ -743,7 +743,7 @@ mod tests {
 
         let directories = watch_directories(&root).unwrap();
 
-        assert_eq!(directories, BTreeSet::from([root.clone(), nested]));
+        assert_eq!(directories, BTreeSet::from([root, nested]));
         assert!(!directories.contains(&outside));
     }
 

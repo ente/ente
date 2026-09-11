@@ -120,10 +120,9 @@ final class ChatViewModel: ObservableObject {
         // Must initialize after the asset store migrates the persisted selection.
         self.modelSettings = ModelSettingsStore.shared
         let transcription = transcriptionModelAsset()
-        let voiceActivity = voiceActivityModelAsset()
         let transcriber = Transcriber(
             modelDir: assetStore.assetDir(transcription).path,
-            vadModelPath: assetStore.voiceActivityModelPath(voiceActivity).path
+            vadModelPath: assetStore.voiceActivityModelPath().path
         )
         let provider = LlmProvider(assetStore: assetStore, transcriber: transcriber, knowledgeEmbedding: config.knowledgeEmbedding)
         let notesStore = NotesStore(provider: provider)

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use crate::binary::{array, f32_at, range, u16_at, u32_at};
+use crate::binary::{ByteReader, f32_at, range, u16_at, u32_at};
 use crate::city::SearchPattern;
 use crate::geometry::{Point, Reader as GeometryReader};
 use crate::{City, CityMatch, Coordinate, CountryCode, Error};
@@ -129,8 +129,7 @@ impl UrbanCenterIndex {
         let end = self.cell_offset(dense + 1);
         for reference in start..end {
             let feature = usize::from(
-                u16_at(&self.bytes, self.layout.references + reference * 2)
-                    .expect("validated reference"),
+                ByteReader::at(&self.bytes, self.layout.references + reference * 2).u16(),
             );
             if matching.is_some_and(|matching| !matching[feature]) {
                 continue;
@@ -169,6 +168,10 @@ impl UrbanCenterIndex {
             &self.bytes[feature.geometry_start..feature.geometry_end],
             SECTION,
         );
+        #[expect(
+            clippy::expect_used,
+            reason = "Index construction validates all polygon and ring records"
+        )]
         for _ in 0..reader.u16().expect("validated polygon count") {
             let ring_count = reader.u16().expect("validated ring count");
             let mut inside = reader.ring_contains(point).expect("validated ring");
@@ -199,36 +202,47 @@ impl UrbanCenterIndex {
     }
 
     fn feature(&self, index: usize) -> Feature {
-        let offset = self.layout.records + index * RECORD_LEN;
+        let mut reader = ByteReader::at(&self.bytes, self.layout.records + index * RECORD_LEN);
         Feature {
-            minimum_longitude: f32_at(&self.bytes, offset).expect("validated feature"),
-            minimum_latitude: f32_at(&self.bytes, offset + 4).expect("validated feature"),
-            maximum_longitude: f32_at(&self.bytes, offset + 8).expect("validated feature"),
-            maximum_latitude: f32_at(&self.bytes, offset + 12).expect("validated feature"),
-            latitude: f32_at(&self.bytes, offset + 16).expect("validated feature"),
-            longitude: f32_at(&self.bytes, offset + 20).expect("validated feature"),
-            name: u32_at(&self.bytes, offset + 24).expect("validated feature") as usize,
-            geometry_start: u32_at(&self.bytes, offset + 28).expect("validated feature") as usize,
-            geometry_end: u32_at(&self.bytes, offset + 32).expect("validated feature") as usize,
-            source_id: u32_at(&self.bytes, offset + 36).expect("validated feature"),
-            country: usize::from(self.bytes[offset + 40]),
+            minimum_longitude: reader.f32(),
+            minimum_latitude: reader.f32(),
+            maximum_longitude: reader.f32(),
+            maximum_latitude: reader.f32(),
+            latitude: reader.f32(),
+            longitude: reader.f32(),
+            name: reader.u32() as usize,
+            geometry_start: reader.u32() as usize,
+            geometry_end: reader.u32() as usize,
+            source_id: reader.u32(),
+            country: usize::from(reader.byte()),
         }
     }
 
     fn name(&self, offset: usize) -> &str {
+        #[expect(
+            clippy::expect_used,
+            reason = "Index construction validates name terminators"
+        )]
         let end = self.bytes[offset..self.layout.geometry]
             .iter()
             .position(|&byte| byte == 0)
             .map(|length| offset + length)
             .expect("validated name terminator");
+        #[expect(
+            clippy::expect_used,
+            reason = "Index construction validates names as UTF-8"
+        )]
         std::str::from_utf8(&self.bytes[offset..end]).expect("validated name")
     }
 
     fn country(&self, index: usize) -> &str {
-        let start = u32_at(&self.bytes, self.layout.country_offsets + index * 4)
-            .expect("validated country offset") as usize;
-        let end = u32_at(&self.bytes, self.layout.country_offsets + (index + 1) * 4)
-            .expect("validated country offset") as usize;
+        let mut reader = ByteReader::at(&self.bytes, self.layout.country_offsets + index * 4);
+        let start = reader.u32() as usize;
+        let end = reader.u32() as usize;
+        #[expect(
+            clippy::expect_used,
+            reason = "Index construction validates the country string table as UTF-8"
+        )]
         std::str::from_utf8(&self.bytes[self.layout.countries + start..self.layout.countries + end])
             .expect("validated country")
     }
@@ -241,18 +255,17 @@ impl UrbanCenterIndex {
     fn dense_cell_index(&self, cell_index: usize) -> Option<usize> {
         let block_index = cell_index / BLOCK_SIZE;
         let bit_index = cell_index % BLOCK_SIZE;
-        let offset = self.layout.blocks + block_index * BLOCK_LEN;
-        let mask = u64::from_le_bytes(array(&self.bytes, offset).expect("validated block"));
+        let mut reader = ByteReader::at(&self.bytes, self.layout.blocks + block_index * BLOCK_LEN);
+        let mask = reader.u64();
         let bit = 1_u64 << bit_index;
         (mask & bit != 0).then(|| {
-            let first = u32_at(&self.bytes, offset + 8).expect("validated block") as usize;
+            let first = reader.u32() as usize;
             first + (mask & bit.wrapping_sub(1)).count_ones() as usize
         })
     }
 
     fn cell_offset(&self, dense_index: usize) -> usize {
-        u32_at(&self.bytes, self.layout.cell_offsets + dense_index * 4)
-            .expect("validated cell offset") as usize
+        ByteReader::at(&self.bytes, self.layout.cell_offsets + dense_index * 4).u32() as usize
     }
 }
 
@@ -458,10 +471,10 @@ fn validate_geometry(bytes: &[u8]) -> crate::Result<()> {
 
 fn validate_grid(bytes: &[u8], layout: Layout, cell_count: usize) -> crate::Result<()> {
     let mut expected_dense = 0;
+    let mut reader = ByteReader::at(bytes, layout.blocks);
     for block in 0..layout.block_count {
-        let offset = layout.blocks + block * BLOCK_LEN;
-        let mask = u64::from_le_bytes(array(bytes, offset).expect("validated block range"));
-        let first = u32_at(bytes, offset + 8).expect("validated block range") as usize;
+        let mask = reader.u64();
+        let first = reader.u32() as usize;
         if first != expected_dense {
             return Err(invalid("invalid block dense offset"));
         }
@@ -477,9 +490,9 @@ fn validate_grid(bytes: &[u8], layout: Layout, cell_count: usize) -> crate::Resu
         return Err(invalid("wrong nonempty cell count"));
     }
     let mut previous = 0;
-    for index in 0..=layout.nonempty_count {
-        let offset = u32_at(bytes, layout.cell_offsets + index * 4)
-            .expect("validated cell offset range") as usize;
+    let mut reader = ByteReader::at(bytes, layout.cell_offsets);
+    for _ in 0..=layout.nonempty_count {
+        let offset = reader.u32() as usize;
         if offset < previous || offset > layout.reference_count {
             return Err(invalid("invalid cell offset"));
         }
@@ -488,10 +501,9 @@ fn validate_grid(bytes: &[u8], layout: Layout, cell_count: usize) -> crate::Resu
     if previous != layout.reference_count {
         return Err(invalid("last cell offset is not terminal"));
     }
-    for index in 0..layout.reference_count {
-        let feature = usize::from(
-            u16_at(bytes, layout.references + index * 2).expect("validated reference range"),
-        );
+    let mut reader = ByteReader::at(bytes, layout.references);
+    for _ in 0..layout.reference_count {
+        let feature = usize::from(reader.u16());
         if feature >= layout.feature_count {
             return Err(invalid("cell references unknown feature"));
         }

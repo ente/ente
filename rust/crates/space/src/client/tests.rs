@@ -49,7 +49,6 @@ async fn get_space_root_key_returns_context_space_root_key() {
 
     let space_root = ctx
         .get_space_root_key()
-        .await
         .expect("space root key should load")
         .expect("space root key should exist");
 
@@ -64,7 +63,6 @@ async fn get_or_create_space_root_key_returns_context_space_root_key() {
 
     let space_root = ctx
         .get_or_create_space_root_key()
-        .await
         .expect("space root key should load");
 
     assert_eq!(space_root, expected_space_root);
@@ -647,12 +645,11 @@ async fn create_space_maps_owner_limit_error() {
         .create_async()
         .await;
 
-    let error = match ctx
+    let Err(error) = ctx
         .create_space_with_key("owner-main", &generate_key(), b"profile-json")
         .await
-    {
-        Ok(_) => panic!("space creation should fail"),
-        Err(error) => error,
+    else {
+        panic!("space creation should fail")
     };
 
     assert!(matches!(error, Error::SpaceLimitReached));

@@ -29,7 +29,7 @@ import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.da
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 import "package:photos/ui/viewer/people/add_person_action_sheet.dart";
 import "package:photos/ui/viewer/people/cluster_app_bar.dart";
-import "package:photos/ui/viewer/people/memory_lane_page.dart";
+import "package:photos/ui/viewer/people/memory_lane_page_v2.dart";
 import "package:photos/ui/viewer/people/people_page.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
 import "package:photos/ui/viewer/people/save_person_banner.dart";
@@ -183,9 +183,11 @@ class _ClusterPageState extends State<ClusterPage> {
           widget.clusterID,
           isCluster: true,
         )) {
-      await routeToPage(
+      await openMemoryLanePage(
         context,
-        MemoryLanePage.cluster(clusterID: widget.clusterID),
+        personId: widget.clusterID,
+        person: null,
+        isCluster: true,
       );
     }
     if (mounted) setState(() {});

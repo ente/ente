@@ -12,7 +12,6 @@ import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/gateways/collections/collection_files_gateway.dart";
 import "package:photos/gateways/collections/collection_share_gateway.dart";
 import "package:photos/gateways/collections/collections_gateway.dart";
-import "package:photos/gateways/emergency/emergency_gateway.dart";
 import "package:photos/gateways/entity/entity_gateway.dart";
 import "package:photos/gateways/files/file_data_gateway.dart";
 import "package:photos/gateways/files/file_magic_gateway.dart";
@@ -331,12 +330,6 @@ PushGateway? _pushGateway;
 PushGateway get pushGateway {
   _pushGateway ??= PushGateway(ServiceLocator.instance.enteDio);
   return _pushGateway!;
-}
-
-EmergencyGateway? _emergencyGateway;
-EmergencyGateway get emergencyGateway {
-  _emergencyGateway ??= EmergencyGateway(ServiceLocator.instance.enteDio);
-  return _emergencyGateway!;
 }
 
 SocialGateway? _socialGateway;

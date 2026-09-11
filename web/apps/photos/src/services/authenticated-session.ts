@@ -1,3 +1,4 @@
+import { createAuthenticatedRecoveryKeyOps } from "ente-accounts/services/authenticated-recovery-key";
 import {
     ensureLocalUser,
     ensureSavedKeyAttributes,
@@ -10,7 +11,13 @@ import {
     bindCollectionKeyOpener,
     unbindCollectionKeyOpener,
 } from "ente-new/photos/services/collection";
-import { openCollectionKey, openSession, type Session } from "ente-photos-wasm";
+import {
+    encryptBoxWithRecoveryKey,
+    generateKey,
+    openCollectionKey,
+    openSession,
+    type Session,
+} from "ente-photos-wasm";
 
 let current: { key: string; opening: Promise<Session> } | undefined;
 let generation = 0;
@@ -89,3 +96,13 @@ export const clearAuthenticatedSession = () => {
     // In-flight calls may still borrow the handle; wasm-bindgen finalizes it.
     current = undefined;
 };
+
+export const {
+    encryptWithRecoveryKey,
+    generatePasskeyRecovery,
+    recoveryKeyMnemonic,
+} = createAuthenticatedRecoveryKeyOps({
+    ensureSession: ensureAuthenticatedSession,
+    encryptBox: encryptBoxWithRecoveryKey,
+    generateKey,
+});

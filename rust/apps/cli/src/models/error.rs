@@ -6,6 +6,9 @@ pub enum Error {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
+    #[error("System clock error: {0}")]
+    SystemTime(#[from] std::time::SystemTimeError),
+
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 

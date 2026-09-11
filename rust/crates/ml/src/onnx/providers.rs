@@ -69,7 +69,6 @@ pub(super) enum ExecutionProvider {
 pub(super) struct ProviderPlan {
     providers: Vec<ExecutionProvider>,
     next: usize,
-    selected: Option<ExecutionProvider>,
 }
 
 impl ProviderPlan {
@@ -86,11 +85,7 @@ impl ProviderPlan {
     }
 
     fn from_providers(providers: Vec<ExecutionProvider>) -> Self {
-        Self {
-            providers,
-            next: 0,
-            selected: None,
-        }
+        Self { providers, next: 0 }
     }
 
     fn next_provider(&mut self) -> Option<ExecutionProvider> {
@@ -99,20 +94,11 @@ impl ProviderPlan {
         Some(provider)
     }
 
-    fn select(&mut self, provider: ExecutionProvider) {
-        self.selected = Some(provider);
-    }
-
-    pub(super) fn selected_provider(&self) -> Option<ExecutionProvider> {
-        self.selected
-    }
-
     pub(super) fn has_fallback(&self) -> bool {
         self.next < self.providers.len()
     }
 
     fn retain_last_provider_for_retry(&mut self) {
-        self.selected = None;
         self.next = self.providers.len().saturating_sub(1);
     }
 }
@@ -120,16 +106,11 @@ impl ProviderPlan {
 pub(super) fn run_provider_plan<T, E>(
     plan: &mut ProviderPlan,
     mut attempt: impl FnMut(ExecutionProvider) -> Result<T, E>,
-) -> Result<T, Vec<E>> {
-    plan.selected = None;
-
+) -> Result<(T, ExecutionProvider), Vec<E>> {
     let mut errors = Vec::new();
     while let Some(provider) = plan.next_provider() {
         match attempt(provider) {
-            Ok(value) => {
-                plan.select(provider);
-                return Ok(value);
-            }
+            Ok(value) => return Ok((value, provider)),
             Err(error) => errors.push(error),
         }
     }
@@ -359,6 +340,7 @@ fn webgpu_attempt_providers() -> Vec<ExecutionProviderDispatch> {
 
 #[cfg(target_os = "android")]
 fn xnnpack_provider() -> ExecutionProviderDispatch {
+    #[expect(clippy::expect_used, reason = "The fixed thread count is nonzero")]
     XNNPACK::default()
         .with_intra_op_num_threads(NonZeroUsize::new(4).expect("four is non-zero"))
         .build()
@@ -397,12 +379,11 @@ mod tests {
             }
         });
 
-        assert_eq!(result, Ok("session"));
+        assert_eq!(result, Ok(("session", ExecutionProvider::Xnnpack)));
         assert_eq!(
             attempted,
             [ExecutionProvider::WebGpu, ExecutionProvider::Xnnpack]
         );
-        assert_eq!(plan.selected_provider(), Some(ExecutionProvider::Xnnpack));
         assert!(plan.has_fallback());
     }
 
@@ -421,9 +402,8 @@ mod tests {
             Ok::<_, ()>("fallback session")
         });
 
-        assert_eq!(result, Ok("fallback session"));
+        assert_eq!(result, Ok(("fallback session", ExecutionProvider::Cpu)));
         assert_eq!(attempted, [ExecutionProvider::Cpu]);
-        assert_eq!(plan.selected_provider(), Some(ExecutionProvider::Cpu));
         assert!(!plan.has_fallback());
     }
 
@@ -447,7 +427,6 @@ mod tests {
             ]
         );
         assert_eq!(errors, attempted);
-        assert_eq!(plan.selected_provider(), None);
     }
 
     #[test]
@@ -466,7 +445,6 @@ mod tests {
 
         assert_eq!(first, Err(vec![ExecutionProvider::Cpu]));
         assert_eq!(attempts, 1);
-        assert_eq!(plan.selected_provider(), None);
         assert!(plan.has_fallback());
 
         let retry = run_provider_plan(&mut plan, |provider| {
@@ -474,9 +452,8 @@ mod tests {
             Ok::<_, ExecutionProvider>(provider)
         });
 
-        assert_eq!(retry, Ok(ExecutionProvider::Cpu));
+        assert_eq!(retry, Ok((ExecutionProvider::Cpu, ExecutionProvider::Cpu)));
         assert_eq!(attempts, 2);
-        assert_eq!(plan.selected_provider(), Some(ExecutionProvider::Cpu));
         assert!(!plan.has_fallback());
     }
 

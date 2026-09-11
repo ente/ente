@@ -9,6 +9,7 @@ pub use models::{
     LegacyKitVariant,
 };
 pub use recovery::{LegacyKitRecoveryClient, LegacyKitRecoveryHandle};
+pub use shares::validate_share_pair;
 
 use ente_core::crypto::{self, SecretVec, kdf};
 

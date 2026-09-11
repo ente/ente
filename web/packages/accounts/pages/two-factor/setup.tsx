@@ -17,7 +17,15 @@ import { t } from "i18next";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 
-const Page: React.FC = () => {
+export interface TwoFactorSetupPageProps {
+    encryptWithRecoveryKey: (
+        data: string,
+    ) => Promise<{ encryptedData: string; nonce: string }>;
+}
+
+const Page: React.FC<TwoFactorSetupPageProps> = ({
+    encryptWithRecoveryKey,
+}) => {
     const [twoFactorSecret, setTwoFactorSecret] = useState<
         TwoFactorSecret | undefined
     >();
@@ -29,7 +37,10 @@ const Page: React.FC = () => {
     }, []);
 
     const handleSubmit = async (otp: string) => {
-        await setupTwoFactorFinish(twoFactorSecret!.secretCode, otp);
+        await setupTwoFactorFinish(
+            await encryptWithRecoveryKey(twoFactorSecret!.secretCode),
+            otp,
+        );
         await router.push(appHomeRoute);
     };
 

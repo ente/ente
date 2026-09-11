@@ -19,13 +19,15 @@ const metadata = JSON.parse(
 );
 const root = resolve(metadata.workspace_root, "..");
 const bindings = resolve(root, "rust/bindings");
-const framework = /^(?:wasm-bindgen(?:-.*)?|js-sys|web-sys|serde-wasm-bindgen|tsify(?:-.*)?|flutter_rust_bridge(?:_.*)?|uniffi(?:_.*)?|napi(?:-.*)?)$/;
+const framework =
+    /^(?:wasm-bindgen(?:-.*)?|js-sys|web-sys|serde-wasm-bindgen|tsify(?:-.*)?|flutter_rust_bridge(?:_.*)?|uniffi(?:_.*)?|napi(?:-.*)?)$/;
 const pathFromRoot = (path) => relative(root, path).split(sep).join("/");
 const domain = metadata.packages.filter((pkg) =>
     pathFromRoot(pkg.manifest_path).startsWith("rust/crates/"),
 );
 
 const httpOwners = new Set([
+    "rust/apps/cli-next/Cargo.toml",
     "rust/crates/assets/Cargo.toml",
     "rust/crates/core/Cargo.toml",
     "rust/tools/location-dataset/Cargo.toml",
@@ -54,7 +56,11 @@ if (!domain.length) {
 for (const pkg of domain) {
     const manifest = pathFromRoot(pkg.manifest_path);
     for (const dependency of pkg.dependencies) {
-        if (!framework.test(dependency.name) && !inside(bindings, dependency.path)) continue;
+        if (
+            !framework.test(dependency.name) &&
+            !inside(bindings, dependency.path)
+        )
+            continue;
         console.error(
             `${manifest}: dependency ${JSON.stringify(dependency.name)} crosses the Rust binding boundary`,
         );
@@ -62,7 +68,9 @@ for (const pkg of domain) {
     }
 }
 
-const registered = new Set(domain.map((pkg) => pathFromRoot(pkg.manifest_path)));
+const registered = new Set(
+    domain.map((pkg) => pathFromRoot(pkg.manifest_path)),
+);
 for (const manifest of git(
     "ls-files",
     "--cached",
@@ -75,7 +83,9 @@ for (const manifest of git(
     .split("\0")
     .filter((path) => path && existsSync(resolve(root, path)))) {
     if (registered.has(manifest)) continue;
-    console.error(`${manifest}: domain crate is not registered in the Cargo workspace`);
+    console.error(
+        `${manifest}: domain crate is not registered in the Cargo workspace`,
+    );
     process.exitCode = 1;
 }
 
@@ -90,7 +100,9 @@ for (const path of git(
     "rust/bindings/frb/lib/src",
 )
     .split("\0")
-    .filter((path) => path.endsWith(".rs") && existsSync(resolve(root, path)))) {
+    .filter(
+        (path) => path.endsWith(".rs") && existsSync(resolve(root, path)),
+    )) {
     const source = readFileSync(resolve(root, path), "utf8");
     const declarations = [
         ...source.matchAll(
@@ -112,5 +124,7 @@ function git(...args) {
 function inside(directory, path) {
     if (!path) return false;
     const local = relative(directory, path);
-    return local !== ".." && !local.startsWith(`..${sep}`) && !isAbsolute(local);
+    return (
+        local !== ".." && !local.startsWith(`..${sep}`) && !isAbsolute(local)
+    );
 }

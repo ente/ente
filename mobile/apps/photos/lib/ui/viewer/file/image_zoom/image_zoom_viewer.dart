@@ -95,6 +95,7 @@ class ImageZoomViewer extends StatefulWidget {
   final ImageErrorWidgetBuilder? errorBuilder;
   final String? semanticLabel;
   final ValueChanged<bool>? onInteractionLockChanged;
+  final VoidCallback? onImageFrameReady;
   final Duration animationDuration;
 
   const ImageZoomViewer({
@@ -113,6 +114,7 @@ class ImageZoomViewer extends StatefulWidget {
     this.errorBuilder,
     this.semanticLabel,
     this.onInteractionLockChanged,
+    this.onImageFrameReady,
     this.animationDuration = const Duration(milliseconds: 220),
   }) : assert(initialFit == BoxFit.contain || initialFit == BoxFit.cover),
        assert(maxScaleOverCover > 0);
@@ -291,6 +293,7 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
     } else if (mounted) {
       setState(update);
     }
+    widget.onImageFrameReady?.call();
     imageInfo.dispose();
   }
 

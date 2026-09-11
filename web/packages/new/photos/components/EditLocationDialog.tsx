@@ -18,8 +18,8 @@ import {
 } from "@mui/material";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
-import { haveWindow } from "ente-base/env";
 import type { Location } from "ente-base/types";
+import { getLeafletWithDefaultIcons } from "ente-gallery/utils/leaflet";
 import type { EnteFile } from "ente-media/file";
 import { fileLocation } from "ente-media/file-metadata";
 import { t } from "i18next";
@@ -27,12 +27,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.webpack.css";
 import "leaflet/dist/leaflet.css";
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-expressions
-haveWindow() && require("leaflet-defaulticon-compatibility");
-const leaflet = haveWindow()
-    ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-      (require("leaflet") as typeof import("leaflet"))
-    : null;
+const leaflet = getLeafletWithDefaultIcons();
 
 export interface EditLocationDialogProps extends ModalVisibilityProps {
     files: EnteFile[];

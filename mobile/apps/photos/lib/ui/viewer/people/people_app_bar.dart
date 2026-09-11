@@ -19,9 +19,11 @@ import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/notification/toast.dart";
+import 'package:photos/ui/sharing/share_person_sheet.dart';
 import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
 import "package:photos/ui/viewer/gallery/hooks/pick_person_avatar.dart";
+import 'package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart';
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/people/person_cluster_suggestion.dart";
@@ -278,6 +280,34 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     if (widget.selectedFiles.files.isNotEmpty ||
         !Configuration.instance.hasConfiguredAccount()) {
       return actions;
+    }
+
+    final currentUserID = Configuration.instance.getUserID();
+    final files = GalleryFilesState.maybeOf(context)?.galleryFilesOrNull
+        ?.where(
+          (file) =>
+              file.uploadedFileID != null && file.ownerID == currentUserID,
+        )
+        .toList();
+    if (!isIgnored &&
+        person.data.name.trim().isNotEmpty &&
+        files != null &&
+        files.isNotEmpty) {
+      actions.add(
+        IconButtonComponent(
+          key: shareButtonKey,
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedShare08),
+          variant: IconButtonComponentVariant.primary,
+          tooltip: context.strings.share,
+          shouldSurfaceExecutionStates: false,
+          onTap: () => showSharePersonSheet(
+            context,
+            person: person,
+            files: files,
+            shareButtonKey: shareButtonKey,
+          ),
+        ),
+      );
     }
 
     final List<EntePopupMenuOption<PeoplePopupAction>> items = [];

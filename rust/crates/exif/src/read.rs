@@ -135,9 +135,27 @@ pub(crate) struct State<'a> {
     pub mode: Mode,
     pub limits: Limits,
     pub structure: Option<&'a mut crate::XmpStructure>,
+    pub output: OutputBudget,
     entries: usize,
-    output: usize,
     expanded: usize,
+}
+
+pub(crate) struct OutputBudget {
+    used: usize,
+    limit: usize,
+}
+
+impl OutputBudget {
+    pub fn retain(&mut self, count: usize) -> Result<(), Error> {
+        self.used = self
+            .used
+            .checked_add(count)
+            .ok_or(Error::Limit("output bytes"))?;
+        if self.used > self.limit {
+            return Err(Error::Limit("output bytes"));
+        }
+        Ok(())
+    }
 }
 
 impl State<'_> {
@@ -147,8 +165,11 @@ impl State<'_> {
             mode,
             limits,
             structure: None,
+            output: OutputBudget {
+                used: 0,
+                limit: limits.output_bytes,
+            },
             entries: 0,
-            output: 0,
             expanded: 0,
         }
     }
@@ -165,14 +186,7 @@ impl State<'_> {
     }
 
     pub fn retain(&mut self, count: usize) -> Result<(), Error> {
-        self.output = self
-            .output
-            .checked_add(count)
-            .ok_or(Error::Limit("output bytes"))?;
-        if self.output > self.limits.output_bytes {
-            return Err(Error::Limit("output bytes"));
-        }
-        Ok(())
+        self.output.retain(count)
     }
 
     pub fn expanded(&mut self, count: usize) -> Result<(), Error> {

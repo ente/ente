@@ -11,9 +11,9 @@ license = "AGPL-3.0-only"
 museum = []
 
 [dependencies]
-chrono = "0.4.0"
-clap = { version = "4.5.0", features = ["derive", "env"] }
-dialoguer = "0.11.0"
+chrono = { workspace = true, default-features = true }
+clap = { workspace = true, features = ["derive", "env"] }
+dialoguer = { workspace = true, default-features = true }
 dirs.workspace = true
 ente-accounts.workspace = true
 ente-core.workspace = true

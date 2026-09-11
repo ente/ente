@@ -89,7 +89,9 @@ To fix this:
 
 ### What metadata is preserved when I edit a photo? {#metadata-preserved-after-edit}
 
-When Ente creates an edited copy, some metadata such as location, date, and time may be preserved. Other metadata may not be retained in the edited copy.
+When Ente creates an edited copy on mobile, it preserves key camera information along with the photo's date, time, and location metadata. Other metadata may not be retained in the edited copy.
+
+For JPEG photos, an edit that only rotates or flips the image is applied without re-encoding it, preserving the original image quality. Other image edits may re-encode the photo.
 
 The original photo remains untouched.
 

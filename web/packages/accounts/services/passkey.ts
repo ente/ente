@@ -2,7 +2,6 @@ import {
     saveKeyAttributes,
     updateSavedLocalUser,
 } from "ente-accounts/services/accounts-db";
-import { encryptBox, generateKey } from "ente-accounts/services/crypto";
 import {
     resetSavedLocalUserTokens,
     TwoFactorAuthorizationResponse,
@@ -17,7 +16,6 @@ import {
 } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
 import { z } from "zod";
-import { getUserRecoveryKey } from "./recovery-key";
 import { unstashRedirect } from "./redirect";
 
 export const passkeyVerificationRedirectURL = (
@@ -60,15 +58,18 @@ export const openPasskeyVerificationURL = ({
     else window.location.href = url;
 };
 
-export const openAccountsManagePasskeysPage = async () => {
+export const openAccountsManagePasskeysPage = async (
+    generatePasskeyRecovery: () => Promise<{
+        secret: string;
+        encryptedData: string;
+        nonce: string;
+    }>,
+) => {
     const { isPasskeyRecoveryEnabled } = await getTwoFactorRecoveryStatus();
     if (!isPasskeyRecoveryEnabled) {
-        const resetSecret = await generateKey();
-        const { encryptedData, nonce } = await encryptBox(
-            resetSecret,
-            await getUserRecoveryKey(),
-        );
-        await configurePasskeyRecovery(resetSecret, encryptedData, nonce);
+        const { secret, encryptedData, nonce } =
+            await generatePasskeyRecovery();
+        await configurePasskeyRecovery(secret, encryptedData, nonce);
     }
 
     const { accountsToken: token, accountsUrl: accountsURL } =

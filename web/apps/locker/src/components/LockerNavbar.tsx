@@ -11,7 +11,7 @@ import {
 import { t } from "i18next";
 import React, { useDeferredValue, useEffect, useState } from "react";
 
-const contentMaxWidth = 560;
+import { lockerContentMaxWidth } from "../styles/tokens";
 
 interface LockerNavbarProps {
     onOpenSidebar: () => void;
@@ -48,7 +48,7 @@ export const LockerNavbar: React.FC<LockerNavbarProps> = ({
                 zIndex: 1,
                 background: "linear-gradient(135deg, #1071FF 0%, #0056CC 100%)",
                 color: "#fff",
-                px: { xs: 2, sm: 3 },
+                px: 2,
                 pt: 1,
                 pb: 0.25,
             }}
@@ -71,16 +71,21 @@ export const LockerNavbar: React.FC<LockerNavbarProps> = ({
 
                 <Box
                     component="img"
-                    src="/images/locker-beta.svg"
-                    alt="Locker beta"
-                    sx={{ height: 29, width: "auto" }}
+                    src="/images/app-logo.svg"
+                    alt="Locker"
+                    sx={{ height: 29, width: 73, objectFit: "contain" }}
                 />
 
                 <Box sx={{ width: 40 }} />
             </Stack>
 
             <Box
-                sx={{ maxWidth: contentMaxWidth, mx: "auto", mt: 0.5, pb: 1.5 }}
+                sx={{
+                    maxWidth: lockerContentMaxWidth,
+                    mx: "auto",
+                    mt: 0.5,
+                    pb: 1.5,
+                }}
             >
                 <TextField
                     size="small"

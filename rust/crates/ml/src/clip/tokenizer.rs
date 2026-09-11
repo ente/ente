@@ -15,6 +15,10 @@ use super::CLIP_TEXT_TOKEN_COUNT;
 
 const BPE_MERGES_END_EXCLUSIVE: usize = 49152 - 256 - 2 + 1;
 
+#[expect(
+    clippy::expect_used,
+    reason = "The tokenizer regex is a fixed valid literal"
+)]
 static TOKEN_PATTERN: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         // Keep this aligned with MobileCLIP's Python tokenizer path
@@ -24,6 +28,10 @@ static TOKEN_PATTERN: Lazy<Regex> = Lazy::new(|| {
     .expect("valid clip tokenizer regex")
 });
 
+#[expect(
+    clippy::expect_used,
+    reason = "The whitespace regex is a fixed valid literal"
+)]
 static WHITESPACE_PATTERN: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\s+").expect("valid whitespace regex"));
 
@@ -371,9 +379,8 @@ mod tests {
     #[test]
     fn rejects_incomplete_bpe_vocabulary_file() {
         let truncated_vocab = "#version: 0.2\na b";
-        let err = match ClipTextTokenizer::from_vocabulary(truncated_vocab) {
-            Ok(_) => panic!("expected incomplete vocab to fail"),
-            Err(err) => err,
+        let Err(err) = ClipTextTokenizer::from_vocabulary(truncated_vocab) else {
+            panic!("expected incomplete vocab to fail")
         };
         assert!(
             err.to_string().contains("invalid clip vocab"),

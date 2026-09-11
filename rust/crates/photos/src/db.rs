@@ -303,7 +303,16 @@ impl Pool {
 
     fn read<T>(&self, query: impl FnOnce(&mut Connection) -> Result<T>) -> Result<T> {
         let mut reader = self.acquire_reader();
-        query(reader.connection.as_mut().unwrap())
+        #[expect(
+            clippy::expect_used,
+            reason = "acquire_reader returns a guard owning a connection"
+        )]
+        query(
+            reader
+                .connection
+                .as_mut()
+                .expect("acquired reader owns a connection"),
+        )
     }
 
     fn write<T>(&self, statement: impl FnOnce(&mut Connection) -> Result<T>) -> Result<T> {

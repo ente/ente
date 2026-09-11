@@ -56,15 +56,13 @@ pub(super) fn index_collection(
                     "The knowledge embedding model is not downloaded",
                 )
             })?;
-            if embedding_context.is_none() {
-                embedding_context = Some(crate::commands::llm::load_knowledge_embedding_context(
+            let context = match &mut embedding_context {
+                Some(context) => context,
+                slot => slot.insert(crate::commands::llm::load_knowledge_embedding_context(
                     embedding_path,
                     || check_cancelled(cancellation_epoch, retrieval_epoch),
-                )?);
-            }
-            let context = embedding_context
-                .as_ref()
-                .expect("embedding context was initialized");
+                )?),
+            };
             prepared
                 .embed(|title, text| {
                     check_cancelled(cancellation_epoch, retrieval_epoch)

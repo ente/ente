@@ -37,6 +37,7 @@ import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/viewer/actions/suggest_delete_sheet.dart';
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/video_control/video_speed_bottom_sheet.dart";
+import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file_details/favorite_widget.dart";
 import "package:photos/ui/viewer/file_details/upload_icon_widget.dart";
 import 'package:photos/utils/dialog_util.dart';
@@ -57,6 +58,7 @@ class FileAppBar extends StatefulWidget {
   final bool showEditAction;
   final FutureOr<void> Function(BuildContext context)? onBackPressed;
   final ValueNotifier<double> playbackSpeed;
+  final VideoStreamChangeController? streamChangeController;
 
   const FileAppBar(
     this.file,
@@ -68,6 +70,7 @@ class FileAppBar extends StatefulWidget {
     this.showEditAction = true,
     this.onBackPressed,
     required this.playbackSpeed,
+    required this.streamChangeController,
     super.key,
   });
 
@@ -87,9 +90,16 @@ class FileAppBarState extends State<FileAppBar> {
   @override
   void didUpdateWidget(FileAppBar oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.streamChangeController != widget.streamChangeController) {
+      oldWidget.streamChangeController?.removeListener(
+        _onStreamChangeStateChanged,
+      );
+      widget.streamChangeController?.addListener(_onStreamChangeStateChanged);
+    }
     if (detailPageFileIdentifier(oldWidget.file) !=
             detailPageFileIdentifier(widget.file) ||
-        oldWidget.showEditAction != widget.showEditAction) {
+        oldWidget.showEditAction != widget.showEditAction ||
+        oldWidget.streamChangeController != widget.streamChangeController) {
       _getActions();
     }
   }
@@ -104,6 +114,7 @@ class FileAppBarState extends State<FileAppBar> {
         isGuestView = event.isGuestView;
       });
     });
+    widget.streamChangeController?.addListener(_onStreamChangeStateChanged);
   }
 
   @override
@@ -117,6 +128,12 @@ class FileAppBarState extends State<FileAppBar> {
 
   void _onThumbnailFallbackChanged() {
     _requestActionsReload();
+  }
+
+  void _onStreamChangeStateChanged() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestActionsReload();
+    });
   }
 
   void _updateShowingThumbnailFallbackNotifier(
@@ -137,6 +154,7 @@ class FileAppBarState extends State<FileAppBar> {
     _showingThumbnailFallbackNotifier?.removeListener(
       _onThumbnailFallbackChanged,
     );
+    widget.streamChangeController?.removeListener(_onStreamChangeStateChanged);
     _guestViewEventSubscription.cancel();
     super.dispose();
   }
@@ -419,6 +437,18 @@ class FileAppBarState extends State<FileAppBar> {
     }
 
     if (widget.file.isVideo && !restrictFileActions) {
+      final streamChangeState = widget.streamChangeController?.value;
+      if (streamChangeState != null) {
+        items.add(
+          _fileMenuOption(
+            streamChangeState.label(context),
+            value: 15,
+            hugeIcon: HugeIcons.strokeRoundedPlay,
+            enabled: streamChangeState.canChangeStream,
+          ),
+        );
+      }
+
       items.add(
         _fileMenuOption(
           context.strings.playbackSpeed,
@@ -499,6 +529,7 @@ class FileAppBarState extends State<FileAppBar> {
     required int value,
     required List<List<dynamic>> hugeIcon,
     Widget? trailing,
+    bool enabled = true,
   }) {
     return EntePopupMenuOption<int>(
       value: value,
@@ -509,6 +540,7 @@ class FileAppBarState extends State<FileAppBar> {
         color: context.componentColors.textLight,
       ),
       trailingWidget: trailing,
+      enabled: enabled,
     );
   }
 
@@ -560,6 +592,11 @@ class FileAppBarState extends State<FileAppBar> {
     } else if (value == 13) {
       if (collection != null) {
         await _handleSuggestDelete(collection);
+      }
+    } else if (value == 15) {
+      final state = widget.streamChangeController?.value;
+      if (state?.canChangeStream ?? false) {
+        state!.onStreamChange();
       }
     }
   }

@@ -755,6 +755,10 @@ async fn download_file_ranged(
 
     let mut downloads = Vec::new();
     {
+        #[expect(
+            clippy::expect_used,
+            reason = "A panic unwinds the download; its local state is not reused"
+        )]
         let metadata = range_metadata.lock().expect("range metadata lock");
         for (part_index, range) in metadata.ranges.iter().copied().enumerate() {
             if range.complete {
@@ -791,6 +795,10 @@ async fn download_file_ranged(
         });
     }
 
+    #[expect(
+        clippy::expect_used,
+        reason = "A panic unwinds the download; its local state is not reused"
+    )]
     let states = range_states.lock().expect("range state lock");
     let network_downloaded_bytes = states
         .iter()
@@ -824,6 +832,10 @@ impl RangeDownloadContext<'_, '_> {
             }
 
             {
+                #[expect(
+                    clippy::expect_used,
+                    reason = "A panic unwinds the download; its local state is not reused"
+                )]
                 let mut states = self.range_states.lock().expect("range state lock");
                 if let Some(state) = states.get_mut(part_index) {
                     state.downloaded_bytes = 0;
@@ -901,6 +913,10 @@ impl RangeDownloadContext<'_, '_> {
                 downloaded_in_range += chunk_len;
 
                 {
+                    #[expect(
+                        clippy::expect_used,
+                        reason = "A panic unwinds the download; its local state is not reused"
+                    )]
                     let mut states = self.range_states.lock().expect("range state lock");
                     if let Some(state) = states.get_mut(part_index) {
                         state.downloaded_bytes = downloaded_in_range;
@@ -933,6 +949,10 @@ impl RangeDownloadContext<'_, '_> {
             }
 
             {
+                #[expect(
+                    clippy::expect_used,
+                    reason = "A panic unwinds the download; its local state is not reused"
+                )]
                 let mut states = self.range_states.lock().expect("range state lock");
                 if let Some(state) = states.get_mut(part_index) {
                     state.downloaded_bytes = range_len;
@@ -947,6 +967,10 @@ impl RangeDownloadContext<'_, '_> {
     }
 
     fn emit_progress(&self) {
+        #[expect(
+            clippy::expect_used,
+            reason = "A panic unwinds the download; its local state is not reused"
+        )]
         let states = self.range_states.lock().expect("range state lock");
         let downloaded_bytes = states
             .iter()
@@ -963,6 +987,10 @@ impl RangeDownloadContext<'_, '_> {
             .fold(0u32, u32::saturating_add);
         drop(states);
 
+        #[expect(
+            clippy::expect_used,
+            reason = "A panic unwinds the download; its local state is not reused"
+        )]
         let mut callback = self.on_progress.lock().expect("progress lock");
         (**callback)(FileProgress {
             downloaded_bytes,
@@ -974,6 +1002,10 @@ impl RangeDownloadContext<'_, '_> {
     }
 
     fn increment_retry(&self, part_index: usize) {
+        #[expect(
+            clippy::expect_used,
+            reason = "A panic unwinds the download; its local state is not reused"
+        )]
         let mut states = self.range_states.lock().expect("range state lock");
         if let Some(state) = states.get_mut(part_index) {
             state.retry_count = state.retry_count.saturating_add(1);
@@ -981,6 +1013,10 @@ impl RangeDownloadContext<'_, '_> {
     }
 
     fn mark_complete(&self, part_index: usize) -> Result<(), Error> {
+        #[expect(
+            clippy::expect_used,
+            reason = "A panic unwinds the download; its local state is not reused"
+        )]
         let mut metadata = self.range_metadata.lock().expect("range metadata lock");
         if let Some(range) = metadata.ranges.get_mut(part_index) {
             range.complete = true;

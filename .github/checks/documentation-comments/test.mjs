@@ -16,7 +16,8 @@ let result = run(
         "styles/value.scss": "/** API documentation. */\n.value {}\n",
         "styles/value.css": "/** API documentation. */\n.value {}\n",
         "build/plugin.gradle": "/// API documentation.\n",
-        "gen/value.ts": "/** A path alone does not mark a file as generated. */\n",
+        "gen/value.ts":
+            "/** A path alone does not mark a file as generated. */\n",
         "web/reference.ts": [
             '/// <reference types="vite/client" />',
             "/// API documentation.",
@@ -27,16 +28,19 @@ let result = run(
             " */",
             "function configure(value) {}",
         ].join("\n"),
-        "web/type.js": "/** @type {string} API documentation. */\nconst value = '';\n",
+        "web/type.js":
+            "/** @type {string} API documentation. */\nconst value = '';\n",
         "web/type.ts": "/** @type {string} */\nconst value = '';\n",
-        "web/param.js": "/** @param {string} */\nfunction configure(value) {}\n",
+        "web/param.js":
+            "/** @param {string} */\nfunction configure(value) {}\n",
         "web/satisfies.js": [
             "/** @satisfies {Record<string, string>}",
             " * API documentation.",
             " */",
             "const values = {};",
         ].join("\n"),
-        "web/returns.js": "/** @returns {string} API documentation. */\nfunction value() {}\n",
+        "web/returns.js":
+            "/** @returns {string} API documentation. */\nfunction value() {}\n",
         "rust/clap.rs": [
             "#[derive(clap::Parser)]",
             "struct Args {",
@@ -55,9 +59,7 @@ let result = run(
         ].join("\n"),
         "deleted.rs": "/// Deleted documentation.\n",
     },
-    {
-        "native/Value.swift": "/// API documentation.\nstruct Value {}\n",
-    },
+    { "native/Value.swift": "/// API documentation.\nstruct Value {}\n" },
     ["deleted.rs"],
 );
 assert.equal(result.status, 1, result.stderr);
@@ -89,7 +91,8 @@ assert.doesNotMatch(result.stderr, /rust\/clap\.rs:3/);
 assert.doesNotMatch(result.stderr, /rust\/unit_clap\.rs:1/);
 
 result = run({
-    "rust/local.rs": "// Non-obvious implementation reason.\npub fn value() {}\n",
+    "rust/local.rs":
+        "// Non-obvious implementation reason.\npub fn value() {}\n",
     "rust/args.rs": [
         "/// Printed in top-level command help.",
         "#[derive(clap::Parser)]",
@@ -148,10 +151,12 @@ function run(tracked, untracked = {}, deleted = []) {
     const root = mkdtempSync(join(tmpdir(), "ente-documentation-comments-"));
     try {
         spawn("git", ["init", "-q"], root);
-        for (const [path, content] of Object.entries(tracked)) write(root, path, content);
+        for (const [path, content] of Object.entries(tracked))
+            write(root, path, content);
         spawn("git", ["add", "."], root);
         for (const path of deleted) rmSync(join(root, path));
-        for (const [path, content] of Object.entries(untracked)) write(root, path, content);
+        for (const [path, content] of Object.entries(untracked))
+            write(root, path, content);
         return spawn(process.execPath, [check, root]);
     } finally {
         rmSync(root, { recursive: true });

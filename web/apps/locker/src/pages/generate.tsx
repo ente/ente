@@ -1,4 +1,4 @@
-import { LockerAuthShell } from "@/components/LockerAuthShell";
+import { LockerAuthShell } from "@/components/auth/LockerAuthShell";
 import { RecoveryKeyForm } from "ente-accounts/components/auth/RecoveryKeyForm";
 import { SetPasswordForm } from "ente-accounts/components/auth/SetPasswordForm";
 import type { NewPasswordPresentationProps } from "ente-accounts/components/NewPasswordForm";

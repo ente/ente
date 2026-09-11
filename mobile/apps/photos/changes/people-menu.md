@@ -1,0 +1,1 @@
+- Updated the People menu to match the current Photos interface.

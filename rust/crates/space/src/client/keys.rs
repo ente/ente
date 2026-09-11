@@ -96,7 +96,7 @@ impl AccountSpaceCtx {
                 .ok_or_else(|| Error::InvalidInput("missing current profile".into()))?,
         };
         let next_space_key = generate_key();
-        let space_root_key = self.get_or_create_space_root_key().await?;
+        let space_root_key = self.get_or_create_space_root_key()?;
         let link_rotation = self.active_link_wrapper(space_id, &next_space_key).await?;
         let request = RotateSpaceKeyRequest {
             key_version: current.key_version,

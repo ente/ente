@@ -15,6 +15,12 @@ export type { OpenSessionInput, Session } from "./pkg/ente_locker_wasm";
 export const openSession = async (input: OpenSessionInput): Promise<Session> =>
     (await wasm()).openSession(input);
 
+export const encryptBoxWithRecoveryKey = (session: Session, dataB64: string) =>
+    readAndFree(session.encryptWithRecoveryKey(dataB64), (box) => ({
+        encryptedData: box.encryptedData,
+        nonce: box.nonce,
+    }));
+
 export const openCollectionKey = async (
     session: Session,
     ownerID: number,
@@ -105,6 +111,12 @@ export const encryptBox = async (dataB64: string, keyB64: string) =>
         nonce: box.nonce,
     }));
 
+export const encryptBoxBytes = async (data: Uint8Array, keyB64: string) =>
+    readAndFree((await wasm()).cryptoEncryptBoxBytes(data, keyB64), (box) => ({
+        encryptedData: box.encryptedData,
+        nonce: box.nonce,
+    }));
+
 export const decryptBox = async (
     box: EncryptedBox,
     key: Uint8Array | string,
@@ -118,11 +130,15 @@ export const decryptBox = async (
 export const decryptBoxBytes = async (
     box: EncryptedBox,
     key: Uint8Array | string,
-): Promise<Uint8Array<ArrayBuffer>> =>
-    fromB64String(await decryptBox(box, key));
+): Promise<Uint8Array> =>
+    (await wasm()).cryptoDecryptBoxBytes(
+        toB64String(box.encryptedData),
+        toB64String(box.nonce),
+        toB64String(key),
+    );
 
-export const encryptBlob = async (dataB64: string, keyB64: string) =>
-    readAndFree((await wasm()).cryptoEncryptBlob(dataB64, keyB64), (blob) => ({
+export const encryptBlob = async (data: Uint8Array, keyB64: string) =>
+    readAndFree((await wasm()).cryptoEncryptBlob(data, keyB64), (blob) => ({
         encryptedData: blob.encryptedData,
         decryptionHeader: blob.decryptionHeader,
     }));
@@ -135,9 +151,9 @@ export const decryptMetadataJSON = async (
     const encryptedData = toB64String(blob.encryptedData);
     const decryptionHeader = toB64String(blob.decryptionHeader);
     const keyB64 = toB64String(key);
-    let plaintextB64: string;
+    let plaintext: Uint8Array;
     try {
-        plaintextB64 = wasmModule.cryptoDecryptBlob(
+        plaintext = wasmModule.cryptoDecryptBlob(
             encryptedData,
             decryptionHeader,
             keyB64,
@@ -146,13 +162,13 @@ export const decryptMetadataJSON = async (
         if (!(error instanceof Error && error.name == "stream_truncated")) {
             throw error;
         }
-        plaintextB64 = wasmModule.cryptoDecryptBlobLegacy(
+        plaintext = wasmModule.cryptoDecryptBlobLegacy(
             encryptedData,
             decryptionHeader,
             keyB64,
         );
     }
-    return JSON.parse(new TextDecoder().decode(fromB64String(plaintextB64)));
+    return JSON.parse(new TextDecoder().decode(plaintext));
 };
 
 export const boxSeal = async (
@@ -178,28 +194,16 @@ export const encryptFileStreamWithKey = async (
     readAndFree(
         (await wasm()).cryptoEncryptStreamWithKey(dataB64, keyB64),
         (file) => ({
-            encryptedData: file.encryptedData,
+            // wasm-bindgen copies returned bytes into a new ArrayBuffer.
+            encryptedData: file.encryptedData as Uint8Array<ArrayBuffer>,
             decryptionHeader: file.decryptionHeader,
             md5Hash: file.md5Hash,
         }),
     );
-
-export const stringToB64 = (value: string): string =>
-    toB64String(new TextEncoder().encode(value));
-
-export const b64ToBytes = (value: string): Uint8Array<ArrayBuffer> =>
-    fromB64String(value);
 
 const toB64String = (value: Uint8Array | string): string => {
     if (typeof value == "string") return value;
     let binary = "";
     for (const byte of value) binary += String.fromCharCode(byte);
     return btoa(binary);
-};
-
-const fromB64String = (value: string): Uint8Array<ArrayBuffer> => {
-    const binary = atob(value);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
 };

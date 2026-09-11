@@ -1,5 +1,6 @@
 name: Change approval
 
+# Guardrail for accidental policy changes; this workflow remains PR-editable.
 on:
   pull_request:
 
@@ -27,8 +28,8 @@ jobs:
         id: scan
         run: |
           git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
-          git show origin/main:.github/checks/change-approval/check.mjs > "$RUNNER_TEMP/change-approval.mjs"
-          node "$RUNNER_TEMP/change-approval.mjs" HEAD^1
+          git archive origin/main .github/checks/change-approval | tar -x -C "$RUNNER_TEMP"
+          node "$RUNNER_TEMP/.github/checks/change-approval/check.mjs" HEAD^1
 
       - name: Run workflow security checks
         run: |
@@ -43,7 +44,9 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions: {}
-    environment: ${{ needs.detect.result == 'success' && needs.detect.outputs.environment || 'no-approval' }}
+    environment:
+      name: ${{ needs.detect.result == 'success' && needs.detect.outputs.environment || 'no-approval' }}
+      deployment: false
     steps:
       - run: test "$SCAN_RESULT" = success
         env:

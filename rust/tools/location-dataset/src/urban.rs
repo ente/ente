@@ -385,14 +385,13 @@ fn country_alias(name: &str) -> Option<[u8; 2]> {
 }
 
 fn decode_geopackage_geometry(bytes: &[u8]) -> Result<MultiPolygon<f64>> {
-    if bytes.len() < 8 || &bytes[..2] != b"GP" || bytes[2] != 0 {
+    let Some(&[b'G', b'P', 0, flags, srs @ ..]) = bytes.first_chunk::<8>() else {
         return Err(invalid("invalid GHSL GeoPackage geometry header"));
-    }
-    let flags = bytes[3];
+    };
     if flags & 1 == 0 || flags & 0x10 != 0 {
         return Err(invalid("unsupported GHSL GeoPackage geometry flags"));
     }
-    let srs = i32::from_le_bytes(bytes[4..8].try_into().expect("eight-byte header"));
+    let srs = i32::from_le_bytes(srs);
     if srs != 54_009 {
         return Err(invalid(format!("unexpected GHSL spatial reference {srs}")));
     }
@@ -506,18 +505,13 @@ impl<'a> WkbReader<'a> {
     }
 
     fn take<const N: usize>(&mut self) -> Result<[u8; N]> {
-        let end = self
-            .position
-            .checked_add(N)
-            .ok_or_else(|| invalid("truncated GHSL WKB geometry"))?;
         let bytes = self
             .bytes
-            .get(self.position..end)
-            .ok_or_else(|| invalid("truncated GHSL WKB geometry"))?
-            .try_into()
-            .expect("fixed-length slice");
-        self.position = end;
-        Ok(bytes)
+            .get(self.position..)
+            .and_then(|bytes| bytes.first_chunk::<N>())
+            .ok_or_else(|| invalid("truncated GHSL WKB geometry"))?;
+        self.position += N;
+        Ok(*bytes)
     }
 }
 

@@ -4,7 +4,6 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
@@ -22,9 +21,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/settings/local_settings.dart";
-import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/theme/text_style.dart";
 import "package:photos/ui/components/banners/save_faces_banner.dart";
 import "package:photos/ui/components/bottom_action_bar/people_bottom_action_bar_widget.dart";
 import "package:photos/ui/components/collection_share_badge.dart";
@@ -336,6 +333,8 @@ class PeopleSectionAllWidget extends StatefulWidget {
   State<PeopleSectionAllWidget> createState() => _PeopleSectionAllWidgetState();
 }
 
+typedef _PeopleMenuSelection = ({PeopleSortKey? sortKey});
+
 class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
   static const _titleActionSize = 36.0;
   static const _searchTitleHeight = 52.0;
@@ -362,9 +361,6 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
   bool _nameSortAscending = true;
   bool _updatedSortAscending = false;
   bool _photosSortAscending = false;
-
-  static const double _sortMenuItemHeight = 52;
-  static const double _sortMenuCornerRadius = 12;
 
   bool get _isSearching => _searchQuery.trim().isNotEmpty;
 
@@ -650,7 +646,6 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
   @override
   Widget build(BuildContext context) {
     final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
     final smallFontSize = textTheme.small.fontSize!;
     final textScaleFactor =
         MediaQuery.textScalerOf(context).scale(smallFontSize) / smallFontSize;
@@ -670,14 +665,14 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
               child: Center(child: EnteLoadingWidget()),
             ),
           );
-          return _buildScrollBody(slivers, textTheme, colorScheme);
+          return _buildScrollBody(slivers);
         } else if (snapshot.hasError) {
           slivers.add(
             const SliverFillRemaining(
               child: Center(child: Icon(Icons.error_outline_rounded)),
             ),
           );
-          return _buildScrollBody(slivers, textTheme, colorScheme);
+          return _buildScrollBody(slivers);
         } else {
           final filteredNormalFaces = _filterFaces(normalFaces);
           final filteredExtraFaces = _filterFaces(extraFaces);
@@ -693,7 +688,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
                 ),
               ),
             );
-            return _buildScrollBody(slivers, textTheme, colorScheme);
+            return _buildScrollBody(slivers);
           }
           final screenWidth = MediaQuery.of(context).size.width;
           final crossAxisCount = (screenWidth / 100).floor();
@@ -856,17 +851,13 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
             ]);
           }
-          return _buildScrollBody(slivers, textTheme, colorScheme);
+          return _buildScrollBody(slivers);
         }
       },
     );
   }
 
-  Widget _buildScrollBody(
-    List<Widget> slivers,
-    EnteTextTheme textTheme,
-    EnteColorScheme colorScheme,
-  ) {
+  Widget _buildScrollBody(List<Widget> slivers) {
     if (!widget.showSearchBar) {
       return CustomScrollView(slivers: slivers);
     }
@@ -874,19 +865,13 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
     return AppBarComponent(
       title: SectionType.face.sectionTitle(context),
       physics: const BouncingScrollPhysics(),
-      titleBuilder: (context, state) =>
-          _buildTitle(context, state, textTheme, colorScheme),
+      titleBuilder: _buildTitle,
       titleBuilderHeight: _searchTitleHeight,
       slivers: slivers,
     );
   }
 
-  Widget _buildTitle(
-    BuildContext context,
-    HeaderAppBarTitleState state,
-    EnteTextTheme textTheme,
-    EnteColorScheme colorScheme,
-  ) {
+  Widget _buildTitle(BuildContext context, HeaderAppBarTitleState state) {
     return AnimatedSwitcher(
       duration: _searchTransitionDuration,
       switchInCurve: Curves.easeOutCubic,
@@ -923,16 +908,12 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
             )
           : KeyedSubtree(
               key: const ValueKey("people_title_row"),
-              child: _buildTitleRow(state, textTheme, colorScheme),
+              child: _buildTitleRow(state),
             ),
     );
   }
 
-  Widget _buildTitleRow(
-    HeaderAppBarTitleState state,
-    EnteTextTheme textTheme,
-    EnteColorScheme colorScheme,
-  ) {
+  Widget _buildTitleRow(HeaderAppBarTitleState state) {
     return SizedBox(
       height: state.height,
       child: Row(
@@ -952,10 +933,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
             child: _buildSearchAction(),
           ),
           const SizedBox(width: Spacing.sm),
-          SizedBox.square(
-            dimension: _titleActionSize,
-            child: _buildSortMenu(context, textTheme, colorScheme),
-          ),
+          SizedBox.square(dimension: _titleActionSize, child: _buildSortMenu()),
         ],
       ),
     );
@@ -993,74 +971,54 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
     );
   }
 
-  Widget _buildSortMenu(
-    BuildContext context,
-    EnteTextTheme textTheme,
-    EnteColorScheme colorScheme,
-  ) {
-    return IconButtonComponent(
-      variant: IconButtonComponentVariant.primary,
-      shouldSurfaceExecutionStates: false,
-      icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),
-      onTapDown: (details) async {
-        final l10n = context.strings;
-        const sortKeys = PeopleSortKey.values;
-        final PeopleSortKey? selectedKey = await showMenu<PeopleSortKey>(
-          color: colorScheme.backgroundElevated,
-          context: context,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            side: BorderSide(width: 0.5, color: colorScheme.strokeFaint),
-            borderRadius: BorderRadius.circular(_sortMenuCornerRadius),
-          ),
-          position: RelativeRect.fromLTRB(
-            details.globalPosition.dx,
-            details.globalPosition.dy,
-            details.globalPosition.dx,
-            details.globalPosition.dy + 50,
-          ),
-          items: [
-            ...List.generate(sortKeys.length, (index) {
-              final key = sortKeys[index];
-              return _buildSortMenuItem(
-                key,
-                index == sortKeys.length - 1,
-                textTheme,
-                colorScheme,
-                l10n,
-              );
-            }),
-            _buildIgnoredPeopleMenuItem(context, textTheme, colorScheme, l10n),
-          ],
-        );
-        if (!mounted || selectedKey == null) {
-          return;
-        }
-        if (selectedKey == _sortKey && !_canToggleSortDirection(selectedKey)) {
-          return;
-        }
-        setState(() {
-          if (selectedKey == _sortKey) {
-            _toggleSortDirection(selectedKey);
-          } else {
-            _sortKey = selectedKey;
-          }
-          _sortFaces(normalFaces);
-          _sortFaces(extraFaces);
-          if (_showingIgnoredPeople) {
-            _prioritizeNamedIgnoredPeople(normalFaces);
-          }
-        });
-        unawaited(_persistSortPreferences());
-      },
+  Widget _buildSortMenu() {
+    return Builder(
+      builder: (buttonContext) => IconButtonComponent(
+        variant: IconButtonComponentVariant.primary,
+        shouldSurfaceExecutionStates: false,
+        icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),
+        onTap: () => unawaited(_showSortMenu(buttonContext)),
+      ),
     );
   }
 
-  PopupMenuItem<PeopleSortKey> _buildSortMenuItem(
+  Future<void> _showSortMenu(BuildContext buttonContext) async {
+    final l10n = context.strings;
+    final selection = await showEntePopupMenu<_PeopleMenuSelection>(
+      context: buttonContext,
+      options: [
+        for (final key in PeopleSortKey.values) _buildSortMenuItem(key, l10n),
+        _buildIgnoredPeopleMenuItem(l10n),
+      ],
+    );
+    if (!mounted || selection == null) {
+      return;
+    }
+    final selectedKey = selection.sortKey;
+    if (selectedKey == null) {
+      _toggleIgnoredPeopleView();
+      return;
+    }
+    if (selectedKey == _sortKey && !_canToggleSortDirection(selectedKey)) {
+      return;
+    }
+    setState(() {
+      if (selectedKey == _sortKey) {
+        _toggleSortDirection(selectedKey);
+      } else {
+        _sortKey = selectedKey;
+      }
+      _sortFaces(normalFaces);
+      _sortFaces(extraFaces);
+      if (_showingIgnoredPeople) {
+        _prioritizeNamedIgnoredPeople(normalFaces);
+      }
+    });
+    unawaited(_persistSortPreferences());
+  }
+
+  EntePopupMenuOption<_PeopleMenuSelection> _buildSortMenuItem(
     PeopleSortKey key,
-    bool isLast,
-    EnteTextTheme textTheme,
-    EnteColorScheme colorScheme,
     StringsLocalizations l10n,
   ) {
     String label;
@@ -1093,87 +1051,41 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
 
     final bool isSelected = _sortKey == key;
     final bool isAscending = _isSortAscending(key);
-    final IconData directionIcon = key == PeopleSortKey.name
-        ? (isAscending ? Icons.arrow_downward : Icons.arrow_upward)
-        : (isAscending ? Icons.arrow_upward : Icons.arrow_downward);
-
-    return PopupMenuItem<PeopleSortKey>(
-      value: key,
-      padding: EdgeInsets.zero,
-      height: _sortMenuItemHeight,
-      child: Container(
-        width: double.infinity,
-        height: _sortMenuItemHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(
-                  bottom: BorderSide(
-                    width: 0.5,
-                    color: colorScheme.strokeFaint,
-                  ),
-                ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(label, style: textTheme.mini),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Container(
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colorScheme.textMuted.withValues(alpha: 0.6),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(detail, style: textTheme.miniMuted),
-              const SizedBox(width: 4),
-              Icon(directionIcon, size: 16, color: colorScheme.textMuted),
-            ],
-          ],
-        ),
+    final directionIcon = key == PeopleSortKey.name
+        ? (isAscending
+              ? HugeIcons.strokeRoundedArrowDown02
+              : HugeIcons.strokeRoundedArrowUp02)
+        : (isAscending
+              ? HugeIcons.strokeRoundedArrowUp02
+              : HugeIcons.strokeRoundedArrowDown02);
+    return EntePopupMenuOption(
+      value: (sortKey: key),
+      label: label,
+      secondaryLabel: isSelected ? detail : null,
+      isActive: isSelected,
+      activeTrailingWidget: HugeIcon(
+        icon: directionIcon,
+        size: 12,
+        strokeWidth: 3,
+        color: context.componentColors.textLight,
       ),
     );
   }
 
-  PopupMenuItem<PeopleSortKey> _buildIgnoredPeopleMenuItem(
-    BuildContext context,
-    EnteTextTheme textTheme,
-    EnteColorScheme colorScheme,
+  EntePopupMenuOption<_PeopleMenuSelection> _buildIgnoredPeopleMenuItem(
     StringsLocalizations l10n,
   ) {
-    return PopupMenuItem<PeopleSortKey>(
-      value: null,
-      onTap: _toggleIgnoredPeopleView,
-      padding: EdgeInsets.zero,
-      height: _sortMenuItemHeight,
-      child: Container(
-        width: double.infinity,
-        height: _sortMenuItemHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(width: 0.5, color: colorScheme.strokeFaint),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(l10n.showIgnored, style: textTheme.miniMuted),
-            IgnorePointer(
-              child: CupertinoSwitch(
-                value: _showingIgnoredPeople,
-                onChanged: (_) {},
-                activeTrackColor: colorScheme.primary500,
-              ),
-            ),
-          ],
+    return EntePopupMenuOption(
+      value: (sortKey: null),
+      label: l10n.showIgnored,
+      labelColor: context.componentColors.textLight,
+      trailingWidget: IgnorePointer(
+        child: ToggleSwitchComponent(
+          selected: _showingIgnoredPeople,
+          onChanged: (_) {},
         ),
       ),
+      showDivider: false,
     );
   }
 

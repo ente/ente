@@ -134,7 +134,7 @@ mod tests {
     }
 
     fn strings_of<C: FromIterator<String>>(values: &[&str]) -> C {
-        values.iter().map(|value| value.to_string()).collect()
+        values.iter().map(ToString::to_string).collect()
     }
 
     pub(super) fn strings<const N: usize>(values: [&str; N]) -> Vec<String> {

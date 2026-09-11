@@ -1,6 +1,10 @@
 use chrono::{DateTime, Local, TimeZone};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "Serde serialize_with functions receive references"
+)]
 fn serialize_timestamp_as_iso8601<S>(
     timestamp_micros: &i64,
     serializer: S,
@@ -38,7 +42,7 @@ where
         TimestampFormat::Microseconds(micros) => Ok(micros),
         TimestampFormat::IsoString(s) => DateTime::parse_from_rfc3339(&s)
             .map(|dt| dt.timestamp_micros())
-            .map_err(|e| Error::custom(format!("Invalid ISO timestamp: {}", e))),
+            .map_err(|e| Error::custom(format!("Invalid ISO timestamp: {e}"))),
     }
 }
 

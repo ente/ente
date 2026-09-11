@@ -1,4 +1,4 @@
-import { LockerAuthShell } from "@/components/LockerAuthShell";
+import { LockerAuthShell } from "@/components/auth/LockerAuthShell";
 import { SignUpForm } from "ente-accounts/components/auth/SignUpForm";
 import type { SignUpPresentationProps } from "ente-accounts/components/SignUpContents";
 import AccountsSignUpPage from "ente-accounts/pages/signup";

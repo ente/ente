@@ -4,7 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const root = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../..",
+);
 const files = {
     packageJson: path.join(root, "rust/apps/ensu/package.json"),
     packageLock: path.join(root, "rust/apps/ensu/package-lock.json"),
@@ -43,14 +46,17 @@ function replace(file, regex, replacement) {
     let count = 0;
     const next = text.replace(regex, (...args) => {
         count += 1;
-        return typeof replacement === "function" ? replacement(...args) : replacement;
+        return typeof replacement === "function"
+            ? replacement(...args)
+            : replacement;
     });
     if (!count) throw new Error(`No match in ${path.relative(root, file)}`);
     write(file, next);
 }
 
 function expect(label, actual, wanted) {
-    if (actual !== wanted) throw new Error(`${label}: expected ${wanted}, found ${actual}`);
+    if (actual !== wanted)
+        throw new Error(`${label}: expected ${wanted}, found ${actual}`);
 }
 
 function sourceBuildNumber() {
@@ -60,8 +66,16 @@ function sourceBuildNumber() {
 }
 
 function setBuildNumber(buildNumber) {
-    replace(files.android, /(versionCode = .*\?: )\d+/, (_m, prefix) => `${prefix}${buildNumber}`);
-    replace(files.xcode, /CURRENT_PROJECT_VERSION = [^;]+;/g, `CURRENT_PROJECT_VERSION = ${buildNumber};`);
+    replace(
+        files.android,
+        /(versionCode = .*\?: )\d+/,
+        (_m, prefix) => `${prefix}${buildNumber}`,
+    );
+    replace(
+        files.xcode,
+        /CURRENT_PROJECT_VERSION = [^;]+;/g,
+        `CURRENT_PROJECT_VERSION = ${buildNumber};`,
+    );
 }
 
 function check() {
@@ -69,22 +83,68 @@ function check() {
     const releaseVersion = trimVersion(version);
     const buildNumber = sourceBuildNumber();
 
-    const xcodeBuildNumbers = [...read(files.xcode).matchAll(/CURRENT_PROJECT_VERSION = ([^;]+);/g)];
-    if (!xcodeBuildNumbers.length) throw new Error("Xcode CURRENT_PROJECT_VERSION: no entries found");
+    const xcodeBuildNumbers = [
+        ...read(files.xcode).matchAll(/CURRENT_PROJECT_VERSION = ([^;]+);/g),
+    ];
+    if (!xcodeBuildNumbers.length)
+        throw new Error("Xcode CURRENT_PROJECT_VERSION: no entries found");
     for (const match of xcodeBuildNumbers) {
         expect("Xcode CURRENT_PROJECT_VERSION", match[1], buildNumber);
     }
 
-    expect("tauri.conf.json", value(files.tauri, /^\s*"version"\s*:\s*"([^"]+)"/m), version);
-    expect("package-lock.json", value(files.packageLock, /"name": "ensu-desktop",\n\s+"version": "([^"]+)"/), version);
-    expect("package-lock.json packages[\"\"]", value(files.packageLock, /"": \{\n\s+"name": "ensu-desktop",\n\s+"version": "([^"]+)"/), version);
-    expect("Cargo.toml", value(files.cargoToml, /\[package\][\s\S]*?^version = "([^"]+)"/m), version);
-    expect("Cargo.lock", value(files.cargoLock, /\[\[package\]\]\nname = "ensu-desktop"\nversion = "([^"]+)"/), version);
-    expect("Android versionName", value(files.android, /versionName = "([^"]+)"/), releaseVersion);
-    expect("Info.plist", value(files.plist, /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/), releaseVersion);
+    expect(
+        "tauri.conf.json",
+        value(files.tauri, /^\s*"version"\s*:\s*"([^"]+)"/m),
+        version,
+    );
+    expect(
+        "package-lock.json",
+        value(
+            files.packageLock,
+            /"name": "ensu-desktop",\n\s+"version": "([^"]+)"/,
+        ),
+        version,
+    );
+    expect(
+        'package-lock.json packages[""]',
+        value(
+            files.packageLock,
+            /"": \{\n\s+"name": "ensu-desktop",\n\s+"version": "([^"]+)"/,
+        ),
+        version,
+    );
+    expect(
+        "Cargo.toml",
+        value(files.cargoToml, /\[package\][\s\S]*?^version = "([^"]+)"/m),
+        version,
+    );
+    expect(
+        "Cargo.lock",
+        value(
+            files.cargoLock,
+            /\[\[package\]\]\nname = "ensu-desktop"\nversion = "([^"]+)"/,
+        ),
+        version,
+    );
+    expect(
+        "Android versionName",
+        value(files.android, /versionName = "([^"]+)"/),
+        releaseVersion,
+    );
+    expect(
+        "Info.plist",
+        value(
+            files.plist,
+            /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/,
+        ),
+        releaseVersion,
+    );
 
-    const xcodeMarketingVersions = [...read(files.xcode).matchAll(/MARKETING_VERSION = ([^;]+);/g)];
-    if (!xcodeMarketingVersions.length) throw new Error("Xcode MARKETING_VERSION: no entries found");
+    const xcodeMarketingVersions = [
+        ...read(files.xcode).matchAll(/MARKETING_VERSION = ([^;]+);/g),
+    ];
+    if (!xcodeMarketingVersions.length)
+        throw new Error("Xcode MARKETING_VERSION: no entries found");
     for (const match of xcodeMarketingVersions) {
         expect("Xcode MARKETING_VERSION", match[1], releaseVersion);
     }
@@ -93,15 +153,51 @@ function check() {
 function setVersion(version) {
     const releaseVersion = trimVersion(version);
 
-    replace(files.packageJson, /("name": "ensu-desktop",\n\s+"version": ")[^"]+(")/, (_m, a, b) => `${a}${version}${b}`);
-    replace(files.packageLock, /("name": "ensu-desktop",\n\s+"version": ")[^"]+(")/, (_m, a, b) => `${a}${version}${b}`);
-    replace(files.packageLock, /("": \{\n\s+"name": "ensu-desktop",\n\s+"version": ")[^"]+(")/, (_m, a, b) => `${a}${version}${b}`);
-    replace(files.tauri, /^(\s*"version"\s*:\s*")[^"]+(")/m, (_m, a, b) => `${a}${version}${b}`);
-    replace(files.cargoToml, /(\[package\][\s\S]*?^version = ")[^"]+(")/m, (_m, a, b) => `${a}${version}${b}`);
-    replace(files.cargoLock, /(\[\[package\]\]\nname = "ensu-desktop"\nversion = ")[^"]+(")/, (_m, a, b) => `${a}${version}${b}`);
-    replace(files.android, /versionName = "[^"]+"/, `versionName = "${releaseVersion}"`);
-    replace(files.xcode, /MARKETING_VERSION = [^;]+;/g, `MARKETING_VERSION = ${releaseVersion};`);
-    replace(files.plist, /(<key>CFBundleShortVersionString<\/key>\s*<string>)[^<]+(<\/string>)/, (_m, a, b) => `${a}${releaseVersion}${b}`);
+    replace(
+        files.packageJson,
+        /("name": "ensu-desktop",\n\s+"version": ")[^"]+(")/,
+        (_m, a, b) => `${a}${version}${b}`,
+    );
+    replace(
+        files.packageLock,
+        /("name": "ensu-desktop",\n\s+"version": ")[^"]+(")/,
+        (_m, a, b) => `${a}${version}${b}`,
+    );
+    replace(
+        files.packageLock,
+        /("": \{\n\s+"name": "ensu-desktop",\n\s+"version": ")[^"]+(")/,
+        (_m, a, b) => `${a}${version}${b}`,
+    );
+    replace(
+        files.tauri,
+        /^(\s*"version"\s*:\s*")[^"]+(")/m,
+        (_m, a, b) => `${a}${version}${b}`,
+    );
+    replace(
+        files.cargoToml,
+        /(\[package\][\s\S]*?^version = ")[^"]+(")/m,
+        (_m, a, b) => `${a}${version}${b}`,
+    );
+    replace(
+        files.cargoLock,
+        /(\[\[package\]\]\nname = "ensu-desktop"\nversion = ")[^"]+(")/,
+        (_m, a, b) => `${a}${version}${b}`,
+    );
+    replace(
+        files.android,
+        /versionName = "[^"]+"/,
+        `versionName = "${releaseVersion}"`,
+    );
+    replace(
+        files.xcode,
+        /MARKETING_VERSION = [^;]+;/g,
+        `MARKETING_VERSION = ${releaseVersion};`,
+    );
+    replace(
+        files.plist,
+        /(<key>CFBundleShortVersionString<\/key>\s*<string>)[^<]+(<\/string>)/,
+        (_m, a, b) => `${a}${releaseVersion}${b}`,
+    );
 }
 
 function usage() {
@@ -127,7 +223,8 @@ try {
         setVersion(args[0]);
         check();
     } else if (command === "set-build") {
-        if (!/^\d+$/.test(args[1])) throw new Error(`Invalid Ensu build number: ${args[1]}`);
+        if (!/^\d+$/.test(args[1]))
+            throw new Error(`Invalid Ensu build number: ${args[1]}`);
         setVersion(args[0]);
         setBuildNumber(args[1]);
         check();

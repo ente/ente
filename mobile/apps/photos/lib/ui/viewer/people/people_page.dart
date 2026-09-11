@@ -1,6 +1,5 @@
 import "dart:async";
 
-import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import "package:intl/intl.dart";
@@ -31,7 +30,7 @@ import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart
 import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 import "package:photos/ui/viewer/people/memory_lane_banner.dart";
-import "package:photos/ui/viewer/people/memory_lane_page.dart";
+import "package:photos/ui/viewer/people/memory_lane_page_v2.dart";
 import "package:photos/ui/viewer/people/people_app_bar.dart";
 import "package:photos/ui/viewer/people/person_gallery_suggestion.dart";
 
@@ -198,7 +197,11 @@ class _PeoplePageState extends State<PeoplePage> {
   Future<void> _openMemoryLanePage() async {
     _timelineLogger.info("banner_tap person=${_person.remoteID}");
     if (MemoryLaneService.instance.hasReadyTimelineSync(_person.remoteID)) {
-      await routeToPage(context, MemoryLanePage(person: _person));
+      await openMemoryLanePage(
+        context,
+        personId: _person.remoteID,
+        person: _person,
+      );
     }
     if (!mounted) return;
     setState(() {});

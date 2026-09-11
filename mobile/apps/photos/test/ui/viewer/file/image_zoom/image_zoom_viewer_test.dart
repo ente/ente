@@ -39,6 +39,22 @@ void main() {
     largerLandscapeImage.dispose();
   });
 
+  testWidgets("reports when the first image frame is decoded", (tester) async {
+    var readyCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ImageZoomViewer(
+          imageProvider: _DeterministicImageProvider(landscapeImage),
+          onImageFrameReady: () => readyCount++,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(readyCount, 1);
+  });
+
   group("double-tap focal zoom", () {
     testWidgets("centers the tapped horizontal area", (tester) async {
       final harness = await _pumpViewer(tester, image: landscapeImage);

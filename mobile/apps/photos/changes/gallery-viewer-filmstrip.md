@@ -1,0 +1,1 @@
+- Added a thumbnail filmstrip for quickly previewing and navigating nearby photos and videos in the gallery viewer.

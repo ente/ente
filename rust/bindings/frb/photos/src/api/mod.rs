@@ -5,6 +5,8 @@ pub mod location_api;
 #[cfg(any(feature = "flutter", frb_expand))]
 pub mod log;
 pub mod map_cluster_api;
+pub mod metadata_api;
+pub mod ml_db_api;
 pub mod ml_indexing_api;
 pub mod motion_photo_api;
 pub mod ocr_api;

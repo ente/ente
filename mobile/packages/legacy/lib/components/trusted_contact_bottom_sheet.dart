@@ -8,7 +8,7 @@ import "package:flutter/material.dart";
 
 Future<TrustedContactResult?> showTrustedContactSheet(
   BuildContext context, {
-  required EmergencyContact contact,
+  required LegacyContactRecord contact,
 }) {
   final email = contact.emergencyContact.email;
   return showBaseBottomSheet<TrustedContactResult>(
@@ -29,7 +29,7 @@ class TrustedContactResult {
 }
 
 class TrustedContactSheet extends StatefulWidget {
-  final EmergencyContact contact;
+  final LegacyContactRecord contact;
 
   const TrustedContactSheet({required this.contact, super.key});
 

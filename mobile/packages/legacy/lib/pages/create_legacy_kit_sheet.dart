@@ -2,7 +2,10 @@ import "dart:async";
 import "dart:convert";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_events/event_bus.dart";
 import "package:ente_legacy/components/legacy_kit_recovery_wait_time_sheet.dart";
+import "package:ente_legacy/events/legacy_kit_created_event.dart";
+import "package:ente_legacy/legacy_api.dart";
 import "package:ente_legacy/models/legacy_kit_models.dart";
 import "package:ente_legacy/pages/share_legacy_kit_page.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -14,22 +17,11 @@ import "package:hugeicons/hugeicons.dart";
 
 const _legacyKitPartNameMaxBytes = 50;
 
-typedef CreateLegacyKit =
-    Future<LegacyKitCreateResult> Function(
-      List<String> partNames,
-      int noticePeriodInHours,
-    );
-
 Future<void> showCreateLegacyKitPage(
   BuildContext context, {
   required String accountEmail,
   required bool isFirstLegacyKit,
-  required CreateLegacyKit createKit,
-  required GetLegacyKits getKits,
-  required DownloadLegacyKitShares downloadShares,
-  required UpdateLegacyKitRecoveryNotice updateRecoveryNotice,
-  required BlockLegacyKitRecovery blockRecovery,
-  required DeleteLegacyKit deleteKit,
+  required LegacyApi legacy,
   LegacyKitAuthenticator? authenticator,
   ValueChanged<LegacyKit>? onCreated,
   VoidCallback? onChanged,
@@ -39,12 +31,7 @@ Future<void> showCreateLegacyKitPage(
       builder: (context) => CreateLegacyKitPage(
         accountEmail: accountEmail,
         isFirstLegacyKit: isFirstLegacyKit,
-        createKit: createKit,
-        getKits: getKits,
-        downloadShares: downloadShares,
-        updateRecoveryNotice: updateRecoveryNotice,
-        blockRecovery: blockRecovery,
-        deleteKit: deleteKit,
+        legacy: legacy,
         authenticator: authenticator,
         onCreated: onCreated,
         onChanged: onChanged,
@@ -56,12 +43,7 @@ Future<void> showCreateLegacyKitPage(
 class CreateLegacyKitPage extends StatefulWidget {
   final String accountEmail;
   final bool isFirstLegacyKit;
-  final CreateLegacyKit createKit;
-  final GetLegacyKits getKits;
-  final DownloadLegacyKitShares downloadShares;
-  final UpdateLegacyKitRecoveryNotice updateRecoveryNotice;
-  final BlockLegacyKitRecovery blockRecovery;
-  final DeleteLegacyKit deleteKit;
+  final LegacyApi legacy;
   final LegacyKitAuthenticator? authenticator;
   final ValueChanged<LegacyKit>? onCreated;
   final VoidCallback? onChanged;
@@ -69,12 +51,7 @@ class CreateLegacyKitPage extends StatefulWidget {
   const CreateLegacyKitPage({
     required this.accountEmail,
     required this.isFirstLegacyKit,
-    required this.createKit,
-    required this.getKits,
-    required this.downloadShares,
-    required this.updateRecoveryNotice,
-    required this.blockRecovery,
-    required this.deleteKit,
+    required this.legacy,
     this.authenticator,
     this.onCreated,
     this.onChanged,
@@ -232,7 +209,11 @@ class _CreateLegacyKitPageState extends State<CreateLegacyKitPage> {
       if (!mounted) {
         return;
       }
-      final result = await widget.createKit(_partNames, _selectedDays * 24);
+      final result = await widget.legacy.createKit(
+        partNames: _partNames,
+        noticePeriodInHours: _selectedDays * 24,
+      );
+      Bus.instance.fire(LegacyKitCreatedEvent());
       widget.onCreated?.call(result.kit);
       if (!mounted) {
         return;
@@ -244,11 +225,7 @@ class _CreateLegacyKitPageState extends State<CreateLegacyKitPage> {
               kit: result.kit,
               initialShares: result.shares,
               accountEmail: widget.accountEmail,
-              getKits: widget.getKits,
-              downloadShares: widget.downloadShares,
-              updateRecoveryNotice: widget.updateRecoveryNotice,
-              blockRecovery: widget.blockRecovery,
-              deleteKit: widget.deleteKit,
+              legacy: widget.legacy,
               authenticator: widget.authenticator,
               onChanged: widget.onChanged,
               isCreationFlow: true,

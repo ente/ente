@@ -34,48 +34,72 @@ export const LegacyActionSheet: React.FC<LegacyActionSheetProps> = ({
             fullWidth
             maxWidth={false}
             slotProps={{
-                backdrop: { sx: { backgroundColor: "rgba(0, 0, 0, 0.48)" } },
+                backdrop: { sx: { backgroundColor: "rgba(0, 0, 0, 0.55)" } },
+                container: {
+                    sx: { alignItems: { xs: "flex-end", sm: "center" } },
+                },
                 paper: {
-                    sx: {
+                    sx: (theme) => ({
                         m: 0,
-                        position: "fixed",
-                        left: "50%",
-                        top: "50%",
-                        transform: "translate(-50%, -50%)",
-                        width: "min(100%, 375px)",
+                        width: "min(100%, 440px)",
                         maxHeight: "calc(100vh - 48px)",
                         borderRadius: "24px",
-                        backgroundColor: "background.paper",
-                        px: 2,
-                        pt: 2,
-                        pb: 2,
+                        backgroundColor: "background.default",
+                        padding: "20px",
                         overflowY: "auto",
-                    },
+                        [theme.breakpoints.down("sm")]: {
+                            width: "100%",
+                            maxWidth: "100%",
+                            borderRadius: "20px 20px 0 0",
+                            paddingBottom: "34px",
+                            m: 0,
+                        },
+                    }),
                 },
             }}
         >
             <Stack sx={{ gap: 2.5 }}>
-                <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
-                    <IconButton onClick={onClose} color="secondary">
-                        <CloseIcon />
-                    </IconButton>
-                </Stack>
-                <Stack sx={{ gap: 2 }}>
-                    <Typography variant="h4" sx={{ wordBreak: "break-word" }}>
+                <Stack
+                    direction="row"
+                    sx={{ alignItems: "center", gap: 1.5, minHeight: 38 }}
+                >
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            wordBreak: "break-word",
+                            flex: 1,
+                            lineHeight: "24px",
+                        }}
+                    >
                         {title}
                     </Typography>
-                    {subtitle && (
-                        <Typography
-                            variant="body"
-                            sx={{
-                                color: "text.muted",
-                                wordBreak: "break-word",
-                            }}
-                        >
-                            {subtitle}
-                        </Typography>
-                    )}
+                    <IconButton
+                        onClick={onClose}
+                        sx={{
+                            width: 36,
+                            height: 36,
+                            p: 0,
+                            borderRadius: "50%",
+                            bgcolor: "background.paper",
+                            flexShrink: 0,
+                            "&:hover": { bgcolor: "fill.faintHover" },
+                        }}
+                    >
+                        <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
                 </Stack>
+                {subtitle && (
+                    <Typography
+                        variant="small"
+                        sx={{
+                            color: "text.muted",
+                            wordBreak: "break-word",
+                            lineHeight: "20px",
+                        }}
+                    >
+                        {subtitle}
+                    </Typography>
+                )}
                 {children}
             </Stack>
         </Dialog>

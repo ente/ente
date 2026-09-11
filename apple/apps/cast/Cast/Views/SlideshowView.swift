@@ -10,7 +10,7 @@ struct SlideshowView: View {
     private var isLivePhoto: Bool {
         slideshowService.currentFile?.isLivePhoto ?? false
     }
-    
+
     @State private var showControls = false
     @State private var controlsTimer: Timer?
     @State private var imageScale: CGFloat = 1.0
@@ -29,16 +29,21 @@ struct SlideshowView: View {
     @State private var displayImageData: Data? = nil
     @State private var preDecodedImage: UIImage? = nil
     @State private var previousDecodedImage: UIImage? = nil
-    
+
     @FocusState private var isFocused: Bool
 
-    init(imageData: Data? = nil, videoData: Data? = nil, isVideo: Bool = false, slideshowService: RealSlideshowService) {
+    init(
+        imageData: Data? = nil,
+        videoData: Data? = nil,
+        isVideo: Bool = false,
+        slideshowService: RealSlideshowService,
+    ) {
         self.imageData = imageData
         self.videoData = videoData
         self.isVideo = isVideo
         self.slideshowService = slideshowService
     }
-    
+
     var body: some View {
         let mainUIImage = preDecodedImage
         let previousUIImage = previousDecodedImage
@@ -58,25 +63,26 @@ struct SlideshowView: View {
                 } else {
                     Color.black.ignoresSafeArea()
                 }
-                
-                if isVideo, let videoData = videoData {
+
+                if isVideo, let videoData {
                     VideoPlayerView(
                         videoData: videoData,
-                        suggestedFilename: slideshowService.currentFile?.title
+                        suggestedFilename: slideshowService.currentFile?.title,
                     )
                     .transition(.asymmetric(
                         insertion: .scale(scale: 1.1).combined(with: .opacity),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                        removal: .scale(scale: 0.9).combined(with: .opacity),
                     ))
-                } else if isLivePhoto && isPlayingLivePhotoVideo,
-                          let liveVideoData = slideshowService.livePhotoVideoData {
+                } else if isLivePhoto, isPlayingLivePhotoVideo,
+                          let liveVideoData = slideshowService.livePhotoVideoData
+                {
                     VideoPlayerView(
                         videoData: liveVideoData,
-                        suggestedFilename: slideshowService.currentFile?.title
+                        suggestedFilename: slideshowService.currentFile?.title,
                     )
                     .transition(.asymmetric(
                         insertion: .scale(scale: 1.1).combined(with: .opacity),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                        removal: .scale(scale: 0.9).combined(with: .opacity),
                     ))
                 } else if let uiImage = mainUIImage {
                     ZStack {
@@ -88,7 +94,7 @@ struct SlideshowView: View {
                                 .scaleEffect(imageScale)
                                 .opacity(previousImageOpacity)
                         }
-                        
+
                         Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
@@ -105,19 +111,20 @@ struct SlideshowView: View {
                         previousImageOpacity = 0.0
                         isPlayingLivePhotoVideo = false
                     }
-                    
-                    
+
                 } else {
-                    if let error = slideshowService.error, 
-                       (error.contains("No media files available") || error.contains("Empty file list")) {
+                    if let error = slideshowService.error,
+                       error.contains("No media files available") || error
+                       .contains("Empty file list")
+                    {
                         EmptyState()
-                    } else if slideshowService.totalSlides == 0 && !slideshowService.isPlaying {
+                    } else if slideshowService.totalSlides == 0, !slideshowService.isPlaying {
                         LoadingState()
                     } else {
                         LoadingState()
                     }
                 }
-                
+
                 actionFeedbackOverlay
                 controlsOverlay
                 toastOverlay
@@ -127,13 +134,13 @@ struct SlideshowView: View {
             if let newData = newValue {
                 Task {
                     let decodedImage = decodedUIImage(from: newData)
-                    
+
                     await MainActor.run {
                         previousDecodedImage = preDecodedImage
                         previousImageData = displayImageData
-                        
+
                         preDecodedImage = decodedImage
-                        
+
                         if previousDecodedImage != nil {
                             previousImageOpacity = 1.0
                             imageOpacity = 0.0
@@ -141,7 +148,7 @@ struct SlideshowView: View {
                             imageOpacity = 1.0
                             previousImageOpacity = 0.0
                         }
-                        
+
                         displayImageData = newData
                         animateImageIn(bytes: newData.count, isLive: isLivePhoto)
                     }
@@ -154,7 +161,7 @@ struct SlideshowView: View {
         .focused($isFocused)
         .onMoveCommand { direction in Task { await handleDirectionalInput(direction) } }
         .onPlayPauseCommand {
-            if isLivePhoto && slideshowService.livePhotoVideoData != nil {
+            if isLivePhoto, slideshowService.livePhotoVideoData != nil {
                 handleLongPressGesture()
             } else {
                 Task { await handlePlayPauseAction() }
@@ -165,12 +172,12 @@ struct SlideshowView: View {
             startControlsTimer()
             isFocused = true
             ScreenSaverManager.preventScreenSaver()
-            
+
             // onChange does not fire when the view starts with imageData set.
-            if let initialImageData = imageData, displayImageData == nil && !isVideo {
+            if let initialImageData = imageData, displayImageData == nil, !isVideo {
                 Task {
                     let decodedImage = decodedUIImage(from: initialImageData)
-                    
+
                     await MainActor.run {
                         preDecodedImage = decodedImage
                         imageOpacity = 1.0
@@ -185,7 +192,7 @@ struct SlideshowView: View {
             ScreenSaverManager.allowScreenSaver()
         }
     }
-    
+
     @ViewBuilder
     private var actionFeedbackOverlay: some View {
         if let feedback = actionFeedback {
@@ -197,21 +204,21 @@ struct SlideshowView: View {
                 }
         }
     }
-    
+
     @ViewBuilder
     private var controlsOverlay: some View {
         if showControls {
             EnhancedControlsOverlay(
                 isPlaying: slideshowService.isPlaying,
-                isPaused: slideshowService.isPaused
+                isPaused: slideshowService.isPaused,
             )
             .transition(.asymmetric(
                 insertion: .opacity.combined(with: .move(edge: .bottom)),
-                removal: .opacity
+                removal: .opacity,
             ))
         }
     }
-    
+
     @ViewBuilder
     private var toastOverlay: some View {
         if showToast {
@@ -226,15 +233,15 @@ struct SlideshowView: View {
             }
         }
     }
-    
+
     private func handleLongPressGesture() {
         showToast(icon: "livephoto.play", message: "Long press called")
         guard isLivePhoto, slideshowService.livePhotoVideoData != nil else { return }
-        
+
         withAnimation(.easeInOut(duration: 0.3)) {
             isPlayingLivePhotoVideo.toggle()
         }
-        
+
         if isPlayingLivePhotoVideo {
             slideshowService.pause()
             showToast(icon: "livephoto.play", message: "Playing Live Photo")
@@ -242,7 +249,7 @@ struct SlideshowView: View {
             slideshowService.resume()
             showToast(icon: "livephoto", message: "Live Photo Paused")
         }
-        
+
         if isPlayingLivePhotoVideo {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -252,10 +259,10 @@ struct SlideshowView: View {
             }
         }
     }
-    
+
     private func handlePlayPauseAction() async {
         slideshowService.togglePlayPause()
-        
+
         await MainActor.run {
             if slideshowService.isPaused {
                 showToast(icon: "pause.fill", message: "Paused")
@@ -264,7 +271,7 @@ struct SlideshowView: View {
             }
         }
     }
-    
+
     private func handleDirectionalInput(_ direction: MoveCommandDirection) async {
         switch direction {
         case .left:
@@ -277,7 +284,7 @@ struct SlideshowView: View {
             break
         }
     }
-    
+
     private func toggleControls() {
         withAnimation(.easeInOut(duration: 0.4)) {
             showControls.toggle()
@@ -286,32 +293,38 @@ struct SlideshowView: View {
             startControlsTimer()
         }
     }
-    
+
     private func startControlsTimer() {
         controlsTimer?.invalidate()
         controlsTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: false) { _ in
-            withAnimation(.easeInOut(duration: 0.4)) {
-                showControls = false
+            MainActor.assumeIsolated {
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    showControls = false
+                }
             }
         }
     }
-    
+
     private func showToast(icon: String, message: String) {
         toastIcon = icon
         toastMessage = message
         showToast = true
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             showToast = false
         }
     }
-    
+
     private func decodedUIImage(from data: Data) -> UIImage? {
         imageDecodeFailed = false
         if let uiImage = UIImage(data: data) {
             // Accessing cgImage forces decompression.
             if let cg = uiImage.cgImage {
-                return UIImage(cgImage: cg, scale: uiImage.scale, orientation: uiImage.imageOrientation)
+                return UIImage(
+                    cgImage: cg,
+                    scale: uiImage.scale,
+                    orientation: uiImage.imageOrientation,
+                )
             }
             return uiImage
         } else {
@@ -320,18 +333,18 @@ struct SlideshowView: View {
             return nil
         }
     }
-    
+
     private func animateImageIn(bytes: Int, isLive: Bool) {
         lastImageBytes = bytes
         imageScale = 1.0
-        
+
         withAnimation(.easeInOut(duration: 0.25)) {
             imageOpacity = 1.0
             previousImageOpacity = 0.0
         }
-        
+
         print("Displaying \(isLive ? "live" : "static") image (\(bytes) bytes)")
-        
+
         Task {
             try? await Task.sleep(nanoseconds: 300_000_000)
             await MainActor.run {
@@ -342,54 +355,51 @@ struct SlideshowView: View {
     }
 }
 
-
 struct LoadingState: View {
     @State private var animationPhase: CGFloat = 0
     @State private var pulseScale: CGFloat = 1.0
-    
+
     var body: some View {
         VStack(spacing: 40) {
             ZStack {
                 Circle()
                     .stroke(Color.white.opacity(0.1), lineWidth: 6)
                     .frame(width: 120, height: 120)
-                
+
                 Circle()
                     .trim(from: 0, to: 0.3)
                     .stroke(
                         LinearGradient(
                             colors: [Color.blue, Color.purple],
                             startPoint: .leading,
-                            endPoint: .trailing
+                            endPoint: .trailing,
                         ),
-                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round),
                     )
                     .frame(width: 120, height: 120)
                     .rotationEffect(.degrees(animationPhase * 360))
-                
+
                 Circle()
                     .fill(
                         RadialGradient(
                             colors: [
                                 Color.blue.opacity(0.3),
-                                Color.clear
+                                Color.clear,
                             ],
                             center: .center,
                             startRadius: 10,
-                            endRadius: 40
-                        )
+                            endRadius: 40,
+                        ),
                     )
                     .frame(width: 80, height: 80)
                     .scaleEffect(pulseScale)
             }
-            
-            
         }
         .onAppear {
             withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
                 animationPhase = 1.0
             }
-            
+
             withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
                 pulseScale = 1.2
             }
@@ -399,7 +409,7 @@ struct LoadingState: View {
 
 struct EmptyState: View {
     @State private var pulseScale: CGFloat = 1.0
-    
+
     var body: some View {
         VStack(spacing: 40) {
             ZStack {
@@ -408,26 +418,26 @@ struct EmptyState: View {
                         RadialGradient(
                             colors: [
                                 Color.gray.opacity(0.2),
-                                Color.clear
+                                Color.clear,
                             ],
                             center: .center,
                             startRadius: 20,
-                            endRadius: 60
-                        )
+                            endRadius: 60,
+                        ),
                     )
                     .frame(width: 120, height: 120)
                     .scaleEffect(pulseScale)
-                
+
                 Image(systemName: "photo.on.rectangle.angled")
                     .font(.system(size: 50, weight: .ultraLight))
                     .foregroundColor(.white.opacity(0.6))
             }
-            
+
             VStack(spacing: 12) {
                 Text("No photos in this album")
                     .font(.system(size: 32, weight: .semibold))
                     .foregroundColor(.white)
-                
+
                 Text("Add some photos to start your slideshow")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundColor(.white.opacity(0.7))
@@ -444,37 +454,49 @@ struct EmptyState: View {
 struct EnhancedControlsOverlay: View {
     let isPlaying: Bool
     let isPaused: Bool
-    
+
     var body: some View {
         VStack {
             Spacer()
-            
+
             HStack {
                 Spacer()
-                
+
                 VStack(spacing: 20) {
                     VStack(spacing: 8) {
                         HStack(spacing: 8) {
                             Image(systemName: isPaused ? "pause.circle.fill" : "play.circle.fill")
                                 .font(.system(size: 20, weight: .medium))
                                 .foregroundColor(isPaused ? .yellow : .green)
-                            
+
                             Text(isPaused ? "Paused" : "Playing")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(.white)
                         }
-                        
+
                         Text("Apple TV Remote Controls")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.white.opacity(0.8))
                     }
-                    
+
                     HStack(spacing: 40) {
-                        NavigationHint(icon: "chevron.left.circle.fill", label: "Previous", direction: .leading)
-                        NavigationHint(icon: isPaused ? "play.circle.fill" : "pause.circle.fill", label: isPaused ? "Resume" : "Pause", direction: .center)
-                        NavigationHint(icon: "chevron.right.circle.fill", label: "Next", direction: .trailing)
+                        NavigationHint(
+                            icon: "chevron.left.circle.fill",
+                            label: "Previous",
+                            direction: .leading,
+                        )
+                        NavigationHint(
+                            icon: isPaused ? "play.circle.fill" : "pause.circle.fill",
+                            label: isPaused ? "Resume" : "Pause",
+                            direction: .center,
+                        )
+                        NavigationHint(
+                            icon: "chevron.right.circle.fill",
+                            label: "Next",
+                            direction: .trailing,
+                        )
                     }
-                    
+
                     VStack(spacing: 6) {
                         Text("• Touch surface: Play/Pause")
                         Text("• Swipe left/right: Navigate slides")
@@ -491,16 +513,19 @@ struct EnhancedControlsOverlay: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 20).fill(
                                     LinearGradient(
-                                        colors: [Color.white.opacity(0.05), Color.white.opacity(0.02)],
+                                        colors: [
+                                            Color.white.opacity(0.05),
+                                            Color.white.opacity(0.02),
+                                        ],
                                         startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                        endPoint: .bottomTrailing,
+                                    ),
+                                ),
                             )
-                        
+
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(Color.white.opacity(0.15), lineWidth: 1)
-                    }
+                    },
                 )
                 Spacer()
             }
@@ -513,12 +538,12 @@ struct NavigationHint: View {
     let icon: String
     let label: String
     let direction: HorizontalAlignment
-    
+
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 28, weight: .medium))
-            
+
             Text(label)
                 .font(.system(size: 14, weight: .medium))
         }
@@ -529,7 +554,7 @@ struct NavigationHint: View {
 
 enum ActionFeedback {
     case play, pause, next, previous
-    
+
     var iconName: String {
         switch self {
         case .play: "play.circle.fill"
@@ -538,7 +563,7 @@ enum ActionFeedback {
         case .previous: "backward.circle.fill"
         }
     }
-    
+
     var title: String {
         switch self {
         case .play: "Play"
@@ -551,7 +576,7 @@ enum ActionFeedback {
 
 struct ActionFeedbackView: View {
     let feedback: ActionFeedback
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: feedback.iconName)
@@ -564,7 +589,10 @@ struct ActionFeedbackView: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color.black.opacity(0.7))
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.2), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(
+                    Color.white.opacity(0.2),
+                    lineWidth: 1,
+                )),
         )
         .transition(.scale.combined(with: .opacity))
     }
@@ -573,13 +601,13 @@ struct ActionFeedbackView: View {
 struct AppleStyleToast: View {
     let icon: String
     let message: String
-    
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 20, weight: .medium))
                 .foregroundColor(.white)
-            
+
             Text(message)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.white)
@@ -591,37 +619,48 @@ struct AppleStyleToast: View {
                 .fill(Color.black.opacity(0.8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                )
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1),
+                ),
         )
         .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
     }
 }
 
 class MockSlideshowService: ObservableObject {
-    @Published var currentFile: (title: String, isLivePhoto: Bool)? = (title: "Sample Image", isLivePhoto: false)
+    @Published var currentFile: (title: String, isLivePhoto: Bool)? = (
+        title: "Sample Image",
+        isLivePhoto: false,
+    )
     @Published var isPlaying: Bool = true
     @Published var isPaused: Bool = false
     @Published var livePhotoVideoData: Data? = nil
-    
-    func togglePlayPause() { isPaused.toggle() }
+
+    func togglePlayPause() {
+        isPaused.toggle()
+    }
+
     func nextSlide() async {}
     func previousSlide() async {}
-    func pause() { isPaused = true }
-    func resume() { isPaused = false }
+    func pause() {
+        isPaused = true
+    }
+
+    func resume() {
+        isPaused = false
+    }
 }
 
 #Preview {
     struct PreviewWrapper: View {
         @StateObject private var slideshowService = MockSlideshowService()
-        
+
         var body: some View {
             SlideshowView(
                 imageData: nil,
-                slideshowService: slideshowService as! RealSlideshowService
+                slideshowService: slideshowService as! RealSlideshowService,
             )
         }
     }
-    
+
     return PreviewWrapper()
 }

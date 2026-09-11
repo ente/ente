@@ -1,21 +1,7 @@
 name: "Lint (Mobile)"
 
 on:
-    pull_request:
-        paths:
-            - ".github/workflows/mobile-lint.yml"
-            - "mobile/**"
-            - "rust/Cargo.lock"
-            - "rust/Cargo.toml"
-            - "rust/bindings/frb/**"
-            - "rust/crates/cast/**"
-            - "rust/crates/contacts/**"
-            - "rust/crates/core/**"
-            - "rust/crates/image/**"
-            - "rust/crates/locker/**"
-            - "rust/crates/ml/**"
-            - "rust/crates/photos/**"
-            - "rust/tools/codegen/**"
+    workflow_call:
     workflow_dispatch:
 
 permissions:

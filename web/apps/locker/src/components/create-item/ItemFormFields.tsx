@@ -1,0 +1,323 @@
+import { CollectionChipRow } from "@/components/create-item/CollectionChipRow";
+import { CreateCollectionRow } from "@/components/create-item/CreateCollectionRow";
+import { FormField } from "@/components/ui/FormField";
+import type { LockerCollection, LockerItemType } from "@/types";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import {
+    Box,
+    IconButton,
+    InputAdornment,
+    Stack,
+    Typography,
+} from "@mui/material";
+import { t } from "i18next";
+import React, { useCallback, useMemo, useState } from "react";
+
+export const ItemFormFields: React.FC<{
+    type: LockerItemType;
+    data: Record<string, string>;
+    onChange: (field: string, value: string) => void;
+    showPassword: boolean;
+    onTogglePassword: () => void;
+}> = ({ type, data, onChange, showPassword, onTogglePassword }) => {
+    switch (type) {
+        case "note":
+            return (
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
+                        label={t("noteName")}
+                        value={data.title ?? ""}
+                        onChange={(event) =>
+                            onChange("title", event.target.value)
+                        }
+                        required
+                        autoFocus
+                    />
+                    <FormField
+                        label={t("noteContent")}
+                        value={data.content ?? ""}
+                        onChange={(event) =>
+                            onChange("content", event.target.value)
+                        }
+                        required
+                        multiline
+                        multilineMinHeight={152}
+                        minRows={4}
+                        maxRows={10}
+                    />
+                </Stack>
+            );
+        case "accountCredential":
+            return (
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
+                        label={t("credentialName")}
+                        value={data.name ?? ""}
+                        onChange={(event) =>
+                            onChange("name", event.target.value)
+                        }
+                        required
+                        autoFocus
+                    />
+                    <FormField
+                        label={t("username")}
+                        value={data.username ?? ""}
+                        onChange={(event) =>
+                            onChange("username", event.target.value)
+                        }
+                        required
+                    />
+                    <FormField
+                        label={t("password")}
+                        value={data.password ?? ""}
+                        onChange={(event) =>
+                            onChange("password", event.target.value)
+                        }
+                        required
+                        type={showPassword ? "text" : "password"}
+                        slotProps={{
+                            input: {
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            onClick={onTogglePassword}
+                                            edge="end"
+                                            size="small"
+                                            sx={{ color: "text.faint", p: 0 }}
+                                        >
+                                            {showPassword ? (
+                                                <VisibilityOffIcon />
+                                            ) : (
+                                                <VisibilityIcon />
+                                            )}
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            },
+                        }}
+                    />
+                    <FormField
+                        label={t("credentialNotes")}
+                        value={data.notes ?? ""}
+                        onChange={(event) =>
+                            onChange("notes", event.target.value)
+                        }
+                        multiline
+                        multilineMinHeight={92}
+                        minRows={2}
+                        maxRows={5}
+                    />
+                </Stack>
+            );
+        case "physicalRecord":
+            return (
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
+                        label={t("recordName")}
+                        value={data.name ?? ""}
+                        onChange={(event) =>
+                            onChange("name", event.target.value)
+                        }
+                        required
+                        autoFocus
+                    />
+                    <FormField
+                        label={t("recordLocation")}
+                        value={data.location ?? ""}
+                        onChange={(event) =>
+                            onChange("location", event.target.value)
+                        }
+                        required
+                    />
+                    <FormField
+                        label={t("recordNotes")}
+                        value={data.notes ?? ""}
+                        onChange={(event) =>
+                            onChange("notes", event.target.value)
+                        }
+                        multiline
+                        multilineMinHeight={92}
+                        minRows={2}
+                        maxRows={5}
+                    />
+                </Stack>
+            );
+        case "emergencyContact":
+            return (
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
+                        label={t("contactName")}
+                        value={data.name ?? ""}
+                        onChange={(event) =>
+                            onChange("name", event.target.value)
+                        }
+                        required
+                        autoFocus
+                    />
+                    <FormField
+                        label={t("contactDetails")}
+                        value={data.contactDetails ?? ""}
+                        onChange={(event) =>
+                            onChange("contactDetails", event.target.value)
+                        }
+                        required
+                    />
+                    <FormField
+                        label={t("contactNotes")}
+                        value={data.notes ?? ""}
+                        onChange={(event) =>
+                            onChange("notes", event.target.value)
+                        }
+                        multiline
+                        multilineMinHeight={92}
+                        minRows={2}
+                        maxRows={5}
+                    />
+                </Stack>
+            );
+        case "file":
+            return (
+                <Stack sx={{ gap: "24px" }}>
+                    <FormField
+                        label={t("fileTitle")}
+                        value={data.name ?? ""}
+                        onChange={(event) =>
+                            onChange("name", event.target.value)
+                        }
+                        required
+                        autoFocus
+                    />
+                </Stack>
+            );
+        default:
+            return null;
+    }
+};
+
+export const CollectionSelector: React.FC<{
+    collections: LockerCollection[];
+    selectedIDs: number[];
+    initialSelectedIDs?: number[];
+    onToggle: (id: number) => void;
+    onCreateCollection?: (name: string) => Promise<number>;
+}> = ({
+    collections,
+    selectedIDs,
+    initialSelectedIDs,
+    onToggle,
+    onCreateCollection,
+}) => {
+    const [createOpen, setCreateOpen] = useState(false);
+    const [createName, setCreateName] = useState("");
+    const [creating, setCreating] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
+    const [newlyCreatedCollectionIDs, setNewlyCreatedCollectionIDs] = useState<
+        number[]
+    >([]);
+
+    const orderedCollections = useMemo(() => {
+        const sortedCollections = [...collections].sort((a, b) =>
+            a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+        );
+        const pinnedCollectionIDs = [
+            ...newlyCreatedCollectionIDs,
+            ...(initialSelectedIDs ?? []).filter(
+                (id) => !newlyCreatedCollectionIDs.includes(id),
+            ),
+        ];
+        if (pinnedCollectionIDs.length === 0) {
+            return sortedCollections;
+        }
+
+        const sortedCollectionsByID = new Map(
+            sortedCollections.map((collection) => [collection.id, collection]),
+        );
+        const pinnedCollectionIDSet = new Set(pinnedCollectionIDs);
+        const pinnedCollections = pinnedCollectionIDs
+            .map((id) => sortedCollectionsByID.get(id))
+            .filter(
+                (collection): collection is LockerCollection => !!collection,
+            );
+        const remainingCollections = sortedCollections.filter(
+            (collection) => !pinnedCollectionIDSet.has(collection.id),
+        );
+        return [...pinnedCollections, ...remainingCollections];
+    }, [collections, initialSelectedIDs, newlyCreatedCollectionIDs]);
+
+    const handleCreateCollection = useCallback(async () => {
+        const name = createName.trim();
+        if (!onCreateCollection || !name) {
+            return;
+        }
+
+        setCreating(true);
+        setCreateError(null);
+        try {
+            const newCollectionID = await onCreateCollection(name);
+            setNewlyCreatedCollectionIDs((current) => [
+                newCollectionID,
+                ...current.filter((id) => id !== newCollectionID),
+            ]);
+            onToggle(newCollectionID);
+            setCreateName("");
+            setCreateOpen(false);
+        } catch (error) {
+            setCreateError(
+                error instanceof Error
+                    ? error.message
+                    : t("failedToCreateCollection"),
+            );
+        } finally {
+            setCreating(false);
+        }
+    }, [createName, onCreateCollection, onToggle]);
+
+    return (
+        <Box>
+            <CollectionChipRow
+                items={orderedCollections.map((collection) => ({
+                    key: String(collection.id),
+                    label: collection.name,
+                    selected: selectedIDs.includes(collection.id),
+                    onClick: () => onToggle(collection.id),
+                }))}
+                createOpen={createOpen}
+                onCreateClick={
+                    onCreateCollection
+                        ? () => {
+                              setCreateOpen((open) => !open);
+                              setCreateError(null);
+                          }
+                        : undefined
+                }
+            />
+
+            {createOpen && onCreateCollection && (
+                <Stack sx={{ gap: "8px", mt: 0 }}>
+                    <CreateCollectionRow
+                        value={createName}
+                        onChange={(v) => {
+                            setCreateName(v);
+                            setCreateError(null);
+                        }}
+                        onSubmit={() => void handleCreateCollection()}
+                        onCancel={() => {
+                            setCreateOpen(false);
+                            setCreateError(null);
+                        }}
+                        loading={creating}
+                    />
+                    {createError && (
+                        <Typography
+                            variant="small"
+                            sx={{ color: "critical.main" }}
+                        >
+                            {createError}
+                        </Typography>
+                    )}
+                </Stack>
+            )}
+        </Box>
+    );
+};

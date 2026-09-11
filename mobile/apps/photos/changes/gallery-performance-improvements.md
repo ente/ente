@@ -1,0 +1,1 @@
+- Gallery performance improvements.

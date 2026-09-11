@@ -59,7 +59,7 @@ pub(crate) struct OnnxSession {
     mode: ExecutionMode,
     validation: AccelerationValidation,
     provider_plan: Option<ProviderPlan>,
-    session: Option<Session>,
+    session: Option<(Session, ExecutionProvider)>,
     first_run_canary: Option<webgpu::ArmedCanary>,
 }
 
@@ -117,17 +117,7 @@ impl OnnxSession {
         mut operation: impl FnMut(&mut Session) -> SessionRunResult<T>,
     ) -> MlResult<(T, ProviderUsage)> {
         loop {
-            self.ensure_loaded()?;
-
-            let execution_provider = self
-                .provider_plan
-                .as_ref()
-                .and_then(ProviderPlan::selected_provider)
-                .expect("loaded session must have a selected execution provider");
-            let session = self
-                .session
-                .as_mut()
-                .expect("session must be loaded before model execution");
+            let (session, execution_provider) = self.ensure_loaded()?;
             match operation(session) {
                 Ok(value) => {
                     self.disarm_first_run_canary();
@@ -148,10 +138,11 @@ impl OnnxSession {
         }
     }
 
-    fn ensure_loaded(&mut self) -> MlResult<()> {
-        if self.session.is_some() {
-            return Ok(());
-        }
+    fn ensure_loaded(&mut self) -> MlResult<(&mut Session, ExecutionProvider)> {
+        let slot = match &mut self.session {
+            Some((session, provider)) => return Ok((session, *provider)),
+            slot => slot,
+        };
 
         let model_path = self.model_path.as_str();
         let model_namespace = self.model_namespace.as_str();
@@ -161,18 +152,15 @@ impl OnnxSession {
         let model_name = model_file_label(model_path);
         log::info!("loading {model_name} with {:?} execution", self.mode);
         let started_at = std::time::Instant::now();
-        let loaded =
+        let (loaded, execution_provider) =
             build_next_session(model_path, provider_plan, model_namespace, self.validation)?;
-        let execution_provider = provider_plan
-            .selected_provider()
-            .expect("successful session build must select an execution provider");
         log::info!(
             "loaded {model_name} with {execution_provider:?} in {:?}",
             started_at.elapsed()
         );
-        self.session = Some(loaded.session);
         self.first_run_canary = loaded.first_run_canary;
-        Ok(())
+        let (session, provider) = slot.insert((loaded.session, execution_provider));
+        Ok((session, *provider))
     }
 
     fn disarm_first_run_canary(&mut self) {
@@ -288,7 +276,7 @@ fn build_next_session(
     plan: &mut ProviderPlan,
     model_namespace: &str,
     validation: AccelerationValidation,
-) -> MlResult<LoadedSession> {
+) -> MlResult<(LoadedSession, ExecutionProvider)> {
     let result = providers::run_provider_plan(plan, |execution_provider| {
         let attempt = providers::provider_attempt(execution_provider, model_path, model_namespace);
         if attempt.execution_provider() == ExecutionProvider::WebGpu {
@@ -361,7 +349,7 @@ fn build_cpu_session(model_path: &str) -> MlResult<Session> {
         "golden-tooling",
         AccelerationValidation::GoldenRequired,
     )
-    .map(|loaded| loaded.session)
+    .map(|(loaded, _)| loaded.session)
 }
 
 // A CoreML self-test failure is treated as construction failure so the caller

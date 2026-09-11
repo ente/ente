@@ -36,7 +36,7 @@ pub(crate) use stats::{
 };
 pub(crate) use structuring::ellipse_kernel;
 pub(crate) use transform::rotate_u8;
-pub(crate) use warp::warp_perspective;
+pub(crate) use warp::{warp_perspective, warp_rgb_perspective};
 
 pub(crate) const PARALLEL_MIN_ELEMS: usize = 200_000;
 const PIXELS_PER_CHUNK: usize = 65_536;

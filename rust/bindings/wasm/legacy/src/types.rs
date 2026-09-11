@@ -148,49 +148,6 @@ impl From<ente_legacy::LegacyUser> for LegacyUser {
 
 #[derive(Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct KeyAttributes {
-    kek_salt: String,
-    #[tsify(optional)]
-    kek_hash: Option<String>,
-    encrypted_key: String,
-    key_decryption_nonce: String,
-    public_key: String,
-    encrypted_secret_key: String,
-    secret_key_decryption_nonce: String,
-    mem_limit: u32,
-    ops_limit: u32,
-    #[tsify(optional)]
-    master_key_encrypted_with_recovery_key: Option<String>,
-    #[tsify(optional)]
-    master_key_decryption_nonce: Option<String>,
-    #[tsify(optional)]
-    recovery_key_encrypted_with_master_key: Option<String>,
-    #[tsify(optional)]
-    recovery_key_decryption_nonce: Option<String>,
-}
-
-impl From<KeyAttributes> for ente_accounts::auth::KeyAttributes {
-    fn from(value: KeyAttributes) -> Self {
-        Self {
-            kek_salt: value.kek_salt,
-            kek_hash: value.kek_hash,
-            encrypted_key: value.encrypted_key,
-            key_decryption_nonce: value.key_decryption_nonce,
-            public_key: value.public_key,
-            encrypted_secret_key: value.encrypted_secret_key,
-            secret_key_decryption_nonce: value.secret_key_decryption_nonce,
-            mem_limit: value.mem_limit,
-            ops_limit: value.ops_limit,
-            master_key_encrypted_with_recovery_key: value.master_key_encrypted_with_recovery_key,
-            master_key_decryption_nonce: value.master_key_decryption_nonce,
-            recovery_key_encrypted_with_master_key: value.recovery_key_encrypted_with_master_key,
-            recovery_key_decryption_nonce: value.recovery_key_decryption_nonce,
-        }
-    }
-}
-
-#[derive(Deserialize, Tsify)]
-#[serde(rename_all = "camelCase")]
 pub struct OpenKitRecoveryInput {
     pub base_url: String,
     pub shares: Vec<LegacyKitShare>,
@@ -202,7 +159,7 @@ pub struct OpenKitRecoveryInput {
     pub client_version: Option<String>,
 }
 
-#[derive(Deserialize, Tsify)]
+#[derive(Serialize, Deserialize, Tsify)]
 pub struct LegacyKitShare {
     #[serde(rename = "pv")]
     payload_version: u8,
@@ -219,6 +176,20 @@ pub struct LegacyKitShare {
     checksum: String,
     #[serde(rename = "n")]
     part_name: String,
+}
+
+impl From<ente_legacy::LegacyKitShare> for LegacyKitShare {
+    fn from(value: ente_legacy::LegacyKitShare) -> Self {
+        Self {
+            payload_version: value.payload_version,
+            variant: value.variant,
+            kit_id: value.kit_id,
+            share_index: value.share_index,
+            share: value.share,
+            checksum: value.checksum,
+            part_name: value.part_name,
+        }
+    }
 }
 
 impl From<LegacyKitShare> for ente_legacy::LegacyKitShare {

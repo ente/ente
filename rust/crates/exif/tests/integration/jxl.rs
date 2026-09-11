@@ -67,10 +67,10 @@ fn codestream_wins_over_stale_exif_size_and_orientation() {
     let exif = [2u32.to_be_bytes().as_slice(), b"--", &exif].concat();
     for orientation in [None, Some(1), Some(6)] {
         let bytes = container(&[
-            box_bytes(b"Exif", &exif),
-            box_bytes(b"jxlc", &header(false, 173, 211, 0, 0, orientation)),
+            box_bytes(*b"Exif", &exif),
+            box_bytes(*b"jxlc", &header(false, 173, 211, 0, 0, orientation)),
             box_bytes(
-                b"xml ",
+                *b"xml ",
                 xmp("<d:description>coast</d:description>").as_bytes(),
             ),
         ]);
@@ -105,7 +105,7 @@ fn split_headers_can_cross_every_byte_boundary() {
         let bytes = container(&[
             part(0, &stream[..split]),
             box_bytes(
-                b"xml ",
+                *b"xml ",
                 xmp("<d:description>between parts</d:description>").as_bytes(),
             ),
             part(1, &[]),
@@ -155,9 +155,9 @@ fn invalid_box_sizes_and_codestream_sequences_fail() {
         vec![part(0x8000_0001, &stream)],
         vec![part(0, &stream), part(0x8000_0000, &[])],
         vec![part(0x8000_0000, &stream), part(0x8000_0001, &[])],
-        vec![part(0, &stream), box_bytes(b"jxlc", &stream)],
-        vec![box_bytes(b"jxlc", &stream), box_bytes(b"jxlc", &stream)],
-        vec![box_bytes(b"jxlp", &[0, 0, 0])],
+        vec![part(0, &stream), box_bytes(*b"jxlc", &stream)],
+        vec![box_bytes(*b"jxlc", &stream), box_bytes(*b"jxlc", &stream)],
+        vec![box_bytes(*b"jxlp", &[0, 0, 0])],
         vec![b"\0\0\0\x07jxlc".to_vec()],
         vec![b"\0\0\0\x01jxlc\0\0\0\0\0\0\0\x0f".to_vec()],
         vec![b"\0\0\0\x01jxlc\xff\xff\xff\xff\xff\xff\xff\xff".to_vec()],
@@ -182,9 +182,9 @@ fn brotli_metadata_uses_the_same_exif_and_xmp_paths() {
     .concat();
     let xml = xmp("<d:description>星空</d:description>");
     let bytes = container(&[
-        box_bytes(b"jxlc", &header(true, 24, 40, 0, 0, None)),
-        brob(b"Exif", &stored_brotli(&exif)),
-        brob(b"xml ", &stored_brotli(xml.as_bytes())),
+        box_bytes(*b"jxlc", &header(true, 24, 40, 0, 0, None)),
+        brob(*b"Exif", &stored_brotli(&exif)),
+        brob(*b"xml ", &stored_brotli(xml.as_bytes())),
     ]);
     for mode in [Mode::Summary, Mode::Details] {
         let metadata = read(&bytes, mode);
@@ -206,8 +206,8 @@ fn compressed_output_grows_within_an_aggregate_budget() {
         0x1b, 0x12, 0x14, 0xaa, 0x82, 0xeb, 0x4d, 0x5f, 0xad, 0xc1, 0x81, 0xe6, 0x74, 0x94, 0xa8,
         0x8e, 0x46, 0x70, 0xec, 0xf3, 0x27, 0x01, 0x72, 0x4c, 0xa1, 0x20,
     ];
-    let stream = box_bytes(b"jxlc", &header(true, 24, 40, 0, 0, None));
-    let encoded = brob(b"xml ", COMPRESSED);
+    let stream = box_bytes(*b"jxlc", &header(true, 24, 40, 0, 0, None));
+    let encoded = brob(*b"xml ", COMPRESSED);
     let plain = br#"<r:RDF xmlns:r="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><r:Description xmlns:d="http://purl.org/dc/elements/1.1/"><d:description>woods</d:description></r:Description></r:RDF>"#;
     let exact = plain.len() + 40000;
     let mut limits = Limits {
@@ -223,7 +223,7 @@ fn compressed_output_grows_within_an_aggregate_budget() {
     assert!(metadata.issues.is_empty());
     assert_eq!(metadata.xmp_description(None), Some("woods"));
     assert!(metadata.statistics.bytes_read < 300);
-    let repeated = container(&[stream.clone(), encoded.clone(), encoded.clone()]);
+    let repeated = container(&[stream, encoded.clone(), encoded]);
     assert!(matches!(
         ente_exif::read(&mut Cursor::new(&repeated), Mode::Summary, limits),
         Err(Error::Limit("Brotli output"))
@@ -249,9 +249,9 @@ fn malformed_compressed_metadata_recovers_but_limits_stop() {
     ] {
         let metadata = read(
             &container(&[
-                box_bytes(b"jxlc", &header(true, 24, 40, 0, 0, None)),
-                brob(b"xml ", &bad),
-                box_bytes(b"xml ", xml.as_bytes()),
+                box_bytes(*b"jxlc", &header(true, 24, 40, 0, 0, None)),
+                brob(*b"xml ", &bad),
+                box_bytes(*b"xml ", xml.as_bytes()),
             ]),
             Mode::Summary,
         );
@@ -259,8 +259,8 @@ fn malformed_compressed_metadata_recovers_but_limits_stop() {
         assert_eq!(metadata.xmp_description(None), Some("after"));
     }
     let bytes = container(&[
-        box_bytes(b"jxlc", &header(true, 24, 40, 0, 0, None)),
-        brob(b"xml ", &[0x0f]),
+        box_bytes(*b"jxlc", &header(true, 24, 40, 0, 0, None)),
+        brob(*b"xml ", &[0x0f]),
     ]);
     assert!(matches!(
         ente_exif::read(&mut Cursor::new(bytes), Mode::Summary, Limits::default()),
@@ -272,11 +272,11 @@ fn malformed_compressed_metadata_recovers_but_limits_stop() {
 fn unknown_boxes_are_skipped_and_brob_cannot_wrap_codestreams() {
     let metadata = read(
         &container(&[
-            box_bytes(b"jxlc", &header(true, 24, 40, 0, 0, None)),
-            brob(b"jumb", &[0x11]),
-            brob(b"brob", &[]),
-            brob(b"jxlc", &[]),
-            box_bytes(b"free", &vec![0; 10000]),
+            box_bytes(*b"jxlc", &header(true, 24, 40, 0, 0, None)),
+            brob(*b"jumb", &[0x11]),
+            brob(*b"brob", &[]),
+            brob(*b"jxlc", &[]),
+            box_bytes(*b"free", &vec![0; 10000]),
         ]),
         Mode::Summary,
     );
@@ -293,7 +293,7 @@ fn header_truncations_and_mutations_remain_bounded() {
             &header(false, 400001, 500001, 0, 3, Some(7))[1..],
         ),
         brob(
-            b"xml ",
+            *b"xml ",
             &stored_brotli(xmp("<d:description>green</d:description>").as_bytes()),
         ),
     ]);
@@ -319,18 +319,18 @@ fn header_truncations_and_mutations_remain_bounded() {
 fn container(boxes: &[Vec<u8>]) -> Vec<u8> {
     [
         b"\0\0\0\x0cJXL \r\n\x87\n".to_vec(),
-        box_bytes(b"ftyp", b"jxl \0\0\0\0jxl "),
+        box_bytes(*b"ftyp", b"jxl \0\0\0\0jxl "),
         boxes.concat(),
     ]
     .concat()
 }
 
 fn part(index: u32, bytes: &[u8]) -> Vec<u8> {
-    box_bytes(b"jxlp", &[index.to_be_bytes().as_slice(), bytes].concat())
+    box_bytes(*b"jxlp", &[index.to_be_bytes().as_slice(), bytes].concat())
 }
 
-fn brob(kind: &[u8; 4], bytes: &[u8]) -> Vec<u8> {
-    box_bytes(b"brob", &[kind.as_slice(), bytes].concat())
+fn brob(kind: [u8; 4], bytes: &[u8]) -> Vec<u8> {
+    box_bytes(*b"brob", &[kind.as_slice(), bytes].concat())
 }
 
 fn header(

@@ -7,7 +7,7 @@ use crate::crypto::{Error, Key, Nonce, Result};
 // Same as libsodium's `crypto_secretbox_MACBYTES`.
 pub const MAC_BYTES: usize = 16;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EncryptedBox {
     pub encrypted_data: Vec<u8>,
     pub nonce: Nonce,
@@ -33,8 +33,10 @@ fn encrypt_with_nonce(data: &[u8], nonce: &Nonce, key: &Key) -> Vec<u8> {
     let cipher = XSalsa20Poly1305::new(GenericArray::from_slice(key.as_bytes()));
     let nonce_ga = GenericArray::from_slice(nonce.as_bytes());
 
-    // The underlying AEAD encrypt only fails on plaintexts exceeding the
-    // cipher's size bounds, which cannot be reached with in-memory slices.
+    #[expect(
+        clippy::expect_used,
+        reason = "The cipher size limit cannot be reached by an in-memory slice"
+    )]
     cipher
         .encrypt(nonce_ga, data)
         .expect("XSalsa20-Poly1305 encryption cannot fail for in-memory plaintexts")

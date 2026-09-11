@@ -115,18 +115,16 @@ pub fn estimate_encrypted_size(plaintext_len: usize) -> usize {
     let full_chunks = plaintext_len / ENCRYPTION_CHUNK_SIZE;
     let last_chunk_size = plaintext_len % ENCRYPTION_CHUNK_SIZE;
 
-    let full_bytes = match full_chunks.checked_mul(DECRYPTION_CHUNK_SIZE) {
-        Some(value) => value,
-        None => return usize::MAX,
+    let Some(full_bytes) = full_chunks.checked_mul(DECRYPTION_CHUNK_SIZE) else {
+        return usize::MAX;
     };
 
     if last_chunk_size == 0 {
         return full_bytes;
     }
 
-    let with_last = match full_bytes.checked_add(last_chunk_size) {
-        Some(value) => value,
-        None => return usize::MAX,
+    let Some(with_last) = full_bytes.checked_add(last_chunk_size) else {
+        return usize::MAX;
     };
     match with_last.checked_add(ABYTES) {
         Some(value) => value,
@@ -507,8 +505,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamTruncated)),
-            "Expected StreamTruncated error, got {:?}",
-            result
+            "Expected StreamTruncated error, got {result:?}"
         );
     }
 
@@ -529,8 +526,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamTruncated)),
-            "Expected StreamTruncated error, got {:?}",
-            result
+            "Expected StreamTruncated error, got {result:?}"
         );
     }
 
@@ -641,11 +637,7 @@ mod tests {
                 }
             }
 
-            assert_eq!(
-                plaintext, decrypted,
-                "Mismatch with buffer size {}",
-                buf_size
-            );
+            assert_eq!(plaintext, decrypted, "Mismatch with buffer size {buf_size}");
         }
     }
 
@@ -704,7 +696,7 @@ mod tests {
         assert_eq!(decrypted.len(), total_plaintext_size);
 
         for (i, byte) in decrypted.iter().take(1000).enumerate() {
-            assert_eq!(*byte, (i % 256) as u8, "Mismatch at small_data[{}]", i);
+            assert_eq!(*byte, (i % 256) as u8, "Mismatch at small_data[{i}]");
         }
         for (i, byte) in decrypted[1000..]
             .iter()
@@ -714,8 +706,7 @@ mod tests {
             assert_eq!(
                 *byte,
                 ((i + 1000) % 256) as u8,
-                "Mismatch at large_data[{}]",
-                i
+                "Mismatch at large_data[{i}]"
             );
         }
     }
@@ -803,8 +794,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamPullFailed)),
-            "Expected StreamPullFailed error on tampered ciphertext, got {:?}",
-            result
+            "Expected StreamPullFailed error on tampered ciphertext, got {result:?}"
         );
     }
 
@@ -824,8 +814,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamPullFailed)),
-            "Expected StreamPullFailed error on tampered header, got {:?}",
-            result
+            "Expected StreamPullFailed error on tampered header, got {result:?}"
         );
     }
 
@@ -846,8 +835,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamPullFailed)),
-            "Expected StreamPullFailed error on tampered MAC, got {:?}",
-            result
+            "Expected StreamPullFailed error on tampered MAC, got {result:?}"
         );
     }
 
@@ -866,8 +854,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamPullFailed)),
-            "Expected StreamPullFailed error with wrong key, got {:?}",
-            result
+            "Expected StreamPullFailed error with wrong key, got {result:?}"
         );
     }
 
@@ -913,8 +900,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamPullFailed)),
-            "Expected StreamPullFailed for short ciphertext, got {:?}",
-            result
+            "Expected StreamPullFailed for short ciphertext, got {result:?}"
         );
     }
 
@@ -1026,8 +1012,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamTruncated)),
-            "Expected StreamTruncated for empty ciphertext, got {:?}",
-            result
+            "Expected StreamTruncated for empty ciphertext, got {result:?}"
         );
     }
 
@@ -1046,8 +1031,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamTruncated)),
-            "Expected StreamTruncated at chunk boundary, got {:?}",
-            result
+            "Expected StreamTruncated at chunk boundary, got {result:?}"
         );
     }
 
@@ -1069,8 +1053,7 @@ mod tests {
 
         assert!(
             result.is_err(),
-            "Expected error from truncated ciphertext, got {:?}",
-            result
+            "Expected error from truncated ciphertext, got {result:?}"
         );
     }
 
@@ -1106,8 +1089,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamTrailingData)),
-            "Expected StreamTrailingData for trailing bytes after FINAL, got {:?}",
-            result
+            "Expected StreamTrailingData for trailing bytes after FINAL, got {result:?}"
         );
     }
 
@@ -1140,8 +1122,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamTruncated)),
-            "Expected StreamTruncated from decrypt_file_data, got {:?}",
-            result
+            "Expected StreamTruncated from decrypt_file_data, got {result:?}"
         );
     }
 
@@ -1159,8 +1140,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamTrailingData)),
-            "Expected StreamTrailingData from decrypt_file_data, got {:?}",
-            result
+            "Expected StreamTrailingData from decrypt_file_data, got {result:?}"
         );
     }
 
@@ -1182,8 +1162,7 @@ mod tests {
 
         assert!(
             matches!(result, Err(Error::StreamTrailingData)),
-            "Expected StreamTrailingData from StreamingDecryptor, got {:?}",
-            result
+            "Expected StreamTrailingData from StreamingDecryptor, got {result:?}"
         );
     }
 
@@ -1254,8 +1233,7 @@ mod tests {
 
                 assert_eq!(
                     stream_ciphertext_len, expected,
-                    "StreamingEncryptor: size={}, output {} != estimate {}",
-                    size, stream_ciphertext_len, expected
+                    "StreamingEncryptor: size={size}, output {stream_ciphertext_len} != estimate {expected}"
                 );
             }
         }
@@ -1274,8 +1252,7 @@ mod tests {
 
             assert!(
                 validate_sizes(plaintext.len(), encrypted.len()),
-                "validate_sizes failed for size {}",
-                size
+                "validate_sizes failed for size {size}"
             );
         }
     }

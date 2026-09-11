@@ -67,7 +67,7 @@ export interface ProgressUpdater {
     setFinishedUploads: React.Dispatch<
         React.SetStateAction<SegregatedFinishedUploads>
     >;
-    setUploadFilenames: React.Dispatch<React.SetStateAction<UploadFileNames>>;
+    setUploadFileNames: React.Dispatch<React.SetStateAction<UploadFileNames>>;
     setHasLivePhotos: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -95,7 +95,7 @@ class UIService {
     init(progressUpdater: ProgressUpdater) {
         this.progressUpdater = progressUpdater;
         this.progressUpdater.setUploadPhase(this.uploadPhase);
-        this.progressUpdater.setUploadFilenames(this.filenames);
+        this.progressUpdater.setUploadFileNames(this.filenames);
         this.progressUpdater.setHasLivePhotos(this.hasLivePhoto);
         this.progressUpdater.setUploadCounter({
             finished: this.filesUploadedCount,
@@ -139,7 +139,7 @@ class UIService {
     setFiles(files: { localID: number; fileName: string }[]) {
         const filenames = new Map(files.map((f) => [f.localID, f.fileName]));
         this.filenames = filenames;
-        this.progressUpdater.setUploadFilenames(filenames);
+        this.progressUpdater.setUploadFileNames(filenames);
     }
 
     setHasLivePhoto(hasLivePhoto: boolean) {
@@ -177,8 +177,7 @@ class UIService {
             this.perFileProgress *
             (this.finishedUploads.size || this.filesUploadedCount);
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for (const [_, progress] of this.inProgressUploads) {
+        for (const progress of this.inProgressUploads.values()) {
             if (progress < 0) {
                 continue;
             }

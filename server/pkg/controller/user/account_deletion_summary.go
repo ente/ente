@@ -16,7 +16,7 @@ func (c *UserController) GetAccountDeletionSummary(ctx context.Context, userID i
 
 	g := new(errgroup.Group)
 	g.Go(func() error {
-		count, err := c.FileRepo.GetFileCountForUser(userID, ente.Photos)
+		count, err := c.UserCacheController.GetUserFileCountWithCache(userID, ente.Photos)
 		if err != nil {
 			return stacktrace.Propagate(err, "failed to get photos file count")
 		}
@@ -24,7 +24,7 @@ func (c *UserController) GetAccountDeletionSummary(ctx context.Context, userID i
 		return nil
 	})
 	g.Go(func() error {
-		count, err := c.FileRepo.GetFileCountForUser(userID, ente.Locker)
+		count, err := c.UserCacheController.GetUserFileCountWithCache(userID, ente.Locker)
 		if err != nil {
 			return stacktrace.Propagate(err, "failed to get locker file count")
 		}

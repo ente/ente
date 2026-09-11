@@ -1,1 +1,0 @@
-- Added the ability to rename chats on desktop (@fosszil).

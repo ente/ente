@@ -23,6 +23,8 @@ const initialPostLoadingIndicatorDelayMs = 350;
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();
+    const initialSection =
+        router.query.section == "latest" ? "latest" : undefined;
     const {
         profile,
         profileLoadError,
@@ -96,7 +98,11 @@ const Page: React.FC = () => {
         return () => window.clearTimeout(timeoutID);
     }, [isInitialPostsLoading]);
 
-    if (profileLoadStatus != "ready" || !profile) {
+    if (
+        profileLoadStatus != "ready" ||
+        !profile ||
+        (initialSection == "latest" && isPostsLoading)
+    ) {
         return (
             <SpaceRouteFallback
                 background={spaceAppBackgroundColor}
@@ -119,15 +125,21 @@ const Page: React.FC = () => {
             <SpacePageMeta themeColor={spaceAppBackgroundColor} />
             <ProfileScreen
                 friendsCount={friendsCount}
+                initialSection={initialSection}
                 isPostsLoading={isPostsLoading}
                 isStatsLoading={isPostsLoading}
                 postItems={postItems}
                 profile={profile}
                 showPostLoadingIndicator={showInitialPostLoadingIndicator}
                 onBack={() => void router.push(spaceRoutes.home)}
-                onPostSubmitted={() => void router.push(spaceRoutes.home)}
                 onCreatePost={async (image, caption) => {
-                    await publishPost(image, caption);
+                    const post = await publishPost(image, caption);
+                    setPosts((currentPosts) => [
+                        post,
+                        ...currentPosts.filter(
+                            (currentPost) => currentPost.postId != post.postId,
+                        ),
+                    ]);
                 }}
                 onDeletePost={async (postId) => {
                     const spaceId = profile.spaceId;
@@ -172,6 +184,7 @@ const Page: React.FC = () => {
                 onOpenProfilePhoto={() =>
                     void router.push(spaceRoutes.profilePhoto)
                 }
+                onOpenSettings={() => void router.push(spaceRoutes.settings)}
                 onLoadPostImage={loadCurrentSpacePostAssetURL}
                 onSetPostLiked={async (postId, liked) => {
                     await setCurrentPostLiked(actorSpaceId, postId, liked);

@@ -438,7 +438,8 @@ fn parse_stored_attachments(raw: Option<String>) -> Result<Vec<StoredAttachment>
     }
 }
 
-#[cfg(all(test, feature = "sqlite"))]
+#[cfg(test)]
+#[cfg(feature = "sqlite")]
 mod tests {
     use std::collections::VecDeque;
     use std::sync::atomic::{AtomicI64, Ordering};

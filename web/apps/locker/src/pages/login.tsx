@@ -1,4 +1,4 @@
-import { LockerAuthShell } from "@/components/LockerAuthShell";
+import { LockerAuthShell } from "@/components/auth/LockerAuthShell";
 import { LoginForm } from "ente-accounts/components/auth/LoginForm";
 import {
     LoginContents,

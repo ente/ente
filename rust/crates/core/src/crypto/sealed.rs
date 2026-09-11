@@ -255,8 +255,7 @@ mod tests {
         let result = seal(b"test", &zero_pk);
         assert!(
             matches!(result, Err(Error::InvalidPublicKey)),
-            "seal() should reject small-order public key, got: {:?}",
-            result
+            "seal() should reject small-order public key, got: {result:?}"
         );
     }
 
@@ -272,8 +271,7 @@ mod tests {
         let result = open(&fake_ciphertext, &pk, &sk);
         assert!(
             matches!(result, Err(Error::InvalidPublicKey)),
-            "open() should reject small-order ephemeral key, got: {:?}",
-            result
+            "open() should reject small-order ephemeral key, got: {result:?}"
         );
     }
 

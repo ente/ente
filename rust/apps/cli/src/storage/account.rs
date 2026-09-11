@@ -15,7 +15,7 @@ impl<'a> AccountStore<'a> {
     }
 
     pub fn add(&self, account: &Account) -> Result<()> {
-        let now = current_timestamp();
+        let now = current_timestamp()?;
 
         self.conn.execute(
             "INSERT INTO accounts (user_id, app, email, endpoint, export_dir, created_at, updated_at)
@@ -63,7 +63,7 @@ impl<'a> AccountStore<'a> {
     }
 
     pub fn update_export_dir(&self, email: &str, app: App, export_dir: &str) -> Result<()> {
-        let now = current_timestamp();
+        let now = current_timestamp()?;
 
         let rows_affected = self.conn.execute(
             "UPDATE accounts SET export_dir = ?1, updated_at = ?2 
@@ -73,8 +73,7 @@ impl<'a> AccountStore<'a> {
 
         if rows_affected == 0 {
             return Err(crate::Error::NotFound(format!(
-                "Account not found: {} (app: {:?})",
-                email, app
+                "Account not found: {email} (app: {app:?})"
             )));
         }
 
@@ -89,8 +88,7 @@ impl<'a> AccountStore<'a> {
 
         if rows_affected == 0 {
             return Err(crate::Error::NotFound(format!(
-                "Account not found: user_id={} (app: {:?})",
-                user_id, app
+                "Account not found: user_id={user_id} (app: {app:?})"
             )));
         }
 
@@ -98,7 +96,7 @@ impl<'a> AccountStore<'a> {
     }
 
     pub fn store_secrets(&self, user_id: i64, app: App, secrets: &AccountSecrets) -> Result<()> {
-        let now = current_timestamp();
+        let now = current_timestamp()?;
 
         self.conn.execute(
             "INSERT OR REPLACE INTO secrets 
@@ -157,9 +155,6 @@ fn row_to_account(row: &Row) -> rusqlite::Result<Account> {
     })
 }
 
-fn current_timestamp() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
+fn current_timestamp() -> Result<i64> {
+    Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64)
 }

@@ -6,11 +6,23 @@ const FILLER_WORDS: &[&str] = &[
     "ehh",
 ];
 
-static MULTI_SPACE_PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s{2,}").unwrap());
+#[expect(
+    clippy::expect_used,
+    reason = "The whitespace regex is a fixed valid literal"
+)]
+static MULTI_SPACE_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\s{2,}").expect("valid whitespace regex"));
+#[expect(
+    clippy::expect_used,
+    reason = "Filler words are escaped before insertion into the fixed regex"
+)]
 static FILLER_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     FILLER_WORDS
         .iter()
-        .map(|word| Regex::new(&format!(r"(?i)\b{}\b[,.]?", regex::escape(word))).unwrap())
+        .map(|word| {
+            Regex::new(&format!(r"(?i)\b{}\b[,.]?", regex::escape(word)))
+                .expect("escaped filler word forms a valid regex")
+        })
         .collect()
 });
 
@@ -39,7 +51,7 @@ fn collapse_stutters(text: &str) -> String {
         let word = words[i];
         let word_lower = word.to_lowercase();
 
-        if word_lower.len() <= 2 && word_lower.chars().all(|c| c.is_alphabetic()) {
+        if word_lower.len() <= 2 && word_lower.chars().all(char::is_alphabetic) {
             let mut count = 1;
             while i + count < words.len() && words[i + count].to_lowercase() == word_lower {
                 count += 1;

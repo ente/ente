@@ -1,18 +1,10 @@
 name: "Test (Rust)"
 
 on:
-    pull_request:
-        paths:
-            - ".github/workflows/rust-test.yml"
-            - "rust/**"
-            - "server/**"
+    workflow_call:
 
 permissions:
     contents: read
-
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
 
 env:
     RUSTFLAGS: -D warnings
@@ -35,7 +27,7 @@ jobs:
             - name: Install Linux dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc
+                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc libdbus-1-dev dbus gnome-keyring libglib2.0-bin
 
             - name: Setup go
               uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
@@ -57,3 +49,5 @@ jobs:
               # GITHUB_TOKEN raises the API rate limit for those downloads.
               env:
                   GITHUB_TOKEN: ${{ github.token }}
+
+            - run: apps/cli-next/scripts/test-with-keyring-linux.sh --features museum

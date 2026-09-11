@@ -6,6 +6,7 @@ import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_legacy/components/legacy_kit_card_preview.dart";
 import "package:ente_legacy/components/legacy_kit_recovery_wait_time_sheet.dart";
+import "package:ente_legacy/legacy_api.dart";
 import "package:ente_legacy/models/legacy_kit_models.dart";
 import "package:ente_legacy/pages/legacy_congratulations_page.dart";
 import "package:ente_legacy/services/legacy_kit_local_settings.dart";
@@ -24,13 +25,6 @@ import "package:share_plus/share_plus.dart";
 
 typedef LegacyKitAuthenticator =
     Future<bool> Function(BuildContext context, String reason);
-typedef GetLegacyKits = Future<List<LegacyKit>> Function();
-typedef DownloadLegacyKitShares =
-    Future<List<LegacyKitShare>> Function(String kitId);
-typedef UpdateLegacyKitRecoveryNotice =
-    Future<void> Function(String kitId, int noticePeriodInHours);
-typedef BlockLegacyKitRecovery = Future<void> Function(String kitId);
-typedef DeleteLegacyKit = Future<void> Function(String kitId);
 
 final _legacyKitShareTokens = <String, Object>{};
 
@@ -46,11 +40,7 @@ enum _KitMenuAction { revoke }
 
 class ShareLegacyKitPage extends StatefulWidget {
   final LegacyKit kit;
-  final GetLegacyKits getKits;
-  final DownloadLegacyKitShares downloadShares;
-  final UpdateLegacyKitRecoveryNotice updateRecoveryNotice;
-  final BlockLegacyKitRecovery blockRecovery;
-  final DeleteLegacyKit deleteKit;
+  final LegacyApi legacy;
   final List<LegacyKitShare>? initialShares;
   final String accountEmail;
   final LegacyKitAuthenticator? authenticator;
@@ -61,11 +51,7 @@ class ShareLegacyKitPage extends StatefulWidget {
   const ShareLegacyKitPage({
     required this.kit,
     required this.accountEmail,
-    required this.getKits,
-    required this.downloadShares,
-    required this.updateRecoveryNotice,
-    required this.blockRecovery,
-    required this.deleteKit,
+    required this.legacy,
     this.initialShares,
     this.authenticator,
     this.onChanged,
@@ -331,7 +317,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
     final dialog = createProgressDialog(context, context.strings.pleaseWait);
     await dialog.show();
     try {
-      final shares = await widget.downloadShares(_kit.id);
+      final shares = await widget.legacy.downloadKitShares(kitId: _kit.id);
       await dialog.hide();
       if (mounted) {
         setState(() {
@@ -470,7 +456,10 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
     await dialog.show();
     Object? updateError;
     try {
-      await widget.updateRecoveryNotice(_kit.id, selectedDays * 24);
+      await widget.legacy.updateKitRecoveryNotice(
+        kitId: _kit.id,
+        noticePeriodInHours: selectedDays * 24,
+      );
       if (mounted) {
         setState(() {
           _kit = LegacyKit(
@@ -530,7 +519,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
           return false;
         }
         try {
-          await widget.deleteKit(_kit.id);
+          await widget.legacy.deleteKit(kitId: _kit.id);
           return true;
         } catch (_) {
           if (mounted) {
@@ -599,7 +588,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
           return false;
         }
         try {
-          await widget.blockRecovery(_kit.id);
+          await widget.legacy.blockKitRecovery(kitId: _kit.id);
           return true;
         } catch (_) {
           if (mounted) {
@@ -670,7 +659,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
   }
 
   Future<void> _refreshKit() async {
-    final refreshed = await widget.getKits();
+    final refreshed = await widget.legacy.kits();
     final current = refreshed.where((kit) => kit.id == _kit.id).firstOrNull;
     if (current != null && mounted) {
       setState(() {

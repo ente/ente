@@ -2,17 +2,17 @@ import SwiftUI
 
 @main
 struct EnsuApp: App {
-    private let assetStore: AssetStore
+    private let assetStoreTask: Task<AssetStore, Never>
 
     init() {
         EnsuLogging.shared.start()
         AssetStore.registerBackgroundTask()
-        assetStore = AssetStore()
+        assetStoreTask = Task { await AssetStore() }
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(assetStore: assetStore)
+            RootView(assetStoreTask: assetStoreTask)
         }
     }
 }

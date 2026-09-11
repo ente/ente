@@ -132,10 +132,10 @@ fn png_metadata_after_image_data_and_compressed_xmp() {
     ihdr.extend([8, 2, 0, 0, 0]);
     let data = [
         b"\x89PNG\r\n\x1a\n".to_vec(),
-        png_chunk(b"IHDR", &ihdr),
-        png_chunk(b"IDAT", &vec![0; 1_000_000]),
-        png_chunk(b"iTXt", &text),
-        png_chunk(b"IEND", &[]),
+        png_chunk(*b"IHDR", &ihdr),
+        png_chunk(*b"IDAT", &vec![0; 1_000_000]),
+        png_chunk(*b"iTXt", &text),
+        png_chunk(*b"IEND", &[]),
     ]
     .concat();
     let metadata = read(&data, Mode::Summary);
@@ -198,9 +198,9 @@ fn truncations_and_header_mutations_never_panic() {
     let packet = xmp("<d:subject><r:Bag><r:li>café</r:li></r:Bag></d:subject>");
     let png = [
         b"\x89PNG\r\n\x1a\n".to_vec(),
-        png_chunk(b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]),
-        png_chunk(b"tEXt", b"Caf\xe9\0Caption"),
-        png_chunk(b"IEND", &[]),
+        png_chunk(*b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]),
+        png_chunk(*b"tEXt", b"Caf\xe9\0Caption"),
+        png_chunk(*b"IEND", &[]),
     ]
     .concat();
     let seeds = [

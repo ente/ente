@@ -21,9 +21,9 @@ pub(crate) fn read<R: Read + Seek>(
     }
     let footer = reader.array::<8>(reader.len - 8)?;
     let mut starts = Vec::new();
-    let result = samsung(reader, state, &footer, &mut starts);
+    let result = samsung(reader, state, footer, &mut starts);
     state.recover(reader.len - 8, result)?;
-    let result = oplus(reader, state, &footer, &mut starts);
+    let result = oplus(reader, state, footer, &mut starts);
     state.recover(reader.len - 8, result)?;
     let result = xmp_starts(state, reader.len, &mut starts);
     state.recover(0, result)?;
@@ -107,7 +107,7 @@ fn xmp_starts(state: &State, len: u64, starts: &mut Vec<u64>) -> Result<(), Erro
 fn oplus<R: Read + Seek>(
     reader: &mut Reader<'_, R>,
     state: &mut State,
-    footer: &[u8; 8],
+    footer: [u8; 8],
     starts: &mut Vec<u64>,
 ) -> Result<(), Error> {
     if &footer[..4] != b"jxrs" {
@@ -167,13 +167,13 @@ fn oplus<R: Read + Seek>(
 fn samsung<R: Read + Seek>(
     reader: &mut Reader<'_, R>,
     state: &mut State,
-    footer: &[u8; 8],
+    footer: [u8; 8],
     starts: &mut Vec<u64>,
 ) -> Result<(), Error> {
     if &footer[4..] != b"SEFT" {
         return Ok(());
     }
-    let len = u64::from(le32(footer));
+    let len = u64::from(le32(&footer));
     let start = reader
         .len
         .checked_sub(len + 8)

@@ -49,7 +49,7 @@ export interface GenericFileData {
     hasObject?: boolean;
 }
 
-export type LockerItemData =
+type LockerItemData =
     | PersonalNoteData
     | AccountCredentialData
     | PhysicalRecordData
@@ -98,7 +98,7 @@ export const isCollectionOwner = (
     currentUserID: number | undefined,
 ) => currentUserID !== undefined && collection.owner.id === currentUserID;
 
-export const canRestoreToCollection = (
+const canRestoreToCollection = (
     collection: LockerCollection,
     currentUserID: number | undefined,
 ) =>
@@ -154,14 +154,11 @@ export const sortLockerCollections = (collections: LockerCollection[]) =>
         return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
     });
 
-export const visibleLockerCollections = (collections: LockerCollection[]) =>
-    sortLockerCollections(collections);
-
 export const restoreTargetLockerCollections = (
     collections: LockerCollection[],
     currentUserID: number | undefined,
 ) =>
-    visibleLockerCollections(collections).filter((collection) =>
+    sortLockerCollections(collections).filter((collection) =>
         canRestoreToCollection(collection, currentUserID),
     );
 

@@ -2,6 +2,13 @@ import type { Electron, ElectronMLWorker, ZipItem } from "ente-base/types/ipc";
 import { z } from "zod";
 import type { FileSystemUploadItem } from "../services/upload";
 
+declare global {
+    interface RequestInit {
+        // Chromium requires this for streamed request bodies.
+        duplex?: "half";
+    }
+}
+
 // Electron arguments prove these are desktop calls.
 // The native protocol handlers do not otherwise use them.
 export const readStream = async (
@@ -52,8 +59,6 @@ export const writeStream = async (
 
     const req = new Request(url, {
         method: "POST",
-        // Chromium requires duplex for streamed request bodies.
-        // @ts-expect-error duplex is missing from lib.dom.d.ts.
         duplex: "half",
         body: stream,
     });
@@ -118,8 +123,6 @@ export const initiateGenerateHLS = async (
     const res = await fetch(url, {
         method: "POST",
         headers: { "X-Auth-Token": authToken },
-        // Chromium requires duplex for streamed request bodies.
-        // @ts-expect-error duplex is missing from lib.dom.d.ts.
         duplex: "half",
         body,
     });

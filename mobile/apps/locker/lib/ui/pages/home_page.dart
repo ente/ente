@@ -231,6 +231,21 @@ class _HomePageState extends UploaderPageState<HomePage>
     );
   }
 
+  void _handleMissingRecoveryKey() {
+    final config = Configuration.instance;
+    if (!config.hasConfiguredAccount()) {
+      return;
+    }
+    final keyAttributes = config.getKeyAttributes();
+    if (keyAttributes == null) {
+      return;
+    }
+    if (keyAttributes.recoveryKeyEncryptedWithMasterKey.isEmpty ||
+        keyAttributes.recoveryKeyDecryptionNonce.isEmpty) {
+      Bus.instance.fire(TriggerLogoutEvent());
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -277,6 +292,12 @@ class _HomePageState extends UploaderPageState<HomePage>
     _legacyKitCreatedSubscription = Bus.instance
         .on<LegacyKitCreatedEvent>()
         .listen((_) => unawaited(_evaluateLegacyKit()));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _handleMissingRecoveryKey();
+      }
+    });
   }
 
   Future<void> _evaluateLegacyKit() async {

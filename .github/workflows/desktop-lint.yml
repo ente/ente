@@ -1,16 +1,7 @@
 name: "Lint (Photos desktop)"
 
 on:
-    pull_request:
-        paths:
-            - ".github/workflows/desktop-lint.yml"
-            - "desktop/**"
-            - "rust/Cargo.lock"
-            - "rust/Cargo.toml"
-            - "rust/bindings/napi/**"
-            - "rust/crates/image/**"
-            - "rust/crates/ml/**"
-            - "rust/tools/codegen/**"
+    workflow_call:
 
 permissions:
     contents: read

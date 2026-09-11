@@ -16,10 +16,6 @@ const collectionService = vi.hoisted(() => ({
     restoreToCollection: vi.fn(),
 }));
 
-vi.mock("ente-accounts/services/recovery-key", () => ({
-    getUserRecoveryKey: vi.fn(),
-}));
-vi.mock("ente-base/log", () => ({ default: { warn: vi.fn() } }));
 vi.mock("ente-new/photos/services/collection", () => collectionService);
 
 describe("performCollectionOp", () => {

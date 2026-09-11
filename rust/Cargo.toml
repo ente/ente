@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "apps/cli",
+    "apps/cli-next",
     "apps/ensu/src-tauri",
     "bindings/frb/lib",
     "bindings/frb/locker",
@@ -46,6 +47,10 @@ members = [
 edition = "2024"
 
 [workspace.dependencies]
+anyhow = "1.0.103"
+chrono = { version = "0.4.44", default-features = false }
+clap = "4.6.1"
+dialoguer = { version = "0.11.0", default-features = false }
 dirs = "5.0.1"
 ente-accounts = { path = "crates/accounts" }
 ente-assets = { path = "crates/assets" }
@@ -79,6 +84,7 @@ hkdf = "0.13.0"
 hmac = "0.13.0"
 image = "0.25.10"
 js-sys = "0.3.102"
+keyring = { version = "3.6.3", default-features = false }
 log = "0.4.29"
 md-5 = "0.11.0"
 mockito = "1.7.2"
@@ -117,6 +123,31 @@ unsafe_code = "deny"
 [workspace.lints.clippy]
 allow_attributes = "deny"
 allow_attributes_without_reason = "deny"
+collection_is_never_read = "deny"
+dbg_macro = "deny"
+debug_assert_with_mut_call = "deny"
+derive_partial_eq_without_eq = "deny"
+empty_drop = "deny"
+expect_used = "deny"
+fallible_impl_from = "deny"
+implicit_clone = "deny"
+inefficient_to_string = "deny"
+large_stack_arrays = "deny"
+large_types_passed_by_value = "deny"
+manual_let_else = "deny"
+needless_collect = "deny"
+path_buf_push_overwrite = "deny"
+rc_mutex = "deny"
+read_zero_byte_vec = "deny"
+redundant_clone = "deny"
+redundant_closure_for_method_calls = "deny"
+suspicious_operation_groupings = "deny"
+trivially_copy_pass_by_ref = "deny"
+uninlined_format_args = "deny"
+unused_async = "deny"
+unused_peekable = "deny"
+unused_rounding = "deny"
+unwrap_used = "deny"
 
 # Unoptimized Argon2 makes production-strength derivations dominate test runtime.
 [profile.dev.package.argon2]

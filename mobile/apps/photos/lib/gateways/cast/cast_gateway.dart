@@ -81,11 +81,7 @@ class CastGateway {
   }
 
   Future<void> revokeAllTokens() async {
-    try {
-      await _enteDio.delete("/cast/revoke-all-tokens");
-    } catch (e) {
-      // swallow error
-    }
+    await _enteDio.delete("/cast/revoke-all-tokens");
   }
 
   Future<void> revokeSession(CastInfo session) async {

@@ -148,7 +148,7 @@ interface ProgressUpdater {
     setFinishedUploads: React.Dispatch<
         React.SetStateAction<SegregatedFinishedUploads>
     >;
-    setUploadFilenames: React.Dispatch<React.SetStateAction<UploadFileNames>>;
+    setUploadFileNames: (filenames: UploadFileNames) => void;
     setHasLivePhotos: React.Dispatch<React.SetStateAction<boolean>>;
     setUploadProgressView: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -161,9 +161,7 @@ export type UploadItemWithCollection = UploadAsset & {
 };
 
 class UIService {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    private progressUpdater: ProgressUpdater;
+    private progressUpdater!: ProgressUpdater;
 
     private uploadPhase: UploadPhase = "preparing";
     private filenames = new Map<number, string>();
@@ -179,7 +177,7 @@ class UIService {
     init(progressUpdater: ProgressUpdater) {
         this.progressUpdater = progressUpdater;
         this.progressUpdater.setUploadPhase(this.uploadPhase);
-        this.progressUpdater.setUploadFilenames(this.filenames);
+        this.progressUpdater.setUploadFileNames(this.filenames);
         this.progressUpdater.setHasLivePhotos(this.hasLivePhoto);
         this.progressUpdater.setUploadProgressView(this.uploadProgressView);
         this.progressUpdater.setUploadCounter({
@@ -224,7 +222,7 @@ class UIService {
     setFiles(files: { localID: number; fileName: string }[]) {
         const filenames = new Map(files.map((f) => [f.localID, f.fileName]));
         this.filenames = filenames;
-        this.progressUpdater.setUploadFilenames(filenames);
+        this.progressUpdater.setUploadFileNames(filenames);
     }
 
     setHasLivePhoto(hasLivePhoto: boolean) {
@@ -267,8 +265,7 @@ class UIService {
             this.perFileProgress *
             (this.finishedUploads.size || this.filesUploadedCount);
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for (const [_, progress] of this.inProgressUploads) {
+        for (const progress of this.inProgressUploads.values()) {
             if (progress < 0) {
                 continue;
             }
@@ -305,9 +302,9 @@ const groupByResult = (finishedUploads: FinishedUploads) => {
 };
 
 class UploadManager {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    private comlinkCryptoWorkers: ComlinkWorker<typeof CryptoWorker>[] =
-        new Array(maxConcurrentUploads);
+    private comlinkCryptoWorkers = new Array<
+        ComlinkWorker<typeof CryptoWorker>
+    >(maxConcurrentUploads);
     private parsedMetadataJSONMap = new Map<string, ParsedMetadataJSON>();
     private itemsToBeUploaded: ClusteredUploadItem[] = [];
     private failedItems: ClusteredUploadItem[] = [];
@@ -345,8 +342,8 @@ class UploadManager {
         this.itemsToBeUploaded = [];
         this.failedItems = [];
         this.itemResults = [];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        this.parsedMetadataJSONMap = parsedMetadataJSONMap ?? new Map();
+        this.parsedMetadataJSONMap =
+            parsedMetadataJSONMap ?? new Map<string, ParsedMetadataJSON>();
         this.shouldUploadBeCancelled = false;
         this.fatalUploadError = undefined;
 

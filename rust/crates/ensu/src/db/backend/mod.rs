@@ -3,7 +3,7 @@ use crate::db::{Error, Result};
 #[cfg(feature = "sqlite")]
 pub mod sqlite;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Null,
     Integer(i64),

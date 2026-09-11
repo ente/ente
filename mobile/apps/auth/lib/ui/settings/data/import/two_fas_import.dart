@@ -104,7 +104,7 @@ Future<int?> _process2FasExportFile(
   }
   final parsedCodes = <Code>[];
   for (var item in decodedServices) {
-    var kind = item['otp']['tokenType'];
+    var kind = item['otp']['tokenType'] ?? 'TOTP';
     var account = item['otp']['account'] ?? '';
     var issuer = item['otp']['issuer'];
     if (issuer == null || (issuer as String).isEmpty) {
@@ -117,6 +117,10 @@ Future<int?> _process2FasExportFile(
     var digits = item['otp']['digits'];
     var counter = item['otp']['counter'];
 
+    if (kind == 'TOTP') {
+      algorithm ??= 'SHA1';
+      digits ??= Code.defaultDigits;
+    }
     Code code = parseImportOtpCode(
       item,
       () => buildImportOtpUri(

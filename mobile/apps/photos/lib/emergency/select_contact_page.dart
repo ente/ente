@@ -5,13 +5,15 @@ import 'package:flutter/material.dart';
 import "package:logging/logging.dart";
 import 'package:photos/core/configuration.dart';
 import "package:photos/emergency/components/recovery_date_selector.dart";
-import "package:photos/emergency/emergency_service.dart";
 import "package:photos/emergency/model.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/services/account/user_service.dart";
+import "package:photos/services/authenticated_session.dart";
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/contacts/contact_identity_resolver.dart";
+import "package:photos/services/legacy.dart" as legacy;
 import 'package:photos/theme/ente_theme.dart';
+import "package:photos/ui/common/user_dialogs.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
 import "package:photos/ui/components/base_bottom_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget_v2.dart";
@@ -19,10 +21,11 @@ import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart"
 import "package:photos/ui/components/text_input_widget_v2.dart";
 import 'package:photos/ui/sharing/user_avator_widget.dart';
 import "package:photos/ui/sharing/verify_identity_dialog.dart";
+import "package:photos/utils/email_util.dart";
 
 Future<bool?> showAddContactSheet(
   BuildContext context, {
-  required EmergencyInfo emergencyInfo,
+  required LegacyInfo emergencyInfo,
 }) {
   return showBaseBottomSheet<bool>(
     context,
@@ -36,7 +39,7 @@ Future<bool?> showAddContactSheet(
 }
 
 class AddContactSheet extends StatefulWidget {
-  final EmergencyInfo emergencyInfo;
+  final LegacyInfo emergencyInfo;
 
   const AddContactSheet({required this.emergencyInfo, super.key});
 
@@ -191,8 +194,41 @@ class _AddContactSheetState extends State<AddContactSheet> {
     );
   }
 
+  Future<bool> _addContact(String email, int recoveryNoticeInDays) async {
+    if (!isValidEmail(email)) {
+      if (!mounted) return false;
+      await showAlertBottomSheet(
+        context,
+        title: context.strings.letsTryThatAgain,
+        message: context.strings.enterValidEmail,
+        assetPath: "assets/warning-grey.png",
+      );
+      return false;
+    } else if (email.trim() == Configuration.instance.getEmail()) {
+      if (!mounted) return false;
+      await showAlertBottomSheet(
+        context,
+        title: context.strings.oops,
+        message: context.strings.youCannotShareWithYourself,
+        assetPath: "assets/warning-grey.png",
+      );
+      return false;
+    }
+    try {
+      await legacy.addContact(
+        session: authenticatedSession(),
+        email: email,
+        recoveryNoticeInDays: recoveryNoticeInDays,
+      );
+      return true;
+    } on LegacyError_ContactNotOnEnte {
+      if (!mounted) return false;
+      await showInviteDialog(context, email);
+      return false;
+    }
+  }
+
   Future<void> _onAddContactTap() async {
-    final sheetContext = context;
     final emailsToAdd = _emailsToAdd;
     if (emailsToAdd.isEmpty) {
       return;
@@ -209,20 +245,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
     var hasSuccess = false;
     for (final email in emailsToAdd) {
       try {
-        late final bool success;
-        if (sheetContext.mounted) {
-          success = await EmergencyContactService.instance.addContact(
-            sheetContext,
-            email,
-            recoveryNoticeInDays: _selectedRecoveryDays,
-          );
-        } else {
-          success = await EmergencyContactService.instance.addContact(
-            null,
-            email,
-            recoveryNoticeInDays: _selectedRecoveryDays,
-          );
-        }
+        final success = await _addContact(email, _selectedRecoveryDays);
         if (success) {
           hasSuccess = true;
         } else {

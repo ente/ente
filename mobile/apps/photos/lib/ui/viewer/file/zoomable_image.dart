@@ -25,6 +25,7 @@ import "package:photos/service_locator.dart" show flagService;
 import "package:photos/src/rust/api/image_processing_api.dart" as rust_image;
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
+import "package:photos/ui/viewer/file/file_viewer_image_page_readiness.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/utils/dialog_util.dart';
@@ -42,6 +43,8 @@ class ZoomableImage extends StatefulWidget {
   final bool enableVerticalSwipeActions;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
+  final FileViewerImagePageReadinessRegistration?
+  onImagePageReadinessRegistration;
 
   const ZoomableImage(
     this.photo, {
@@ -55,6 +58,7 @@ class ZoomableImage extends StatefulWidget {
     this.enableVerticalSwipeActions = true,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
+    this.onImagePageReadinessRegistration,
   });
 
   @override
@@ -80,6 +84,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   // for the original.
   bool _firedOnReady = false;
   bool _interactionLocked = false;
+  final _imageFrameReady = ValueNotifier(false);
   final _imageZoomController = ImageZoomController();
   late final StreamSubscription<ResetZoomOfPhotoView> _resetZoomSubscription;
   late final StreamSubscription<RetryFailedImageLoadEvent>
@@ -99,6 +104,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
   void initState() {
     super.initState();
     _photo = widget.photo;
+    widget.onImagePageReadinessRegistration?.call(
+      _photo,
+      _imageFrameReady,
+      isAttached: true,
+    );
     _logger = Logger("ZoomableImage");
     _logger.info('initState for ${_photo.generatedID} with tag ${_photo.tag}');
     // Render a cached thumbnail on first paint so prefetched files never
@@ -158,6 +168,24 @@ class _ZoomableImageState extends State<ZoomableImage> {
     setState(() => _interactionLocked = isLocked);
   }
 
+  @override
+  void didUpdateWidget(covariant ZoomableImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.onImagePageReadinessRegistration !=
+        widget.onImagePageReadinessRegistration) {
+      oldWidget.onImagePageReadinessRegistration?.call(
+        _photo,
+        _imageFrameReady,
+        isAttached: false,
+      );
+      widget.onImagePageReadinessRegistration?.call(
+        _photo,
+        _imageFrameReady,
+        isAttached: true,
+      );
+    }
+  }
+
   void _onVerticalDragUpdate(DragUpdateDetails details) {
     if (_imageZoomController.isZoomed) return;
     if (details.delta.dy > dragSensitivity) {
@@ -169,6 +197,12 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   @override
   void dispose() {
+    widget.onImagePageReadinessRegistration?.call(
+      _photo,
+      _imageFrameReady,
+      isAttached: false,
+    );
+    _imageFrameReady.dispose();
     _imageZoomController
       ..removeListener(_onZoomChanged)
       ..dispose();
@@ -199,6 +233,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
         // Collage already owns its transform with an outer InteractiveViewer.
         gesturesEnabled: !widget.shouldCover,
         onInteractionLockChanged: _onInteractionLockChanged,
+        onImageFrameReady: () => _imageFrameReady.value = true,
         loadingBuilder: (context, event) {
           // Match the loading state to the image's on-screen size during the
           // hero animation.

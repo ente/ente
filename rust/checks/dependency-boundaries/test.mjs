@@ -25,7 +25,10 @@ for (const framework of [
 ]) {
     result = run({ framework });
     assert.equal(result.status, 1, result.stderr);
-    assert.match(result.stderr, new RegExp(`dependency "${framework}" crosses`));
+    assert.match(
+        result.stderr,
+        new RegExp(`dependency "${framework}" crosses`),
+    );
 }
 
 result = run({ binding: true });
@@ -39,7 +42,10 @@ assert.equal(result.status, 0, result.stderr);
 
 result = run({ unregistered: true });
 assert.equal(result.status, 1, result.stderr);
-assert.match(result.stderr, /rust\/crates\/unregistered\/Cargo\.toml: domain crate is not registered/);
+assert.match(
+    result.stderr,
+    /rust\/crates\/unregistered\/Cargo\.toml: domain crate is not registered/,
+);
 
 result = run({ empty: true });
 assert.equal(result.status, 1, result.stderr);
@@ -58,15 +64,25 @@ for (const dependencyKind of [
 ]) {
     result = run({ framework: "reqwest", dependencyKind });
     assert.equal(result.status, 1, result.stderr);
-    assert.match(result.stderr, /use ente-core::http instead of a direct reqwest dependency/);
+    assert.match(
+        result.stderr,
+        /use ente-core::http instead of a direct reqwest dependency/,
+    );
 }
 
 result = run({ framework: "reqwest", bindingDependencyKind: "dependencies" });
 assert.equal(result.status, 1, result.stderr);
-assert.match(result.stderr, /rust\/bindings\/wasm\/lib\/Cargo\.toml: use ente-core::http/);
+assert.match(
+    result.stderr,
+    /rust\/bindings\/wasm\/lib\/Cargo\.toml: use ente-core::http/,
+);
 
 for (const domainName of ["core", "assets"]) {
-    result = run({ framework: "reqwest", dependencyKind: "dependencies", domainName });
+    result = run({
+        framework: "reqwest",
+        dependencyKind: "dependencies",
+        domainName,
+    });
     assert.equal(result.status, 0, result.stderr);
 }
 
@@ -129,23 +145,47 @@ function run({
                 packageToml(domainName, dependencies),
             );
             write(root, `rust/crates/${domainName}/src/lib.rs`, source);
-            write(root, "rust/bindings/wasm/lib/Cargo.toml", packageToml(
-                "ente-binding",
-                bindingDependencyKind
-                    ? `\n[${bindingDependencyKind}]\nhttp = { package = ${JSON.stringify(framework)}, path = "../../../vendor/framework" }\n`
-                    : "",
-            ));
-            write(root, "rust/bindings/wasm/lib/src/lib.rs", "pub fn binding() {}\n");
+            write(
+                root,
+                "rust/bindings/wasm/lib/Cargo.toml",
+                packageToml(
+                    "ente-binding",
+                    bindingDependencyKind
+                        ? `\n[${bindingDependencyKind}]\nhttp = { package = ${JSON.stringify(framework)}, path = "../../../vendor/framework" }\n`
+                        : "",
+                ),
+            );
+            write(
+                root,
+                "rust/bindings/wasm/lib/src/lib.rs",
+                "pub fn binding() {}\n",
+            );
             for (const [path, source] of Object.entries(projections)) {
                 write(root, path, source);
             }
             if (framework) {
-                write(root, "rust/vendor/framework/Cargo.toml", packageToml(framework));
-                write(root, "rust/vendor/framework/src/lib.rs", "pub fn framework() {}\n");
+                write(
+                    root,
+                    "rust/vendor/framework/Cargo.toml",
+                    packageToml(framework),
+                );
+                write(
+                    root,
+                    "rust/vendor/framework/src/lib.rs",
+                    "pub fn framework() {}\n",
+                );
             }
             if (unregistered || deleted) {
-                write(root, "rust/crates/unregistered/Cargo.toml", packageToml("unregistered"));
-                write(root, "rust/crates/unregistered/src/lib.rs", "pub fn unregistered() {}\n");
+                write(
+                    root,
+                    "rust/crates/unregistered/Cargo.toml",
+                    packageToml("unregistered"),
+                );
+                write(
+                    root,
+                    "rust/crates/unregistered/src/lib.rs",
+                    "pub fn unregistered() {}\n",
+                );
             }
         }
         spawn(
@@ -154,7 +194,8 @@ function run({
             join(root, "rust"),
         );
         spawn("git", ["add", "."], root);
-        if (deleted) rmSync(join(root, "rust/crates/unregistered"), { recursive: true });
+        if (deleted)
+            rmSync(join(root, "rust/crates/unregistered"), { recursive: true });
         return spawnSync(process.execPath, [check, root], { encoding: "utf8" });
     } finally {
         rmSync(root, { recursive: true });

@@ -6,7 +6,7 @@ use std::path::Path;
 use unicode_normalization::UnicodeNormalization;
 use unicode_normalization::char::is_combining_mark;
 
-use crate::binary::{f32_at, range, u16_at, u24_at, u32_at};
+use crate::binary::{ByteReader, f32_at, range, u16_at, u24_at, u32_at};
 use crate::{Coordinate, CountryCode, Error};
 
 const MAGIC: &[u8; 4] = b"CITY";
@@ -278,6 +278,10 @@ impl CityIndex {
                 continue;
             };
             let prominence_window = (0.5 + nearest * 0.25).min(2.0);
+            #[expect(
+                clippy::expect_used,
+                reason = "The nearest candidate is included in the prominence window"
+            )]
             let best = eligible
                 .iter()
                 .filter(|candidate| candidate.distance_km <= nearest + prominence_window)
@@ -465,17 +469,17 @@ impl CityIndex {
     }
 
     fn node(&self, tree: Tree, index: usize) -> usize {
-        u24_at(&self.bytes, tree.nodes + index * NODE_LEN).expect("validated node") as usize
+        ByteReader::at(&self.bytes, tree.nodes + index * NODE_LEN).u24() as usize
     }
 
     fn point(&self, index: usize) -> Point {
-        let offset = self.layout.points + index * POINT_LEN;
+        let mut reader = ByteReader::at(&self.bytes, self.layout.points + index * POINT_LEN);
         Point {
-            latitude: f32_at(&self.bytes, offset).expect("validated point"),
-            longitude: f32_at(&self.bytes, offset + 4).expect("validated point"),
-            name: u24_at(&self.bytes, offset + 8).expect("validated point") as usize,
-            country: usize::from(self.bytes[offset + 11]),
-            source_id: u24_at(&self.bytes, offset + 12).expect("validated point"),
+            latitude: reader.f32(),
+            longitude: reader.f32(),
+            name: reader.u24() as usize,
+            country: usize::from(reader.byte()),
+            source_id: reader.u24(),
         }
     }
 
@@ -731,9 +735,9 @@ fn validate_tree(bytes: &[u8], layout: Layout, tree: Tree) -> crate::Result<()> 
             return Err(invalid("invalid tree node"));
         }
         visited_points[point] = true;
-        let point_offset = layout.points + point * POINT_LEN;
-        let latitude = f64::from(f32_at(bytes, point_offset).expect("validated point"));
-        let longitude = f64::from(f32_at(bytes, point_offset + 4).expect("validated point"));
+        let mut reader = ByteReader::at(bytes, layout.points + point * POINT_LEN);
+        let latitude = f64::from(reader.f32());
+        let longitude = f64::from(reader.f32());
         if !(min_lat..=max_lat).contains(&latitude) || !(min_lng..=max_lng).contains(&longitude) {
             return Err(invalid("invalid KD ordering"));
         }
@@ -858,16 +862,24 @@ fn string_offset(bytes: &[u8], offset: usize, length: usize) -> crate::Result<us
 }
 
 fn table_entry_u24(bytes: &[u8], offsets: usize, blob: usize, index: usize) -> &str {
-    let start =
-        u24_at(bytes, offsets + index * NAME_OFFSET_LEN).expect("validated string table") as usize;
-    let end = u24_at(bytes, offsets + (index + 1) * NAME_OFFSET_LEN)
-        .expect("validated string table") as usize;
+    let mut reader = ByteReader::at(bytes, offsets + index * NAME_OFFSET_LEN);
+    let start = reader.u24() as usize;
+    let end = reader.u24() as usize;
+    #[expect(
+        clippy::expect_used,
+        reason = "Index construction validates the string table as UTF-8"
+    )]
     std::str::from_utf8(&bytes[blob + start..blob + end]).expect("validated UTF-8")
 }
 
 fn table_entry_u32(bytes: &[u8], offsets: usize, blob: usize, index: usize) -> &str {
-    let start = u32_at(bytes, offsets + index * 4).expect("validated string table") as usize;
-    let end = u32_at(bytes, offsets + (index + 1) * 4).expect("validated string table") as usize;
+    let mut reader = ByteReader::at(bytes, offsets + index * 4);
+    let start = reader.u32() as usize;
+    let end = reader.u32() as usize;
+    #[expect(
+        clippy::expect_used,
+        reason = "Index construction validates the string table as UTF-8"
+    )]
     std::str::from_utf8(&bytes[blob + start..blob + end]).expect("validated UTF-8")
 }
 
@@ -883,6 +895,10 @@ fn invalid(reason: &'static str) -> Error {
     Error::invalid(SECTION, reason)
 }
 
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "Iterator::min_by passes references to borrowed candidates"
+)]
 fn compare_candidates(left: &&Candidate, right: &&Candidate) -> Ordering {
     right
         .rank

@@ -1,4 +1,4 @@
-import { LockerAuthShell } from "@/components/LockerAuthShell";
+import { LockerAuthShell } from "@/components/auth/LockerAuthShell";
 import { SecondFactorChoiceDialog } from "ente-accounts/components/auth/SecondFactorChoiceDialog";
 import { VerifyEmailForm } from "ente-accounts/components/auth/VerifyEmailForm";
 import AccountsVerifyPage, {

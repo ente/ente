@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     sync::{
-        Arc, Condvar, Mutex, MutexGuard,
+        Arc, Condvar, Mutex, MutexGuard, PoisonError,
         atomic::{AtomicU64, Ordering},
     },
     time::{Duration, Instant},
@@ -278,9 +278,7 @@ impl AnalysisMonitor {
     }
 
     fn lock_state(&self) -> MutexGuard<'_, MonitorState> {
-        self.state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.state.lock().unwrap_or_else(PoisonError::into_inner)
     }
 }
 

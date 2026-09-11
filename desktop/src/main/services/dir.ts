@@ -1,5 +1,6 @@
 import { shell } from "electron/common";
 import { app, dialog } from "electron/main";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { posixPath } from "../utils/electron";
 
@@ -13,7 +14,17 @@ export const selectDirectory = async () => {
 
 export const openDirectory = async (dirPath: string) => {
     // shell.openPath requires native separators, not our POSIX IPC paths.
-    const res = await shell.openPath(path.normalize(dirPath));
+    const nativePath = path.normalize(dirPath);
+
+    // On Linux shell.openPath's promise never settles, so don't await it.
+    if (process.platform == "linux") {
+        if (!existsSync(nativePath))
+            throw new Error(`Failed to open directory ${dirPath}`);
+        void shell.openPath(nativePath);
+        return;
+    }
+
+    const res = await shell.openPath(nativePath);
     // Electron resolves with an error message on failure.
     if (res) throw new Error(`Failed to open directory ${dirPath}: ${res}`);
 };

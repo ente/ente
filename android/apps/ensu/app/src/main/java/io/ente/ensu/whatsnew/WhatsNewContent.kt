@@ -6,20 +6,20 @@ data class WhatsNewEntry(
 )
 
 object WhatsNewContent {
-    const val VERSION: Int = 1
+    const val VERSION: Int = 2
 
     val entries: List<WhatsNewEntry> = listOf(
         WhatsNewEntry(
-            title = "Talk to Ensu",
-            description = "On-device voice transcription is here — tap the mic and speak your prompt instead of typing. Nothing leaves your phone."
+            title = "Ensu Packs",
+            description = "Add knowledge from wikipedia and wikibooks to get more accurate answers."
         ),
         WhatsNewEntry(
-            title = "Image queries, way faster",
-            description = "Under-the-hood improvements make asking Ensu about a picture feel noticeably quicker."
+            title = "Chat with Your Notes",
+            description = "Add your markdown notes folder, and chat with your notes. Ask questions or discuss the thoughts you put down."
         ),
         WhatsNewEntry(
-            title = "Faster, smoother model downloads",
-            description = "Getting a new model onto your device is now dramatically quicker and more reliable."
+            title = "Gemma for high RAM phones",
+            description = "For phones with >8GB RAM, Gemma 4 is the new default model."
         )
     )
 }

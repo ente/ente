@@ -3,6 +3,7 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+use ente_assets::download::sha256_file;
 use ente_assets::{Asset, AssetStore};
 
 use crate::config;
@@ -59,6 +60,7 @@ struct LlmMigration {
 struct LlmFile {
     url: String,
     name: &'static str,
+    sha256: String,
 }
 
 fn llm_migrations() -> Result<Vec<LlmMigration>, InvalidPreset> {
@@ -68,11 +70,13 @@ fn llm_migrations() -> Result<Vec<LlmMigration>, InvalidPreset> {
             let mut files = vec![LlmFile {
                 url: preset.url.clone(),
                 name: "model.gguf",
+                sha256: preset.sha256.clone(),
             }];
             if let Some(url) = trimmed(preset.mmproj_url.as_deref()) {
                 files.push(LlmFile {
                     url: url.to_string(),
                     name: "mmproj.gguf",
+                    sha256: preset.mmproj_sha256.clone().unwrap_or_default(),
                 });
             }
             Ok(LlmMigration {
@@ -91,6 +95,28 @@ fn legacy_selected_preset_id(model_url: &str, mmproj_url: Option<&str>) -> Optio
             preset.url == model_url && trimmed(preset.mmproj_url.as_deref()) == mmproj_url
         })
         .map(|preset| preset.id)
+        .or_else(|| {
+            let id = match (model_url, mmproj_url) {
+                (
+                    "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/LFM2.5-VL-1.6B-Q4_0.gguf?download=true",
+                    Some("https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf"),
+                ) => "lfm-vl-1.6b",
+                (
+                    "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true",
+                    Some("https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/mmproj-F16.gguf"),
+                ) => "qwen-0.8b",
+                (
+                    "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q8_0.gguf?download=true",
+                    Some("https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/mmproj-F16.gguf"),
+                ) => "qwen-2b-q8",
+                (
+                    "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf?download=true",
+                    Some("https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf"),
+                ) => "qwen-4b-q4km",
+                _ => return None,
+            };
+            Some(id.to_string())
+        })
 }
 
 fn migrate_flat_models(
@@ -128,7 +154,7 @@ fn migrate_transcription(store: &AssetStore, legacy_dir: &Path) {
     }
 
     let vad = model::voice_activity_model_asset();
-    let vad_destination = model::voice_activity_model_path(store, &vad);
+    let vad_destination = model::voice_activity_model_path(store);
     if defaults.voice_activity_model.id == LEGACY_VAD_ID && !store.is_downloaded(&vad) {
         let source = legacy_dir.join(LEGACY_VAD_FILE);
         if is_non_empty_file(&source) {
@@ -170,15 +196,20 @@ fn adopt_flat_targets(store: &AssetStore, targets: &[LlmMigration], flat_dir: &P
                 match sidecar_url(&source) {
                     Some(url) if url == file.url => Some(Some(source)),
                     None if basename_urls[&basename].len() == 1 => Some(Some(source)),
+                    _ if sha256_file(&source)
+                        .is_ok_and(|sha256| sha256.eq_ignore_ascii_case(&file.sha256)) =>
+                    {
+                        Some(Some(source))
+                    }
                     _ => None,
                 }
             })
-            .collect::<Vec<_>>();
-        if sources.iter().any(Option::is_none) {
+            .collect::<Option<Vec<_>>>();
+        let Some(sources) = sources else {
             continue;
-        }
+        };
         for (file, source) in target.files.iter().zip(sources) {
-            if let Some(Some(source)) = source {
+            if let Some(source) = source {
                 complete &= move_file(&source, &destination.join(file.name));
             }
         }
@@ -218,9 +249,8 @@ fn is_non_empty_file(path: &Path) -> bool {
 }
 
 fn looks_like_gguf(path: &Path) -> bool {
-    let mut file = match File::open(path) {
-        Ok(file) => file,
-        Err(_) => return false,
+    let Ok(mut file) = File::open(path) else {
+        return false;
     };
     let mut header = [0u8; 4];
     file.read_exact(&mut header).is_ok() && &header == b"GGUF"
@@ -270,10 +300,12 @@ mod tests {
                 LlmFile {
                     url: model_url.to_string(),
                     name: "model.gguf",
+                    sha256: preset.sha256.clone(),
                 },
                 LlmFile {
                     url: mmproj_url.to_string(),
                     name: "mmproj.gguf",
+                    sha256: preset.mmproj_sha256.clone().unwrap(),
                 },
             ],
         }

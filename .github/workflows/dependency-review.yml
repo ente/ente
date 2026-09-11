@@ -1,18 +1,7 @@
 name: "Dependency review"
 
 on:
-    pull_request:
-        paths:
-            - "**/Cargo.lock"
-            - "**/Cargo.toml"
-            - "**/go.mod"
-            - "**/go.sum"
-            - "**/package-lock.json"
-            - "**/package.json"
-            - "**/pubspec.lock"
-            - "**/pubspec.yaml"
-            - "**/uv.lock"
-            - ".github/workflows/dependency-review.yml"
+    workflow_call:
 
 permissions:
     contents: read

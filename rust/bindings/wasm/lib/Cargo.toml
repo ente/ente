@@ -15,7 +15,12 @@ crypto-file = ["crypto", "dep:md-5"]
 crypto-seal = ["crypto"]
 locker = ["session", "dep:ente-locker"]
 prelogin = ["accounts", "crypto"]
-session = ["dep:serde", "dep:serde-wasm-bindgen", "dep:tsify"]
+session = [
+    "dep:ente-accounts",
+    "dep:serde",
+    "dep:serde-wasm-bindgen",
+    "dep:tsify",
+]
 
 [dependencies]
 ente-accounts = { workspace = true, optional = true }

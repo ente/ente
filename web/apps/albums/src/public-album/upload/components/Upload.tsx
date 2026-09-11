@@ -167,7 +167,7 @@ export const Upload: React.FC<UploadProps> = ({
                 setInProgressUploads,
                 setFinishedUploads,
                 setUploadPhase,
-                setUploadFilenames: setUploadFileNames,
+                setUploadFileNames,
                 setHasLivePhotos,
             },
             onUploadFile,

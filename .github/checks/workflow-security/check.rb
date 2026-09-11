@@ -73,6 +73,8 @@ unpinned_violations = []
 checked_files.each do |path|
   facts = workflow_facts(path)
   facts[:triggers].each do |trigger|
+    next if path == ".github/workflows/pr-approval.yml" && trigger == "pull_request_target"
+
     trigger_violations << "#{path}: #{trigger}"
   end
 

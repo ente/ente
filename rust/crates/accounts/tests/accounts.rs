@@ -1,3 +1,4 @@
+#![cfg(test)]
 #![cfg(feature = "museum")]
 
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -107,13 +108,14 @@ async fn run(endpoint: String) -> TestResult {
     };
     let login = AuthFlow::new(&accounts_client(endpoint), &mut ui)
         .login(LoginParams {
-            email,
+            email: email.clone(),
             password: Zeroizing::new(password),
         })
         .await
         .unwrap();
     assert_eq!(login.user_id, created.user_id);
     assert_eq!(login.secrets.master_key, created.secrets.master_key);
+    assert_eq!(client.email().await.unwrap(), email);
     assert!(client.get_two_factor_status().await.unwrap());
     Ok(())
 }

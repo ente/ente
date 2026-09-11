@@ -1,10 +1,9 @@
-use ente_accounts::auth::KeyAttributes;
 use ente_core::crypto::{self, sealed};
 use ente_core::{Session, b64};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::{current_recovery_key, map_recovery_notice_error};
+use super::map_recovery_notice_error;
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -97,23 +96,20 @@ pub async fn public_key(session: &Session, email: &str) -> Result<Option<String>
 pub fn verification_id(public_key_b64: &str) -> Result<String> {
     let public_key = b64::decode(public_key_b64)?;
     let digest = Sha256::digest(&public_key);
-    ente_accounts::auth::recovery_key_to_mnemonic(&b64::encode(digest.as_slice()))
-        .map_err(Into::into)
+    ente_accounts::auth::recovery_key_to_mnemonic(digest.as_slice()).map_err(Into::into)
 }
 
 pub async fn add_contact(
     session: &Session,
     email: &str,
-    current_user_key_attrs: &KeyAttributes,
     recovery_notice_in_days: Option<i32>,
 ) -> Result<()> {
     let public_key = public_key(session, email)
         .await?
         .ok_or(Error::ContactNotOnEnte)?;
-    let recovery_key = current_recovery_key(session, current_user_key_attrs)?;
     let recipient_public_key = b64::decode(&public_key)?;
     let encrypted_key = sealed::seal(
-        &recovery_key,
+        session.recovery_key.as_bytes(),
         &crypto::PublicKey::try_from_slice(&recipient_public_key)?,
     )?;
 

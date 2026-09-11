@@ -892,8 +892,7 @@ fn remove_collection(notes_state: &State, collection_id: &str) -> Result<(), Api
         crate::logging::log(
             "Notes",
             format!(
-                "removed collection but could not clean derived index collection={} error={}",
-                collection_id, error
+                "removed collection but could not clean derived index collection={collection_id} error={error}"
             ),
         );
     }

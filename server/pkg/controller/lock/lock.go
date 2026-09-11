@@ -35,7 +35,7 @@ func (c *LockController) ExtendLock(lockID string, lockUntil int64) error {
 }
 
 func (c *LockController) ReleaseLock(lockID string) {
-	err := c.TaskLockingRepo.ReleaseLock(lockID)
+	err := c.TaskLockingRepo.ReleaseLockBy(lockID, c.HostName)
 	if err != nil {
 		log.Errorf("Error while releasing lock %v: %s", lockID, err)
 	}

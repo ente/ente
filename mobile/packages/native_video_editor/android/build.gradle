@@ -1,54 +1,20 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
 group 'io.ente.native_video_editor'
 version '1.0'
 
-buildscript {
-    ext.kotlin_version = '1.9.25'
-    ext.media3_version = '1.10.1'
-    repositories {
-        google()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.7.3'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
-
-rootProject.allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+ext.media3_version = '1.10.1'
 
 configurations.configureEach {
     // Frame extraction receives videos only, never still images.
     exclude group: "androidx.exifinterface", module: "exifinterface"
 }
 
-def nativeVideoEditorCompileSdkVersion = rootProject.ext.has('compileSdkVersion') ?
-        rootProject.ext.compileSdkVersion : 35
-
 android {
     namespace 'io.ente.native_video_editor'
-    compileSdkVersion nativeVideoEditorCompileSdkVersion
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
 
     defaultConfig {
         minSdkVersion 23
@@ -56,7 +22,6 @@ android {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
     testImplementation 'junit:junit:4.13.2'
 

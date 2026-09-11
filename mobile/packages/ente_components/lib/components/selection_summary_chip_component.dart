@@ -53,12 +53,13 @@ class SelectionSummaryChipComponent extends StatelessWidget {
           children: [
             SizedBox(
               width: 66,
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyles.mini.copyWith(color: foreground),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyles.mini.copyWith(color: foreground),
+                ),
               ),
             ),
             const SizedBox(width: Spacing.xs),

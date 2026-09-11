@@ -238,6 +238,9 @@ func main() {
 		LockController:          lockController,
 		NotificationHistoryRepo: notificationHistoryRepo,
 	}
+	fileCountInitializer := controller.NewFileCountInitializer(usageRepo, trashRepo, lockController)
+	usageRepo.QueueFileCountInitialization = fileCountInitializer.Enqueue
+	go fileCountInitializer.Run()
 
 	userCache := cache2.NewUserCache()
 	userCacheCtrl := &usercache.Controller{UserCache: userCache, FileRepo: fileRepo,
@@ -298,8 +301,6 @@ func main() {
 		FileRepo:          fileRepo,
 		UploadResultCache: make(map[int64]bool),
 	}
-	fileCountInitializer := &controller.FileCountInitializer{UsageRepo: usageRepo, LockController: lockController}
-
 	accessCtrl := access.NewAccessController(accessCollectionRepo, accessFileRepo)
 	commentsRepo := &socialrepo.CommentsRepository{DB: db}
 	reactionsRepo := &socialrepo.ReactionsRepository{DB: db}
@@ -1108,7 +1109,7 @@ func main() {
 	setupAndStartCrons(
 		userAuthRepo, collectionLinkRepo, fileLinkRepo, pasteRepo, twoFactorRepo, passkeysRepo, fileController, taskLockingRepo, emailNotificationCtrl,
 		trashController, pushController, objectController, dataCleanupController, storageBonusCtrl, emergencyCtrl,
-		embeddingController, healthCheckHandler, castDb, inactiveUserOrchestrator, spaceDripController, fileCountInitializer)
+		embeddingController, healthCheckHandler, castDb, inactiveUserOrchestrator, spaceDripController)
 
 	primaryDBCollector := sqlstats.NewStatsCollector("prod_db", db)
 	latencySensitiveDBCollector := sqlstats.NewStatsCollector("latency_sensitive_db", latencySensitiveDB)
@@ -1298,8 +1299,7 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 	healthCheckHandler *api.HealthCheckHandler,
 	castDb castRepo.Repository,
 	inactiveUserOrchestrator *user.InactiveUserOrchestrator,
-	spaceDripController *spacecontroller.SpaceDripController,
-	fileCountInitializer *controller.FileCountInitializer) {
+	spaceDripController *spacecontroller.SpaceDripController) {
 	if viper.GetBool("jobs.cron.skip") {
 		log.Info("Skipping cron jobs")
 		return
@@ -1424,8 +1424,6 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 	schedule(c, "@every 24h", func() {
 		pushController.ClearExpiredTokens()
 	})
-
-	schedule(c, "@every 1m", fileCountInitializer.ProcessBatch)
 
 	c.Start()
 }

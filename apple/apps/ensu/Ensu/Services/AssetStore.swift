@@ -7,7 +7,7 @@ final class AssetStore: @unchecked Sendable {
     private let core: AssetStoreCore
 
     @MainActor
-    init() {
+    init() async {
         let baseDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         var assetsDir = baseDir.appendingPathComponent("assets", isDirectory: true)
@@ -21,15 +21,15 @@ final class AssetStore: @unchecked Sendable {
         let legacyModelUrl = pendingSelection && settings.bool(forKey: "ensu.model.use_custom")
             ? settings.string(forKey: "ensu.model.url")
             : nil
-        let presetId = migrateEnsuAssets(
-            assetsDir: assetsDir.path,
-            legacy: LegacyAssets(
-                llmDir: baseDir.appendingPathComponent("llm", isDirectory: true).path,
-                transcriptionDir: baseDir.appendingPathComponent("transcription", isDirectory: true).path,
-                modelUrl: legacyModelUrl,
-                mmprojUrl: settings.string(forKey: "ensu.model.mmproj")
-            )
+        let legacy = LegacyAssets(
+            llmDir: baseDir.appendingPathComponent("llm", isDirectory: true).path,
+            transcriptionDir: baseDir.appendingPathComponent("transcription", isDirectory: true).path,
+            modelUrl: legacyModelUrl,
+            mmprojUrl: settings.string(forKey: "ensu.model.mmproj")
         )
+        let presetId = await Task.detached(priority: .userInitiated) { [assetsDir] in
+            migrateEnsuAssets(assetsDir: assetsDir.path, legacy: legacy)
+        }.value
         if pendingSelection {
             settings.set(presetId ?? "", forKey: "ensu.model.id")
         }
@@ -56,8 +56,8 @@ final class AssetStore: @unchecked Sendable {
         core.llmMmprojPath(asset: asset).map { URL(fileURLWithPath: $0) }
     }
 
-    func voiceActivityModelPath(_ asset: Asset) -> URL {
-        URL(fileURLWithPath: core.voiceActivityModelPath(asset: asset))
+    func voiceActivityModelPath() -> URL {
+        URL(fileURLWithPath: core.voiceActivityModelPath())
     }
 
     func isDownloaded(_ asset: Asset) -> Bool {

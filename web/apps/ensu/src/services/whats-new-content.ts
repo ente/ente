@@ -3,22 +3,17 @@ export interface WhatsNewEntry {
     readonly description: string;
 }
 
-export const whatsNewVersion = 1;
+export const whatsNewVersion = 2;
 
 export const whatsNewEntries: readonly WhatsNewEntry[] = [
     {
-        title: "Meet Gemma 4, your new default",
+        title: "Ensu Packs",
         description:
-            "Ensu now ships with Gemma 4 out of the box, giving you sharper, more capable responses without changing a thing.",
+            "Add knowledge from wikipedia and wikibooks to get more accurate answers",
     },
     {
-        title: "Image queries, way faster",
+        title: "Chat with Your Notes",
         description:
-            "Under-the-hood improvements make asking Ensu about a picture feel nearly instant.",
-    },
-    {
-        title: "Faster, smoother model downloads",
-        description:
-            "Getting a new model onto your machine is now dramatically quicker and more reliable.",
+            "Add your markdown notes folder, and chat with your notes. Ask questions or discuss the thoughts you put down",
     },
 ];

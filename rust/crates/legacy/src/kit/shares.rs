@@ -6,6 +6,93 @@ use crate::{Error, Result};
 
 use super::models::{LEGACY_KIT_PAYLOAD_VERSION, LegacyKitShare, LegacyKitVariant};
 
+impl LegacyKitShare {
+    pub fn parse(input: &str) -> Result<Self> {
+        let input = input.trim_matches(sheet_whitespace);
+        let json = if input.starts_with('{') {
+            input.to_owned()
+        } else {
+            let mut encoded = compact(input).replace('-', "+").replace('_', "/");
+            while !encoded.len().is_multiple_of(4) {
+                encoded.push('=');
+            }
+            let bytes = b64::decode_allow_trailing_bits(&encoded)?;
+            let decoded = String::from_utf8_lossy(&bytes);
+            decoded
+                .strip_prefix('\u{feff}')
+                .unwrap_or(&decoded)
+                .to_owned()
+        };
+        // JSON.parse accepts duplicate keys and integer-valued floats.
+        let mut value: serde_json::Value =
+            serde_json::from_str(&json).map_err(|error| Error::InvalidInput(error.to_string()))?;
+        for field in ["pv", "kv", "i"] {
+            if let Some(number) = value.get(field).and_then(serde_json::Value::as_f64)
+                && number.fract() == 0.0
+                && (0.0..=255.0).contains(&number)
+            {
+                value[field] = serde_json::Value::from(number as u8);
+            }
+        }
+        let mut share: Self = serde_json::from_value(value)
+            .map_err(|error| Error::InvalidInput(error.to_string()))?;
+        share.compact_fields();
+        validate_share_header(&share)?;
+        if share.kit_id.is_empty() || share.part_name.is_empty() {
+            return Err(Error::InvalidInput(
+                "legacy kit ID and part name must be non-empty".into(),
+            ));
+        }
+        if b64::decode_allow_trailing_bits(&share.share)?.len() != 32
+            || b64::decode_allow_trailing_bits(&share.checksum)?.len() != 8
+        {
+            return Err(Error::InvalidInput(
+                "invalid legacy kit share or checksum length".into(),
+            ));
+        }
+        Ok(share)
+    }
+
+    pub fn to_qr_payload(&self) -> Result<String> {
+        let mut share = self.clone();
+        share.compact_fields();
+        serde_json::to_string(&share).map_err(|error| Error::InvalidInput(error.to_string()))
+    }
+
+    pub fn to_copy_code(&self) -> Result<String> {
+        Ok(b64::encode_url_safe_no_padding(
+            self.to_qr_payload()?.as_bytes(),
+        ))
+    }
+
+    fn compact_fields(&mut self) {
+        self.kit_id = compact(&self.kit_id);
+        self.share = compact(&self.share);
+        self.checksum = compact(&self.checksum);
+    }
+}
+
+fn compact(value: &str) -> String {
+    value
+        .chars()
+        .filter(|character| !sheet_whitespace(*character))
+        .collect()
+}
+
+fn sheet_whitespace(character: char) -> bool {
+    (character.is_whitespace() && character != '\u{0085}') || character == '\u{feff}'
+}
+
+pub fn validate_share_pair(first: &LegacyKitShare, second: &LegacyKitShare) -> Result<()> {
+    if first.kit_id != second.kit_id {
+        return Err(Error::DifferentLegacyKits);
+    }
+    if first.share_index == second.share_index {
+        return Err(Error::DuplicateLegacyKitShare);
+    }
+    Ok(())
+}
+
 pub(crate) fn checksum(
     payload_version: u8,
     variant: LegacyKitVariant,
@@ -61,9 +148,7 @@ pub(crate) fn reconstruct_secret_2_of_3(shares: &[LegacyKitShare]) -> Result<Sec
         ));
     }
     if first.kit_id != second.kit_id {
-        return Err(Error::InvalidInput(
-            "legacy kit shares must belong to the same kit".into(),
-        ));
+        return Err(Error::DifferentLegacyKits);
     }
     if first.checksum != second.checksum {
         return Err(Error::InvalidInput(
@@ -71,9 +156,7 @@ pub(crate) fn reconstruct_secret_2_of_3(shares: &[LegacyKitShare]) -> Result<Sec
         ));
     }
     if first.share_index == second.share_index {
-        return Err(Error::InvalidInput(
-            "legacy kit shares must use different indices".into(),
-        ));
+        return Err(Error::DuplicateLegacyKitShare);
     }
 
     let y1 = b64::decode(&first.share)?;

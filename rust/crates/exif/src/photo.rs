@@ -8,6 +8,7 @@ pub struct CaptureDateTime {
     pub date_time: String,
     pub offset_time: Option<String>,
     pub timestamp_micros: Option<i64>,
+    pub precision: DateTimePrecision,
     pub source: DateTimeSource,
 }
 pub fn capture_date_time(metadata: &Metadata) -> Option<CaptureDateTime> {
@@ -64,6 +65,7 @@ pub fn capture_date_time_with(
                 )
             }),
             timestamp_micros: absolute.unix_micros(),
+            precision: value.precision,
             source,
         };
         accept(&mut result).then_some(result)

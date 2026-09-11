@@ -39,6 +39,8 @@ export const AuthenticatedFriendProfile: React.FC<
     AuthenticatedFriendProfileProps
 > = ({ friendSpaceId, username }) => {
     const router = useSpaceRouter();
+    const initialSection =
+        router.query.section == "latest" ? "latest" : undefined;
     const { friends, profile, profileLoadError, profileLoadStatus } =
         useSpaceAppState();
     const [friendProfile, setFriendProfile] =
@@ -152,7 +154,8 @@ export const AuthenticatedFriendProfile: React.FC<
         );
     }
     if (
-        !hadCachedFriendProfileOnMount.current &&
+        (!hadCachedFriendProfileOnMount.current ||
+            initialSection == "latest") &&
         (isProfileLoading || isPostsLoading)
     ) {
         return <SpaceRouteFallback background={spaceAppBackgroundColor} />;
@@ -165,6 +168,7 @@ export const AuthenticatedFriendProfile: React.FC<
             <ProfileScreen
                 friendsCount={displayedProfile.friendsCount}
                 headerVariant="friend"
+                initialSection={initialSection}
                 isCoverLoading={isProfileLoading}
                 isNameLoading={isProfileLoading && !immediateFriendProfile}
                 isPostsLoading={isPostsLoading}
@@ -189,7 +193,24 @@ export const AuthenticatedFriendProfile: React.FC<
                     replyToCurrentPost(actorSpaceId, postSpaceId, postId, text)
                 }
                 onSetPostLiked={async (postId, liked) => {
-                    await setCurrentPostLiked(actorSpaceId, postId, liked);
+                    const previousLiked =
+                        posts.find((post) => post.postId == postId)
+                            ?.viewerLiked ?? false;
+                    const updateLiked = (viewerLiked: boolean) =>
+                        setPosts((current) =>
+                            current.map((post) =>
+                                post.postId == postId
+                                    ? { ...post, viewerLiked }
+                                    : post,
+                            ),
+                        );
+                    updateLiked(liked);
+                    try {
+                        await setCurrentPostLiked(actorSpaceId, postId, liked);
+                    } catch (error) {
+                        updateLiked(previousLiked);
+                        throw error;
+                    }
                     void patchCachedSpaceHomePost(actorSpaceId, postId, {
                         viewerLiked: liked,
                     });

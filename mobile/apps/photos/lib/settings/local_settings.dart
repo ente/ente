@@ -4,6 +4,7 @@ import 'package:home_widget/home_widget.dart' as hw;
 import 'package:photos/app_mode.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/models/gallery/justified_layout_strategy.dart';
+import 'package:photos/models/gallery/justified_layout_tuning.dart';
 import 'package:photos/ui/viewer/gallery/component/group/type.dart';
 import "package:photos/utils/ram_check_util.dart";
 import 'package:shared_preferences/shared_preferences.dart';
@@ -59,6 +60,24 @@ class LocalSettings {
   static const kGalleryGroupType = "gallery_group_type";
   static const kGalleryLayoutType = "gallery_layout_type";
   static const kJustifiedLayoutStrategy = "justified_layout_strategy";
+  static const kFlexLayoutTuningTargetHeightScale =
+      "gallery.justified.flex.target_height_scale";
+  static const kFlexLayoutTuningMaximumHeightFactor =
+      "gallery.justified.flex.maximum_height_factor";
+  static const kFlexFullRowsLayoutTuningTargetHeightScale =
+      "gallery.justified.flex_full_rows.target_height_scale";
+  static const kFlexFullRowsLayoutTuningMaximumHeightFactor =
+      "gallery.justified.flex_full_rows.maximum_height_factor";
+  static const kFlexFullRowsLayoutTuningMinimumNonFinalSingletonAspectRatio =
+      "gallery.justified.flex_full_rows.minimum_non_final_singleton_aspect_ratio";
+  static const kComfortLargeLayoutTuningTargetHeightScale =
+      "gallery.justified.comfort_large.target_height_scale";
+  static const kComfortLargeLayoutTuningMaximumHeightFactor =
+      "gallery.justified.comfort_large.maximum_height_factor";
+  static const kComfortLargeLayoutTuningWideFinalMaximumHeightFactor =
+      "gallery.justified.comfort_large.wide_final_maximum_height_factor";
+  static const kComfortLargeLayoutTuningMinimumLandscapeHeightFactor =
+      "gallery.justified.comfort_large.minimum_landscape_height_factor";
   static const kPhotoGridSize = "photo_grid_size";
   static const _kisMLLocalIndexingEnabled = "ls.ml_local_indexing";
   static const _kLocalGalleryMLLocalIndexingEnabled =
@@ -110,6 +129,7 @@ class LocalSettings {
       "ml_debug.run_ml_during_interaction";
   static const _kSemanticSearchExactInRustEnabled =
       "ml_debug.semantic_search_exact_in_rust";
+  static const _kRustMlDbOverride = "ls.rust_ml_db_override";
   static const _kAppMode = "ls.app_mode";
   static const _kShowLocalGalleryModeOption = "ls.show_offline_mode_option";
   static const _kDeletePreference = "delete_preference";
@@ -284,7 +304,8 @@ class LocalSettings {
   JustifiedLayoutStrategy getJustifiedLayoutStrategy() {
     return switch (_prefs.getString(kJustifiedLayoutStrategy)) {
       "flex" => JustifiedLayoutStrategy.flex,
-      _ => JustifiedLayoutStrategy.comfort,
+      "flexFullRows" => JustifiedLayoutStrategy.flexFullRows,
+      _ => JustifiedLayoutStrategy.comfortLarge,
     };
   }
 
@@ -292,6 +313,186 @@ class LocalSettings {
     JustifiedLayoutStrategy strategy,
   ) async {
     await _prefs.setString(kJustifiedLayoutStrategy, strategy.name);
+  }
+
+  FlexLayoutTuning getFlexLayoutTuning() {
+    return FlexLayoutTuning(
+      targetHeightScale: _validDoubleOrDefault(
+        kFlexLayoutTuningTargetHeightScale,
+        FlexLayoutTuningField.targetHeightScale.defaultValue,
+        FlexLayoutTuningField.targetHeightScale.isValid,
+      ),
+      maximumHeightFactor: _validDoubleOrDefault(
+        kFlexLayoutTuningMaximumHeightFactor,
+        FlexLayoutTuningField.maximumHeightFactor.defaultValue,
+        FlexLayoutTuningField.maximumHeightFactor.isValid,
+      ),
+    );
+  }
+
+  Future<void> setFlexLayoutTuningValue(
+    FlexLayoutTuningField field,
+    double value,
+  ) async {
+    if (!field.isValid(value)) {
+      throw ArgumentError.value(value, field.name);
+    }
+    await _prefs.setDouble(_flexLayoutTuningKey(field), value);
+  }
+
+  Future<void> resetFlexLayoutTuningValue(FlexLayoutTuningField field) async {
+    await _prefs.remove(_flexLayoutTuningKey(field));
+  }
+
+  Future<void> resetFlexLayoutTuning() async {
+    await Future.wait(
+      FlexLayoutTuningField.values.map(resetFlexLayoutTuningValue),
+    );
+  }
+
+  FlexFullRowsLayoutTuning getFlexFullRowsLayoutTuning() {
+    return FlexFullRowsLayoutTuning(
+      targetHeightScale: _validDoubleOrDefault(
+        kFlexFullRowsLayoutTuningTargetHeightScale,
+        FlexFullRowsLayoutTuningField.targetHeightScale.defaultValue,
+        FlexFullRowsLayoutTuningField.targetHeightScale.isValid,
+      ),
+      maximumHeightFactor: _validDoubleOrDefault(
+        kFlexFullRowsLayoutTuningMaximumHeightFactor,
+        FlexFullRowsLayoutTuningField.maximumHeightFactor.defaultValue,
+        FlexFullRowsLayoutTuningField.maximumHeightFactor.isValid,
+      ),
+      minimumNonFinalSingletonAspectRatio: _validDoubleOrDefault(
+        kFlexFullRowsLayoutTuningMinimumNonFinalSingletonAspectRatio,
+        FlexFullRowsLayoutTuningField
+            .minimumNonFinalSingletonAspectRatio
+            .defaultValue,
+        FlexFullRowsLayoutTuningField
+            .minimumNonFinalSingletonAspectRatio
+            .isValid,
+      ),
+    );
+  }
+
+  Future<void> setFlexFullRowsLayoutTuningValue(
+    FlexFullRowsLayoutTuningField field,
+    double value,
+  ) async {
+    if (!field.isValid(value)) {
+      throw ArgumentError.value(value, field.name);
+    }
+    await _prefs.setDouble(_flexFullRowsLayoutTuningKey(field), value);
+  }
+
+  Future<void> resetFlexFullRowsLayoutTuningValue(
+    FlexFullRowsLayoutTuningField field,
+  ) async {
+    await _prefs.remove(_flexFullRowsLayoutTuningKey(field));
+  }
+
+  Future<void> resetFlexFullRowsLayoutTuning() async {
+    await Future.wait(
+      FlexFullRowsLayoutTuningField.values.map(
+        resetFlexFullRowsLayoutTuningValue,
+      ),
+    );
+  }
+
+  ComfortLargeLayoutTuning getComfortLargeLayoutTuning() {
+    return ComfortLargeLayoutTuning(
+      targetHeightScale: _validDoubleOrDefault(
+        kComfortLargeLayoutTuningTargetHeightScale,
+        ComfortLargeLayoutTuningField.targetHeightScale.defaultValue,
+        ComfortLargeLayoutTuningField.targetHeightScale.isValid,
+      ),
+      maximumHeightFactor: _validDoubleOrDefault(
+        kComfortLargeLayoutTuningMaximumHeightFactor,
+        ComfortLargeLayoutTuningField.maximumHeightFactor.defaultValue,
+        ComfortLargeLayoutTuningField.maximumHeightFactor.isValid,
+      ),
+      wideFinalMaximumHeightFactor: _validDoubleOrDefault(
+        kComfortLargeLayoutTuningWideFinalMaximumHeightFactor,
+        ComfortLargeLayoutTuningField.wideFinalMaximumHeightFactor.defaultValue,
+        ComfortLargeLayoutTuningField.wideFinalMaximumHeightFactor.isValid,
+      ),
+      minimumLandscapeHeightFactor: _validDoubleOrDefault(
+        kComfortLargeLayoutTuningMinimumLandscapeHeightFactor,
+        ComfortLargeLayoutTuningField.minimumLandscapeHeightFactor.defaultValue,
+        ComfortLargeLayoutTuningField.minimumLandscapeHeightFactor.isValid,
+      ),
+    );
+  }
+
+  Future<void> setComfortLargeLayoutTuningValue(
+    ComfortLargeLayoutTuningField field,
+    double value,
+  ) async {
+    if (!field.isValid(value)) {
+      throw ArgumentError.value(value, field.name);
+    }
+    await _prefs.setDouble(_comfortLargeLayoutTuningKey(field), value);
+  }
+
+  Future<void> resetComfortLargeLayoutTuningValue(
+    ComfortLargeLayoutTuningField field,
+  ) async {
+    await _prefs.remove(_comfortLargeLayoutTuningKey(field));
+  }
+
+  Future<void> resetComfortLargeLayoutTuning() async {
+    await Future.wait(
+      ComfortLargeLayoutTuningField.values.map(
+        resetComfortLargeLayoutTuningValue,
+      ),
+    );
+  }
+
+  double _validDoubleOrDefault(
+    String key,
+    double fallback,
+    bool Function(double) isValid,
+  ) {
+    final storedValue = _prefs.get(key);
+    if (storedValue is! num) return fallback;
+    final value = storedValue.toDouble();
+    return isValid(value) ? value : fallback;
+  }
+
+  static String _flexLayoutTuningKey(FlexLayoutTuningField field) {
+    return switch (field) {
+      FlexLayoutTuningField.targetHeightScale =>
+        kFlexLayoutTuningTargetHeightScale,
+      FlexLayoutTuningField.maximumHeightFactor =>
+        kFlexLayoutTuningMaximumHeightFactor,
+    };
+  }
+
+  static String _comfortLargeLayoutTuningKey(
+    ComfortLargeLayoutTuningField field,
+  ) {
+    return switch (field) {
+      ComfortLargeLayoutTuningField.targetHeightScale =>
+        kComfortLargeLayoutTuningTargetHeightScale,
+      ComfortLargeLayoutTuningField.maximumHeightFactor =>
+        kComfortLargeLayoutTuningMaximumHeightFactor,
+      ComfortLargeLayoutTuningField.wideFinalMaximumHeightFactor =>
+        kComfortLargeLayoutTuningWideFinalMaximumHeightFactor,
+      ComfortLargeLayoutTuningField.minimumLandscapeHeightFactor =>
+        kComfortLargeLayoutTuningMinimumLandscapeHeightFactor,
+    };
+  }
+
+  static String _flexFullRowsLayoutTuningKey(
+    FlexFullRowsLayoutTuningField field,
+  ) {
+    return switch (field) {
+      FlexFullRowsLayoutTuningField.targetHeightScale =>
+        kFlexFullRowsLayoutTuningTargetHeightScale,
+      FlexFullRowsLayoutTuningField.maximumHeightFactor =>
+        kFlexFullRowsLayoutTuningMaximumHeightFactor,
+      FlexFullRowsLayoutTuningField.minimumNonFinalSingletonAspectRatio =>
+        kFlexFullRowsLayoutTuningMinimumNonFinalSingletonAspectRatio,
+    };
   }
 
   int getPhotoGridSize() {
@@ -406,6 +607,12 @@ class LocalSettings {
 
   Future<void> setSemanticSearchExactInRustEnabled(bool value) async {
     await _prefs.setBool(_kSemanticSearchExactInRustEnabled, value);
+  }
+
+  bool get rustMlDbOverride => _prefs.getBool(_kRustMlDbOverride) ?? false;
+
+  Future<void> setRustMlDbOverride(bool value) async {
+    await _prefs.setBool(_kRustMlDbOverride, value);
   }
 
   Future<bool> setSmartMemories(bool value) async {

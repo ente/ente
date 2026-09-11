@@ -71,6 +71,10 @@ pub fn desktop_llm_asset(model_id: &str) -> Result<Asset, InvalidPreset> {
 
 pub fn transcription_model_asset() -> Asset {
     let preset = config::defaults().transcription_model;
+    #[expect(
+        clippy::expect_used,
+        reason = "The built-in model preset has a valid asset key and checksum"
+    )]
     Asset::tar_gz(
         model_key(&preset.id),
         preset.url,
@@ -82,6 +86,10 @@ pub fn transcription_model_asset() -> Asset {
 
 pub fn voice_activity_model_asset() -> Asset {
     let preset = config::defaults().voice_activity_model;
+    #[expect(
+        clippy::expect_used,
+        reason = "The built-in model preset has a valid asset key and checksum"
+    )]
     Asset::files(
         model_key(&preset.id),
         vec![AssetFile {
@@ -96,6 +104,10 @@ pub fn voice_activity_model_asset() -> Asset {
 
 pub fn knowledge_embedding_model_asset() -> Asset {
     let embedding = config::knowledge_embedding_config();
+    #[expect(
+        clippy::expect_used,
+        reason = "The built-in model preset has a valid asset key and checksum"
+    )]
     Asset::files(
         model_key(&embedding.target_id),
         vec![AssetFile {
@@ -116,10 +128,10 @@ pub fn llm_mmproj_path(store: &AssetStore, asset: &Asset) -> Option<PathBuf> {
     store.file_path(asset, LLM_MMPROJ_FILE)
 }
 
-pub fn voice_activity_model_path(store: &AssetStore, asset: &Asset) -> PathBuf {
+pub fn voice_activity_model_path(store: &AssetStore) -> PathBuf {
     store
-        .file_path(asset, VOICE_ACTIVITY_MODEL_FILE)
-        .expect("voice activity model file")
+        .asset_dir(&voice_activity_model_asset())
+        .join(VOICE_ACTIVITY_MODEL_FILE)
 }
 
 pub(crate) fn model_key(id: &str) -> Vec<String> {

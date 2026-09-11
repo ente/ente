@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use std::sync::RwLock;
 
 use ente_contacts::{
@@ -37,6 +39,7 @@ fn open(
             api,
             user_id: 0,
             master_key: Key::try_from_slice(&master_key).unwrap(),
+            recovery_key: Key::generate(),
             secret_key: SecretKey::generate(),
         },
         wrapped_root_contact_key: RwLock::new(cached_wrapped_root_contact_key),

@@ -71,6 +71,25 @@ impl AccountsClient {
         &self.client_package
     }
 
+    pub async fn email(&self) -> Result<String> {
+        #[derive(serde::Deserialize)]
+        struct Details {
+            email: String,
+        }
+
+        let details: Details = self
+            .api
+            .get("/users/details/v2")
+            .query(&[("memoryCount", false)])
+            .send()
+            .await?
+            .error_for_code()
+            .await?
+            .json()
+            .await?;
+        Ok(details.email)
+    }
+
     pub async fn get_srp_attributes(&self, email: &str) -> Result<SrpAttributes> {
         let query = [("email", email.to_string())];
         let response: GetSrpAttributesResponse = http::retry(|| async {
@@ -88,13 +107,12 @@ impl AccountsClient {
         Ok(response.attributes)
     }
 
-    pub async fn login_with_srp(
+    pub(crate) async fn login_with_srp(
         &self,
-        email: &str,
         password: &str,
+        srp_attrs: &SrpAttributes,
     ) -> Result<(AuthResponse, SecretVec)> {
-        let srp_attrs = self.get_srp_attributes(email).await?;
-        let creds = auth::derive_srp_credentials(password, &srp_attrs)?;
+        let creds = auth::derive_srp_credentials(password, srp_attrs)?;
         let srp_salt = b64::decode(&srp_attrs.srp_salt)?;
         let mut srp_session = SrpSession::new(
             &srp_attrs.srp_user_id.to_string(),

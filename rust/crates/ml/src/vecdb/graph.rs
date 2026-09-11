@@ -1,8 +1,8 @@
 use std::cmp::{Ordering, Reverse};
 use std::collections::{BinaryHeap, HashSet};
 
-use super::arena::VectorArena;
-use super::kernel::{Lane, splitmix64};
+use super::arena::{PackedQuery, Query, VectorArena};
+use super::kernel::splitmix64;
 use super::{Match, SearchParams, VecDbError};
 
 const M: usize = 16;
@@ -23,6 +23,17 @@ const LEVEL_SEED: u64 = 0x9E37_79B9_7F4A_7C15;
 const NEIGHBOR_BATCH: usize = LEVEL_ZERO_NEIGHBOR_CAP;
 const ABSENT_LEVEL: u16 = u16::MAX;
 const ABSENT_DENSE: u32 = u32::MAX;
+const MIN_GROWTH_SPARE: usize = 1024;
+
+fn grow_amortized<T: Clone>(values: &mut Vec<T>, len: usize, fill: T) {
+    debug_assert!(len >= values.len());
+    if values.capacity() < len {
+        let spare = (values.len() / 8).max(MIN_GROWTH_SPARE);
+        let target = len.max(values.len() + spare);
+        values.reserve_exact(target - values.len());
+    }
+    values.resize(len, fill);
+}
 
 fn neighbor_cap(level: usize) -> usize {
     if level == 0 {
@@ -266,7 +277,7 @@ impl Graph {
             self.entry_point = Some(slot);
             return;
         };
-        let query = arena.vector_lanes(slot);
+        let query = arena.stored_query(slot);
         let entry_level = self.level_of(entry).map_or(0, usize::from);
         let mut entries = {
             let context = QueryContext {
@@ -401,15 +412,13 @@ impl Graph {
         if self.node_levels.len() >= capacity {
             return;
         }
-        let extra = capacity - self.node_levels.len();
-        self.node_levels.reserve_exact(extra);
-        self.node_levels.resize(capacity, ABSENT_LEVEL);
-        self.zero_lengths.reserve_exact(extra);
-        self.zero_lengths.resize(capacity, 0);
-        let blocks = capacity * LEVEL_ZERO_NEIGHBOR_CAP;
-        self.zero_neighbors
-            .reserve_exact(blocks - self.zero_neighbors.len());
-        self.zero_neighbors.resize(blocks, 0);
+        grow_amortized(&mut self.node_levels, capacity, ABSENT_LEVEL);
+        grow_amortized(&mut self.zero_lengths, capacity, 0);
+        grow_amortized(
+            &mut self.zero_neighbors,
+            capacity * LEVEL_ZERO_NEIGHBOR_CAP,
+            0,
+        );
     }
 
     fn attach_empty_node(&mut self, slot: u32, level: usize) {
@@ -429,10 +438,7 @@ impl Graph {
         let span = self.node_levels.len();
         let upper = &mut self.upper[layer - 1];
         if upper.dense_of_slot.len() < span {
-            upper
-                .dense_of_slot
-                .reserve_exact(span - upper.dense_of_slot.len());
-            upper.dense_of_slot.resize(span, ABSENT_DENSE);
+            grow_amortized(&mut upper.dense_of_slot, span, ABSENT_DENSE);
         }
         let dense = match upper.free.pop() {
             Some(dense) => dense,
@@ -566,7 +572,7 @@ impl Graph {
 struct QueryContext<'a> {
     graph: &'a Graph,
     arena: &'a VectorArena,
-    query: &'a [Lane],
+    query: Query<'a>,
 }
 
 impl QueryContext<'_> {
@@ -774,11 +780,11 @@ fn keep_frontier(frontier: &mut BinaryHeap<Scored>, scored: Scored) {
 pub(crate) fn search(
     graph: &Graph,
     arena: &VectorArena,
-    query: &[Lane],
+    query: &PackedQuery,
     params: &SearchParams,
     allowed_slots: Option<&HashSet<u32>>,
 ) -> Vec<Match> {
-    search_from(graph, arena, query, params, allowed_slots, None)
+    search_from(graph, arena, query.as_query(), params, allowed_slots, None)
 }
 
 pub(crate) fn search_stored(
@@ -791,7 +797,7 @@ pub(crate) fn search_stored(
     search_from(
         graph,
         arena,
-        arena.vector_lanes(slot),
+        arena.stored_query(slot),
         params,
         allowed_slots,
         Some(slot),
@@ -801,7 +807,7 @@ pub(crate) fn search_stored(
 fn search_from(
     graph: &Graph,
     arena: &VectorArena,
-    query: &[Lane],
+    query: Query<'_>,
     params: &SearchParams,
     allowed_slots: Option<&HashSet<u32>>,
     stored_slot: Option<u32>,
@@ -813,7 +819,7 @@ fn search_from(
     if arena.live_count() == 0
         || params.limit == Some(0)
         || allowed_slots.is_some_and(HashSet::is_empty)
-        || !query_is_finite(query)
+        || !query.is_finite()
     {
         return Vec::new();
     }
@@ -842,12 +848,6 @@ fn search_from(
             stored_slot,
         ),
     }
-}
-
-fn query_is_finite(query: &[Lane]) -> bool {
-    query
-        .iter()
-        .all(|lane| lane.to_array().iter().all(|value| value.is_finite()))
 }
 
 fn small_filter_cap(limit: Option<usize>) -> usize {
@@ -923,7 +923,7 @@ fn approx_threshold(
 
 fn brute_force(
     arena: &VectorArena,
-    query: &[Lane],
+    query: Query<'_>,
     params: &SearchParams,
     allowed: Option<&HashSet<u32>>,
     banned: Option<u32>,
@@ -999,6 +999,7 @@ mod tests {
     use std::f32::consts::FRAC_1_SQRT_2;
     use std::sync::LazyLock;
 
+    use super::super::StorageKind;
     use super::super::arena::UpsertOutcome;
     use super::super::test_support::{assert_identical_graphs, stale_downward_edge_exists};
     use super::*;
@@ -1049,7 +1050,17 @@ mod tests {
         clusters: u64,
         seed: u64,
     ) -> (VectorArena, Graph) {
-        let mut arena = VectorArena::new(dims).unwrap();
+        build_clustered_fixture_with(count, dims, clusters, seed, StorageKind::F32)
+    }
+
+    fn build_clustered_fixture_with(
+        count: usize,
+        dims: usize,
+        clusters: u64,
+        seed: u64,
+        storage: StorageKind,
+    ) -> (VectorArena, Graph) {
+        let mut arena = VectorArena::with_storage(dims, storage).unwrap();
         for index in 0..count as u64 {
             arena
                 .upsert(
@@ -1173,13 +1184,13 @@ mod tests {
 
     fn reference_ranking(
         arena: &VectorArena,
-        query: &[Lane],
+        query: &PackedQuery,
         allowed: Option<&HashSet<u32>>,
     ) -> Vec<(f32, u32)> {
         let mut scored: Vec<(f32, u32)> = arena
             .live_slots()
             .filter(|slot| allowed.is_none_or(|set| set.contains(slot)))
-            .map(|slot| (arena.distance_to_query(query, slot), slot))
+            .map(|slot| (arena.distance_to_query(query.as_query(), slot), slot))
             .collect();
         scored.sort_unstable_by(|a, b| a.0.total_cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
         scored
@@ -1420,7 +1431,7 @@ mod tests {
         let (arena, graph) = (&FIXTURE.0, &FIXTURE.1);
         let entry = graph.entry_point().unwrap();
         let entry_key = arena.key_of_slot(entry).unwrap();
-        let query = arena.vector_lanes(entry).to_vec();
+        let query = arena.pack_query(&arena.vector_values(entry)).unwrap();
         let reference = reference_ranking(arena, &query, None);
         assert_eq!(reference[0].1, entry);
         for exact in [true, false] {
@@ -1652,7 +1663,7 @@ mod tests {
             assert!(top[0].distance < 1e-3);
         }
         let old_query = arena.pack_query(&old_vector).unwrap();
-        let moved_distance = arena.distance_to_query(&old_query, 7);
+        let moved_distance = arena.distance_to_query(old_query.as_query(), 7);
         assert!(moved_distance > 0.3);
         let near_old = search(
             &graph,
@@ -1870,7 +1881,10 @@ mod tests {
                             if let Some(threshold) = max_distance {
                                 assert!(hit.distance <= threshold);
                             }
-                            assert_eq!(hit.distance, arena.distance_to_query(&query, slot));
+                            assert_eq!(
+                                hit.distance,
+                                arena.distance_to_query(query.as_query(), slot)
+                            );
                         }
                         let expected: Vec<(f32, u32)> = reference
                             .iter()
@@ -1929,6 +1943,55 @@ mod tests {
             .map(|&(_, slot)| arena.key_of_slot(slot).unwrap())
             .collect();
         assert_eq!(keys(&found), expected);
+    }
+
+    #[test]
+    fn reserve_slots_grows_the_slot_arrays_a_bounded_number_of_times() {
+        let mut graph = Graph::new();
+        let mut reallocations = 0;
+        let mut capacity = graph.zero_neighbors.capacity();
+        for slots in 1..=20_000 {
+            graph.reserve_slots(slots);
+            if graph.zero_neighbors.capacity() != capacity {
+                capacity = graph.zero_neighbors.capacity();
+                reallocations += 1;
+            }
+        }
+        assert!(reallocations < 64, "{reallocations} reallocations");
+        assert_eq!(graph.node_levels.len(), 20_000);
+        for (len, capacity) in [
+            (graph.node_levels.len(), graph.node_levels.capacity()),
+            (graph.zero_lengths.len(), graph.zero_lengths.capacity()),
+            (graph.zero_neighbors.len(), graph.zero_neighbors.capacity()),
+        ] {
+            assert!(
+                capacity <= len + len / 8 + MIN_GROWTH_SPARE,
+                "{capacity} reserved for {len}"
+            );
+        }
+    }
+
+    #[test]
+    fn from_parts_reserves_the_slot_arrays_exactly() {
+        let (arena, graph) = build_fixture(1500, 16, 0x8100_0000);
+        let slots = arena.slot_count();
+        assert!(slots >= 1024);
+        let rebuilt = Graph::from_parts(
+            graph.entry_point(),
+            graph_parts(&graph),
+            slots,
+            graph.insert_ordinal(),
+        )
+        .unwrap();
+        assert_eq!(rebuilt.node_levels.capacity(), slots);
+        assert_eq!(rebuilt.zero_lengths.capacity(), slots);
+        assert_eq!(
+            rebuilt.zero_neighbors.capacity(),
+            slots * LEVEL_ZERO_NEIGHBOR_CAP
+        );
+        for upper in &rebuilt.upper {
+            assert_eq!(upper.dense_of_slot.capacity(), slots);
+        }
     }
 
     #[test]
@@ -2291,7 +2354,10 @@ mod tests {
                 for hit in &top {
                     let slot = arena.slot_of_key(&hit.key).unwrap();
                     assert!(arena.is_alive(slot));
-                    assert_eq!(hit.distance, arena.distance_to_query(&query, slot));
+                    assert_eq!(
+                        hit.distance,
+                        arena.distance_to_query(query.as_query(), slot)
+                    );
                 }
                 let expected: HashSet<&str> = reference
                     .iter()
@@ -2455,5 +2521,74 @@ mod tests {
             projected_unit_vector(&projection, &latent)
         });
         assert!(recall >= 0.97, "recall@10 was {recall}");
+    }
+
+    #[test]
+    fn i8_approx_recall_at_10_meets_the_bar_on_8k_vectors() {
+        let seed = 0x9000_0000u64;
+        let (arena, graph) = build_clustered_fixture_with(8000, 64, 64, seed, StorageKind::I8);
+        assert_eq!(arena.storage_kind(), StorageKind::I8);
+        let recall = measured_recall(&arena, &graph, 50, |index| {
+            clustered_unit_vector(seed + index % 64, seed + 0x0200_0000 + index, 64)
+        });
+        assert!(recall >= 0.975, "i8 recall@10 was {recall}");
+    }
+
+    #[test]
+    fn i8_uniform_random_recall_stays_above_the_documented_floor() {
+        let mut arena = VectorArena::with_storage(64, StorageKind::I8).unwrap();
+        for index in 0..8000u64 {
+            arena
+                .upsert(
+                    &format!("key-{index}"),
+                    &seeded_unit_vector(0x9500_0000 + index, 64),
+                )
+                .unwrap();
+        }
+        let graph = Graph::rebuild(&arena);
+        let recall = measured_recall(&arena, &graph, 50, |index| {
+            seeded_unit_vector(0x9511_0000 + index, 64)
+        });
+        assert!(recall >= 0.895, "i8 recall@10 was {recall}");
+    }
+
+    #[test]
+    fn i8_exact_search_recovers_the_f32_ground_truth_at_10() {
+        let seed = 0x9000_0000u64;
+        let (f32_arena, _) = build_clustered_fixture(8000, 64, 64, seed);
+        let (i8_arena, i8_graph) =
+            build_clustered_fixture_with(8000, 64, 64, seed, StorageKind::I8);
+        let mut hits = 0usize;
+        for index in 0..50u64 {
+            let values = clustered_unit_vector(seed + index % 64, seed + 0x0200_0000 + index, 64);
+            let f32_query = f32_arena.pack_query(&values).unwrap();
+            let truth: HashSet<&str> = reference_ranking(&f32_arena, &f32_query, None)[..10]
+                .iter()
+                .map(|&(_, slot)| f32_arena.key_of_slot(slot).unwrap())
+                .collect();
+            let i8_query = i8_arena.pack_query(&values).unwrap();
+            let exact = search(
+                &i8_graph,
+                &i8_arena,
+                &i8_query,
+                &params(Some(10), None, true),
+                None,
+            );
+            assert_eq!(exact.len(), 10);
+            let reference = reference_ranking(&i8_arena, &i8_query, None);
+            for (hit, &(distance, slot)) in exact.iter().zip(&reference) {
+                assert_eq!(hit.key, i8_arena.key_of_slot(slot).unwrap());
+                assert_eq!(hit.distance, distance);
+            }
+            hits += exact
+                .iter()
+                .filter(|hit| truth.contains(hit.key.as_str()))
+                .count();
+        }
+        let recall = hits as f64 / 500.0;
+        assert!(
+            recall >= 0.99,
+            "i8-exact vs f32 truth recall@10 was {recall}"
+        );
     }
 }

@@ -2,10 +2,8 @@ import {
     Cancel01Icon,
     Delete02Icon,
     Edit01Icon,
-    FavouriteIcon,
     Loading03Icon,
     MoreHorizontalIcon,
-    Navigation03Icon,
     Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -17,12 +15,8 @@ import {
 } from "components/ActionFeedback";
 import { SpaceAvatarImage } from "components/AvatarImage";
 import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
-import {
-    spacePostLikeButtonPop,
-    spacePostLikeHeartPop,
-    spacePostLikePopDurationMs,
-    spacePostLikePopTiming,
-} from "components/post-like-animation";
+import { spacePostLikePopDurationMs } from "components/post-like-animation";
+import { SpacePostReplyControls } from "components/PostReplyControls";
 import log from "ente-base/log";
 import type PhotoSwipe from "photoswipe";
 import React from "react";
@@ -38,8 +32,6 @@ const textBase = "#F4F4F4";
 const textSecondary = "#A6A6A6";
 const textTertiary = "rgba(244, 244, 244, 0.52)";
 const viewerBackground = "#000000";
-const controlBackground = "rgba(36, 36, 36, 0.72)";
-const controlBackgroundHover = "rgba(48, 48, 48, 0.86)";
 const inputBackground = "rgba(58, 58, 58, 0.86)";
 const inputBackgroundActive = "rgba(72, 72, 72, 0.9)";
 const controlIcon = "#D8D8D8";
@@ -226,24 +218,6 @@ const viewerSwipeStartsOnInteractiveTarget = (target: EventTarget | null) =>
             "input, textarea, select, button, [data-space-viewer-chrome='true'], [data-space-viewer-bottom='true']",
         ),
     );
-
-const viewerActionButtonSx = {
-    alignItems: "center",
-    bgcolor: controlBackground,
-    border: 0,
-    borderRadius: "50%",
-    boxShadow: "0 10px 28px rgba(0, 0, 0, 0.36)",
-    color: controlIcon,
-    cursor: "pointer",
-    display: "flex",
-    height: 48,
-    justifyContent: "center",
-    p: 0,
-    width: 48,
-    "&:active": { bgcolor: "#3A3A3A" },
-    "&:focus-visible": { outline: `2px solid ${green}`, outlineOffset: 2 },
-    "&:hover": { bgcolor: controlBackgroundHover },
-};
 
 export const SpaceViewerPostBackdrop: React.FC<{ exiting?: boolean }> = ({
     exiting = false,
@@ -504,8 +478,6 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     const isReplyMode =
         canReplyToPost &&
         (isReplyFocused || replyText.trim().length > 0 || isReplyActionRunning);
-    const isPhotoLikePopping =
-        !isReplyMode && isPhotoLiked && photoLikePopID > 0;
     const usePhotoSwipeViewer = !isDraftPost || isDesktopViewer;
     const canSendReply =
         canReplyToPost &&
@@ -855,10 +827,6 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     }, [isCaptionEditing]);
 
     React.useLayoutEffect(() => {
-        resizeCaptionInput(replyInputRef.current, replyInputMinHeight);
-    }, [replyText]);
-
-    React.useLayoutEffect(() => {
         if (!focusReplyOnOpen || !canReplyToPost) return;
 
         setIsReplyFocused(true);
@@ -922,6 +890,9 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
 
     React.useEffect(() => {
         setIsPhotoLiked(activePhoto.viewerLiked ?? false);
+    }, [activePhoto.imageUrl, activePhoto.postId, activePhoto.viewerLiked]);
+
+    React.useEffect(() => {
         setCaptionUpdateActionPhase(null);
         setHasCaptionUpdateError(false);
         setIsCaptionEditing(false);
@@ -932,7 +903,6 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         activePhoto.imageUrl,
         activePhoto.postId,
         activePhoto.timestampMs,
-        activePhoto.viewerLiked,
         canReplyToPost,
         focusReplyOnOpen,
     ]);
@@ -2092,202 +2062,37 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                         zIndex: 2,
                     }}
                 >
-                    <Box
-                        sx={{
-                            alignItems: "flex-end",
-                            display: "flex",
-                            gap: "8px",
-                            justifyContent: "flex-end",
-                            width: "100%",
-                        }}
-                    >
-                        {canReplyToPost && (
-                            <Box
-                                ref={replyInputRef}
-                                component="textarea"
-                                aria-label="Reply to post"
-                                disabled={isReplyActionRunning}
-                                onBlur={() => setIsReplyFocused(false)}
-                                onChange={(event) => {
-                                    const nextText = clampSpaceMessageText(
-                                        event.target.value,
-                                    );
-                                    event.currentTarget.value = nextText;
-                                    setReplyText(nextText);
-                                    resizeCaptionInput(
-                                        event.currentTarget,
-                                        replyInputMinHeight,
-                                    );
-                                }}
-                                onFocus={() => setIsReplyFocused(true)}
-                                onKeyDown={handleReplyKeyDown}
-                                onPointerDown={handleReplyInputPointerDown}
-                                placeholder="Reply..."
-                                readOnly={canAddFriendForPostAction}
-                                rows={1}
-                                value={replyText}
-                                sx={{
-                                    bgcolor: inputBackground,
-                                    border: 0,
-                                    borderRadius: "24px",
-                                    boxSizing: "border-box",
-                                    color: textBase,
-                                    flex: "1 1 auto",
-                                    fontFamily:
-                                        '"Inter Variable", Inter, sans-serif',
-                                    fontSize: 14,
-                                    fontWeight: 500,
-                                    lineHeight: "20px",
-                                    maxHeight: captionInputMaxHeight,
-                                    minHeight: replyInputMinHeight,
-                                    minWidth: 0,
-                                    outline: 0,
-                                    overflow: "hidden",
-                                    pb: `${replyInputPadding}px`,
-                                    pl: `${replyInputPaddingLeft}px`,
-                                    pr: `${replyInputPadding}px`,
-                                    pt: `${replyInputPadding}px`,
-                                    resize: "none",
-                                    "&::placeholder": { color: textSecondary },
-                                    "&:disabled": { opacity: 0.74 },
-                                    "&:focus": {
-                                        bgcolor: inputBackgroundActive,
-                                    },
-                                }}
-                            />
-                        )}
-                        <Box
-                            sx={{ height: 48, position: "relative", width: 48 }}
-                        >
-                            <Box
-                                component="button"
-                                type="button"
-                                aria-label={
-                                    isReplyMode
-                                        ? replyActionPhase == "busy"
-                                            ? "Sending reply"
-                                            : replyActionPhase == "done"
-                                              ? "Reply sent"
-                                              : "Send reply"
-                                        : isPhotoLiked
-                                          ? "Unlike photo"
-                                          : "Like photo"
-                                }
-                                aria-pressed={
-                                    isReplyMode ? undefined : isPhotoLiked
-                                }
-                                aria-disabled={
-                                    isReplyMode && !canSendReply
-                                        ? true
-                                        : undefined
-                                }
-                                onClick={
-                                    isReplyMode
-                                        ? sendReply
-                                        : handlePhotoLikeClick
-                                }
-                                onPointerDown={
-                                    isReplyMode
-                                        ? handleInputActionPointerDown
-                                        : undefined
-                                }
-                                sx={{
-                                    ...viewerActionButtonSx,
-                                    animation: isPhotoLikePopping
-                                        ? `${spacePostLikeButtonPop} ${spacePostLikePopDurationMs}ms ${spacePostLikePopTiming} both`
-                                        : undefined,
-                                    bgcolor: controlBackground,
-                                    color:
-                                        isReplyMode && canSendReply
-                                            ? textBase
-                                            : controlIcon,
-                                    cursor:
-                                        isReplyMode && !canSendReply
-                                            ? "default"
-                                            : "pointer",
-                                    touchAction: "manipulation",
-                                    userSelect: "none",
-                                    WebkitTouchCallout: "none",
-                                    WebkitUserSelect: "none",
-                                    "&:hover": {
-                                        bgcolor: isReplyMode
-                                            ? canSendReply
-                                                ? controlBackgroundHover
-                                                : controlBackground
-                                            : controlBackgroundHover,
-                                    },
-                                    "@media (prefers-reduced-motion: reduce)": {
-                                        animation: "none",
-                                    },
-                                }}
-                            >
-                                {isReplyMode ? (
-                                    replyActionPhase == "busy" ? (
-                                        <Box
-                                            component="span"
-                                            sx={{
-                                                animation: `${postButtonSpin} 2.4s linear infinite`,
-                                                display: "flex",
-                                                lineHeight: 0,
-                                            }}
-                                        >
-                                            <HugeiconsIcon
-                                                icon={Loading03Icon}
-                                                size={22}
-                                                strokeWidth={1.8}
-                                            />
-                                        </Box>
-                                    ) : replyActionPhase == "done" ? (
-                                        <HugeiconsIcon
-                                            icon={Tick02Icon}
-                                            primaryColor={green}
-                                            size={22}
-                                            strokeWidth={1.8}
-                                        />
-                                    ) : (
-                                        <HugeiconsIcon
-                                            icon={Navigation03Icon}
-                                            size={24}
-                                            strokeWidth={1.8}
-                                            style={{
-                                                transform:
-                                                    "translate(-1px, 1px)",
-                                            }}
-                                        />
-                                    )
-                                ) : (
-                                    <Box
-                                        key={
-                                            isPhotoLikePopping
-                                                ? `heart-${photoLikePopID}`
-                                                : "heart"
-                                        }
-                                        component="span"
-                                        sx={{
-                                            animation: isPhotoLikePopping
-                                                ? `${spacePostLikeHeartPop} ${spacePostLikePopDurationMs}ms ${spacePostLikePopTiming} both`
-                                                : undefined,
-                                            display: "flex",
-                                            lineHeight: 0,
-                                            transformOrigin: "50% 58%",
-                                            "@media (prefers-reduced-motion: reduce)":
-                                                { animation: "none" },
-                                        }}
-                                    >
-                                        <HugeiconsIcon
-                                            fill={isPhotoLiked ? green : "none"}
-                                            icon={FavouriteIcon}
-                                            primaryColor={
-                                                isPhotoLiked ? green : undefined
-                                            }
-                                            size={26}
-                                            strokeWidth={1.8}
-                                        />
-                                    </Box>
-                                )}
-                            </Box>
-                        </Box>
-                    </Box>
+                    <SpacePostReplyControls
+                        canSendReply={canSendReply}
+                        isReplyMode={isReplyMode}
+                        liked={isPhotoLiked}
+                        likePopID={photoLikePopID}
+                        onLike={handlePhotoLikeClick}
+                        onSendReply={sendReply}
+                        replyActionPhase={replyActionPhase}
+                        replyInputRef={replyInputRef}
+                        replyInputProps={
+                            canReplyToPost
+                                ? {
+                                      onBlur: () => setIsReplyFocused(false),
+                                      onChange: (event) => {
+                                          const nextText =
+                                              clampSpaceMessageText(
+                                                  event.target.value,
+                                              );
+                                          event.currentTarget.value = nextText;
+                                          setReplyText(nextText);
+                                      },
+                                      onFocus: () => setIsReplyFocused(true),
+                                      onKeyDown: handleReplyKeyDown,
+                                      onPointerDown:
+                                          handleReplyInputPointerDown,
+                                      readOnly: canAddFriendForPostAction,
+                                      value: replyText,
+                                  }
+                                : undefined
+                        }
+                    />
                 </Box>
             )}
             {canDeletePost && (

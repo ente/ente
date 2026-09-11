@@ -3,6 +3,7 @@ import "@fontsource/nunito/800.css";
 import { CssBaseline } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { SpacePostComposerHost } from "components/PostComposer";
+import { SpacePostToast } from "components/PostToast";
 import { SpaceRouteTransitionBoundary } from "components/RouteTransitionBoundary";
 import "configure-zod";
 import { CustomHead } from "ente-base/components/Head";
@@ -154,6 +155,7 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
                 <SpaceAppStateProvider>
                     <Component {...pageProps} />
                     <SpacePostComposerHost />
+                    <SpacePostToast />
                 </SpaceAppStateProvider>
             </SpaceRouteTransitionBoundary>
         </ThemeProvider>

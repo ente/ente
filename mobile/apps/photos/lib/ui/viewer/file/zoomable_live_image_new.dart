@@ -18,6 +18,7 @@ import "package:photos/services/file_magic_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/states/detail_page_state.dart";
 import 'package:photos/ui/notification/toast.dart';
+import "package:photos/ui/viewer/file/file_viewer_image_page_readiness.dart";
 import "package:photos/ui/viewer/file/live_image_long_press_router.dart";
 import "package:photos/ui/viewer/file/qr_code_detection_helper.dart";
 import 'package:photos/ui/viewer/file/zoomable_image.dart';
@@ -30,6 +31,8 @@ class ZoomableLiveImageNew extends StatefulWidget {
   final bool isFromMemories;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
+  final FileViewerImagePageReadinessRegistration?
+  onImagePageReadinessRegistration;
   final ValueNotifier<QrCodeDetectionResult?>? qrDetectionsNotifier;
   final GestureLongPressStartCallback? onTextSelectionStart;
 
@@ -42,6 +45,7 @@ class ZoomableLiveImageNew extends StatefulWidget {
     this.isFromMemories = false,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
+    this.onImagePageReadinessRegistration,
     this.qrDetectionsNotifier,
     this.onTextSelectionStart,
   });
@@ -200,6 +204,7 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       isFromMemories: widget.isFromMemories,
       onFinalFileLoad: widget.onFinalFileLoad,
       onFinalImageLoaded: widget.onFinalImageLoaded,
+      onImagePageReadinessRegistration: widget.onImagePageReadinessRegistration,
     );
 
     final shouldShowVideo =

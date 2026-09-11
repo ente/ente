@@ -35,9 +35,10 @@ impl<'a> Reader<'a> {
     }
 
     pub(crate) fn u16(&mut self) -> crate::Result<u16> {
-        Ok(u16::from_le_bytes(
-            self.take(2)?.try_into().expect("two-byte geometry slice"),
-        ))
+        let value =
+            crate::binary::u16_at(self.bytes, self.position).ok_or(self.invalid("truncated"))?;
+        self.position += 2;
+        Ok(value)
     }
 
     pub(crate) fn take(&mut self, count: usize) -> crate::Result<&'a [u8]> {

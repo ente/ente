@@ -1,0 +1,68 @@
+name: "Test (Rust CLI)"
+
+on:
+    workflow_call:
+
+permissions:
+    contents: read
+
+env:
+    RUSTFLAGS: -D warnings
+
+jobs:
+    native-keyring-macos:
+        runs-on: macos-latest
+        timeout-minutes: 20
+        defaults:
+            run:
+                working-directory: rust
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Run with disposable signing and storage
+              run: |
+                  umask 077
+                  keychain="$RUNNER_TEMP/cli-test.keychain-db"
+                  password=$(/usr/bin/openssl rand -hex 24)
+                  /usr/bin/openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+                    -subj '/CN=Ente CLI CI' \
+                    -addext 'basicConstraints=critical,CA:FALSE' \
+                    -addext 'keyUsage=critical,digitalSignature' \
+                    -addext 'extendedKeyUsage=critical,codeSigning' \
+                    -keyout "$RUNNER_TEMP/signing.key" -out "$RUNNER_TEMP/signing.crt"
+                  /usr/bin/openssl pkcs12 -export \
+                    -inkey "$RUNNER_TEMP/signing.key" -in "$RUNNER_TEMP/signing.crt" \
+                    -out "$RUNNER_TEMP/signing.p12" -passout "pass:$password"
+                  security create-keychain -p "$password" "$keychain"
+                  security set-keychain-settings -lut 3600 "$keychain"
+                  security unlock-keychain -p "$password" "$keychain"
+                  security import "$RUNNER_TEMP/signing.p12" -k "$keychain" \
+                    -P "$password" -T /usr/bin/codesign
+                  security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
+                  security list-keychains -d user -s "$keychain"
+                  security default-keychain -d user -s "$keychain"
+                  python3 apps/cli-next/scripts/native-keyring.py test --sign 'Ente CLI CI'
+
+            - name: Remove the disposable keychain
+              if: always()
+              run: |
+                  keychain="$RUNNER_TEMP/cli-test.keychain-db"
+                  if [[ -e "$keychain" ]]; then
+                    security delete-keychain "$keychain"
+                  fi
+
+    native-keyring-windows:
+        runs-on: windows-latest
+        timeout-minutes: 30
+        defaults:
+            run:
+                working-directory: rust
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Run with Windows Credential Manager
+              run: python apps/cli-next/scripts/native-keyring.py test

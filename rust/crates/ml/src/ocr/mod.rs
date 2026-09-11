@@ -186,13 +186,13 @@ impl OcrEngine {
         let (classifier, recognizer) = self.text_models()?;
         let started = Instant::now();
         let request = self.requests.begin(req.request_id.as_deref());
-        let source = load_source(&req.image_path, FULL_TEXT_CAP)?;
+        let mut source = load_source(&req.image_path, FULL_TEXT_CAP)?;
         request.check()?;
         let detection_started = Instant::now();
         let detection = self.detector.detect(&source.working)?;
         let detection_ms = detection_started.elapsed().as_millis();
         request.check()?;
-        let crops = crop_candidates(&source.working, &detection.candidates)?;
+        let crops = crop_candidates(&mut source.working, &detection.candidates)?;
         request.check()?;
         let recognition_started = Instant::now();
         let mut recognized = recognize_crops(recognizer, crops, &request)?;
@@ -379,13 +379,47 @@ impl RecognizedCrop {
 }
 
 fn crop_candidates(
-    working: &ImageU8,
+    working: &mut ImageU8,
     candidates: &[DetectionCandidate],
 ) -> MlResult<Vec<TextCrop>> {
-    candidates
-        .iter()
-        .map(|candidate| crop_text(working, &candidate.points))
-        .collect()
+    if candidates.is_empty() {
+        return Ok(Vec::new());
+    }
+    let expected_len = (working.width as usize)
+        .checked_mul(working.height as usize)
+        .and_then(|pixels| pixels.checked_mul(3));
+    if working.width <= 0
+        || working.height <= 0
+        || working.channels != 3
+        || expected_len != Some(working.data.len())
+    {
+        return Err(MlError::Preprocess(
+            "OCR crop source buffer mismatch".to_string(),
+        ));
+    }
+    #[expect(
+        clippy::expect_used,
+        reason = "RGB dimensions and exact buffer length are checked before conversion"
+    )]
+    let source = image::RgbImage::from_raw(
+        working.width as u32,
+        working.height as u32,
+        std::mem::take(&mut working.data),
+    )
+    .expect("validated RGB source dimensions and length");
+    let prepare = || {
+        candidates
+            .iter()
+            .map(|candidate| crop_text(&source, &candidate.points))
+            .collect()
+    };
+    let crops = if cfg!(target_os = "android") {
+        tensor::prepare_crops(prepare)
+    } else {
+        prepare()
+    };
+    working.data = source.into_raw();
+    crops
 }
 
 fn recognize_crops(
@@ -561,6 +595,55 @@ mod tests {
                     end: 0.5,
                 }],
             },
+        }
+    }
+
+    #[test]
+    fn no_detected_regions_produce_no_crops() {
+        let mut image = ImageU8::zeros(32, 32, 3).unwrap();
+        assert!(crop_candidates(&mut image, &[]).unwrap().is_empty());
+    }
+
+    #[test]
+    fn cropping_restores_the_source_buffer_on_success_and_error() {
+        let data = (0..32 * 32 * 3).map(|i| (i * 37 % 256) as u8).collect();
+        let original = ImageU8::new(32, 32, 3, data).unwrap();
+        let mut image = original.clone();
+        let pointer = image.data.as_ptr();
+        let candidate = DetectionCandidate {
+            points: quad(3.0, 4.0),
+            score: 0.9,
+        };
+        let rgb = image::RgbImage::from_raw(32, 32, original.data.clone()).unwrap();
+        let expected = crop_text(&rgb, &candidate.points).unwrap();
+        let crops = crop_candidates(&mut image, std::slice::from_ref(&candidate)).unwrap();
+        assert_eq!(crops[0].image, expected.image);
+        assert_eq!(image, original);
+        assert_eq!(image.data.as_ptr(), pointer);
+
+        let invalid = DetectionCandidate {
+            points: [Point::new(0.0, 0.0); 4],
+            score: 0.9,
+        };
+        assert!(crop_candidates(&mut image, &[candidate, invalid]).is_err());
+        assert_eq!(image, original);
+        assert_eq!(image.data.as_ptr(), pointer);
+    }
+
+    #[test]
+    fn cropping_rejects_invalid_source_geometry_without_taking_the_buffer() {
+        let candidate = DetectionCandidate {
+            points: quad(3.0, 4.0),
+            score: 0.9,
+        };
+        for (width, height, channels) in [(33, 32, 3), (-1, 32, 3), (32, 32, 4)] {
+            let mut image = ImageU8::zeros(32, 32, 3).unwrap();
+            image.width = width;
+            image.height = height;
+            image.channels = channels;
+            let original = image.clone();
+            assert!(crop_candidates(&mut image, std::slice::from_ref(&candidate)).is_err());
+            assert_eq!(image, original);
         }
     }
 

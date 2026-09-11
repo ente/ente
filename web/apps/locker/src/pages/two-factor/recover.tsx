@@ -1,4 +1,4 @@
-import { LockerAuthShell } from "@/components/LockerAuthShell";
+import { LockerAuthShell } from "@/components/auth/LockerAuthShell";
 import { RecoverTwoFactorForm } from "ente-accounts/components/auth/RecoveryForm";
 import AccountsTwoFactorRecoverPage, {
     type TwoFactorRecoverPresentationProps,

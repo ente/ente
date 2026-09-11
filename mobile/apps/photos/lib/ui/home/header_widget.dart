@@ -67,7 +67,7 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     final List<Widget> children = <Widget>[
       const StatusBarWidget(),
       if (showGetStartedBanner) const GetStartedBanner(),
-      const MemoriesStripWidget(),
+      MemoriesStripWidget(key: ValueKey(isLocalGalleryMode)),
     ];
     if (showWrappedBanner) {
       children.add(RewindBanner(state: _wrappedState));

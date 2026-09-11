@@ -51,8 +51,11 @@ fn compressed_png_cannot_expand_beyond_budget() {
     let text = miniz_oxide::deflate::compress_to_vec_zlib(&vec![b'a'; 100_000], 6);
     let bytes = [
         b"\x89PNG\r\n\x1a\n".to_vec(),
-        png_chunk(b"zTXt", &[b"XML:com.adobe.xmp\0\0".to_vec(), text].concat()),
-        png_chunk(b"IEND", &[]),
+        png_chunk(
+            *b"zTXt",
+            &[b"XML:com.adobe.xmp\0\0".to_vec(), text].concat(),
+        ),
+        png_chunk(*b"IEND", &[]),
     ]
     .concat();
     assert!(matches!(
@@ -63,7 +66,7 @@ fn compressed_png_cannot_expand_beyond_budget() {
     let packet = xmp(&" ".repeat(4000));
     let compressed = miniz_oxide::deflate::compress_to_vec_zlib(packet.as_bytes(), 6);
     let chunk = png_chunk(
-        b"zTXt",
+        *b"zTXt",
         &[b"XML:com.adobe.xmp\0\0".to_vec(), compressed].concat(),
     );
     let mut repeated = b"\x89PNG\r\n\x1a\n".to_vec();
@@ -162,9 +165,9 @@ fn png_text_limits_apply_to_utf8_output_before_conversion() {
     ] {
         let bytes = [
             b"\x89PNG\r\n\x1a\n".to_vec(),
-            png_chunk(b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]),
-            png_chunk(kind, &payload),
-            png_chunk(b"IEND", &[]),
+            png_chunk(*b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]),
+            png_chunk(*kind, &payload),
+            png_chunk(*b"IEND", &[]),
         ]
         .concat();
         let result = ente_exif::read(&mut Cursor::new(&bytes), Mode::Details, limits);
@@ -202,7 +205,7 @@ fn undersized_jxrs_is_recoverable() {
 fn png_language_obeys_value_and_retention_budgets() {
     let bytes = [
         b"\x89PNG\r\n\x1a\n".to_vec(),
-        png_chunk(b"iTXt", b"Note\0\0\0en-US\0\0x"),
+        png_chunk(*b"iTXt", b"Note\0\0\0en-US\0\0x"),
     ]
     .concat();
     for limits in [

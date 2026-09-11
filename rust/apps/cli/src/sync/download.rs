@@ -132,10 +132,14 @@ impl DownloadManager {
         let (_multi_progress, progress_bar) = if self.show_progress && total > 0 {
             let mp = MultiProgress::new();
             let pb = mp.add(ProgressBar::new(total as u64));
+            #[expect(
+                clippy::expect_used,
+                reason = "The progress template is a fixed literal"
+            )]
             pb.set_style(
                 ProgressStyle::default_bar()
                     .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({percent}%) {msg}")
-                    .unwrap()
+                    .expect("valid download progress template")
                     .progress_chars("#>-"),
             );
             pb.set_message("Downloading files...");

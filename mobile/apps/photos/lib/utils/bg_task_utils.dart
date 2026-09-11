@@ -23,10 +23,15 @@ void callbackDispatcher() {
     // listener surfaces as an unhandled exception even on success.
     String? failure = "Task didn't run";
     bool timedOut = false;
-    bool ownsPipeline = !Platform.isIOS;
+    bool ownsPipeline = false;
     final isIOSProcessingTask =
         Platform.isIOS && taskName == BgTaskUtils.iOSBackgroundProcessingTask;
     final prefs = await SharedPreferences.getInstance();
+    final startupElapsed = BgTaskUtils.taskStartupElapsedFor(
+      taskName,
+      prefs,
+      taskStopwatch,
+    );
 
     await runWithLogs(
       () async {
@@ -35,33 +40,32 @@ void callbackDispatcher() {
           if (isIOSProcessingTask) {
             await BgTaskUtils.scheduleIOSBackgroundProcessingTask();
           }
-          if (Platform.isIOS) {
-            ownsPipeline = await BgTaskUtils.acquireIOSBackgroundPipeline(
-              taskName,
-              taskStopwatch,
-            );
-            if (!ownsPipeline) {
-              BgTaskUtils.$.info(
-                'Skipping $taskName, background pipeline busy',
-              );
-              failure = null;
-              return;
-            }
+          ownsPipeline = await BgTaskUtils.acquireBackgroundPipeline(
+            taskName,
+            taskStopwatch,
+            startupElapsed: startupElapsed,
+          );
+          if (!ownsPipeline) {
+            BgTaskUtils.$.info('Skipping $taskName, background pipeline busy');
+            failure = null;
+            return;
           }
           if (isIOSProcessingTask) {
             await BgTaskUtils.markProcessingTaskStart(prefs);
           }
           final Duration taskBudget = BgTaskUtils.taskTimeoutFor(taskName);
-          final Duration remainingBudget = Platform.isIOS
-              ? taskBudget - taskStopwatch.elapsed
+          final accountForStartup =
+              Platform.isIOS ||
+              taskName == BgTaskUtils.androidBackgroundProcessingTask;
+          final elapsed = startupElapsed + taskStopwatch.elapsed;
+          final Duration remainingBudget = accountForStartup
+              ? taskBudget - elapsed
               : taskBudget;
           final mlSelfStop = BgTaskUtils.mlSelfStopFor(taskName);
           await runBackgroundTask(
             taskName,
             tlog,
-            mlSelfStop: Platform.isIOS
-                ? mlSelfStop - taskStopwatch.elapsed
-                : mlSelfStop,
+            mlSelfStop: accountForStartup ? mlSelfStop - elapsed : mlSelfStop,
             mlLockWait: BgTaskUtils.mlLockWaitFor(taskName),
           ).timeout(
             remainingBudget.isNegative ? Duration.zero : remainingBudget,
@@ -115,36 +119,74 @@ class BgTaskUtils {
   static const iOSBackgroundProcessingTask =
       "io.ente.frame.iOSBackgroundProcessing";
   static const androidPeriodicTask = "io.ente.photos.androidPeriodicTask";
+  static const androidBackgroundProcessingTask =
+      "io.ente.photos.androidBackgroundProcessing";
 
-  static Future<bool> acquireIOSBackgroundPipeline(
+  static bool allowsImageIndexing(String taskName) =>
+      taskName == iOSBackgroundProcessingTask ||
+      taskName == androidBackgroundProcessingTask;
+
+  static Duration taskStartupElapsedFor(
     String taskName,
+    SharedPreferences prefs,
     Stopwatch taskStopwatch,
-  ) async {
-    final waitDeadline =
-        taskStopwatch.elapsed +
-        (taskName == iOSBackgroundProcessingTask
-            ? const Duration(seconds: 30)
-            : Duration.zero);
-    final taskBudget = taskTimeoutFor(taskName);
+  ) {
+    if (!Platform.isAndroid || taskName != androidBackgroundProcessingTask) {
+      return Duration.zero;
+    }
+    final startedAt = prefs.getInt("bg_task_start_$taskName");
+    if (startedAt == null) {
+      $.warning("Native start time unavailable for $taskName");
+      return Duration.zero;
+    }
+    final elapsed =
+        DateTime.now().difference(
+          DateTime.fromMillisecondsSinceEpoch(startedAt),
+        ) -
+        taskStopwatch.elapsed;
+    return elapsed.isNegative ? Duration.zero : elapsed;
+  }
+
+  static Future<bool> acquireBackgroundPipeline(
+    String taskName,
+    Stopwatch taskStopwatch, {
+    Duration startupElapsed = Duration.zero,
+  }) async {
+    final waits = switch (taskName) {
+      iOSBackgroundProcessingTask => const [Duration(seconds: 30)],
+      androidBackgroundProcessingTask => const [
+        Duration(seconds: 30),
+        Duration(minutes: 2),
+      ],
+      _ => const [Duration.zero],
+    };
+    var waitDeadline = taskStopwatch.elapsed;
+    final taskBudget = taskTimeoutFor(taskName) - startupElapsed;
     const pollInterval = Duration(milliseconds: 500);
-    do {
-      if (taskStopwatch.elapsed >= taskBudget) return false;
-      if (await ProcessLockClient.instance.tryAcquire(
-        name: "background_process",
-        origin: "bg",
-        operation: taskName,
-      )) {
-        $.info(
-          'Acquired background pipeline for $taskName until engine detach',
+    for (final wait in waits) {
+      waitDeadline += wait;
+      do {
+        if (taskStopwatch.elapsed >= taskBudget) return false;
+        if (await ProcessLockClient.instance.tryAcquire(
+          name: "background_process",
+          origin: "bg",
+          operation: taskName,
+        )) {
+          $.info(
+            'Acquired background pipeline for $taskName until engine detach',
+          );
+          return true;
+        }
+        final remainingWait = waitDeadline - taskStopwatch.elapsed;
+        if (remainingWait <= Duration.zero) break;
+        await Future<void>.delayed(
+          remainingWait < pollInterval ? remainingWait : pollInterval,
         );
-        return true;
+      } while (taskStopwatch.elapsed < waitDeadline);
+      if (taskName == androidBackgroundProcessingTask && wait == waits.first) {
+        $.info("Background pipeline still busy after 30s, waiting another 2m");
       }
-      final remainingWait = waitDeadline - taskStopwatch.elapsed;
-      if (remainingWait <= Duration.zero) return false;
-      await Future<void>.delayed(
-        remainingWait < pollInterval ? remainingWait : pollInterval,
-      );
-    } while (taskStopwatch.elapsed < waitDeadline);
+    }
     return false;
   }
 
@@ -156,7 +198,11 @@ class BgTaskUtils {
   }
 
   static Duration mlSelfStopFor(String taskName) {
-    if (!Platform.isIOS) return kBGTaskMLSelfStopAndroid;
+    if (!Platform.isIOS) {
+      return taskName == androidBackgroundProcessingTask
+          ? kBGProcessingTaskMLSelfStopAndroid
+          : kBGTaskMLSelfStopAndroid;
+    }
     return taskName == iOSBackgroundProcessingTask
         ? kBGProcessingTaskMLSelfStopIOS
         : kBGTaskMLSelfStopIOS;
@@ -259,6 +305,7 @@ class BgTaskUtils {
       $.info("WorkManager configured");
 
       if (Platform.isAndroid) {
+        await scheduleAndroidBackgroundProcessingTask();
         final isScheduled = await workmanager.Workmanager()
             .isScheduledByUniqueName(backgroundTaskIdentifier);
         if (!isScheduled) {
@@ -273,6 +320,23 @@ class BgTaskUtils {
   }
 
   static bool _processingTaskArmedThisProcess = false;
+
+  static Future<void> scheduleAndroidBackgroundProcessingTask() async {
+    await workmanager.Workmanager().registerPeriodicTask(
+      androidBackgroundProcessingTask,
+      androidBackgroundProcessingTask,
+      frequency: const Duration(hours: 2),
+      flexInterval: const Duration(hours: 2),
+      initialDelay: Duration.zero,
+      constraints: workmanager.Constraints(
+        networkType: workmanager.NetworkType.connected,
+        requiresCharging: true,
+        requiresDeviceIdle: true,
+      ),
+      existingWorkPolicy: workmanager.ExistingPeriodicWorkPolicy.update,
+    );
+    $.info("Scheduled Android background processing task");
+  }
 
   // Foreground arm to restart the chain after a first install or force-quit;
   // once per process, so resumes don't keep pushing the pending request out.

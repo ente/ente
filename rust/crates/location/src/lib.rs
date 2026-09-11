@@ -61,6 +61,10 @@ impl CountryCode {
     }
 
     pub fn as_str(&self) -> &str {
+        #[expect(
+            clippy::expect_used,
+            reason = "CountryCode construction restricts bytes to ASCII"
+        )]
         std::str::from_utf8(&self.0).expect("country code is ASCII")
     }
 

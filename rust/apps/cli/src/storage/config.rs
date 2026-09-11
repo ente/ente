@@ -12,10 +12,7 @@ impl<'a> ConfigStore<'a> {
     }
 
     pub fn set(&self, key: &str, value: &str) -> Result<()> {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
         self.conn.execute(
             "INSERT OR REPLACE INTO config (key, value, updated_at) 

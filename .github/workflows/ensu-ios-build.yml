@@ -1,25 +1,10 @@
 name: "Build (Ensu iOS)"
 
 on:
-    pull_request:
-        paths:
-            - ".github/workflows/ensu-ios-build.yml"
-            - "apple/apps/ensu/**"
-            - "apple/packages/EnteOnnxRuntime/**"
-            - "rust/.cargo/config.toml"
-            - "rust/Cargo.lock"
-            - "rust/Cargo.toml"
-            - "rust/bindings/uniffi/**"
-            - "rust/crates/core/**"
-            - "rust/crates/ensu/**"
-            - "rust/tools/codegen/**"
+    workflow_call:
 
 permissions:
     contents: read
-
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
 
 jobs:
     build-and-test:

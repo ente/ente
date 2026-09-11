@@ -78,20 +78,20 @@ pub fn decrypt_combined(data: &[u8], key: &Key) -> Result<Vec<u8>> {
 
 pub fn encrypt_json<T: serde::Serialize>(value: &T, key: &Key) -> Result<EncryptedBlob> {
     let json = serde_json::to_vec(value)
-        .map_err(|e| Error::Json(format!("JSON serialization failed: {}", e)))?;
+        .map_err(|e| Error::Json(format!("JSON serialization failed: {e}")))?;
     encrypt(&json, key)
 }
 
 pub fn encrypt_json_combined<T: serde::Serialize>(value: &T, key: &Key) -> Result<Vec<u8>> {
     let json = serde_json::to_vec(value)
-        .map_err(|e| Error::Json(format!("JSON serialization failed: {}", e)))?;
+        .map_err(|e| Error::Json(format!("JSON serialization failed: {e}")))?;
     encrypt_combined(&json, key)
 }
 
 pub fn decrypt_json<T: serde::de::DeserializeOwned>(blob: &EncryptedBlob, key: &Key) -> Result<T> {
     let plaintext = blob.decrypt(key)?;
     serde_json::from_slice(&plaintext)
-        .map_err(|e| Error::Json(format!("JSON deserialization failed: {}", e)))
+        .map_err(|e| Error::Json(format!("JSON deserialization failed: {e}")))
 }
 
 pub fn decrypt_json_combined<T: serde::de::DeserializeOwned>(
@@ -100,7 +100,7 @@ pub fn decrypt_json_combined<T: serde::de::DeserializeOwned>(
 ) -> Result<T> {
     let plaintext = decrypt_combined(combined, key)?;
     serde_json::from_slice(&plaintext)
-        .map_err(|e| Error::Json(format!("JSON deserialization failed: {}", e)))
+        .map_err(|e| Error::Json(format!("JSON deserialization failed: {e}")))
 }
 
 #[cfg(test)]
@@ -226,8 +226,7 @@ mod tests {
         let result: std::result::Result<u64, _> = decrypt_json(&encrypted, &key);
         assert!(
             matches!(result, Err(Error::Json(_))),
-            "Expected Error::Json, got: {:?}",
-            result
+            "Expected Error::Json, got: {result:?}"
         );
     }
 

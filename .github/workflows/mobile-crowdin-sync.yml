@@ -7,17 +7,31 @@ on:
     workflow_dispatch:
 
 permissions:
-    contents: write
-    pull-requests: write
+    contents: read
 
 jobs:
     synchronize-with-crowdin:
         name: "Sync mobile strings with Crowdin"
         runs-on: ubuntu-latest
+        environment:
+            name: crowdin-sync
+            deployment: false
 
         steps:
             - name: Checkout
               uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+              with:
+                  persist-credentials: false
+
+            - name: Mint App token
+              id: app_token
+              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              with:
+                  client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
+                  private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
+                  repositories: ente
+                  permission-contents: write
+                  permission-pull-requests: write
 
             - name: Crowdin's action
               uses: crowdin/github-action@52aa776766211d83d975df51f3b9c53c2f8ba35f # v2.16.3
@@ -35,5 +49,5 @@ jobs:
                   pull_request_base_branch_name: "main"
                   project_id: 574741
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
                   CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

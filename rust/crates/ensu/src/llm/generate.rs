@@ -95,6 +95,10 @@ pub struct ChatRequest {
 
 fn token_piece_bytes(model: &LlamaModel, token: LlamaToken) -> Result<Vec<u8>, TokenToStringError> {
     match model.token_to_piece_bytes(token, 8, true, None) {
+        #[expect(
+            clippy::expect_used,
+            reason = "llama.cpp reports insufficient buffer capacity as a negative byte count"
+        )]
         Err(TokenToStringError::InsufficientBufferSpace(required)) => model.token_to_piece_bytes(
             token,
             (-required)
@@ -214,6 +218,7 @@ fn drain_utf8(pending: &mut Vec<u8>) -> String {
             Err(err) => {
                 let valid_up_to = err.valid_up_to();
                 if valid_up_to > 0 {
+                    #[expect(clippy::expect_used, reason = "Utf8Error identifies a valid prefix")]
                     let valid =
                         std::str::from_utf8(&pending[..valid_up_to]).expect("valid UTF-8 prefix");
                     output.push_str(valid);
@@ -249,7 +254,7 @@ struct StreamDecoder {
 
 impl StreamDecoder {
     fn new(stop_sequences: &[String]) -> Self {
-        let max_stop_len = stop_sequences.iter().map(|s| s.len()).max().unwrap_or(0);
+        let max_stop_len = stop_sequences.iter().map(String::len).max().unwrap_or(0);
         Self {
             generated_text: String::new(),
             pending_bytes: Vec::new(),

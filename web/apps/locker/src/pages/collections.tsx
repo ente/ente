@@ -1,1 +1,1 @@
-export { LockerPage as default } from "./locker";
+export { LockerPage as default } from "@/components/locker/LockerPage";

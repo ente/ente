@@ -1,6 +1,6 @@
 use std::sync::{Mutex, PoisonError};
 
-use super::tensor::{BgrNormalization, write_bgr_planes};
+use super::tensor::{BgrNormalization, prepare_crops, write_bgr_planes};
 use crate::cv;
 use crate::cv::image::ImageU8;
 use crate::error::{MlError, MlResult};
@@ -51,7 +51,7 @@ impl AngleClassifier {
     }
 
     fn score_batch(&self, batch: &[ImageU8]) -> MlResult<Vec<AngleScores>> {
-        let input = PreparedF32Input::new(batch_tensor(batch)?);
+        let input = PreparedF32Input::new(prepare_crops(|| batch_tensor(batch))?);
         let count = batch.len() as i64;
         let expected_shape = [count, CLASS_COUNT as i64];
         let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
@@ -178,6 +178,26 @@ mod tests {
         assert!(!scores(0.95, 0.05).needs_rotation());
         assert!(scores(0.05, 0.95).needs_rotation());
         assert!(!scores(0.15, 0.85).needs_rotation());
+    }
+
+    #[test]
+    fn crop_preparation_preserves_resized_classifier_values() {
+        let batch: Vec<_> = [(7, 3), (390, 25), (3, 71)]
+            .into_iter()
+            .map(|(width, height)| {
+                let pixels = (0..width * height * 3)
+                    .map(|index| (index * 29 % 256) as u8)
+                    .collect();
+                ImageU8::new(width, height, 3, pixels).unwrap()
+            })
+            .collect();
+        let parallel = rayon::ThreadPoolBuilder::new()
+            .num_threads(4)
+            .build()
+            .unwrap();
+        let expected = parallel.install(|| batch_tensor(&batch)).unwrap();
+        let prepared = prepare_crops(|| batch_tensor(&batch)).unwrap();
+        assert_eq!(prepared, expected);
     }
 
     #[test]

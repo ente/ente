@@ -45,6 +45,15 @@ The generated stream is a single encrypted blob (AES encryption) while the playl
 
 Open the specific video, tap the overflow menu (⋮) in the top-right corner, and select **Create stream**
 
+### Mobile playback controls
+
+While viewing a video on mobile:
+
+- Double-tap the left or right half of the video to seek backward or forward by five seconds. Repeated double-taps continue seeking in the same direction.
+- Open the overflow menu (three dots), select **Playback speed**, then choose `0.25x`, `0.5x`, `1x`, `1.5x`, or `2x`.
+
+These controls are available whether Ente plays the original video or a streamable version.
+
 ### On desktop
 
 1. Open `Settings > Preferences > Streamable videos`
@@ -55,6 +64,7 @@ Open the specific video, tap the overflow menu (⋮) in the top-right corner, an
 - New uploads will automatically generate streams
 - All existing previously uploaded videos will be processed
 - Stream generation is CPU intensive and happens in the background
+- The **Streamable videos** section shows the percentage of existing videos processed
 - Click the search bar to see "Processing videos..." status
 - Processed videos sync to mobile automatically
 

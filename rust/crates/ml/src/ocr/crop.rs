@@ -1,3 +1,5 @@
+use image::RgbImage;
+
 use super::Point;
 use crate::cv;
 use crate::cv::image::ImageU8;
@@ -18,7 +20,7 @@ pub(crate) struct TextCrop {
     pub(crate) orientation: Orientation,
 }
 
-pub(crate) fn crop_text(working: &ImageU8, quad: &[Point; 4]) -> MlResult<TextCrop> {
+pub(crate) fn crop_text(working: &RgbImage, quad: &[Point; 4]) -> MlResult<TextCrop> {
     let (width, height) = crop_size(quad);
     let warped = warp_to_rectangle(working, quad, width, height)?;
     if is_vertical(width, height) {
@@ -50,7 +52,7 @@ fn is_vertical(width: i32, height: i32) -> bool {
 }
 
 fn warp_to_rectangle(
-    working: &ImageU8,
+    working: &RgbImage,
     quad: &[Point; 4],
     width: i32,
     height: i32,
@@ -58,7 +60,7 @@ fn warp_to_rectangle(
     let source_corners = quad.map(|p| (f64::from(p.x), f64::from(p.y)));
     let (w, h) = (f64::from(width), f64::from(height));
     let target_corners = [(0.0, 0.0), (w, 0.0), (w, h), (0.0, h)];
-    cv::warp_perspective(working, source_corners, target_corners, width, height)
+    cv::warp_rgb_perspective(working, source_corners, target_corners, width, height)
         .map_err(MlError::Preprocess)
 }
 
@@ -74,11 +76,11 @@ mod tests {
         points.map(|(x, y)| Point::new(x, y))
     }
 
-    fn gradient_image(width: i32, height: i32) -> ImageU8 {
+    fn gradient_image(width: i32, height: i32) -> RgbImage {
         let data = (0..height)
             .flat_map(|y| (0..width).flat_map(move |x| [x as u8, y as u8, (x + y) as u8]))
             .collect();
-        ImageU8::new(width, height, 3, data).unwrap()
+        RgbImage::from_raw(width as u32, height as u32, data).unwrap()
     }
 
     fn pixel(image: &ImageU8, x: i32, y: i32) -> [u8; 3] {
@@ -115,7 +117,7 @@ mod tests {
             for x in 0..20 {
                 assert_eq!(
                     pixel(&crop.image, x, y),
-                    pixel(&source, x + 8, y + 5),
+                    source.get_pixel((x + 8) as u32, (y + 5) as u32).0,
                     "pixel ({x}, {y})"
                 );
             }
@@ -132,9 +134,9 @@ mod tests {
         .unwrap();
         assert_eq!(crop.orientation, Orientation::Vertical);
         assert_eq!((crop.image.width, crop.image.height), (3, 2));
-        assert_eq!(pixel(&crop.image, 0, 0), pixel(&source, 5, 2));
-        assert_eq!(pixel(&crop.image, 2, 0), pixel(&source, 5, 4));
-        assert_eq!(pixel(&crop.image, 0, 1), pixel(&source, 4, 2));
-        assert_eq!(pixel(&crop.image, 2, 1), pixel(&source, 4, 4));
+        assert_eq!(pixel(&crop.image, 0, 0), source.get_pixel(5, 2).0);
+        assert_eq!(pixel(&crop.image, 2, 0), source.get_pixel(5, 4).0);
+        assert_eq!(pixel(&crop.image, 0, 1), source.get_pixel(4, 2).0);
+        assert_eq!(pixel(&crop.image, 2, 1), source.get_pixel(4, 4).0);
     }
 }

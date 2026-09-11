@@ -234,7 +234,7 @@ impl AccountSpaceCtx {
     }
 
     pub async fn hydrate_space_keys(&self) -> Result<HydratedKeys> {
-        let space_root_key = self.get_space_root_key().await?;
+        let space_root_key = self.get_space_root_key()?;
         let owned_records = self.list_owned_spaces().await?;
         let mut owned = Vec::with_capacity(owned_records.len());
         if let Some(space_root_key) = space_root_key {

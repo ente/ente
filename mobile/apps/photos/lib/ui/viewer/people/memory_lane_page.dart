@@ -29,16 +29,16 @@ import "package:photos/utils/face_crop_util.dart";
 import "package:photos/utils/share_util.dart";
 
 class MemoryLanePage extends StatefulWidget {
+  final String personId;
+  final bool isCluster;
   final PersonEntity? person;
-  final String? clusterID;
 
-  const MemoryLanePage({required this.person, super.key}) : clusterID = null;
-
-  const MemoryLanePage.cluster({required this.clusterID, super.key})
-    : person = null;
-
-  String get timelineId => person?.remoteID ?? clusterID ?? "";
-  bool get isCluster => clusterID != null;
+  const MemoryLanePage({
+    required this.personId,
+    required this.isCluster,
+    required this.person,
+    super.key,
+  });
 
   @override
   State<MemoryLanePage> createState() => _MemoryLanePageState();
@@ -161,7 +161,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   }
 
   Future<void> _loadFrames() async {
-    _hasMarkedTimelineSeen = localSettings.hasSeenMemoryLane(widget.timelineId);
+    _hasMarkedTimelineSeen = localSettings.hasSeenMemoryLane(widget.personId);
     _playTimer?.cancel();
     if (mounted) {
       setState(() {
@@ -170,7 +170,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     }
     try {
       final timeline = await MemoryLaneService.instance.getTimeline(
-        widget.timelineId,
+        widget.personId,
         isCluster: widget.isCluster,
       );
       if (!mounted) {
@@ -283,7 +283,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
       return;
     }
     _hasMarkedTimelineSeen = true;
-    unawaited(localSettings.markMemoryLaneSeen(widget.timelineId));
+    unawaited(localSettings.markMemoryLaneSeen(widget.personId));
   }
 
   void _handleFrameLoaded(_TimelineFrame frame, int loadedCount) {
@@ -515,9 +515,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
 
   void _logPlaybackStart(int frameCount) {
     if (_loggedPlaybackStart) return;
-    _logger.info(
-      "playback_start person=${widget.timelineId} frames=$frameCount",
-    );
+    _logger.info("playback_start person=${widget.personId} frames=$frameCount");
     _loggedPlaybackStart = true;
   }
 

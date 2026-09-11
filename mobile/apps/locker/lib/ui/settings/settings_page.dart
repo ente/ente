@@ -9,9 +9,11 @@ import "package:ente_ui/components/settings/social_icons_row.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
+import "package:locker/services/feature_flag_service.dart";
 import "package:locker/services/review_service.dart";
 import "package:locker/ui/settings/pages/about_page.dart";
 import "package:locker/ui/settings/pages/account_settings_page.dart";
+import "package:locker/ui/settings/pages/debug_settings_page.dart";
 import "package:locker/ui/settings/pages/general_settings_page.dart";
 import "package:locker/ui/settings/pages/security_settings_page.dart";
 import "package:locker/ui/settings/pages/support_page.dart";
@@ -106,6 +108,15 @@ class SettingsWidget extends StatelessWidget {
       const SizedBox(height: 24),
       const Center(child: SocialIconsRow()),
       const AppVersionWidget(),
+      if (hasLoggedIn &&
+          (FeatureFlagService.instance.internalUser || kDebugMode)) ...[
+        SettingsItem(
+          icon: HugeIcons.strokeRoundedBug02,
+          title: "Debug",
+          onTap: () => _navigateTo(context, const DebugSettingsPage()),
+        ),
+        const SizedBox(height: 16),
+      ],
     ]);
 
     return Column(

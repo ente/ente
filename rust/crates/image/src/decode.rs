@@ -90,8 +90,7 @@ fn decode_with_image_crate(image_path: &str) -> ImageResult<DecodedDynamicImage>
         Ok(decoded) => Ok(decoded),
         Err(primary_error) if should_attempt_tiff_fallback(guessed_format) => {
             eprintln!(
-                "[ml][decode] image crate TIFF decode failed for '{}': {}. Retrying with tiff crate fallback",
-                image_path, primary_error
+                "[ml][decode] image crate TIFF decode failed for '{image_path}': {primary_error}. Retrying with tiff crate fallback"
             );
 
             match decode_with_tiff_crate(image_path) {
@@ -539,7 +538,7 @@ mod tests {
     #[test]
     fn decode_applies_embedded_png_display_p3_profile() {
         let display_p3_icc = ColorProfile::new_display_p3().encode().unwrap();
-        let png = encode_rgb8_png_with_icc(&[128, 0, 0], display_p3_icc);
+        let png = encode_rgb8_png_with_icc([128, 0, 0], display_p3_icc);
 
         let decoded = decode_image_from_bytes(&png).unwrap();
 
@@ -556,7 +555,7 @@ mod tests {
     #[test]
     fn decode_leaves_embedded_png_srgb_profile_unchanged() {
         let srgb_icc = ColorProfile::new_srgb().encode().unwrap();
-        let png = encode_rgb8_png_with_icc(&[128, 64, 32], srgb_icc);
+        let png = encode_rgb8_png_with_icc([128, 64, 32], srgb_icc);
 
         let decoded = decode_image_from_bytes(&png).unwrap();
 
@@ -588,12 +587,12 @@ mod tests {
         assert_eq!(decoded.rgb, vec![255, 0, 0, 0, 255, 0]);
     }
 
-    fn encode_rgb8_png_with_icc(pixel: &[u8; 3], icc_profile: Vec<u8>) -> Vec<u8> {
+    fn encode_rgb8_png_with_icc(pixel: [u8; 3], icc_profile: Vec<u8>) -> Vec<u8> {
         let mut encoded = Vec::new();
         let mut encoder = PngEncoder::new(&mut encoded);
         encoder.set_icc_profile(icc_profile).unwrap();
         encoder
-            .write_image(pixel, 1, 1, ColorType::Rgb8.into())
+            .write_image(&pixel, 1, 1, ColorType::Rgb8.into())
             .unwrap();
         encoded
     }

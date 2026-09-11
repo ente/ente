@@ -1,5 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "Serde skip_serializing_if predicates receive references"
+)]
 fn is_false(value: &bool) -> bool {
     !*value
 }

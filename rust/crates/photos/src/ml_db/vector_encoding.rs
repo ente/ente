@@ -45,10 +45,7 @@ pub fn decode_evector(bytes: &[u8]) -> Result<Vec<f64>> {
 }
 
 pub fn encode_f32(values: impl IntoIterator<Item = f32>) -> Vec<u8> {
-    values
-        .into_iter()
-        .flat_map(|value| value.to_le_bytes())
-        .collect()
+    values.into_iter().flat_map(f32::to_le_bytes).collect()
 }
 
 pub fn decode_f32(bytes: &[u8]) -> Vec<f32> {

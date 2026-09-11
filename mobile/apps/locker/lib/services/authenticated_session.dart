@@ -26,6 +26,11 @@ Session authenticatedSession() {
   if (keyAttributes == null) {
     throw StateError('Authenticated session is not available');
   }
+  final encryptedRecoveryKey = keyAttributes.recoveryKeyEncryptedWithMasterKey;
+  final recoveryKeyNonce = keyAttributes.recoveryKeyDecryptionNonce;
+  if (encryptedRecoveryKey.isEmpty || recoveryKeyNonce.isEmpty) {
+    throw StateError('Recovery key is not available');
+  }
   final services = ServiceLocator.instance;
   final opened = openSession(
     input: OpenSessionInput(
@@ -37,6 +42,8 @@ Session authenticatedSession() {
         publicKey: keyAttributes.publicKey,
         encryptedSecretKey: keyAttributes.encryptedSecretKey,
         secretKeyDecryptionNonce: keyAttributes.secretKeyDecryptionNonce,
+        recoveryKeyEncryptedWithMasterKey: encryptedRecoveryKey,
+        recoveryKeyDecryptionNonce: recoveryKeyNonce,
       ),
       userAgent:
           services.enteDio.options.headers[HttpHeaders.userAgentHeader]

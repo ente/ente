@@ -1,17 +1,10 @@
 name: "Lint (Rust)"
 
 on:
-    pull_request:
-        paths:
-            - ".github/workflows/rust-lint.yml"
-            - "rust/**"
+    workflow_call:
 
 permissions:
     contents: read
-
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
 
 env:
     RUSTFLAGS: -D warnings
@@ -32,7 +25,7 @@ jobs:
             - name: Install Linux dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc
+                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc libdbus-1-dev
 
             # Restore-only; primed on main by warm-caches.yml.
             - name: Restore Rust cache

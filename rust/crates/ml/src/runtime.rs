@@ -98,25 +98,26 @@ impl ModelRuntime {
         }
 
         let mut session = self.lock_session();
-        self.configure_locked(&mut session, path);
-        session
-            .as_mut()
-            .expect("non-empty model path must configure a session")
-            .run(operation)
+        self.configure_locked(&mut session, path).run(operation)
     }
 
-    fn configure_locked(&self, session: &mut Option<onnx::OnnxSession>, path: &str) {
-        if session
-            .as_ref()
-            .is_some_and(|session| session.model_path() == path)
-        {
-            return;
+    fn configure_locked<'a>(
+        &self,
+        session: &'a mut Option<onnx::OnnxSession>,
+        path: &str,
+    ) -> &'a mut onnx::OnnxSession {
+        let new_session = || {
+            onnx::OnnxSession::new(
+                path,
+                self.model.namespace(),
+                default_execution_mode(self.model),
+            )
+        };
+        let session = session.get_or_insert_with(new_session);
+        if session.model_path() != path {
+            *session = new_session();
         }
-        *session = Some(onnx::OnnxSession::new(
-            path,
-            self.model.namespace(),
-            default_execution_mode(self.model),
-        ));
+        session
     }
 }
 

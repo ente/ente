@@ -2,6 +2,7 @@ import {
     AddSquareIcon,
     ArrowLeft02Icon,
     BubbleChatIcon,
+    Menu01Icon,
     MoreHorizontalIcon,
     Tick02Icon,
     UserRemove01Icon,
@@ -26,10 +27,12 @@ import {
     type SpaceViewerPostActionMode,
 } from "components/FileViewer";
 import { SpacePostFloatingActionButton } from "components/PostFloatingActionButton";
+import { ProfileLatestPost } from "components/ProfileLatestPost";
 import { SpaceLoadingSpinner } from "components/RouteFallback";
 import { SpaceShareIcon } from "components/ShareInviteButton";
 import log from "ente-base/log";
 import { useBrowserBackClose } from "hooks/use-browser-back-close";
+import { useProfileStickyHeader } from "hooks/use-profile-sticky-header";
 import React, { useState } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import type { SpaceInviteIntent } from "services/invite";
@@ -44,8 +47,9 @@ import {
     spaceText,
     spaceTextMuted,
 } from "styles/colors";
+import { spaceProfilePostRadius } from "styles/tiles";
 import { spaceTouchTargetSize } from "styles/touch-targets";
-import { firstNameFrom } from "utils/display";
+import { firstNameFrom, formatSpaceDate } from "utils/display";
 import { createLoadedLocalPostPhoto } from "utils/local-post-photo";
 import {
     canPreviewSpaceImageFile,
@@ -55,6 +59,7 @@ import {
     spacePostPreviewImageForFile,
     type SpaceDraftPostImage,
 } from "utils/post-image";
+import { profilePhotoGap, profilePhotoRows } from "utils/profile-photo-layout";
 import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 
 const green = "#08C225";
@@ -70,13 +75,14 @@ const profileCoverTopShadow =
     "linear-gradient(180deg, rgba(0, 0, 0, 0.26) 0%, rgba(0, 0, 0, 0.18) 36%, rgba(0, 0, 0, 0.08) 72%, rgba(0, 0, 0, 0) 100%)";
 const profileCoverSkeletonBackground = spaceSurface;
 const profileHeaderHeight = 56;
+const profileStickyHeaderHeight = 44;
 const profileAvatarTopOffset = 54;
 const profileAvatarSize = 132;
 const profileCoverHeight =
     profileHeaderHeight + profileAvatarTopOffset + profileAvatarSize / 2;
-const photoMasonryGap = "3px";
+const photoMasonryGap = `${profilePhotoGap}px`;
 const photoMasonryPlaceholderBackground = spaceSurface;
-const photoMasonryRadius = "16px";
+const photoMasonryRadius = `${spaceProfilePostRadius}px`;
 const profileCoverRadius = "12px";
 const photoMasonryLoadRootMargin = "800px 0px";
 const publicPhotoMasonryLoadRootMargin = "400px 0px";
@@ -124,17 +130,17 @@ interface PostMasonryTile {
     item: ProfilePostItem;
 }
 
-interface PostMasonryRow {
-    aspectRatio: number;
-    tiles: PostMasonryTile[];
-}
-
 const buildPostMasonrySections = (
     items: ProfilePostItem[],
     loadedDimensionsByID: Record<string, ProfilePhotoDimensions>,
+    width: number,
 ) => {
     const now = new Date();
     const dayMs = 24 * 60 * 60 * 1000;
+    const latestSection = {
+        title: "Latest",
+        tiles: new Array<PostMasonryTile>(),
+    };
     const sections = [
         {
             title: "Today",
@@ -162,54 +168,24 @@ const buildPostMasonrySections = (
             height: item.height ?? 1,
             width: item.width ?? 1,
         };
-        const section = sections.find(
-            ({ sinceMs }) => item.timestampMs >= sinceMs,
-        )!;
+        const section =
+            index == 0
+                ? latestSection
+                : sections.find(({ sinceMs }) => item.timestampMs >= sinceMs)!;
         section.tiles.push({
-            aspectRatio: Math.max(0.1, photoAspectRatio(dimensions)),
+            aspectRatio: photoAspectRatio(dimensions),
             dimensions,
             index,
             item,
         });
     });
 
-    return sections
+    return [latestSection, ...sections]
         .filter(({ tiles }) => tiles.length > 0)
         .map(({ title, tiles }) => ({
             title,
-            rows: buildPostMasonryRows(tiles, title == "Today"),
+            rows: profilePhotoRows(tiles, width),
         }));
-};
-
-const buildPostMasonryRows = (
-    tiles: PostMasonryTile[],
-    isToday: boolean,
-): PostMasonryRow[] => {
-    const rows = new Array<PostMasonryRow>();
-    let nextTileIndex = 0;
-
-    while (nextTileIndex < tiles.length) {
-        const rowSize = isToday
-            ? 1
-            : preferredPostMasonryRowSize(tiles.length - nextTileIndex);
-        const rowTiles = tiles.slice(nextTileIndex, nextTileIndex + rowSize);
-        rows.push({
-            aspectRatio: rowTiles.reduce(
-                (aspectRatio, tile) => aspectRatio + tile.aspectRatio,
-                0,
-            ),
-            tiles: rowTiles,
-        });
-        nextTileIndex += rowSize;
-    }
-
-    return rows;
-};
-
-const preferredPostMasonryRowSize = (remainingTiles: number) => {
-    if (remainingTiles <= 3) return remainingTiles;
-    if (remainingTiles == 4 || remainingTiles == 5) return 2;
-    return remainingTiles % 2 == 0 ? 2 : 3;
 };
 
 const profilePostImageCacheKey = (item: ProfilePostItem) =>
@@ -328,9 +304,9 @@ const ProfilePostLoadingIndicator: React.FC = () => (
 );
 
 interface ProfilePostTileProps {
-    aspectRatio: number;
     dimensions: ProfilePhotoDimensions;
     displayName: string;
+    flexGrow: number;
     imageUrl?: string;
     index: number;
     isSingleItemRow: boolean;
@@ -344,9 +320,9 @@ interface ProfilePostTileProps {
 }
 
 const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
-    aspectRatio,
     dimensions,
     displayName,
+    flexGrow,
     imageUrl,
     index,
     isSingleItemRow,
@@ -423,15 +399,12 @@ const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
             }}
             sx={{
                 appearance: "none",
-                aspectRatio: isSingleItemRow
-                    ? `${dimensions.width} / ${dimensions.height}`
-                    : undefined,
+                aspectRatio: `${dimensions.width} / ${dimensions.height}`,
                 bgcolor: photoMasonryPlaceholderBackground,
                 border: 0,
                 cursor: imageUrl && !isUnavailable ? "pointer" : "default",
                 display: "block",
-                flex: isSingleItemRow ? "0 0 100%" : `${aspectRatio} 1 0`,
-                height: isSingleItemRow ? "auto" : "100%",
+                flex: isSingleItemRow ? "0 0 100%" : `${flexGrow} 1 0`,
                 minWidth: 0,
                 opacity: 1,
                 overflow: "hidden",
@@ -521,6 +494,7 @@ const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
 interface ProfileScreenProps {
     friendsCount?: number;
     headerVariant?: "friend" | "owner" | "public" | "public-anonymous";
+    initialSection?: "latest";
     isAddingFriend?: boolean;
     showAddingFriendSpinner?: boolean;
     isCoverLoading?: boolean;
@@ -529,7 +503,6 @@ interface ProfileScreenProps {
     isStatsLoading?: boolean;
     showPostLoadingIndicator?: boolean;
     onBack?: () => void;
-    onPostSubmitted?: () => void;
     onAddFriend?: () => void;
     onAddFriendForPostAction?: (intent: SpaceInviteIntent) => void;
     onCreateSpace?: () => void;
@@ -542,6 +515,7 @@ interface ProfileScreenProps {
     onOpenPost?: (post: ProfilePostItem) => void;
     onOpenProfileCover?: () => void;
     onOpenProfilePhoto?: () => void;
+    onOpenSettings?: () => void;
     onLoadPostImage?: (asset: SpacePostAsset) => Promise<string>;
     onMessageFriend?: () => void;
     onReplyToPost?: (
@@ -563,13 +537,13 @@ interface ProfileScreenProps {
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     friendsCount = 0,
     headerVariant = "owner",
+    initialSection,
     isAddingFriend = false,
     isCoverLoading = false,
     isNameLoading = false,
     isPostsLoading = false,
     isStatsLoading = false,
     onBack,
-    onPostSubmitted,
     onAddFriend,
     onAddFriendForPostAction,
     onCreateSpace,
@@ -579,6 +553,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     onOpenPost,
     onOpenProfileCover,
     onOpenProfilePhoto,
+    onOpenSettings,
     onLoadPostImage,
     onMessageFriend,
     onReplyToPost,
@@ -622,6 +597,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         Record<string, true>
     >({});
     const [loadedCoverUrl, setLoadedCoverUrl] = useState<string | null>(null);
+    const [postGridWidth, setPostGridWidth] = useState(0);
+    const profileIdentityRef = React.useRef<HTMLDivElement | null>(null);
+    const postGridRef = React.useRef<HTMLDivElement | null>(null);
+    const hasScrolledToLatestPost = React.useRef(false);
     const postInputRef = React.useRef<HTMLInputElement | null>(null);
     const postImageLoadsInFlightRef = React.useRef<
         Map<string, Promise<string | undefined>>
@@ -664,6 +643,44 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const canOpenProfileCover = Boolean(onOpenProfileCover);
     const canOpenProfilePhoto = Boolean(onOpenProfilePhoto);
     const hasProfilePosts = postsSharedCount > 0;
+    const { isSticky, shouldAnimate, syncScroll } = useProfileStickyHeader(
+        !isPublicProfile,
+        profileIdentityRef,
+        profileStickyHeaderHeight,
+    );
+    React.useLayoutEffect(() => {
+        const grid = postGridRef.current;
+        if (!grid) return;
+
+        const observer = new ResizeObserver(([entry]) =>
+            setPostGridWidth(entry!.contentRect.width),
+        );
+        setPostGridWidth(grid.getBoundingClientRect().width);
+        observer.observe(grid);
+        return () => observer.disconnect();
+    }, [hasProfilePosts]);
+    React.useLayoutEffect(() => {
+        if (
+            initialSection != "latest" ||
+            !postGridWidth ||
+            hasScrolledToLatestPost.current
+        ) {
+            return;
+        }
+        const grid = postGridRef.current;
+        if (!grid) return;
+
+        window.scrollTo({
+            top:
+                window.scrollY +
+                grid.getBoundingClientRect().top -
+                (isPublicProfile ? 0 : profileStickyHeaderHeight) -
+                16,
+            behavior: "instant",
+        });
+        if (!isPublicProfile) syncScroll();
+        hasScrolledToLatestPost.current = true;
+    }, [initialSection, isPublicProfile, postGridWidth, syncScroll]);
     const shouldShowPostLoadingIndicator =
         isPostsLoading && (showPostLoadingIndicator ?? true);
     const isCoverImageLoading = Boolean(
@@ -681,6 +698,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const masonrySections = buildPostMasonrySections(
         visiblePostItems,
         loadedPhotoDimensionsByID,
+        postGridWidth,
     );
     const closeFriendActions = () => setFriendActionsAnchor(null);
 
@@ -1097,23 +1115,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const renderPostTile = (
         { aspectRatio, dimensions, index, item }: PostMasonryTile,
         isSingleItemRow: boolean,
+        rowAspectRatio: number,
     ) => {
         const imageUrl = loadedPostImageURLFor(item);
-        return (
+        const isLatestPost = index == 0 && !isPublicProfile;
+        const isUnavailable = !viewerPostIndexByID.has(item.id);
+        const tile = (
             <ProfilePostTile
                 key={`${item.id}-${index}`}
-                aspectRatio={aspectRatio}
-                dimensions={dimensions}
+                flexGrow={aspectRatio / rowAspectRatio}
+                dimensions={
+                    isLatestPost
+                        ? {
+                              width: dimensions.width,
+                              height: Math.min(
+                                  dimensions.height,
+                                  (dimensions.width * 4) / 3,
+                              ),
+                          }
+                        : dimensions
+                }
                 displayName={displayName}
                 imageUrl={imageUrl}
                 index={index}
                 isSingleItemRow={isSingleItemRow}
-                isUnavailable={
-                    Boolean(item.isUnavailable) ||
-                    Boolean(
-                        unavailablePostsByKey[profilePostImageCacheKey(item)],
-                    )
-                }
+                isUnavailable={isUnavailable}
                 item={item}
                 loadRootMargin={postImageLoadRootMargin}
                 onLoadImage={() => loadPostImage(item)}
@@ -1133,6 +1159,257 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 }}
                 onRememberDimensions={rememberLoadedPhotoDimensions}
             />
+        );
+        if (!isLatestPost) return tile;
+
+        const postId = item.postId;
+        const spaceId = item.spaceId;
+        return (
+            <ProfileLatestPost
+                key={item.id}
+                caption={item.caption}
+                disabled={isUnavailable}
+                liked={item.viewerLiked ?? false}
+                onReply={
+                    isFriendProfile && onReplyToPost && postId && spaceId
+                        ? (text) => onReplyToPost(spaceId, postId, text)
+                        : undefined
+                }
+                onSetLiked={
+                    isFriendProfile && onSetPostLiked && postId
+                        ? (liked) => onSetPostLiked(postId, liked)
+                        : undefined
+                }
+            >
+                {tile}
+            </ProfileLatestPost>
+        );
+    };
+
+    const renderHeader = (compact = false) => {
+        return (
+            <Box
+                component={compact ? "nav" : "header"}
+                aria-label={compact ? "Profile navigation" : undefined}
+                aria-hidden={compact && !isSticky ? true : undefined}
+                inert={compact && !isSticky}
+                sx={{
+                    alignItems: "center",
+                    color: coverForeground,
+                    display: isPublicProfile ? "flex" : "grid",
+                    gridTemplateColumns: isPublicProfile
+                        ? undefined
+                        : `${spaceTouchTargetSize}px minmax(0, 1fr) ${spaceTouchTargetSize}px`,
+                    height: compact
+                        ? profileStickyHeaderHeight
+                        : profileHeaderHeight,
+                    bgcolor: compact ? profileCoverBackground : undefined,
+                    backgroundImage:
+                        compact && coverImageUrl
+                            ? `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url("${coverImageUrl}")`
+                            : undefined,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    borderBottomLeftRadius: compact
+                        ? profileCoverRadius
+                        : undefined,
+                    borderBottomRightRadius: compact
+                        ? profileCoverRadius
+                        : undefined,
+                    boxShadow: compact
+                        ? "0 2px 10px rgba(0, 0, 0, 0.16)"
+                        : undefined,
+                    insetInline: compact ? 0 : undefined,
+                    justifyContent: isPublicProfile
+                        ? "space-between"
+                        : undefined,
+                    mx: "auto",
+                    opacity: compact && !isSticky ? 0 : 1,
+                    pointerEvents: compact && !isSticky ? "none" : undefined,
+                    position: compact ? "fixed" : "relative",
+                    px: 2,
+                    py: 0,
+                    top: compact ? 0 : undefined,
+                    transition:
+                        compact && shouldAnimate
+                            ? isSticky
+                                ? "opacity 240ms ease-in-out"
+                                : "opacity 160ms ease-out"
+                            : "none",
+                    width: "100%",
+                    zIndex: compact ? 10 : 3,
+                    "@media (min-width: 600px)": { maxWidth: 390 },
+                }}
+            >
+                {isPublicProfile ? (
+                    <>
+                        <Box
+                            component="a"
+                            href="/"
+                            aria-label="Go to Space"
+                            sx={{
+                                display: "block",
+                                flexShrink: 0,
+                                lineHeight: 0,
+                            }}
+                        >
+                            <Box
+                                component="img"
+                                alt="Space"
+                                src="/images/space.svg"
+                                sx={{
+                                    display: "block",
+                                    height: 17,
+                                    width: "auto",
+                                }}
+                            />
+                        </Box>
+                        {isAnonymousPublicProfile
+                            ? onCreateSpace && (
+                                  <PublicProfileActionButton
+                                      label="Create your Space"
+                                      onClick={onCreateSpace}
+                                  />
+                              )
+                            : onAddFriend && (
+                                  <PublicProfileActionButton
+                                      disabled={isAddingFriend}
+                                      label="Add Friend"
+                                      onClick={onAddFriend}
+                                      showSpinner={showAddingFriendSpinner}
+                                  />
+                              )}
+                    </>
+                ) : (
+                    <>
+                        <Box
+                            component="button"
+                            type="button"
+                            aria-label={
+                                isFriendProfile
+                                    ? "Back to friends"
+                                    : "Back to home"
+                            }
+                            onClick={onBack}
+                            sx={{
+                                alignItems: "center",
+                                bgcolor: "transparent",
+                                border: 0,
+                                color: "inherit",
+                                cursor: "pointer",
+                                display: "flex",
+                                height: spaceTouchTargetSize,
+                                justifyContent: "flex-start",
+                                ml: "-2px",
+                                p: 0,
+                                width: spaceTouchTargetSize,
+                                "&:focus-visible": {
+                                    borderRadius: "50%",
+                                    outline: `2px solid ${green}`,
+                                    outlineOffset: 2,
+                                },
+                            }}
+                        >
+                            <HugeiconsIcon
+                                icon={ArrowLeft02Icon}
+                                size={24}
+                                strokeWidth={1.8}
+                            />
+                        </Box>
+                        <Box
+                            component="h1"
+                            sx={{
+                                color: "inherit",
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 18,
+                                fontWeight: 700,
+                                justifySelf: "center",
+                                lineHeight: "24px",
+                                m: 0,
+                                maxWidth: "100%",
+                                overflow: "hidden",
+                                px: "4px",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            {firstName}
+                        </Box>
+                        {isOwnerProfile ? (
+                            <Box
+                                component="button"
+                                type="button"
+                                aria-label="Settings"
+                                onClick={onOpenSettings}
+                                sx={{
+                                    alignItems: "center",
+                                    bgcolor: "transparent",
+                                    border: 0,
+                                    color: "inherit",
+                                    cursor: onOpenSettings
+                                        ? "pointer"
+                                        : "default",
+                                    display: "flex",
+                                    height: spaceTouchTargetSize,
+                                    justifyContent: "flex-end",
+                                    p: 0,
+                                    width: spaceTouchTargetSize,
+                                    "&:focus-visible": {
+                                        borderRadius: "50%",
+                                        outline: `2px solid ${green}`,
+                                        outlineOffset: 2,
+                                    },
+                                }}
+                            >
+                                <HugeiconsIcon
+                                    icon={Menu01Icon}
+                                    size={20}
+                                    strokeWidth={2.4}
+                                />
+                            </Box>
+                        ) : onMessageFriend ? (
+                            <Box
+                                component="button"
+                                type="button"
+                                aria-label={`Message ${displayName}`}
+                                onClick={onMessageFriend}
+                                sx={{
+                                    alignItems: "center",
+                                    bgcolor: "transparent",
+                                    border: 0,
+                                    color: "inherit",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    height: spaceTouchTargetSize,
+                                    justifyContent: "flex-end",
+                                    p: 0,
+                                    width: spaceTouchTargetSize,
+                                    "& svg path:first-of-type": {
+                                        display: "none",
+                                    },
+                                    "&:focus-visible": {
+                                        borderRadius: "50%",
+                                        outline: `2px solid ${green}`,
+                                        outlineOffset: 2,
+                                    },
+                                }}
+                            >
+                                <HugeiconsIcon
+                                    icon={BubbleChatIcon}
+                                    size={20}
+                                    strokeWidth={2}
+                                />
+                            </Box>
+                        ) : (
+                            <Box
+                                aria-hidden
+                                sx={{ width: spaceTouchTargetSize }}
+                            />
+                        )}
+                    </>
+                )}
+            </Box>
         );
     };
 
@@ -1260,164 +1537,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         }}
                     />
                 )}
+                {renderHeader()}
+                {!isPublicProfile && renderHeader(true)}
                 <Box
-                    component="header"
-                    sx={{
-                        alignItems: "center",
-                        color: coverForeground,
-                        display: isPublicProfile ? "flex" : "grid",
-                        gridTemplateColumns: isPublicProfile
-                            ? undefined
-                            : `${spaceTouchTargetSize}px 1fr ${spaceTouchTargetSize}px`,
-                        height: profileHeaderHeight,
-                        justifyContent: isPublicProfile
-                            ? "space-between"
-                            : undefined,
-                        position: "relative",
-                        px: 2,
-                        py: 0,
-                        width: "100%",
-                        zIndex: 3,
-                    }}
-                >
-                    {isPublicProfile ? (
-                        <>
-                            <Box
-                                component="a"
-                                href="/"
-                                aria-label="Go to Space"
-                                sx={{
-                                    display: "block",
-                                    flexShrink: 0,
-                                    lineHeight: 0,
-                                }}
-                            >
-                                <Box
-                                    component="img"
-                                    alt="Space"
-                                    src="/images/space.svg"
-                                    sx={{
-                                        display: "block",
-                                        height: 17,
-                                        width: "auto",
-                                    }}
-                                />
-                            </Box>
-                            {isAnonymousPublicProfile
-                                ? onCreateSpace && (
-                                      <PublicProfileActionButton
-                                          label="Create your Space"
-                                          onClick={onCreateSpace}
-                                      />
-                                  )
-                                : onAddFriend && (
-                                      <PublicProfileActionButton
-                                          disabled={isAddingFriend}
-                                          label="Add Friend"
-                                          onClick={onAddFriend}
-                                          showSpinner={showAddingFriendSpinner}
-                                      />
-                                  )}
-                        </>
-                    ) : (
-                        <>
-                            <Box
-                                component="button"
-                                type="button"
-                                aria-label={
-                                    isFriendProfile
-                                        ? "Back to friends"
-                                        : "Back to home"
-                                }
-                                onClick={onBack}
-                                sx={{
-                                    alignItems: "center",
-                                    bgcolor: "transparent",
-                                    border: 0,
-                                    color: "inherit",
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    height: spaceTouchTargetSize,
-                                    justifyContent: "flex-start",
-                                    ml: "-2px",
-                                    p: 0,
-                                    width: spaceTouchTargetSize,
-                                    "&:focus-visible": {
-                                        borderRadius: "50%",
-                                        outline: `2px solid ${green}`,
-                                        outlineOffset: 2,
-                                    },
-                                }}
-                            >
-                                <HugeiconsIcon
-                                    icon={ArrowLeft02Icon}
-                                    size={24}
-                                    strokeWidth={1.8}
-                                />
-                            </Box>
-                            <Box
-                                component="h1"
-                                sx={{
-                                    color: "inherit",
-                                    fontFamily:
-                                        '"Inter Variable", Inter, sans-serif',
-                                    fontSize: 18,
-                                    fontWeight: 700,
-                                    justifySelf: "center",
-                                    lineHeight: "24px",
-                                    m: 0,
-                                    maxWidth: "100%",
-                                    overflow: "hidden",
-                                    px: "4px",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                }}
-                            >
-                                {firstName}
-                            </Box>
-                            {!isOwnerProfile && onMessageFriend ? (
-                                <Box
-                                    component="button"
-                                    type="button"
-                                    aria-label={`Message ${displayName}`}
-                                    onClick={onMessageFriend}
-                                    sx={{
-                                        alignItems: "center",
-                                        bgcolor: "transparent",
-                                        border: 0,
-                                        color: "inherit",
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        height: spaceTouchTargetSize,
-                                        justifyContent: "flex-end",
-                                        p: 0,
-                                        width: spaceTouchTargetSize,
-                                        "& svg path:first-of-type": {
-                                            display: "none",
-                                        },
-                                        "&:focus-visible": {
-                                            borderRadius: "50%",
-                                            outline: `2px solid ${green}`,
-                                            outlineOffset: 2,
-                                        },
-                                    }}
-                                >
-                                    <HugeiconsIcon
-                                        icon={BubbleChatIcon}
-                                        size={20}
-                                        strokeWidth={2}
-                                    />
-                                </Box>
-                            ) : (
-                                <Box
-                                    aria-hidden
-                                    sx={{ width: spaceTouchTargetSize }}
-                                />
-                            )}
-                        </>
-                    )}
-                </Box>
-                <Box
+                    ref={profileIdentityRef}
                     sx={{
                         alignItems: "center",
                         display: "flex",
@@ -1824,7 +1947,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         display: "flex",
                         flex: hasProfilePosts ? "0 0 auto" : "1 1 0",
                         flexDirection: "column",
-                        minHeight: hasProfilePosts ? undefined : 0,
+                        minHeight: 0,
                         mt: "24px",
                         pb: "16px",
                         px: 0,
@@ -1833,6 +1956,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 >
                     {hasProfilePosts ? (
                         <Box
+                            ref={postGridRef}
                             sx={{
                                 display: "flex",
                                 flexDirection: "column",
@@ -1847,17 +1971,38 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                     <Box
                                         component="h2"
                                         sx={{
+                                            alignItems: "baseline",
                                             color: textSoft,
+                                            display: "flex",
                                             fontFamily:
                                                 '"Inter Variable", Inter, sans-serif',
                                             fontSize: 13,
                                             fontWeight: 700,
+                                            gap: "4px",
                                             lineHeight: "18px",
                                             m: 0,
                                             pb: "8px",
                                         }}
                                     >
                                         {title}
+                                        {title == "Latest" && (
+                                            <Box
+                                                component="span"
+                                                sx={{
+                                                    color: "#85858D",
+                                                    display: "inline-flex",
+                                                    fontSize: 12,
+                                                    fontWeight: 500,
+                                                    gap: "4px",
+                                                }}
+                                            >
+                                                <span aria-hidden>·</span>
+                                                {formatSpaceDate(
+                                                    rows[0]!.tiles[0]!.item
+                                                        .timestampMs,
+                                                )}
+                                            </Box>
+                                        )}
                                     </Box>
                                     <Box
                                         sx={{
@@ -1865,7 +2010,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                             display: "flex",
                                             flexDirection: "column",
                                             gap: photoMasonryGap,
-                                            overflow: "hidden",
+                                            overflow:
+                                                title == "Latest" &&
+                                                !isPublicProfile
+                                                    ? "visible"
+                                                    : "hidden",
                                         }}
                                     >
                                         {rows.map((row) => {
@@ -1875,10 +2024,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                                 <Box
                                                     key={row.tiles[0]!.item.id}
                                                     sx={{
-                                                        aspectRatio:
-                                                            isSingleItemRow
-                                                                ? undefined
-                                                                : `${row.aspectRatio} / 1`,
                                                         display: "flex",
                                                         gap: photoMasonryGap,
                                                         width: "100%",
@@ -1888,6 +2033,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                                         renderPostTile(
                                                             tile,
                                                             isSingleItemRow,
+                                                            row.aspectRatio,
                                                         ),
                                                     )}
                                                 </Box>
@@ -2013,9 +2159,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         }}
                         onDraftPostExitStart={() => setIsDraftPostExiting(true)}
                         onDraftPostPublished={() => {
-                            void clearSelectedPostHistory("back").then(() =>
-                                onPostSubmitted?.(),
-                            );
+                            void clearSelectedPostHistory("back");
                         }}
                         onDeletePost={
                             isOwnerProfile ? deleteSelectedPost : undefined

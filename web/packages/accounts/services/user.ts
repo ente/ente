@@ -37,7 +37,7 @@ import {
 import { nullToUndefined } from "ente-utils/transform";
 import { z } from "zod";
 import { clearInflightPasskeySessionID } from "./passkey";
-import { getUserRecoveryKey, recoveryKeyFromMnemonic } from "./recovery-key";
+import { recoveryKeyFromMnemonic } from "./recovery-key";
 
 export interface LocalUser {
     id: number;
@@ -175,26 +175,6 @@ export const putUserKeyAttributes = async (keyAttributes: KeyAttributes) =>
             method: "PUT",
             headers: await authenticatedRequestHeaders(),
             body: JSON.stringify({ keyAttributes }),
-        }),
-    );
-
-export interface RecoveryKeyAttributes {
-    masterKeyEncryptedWithRecoveryKey: string;
-    masterKeyDecryptionNonce: string;
-    recoveryKeyEncryptedWithMasterKey: string;
-    recoveryKeyDecryptionNonce: string;
-}
-
-// This is a rare fallback for very old accounts that predate recovery key
-// attributes being set during account setup.
-export const putUserRecoveryKeyAttributes = async (
-    recoveryKeyAttributes: RecoveryKeyAttributes,
-) =>
-    ensureOk(
-        await fetch(await apiURL("/users/recovery-key"), {
-            method: "PUT",
-            headers: await authenticatedRequestHeaders(),
-            body: JSON.stringify(recoveryKeyAttributes),
         }),
     );
 
@@ -425,14 +405,13 @@ export const setupTwoFactor = async (): Promise<TwoFactorSecret> => {
 };
 
 export const setupTwoFactorFinish = async (
-    secretCode: string,
-    totp: string,
+    { encryptedData, nonce }: { encryptedData: string; nonce: string },
+    code: string,
 ) => {
-    const box = await encryptBox(secretCode, await getUserRecoveryKey());
     await enableTwoFactor({
-        code: totp,
-        encryptedTwoFactorSecret: box.encryptedData,
-        twoFactorSecretDecryptionNonce: box.nonce,
+        code,
+        encryptedTwoFactorSecret: encryptedData,
+        twoFactorSecretDecryptionNonce: nonce,
     });
     updateSavedLocalUser({ isTwoFactorEnabled: true });
 };

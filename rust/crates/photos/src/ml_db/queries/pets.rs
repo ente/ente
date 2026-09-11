@@ -34,21 +34,21 @@ pub struct PetBodyRow {
     pub ml_version: i64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PetFaceVectorRow {
     pub pet_face_id: String,
     pub face_vector_id: Option<i64>,
     pub species: i64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PetBodyVectorRow {
     pub pet_body_id: String,
     pub body_vector_id: Option<i64>,
     pub species: i64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PetRowsForFiles {
     pub faces: Vec<PetFaceVectorRow>,
     pub bodies: Vec<PetBodyVectorRow>,

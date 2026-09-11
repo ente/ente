@@ -4,8 +4,10 @@ import "package:ente_configuration/base_configuration.dart";
 import "package:ente_contacts/contacts.dart";
 import "package:ente_legacy/components/gradient_button.dart";
 import "package:ente_legacy/components/recovery_date_selector.dart";
+import "package:ente_legacy/legacy_api.dart";
 import "package:ente_legacy/models/emergency_models.dart";
-import "package:ente_legacy/services/emergency_service.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_sharing/components/invite_dialog.dart";
 import "package:ente_sharing/extensions/user_extension.dart";
 import "package:ente_sharing/models/user.dart";
 import "package:ente_sharing/user_avator_widget.dart";
@@ -19,30 +21,38 @@ import "package:ente_ui/components/menu_item_widget_v2.dart";
 import "package:ente_ui/theme/colors.dart";
 import "package:ente_ui/theme/ente_theme.dart";
 import "package:ente_ui/theme/text_style.dart";
+import "package:ente_ui/utils/dialog_util.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 
 Future<bool?> showAddContactSheet(
   BuildContext context, {
-  required EmergencyInfo emergencyInfo,
+  required LegacyInfo emergencyInfo,
   required BaseConfiguration config,
+  required LegacyApi legacy,
 }) {
   return showBaseBottomSheet<bool>(
     context,
     title: context.strings.addTrustedContact,
     headerSpacing: 20,
     isKeyboardAware: true,
-    child: AddContactSheet(emergencyInfo: emergencyInfo, config: config),
+    child: AddContactSheet(
+      emergencyInfo: emergencyInfo,
+      config: config,
+      legacy: legacy,
+    ),
   );
 }
 
 class AddContactSheet extends StatefulWidget {
-  final EmergencyInfo emergencyInfo;
+  final LegacyInfo emergencyInfo;
   final BaseConfiguration config;
+  final LegacyApi legacy;
 
   const AddContactSheet({
     required this.emergencyInfo,
     required this.config,
+    required this.legacy,
     super.key,
   });
 
@@ -325,6 +335,54 @@ class _AddContactSheetState extends State<AddContactSheet> {
     );
   }
 
+  Future<bool> _addContact(String email, int recoveryNoticeInDays) async {
+    if (!isValidEmail(email)) {
+      if (mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.letsTryThatAgain,
+          message: context.strings.enterValidEmailDetailed,
+          assetPath: "assets/warning-blue.png",
+        );
+      }
+      return false;
+    }
+    if (email.trim() == widget.config.getEmail()) {
+      if (mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.oops,
+          message: context.strings.youCannotAddYourselfAsLegacyContact,
+          assetPath: "assets/warning-blue.png",
+        );
+      }
+      return false;
+    }
+
+    final dialog = mounted
+        ? createProgressDialog(context, context.strings.pleaseWait)
+        : null;
+    await dialog?.show();
+
+    try {
+      await widget.legacy.addContact(
+        email: email,
+        recoveryNoticeInDays: recoveryNoticeInDays,
+      );
+      await dialog?.hide();
+      return true;
+    } on LegacyError_ContactNotOnEnte {
+      await dialog?.hide();
+      if (mounted) {
+        await showInviteSheet(context, email: email);
+      }
+      return false;
+    } catch (e) {
+      await dialog?.hide();
+      rethrow;
+    }
+  }
+
   Future<void> _onAddContactTap() async {
     final emailToAdd = selectedEmail.isNotEmpty ? selectedEmail : _email;
     final confirmed = await _showAddContactConfirmationSheet(
@@ -333,11 +391,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
     );
     if (confirmed == true) {
       try {
-        final success = await EmergencyContactService.instance.addContact(
-          mounted ? context : null,
-          emailToAdd,
-          _selectedRecoveryDays,
-        );
+        final success = await _addContact(emailToAdd, _selectedRecoveryDays);
         if (success && mounted) {
           Navigator.of(context).pop(true);
         }

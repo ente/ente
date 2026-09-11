@@ -239,15 +239,32 @@ fn host_policy_can_resolve_local_time_and_reject_candidates_before_fallback() {
 
 #[test]
 fn reduced_xmp_dates_use_period_start_without_inventing_an_embedded_offset() {
-    for (value, expected, timestamp) in [
-        ("1971", "1971-01-01T00:00:00", Some(31_536_000_000_000)),
-        ("1970-02", "1970-02-01T00:00:00", Some(2_678_400_000_000)),
-        ("1970-01-02", "1970-01-02T00:00:00", Some(86_400_000_000)),
-        ("1970-01-02T00:15", "1970-01-02T00:15:00", None),
+    use DateTimePrecision::{Day, Minute, Month, Year};
+    for (value, expected, timestamp, precision) in [
+        (
+            "1971",
+            "1971-01-01T00:00:00",
+            Some(31_536_000_000_000),
+            Year,
+        ),
+        (
+            "1970-02",
+            "1970-02-01T00:00:00",
+            Some(2_678_400_000_000),
+            Month,
+        ),
+        (
+            "1970-01-02",
+            "1970-01-02T00:00:00",
+            Some(86_400_000_000),
+            Day,
+        ),
+        ("1970-01-02T00:15", "1970-01-02T00:15:00", None, Minute),
         (
             "1970-01-02T00:15+00:30",
             "1970-01-02T00:15:00",
             Some(85_500_000_000),
+            Minute,
         ),
     ] {
         assert_eq!(DateTime::parse(value), None);
@@ -260,6 +277,7 @@ fn reduced_xmp_dates_use_period_start_without_inventing_an_embedded_offset() {
             .unwrap();
             assert_eq!(capture.date_time, expected);
             assert_eq!(capture.timestamp_micros, timestamp);
+            assert_eq!(capture.precision, precision);
             if value.len() <= 10 {
                 assert_eq!(capture.offset_time, None);
             }
@@ -308,6 +326,14 @@ fn generated_iptc_dates_pair_only_their_own_time_dataset() {
             let metadata = read(&iptc_tiff(&fields), mode);
             let capture = metadata.capture_date_time().unwrap();
             assert_eq!(capture.source, DateTimeSource::Iptc(55, 60));
+            assert_eq!(
+                capture.precision,
+                if time.is_some() {
+                    DateTimePrecision::Second
+                } else {
+                    DateTimePrecision::Day
+                }
+            );
             assert_eq!(capture.offset_time.as_deref(), offset);
             assert_eq!(capture.timestamp_micros, timestamp);
         }

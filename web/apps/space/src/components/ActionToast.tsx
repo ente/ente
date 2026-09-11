@@ -8,7 +8,7 @@ import { spaceTouchTargetSize } from "styles/touch-targets";
 
 const green = "#08C225";
 const textBase = spaceText;
-const toastHorizontalPadding = "12px";
+const toastHorizontalPadding = "16px";
 export const spaceToastAutoDismissDurationMs = 1800;
 const toastEnter = keyframes`
     from {
@@ -89,11 +89,11 @@ export const SpaceActionToast: React.FC<SpaceActionToastProps> = ({
                     fontWeight: 650,
                     gap: "10px",
                     lineHeight: "20px",
-                    minHeight: 50,
+                    minHeight: spaceTouchTargetSize,
                     pointerEvents: "auto",
                     pl: "10px",
                     pr: showCloseButton ? "6px" : "14px",
-                    py: "3px",
+                    py: 0,
                     width: "100%",
                 }}
             >

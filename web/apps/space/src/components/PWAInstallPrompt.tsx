@@ -16,12 +16,11 @@ import { SpaceNotificationPermissionInstructions } from "components/Notification
 import { useSpacePWAInstallPrompt } from "hooks/use-pwa-install-prompt";
 import { useSpaceWebPushPrompt } from "hooks/use-web-push-prompt";
 import React from "react";
+import { spaceToastActionButtonSx } from "styles/buttons";
 import {
-    spaceAppBackgroundColor,
     spaceDialogBackground,
     spaceOnAccent,
     spaceSurface,
-    spaceSurfaceHover,
     spaceText,
     spaceTextMuted,
 } from "styles/colors";
@@ -209,7 +208,7 @@ export const SpacePWAPromptBanner: React.FC<SpacePWAPromptBannerProps> = ({
                     : undefined,
             boxSizing: "border-box",
             left: "50%",
-            px: "12px",
+            px: "16px",
             pointerEvents: "none",
             position: "fixed",
             top:
@@ -243,11 +242,11 @@ export const SpacePWAPromptBanner: React.FC<SpacePWAPromptBannerProps> = ({
                 fontWeight: 650,
                 gap: "10px",
                 lineHeight: "20px",
-                minHeight: 50,
+                minHeight: spaceTouchTargetSize,
                 pointerEvents: hidden ? "none" : "auto",
                 pl: "10px",
                 pr: "6px",
-                py: "3px",
+                py: 0,
                 width: "100%",
             }}
         >
@@ -284,33 +283,7 @@ export const SpacePWAPromptBanner: React.FC<SpacePWAPromptBannerProps> = ({
                         type="button"
                         disabled={actionDisabled}
                         onClick={onAction}
-                        sx={{
-                            alignItems: "center",
-                            bgcolor: "#FFFFFF",
-                            border: 0,
-                            borderRadius: "14px",
-                            color: spaceAppBackgroundColor,
-                            cursor: actionDisabled ? "default" : "pointer",
-                            display: "flex",
-                            fontFamily: '"Inter Variable", Inter, sans-serif',
-                            fontSize: 13,
-                            fontWeight: 700,
-                            height: 34,
-                            justifyContent: "center",
-                            minWidth: 48,
-                            px: "17px",
-                            transition:
-                                "background-color 120ms ease, color 120ms ease",
-                            "&:disabled": {
-                                bgcolor: spaceSurfaceHover,
-                                color: spaceTextMuted,
-                            },
-                            "&:focus-visible": {
-                                outline: `2px solid ${spaceText}`,
-                                outlineOffset: 2,
-                            },
-                            "&:hover:not(:disabled)": { bgcolor: spaceText },
-                        }}
+                        sx={spaceToastActionButtonSx}
                     >
                         {actionLabel}
                     </Box>

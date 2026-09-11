@@ -103,6 +103,12 @@ Future<void> changeCollectionVisibility(
         collection.id,
         const <EnteFile>[],
         'collection_visibility_changed',
+        type: switch (visibilityAction) {
+          _VisibilityAction.hide => EventType.hide,
+          _VisibilityAction.unHide => EventType.unhide,
+          _VisibilityAction.archive => EventType.archived,
+          _VisibilityAction.unarchive => EventType.unarchived,
+        },
       ),
     );
     // Reload so the home gallery adds or removes the collection's files.

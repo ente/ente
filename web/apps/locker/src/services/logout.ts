@@ -2,8 +2,8 @@ import { savedLocalUser } from "ente-accounts/services/accounts-db";
 import { accountLogout } from "ente-accounts/services/logout";
 import log from "ente-base/log";
 import { clearAuthenticatedSession } from "./authenticated-session";
+import { clearLockerCache } from "./locker-cache";
 import { clearLockerDB } from "./locker-db";
-import { clearLockerCache } from "./remote-cache";
 
 export const lockerLogout = async () => {
     const ignoreError = (label: string, error: unknown) =>

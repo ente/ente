@@ -1,0 +1,18 @@
+[
+  {
+    "qr_payload": "{\"pv\":1,\"kv\":1,\"k\":\"e04efa62-2607-4c8b-b4c7-6c84f08fe162\",\"i\":1,\"s\":\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=\",\"c\":\"GuFHh4Zu4GA=\",\"n\":\"Мама\"}",
+    "copy_code": "eyJwdiI6MSwia3YiOjEsImsiOiJlMDRlZmE2Mi0yNjA3LTRjOGItYjRjNy02Yzg0ZjA4ZmUxNjIiLCJpIjoxLCJzIjoiQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnST0iLCJjIjoiR3VGSGg0WnU0R0E9IiwibiI6ItCc0LDQvNCwIn0"
+  },
+  {
+    "qr_payload": "{\"pv\":1,\"kv\":1,\"k\":\"e04efa62-2607-4c8b-b4c7-6c84f08fe162\",\"i\":2,\"s\":\"DQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0=\",\"c\":\"GuFHh4Zu4GA=\",\"n\":\"Alex\"}",
+    "copy_code": "eyJwdiI6MSwia3YiOjEsImsiOiJlMDRlZmE2Mi0yNjA3LTRjOGItYjRjNy02Yzg0ZjA4ZmUxNjIiLCJpIjoyLCJzIjoiRFEwTkRRME5EUTBORFEwTkRRME5EUTBORFEwTkRRME5EUTBORFEwTkRRMD0iLCJjIjoiR3VGSGg0WnU0R0E9IiwibiI6IkFsZXgifQ"
+  },
+  {
+    "qr_payload": "{\"pv\":1,\"kv\":1,\"k\":\"e04efa62-2607-4c8b-b4c7-6c84f08fe162\",\"i\":3,\"s\":\"CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg=\",\"c\":\"GuFHh4Zu4GA=\",\"n\":\"Lawyer\"}",
+    "copy_code": "eyJwdiI6MSwia3YiOjEsImsiOiJlMDRlZmE2Mi0yNjA3LTRjOGItYjRjNy02Yzg0ZjA4ZmUxNjIiLCJpIjozLCJzIjoiQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZz0iLCJjIjoiR3VGSGg0WnU0R0E9IiwibiI6Ikxhd3llciJ9"
+  },
+  {
+    "qr_payload": "{\"pv\":1,\"kv\":1,\"k\":\"e04efa62-2607-4c8b-b4c7-6c84f08fe162\",\"i\":1,\"s\":\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=\",\"c\":\"GuFHh4Zu4GA=\",\"n\":\"Mother 👩‍👩‍👧‍👦 \\\"North\\\"\\nVery Long Name\"}",
+    "copy_code": "eyJwdiI6MSwia3YiOjEsImsiOiJlMDRlZmE2Mi0yNjA3LTRjOGItYjRjNy02Yzg0ZjA4ZmUxNjIiLCJpIjoxLCJzIjoiQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnST0iLCJjIjoiR3VGSGg0WnU0R0E9IiwibiI6Ik1vdGhlciDwn5Gp4oCN8J-RqeKAjfCfkafigI3wn5GmIFwiTm9ydGhcIlxuVmVyeSBMb25nIE5hbWUifQ"
+  }
+]

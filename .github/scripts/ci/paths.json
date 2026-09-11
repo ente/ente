@@ -1,0 +1,104 @@
+{
+    "dependency-review": [
+        "**/Cargo.lock",
+        "**/Cargo.toml",
+        "**/go.mod",
+        "**/go.sum",
+        "**/package-lock.json",
+        "**/package.json",
+        "**/pubspec.lock",
+        "**/pubspec.yaml",
+        "**/uv.lock",
+        ".github/workflows/dependency-review.yml"
+    ],
+    "desktop-lint": [
+        ".github/workflows/desktop-lint.yml",
+        "desktop/**",
+        "rust/Cargo.lock",
+        "rust/Cargo.toml",
+        "rust/bindings/napi/**",
+        "rust/crates/image/**",
+        "rust/crates/ml/**",
+        "rust/tools/codegen/**"
+    ],
+    "docs-verify-build": [".github/workflows/docs-verify-build.yml", "docs/**"],
+    "ensu-android-build": [
+        ".github/workflows/ensu-android-build.yml",
+        "android/apps/ensu/**",
+        "android/apps/ensu/rust/**",
+        "rust/.cargo/config.toml",
+        "rust/Cargo.lock",
+        "rust/Cargo.toml",
+        "rust/bindings/uniffi/**",
+        "rust/crates/core/**",
+        "rust/crates/ensu/**",
+        "rust/tools/codegen/**"
+    ],
+    "ensu-ios-build": [
+        ".github/workflows/ensu-ios-build.yml",
+        "apple/apps/ensu/**",
+        "apple/packages/EnteOnnxRuntime/**",
+        "rust/.cargo/config.toml",
+        "rust/Cargo.lock",
+        "rust/Cargo.toml",
+        "rust/bindings/uniffi/**",
+        "rust/crates/core/**",
+        "rust/crates/ensu/**",
+        "rust/tools/codegen/**"
+    ],
+    "infra-lint-staff": [
+        ".github/workflows/infra-lint-staff.yml",
+        "infra/staff/**"
+    ],
+    "mobile-lint": [
+        ".github/actions/setup-flutter/**",
+        ".github/workflows/mobile-lint.yml",
+        "mobile/**",
+        "rust/Cargo.lock",
+        "rust/Cargo.toml",
+        "rust/bindings/frb/**",
+        "rust/crates/cast/**",
+        "rust/crates/contacts/**",
+        "rust/crates/core/**",
+        "rust/crates/image/**",
+        "rust/crates/locker/**",
+        "rust/crates/ml/**",
+        "rust/crates/photos/**",
+        "rust/tools/codegen/**"
+    ],
+    "mobile-podfile-lock": [
+        ".github/actions/setup-flutter/**",
+        ".github/workflows/mobile-podfile-lock.yml",
+        "apple/packages/EnteOnnxRuntime/EnteOnnxRuntime.podspec",
+        "mobile/**/*.podspec",
+        "mobile/**/Podfile",
+        "mobile/**/Podfile.lock",
+        "mobile/**/pubspec.lock",
+        "mobile/**/pubspec.yaml"
+    ],
+    "repo-lint": null,
+    "rust-cli-test": [
+        ".github/workflows/rust-cli-test.yml",
+        "rust/apps/cli-next/**"
+    ],
+    "rust-lint": [".github/workflows/rust-lint.yml", "rust/**"],
+    "rust-test": [".github/workflows/rust-test.yml", "rust/**", "server/**"],
+    "server-lint": [".github/workflows/server-lint.yml", "server/**"],
+    "web-lint": [
+        ".github/workflows/web-lint.yml",
+        "rust/Cargo.lock",
+        "rust/Cargo.toml",
+        "rust/bindings/wasm/**",
+        "rust/crates/accounts/**",
+        "rust/crates/cast/**",
+        "rust/crates/collections/**",
+        "rust/crates/contacts/**",
+        "rust/crates/core/**",
+        "rust/crates/ensu-crypto/**",
+        "rust/crates/legacy/**",
+        "rust/crates/locker/**",
+        "rust/crates/paste/**",
+        "rust/crates/space/**",
+        "web/**"
+    ]
+}

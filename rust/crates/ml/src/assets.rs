@@ -29,6 +29,10 @@ pub struct ClipTextPaths {
 
 fn model_asset(model: Model) -> Asset {
     let spec = model_asset_spec(model);
+    #[expect(
+        clippy::expect_used,
+        reason = "The built-in model catalog has valid asset keys and checksums"
+    )]
     Asset::files(
         model_key(spec.key),
         spec.files
@@ -67,9 +71,17 @@ pub fn clip_text_paths(store: &AssetStore) -> ClipTextPaths {
     let asset = clip_text_asset();
     let files = model_asset_spec(Model::ClipText).files;
     ClipTextPaths {
+        #[expect(
+            clippy::expect_used,
+            reason = "The filename and asset come from the same CLIP catalog entry"
+        )]
         model: store
             .file_path(&asset, files[0].name)
             .expect("CLIP text model file"),
+        #[expect(
+            clippy::expect_used,
+            reason = "The filename and asset come from the same CLIP catalog entry"
+        )]
         vocab: store
             .file_path(&asset, files[1].name)
             .expect("CLIP text vocabulary file"),
@@ -214,6 +226,10 @@ struct ModelAssetFile {
 
 fn model_path(store: &AssetStore, model: Model) -> String {
     let asset = model_asset(model);
+    #[expect(
+        clippy::expect_used,
+        reason = "The filename and asset come from the same model catalog entry"
+    )]
     store
         .file_path(&asset, model_asset_spec(model).files[0].name)
         .expect("model file")

@@ -64,6 +64,11 @@ func (repo *TaskLockRepository) ReleaseLock(name string) error {
 	return stacktrace.Propagate(err, "")
 }
 
+func (repo *TaskLockRepository) ReleaseLockBy(name string, lockedBy string) error {
+	_, err := repo.DB.Exec(`DELETE FROM task_lock WHERE task_name = $1 AND locked_by = $2`, name, lockedBy)
+	return stacktrace.Propagate(err, "")
+}
+
 func (repo *TaskLockRepository) ReleaseLocksBy(lockedBy string) (*int64, error) {
 	result, err := repo.DB.Exec(`DELETE FROM task_lock WHERE locked_by = $1`, lockedBy)
 	if err != nil {

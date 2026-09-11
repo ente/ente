@@ -125,6 +125,10 @@ pub(super) struct RgbCropResizer {
 impl RgbCropResizer {
     pub(super) fn new(output_size: u32) -> Self {
         assert!(output_size > 0);
+        #[expect(
+            clippy::expect_used,
+            reason = "An unrepresentable crop buffer size is a programming error"
+        )]
         let output_len = (output_size as usize)
             .checked_mul(output_size as usize)
             .and_then(|pixels| pixels.checked_mul(3))

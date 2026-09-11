@@ -155,9 +155,12 @@ impl fmt::Debug for CheckSessionValidityParams {
 }
 
 #[derive(Debug)]
-#[expect(
-    clippy::large_enum_variant,
-    reason = "A single session-check result does not need a separate allocation"
+#[cfg_attr(
+    target_pointer_width = "64",
+    expect(
+        clippy::large_enum_variant,
+        reason = "A single session-check result does not need a separate allocation"
+    )
 )]
 pub enum SessionValidity {
     Invalid,
@@ -279,7 +282,7 @@ where
         } else {
             let (response, kek) = self
                 .client
-                .login_with_srp(&params.email, &params.password)
+                .login_with_srp(&params.password, &srp_attrs)
                 .await?;
             let response = self.resolve_second_factor(response).await?;
             (response, kek)
@@ -714,6 +717,10 @@ where
             .filter(|session_id| !session_id.is_empty())
             .ok_or_else(|| Error::Protocol("No passkey session ID".into()))?;
 
+        #[expect(
+            clippy::expect_used,
+            reason = "AuthResponse validation requires accountsUrl for passkey sessions"
+        )]
         let accounts_url = auth_response
             .accounts_url
             .as_deref()

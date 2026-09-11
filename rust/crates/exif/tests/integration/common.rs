@@ -110,14 +110,14 @@ pub fn xmp(body: &str) -> String {
     )
 }
 
-pub fn box_bytes(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
+pub fn box_bytes(kind: [u8; 4], data: &[u8]) -> Vec<u8> {
     let mut result = ((data.len() + 8) as u32).to_be_bytes().to_vec();
     result.extend(kind);
     result.extend(data);
     result
 }
 
-pub fn png_chunk(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
+pub fn png_chunk(kind: [u8; 4], data: &[u8]) -> Vec<u8> {
     let mut result = (data.len() as u32).to_be_bytes().to_vec();
     result.extend(kind);
     result.extend(data);
@@ -126,14 +126,14 @@ pub fn png_chunk(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
 }
 
 pub fn heif(exif: &[u8], method: u16, split: bool) -> Vec<u8> {
-    let ftyp = box_bytes(b"ftyp", b"heic\0\0\0\0mif1heic");
+    let ftyp = box_bytes(*b"ftyp", b"heic\0\0\0\0mif1heic");
     let mut infe = vec![2, 0, 0, 0, 0, 2, 0, 0];
     infe.extend(b"Exif\0");
     let iinf = box_bytes(
-        b"iinf",
-        &[vec![0, 0, 0, 0, 0, 1], box_bytes(b"infe", &infe)].concat(),
+        *b"iinf",
+        &[vec![0, 0, 0, 0, 0, 1], box_bytes(*b"infe", &infe)].concat(),
     );
-    let pitm = box_bytes(b"pitm", &[0, 0, 0, 0, 0, 1]);
+    let pitm = box_bytes(*b"pitm", &[0, 0, 0, 0, 0, 1]);
     let mut ispe = vec![0; 4];
     ispe.extend(800u32.to_be_bytes());
     ispe.extend(600u32.to_be_bytes());
@@ -142,16 +142,16 @@ pub fn heif(exif: &[u8], method: u16, split: bool) -> Vec<u8> {
         .flat_map(u32::to_be_bytes)
         .collect();
     let ipco = box_bytes(
-        b"ipco",
+        *b"ipco",
         &[
-            box_bytes(b"ispe", &ispe),
-            box_bytes(b"irot", &[1]),
-            box_bytes(b"clap", &clap),
+            box_bytes(*b"ispe", &ispe),
+            box_bytes(*b"irot", &[1]),
+            box_bytes(*b"clap", &clap),
         ]
         .concat(),
     );
-    let ipma = box_bytes(b"ipma", &[0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 3, 1, 0x82, 0x83]);
-    let iprp = box_bytes(b"iprp", &[ipco, ipma].concat());
+    let ipma = box_bytes(*b"ipma", &[0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 3, 1, 0x82, 0x83]);
+    let iprp = box_bytes(*b"iprp", &[ipco, ipma].concat());
     let data = [vec![0; 4], exif.to_vec()].concat();
     let extents = if split {
         vec![(0, 10), (10, data.len() - 10)]
@@ -173,13 +173,13 @@ pub fn heif(exif: &[u8], method: u16, split: bool) -> Vec<u8> {
         iloc[base_position..base_position + 4]
             .copy_from_slice(&((ftyp.len() + meta_size + 8) as u32).to_be_bytes());
     }
-    let mut meta = [vec![0; 4], pitm, iinf, iprp, box_bytes(b"iloc", &iloc)].concat();
+    let mut meta = [vec![0; 4], pitm, iinf, iprp, box_bytes(*b"iloc", &iloc)].concat();
     if method == 1 {
-        meta.extend(box_bytes(b"idat", &data));
+        meta.extend(box_bytes(*b"idat", &data));
     }
-    let mut result = [ftyp, box_bytes(b"meta", &meta)].concat();
+    let mut result = [ftyp, box_bytes(*b"meta", &meta)].concat();
     if method == 0 {
-        result.extend(box_bytes(b"mdat", &data));
+        result.extend(box_bytes(*b"mdat", &data));
     }
     result
 }

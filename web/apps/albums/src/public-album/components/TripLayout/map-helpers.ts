@@ -1,4 +1,4 @@
-import { haveWindow } from "ente-base/env";
+import { getLeaflet } from "ente-gallery/utils/leaflet";
 import type { JourneyPoint } from "./types";
 import { iconCache } from "./utils/geocoding";
 
@@ -6,15 +6,6 @@ const isMobileDevice = () => {
     if (typeof window === "undefined") return false;
     // Keep this aligned with MUI's md breakpoint.
     return window.innerWidth < 960;
-};
-
-// Leaflet reads window during import.
-const getLeaflet = () => {
-    if (haveWindow()) {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        return require("leaflet") as typeof import("leaflet");
-    }
-    return null;
 };
 
 // Haversine distance in kilometers.

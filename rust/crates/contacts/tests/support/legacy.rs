@@ -31,6 +31,7 @@ pub fn open_session(endpoint: &str, account: &TestAccount) -> Session {
         },
         account.user_id,
         Key::try_from_slice(&account.master_key).unwrap(),
+        Key::try_from_slice(&account.recovery_key).unwrap(),
         SecretKey::try_from_slice(&account.secret_key).unwrap(),
     )
     .unwrap()
@@ -49,7 +50,6 @@ pub async fn create_accepted_pair_state(
     ente_legacy::add_contact(
         &owner_session,
         &trusted.email,
-        &owner.key_attributes,
         Some(recovery_notice_in_days),
     )
     .await

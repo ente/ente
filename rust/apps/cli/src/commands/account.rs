@@ -21,13 +21,13 @@ use zeroize::Zeroizing;
 
 pub async fn handle_account_command(cmd: AccountCommand, storage: &Storage) -> Result<()> {
     match cmd.command {
-        AccountSubcommands::List => list_accounts(storage).await,
+        AccountSubcommands::List => list_accounts(storage),
         AccountSubcommands::Add(args) => add_account(storage, args).await,
         AccountSubcommands::Create(args) => create_account(storage, args).await,
         AccountSubcommands::Update { email, dir, app } => {
-            update_account(storage, &email, &dir, &app).await
+            update_account(storage, &email, &dir, &app)
         }
-        AccountSubcommands::GetToken { email, app } => get_token(storage, &email, &app).await,
+        AccountSubcommands::GetToken { email, app } => get_token(storage, &email, &app),
         AccountSubcommands::TwoFactor {
             email,
             app,
@@ -169,7 +169,7 @@ impl AuthFlowUi for DialoguerAuthFlowUi {
     }
 }
 
-async fn list_accounts(storage: &Storage) -> Result<()> {
+fn list_accounts(storage: &Storage) -> Result<()> {
     let accounts = storage.accounts().list()?;
 
     if accounts.is_empty() {
@@ -399,13 +399,12 @@ async fn enable_two_factor(
     Ok(())
 }
 
-async fn update_account(storage: &Storage, email: &str, dir: &str, app_str: &str) -> Result<()> {
+fn update_account(storage: &Storage, email: &str, dir: &str, app_str: &str) -> Result<()> {
     let app = resolve_app(app_str)?;
 
     if storage.accounts().get(email, app)?.is_none() {
         return Err(Error::NotFound(format!(
-            "Account not found: {} (app: {})",
-            email, app
+            "Account not found: {email} (app: {app})"
         )));
     }
 
@@ -420,7 +419,7 @@ async fn update_account(storage: &Storage, email: &str, dir: &str, app_str: &str
     Ok(())
 }
 
-async fn get_token(storage: &Storage, email: &str, app_str: &str) -> Result<()> {
+fn get_token(storage: &Storage, email: &str, app_str: &str) -> Result<()> {
     let app = resolve_app(app_str)?;
 
     let account = storage

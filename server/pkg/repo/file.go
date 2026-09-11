@@ -579,23 +579,18 @@ func (repo *FileRepository) GetSize(userID int64, fileIDs []int64) (int64, error
 }
 
 func (repo *FileRepository) GetFileCountForUser(userID int64, app ente.App) (int64, error) {
-	row := repo.DB.QueryRow(`SELECT source.file_count,
-			u.photos_file_count, u.locker_file_count, u.file_count_source_version
-		FROM (SELECT count(distinct files.file_id) AS file_count
+	row := repo.DB.QueryRow(`SELECT count(distinct files.file_id) AS file_count
 			FROM collection_files
 			JOIN collections c on c.owner_id = $1 and c.collection_id = collection_files.collection_id 
 			JOIN files ON 
 			files.owner_id = $1 AND files.file_id = collection_files.file_id
-			WHERE (c.app = $2 AND collection_files.is_deleted = false)) AS source
-		LEFT JOIN usage u ON u.user_id = $1`, userID, app)
+			WHERE (c.app = $2 AND collection_files.is_deleted = false)`, userID, app)
 
 	var fileCount int64
-	var counts fileCountSnapshot
-	err := row.Scan(&fileCount, &counts.photos, &counts.locker, &counts.version)
+	err := row.Scan(&fileCount)
 	if err != nil {
 		return -1, stacktrace.Propagate(err, "")
 	}
-	counts.observe("file_count", userID, app, fileCount)
 	return fileCount, nil
 }
 

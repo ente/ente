@@ -223,9 +223,17 @@ impl AssetStore {
             _ = cancellation.cancelled() => return Err(Error::Cancelled),
         };
         if self.is_downloaded(asset) {
+            #[expect(
+                clippy::expect_used,
+                reason = "A panic unwinds the download; its local state is not reused"
+            )]
             progress.lock().expect("progress lock").skip(asset_index);
             return Ok(());
         }
+        #[expect(
+            clippy::expect_used,
+            reason = "The private asset semaphore is never closed"
+        )]
         let _slot = tokio::select! {
             slot = self.asset_slots.acquire() => slot.expect("asset semaphore closed"),
             _ = cancellation.cancelled() => return Err(Error::Cancelled),
@@ -235,6 +243,10 @@ impl AssetStore {
             .download(
                 self.download_targets(asset),
                 |update| {
+                    #[expect(
+                        clippy::expect_used,
+                        reason = "A panic unwinds the download; its local state is not reused"
+                    )]
                     progress
                         .lock()
                         .expect("progress lock")
@@ -255,6 +267,10 @@ impl AssetStore {
     }
 
     fn key_lock(&self, components: &[String]) -> Result<Arc<Mutex<()>>, Error> {
+        #[expect(
+            clippy::expect_used,
+            reason = "The registry critical section invokes no caller code"
+        )]
         let mut locks = self.asset_locks.lock().expect("asset lock registry");
         if let Some((key, lock)) = locks.iter().find(|(key, _)| keys_overlap(key, components)) {
             if key == components {
@@ -863,10 +879,7 @@ mod tests {
     }
 
     fn key(components: &[&str]) -> Vec<String> {
-        components
-            .iter()
-            .map(|component| component.to_string())
-            .collect()
+        components.iter().map(ToString::to_string).collect()
     }
 
     fn file(name: &str, bytes: &[u8]) -> AssetFile {

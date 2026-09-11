@@ -1,12 +1,11 @@
 mod owner_blob;
 
-use ente_accounts::auth::KeyAttributes;
 use ente_core::crypto::{self, Key, SecretVec, secretbox};
 use ente_core::{Session, b64};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{current_recovery_key, map_recovery_notice_error};
+use super::map_recovery_notice_error;
 use crate::kit::{
     LEGACY_KIT_PAYLOAD_VERSION, LegacyKit, LegacyKitCreateResult, LegacyKitOwnerRecoverySession,
     LegacyKitRecoveryInitiator, LegacyKitRecoverySession, LegacyKitShare, LegacyKitVariant,
@@ -37,19 +36,15 @@ pub async fn kits(session: &Session) -> Result<Vec<LegacyKit>> {
 
 pub async fn create_kit(
     session: &Session,
-    key_attributes: &KeyAttributes,
     part_names: [String; 3],
     notice_period_in_hours: i32,
 ) -> Result<LegacyKitCreateResult> {
-    let (request, shares) = {
-        let recovery_key = current_recovery_key(session, key_attributes)?;
-        create_kit_request(
-            &recovery_key,
-            &session.master_key,
-            part_names,
-            notice_period_in_hours,
-        )?
-    };
+    let (request, shares) = create_kit_request(
+        session.recovery_key.as_bytes(),
+        &session.master_key,
+        part_names,
+        notice_period_in_hours,
+    )?;
 
     let response = session
         .api

@@ -48,6 +48,7 @@ class InheritedDetailPageState extends InheritedWidget {
   final ValueNotifier<String?> showingThumbnailFallbackNotifier;
   final ValueNotifier<bool> isZoomedNotifier;
   final ValueNotifier<ZoomTransform> zoomTransformNotifier;
+  final ValueNotifier<double> bottomControlsAdditionalInsetNotifier;
 
   // ignore: prefer_const_constructors_in_immutables
   InheritedDetailPageState({
@@ -58,6 +59,7 @@ class InheritedDetailPageState extends InheritedWidget {
     required this.showingThumbnailFallbackNotifier,
     required this.isZoomedNotifier,
     required this.zoomTransformNotifier,
+    required this.bottomControlsAdditionalInsetNotifier,
   });
 
   static InheritedDetailPageState of(BuildContext context) =>
@@ -107,5 +109,7 @@ class InheritedDetailPageState extends InheritedWidget {
       oldWidget.showingThumbnailFallbackNotifier !=
           showingThumbnailFallbackNotifier ||
       oldWidget.isZoomedNotifier != isZoomedNotifier ||
-      oldWidget.zoomTransformNotifier != zoomTransformNotifier;
+      oldWidget.zoomTransformNotifier != zoomTransformNotifier ||
+      oldWidget.bottomControlsAdditionalInsetNotifier !=
+          bottomControlsAdditionalInsetNotifier;
 }

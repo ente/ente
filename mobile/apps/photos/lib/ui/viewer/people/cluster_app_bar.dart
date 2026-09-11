@@ -23,8 +23,10 @@ import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
+import 'package:photos/ui/sharing/share_person_sheet.dart';
 import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
+import 'package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart';
 import "package:photos/ui/viewer/people/cluster_breakup_page.dart";
 import "package:photos/ui/viewer/people/cluster_page.dart";
 import "package:photos/utils/dialog_util.dart";
@@ -145,6 +147,32 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
     final List<Widget> actions = <Widget>[];
     if (widget.selectedFiles.files.isNotEmpty) {
       return actions;
+    }
+
+    if (!isLocalGalleryMode && hasAccount) {
+      final currentUserID = Configuration.instance.getUserID();
+      final files = GalleryFilesState.maybeOf(context)?.galleryFilesOrNull
+          ?.where(
+            (file) =>
+                file.uploadedFileID != null && file.ownerID == currentUserID,
+          )
+          .toList();
+      if (files != null && files.isNotEmpty) {
+        actions.add(
+          IconButtonComponent(
+            key: shareButtonKey,
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedShare08),
+            variant: IconButtonComponentVariant.primary,
+            tooltip: context.strings.share,
+            shouldSurfaceExecutionStates: false,
+            onTap: () => showSharePersonSheet(
+              context,
+              files: files,
+              shareButtonKey: shareButtonKey,
+            ),
+          ),
+        );
+      }
     }
 
     final List<EntePopupMenuOption<ClusterPopupAction>> items = [

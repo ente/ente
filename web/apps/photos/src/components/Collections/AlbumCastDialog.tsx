@@ -49,9 +49,7 @@ const AlbumCastDialogContents: React.FC<AlbumCastDialogProps> = ({
     const castHost = new URL(castURL).host;
 
     useEffect(() => {
-        // @ts-expect-error TODO: why is this needed
-        // eslint-disable-next-line @typescript-eslint/dot-notation
-        setBrowserCanCast(typeof window["chrome"] != "undefined");
+        setBrowserCanCast(typeof window.chrome != "undefined");
     }, []);
 
     const onSubmit: SingleInputFormProps["onSubmit"] = useCallback(

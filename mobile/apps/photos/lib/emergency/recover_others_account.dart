@@ -1,16 +1,12 @@
 import "dart:async";
-import "dart:convert";
-import "dart:typed_data";
 
-import "package:ente_crypto/ente_crypto.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:password_strength/password_strength.dart';
-import "package:photos/emergency/emergency_service.dart";
 import "package:photos/emergency/model.dart";
-import "package:photos/gateways/users/models/key_attributes.dart";
-import "package:photos/gateways/users/models/set_keys_request.dart";
+import "package:photos/services/authenticated_session.dart";
+import "package:photos/services/legacy.dart" as legacy;
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/theme/text_style.dart";
@@ -21,16 +17,9 @@ import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/utils/dialog_util.dart';
 
 class RecoverOthersAccount extends StatefulWidget {
-  final String recoveryKey;
-  final KeyAttributes attributes;
-  final RecoverySessions sessions;
+  final LegacyRecoverySession session;
 
-  const RecoverOthersAccount(
-    this.recoveryKey,
-    this.attributes,
-    this.sessions, {
-    super.key,
-  });
+  const RecoverOthersAccount({required this.session, super.key});
 
   @override
   State<RecoverOthersAccount> createState() => _RecoverOthersAccountState();
@@ -105,7 +94,7 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
   }
 
   Widget _getBody(EnteColorScheme colorScheme, EnteTextTheme textTheme) {
-    final email = widget.sessions.user.email;
+    final email = widget.session.user.email;
     String? passwordMessage;
     TextInputMessageType passwordMessageType = TextInputMessageType.guide;
 
@@ -231,49 +220,10 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
     );
     await dialog.show();
     try {
-      final String password = _passwordController1.text;
-      final KeyAttributes attributes = widget.attributes;
-      Uint8List? masterKey;
-      try {
-        masterKey = await CryptoUtil.decrypt(
-          CryptoUtil.base642bin(attributes.masterKeyEncryptedWithRecoveryKey!),
-          CryptoUtil.hex2bin(widget.recoveryKey),
-          CryptoUtil.base642bin(attributes.masterKeyDecryptionNonce!),
-        );
-      } catch (e) {
-        _logger.severe(e, "Failed to get master key using recoveryKey");
-        rethrow;
-      }
-
-      final kekSalt = CryptoUtil.getSaltToDeriveKey();
-      final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
-        utf8.encode(password),
-        kekSalt,
-      );
-      final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
-      final encryptedKeyData = CryptoUtil.encryptSync(
-        masterKey,
-        derivedKeyResult.key,
-      );
-
-      final updatedAttributes = attributes.copyWith(
-        kekSalt: CryptoUtil.bin2base64(kekSalt),
-        encryptedKey: CryptoUtil.bin2base64(encryptedKeyData.encryptedData!),
-        keyDecryptionNonce: CryptoUtil.bin2base64(encryptedKeyData.nonce!),
-        memLimit: derivedKeyResult.memLimit,
-        opsLimit: derivedKeyResult.opsLimit,
-      );
-      final setKeyRequest = SetKeysRequest(
-        kekSalt: updatedAttributes.kekSalt,
-        encryptedKey: updatedAttributes.encryptedKey,
-        keyDecryptionNonce: updatedAttributes.keyDecryptionNonce,
-        memLimit: updatedAttributes.memLimit!,
-        opsLimit: updatedAttributes.opsLimit!,
-      );
-      await EmergencyContactService.instance.changePasswordForOther(
-        loginKey,
-        setKeyRequest,
-        widget.sessions,
+      await legacy.changePassword(
+        session: authenticatedSession(),
+        recoveryId: widget.session.id,
+        newPassword: _passwordController1.text,
       );
       await dialog.hide();
       if (!mounted) return;

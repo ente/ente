@@ -1288,15 +1288,12 @@ class MemoriesCacheService {
       return;
     }
     if (context != null && !context.mounted) return;
-    await _routeToPage(
-      AllMemoriesPage(
-        allMemories: _cachedMemories!,
-        initialPageIndex: memoryIdx,
-        inititalFileIndex: fileIdx,
-        isFromWidgetOrNotifications: true,
-      ),
+    await openAllMemoriesPage(
+      allMemories: _cachedMemories!,
+      initialPageIndex: memoryIdx,
+      initialFileIndex: fileIdx,
+      isFromWidgetOrNotifications: true,
       context: context,
-      forceCustomPageRoute: true,
     );
   }
 
@@ -1318,15 +1315,11 @@ class MemoriesCacheService {
       return;
     }
     if (context != null && !context.mounted) return;
-    await _routeToPage(
-      AllMemoriesPage(
-        allMemories: allMemories,
-        initialPageIndex: memoryIdx,
-        inititalFileIndex: 0,
-        isFromWidgetOrNotifications: true,
-      ),
+    await openAllMemoriesPage(
+      allMemories: allMemories,
+      initialPageIndex: memoryIdx,
+      isFromWidgetOrNotifications: true,
       context: context,
-      forceCustomPageRoute: true,
     );
   }
 

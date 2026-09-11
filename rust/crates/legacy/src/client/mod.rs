@@ -16,10 +16,9 @@ pub use recovery::{
     start_recovery, stop_recovery,
 };
 
-use ente_accounts::auth::{self, KeyAttributes};
-use ente_core::{Session, crypto::SecretVec, http};
+use ente_core::http;
 
-use crate::{Error, Result};
+use crate::Error;
 
 fn map_recovery_notice_error(error: http::Error) -> Error {
     match &error {
@@ -28,9 +27,4 @@ fn map_recovery_notice_error(error: http::Error) -> Error {
         }
         _ => error.into(),
     }
-}
-
-fn current_recovery_key(session: &Session, key_attributes: &KeyAttributes) -> Result<SecretVec> {
-    let recovery_key = auth::get_recovery_key(&session.master_key, key_attributes)?;
-    Ok(auth::recovery_key_from_mnemonic_or_hex(&recovery_key)?)
 }

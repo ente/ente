@@ -12,7 +12,6 @@ import "package:photos/theme/colors.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
 import "package:photos/ui/viewer/file/video_double_tap_seek.dart";
 import "package:photos/ui/viewer/file/video_seek_controller.dart";
-import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/zoomable_video_viewer.dart";
 
 class VideoWidget extends StatefulWidget {
@@ -22,7 +21,6 @@ class VideoWidget extends StatefulWidget {
   final TransformationController? transformationController;
   final ValueChanged<bool>? onInteractionLockChanged;
   final bool isFromMemories;
-  final void Function() onStreamChange;
   final bool isPreviewPlayer;
   final ValueNotifier<double> playbackSpeed;
 
@@ -34,8 +32,6 @@ class VideoWidget extends StatefulWidget {
     this.transformationController,
     this.onInteractionLockChanged,
     required this.isFromMemories,
-    // ignore: unused_element
-    required this.onStreamChange,
     required this.isPreviewPlayer,
     required this.playbackSpeed,
   });
@@ -104,6 +100,17 @@ class _VideoWidgetState extends State<VideoWidget> {
     _seekController.removeListener(_onSeekInteractionChanged);
     _seekController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant VideoWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isPreviewPlayer != widget.isPreviewPlayer) {
+      _seekController.reset(
+        position: widget.controller.player.state.position,
+        duration: widget.controller.player.state.duration,
+      );
+    }
   }
 
   void _onPlaybackSpeedChanged() {
@@ -230,10 +237,8 @@ class _VideoWidgetState extends State<VideoWidget> {
                         ),
                   widget.isFromMemories
                       ? const SizedBox.shrink()
-                      : Positioned(
+                      : GalleryBottomControlsPositioned(
                           bottom: kVideoProgressRowBottomInset,
-                          right: 0,
-                          left: 0,
                           child: IgnorePointer(
                             ignoring: !value,
                             child: SafeArea(
@@ -244,34 +249,6 @@ class _VideoWidgetState extends State<VideoWidget> {
                                 controller: widget.controller,
                                 seekController: _seekController,
                               ),
-                            ),
-                          ),
-                        ),
-                  widget.isFromMemories
-                      ? const SizedBox.shrink()
-                      : Positioned(
-                          bottom: videoStreamControlBottomInset(
-                            widget.file.caption?.isNotEmpty ?? false,
-                          ),
-                          right: 0,
-                          left: 0,
-                          child: SafeArea(
-                            top: false,
-                            left: false,
-                            right: false,
-                            child: VideoStreamChangeWidget(
-                              showControls: value,
-                              file: widget.file,
-                              isPreviewPlayer: widget.isPreviewPlayer,
-                              onStreamChange: () {
-                                _seekController.reset(
-                                  position:
-                                      widget.controller.player.state.position,
-                                  duration:
-                                      widget.controller.player.state.duration,
-                                );
-                                widget.onStreamChange();
-                              },
                             ),
                           ),
                         ),

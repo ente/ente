@@ -29,7 +29,7 @@ export const SpacePostFloatingActionButton: React.FC<
             bgcolor: green,
             border: 0,
             borderRadius: "50%",
-            bottom: "calc(env(safe-area-inset-bottom) + 20px)",
+            bottom: "calc(env(safe-area-inset-bottom) + 16px)",
             boxShadow: "0 10px 24px rgba(0, 0, 0, 0.22)",
             color: "#FFFFFF",
             cursor: disabled ? "default" : "pointer",
@@ -41,11 +41,14 @@ export const SpacePostFloatingActionButton: React.FC<
             opacity: disabled ? 0.72 : 1,
             p: 0,
             position: "fixed",
-            right: "max(20px, calc((100vw - 390px) / 2 + 20px))",
+            right: "16px",
             transition:
                 "background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease",
             width: buttonSize,
             zIndex: 5,
+            "@media (min-width: 600px)": {
+                right: "calc((100vw - 390px) / 2 + 16px)",
+            },
             "& svg": { display: "block" },
             "&:active": { transform: disabled ? "none" : "translateY(1px)" },
             "&:focus-visible": {

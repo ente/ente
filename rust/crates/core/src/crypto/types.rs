@@ -220,6 +220,10 @@ pub fn random_bytes(len: usize) -> Vec<u8> {
 }
 
 pub(crate) fn fill_random(buf: &mut [u8]) {
+    #[expect(
+        clippy::expect_used,
+        reason = "Stop if the OS cannot supply cryptographic randomness"
+    )]
     getrandom::fill(buf).expect("failed to generate random bytes");
 }
 

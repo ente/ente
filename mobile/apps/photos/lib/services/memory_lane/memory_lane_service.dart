@@ -296,10 +296,10 @@ class MemoryLaneService {
       return null;
     }
 
-    if (!await areFullFaceCropsCached({
-      timeline.entries.first.faceId,
-      timeline.entries.last.faceId,
-    }, useTempCache: false)) {
+    if (!await areFullFaceCropsCached(
+      timeline.entries.map((entry) => entry.faceId),
+      useTempCache: false,
+    )) {
       return null;
     }
     return timeline;
@@ -986,6 +986,30 @@ class MemoryLaneService {
     return Map.fromEntries(
       files.map((file) => MapEntry(localIdToId[file.localID]!, file)),
     );
+  }
+
+  Future<({Uint8List oldest, Uint8List newest})?> getOldestAndNewestFaceCrops(
+    MemoryLanePersonTimeline timeline,
+  ) async {
+    if (timeline.entries.isEmpty) return null;
+    final entries = [timeline.entries.first, timeline.entries.last];
+    final files = await getTimelineFiles(
+      entries.map((entry) => entry.fileId).toList(),
+    );
+    final crops = <Uint8List>[];
+    for (final entry in entries) {
+      final file = files[entry.fileId];
+      if (file == null) return null;
+      final faces = await _mlDataDB.getFacesForGivenFileID(entry.fileId);
+      final face = faces?.firstWhereOrNull((f) => f.faceID == entry.faceId);
+      if (face == null) return null;
+      final crop = (await getCachedFaceCrops(file, [
+        face,
+      ], useTempCache: false))?[entry.faceId];
+      if (crop == null) return null;
+      crops.add(crop);
+    }
+    return (oldest: crops.first, newest: crops.last);
   }
 
   Future<void> _scheduleTimelinesForMemoriesStrip(

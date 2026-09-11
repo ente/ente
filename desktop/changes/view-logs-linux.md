@@ -1,0 +1,1 @@
+- Fixed the "View logs" button hanging on Linux instead of dismissing once the file manager opened - @aswinpradeepc

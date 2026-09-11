@@ -1,0 +1,1 @@
+- Set photos as your home screen, lock screen, or both wallpapers on Android, with a preview to adjust the crop.

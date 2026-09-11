@@ -1,5 +1,4 @@
 import type {
-    KeyAttributes,
     LegacyContactState,
     OpenSessionInput,
     Session,
@@ -30,15 +29,8 @@ export const verificationID = async (publicKeyB64: string) =>
 export const addContact = async (
     session: Session,
     email: string,
-    currentUserKeyAttributes: KeyAttributes,
     recoveryNoticeInDays?: number,
-) =>
-    (await wasm()).legacyAddContact(
-        session,
-        email,
-        currentUserKeyAttributes,
-        recoveryNoticeInDays,
-    );
+) => (await wasm()).legacyAddContact(session, email, recoveryNoticeInDays);
 
 export const updateContact = async (
     session: Session,

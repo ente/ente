@@ -20,9 +20,6 @@ Future<void> _pairWithCode(
   String code,
 ) async {
   final gw = CastGateway(NetworkClient.instance.enteDio);
-  if (!flagService.enableMultiCast) {
-    await gw.revokeAllTokens();
-  }
   final publicKeys = await gw.getPublicKeys(code);
   if (publicKeys == null) {
     throw const _DeviceNotFoundException();
@@ -40,6 +37,7 @@ Future<void> _pairWithCode(
   );
 }
 
+// The parent cast sheet revokes old single-cast sessions before offering pairing.
 Future<bool?> showPairWithCodeSheet(
   BuildContext context,
   Collection collection,
@@ -88,6 +86,7 @@ class _PairWithCodeSheetState extends State<_PairWithCodeSheet> {
           autofocus: true,
           hintText: l10n.pairUsingCode,
           keyboardType: .streetAddress,
+          textCapitalization: .characters,
         ),
         ButtonComponent(
           label: l10n.pair,

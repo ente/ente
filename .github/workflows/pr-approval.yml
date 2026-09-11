@@ -1,0 +1,112 @@
+name: PR approval
+
+on:
+    pull_request_target:
+        branches: [main]
+        types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+jobs:
+    approve:
+        # Keep author IDs in sync with the rules below.
+        if: >-
+            github.repository == 'ente/ente' &&
+            contains(fromJSON('[24503581,231175576,239996999,64626875,293300083,2698932,281837475]'), github.event.pull_request.user.id) &&
+            github.event.sender.id == github.event.pull_request.user.id &&
+            github.triggering_actor == github.event.sender.login &&
+            github.event.pull_request.changed_files <= 100 &&
+            !github.event.pull_request.draft
+        runs-on: ubuntu-latest
+        environment:
+            name: pr-approval
+            deployment: false
+        steps:
+            - name: Mint App token
+              id: app_token
+              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              with:
+                  client-id: ${{ secrets.ENTE_APPROVER_GH_CLIENT_ID }}
+                  private-key: ${{ secrets.ENTE_APPROVER_GH_APP_PRIVATE_KEY }}
+                  repositories: ente
+                  permission-pull-requests: write
+
+            - name: Approve PR
+              uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  github-token: ${{ steps.app_token.outputs.token }}
+                  script: |
+                      const excludePrefixes = [".github/", "server/"];
+                      const rules = {
+                          // mnvr
+                          24503581: {},
+                          // neeraj-pilot
+                          231175576: {},
+                          // laurens-pilot
+                          239996999: { allowPrefixes: ["mobile/", "rust/"] },
+                          // AswinAsok
+                          64626875: { allowPrefixes: ["web/", "desktop/"] },
+                          // ashil-pilot
+                          293300083: { allowPrefixes: ["mobile/"] },
+                          // anandbaburajan
+                          2698932: {
+                              allowPrefixes: [
+                                  "web/",
+                                  "desktop/",
+                                  "rust/crates/space/",
+                                  "rust/bindings/wasm/space/",
+                              ],
+                          },
+                          // aman-pilot
+                          281837475: {
+                              allowPrefixes: [
+                                  "mobile/apps/locker/",
+                                  "mobile/packages/ente_components/",
+                              ],
+                          },
+                      };
+                      const { pull_request: pr } = context.payload;
+                      const rule = rules[pr.user.id];
+                      if (!rule) {
+                          core.info("No automatic approval rule for this author.");
+                          return;
+                      }
+
+                      const pull = { ...context.repo, pull_number: pr.number };
+                      const { data: files } = await github.rest.pulls.listFiles({
+                          ...pull,
+                          per_page: 100,
+                      });
+
+                      if (files.length !== pr.changed_files) {
+                          core.info(
+                              "The complete file list is unavailable; human approval is required.",
+                          );
+                          return;
+                      }
+
+                      const paths = files.flatMap(({ filename, previous_filename }) =>
+                          previous_filename ? [filename, previous_filename] : [filename],
+                      );
+                      if (
+                          paths.some(
+                              (path) =>
+                                  !path.includes("/") ||
+                                  excludePrefixes.some((prefix) => path.startsWith(prefix)) ||
+                                  (rule.allowPrefixes &&
+                                      !rule.allowPrefixes.some((prefix) => path.startsWith(prefix))),
+                          )
+                      ) {
+                          core.info("These paths require human approval.");
+                          return;
+                      }
+
+                      await github.rest.pulls.createReview({
+                          ...pull,
+                          commit_id: pr.head.sha,
+                          event: "APPROVE",
+                      });

@@ -1,5 +1,9 @@
 use ente_core::http::{Api, ApiConfig, Http};
 
+#[expect(
+    clippy::expect_used,
+    reason = "The example requires a URL argument and an initialized HTTP client"
+)]
 #[tokio::main]
 async fn main() {
     let origin = std::env::args().nth(1).expect("Usage: ping <origin>");

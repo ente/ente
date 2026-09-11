@@ -18,6 +18,12 @@ pub enum Error {
     #[error("invalid input: {0}")]
     InvalidInput(String),
 
+    #[error("invalid input: legacy kit shares must belong to the same kit")]
+    DifferentLegacyKits,
+
+    #[error("invalid input: legacy kit shares must use different indices")]
+    DuplicateLegacyKitShare,
+
     #[error("legacy contact is not on Ente")]
     ContactNotOnEnte,
 

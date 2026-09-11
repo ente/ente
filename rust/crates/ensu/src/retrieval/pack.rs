@@ -71,13 +71,9 @@ pub fn reconcile_knowledge_pack(
     let mut valid = Vec::<(String, PathBuf)>::new();
     let mut invalid = Vec::<PathBuf>::new();
     for entry in fs::read_dir(pack_root)? {
-        let entry = match entry {
-            Ok(entry) => entry,
-            Err(_) => continue,
-        };
-        let file_type = match entry.file_type() {
-            Ok(file_type) => file_type,
-            Err(_) => continue,
+        let Ok(entry) = entry else { continue };
+        let Ok(file_type) = entry.file_type() else {
+            continue;
         };
         if !file_type.is_dir() {
             continue;

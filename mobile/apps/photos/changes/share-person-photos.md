@@ -1,0 +1,1 @@
+- Added support for sharing photos from person pages.

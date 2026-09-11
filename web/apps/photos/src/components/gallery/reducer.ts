@@ -1396,15 +1396,13 @@ const findCoverFiles = (
 
         let coverFile: EnteFile | undefined;
 
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        const coverID = collection.pubMagicMetadata?.data?.coverID;
+        const coverID = collection.pubMagicMetadata?.data.coverID;
         if (typeof coverID == "number" && coverID > 0) {
             coverFile = collectionFiles.find(({ id }) => id === coverID);
         }
 
         if (!coverFile) {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (collection.pubMagicMetadata?.data?.asc) {
+            if (collection.pubMagicMetadata?.data.asc) {
                 coverFile = collectionFiles[collectionFiles.length - 1];
             } else {
                 coverFile = collectionFiles[0];

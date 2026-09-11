@@ -4,7 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const root = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../..",
+);
 const [app, command = "get", ...args] = process.argv.slice(2);
 
 function usage() {
@@ -46,7 +49,10 @@ function setPubspecVersion(version) {
         count += 1;
         return `version: ${version}`;
     });
-    if (!count) throw new Error(`No version field found in ${path.relative(root, pubspec)}`);
+    if (!count)
+        throw new Error(
+            `No version field found in ${path.relative(root, pubspec)}`,
+        );
     write(next);
 }
 
@@ -56,11 +62,14 @@ try {
     } else if (command === "get-build-base") {
         console.log(pubspecVersion().buildBase);
     } else if (command === "set") {
-        if (!/^\d+\.\d+\.\d+$/.test(args[0])) throw new Error(`Invalid ${app} version: ${args[0]}`);
+        if (!/^\d+\.\d+\.\d+$/.test(args[0]))
+            throw new Error(`Invalid ${app} version: ${args[0]}`);
         setPubspecVersion(`${args[0]}+${pubspecVersion().buildBase}`);
     } else if (command === "set-build") {
-        if (!/^\d+\.\d+\.\d+$/.test(args[0])) throw new Error(`Invalid ${app} release version: ${args[0]}`);
-        if (!/^\d+$/.test(args[1])) throw new Error(`Invalid ${app} build number: ${args[1]}`);
+        if (!/^\d+\.\d+\.\d+$/.test(args[0]))
+            throw new Error(`Invalid ${app} release version: ${args[0]}`);
+        if (!/^\d+$/.test(args[1]))
+            throw new Error(`Invalid ${app} build number: ${args[1]}`);
         setPubspecVersion(`${args[0]}+${args[1]}`);
     } else if (command === "bump-build") {
         const { source, buildBase } = pubspecVersion();

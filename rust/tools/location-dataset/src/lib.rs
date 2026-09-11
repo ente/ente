@@ -121,6 +121,7 @@ fn invalid(message: impl Into<String>) -> Error {
 fn hex(bytes: impl AsRef<[u8]>) -> String {
     let mut output = String::with_capacity(bytes.as_ref().len() * 2);
     for byte in bytes.as_ref() {
+        #[expect(clippy::expect_used, reason = "Formatting into a String cannot fail")]
         write!(output, "{byte:02x}").expect("writing to a string is infallible");
     }
     output

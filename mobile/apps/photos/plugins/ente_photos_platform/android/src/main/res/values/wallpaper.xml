@@ -1,0 +1,10 @@
+<resources>
+    <string name="wallpaper">Wallpaper</string>
+    <style name="WallpaperTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:colorAccent">#08C225</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:navigationBarColor">#000000</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

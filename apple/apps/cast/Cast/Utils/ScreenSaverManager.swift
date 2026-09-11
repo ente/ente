@@ -25,8 +25,10 @@ class ScreenSaverManager: ObservableObject {
 
         // Refresh because this setting is unreliable on some tvOS versions.
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
-            UIApplication.shared.isIdleTimerDisabled = false
-            UIApplication.shared.isIdleTimerDisabled = true
+            MainActor.assumeIsolated {
+                UIApplication.shared.isIdleTimerDisabled = false
+                UIApplication.shared.isIdleTimerDisabled = true
+            }
         }
     }
 

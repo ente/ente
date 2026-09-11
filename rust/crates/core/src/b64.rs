@@ -1,12 +1,23 @@
 use base64::{
-    Engine,
-    engine::general_purpose::{STANDARD, URL_SAFE, URL_SAFE_NO_PAD},
+    Engine, alphabet,
+    engine::general_purpose::{
+        GeneralPurpose, GeneralPurposeConfig, STANDARD, URL_SAFE, URL_SAFE_NO_PAD,
+    },
 };
 
 pub use base64::DecodeError;
 
 pub fn decode(input: &str) -> Result<Vec<u8>, DecodeError> {
     STANDARD.decode(input)
+}
+
+// Browser atob ignores unused trailing bits in otherwise valid base64.
+pub fn decode_allow_trailing_bits(input: &str) -> Result<Vec<u8>, DecodeError> {
+    GeneralPurpose::new(
+        &alphabet::STANDARD,
+        GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
+    )
+    .decode(input)
 }
 
 // Standard base64 (RFC 4648), matching libsodium's

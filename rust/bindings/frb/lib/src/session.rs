@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ente_core::{
     Session as InnerSession, b64,
-    crypto::{Key, Nonce, PublicKey, SecretKey, secretbox::EncryptedBox},
+    crypto::{Key, Nonce, PublicKey, SecretKey, secretbox, secretbox::EncryptedBox},
     http::{ApiConfig, Auth},
 };
 use flutter_rust_bridge::frb;
@@ -29,6 +29,8 @@ pub struct SessionKeyAttributes {
     pub public_key: String,
     pub encrypted_secret_key: String,
     pub secret_key_decryption_nonce: String,
+    pub recovery_key_encrypted_with_master_key: String,
+    pub recovery_key_decryption_nonce: String,
 }
 
 #[frb(non_opaque)]
@@ -56,6 +58,12 @@ pub fn open_session(input: OpenSessionInput) -> Result<Session, SessionError> {
         client_version,
     } = input;
     let master_key = Key::try_from_slice(&master_key)?;
+    let recovery_key = secretbox::decrypt(
+        &b64::decode(&key_attributes.recovery_key_encrypted_with_master_key)?,
+        &Nonce::try_from_slice(&b64::decode(&key_attributes.recovery_key_decryption_nonce)?)?,
+        &master_key,
+    )?;
+    let recovery_key = Key::try_from_slice(&recovery_key)?;
     let secret_key = SecretKey::open(
         &EncryptedBox {
             encrypted_data: b64::decode(&key_attributes.encrypted_secret_key)?,
@@ -76,6 +84,7 @@ pub fn open_session(input: OpenSessionInput) -> Result<Session, SessionError> {
         },
         user_id,
         master_key,
+        recovery_key,
         secret_key,
     )?)))
 }

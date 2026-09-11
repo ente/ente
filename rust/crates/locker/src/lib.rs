@@ -92,6 +92,7 @@ mod tests {
             },
             1,
             Key::generate(),
+            Key::generate(),
             SecretKey::generate(),
         )
         .unwrap();

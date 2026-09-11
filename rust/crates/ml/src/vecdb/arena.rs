@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-use super::VecDbError;
 use super::kernel::{
-    F32Kernel, LANE_WIDTH, Lane, VectorKernel, pack_lanes, pack_lanes_into, unpack_lanes,
+    F32Kernel, I8Kernel, Lane, LaneI8, StoredVector, VectorKernel, VectorPayload, dequantize,
+    pack_lanes, pack_lanes_i8, pack_lanes_i8_into, pack_lanes_into, quantize_for, unpack_lanes,
+    unpack_lanes_i8, validate_dims,
 };
+use super::{DistanceMetric, StorageKind, VecDbError};
 
 pub(crate) const VECTORS_PER_CHUNK: usize = 4096;
 pub(crate) const MAX_KEY_BYTES: usize = 256;
@@ -28,10 +30,92 @@ pub(crate) fn validate_key(key: &str) -> Result<(), VecDbError> {
     Ok(())
 }
 
+enum Storage {
+    F32 {
+        chunks: Vec<Vec<Lane>>,
+    },
+    I8 {
+        chunks: Vec<Vec<LaneI8>>,
+        scales: Vec<f32>,
+    },
+}
+
+impl Storage {
+    fn kind(&self) -> StorageKind {
+        match self {
+            Self::F32 { .. } => StorageKind::F32,
+            Self::I8 { .. } => StorageKind::I8,
+        }
+    }
+
+    fn chunk_count(&self) -> usize {
+        match self {
+            Self::F32 { chunks } => chunks.len(),
+            Self::I8 { chunks, .. } => chunks.len(),
+        }
+    }
+
+    fn push_chunk(&mut self, lanes_per_vector: usize) {
+        match self {
+            Self::F32 { chunks } => {
+                chunks.push(vec![Lane::ZERO; VECTORS_PER_CHUNK * lanes_per_vector]);
+            }
+            Self::I8 { chunks, .. } => {
+                chunks.push(vec![LaneI8::ZERO; VECTORS_PER_CHUNK * lanes_per_vector]);
+            }
+        }
+    }
+}
+
+pub(crate) enum PackedQuery {
+    F32(Vec<Lane>, f64),
+    I8 {
+        scale: f32,
+        lanes: Vec<LaneI8>,
+        norm: f64,
+    },
+}
+
+impl PackedQuery {
+    pub(crate) fn as_query(&self) -> Query<'_> {
+        match self {
+            Self::F32(lanes, norm) => Query::F32(lanes, *norm),
+            Self::I8 { scale, lanes, norm } => Query::I8 {
+                scale: *scale,
+                lanes,
+                norm: *norm,
+            },
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum Query<'a> {
+    F32(&'a [Lane], f64),
+    I8 {
+        scale: f32,
+        lanes: &'a [LaneI8],
+        norm: f64,
+    },
+}
+
+impl Query<'_> {
+    pub(crate) fn is_finite(&self) -> bool {
+        match self {
+            Self::F32(lanes, _) => lanes
+                .iter()
+                .all(|lane| lane.to_array().iter().all(|value| value.is_finite())),
+            Self::I8 { scale, .. } => scale.is_finite(),
+        }
+    }
+}
+
 pub(crate) struct VectorArena {
     dims: usize,
     lanes_per_vector: usize,
-    chunks: Vec<Vec<Lane>>,
+    storage: Storage,
+    metric: DistanceMetric,
+    norms: Vec<f64>,
     keys_to_slots: HashMap<Box<str>, u32>,
     slots_to_keys: Vec<Box<str>>,
     alive: Vec<u64>,
@@ -40,14 +124,35 @@ pub(crate) struct VectorArena {
 }
 
 impl VectorArena {
+    #[cfg(test)]
     pub(crate) fn new(dims: usize) -> Result<Self, VecDbError> {
-        if dims == 0 || !dims.is_multiple_of(LANE_WIDTH) {
-            return Err(VecDbError::InvalidDimensions(dims));
-        }
+        Self::with_storage(dims, StorageKind::F32)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_storage(dims: usize, storage: StorageKind) -> Result<Self, VecDbError> {
+        Self::with_metric(dims, storage, DistanceMetric::InnerProduct)
+    }
+
+    pub(crate) fn with_metric(
+        dims: usize,
+        storage: StorageKind,
+        metric: DistanceMetric,
+    ) -> Result<Self, VecDbError> {
+        validate_dims(dims, storage)?;
+        let storage = match storage {
+            StorageKind::F32 => Storage::F32 { chunks: Vec::new() },
+            StorageKind::I8 => Storage::I8 {
+                chunks: Vec::new(),
+                scales: Vec::new(),
+            },
+        };
         Ok(Self {
             dims,
-            lanes_per_vector: dims / LANE_WIDTH,
-            chunks: Vec::new(),
+            lanes_per_vector: dims / storage.kind().lane_width(),
+            storage,
+            metric,
+            norms: Vec::new(),
             keys_to_slots: HashMap::new(),
             slots_to_keys: Vec::new(),
             alive: Vec::new(),
@@ -56,8 +161,16 @@ impl VectorArena {
         })
     }
 
+    pub(crate) fn metric(&self) -> DistanceMetric {
+        self.metric
+    }
+
     pub(crate) fn dims(&self) -> usize {
         self.dims
+    }
+
+    pub(crate) fn storage_kind(&self) -> StorageKind {
+        self.storage.kind()
     }
 
     pub(crate) fn live_count(&self) -> usize {
@@ -76,20 +189,47 @@ impl VectorArena {
         self.live_count == 0
     }
 
+    pub(crate) fn vector_memory_bytes(&self) -> usize {
+        let vectors = self.storage.chunk_count() * VECTORS_PER_CHUNK;
+        self.norms.capacity() * size_of::<f64>()
+            + match &self.storage {
+                Storage::F32 { .. } => vectors * self.dims * size_of::<f32>(),
+                Storage::I8 { .. } => vectors * self.dims + self.slot_count() * size_of::<f32>(),
+            }
+    }
+
+    #[cfg(test)]
     pub(crate) fn upsert(
         &mut self,
         key: &str,
         vector: &[f32],
     ) -> Result<UpsertOutcome, VecDbError> {
+        match quantize_for(self.storage_kind(), vector) {
+            Some(quantized) => self.upsert_payload(key, quantized.as_payload()),
+            None => self.upsert_payload(key, VectorPayload::F32(vector)),
+        }
+    }
+
+    pub(crate) fn upsert_payload(
+        &mut self,
+        key: &str,
+        payload: VectorPayload<'_>,
+    ) -> Result<UpsertOutcome, VecDbError> {
         validate_key(key)?;
-        if vector.len() != self.dims {
+        if payload.storage() != self.storage_kind() {
+            return Err(VecDbError::StorageMismatch {
+                expected: self.storage_kind(),
+                actual: payload.storage(),
+            });
+        }
+        if payload.dims() != self.dims {
             return Err(VecDbError::DimensionMismatch {
                 expected: self.dims,
-                actual: vector.len(),
+                actual: payload.dims(),
             });
         }
         if let Some(&slot) = self.keys_to_slots.get(key) {
-            self.write_vector(slot, vector);
+            self.write_vector(slot, payload);
             return Ok(UpsertOutcome::ReplacedInPlace(slot));
         }
         if let Some(slot) = self.free_slots.pop() {
@@ -97,22 +237,27 @@ impl VectorArena {
             self.keys_to_slots.insert(Box::from(key), slot);
             self.mark_alive(slot);
             self.live_count += 1;
-            self.write_vector(slot, vector);
+            self.write_vector(slot, payload);
             return Ok(UpsertOutcome::RecycledSlot(slot));
         }
         let slot = self.slots_to_keys.len() as u32;
-        if slot as usize == self.chunks.len() * VECTORS_PER_CHUNK {
-            self.chunks
-                .push(vec![Lane::ZERO; VECTORS_PER_CHUNK * self.lanes_per_vector]);
+        if slot as usize == self.storage.chunk_count() * VECTORS_PER_CHUNK {
+            self.storage.push_chunk(self.lanes_per_vector);
+        }
+        if let Storage::I8 { scales, .. } = &mut self.storage {
+            scales.push(0.0);
         }
         if slot as usize / 64 == self.alive.len() {
             self.alive.push(0);
+        }
+        if self.metric == DistanceMetric::Cosine {
+            self.norms.push(0.0);
         }
         self.slots_to_keys.push(Box::from(key));
         self.keys_to_slots.insert(Box::from(key), slot);
         self.mark_alive(slot);
         self.live_count += 1;
-        self.write_vector(slot, vector);
+        self.write_vector(slot, payload);
         Ok(UpsertOutcome::NewSlot(slot))
     }
 
@@ -145,8 +290,21 @@ impl VectorArena {
         self.slots_to_keys.truncate(live);
         self.slots_to_keys.shrink_to_fit();
         self.keys_to_slots.shrink_to_fit();
-        self.chunks.truncate(live.div_ceil(VECTORS_PER_CHUNK));
-        self.chunks.shrink_to_fit();
+        let chunk_count = live.div_ceil(VECTORS_PER_CHUNK);
+        match &mut self.storage {
+            Storage::F32 { chunks } => {
+                chunks.truncate(chunk_count);
+                chunks.shrink_to_fit();
+            }
+            Storage::I8 { chunks, scales } => {
+                chunks.truncate(chunk_count);
+                chunks.shrink_to_fit();
+                scales.truncate(live);
+                scales.shrink_to_fit();
+            }
+        }
+        self.norms.truncate(live);
+        self.norms.shrink_to_fit();
         self.alive.clear();
         self.alive.resize(live.div_ceil(64), u64::MAX);
         self.alive.shrink_to_fit();
@@ -159,17 +317,16 @@ impl VectorArena {
     }
 
     fn move_vector(&mut self, src: u32, dst: u32) {
+        if self.metric == DistanceMetric::Cosine {
+            self.norms[dst as usize] = self.norms[src as usize];
+        }
         let lanes = self.lanes_per_vector;
-        let src_chunk = src as usize / VECTORS_PER_CHUNK;
-        let dst_chunk = dst as usize / VECTORS_PER_CHUNK;
-        let src_start = (src as usize % VECTORS_PER_CHUNK) * lanes;
-        let dst_start = (dst as usize % VECTORS_PER_CHUNK) * lanes;
-        if src_chunk == dst_chunk {
-            self.chunks[src_chunk].copy_within(src_start..src_start + lanes, dst_start);
-        } else {
-            let (front, back) = self.chunks.split_at_mut(src_chunk);
-            front[dst_chunk][dst_start..dst_start + lanes]
-                .copy_from_slice(&back[0][src_start..src_start + lanes]);
+        match &mut self.storage {
+            Storage::F32 { chunks } => move_lanes(chunks, lanes, src, dst),
+            Storage::I8 { chunks, scales } => {
+                move_lanes(chunks, lanes, src, dst);
+                scales[dst as usize] = scales[src as usize];
+            }
         }
     }
 
@@ -195,40 +352,148 @@ impl VectorArena {
         (0..self.slots_to_keys.len() as u32).filter(|slot| self.is_alive(*slot))
     }
 
-    pub(crate) fn vector_lanes(&self, slot: u32) -> &[Lane] {
-        let start = (slot as usize % VECTORS_PER_CHUNK) * self.lanes_per_vector;
-        &self.chunks[slot as usize / VECTORS_PER_CHUNK][start..start + self.lanes_per_vector]
+    pub(crate) fn stored_query(&self, slot: u32) -> Query<'_> {
+        let norm = self.norms.get(slot as usize).copied().unwrap_or(0.0);
+        let lanes = self.lanes_per_vector;
+        match &self.storage {
+            Storage::F32 { chunks } => Query::F32(slot_lanes(chunks, lanes, slot), norm),
+            Storage::I8 { chunks, scales } => Query::I8 {
+                scale: scales[slot as usize],
+                lanes: slot_lanes(chunks, lanes, slot),
+                norm,
+            },
+        }
     }
 
     pub(crate) fn vector_values(&self, slot: u32) -> Vec<f32> {
-        unpack_lanes(self.vector_lanes(slot))
+        match self.stored_query(slot) {
+            Query::F32(lanes, _) => unpack_lanes(lanes),
+            Query::I8 { scale, lanes, .. } => dequantize(scale, &unpack_lanes_i8(lanes)),
+        }
     }
 
-    pub(crate) fn pack_query(&self, values: &[f32]) -> Result<Vec<Lane>, VecDbError> {
+    pub(crate) fn stored_vector(&self, slot: u32) -> StoredVector {
+        match self.stored_query(slot) {
+            Query::F32(lanes, _) => StoredVector::F32(unpack_lanes(lanes)),
+            Query::I8 { scale, lanes, .. } => StoredVector::I8 {
+                scale,
+                values: unpack_lanes_i8(lanes),
+            },
+        }
+    }
+
+    pub(crate) fn pack_query(&self, values: &[f32]) -> Result<PackedQuery, VecDbError> {
         if values.len() != self.dims {
             return Err(VecDbError::DimensionMismatch {
                 expected: self.dims,
                 actual: values.len(),
             });
         }
-        Ok(pack_lanes(values))
+        Ok(match quantize_for(self.storage_kind(), values) {
+            Some(StoredVector::I8 { scale, values }) => {
+                let norm = self.payload_norm(VectorPayload::I8 {
+                    scale,
+                    values: &values,
+                });
+                PackedQuery::I8 {
+                    scale,
+                    lanes: pack_lanes_i8(&values),
+                    norm,
+                }
+            }
+            Some(StoredVector::F32(_)) | None => PackedQuery::F32(
+                pack_lanes(values),
+                self.payload_norm(VectorPayload::F32(values)),
+            ),
+        })
     }
 
     pub(crate) fn distance_between_slots(&self, a: u32, b: u32) -> f32 {
-        F32Kernel::distance(self.vector_lanes(a), self.vector_lanes(b))
+        self.distance_to_query(self.stored_query(a), b)
     }
 
-    pub(crate) fn distance_to_query(&self, query: &[Lane], slot: u32) -> f32 {
-        F32Kernel::distance(query, self.vector_lanes(slot))
+    pub(crate) fn distance_to_query(&self, query: Query<'_>, slot: u32) -> f32 {
+        match (query, self.stored_query(slot)) {
+            (Query::F32(a, norm_a), Query::F32(b, norm_b)) => {
+                if self.metric == DistanceMetric::InnerProduct {
+                    return F32Kernel::distance(a, b);
+                }
+                let denominator = norm_a * norm_b;
+                let dot = if denominator >= f64::from(f32::MIN_POSITIVE)
+                    && denominator <= f64::from(f32::MAX)
+                {
+                    f64::from(F32Kernel::dot(a, b))
+                } else {
+                    a.iter()
+                        .zip(b)
+                        .flat_map(|(a, b)| a.to_array().into_iter().zip(b.to_array()))
+                        .map(|(a, b)| f64::from(a) * f64::from(b))
+                        .sum()
+                };
+                cosine_distance(dot, denominator)
+            }
+            (
+                Query::I8 {
+                    scale: scale_a,
+                    lanes: a,
+                    norm: norm_a,
+                },
+                Query::I8 {
+                    scale: scale_b,
+                    lanes: b,
+                    norm: norm_b,
+                },
+            ) => {
+                if self.metric == DistanceMetric::InnerProduct {
+                    return I8Kernel::distance(a, scale_a, b, scale_b);
+                }
+                cosine_distance(f64::from(I8Kernel::dot(a, b)), norm_a * norm_b)
+            }
+            _ => unreachable!("queries are packed by the arena that searches them"),
+        }
     }
 
-    fn vector_lanes_mut(&mut self, slot: u32) -> &mut [Lane] {
-        let start = (slot as usize % VECTORS_PER_CHUNK) * self.lanes_per_vector;
-        &mut self.chunks[slot as usize / VECTORS_PER_CHUNK][start..start + self.lanes_per_vector]
+    fn payload_norm(&self, payload: VectorPayload<'_>) -> f64 {
+        if self.metric == DistanceMetric::InnerProduct {
+            return 0.0;
+        }
+        match payload {
+            VectorPayload::F32(values) => values
+                .iter()
+                .map(|&value| f64::from(value).powi(2))
+                .sum::<f64>()
+                .sqrt(),
+            VectorPayload::I8 { scale, values } => {
+                if scale == 0.0 {
+                    return 0.0;
+                }
+                values
+                    .iter()
+                    .map(|&value| f64::from(value).powi(2))
+                    .sum::<f64>()
+                    .sqrt()
+            }
+        }
     }
 
-    fn write_vector(&mut self, slot: u32, values: &[f32]) {
-        pack_lanes_into(values, self.vector_lanes_mut(slot));
+    fn write_vector(&mut self, slot: u32, payload: VectorPayload<'_>) {
+        if self.metric == DistanceMetric::Cosine {
+            self.norms[slot as usize] = self.payload_norm(payload);
+        }
+        let lanes = self.lanes_per_vector;
+        match (&mut self.storage, payload) {
+            (Storage::F32 { chunks }, VectorPayload::F32(values)) => {
+                pack_lanes_into(values, slot_lanes_mut(chunks, lanes, slot));
+            }
+            (Storage::I8 { chunks, scales }, VectorPayload::I8 { scale, values }) => {
+                pack_lanes_i8_into(values, slot_lanes_mut(chunks, lanes, slot));
+                scales[slot as usize] = scale;
+            }
+            (Storage::F32 { .. }, VectorPayload::I8 { .. })
+            | (Storage::I8 { .. }, VectorPayload::F32(_)) => {
+                unreachable!("payload kind is validated before a slot is written")
+            }
+        }
     }
 
     fn mark_alive(&mut self, slot: u32) {
@@ -237,6 +502,37 @@ impl VectorArena {
 
     fn mark_dead(&mut self, slot: u32) {
         self.alive[slot as usize / 64] &= !(1u64 << (slot % 64));
+    }
+}
+
+fn cosine_distance(dot: f64, denominator: f64) -> f32 {
+    if denominator == 0.0 {
+        return 1.0;
+    }
+    (1.0 - (dot / denominator).clamp(-1.0, 1.0)) as f32
+}
+
+fn slot_lanes<T>(chunks: &[Vec<T>], lanes_per_vector: usize, slot: u32) -> &[T] {
+    let start = (slot as usize % VECTORS_PER_CHUNK) * lanes_per_vector;
+    &chunks[slot as usize / VECTORS_PER_CHUNK][start..start + lanes_per_vector]
+}
+
+fn slot_lanes_mut<T>(chunks: &mut [Vec<T>], lanes_per_vector: usize, slot: u32) -> &mut [T] {
+    let start = (slot as usize % VECTORS_PER_CHUNK) * lanes_per_vector;
+    &mut chunks[slot as usize / VECTORS_PER_CHUNK][start..start + lanes_per_vector]
+}
+
+fn move_lanes<T: Copy>(chunks: &mut [Vec<T>], lanes: usize, src: u32, dst: u32) {
+    let src_chunk = src as usize / VECTORS_PER_CHUNK;
+    let dst_chunk = dst as usize / VECTORS_PER_CHUNK;
+    let src_start = (src as usize % VECTORS_PER_CHUNK) * lanes;
+    let dst_start = (dst as usize % VECTORS_PER_CHUNK) * lanes;
+    if src_chunk == dst_chunk {
+        chunks[src_chunk].copy_within(src_start..src_start + lanes, dst_start);
+    } else {
+        let (front, back) = chunks.split_at_mut(src_chunk);
+        front[dst_chunk][dst_start..dst_start + lanes]
+            .copy_from_slice(&back[0][src_start..src_start + lanes]);
     }
 }
 
@@ -255,6 +551,15 @@ mod tests {
             .collect()
     }
 
+    fn seeded_unit_vector(seed: u64, dims: usize) -> Vec<f32> {
+        let mut values = seeded_vector(seed, dims);
+        let norm = values.iter().map(|value| value * value).sum::<f32>().sqrt();
+        for value in &mut values {
+            *value /= norm;
+        }
+        values
+    }
+
     fn basis_vector(dims: usize, axis: usize) -> Vec<f32> {
         let mut values = vec![0.0; dims];
         values[axis] = 1.0;
@@ -271,18 +576,72 @@ mod tests {
         arena
     }
 
+    fn lane_address(query: Query<'_>) -> usize {
+        match query {
+            Query::F32(lanes, _) => lanes.as_ptr() as usize,
+            Query::I8 { lanes, .. } => lanes.as_ptr() as usize,
+        }
+    }
+
+    fn stored_i8(arena: &VectorArena, slot: u32) -> (f32, Vec<i8>) {
+        match arena.stored_vector(slot) {
+            StoredVector::I8 { scale, values } => (scale, values),
+            StoredVector::F32(_) => panic!("expected i8 storage"),
+        }
+    }
+
     #[test]
     fn rejects_invalid_dimensions() {
         assert!(matches!(
             VectorArena::new(0),
-            Err(VecDbError::InvalidDimensions(0))
+            Err(VecDbError::InvalidDimensions {
+                dims: 0,
+                storage: StorageKind::F32
+            })
         ));
         assert!(matches!(
             VectorArena::new(12),
-            Err(VecDbError::InvalidDimensions(12))
+            Err(VecDbError::InvalidDimensions {
+                dims: 12,
+                storage: StorageKind::F32
+            })
         ));
         assert!(VectorArena::new(8).is_ok());
         assert!(VectorArena::new(512).is_ok());
+    }
+
+    #[test]
+    fn i8_storage_requires_a_nonzero_multiple_of_32_dims() {
+        for dims in [0usize, 8, 16, 24, 40, 100] {
+            assert!(matches!(
+                VectorArena::with_storage(dims, StorageKind::I8),
+                Err(VecDbError::InvalidDimensions {
+                    dims: rejected,
+                    storage: StorageKind::I8
+                }) if rejected == dims
+            ));
+        }
+        for dims in [32usize, 64, 512, 1024] {
+            let arena = VectorArena::with_storage(dims, StorageKind::I8).unwrap();
+            assert_eq!(arena.storage_kind(), StorageKind::I8);
+            assert_eq!(arena.dims(), dims);
+        }
+        assert_eq!(
+            VectorArena::with_storage(8, StorageKind::F32)
+                .unwrap()
+                .storage_kind(),
+            StorageKind::F32
+        );
+        assert_eq!(
+            VectorArena::new(8).unwrap().storage_kind(),
+            StorageKind::F32
+        );
+        let Err(error) = VectorArena::with_storage(8, StorageKind::I8) else {
+            panic!("expected an invalid dimensions error");
+        };
+        let message = error.to_string();
+        assert!(message.contains("i8"));
+        assert!(message.contains("32"));
     }
 
     #[test]
@@ -325,6 +684,62 @@ mod tests {
                 actual: 24
             })
         ));
+        let mut i8_arena = VectorArena::with_storage(32, StorageKind::I8).unwrap();
+        assert!(matches!(
+            i8_arena.upsert("key", &seeded_vector(1, 64)),
+            Err(VecDbError::DimensionMismatch {
+                expected: 32,
+                actual: 64
+            })
+        ));
+        assert!(matches!(
+            i8_arena.pack_query(&seeded_vector(1, 8)),
+            Err(VecDbError::DimensionMismatch {
+                expected: 32,
+                actual: 8
+            })
+        ));
+        assert_eq!(i8_arena.slot_count(), 0);
+    }
+
+    #[test]
+    fn payload_kind_must_match_the_arena_storage() {
+        let mut f32_arena = VectorArena::new(32).unwrap();
+        let mut i8_arena = VectorArena::with_storage(32, StorageKind::I8).unwrap();
+        let values = seeded_vector(3, 32);
+        let quantized = StoredVector::quantize(&values);
+        assert!(matches!(
+            f32_arena.upsert_payload("k", quantized.as_payload()),
+            Err(VecDbError::StorageMismatch {
+                expected: StorageKind::F32,
+                actual: StorageKind::I8
+            })
+        ));
+        assert!(matches!(
+            i8_arena.upsert_payload("k", VectorPayload::F32(&values)),
+            Err(VecDbError::StorageMismatch {
+                expected: StorageKind::I8,
+                actual: StorageKind::F32
+            })
+        ));
+        assert_eq!(f32_arena.slot_count(), 0);
+        assert_eq!(i8_arena.slot_count(), 0);
+        assert!(f32_arena.slot_of_key("k").is_none());
+        assert!(i8_arena.slot_of_key("k").is_none());
+        assert_eq!(
+            f32_arena
+                .upsert_payload("k", VectorPayload::F32(&values))
+                .unwrap(),
+            UpsertOutcome::NewSlot(0)
+        );
+        assert_eq!(
+            i8_arena
+                .upsert_payload("k", quantized.as_payload())
+                .unwrap(),
+            UpsertOutcome::NewSlot(0)
+        );
+        assert_eq!(f32_arena.vector_values(0), values);
+        assert_eq!(i8_arena.stored_vector(0), quantized);
     }
 
     #[test]
@@ -558,7 +973,7 @@ mod tests {
                 .upsert(&format!("key-{index}"), &seeded_vector(index, 8))
                 .unwrap();
         }
-        assert_eq!(arena.chunks.len(), 2);
+        assert_eq!(arena.storage.chunk_count(), 2);
         for index in (0..1000u64).step_by(2) {
             assert!(arena.remove(&format!("key-{index}")).is_some());
         }
@@ -575,7 +990,7 @@ mod tests {
         let live = count - 500;
         assert_eq!(arena.live_count(), live);
         assert_eq!(arena.slot_count(), live);
-        assert_eq!(arena.chunks.len(), 1);
+        assert_eq!(arena.storage.chunk_count(), 1);
         assert_eq!(arena.alive.len(), live.div_ceil(64));
         assert!(arena.free_slots.is_empty());
         for (index, (key, vector)) in expected.iter().enumerate() {
@@ -583,7 +998,7 @@ mod tests {
             assert_eq!(&arena.vector_values(index as u32), vector);
         }
         for slot in arena.live_slots() {
-            assert_eq!(arena.vector_lanes(slot).as_ptr() as usize % 32, 0);
+            assert_eq!(lane_address(arena.stored_query(slot)) % 32, 0);
         }
     }
 
@@ -618,7 +1033,7 @@ mod tests {
         assert_eq!(arena.live_count(), 0);
         assert_eq!(arena.slot_count(), 0);
         assert_eq!(arena.dead_count(), 0);
-        assert!(arena.chunks.is_empty());
+        assert_eq!(arena.storage.chunk_count(), 0);
         assert!(arena.alive.is_empty());
         assert_eq!(
             arena.upsert("d", &seeded_vector(4, 8)).unwrap(),
@@ -686,8 +1101,27 @@ mod tests {
                 .unwrap();
         }
         for slot in arena.live_slots() {
-            assert_eq!(arena.vector_lanes(slot).as_ptr() as usize % 32, 0);
+            assert_eq!(lane_address(arena.stored_query(slot)) % 32, 0);
         }
+    }
+
+    #[test]
+    fn every_i8_slotted_vector_is_32_byte_aligned_across_chunks() {
+        let mut arena = VectorArena::with_storage(32, StorageKind::I8).unwrap();
+        for index in 0..4200u64 {
+            arena
+                .upsert(&format!("key-{index}"), &seeded_vector(index, 32))
+                .unwrap();
+        }
+        assert_eq!(arena.storage.chunk_count(), 2);
+        assert_eq!(arena.slot_of_key("key-4199"), Some(4199));
+        for slot in arena.live_slots() {
+            assert_eq!(lane_address(arena.stored_query(slot)) % 32, 0);
+        }
+        let Storage::I8 { scales, .. } = &arena.storage else {
+            panic!("expected i8 storage");
+        };
+        assert_eq!(scales.len(), 4200);
     }
 
     #[test]
@@ -698,7 +1132,221 @@ mod tests {
         assert_eq!(arena.distance_between_slots(0, 0), 0.0);
         assert_eq!(arena.distance_between_slots(0, 1), 1.0);
         let query = arena.pack_query(&basis_vector(16, 0)).unwrap();
-        assert_eq!(arena.distance_to_query(&query, 0), 0.0);
-        assert_eq!(arena.distance_to_query(&query, 1), 1.0);
+        assert_eq!(arena.distance_to_query(query.as_query(), 0), 0.0);
+        assert_eq!(arena.distance_to_query(query.as_query(), 1), 1.0);
+    }
+
+    #[test]
+    fn i8_upsert_quantizes_and_reads_back_within_half_a_step() {
+        let dims = 64;
+        let mut arena = VectorArena::with_storage(dims, StorageKind::I8).unwrap();
+        for seed in 0..20u64 {
+            let values = seeded_unit_vector(seed, dims);
+            let key = format!("key-{seed}");
+            assert_eq!(
+                arena.upsert(&key, &values).unwrap(),
+                UpsertOutcome::NewSlot(seed as u32)
+            );
+            let expected = StoredVector::quantize(&values);
+            assert_eq!(arena.stored_vector(seed as u32), expected);
+            let StoredVector::I8 { scale, .. } = expected else {
+                panic!("expected i8 storage");
+            };
+            let read_back = arena.vector_values(seed as u32);
+            assert_eq!(read_back.len(), dims);
+            for (original, restored) in values.iter().zip(&read_back) {
+                assert!((original - restored).abs() <= scale / 2.0 + scale * 1.0e-6);
+            }
+        }
+        assert_eq!(arena.storage_kind(), StorageKind::I8);
+    }
+
+    #[test]
+    fn i8_payloads_are_stored_and_returned_bit_for_bit() {
+        let dims = 32;
+        let mut arena = VectorArena::with_storage(dims, StorageKind::I8).unwrap();
+        let mut values: Vec<i8> = (0..dims as i32)
+            .map(|index| (index * 9 - 127) as i8)
+            .collect();
+        values[0] = -127;
+        values[1] = 127;
+        values[2] = 0;
+        values[3] = -1;
+        let scale = f32::from_bits(0x3a1f_8f3c);
+        let payload = VectorPayload::I8 {
+            scale,
+            values: &values,
+        };
+        assert_eq!(
+            arena.upsert_payload("exact", payload).unwrap(),
+            UpsertOutcome::NewSlot(0)
+        );
+        let (stored_scale, stored_values) = stored_i8(&arena, 0);
+        assert_eq!(stored_scale.to_bits(), scale.to_bits());
+        assert_eq!(stored_values, values);
+        assert_eq!(arena.vector_values(0), dequantize(scale, &values));
+        assert_eq!(
+            arena.upsert_payload("exact", payload).unwrap(),
+            UpsertOutcome::ReplacedInPlace(0)
+        );
+        assert_eq!(stored_i8(&arena, 0), (scale, values.clone()));
+        assert_eq!(arena.remove("exact"), Some(0));
+        assert_eq!(stored_i8(&arena, 0), (scale, values.clone()));
+        let other = VectorPayload::I8 {
+            scale: 0.5,
+            values: &vec![3i8; dims],
+        };
+        assert_eq!(
+            arena.upsert_payload("recycled", other).unwrap(),
+            UpsertOutcome::RecycledSlot(0)
+        );
+        assert_eq!(stored_i8(&arena, 0), (0.5, vec![3i8; dims]));
+    }
+
+    #[test]
+    fn i8_distances_follow_the_scaled_dot_formula() {
+        let dims = 64;
+        let mut arena = VectorArena::with_storage(dims, StorageKind::I8).unwrap();
+        let a = seeded_unit_vector(11, dims);
+        let b = seeded_unit_vector(12, dims);
+        arena.upsert("a", &a).unwrap();
+        arena.upsert("b", &b).unwrap();
+        let (scale_a, values_a) = stored_i8(&arena, 0);
+        let (scale_b, values_b) = stored_i8(&arena, 1);
+        let dot: i32 = values_a
+            .iter()
+            .zip(&values_b)
+            .map(|(x, y)| i32::from(*x) * i32::from(*y))
+            .sum();
+        let expected = 1.0 - dot as f32 * scale_a * scale_b;
+        assert_eq!(
+            arena.distance_between_slots(0, 1).to_bits(),
+            expected.to_bits()
+        );
+        assert_eq!(
+            arena.distance_between_slots(1, 0).to_bits(),
+            expected.to_bits()
+        );
+        let query = arena.pack_query(&a).unwrap();
+        assert_eq!(
+            arena.distance_to_query(query.as_query(), 1).to_bits(),
+            expected.to_bits()
+        );
+        assert_eq!(
+            arena.distance_to_query(arena.stored_query(0), 1).to_bits(),
+            expected.to_bits()
+        );
+        let f32_distance = 1.0 - a.iter().zip(&b).map(|(x, y)| x * y).sum::<f32>();
+        assert!((expected - f32_distance).abs() < 0.01);
+        assert!(arena.distance_between_slots(0, 0).abs() < 0.02);
+    }
+
+    #[test]
+    fn i8_zero_vector_stores_scale_zero_and_sits_at_unit_distance() {
+        let dims = 32;
+        let mut arena = VectorArena::with_storage(dims, StorageKind::I8).unwrap();
+        arena.upsert("zero", &vec![0.0; dims]).unwrap();
+        arena.upsert("unit", &basis_vector(dims, 5)).unwrap();
+        assert_eq!(stored_i8(&arena, 0), (0.0, vec![0i8; dims]));
+        assert_eq!(arena.vector_values(0), vec![0.0; dims]);
+        assert_eq!(arena.distance_between_slots(0, 1), 1.0);
+        assert_eq!(arena.distance_between_slots(0, 0), 1.0);
+        let query = arena.pack_query(&basis_vector(dims, 5)).unwrap();
+        assert_eq!(arena.distance_to_query(query.as_query(), 0), 1.0);
+        let zero_query = arena.pack_query(&vec![0.0; dims]).unwrap();
+        assert!(zero_query.as_query().is_finite());
+        assert_eq!(arena.distance_to_query(zero_query.as_query(), 1), 1.0);
+    }
+
+    #[test]
+    fn non_finite_queries_pack_as_non_finite_for_both_storages() {
+        let f32_arena = VectorArena::new(32).unwrap();
+        let i8_arena = VectorArena::with_storage(32, StorageKind::I8).unwrap();
+        for bad in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            let mut values = seeded_vector(1, 32);
+            values[7] = bad;
+            assert!(
+                !f32_arena
+                    .pack_query(&values)
+                    .unwrap()
+                    .as_query()
+                    .is_finite()
+            );
+            assert!(!i8_arena.pack_query(&values).unwrap().as_query().is_finite());
+        }
+        let values = seeded_vector(2, 32);
+        assert!(
+            f32_arena
+                .pack_query(&values)
+                .unwrap()
+                .as_query()
+                .is_finite()
+        );
+        assert!(i8_arena.pack_query(&values).unwrap().as_query().is_finite());
+    }
+
+    #[test]
+    fn i8_compact_in_place_moves_scales_with_their_vectors_across_chunks() {
+        let dims = 32;
+        let mut arena = VectorArena::with_storage(dims, StorageKind::I8).unwrap();
+        let count = VECTORS_PER_CHUNK + 200;
+        for index in 0..count as u64 {
+            arena
+                .upsert(&format!("key-{index}"), &seeded_vector(index, dims))
+                .unwrap();
+        }
+        assert_eq!(arena.storage.chunk_count(), 2);
+        for index in (0..900u64).step_by(3) {
+            assert!(arena.remove(&format!("key-{index}")).is_some());
+        }
+        let expected: Vec<(String, StoredVector)> = arena
+            .live_slots()
+            .map(|slot| {
+                (
+                    arena.key_of_slot(slot).unwrap().to_string(),
+                    arena.stored_vector(slot),
+                )
+            })
+            .collect();
+        arena.compact_in_place();
+        assert_eq!(arena.live_count(), count - 300);
+        assert_eq!(arena.slot_count(), count - 300);
+        assert_eq!(arena.storage.chunk_count(), 1);
+        let Storage::I8 { scales, .. } = &arena.storage else {
+            panic!("expected i8 storage");
+        };
+        assert_eq!(scales.len(), count - 300);
+        for (index, (key, stored)) in expected.iter().enumerate() {
+            let slot = index as u32;
+            assert_eq!(arena.slot_of_key(key), Some(slot));
+            assert_eq!(&arena.stored_vector(slot), stored);
+            assert_eq!(lane_address(arena.stored_query(slot)) % 32, 0);
+        }
+        assert_eq!(
+            arena.upsert("fresh", &seeded_vector(9999, dims)).unwrap(),
+            UpsertOutcome::NewSlot((count - 300) as u32)
+        );
+    }
+
+    #[test]
+    fn i8_arena_reports_a_quarter_of_the_f32_vector_memory() {
+        let dims = 512;
+        let mut f32_arena = VectorArena::new(dims).unwrap();
+        let mut i8_arena = VectorArena::with_storage(dims, StorageKind::I8).unwrap();
+        assert_eq!(f32_arena.vector_memory_bytes(), 0);
+        assert_eq!(i8_arena.vector_memory_bytes(), 0);
+        for index in 0..100u64 {
+            let values = seeded_vector(index, dims);
+            f32_arena.upsert(&format!("key-{index}"), &values).unwrap();
+            i8_arena.upsert(&format!("key-{index}"), &values).unwrap();
+        }
+        assert_eq!(
+            f32_arena.vector_memory_bytes(),
+            VECTORS_PER_CHUNK * dims * size_of::<f32>()
+        );
+        assert_eq!(
+            i8_arena.vector_memory_bytes(),
+            VECTORS_PER_CHUNK * dims + 100 * size_of::<f32>()
+        );
     }
 }

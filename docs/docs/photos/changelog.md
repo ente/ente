@@ -7,6 +7,18 @@ description: Release notes of recent updates to Ente Photos mobile and desktop a
 
 A short summary list of changes to the Ente Photos mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v1.7.29 (desktop) - Sep 2026
+
+- New accounts now select storage plan before entering their gallery.
+- Fixed invalid aperture values appearing as NaN in file info.
+- Added support for moving photos between hidden albums.
+- Fix hidden album quick link visibility.
+- Improved desktop title bars to follow the selected theme on Windows and Linux.
+- Fixed Home and End key navigation in the search bar.
+- Improved video streaming security by keeping auth tokens out of stream URLs.
+- Added a processed percentage under Streamable videos in Preferences.
+- Fixed the duplicate Empty Trash action and disabled it while photos are selected.
+
 ## v1.3.63 (mobile) - Sep 2026
 
 - Added Library Sharing for automatically sharing current and future albums with family members.

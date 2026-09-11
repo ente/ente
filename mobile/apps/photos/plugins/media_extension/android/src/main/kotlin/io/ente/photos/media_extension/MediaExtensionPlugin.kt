@@ -2,6 +2,7 @@ package io.ente.photos.media_extension
 
 import android.app.Activity
 import android.content.ClipData
+import android.content.ComponentName
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
@@ -420,7 +421,9 @@ class MediaExtensionPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             .putExtra("mimeType", mimeType)
             .setDataAndType(getShareableUri(activity!!.applicationContext, uri), mimeType)
-        val started = safeStartActivityChooser(title, intent)
+        val wallpaperIntent = Intent(intent)
+            .setComponent(ComponentName(context, "io.ente.photos.WallpaperActivity"))
+        val started = safeStartActivityChooser(title, intent, arrayOf(wallpaperIntent))
         result.success(started)
     }
 
@@ -476,13 +479,22 @@ class MediaExtensionPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         }
     }
 
-    private fun safeStartActivityChooser(title: String?, intent: Intent): Boolean {
-        if (activity?.let { intent.resolveActivity(it.packageManager) } == null) {
+    private fun safeStartActivityChooser(
+        title: String?,
+        intent: Intent,
+        initialIntents: Array<Intent> = emptyArray(),
+    ): Boolean {
+        val currentActivity = activity ?: return false
+        if (intent.resolveActivity(currentActivity.packageManager) == null) {
             Log.i(logTag, " intent=$intent resolved activity return null")
             //return false
         }
         try {
-            activity?.startActivity(Intent.createChooser(intent, title))
+            val chooser = Intent.createChooser(intent, title)
+            if (initialIntents.isNotEmpty()) {
+                chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, initialIntents)
+            }
+            currentActivity.startActivity(chooser)
             return true
         } catch (e: SecurityException) {
             if (intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION != 0) {
@@ -491,7 +503,7 @@ class MediaExtensionPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 // so we retry without it
                 Log.i(logTag, "retry intent=$intent without FLAG_GRANT_WRITE_URI_PERMISSION")
                 intent.flags = intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION.inv()
-                return safeStartActivityChooser(title, intent)
+                return safeStartActivityChooser(title, intent, initialIntents)
             } else {
                 Log.w(logTag, "failed to start activity chooser for intent=$intent", e)
             }

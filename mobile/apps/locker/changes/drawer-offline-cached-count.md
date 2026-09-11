@@ -1,1 +1,0 @@
-- Show last cached count of items stored when offline instead of a spinner. (@r4khul)

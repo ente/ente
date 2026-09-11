@@ -104,9 +104,8 @@ fn wait_for_museum(process: &mut ChildProcess, port: u16) -> TestResult {
 }
 
 fn ping(port: u16) -> TestResult<bool> {
-    let mut stream = match TcpStream::connect((LOCAL_HOST, port)) {
-        Ok(stream) => stream,
-        Err(_) => return Ok(false),
+    let Ok(mut stream) = TcpStream::connect((LOCAL_HOST, port)) else {
+        return Ok(false);
     };
     stream.set_read_timeout(Some(Duration::from_secs(2)))?;
     stream.write_all(b"GET /ping HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")?;

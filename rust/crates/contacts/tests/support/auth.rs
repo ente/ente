@@ -1,6 +1,8 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use ente_accounts::auth::{SrpSession, generate_srp_setup_with_login_key};
+use ente_accounts::auth::{
+    SrpSession, generate_srp_setup_with_login_key, recovery_key_from_mnemonic_or_hex,
+};
 use ente_accounts::{
     AccountsClient, AccountsClientConfig, AuthFlow, AuthFlowUi, AuthenticatedAccount,
     CreateAccountParams, KeyAttributes, LoginParams, OtpPurpose, SecondFactorMethod,
@@ -27,6 +29,7 @@ pub struct TestAccount {
     pub user_id: i64,
     pub auth_token: String,
     pub master_key: Vec<u8>,
+    pub recovery_key: Vec<u8>,
     pub secret_key: Vec<u8>,
     pub key_attributes: KeyAttributes,
 }
@@ -230,6 +233,7 @@ pub async fn create_fixture_account(endpoint: &str, email_prefix: &str) -> TestA
         user_id: verification.id,
         auth_token,
         master_key: master_key.as_bytes().to_vec(),
+        recovery_key: recovery_key.as_bytes().to_vec(),
         secret_key: secret_key.as_bytes().to_vec(),
         key_attributes,
     }
@@ -309,10 +313,14 @@ pub fn test_account_from_authenticated(
     password: String,
     authenticated: AuthenticatedAccount,
 ) -> TestAccount {
-    assert!(
-        authenticated.recovery_key.is_some(),
-        "signup should return a recovery key"
-    );
+    let recovery_key = recovery_key_from_mnemonic_or_hex(
+        authenticated
+            .recovery_key
+            .as_deref()
+            .expect("authentication should return a recovery key"),
+    )
+    .expect("authentication recovery key should be valid")
+    .into_vec();
 
     TestAccount {
         email,
@@ -320,6 +328,7 @@ pub fn test_account_from_authenticated(
         user_id: authenticated.user_id,
         auth_token: auth_token_from_authenticated(&authenticated),
         master_key: authenticated.secrets.master_key.clone(),
+        recovery_key,
         secret_key: authenticated.secrets.secret_key.clone(),
         key_attributes: authenticated.key_attributes,
     }

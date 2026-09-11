@@ -1,4 +1,12 @@
 {
+  "wallpaper": "Wallpaper",
+  "setWallpaper": "Set wallpaper",
+  "wallpaperHome": "Home screen",
+  "wallpaperLock": "Lock screen",
+  "wallpaperBoth": "Home and lock screens",
+  "wallpaperSet": "Wallpaper set",
+  "wallpaperFailed": "Could not set wallpaper",
+  "wallpaperUnavailable": "Wallpaper changes are not allowed on this device",
   "about": "About",
   "acceptTrustInvite": "Accept invite",
   "account": "Account",
@@ -1517,6 +1525,22 @@
       }
     }
   },
+  "memoryLaneAgeCaption": "{name} was {count, plural, one{{age} year old} other{{age} years old}}",
+  "@memoryLaneAgeCaption": {
+    "description": "Memory Lane age caption. The age placeholder is rendered as a separate, larger text widget; count selects the plural form.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "age": {
+        "type": "String",
+        "description": "Placeholder for the separately styled age number; retain this placeholder in every plural form."
+      }
+    }
+  },
   "facesTimelinePlaybackPause": "Pause",
   "@facesTimelinePlaybackPause": {
     "description": "Tooltip or semantics label for the pause button"
@@ -2515,6 +2539,20 @@
       }
     }
   },
+  "memoryLaneCardTitle": "{nameEndsWithS, select, true{{name}’ memory lane} other{{name}’s memory lane}}",
+  "@memoryLaneCardTitle": {
+    "description": "Title for a person's Memory Lane, used on the home screen card, viewer page, and shared link",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      },
+      "nameEndsWithS": {
+        "type": "String",
+        "description": "true if the trimmed name ends in s or S; false otherwise"
+      }
+    }
+  },
   "memoryLink": "Memory link",
   "memoryShareLinkDescription": "This link will automatically expire in 7 days.",
   "merchandise": "Merchandise",
@@ -2986,6 +3024,22 @@
   "photoLibraryAddPermissionRequired": "Ente needs permission to save photos and videos to Apple Photos. You can allow access in Settings.",
   "photoLibraryAddPermissionRestricted": "Photo Library access is restricted on this device.",
   "photoOrder": "Photo order",
+  "photoViewerFilmstripLabel": "Photo chooser",
+  "@photoViewerFilmstripLabel": {
+    "description": "Accessibility label for the thumbnail filmstrip in the photo viewer"
+  },
+  "photoViewerFilmstripPosition": "Photo {current} of {total}",
+  "@photoViewerFilmstripPosition": {
+    "description": "Accessibility position within the thumbnail filmstrip in the photo viewer",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "photos": "Photos",
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Photos added by you will be removed from the album",
   "photosAndVideosCount": "{count, plural, one{{formattedCount} photo & video} other{{formattedCount} photos & videos}}",
@@ -4917,5 +4971,17 @@
       }
     }
   },
-  "grantAccess": "Grant access"
+  "grantAccess": "Grant access",
+  "sharePhotos": "Share photos",
+  "sharePersonPhotos": "Share {name}’s photos",
+  "@sharePersonPhotos": {"placeholders": {"name": {"type": "String"}}},
+  "unnamedPersonAlbumName": "Portrait - {date}",
+  "@unnamedPersonAlbumName": {"placeholders": {"date": {"type": "String"}}},
+  "shareAllPersonPhotos": "Share all photos",
+  "shareAllPersonPhotosDescription": "All photos of {name} including future ones",
+  "@shareAllPersonPhotosDescription": {"placeholders": {"name": {"type": "String"}}},
+  "personShareFailedTitle": "Could not share photos",
+  "personShareFailedBody": "The shared album could not be created. Your photos and selection are unchanged. Please try again.",
+  "personShareRollbackFailed": "The share did not finish, and the album “{name}” could not be removed. It remains in Albums and may have an active public link. Review or delete it there before trying again. Your original photos are safe.",
+  "@personShareRollbackFailed": {"placeholders": {"name": {"type": "String"}}}
 }

@@ -42,7 +42,7 @@ impl SrpSession {
 
         let mut a_private = vec![0u8; 64];
         getrandom::fill(&mut a_private)
-            .map_err(|e| Error::Srp(format!("Failed to generate random bytes: {}", e)))?;
+            .map_err(|e| Error::Srp(format!("Failed to generate random bytes: {e}")))?;
 
         let a_public = client.compute_public_ephemeral(&a_private);
 
@@ -76,7 +76,7 @@ impl SrpSession {
                 &self.salt,
                 server_b,
             )
-            .map_err(|e| Error::Srp(format!("Failed to process server response: {:?}", e)))?;
+            .map_err(|e| Error::Srp(format!("Failed to process server response: {e:?}")))?;
 
         // The srp crate uses S directly for M2, but our server uses K = H(S).
         let s = verifier.key();

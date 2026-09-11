@@ -367,16 +367,14 @@ export const refreshSpaceHomePosts = async (
     const returnedPostsByID = new Map(
         result.items.map((post) => [post.postId, post]),
     );
-    const discoveredPosts = savedMarker
-        ? result.items.filter((post) => {
-              if (isAfter(post, savedMarker)) return true;
-              if (latestPosts.get(post.spaceId)?.postId != post.postId) {
-                  return false;
-              }
-              const savedLatestPost = savedLatestPostsBySpace.get(post.spaceId);
-              return !savedLatestPost || isAfter(post, savedLatestPost);
-          })
-        : [];
+    const discoveredPosts = result.items.filter((post) => {
+        if (savedMarker && isAfter(post, savedMarker)) return true;
+        if (latestPosts.get(post.spaceId)?.postId != post.postId) {
+            return false;
+        }
+        const savedLatestPost = savedLatestPostsBySpace.get(post.spaceId);
+        return !savedLatestPost || isAfter(post, savedLatestPost);
+    });
     const nextMarker = markerFromCursor(result.syncCursor);
     return updateState(viewerSpaceId, (state) => {
         const currentMarker = markerFromCursor(state.syncCursor);

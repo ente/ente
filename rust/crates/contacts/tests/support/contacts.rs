@@ -81,6 +81,7 @@ pub fn open_client(endpoint: &str, account: &TestAccount) -> Client {
             api,
             user_id: account.user_id,
             master_key: Key::try_from_slice(&account.master_key).unwrap(),
+            recovery_key: Key::try_from_slice(&account.recovery_key).unwrap(),
             secret_key: ente_core::crypto::SecretKey::try_from_slice(&account.secret_key).unwrap(),
         },
         wrapped_root_contact_key: RwLock::new(None),

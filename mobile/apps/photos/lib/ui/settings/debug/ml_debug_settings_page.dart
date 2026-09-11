@@ -213,6 +213,18 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
               onChanged: _onSemanticSearchExactChanged,
             ),
           ),
+        MenuItemWidgetNew(
+          title: "Rust ML DB",
+          subText: "Active: ${MLDataDB.isRustBackend ? "rust" : "dart"}",
+          leadingIconWidget: _buildIconWidget(
+            context,
+            HugeIcons.strokeRoundedDatabase,
+          ),
+          trailingWidget: ToggleSwitchWidget(
+            value: () => localSettings.rustMlDbOverride,
+            onChanged: _onRustMlDbChanged,
+          ),
+        ),
       ],
     );
   }
@@ -769,6 +781,27 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       }
     } catch (e, s) {
       logger.warning('exact semantic search toggle failed ', e, s);
+      if (mounted) {
+        await showGenericErrorDialog(context: context, error: e);
+      }
+    }
+  }
+
+  Future<void> _onRustMlDbChanged() async {
+    try {
+      final enabled = !localSettings.rustMlDbOverride;
+      await localSettings.setRustMlDbOverride(enabled);
+      logger.info('Rust ML DB override is turned ${enabled ? 'on' : 'off'}');
+      if (!mounted) return;
+      setState(() {});
+      showShortToast(
+        context,
+        enabled
+            ? "Rust ML DB enabled. Restart app."
+            : "Rust ML DB disabled. Restart app.",
+      );
+    } catch (e, s) {
+      logger.warning('Rust ML DB toggle failed ', e, s);
       if (mounted) {
         await showGenericErrorDialog(context: context, error: e);
       }

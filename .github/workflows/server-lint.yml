@@ -1,17 +1,10 @@
 name: "Lint (Server)"
 
 on:
-    pull_request:
-        paths:
-            - ".github/workflows/server-lint.yml"
-            - "server/**"
+    workflow_call:
 
 permissions:
     contents: read
-
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
 
 jobs:
     lint:

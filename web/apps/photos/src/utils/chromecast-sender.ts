@@ -1,40 +1,5 @@
-/* eslint-disable @typescript-eslint/no-namespace */
-// Sender and receiver @types conflict, so declare only the sender APIs used here.
-
-declare global {
-    interface Window {
-        cast: typeof cast;
-        __onGCastApiAvailable(available: boolean, reason?: string): void;
-    }
-}
-
-declare namespace chrome.cast {
-    export enum AutoJoinPolicy {
-        ORIGIN_SCOPED = "origin_scoped",
-    }
-}
-
-declare namespace cast.framework {
-    interface CastOptions {
-        autoJoinPolicy: chrome.cast.AutoJoinPolicy;
-        receiverApplicationId?: string | undefined;
-    }
-
-    class CastContext {
-        static getInstance(): CastContext;
-        setOptions(options: CastOptions): void;
-        requestSession(): Promise<unknown>;
-        getCurrentSession(): CastSession | null;
-    }
-
-    class CastSession {
-        sendMessage(namespace: string, data: unknown): Promise<unknown>;
-        addMessageListener(
-            namespace: string,
-            listener: (namespace: string, message: string) => void,
-        ): void;
-    }
-}
+declare const cast: typeof import("../types/chromecast-sender").cast;
+declare const chrome: typeof import("../types/chromecast-sender").chrome;
 
 export const loadCast = (() => {
     let promise: Promise<typeof cast> | undefined;

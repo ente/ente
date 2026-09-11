@@ -256,21 +256,21 @@ fn heif_protected_metadata_preserves_image_dimensions() {
             let mut location = vec![1, 0, 0, 0, 0x44, 0, 0, 1, 0, 2, 0, 1, 0, 0, 0, 1];
             location.extend(0u32.to_be_bytes());
             location.extend((data.len() as u32).to_be_bytes());
-            let image_size = box_bytes(b"ispe", &[0u32, 640, 480].map(u32::to_be_bytes).concat());
-            let mut properties = box_bytes(b"ipco", &image_size);
-            properties.extend(box_bytes(b"ipma", &[0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1]));
+            let image_size = box_bytes(*b"ispe", &[0u32, 640, 480].map(u32::to_be_bytes).concat());
+            let mut properties = box_bytes(*b"ipco", &image_size);
+            properties.extend(box_bytes(*b"ipma", &[0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1]));
             let mut meta = vec![0; 4];
-            meta.extend(box_bytes(b"pitm", &[0, 0, 0, 0, 0, 1]));
+            meta.extend(box_bytes(*b"pitm", &[0, 0, 0, 0, 0, 1]));
             meta.extend(box_bytes(
-                b"iinf",
-                &[vec![0, 0, 0, 0, 0, 1], box_bytes(b"infe", &info)].concat(),
+                *b"iinf",
+                &[vec![0, 0, 0, 0, 0, 1], box_bytes(*b"infe", &info)].concat(),
             ));
-            meta.extend(box_bytes(b"iloc", &location));
-            meta.extend(box_bytes(b"iprp", &properties));
-            meta.extend(box_bytes(b"idat", data));
+            meta.extend(box_bytes(*b"iloc", &location));
+            meta.extend(box_bytes(*b"iprp", &properties));
+            meta.extend(box_bytes(*b"idat", data));
             let bytes = [
-                box_bytes(b"ftyp", b"heic\0\0\0\0mif1"),
-                box_bytes(b"meta", &meta),
+                box_bytes(*b"ftyp", b"heic\0\0\0\0mif1"),
+                box_bytes(*b"meta", &meta),
             ]
             .concat();
             for mode in [Mode::Summary, Mode::Details] {
@@ -336,27 +336,27 @@ fn heif_metadata_prefers_primary_references() {
                     entry.extend(mime.as_bytes());
                     entry.extend([0, 0]);
                 }
-                info.extend(box_bytes(b"infe", &entry));
+                info.extend(box_bytes(*b"infe", &entry));
                 locations.extend([id, 1, 0, 1].map(u16::to_be_bytes).concat());
                 locations.extend((data.len() as u32).to_be_bytes());
                 locations.extend((value.len() as u32).to_be_bytes());
                 data.extend(value);
                 if let Some(target) = target {
                     references.extend(box_bytes(
-                        b"cdsc",
+                        *b"cdsc",
                         &[id, 1, target].map(u16::to_be_bytes).concat(),
                     ));
                 }
             }
             let mut meta = vec![0; 4];
-            meta.extend(box_bytes(b"pitm", &[0, 0, 0, 0, 0, 1]));
-            meta.extend(box_bytes(b"iinf", &info));
-            meta.extend(box_bytes(b"iloc", &locations));
-            meta.extend(box_bytes(b"iref", &references));
-            meta.extend(box_bytes(b"idat", &data));
+            meta.extend(box_bytes(*b"pitm", &[0, 0, 0, 0, 0, 1]));
+            meta.extend(box_bytes(*b"iinf", &info));
+            meta.extend(box_bytes(*b"iloc", &locations));
+            meta.extend(box_bytes(*b"iref", &references));
+            meta.extend(box_bytes(*b"idat", &data));
             let bytes = [
-                box_bytes(b"ftyp", b"heic\0\0\0\0mif1"),
-                box_bytes(b"meta", &meta),
+                box_bytes(*b"ftyp", b"heic\0\0\0\0mif1"),
+                box_bytes(*b"meta", &meta),
             ]
             .concat();
             for mode in [Mode::Summary, Mode::Details] {
@@ -397,9 +397,9 @@ fn png_keywords_use_latin1_and_text_obeys_its_chunk_encoding() {
     ] {
         let bytes = [
             b"\x89PNG\r\n\x1a\n".to_vec(),
-            png_chunk(b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]),
-            png_chunk(kind, &value),
-            png_chunk(b"IEND", &[]),
+            png_chunk(*b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]),
+            png_chunk(*kind, &value),
+            png_chunk(*b"IEND", &[]),
         ]
         .concat();
         let details = read(&bytes, Mode::Details);
@@ -468,13 +468,13 @@ fn png_summary_skips_text_within_a_small_read_budget() {
             };
             let bytes = [
                 b"\x89PNG\r\n\x1a\n".to_vec(),
-                png_chunk(b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 2, 8, 2, 0, 0, 0]),
+                png_chunk(*b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 2, 8, 2, 0, 0, 0]),
                 png_chunk(
-                    kind,
+                    *kind,
                     &[vec![b'C'; 79], vec![0], fields.to_vec(), text].concat(),
                 ),
-                png_chunk(b"eXIf", &tiff(&[(0x112, 3, 1, vec![6, 0])], false)),
-                png_chunk(b"IEND", &[]),
+                png_chunk(*b"eXIf", &tiff(&[(0x112, 3, 1, vec![6, 0])], false)),
+                png_chunk(*b"IEND", &[]),
             ]
             .concat();
             let limits = ente_exif::Limits {
@@ -643,9 +643,9 @@ fn extended_xmp_reorders_fragments_and_rejects_overlap() {
 #[test]
 fn motion_requires_real_boxes_and_respects_explicit_disable() {
     let video = [
-        box_bytes(b"ftyp", b"isom\0\0\0\0isom"),
-        box_bytes(b"moov", &[]),
-        box_bytes(b"mdat", &[0; 256]),
+        box_bytes(*b"ftyp", b"isom\0\0\0\0isom"),
+        box_bytes(*b"moov", &[]),
+        box_bytes(*b"mdat", &[0; 256]),
     ]
     .concat();
     for flag in ["0", "1"] {
@@ -676,9 +676,9 @@ fn motion_requires_real_boxes_and_respects_explicit_disable() {
 #[test]
 fn motion_directory_accounts_for_primary_padding() {
     let video = [
-        box_bytes(b"ftyp", b"isom\0\0\0\0isom"),
-        box_bytes(b"moov", &[]),
-        box_bytes(b"mdat", &[0; 256]),
+        box_bytes(*b"ftyp", b"isom\0\0\0\0isom"),
+        box_bytes(*b"moov", &[]),
+        box_bytes(*b"mdat", &[0; 256]),
     ]
     .concat();
     let xml = xmp(&format!(
@@ -702,11 +702,11 @@ fn png_text_encoding_and_bad_compressed_block_recovery() {
     let ihdr = [vec![0, 0, 0, 1, 0, 0, 0, 1], vec![8, 2, 0, 0, 0]].concat();
     let bytes = [
         b"\x89PNG\r\n\x1a\n".to_vec(),
-        png_chunk(b"IHDR", &ihdr),
-        png_chunk(b"tEXt", b"Author\0Andr\xe9"),
-        png_chunk(b"iTXt", "Description\0\0\0\0\0Snow ☃".as_bytes()),
-        png_chunk(b"zTXt", b"Broken\0\0invalid zlib"),
-        png_chunk(b"IEND", &[]),
+        png_chunk(*b"IHDR", &ihdr),
+        png_chunk(*b"tEXt", b"Author\0Andr\xe9"),
+        png_chunk(*b"iTXt", "Description\0\0\0\0\0Snow ☃".as_bytes()),
+        png_chunk(*b"zTXt", b"Broken\0\0invalid zlib"),
+        png_chunk(*b"IEND", &[]),
     ]
     .concat();
     let metadata = read(&bytes, Mode::Details);
@@ -728,9 +728,9 @@ fn motion_accepts_compatible_brands_but_not_the_minor_version() {
         (b"newv\0\0\0\0iso".as_slice(), false, true),
     ] {
         let video = [
-            box_bytes(b"ftyp", brands),
-            box_bytes(b"moov", &[]),
-            box_bytes(b"mdat", &[0; 16]),
+            box_bytes(*b"ftyp", brands),
+            box_bytes(*b"moov", &[]),
+            box_bytes(*b"mdat", &[0; 16]),
         ]
         .concat();
         let packet = xmp(&format!(
@@ -755,7 +755,10 @@ fn motion_accepts_compatible_brands_but_not_the_minor_version() {
 #[test]
 fn png_itxt_preserves_languages_with_and_without_compression() {
     let mut bytes = b"\x89PNG\r\n\x1a\n".to_vec();
-    bytes.extend(png_chunk(b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]));
+    bytes.extend(png_chunk(
+        *b"IHDR",
+        &[0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0],
+    ));
     for (language, text, compressed) in [
         ("en", "Snow", false),
         ("fr", "Neige", true),
@@ -770,9 +773,9 @@ fn png_itxt_preserves_languages_with_and_without_compression() {
         } else {
             text.as_bytes().to_vec()
         });
-        bytes.extend(png_chunk(b"iTXt", &data));
+        bytes.extend(png_chunk(*b"iTXt", &data));
     }
-    bytes.extend(png_chunk(b"IEND", &[]));
+    bytes.extend(png_chunk(*b"IEND", &[]));
     let metadata = read(&bytes, Mode::Details);
     let values: Vec<_> = metadata
         .properties("urn:png:text", "Description")

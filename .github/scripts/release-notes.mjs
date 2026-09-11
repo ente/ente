@@ -7,7 +7,9 @@ import { spawnSync } from "node:child_process";
 const [changesDir, previousRef] = process.argv.slice(2);
 
 if (!changesDir) {
-    console.error("Usage: node .github/scripts/release-notes.mjs <changes-dir> [previous-ref]");
+    console.error(
+        "Usage: node .github/scripts/release-notes.mjs <changes-dir> [previous-ref]",
+    );
     process.exit(2);
 }
 
@@ -17,7 +19,10 @@ function git(args) {
 }
 
 function readMarkdown(file) {
-    return fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n").replace(/\n?$/, "\n");
+    return fs
+        .readFileSync(file, "utf8")
+        .replace(/\r\n/g, "\n")
+        .replace(/\n?$/, "\n");
 }
 
 function changesetFiles(dir) {
@@ -35,7 +40,10 @@ function changesetFilesAtRef(dir, ref) {
     return git(["ls-tree", "-r", "--name-only", ref, "--", prefix])
         .split("\n")
         .filter((file) => path.dirname(file) === prefix)
-        .filter((file) => file.endsWith(".md") && path.basename(file) !== "README.md")
+        .filter(
+            (file) =>
+                file.endsWith(".md") && path.basename(file) !== "README.md",
+        )
         .sort();
 }
 
@@ -46,7 +54,11 @@ function currentBody() {
 function previousBody() {
     if (!previousRef) return "";
     return changesetFilesAtRef(changesDir, previousRef)
-        .map((file) => git(["show", `${previousRef}:${file}`]).replace(/\r\n/g, "\n").replace(/\n?$/, "\n"))
+        .map((file) =>
+            git(["show", `${previousRef}:${file}`])
+                .replace(/\r\n/g, "\n")
+                .replace(/\n?$/, "\n"),
+        )
         .join("")
         .trim();
 }
@@ -59,15 +71,18 @@ function releaseNotes(body, previous) {
         (previousLines.has(line) ? previousAgain : latest).push(line);
     }
 
-    const groupedBody =
-        previousAgain.length
-            ? [latest.join("\n"), `Previous changes:\n${previousAgain.join("\n")}`].filter(Boolean).join("\n\n")
-            : body;
+    const groupedBody = previousAgain.length
+        ? [latest.join("\n"), `Previous changes:\n${previousAgain.join("\n")}`]
+              .filter(Boolean)
+              .join("\n\n")
+        : body;
     return { groupedBody, hasNewChanges: latest.length > 0 };
 }
 
 function playStoreBody(body) {
-    return Array.from(body || "Bug fixes and improvements").slice(0, 500).join("");
+    return Array.from(body || "Bug fixes and improvements")
+        .slice(0, 500)
+        .join("");
 }
 
 function output(name, text) {

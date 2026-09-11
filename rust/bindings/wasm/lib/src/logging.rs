@@ -49,6 +49,10 @@ impl log::Log for WasmLogger {
 
 #[wasm_bindgen(start)]
 fn start() {
+    #[expect(
+        clippy::expect_used,
+        reason = "Initialization requires exclusive ownership of the process logger"
+    )]
     log::set_logger(&LOGGER).expect("Rust logger already initialized");
     log::set_max_level(log::LevelFilter::Info);
 }

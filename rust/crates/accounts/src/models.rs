@@ -54,10 +54,7 @@ impl TryFrom<AuthResponseWire> for AuthResponse {
             .passkey_session_id
             .as_ref()
             .is_some_and(|session_id| !session_id.is_empty())
-            && value
-                .accounts_url
-                .as_ref()
-                .is_none_or(|accounts_url| accounts_url.is_empty())
+            && value.accounts_url.as_ref().is_none_or(String::is_empty)
         {
             return Err("accountsUrl is required when passkeySessionID is present".into());
         }

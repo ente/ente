@@ -1,10 +1,5 @@
-import "dart:convert";
-
-import "package:ente_accounts/models/set_keys_request.dart";
-import "package:ente_base/models/key_attributes.dart";
-import "package:ente_crypto_api/ente_crypto_api.dart";
+import "package:ente_legacy/legacy_api.dart";
 import "package:ente_legacy/models/emergency_models.dart";
-import "package:ente_legacy/services/emergency_service.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/buttons/dynamic_fab.dart";
 import "package:ente_ui/utils/dialog_util.dart";
@@ -14,14 +9,12 @@ import "package:logging/logging.dart";
 import "package:password_strength/password_strength.dart";
 
 class RecoverOthersAccount extends StatefulWidget {
-  final String recoveryKey;
-  final KeyAttributes attributes;
-  final RecoverySessions sessions;
+  final LegacyRecoverySession session;
+  final LegacyApi legacy;
 
-  const RecoverOthersAccount(
-    this.recoveryKey,
-    this.attributes,
-    this.sessions, {
+  const RecoverOthersAccount({
+    required this.session,
+    required this.legacy,
     super.key,
   });
 
@@ -107,7 +100,7 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
   }
 
   Widget _getBody(String buttonTextAndHeading) {
-    final email = widget.sessions.user.email;
+    final email = widget.session.user.email;
     var passwordStrengthText = context.strings.weakStrength;
     var passwordStrengthColor = Colors.redAccent;
     if (_passwordStrength > kStrongPasswordStrengthThreshold) {
@@ -291,49 +284,9 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
     );
     await dialog.show();
     try {
-      final String password = _passwordController1.text;
-      final KeyAttributes attributes = widget.attributes;
-      Uint8List? masterKey;
-      try {
-        masterKey = await CryptoUtil.decrypt(
-          CryptoUtil.base642bin(attributes.masterKeyEncryptedWithRecoveryKey),
-          CryptoUtil.hex2bin(widget.recoveryKey),
-          CryptoUtil.base642bin(attributes.masterKeyDecryptionNonce),
-        );
-      } catch (e) {
-        _logger.severe(e, "Failed to get master key using recoveryKey");
-        rethrow;
-      }
-
-      final kekSalt = CryptoUtil.getSaltToDeriveKey();
-      final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
-        utf8.encode(password),
-        kekSalt,
-      );
-      final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
-      final encryptedKeyData = CryptoUtil.encryptSync(
-        masterKey,
-        derivedKeyResult.key,
-      );
-
-      final updatedAttributes = attributes.copyWith(
-        kekSalt: CryptoUtil.bin2base64(kekSalt),
-        encryptedKey: CryptoUtil.bin2base64(encryptedKeyData.encryptedData!),
-        keyDecryptionNonce: CryptoUtil.bin2base64(encryptedKeyData.nonce!),
-        memLimit: derivedKeyResult.memLimit,
-        opsLimit: derivedKeyResult.opsLimit,
-      );
-      final setKeyRequest = SetKeysRequest(
-        kekSalt: updatedAttributes.kekSalt,
-        encryptedKey: updatedAttributes.encryptedKey,
-        keyDecryptionNonce: updatedAttributes.keyDecryptionNonce,
-        memLimit: updatedAttributes.memLimit,
-        opsLimit: updatedAttributes.opsLimit,
-      );
-      await EmergencyContactService.instance.changePasswordForOther(
-        Uint8List.fromList(loginKey),
-        setKeyRequest,
-        widget.sessions,
+      await widget.legacy.changePassword(
+        recoveryId: widget.session.id,
+        newPassword: _passwordController1.text,
       );
       await dialog.hide();
       if (mounted) {

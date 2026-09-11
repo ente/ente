@@ -22,7 +22,7 @@ const ensureLockerBundle = (locale: LockerLocale) => {
     );
 };
 
-export const setupLockerI18n = () => {
+const setupLockerI18n = () => {
     ensureLockerBundle("en-US");
 
     const locale = i18n.language as LockerLocale;

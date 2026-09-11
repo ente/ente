@@ -1,0 +1,1 @@
+- Updated the person cover photo picker to match the current Photos interface.

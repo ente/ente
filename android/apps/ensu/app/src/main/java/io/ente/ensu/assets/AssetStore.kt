@@ -57,7 +57,7 @@ class AssetStore(context: Context) {
     fun llmMmprojPath(asset: Asset): File? =
         core.llmMmprojPath(asset)?.let(::File)
 
-    fun voiceActivityModelPath(asset: Asset): File = File(core.voiceActivityModelPath(asset))
+    fun voiceActivityModelPath(): File = File(core.voiceActivityModelPath())
 
     fun isDownloaded(asset: Asset): Boolean = core.isDownloaded(asset)
 

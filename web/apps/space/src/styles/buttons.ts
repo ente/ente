@@ -1,7 +1,38 @@
-import { spaceOnAccent } from "styles/colors";
+import {
+    spaceAppBackgroundColor,
+    spaceOnAccent,
+    spaceSurfaceHover,
+    spaceText,
+    spaceTextMuted,
+} from "styles/colors";
 import { spaceTouchTargetSize } from "styles/touch-targets";
 
 const green = "#08C225";
+
+export const spaceToastActionButtonSx = {
+    alignItems: "center",
+    bgcolor: "#FFFFFF",
+    border: 0,
+    borderRadius: "14px",
+    color: spaceAppBackgroundColor,
+    cursor: "pointer",
+    display: "flex",
+    fontFamily: '"Inter Variable", Inter, sans-serif',
+    fontSize: 13,
+    fontWeight: 700,
+    height: 30,
+    justifyContent: "center",
+    minWidth: 48,
+    px: "17px",
+    transition: "background-color 120ms ease, color 120ms ease",
+    "&:disabled": {
+        bgcolor: spaceSurfaceHover,
+        color: spaceTextMuted,
+        cursor: "default",
+    },
+    "&:focus-visible": { outline: `2px solid ${spaceText}`, outlineOffset: 2 },
+    "&:hover:not(:disabled)": { bgcolor: spaceText },
+} as const;
 
 export const spaceEmptyStateButtonSx = {
     alignItems: "center",

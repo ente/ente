@@ -464,6 +464,10 @@ fn build_tree(cities: &[SourceCity], mut points: Vec<usize>) -> Vec<usize> {
         let point = points[median];
         nodes.push(point);
         let (left, right_with_median) = points.split_at_mut(median);
+        #[expect(
+            clippy::expect_used,
+            reason = "The nonempty input slice contains its median element"
+        )]
         let (_, right) = right_with_median
             .split_first_mut()
             .expect("nonempty median slice");

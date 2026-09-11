@@ -109,21 +109,21 @@ fn analyze_image_inner(
             ImageSource::Bytes(bytes) => decode_image_from_bytes(bytes)?,
         };
         let dims = decoded.dimensions.clone();
-        let detector_input = if run_faces || run_pets {
+        let detector_input;
+        let (face_input, pet_input) = if run_faces || run_pets {
             operation.set_stage(AnalysisStage::YoloPreprocess);
-            Some(preprocess::preprocess_yolo(&decoded)?)
+            detector_input = preprocess::preprocess_yolo(&decoded)?;
+            (
+                run_faces.then_some(&detector_input),
+                run_pets.then_some(&detector_input),
+            )
         } else {
-            None
+            (None, None)
         };
 
-        let faces = if run_faces {
+        let faces = if let Some(detector_input) = face_input {
             operation.set_stage(AnalysisStage::FaceDetection);
-            let detections = run_face_detection(
-                runtime,
-                detector_input
-                    .as_ref()
-                    .expect("detector input is prepared when face indexing is enabled"),
-            )?;
+            let detections = run_face_detection(runtime, detector_input)?;
             if detections.is_empty() {
                 Some(Vec::new())
             } else {
@@ -172,10 +172,7 @@ fn analyze_image_inner(
             None
         };
 
-        let (pet_faces, pet_bodies) = if run_pets {
-            let detector_input = detector_input
-                .as_ref()
-                .expect("detector input is prepared when pet indexing is enabled");
+        let (pet_faces, pet_bodies) = if let Some(detector_input) = pet_input {
             operation.set_stage(AnalysisStage::PetFaceDetection);
             let pet_face_detections = run_pet_face_detection(runtime, detector_input)?;
             operation.set_stage(AnalysisStage::PetBodyDetection);

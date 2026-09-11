@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
     fs,
-    io::Write,
     path::{Component, Path, PathBuf},
 };
 
@@ -333,7 +332,10 @@ impl MlIndexingTestContext {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn verify_corrupt_model(&self) -> Result<()> {
+        use std::io::Write;
+
         let mut model = tempfile::NamedTempFile::new()?;
         model.write_all(b"not an ONNX protobuf")?;
         let model_path = model.path().to_string_lossy().into_owned();
