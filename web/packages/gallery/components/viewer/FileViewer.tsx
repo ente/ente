@@ -101,6 +101,24 @@ const hasFileViewerBackStateMarker = (state: unknown, marker: string) =>
     typeof state == "object" &&
     (state as Record<string, unknown>)[fileViewerBackStateKey] == marker;
 
+// A renderer can run against an older desktop preload that predates these
+// IPC methods - guard against them being absent (calling `undefined()`
+// throws synchronously, before any promise exists to catch it).
+const queryMainWindowFullscreen = (): Promise<boolean> => {
+    const electron = globalThis.electron;
+    if (!electron || typeof electron.isMainWindowFullscreen != "function") {
+        return Promise.resolve(false);
+    }
+    return electron.isMainWindowFullscreen();
+};
+
+const setMainWindowFullscreenIfSupported = (isFullscreen: boolean) => {
+    const electron = globalThis.electron;
+    if (electron && typeof electron.setMainWindowFullscreen == "function") {
+        electron.setMainWindowFullscreen(isFullscreen);
+    }
+};
+
 export interface FileViewerFileAnnotation {
     fileID: number;
     isOwnFile: boolean;
@@ -386,11 +404,11 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 )
                 .then(() => {
                     if (shouldExitNativeFullscreen) {
-                        globalThis.electron?.setMainWindowFullscreen(false);
+                        setMainWindowFullscreenIfSupported(false);
                     }
                 });
         } else if (shouldExitNativeFullscreen) {
-            globalThis.electron?.setMainWindowFullscreen(false);
+            setMainWindowFullscreenIfSupported(false);
         }
         if (shouldExitNativeFullscreen) isNativeFullscreenRef.current = false;
 
@@ -1282,7 +1300,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 )
                 .then(() => {
                     if (wasNativeFullscreen) {
-                        globalThis.electron?.setMainWindowFullscreen(false);
+                        setMainWindowFullscreenIfSupported(false);
                     }
                     setTimeout(updateFullscreenStatus, 200);
                 });
@@ -1932,8 +1950,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
         // The file viewer can also be opened while the window is already
         // natively fullscreen, in which case no enter-full-screen event
         // will fire again to tell us - so seed the current state too.
-        void globalThis.electron
-            ?.isMainWindowFullscreen()
+        void queryMainWindowFullscreen()
             .catch((e: unknown) => {
                 log.error("Failed to query main window fullscreen state", e);
                 return undefined;
@@ -1978,7 +1995,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 isNativeFullscreenRef.current &&
                 !wasNativeFullscreenAtOpenRef.current
             ) {
-                globalThis.electron?.setMainWindowFullscreen(false);
+                setMainWindowFullscreenIfSupported(false);
                 isNativeFullscreenRef.current = false;
             }
         };
