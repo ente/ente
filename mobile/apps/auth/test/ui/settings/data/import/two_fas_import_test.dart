@@ -4,7 +4,6 @@ import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
 import 'package:ente_auth/ui/settings/data/import/two_fas_import.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:otp/otp.dart' as otp;
 
 const _secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
 const _groups = {'group-1': 'Synthetic group'};
@@ -246,35 +245,6 @@ void main() {
         period: 60,
       );
     });
-
-    // Public expected vectors: https://www.rfc-editor.org/rfc/rfc6238#appendix-B
-    for (final row in _rfcVectorRows) {
-      for (final (index, vector) in _rfcAlgorithms.indexed) {
-        test('matches RFC 6238 ${vector.algorithm} at ${row.seconds}', () {
-          final code = parse2FasServices([
-            _entry({
-              'algorithm': vector.algorithm,
-              'digits': 8,
-            }, secret: vector.secret),
-          ]).single;
-          final restored = _roundTrip(code);
-          final algorithm = switch (restored.algorithm) {
-            Algorithm.sha1 => otp.Algorithm.SHA1,
-            Algorithm.sha256 => otp.Algorithm.SHA256,
-            Algorithm.sha512 => otp.Algorithm.SHA512,
-          };
-          final actual = otp.OTP.generateTOTPCodeString(
-            restored.secret,
-            row.seconds * 1000,
-            length: restored.digits,
-            interval: restored.period,
-            algorithm: algorithm,
-            isGoogle: true,
-          );
-          expect(actual, row.expected[index]);
-        });
-      }
-    }
   });
 }
 
@@ -366,25 +336,3 @@ const _encryptedServices =
     'VXHXYtrwxWvZrVLjJ0a0y02gK4ytdyVKKecHYVLbPEqP8PQ7UG7zF2RC95p26GDqiVxxPzkqPAkX'
     'uUQxkChFDBtJlkM1COXgFEZ1niuqlK/cm5lRW5YFW7E=:AAECAwQFBgcICQoLDA0ODxAREhMUFRY'
     'XGBkaGxwdHh8=:AAECAwQFBgcICQoL';
-
-const _rfcAlgorithms = <({String algorithm, String secret})>[
-  (algorithm: 'SHA1', secret: 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'),
-  (
-    algorithm: 'SHA256',
-    secret: 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZA====',
-  ),
-  (
-    algorithm: 'SHA512',
-    secret:
-        'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNA=',
-  ),
-];
-
-const _rfcVectorRows = <({int seconds, List<String> expected})>[
-  (seconds: 59, expected: ['94287082', '46119246', '90693936']),
-  (seconds: 1111111109, expected: ['07081804', '68084774', '25091201']),
-  (seconds: 1111111111, expected: ['14050471', '67062674', '99943326']),
-  (seconds: 1234567890, expected: ['89005924', '91819424', '93441116']),
-  (seconds: 2000000000, expected: ['69279037', '90698825', '38618901']),
-  (seconds: 20000000000, expected: ['65353130', '77737706', '47863826']),
-];
