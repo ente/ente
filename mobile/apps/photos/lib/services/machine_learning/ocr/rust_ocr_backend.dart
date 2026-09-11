@@ -5,12 +5,14 @@ import "package:path/path.dart" as p;
 import "package:path_provider/path_provider.dart";
 import "package:photos/services/machine_learning/ocr/ocr_backend.dart";
 import "package:photos/services/machine_learning/ocr/ocr_models.dart";
+import "package:photos/services/machine_learning/webgpu_execution_policy.dart";
+import "package:photos/src/rust/api/ml_indexing_api.dart";
 import "package:photos/src/rust/api/ocr_api.dart";
 import "package:synchronized/synchronized.dart";
 
 class RustOcrBackend implements OcrBackend {
   static final _logger = Logger("RustOcrBackend");
-  static const _modelVersion = "pp-ocrv5";
+  static const _modelVersion = "pp-ocrv5-fixed-v1";
 
   final _engineLock = Lock();
   OcrEngine? _engine;
@@ -50,6 +52,9 @@ class RustOcrBackend implements OcrBackend {
       return;
     }
     try {
+      await setMlExecutionConfig(
+        enableWebgpu: await webGpuExecutionPolicy.isEligible(),
+      );
       _engine = await OcrEngine.create(
         assetsDir: assetsDir,
         includeRecognizer: includeRecognizer,

@@ -71,6 +71,9 @@ pub(crate) fn write_bgr_planes(
             planes.len()
         )));
     }
+    let lookup: [[f32; 256]; 3] = std::array::from_fn(|channel| {
+        std::array::from_fn(|value| normalization.apply(channel, value as u8))
+    });
     let (blue, rest) = planes.split_at_mut(plane);
     let (green, red) = rest.split_at_mut(plane);
     let top = (plane_height - height) / 2 * plane_width;
@@ -82,9 +85,9 @@ pub(crate) fn write_bgr_planes(
     for (y, row) in rgb.data.chunks_exact(width * 3).enumerate() {
         let offset = top + y * plane_width;
         for (x, px) in row.as_chunks::<3>().0.iter().enumerate() {
-            blue[offset + x] = normalization.apply(0, px[2]);
-            green[offset + x] = normalization.apply(1, px[1]);
-            red[offset + x] = normalization.apply(2, px[0]);
+            blue[offset + x] = lookup[0][px[2] as usize];
+            green[offset + x] = lookup[1][px[1] as usize];
+            red[offset + x] = lookup[2][px[0] as usize];
         }
         let padding = offset + width..offset + plane_width;
         blue[padding.clone()].fill(0.0);

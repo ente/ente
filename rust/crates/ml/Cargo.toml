@@ -37,6 +37,7 @@ ort = { workspace = true, features = [
 ] }
 
 [target.'cfg(target_os = "android")'.dependencies]
+wide = "0.7.33"
 ash = { version = "0.38.0", default-features = false, features = ["loaded"] }
 ort = { workspace = true, features = [
     "ndarray",
@@ -78,6 +79,7 @@ ort = { workspace = true, features = [
 ] }
 
 [dev-dependencies]
+wide = "0.7.33"
 anyhow = "1.0.0"
 flate2.workspace = true
 serde.workspace = true

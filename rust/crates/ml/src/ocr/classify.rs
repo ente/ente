@@ -1,12 +1,12 @@
 use std::sync::{Mutex, PoisonError};
 
+use super::session::{OcrModel, OcrSession};
 use super::tensor::{BgrNormalization, prepare_crops, write_bgr_planes};
 use crate::cv;
 use crate::cv::image::ImageU8;
 use crate::error::{MlError, MlResult};
-use crate::onnx::{ExecutionMode, OnnxSession, PreparedF32Input, SessionRunError, run_f32};
+use crate::onnx::{PreparedF32Input, SessionRunError, run_f32};
 
-const MODEL_NAMESPACE: &str = "ocr-classification";
 const BATCH_SIZE: usize = 6;
 const INPUT_HEIGHT: i32 = 48;
 const INPUT_WIDTH: i32 = 192;
@@ -32,17 +32,13 @@ pub(crate) struct AngleDecision {
 }
 
 pub(crate) struct AngleClassifier {
-    session: Mutex<OnnxSession>,
+    session: Mutex<OcrSession>,
 }
 
 impl AngleClassifier {
     pub(crate) fn new(model_path: &str) -> Self {
         Self {
-            session: Mutex::new(OnnxSession::new(
-                model_path,
-                MODEL_NAMESPACE,
-                ExecutionMode::CpuOnly,
-            )),
+            session: Mutex::new(OcrSession::new(model_path, OcrModel::Classification)),
         }
     }
 
@@ -51,17 +47,19 @@ impl AngleClassifier {
     }
 
     fn score_batch(&self, batch: &[ImageU8]) -> MlResult<Vec<AngleScores>> {
-        let input = PreparedF32Input::new(prepare_crops(|| batch_tensor(batch))?);
-        let count = batch.len() as i64;
+        let mut values = prepare_crops(|| batch_tensor(batch))?;
+        values.resize(
+            BATCH_SIZE * 3 * INPUT_HEIGHT as usize * INPUT_WIDTH as usize,
+            0.0,
+        );
+        let input = PreparedF32Input::new(values);
+        let count = BATCH_SIZE as i64;
         let expected_shape = [count, CLASS_COUNT as i64];
         let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
+        let input_shape = [count, 3, i64::from(INPUT_HEIGHT), i64::from(INPUT_WIDTH)];
         let (values, _usage) = session.run(|session| {
-            let (shape, values) = run_f32(
-                session,
-                &input,
-                [count, 3, i64::from(INPUT_HEIGHT), i64::from(INPUT_WIDTH)],
-            )?;
-            if shape != expected_shape {
+            let (shape, values) = run_f32(session, &input, input_shape)?;
+            if shape != expected_shape || values.len() != BATCH_SIZE * CLASS_COUNT {
                 return Err(SessionRunError::from(MlError::CorruptModel(format!(
                     "angle classifier produced output shape {shape:?}, expected {expected_shape:?}"
                 ))));
@@ -72,6 +70,7 @@ impl AngleClassifier {
             .as_chunks::<CLASS_COUNT>()
             .0
             .iter()
+            .take(batch.len())
             .map(|&[p0, p180]| AngleScores { p0, p180 })
             .collect())
     }

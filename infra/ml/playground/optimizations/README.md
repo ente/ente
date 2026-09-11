@@ -5,6 +5,36 @@ ML models. The generated CDN artifacts are written under `models/`; ONNX files
 are intentionally gitignored, while `model_manifest.json` records the
 reproducible output metadata.
 
+## OCR models
+
+Generate one shared PP-OCRv5 detector, classifier, and recognizer for CoreML and
+native WebGPU with:
+
+```sh
+uv run --no-project --with numpy==2.5.3 --with onnx==1.22.0 python \
+  infra/ml/playground/optimizations/optimize_ocr_models.py \
+  --source-dir infra/ml/playground/.cache/ocr-sources \
+  --output-dir infra/ml/playground/optimizations/models/ocr
+```
+
+The script produces three shared FP32 models (23.17 MB total) with fixed inputs:
+
+- Detection: a 960×960 canvas with five fixed computation paths. Masks preserve
+  the original image boundaries and pooling when selecting a smaller path.
+- Classification: six 48×192 crops; Rust pads incomplete batches.
+- Recognition: a 48×7168 canvas with 2048- and 7168-wide paths. Rust packs lines;
+  masks isolate their convolutions, pooling, and attention. Aligned matrix
+  operations return winning token indices and probabilities for Rust CTC decoding.
+
+Affine folding and equivalent activation rewrites improve GPU support. Shared
+weights keep the fixed paths compact. These models require the matching Rust
+input adapter; they cannot replace the original models independently.
+
+Missing sources are downloaded from `https://models.ente.com/PP-OCRv5`. Source and
+output hashes are verified. Upload only `det_fixed_v1.onnx`, `cls_fixed_v1.onnx`,
+and `rec_fixed_v1.onnx`; the dictionary is unchanged. The generated
+`ocr_model_manifest.json` records the input shapes, hashes, and sizes.
+
 ## Rebuilding the models
 
 Run from the repository root:

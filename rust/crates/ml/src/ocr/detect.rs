@@ -4,13 +4,13 @@ use super::Point;
 use super::geometry::{
     clip_to_bounds, mean_inside_quad, min_area_rect, min_edge, order_corners, scale_points, unclip,
 };
+use super::session::{OcrModel, OcrSession};
 use super::tensor::{BgrNormalization, write_bgr_planes};
 use crate::cv;
 use crate::cv::image::{Contour, ImageU8};
 use crate::error::{MlError, MlResult};
-use crate::onnx::{ExecutionMode, OnnxSession, PreparedF32Input, SessionRunError, run_f32};
+use crate::onnx::SessionRunError;
 
-const MODEL_NAMESPACE: &str = "ocr-detection";
 const MAX_INPUT_SIDE: i32 = 960;
 const INPUT_STRIDE: i32 = 32;
 const BITMAP_THRESHOLD: f32 = 0.3;
@@ -40,17 +40,13 @@ pub(crate) struct TextDetection {
 }
 
 pub(crate) struct TextDetector {
-    session: Mutex<OnnxSession>,
+    session: Mutex<OcrSession>,
 }
 
 impl TextDetector {
     pub(crate) fn new(model_path: &str) -> Self {
         Self {
-            session: Mutex::new(OnnxSession::new(
-                model_path,
-                MODEL_NAMESPACE,
-                ExecutionMode::CpuOnly,
-            )),
+            session: Mutex::new(OcrSession::new(model_path, OcrModel::Detection)),
         }
     }
 
@@ -58,7 +54,7 @@ impl TextDetector {
         let (input_width, input_height) = detector_input_size(working.width, working.height);
         let resized = cv::resize_u8(working, input_width, input_height, cv::Interp::Bilinear)
             .map_err(MlError::Preprocess)?;
-        let input = PreparedF32Input::new(normalized_bgr_planes(&resized)?);
+        let input = normalized_bgr_planes(&resized)?;
         let values = self.infer(&input, input_width, input_height)?;
         let probability_map = ProbabilityMap {
             width: input_width as usize,
@@ -79,18 +75,24 @@ impl TextDetector {
         })
     }
 
-    fn infer(&self, input: &PreparedF32Input, width: i32, height: i32) -> MlResult<Vec<f32>> {
-        let expected_shape = [1i64, 1, i64::from(height), i64::from(width)];
+    fn infer(&self, input: &[f32], width: i32, height: i32) -> MlResult<Vec<f32>> {
+        let expected_shape = [1i64, 1, 960, 960];
         let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
+        let inputs = super::context::detector(input, height as usize, width as usize);
         let (values, _usage) = session.run(|session| {
-            let (shape, values) =
-                run_f32(session, input, [1, 3, i64::from(height), i64::from(width)])?;
-            if shape != expected_shape {
+            let (shape, values) = super::context::infer(session, &inputs)?;
+            if shape != expected_shape || values.len() != 960 * 960 {
                 return Err(SessionRunError::from(MlError::CorruptModel(format!(
                     "text detector produced output shape {shape:?}, expected {expected_shape:?}"
                 ))));
             }
-            Ok(values)
+            Ok(values
+                .as_chunks::<960>()
+                .0
+                .iter()
+                .take(height as usize)
+                .flat_map(|row| row[..width as usize].iter().copied())
+                .collect())
         })?;
         Ok(values)
     }
