@@ -1904,9 +1904,10 @@ const Page: React.FC = () => {
                     <SectionNavbarContents
                         title={t("section_trash")}
                         onBack={() =>
-                            handleShowCollectionSummaryWithID(
-                                PseudoCollectionID.all,
-                            )
+                            dispatch({
+                                type: "showCollectionSummary",
+                                collectionSummaryID: PseudoCollectionID.all,
+                            })
                         }
                         onUpload={openUploader}
                     />
