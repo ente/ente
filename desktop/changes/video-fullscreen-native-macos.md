@@ -1,0 +1,1 @@
+- Fixed videos rendering small and pillarboxed when entering fullscreen via the native macOS fullscreen button or Cmd+Ctrl+F instead of the in-app fullscreen control.

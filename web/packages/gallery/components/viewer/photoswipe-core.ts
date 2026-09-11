@@ -1356,6 +1356,14 @@ export class FileViewerPhotoSwipe<
         this.pswp.refreshSlideContent(this.pswp.currIndex);
     }
 
+    // For when the container is resized without a real window resize event
+    // (e.g. a native-fullscreen transition on the Electron desktop app),
+    // to force PhotoSwipe to recompute its slide layout against the
+    // container's current size rather than relying on its own listener.
+    updateSize() {
+        this.pswp.updateSize(true);
+    }
+
     refreshSlideOnFilesUpdateIfNeeded: () => void;
     refreshCurrentSlideFavoriteButtonIfNeeded: () => void;
     refreshCurrentSlideLikeButtonIfNeeded: () => void;

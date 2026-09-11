@@ -29,89 +29,81 @@ export const clearMainWindowBlurSuppression = () => {
     suppressMainWindowBlurUntil = 0;
 };
 
-type MainWindowFocusListener = () => void;
-type MainWindowBlurListener = () => void;
-
 // Electron exposes one callback per event; multiplex local subscribers here.
-const mainWindowFocusListeners = new Set<MainWindowFocusListener>();
-let hasAttachedMainWindowFocusBridge = false;
-const mainWindowBlurListeners = new Set<MainWindowBlurListener>();
-let hasAttachedMainWindowBlurBridge = false;
+// `attach`/`detach` get the injected `electron` bridge and are expected to
+// guard themselves against a method being absent (an older desktop build's
+// preload script might not have it yet).
+const createMainWindowEventBridge = <A extends unknown[]>(
+    attach: (electron: Electron, emit: (...args: A) => void) => void,
+    detach: (electron: Electron) => void,
+) => {
+    type Listener = (...args: A) => void;
 
-const emitMainWindowFocus = () => {
-    for (const listener of mainWindowFocusListeners) {
-        listener();
-    }
-};
+    const listeners = new Set<Listener>();
+    let hasAttached = false;
 
-const attachMainWindowFocusBridgeIfNeeded = () => {
-    if (hasAttachedMainWindowFocusBridge) return;
-    const electron = globalThis.electron;
-    if (!electron) return;
-    electron.onMainWindowFocus(emitMainWindowFocus);
-    hasAttachedMainWindowFocusBridge = true;
-};
+    const emit = (...args: A) => {
+        for (const listener of listeners) listener(...args);
+    };
 
-const detachMainWindowFocusBridgeIfNeeded = () => {
-    if (
-        !hasAttachedMainWindowFocusBridge ||
-        mainWindowFocusListeners.size > 0
-    ) {
-        return;
-    }
+    const attachIfNeeded = () => {
+        if (hasAttached) return;
+        const electron = globalThis.electron;
+        if (!electron) return;
+        attach(electron, emit);
+        hasAttached = true;
+    };
 
-    const electron = globalThis.electron;
-    if (electron) {
-        electron.onMainWindowFocus(undefined);
-    }
-    hasAttachedMainWindowFocusBridge = false;
-};
+    const detachIfNeeded = () => {
+        if (!hasAttached || listeners.size > 0) return;
+        const electron = globalThis.electron;
+        if (electron) detach(electron);
+        hasAttached = false;
+    };
 
-export const subscribeMainWindowFocus = (
-    listener: MainWindowFocusListener,
-): (() => void) => {
-    mainWindowFocusListeners.add(listener);
-    attachMainWindowFocusBridgeIfNeeded();
-    return () => {
-        mainWindowFocusListeners.delete(listener);
-        detachMainWindowFocusBridgeIfNeeded();
+    return (listener: Listener): (() => void) => {
+        listeners.add(listener);
+        attachIfNeeded();
+        return () => {
+            listeners.delete(listener);
+            detachIfNeeded();
+        };
     };
 };
 
-const emitMainWindowBlur = () => {
-    for (const listener of mainWindowBlurListeners) {
-        listener();
-    }
-};
+export const subscribeMainWindowFocus = createMainWindowEventBridge<[]>(
+    (electron, emit) => electron.onMainWindowFocus(emit),
+    (electron) => electron.onMainWindowFocus(undefined),
+);
 
-const attachMainWindowBlurBridgeIfNeeded = () => {
-    if (hasAttachedMainWindowBlurBridge) return;
-    const electron = globalThis.electron;
-    if (!electron) return;
-    if (typeof electron.onMainWindowBlur != "function") return;
-    electron.onMainWindowBlur(emitMainWindowBlur);
-    hasAttachedMainWindowBlurBridge = true;
-};
+export const subscribeMainWindowBlur = createMainWindowEventBridge<[]>(
+    (electron, emit) => {
+        if (typeof electron.onMainWindowBlur != "function") return;
+        electron.onMainWindowBlur(emit);
+    },
+    (electron) => {
+        if (typeof electron.onMainWindowBlur == "function") {
+            electron.onMainWindowBlur(undefined);
+        }
+    },
+);
 
-const detachMainWindowBlurBridgeIfNeeded = () => {
-    if (!hasAttachedMainWindowBlurBridge || mainWindowBlurListeners.size > 0) {
-        return;
-    }
-
-    const electron = globalThis.electron;
-    if (electron && typeof electron.onMainWindowBlur == "function") {
-        electron.onMainWindowBlur(undefined);
-    }
-    hasAttachedMainWindowBlurBridge = false;
-};
-
-export const subscribeMainWindowBlur = (
-    listener: MainWindowBlurListener,
-): (() => void) => {
-    mainWindowBlurListeners.add(listener);
-    attachMainWindowBlurBridgeIfNeeded();
-    return () => {
-        mainWindowBlurListeners.delete(listener);
-        detachMainWindowBlurBridgeIfNeeded();
-    };
-};
+// Bridges the OS-level fullscreen toggle (green traffic light button, or the
+// Cmd+Ctrl+F menu shortcut) back into the renderer. That toggle resizes the
+// window directly in the main process without going through the Fullscreen
+// API, so `document.fullscreenElement` never reflects it on its own.
+export const subscribeMainWindowFullscreenChange = createMainWindowEventBridge<
+    [isFullscreen: boolean]
+>(
+    (electron, emit) => {
+        if (typeof electron.onMainWindowFullscreenChange != "function") {
+            return;
+        }
+        electron.onMainWindowFullscreenChange(emit);
+    },
+    (electron) => {
+        if (typeof electron.onMainWindowFullscreenChange == "function") {
+            electron.onMainWindowFullscreenChange(undefined);
+        }
+    },
+);

@@ -31,6 +31,7 @@ import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { useInterval, useIsSmallWidth } from "ente-base/components/utils/hooks";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
+import { subscribeMainWindowFullscreenChange } from "ente-base/electron";
 import { lowercaseExtension } from "ente-base/file-name";
 import { formattedListJoin, ut } from "ente-base/i18n";
 import log from "ente-base/log";
@@ -216,6 +217,14 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     >(undefined);
     const handleCloseRef = useRef<() => void>(() => undefined);
     const browserBackStateRef = useRef<string | undefined>(undefined);
+    // Whether the OS reports the app window as natively fullscreen (macOS
+    // green traffic-light button / Cmd+Ctrl+F), independent of whether the
+    // page itself is in Fullscreen-API fullscreen.
+    const isNativeFullscreenRef = useRef(false);
+    // Whether the window was already natively fullscreen when the viewer
+    // opened, so that closing it does not yank the user out of a fullscreen
+    // mode they set independently of (and before) the viewer.
+    const wasNativeFullscreenAtOpenRef = useRef(false);
 
     // This is the file from the last PhotoSwipe callback, not necessarily its current slide.
     const [activeAnnotatedFile, setActiveAnnotatedFile] = useState<
@@ -358,7 +367,33 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     );
 
     const handleClose = useCallback(() => {
-        if (document.fullscreenElement) void document.exitFullscreen();
+        // Only exit native fullscreen if the viewer's own session put the
+        // window into it - not if the app was already fullscreen (a mode
+        // the user chose independently of, and before, the viewer) when it
+        // opened.
+        const shouldExitNativeFullscreen =
+            isNativeFullscreenRef.current &&
+            !wasNativeFullscreenAtOpenRef.current;
+
+        if (document.fullscreenElement) {
+            // Sequenced rather than fired concurrently with the native exit
+            // below - sending both exit directives to macOS at once for the
+            // same window can glitch the animation.
+            void document
+                .exitFullscreen()
+                .catch((e: unknown) =>
+                    log.error("Failed to exit fullscreen", e),
+                )
+                .then(() => {
+                    if (shouldExitNativeFullscreen) {
+                        globalThis.electron?.setMainWindowFullscreen(false);
+                    }
+                });
+        } else if (shouldExitNativeFullscreen) {
+            globalThis.electron?.setMainWindowFullscreen(false);
+        }
+        if (shouldExitNativeFullscreen) isNativeFullscreenRef.current = false;
+
         setNeedsRemotePull((needsPull) => {
             if (needsPull) onTriggerRemotePull?.();
             return false;
@@ -372,7 +407,10 @@ export const FileViewer: React.FC<FileViewerProps> = ({
         setOpenImageEditor(false);
         setOpenConfirmDelete(false);
         setOpenShortcuts(false);
-        setIsFullscreen(false);
+        // Reflects reality rather than assuming false: native fullscreen
+        // that was intentionally preserved above (a pre-existing mode, not
+        // one this session caused) leaves isNativeFullscreenRef.current true.
+        setIsFullscreen(isNativeFullscreenRef.current);
         onClose();
     }, [onTriggerRemotePull, onClose]);
 
@@ -1211,16 +1249,52 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     );
 
     const updateFullscreenStatus = useCallback(() => {
-        setIsFullscreen(!!document.fullscreenElement);
+        setIsFullscreen(
+            isNativeFullscreenRef.current || !!document.fullscreenElement,
+        );
     }, []);
 
     const handleToggleFullscreen = useCallback(() => {
         handleMoreMenuCloseIfNeeded();
-        void (
-            document.fullscreenElement
+
+        if (isNativeFullscreenRef.current || document.fullscreenElement) {
+            // Entering fullscreen through this button also puts Electron's
+            // native window into fullscreen (the two are not independent on
+            // macOS), so both can be active together here - exit whichever
+            // of the two is actually engaged, since document.exitFullscreen
+            // alone would leave native-only fullscreen (entered via the OS
+            // chrome, which has no document.fullscreenElement) untouched.
+            // Sequenced rather than fired concurrently, since sending both
+            // exit directives to macOS at once for the same window can
+            // glitch the animation.
+            const wasNativeFullscreen = isNativeFullscreenRef.current;
+            // Reset synchronously so a rapid second click (before the async
+            // native "leave-full-screen" event arrives) is treated as a
+            // fresh request to re-enter fullscreen, not another exit.
+            isNativeFullscreenRef.current = false;
+
+            const exitPromise = document.fullscreenElement
                 ? document.exitFullscreen()
-                : document.body.requestFullscreen()
-        ).then(() => setTimeout(updateFullscreenStatus, 200));
+                : Promise.resolve();
+            void exitPromise
+                .catch((e: unknown) =>
+                    log.error("Failed to exit fullscreen", e),
+                )
+                .then(() => {
+                    if (wasNativeFullscreen) {
+                        globalThis.electron?.setMainWindowFullscreen(false);
+                    }
+                    setTimeout(updateFullscreenStatus, 200);
+                });
+            return;
+        }
+
+        void document.body
+            .requestFullscreen()
+            .catch((e: unknown) =>
+                log.error("Failed to enter fullscreen", e),
+            )
+            .then(() => setTimeout(updateFullscreenStatus, 200));
     }, [handleMoreMenuCloseIfNeeded, updateFullscreenStatus]);
 
     const handleShortcuts = useCallback(() => {
@@ -1775,6 +1849,140 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     );
 
     useEffect(updateFullscreenStatus, [updateFullscreenStatus]);
+
+    useEffect(() => {
+        if (!open || !isDesktop) return;
+
+        // The OS-level fullscreen toggle (green traffic light button, or the
+        // Cmd+Ctrl+F menu shortcut) resizes the window directly in
+        // Electron's main process, bypassing the page's Fullscreen API
+        // entirely (and `requestFullscreen` cannot be used to force it into
+        // sync here since this runs without user activation). So track it
+        // as a separate signal, keep the toggle's displayed state in sync
+        // with it directly, and nudge PhotoSwipe to recompute its layout
+        // once the animated native transition has settled - otherwise the
+        // video stays sized for the pre-transition window and ends up
+        // small and pillarboxed in the new, larger fullscreen canvas.
+        let cancelled = false;
+        // The initial isMainWindowFullscreen() query races against
+        // subscribeMainWindowFullscreenChange's live events; once a live
+        // event has arrived, it is always more current than that query's
+        // (possibly stale-by-then) result, so the query's callback must
+        // no-op rather than clobber it.
+        let hasReceivedLiveUpdate = false;
+        // Seeded from the last known state (correct if nothing changed
+        // between the previous close and this open) rather than reset to
+        // false, so a viewer re-open racing ahead of the query/event below
+        // that will properly confirm it can't briefly disagree with
+        // isNativeFullscreenRef and wrongly appear to be "caused by us".
+        wasNativeFullscreenAtOpenRef.current = isNativeFullscreenRef.current;
+        // At most one nudge sequence (and its ResizeObserver) runs at a
+        // time - nudgeLayoutResize always cancels any current one first.
+        let cancelCurrentNudge: (() => void) | undefined;
+
+        const nudgeLayoutResize = () => {
+            // The seeding isMainWindowFullscreen() query and a live
+            // fullscreen-change event can each trigger a nudge in quick
+            // succession (e.g. the viewer opens mid-transition); cancel any
+            // still-running nudge rather than running two ResizeObservers.
+            cancelCurrentNudge?.();
+
+            psRef.current?.updateSize();
+
+            // The native transition's actual duration varies by hardware,
+            // external displays, and whether macOS has to create a new
+            // Space, so keep nudging PhotoSwipe for as long as the window's
+            // real size keeps changing, and only stop once it has gone
+            // quiet for a bit - not after a fixed total duration, since
+            // stopping too early is exactly how the video ends up staying
+            // small and pillarboxed on a slower transition.
+            let lastRect = document.documentElement.getBoundingClientRect();
+            let idleTimer: ReturnType<typeof setTimeout>;
+
+            const cleanup = () => {
+                clearTimeout(idleTimer);
+                observer.disconnect();
+                if (cancelCurrentNudge === cleanup) {
+                    cancelCurrentNudge = undefined;
+                }
+            };
+
+            const scheduleIdleDisconnect = () => {
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(cleanup, 1000);
+            };
+
+            const observer = new ResizeObserver(() => {
+                const rect = document.documentElement.getBoundingClientRect();
+                if (
+                    rect.width != lastRect.width ||
+                    rect.height != lastRect.height
+                ) {
+                    lastRect = rect;
+                    psRef.current?.updateSize();
+                }
+                scheduleIdleDisconnect();
+            });
+            observer.observe(document.documentElement);
+            scheduleIdleDisconnect();
+
+            cancelCurrentNudge = cleanup;
+        };
+
+        // The file viewer can also be opened while the window is already
+        // natively fullscreen, in which case no enter-full-screen event
+        // will fire again to tell us - so seed the current state too.
+        void globalThis.electron
+            ?.isMainWindowFullscreen()
+            .catch((e: unknown) => {
+                log.error("Failed to query main window fullscreen state", e);
+                return undefined;
+            })
+            .then((isFullscreenNow) => {
+                if (isFullscreenNow === undefined) return;
+                if (cancelled || hasReceivedLiveUpdate) return;
+                wasNativeFullscreenAtOpenRef.current = isFullscreenNow;
+                isNativeFullscreenRef.current = isFullscreenNow;
+                updateFullscreenStatus();
+                if (isFullscreenNow) nudgeLayoutResize();
+            });
+
+        const unsubscribe = subscribeMainWindowFullscreenChange(
+            (isFullscreenNow) => {
+                if (!hasReceivedLiveUpdate) {
+                    // This is the first change since the viewer opened, so
+                    // whatever the window's state was just before it is the
+                    // state-at-open the seed query above was trying (and,
+                    // per the race this guards against, may have failed) to
+                    // capture.
+                    wasNativeFullscreenAtOpenRef.current = !isFullscreenNow;
+                }
+                hasReceivedLiveUpdate = true;
+                isNativeFullscreenRef.current = isFullscreenNow;
+                updateFullscreenStatus();
+                nudgeLayoutResize();
+            },
+        );
+
+        return () => {
+            cancelled = true;
+            unsubscribe();
+            cancelCurrentNudge?.();
+            // Guards against the viewer (or its whole component tree)
+            // unmounting without going through handleClose - e.g. a route
+            // change while the viewer is open - which would otherwise leave
+            // the window stuck in native fullscreen with no way to exit it.
+            // Only for fullscreen the viewer's own session caused, though -
+            // not a mode the user set independently before opening it.
+            if (
+                isNativeFullscreenRef.current &&
+                !wasNativeFullscreenAtOpenRef.current
+            ) {
+                globalThis.electron?.setMainWindowFullscreen(false);
+                isNativeFullscreenRef.current = false;
+            }
+        };
+    }, [open, updateFullscreenStatus]);
 
     if (!activeAnnotatedFile) {
         return <></>;
