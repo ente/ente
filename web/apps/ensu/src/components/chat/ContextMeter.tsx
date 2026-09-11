@@ -4,6 +4,7 @@ import { memo } from "react";
 interface ContextMeterProps {
     usedTokens: number;
     totalTokens: number;
+    estimated?: boolean;
 }
 
 const formatTokenCount = (tokens: number) =>
@@ -14,6 +15,7 @@ const formatTokenCount = (tokens: number) =>
 export const ContextMeter = memo(function ContextMeter({
     usedTokens,
     totalTokens,
+    estimated = false,
 }: ContextMeterProps) {
     const percentage =
         totalTokens > 0
@@ -30,7 +32,7 @@ export const ContextMeter = memo(function ContextMeter({
         <Tooltip
             arrow
             placement="top"
-            title={`${formatTokenCount(usedTokens)} / ${formatTokenCount(totalTokens)} context positions — ${Math.round(percentage)}% used by the latest generation. Includes retained history, system instructions and processed output. Older messages may be left out as it fills up.`}
+            title={`${estimated ? "Estimated" : "Calculated"} context: ${formatTokenCount(usedTokens)} / ${formatTokenCount(totalTokens)} (${Math.round(percentage)}%)`}
         >
             <Box
                 role="meter"
