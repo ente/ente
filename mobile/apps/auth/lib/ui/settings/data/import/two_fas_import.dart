@@ -102,6 +102,18 @@ Future<int?> _process2FasExportFile(
   } else {
     await dialog.show();
   }
+  final parsedCodes = parse2FasServices(
+    decodedServices,
+    groupIdToName: groupIdToName,
+  );
+  return saveImportedCodes(parsedCodes);
+}
+
+List<Code> parse2FasServices(
+  Iterable<dynamic> decodedServices, {
+  Map<dynamic, dynamic> groupIdToName = const {},
+}) {
+  const supportedTotpAlgorithms = {'sha1', 'sha256', 'sha512'};
   final parsedCodes = <Code>[];
   for (var item in decodedServices) {
     var kind = item['otp']['tokenType'];
@@ -117,9 +129,16 @@ Future<int?> _process2FasExportFile(
     var digits = item['otp']['digits'];
     var counter = item['otp']['counter'];
 
-    Code code = parseImportOtpCode(
-      item,
-      () => buildImportOtpUri(
+    Code code = parseImportOtpCode(item, () {
+      if (kind is String && kind.toLowerCase() == 'totp') {
+        algorithm ??= 'SHA1';
+        digits ??= Code.defaultDigits;
+        if (algorithm is! String ||
+            !supportedTotpAlgorithms.contains(algorithm.toLowerCase())) {
+          throw const FormatException('Unsupported 2FAS TOTP algorithm');
+        }
+      }
+      return buildImportOtpUri(
         kind: kind,
         issuer: issuer,
         account: account,
@@ -128,8 +147,8 @@ Future<int?> _process2FasExportFile(
         digits: digits,
         period: timer,
         counter: counter,
-      ),
-    );
+      );
+    });
     if (groupID != null && groupIdToName.containsKey(groupID)) {
       code = code.copyWith(
         display: CodeDisplay(tags: [groupIdToName[groupID]]),
@@ -138,7 +157,7 @@ Future<int?> _process2FasExportFile(
     parsedCodes.add(code);
   }
 
-  return saveImportedCodes(parsedCodes);
+  return parsedCodes;
 }
 
 String decrypt2FasVault(dynamic data, {required String password}) {
