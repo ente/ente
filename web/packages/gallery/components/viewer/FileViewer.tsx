@@ -1309,9 +1309,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
 
         void document.body
             .requestFullscreen()
-            .catch((e: unknown) =>
-                log.error("Failed to enter fullscreen", e),
-            )
+            .catch((e: unknown) => log.error("Failed to enter fullscreen", e))
             .then(() => setTimeout(updateFullscreenStatus, 200));
     }, [handleMoreMenuCloseIfNeeded, updateFullscreenStatus]);
 
