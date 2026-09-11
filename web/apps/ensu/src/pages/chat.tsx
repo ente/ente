@@ -673,6 +673,7 @@ const Page: React.FC = () => {
     const providerRef = useRef<LlmProvider | null>(null);
     const currentJobIdRef = useRef<number | null>(null);
     const contextUsageBySessionRef = useRef<ContextUsageBySession>({});
+    const contextUsageRevisionRef = useRef(new Map<string, number>());
     const deletedSessionIdsRef = useRef(new Set<string>());
     const activeKnowledgeSourcesRef = useRef<GroundedSource[]>([]);
     const activeKnowledgeDownloadsRef = useRef(new Set<string>());
@@ -1919,6 +1920,21 @@ const Page: React.FC = () => {
         [getModelSettings],
     );
 
+    const clearContextUsageForSession = useCallback((sessionId: string) => {
+        contextUsageRevisionRef.current.set(
+            sessionId,
+            (contextUsageRevisionRef.current.get(sessionId) ?? 0) + 1,
+        );
+        const next = Object.fromEntries(
+            Object.entries(contextUsageBySessionRef.current).filter(
+                ([id]) => id !== sessionId,
+            ),
+        );
+        contextUsageBySessionRef.current = next;
+        setContextUsageBySession(next);
+        persistContextUsageBySession(next);
+    }, []);
+
     const updateContextUsageForSession = useCallback(
         (sessionId: string, settingsKey: string, event: GenerateEvent) => {
             if (
@@ -3034,6 +3050,9 @@ const Page: React.FC = () => {
                 return;
             }
             generationStartingRef.current = true;
+            clearContextUsageForSession(activeSessionId);
+            const contextUsageRevision =
+                contextUsageRevisionRef.current.get(activeSessionId);
             generationActiveRef.current = true;
             setIsGenerating(true);
             currentJobIdRef.current = null;
@@ -3266,6 +3285,14 @@ const Page: React.FC = () => {
                             repeatPenalty: REPEAT_PENALTY,
                         },
                         (event: GenerateEvent) => {
+                            if (
+                                event.type === "context_usage" &&
+                                contextUsageRevisionRef.current.get(
+                                    activeSessionId,
+                                ) !== contextUsageRevision
+                            ) {
+                                return;
+                            }
                             if (!isActiveGeneration()) {
                                 updateContextUsageForSession(
                                     activeSessionId,
@@ -3447,6 +3474,7 @@ const Page: React.FC = () => {
             knowledgePacks,
             loadEnabledKnowledgeCatalogOnce,
             updateContextUsageForSession,
+            clearContextUsageForSession,
         ],
     );
 
@@ -3516,9 +3544,14 @@ const Page: React.FC = () => {
                 (switcher.currentIndex - 1 + switcher.total) % switcher.total;
             const target = switcher.targets[nextIndex];
             if (!target) return;
+            if (currentSessionId) clearContextUsageForSession(currentSessionId);
             void updateBranchSelectionState(switcher.selectionKey, target);
         },
-        [updateBranchSelectionState],
+        [
+            currentSessionId,
+            clearContextUsageForSession,
+            updateBranchSelectionState,
+        ],
     );
 
     const handleNextBranch = useCallback(
@@ -3527,9 +3560,14 @@ const Page: React.FC = () => {
             const nextIndex = (switcher.currentIndex + 1) % switcher.total;
             const target = switcher.targets[nextIndex];
             if (!target) return;
+            if (currentSessionId) clearContextUsageForSession(currentSessionId);
             void updateBranchSelectionState(switcher.selectionKey, target);
         },
-        [updateBranchSelectionState],
+        [
+            currentSessionId,
+            clearContextUsageForSession,
+            updateBranchSelectionState,
+        ],
     );
 
     const handleOpenDrawer = useCallback(() => {
