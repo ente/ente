@@ -228,7 +228,7 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
         (onTap) => MemoryCardWrapper(
           id: "memoryLane_${memoryLane.personId}",
           widget: () => MemoryLaneCardWidget(
-            id: memoryLane.personId,
+            personId: memoryLane.personId,
             oldestFace: oldestMemoryLaneFace,
             face: newestMemoryLaneFace,
             personName: memoryLanePerson?.data.name ?? "",
