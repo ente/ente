@@ -40,7 +40,12 @@ export const ContextMeter = memo(function ContextMeter({
                 aria-label="Context usage"
                 aria-valuemin={0}
                 aria-valuemax={totalTokens}
-                aria-valuenow={usedTokens}
+                aria-valuenow={Math.min(totalTokens, Math.max(0, usedTokens))}
+                aria-valuetext={
+                    usedTokens > totalTokens
+                        ? `${estimated ? "Estimated" : "Calculated"}: ${usedTokens.toLocaleString()} of ${totalTokens.toLocaleString()} context positions, ${(usedTokens - totalTokens).toLocaleString()} over the limit`
+                        : undefined
+                }
                 sx={{
                     display: "flex",
                     alignItems: "flex-end",
