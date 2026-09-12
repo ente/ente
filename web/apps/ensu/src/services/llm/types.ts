@@ -40,6 +40,7 @@ export interface GenerateSummary {
 }
 
 export type GenerateEvent =
+    | { type: "context_usage"; job_id: number; used: number; capacity: number }
     | { type: "text"; job_id: number; text: string; token_id?: number | null }
     | { type: "done"; summary: GenerateSummary };
 
