@@ -1480,9 +1480,27 @@ const Page: React.FC = () => {
         void refreshSessions();
     }, [chatKey, isChatStoreBridgeReady, refreshSessions]);
 
+    const clearContextUsageForSession = useCallback((sessionId: string) => {
+        contextUsageRevisionRef.current.set(
+            sessionId,
+            (contextUsageRevisionRef.current.get(sessionId) ?? 0) + 1,
+        );
+        const next = Object.fromEntries(
+            Object.entries(contextUsageBySessionRef.current).filter(
+                ([id]) => id !== sessionId,
+            ),
+        );
+        contextUsageBySessionRef.current = next;
+        setContextUsageBySession(next);
+        persistContextUsageBySession(next);
+    }, []);
+
     const cancelActiveGenerationForNavigation = useCallback(() => {
         if (!isGenerating && !generationStartingRef.current) return;
 
+        if (currentSessionIdRef.current) {
+            clearContextUsageForSession(currentSessionIdRef.current);
+        }
         generationTokenRef.current += 1;
         beginGenerationStop();
         const jobId = currentJobIdRef.current;
@@ -1516,7 +1534,12 @@ const Page: React.FC = () => {
             .finally(() => {
                 endGenerationStop();
             });
-    }, [beginGenerationStop, endGenerationStop, isGenerating]);
+    }, [
+        beginGenerationStop,
+        clearContextUsageForSession,
+        endGenerationStop,
+        isGenerating,
+    ]);
 
     useEffect(() => {
         currentSessionIdRef.current = currentSessionId;
@@ -1922,21 +1945,6 @@ const Page: React.FC = () => {
         () => JSON.stringify(getModelSettings()),
         [getModelSettings],
     );
-
-    const clearContextUsageForSession = useCallback((sessionId: string) => {
-        contextUsageRevisionRef.current.set(
-            sessionId,
-            (contextUsageRevisionRef.current.get(sessionId) ?? 0) + 1,
-        );
-        const next = Object.fromEntries(
-            Object.entries(contextUsageBySessionRef.current).filter(
-                ([id]) => id !== sessionId,
-            ),
-        );
-        contextUsageBySessionRef.current = next;
-        setContextUsageBySession(next);
-        persistContextUsageBySession(next);
-    }, []);
 
     const updateContextUsageForSession = useCallback(
         (sessionId: string, settingsKey: string, event: GenerateEvent) => {
