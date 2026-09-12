@@ -6,6 +6,26 @@ import "package:photos/ui/viewer/file/file_viewer_filmstrip.dart";
 import "package:photos/ui/viewer/file/file_viewer_filmstrip_event.dart";
 
 void main() {
+  test("scales with the shortest side and caps large-screen growth", () {
+    final phonePortrait = FileViewerFilmstripLayout.forAvailableSize(
+      const Size(390, 844),
+    );
+    final phoneLandscape = FileViewerFilmstripLayout.forAvailableSize(
+      const Size(844, 390),
+    );
+    final iPadMini = FileViewerFilmstripLayout.forAvailableSize(
+      const Size(744, 1133),
+    );
+    final largeIPad = FileViewerFilmstripLayout.forAvailableSize(
+      const Size(1032, 1376),
+    );
+
+    expect(phonePortrait, FileViewerFilmstripLayout.compact);
+    expect(phoneLandscape, FileViewerFilmstripLayout.compact);
+    expect(iPadMini.scale, closeTo(1.24, 0.001));
+    expect(largeIPad.scale, 1.5);
+  });
+
   testWidgets("centers the selected item and exposes adjustable semantics", (
     tester,
   ) async {
@@ -101,6 +121,35 @@ void main() {
     expect(haptics.count, 1);
     _expectCentered(tester, 8);
     expect(_thumbnailSize(tester, 8), const Size(34, 43));
+  });
+
+  testWidgets("recenters the selected item when its layout changes", (
+    tester,
+  ) async {
+    final key = GlobalKey<_FilmstripHarnessState>();
+    await tester.pumpWidget(
+      _TestApp(
+        child: _FilmstripHarness(key: key, itemCount: 20, selectedIndex: 7),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final largeLayout = FileViewerFilmstripLayout.forAvailableSize(
+      const Size(1032, 1376),
+    );
+    key.currentState!.update(layout: largeLayout);
+    await tester.pumpAndSettle();
+
+    _expectCentered(tester, 7);
+    expect(tester.getSize(find.byKey(fileViewerFilmstripListKey)).height, 67.5);
+    expect(_thumbnailSize(tester, 7), const Size(51, 64.5));
+    expect(
+      tester.getCenter(find.byKey(const ValueKey("filmstrip-test-item-8"))).dx -
+          tester
+              .getCenter(find.byKey(const ValueKey("filmstrip-test-item-7")))
+              .dx,
+      closeTo(49.5, 0.01),
+    );
   });
 
   testWidgets("sizes thumbnails continuously by their distance from center", (
@@ -705,18 +754,25 @@ class _FilmstripHarness extends StatefulWidget {
 class _FilmstripHarnessState extends State<_FilmstripHarness> {
   late int itemCount = widget.itemCount;
   late int selectedIndex = widget.selectedIndex;
+  FileViewerFilmstripLayout layout = FileViewerFilmstripLayout.compact;
   final selections = <FileViewerFilmstripEvent>[];
 
-  void update({int? itemCount, int? selectedIndex}) {
+  void update({
+    int? itemCount,
+    int? selectedIndex,
+    FileViewerFilmstripLayout? layout,
+  }) {
     setState(() {
       this.itemCount = itemCount ?? this.itemCount;
       this.selectedIndex = selectedIndex ?? this.selectedIndex;
+      this.layout = layout ?? this.layout;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return FileViewerFilmstrip(
+      layout: layout,
       itemCount: itemCount,
       selectedIndex: selectedIndex,
       semanticLabel: "Photo chooser",

@@ -1,3 +1,5 @@
+import "dart:math";
+
 import "package:ente_components/ente_components.dart" show fillDarkDark;
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
@@ -12,10 +14,31 @@ import "package:photos/ui/viewer/file/file_viewer_filmstrip_event.dart";
 import "package:photos/ui/viewer/file/file_viewer_filmstrip_preview_layer.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
-abstract final class GalleryFileViewerFilmstripLayout {
+@immutable
+class GalleryFileViewerFilmstripLayout {
   static const upperContentGap = 6.0;
-  static const additionalBottomInset =
-      FileViewerFilmstripLayout.height + upperContentGap;
+  static const compact = GalleryFileViewerFilmstripLayout._(
+    FileViewerFilmstripLayout.compact,
+  );
+
+  final FileViewerFilmstripLayout filmstrip;
+
+  const GalleryFileViewerFilmstripLayout._(this.filmstrip);
+
+  factory GalleryFileViewerFilmstripLayout.fromMediaQuery(
+    MediaQueryData mediaQuery,
+  ) {
+    final viewPadding = mediaQuery.viewPadding;
+    final availableSize = Size(
+      max(0.0, mediaQuery.size.width - viewPadding.horizontal),
+      max(0.0, mediaQuery.size.height - viewPadding.vertical),
+    );
+    return GalleryFileViewerFilmstripLayout._(
+      FileViewerFilmstripLayout.forAvailableSize(availableSize),
+    );
+  }
+
+  double get additionalBottomInset => filmstrip.height + upperContentGap;
 }
 
 bool shouldShowGalleryFileViewerFilmstrip({
@@ -80,6 +103,7 @@ class GalleryFileViewerFilmstripOverlay extends StatelessWidget {
   final int? Function(Key key) findChildIndexCallback;
   final ValueListenable<bool> enableFullScreenNotifier;
   final FileViewerFilmstripEventCallback onEvent;
+  final GalleryFileViewerFilmstripLayout layout;
 
   const GalleryFileViewerFilmstripOverlay({
     required this.files,
@@ -88,6 +112,7 @@ class GalleryFileViewerFilmstripOverlay extends StatelessWidget {
     required this.findChildIndexCallback,
     required this.enableFullScreenNotifier,
     required this.onEvent,
+    required this.layout,
     super.key,
   });
 
@@ -98,7 +123,7 @@ class GalleryFileViewerFilmstripOverlay extends StatelessWidget {
       left: safePadding.left,
       right: safePadding.right,
       bottom: safePadding.bottom + bottomControlsHeight,
-      height: FileViewerFilmstripLayout.height,
+      height: layout.filmstrip.height,
       child: ValueListenableBuilder<bool>(
         valueListenable: enableFullScreenNotifier,
         builder: (context, isFullScreen, child) => IgnorePointer(
@@ -111,6 +136,7 @@ class GalleryFileViewerFilmstripOverlay extends StatelessWidget {
           ),
         ),
         child: FileViewerFilmstrip(
+          layout: layout.filmstrip,
           itemCount: files.length,
           selectedIndex: selectedIndex,
           semanticLabel: context.strings.photoViewerFilmstripLabel,
@@ -125,12 +151,14 @@ class GalleryFileViewerFilmstripOverlay extends StatelessWidget {
               children: [
                 _GalleryFilmstripThumbnail(file: file, fit: BoxFit.cover),
                 if (file.fileType == FileType.video)
-                  const Center(
+                  Center(
                     child: Icon(
                       Icons.play_arrow_rounded,
                       color: Colors.white,
-                      size: 14,
-                      shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+                      size: 14 * layout.filmstrip.scale,
+                      shadows: const [
+                        Shadow(color: Colors.black87, blurRadius: 3),
+                      ],
                     ),
                   ),
               ],

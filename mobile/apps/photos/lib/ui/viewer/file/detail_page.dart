@@ -139,7 +139,7 @@ class _DetailPageState extends State<DetailPage> {
           isGuestView: false,
           itemCount: widget.config.files.length,
         )
-        ? GalleryFileViewerFilmstripLayout.additionalBottomInset
+        ? GalleryFileViewerFilmstripLayout.compact.additionalBottomInset
         : 0;
   }
 
@@ -203,6 +203,8 @@ class _BodyState extends State<_Body> {
   final Map<EnteFile, VideoStreamChangeController>
   _videoStreamChangeControllers = Map.identity();
   ValueNotifier<double>? _bottomControlsAdditionalInsetNotifier;
+  GalleryFileViewerFilmstripLayout _filmstripLayout =
+      GalleryFileViewerFilmstripLayout.compact;
 
   @override
   void initState() {
@@ -277,6 +279,9 @@ class _BodyState extends State<_Body> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _filmstripLayout = GalleryFileViewerFilmstripLayout.fromMediaQuery(
+      MediaQuery.of(context),
+    );
     _bottomControlsAdditionalInsetNotifier = InheritedDetailPageState.of(
       context,
     ).bottomControlsAdditionalInsetNotifier;
@@ -402,6 +407,7 @@ class _BodyState extends State<_Body> {
                     mode: widget.config.mode,
                     isGuestView: isGuestView,
                     hasFilmstrip: _shouldShowFilmstrip,
+                    filmstripLayout: _filmstripLayout,
                     enableFullScreenNotifier: fullScreenNotifier,
                   );
                 },
@@ -415,6 +421,7 @@ class _BodyState extends State<_Body> {
                     mode: widget.config.mode,
                     isGuestView: isGuestView,
                     hasFilmstrip: _shouldShowFilmstrip,
+                    filmstripLayout: _filmstripLayout,
                   );
                 },
               ),
@@ -528,6 +535,7 @@ class _BodyState extends State<_Body> {
                       enableFullScreenNotifier: InheritedDetailPageState.of(
                         context,
                       ).enableFullScreenNotifier,
+                      layout: _filmstripLayout,
                       onEvent: _filmstripCoordinator.handleEvent,
                     );
                   },
@@ -897,7 +905,7 @@ class _BodyState extends State<_Body> {
     if (notifier == null) return;
     if (!_shouldShowFilmstrip) _filmstripCoordinator.reset();
     final inset = _shouldShowFilmstrip
-        ? GalleryFileViewerFilmstripLayout.additionalBottomInset
+        ? _filmstripLayout.additionalBottomInset
         : 0.0;
     notifier.value = inset;
   }
@@ -952,6 +960,7 @@ class _GalleryFileViewerBottomOverlay extends StatelessWidget {
   final DetailPageMode mode;
   final bool isGuestView;
   final bool hasFilmstrip;
+  final GalleryFileViewerFilmstripLayout filmstripLayout;
   final ValueListenable<bool> enableFullScreenNotifier;
 
   const _GalleryFileViewerBottomOverlay({
@@ -959,6 +968,7 @@ class _GalleryFileViewerBottomOverlay extends StatelessWidget {
     required this.mode,
     required this.isGuestView,
     required this.hasFilmstrip,
+    required this.filmstripLayout,
     required this.enableFullScreenNotifier,
   });
 
@@ -977,7 +987,7 @@ class _GalleryFileViewerBottomOverlay extends StatelessWidget {
       context,
     ).mini.copyWith(color: textBaseDark.withValues(alpha: 0.8));
     final filmstripInset = hasFilmstrip
-        ? GalleryFileViewerFilmstripLayout.additionalBottomInset
+        ? filmstripLayout.additionalBottomInset
         : 0.0;
     return ValueListenableBuilder<bool>(
       valueListenable: enableFullScreenNotifier,
@@ -1072,12 +1082,14 @@ class _GallerySocialOverlay extends StatelessWidget {
   final DetailPageMode mode;
   final bool isGuestView;
   final bool hasFilmstrip;
+  final GalleryFileViewerFilmstripLayout filmstripLayout;
 
   const _GallerySocialOverlay({
     required this.file,
     required this.mode,
     required this.isGuestView,
     required this.hasFilmstrip,
+    required this.filmstripLayout,
   });
 
   @override
@@ -1095,9 +1107,7 @@ class _GallerySocialOverlay extends StatelessWidget {
       bottom:
           padding.bottom +
           _socialBottomBarClearance +
-          (hasFilmstrip
-              ? GalleryFileViewerFilmstripLayout.additionalBottomInset
-              : 0),
+          (hasFilmstrip ? filmstripLayout.additionalBottomInset : 0),
       child: ValueListenableBuilder<bool>(
         valueListenable: fullScreenNotifier,
         builder: (context, isFullScreen, child) => IgnorePointer(

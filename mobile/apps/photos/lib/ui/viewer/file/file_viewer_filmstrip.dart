@@ -12,14 +12,60 @@ const fileViewerFilmstripListKey = ValueKey<String>(
   "file-viewer-filmstrip-list",
 );
 
-abstract final class FileViewerFilmstripLayout {
-  static const height = 45.0;
+@immutable
+class FileViewerFilmstripLayout {
+  static const compact = FileViewerFilmstripLayout._(
+    scale: 1,
+    height: 45,
+    itemExtent: 33,
+    selectedThumbnailSize: Size(34, 43),
+    thumbnailSize: Size(29, 35),
+    thumbnailBorderRadius: BorderRadius.all(Radius.circular(2.5)),
+  );
+  static const _compactShortestSide = 600.0;
+  static const _maximumScale = 1.5;
+
+  final double scale;
+  final double height;
+  final double itemExtent;
+  final Size selectedThumbnailSize;
+  final Size thumbnailSize;
+  final BorderRadius thumbnailBorderRadius;
+
+  const FileViewerFilmstripLayout._({
+    required this.scale,
+    required this.height,
+    required this.itemExtent,
+    required this.selectedThumbnailSize,
+    required this.thumbnailSize,
+    required this.thumbnailBorderRadius,
+  });
+
+  factory FileViewerFilmstripLayout.forAvailableSize(Size availableSize) {
+    final shortestSide = min(availableSize.width, availableSize.height);
+    final scale = (shortestSide / _compactShortestSide)
+        .clamp(1.0, _maximumScale)
+        .toDouble();
+    if (scale == 1) return compact;
+    return FileViewerFilmstripLayout._(
+      scale: scale,
+      height: compact.height * scale,
+      itemExtent: compact.itemExtent * scale,
+      selectedThumbnailSize: compact.selectedThumbnailSize * scale,
+      thumbnailSize: compact.thumbnailSize * scale,
+      thumbnailBorderRadius: BorderRadius.all(Radius.circular(2.5 * scale)),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FileViewerFilmstripLayout && scale == other.scale;
+
+  @override
+  int get hashCode => scale.hashCode;
 }
 
-const _itemExtent = 33.0;
-const _selectedThumbnailSize = Size(34, 43);
-const _thumbnailSize = Size(29, 35);
-const _thumbnailBorderRadius = BorderRadius.all(Radius.circular(2.5));
 const _cacheExtentInItems = 4;
 const _scrollAnimationDuration = Duration(milliseconds: 180);
 
@@ -35,6 +81,7 @@ class FileViewerFilmstrip extends StatefulWidget {
   final FileViewerFilmstripEventCallback onEvent;
   final String? semanticLabel;
   final FileViewerFilmstripSemanticValueBuilder semanticValueBuilder;
+  final FileViewerFilmstripLayout layout;
 
   const FileViewerFilmstrip({
     required this.itemCount,
@@ -45,6 +92,7 @@ class FileViewerFilmstrip extends StatefulWidget {
     this.itemKeyBuilder,
     this.findChildIndexCallback,
     this.semanticLabel,
+    this.layout = FileViewerFilmstripLayout.compact,
     super.key = fileViewerFilmstripKey,
   }) : assert(itemCount >= 0);
 
@@ -74,12 +122,15 @@ class _FileViewerFilmstripState extends State<FileViewerFilmstrip> {
     super.didUpdateWidget(oldWidget);
     final selectedIndex = _clampIndex(widget.selectedIndex);
     final itemCountChanged = widget.itemCount != oldWidget.itemCount;
+    final layoutChanged = widget.layout != oldWidget.layout;
     final shouldSyncFocus =
         !_interaction.isUserScrollSessionActive ||
         _focusedIndex >= widget.itemCount;
     final focusChanged = shouldSyncFocus && _setFocusedIndex(selectedIndex);
 
-    if (!_interaction.isUserScrollSessionActive &&
+    if (layoutChanged) {
+      _requestCentering(jump: true);
+    } else if (!_interaction.isUserScrollSessionActive &&
         (focusChanged || itemCountChanged)) {
       _requestCentering();
     }
@@ -106,7 +157,7 @@ class _FileViewerFilmstripState extends State<FileViewerFilmstrip> {
           builder: (context, constraints) {
             final horizontalPadding = max(
               0.0,
-              (constraints.maxWidth - _itemExtent) / 2,
+              (constraints.maxWidth - widget.layout.itemExtent) / 2,
             );
             return Listener(
               onPointerDown: (event) => _interaction.pointerDown(event.pointer),
@@ -115,7 +166,7 @@ class _FileViewerFilmstripState extends State<FileViewerFilmstrip> {
               child: NotificationListener<ScrollNotification>(
                 onNotification: _onScrollNotification,
                 child: SizedBox(
-                  height: FileViewerFilmstripLayout.height,
+                  height: widget.layout.height,
                   child: ListView.builder(
                     key: fileViewerFilmstripListKey,
                     controller: _scrollController,
@@ -123,13 +174,13 @@ class _FileViewerFilmstripState extends State<FileViewerFilmstrip> {
                     scrollDirection: Axis.horizontal,
                     physics: fileViewerFilmstripPhysics,
                     itemCount: widget.itemCount,
-                    itemExtent: _itemExtent,
+                    itemExtent: widget.layout.itemExtent,
                     findChildIndexCallback: widget.findChildIndexCallback,
                     padding: EdgeInsets.symmetric(
                       horizontal: horizontalPadding,
                     ),
-                    scrollCacheExtent: const ScrollCacheExtent.pixels(
-                      _itemExtent * _cacheExtentInItems,
+                    scrollCacheExtent: ScrollCacheExtent.pixels(
+                      widget.layout.itemExtent * _cacheExtentInItems,
                     ),
                     addAutomaticKeepAlives: false,
                     addSemanticIndexes: false,
@@ -185,16 +236,17 @@ class _FileViewerFilmstripState extends State<FileViewerFilmstrip> {
       behavior: HitTestBehavior.opaque,
       onTap: () => _selectIndex(index, FileViewerFilmstripEventType.tap),
       child: SizedBox(
-        width: _itemExtent,
-        height: FileViewerFilmstripLayout.height,
+        width: widget.layout.itemExtent,
+        height: widget.layout.height,
         child: OverflowBox(
           minWidth: 0,
-          maxWidth: _selectedThumbnailSize.width,
+          maxWidth: widget.layout.selectedThumbnailSize.width,
           minHeight: 0,
-          maxHeight: _selectedThumbnailSize.height,
+          maxHeight: widget.layout.selectedThumbnailSize.height,
           child: _FilmstripThumbnailFrame(
             scrollPosition: _scrollController,
             proximity: () => _centerProximity(index),
+            layout: widget.layout,
             child: widget.itemBuilder(context, index),
           ),
         ),
@@ -259,7 +311,9 @@ class _FileViewerFilmstripState extends State<FileViewerFilmstrip> {
 
   int _nearestScrolledIndex() {
     if (!_scrollController.hasClients || widget.itemCount == 0) return 0;
-    return _clampIndex((_scrollController.offset / _itemExtent).round());
+    return _clampIndex(
+      (_scrollController.offset / widget.layout.itemExtent).round(),
+    );
   }
 
   void _selectIndex(
@@ -303,7 +357,9 @@ class _FileViewerFilmstripState extends State<FileViewerFilmstrip> {
           : position.pixels;
     }
     final linearProximity =
-        (1 - ((scrollOffset - _offsetForIndex(index)).abs() / _itemExtent))
+        (1 -
+                ((scrollOffset - _offsetForIndex(index)).abs() /
+                    widget.layout.itemExtent))
             .clamp(0.0, 1.0)
             .toDouble();
     // Smoothstep avoids a visible change in slope as an item enters or leaves
@@ -311,15 +367,33 @@ class _FileViewerFilmstripState extends State<FileViewerFilmstrip> {
     return linearProximity * linearProximity * (3 - (2 * linearProximity));
   }
 
-  void _requestCentering() {
+  bool _jumpOnNextCentering = false;
+
+  void _requestCentering({bool jump = false}) {
+    _jumpOnNextCentering |= jump;
     if (widget.itemCount == 0 || !_interaction.tryScheduleCentering()) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (!_interaction.resolveScheduledCentering()) return;
-      _animateToIndex(_focusedIndex);
+      if (_jumpOnNextCentering) {
+        _jumpOnNextCentering = false;
+        _jumpToIndex(_focusedIndex);
+      } else {
+        _animateToIndex(_focusedIndex);
+      }
     });
+  }
+
+  void _jumpToIndex(int index) {
+    if (widget.itemCount == 0 || !_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final target = _offsetForIndex(
+      _clampIndex(index),
+    ).clamp(position.minScrollExtent, position.maxScrollExtent);
+    if ((position.pixels - target).abs() < 0.5) return;
+    _scrollController.jumpTo(target);
   }
 
   void _animateToIndex(int index) {
@@ -343,7 +417,7 @@ class _FileViewerFilmstripState extends State<FileViewerFilmstrip> {
     return index.clamp(0, widget.itemCount - 1);
   }
 
-  double _offsetForIndex(int index) => index * _itemExtent;
+  double _offsetForIndex(int index) => index * widget.layout.itemExtent;
 }
 
 enum _CenteringRequestState { idle, scheduled, deferred }
@@ -397,11 +471,13 @@ class _FilmstripInteractionState {
 
 class _FilmstripThumbnailFrame extends AnimatedWidget {
   final ValueGetter<double> proximity;
+  final FileViewerFilmstripLayout layout;
   final Widget child;
 
   const _FilmstripThumbnailFrame({
     required Listenable scrollPosition,
     required this.proximity,
+    required this.layout,
     required this.child,
   }) : super(listenable: scrollPosition);
 
@@ -409,15 +485,15 @@ class _FilmstripThumbnailFrame extends AnimatedWidget {
   Widget build(BuildContext context) {
     final centerProximity = proximity();
     final size = Size.lerp(
-      _thumbnailSize,
-      _selectedThumbnailSize,
+      layout.thumbnailSize,
+      layout.selectedThumbnailSize,
       centerProximity,
     )!;
     return SizedBox.fromSize(
       size: size,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: _thumbnailBorderRadius,
+          borderRadius: layout.thumbnailBorderRadius,
           boxShadow: [
             BoxShadow(
               color: Color.lerp(
@@ -425,13 +501,13 @@ class _FilmstripThumbnailFrame extends AnimatedWidget {
                 const Color(0x33000000),
                 centerProximity,
               )!,
-              blurRadius: 2 + centerProximity,
-              offset: const Offset(0, 1),
+              blurRadius: (2 + centerProximity) * layout.scale,
+              offset: Offset(0, layout.scale),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: _thumbnailBorderRadius,
+          borderRadius: layout.thumbnailBorderRadius,
           child: Stack(
             fit: StackFit.expand,
             children: [
