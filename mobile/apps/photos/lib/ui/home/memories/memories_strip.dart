@@ -247,6 +247,24 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
           ),
         ),
     ];
+    final cards = cardBuilders.indexed
+        .map(
+          (entry) => entry.$2(() async {
+            await openAllMemoriesPage(
+              context: context,
+              allMemories: memories,
+              memoryLane: hasMemoryLane ? memoryLane : null,
+              memoryLanePerson: hasMemoryLane ? memoryLanePerson : null,
+              initialPageIndex: entry.$1,
+            );
+            if (!mounted) return;
+            setState(() {});
+          }),
+        )
+        .toList();
+    final memoryLaneCard = hasMemoryLane ? cards.first : null;
+    final hasSeenMemoryLane =
+        hasMemoryLane && localSettings.hasSeenMemoryLane(memoryLane.personId);
     return [
       if (_shouldShowCraftingMemories && hasContent)
         MemoryCardWrapper(
@@ -264,19 +282,9 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
             },
           ),
         ),
-      ...cardBuilders.indexed.map(
-        (entry) => entry.$2(() async {
-          await openAllMemoriesPage(
-            context: context,
-            allMemories: memories,
-            memoryLane: hasMemoryLane ? memoryLane : null,
-            memoryLanePerson: hasMemoryLane ? memoryLanePerson : null,
-            initialPageIndex: entry.$1,
-          );
-          if (!mounted) return;
-          setState(() {});
-        }),
-      ),
+      if (memoryLaneCard != null && !hasSeenMemoryLane) memoryLaneCard,
+      ...cards.skip(hasMemoryLane ? 1 : 0),
+      if (memoryLaneCard != null && hasSeenMemoryLane) memoryLaneCard,
     ];
   }
 

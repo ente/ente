@@ -5,6 +5,7 @@ import "package:photos/events/pause_video_event.dart";
 import "package:photos/models/memories/smart_memory.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
 import "package:photos/models/ml/face/person.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/services/app_navigation_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/home/memories/full_screen_memory.dart";
@@ -87,32 +88,26 @@ class _AllMemoriesPageState extends State<AllMemoriesPage> {
         ? null
         : widget.allMemories[initialMemoryIndex];
     _pages = _buildPages();
-    _activePageIndex = initialMemory == null
-        ? 0
-        : _pages.indexWhere((page) => page.id == initialMemory.id);
+    _activePageIndex = _pages.indexWhere(
+      (page) =>
+          page.id ==
+          (initialMemory == null
+              ? "memoryLane_${widget.memoryLane!.personId}"
+              : initialMemory.id),
+    );
     _pageController = PageController(initialPage: _activePageIndex);
   }
 
   List<MemoryPageWrapper> _buildPages() {
     final memoryLane = widget.memoryLane;
-    final pages = <MemoryPageWrapper>[
-      if (memoryLane != null)
-        MemoryPageWrapper(
-          id: "memoryLane_${memoryLane.personId}",
-          widget: ({onNextMemory, onPreviousMemory}) => MemoryLanePageV2(
-            key: ValueKey("memoryLane_${memoryLane.personId}"),
-            personId: memoryLane.personId,
-            isCluster: memoryLane.isCluster,
-            person: widget.memoryLanePerson,
-            isActive: _activePageIndex == 0,
-            onNextMemory: onNextMemory,
-            onPreviousMemory: onPreviousMemory,
-          ),
-        ),
-    ];
+    final hasSeenMemoryLane =
+        memoryLane != null &&
+        localSettings.hasSeenMemoryLane(memoryLane.personId);
+    final pages = <MemoryPageWrapper>[];
     for (final smartMemory in widget.allMemories) {
       if (smartMemory.memories.isEmpty) continue;
-      final index = pages.length;
+      final index =
+          pages.length + (memoryLane != null && !hasSeenMemoryLane ? 1 : 0);
       pages.add(
         MemoryPageWrapper(
           id: smartMemory.id,
@@ -143,6 +138,25 @@ class _AllMemoriesPageState extends State<AllMemoriesPage> {
               ),
             );
           },
+        ),
+      );
+    }
+    if (memoryLane != null) {
+      pages.insert(
+        hasSeenMemoryLane ? pages.length : 0,
+        MemoryPageWrapper(
+          id: "memoryLane_${memoryLane.personId}",
+          widget: ({onNextMemory, onPreviousMemory}) => MemoryLanePageV2(
+            key: ValueKey("memoryLane_${memoryLane.personId}"),
+            personId: memoryLane.personId,
+            isCluster: memoryLane.isCluster,
+            person: widget.memoryLanePerson,
+            isActive:
+                _pages[_activePageIndex].id ==
+                "memoryLane_${memoryLane.personId}",
+            onNextMemory: onNextMemory,
+            onPreviousMemory: onPreviousMemory,
+          ),
         ),
       );
     }
