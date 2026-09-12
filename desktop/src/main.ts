@@ -226,6 +226,23 @@ const createMainWindow = () => {
     window.on("focus", () => window.webContents.send("mainWindowFocus"));
     window.on("blur", () => window.webContents.send("mainWindowBlur"));
 
+    // The OS-level fullscreen toggle (green traffic light button / Cmd+Ctrl+F
+    // on macOS, F11 or the "Toggle Full Screen" menu item elsewhere) resizes
+    // the window directly in the main process, bypassing the renderer's
+    // Fullscreen API entirely - and on macOS specifically, the renderer's
+    // own `requestFullscreen` also puts the native window into this same
+    // fullscreen, unlike on Windows/Linux where HTML5 fullscreen stays
+    // simulated within the window. Forward native transitions on every
+    // platform (that native toggle isn't macOS-only either) so the renderer
+    // can keep `document.fullscreenElement` - and anything derived from it,
+    // like the file viewer's video layout - in sync with them.
+    window.on("enter-full-screen", () =>
+        window.webContents.send("mainWindowFullscreenChange", true),
+    );
+    window.on("leave-full-screen", () =>
+        window.webContents.send("mainWindowFullscreenChange", false),
+    );
+
     return window;
 };
 

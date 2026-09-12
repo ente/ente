@@ -106,6 +106,24 @@ const onMainWindowBlur = (cb: (() => void) | undefined) => {
     if (cb) ipcRenderer.on("mainWindowBlur", cb);
 };
 
+const onMainWindowFullscreenChange = (
+    cb: ((isFullscreen: boolean) => void) | undefined,
+) => {
+    ipcRenderer.removeAllListeners("mainWindowFullscreenChange");
+    if (cb) {
+        ipcRenderer.on(
+            "mainWindowFullscreenChange",
+            (_: IpcRendererEvent, isFullscreen: boolean) => cb(isFullscreen),
+        );
+    }
+};
+
+const isMainWindowFullscreen = (): Promise<boolean> =>
+    ipcRenderer.invoke("isMainWindowFullscreen");
+
+const setMainWindowFullscreen = (isFullscreen: boolean): void =>
+    ipcRenderer.send("setMainWindowFullscreen", isFullscreen);
+
 const setTitleBarOverlay = (themeMode: ThemeMode, isFileViewerOpen: boolean) =>
     ipcRenderer.send("setTitleBarOverlay", themeMode, isFileViewerOpen);
 
@@ -293,6 +311,9 @@ contextBridge.exposeInMainWorld("electron", {
     promptDeviceLock,
     onMainWindowFocus,
     onMainWindowBlur,
+    onMainWindowFullscreenChange,
+    isMainWindowFullscreen,
+    setMainWindowFullscreen,
     setTitleBarOverlay,
     onOpenEnteURL,
 
