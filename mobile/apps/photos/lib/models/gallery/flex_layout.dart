@@ -20,8 +20,8 @@ class FlexLayoutCalculator {
     required double availableWidth,
     required double targetRowHeight,
     required double spacing,
+    required double minimumNonFinalSingletonAspectRatio,
     double maximumRowHeightFactor = _defaultMaximumRowHeightFactor,
-    double? minimumNonFinalSingletonAspectRatio,
   }) {
     if (!availableWidth.isFinite || availableWidth <= 0) {
       throw ArgumentError.value(availableWidth, "availableWidth");
@@ -38,9 +38,8 @@ class FlexLayoutCalculator {
         "maximumRowHeightFactor",
       );
     }
-    if (minimumNonFinalSingletonAspectRatio != null &&
-        (!minimumNonFinalSingletonAspectRatio.isFinite ||
-            minimumNonFinalSingletonAspectRatio <= 0)) {
+    if (!minimumNonFinalSingletonAspectRatio.isFinite ||
+        minimumNonFinalSingletonAspectRatio <= 0) {
       throw ArgumentError.value(
         minimumNonFinalSingletonAspectRatio,
         "minimumNonFinalSingletonAspectRatio",
@@ -78,8 +77,7 @@ class FlexLayoutCalculator {
         final isTail = end == count - 1;
         if (!isTail &&
             itemCount == 1 &&
-            (minimumNonFinalSingletonAspectRatio == null ||
-                ratios[start] < minimumNonFinalSingletonAspectRatio)) {
+            ratios[start] < minimumNonFinalSingletonAspectRatio) {
           continue;
         }
         final geometry = _rowGeometry(

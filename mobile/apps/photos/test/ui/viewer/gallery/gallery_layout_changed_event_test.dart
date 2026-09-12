@@ -64,7 +64,6 @@ void main() {
       JustifiedLayoutStrategy.comfortLarge,
     );
     await localSettings.resetFlexLayoutTuning();
-    await localSettings.resetFlexFullRowsLayoutTuning();
     await localSettings.resetComfortLargeLayoutTuning();
   });
 
@@ -112,11 +111,12 @@ void main() {
         await tester.tap(find.text("Open settings"));
         await tester.pumpAndSettle();
         if (!quickMenu) {
-          await tester.tap(find.text("Layout"));
+          await tester.tap(find.text("Layout (i)"));
           await tester.pumpAndSettle();
         }
         expect(find.text("Justified · Comfort"), findsNothing);
-        await tester.tap(find.text("Justified · Flex Full Rows"));
+        expect(find.text("Justified · Flex Full Rows"), findsNothing);
+        await tester.tap(find.text("Justified · Flex (i)"));
         await tester.pumpAndSettle();
         expect(
           localSettings.getGalleryLayoutType(),
@@ -124,7 +124,7 @@ void main() {
         );
         expect(
           localSettings.getJustifiedLayoutStrategy(),
-          JustifiedLayoutStrategy.flexFullRows,
+          JustifiedLayoutStrategy.flex,
         );
         expect(events, 1);
         await tester.pumpWidget(const SizedBox.shrink());

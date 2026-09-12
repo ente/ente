@@ -1,1 +1,1 @@
-enum JustifiedLayoutStrategy { comfortLarge, flex, flexFullRows }
+enum JustifiedLayoutStrategy { comfortLarge, flex }

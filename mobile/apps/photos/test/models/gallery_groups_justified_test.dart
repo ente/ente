@@ -53,7 +53,6 @@ void main() {
       JustifiedLayoutStrategy.comfortLarge,
     );
     await localSettings.resetFlexLayoutTuning();
-    await localSettings.resetFlexFullRowsLayoutTuning();
     await localSettings.resetComfortLargeLayoutTuning();
     await localSettings.setPhotoGridSize(4);
   });
@@ -171,7 +170,7 @@ void main() {
     expect(flex.rows.single.itemWidths, hasLength(4));
   });
 
-  test("routes Flex Full Rows with independent tuning", () async {
+  test("routes Flex with its non-final singleton tuning", () async {
     final files = List<EnteFile>.generate(
       3,
       (index) => _file(
@@ -183,7 +182,7 @@ void main() {
     );
     await localSettings.setPhotoGridSize(2);
     await localSettings.setJustifiedLayoutStrategy(
-      JustifiedLayoutStrategy.flexFullRows,
+      JustifiedLayoutStrategy.flex,
     );
 
     JustifiedSectionLayout section() =>
@@ -196,8 +195,8 @@ void main() {
             as JustifiedSectionLayout;
 
     expect(section().rows.map((row) => row.itemWidths.length), [1, 1, 1]);
-    await localSettings.setFlexFullRowsLayoutTuningValue(
-      FlexFullRowsLayoutTuningField.minimumNonFinalSingletonAspectRatio,
+    await localSettings.setFlexLayoutTuningValue(
+      FlexLayoutTuningField.minimumNonFinalSingletonAspectRatio,
       2,
     );
     final constrainedRows = section().rows;

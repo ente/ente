@@ -60,15 +60,12 @@ class LocalSettings {
   static const kGalleryGroupType = "gallery_group_type";
   static const kGalleryLayoutType = "gallery_layout_type";
   static const kJustifiedLayoutStrategy = "justified_layout_strategy";
+  // Keep the former Full Rows keys so its tuning survives the option rename.
   static const kFlexLayoutTuningTargetHeightScale =
-      "gallery.justified.flex.target_height_scale";
-  static const kFlexLayoutTuningMaximumHeightFactor =
-      "gallery.justified.flex.maximum_height_factor";
-  static const kFlexFullRowsLayoutTuningTargetHeightScale =
       "gallery.justified.flex_full_rows.target_height_scale";
-  static const kFlexFullRowsLayoutTuningMaximumHeightFactor =
+  static const kFlexLayoutTuningMaximumHeightFactor =
       "gallery.justified.flex_full_rows.maximum_height_factor";
-  static const kFlexFullRowsLayoutTuningMinimumNonFinalSingletonAspectRatio =
+  static const kFlexLayoutTuningMinimumNonFinalSingletonAspectRatio =
       "gallery.justified.flex_full_rows.minimum_non_final_singleton_aspect_ratio";
   static const kComfortLargeLayoutTuningTargetHeightScale =
       "gallery.justified.comfort_large.target_height_scale";
@@ -303,8 +300,7 @@ class LocalSettings {
 
   JustifiedLayoutStrategy getJustifiedLayoutStrategy() {
     return switch (_prefs.getString(kJustifiedLayoutStrategy)) {
-      "flex" => JustifiedLayoutStrategy.flex,
-      "flexFullRows" => JustifiedLayoutStrategy.flexFullRows,
+      "flex" || "flexFullRows" => JustifiedLayoutStrategy.flex,
       _ => JustifiedLayoutStrategy.comfortLarge,
     };
   }
@@ -327,6 +323,11 @@ class LocalSettings {
         FlexLayoutTuningField.maximumHeightFactor.defaultValue,
         FlexLayoutTuningField.maximumHeightFactor.isValid,
       ),
+      minimumNonFinalSingletonAspectRatio: _validDoubleOrDefault(
+        kFlexLayoutTuningMinimumNonFinalSingletonAspectRatio,
+        FlexLayoutTuningField.minimumNonFinalSingletonAspectRatio.defaultValue,
+        FlexLayoutTuningField.minimumNonFinalSingletonAspectRatio.isValid,
+      ),
     );
   }
 
@@ -347,54 +348,6 @@ class LocalSettings {
   Future<void> resetFlexLayoutTuning() async {
     await Future.wait(
       FlexLayoutTuningField.values.map(resetFlexLayoutTuningValue),
-    );
-  }
-
-  FlexFullRowsLayoutTuning getFlexFullRowsLayoutTuning() {
-    return FlexFullRowsLayoutTuning(
-      targetHeightScale: _validDoubleOrDefault(
-        kFlexFullRowsLayoutTuningTargetHeightScale,
-        FlexFullRowsLayoutTuningField.targetHeightScale.defaultValue,
-        FlexFullRowsLayoutTuningField.targetHeightScale.isValid,
-      ),
-      maximumHeightFactor: _validDoubleOrDefault(
-        kFlexFullRowsLayoutTuningMaximumHeightFactor,
-        FlexFullRowsLayoutTuningField.maximumHeightFactor.defaultValue,
-        FlexFullRowsLayoutTuningField.maximumHeightFactor.isValid,
-      ),
-      minimumNonFinalSingletonAspectRatio: _validDoubleOrDefault(
-        kFlexFullRowsLayoutTuningMinimumNonFinalSingletonAspectRatio,
-        FlexFullRowsLayoutTuningField
-            .minimumNonFinalSingletonAspectRatio
-            .defaultValue,
-        FlexFullRowsLayoutTuningField
-            .minimumNonFinalSingletonAspectRatio
-            .isValid,
-      ),
-    );
-  }
-
-  Future<void> setFlexFullRowsLayoutTuningValue(
-    FlexFullRowsLayoutTuningField field,
-    double value,
-  ) async {
-    if (!field.isValid(value)) {
-      throw ArgumentError.value(value, field.name);
-    }
-    await _prefs.setDouble(_flexFullRowsLayoutTuningKey(field), value);
-  }
-
-  Future<void> resetFlexFullRowsLayoutTuningValue(
-    FlexFullRowsLayoutTuningField field,
-  ) async {
-    await _prefs.remove(_flexFullRowsLayoutTuningKey(field));
-  }
-
-  Future<void> resetFlexFullRowsLayoutTuning() async {
-    await Future.wait(
-      FlexFullRowsLayoutTuningField.values.map(
-        resetFlexFullRowsLayoutTuningValue,
-      ),
     );
   }
 
@@ -464,6 +417,8 @@ class LocalSettings {
         kFlexLayoutTuningTargetHeightScale,
       FlexLayoutTuningField.maximumHeightFactor =>
         kFlexLayoutTuningMaximumHeightFactor,
+      FlexLayoutTuningField.minimumNonFinalSingletonAspectRatio =>
+        kFlexLayoutTuningMinimumNonFinalSingletonAspectRatio,
     };
   }
 
@@ -479,19 +434,6 @@ class LocalSettings {
         kComfortLargeLayoutTuningWideFinalMaximumHeightFactor,
       ComfortLargeLayoutTuningField.minimumLandscapeHeightFactor =>
         kComfortLargeLayoutTuningMinimumLandscapeHeightFactor,
-    };
-  }
-
-  static String _flexFullRowsLayoutTuningKey(
-    FlexFullRowsLayoutTuningField field,
-  ) {
-    return switch (field) {
-      FlexFullRowsLayoutTuningField.targetHeightScale =>
-        kFlexFullRowsLayoutTuningTargetHeightScale,
-      FlexFullRowsLayoutTuningField.maximumHeightFactor =>
-        kFlexFullRowsLayoutTuningMaximumHeightFactor,
-      FlexFullRowsLayoutTuningField.minimumNonFinalSingletonAspectRatio =>
-        kFlexFullRowsLayoutTuningMinimumNonFinalSingletonAspectRatio,
     };
   }
 

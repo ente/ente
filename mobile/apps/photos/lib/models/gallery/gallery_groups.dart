@@ -451,9 +451,6 @@ class GalleryGroups {
     final flexTuning = strategy == JustifiedLayoutStrategy.flex
         ? localSettings.getFlexLayoutTuning()
         : FlexLayoutTuning.defaults;
-    final flexFullRowsTuning = strategy == JustifiedLayoutStrategy.flexFullRows
-        ? localSettings.getFlexFullRowsLayoutTuning()
-        : FlexFullRowsLayoutTuning.defaults;
     final comfortLargeTuning = strategy == JustifiedLayoutStrategy.comfortLarge
         ? localSettings.getComfortLargeLayoutTuning()
         : ComfortLargeLayoutTuning.defaults;
@@ -466,8 +463,6 @@ class GalleryGroups {
       JustifiedLayoutStrategy.comfortLarge =>
         comfortLargeTuning.targetHeightScale,
       JustifiedLayoutStrategy.flex => flexTuning.targetHeightScale,
-      JustifiedLayoutStrategy.flexFullRows =>
-        flexFullRowsTuning.targetHeightScale,
     };
     final targetRowHeight = baseTargetRowHeight * targetHeightScale;
     final groupLayouts = <SectionLayout>[];
@@ -501,17 +496,9 @@ class GalleryGroups {
           targetRowHeight: targetRowHeight,
           spacing: spacing,
           maximumRowHeightFactor: flexTuning.maximumHeightFactor,
+          minimumNonFinalSingletonAspectRatio:
+              flexTuning.minimumNonFinalSingletonAspectRatio,
         ),
-        JustifiedLayoutStrategy.flexFullRows =>
-          FlexLayoutCalculator.computeRows(
-            aspectRatios: aspectRatios,
-            availableWidth: widthAvailable,
-            targetRowHeight: targetRowHeight,
-            spacing: spacing,
-            maximumRowHeightFactor: flexFullRowsTuning.maximumHeightFactor,
-            minimumNonFinalSingletonAspectRatio:
-                flexFullRowsTuning.minimumNonFinalSingletonAspectRatio,
-          ),
       };
       final firstIndex = currentIndex == 0 ? currentIndex : currentIndex + 1;
       final lastIndex = firstIndex + rows.length;

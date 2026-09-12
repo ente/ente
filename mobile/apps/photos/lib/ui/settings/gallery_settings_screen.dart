@@ -50,7 +50,7 @@ class _GallerySettingsScreenState extends State<GallerySettingsScreen> {
       children: [
         if (isJustifiedLayoutAvailable) ...[
           SettingsItem(
-            title: l10n.layout,
+            title: "${l10n.layout} (i)",
             trailing: _trailingLabel(
               context,
               _layoutTypeLabel(context, _layoutType, _justifiedStrategy),
@@ -59,7 +59,7 @@ class _GallerySettingsScreenState extends State<GallerySettingsScreen> {
           ),
           const SizedBox(height: 8),
           SettingsItem(
-            title: "Justified layout tuning",
+            title: "Justified layout tuning (i)",
             onTap: () async {
               await Navigator.of(context).push(
                 MaterialPageRoute<void>(

@@ -329,7 +329,7 @@ class SettingsSearchRegistry {
     if (showJustifiedLayout) {
       items.add(
         SettingsSearchItem(
-          title: l10n.layout,
+          title: "${l10n.layout} (i)",
           subtitle: l10n.gallery,
           sectionPath: "${l10n.appearance} > ${l10n.gallery}",
           icon: HugeIcons.strokeRoundedDashboardSquare02,

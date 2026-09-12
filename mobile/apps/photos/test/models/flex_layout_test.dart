@@ -3,42 +3,19 @@ import "package:photos/models/gallery/flex_layout.dart";
 import "package:photos/models/gallery/justified_layout.dart";
 
 void main() {
-  test("never creates a singleton before the final row", () {
-    for (final width in [393.0, 744.0, 1024.0, 1366.0]) {
-      for (final ratios in <List<double>>[
-        [1.5, 0.5, 0.5],
-        [4, 1 / 3, 1, 1],
-        [1 / 3, 4, 1 / 3, 4, 1],
-        List.filled(9, 9 / 16),
-      ]) {
-        final rows = _rows(ratios, width: width);
+  test("allows landscape singletons without internal gaps", () {
+    const ratios = [16 / 9, 16 / 9, 16 / 9];
+    final rows = _rows(ratios);
 
-        expect(
-          rows.take(rows.length - 1).map((row) => row.itemWidths.length),
-          everyElement(greaterThanOrEqualTo(2)),
-          reason: "width $width, ratios $ratios",
-        );
-        expect(rows.last.lastIndex, ratios.length - 1);
-      }
+    expect(rows.first.itemWidths, hasLength(1));
+    for (final row in rows.take(rows.length - 1)) {
+      expect(_occupiedWidth(row), closeTo(402, 1e-9));
     }
   });
 
-  test(
-    "full-row variant allows landscape singletons without internal gaps",
-    () {
-      const ratios = [16 / 9, 16 / 9, 16 / 9];
-      final rows = _rows(ratios, minimumNonFinalSingletonAspectRatio: 0.75);
-
-      expect(rows.first.itemWidths, hasLength(1));
-      for (final row in rows.take(rows.length - 1)) {
-        expect(_occupiedWidth(row), closeTo(402, 1e-9));
-      }
-    },
-  );
-
-  test("full-row variant keeps tall portraits out of non-final singletons", () {
+  test("keeps tall portraits out of non-final singletons", () {
     const ratios = [16 / 9, 9 / 16, 16 / 9, 9 / 16, 16 / 9];
-    final rows = _rows(ratios, minimumNonFinalSingletonAspectRatio: 0.75);
+    final rows = _rows(ratios);
 
     for (final row in rows.take(rows.length - 1)) {
       if (row.itemWidths.length == 1) {
@@ -48,23 +25,21 @@ void main() {
     }
   });
 
-  test("full-row variant permits a ragged portrait-only group", () {
-    final row = _rows([
-      9 / 16,
-    ], minimumNonFinalSingletonAspectRatio: 0.75).single;
+  test("permits a ragged portrait-only group", () {
+    final row = _rows([9 / 16]).single;
 
     expect(_occupiedWidth(row), lessThan(402));
   });
 
   test("uses adaptive cropping only when a row cannot remain tappable", () {
-    final rows = _rows([4, 1 / 3, 1, 1]);
+    final rows = _rows([1 / 3, 4, 1, 1]);
     final extremeRow = rows.first;
 
     expect(extremeRow.itemWidths, hasLength(2));
     expect(_occupiedWidth(extremeRow), closeTo(402, 1e-9));
     expect(extremeRow.itemWidths, everyElement(greaterThanOrEqualTo(48)));
     expect(
-      extremeRow.itemWidths[1] / extremeRow.height,
+      extremeRow.itemWidths[0] / extremeRow.height,
       isNot(closeTo(1 / 3, 1e-9)),
     );
 
@@ -183,7 +158,7 @@ List<JustifiedRowLayout> _rows(
   double width = 402,
   double? targetHeight,
   double maximumHeightFactor = 1.6,
-  double? minimumNonFinalSingletonAspectRatio,
+  double minimumNonFinalSingletonAspectRatio = 0.75,
 }) {
   return FlexLayoutCalculator.computeRows(
     aspectRatios: ratios,

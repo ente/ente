@@ -1,6 +1,4 @@
-enum FlexLayoutTuningField { targetHeightScale, maximumHeightFactor }
-
-enum FlexFullRowsLayoutTuningField {
+enum FlexLayoutTuningField {
   targetHeightScale,
   maximumHeightFactor,
   minimumNonFinalSingletonAspectRatio,
@@ -18,16 +16,20 @@ class FlexLayoutTuning {
 
   final double targetHeightScale;
   final double maximumHeightFactor;
+  final double minimumNonFinalSingletonAspectRatio;
 
   const FlexLayoutTuning({
     this.targetHeightScale = 1.12,
     this.maximumHeightFactor = 1.6,
+    this.minimumNonFinalSingletonAspectRatio = 0.75,
   });
 
   double valueFor(FlexLayoutTuningField field) {
     return switch (field) {
       FlexLayoutTuningField.targetHeightScale => targetHeightScale,
       FlexLayoutTuningField.maximumHeightFactor => maximumHeightFactor,
+      FlexLayoutTuningField.minimumNonFinalSingletonAspectRatio =>
+        minimumNonFinalSingletonAspectRatio,
     };
   }
 }
@@ -38,46 +40,9 @@ extension FlexLayoutTuningFieldValue on FlexLayoutTuningField {
   double get maximumValue => 10;
 
   double get minimumValue => switch (this) {
-    FlexLayoutTuningField.targetHeightScale => 0.1,
+    FlexLayoutTuningField.targetHeightScale ||
+    FlexLayoutTuningField.minimumNonFinalSingletonAspectRatio => 0.1,
     FlexLayoutTuningField.maximumHeightFactor => 1,
-  };
-
-  bool isValid(double value) =>
-      value.isFinite && value >= minimumValue && value <= maximumValue;
-}
-
-class FlexFullRowsLayoutTuning {
-  static const defaults = FlexFullRowsLayoutTuning();
-
-  final double targetHeightScale;
-  final double maximumHeightFactor;
-  final double minimumNonFinalSingletonAspectRatio;
-
-  const FlexFullRowsLayoutTuning({
-    this.targetHeightScale = 1.12,
-    this.maximumHeightFactor = 1.6,
-    this.minimumNonFinalSingletonAspectRatio = 0.75,
-  });
-
-  double valueFor(FlexFullRowsLayoutTuningField field) {
-    return switch (field) {
-      FlexFullRowsLayoutTuningField.targetHeightScale => targetHeightScale,
-      FlexFullRowsLayoutTuningField.maximumHeightFactor => maximumHeightFactor,
-      FlexFullRowsLayoutTuningField.minimumNonFinalSingletonAspectRatio =>
-        minimumNonFinalSingletonAspectRatio,
-    };
-  }
-}
-
-extension FlexFullRowsLayoutTuningFieldValue on FlexFullRowsLayoutTuningField {
-  double get defaultValue => FlexFullRowsLayoutTuning.defaults.valueFor(this);
-
-  double get maximumValue => 10;
-
-  double get minimumValue => switch (this) {
-    FlexFullRowsLayoutTuningField.targetHeightScale ||
-    FlexFullRowsLayoutTuningField.minimumNonFinalSingletonAspectRatio => 0.1,
-    FlexFullRowsLayoutTuningField.maximumHeightFactor => 1,
   };
 
   bool isValid(double value) =>
