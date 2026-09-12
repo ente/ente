@@ -1,7 +1,13 @@
 package file_copy
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"sync"
+	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/controller"
@@ -14,18 +20,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"sync"
-	"time"
 )
 
-const ()
+const (
+	maxSingleCopySize     int64 = 5_000_000_000
+	multipartCopyPartSize       = 1 << 30
+	multipartAbortTimeout       = 30 * time.Second
+)
 
 type FileCopyController struct {
-	S3Config       *s3config.S3Config
-	FileController *controller.FileController
-	FileRepo       *repo.FileRepository
-	CollectionCtrl *collections.CollectionController
-	ObjectRepo     *repo.ObjectRepository
+	S3Config          *s3config.S3Config
+	FileController    *controller.FileController
+	FileRepo          *repo.FileRepository
+	CollectionCtrl    *collections.CollectionController
+	ObjectRepo        *repo.ObjectRepository
+	ObjectCleanupRepo *repo.ObjectCleanupRepository
 }
 
 type copyS3ObjectReq struct {
@@ -169,12 +178,13 @@ func (fc *FileCopyController) CopyFiles(c *gin.Context, req ente.CopyFileSyncReq
 func (fc *FileCopyController) createCopy(c *gin.Context, fcInternal fileCopyInternal, userID int64, app ente.App) (*ente.File, error) {
 	s3Client := fc.S3Config.GetHotS3Client()
 	hotBucket := fc.S3Config.GetHotBucket()
+	hotDC := fc.S3Config.GetHotDataCenter()
 	g := new(errgroup.Group)
 	g.Go(func() error {
-		return copyS3Object(s3Client, hotBucket, fcInternal.FileCopyReq)
+		return copyS3Object(c.Request.Context(), s3Client, hotBucket, hotDC, fc.ObjectCleanupRepo, fcInternal.FileCopyReq)
 	})
 	g.Go(func() error {
-		return copyS3Object(s3Client, hotBucket, fcInternal.ThumbCopyReq)
+		return copyS3Object(c.Request.Context(), s3Client, hotBucket, hotDC, fc.ObjectCleanupRepo, fcInternal.ThumbCopyReq)
 	})
 	if err := g.Wait(); err != nil {
 		return nil, err
@@ -187,19 +197,95 @@ func (fc *FileCopyController) createCopy(c *gin.Context, fcInternal fileCopyInte
 	return &newFile, nil
 }
 
-func copyS3Object(s3Client *s3.S3, bucket *string, req *copyS3ObjectReq) error {
+func copyS3Object(ctx context.Context, s3Client *s3.S3, bucket *string, dc string, objectCleanupRepo *repo.ObjectCleanupRepository, req *copyS3ObjectReq) error {
 	copySource := fmt.Sprintf("%s/%s", *bucket, req.SourceS3Object.ObjectKey)
-	copyInput := &s3.CopyObjectInput{
-		Bucket:     bucket,
-		CopySource: &copySource,
-		Key:        &req.DestObjectKey,
-	}
 	start := time.Now()
-	_, err := s3Client.CopyObject(copyInput)
-	elapsed := time.Since(start)
+	var err error
+	if req.SourceS3Object.FileSize <= maxSingleCopySize {
+		err = copyS3ObjectSingle(ctx, s3Client, bucket, copySource, req.DestObjectKey)
+	} else {
+		err = copyS3ObjectMultipart(ctx, s3Client, bucket, dc, objectCleanupRepo, copySource, req)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to copy (%s) from %s to %s: %w", req.SourceS3Object.Type, copySource, req.DestObjectKey, err)
 	}
-	logrus.WithField("duration", elapsed).WithField("size", req.SourceS3Object.FileSize).Infof("copied (%s) from %s to %s", req.SourceS3Object.Type, copySource, req.DestObjectKey)
+	logrus.WithField("duration", time.Since(start)).WithField("size", req.SourceS3Object.FileSize).Infof("copied (%s) from %s to %s", req.SourceS3Object.Type, copySource, req.DestObjectKey)
+	return nil
+}
+
+func copyS3ObjectSingle(ctx context.Context, s3Client *s3.S3, bucket *string, copySource string, destObjectKey string) error {
+	copyInput := &s3.CopyObjectInput{
+		Bucket:     bucket,
+		CopySource: &copySource,
+		Key:        &destObjectKey,
+	}
+	_, err := s3Client.CopyObjectWithContext(ctx, copyInput)
+	return err
+}
+
+func copyS3ObjectMultipart(ctx context.Context, s3Client *s3.S3, bucket *string, dc string, objectCleanupRepo *repo.ObjectCleanupRepository, copySource string, req *copyS3ObjectReq) (err error) {
+	created, err := s3Client.CreateMultipartUploadWithContext(ctx, &s3.CreateMultipartUploadInput{
+		Bucket: bucket,
+		Key:    &req.DestObjectKey,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create multipart upload: %w", err)
+	}
+	uploadID := aws.StringValue(created.UploadId)
+	if uploadID == "" {
+		return errors.New("multipart upload returned an empty upload ID")
+	}
+	defer func() {
+		if err == nil {
+			return
+		}
+		abortCtx, cancel := context.WithTimeout(context.Background(), multipartAbortTimeout)
+		defer cancel()
+		_, abortErr := s3Client.AbortMultipartUploadWithContext(abortCtx, &s3.AbortMultipartUploadInput{
+			Bucket:   bucket,
+			Key:      &req.DestObjectKey,
+			UploadId: &uploadID,
+		})
+		if abortErr != nil {
+			err = errors.Join(err, fmt.Errorf("failed to abort multipart copy: %w", abortErr))
+		}
+	}()
+
+	if err = objectCleanupRepo.MarkTempObjectMultipart(ctx, req.DestObjectKey, uploadID, dc); err != nil {
+		return fmt.Errorf("failed to record multipart copy: %w", err)
+	}
+
+	parts := make([]*s3.CompletedPart, 0, (req.SourceS3Object.FileSize+multipartCopyPartSize-1)/multipartCopyPartSize)
+	for start := int64(0); start < req.SourceS3Object.FileSize; start += multipartCopyPartSize {
+		end := min(start+multipartCopyPartSize-1, req.SourceS3Object.FileSize-1)
+		partNumber := int64(len(parts) + 1)
+		copied, copyErr := s3Client.UploadPartCopyWithContext(ctx, &s3.UploadPartCopyInput{
+			Bucket:          bucket,
+			CopySource:      &copySource,
+			CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", start, end)),
+			Key:             &req.DestObjectKey,
+			PartNumber:      &partNumber,
+			UploadId:        &uploadID,
+		})
+		if copyErr != nil {
+			return fmt.Errorf("failed to copy part %d: %w", partNumber, copyErr)
+		}
+		if copied.CopyPartResult == nil || copied.CopyPartResult.ETag == nil {
+			return fmt.Errorf("multipart copy part %d returned no ETag", partNumber)
+		}
+		parts = append(parts, &s3.CompletedPart{ETag: copied.CopyPartResult.ETag, PartNumber: &partNumber})
+	}
+
+	_, err = s3Client.CompleteMultipartUploadWithContext(ctx, &s3.CompleteMultipartUploadInput{
+		Bucket:   bucket,
+		Key:      &req.DestObjectKey,
+		UploadId: &uploadID,
+		MultipartUpload: &s3.CompletedMultipartUpload{
+			Parts: parts,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to complete multipart upload: %w", err)
+	}
 	return nil
 }
