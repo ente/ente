@@ -27,4 +27,7 @@ The Flutter constructor and read-only open require `metric` and accept an option
 Cosine distance is `1 - dot(a, b) / (norm(a) * norm(b))`, clamped to `[0, 2]`.
 A comparison involving a zero vector has distance `1`, including two zero vectors.
 Stored vectors retain their magnitudes; i8 cosine uses the quantized vectors.
-Inner-product distance remains `1 - dot(a, b)`.
+Inner-product distance remains `1 - dot(a, b)`, which only ranks like cosine for
+unit vectors, so an inner-product index rejects an added vector whose squared norm
+is further than `1e-2` from `1` with `InvalidVector`. Cosine indexes take any
+magnitude, and queries are never checked.

@@ -441,6 +441,12 @@ mod tests {
         vector
     }
 
+    fn unit_axis(dims: usize) -> Vec<f32> {
+        let mut vector = vec![0.0; dims];
+        vector[0] = 1.0;
+        vector
+    }
+
     fn key(name: &str) -> String {
         name.to_string()
     }
@@ -501,7 +507,7 @@ mod tests {
         ] {
             let dir = TestDir::create();
             let db = VecDb::new(dir.db_path(), 32, Some(storage), metric).unwrap();
-            db.add_vector(key("kept"), vec![1.0; 32]).unwrap();
+            db.add_vector(key("kept"), unit_axis(32)).unwrap();
             db.flush().unwrap();
             let verify = || {
                 assert!(matches!(
@@ -520,7 +526,7 @@ mod tests {
                     VecDb::open_read_only(dir.db_path(), 32, Some(storage), metric).unwrap();
                 assert_eq!(reader.get_index_stats().unwrap().live_count, 1);
                 assert!(matches!(
-                    reader.add_vector(key("no"), vec![1.0; 32]),
+                    reader.add_vector(key("no"), unit_axis(32)),
                     Err(RustVecDbError::ReadOnly { .. })
                 ));
             };
@@ -562,13 +568,13 @@ mod tests {
             VecDbMetric::InnerProduct,
         )
         .unwrap();
+        db.add_vector(key("a"), basis(0)).unwrap();
         let vector: Vec<f32> = basis(0).iter().map(|value| value * 3.0).collect();
-        db.add_vector(key("a"), vector.clone()).unwrap();
         assert_eq!(
             db.search(vector.clone(), Some(1), None, true, None)
                 .unwrap()[0]
                 .distance,
-            -8.0
+            -2.0
         );
         db.flush().unwrap();
         drop(db);
@@ -589,7 +595,7 @@ mod tests {
         ));
         assert_eq!(
             db.search(vector, Some(1), None, false, None).unwrap()[0].distance,
-            -8.0
+            -2.0
         );
     }
 

@@ -35,6 +35,7 @@ const HANDOFF_CLOSE_WAIT_ROUNDS: u32 = 2500;
 const HANDOFF_WAIT_PARK: Duration = Duration::from_millis(2);
 const KEY_TABLE_COPIES: usize = 2;
 const KEY_ENTRY_OVERHEAD_BYTES: usize = 48;
+const INNER_PRODUCT_SQUARED_NORM_TOLERANCE: f64 = 1e-2;
 
 static REGISTRY: LazyLock<Mutex<HashMap<PathBuf, Arc<Mutex<PathSlot>>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -499,7 +500,7 @@ impl VecDb {
         let now = Instant::now();
         let mut half = self.writable_half()?;
         let state = active_state(&mut half)?;
-        ensure_finite(key, vector)?;
+        ensure_storable(self.shared.metric, key, vector)?;
         let quantized = quantize_for(self.shared.storage, vector);
         let payload = quantized
             .as_ref()
@@ -556,7 +557,7 @@ impl VecDb {
             return Ok(());
         }
         for (key, vector) in keys.iter().zip(vectors) {
-            ensure_finite(key, vector)?;
+            ensure_storable(self.shared.metric, key, vector)?;
         }
         let quantized: Option<Vec<StoredVector>> = match self.shared.storage {
             StorageKind::F32 => None,
@@ -1677,10 +1678,28 @@ fn apply_outcome(graph: &mut Graph, arena: &VectorArena, outcome: UpsertOutcome)
     }
 }
 
+fn ensure_storable(metric: DistanceMetric, key: &str, vector: &[f32]) -> Result<(), VecDbError> {
+    ensure_finite(key, vector)?;
+    if metric == DistanceMetric::InnerProduct {
+        ensure_unit_norm(key, vector)?;
+    }
+    Ok(())
+}
+
 fn ensure_finite(key: &str, vector: &[f32]) -> Result<(), VecDbError> {
     if let Some(index) = vector.iter().position(|value| !value.is_finite()) {
         return Err(VecDbError::InvalidVector(format!(
             "component {index} of the vector for key {key:?} is not finite"
+        )));
+    }
+    Ok(())
+}
+
+fn ensure_unit_norm(key: &str, vector: &[f32]) -> Result<(), VecDbError> {
+    let squared_norm: f64 = vector.iter().map(|&value| f64::from(value).powi(2)).sum();
+    if (squared_norm - 1.0).abs() > INNER_PRODUCT_SQUARED_NORM_TOLERANCE {
+        return Err(VecDbError::InvalidVector(format!(
+            "the vector for key {key:?} has squared norm {squared_norm}, and an inner product index needs unit vectors"
         )));
     }
     Ok(())
@@ -1780,7 +1799,7 @@ mod tests {
             assert!(!path.exists());
             drop(reader);
             let db = VecDb::open(&path, 32, None, metric).unwrap();
-            db.add("kept", &[1.0; 32]).unwrap();
+            db.add("kept", &seeded_unit_vector(1, 32)).unwrap();
             db.flush().unwrap();
             let verify = || {
                 for open in [VecDb::open, VecDb::open_read_only] {
@@ -1895,7 +1914,7 @@ mod tests {
                     assert_eq!(stats.metric, metric);
                     assert!(reader.is_empty());
                     assert!(matches!(
-                        reader.add("no", &vec![1.0; dims]),
+                        reader.add("no", &seeded_unit_vector(1, dims)),
                         Err(VecDbError::ReadOnly)
                     ));
                     if incomplete {
@@ -1907,7 +1926,7 @@ mod tests {
                     let writer = VecDb::open(&path, dims, Some(storage), metric).unwrap();
                     assert_eq!(writer.stats().unwrap().storage, storage);
                     assert_eq!(writer.stats().unwrap().metric, metric);
-                    writer.add("kept", &vec![1.0; dims]).unwrap();
+                    writer.add("kept", &seeded_unit_vector(1, dims)).unwrap();
                     drop(writer);
                     let reopened =
                         VecDb::open_read_only(&path, dims, Some(storage), metric).unwrap();
@@ -2021,28 +2040,31 @@ mod tests {
                 let path = dir.path().join(format!("{storage}-{metric}"));
                 let db = VecDb::open(&path, 32, Some(storage), metric).unwrap();
                 let mut vector = vec![0.0; 32];
-                vector[0] = 4.0;
+                vector[0] = 1.0;
                 db.add("removed", &vector).unwrap();
                 db.add("kept", &vector).unwrap();
                 db.remove("removed").unwrap();
-                vector[0] = 3.0;
+                vector[0] = 0.0;
+                vector[1] = 1.0;
                 db.add("kept", &vector).unwrap();
-                let recycled: Vec<f32> = vector.iter().map(|value| value * 2.0).collect();
+                let mut recycled = vec![0.0; 32];
+                recycled[2] = 1.0;
                 db.add("recycled", &recycled).unwrap();
                 db.remove("recycled").unwrap();
                 compact(&db.shared, &mut db.shared.writer_half()).unwrap();
                 db.flush().unwrap();
+                let query = scaled(&vector, 2.0);
                 let expected = if metric == DistanceMetric::Cosine {
                     0.0
                 } else {
-                    -8.0
+                    -1.0
                 };
                 let assert_score = |db: &VecDb| {
                     assert_eq!(db.stats().unwrap().metric, metric);
                     for exact in [false, true] {
                         let found = db
                             .search(
-                                &vector,
+                                &query,
                                 &SearchParams {
                                     limit: Some(1),
                                     exact,
@@ -2122,6 +2144,10 @@ mod tests {
         let mut values = vec![0.0; DIMS];
         values[axis] = 1.0;
         values
+    }
+
+    fn scaled(values: &[f32], factor: f32) -> Vec<f32> {
+        values.iter().map(|value| value * factor).collect()
     }
 
     fn negated(values: &[f32]) -> Vec<f32> {
@@ -4831,6 +4857,71 @@ mod tests {
         assert_eq!(reopened.len(), 1);
         assert!(reopened.contains("key-0"));
         assert!(!reopened.contains("bad"));
+    }
+
+    #[test]
+    fn inner_product_indexes_reject_vectors_off_the_unit_sphere() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = VecDb::open(
+            &path,
+            DIMS,
+            Some(StorageKind::F32),
+            DistanceMetric::InnerProduct,
+        )
+        .unwrap();
+        let unit = seeded_unit_vector(1, DIMS);
+        db.add("unit", &unit).unwrap();
+        for delta in [-1.0e-4f32, 1.0e-4] {
+            let nudged = scaled(&unit, (1.0 + delta).sqrt());
+            db.add(&format!("nudged{delta}"), &nudged).unwrap();
+        }
+        let live = db.len();
+        let log_bytes = db.stats().unwrap().log_bytes;
+        for factor in [0.5, 0.99] {
+            let off_sphere = scaled(&unit, factor);
+            assert!(matches!(
+                db.add("off-sphere", &off_sphere),
+                Err(VecDbError::InvalidVector(_))
+            ));
+            assert!(!db.contains("off-sphere"));
+            let mut batch = bulk_entries(10, 3, 200);
+            batch[1].1 = off_sphere;
+            assert!(matches!(
+                bulk_add(&db, &batch),
+                Err(VecDbError::InvalidVector(_))
+            ));
+            assert!(!db.contains("key-10"));
+            assert!(!db.contains("key-12"));
+        }
+        assert_eq!(db.len(), live);
+        assert_eq!(db.stats().unwrap().log_bytes, log_bytes);
+        drop(db);
+        let reopened = VecDb::open(
+            &path,
+            DIMS,
+            Some(StorageKind::F32),
+            DistanceMetric::InnerProduct,
+        )
+        .unwrap();
+        assert_eq!(reopened.len(), live);
+        assert!(reopened.contains("unit"));
+    }
+
+    #[test]
+    fn cosine_indexes_keep_taking_vectors_off_the_unit_sphere() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = VecDb::open(&path, DIMS, Some(StorageKind::F32), DistanceMetric::Cosine).unwrap();
+        let half = scaled(&seeded_unit_vector(1, DIMS), 0.5);
+        db.add("half", &half).unwrap();
+        let batch: Vec<(String, Vec<f32>)> = bulk_entries(10, 3, 200)
+            .into_iter()
+            .map(|(key, vector)| (key, scaled(&vector, 0.5)))
+            .collect();
+        bulk_add(&db, &batch).unwrap();
+        assert!(db.contains("half"));
+        assert_eq!(db.len(), 4);
     }
 
     #[test]
