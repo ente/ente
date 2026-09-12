@@ -132,6 +132,7 @@ export const GalleryBarAndListHeader: React.FC<
     const shouldBeHidden = useMemo(
         () =>
             shouldHide ||
+            activeCollectionID === PseudoCollectionID.trash ||
             (haveOnlySystemCollections(toShowCollectionSummaries) &&
                 activeCollectionID === PseudoCollectionID.all),
         [shouldHide, toShowCollectionSummaries, activeCollectionID],

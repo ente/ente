@@ -1,0 +1,1 @@
+- Removed the Albums and People navigation strip from Trash and added a back button to return to All photos.

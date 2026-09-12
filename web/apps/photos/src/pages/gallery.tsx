@@ -1899,6 +1899,18 @@ const Page: React.FC = () => {
                         onBack={() => dispatch({ type: "showAlbums" })}
                         onUpload={openUploader}
                     />
+                ) : !isInSearchMode &&
+                  activeCollectionID == PseudoCollectionID.trash ? (
+                    <SectionNavbarContents
+                        title={t("section_trash")}
+                        onBack={() =>
+                            dispatch({
+                                type: "showCollectionSummary",
+                                collectionSummaryID: PseudoCollectionID.all,
+                            })
+                        }
+                        onUpload={openUploader}
+                    />
                 ) : (
                     <NormalNavbarContents
                         {...{ isInSearchMode }}
