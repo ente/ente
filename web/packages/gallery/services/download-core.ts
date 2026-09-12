@@ -27,6 +27,11 @@ export type RenderableSourceURLs =
           videoURL: () => Promise<string>;
       };
 
+export interface FileDownloadProgress {
+    loaded: number;
+    total: number | undefined;
+}
+
 export interface FileDownloadOpts {
     background?: boolean;
 }
@@ -57,7 +62,7 @@ export class DownloadManagerCore {
         Promise<RenderableSourceURLs>
     >();
 
-    private fileDownloadProgress = new Map<number, number>();
+    private fileDownloadProgress = new Map<number, FileDownloadProgress>();
     private fileDownloadProgressListeners: (() => void)[] = [];
 
     constructor(private transport: DownloadManagerTransport) {}
@@ -92,13 +97,29 @@ export class DownloadManagerCore {
         };
     }
 
-    fileDownloadProgressSnapshot() {
+    fileDownloadProgressSnapshot(): ReadonlyMap<number, FileDownloadProgress> {
         return this.fileDownloadProgress;
     }
 
-    private setFileDownloadProgress(progress: Map<number, number>) {
-        this.fileDownloadProgress = progress;
-        this.fileDownloadProgressListeners.forEach((l) => l());
+    private setFileDownloadProgress(
+        fileID: number,
+        progress: FileDownloadProgress | undefined,
+    ) {
+        const next = new Map(this.fileDownloadProgress);
+        if (progress) {
+            next.set(fileID, progress);
+        } else if (!next.delete(fileID)) {
+            return;
+        }
+        this.fileDownloadProgress = next;
+        this.fileDownloadProgressListeners.forEach((listener) => {
+            try {
+                listener();
+            } catch (e) {
+                // A UI observer must not interrupt the download stream.
+                log.error("Failed to notify download progress listener", e);
+            }
+        });
     }
 
     // Returned object URLs are cache-owned; callers must not revoke them.
@@ -239,99 +260,144 @@ export class DownloadManagerCore {
     ): Promise<ReadableStream<Uint8Array> | null> {
         log.info(`download attempted for file id ${file.id}`);
 
-        const res = await wrapErrors(() =>
-            this.transport.downloadFile(file, opts),
-        );
-
-        if (
-            file.metadata.fileType == FileType.image ||
-            file.metadata.fileType == FileType.livePhoto
-        ) {
-            const encryptedData = new Uint8Array(
-                await wrapErrors(() => res.arrayBuffer()),
+        try {
+            const res = await wrapErrors(() =>
+                this.transport.downloadFile(file, opts),
             );
+            const total =
+                parseInt(res.headers.get("Content-Length") ?? "") ||
+                file.info?.fileSize ||
+                undefined;
+            let loaded = 0;
 
-            const decrypted = await decryptStreamBytes(
-                { encryptedData, decryptionHeader: file.file.decryptionHeader },
-                file.key,
-            );
-            return new Response(decrypted).body;
-        }
-
-        const body = res.body;
-        if (!body) return null;
-        const reader = body.getReader();
-
-        const onDownloadProgress = this.trackDownloadProgress(
-            file.id,
-            file.info?.fileSize,
-        );
-
-        const contentLength =
-            parseInt(res.headers.get("Content-Length") ?? "") || 0;
-        let downloadedBytes = 0;
-
-        const { pullState, decryptionChunkSize } = await initChunkDecryption(
-            file.file.decryptionHeader,
-            file.key,
-        );
-
-        let leftoverBytes: Uint8Array = new Uint8Array();
-
-        return new ReadableStream({
-            pull: async (controller) => {
-                // Each pull must enqueue or close before returning.
-                let didEnqueue = false;
-                do {
-                    const { done, value } = await wrapErrors(() =>
-                        reader.read(),
-                    );
-
-                    let data: Uint8Array;
-                    if (done) {
-                        data = leftoverBytes;
-                    } else {
-                        downloadedBytes += value.length;
-                        onDownloadProgress({
-                            loaded: downloadedBytes,
-                            total: contentLength,
+            if (
+                file.metadata.fileType == FileType.image ||
+                file.metadata.fileType == FileType.livePhoto
+            ) {
+                const encryptedData = new Uint8Array(
+                    await wrapErrors(async () => {
+                        if (!res.body) return res.arrayBuffer();
+                        const counter = new TransformStream<
+                            Uint8Array,
+                            Uint8Array
+                        >({
+                            transform: (chunk, controller) => {
+                                loaded += chunk.byteLength;
+                                this.setFileDownloadProgress(file.id, {
+                                    loaded,
+                                    total,
+                                });
+                                controller.enqueue(chunk);
+                            },
+                            flush: () => {
+                                this.setFileDownloadProgress(file.id, {
+                                    loaded,
+                                    total: loaded,
+                                });
+                            },
                         });
+                        return new Response(
+                            res.body.pipeThrough(counter),
+                        ).arrayBuffer();
+                    }),
+                );
+                const decrypted = await decryptStreamBytes(
+                    {
+                        encryptedData,
+                        decryptionHeader: file.file.decryptionHeader,
+                    },
+                    file.key,
+                );
+                this.setFileDownloadProgress(file.id, undefined);
+                return new Response(decrypted).body;
+            }
 
-                        data = new Uint8Array(
-                            leftoverBytes.length + value.length,
-                        );
-                        data.set(new Uint8Array(leftoverBytes), 0);
-                        data.set(new Uint8Array(value), leftoverBytes.length);
-                    }
+            const body = res.body;
+            if (!body) return null;
+            const reader = body.getReader();
+            const { pullState, decryptionChunkSize } =
+                await initChunkDecryption(file.file.decryptionHeader, file.key);
+            let leftoverBytes: Uint8Array = new Uint8Array();
 
-                    // A network read can contain several encrypted chunks.
-                    while (data.length >= decryptionChunkSize) {
-                        const decryptedData = await decryptStreamChunk(
-                            data.slice(0, decryptionChunkSize),
-                            pullState,
-                        );
-                        controller.enqueue(decryptedData);
-                        didEnqueue = true;
-                        data = data.slice(decryptionChunkSize);
-                    }
-
-                    if (done) {
-                        // Only EOF proves that a short remainder is the final chunk.
-                        if (data.length) {
-                            const decryptedData = await decryptStreamChunk(
-                                data,
-                                pullState,
+            return new ReadableStream({
+                pull: async (controller) => {
+                    try {
+                        // Each pull must enqueue or close before returning.
+                        let didEnqueue = false;
+                        do {
+                            const { done, value } = await wrapErrors(() =>
+                                reader.read(),
                             );
-                            controller.enqueue(decryptedData);
-                        }
-                        didEnqueue = true;
-                        controller.close();
-                    } else {
-                        leftoverBytes = data;
+
+                            let data: Uint8Array;
+                            if (done) {
+                                this.setFileDownloadProgress(file.id, {
+                                    loaded,
+                                    total: loaded,
+                                });
+                                data = leftoverBytes;
+                            } else {
+                                loaded += value.length;
+                                this.setFileDownloadProgress(file.id, {
+                                    loaded,
+                                    total,
+                                });
+
+                                data = new Uint8Array(
+                                    leftoverBytes.length + value.length,
+                                );
+                                data.set(new Uint8Array(leftoverBytes), 0);
+                                data.set(
+                                    new Uint8Array(value),
+                                    leftoverBytes.length,
+                                );
+                            }
+
+                            // A network read can contain several encrypted chunks.
+                            while (data.length >= decryptionChunkSize) {
+                                const decryptedData = await decryptStreamChunk(
+                                    data.slice(0, decryptionChunkSize),
+                                    pullState,
+                                );
+                                controller.enqueue(decryptedData);
+                                didEnqueue = true;
+                                data = data.slice(decryptionChunkSize);
+                            }
+
+                            if (done) {
+                                // Only EOF proves that a short remainder is the final chunk.
+                                if (data.length) {
+                                    const decryptedData =
+                                        await decryptStreamChunk(
+                                            data,
+                                            pullState,
+                                        );
+                                    controller.enqueue(decryptedData);
+                                }
+                                didEnqueue = true;
+                                controller.close();
+                                this.setFileDownloadProgress(
+                                    file.id,
+                                    undefined,
+                                );
+                            } else {
+                                leftoverBytes = data;
+                            }
+                        } while (!didEnqueue);
+                    } catch (e) {
+                        this.setFileDownloadProgress(file.id, undefined);
+                        throw e;
                     }
-                } while (!didEnqueue);
-            },
-        });
+                },
+                cancel: (reason: unknown) => {
+                    this.setFileDownloadProgress(file.id, undefined);
+                    return reader.cancel(reason);
+                },
+            });
+        } catch (e) {
+            this.setFileDownloadProgress(file.id, undefined);
+            throw e;
+        }
     }
 
     private async blobWithInferredType(
@@ -351,30 +417,6 @@ export class DownloadManagerCore {
         } catch {
             return blob;
         }
-    }
-
-    private trackDownloadProgress(
-        fileID: number,
-        fileSize: number | undefined,
-    ) {
-        return (event: { loaded: number; total: number }) => {
-            if (isNaN(event.total) || event.total === 0) {
-                if (!fileSize) {
-                    return;
-                }
-                event.total = fileSize;
-            }
-            const progress = new Map(this.fileDownloadProgress);
-            if (event.loaded === event.total) {
-                progress.delete(fileID);
-            } else {
-                progress.set(
-                    fileID,
-                    Math.round((event.loaded * 100) / event.total),
-                );
-            }
-            this.setFileDownloadProgress(progress);
-        };
     }
 }
 
