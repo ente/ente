@@ -1,0 +1,1 @@
+- Updated the People popup styling to match All Albums.
