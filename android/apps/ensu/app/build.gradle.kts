@@ -1,9 +1,10 @@
-import java.io.ByteArrayOutputStream
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
@@ -11,7 +12,7 @@ configurations.configureEach {
     exclude(group = "com.google.guava", module = "listenablefuture")
 }
 
-val keystorePropsFile = rootProject.file("key.properties")
+val keystorePropsFile = project.file("../key.properties")
 val keystoreProps = Properties()
 val hasReleaseKeystore = keystorePropsFile.exists()
 if (hasReleaseKeystore) {
@@ -20,15 +21,9 @@ if (hasReleaseKeystore) {
 
 val knownAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64")
 
-fun capture(vararg cmd: String): String? = runCatching {
-    val out = ByteArrayOutputStream()
-    exec {
-        commandLine(*cmd)
-        standardOutput = out
-        errorOutput = ByteArrayOutputStream()
-    }
-    out.toString().trim()
-}.getOrNull()
+fun capture(vararg cmd: String): String? =
+    runCatching { providers.exec { commandLine(*cmd) }.standardOutput.asText.get().trim() }
+        .getOrNull()
 
 fun connectedDeviceAbi(): String? {
     val sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
@@ -74,7 +69,7 @@ android {
 
     defaultConfig {
         applicationId = "io.ente.ensu"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = (project.findProperty("versionCode") as? String)?.toInt() ?: 33
         versionName = "0.1.21"
@@ -100,10 +95,6 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11"
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -122,14 +113,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+kotlin {
+    compilerOptions { jvmTarget = JvmTarget.JVM_17 }
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.02.02")
+    val composeBom = platform(libs.androidx.compose.bom)
 
     implementation(composeBom)
     androidTestImplementation(composeBom)
@@ -148,7 +139,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("com.google.accompanist:accompanist-navigation-animation:0.34.0")
-    implementation(project(":rust"))
+    implementation(project(":apps:ensu:rust"))
+    implementation(project(":packages:fonts"))
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("androidx.datastore:datastore-preferences:1.1.1")

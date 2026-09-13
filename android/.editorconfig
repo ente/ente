@@ -1,0 +1,5 @@
+root = true
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 100

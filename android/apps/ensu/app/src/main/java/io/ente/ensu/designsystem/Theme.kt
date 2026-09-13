@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import io.ente.ensu.R
+import io.ente.fonts.EnteFontFamily
 
 object EnsuColor {
     val backgroundBaseLight = Color(0xFFF8F5F0)
@@ -113,12 +114,7 @@ object EnsuTypography {
         Font(R.font.dm_serif_text_regular, FontWeight.SemiBold)
     )
 
-    private val uiFamily = FontFamily(
-        Font(R.font.inter_regular, FontWeight.Normal),
-        Font(R.font.inter_medium, FontWeight.Medium),
-        Font(R.font.inter_semibold, FontWeight.SemiBold),
-        Font(R.font.inter_bold, FontWeight.Bold)
-    )
+    private val uiFamily = EnteFontFamily.inter
 
     private val messageFamily = uiFamily
 

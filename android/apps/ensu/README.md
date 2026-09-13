@@ -40,25 +40,25 @@ That's it. Apart from the `cargo codegen`, this is a normal Android project. Gra
 Build and install a debug APK on a connected device or emulator:
 
 ```sh
-cd android/apps/ensu
-./gradlew :app:installDebug
+cd android
+./gradlew :apps:ensu:app:installDebug
 adb shell am start -n io.ente.ensu.debug/io.ente.ensu.MainActivity
 ```
 
 Release APK:
 
 ```sh
-./gradlew :app:assembleRelease
+./gradlew :apps:ensu:app:assembleRelease
 ```
 
-Output: `app/build/outputs/apk/release/app-release.apk`.
+Output: `apps/ensu/app/build/outputs/apk/release/app-release.apk`.
 
 Release AAB (Play Store bundle):
 
 ```sh
-./gradlew :app:bundleRelease
+./gradlew :apps:ensu:app:bundleRelease
 ```
 
-Output: `app/build/outputs/bundle/release/app-release.aab`.
+Output: `apps/ensu/app/build/outputs/bundle/release/app-release.aab`.
 
 Release builds use a debug keystore located at `debug.keystore`. For production releases, configure your own signing keys in `app/build.gradle.kts`.

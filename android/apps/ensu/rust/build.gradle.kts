@@ -1,24 +1,26 @@
-import java.io.ByteArrayOutputStream
+import javax.inject.Inject
+import org.gradle.process.ExecOperations
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
 
+abstract class ProcessRunner {
+    @get:Inject abstract val exec: ExecOperations
+}
+
+val processRunner = objects.newInstance<ProcessRunner>()
+
 val knownAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64")
 
 val debugJniLibsDir = layout.buildDirectory.dir("generated/jniLibs/debug")
 val releaseJniLibsDir = layout.buildDirectory.dir("generated/jniLibs/release")
 
-fun capture(vararg cmd: String): String? = runCatching {
-    val out = ByteArrayOutputStream()
-    exec {
-        commandLine(*cmd)
-        standardOutput = out
-        errorOutput = ByteArrayOutputStream()
-    }
-    out.toString().trim()
-}.getOrNull()
+fun capture(vararg cmd: String): String? =
+    runCatching { providers.exec { commandLine(*cmd) }.standardOutput.asText.get().trim() }
+        .getOrNull()
 
 fun connectedDeviceAbi(): String? {
     val sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
@@ -68,7 +70,7 @@ fun registerBuildRustJni(
         outDir.deleteRecursively()
         outDir.mkdirs()
 
-        exec {
+        processRunner.exec.exec {
             workingDir = file("scripts")
             commandLine(
                 "bash",
@@ -115,10 +117,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+kotlin {
+    compilerOptions { jvmTarget = JvmTarget.JVM_17 }
 }
 
 tasks.matching { it.name == "preDebugBuild" }.configureEach {

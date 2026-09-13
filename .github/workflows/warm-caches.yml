@@ -147,8 +147,8 @@ jobs:
               working-directory: rust
 
             - name: Build Ensu
-              working-directory: android/apps/ensu
-              run: ./gradlew :app:assembleDebug
+              working-directory: android
+              run: ./gradlew :apps:ensu:app:assembleDebug
 
     ensu-ios:
         # For ensu-ios-build.yml.

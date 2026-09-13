@@ -31,5 +31,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ensu"
-include(":app", ":rust")
+rootProject.name = "ente-android"
+include(":apps:ensu:app", ":apps:ensu:rust", ":packages:fonts")
