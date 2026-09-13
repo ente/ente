@@ -2,6 +2,8 @@ import type { SxProps, Theme } from "@mui/material";
 
 const FullScreenBreakpoint = 491;
 
+export const collectionDialogCornerRadius = 32;
+
 export const collectionDialogFullScreenQuery = `(width < ${FullScreenBreakpoint}px)`;
 
 export const collectionDialogSurfaceStroke = "#e0e0e0";

@@ -7,6 +7,7 @@ import {
 } from "@/components/CollectionDialog/Primitives";
 import {
     collectionDialogBodyMutedSx as bodyMutedSx,
+    collectionDialogCornerRadius,
     collectionDialogFullScreenQuery,
     collectionDialogDividerSx as dividerSx,
     collectionDialogHeaderActionsSx as headerActionsSx,
@@ -520,7 +521,7 @@ const sweepButtonRadius = 20;
 const dialogSx: SxProps<Theme> = {
     "& .MuiDialog-container": { justifyContent: "flex-end" },
     "& .MuiDialog-paper": {
-        borderRadius: `${sweepButtonRadius + sweepInset}px`,
+        borderRadius: `${collectionDialogCornerRadius}px`,
         [`@media ${collectionDialogFullScreenQuery}`]: { borderRadius: 0 },
     },
 };

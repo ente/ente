@@ -1,3 +1,4 @@
+import { collectionDialogIconButtonSx } from "@/components/CollectionDialog/styles";
 import type { PeopleSortBy } from "@/utils/people-sort";
 import { ArrowDown02Icon, ArrowUp02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -19,6 +20,7 @@ interface PeopleSortOptionsProps {
     activeSortBy: PeopleSortBy;
     onChangeSortBy: (by: PeopleSortBy) => void;
     nestedInDialog?: boolean;
+    albumStyleTrigger?: boolean;
     transparentTriggerButtonBackground?: boolean;
 }
 
@@ -38,6 +40,7 @@ export const PeopleSortOptions: React.FC<PeopleSortOptionsProps> = ({
     activeSortBy,
     onChangeSortBy,
     nestedInDialog,
+    albumStyleTrigger,
     transparentTriggerButtonBackground,
 }) => {
     const [anchorEl, setAnchorEl] = useState<MenuProps["anchorEl"]>();
@@ -61,9 +64,11 @@ export const PeopleSortOptions: React.FC<PeopleSortOptionsProps> = ({
     };
 
     const triggerButtonSxProps: IconButtonProps["sx"] = [
-        transparentTriggerButtonBackground
-            ? {}
-            : { backgroundColor: "fill.faint" },
+        albumStyleTrigger
+            ? collectionDialogIconButtonSx
+            : transparentTriggerButtonBackground
+              ? {}
+              : { backgroundColor: "fill.faint" },
     ];
 
     const menuPaperSxProps: PaperProps["sx"] | undefined = nestedInDialog
@@ -79,7 +84,9 @@ export const PeopleSortOptions: React.FC<PeopleSortOptionsProps> = ({
                 aria-expanded={anchorEl ? "true" : undefined}
                 sx={triggerButtonSxProps}
             >
-                <SortIcon />
+                <SortIcon
+                    sx={albumStyleTrigger ? { fontSize: 20 } : undefined}
+                />
             </IconButton>
             <StyledMenu
                 id={ariaID}

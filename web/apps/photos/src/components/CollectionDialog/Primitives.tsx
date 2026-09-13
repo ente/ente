@@ -9,8 +9,11 @@ import React, { useRef } from "react";
 export const CollectionDialogSearchField: React.FC<{
     value: string;
     onChange: (value: string) => void;
-}> = ({ value, onChange }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
+    placeholder?: string;
+    inputRef?: React.RefObject<HTMLInputElement | null>;
+}> = ({ value, onChange, placeholder, inputRef: providedInputRef }) => {
+    const defaultInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = providedInputRef ?? defaultInputRef;
 
     const handleClear = () => {
         onChange("");
@@ -24,7 +27,7 @@ export const CollectionDialogSearchField: React.FC<{
                 inputRef={inputRef}
                 fullWidth
                 autoFocus
-                placeholder={t("albums_search_hint")}
+                placeholder={placeholder ?? t("albums_search_hint")}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 sx={searchInputSx}
