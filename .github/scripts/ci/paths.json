@@ -1,4 +1,5 @@
 {
+    "apple-lint": [".github/workflows/apple-lint.yml", "apple/**"],
     "dependency-review": [
         "**/Cargo.lock",
         "**/Cargo.toml",

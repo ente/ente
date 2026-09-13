@@ -24,6 +24,11 @@ jobs:
             - id: select
               run: node .github/scripts/ci/check.mjs select HEAD^1 HEAD
 
+    apple-lint:
+        needs: select
+        if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'apple-lint') }}
+        uses: ./.github/workflows/apple-lint.yml
+
     dependency-review:
         needs: select
         if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'dependency-review') }}
@@ -99,6 +104,7 @@ jobs:
         if: ${{ always() }}
         needs:
             - select
+            - apple-lint
             - dependency-review
             - desktop-lint
             - docs-verify-build

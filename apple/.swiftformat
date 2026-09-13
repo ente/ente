@@ -1,0 +1,6 @@
+--exclude apps/ensu,**/Generated,**/build,**/DerivedData
+--swift-version 6.2
+--language-mode 6
+--indent 4
+--maxwidth 100
+--enable emptyExtensions,singlePropertyPerLine,wrapEnumCases,isEmpty

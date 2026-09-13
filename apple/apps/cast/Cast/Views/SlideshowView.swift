@@ -553,7 +553,10 @@ struct NavigationHint: View {
 }
 
 enum ActionFeedback {
-    case play, pause, next, previous
+    case play
+    case pause
+    case next
+    case previous
 
     var iconName: String {
         switch self {

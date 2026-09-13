@@ -1,0 +1,16 @@
+name: "Lint (Apple)"
+
+on:
+    workflow_call:
+
+permissions:
+    contents: read
+
+jobs:
+    lint:
+        runs-on: macos-26
+        env:
+            DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+            - run: ./apple/scripts/lint.sh
