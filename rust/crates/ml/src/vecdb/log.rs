@@ -19,6 +19,7 @@ const METRIC_TAG_OFFSET: usize = 7;
 const RECORD_TYPE_ADD: u8 = 1;
 const RECORD_TYPE_TOMBSTONE: u8 = 2;
 const RECORD_PREFIX_LEN: usize = 3;
+const MIN_KEY_BYTES: usize = 1;
 const RECORD_CRC_LEN: usize = 4;
 const ENCODE_FLUSH_BYTES: usize = 64 * 1024;
 const MAX_ATTR_COUNT: usize = 16;
@@ -795,6 +796,16 @@ fn encode_header(
 
 pub(crate) fn header_generation(bytes: &[u8; HEADER_LEN]) -> Result<[u8; 16], VecDbError> {
     decode_header(bytes).map(|header| header.generation)
+}
+
+pub(crate) fn smallest_add_record_len(bytes: &[u8; HEADER_LEN]) -> Result<u64, VecDbError> {
+    decode_header(bytes).map(|header| {
+        (RECORD_PREFIX_LEN
+            + MIN_KEY_BYTES
+            + vector_payload_len(header.storage, header.dims)
+            + 1
+            + RECORD_CRC_LEN) as u64
+    })
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -3094,6 +3105,42 @@ mod tests {
         assert_eq!(max_record_len(StorageKind::I8, 512), fixed + 516);
         assert_eq!(vector_payload_len(StorageKind::I8, 512), 516);
         assert_eq!(vector_payload_len(StorageKind::F32, 512), 2048);
+    }
+
+    #[test]
+    fn the_smallest_add_record_matches_what_the_encoder_writes() {
+        for (storage, dims) in [
+            (StorageKind::F32, 32usize),
+            (StorageKind::I8, 32),
+            (StorageKind::F32, 512),
+            (StorageKind::I8, 512),
+        ] {
+            let values = vec![0.25f32; dims];
+            let quantized = StoredVector::quantize(&values);
+            let payload = match storage {
+                StorageKind::F32 => VectorPayload::F32(&values),
+                StorageKind::I8 => quantized.as_payload(),
+            };
+            let mut encoded = Vec::new();
+            encode_record_into(
+                &mut encoded,
+                &LogEntry::Add {
+                    key: "k",
+                    vector: payload,
+                    attrs: &[],
+                },
+            );
+            let header = encode_header(dims as u32, &[0u8; 16], storage, InnerProduct);
+            assert_eq!(
+                smallest_add_record_len(&header).unwrap(),
+                encoded.len() as u64,
+                "{storage} at {dims} dims"
+            );
+            assert_eq!(
+                encoded.len(),
+                vector_payload_len(storage, dims) + RECORD_PREFIX_LEN + 1 + 1 + RECORD_CRC_LEN
+            );
+        }
     }
 
     #[test]

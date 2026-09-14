@@ -144,6 +144,7 @@ pub struct VecDbKeyMatches {
 pub struct VecDbStats {
     pub live_count: u32,
     pub dead_count: u32,
+    pub pending: u32,
     pub dims: u32,
     pub storage: VecDbStorage,
     pub metric: VecDbMetric,
@@ -170,6 +171,7 @@ pub fn delete_vec_db_files(file_path: String) -> Result<(), RustVecDbError> {
 #[derive(Clone, Copy, Debug)]
 pub enum VecDbOpenCost {
     Ready,
+    NeedsIndexing { approximate_records: u64 },
     NeedsRebuild,
     Absent,
 }
@@ -177,6 +179,11 @@ pub enum VecDbOpenCost {
 pub fn check_open_cost(file_path: String) -> VecDbOpenCost {
     match vecdb::VecDb::open_cost(Path::new(&file_path)) {
         vecdb::OpenCost::Ready => VecDbOpenCost::Ready,
+        vecdb::OpenCost::NeedsIndexing {
+            approximate_records,
+        } => VecDbOpenCost::NeedsIndexing {
+            approximate_records,
+        },
         vecdb::OpenCost::NeedsRebuild => VecDbOpenCost::NeedsRebuild,
         vecdb::OpenCost::Absent => VecDbOpenCost::Absent,
     }
@@ -376,6 +383,10 @@ impl VecDb {
         Ok(self.inner.flush()?)
     }
 
+    pub fn index_pending(&self, max_vectors: u32) -> Result<u32, RustVecDbError> {
+        Ok(self.inner.index_pending(max_vectors as usize)? as u32)
+    }
+
     pub fn reset_index(&self) -> Result<(), RustVecDbError> {
         Ok(self.inner.reset()?)
     }
@@ -389,6 +400,7 @@ impl VecDb {
         Ok(VecDbStats {
             live_count: stats.live_count as u32,
             dead_count: stats.dead_count as u32,
+            pending: stats.pending as u32,
             dims: stats.dims as u32,
             storage: to_api_storage(stats.storage),
             metric: to_api_metric(stats.metric),
@@ -998,6 +1010,89 @@ mod tests {
             Err(RustVecDbError::LengthMismatch { .. })
         ));
         assert_eq!(db.get_index_stats().unwrap().live_count, 3);
+    }
+
+    #[test]
+    fn bulk_added_vectors_stay_pending_until_they_are_indexed() {
+        let dir = TestDir::create();
+        let db = VecDb::new(
+            dir.db_path(),
+            DIMS,
+            Some(VecDbStorage::F32),
+            Some(VecDbMetric::Cosine),
+        )
+        .unwrap();
+        db.bulk_add_vectors(
+            vec![key("a"), key("b"), key("c")],
+            vec![basis(0), basis(1), basis(2)],
+        )
+        .unwrap();
+        assert_eq!(db.get_index_stats().unwrap().pending, 3);
+        let found = db.search(basis(1), Some(1), None, false, None).unwrap();
+        assert_eq!(found[0].key, "b");
+        assert_eq!(db.index_pending(2).unwrap(), 1);
+        assert_eq!(db.get_index_stats().unwrap().pending, 1);
+        assert_eq!(db.index_pending(10).unwrap(), 0);
+        assert_eq!(db.get_index_stats().unwrap().pending, 0);
+        db.flush().unwrap();
+        assert_eq!(db.get_index_stats().unwrap().pending, 0);
+        let read_only = VecDb::open_read_only(
+            dir.db_path(),
+            DIMS,
+            Some(VecDbStorage::F32),
+            Some(VecDbMetric::Cosine),
+        )
+        .unwrap();
+        assert!(matches!(
+            read_only.index_pending(5),
+            Err(RustVecDbError::ReadOnly { .. })
+        ));
+    }
+
+    #[test]
+    fn check_open_cost_reports_an_unindexed_backlog() {
+        let dir = TestDir::create();
+        let db = VecDb::new(
+            dir.db_path(),
+            DIMS,
+            Some(VecDbStorage::F32),
+            Some(VecDbMetric::Cosine),
+        )
+        .unwrap();
+        db.add_vector(key("seed"), basis(0)).unwrap();
+        db.flush().unwrap();
+        for batch in 0..6u32 {
+            let keys: Vec<String> = (0..1000)
+                .map(|index| key(&format!("v-{batch}-{index}")))
+                .collect();
+            let vectors: Vec<Vec<f32>> = (0..1000).map(|index| basis(index % 8)).collect();
+            db.bulk_add_vectors(keys, vectors).unwrap();
+        }
+        assert_eq!(db.get_index_stats().unwrap().pending, 6000);
+        drop(db);
+        match check_open_cost(dir.db_path()) {
+            VecDbOpenCost::NeedsIndexing {
+                approximate_records,
+            } => assert!(
+                (5000..7500).contains(&approximate_records),
+                "unexpected estimate {approximate_records}"
+            ),
+            other => panic!("expected NeedsIndexing, got {other:?}"),
+        }
+        let db = VecDb::new(
+            dir.db_path(),
+            DIMS,
+            Some(VecDbStorage::F32),
+            Some(VecDbMetric::Cosine),
+        )
+        .unwrap();
+        assert_eq!(db.get_index_stats().unwrap().pending, 0);
+        db.flush().unwrap();
+        drop(db);
+        assert!(matches!(
+            check_open_cost(dir.db_path()),
+            VecDbOpenCost::Ready
+        ));
     }
 
     #[test]

@@ -11,13 +11,14 @@ const MAGIC: [u8; 4] = *b"EVDG";
 const FORMAT_VERSION: u16 = 1;
 const NO_ENTRY_POINT: u32 = u32::MAX;
 const CRC_LEN: usize = 4;
-const FIXED_PREFIX_LEN: usize = 47;
+const FIXED_PREFIX_LEN: usize = 51;
 const MIN_SNAPSHOT_LEN: usize = FIXED_PREFIX_LEN + CRC_LEN;
 const MIN_NODE_LEN: usize = 7;
 
 pub(crate) struct LoadedSnapshot {
     pub(crate) covered_log_offset: u64,
     pub(crate) insert_ordinal: u64,
+    pub(crate) pending_count: u32,
     pub(crate) entry_point: Option<u32>,
     pub(crate) parts: Vec<GraphNodeParts>,
 }
@@ -30,9 +31,10 @@ pub(crate) fn write_snapshot(
     log_path: &Path,
     generation: [u8; 16],
     covered_log_offset: u64,
+    pending_count: u32,
     graph: &Graph,
 ) -> Result<(), VecDbError> {
-    let bytes = encode_snapshot(&generation, covered_log_offset, graph);
+    let bytes = encode_snapshot(&generation, covered_log_offset, pending_count, graph);
     let target = snapshot_path(log_path);
     let temp = temp_snapshot_path(log_path);
     write_and_swap(&bytes, &temp, &target).inspect_err(|_| {
@@ -67,7 +69,12 @@ pub(crate) fn remove_snapshot(log_path: &Path) -> Result<(), VecDbError> {
     remove_if_present(&temp_snapshot_path(log_path))
 }
 
-fn encode_snapshot(generation: &[u8; 16], covered_log_offset: u64, graph: &Graph) -> Vec<u8> {
+fn encode_snapshot(
+    generation: &[u8; 16],
+    covered_log_offset: u64,
+    pending_count: u32,
+    graph: &Graph,
+) -> Vec<u8> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&MAGIC);
     bytes.extend_from_slice(&FORMAT_VERSION.to_le_bytes());
@@ -82,6 +89,7 @@ fn encode_snapshot(generation: &[u8; 16], covered_log_offset: u64, graph: &Graph
         .unwrap_or(0);
     bytes.push(top_level);
     bytes.extend_from_slice(&(graph.node_count() as u32).to_le_bytes());
+    bytes.extend_from_slice(&pending_count.to_le_bytes());
     for slot in graph.slots() {
         let level = graph.level_of(slot).unwrap_or(0);
         bytes.extend_from_slice(&slot.to_le_bytes());
@@ -142,9 +150,18 @@ fn decode_snapshot(bytes: &[u8], expected_generation: &[u8; 16]) -> Result<Loade
     let entry_marker = reader.read_u32().ok_or("truncated header")?;
     let top_level = reader.read_u8().ok_or("truncated header")?;
     let node_count = reader.read_u32().ok_or("truncated header")? as usize;
+    let pending_count = reader.read_u32().ok_or("truncated header")?;
     let mut parts = Vec::with_capacity(node_count.min(reader.remaining() / MIN_NODE_LEN));
+    let mut previous_slot: Option<u32> = None;
     for _ in 0..node_count {
         let slot = reader.read_u32().ok_or("truncated node")?;
+        if previous_slot.is_some_and(|previous| slot <= previous) {
+            return Err(format!(
+                "node slot {slot} does not follow {} in ascending order",
+                previous_slot.unwrap_or_default()
+            ));
+        }
+        previous_slot = Some(slot);
         let level = reader.read_u8().ok_or("truncated node")?;
         let mut neighbors = Vec::with_capacity(level as usize + 1);
         for _ in 0..=level {
@@ -187,6 +204,7 @@ fn decode_snapshot(bytes: &[u8], expected_generation: &[u8; 16]) -> Result<Loade
     Ok(LoadedSnapshot {
         covered_log_offset,
         insert_ordinal,
+        pending_count,
         entry_point,
         parts,
     })
@@ -266,14 +284,14 @@ mod tests {
     use super::super::test_support::{assert_identical_graphs, stale_downward_edge_exists};
     use super::*;
 
-    const GOLDEN: [u8; 94] = [
+    const GOLDEN: [u8; 98] = [
         0x45, 0x56, 0x44, 0x47, 0x01, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
         0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x2c, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x03, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
-        0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00,
-        0x10, 0xe9, 0x5e, 0xe7,
+        0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0xa6, 0x0d, 0xff, 0x54,
     ];
 
     fn golden_generation() -> [u8; 16] {
@@ -415,13 +433,14 @@ mod tests {
     fn golden_bytes_pin_format_v1() {
         let dir = TempDir::new().unwrap();
         let written_path = dir.path().join("written");
-        write_snapshot(&written_path, golden_generation(), 300, &golden_graph()).unwrap();
+        write_snapshot(&written_path, golden_generation(), 300, 5, &golden_graph()).unwrap();
         assert_eq!(std::fs::read(snapshot_path(&written_path)).unwrap(), GOLDEN);
         let literal_path = dir.path().join("literal");
         std::fs::write(snapshot_path(&literal_path), GOLDEN).unwrap();
         let loaded = load_golden(&literal_path).unwrap();
         assert_eq!(loaded.covered_log_offset, 300);
         assert_eq!(loaded.insert_ordinal, 7);
+        assert_eq!(loaded.pending_count, 5);
         assert_eq!(loaded.entry_point, Some(1));
         assert_eq!(loaded.parts.len(), 3);
         let expected: [(u32, u8, Vec<Vec<u32>>); 3] = [
@@ -447,7 +466,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         let generation = [7u8; 16];
-        write_snapshot(&log_path, generation, 4096, &graph).unwrap();
+        write_snapshot(&log_path, generation, 4096, 0, &graph).unwrap();
         assert!(!temp_snapshot_path(&log_path).exists());
         let loaded = load_snapshot(&log_path, generation).unwrap();
         assert_eq!(loaded.covered_log_offset, 4096);
@@ -497,7 +516,7 @@ mod tests {
     fn empty_graph_round_trips() {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
-        write_snapshot(&log_path, [3u8; 16], 32, &Graph::new()).unwrap();
+        write_snapshot(&log_path, [3u8; 16], 32, 0, &Graph::new()).unwrap();
         assert_eq!(
             std::fs::read(snapshot_path(&log_path)).unwrap().len(),
             MIN_SNAPSHOT_LEN
@@ -522,8 +541,8 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let first_path = dir.path().join("first");
         let second_path = dir.path().join("second");
-        write_snapshot(&first_path, [5u8; 16], 777, &first).unwrap();
-        write_snapshot(&second_path, [5u8; 16], 777, &second).unwrap();
+        write_snapshot(&first_path, [5u8; 16], 777, 0, &first).unwrap();
+        write_snapshot(&second_path, [5u8; 16], 777, 0, &second).unwrap();
         let first_bytes = std::fs::read(snapshot_path(&first_path)).unwrap();
         let second_bytes = std::fs::read(snapshot_path(&second_path)).unwrap();
         assert_eq!(first_bytes, second_bytes);
@@ -620,6 +639,7 @@ mod tests {
         bytes.extend_from_slice(&slot.to_le_bytes());
         bytes.push(0);
         bytes.extend_from_slice(&1u32.to_le_bytes());
+        bytes.extend_from_slice(&0u32.to_le_bytes());
         bytes.extend_from_slice(&slot.to_le_bytes());
         bytes.push(0);
         bytes.extend_from_slice(&0u16.to_le_bytes());
@@ -630,6 +650,47 @@ mod tests {
         assert!(
             Graph::from_parts(loaded.entry_point, loaded.parts, 3, loaded.insert_ordinal).is_err()
         );
+    }
+
+    #[test]
+    fn a_snapshot_written_without_the_pending_count_is_discarded() {
+        let dir = TempDir::new().unwrap();
+        let log_path = dir.path().join("log");
+        let mut older = GOLDEN.to_vec();
+        older.drain(FIXED_PREFIX_LEN - size_of::<u32>()..FIXED_PREFIX_LEN);
+        refresh_crc(&mut older);
+        std::fs::write(snapshot_path(&log_path), &older).unwrap();
+        assert!(load_golden(&log_path).is_none());
+        let empty_path = dir.path().join("empty");
+        write_snapshot(&empty_path, golden_generation(), 300, 0, &Graph::new()).unwrap();
+        let mut older_empty = std::fs::read(snapshot_path(&empty_path)).unwrap();
+        older_empty.drain(FIXED_PREFIX_LEN - size_of::<u32>()..FIXED_PREFIX_LEN);
+        refresh_crc(&mut older_empty);
+        std::fs::write(snapshot_path(&empty_path), &older_empty).unwrap();
+        assert!(load_snapshot(&empty_path, golden_generation()).is_none());
+    }
+
+    #[test]
+    fn the_pending_count_round_trips_without_touching_the_graph() {
+        let dir = TempDir::new().unwrap();
+        let log_path = dir.path().join("log");
+        for pending_count in [0, 1, 12_345, u32::MAX] {
+            write_snapshot(
+                &log_path,
+                golden_generation(),
+                300,
+                pending_count,
+                &golden_graph(),
+            )
+            .unwrap();
+            let loaded = load_golden(&log_path).unwrap();
+            assert_eq!(loaded.pending_count, pending_count);
+            assert_eq!(loaded.covered_log_offset, 300);
+            let rebuilt =
+                Graph::from_parts(loaded.entry_point, loaded.parts, 3, loaded.insert_ordinal)
+                    .unwrap();
+            assert_identical_graphs(&rebuilt, &golden_graph());
+        }
     }
 
     #[test]
@@ -693,7 +754,16 @@ mod tests {
     #[test]
     fn oversized_neighbor_count_is_discarded() {
         assert_discarded(|bytes| {
-            bytes[52..54].copy_from_slice(&u16::MAX.to_le_bytes());
+            bytes[56..58].copy_from_slice(&u16::MAX.to_le_bytes());
+            refresh_crc(bytes);
+        });
+    }
+
+    #[test]
+    fn nodes_out_of_ascending_slot_order_are_discarded() {
+        assert_discarded(|bytes| {
+            bytes[FIXED_PREFIX_LEN..FIXED_PREFIX_LEN + size_of::<u32>()]
+                .copy_from_slice(&9u32.to_le_bytes());
             refresh_crc(bytes);
         });
     }
@@ -718,7 +788,7 @@ mod tests {
         });
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
-        write_snapshot(&log_path, golden_generation(), 300, &Graph::new()).unwrap();
+        write_snapshot(&log_path, golden_generation(), 300, 0, &Graph::new()).unwrap();
         let path = snapshot_path(&log_path);
         let mut bytes = std::fs::read(&path).unwrap();
         bytes[38..42].copy_from_slice(&0u32.to_le_bytes());
@@ -732,12 +802,12 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         std::fs::create_dir(snapshot_path(&log_path)).unwrap();
-        let error = write_snapshot(&log_path, [1u8; 16], 0, &Graph::new()).unwrap_err();
+        let error = write_snapshot(&log_path, [1u8; 16], 0, 0, &Graph::new()).unwrap_err();
         assert!(matches!(error, VecDbError::Io { .. }));
         assert!(!temp_snapshot_path(&log_path).exists());
         assert!(snapshot_path(&log_path).is_dir());
         let orphan_path = dir.path().join("absent").join("log");
-        assert!(write_snapshot(&orphan_path, [1u8; 16], 0, &Graph::new()).is_err());
+        assert!(write_snapshot(&orphan_path, [1u8; 16], 0, 0, &Graph::new()).is_err());
         assert!(!temp_snapshot_path(&orphan_path).exists());
         assert!(!snapshot_path(&orphan_path).exists());
     }
@@ -747,8 +817,8 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         let generation = golden_generation();
-        write_snapshot(&log_path, generation, 100, &golden_graph()).unwrap();
-        write_snapshot(&log_path, generation, 999, &golden_graph()).unwrap();
+        write_snapshot(&log_path, generation, 100, 0, &golden_graph()).unwrap();
+        write_snapshot(&log_path, generation, 999, 0, &golden_graph()).unwrap();
         assert!(!temp_snapshot_path(&log_path).exists());
         let loaded = load_snapshot(&log_path, generation).unwrap();
         assert_eq!(loaded.covered_log_offset, 999);
@@ -760,7 +830,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let log_path = dir.path().join("log");
         remove_snapshot(&log_path).unwrap();
-        write_snapshot(&log_path, [2u8; 16], 0, &Graph::new()).unwrap();
+        write_snapshot(&log_path, [2u8; 16], 0, 0, &Graph::new()).unwrap();
         std::fs::write(temp_snapshot_path(&log_path), b"leftover").unwrap();
         assert!(snapshot_path(&log_path).exists());
         assert!(temp_snapshot_path(&log_path).exists());

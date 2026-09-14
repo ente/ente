@@ -15,7 +15,7 @@ use super::kernel::{StoredVector, VectorPayload, quantize_for};
 use super::lock::WriterLock;
 use super::log::{
     HEADER_LEN, Log, LogCheckpoint, LogEntry, LogRecord, header_generation, open_writer_file,
-    remove_if_present, remove_stale_temp_sibling, sync_parent_dir,
+    remove_if_present, remove_stale_temp_sibling, smallest_add_record_len, sync_parent_dir,
 };
 use super::snapshot::{
     LoadedSnapshot, load_snapshot, remove_snapshot, snapshot_path, write_snapshot,
@@ -58,6 +58,7 @@ impl PathSlot {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpenCost {
     Ready,
+    NeedsIndexing { approximate_records: u64 },
     NeedsRebuild,
     Absent,
 }
@@ -1021,11 +1022,29 @@ fn open_cost_from_files(path: &Path) -> OpenCost {
     };
     let snapshot_present = std::fs::metadata(snapshot_path(path)).is_ok();
     match load_snapshot(path, generation) {
-        Some(loaded) if loaded.covered_log_offset <= log_len => OpenCost::Ready,
+        Some(loaded) if loaded.covered_log_offset <= log_len => indexing_cost(
+            &header,
+            loaded.pending_count,
+            log_len - loaded.covered_log_offset,
+        ),
         Some(_) => OpenCost::NeedsRebuild,
         None if snapshot_present => OpenCost::NeedsRebuild,
         None if log_len > HEADER_LEN as u64 => OpenCost::NeedsRebuild,
         None => OpenCost::Ready,
+    }
+}
+
+fn indexing_cost(header: &[u8; HEADER_LEN], pending_count: u32, uncovered_bytes: u64) -> OpenCost {
+    let Ok(record_floor) = smallest_add_record_len(header) else {
+        return OpenCost::Ready;
+    };
+    let approximate_records = u64::from(pending_count) + uncovered_bytes / record_floor;
+    if approximate_records > SNAPSHOT_HARD_CAP as u64 {
+        OpenCost::NeedsIndexing {
+            approximate_records,
+        }
+    } else {
+        OpenCost::Ready
     }
 }
 
@@ -1239,6 +1258,7 @@ fn write_snapshot_now(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecD
             state.log.path(),
             state.log.generation(),
             state.log.current_end_offset(),
+            st.pending.len().min(u32::MAX as usize) as u32,
             graph,
         )?;
     }
@@ -1459,6 +1479,7 @@ fn build_writer(
             log.path(),
             log.generation(),
             log.current_end_offset(),
+            0,
             indexed,
         )
     {
@@ -6352,6 +6373,74 @@ mod tests {
             split_state.graph.as_ref().unwrap(),
             whole_state.graph.as_ref().unwrap(),
         );
+    }
+
+    #[test]
+    fn open_cost_reports_needs_indexing_for_a_backlog_the_policy_snapshotted_over() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        db.add("seed", &seeded_unit_vector(15_000, DIMS)).unwrap();
+        db.flush().unwrap();
+        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
+        for batch in 0..20 {
+            bulk_add(&db, &bulk_entries(1000 * batch, 1000, 15_100)).unwrap();
+        }
+        assert_eq!(db.stats().unwrap().pending, 20_000);
+        assert!(snapshot_exists(&path));
+        assert!(
+            load_snapshot(&path, generation_of(&path))
+                .unwrap()
+                .covered_log_offset
+                > 0
+        );
+        drop(db);
+        match VecDb::open_cost(&path) {
+            OpenCost::NeedsIndexing {
+                approximate_records,
+            } => assert!(
+                (19_000..21_000).contains(&approximate_records),
+                "unexpected estimate {approximate_records}"
+            ),
+            other => panic!("expected NeedsIndexing, got {other:?}"),
+        }
+        let db = open_writer(&path);
+        assert_eq!(db.stats().unwrap().pending, 0);
+        db.flush().unwrap();
+        drop(db);
+        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
+    }
+
+    #[test]
+    fn open_cost_reports_needs_indexing_for_a_tail_past_the_snapshot_cap() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        db.add("seed", &seeded_unit_vector(16_000, DIMS)).unwrap();
+        db.flush().unwrap();
+        bulk_add(&db, &bulk_entries(0, 200, 16_100)).unwrap();
+        db.flush().unwrap();
+        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
+        for batch in 0..6 {
+            bulk_add(&db, &bulk_entries(1000 * (batch + 1), 1000, 16_200)).unwrap();
+            set_mutations(&db, 0);
+        }
+        assert_eq!(db.stats().unwrap().pending, 6000);
+        drop(db);
+        match VecDb::open_cost(&path) {
+            OpenCost::NeedsIndexing {
+                approximate_records,
+            } => assert!(
+                (6000..7200).contains(&approximate_records),
+                "unexpected estimate {approximate_records}"
+            ),
+            other => panic!("expected NeedsIndexing, got {other:?}"),
+        }
+        let db = open_writer(&path);
+        assert_eq!(db.stats().unwrap().pending, 0);
+        assert_eq!(indexed_slot_count(&db), 6201);
+        drop(db);
+        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
     }
 
     #[test]
