@@ -1,5 +1,5 @@
 use std::cmp::{Ordering, Reverse};
-use std::collections::{BinaryHeap, HashSet};
+use std::collections::{BinaryHeap, HashSet, VecDeque};
 
 use super::arena::{PackedQuery, Query, VectorArena};
 use super::kernel::splitmix64;
@@ -481,7 +481,7 @@ impl Graph {
         }
     }
 
-    fn detach(&mut self, slot: u32) {
+    pub(crate) fn detach(&mut self, slot: u32) {
         let Some(level) = self.level_of(slot).map(usize::from) else {
             return;
         };
@@ -579,6 +579,97 @@ impl Graph {
         let raw = splitmix64(&mut state);
         let unit = ((raw >> 11) + 1) as f64 / (1u64 << 53) as f64;
         (-unit.ln() * (M as f64).ln().recip()) as usize
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct PendingSlots {
+    queued: VecDeque<u32>,
+    enqueued: Vec<u64>,
+    marked: Vec<u64>,
+    live: usize,
+}
+
+impl PendingSlots {
+    pub(crate) fn derive(arena: &VectorArena, graph: &Graph) -> Self {
+        let mut derived = Self::default();
+        for slot in arena
+            .live_slots()
+            .filter(|&slot| graph.level_of(slot).is_none())
+        {
+            derived.mark(slot);
+        }
+        derived
+    }
+
+    pub(crate) fn mark(&mut self, slot: u32) {
+        debug_assert!(!self.holds(slot));
+        let word = slot as usize / 64;
+        let bit = 1u64 << (slot % 64);
+        if self.marked.len() <= word {
+            self.marked.resize(word + 1, 0);
+            self.enqueued.resize(word + 1, 0);
+        }
+        self.marked[word] |= bit;
+        if self.enqueued[word] & bit == 0 {
+            self.enqueued[word] |= bit;
+            self.queued.push_back(slot);
+        }
+        self.live += 1;
+    }
+
+    pub(crate) fn unmark(&mut self, slot: u32) {
+        if !self.holds(slot) {
+            return;
+        }
+        self.marked[slot as usize / 64] &= !(1u64 << (slot % 64));
+        self.live -= 1;
+    }
+
+    pub(crate) fn take_oldest(&mut self) -> Option<u32> {
+        while let Some(slot) = self.queued.pop_front() {
+            self.enqueued[slot as usize / 64] &= !(1u64 << (slot % 64));
+            if !self.holds(slot) {
+                continue;
+            }
+            self.unmark(slot);
+            if self.queued.is_empty() {
+                self.clear();
+            }
+            return Some(slot);
+        }
+        self.clear();
+        None
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.queued = VecDeque::new();
+        self.enqueued = Vec::new();
+        self.marked = Vec::new();
+        self.live = 0;
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.live
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.live == 0
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = u32> + '_ {
+        self.queued.iter().copied().filter(|&slot| self.holds(slot))
+    }
+
+    pub(crate) fn memory_bytes(&self) -> usize {
+        self.queued.capacity() * size_of::<u32>()
+            + (self.enqueued.capacity() + self.marked.capacity()) * size_of::<u64>()
+    }
+
+    fn holds(&self, slot: u32) -> bool {
+        self.marked
+            .get(slot as usize / 64)
+            .is_some_and(|word| word & (1u64 << (slot % 64)) != 0)
     }
 }
 
@@ -796,8 +887,17 @@ pub(crate) fn search(
     query: &PackedQuery,
     params: &SearchParams,
     allowed_slots: Option<&HashSet<u32>>,
+    pending: &PendingSlots,
 ) -> Vec<Match> {
-    search_from(graph, arena, query.as_query(), params, allowed_slots, None)
+    search_from(
+        graph,
+        arena,
+        query.as_query(),
+        params,
+        allowed_slots,
+        None,
+        pending,
+    )
 }
 
 pub(crate) fn search_stored(
@@ -806,6 +906,7 @@ pub(crate) fn search_stored(
     slot: u32,
     params: &SearchParams,
     allowed_slots: Option<&HashSet<u32>>,
+    pending: &PendingSlots,
 ) -> Vec<Match> {
     search_from(
         graph,
@@ -814,6 +915,7 @@ pub(crate) fn search_stored(
         params,
         allowed_slots,
         Some(slot),
+        pending,
     )
 }
 
@@ -824,6 +926,7 @@ fn search_from(
     params: &SearchParams,
     allowed_slots: Option<&HashSet<u32>>,
     stored_slot: Option<u32>,
+    pending: &PendingSlots,
 ) -> Vec<Match> {
     debug_assert!(params.limit.is_some() || params.max_distance.is_some());
     if let Some(max_distance) = params.max_distance {
@@ -853,12 +956,13 @@ fn search_from(
         query,
     };
     match params.limit {
-        Some(limit) => approx_limited(&context, limit, params, allowed_slots, stored_slot),
+        Some(limit) => approx_limited(&context, limit, params, allowed_slots, stored_slot, pending),
         None => approx_threshold(
             &context,
             params.max_distance.unwrap_or(f32::MAX),
             allowed_slots,
             stored_slot,
+            pending,
         ),
     }
 }
@@ -896,12 +1000,24 @@ fn admission<'a>(
     move |slot| banned != Some(slot) && admissible(arena, allowed, slot)
 }
 
+fn indexed_admission<'a>(
+    graph: &'a Graph,
+    arena: &'a VectorArena,
+    allowed: Option<&'a HashSet<u32>>,
+    banned: Option<u32>,
+) -> impl Fn(u32) -> bool + 'a {
+    move |slot| {
+        graph.level_of(slot).is_some() && banned != Some(slot) && admissible(arena, allowed, slot)
+    }
+}
+
 fn approx_limited(
     context: &QueryContext<'_>,
     limit: usize,
     params: &SearchParams,
     allowed: Option<&HashSet<u32>>,
     stored_slot: Option<u32>,
+    pending: &PendingSlots,
 ) -> Vec<Match> {
     let bound = result_bound(context.arena, allowed);
     let ef = match stored_slot {
@@ -911,15 +1027,24 @@ fn approx_limited(
     .max(ef_search_floor(context.arena.live_count()))
     .min(bound);
     let admit = admission(context.arena, allowed, stored_slot);
+    let indexed = indexed_admission(context.graph, context.arena, allowed, stored_slot);
     let excluded = stored_slot.is_some_and(|slot| admissible(context.arena, allowed, slot));
     let available = bound - usize::from(excluded);
-    let scored = match stored_slot {
-        Some(slot) => context.top_scored_near(slot, ef, ef.min(available), &admit),
-        None => context.top_scored(ef, &admit),
+    let mut scored = match stored_slot {
+        Some(slot) => context.top_scored_near(slot, ef, ef.min(available), &indexed),
+        None => context.top_scored(ef, &indexed),
     };
     if scored.len() < limit.min(available) {
         return brute_force(context.arena, context.query, params, allowed, stored_slot);
     }
+    merge_pending(
+        context,
+        &mut scored,
+        pending,
+        &admit,
+        Some(limit),
+        params.max_distance,
+    );
     to_matches(context.arena, scored, Some(limit), params.max_distance)
 }
 
@@ -928,10 +1053,42 @@ fn approx_threshold(
     max_distance: f32,
     allowed: Option<&HashSet<u32>>,
     banned: Option<u32>,
+    pending: &PendingSlots,
 ) -> Vec<Match> {
     let admit = admission(context.arena, allowed, banned);
-    let scored = context.range_scored(max_distance, &admit);
+    let indexed = indexed_admission(context.graph, context.arena, allowed, banned);
+    let mut scored = context.range_scored(max_distance, &indexed);
+    merge_pending(
+        context,
+        &mut scored,
+        pending,
+        &admit,
+        None,
+        Some(max_distance),
+    );
     to_matches(context.arena, scored, None, Some(max_distance))
+}
+
+fn merge_pending(
+    context: &QueryContext<'_>,
+    scored: &mut Vec<Scored>,
+    pending: &PendingSlots,
+    admit: &impl Fn(u32) -> bool,
+    limit: Option<usize>,
+    max_distance: Option<f32>,
+) {
+    if pending.is_empty() {
+        return;
+    }
+    scored.extend(scan_slots(
+        context.arena,
+        context.query,
+        pending.iter(),
+        admit,
+        limit,
+        max_distance,
+    ));
+    scored.sort_unstable();
 }
 
 fn brute_force(
@@ -941,18 +1098,48 @@ fn brute_force(
     allowed: Option<&HashSet<u32>>,
     banned: Option<u32>,
 ) -> Vec<Match> {
+    let admit = admission(arena, allowed, banned);
+    let scored = match allowed {
+        Some(set) => scan_slots(
+            arena,
+            query,
+            set.iter().copied(),
+            &admit,
+            params.limit,
+            params.max_distance,
+        ),
+        None => scan_slots(
+            arena,
+            query,
+            arena.live_slots(),
+            &admit,
+            params.limit,
+            params.max_distance,
+        ),
+    };
+    to_matches(arena, scored, None, None)
+}
+
+fn scan_slots(
+    arena: &VectorArena,
+    query: Query<'_>,
+    slots: impl Iterator<Item = u32>,
+    admit: &impl Fn(u32) -> bool,
+    limit: Option<usize>,
+    max_distance: Option<f32>,
+) -> Vec<Scored> {
     let mut top: BinaryHeap<Scored> = BinaryHeap::new();
     let mut all: Vec<Scored> = Vec::new();
-    let mut consider = |slot: u32| {
-        if banned == Some(slot) || !arena.is_alive(slot) {
-            return;
+    for slot in slots {
+        if !admit(slot) {
+            continue;
         }
         let distance = arena.distance_to_query(query, slot);
-        if params.max_distance.is_some_and(|cap| distance > cap) {
-            return;
+        if max_distance.is_some_and(|cap| distance > cap) {
+            continue;
         }
         let scored = Scored { distance, slot };
-        match params.limit {
+        match limit {
             Some(limit) => {
                 top.push(scored);
                 if top.len() > limit {
@@ -961,26 +1148,12 @@ fn brute_force(
             }
             None => all.push(scored),
         }
-    };
-    match allowed {
-        Some(set) => {
-            for &slot in set {
-                consider(slot);
-            }
-        }
-        None => {
-            for slot in arena.live_slots() {
-                consider(slot);
-            }
-        }
     }
-    let scored = if params.limit.is_some() {
-        top.into_sorted_vec()
-    } else {
-        all.sort_unstable();
-        all
-    };
-    to_matches(arena, scored, None, None)
+    if limit.is_some() {
+        return top.into_sorted_vec();
+    }
+    all.sort_unstable();
+    all
 }
 
 fn to_matches(
@@ -1019,6 +1192,40 @@ mod tests {
 
     const FIXTURE_DIMS: usize = 16;
     const FIXTURE_COUNT: usize = 1500;
+
+    fn search(
+        graph: &Graph,
+        arena: &VectorArena,
+        query: &PackedQuery,
+        params: &SearchParams,
+        allowed_slots: Option<&HashSet<u32>>,
+    ) -> Vec<Match> {
+        super::search(
+            graph,
+            arena,
+            query,
+            params,
+            allowed_slots,
+            &PendingSlots::default(),
+        )
+    }
+
+    fn search_stored(
+        graph: &Graph,
+        arena: &VectorArena,
+        slot: u32,
+        params: &SearchParams,
+        allowed_slots: Option<&HashSet<u32>>,
+    ) -> Vec<Match> {
+        super::search_stored(
+            graph,
+            arena,
+            slot,
+            params,
+            allowed_slots,
+            &PendingSlots::default(),
+        )
+    }
 
     static FIXTURE: LazyLock<(VectorArena, Graph)> =
         LazyLock::new(|| build_fixture(FIXTURE_COUNT, FIXTURE_DIMS, 0x00F1_0000));

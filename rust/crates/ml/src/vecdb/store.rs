@@ -10,7 +10,7 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 use super::arena::{UpsertOutcome, VectorArena};
-use super::graph::{Graph, search as graph_search, search_stored};
+use super::graph::{Graph, PendingSlots, search as graph_search, search_stored};
 use super::kernel::{StoredVector, VectorPayload, quantize_for};
 use super::lock::WriterLock;
 use super::log::{
@@ -30,6 +30,7 @@ const SNAPSHOT_QUIET_GAP: Duration = Duration::from_secs(10);
 const COMPACTION_MIN_DEAD_RECORDS: u64 = 64;
 const COMPACTION_DEAD_RATIO: u64 = 10;
 const COMPACTION_BATCH_SIZE: usize = 1000;
+const DRAIN_READER_GAP: usize = 8;
 const HANDOFF_WAIT_ROUNDS: u32 = 750;
 const HANDOFF_CLOSE_WAIT_ROUNDS: u32 = 2500;
 const HANDOFF_WAIT_PARK: Duration = Duration::from_millis(2);
@@ -65,6 +66,7 @@ pub enum OpenCost {
 pub struct Stats {
     pub live_count: usize,
     pub dead_count: usize,
+    pub pending: usize,
     pub dims: usize,
     pub storage: StorageKind,
     pub metric: DistanceMetric,
@@ -93,6 +95,7 @@ struct SearchState {
     arena: VectorArena,
     graph: Option<Graph>,
     attrs: AttrTable,
+    pending: PendingSlots,
     total_records: u64,
 }
 
@@ -428,16 +431,12 @@ impl VecDb {
                     read_only: false,
                 })
             }
-            BuiltWriter::Pending {
-                shared,
-                snapshot_stale,
-                pending_records,
-            } => {
+            BuiltWriter::Unfinished { shared, work } => {
                 let shared = Arc::new(shared);
                 let half = shared.writer_half();
                 guard.live = Some(Arc::downgrade(&shared));
                 drop(guard);
-                finish_pending_open(&shared, half, snapshot_stale, pending_records);
+                finish_open_work(&shared, half, work);
                 Ok(Self {
                     shared,
                     read_only: false,
@@ -512,7 +511,7 @@ impl VecDb {
             vector: payload,
             attrs,
         }])?;
-        apply_add(&self.shared, key, payload, attrs)?;
+        apply_add(&self.shared, key, payload, attrs, Indexing::Immediate)?;
         apply_policy(&self.shared, &mut half, 1, now)
     }
 
@@ -585,7 +584,13 @@ impl VecDb {
             .collect();
         state.log.append(&records)?;
         for (index, key) in keys.iter().enumerate() {
-            apply_add(&self.shared, key, payload_of(index), attrs_of(index))?;
+            apply_add(
+                &self.shared,
+                key,
+                payload_of(index),
+                attrs_of(index),
+                Indexing::Deferred,
+            )?;
         }
         apply_policy(&self.shared, &mut half, keys.len(), now)
     }
@@ -757,6 +762,7 @@ impl VecDb {
                 slot,
                 &params,
                 allowed_slots.as_ref(),
+                &st.pending,
             );
             if let Some(cap) = max_distance {
                 let keep = matches.partition_point(|entry| entry.distance <= cap);
@@ -772,11 +778,20 @@ impl VecDb {
 
     pub fn flush(&self) -> Result<(), VecDbError> {
         let mut half = self.writable_half()?;
+        active_state(&mut half)?;
+        drain_pending(&self.shared, &mut half, usize::MAX);
         let state = active_state(&mut half)?;
         if state.mutations_since_snapshot == 0 {
             return Ok(());
         }
         write_snapshot_now(&self.shared, &mut half)
+    }
+
+    pub fn index_pending(&self, max_vectors: usize) -> Result<usize, VecDbError> {
+        let mut half = self.writable_half()?;
+        active_state(&mut half)?;
+        drain_pending(&self.shared, &mut half, max_vectors);
+        Ok(self.shared.state_read().pending.len())
     }
 
     pub fn reset(&self) -> Result<(), VecDbError> {
@@ -812,6 +827,7 @@ impl VecDb {
             st.arena = arena;
             st.graph = Some(Graph::new());
             st.attrs.reset();
+            st.pending.clear();
             st.total_records = 0;
         }
         half.compaction_retry_at_dead = 0;
@@ -890,6 +906,7 @@ impl VecDb {
         Ok(Stats {
             live_count,
             dead_count: st.total_records.saturating_sub(live_count as u64) as usize,
+            pending: st.pending.len(),
             dims: st.arena.dims(),
             storage: self.shared.storage,
             metric: self.shared.metric,
@@ -968,6 +985,7 @@ fn search_in_state(
         &packed,
         params,
         allowed_slots,
+        &state.pending,
     ))
 }
 
@@ -1023,6 +1041,7 @@ fn close_live_instance(shared: &Arc<Shared>) -> Result<(), VecDbError> {
         st.arena = empty;
         st.graph = Some(Graph::new());
         st.attrs.reset();
+        st.pending.clear();
         st.total_records = 0;
     }
     drop(lock);
@@ -1043,34 +1062,129 @@ fn close_live_instance(shared: &Arc<Shared>) -> Result<(), VecDbError> {
     removed
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Indexing {
+    Immediate,
+    Deferred,
+}
+
 fn apply_add(
     shared: &Shared,
     key: &str,
     vector: VectorPayload<'_>,
     attrs: &[Attribute],
+    indexing: Indexing,
 ) -> Result<(), VecDbError> {
     let mut st = shared.state_write();
     let SearchState {
         arena,
         graph,
         attrs: attr_table,
+        pending,
         total_records,
     } = &mut *st;
     let outcome = arena.upsert_payload(key, vector)?;
     attr_table.set(slot_of_outcome(outcome), attrs);
-    if let Some(graph) = graph {
-        apply_outcome(graph, arena, outcome);
+    match (indexing, graph.as_mut()) {
+        (Indexing::Immediate, Some(graph)) => {
+            index_outcome(graph, arena, pending, outcome);
+        }
+        (Indexing::Immediate, None) | (Indexing::Deferred, _) => {
+            defer_outcome(graph.as_mut(), pending, outcome);
+        }
     }
     *total_records += 1;
     Ok(())
 }
 
+fn index_outcome(
+    graph: &mut Graph,
+    arena: &VectorArena,
+    pending: &mut PendingSlots,
+    outcome: UpsertOutcome,
+) {
+    let slot = slot_of_outcome(outcome);
+    let was_pending =
+        matches!(outcome, UpsertOutcome::ReplacedInPlace(_)) && graph.level_of(slot).is_none();
+    apply_outcome(graph, arena, outcome);
+    if was_pending {
+        pending.unmark(slot);
+    }
+}
+
+fn defer_outcome(graph: Option<&mut Graph>, pending: &mut PendingSlots, outcome: UpsertOutcome) {
+    let slot = slot_of_outcome(outcome);
+    let detached = graph.is_some_and(|graph| {
+        let held = graph.level_of(slot).is_some();
+        graph.detach(slot);
+        held
+    });
+    let stays_pending = matches!(outcome, UpsertOutcome::ReplacedInPlace(_)) && !detached;
+    if !stays_pending {
+        pending.mark(slot);
+    }
+}
+
 fn apply_remove(shared: &Shared, key: &str) {
     let mut st = shared.state_write();
-    if let Some(slot) = st.arena.remove(key) {
-        st.attrs.clear(slot);
+    let SearchState {
+        arena,
+        graph,
+        attrs,
+        pending,
+        total_records,
+    } = &mut *st;
+    if let Some(slot) = arena.remove(key) {
+        attrs.clear(slot);
+        if graph
+            .as_ref()
+            .is_none_or(|graph| graph.level_of(slot).is_none())
+        {
+            pending.unmark(slot);
+        }
     }
-    st.total_records += 1;
+    *total_records += 1;
+}
+
+fn drain_pending(shared: &Shared, half: &mut WriterHalf, max_vectors: usize) -> usize {
+    let mut indexed = 0;
+    while indexed < max_vectors && index_oldest_pending(shared) {
+        indexed += 1;
+        if indexed.is_multiple_of(DRAIN_READER_GAP) {
+            std::thread::yield_now();
+        }
+        let Ok(state) = active_state(half) else {
+            break;
+        };
+        state.mutations_since_snapshot += 1;
+        if state.mutations_since_snapshot >= SNAPSHOT_HARD_CAP
+            && let Err(error) = write_snapshot_now(shared, half)
+        {
+            log::warn!("snapshot of {} failed: {error}", shared.path.display());
+        }
+    }
+    indexed
+}
+
+fn index_oldest_pending(shared: &Shared) -> bool {
+    let mut st = shared.state_write();
+    let SearchState {
+        arena,
+        graph,
+        pending,
+        ..
+    } = &mut *st;
+    let Some(graph) = graph else {
+        return false;
+    };
+    while let Some(slot) = pending.take_oldest() {
+        if !arena.is_alive(slot) {
+            continue;
+        }
+        graph.insert(slot, arena);
+        return true;
+    }
+    false
 }
 
 fn apply_policy(
@@ -1172,11 +1286,13 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
                 arena,
                 graph,
                 attrs,
+                pending,
                 total_records,
             } = &mut *st;
             attrs.repack(arena.live_slots());
             arena.compact_in_place();
             *graph = None;
+            pending.clear();
             *total_records = arena.live_count() as u64;
             *total_records as usize
         };
@@ -1231,6 +1347,7 @@ fn restore_writer_mode(
                 arena: replayed.arena,
                 graph: Some(graph),
                 attrs: replayed.attrs,
+                pending: PendingSlots::default(),
                 total_records: replayed.total_records,
             };
             half.compaction_retry_at_dead = 0;
@@ -1276,6 +1393,7 @@ fn recover_after_failed_reset(
         st.arena = empty;
         st.graph = Some(Graph::new());
         st.attrs.reset();
+        st.pending.clear();
         st.total_records = 0;
         half.compaction_retry_at_dead = 0;
     }
@@ -1283,10 +1401,16 @@ fn recover_after_failed_reset(
 
 enum BuiltWriter {
     Complete(Shared),
-    Pending {
-        shared: Shared,
+    Unfinished { shared: Shared, work: OpenWork },
+}
+
+enum OpenWork {
+    Rebuild {
+        records: usize,
         snapshot_stale: bool,
-        pending_records: usize,
+    },
+    Drain {
+        snapshot_stale: bool,
     },
 }
 
@@ -1320,69 +1444,63 @@ fn build_writer(
         arena,
         graph,
         attrs,
+        pending,
         total_records,
         tail_records,
         ..
     } = replayed;
-    match graph {
-        Some(graph) => {
-            let mut mutations_since_snapshot = 0;
-            if tail_records > 0
-                && let Err(error) = write_snapshot(
-                    log.path(),
-                    log.generation(),
-                    log.current_end_offset(),
-                    &graph,
-                )
-            {
-                log::warn!(
-                    "continuing without an open-time snapshot for {}: {error}",
-                    path.display()
-                );
-                mutations_since_snapshot = (tail_records as usize).max(1);
-            }
-            Ok(BuiltWriter::Complete(writer_shared(
-                path,
-                registry_key,
-                dims,
-                storage,
-                WriterState {
-                    lock,
-                    log,
-                    mutations_since_snapshot,
-                    last_write: None,
-                },
-                SearchState {
-                    arena,
-                    graph: Some(graph),
-                    attrs,
-                    total_records,
-                },
-            )))
-        }
-        None => Ok(BuiltWriter::Pending {
-            shared: writer_shared(
-                path,
-                registry_key,
-                dims,
-                storage,
-                WriterState {
-                    lock,
-                    log,
-                    mutations_since_snapshot: 0,
-                    last_write: None,
-                },
-                SearchState {
-                    arena,
-                    graph: None,
-                    attrs,
-                    total_records,
-                },
-            ),
-            snapshot_stale: total_records > 0 || snapshot_present,
-            pending_records: total_records as usize,
-        }),
+    let graph_present = graph.is_some();
+    let graph_holds_every_live_slot = graph_present && pending.is_empty();
+    let mut mutations_since_snapshot = 0;
+    if graph_holds_every_live_slot
+        && tail_records > 0
+        && let Some(indexed) = &graph
+        && let Err(error) = write_snapshot(
+            log.path(),
+            log.generation(),
+            log.current_end_offset(),
+            indexed,
+        )
+    {
+        log::warn!(
+            "continuing without an open-time snapshot for {}: {error}",
+            path.display()
+        );
+        mutations_since_snapshot = (tail_records as usize).max(1);
     }
+    let shared = writer_shared(
+        path,
+        registry_key,
+        dims,
+        storage,
+        WriterState {
+            lock,
+            log,
+            mutations_since_snapshot,
+            last_write: None,
+        },
+        SearchState {
+            arena,
+            graph,
+            attrs,
+            pending,
+            total_records,
+        },
+    );
+    if graph_holds_every_live_slot {
+        return Ok(BuiltWriter::Complete(shared));
+    }
+    let work = if graph_present {
+        OpenWork::Drain {
+            snapshot_stale: tail_records > 0,
+        }
+    } else {
+        OpenWork::Rebuild {
+            records: total_records as usize,
+            snapshot_stale: total_records > 0 || snapshot_present,
+        }
+    };
+    Ok(BuiltWriter::Unfinished { shared, work })
 }
 
 fn writer_shared(
@@ -1408,27 +1526,34 @@ fn writer_shared(
     }
 }
 
-fn finish_pending_open(
-    shared: &Shared,
-    mut half: MutexGuard<'_, WriterHalf>,
-    snapshot_stale: bool,
-    pending_records: usize,
-) {
-    let graph = {
-        let st = shared.state_read();
-        Graph::rebuild(&st.arena)
+fn finish_open_work(shared: &Shared, mut half: MutexGuard<'_, WriterHalf>, work: OpenWork) {
+    let dirty = match work {
+        OpenWork::Rebuild {
+            records,
+            snapshot_stale,
+        } => {
+            let graph = {
+                let st = shared.state_read();
+                Graph::rebuild(&st.arena)
+            };
+            install_graph(shared, graph);
+            snapshot_stale.then(|| records.max(1))
+        }
+        OpenWork::Drain { snapshot_stale } => {
+            let indexed = drain_pending(shared, &mut half, usize::MAX);
+            (snapshot_stale || indexed > 0).then_some(1)
+        }
     };
-    install_graph(shared, graph);
-    if !snapshot_stale {
+    let Some(dirty) = dirty else {
         return;
-    }
+    };
     if let Err(error) = write_snapshot_now(shared, &mut half) {
         log::warn!(
             "continuing without an open-time snapshot for {}: {error}",
             shared.path.display()
         );
         if let WriterMode::Active(state) = &mut half.mode {
-            state.mutations_since_snapshot = pending_records.max(1);
+            state.mutations_since_snapshot = state.mutations_since_snapshot.max(dirty);
         }
     }
 }
@@ -1439,10 +1564,13 @@ fn install_graph(shared: &Shared, graph: Graph) {
         match shared.state.try_write() {
             Ok(mut st) => {
                 st.graph = installable.take();
+                st.pending.clear();
                 return;
             }
             Err(TryLockError::Poisoned(poisoned)) => {
-                poisoned.into_inner().graph = installable.take();
+                let mut st = poisoned.into_inner();
+                st.graph = installable.take();
+                st.pending.clear();
                 return;
             }
             Err(TryLockError::WouldBlock) => std::thread::yield_now(),
@@ -1477,16 +1605,21 @@ fn build_read_only(
         arena,
         graph,
         attrs,
+        pending,
         total_records,
         recoverable_end,
         ..
     } = replayed;
-    let graph = graph.unwrap_or_else(|| Graph::rebuild(&arena));
+    let (graph, pending) = match graph {
+        Some(graph) => (graph, pending),
+        None => (Graph::rebuild(&arena), PendingSlots::default()),
+    };
     Ok(read_only_shared(
         path,
         arena,
         graph,
         attrs,
+        pending,
         total_records,
         recoverable_end,
     ))
@@ -1503,6 +1636,7 @@ fn empty_read_only(
         VectorArena::with_metric(dims, storage, metric)?,
         Graph::new(),
         AttrTable::default(),
+        PendingSlots::default(),
         0,
         0,
     ))
@@ -1513,6 +1647,7 @@ fn read_only_shared(
     arena: VectorArena,
     graph: Graph,
     attrs: AttrTable,
+    pending: PendingSlots,
     total_records: u64,
     log_bytes: u64,
 ) -> Shared {
@@ -1531,6 +1666,7 @@ fn read_only_shared(
             arena,
             graph: Some(graph),
             attrs,
+            pending,
             total_records,
         }),
     }
@@ -1546,13 +1682,19 @@ fn approximate_memory_bytes(state: &SearchState) -> usize {
         .sum();
     let free_list_bytes = state.arena.dead_count() * size_of::<u32>();
     let graph_bytes = state.graph.as_ref().map_or(0, Graph::memory_bytes);
-    vector_bytes + key_bytes + free_list_bytes + graph_bytes + state.attrs.memory_bytes()
+    vector_bytes
+        + key_bytes
+        + free_list_bytes
+        + graph_bytes
+        + state.attrs.memory_bytes()
+        + state.pending.memory_bytes()
 }
 
 struct ReplayedState {
     arena: VectorArena,
     graph: Option<Graph>,
     attrs: AttrTable,
+    pending: PendingSlots,
     total_records: u64,
     recoverable_end: u64,
     tail_records: u64,
@@ -1587,6 +1729,7 @@ fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState,
     let mut arena = VectorArena::with_metric(dims, log.storage(), log.metric())?;
     let mut attrs = AttrTable::default();
     let mut graph: Option<Graph> = None;
+    let mut pending = PendingSlots::default();
     let mut tail_records = 0u64;
     let mut total_records = 0u64;
     let recoverable_end;
@@ -1595,7 +1738,7 @@ fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState,
         while let Some((record, offset)) = scanner.next_record()? {
             total_records += 1;
             if offset >= covered {
-                attach_snapshot_graph(&mut graph, &mut snapshot, &arena, &path);
+                attach_snapshot_graph(&mut graph, &mut snapshot, &mut pending, &arena, &path);
                 tail_records += 1;
             }
             match record {
@@ -1606,13 +1749,19 @@ fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState,
                 } => {
                     let outcome = arena.upsert_payload(&key, vector.as_payload())?;
                     attrs.set(slot_of_outcome(outcome), &record_attrs);
-                    if let Some(graph) = &mut graph {
-                        apply_outcome(graph, &arena, outcome);
+                    if graph.is_some() {
+                        defer_outcome(graph.as_mut(), &mut pending, outcome);
                     }
                 }
                 LogRecord::Tombstone { key } => {
                     if let Some(slot) = arena.remove(&key) {
                         attrs.clear(slot);
+                        if graph
+                            .as_ref()
+                            .is_some_and(|graph| graph.level_of(slot).is_none())
+                        {
+                            pending.unmark(slot);
+                        }
                     }
                 }
             }
@@ -1637,12 +1786,13 @@ fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState,
         }
     }
     if covered <= recoverable_end {
-        attach_snapshot_graph(&mut graph, &mut snapshot, &arena, &path);
+        attach_snapshot_graph(&mut graph, &mut snapshot, &mut pending, &arena, &path);
     }
     Ok(ReplayedState {
         arena,
         graph,
         attrs,
+        pending,
         total_records,
         recoverable_end,
         tail_records,
@@ -1652,6 +1802,7 @@ fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState,
 fn attach_snapshot_graph(
     graph: &mut Option<Graph>,
     snapshot: &mut Option<LoadedSnapshot>,
+    pending: &mut PendingSlots,
     arena: &VectorArena,
     path: &Path,
 ) {
@@ -1664,7 +1815,10 @@ fn attach_snapshot_graph(
         arena.slot_count(),
         loaded.insert_ordinal,
     ) {
-        Ok(attached) => *graph = Some(attached),
+        Ok(attached) => {
+            *pending = PendingSlots::derive(arena, &attached);
+            *graph = Some(attached);
+        }
         Err(error) => {
             log::debug!("discarding snapshot for {}: {error}", path.display());
         }
@@ -2222,6 +2376,13 @@ mod tests {
     fn bulk_add(db: &VecDb, entries: &[(String, Vec<f32>)]) -> Result<(), VecDbError> {
         let (keys, vectors): (Vec<String>, Vec<Vec<f32>>) = entries.iter().cloned().unzip();
         db.bulk_add(&keys, &vectors)
+    }
+
+    fn tail_entries(tail_new: &[f32], older_upsert: &[f32]) -> Vec<(String, Vec<f32>)> {
+        vec![
+            ("tail-new".to_string(), tail_new.to_vec()),
+            ("key-3".to_string(), older_upsert.to_vec()),
+        ]
     }
 
     fn limit_params(limit: usize) -> SearchParams {
@@ -3667,6 +3828,7 @@ mod tests {
             Stats {
                 live_count: 0,
                 dead_count: 0,
+                pending: 0,
                 dims: DIMS,
                 storage: StorageKind::I8,
                 metric: DistanceMetric::Cosine,
@@ -3989,14 +4151,14 @@ mod tests {
         );
         {
             let db = open_writer(&split_path);
-            db.add("tail-new", &tail_new).unwrap();
-            db.add("key-3", &older_upsert).unwrap();
+            bulk_add(&db, &tail_entries(&tail_new, &older_upsert)).unwrap();
         }
         let split = open_writer(&split_path);
         let whole = open_writer(&whole_path);
         bulk_add(&whole, &bulk_entries(0, 40, 500)).unwrap();
-        whole.add("tail-new", &tail_new).unwrap();
-        whole.add("key-3", &older_upsert).unwrap();
+        whole.flush().unwrap();
+        bulk_add(&whole, &tail_entries(&tail_new, &older_upsert)).unwrap();
+        whole.flush().unwrap();
         let split_state = split.shared.state_read();
         let whole_state = whole.shared.state_read();
         let split_graph = split_state.graph.as_ref().unwrap();
@@ -4176,11 +4338,13 @@ mod tests {
                 arena,
                 graph,
                 attrs,
+                pending,
                 total_records,
             } = &mut *st;
             attrs.repack(arena.live_slots());
             arena.compact_in_place();
             *graph = None;
+            pending.clear();
             *total_records = arena.live_count() as u64;
         }
         {
@@ -4640,6 +4804,7 @@ mod tests {
             Stats {
                 live_count: 0,
                 dead_count: 0,
+                pending: 0,
                 dims: DIMS,
                 storage: StorageKind::F32,
                 metric: DistanceMetric::Cosine,
@@ -4987,6 +5152,7 @@ mod tests {
         let path = dir.path().join("db");
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 300, 500)).unwrap();
+        db.flush().unwrap();
         let removals: Vec<String> = (0..30).map(|index| format!("key-{index}")).collect();
         assert_eq!(db.bulk_remove(&removals).unwrap(), 30);
         assert_eq!(db.stats().unwrap().dead_count, 60);
@@ -5012,7 +5178,14 @@ mod tests {
         }
         let packed = held.arena.pack_query(&query).unwrap();
         for _ in 0..25 {
-            let during = graph_search(held.search_graph(), &held.arena, &packed, &exact, None);
+            let during = graph_search(
+                held.search_graph(),
+                &held.arena,
+                &packed,
+                &exact,
+                None,
+                &held.pending,
+            );
             assert_eq!(during, before);
         }
         assert!(held.graph.is_some());
@@ -5138,6 +5311,7 @@ mod tests {
         let path = dir.path().join("db");
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 200, 640)).unwrap();
+        db.flush().unwrap();
         let allowed = vec![
             "key-3".to_string(),
             "key-77".to_string(),
@@ -5189,6 +5363,7 @@ mod tests {
         let path = dir.path().join("db");
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 200, 640)).unwrap();
+        db.flush().unwrap();
         let queries: Vec<Vec<f32>> = (0..5)
             .map(|index| seeded_unit_vector(9600 + index, DIMS))
             .collect();
@@ -5275,6 +5450,7 @@ mod tests {
         let twin = seeded_unit_vector(31_000, DIMS);
         db.add("twin-a", &twin).unwrap();
         db.add("twin-b", &twin).unwrap();
+        db.flush().unwrap();
         let input = vec![
             "key-5".to_string(),
             "missing".to_string(),
@@ -5314,6 +5490,7 @@ mod tests {
         let path = dir.path().join("db");
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 30, 860)).unwrap();
+        db.flush().unwrap();
         let input: Vec<String> = (1..=4).map(|index| format!("key-{index}")).collect();
         for exact in [false, true] {
             let restricted = db
@@ -5606,6 +5783,575 @@ mod tests {
         assert!(lock_path(&path).exists());
         assert!(!lock_path(&alias).exists());
         assert!(fs::symlink_metadata(&alias).is_ok());
+    }
+
+    #[test]
+    fn a_pending_slot_marked_again_before_its_drain_is_listed_once() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 40, 25_000)).unwrap();
+        db.flush().unwrap();
+        let first = seeded_unit_vector(25_500, DIMS);
+        let second = seeded_unit_vector(25_600, DIMS);
+        bulk_add(&db, &[("victim".to_string(), first.clone())]).unwrap();
+        db.add("victim", &first).unwrap();
+        bulk_add(&db, &[("victim".to_string(), second.clone())]).unwrap();
+        assert_pending_matches_truth(&db);
+        let found = db.search(&second, &limit_params(8)).unwrap();
+        let keys: Vec<&str> = found.iter().map(|hit| hit.key.as_str()).collect();
+        assert_eq!(keys.iter().filter(|&&key| key == "victim").count(), 1);
+        assert!(db.remove("victim").unwrap());
+        let fresh = seeded_unit_vector(25_700, DIMS);
+        bulk_add(&db, &[("fresh".to_string(), fresh.clone())]).unwrap();
+        assert_pending_matches_truth(&db);
+        let found = db.search(&fresh, &limit_params(8)).unwrap();
+        let keys: Vec<&str> = found.iter().map(|hit| hit.key.as_str()).collect();
+        assert_eq!(keys.iter().filter(|&&key| key == "fresh").count(), 1);
+        assert_eq!(db.index_pending(usize::MAX).unwrap(), 0);
+        assert_pending_matches_truth(&db);
+        assert!(db.contains("fresh"));
+    }
+
+    fn assert_pending_matches_truth(db: &VecDb) {
+        let st = db.shared.state_read();
+        let listed: Vec<u32> = st.pending.iter().collect();
+        let unique: HashSet<u32> = listed.iter().copied().collect();
+        assert_eq!(unique.len(), listed.len(), "pending holds a duplicate slot");
+        assert_eq!(st.pending.len(), listed.len());
+        let Some(graph) = st.graph.as_ref() else {
+            assert!(
+                listed.is_empty(),
+                "a state without a graph serves every live slot exactly and must hold nothing pending"
+            );
+            return;
+        };
+        let mut sorted = listed;
+        sorted.sort_unstable();
+        let derived: Vec<u32> = st
+            .arena
+            .live_slots()
+            .filter(|&slot| graph.level_of(slot).is_none())
+            .collect();
+        assert_eq!(sorted, derived, "pending diverged from live-without-a-node");
+    }
+
+    fn indexed_slot_count(db: &VecDb) -> usize {
+        db.shared
+            .state_read()
+            .graph
+            .as_ref()
+            .map_or(0, Graph::node_count)
+    }
+
+    fn graph_links_to(db: &VecDb, target: u32) -> bool {
+        let st = db.shared.state_read();
+        let graph = st.graph.as_ref().unwrap();
+        graph.slots().any(|slot| {
+            let level = graph.level_of(slot).unwrap();
+            (0..=level).any(|layer| graph.neighbors_of(slot, layer).contains(&target))
+        })
+    }
+
+    fn slot_of(db: &VecDb, key: &str) -> u32 {
+        db.shared.state_read().arena.slot_of_key(key).unwrap()
+    }
+
+    fn keys_of(matches: &[Match]) -> Vec<&str> {
+        matches.iter().map(|entry| entry.key.as_str()).collect()
+    }
+
+    fn exact_params(limit: Option<usize>, max_distance: Option<f32>) -> SearchParams {
+        SearchParams {
+            limit,
+            max_distance,
+            exact: true,
+            allowed_keys: None,
+        }
+    }
+
+    fn write_snapshot_over_pending(db: &VecDb) {
+        let mut half = db.shared.writer_half();
+        write_snapshot_now(&db.shared, &mut half).unwrap();
+    }
+
+    #[test]
+    fn bulk_add_defers_indexing_and_every_search_mode_still_finds_the_vectors() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 60, 2200)).unwrap();
+        db.flush().unwrap();
+        assert_eq!(db.stats().unwrap().pending, 0);
+        assert_eq!(indexed_slot_count(&db), 60);
+        let deferred = bulk_entries(60, 40, 2200);
+        bulk_add(&db, &deferred).unwrap();
+        assert_pending_matches_truth(&db);
+        assert_eq!(db.stats().unwrap().pending, 40);
+        assert_eq!(db.stats().unwrap().live_count, 100);
+        assert_eq!(indexed_slot_count(&db), 60);
+        let (target_key, target_vector) = &deferred[7];
+        let allowed = vec![target_key.clone(), "key-3".to_string()];
+        for shape in search_shapes(allowed) {
+            let found = db.search(target_vector, &shape).unwrap();
+            assert_eq!(
+                found.first().map(|entry| entry.key.as_str()),
+                Some(target_key.as_str()),
+                "shape {shape:?} lost the pending vector"
+            );
+            assert!(found[0].distance.abs() < 1e-5);
+        }
+        let query = seeded_unit_vector(9_100, DIMS);
+        let approx = limit_params(10);
+        let exact = exact_params(Some(10), None);
+        let expected = db.search(&query, &exact).unwrap();
+        assert_eq!(db.search(&query, &approx).unwrap(), expected);
+        assert_eq!(
+            db.bulk_search(std::slice::from_ref(&query), &approx)
+                .unwrap(),
+            vec![expected.clone()]
+        );
+        assert_eq!(
+            db.bulk_search_varied(std::slice::from_ref(&query), std::slice::from_ref(&approx))
+                .unwrap(),
+            vec![expected]
+        );
+        assert_pending_matches_truth(&db);
+    }
+
+    #[test]
+    fn a_filtered_search_over_pending_slots_honours_the_allow_list() {
+        const INDEXED: usize = 2000;
+        const DEFERRED: usize = 1200;
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, INDEXED, 3300)).unwrap();
+        db.flush().unwrap();
+        bulk_add(&db, &bulk_entries(INDEXED, DEFERRED, 3300)).unwrap();
+        assert_eq!(db.stats().unwrap().pending, DEFERRED);
+        let wanted = format!("key-{}", INDEXED + 11);
+        let shunned = format!("key-{}", INDEXED + 12);
+        let allowed: Vec<String> = (0..1100)
+            .map(|index| format!("key-{index}"))
+            .chain([wanted.clone()])
+            .collect();
+        let allow_set: HashSet<&str> = allowed.iter().map(String::as_str).collect();
+        let query = db.get(&wanted).unwrap();
+        let params = SearchParams {
+            limit: Some(10),
+            allowed_keys: Some(allowed.clone()),
+            ..SearchParams::default()
+        };
+        let found = db.search(&query, &params).unwrap();
+        assert_eq!(found[0].key, wanted);
+        assert!(found[0].distance.abs() < 1e-5);
+        assert!(
+            found
+                .iter()
+                .all(|entry| allow_set.contains(entry.key.as_str()))
+        );
+        assert!(!keys_of(&found).contains(&shunned.as_str()));
+        let without_the_target = SearchParams {
+            limit: Some(10),
+            allowed_keys: Some(allowed[..1100].to_vec()),
+            ..SearchParams::default()
+        };
+        let narrowed = db.search(&query, &without_the_target).unwrap();
+        assert_eq!(narrowed.len(), 10);
+        assert!(!keys_of(&narrowed).contains(&wanted.as_str()));
+        assert!(db.search(&query, &limit_params(10)).unwrap()[0].key == wanted);
+        assert_pending_matches_truth(&db);
+    }
+
+    #[test]
+    fn a_threshold_search_includes_pending_hits_inside_the_cut_only() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 120, 4400)).unwrap();
+        db.flush().unwrap();
+        let query = seeded_unit_vector(4_242, DIMS);
+        let near = {
+            let mut values = query.clone();
+            values[0] += 0.02;
+            let norm = values.iter().map(|value| value * value).sum::<f32>().sqrt();
+            for value in &mut values {
+                *value /= norm;
+            }
+            values
+        };
+        bulk_add(
+            &db,
+            &[
+                ("pending-near".to_string(), near),
+                ("pending-far".to_string(), negated(&query)),
+            ],
+        )
+        .unwrap();
+        assert_eq!(db.stats().unwrap().pending, 2);
+        let cut = 0.5;
+        let threshold = SearchParams {
+            limit: None,
+            max_distance: Some(cut),
+            ..SearchParams::default()
+        };
+        let found = db.search(&query, &threshold).unwrap();
+        assert!(keys_of(&found).contains(&"pending-near"));
+        assert!(!keys_of(&found).contains(&"pending-far"));
+        assert!(found.iter().all(|entry| entry.distance <= cut));
+        assert_eq!(
+            found,
+            db.search(&query, &exact_params(None, Some(cut))).unwrap()
+        );
+        assert_pending_matches_truth(&db);
+    }
+
+    #[test]
+    fn a_stored_key_search_works_from_and_towards_a_pending_slot() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 80, 5500)).unwrap();
+        db.flush().unwrap();
+        let twin = seeded_unit_vector(31_000, DIMS);
+        db.add("twin-indexed", &twin).unwrap();
+        bulk_add(&db, &[("twin-pending".to_string(), twin)]).unwrap();
+        assert_eq!(db.stats().unwrap().pending, 1);
+        assert!(
+            db.shared
+                .state_read()
+                .graph
+                .as_ref()
+                .unwrap()
+                .level_of(slot_of(&db, "twin-pending"))
+                .is_none()
+        );
+        let from_pending = db
+            .bulk_search_stored(&["twin-pending".to_string()], 5, None, false, false)
+            .unwrap();
+        assert_eq!(from_pending[0].key, "twin-pending");
+        assert_eq!(from_pending[0].matches[0].key, "twin-indexed");
+        assert!(from_pending[0].matches[0].distance.abs() < 1e-5);
+        assert!(!keys_of(&from_pending[0].matches).contains(&"twin-pending"));
+        let from_indexed = db
+            .bulk_search_stored(&["twin-indexed".to_string()], 5, None, false, false)
+            .unwrap();
+        assert_eq!(from_indexed[0].matches[0].key, "twin-pending");
+        assert!(from_indexed[0].matches[0].distance.abs() < 1e-5);
+        assert!(!keys_of(&from_indexed[0].matches).contains(&"twin-indexed"));
+        assert_pending_matches_truth(&db);
+    }
+
+    #[test]
+    fn bulk_add_over_an_indexed_key_detaches_its_node_at_once() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 60, 6600)).unwrap();
+        db.flush().unwrap();
+        let slot = slot_of(&db, "key-7");
+        assert!(graph_links_to(&db, slot));
+        let replacement = seeded_unit_vector(77_777, DIMS);
+        bulk_add(&db, &[("key-7".to_string(), replacement.clone())]).unwrap();
+        assert_eq!(db.stats().unwrap().pending, 1);
+        assert_eq!(slot_of(&db, "key-7"), slot);
+        assert!(
+            db.shared
+                .state_read()
+                .graph
+                .as_ref()
+                .unwrap()
+                .level_of(slot)
+                .is_none()
+        );
+        assert_eq!(indexed_slot_count(&db), 59);
+        assert_pending_matches_truth(&db);
+        assert_eq!(db.get("key-7").unwrap(), replacement);
+        assert_own_nearest(&db, "key-7", &replacement);
+        let found = db.search(&replacement, &limit_params(10)).unwrap();
+        assert_eq!(found.iter().filter(|entry| entry.key == "key-7").count(), 1);
+        db.flush().unwrap();
+        assert_eq!(db.stats().unwrap().pending, 0);
+        assert_eq!(indexed_slot_count(&db), 60);
+        assert_own_nearest(&db, "key-7", &replacement);
+        assert_pending_matches_truth(&db);
+    }
+
+    #[test]
+    fn removing_a_pending_key_keeps_it_out_of_the_graph_forever() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 10, 7700)).unwrap();
+        assert_eq!(db.stats().unwrap().pending, 10);
+        let dropped = slot_of(&db, "key-3");
+        assert!(db.remove("key-3").unwrap());
+        assert_eq!(db.stats().unwrap().pending, 9);
+        assert_pending_matches_truth(&db);
+        db.flush().unwrap();
+        assert_eq!(db.stats().unwrap().pending, 0);
+        assert_eq!(indexed_slot_count(&db), 9);
+        assert!(
+            db.shared
+                .state_read()
+                .graph
+                .as_ref()
+                .unwrap()
+                .level_of(dropped)
+                .is_none()
+        );
+        assert!(!db.contains("key-3"));
+        let readded = seeded_unit_vector(700_001, DIMS);
+        bulk_add(&db, &[("key-3".to_string(), readded.clone())]).unwrap();
+        assert_eq!(slot_of(&db, "key-3"), dropped);
+        assert_eq!(db.stats().unwrap().pending, 1);
+        assert_pending_matches_truth(&db);
+        db.flush().unwrap();
+        assert_eq!(indexed_slot_count(&db), 10);
+        assert_own_nearest(&db, "key-3", &readded);
+        assert_pending_matches_truth(&db);
+    }
+
+    #[test]
+    fn flush_indexes_every_pending_vector_before_it_writes_the_snapshot() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 120, 8800)).unwrap();
+        assert_eq!(indexed_slot_count(&db), 0);
+        assert!(!snapshot_exists(&path));
+        db.flush().unwrap();
+        assert_eq!(db.stats().unwrap().pending, 0);
+        assert_eq!(indexed_slot_count(&db), 120);
+        assert_eq!(mutations(&db), 0);
+        assert_pending_matches_truth(&db);
+        let loaded = load_snapshot(&path, generation_of(&path)).unwrap();
+        assert_eq!(loaded.parts.len(), 120);
+        assert_eq!(loaded.covered_log_offset, db.stats().unwrap().log_bytes);
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.stats().unwrap().pending, 0);
+        assert_eq!(indexed_slot_count(&reopened), 120);
+        assert_pending_matches_truth(&reopened);
+    }
+
+    #[test]
+    fn a_snapshot_taken_over_pending_slots_reopens_into_a_drain_and_a_read_only_pass() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 60, 9900)).unwrap();
+        db.flush().unwrap();
+        let deferred = bulk_entries(60, 40, 9900);
+        bulk_add(&db, &deferred).unwrap();
+        write_snapshot_over_pending(&db);
+        let tail = bulk_entries(100, 10, 9900);
+        bulk_add(&db, &tail).unwrap();
+        let (probe_key, probe_vector) = deferred[3].clone();
+        let expected = db
+            .search(&probe_vector, &exact_params(Some(5), None))
+            .unwrap();
+        let (tail_key, tail_vector) = tail[2].clone();
+        let tail_expected = db
+            .search(&tail_vector, &exact_params(Some(5), None))
+            .unwrap();
+        drop(db);
+        let covered = load_snapshot(&path, generation_of(&path)).unwrap();
+        assert_eq!(covered.parts.len(), 60);
+        let read_only = VecDb::open_read_only(
+            &path,
+            DIMS,
+            Some(StorageKind::F32),
+            Some(DistanceMetric::Cosine),
+        )
+        .unwrap();
+        assert_eq!(read_only.stats().unwrap().pending, 50);
+        assert_pending_matches_truth(&read_only);
+        assert_eq!(
+            read_only.search(&probe_vector, &limit_params(5)).unwrap(),
+            expected
+        );
+        assert_eq!(
+            read_only.search(&tail_vector, &limit_params(5)).unwrap(),
+            tail_expected
+        );
+        assert_eq!(read_only.stats().unwrap().pending, 50);
+        assert_eq!(
+            read_only.index_pending(10).unwrap_err().to_string(),
+            VecDbError::ReadOnly.to_string()
+        );
+        drop(read_only);
+        let writer = open_writer(&path);
+        assert_eq!(writer.stats().unwrap().pending, 0);
+        assert_eq!(indexed_slot_count(&writer), 110);
+        assert_pending_matches_truth(&writer);
+        assert_own_nearest(&writer, &probe_key, &probe_vector);
+        assert_own_nearest(&writer, &tail_key, &tail_vector);
+        let refreshed = load_snapshot(&path, generation_of(&path)).unwrap();
+        assert_eq!(refreshed.parts.len(), 110);
+        assert_eq!(
+            refreshed.covered_log_offset,
+            writer.stats().unwrap().log_bytes
+        );
+    }
+
+    #[test]
+    fn index_pending_drains_oldest_first_and_reports_the_remainder() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 10, 11_000)).unwrap();
+        let twin = seeded_unit_vector(1_100_000, DIMS);
+        bulk_add(&db, &[("twin-pending".to_string(), twin.clone())]).unwrap();
+        set_mutations(&db, 0);
+        assert_eq!(db.index_pending(0).unwrap(), 11);
+        assert_eq!(indexed_slot_count(&db), 0);
+        assert_eq!(db.index_pending(4).unwrap(), 7);
+        assert_eq!(indexed_slot_count(&db), 4);
+        assert_eq!(mutations(&db), 4);
+        assert_pending_matches_truth(&db);
+        {
+            let st = db.shared.state_read();
+            let graph = st.graph.as_ref().unwrap();
+            for index in 0..10 {
+                let slot = st.arena.slot_of_key(&format!("key-{index}")).unwrap();
+                assert_eq!(
+                    graph.level_of(slot).is_some(),
+                    index < 4,
+                    "key-{index} indexed out of order"
+                );
+            }
+        }
+        assert_eq!(
+            db.search(&twin, &limit_params(2)).unwrap()[0].key,
+            "twin-pending"
+        );
+        assert_eq!(db.index_pending(usize::MAX).unwrap(), 0);
+        assert_eq!(indexed_slot_count(&db), 11);
+        assert_eq!(mutations(&db), 11);
+        assert_pending_matches_truth(&db);
+        assert_eq!(db.index_pending(5).unwrap(), 0);
+        assert_eq!(mutations(&db), 11);
+    }
+
+    #[test]
+    fn compaction_rebuilds_the_graph_and_empties_the_pending_set() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 200, 12_000)).unwrap();
+        assert_eq!(db.stats().unwrap().pending, 200);
+        let survivor = db.get("key-199").unwrap();
+        let removals: Vec<String> = (0..70).map(|index| format!("key-{index}")).collect();
+        assert_eq!(db.bulk_remove(&removals).unwrap(), 70);
+        let stats = db.stats().unwrap();
+        assert_eq!(stats.dead_count, 0);
+        assert_eq!(stats.live_count, 130);
+        assert_eq!(stats.pending, 0);
+        assert_eq!(indexed_slot_count(&db), 130);
+        assert_pending_matches_truth(&db);
+        assert_own_nearest(&db, "key-199", &survivor);
+    }
+
+    #[test]
+    fn searches_from_another_handle_stay_correct_during_a_writer_open_drain() {
+        const INDEXED: usize = 500;
+        const DEFERRED: usize = 2500;
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let twin = seeded_unit_vector(1_300_000, DIMS);
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, INDEXED, 13_000)).unwrap();
+        db.flush().unwrap();
+        bulk_add(&db, &bulk_entries(INDEXED, DEFERRED, 13_000)).unwrap();
+        bulk_add(&db, &[("twin-pending".to_string(), twin.clone())]).unwrap();
+        write_snapshot_over_pending(&db);
+        let expected = db.search(&twin, &exact_params(Some(5), None)).unwrap();
+        assert_eq!(expected[0].key, "twin-pending");
+        drop(db);
+        let opener = {
+            let path = path.clone();
+            thread::spawn(move || open_writer(&path))
+        };
+        let key = registry_key_for(&path).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let joined = loop {
+            assert!(Instant::now() < deadline);
+            if existing_path_slot(&key).is_some_and(|slot| lock_slot(&slot).holds_live()) {
+                break VecDb::open_read_only(
+                    &path,
+                    DIMS,
+                    Some(StorageKind::F32),
+                    Some(DistanceMetric::Cosine),
+                )
+                .unwrap();
+            }
+            thread::yield_now();
+        };
+        let mut saw_a_partial_drain = false;
+        for _ in 0..8 {
+            let (pending, indexed) = {
+                let st = joined.shared.state_read();
+                (st.pending.len(), st.graph.as_ref().unwrap().node_count())
+            };
+            saw_a_partial_drain |= pending > 0 && indexed > INDEXED;
+            assert_eq!(joined.search(&twin, &limit_params(5)).unwrap(), expected);
+            assert_eq!(
+                joined.search(&twin, &exact_params(Some(5), None)).unwrap(),
+                expected
+            );
+        }
+        assert!(
+            saw_a_partial_drain,
+            "no search ran against a half-drained index"
+        );
+        let writer = opener.join().unwrap();
+        assert_eq!(writer.stats().unwrap().pending, 0);
+        assert_eq!(indexed_slot_count(&writer), INDEXED + DEFERRED + 1);
+        assert_pending_matches_truth(&writer);
+        assert_eq!(joined.search(&twin, &limit_params(5)).unwrap(), expected);
+    }
+
+    #[test]
+    fn a_tail_of_plain_adds_replays_into_the_graph_an_uninterrupted_session_builds() {
+        let dir = TempDir::new().unwrap();
+        let split_path = dir.path().join("split");
+        let whole_path = dir.path().join("whole");
+        let tail: Vec<(String, Vec<f32>)> = (0..3)
+            .map(|index| {
+                (
+                    format!("tail-{index}"),
+                    seeded_unit_vector(14_000 + index, DIMS),
+                )
+            })
+            .collect();
+        {
+            let db = open_writer(&split_path);
+            bulk_add(&db, &bulk_entries(0, 40, 14_500)).unwrap();
+            db.flush().unwrap();
+        }
+        {
+            let db = open_writer(&split_path);
+            for (key, vector) in &tail {
+                db.add(key, vector).unwrap();
+            }
+        }
+        let split = open_writer(&split_path);
+        let whole = open_writer(&whole_path);
+        bulk_add(&whole, &bulk_entries(0, 40, 14_500)).unwrap();
+        whole.flush().unwrap();
+        for (key, vector) in &tail {
+            whole.add(key, vector).unwrap();
+        }
+        assert_eq!(split.stats().unwrap().pending, 0);
+        assert_pending_matches_truth(&split);
+        let split_state = split.shared.state_read();
+        let whole_state = whole.shared.state_read();
+        test_support::assert_identical_graphs(
+            split_state.graph.as_ref().unwrap(),
+            whole_state.graph.as_ref().unwrap(),
+        );
     }
 
     #[test]
@@ -6661,8 +7407,7 @@ mod tests {
             )
             .unwrap();
             assert_eq!(db.stats().unwrap().storage, StorageKind::I8);
-            db.add("tail-new", &tail_new).unwrap();
-            db.add("key-3", &older_upsert).unwrap();
+            bulk_add(&db, &tail_entries(&tail_new, &older_upsert)).unwrap();
         }
         let split = VecDb::open(
             &split_path,
@@ -6673,8 +7418,9 @@ mod tests {
         .unwrap();
         let whole = open_i8(&whole_path);
         bulk_add(&whole, &i8_entries(0, 40, 500)).unwrap();
-        whole.add("tail-new", &tail_new).unwrap();
-        whole.add("key-3", &older_upsert).unwrap();
+        whole.flush().unwrap();
+        bulk_add(&whole, &tail_entries(&tail_new, &older_upsert)).unwrap();
+        whole.flush().unwrap();
         assert_same_stored(&stored_vectors(&split), &stored_vectors(&whole));
         let split_state = split.shared.state_read();
         let whole_state = whole.shared.state_read();

@@ -261,7 +261,7 @@ mod tests {
 
     use super::super::SearchParams;
     use super::super::arena::{UpsertOutcome, VectorArena};
-    use super::super::graph::search;
+    use super::super::graph::{PendingSlots, search};
     use super::super::kernel::splitmix64;
     use super::super::test_support::{assert_identical_graphs, stale_downward_edge_exists};
     use super::*;
@@ -471,8 +471,22 @@ mod tests {
                 params(None, Some(0.9)),
                 params(Some(3), Some(1.2)),
             ] {
-                let original = search(&graph, &arena, &query, &search_params, None);
-                let reconstructed = search(&rebuilt, &arena, &query, &search_params, None);
+                let original = search(
+                    &graph,
+                    &arena,
+                    &query,
+                    &search_params,
+                    None,
+                    &PendingSlots::default(),
+                );
+                let reconstructed = search(
+                    &rebuilt,
+                    &arena,
+                    &query,
+                    &search_params,
+                    None,
+                    &PendingSlots::default(),
+                );
                 assert_eq!(original, reconstructed);
                 assert!(!original.is_empty());
             }
@@ -559,7 +573,14 @@ mod tests {
                 return;
             };
             for search_params in [params(Some(2), None), params(None, Some(2.5))] {
-                let found = search(&graph, &arena, &query, &search_params, None);
+                let found = search(
+                    &graph,
+                    &arena,
+                    &query,
+                    &search_params,
+                    None,
+                    &PendingSlots::default(),
+                );
                 assert!(found.len() <= 3);
             }
             searched += 1;
