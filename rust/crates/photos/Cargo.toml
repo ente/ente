@@ -8,6 +8,8 @@ ente-collections.workspace = true
 ente-core.workspace = true
 ente-exif.workspace = true
 ente-location.workspace = true
+ente-vecdb.workspace = true
+log.workspace = true
 quick-xml.workspace = true
 rusqlite = { workspace = true, default-features = true }
 serde.workspace = true

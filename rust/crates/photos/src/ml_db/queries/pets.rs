@@ -372,7 +372,7 @@ fn read_pet_body(row: &Row<'_>) -> SqliteResult<PetBodyRow> {
 }
 
 #[cfg(test)]
-pub(in crate::ml_db) mod tests {
+pub(crate) mod tests {
     use std::collections::HashMap;
 
     use super::{MlDb, PetBodyRow, PetFaceRow};
@@ -407,7 +407,7 @@ pub(in crate::ml_db) mod tests {
         }
     }
 
-    pub(in crate::ml_db) fn seed(db: &MlDb) {
+    pub(crate) fn seed(db: &MlDb) {
         db.bulk_insert_pet_faces(&[
             pet_face(1, 0, 0),
             pet_face(1, 1, -1),

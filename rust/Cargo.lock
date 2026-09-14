@@ -2764,6 +2764,8 @@ dependencies = [
  "ente-core",
  "ente-exif",
  "ente-location",
+ "ente-vecdb",
+ "log",
  "quick-xml",
  "rusqlite",
  "serde",

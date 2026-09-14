@@ -77,6 +77,7 @@ class DartMLDataDB
     createPetBodiesTable,
     createPetFaceVectorIdMappingTable,
     createPetBodyVectorIdMappingTable,
+    createMlStoreMetaTable,
   ];
   static const List<String> _localGalleryMigrationScripts = [
     ..._defaultMigrationScripts,

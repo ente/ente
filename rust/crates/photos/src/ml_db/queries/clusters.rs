@@ -293,9 +293,8 @@ impl MlDb {
         summary: &HashMap<String, ClusterSummary>,
     ) -> Result<()> {
         self.db
-            .write_batches_committing_each(
+            .write_batch_atomic(
                 UPSERT_CLUSTER_SUMMARY,
-                const { NonZeroUsize::new(400).unwrap() },
                 summary
                     .iter()
                     .map(|(cluster_id, summary)| (cluster_id, &summary.avg, summary.count)),
@@ -475,8 +474,10 @@ fn read_cluster_centroid(row: &Row<'_>) -> SqliteResult<ClusterCentroidRow> {
 #[cfg(test)]
 pub(in crate::ml_db) mod tests {
     use std::collections::HashMap;
+    use std::path::Path;
 
     use super::{ClusterCentroidRow, ClusterSummary, MlDb};
+    use crate::db::Connection;
     use crate::ml_db::queries::{faces, persons};
     use crate::ml_db::tests::{
         cases, check, grouped, grouped_by_file, index_count, map, open, pairs, set, sorted, strings,
@@ -523,6 +524,17 @@ pub(in crate::ml_db) mod tests {
         seed(&db);
         persons::tests::seed(&db);
         (directory, db)
+    }
+
+    pub(crate) fn deny_cluster_summary_inserts_after(db_path: &Path, rows: usize) {
+        Connection::open(db_path)
+            .unwrap()
+            .execute_batch(&format!(
+                "CREATE TRIGGER deny_cluster_summary_insert BEFORE INSERT ON cluster_summary
+                 WHEN (SELECT COUNT(*) FROM cluster_summary) >= {rows}
+                 BEGIN SELECT RAISE(FAIL, 'insert denied'); END;"
+            ))
+            .unwrap();
     }
 
     #[test]
@@ -744,6 +756,19 @@ pub(in crate::ml_db) mod tests {
                 .unwrap()
                 .contains_key("c0999")
         );
+    }
+
+    #[test]
+    fn cluster_summary_upsert_is_atomic() {
+        let (directory, db) = open();
+        let mut rows = HashMap::new();
+        for index in 0..=400 {
+            rows.insert(format!("c{index:04}"), summary(index));
+        }
+        deny_cluster_summary_inserts_after(&directory.path().join("ente.ml.db"), 400);
+
+        assert!(db.upsert_cluster_summary_rows(&rows).is_err());
+        assert_eq!(db.count_cluster_summaries().unwrap(), 0);
     }
 
     #[test]
