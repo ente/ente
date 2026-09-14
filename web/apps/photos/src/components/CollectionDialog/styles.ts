@@ -2,6 +2,8 @@ import type { SxProps, Theme } from "@mui/material";
 
 const FullScreenBreakpoint = 491;
 
+export const collectionDialogControlRadius = 16;
+
 export const collectionDialogFullScreenQuery = `(width < ${FullScreenBreakpoint}px)`;
 
 export const collectionDialogSurfaceStroke = "#e0e0e0";
@@ -82,4 +84,26 @@ export const collectionDialogNoResultsSx = {
     justifyContent: "center",
     alignItems: "center",
     minHeight: 154,
+};
+
+/** Shared layout for the album and people browsers. */
+export const collectionDialogSx = {
+    "& .MuiDialog-container": { justifyContent: "flex-end" },
+    "& .MuiDialog-paper": {
+        borderRadius: "32px",
+        [`@media ${collectionDialogFullScreenQuery}`]: { borderRadius: 0 },
+    },
+};
+export const collectionDialogGridColumns = 3;
+export const collectionDialogGridGap = 8;
+export const collectionDialogGridPaddingInline = 20;
+export const collectionDialogGridPaddingBlockStart = 16;
+export const collectionDialogGridPaddingBlockEnd = 20;
+
+/** Keep the divider inset fixed while the grid scrolls beneath it. */
+export const collectionDialogGridBodySx = {
+    flex: 1,
+    minHeight: 0,
+    pt: `${collectionDialogGridPaddingBlockStart}px`,
+    pb: `${collectionDialogGridPaddingBlockEnd}px`,
 };

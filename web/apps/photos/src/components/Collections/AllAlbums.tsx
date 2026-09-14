@@ -8,7 +8,12 @@ import {
 import {
     collectionDialogBodyMutedSx as bodyMutedSx,
     collectionDialogFullScreenQuery,
+    collectionDialogGridBodySx,
+    collectionDialogSx as dialogSx,
     collectionDialogDividerSx as dividerSx,
+    collectionDialogGridColumns as GridColumns,
+    collectionDialogGridGap as GridGap,
+    collectionDialogGridPaddingInline as GridPaddingInline,
     collectionDialogHeaderActionsSx as headerActionsSx,
     collectionDialogHeaderRowSx as headerRowSx,
     collectionDialogHeaderSx as headerSx,
@@ -517,13 +522,6 @@ export const AllAlbums: React.FC<AllAlbums> = ({
 
 const sweepInset = 12;
 const sweepButtonRadius = 20;
-const dialogSx: SxProps<Theme> = {
-    "& .MuiDialog-container": { justifyContent: "flex-end" },
-    "& .MuiDialog-paper": {
-        borderRadius: `${sweepButtonRadius + sweepInset}px`,
-        [`@media ${collectionDialogFullScreenQuery}`]: { borderRadius: 0 },
-    },
-};
 const sweepFooterSx = {
     position: "absolute",
     insetInline: 0,
@@ -589,11 +587,6 @@ const filterPillsSx = (theme: Theme) => ({
         "&.Mui-selected:hover": { backgroundColor: "accent.dark" },
     },
 });
-const GridColumns = 3;
-const GridGap = 8;
-const GridPaddingInline = 20;
-const GridPaddingBlockStart = 16;
-const GridPaddingBlockEnd = 20;
 const GridFooterHeight = 88;
 
 interface ItemData {
@@ -741,12 +734,10 @@ const AllAlbumsContent: React.FC<AllAlbumsContentProps> = ({
 
     return (
         <Box
-            sx={{
-                flex: 1,
-                minHeight: 0,
-                pt: `${GridPaddingBlockStart}px`,
-                pb: `${reserveFooterSpace ? GridFooterHeight : GridPaddingBlockEnd}px`,
-            }}
+            sx={[
+                collectionDialogGridBodySx,
+                reserveFooterSpace ? { pb: `${GridFooterHeight}px` } : {},
+            ]}
         >
             <AutoSizer>
                 {({ width, height }) => {
