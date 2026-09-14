@@ -1,3 +1,4 @@
+import { collectionDialogIconButtonSx as v2TriggerButtonSx } from "@/components/CollectionDialog/styles";
 import { ArrowDown02Icon, ArrowUp02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import SortIcon from "@mui/icons-material/Sort";
@@ -233,18 +234,6 @@ const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
     "& .MuiListItemText-root": { margin: 0 },
     "& .MuiListItemText-primary": { color: "inherit", fontSize: "inherit" },
 }));
-
-const v2TriggerButtonSx = (theme: Theme) => ({
-    width: 38,
-    height: 38,
-    p: 0,
-    color: "text.base",
-    backgroundColor: "background.paper",
-    "&:hover": { backgroundColor: "fill.faintHover" },
-    ...theme.applyStyles("dark", {
-        backgroundColor: "rgba(255 255 255 / 0.12)",
-    }),
-});
 
 const v2MenuSx = (theme: Theme) => ({
     "& .MuiPaper-root": {

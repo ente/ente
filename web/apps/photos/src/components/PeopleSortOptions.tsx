@@ -1,3 +1,4 @@
+import { collectionDialogIconButtonSx } from "@/components/CollectionDialog/styles";
 import type { PeopleSortBy } from "@/utils/people-sort";
 import { ArrowDown02Icon, ArrowUp02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -19,6 +20,7 @@ interface PeopleSortOptionsProps {
     activeSortBy: PeopleSortBy;
     onChangeSortBy: (by: PeopleSortBy) => void;
     nestedInDialog?: boolean;
+    variant?: "default" | "v2";
     transparentTriggerButtonBackground?: boolean;
 }
 
@@ -38,6 +40,7 @@ export const PeopleSortOptions: React.FC<PeopleSortOptionsProps> = ({
     activeSortBy,
     onChangeSortBy,
     nestedInDialog,
+    variant = "default",
     transparentTriggerButtonBackground,
 }) => {
     const [anchorEl, setAnchorEl] = useState<MenuProps["anchorEl"]>();
@@ -60,11 +63,14 @@ export const PeopleSortOptions: React.FC<PeopleSortOptionsProps> = ({
         setAnchorEl(undefined);
     };
 
-    const triggerButtonSxProps: IconButtonProps["sx"] = [
-        transparentTriggerButtonBackground
-            ? {}
-            : { backgroundColor: "fill.faint" },
-    ];
+    const triggerButtonSxProps: IconButtonProps["sx"] =
+        variant === "v2"
+            ? collectionDialogIconButtonSx
+            : [
+                  transparentTriggerButtonBackground
+                      ? {}
+                      : { backgroundColor: "fill.faint" },
+              ];
 
     const menuPaperSxProps: PaperProps["sx"] | undefined = nestedInDialog
         ? { backgroundColor: "background.paper2" }
@@ -77,9 +83,12 @@ export const PeopleSortOptions: React.FC<PeopleSortOptionsProps> = ({
                 aria-controls={anchorEl ? ariaID : undefined}
                 aria-haspopup="true"
                 aria-expanded={anchorEl ? "true" : undefined}
+                aria-label={t("sort_by")}
                 sx={triggerButtonSxProps}
             >
-                <SortIcon />
+                <SortIcon
+                    sx={variant === "v2" ? { fontSize: 20 } : undefined}
+                />
             </IconButton>
             <StyledMenu
                 id={ariaID}

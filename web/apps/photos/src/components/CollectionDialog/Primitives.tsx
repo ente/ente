@@ -1,3 +1,4 @@
+import { collectionDialogControlRadius } from "@/components/CollectionDialog/styles";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
@@ -9,8 +10,16 @@ import React, { useRef } from "react";
 export const CollectionDialogSearchField: React.FC<{
     value: string;
     onChange: (value: string) => void;
-}> = ({ value, onChange }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
+    placeholder?: string;
+    inputRef?: React.RefObject<HTMLInputElement | null>;
+}> = ({
+    value,
+    onChange,
+    placeholder = t("albums_search_hint"),
+    inputRef: providedInputRef,
+}) => {
+    const defaultInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = providedInputRef ?? defaultInputRef;
 
     const handleClear = () => {
         onChange("");
@@ -24,7 +33,7 @@ export const CollectionDialogSearchField: React.FC<{
                 inputRef={inputRef}
                 fullWidth
                 autoFocus
-                placeholder={t("albums_search_hint")}
+                placeholder={placeholder}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 sx={searchInputSx}
@@ -53,7 +62,7 @@ const searchFieldSx = (theme: Theme) => ({
     alignItems: "center",
     gap: "10px",
     height: 44,
-    borderRadius: "16px",
+    borderRadius: `${collectionDialogControlRadius}px`,
     backgroundColor: "background.paper",
     px: "14px",
     ...theme.applyStyles("dark", { backgroundColor: "#282828" }),
@@ -76,7 +85,7 @@ export const CollectionTileButton = styled(BaseTileButton)`
     width: var(--tile-size, 100%);
     height: auto;
     aspect-ratio: 1;
-    border-radius: 16px;
+    border-radius: ${collectionDialogControlRadius}px;
 `;
 
 export const CollectionTileTextOverlay = styled("div")`
@@ -112,7 +121,7 @@ const CreateTileInner = styled("span")(({ theme }) => ({
     justifyContent: "center",
     border: "1px dashed",
     borderColor: theme.vars.palette.stroke.muted,
-    borderRadius: 16,
+    borderRadius: collectionDialogControlRadius,
     color: theme.vars.palette.text.muted,
     "&:hover": { borderColor: "rgba(0 0 0 / 0.45)" },
     ...theme.applyStyles("dark", {
