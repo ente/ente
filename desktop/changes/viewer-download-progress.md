@@ -1,0 +1,1 @@
+- Added download progress and a retry option when loading photos and videos in the viewer.

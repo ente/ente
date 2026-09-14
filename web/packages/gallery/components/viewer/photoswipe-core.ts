@@ -1,5 +1,7 @@
 import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
+import type { FileDownloadProgress } from "ente-gallery/services/download-core";
+import { formattedByteSize } from "ente-gallery/utils/units";
 import type { EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
 import "hls-video-element";
@@ -10,6 +12,10 @@ import "media-chrome/menu";
 import { MediaChromeMenu, MediaChromeMenuButton } from "media-chrome/menu";
 import PhotoSwipe, { type SlideData } from "photoswipe";
 import type { ItemData, ItemDataOpts } from "./data-source-core";
+import {
+    downloadProgressState,
+    type DownloadProgressState,
+} from "./download-progress";
 import {
     commentSVGPath,
     createPSRegisterElementIconHTML,
@@ -28,6 +34,11 @@ export interface FileViewerPhotoSwipeAnnotatedFile {
 }
 
 export interface FileViewerPhotoSwipeDataSource {
+    fileDownloadProgressSubscribe: (onChange: () => void) => () => void;
+    fileDownloadProgressSnapshot: () => ReadonlyMap<
+        number,
+        FileDownloadProgress
+    >;
     fileViewerDidClose: () => void;
     fileViewerWillOpen: () => void;
     forgetExifForItemData: (itemData: ItemData) => void;
@@ -792,6 +803,12 @@ export class FileViewerPhotoSwipe<
             if (currentFileAnnotation().showDownload) handleDownload();
         };
 
+        const refetchCurrentSlide = (fileID: number) => {
+            dataSource.forgetItemDataForFileID(fileID);
+            _currentAnnotatedFile = undefined;
+            pswp.refreshSlideContent(pswp.currIndex);
+        };
+
         const onVideoQualityChange = () => {
             if (shouldIgnoreNextVideoQualityChange) {
                 shouldIgnoreNextVideoQualityChange = false;
@@ -801,14 +818,13 @@ export class FileViewerPhotoSwipe<
             toggleMediaChromeSettingsMenu();
 
             const fileID = currentAnnotatedFile().file.id;
-            dataSource.forgetItemDataForFileID(fileID);
             if (originalVideoFileIDs.has(fileID)) {
                 originalVideoFileIDs.delete(fileID);
             } else {
                 originalVideoFileIDs.add(fileID);
             }
 
-            pswp.refreshSlideContent(pswp.currIndex);
+            refetchCurrentSlide(fileID);
         };
 
         const showIf = (element: HTMLElement, condition: boolean) =>
@@ -816,11 +832,253 @@ export class FileViewerPhotoSwipe<
                 ? element.classList.remove("pswp__hidden")
                 : element.classList.add("pswp__hidden");
 
+        let unsubscribeDownloadProgress: (() => void) | undefined;
+        let downloadProgressTimer: ReturnType<typeof setTimeout> | undefined;
+
         pswp.on("uiRegister", () => {
             const ui = pswp.ui!;
 
             ui.uiElementsData.find((e) => e.name == "zoom")!.order = 6;
-            ui.uiElementsData.find((e) => e.name == "preloader")!.order = 10;
+            const preloader = ui.uiElementsData.find(
+                (e) => e.name == "preloader",
+            )!;
+            preloader.order = 10;
+            const initPreloader = preloader.onInit!;
+            preloader.onInit = (element, pswp) => {
+                initPreloader(element, pswp);
+                pswp.on("change", () => {
+                    element.style.display =
+                        currSlideData().fileType == FileType.video
+                            ? "none"
+                            : "";
+                });
+            };
+
+            const lastProgressByFileID = new Map<
+                number,
+                DownloadProgressState
+            >();
+            const compactProgress = window.matchMedia("(width < 450px)");
+            let progressText: HTMLElement;
+            let progressValue: HTMLElement;
+            let progressRing: SVGCircleElement;
+            let progressBar: HTMLElement;
+            let fill: HTMLElement;
+            let percentageEl: HTMLElement;
+            let status: HTMLElement;
+            let separator: HTMLElement;
+            let size: HTMLElement;
+            let retry: HTMLButtonElement;
+            let progressClosed = false;
+
+            const setText = (element: HTMLElement, text: string) => {
+                if (element.textContent != text) element.textContent = text;
+            };
+            const setAttribute = (
+                element: HTMLElement,
+                name: string,
+                value: string | undefined,
+            ) => {
+                if (element.getAttribute(name) == (value ?? null)) return;
+                if (value === undefined) element.removeAttribute(name);
+                else element.setAttribute(name, value);
+            };
+            const rememberDownloadProgress = () => {
+                if (progressClosed || !pswp.currSlide) return;
+                const itemData = currSlideData();
+                if (itemData.fileType != FileType.video) return;
+                const { fileID } = itemData;
+                const state = downloadProgressState(
+                    itemData,
+                    dataSource.fileDownloadProgressSnapshot().get(fileID),
+                    lastProgressByFileID.get(fileID),
+                );
+                if (state) lastProgressByFileID.set(fileID, state);
+                else lastProgressByFileID.delete(fileID);
+                return state;
+            };
+            const renderDownloadProgress = () => {
+                if (progressClosed || !pswp.currSlide) return;
+                const state = rememberDownloadProgress();
+
+                const failed = state?.phase == "failed";
+                const percentageText =
+                    state?.percentage === undefined
+                        ? ""
+                        : `${state.percentage}%`;
+                const statusText = state
+                    ? t(
+                          {
+                              preparing: "preparing_download",
+                              downloading: "downloading",
+                              decrypting: "decrypting",
+                              failed: "couldnt_download",
+                          }[state.phase],
+                      )
+                    : "";
+                const sizeText =
+                    state?.phase != "preparing" &&
+                    state?.total !== undefined &&
+                    state.loaded !== undefined
+                        ? compactProgress.matches
+                            ? t("size_downloaded", {
+                                  size: `${formattedByteSize(state.loaded, 1)} / ${formattedByteSize(state.total, 1)}`,
+                              })
+                            : `${formattedByteSize(state.loaded, 1)} / ${formattedByteSize(state.total, 1)}`
+                        : "";
+                setText(percentageEl, percentageText);
+                setText(status, statusText);
+                setText(size, sizeText);
+                setText(retry, t("retry"));
+                size.hidden = !sizeText;
+                separator.hidden = !(sizeText || failed);
+                retry.hidden = !failed;
+                fill.style.width = `${Math.max(state?.percentage ?? 0, 1)}%`;
+                progressRing.style.strokeDashoffset = `${100 - (state?.percentage ?? 0)}`;
+                for (const [element, prefix] of [
+                    [progressText, "pswp__ente-progress-text"],
+                    [progressValue, "pswp__ente-progress-overlay"],
+                    [progressBar, "pswp__ente-progress-bar"],
+                ] as const) {
+                    element.style.display =
+                        currSlideData().fileType == FileType.video
+                            ? ""
+                            : "none";
+                    element.classList.toggle(`${prefix}--active`, !!state);
+                    element.classList.toggle(`${prefix}--failed`, failed);
+                    element.classList.toggle(
+                        `${prefix}--indeterminate`,
+                        !!state && state.percentage === undefined,
+                    );
+                }
+                setAttribute(
+                    progressText,
+                    "aria-hidden",
+                    state ? undefined : "true",
+                );
+                setAttribute(
+                    progressValue,
+                    "aria-hidden",
+                    state ? undefined : "true",
+                );
+                setAttribute(
+                    progressValue,
+                    "aria-valuenow",
+                    state?.percentage?.toString(),
+                );
+                setAttribute(
+                    progressValue,
+                    "aria-valuetext",
+                    [
+                        percentageText,
+                        !(compactProgress.matches && sizeText) && statusText,
+                        !compactProgress.matches && (sizeText || failed) && "·",
+                        sizeText,
+                        failed && t("retry"),
+                    ]
+                        .filter(Boolean)
+                        .join(" "),
+                );
+            };
+
+            ui.registerElement({
+                name: "ente-progress-text",
+                order: 10,
+                isButton: false,
+                html: `<span class="pswp__ente-progress-status"></span>
+<span class="pswp__ente-progress-separator" hidden>·</span>
+<span class="pswp__ente-progress-size" hidden></span>
+<button type="button" class="pswp__ente-progress-retry" hidden></button>`,
+                onInit: (element) => {
+                    progressText = element;
+                    status = element.querySelector<HTMLElement>(
+                        ".pswp__ente-progress-status",
+                    )!;
+                    separator = element.querySelector<HTMLElement>(
+                        ".pswp__ente-progress-separator",
+                    )!;
+                    size = element.querySelector<HTMLElement>(
+                        ".pswp__ente-progress-size",
+                    )!;
+                    retry = element.querySelector<HTMLButtonElement>(
+                        ".pswp__ente-progress-retry",
+                    )!;
+                    retry.addEventListener("click", () => {
+                        const { fileID } = currSlideData();
+                        lastProgressByFileID.delete(fileID);
+                        refetchCurrentSlide(fileID);
+                    });
+                },
+            });
+            ui.registerElement({
+                name: "ente-progress-overlay",
+                appendTo: "root",
+                order: 10,
+                isButton: false,
+                html: `<svg class="pswp__ente-progress-ring" viewBox="0 0 48 48" aria-hidden="true">
+<circle cx="24" cy="24" r="20" pathLength="100" />
+</svg>
+<span class="pswp__ente-progress-pct"></span>`,
+                onInit: (element) => {
+                    progressValue = element;
+                    progressRing = element.querySelector("circle")!;
+                    percentageEl = element.querySelector<HTMLElement>(
+                        ".pswp__ente-progress-pct",
+                    )!;
+                    element.setAttribute("role", "progressbar");
+                    element.setAttribute("aria-label", t("download"));
+                    element.setAttribute("aria-valuemin", "0");
+                    element.setAttribute("aria-valuemax", "100");
+                    element.setAttribute("aria-hidden", "true");
+                },
+            });
+            ui.registerElement({
+                name: "ente-progress-bar",
+                appendTo: "root",
+                order: 0,
+                html: '<div class="pswp__ente-progress-fill"></div>',
+                onInit: (element) => {
+                    progressBar = element;
+                    fill = element.querySelector<HTMLElement>(
+                        ".pswp__ente-progress-fill",
+                    )!;
+                    element.setAttribute("aria-hidden", "true");
+                    const unsubscribe =
+                        dataSource.fileDownloadProgressSubscribe(() => {
+                            const state = rememberDownloadProgress();
+                            if (!state || downloadProgressTimer !== undefined)
+                                return;
+                            downloadProgressTimer = setTimeout(() => {
+                                downloadProgressTimer = undefined;
+                                renderDownloadProgress();
+                            }, 400);
+                        });
+                    compactProgress.addEventListener(
+                        "change",
+                        renderDownloadProgress,
+                    );
+                    unsubscribeDownloadProgress = () => {
+                        unsubscribe();
+                        compactProgress.removeEventListener(
+                            "change",
+                            renderDownloadProgress,
+                        );
+                    };
+                    pswp.on("change", renderDownloadProgress);
+                    pswp.on("close", () => {
+                        progressClosed = true;
+                        progressBar.classList.remove(
+                            "pswp__ente-progress-bar--active",
+                        );
+                        progressText.classList.remove(
+                            "pswp__ente-progress-text--active",
+                        );
+                        progressValue.classList.remove(
+                            "pswp__ente-progress-overlay--active",
+                        );
+                    });
+                },
+            });
 
             if (isPublicAlbum && publicAlbumLogoHTML) {
                 ui.registerElement({
@@ -1317,6 +1575,9 @@ export class FileViewerPhotoSwipe<
         });
 
         pswp.on("destroy", () => {
+            unsubscribeDownloadProgress?.();
+            if (downloadProgressTimer !== undefined)
+                clearTimeout(downloadProgressTimer);
             pswp.element?.removeEventListener(
                 "mousedown",
                 blurMediaChromeFocus,

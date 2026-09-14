@@ -1,3 +1,4 @@
+import { downloadManager } from "ente-gallery/services/download";
 import {
     fileViewerDidClose,
     fileViewerWillOpen,
@@ -27,6 +28,10 @@ export type FileViewerPhotoSwipeOptions<
 >;
 
 const fileViewerPhotoSwipeDataSource = {
+    fileDownloadProgressSubscribe: (onChange: () => void) =>
+        downloadManager.fileDownloadProgressSubscribe(onChange),
+    fileDownloadProgressSnapshot: () =>
+        downloadManager.fileDownloadProgressSnapshot(),
     fileViewerDidClose,
     fileViewerWillOpen,
     forgetExifForItemData,

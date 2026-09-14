@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/widget_placeholder_bg"/>
+    <corners android:radius="@android:dimen/system_app_widget_background_radius"/>
+</shape>

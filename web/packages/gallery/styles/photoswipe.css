@@ -48,6 +48,10 @@
     opacity: 0.4;
 }
 
+.pswp-ente .pswp__preloader {
+    transform: translate(-2px, 2px);
+}
+
 .pswp-ente .pswp__error {
     position: relative;
     overflow: hidden;
@@ -104,10 +108,6 @@
     .pswp-ente.pswp--one-slide .pswp__top-bar .pswp__button--zoom {
         margin-left: 28px;
     }
-}
-
-.pswp-ente .pswp__preloader {
-    transform: translate(-2px, 2px);
 }
 
 .pswp-ente .pswp__error {
@@ -528,4 +528,219 @@ body:has(
 
 #pswp__icn-heart.pswp__hidden {
     display: none;
+}
+
+.pswp.pswp-ente .pswp__ente-progress-bar {
+    position: absolute;
+    top: calc(env(titlebar-area-height, 0px) * 0.4);
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgb(255 255 255 / 0.16);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 160ms linear;
+    transition-delay: 0ms;
+}
+
+.pswp-ente.pswp--ui-visible .pswp__ente-progress-bar--active {
+    opacity: 1;
+    transition-delay: 400ms;
+}
+
+.pswp-ente .pswp__ente-progress-fill {
+    height: 3px;
+    width: 1%;
+    background: var(--mui-palette-fixed-success);
+    transition: width 400ms linear;
+}
+
+.pswp-ente .pswp__ente-progress-bar--failed .pswp__ente-progress-fill {
+    background: var(--mui-palette-fixed-danger-main);
+}
+
+.pswp-ente .pswp__ente-progress-bar--indeterminate .pswp__ente-progress-fill {
+    animation: ente-progress-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes ente-progress-pulse {
+    to {
+        opacity: 0.35;
+    }
+}
+
+.pswp-ente .pswp__ente-progress-text {
+    margin-inline-start: 6px;
+    margin-top: 22px;
+    margin-inline-end: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 20px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
+    font-size: 13px;
+    line-height: 20px;
+    color: rgb(255 255 255 / 0.6);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 160ms linear;
+    transition-delay: 0ms;
+}
+
+.pswp-ente .pswp__ente-progress-text--active {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 400ms;
+}
+
+.pswp-ente .pswp__ente-progress-status,
+.pswp-ente .pswp__ente-progress-size {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 1 auto;
+}
+
+.pswp-ente
+    .pswp__ente-progress-text--active:not(.pswp__ente-progress-text--failed)
+    .pswp__ente-progress-status::after {
+    content: "";
+    display: inline-block;
+    width: 1.2em;
+    text-align: left;
+    animation: ente-progress-dots 1.2s steps(1, end) infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        content: "…";
+        animation: none;
+    }
+}
+
+@keyframes ente-progress-dots {
+    0%,
+    100% {
+        content: "";
+    }
+    25% {
+        content: ".";
+    }
+    50% {
+        content: "..";
+    }
+    75% {
+        content: "...";
+    }
+}
+
+.pswp-ente .pswp__ente-progress-separator,
+.pswp-ente .pswp__ente-progress-retry {
+    flex-shrink: 0;
+}
+
+.pswp.pswp-ente .pswp__ente-progress-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgb(255 255 255 / 0.16);
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.3);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 160ms linear;
+}
+
+.pswp-ente.pswp--ui-visible .pswp__ente-progress-overlay--active {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 400ms;
+}
+
+.pswp-ente .pswp__ente-progress-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    fill: none;
+    stroke: var(--mui-palette-fixed-success);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 100;
+}
+
+.pswp-ente .pswp__ente-progress-overlay--failed .pswp__ente-progress-ring {
+    stroke: var(--mui-palette-fixed-danger-main);
+}
+
+.pswp-ente
+    .pswp__ente-progress-overlay--indeterminate
+    .pswp__ente-progress-ring {
+    stroke-dasharray: 25 75;
+    animation: ente-progress-spin 1s linear infinite;
+}
+
+@keyframes ente-progress-spin {
+    to {
+        transform: rotate(270deg);
+    }
+}
+
+.pswp-ente .pswp__ente-progress-pct {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.pswp-ente .pswp__ente-progress-size {
+    font-variant-numeric: tabular-nums;
+}
+
+.pswp-ente .pswp__ente-progress-retry {
+    border: 0;
+    padding: 0;
+    background: none;
+    color: #fff;
+    font: inherit;
+    text-shadow: inherit;
+    cursor: pointer;
+}
+
+.pswp-ente .pswp__ente-progress-retry:hover {
+    text-decoration: underline;
+}
+
+@media (width < 450px) {
+    .pswp-ente .pswp__ente-progress-text::before {
+        content: "·";
+        flex-shrink: 0;
+        color: rgb(255 255 255 / 0.4);
+    }
+
+    .pswp-ente
+        .pswp__ente-progress-text:has(.pswp__ente-progress-size:not([hidden]))
+        .pswp__ente-progress-status,
+    .pswp-ente .pswp__ente-progress-separator {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pswp.pswp-ente .pswp__ente-progress-bar,
+    .pswp.pswp-ente .pswp__ente-progress-overlay,
+    .pswp.pswp-ente .pswp__ente-progress-ring,
+    .pswp-ente .pswp__ente-progress-text,
+    .pswp.pswp-ente .pswp__ente-progress-fill {
+        transition: none;
+        animation: none;
+    }
 }
