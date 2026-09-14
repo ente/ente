@@ -1,4 +1,12 @@
 {
+  "wallpaper": "Hintergrundbild",
+  "setWallpaper": "Hintergrundbild festlegen",
+  "wallpaperHome": "Startbildschirm",
+  "wallpaperLock": "Sperrbildschirm",
+  "wallpaperBoth": "Start- und Sperrbildschirm",
+  "wallpaperSet": "Hintergrundbild festgelegt",
+  "wallpaperFailed": "Konnte Hintergrundbild nicht festlegen",
+  "wallpaperUnavailable": "Änderungen an Hintergrundbildern sind auf diesem Gerät nicht erlaubt",
   "about": "Über",
   "acceptTrustInvite": "Einladung annehmen",
   "account": "Konto",
@@ -1178,6 +1186,10 @@
   "doubleTapToViewHiddenCode": "Sie können auf einen Eintrag doppelt tippen, um den Code anzuzeigen",
   "download": "Herunterladen",
   "downloadApplicationUpdate": "Aktualisierung herunterladen",
+  "downloadDecryptionFailedMessage": "Dieses Element konnte nicht heruntergeladen werden. Bitte kontaktiere uns, damit wir helfen können.",
+  "@downloadDecryptionFailedMessage": {
+    "description": "Message shown in the viewer when a downloaded item cannot be decrypted"
+  },
   "downloadFailed": "Herunterladen fehlgeschlagen",
   "downloading": "Wird heruntergeladen...",
   "downloadingProgress": "Wird heruntergeladen... {percentage}%",
@@ -1510,6 +1522,22 @@
       "name": {
         "type": "String",
         "description": "Person's name"
+      }
+    }
+  },
+  "memoryLaneAgeCaption": "{name} war {count, plural, one{ein Jahr alt} other{{age} Jahre alt}}",
+  "@memoryLaneAgeCaption": {
+    "description": "Memory Lane age caption. The age placeholder is rendered as a separate, larger text widget; count selects the plural form.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "age": {
+        "type": "String",
+        "description": "Placeholder for the separately styled age number; retain this placeholder in every plural form."
       }
     }
   },
@@ -1877,7 +1905,7 @@
   "indexingPausedStatusDescription": "Die Indizierung ist pausiert. Sie wird automatisch fortgesetzt, wenn das Gerät bereit ist. Das Gerät wird als bereit angesehen, wenn sich der Akkustand, die Akkugesundheit und der thermische Zustand in einem gesunden Bereich befinden.",
   "informationDescription": "Speichere und teile Informationen mit deinen Liebsten.",
   "initialBackupCreated": "Initiale Sicherung erstellt!",
-  "inOrder": "Der Reihe nach",
+  "inOrder": "In Bestellung",
   "insecureDevice": "Unsicheres Gerät",
   "@insecureDevice": {
     "description": "Insecure device warning title"
@@ -1954,6 +1982,8 @@
   "lastYearsTrip": "Reise im letzten Jahr",
   "layoutGrouped": "Gruppiert",
   "layoutJustified": "Bündig",
+  "layoutJustifiedComfort": "Bündig · Komfort",
+  "layoutJustifiedFlex": "Bündig · Flexibel",
   "layoutMasonry": "Mauerwerk",
   "layoutTrip": "Reise",
   "leave": "Verlassen",
@@ -2337,6 +2367,20 @@
       "formattedCount": {
         "type": "String",
         "example": "11.513, 11,511"
+      }
+    }
+  },
+  "memoryLaneCardTitle": "{nameEndsWithS, select, true{{name}’ Erinnerungen} other{{name}s Erinnerungen}}",
+  "@memoryLaneCardTitle": {
+    "description": "Title for a person's Memory Lane, used on the home screen card, viewer page, and shared link",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      },
+      "nameEndsWithS": {
+        "type": "String",
+        "description": "true if the trimmed name ends in s or S; false otherwise"
       }
     }
   },
@@ -2810,7 +2854,7 @@
   "photoGridSize": "Fotorastergröße",
   "photoLibraryAddPermissionRequired": "Ente benötigt die Berechtigung, um Fotos und Videos in Apple Fotos zu speichern. Sie können den Zugriff in den Einstellungen erlauben.",
   "photoLibraryAddPermissionRestricted": "Der Zugriff auf die Fotobibliothek ist auf diesem Gerät eingeschränkt.",
-  "photoOrder": "Fotoreihenfolge",
+  "photoOrder": "Fotobestellung",
   "photos": "Fotos",
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Von dir hinzugefügte Fotos werden vom Album entfernt",
   "photosAndVideosCount": "{count, plural, one{{formattedCount} Foto & Video} other{{formattedCount} Fotos & Videos}}",
@@ -4593,5 +4637,41 @@
   "cameraPermissionRequired": "Kamerazugriff ist erforderlich, um Fotos aufzunehmen.",
   "cameraPermissionSettings": "Kamerazugriff ist deaktiviert. Aktiviere ihn in den Einstellungen, um fortzufahren.",
   "cameraPermissionRestricted": "Kamerazugriff ist auf diesem Gerät eingeschränkt.",
-  "grantAccess": "Zugriff erlauben"
+  "grantAccess": "Zugriff erlauben",
+  "sharePhotos": "Fotos teilen",
+  "sharePersonPhotos": "Fotos von {name} teilen",
+  "@sharePersonPhotos": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unnamedPersonAlbumName": "Portrait - {date}",
+  "@unnamedPersonAlbumName": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "shareAllPersonPhotos": "Alle Fotos teilen",
+  "shareAllPersonPhotosDescription": "Alle Fotos von {name} einschließlich zukünftiger Fotos",
+  "@shareAllPersonPhotosDescription": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "personShareFailedTitle": "Fotos konnten nicht geteilt werden",
+  "personShareFailedBody": "Das geteilte Album konnte nicht erstellt werden. Deine Fotos und Auswahl sind unverändert. Bitte versuche es erneut.",
+  "personShareRollbackFailed": "Die Freigabe ist nicht abgeschlossen und das Album \"{name}\" konnte nicht entfernt werden. Es bleibt in den Alben und kann einen aktive öffentlichen Link haben. Überprüfe oder lösche es, bevor du es erneut versuchst. Deine Originalfotos sind sicher.",
+  "@personShareRollbackFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

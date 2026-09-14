@@ -15,6 +15,10 @@
     }
   },
   "accountRecovery": "Kontoåterställning",
+  "accountSetupIncompleteCreateAccount": "Kontokonfigurationen är inte klar. Skapa ett konto för att slutföra konfigurationen.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
+  },
   "actionNotSupportedForSharedFiles": "{count, plural, one{Åtgärd är inte stödd för {count} delad fil} other{Åtgärd är inte stödd för {count} delade filer}}",
   "@actionNotSupportedForSharedFiles": {
     "description": "Message when action is not supported for shared files",
@@ -25,17 +29,44 @@
       }
     }
   },
-  "actionNotSupportedOnFavouritesAlbum": "Åtgärd stöds inte på favoritalbum",
+  "actionNotSupportedOnFavouritesAlbum": "Åtgärden stöds inte i Favoriter-albumet",
+  "activeLinksWillShowUpHere": "Aktiva länkar visas här",
   "activeSessions": "Aktiva sessioner",
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
   "add": "Lägg till",
   "addAdmin": "Lägg till administratör",
+  "addAdmins": "{count, plural, =0{Lägg till administratör} one{Lägg till administratör} other{Lägg till administratörer}}",
+  "@addAdmins": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Button text to add admins"
+  },
+  "addAlbumWidgetPrompt": "Lägg till en albumwidget på hemskärmen för att anpassa den här.",
   "addANameAndPhoto": "Lägg till ett namn och foto",
   "addANewEmail": "Lägg till en ny e-postadress",
   "addCode": "Lägg till kod",
   "addCollaborator": "Lägg till samarbetspartner",
+  "addCollaborators": "{count, plural, =0{Lägg till samarbetspartner} one{Lägg till samarbetspartner} other{Lägg till samarbetspartner}}",
+  "@addCollaborators": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "addedAMemoryTo": "lade till ett minne i {albumName}",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
   "addedAs": "Lades till som",
   "addedBy": "Tillagd av {emailOrName}",
   "@addedBy": {
@@ -69,6 +100,21 @@
       }
     }
   },
+  "addedSuccessfullyTo": "Lades till i {albumName}",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToAlbums": "{count, plural, one{Lades till i {count} album} other{Lades till i {count} album}}",
+  "@addedToAlbums": {
+    "description": "Message shown when items are added to albums",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "addedToQueue": "Tillagd i kön",
   "addEmail": "Lägg till e-postadress",
   "addFamilyMember": "Lägg till familjemedlem",
@@ -86,6 +132,7 @@
   "addLocation": "Lägg till plats",
   "addLocationButton": "Lägg till",
   "addMember": "Lägg till medlem",
+  "addMemoriesWidgetPrompt": "Lägg till en minneswidget på hemskärmen för att anpassa den här.",
   "addMore": "Lägg till fler",
   "addMoreAdmins": "Lägg till fler administratörer",
   "addName": "Lägg till namn",
@@ -94,6 +141,7 @@
     "description": "Text to add a new item (location tag, album, caption etc)"
   },
   "addNewEmail": "Lägg till ny e-postadress",
+  "addOnPageSubtitle": "Information om tillägg",
   "addOns": "Tillägg",
   "addOnValidTill": "Ditt {storageAmount}-tillägg är giltigt till {endDate}",
   "@addOnValidTill": {
@@ -107,6 +155,7 @@
     "description": "Button to capture another page in the document scanner"
   },
   "addParticipants": "Lägg till deltagare",
+  "addPeopleWidgetPrompt": "Lägg till en personwidget på hemskärmen för att anpassa den här.",
   "addPerson": "Lägg till person",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -114,19 +163,42 @@
   "addPhotos": "Lägg till foton",
   "addSelected": "Lägg till markerade",
   "addTag": "Lägg till etikett",
+  "addTo": "Lägg till i",
   "addToAlbum": "Lägg till i album",
   "addToCollection": "Lägg till i samling",
+  "addToEnte": "Lägg till i Ente",
   "addToHiddenAlbum": "Lägg till i dolt album",
+  "addToPerson": "Lägg till person",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
   "addTrustedContact": "Lägg till betrodd kontakt",
   "addTrustedPerson": "Lägg till en betrodd person",
   "addUpTo5MembersFree": "Lägg till upp till 5 medlemmar gratis",
   "addViewer": "Lägg till bildvy",
+  "addViewers": "{count, plural, =0{Lägg till visningsbehörig} one{Lägg till visningsbehörig} other{Lägg till visningsbehöriga}}",
+  "@addViewers": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "addYourPhotosNow": "Lägg till dina foton nu",
   "adjust": "Justera",
   "adjustCrop": "Justera beskärning",
   "admin": "Administratör",
   "admins": "Administratörer",
   "adminsAndCollaboratorsCanAddPhotosDescription": "Administratörer och samarbetspartners kan lägga till foton. Administratörer kan också hantera foton och deltagare.",
+  "adminsCanManagePhotosAndParticipants": "Administratörer kan hantera foton och deltagare.",
+  "adminsSuccessfullyAdded": "{count, plural, =0{Inga administratörer lades till} one{{count} administratör lades till} other{{count} administratörer lades till}}",
+  "@adminsSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of admins that were successfully added."
+  },
   "admiringThem": "Beundrar {name}",
   "@admiringThem": {
     "placeholders": {
@@ -142,11 +214,21 @@
   "after1Year": "Om 1 år",
   "albumDescriptionHint": "Ange en beskrivning för det här albumet",
   "albumEditsWillNotBeSaved": "Dina ändringar i det här albumet kommer inte att sparas.",
-  "albumLayout": "Albumets layout",
+  "albumLayout": "Albumslayout",
   "albumName": "Albumnamn",
   "albumOwner": "Ägare",
   "@albumOwner": {
     "description": "Role of the album owner"
+  },
+  "albumParticipantsCount": "{count, plural, =0{Inga deltagare} one{{count} deltagare} other{{count} deltagare}}",
+  "@albumParticipantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    },
+    "description": "Number of participants in an album, including the album owner."
   },
   "albums": "Album",
   "albumsCount": "{count, plural, one{{count} album} other{{count} album}}",
@@ -160,8 +242,17 @@
   },
   "albumsOnDevicePermissionCta": "Tillåt åtkomst",
   "albumsOnDevicePermissionFeatureAllowAccessFaceRecognition": "Tillåt Ente att komma åt och organisera dina foton med ansiktsigenkänning",
+  "albumsOnDevicePermissionFeatureControlUploads": "Du bestämmer vad som laddas upp",
+  "albumsOnDevicePermissionFeatureLocalProcessing": "All bearbetning sker på din enhet",
+  "albumsOnEnteEmptyCta": "Välj album att säkerhetskopiera",
+  "albumsOnEnteEmptyFeatureAccessAnyDevice": "Få åtkomst till dem från vilken enhet som helst",
   "albumsOnEnteEmptyFeaturePrivacy": "Fullständig integritet med totalsträckskryptering",
+  "albumsOnEnteEmptyFeatureShareLovedOnes": "Dela dem med personer du tycker om – de kan reagera och chatta utan konto",
   "albumsOnEnteEmptyTitle": "Säkerhetskopiera dina minnen",
+  "albumsReceivedEmptyFeatureAcceptInvites": "Acceptera inbjudningar för att visa foton och videor",
+  "albumsReceivedEmptyFeatureSaveToLibrary": "Spara delade minnen i ditt eget bibliotek",
+  "albumsReceivedEmptyFeatureSharedByOthers": "Album som andra har delat visas här",
+  "albumsReceivedEmptyTitle": "Visa minnen som har delats\nmed dig",
   "albumsSharedEmptyFeatureReactAndComment": "De kan se, reagera och lägga till kommentarer utan ett konto",
   "albumsSharedEmptyFeatureShareLovedOnes": "Dela dina foton och videor med nära och kära",
   "albumsSharedEmptyTitle": "Dela dina minnen",
@@ -180,13 +271,17 @@
   "@allowAddingPhotos": {
     "description": "Switch button to enable uploading photos to a public link"
   },
+  "allowAppToOpenSharedAlbumLinks": "Tillåt appen att öppna länkar till delade album",
   "allowDownloads": "Tillåt nedladdningar",
   "allowJoiningAlbum": "Tillåt att gå med till albumet",
+  "allowPermBody": "Tillåt åtkomst till dina foton i Inställningar så att Ente kan visa och säkerhetskopiera ditt bibliotek.",
   "allowPermTitle": "Tillåt åtkomst till foton",
+  "allPersonGroupingWillReset": "Alla grupperingar för personen återställs och du förlorar alla förslag för personen",
   "allTabEmptyHint": "Inget här än. Tryck på + för att lägga till en kod eller öppna papperskorgen för att återställa en.",
   "@allTabEmptyHint": {
     "description": "Shown when the All tab has no active codes but Trash contains codes"
   },
+  "allWillShiftRangeBasedOnFirst": "Det här är det första i gruppen. Övriga valda foton flyttas automatiskt utifrån det nya datumet.",
   "almostDone": "Nästan klar...",
   "alreadyAdded": "Redan tillagd",
   "alreadyHaveAnAccount": "Har du redan ett konto?",
@@ -214,6 +309,7 @@
     }
   },
   "aNewVersionOfEnteIsAvailable": "En ny version av Ente är tillgänglig.",
+  "aNewVersionOfEnteLockerIsAvailable": "En ny version av Ente Locker är tillgänglig.",
   "anythingElse": "Något annat?",
   "@anythingElse": {
     "description": "Label for optional account deletion feedback"
@@ -221,6 +317,10 @@
   "appearance": "Utseende",
   "appIcon": "Appikon",
   "appleId": "Apple ID",
+  "applePhotosUnsupportedResource": "Det gick inte att spara filen i Apple Bilder. Du kan fortfarande visa den i Ente.",
+  "@applePhotosUnsupportedResource": {
+    "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
   "appLock": "Applås",
   "@appLock": {
     "description": "App lock setting title"
@@ -234,7 +334,7 @@
   "appLockOfflineModeWarning": "Du har valt att fortsätta utan säkerhetskopior. Om du glömmer bort ditt applås kommer du att bli utelåst från att komma åt dina data.",
   "apply": "Tillämpa",
   "applyCodeTitle": "Använd kod",
-  "appstoreSubscription": "AppStore-prenumeration",
+  "appstoreSubscription": "AppStore-abonnemang",
   "appVersion": "Version {versionValue}",
   "@appVersion": {
     "placeholders": {
@@ -259,19 +359,25 @@
     "description": "Confirmation dialog title"
   },
   "areYouSureDeleteFiles": "Är du säker på att du vill radera de här filerna?",
+  "areYouSureRemoveThisFaceFromPerson": "Vill du verkligen ta bort det här ansiktet från personen?",
+  "areYouSureRemoveThisPersonTag": "Vill du verkligen ta bort den här personetiketten?",
   "areYouSureThatYouWantToLeaveTheFamily": "Är du säker på att du vill lämna familjen?",
   "areYouSureYouWantToCancel": "Är du säker på att du vill avbryta?",
   "areYouSureYouWantToChangeYourPlan": "Är du säker på att du vill ändra din plan?",
   "areYouSureYouWantToExit": "Är du säker på att du vill avsluta?",
+  "areYouSureYouWantToIgnoreThesePersons": "Vill du verkligen ignorera de här personerna?",
   "areYouSureYouWantToIgnoreThisPerson": "Är du säker på att du vill ignorera den här personen?",
   "areYouSureYouWantToLogout": "Är du säker på att du vill logga ut?",
   "@areYouSureYouWantToLogout": {
     "description": "Confirmation message before logout"
   },
   "areYouSureYouWantToRenew": "Är du säker på att du vill förnya?",
+  "areYouSureYouWantToResetThisPerson": "Vill du verkligen återställa den här personen?",
+  "areYouSureYouWantToShowThesePeopleInPeopleSectionAgain": "Vill du verkligen visa de här personerna i Personer-sektionen igen?",
+  "areYouSureYouWantToShowThisPersonInPeopleSectionAgain": "Vill du verkligen visa den här personen i Personer-sektionen igen?",
   "artisticPortraits": "Konstnärliga porträtt",
   "askAQuestion": "Ställ en fråga",
-  "askCancelReason": "Din prenumeration avbröts. Vill du dela anledningen?",
+  "askCancelReason": "Ditt abonnemang avslutades. Vill du berätta anledningen?",
   "attachLogs": "Bifoga loggar",
   "attachLogsHelper": "Hjälp oss att diagnostisera problemet snabbare",
   "authenticateGeneric": "Vänligen autentisera",
@@ -284,7 +390,20 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
+  "authenticatorCodesCount": "{count, plural, one{{formattedCount} autentiseringskod} other{{formattedCount} autentiseringskoder}}",
+  "@authenticatorCodesCount": {
+    "description": "Delete impact row for Auth data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "authToChangeEmailVerificationSetting": "Vänligen autentisera för att ändra e-postverifieringen",
+  "authToChangeLockscreenSetting": "Autentisera dig för att ändra låsskärmsinställningen",
   "authToChangeYourEmail": "Autentisera för att ändra din e-postadress",
   "authToChangeYourPassword": "Autentisera för att ändra ditt lösenord",
   "authToConfigureTwofactorAuthentication": "Vänligen autentisera för att konfigurera tvåfaktorsautentisering",
@@ -292,14 +411,24 @@
   "authToInitiateAccountDeletion": "Lås upp för att radera ditt konto",
   "authToInitiateSignIn": "Vänligen autentisera för att initiera inloggning för säkerhetskopiering.",
   "authToManageLegacy": "Autentisera foer att hantera dina betrodda kontakter",
+  "authToManageLegacyKit": "Autentisera dig för att hantera äldre återställningsuppsättningar",
   "authToSetBackupPassword": "Autentisera för att ange lösenord för säkerhetskopia",
   "authToUpdateBackupPassword": "Autentisera för att uppdatera lösenord för säkerhetskopiering",
+  "authToViewPasskey": "Autentisera dig för att visa din passkey",
   "authToViewPasskeyGeneric": "Autentisera för att visa nyckel",
+  "authToViewSecrets": "Autentisera dig för att visa dina hemligheter",
+  "@authToViewSecrets": {
+    "description": "Message prompting authentication to view secrets"
+  },
   "authToViewTrashedFiles": "Vänligen autentisera för att se dina kastade filer",
   "authToViewYourActiveSessions": "Autentisera för att visa dina aktiva sessioner",
   "authToViewYourHiddenFiles": "Vänligen autentisera för att visa dina dolda filer",
+  "authToViewYourMemories": "Autentisera dig för att visa dina minnen",
+  "authToViewYourRecoveryKey": "Autentisera dig för att visa din återställningsnyckel",
   "autoAddPeople": "Lägg automatiskt till personer",
   "autoAddToAlbum": "Lägg automatiskt till album",
+  "autoCastDialogBody": "Tillgängliga Cast-enheter visas här.",
+  "autoCastiOSPermission": "Kontrollera att behörigheten för lokalt nätverk är aktiverad för Ente Photos i Inställningar.",
   "autoLock": "Automatisk låsning",
   "@autoLock": {
     "description": "Auto lock setting title"
@@ -308,44 +437,96 @@
   "@autoLockFeatureDescription": {
     "description": "Description of auto lock feature"
   },
+  "autoLogoutMessage": "Du har loggats ut på grund av ett tekniskt fel. Vi ber om ursäkt för besväret.",
+  "automaticallyAnalyzeAndSplitGrouping": "Vi analyserar automatiskt grupperingen för att avgöra om den innehåller flera personer och delar i så fall upp den igen. Det kan ta några sekunder.",
   "autoPair": "Para automatiskt",
+  "autoUploadFromThisDeviceFolder": "Ladda upp automatiskt från den här enhetsmappen",
+  "autumnColors": "Höstprakt",
+  "babySmiles": "Babyleenden",
+  "backedUpAutomatically": "Säkerhetskopierad automatiskt",
   "backedUpFolders": "Säkerhetskopiera mappar",
   "background": "Bakgrund",
+  "backgroundWithThem": "Vackra vyer med {name}",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "Säkerhetskopierar foton från de senaste 7 dagarna",
   "backup": "Säkerhetskopiera",
   "backupAndSync": "Säkerhetskopiera och synkronisera",
+  "backupAndSyncDesc": "Automatisk säkerhetskopiering, synkroniseringsstatus och uppladdningar",
   "backupCreated": "Säkerhetskopia skapad!",
   "backupFailed": "Säkerhetskopiering misslyckades",
   "backupFile": "Säkerhetskopiera fil",
   "backupFolderLabel": "Mapp för säkerhetskopia:",
   "backupLocationChoiceDescription": "Vart vill du spara dina säkerhetskopior?",
+  "backupMode": "Säkerhetskopieringsläge",
+  "backupModeBackingUpItems": "{count, plural, one{Säkerhetskopierar {formattedCount} objekt} other{Säkerhetskopierar {formattedCount} objekt}}",
+  "@backupModeBackingUpItems": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12546"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "12,546"
+      }
+    }
+  },
+  "backupModeCheckingForMoreItems": "Söker efter fler objekt",
   "backupModeFinishYourBackup": "Slutför din säkerhetskopia",
   "backupModeKeepAppOpen": "Håll appen öppen",
   "backupModeNoBackupInProgress": "Ingen säkerhetskopiering pågår",
+  "backupModeNoBackupInProgressDescription": "Starta en säkerhetskopiering och återgå sedan till säkerhetskopieringsläget.",
+  "backupModePlugInPhone": "Anslut telefonen till ström. Säkerhetskopiering använder batteri.",
+  "backupModePreservingYourMemories": "Bevarar dina minnen",
+  "backupModeScreenDimmingDescription": "Skärmen dimmas för att spara batteri. Tryck när som helst för att återgå.",
   "backupModeScreenWillDim": "Skärmen tonar ned automatiskt för att spara batteri",
+  "backupModeSettingsDescription": "Låt appen vara öppen för att slutföra säkerhetskopieringen",
+  "backupModeStart": "Starta säkerhetskopieringsläge",
+  "backupModeStayInEnte": "Stanna i Ente. Säkerhetskopieringen pausas om du byter app.",
+  "backupModeTapToWakeScreen": "Tryck för att aktivera skärmen",
   "backupOnlyNewPhotos": "Säkerhetskopiera endast nya bilder",
   "backupOnlyNewPhotosAllFoldersSelected": "Alla mappar är markerade för säkerhetskopiering.\n\nDu kan fortsätta nu eller uppdatera markerade mappar.",
   "backupOnlyNewPhotosNoFoldersSelectedContinue": "Inga mappar är markerade för säkerhetskopiering.\n\nDu kan fortsätta nu eller uppdatera markerade mappar.",
   "backupOnlyNewPhotosNoFoldersSelectedRequire": "Inga mappar är markerade för säkerhetskopiering.\n\nVänligen markera mappar för att fortsätta.",
+  "backupOnlyNewPhotosWarningBody": "Du säkerhetskopierar för närvarande foton från {formattedDate}. Uppdatera inställningarna om du vill säkerhetskopiera alla foton.",
+  "@backupOnlyNewPhotosWarningBody": {
+    "description": "Warning shown when backup-only-new is enabled and user changes folders.",
+    "placeholders": {
+      "formattedDate": {
+        "type": "String",
+        "example": "Jan 5, 2026"
+      }
+    }
+  },
   "backupOverMobileData": "Säkerhetskopiera via mobildata",
   "backupPasswordCleared": "Säkerhetskopians lösenord rensat",
   "backupPasswordHint": "Din säkerhetskopia krypteras med detta lösenord.",
   "backupSettings": "Säkerhetskopieringsinställningar",
   "backupStatus": "Säkerhetskopieringsstatus",
   "backupStatusDescription": "Objekt som har säkerhetskopierats kommer att visas här",
+  "backupToEnte": "Säkerhetskopiera till Ente",
   "backupVideos": "Säkerhetskopiera videor",
   "beach": "Sand och hav",
   "birthday": "Födelsedag",
+  "birthdayJoy": "Födelsedagsglädje",
   "birthdays": "Födelsedagar",
   "black": "Svart",
+  "blockLegacyKitRecoveryMessage": "Blockera det aktuella återställningsförsöket\nObservera att ett nytt återställningsförsök kan påbörjas",
   "blog": "Blogg",
-  "blurred": "Suddigt",
+  "blurred": "Oskarp",
   "bothIssuerAndAccountCanNotBeEmpty": "Både utgivare och konto kan inte vara tomma",
   "bringYourFamilyAlong": "Ta med din familj",
-  "browseHelpPages": "Bläddra hjälpsidor",
+  "browseHelpPages": "Bläddra i hjälpsidor",
+  "brushColor": "Penselfärg",
   "byAgreeing": "Genom att fortsätta godkänner du <terms>användarvillkoren</terms> och <policy>integritetspolicyn</policy>.",
   "cachedData": "Cachelagrad data",
   "calculating": "Beräknar...",
   "camera": "Kamera",
+  "campingMoments": "Lägereldsminnen",
   "cancel": "Avbryt",
   "back": "Tillbaka",
   "@cancel": {
@@ -355,7 +536,11 @@
   "@cancelInvite": {
     "description": "Title for cancel invite confirmation dialog"
   },
-  "cancelOtherSubscription": "Vänligen avbryt din befintliga prenumeration från {paymentProvider} först",
+  "cancelInviteDesc": "Om du tar bort den här inbjudan måste du skicka en ny om du ändrar dig.",
+  "@cancelInviteDesc": {
+    "description": "Description for cancel invite confirmation dialog"
+  },
+  "cancelOtherSubscription": "Vänligen avsluta ditt nuvarande abonnemang från {paymentProvider} först",
   "@cancelOtherSubscription": {
     "description": "The text to display when the user has an existing subscription from a different payment provider",
     "type": "text",
@@ -367,7 +552,17 @@
     }
   },
   "cancelRecovery": "Avbryt återställning",
-  "cancelSubscription": "Avbryt prenumeration",
+  "cancelRecoveryDesc": "Vill du verkligen avbryta återställningen av {email}s konto?",
+  "@cancelRecoveryDesc": {
+    "description": "Description for cancel recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "Avbryt abonnemang",
+  "candidLaughter": "Spontana skratt",
   "cannotAddMoreFilesAfterBecomingViewer": "{name} kommer inte laengre att kunna laegga till objekt i samlingen efter att ha blivit visare.",
   "@cannotAddMoreFilesAfterBecomingViewer": {
     "description": "Warning message when changing a collaborator to viewer",
@@ -385,16 +580,35 @@
     }
   },
   "cannotDeleteSharedFiles": "Kan inte radera delade filer",
+  "cannotMoveToSharedAlbums": "Det går inte att flytta till delade album",
+  "cannotMoveToSharedAlbumsMessage": "Objekt kan bara läggas till i delade album, inte flyttas. Vill du lägga till dem i stället?",
   "canNotOpenBody": "Tyvärr kan detta album inte öppnas i appen.",
   "canNotOpenTitle": "Kan inte öppna det här albumet",
+  "cannotUpdateRecoveryTime": "Det går inte att uppdatera återställningstiden",
+  "cannotUpdateRecoveryTimeMessage": "Återställningstiden kan inte ändras medan en återställningssession är aktiv. Avvisa begäran eller vänta tills återställningen är klar.",
   "canOnlyCreateLinkForFilesOwnedByYou": "Kan endast skapa länk för filer som ägs av dig",
   "canOnlyRemoveFilesOwnedByYou": "Kan endast ta bort filer som ägs av dig",
+  "castAlbum": "Casta album",
+  "castInstruction": "Besök {castUrl} på enheten som du vill parkoppla.",
+  "@castInstruction": {
+    "description": "Instructions shown when pairing a device to play an album on TV.",
+    "placeholders": {
+      "castUrl": {
+        "type": "String",
+        "example": "https://cast.ente.com"
+      }
+    }
+  },
+  "castIPMismatchBody": "Kontrollera att du är ansluten till samma nätverk som tv:n.",
+  "castIPMismatchTitle": "Det gick inte att casta albumet",
+  "castSessions": "Cast-sessioner",
   "cat": "Katt",
   "centerPoint": "Mittpunkt",
   "changeEmail": "Ändra e-postadress",
   "@changeEmail": {
     "description": "Change email button label"
   },
+  "changeLocationOfSelectedItems": "Ändra plats för de valda objekten?",
   "changePassword": "Ändra lösenord",
   "changePasswordTitle": "Ändra lösenord",
   "@changePasswordTitle": {
@@ -404,16 +618,24 @@
   "changePermissionsQuestion": "Ändra behörighet?",
   "changeYourReferralCode": "Ändra din kod",
   "checkForUpdates": "Sök efter uppdateringar",
+  "checkInboxAndSpamFolder": "Kontrollera inkorgen och skräppostmappen för att slutföra verifieringen",
+  "@checkInboxAndSpamFolder": {
+    "description": "Message asking user to check inbox and spam folder"
+  },
   "checking": "Kontrollerar...",
   "checkingModels": "Kontrollerar modeller...",
   "checkStatus": "Kontrollera status",
   "@checkStatus": {
     "description": "Check status button label"
   },
+  "chooseARecoveryTime": "Välj en återställningstid",
   "chooseBackupLocation": "Välj en plats för säkerhetskopior",
   "chooseFromAnExistingContact": "Välj från en befintlig kontakt",
   "chooseIcon": "Välj ikon",
+  "chooseYourPlan": "Välj din prenumeration",
   "city": "I staden",
+  "citySunsets": "Stadssolnedgångar",
+  "claimedByYou": "gjordes anspråk på av dig",
   "cleanedUpSimilarImages": "Du frigjorde {size} lagringsutrymme",
   "@cleanedUpSimilarImages": {
     "placeholders": {
@@ -423,6 +645,10 @@
     }
   },
   "cleanUncategorized": "Rensa okategoriserade",
+  "cleanUncategorizedDescription": "Ta bort alla filer från Okategoriserat som finns i andra album",
+  "cleanupComplete": "Rensningen är klar",
+  "cleanupHiddenFiles": "Rensa dolda filer",
+  "cleanupHiddenFilesDescription": "Vissa filer i dolda album finns fortfarande i icke-dolda album, vilket gör dem synliga utanför den dolda sektionen. Rensning tar bort dem från icke-dolda album.",
   "clearAllFilters": "Rensa alla filter",
   "clearBackupFolder": "Rensa säkerhetskopieringsmappen",
   "clearBackupPassword": "Ta bort lösenordet för säkerhetskopian",
@@ -435,25 +661,54 @@
   "@closeBy": {
     "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
   },
+  "closeFamilyConfirmBody": "Alla medlemmar förlorar åtkomsten till den delade lagringen. Det går inte att ångra.",
+  "closeFamilyConfirmTitle": "Avsluta familjeabonnemanget?",
+  "closeFamilyPlan": "Avsluta familjeabonnemang",
   "closest": "Närmast",
+  "cloudOnly": "Ta bort från enheten",
+  "clusteringProgress": "Grupperingsförlopp",
   "coastalCliffs": "Klippor vid havet",
   "codeAppliedPageTitle": "Kod tillämpad",
   "codeChangeLimitReached": "Tyvärr, du har nått gränsen för kodändringar.",
   "codeCopiedToClipboard": "Koden har kopierats till urklipp",
   "codeIssuerHint": "Utfärdare",
+  "collabLinkSectionDescription": "Låt andra lägga till foton utan ett Ente-konto",
   "collaborator": "Samarbetspartner",
   "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Samarbetspartner kan lägga till foton och videor till det delade albumet.",
+  "collaboratorsSuccessfullyAdded": "{count, plural, =0{Inga samarbetspartner lades till} one{{count} samarbetspartner lades till} other{{count} samarbetspartner lades till}}",
+  "@collaboratorsSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of collaborators that were successfully added."
+  },
+  "collageLayout": "Layout",
   "collageSaved": "Kollage sparat i galleriet",
   "collectionCannotBeDeleted": "Den här samlingen kunde inte raderas",
   "collectionCannotBeEdited": "Denna samling kan inte redigeras",
   "collectionCannotBeShared": "Denna samling kan inte delas",
-  "collectionDeletedSuccessfully": "Samlingen togs bort",
+  "collectionDeletedSuccessfully": "Samlingen raderades",
   "collectionEmptyStateSubtitle": "Det finns inga objekt i denna samling",
   "collectionLabel": "Samling",
   "collectionRenamedSuccessfully": "Samlingen bytte namn",
   "collections": "Samlingar",
+  "collectionsDeletedSuccessfully": "{count, plural, one{{count} samling har tagits bort} other{{count} samlingar har tagits bort}}",
+  "@collectionsDeletedSuccessfully": {
+    "description": "Success message when collections are deleted",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "collectionUpdated": "Samlingen har uppdaterats",
   "collectPhotos": "Samla in foton",
   "color": "Färg",
+  "colorfulMarkets": "Färgstarka marknader",
   "commentedOnAPhoto": "kommenterade på ett foto",
   "@commentedOnAPhoto": {
     "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
@@ -475,13 +730,53 @@
     "description": "Placeholder text for comment input field"
   },
   "comments": "Kommentarer",
+  "commentsCount": "{count, plural, =0{Inga kommentarer} one{{count} kommentar} other{{count} kommentarer}}",
+  "@commentsCount": {
+    "description": "Number of comments with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "compactMode": "Kompakt läge",
   "comparingImageDetails": "Jämför bilddetaljer...",
+  "concertNights": "Konsertkvällar",
   "confirm": "Bekräfta",
   "@confirm": {
     "description": "Confirm button label"
   },
   "confirm2FADisable": "Är du säker på att du vill inaktivera tvåfaktorsautentisering?",
+  "confirmAddingTrustedContact": "Du håller på att lägga till {email} som betrodd kontakt. Personen kan återställa ditt konto om du är frånvarande i {numOfDays} dagar.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmAddingTrustedContacts": "Du håller på att lägga till {count} betrodda kontakter. De kan återställa ditt konto om du är frånvarande i {numOfDays} dagar.",
+  "@confirmAddingTrustedContacts": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmDeleteAccountAcrossApps": "Jag förstår att det här raderar min data i Ente Photos, Ente Auth och Ente Locker.",
+  "@confirmDeleteAccountAcrossApps": {
+    "description": "Checkbox label for final account deletion confirmation"
+  },
   "confirmPassword": "Bekräfta lösenord",
   "@confirmPassword": {
     "description": "Confirm password field label"
@@ -507,7 +802,7 @@
   "@contactUs": {
     "description": "Button label for contacting Ente support"
   },
-  "contactToManageSubscription": "Kontakta oss på support@ente.com för att hantera din prenumeration hos {provider}.",
+  "contactToManageSubscription": "Kontakta oss på support@ente.com för att hantera ditt {provider}-abonnemang.",
   "@contactToManageSubscription": {
     "placeholders": {
       "provider": {}
@@ -523,7 +818,7 @@
   "copied": "Kopierat",
   "copiedNextToClipboard": "Kopierade nästa kod till urklipp",
   "copiedToClipboard": "Kopierat till urklipp",
-  "copyAllToClipboard": "Kopiera allt till urklippet",
+  "copyAllToClipboard": "Kopiera allt till urklipp",
   "copyEmailAddress": "Kopiera e-postadress",
   "@copyEmailAddress": {
     "description": "Button to copy email address to clipboard"
@@ -531,10 +826,19 @@
   "copyEmbedHtml": "Kopiera inbäddad HTML",
   "copyLink": "Kopiera länk",
   "copypasteThisCodentoYourAuthenticatorApp": "Kopiera-klistra in den här koden\ntill din autentiseringsapp",
+  "couldNotBackUpTryLater": "Det gick inte att säkerhetskopiera dina data.\nVi försöker igen senare.",
   "couldNotFreeUpSpace": "Kunde inte frigöra utrymme",
   "couldNotLoadAlbums": "Kunde inte läsa in album",
   "@couldNotLoadAlbums": {
     "description": "Error when albums fail to load"
+  },
+  "couldNotLoadLikes": "Det gick inte att läsa in gillamarkeringar",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "couldNotLoadSelectedPhoto": "Det gick inte att läsa in det valda fotot",
+  "@couldNotLoadSelectedPhoto": {
+    "description": "Toast when the selected contact photo cannot be loaded"
   },
   "couldNotOpenFile": "Kunde inte oeppna objektet: {error}",
   "@couldNotOpenFile": {
@@ -546,8 +850,9 @@
       }
     }
   },
-  "couldNotUpdateSubscription": "Kunde inte uppdatera prenumeration",
+  "couldNotUpdateSubscription": "Kunde inte uppdatera abonnemanget",
   "count": "Antal",
+  "cozyCafes": "Mysiga kaféhörn",
   "craftingMemoriesFirstHalf": "Skapar",
   "craftingMemoriesSecondHalf": "minnen",
   "crashAndErrorReporting": "Krasch och felrapportering",
@@ -561,7 +866,9 @@
   "createAlbum": "Skapa album",
   "createAlbumActionHint": "Långtryck för att välja foton och klicka på + för att skapa ett album",
   "createAnEnteAccount": "Skapa ett Ente-konto",
+  "createAnotherKit": "Skapa en ny återställningsuppsättning",
   "createBackupNow": "Skapa säkerhetskopia nu",
+  "createCollaborativeLink": "Skapa samarbetslänk",
   "createCollage": "Skapa collage",
   "createCollection": "Skapa samling",
   "createdOn": "Skapad {date}",
@@ -573,6 +880,8 @@
       }
     }
   },
+  "createKit": "Skapa återställningsuppsättning",
+  "createLegacyKit": "Skapa Legacy-återställningsuppsättning",
   "createNewTag": "Skapa ny tagg",
   "createPublicLink": "Skapa offentlig länk",
   "createStream": "Skapa ström",
@@ -584,7 +893,18 @@
   "credentialNotesHint": "Aaterstaellningsmetoder, saekerhetsfraagar, ...",
   "criticalUpdateAvailable": "Kritisk uppdatering tillgänglig",
   "crop": "Beskär",
+  "curatedMemories": "Utvalda minnen",
   "currentBackupFolder": "Aktuell mapp för säkerhetskopia:",
+  "currentlyRunning": "körs just nu",
+  "currentUsageNote": "Aktuell användning: {amount}. Ange 0 för ingen gräns.",
+  "@currentUsageNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
   "custom": "Anpassad",
   "@custom": {
     "description": "Label for setting custom value for link expiry"
@@ -619,9 +939,9 @@
     "description": "Delete account button label"
   },
   "deleteAlbum": "Radera album",
-  "deleteAlbumDialog": "Ta också bort foton (och videor) som finns i detta album från <bold>alla</bold> andra album som de är en del av?",
+  "deleteAlbumDialog": "Radera även foton (och videor) närvarande i albumet från <bold>alla</bold> andra album som de är med i?",
   "deleteAlbumQuestion": "Radera det här albumet?",
-  "deleteAlbumsDialogBody": "Detta innebär att alla tomma album raderas. Detta är användbart när du vill minska klutter i din albumlista.",
+  "deleteAlbumsDialogBody": "Det här kommer att radera alla tomma album. Det här är användbart när du vill minsta skräpet i din albumlista.",
   "deleteAll": "Radera alla",
   "deleteCodeAuthMessage": "Autentisera för att radera kod",
   "deleteCodeMessage": "Vill du ta bort den här koden? Det går inte att ångra den här åtgärden.",
@@ -660,24 +980,47 @@
   "deletedFromEnte": "Raderad från Ente",
   "deletedItemsStayHereForThirtyDays": "Raderade objekt stannar här i 30 dagar",
   "deleteDuplicates": "Radera dubbletter",
-  "deleteEmptyAlbums": "Ta bort tomma album",
-  "deleteEmptyAlbumsWithQuestionMark": "Ta bort tomma album?",
+  "deleteEmptyAlbums": "Radera tomma album",
+  "deleteEmptyAlbumsWithQuestionMark": "Radera tomma album?",
   "deleteEnteAccount": "Radera Ente-konto",
   "@deleteEnteAccount": {
     "description": "Final destructive button label for account deletion"
   },
-  "deleteFiles": "Ta bort filer",
+  "deleteFiles": "Radera filer",
   "deleteFromBoth": "Radera från båda",
   "deleteFromDevice": "Radera från enhet",
   "deleteFromDeviceQuestion": "Radera från enhet?",
-  "deleteFromEnte": "Radera från ente",
+  "deleteFromEnte": "Radera från Ente",
   "deleteHiddenFilesFromDevice": "Radera dolda filer från enheten",
   "deleteHiddenFilesFromDeviceDescription": "Radera lokala kopior av dolda filer från din enhet",
-  "deleteLink": "Ta bort laenk",
+  "deleteItemCount": "{count, plural, one{Raderar {count} objekt} other{Raderar {count} objekt}}",
+  "@deleteItemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteItemsQuestion": "{count, plural, one{Radera objekt?} other{Radera {count} objekt?}}",
+  "@deleteItemsQuestion": {
+    "description": "Delete confirmation title for one or more selected items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteLegacyKitMessage": "Delade blad kan inte längre användas för återställning",
+  "deleteLink": "Radera länk",
   "deleteLinkQuestion": "Radera länk?",
-  "deleteLocation": "Ta bort plats",
+  "deleteLocation": "Radera plats",
+  "deleteMemoryLinkMessage": "Personer som du har delat länken med förlorar åtkomsten när den tas bort.",
+  "deleteMultipleAlbumDialog": "Vill du också ta bort de foton (och videor) som finns i dessa {count} album från <bold>alla</bold> andra album där de ingår?",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "deleteMultipleAlbumsQuestion": "Radera de här albumen?",
-  "deleteMultipleCollectionsDialogBody": "{count, plural, one{{count} samling} other{{count} samlingar}} kommer att permanent raderas.",
+  "deleteMultipleCollectionsDialogBody": "{count, plural, one{{count} samling} other{{count} samlingar}} tas bort permanent.",
   "@deleteMultipleCollectionsDialogBody": {
     "description": "Confirmation message body for deleting multiple collections",
     "placeholders": {
@@ -687,7 +1030,7 @@
       }
     }
   },
-  "deleteMultipleFilesDialogBody": "{count, plural, one{{count} objekt} other{{count} objekt}} kommer att permanent raderas.",
+  "deleteMultipleFilesDialogBody": "{count, plural, one{{count} objekt} other{{count} objekt}} tas bort permanent.",
   "@deleteMultipleFilesDialogBody": {
     "description": "Confirmation message body for deleting multiple items",
     "placeholders": {
@@ -697,7 +1040,7 @@
       }
     }
   },
-  "deleteNotSupportedForSharedFiles": "Radering stöds inte för delade filer",
+  "deleteNotSupportedForSharedFiles": "Det går inte att ta bort delade filer",
   "deleteOnDeviceFiles": "Radera enhetsfiler",
   "deletePhotos": "Radera foton",
   "deletePhotosWithSize": "Radera {count} foton ({size})",
@@ -718,7 +1061,7 @@
       "totalCount": {}
     }
   },
-  "deleteReasonBehaviour": "Appen eller en funktion fungerar inte som förväntat",
+  "deleteReasonBehaviour": "Appen eller en funktion fungerar inte som jag förväntar mig",
   "@deleteReasonBehaviour": {
     "description": "Account deletion reason option"
   },
@@ -726,11 +1069,11 @@
   "@deleteReasonFoundAnotherService": {
     "description": "Account deletion reason option"
   },
-  "deleteReasonMissingFeature": "Det saknas en viktig funktion jag behöver",
+  "deleteReasonMissingFeature": "En viktig funktion som jag behöver saknas",
   "@deleteReasonMissingFeature": {
     "description": "Account deletion reason option"
   },
-  "deleteReasonNotListed": "Min anledning finns inte med",
+  "deleteReasonNotListed": "Min orsak finns inte i listan",
   "@deleteReasonNotListed": {
     "description": "Account deletion reason option"
   },
@@ -738,8 +1081,12 @@
   "deleteSharedAlbumDialogBody": "Albumet kommer att raderas för alla\n\nDu kommer att förlora åtkomst till delade foton i detta album som ägs av andra",
   "deleteShareLinkConfirmation": "Personer med denna laenk kommer inte laengre att kunna komma aat objektet.",
   "deleteSuggestions": "Radera förslag",
+  "deleteSuggestionsDesc": "Visa objekt som föreslås för borttagning",
+  "deleteSuggestionSent": "Förslag om borttagning har skickats",
   "deleteTagMessage": "Vill du ta bort den här koden? Det går inte att ångra den här åtgärden.",
   "deleteTagTitle": "Radera tagg?",
+  "deleteUnparseableCodeMessage": "Detta tar bort koden permanent från Auth. Den flyttas inte till papperskorgen.",
+  "deleteUnparseableCodeTitle": "Ta bort kod som inte kan tolkas?",
   "deleteWithCount": "Ta bort ({count})",
   "@deleteWithCount": {
     "placeholders": {
@@ -751,10 +1098,13 @@
   "deletingDash": "Tar bort - ",
   "deletingFile": "Tar bort objekt...",
   "deletingFiles": "Raderar...",
-  "deletingShareLink": "Tar bort laenk...",
+  "deletingShareLink": "Raderar länk...",
   "description": "Beskrivning",
   "deselectAll": "Avmarkera alla",
+  "desertDreams": "Ökendrömmar",
+  "designedForFamilies": "Utformad för familjer",
   "details": "Uppgifter",
+  "detailsAboutTheIssue": "Information om problemet",
   "developerSettings": "Utvecklarinställningar",
   "@developerSettings": {
     "description": "Label for developer settings"
@@ -772,6 +1122,7 @@
   "deviceNotFound": "Enhet hittades inte",
   "didYouKnow": "Visste du?",
   "digits": "Siffror",
+  "disableBackup": "Inaktivera säkerhetskopiering",
   "disableDownloadWarningBody": "Besökare kan fortfarande ta skärmdumpar eller spara en kopia av dina foton med hjälp av externa verktyg",
   "disableDownloadWarningTitle": "Vänligen notera:",
   "disableLinkMessage": "Detta kommer att ta bort den publika länken för att komma åt \"{albumName}\".",
@@ -809,7 +1160,9 @@
   "@distanceInKMUnit": {
     "description": "Unit for distance in km"
   },
+  "documentSearchHint": "Sök i dina dokument",
   "documentsHint": "Dokument",
+  "doesGroupContainMultiplePeople": "Innehåller den här grupperingen flera personer?",
   "dog": "Hund",
   "done": "Klar",
   "doNotSignOut": "Logga inte ut",
@@ -825,6 +1178,10 @@
   "doubleTapToViewHiddenCode": "Du kan dubbeltrycka på en post för att visa koden",
   "download": "Ladda ner",
   "downloadApplicationUpdate": "Ladda ner uppdatering",
+  "downloadDecryptionFailedMessage": "Det gick inte att ladda ner objektet. Kontakta oss så hjälper vi dig.",
+  "@downloadDecryptionFailedMessage": {
+    "description": "Message shown in the viewer when a downloaded item cannot be decrypted"
+  },
   "downloadFailed": "Nedladdning misslyckades",
   "downloading": "Laddar ner...",
   "downloadingProgress": "Laddar ner... {percentage} %",
@@ -837,7 +1194,41 @@
       }
     }
   },
+  "downloadSkippedAlreadyAvailableOnDevice": "{fileName} finns redan i albumet {albumName} på din enhet",
+  "@downloadSkippedAlreadyAvailableOnDevice": {
+    "description": "Toast shown in single-file download flow when the file already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSkippedInSelectionMultipleFiles": "Nedladdning av {fileCount} filer hoppades över eftersom de redan finns på enheten",
+  "@downloadSkippedInSelectionMultipleFiles": {
+    "description": "Toast shown after multi-selection download when multiple selected files are skipped because they already exist locally",
+    "placeholders": {
+      "fileCount": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSkippedInSelectionSingleFile": "Nedladdning av {fileName} hoppades över eftersom filen redan finns i albumet {albumName} på enheten",
+  "@downloadSkippedInSelectionSingleFile": {
+    "description": "Toast shown after multi-selection download when exactly one selected file is skipped because it already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "downloadUpdate": "Ladda ner",
+  "doYouWantToDiscardTheEditsYouHaveMade": "Vill du förkasta redigeringarna du har gjort?",
   "draw": "Rita",
   "dropSupportEmail": "Vänligen skicka ett e-postmeddelande till {supportEmail} från din registrerade e-postadress",
   "@dropSupportEmail": {
@@ -880,17 +1271,32 @@
       }
     }
   },
+  "earned": "intjänat",
   "earnFreeStorage": "Skaffa gratis lagringsutrymme",
+  "earnMoreSpace": "Tjäna mer utrymme!",
   "edit": "Redigera",
+  "editAutoAddPeople": "Redigera automatisk tilläggning av personer",
   "editCodeAuthMessage": "Autentisera för att redigera kod",
+  "editContact": "Redigera kontakt",
+  "editDetails": "Redigera detaljer",
+  "editEmailAlreadyLinked": "Den här e-postadressen är redan kopplad till {name}.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "editItem": "Redigera objekt",
   "editLocation": "Redigera plats",
+  "editNotSupportedForSharedFiles": "Det går inte att redigera delade filer",
   "editOrder": "Redigera ordning",
   "editPerson": "Redigera person",
   "editSecret": "Redigera hemlighet",
   "@editSecret": {
     "description": "Title shown when editing an existing secret"
   },
+  "editsSaved": "Redigeringarna har sparats",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "Ändringar av platsen syns bara i Ente",
+  "editStorageLimit": "Redigera lagringsgräns",
   "editTag": "Redigera tagg",
   "editTime": "Redigera tid",
   "eligible": "berättigad",
@@ -903,8 +1309,34 @@
   "@emailAlreadyRegistered": {
     "description": "Error message when email is already registered"
   },
+  "emailChangedTo": "E-postadressen har ändrats till {newEmail}",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
   "emailHint": "Ange din e-postadress",
-  "emailNoEnteAccountPhotos": "{email} har inte ett Ente-konto.\n\nSkicka dem en inbjudan för att dela bilder.",
+  "emailNeedsEnteAccountForFamily": "{email} har inget Ente-konto.\n\nSkicka en inbjudan och lägg till personen i familjen när ett Ente-konto har skapats.",
+  "@emailNeedsEnteAccountForFamily": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "emailNoEnteAccount": "{email} har inget Ente-konto.\n\nSkicka en inbjudan för att dela objekt.",
+  "@emailNoEnteAccount": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNoEnteAccountPhotos": "{email} har inte ett Ente-konto.\n\nSkicka en inbjudan till dem för att dela foton.",
   "@emailNoEnteAccountPhotos": {
     "placeholders": {
       "email": {}
@@ -927,6 +1359,12 @@
   "emailYourLogs": "E-posta dina loggar",
   "@emailYourLogs": {
     "description": "Title for emailing logs dialog"
+  },
+  "embracingThem": "Omfamnar {name}",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
   },
   "emergencyContact": "Noedkontakt",
   "empty": "Tom",
@@ -964,6 +1402,14 @@
   },
   "enterAlbumName": "Ange albumnamn",
   "enterAnEmailAddress": "Ange en e-postadress",
+  "enterAppLockPassword": "Ange lösenordet för applåset",
+  "@enterAppLockPassword": {
+    "description": "Enter App lock password prompt for lock screen"
+  },
+  "enterAppLockPin": "Ange PIN-koden för applåset",
+  "@enterAppLockPin": {
+    "description": "Enter App lock PIN prompt for lock screen"
+  },
   "enterAValidEmailAddress": "Ange en giltig e-postadress",
   "enterCode": "Ange kod",
   "enterCodeDescription": "Ange koden som din vän har angett för att få gratis lagring för er båda",
@@ -1037,6 +1483,16 @@
   },
   "exportWarningDesc": "Den exporterade filen innehåller känslig information. Förvara den på ett säkert sätt.",
   "exportYourData": "Exportera din data",
+  "extraPhotosFound": "Extra foton hittades",
+  "faceNotClusteredYet": "Ansiktet har inte grupperats ännu. Kom tillbaka senare.",
+  "facesTimelineAppBarTitle": "Minnesvägen",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineBannerTitle": "Minnesvägen",
+  "@facesTimelineBannerTitle": {
+    "description": "Title for the Memory Lane suggestion banner shown on a person's page"
+  },
   "facesTimelineCaptionYearsAgo": "{count, plural, one{# år sedan} other{# år sedan}}",
   "@facesTimelineCaptionYearsAgo": {
     "description": "Caption for frames when birthdate is unknown, expressing time difference",
@@ -1069,6 +1525,11 @@
   "@facesTimelinePlaybackPlay": {
     "description": "Tooltip or semantics label for the play button"
   },
+  "facesTimelineUnavailable": "Ansiktstidslinjen förbereds...",
+  "@facesTimelineUnavailable": {
+    "description": "Fallback message when the Memory Lane cannot be displayed yet"
+  },
+  "faceThumbnailGenerationFailed": "Det gick inte att skapa miniatyrbilder för ansikten",
   "failedToApplyCode": "Det gick inte att använda koden",
   "failedToCancel": "Misslyckades att avbryta",
   "failedToDecrypt2FASExport": "Misslyckades med att dekryptera 2FAS export",
@@ -1080,6 +1541,11 @@
   },
   "failedToDownloadOrDecrypt": "Kunde inte ladda ner objektet",
   "failedToDownloadVideo": "Kunde inte ladda ner video",
+  "failedToFetchActiveSessions": "Det gick inte att hämta aktiva sessioner",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "Det gick inte att hämta originalet för redigering",
   "failedToFetchReferralDetails": "Det gick inte att hämta hänvisningsdetaljer. Försök igen senare.",
   "failedToInvite": "Kunde inte bjuda in {email}",
   "@failedToInvite": {
@@ -1099,6 +1565,19 @@
       }
     }
   },
+  "failedToLikeAlbums": "{count, plural, one{Det gick inte att gilla {count} album} other{Det gick inte att gilla {count} album}}",
+  "@failedToLikeAlbums": {
+    "description": "Error when liking albums fails",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedToLikeComment": "Det gick inte att gilla kommentaren",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
   "failedToLoadAlbums": "Det gick inte att läsa in album",
   "failedToLoadCollections": "Kunde inte läsa in samlingar: {error}",
   "@failedToLoadCollections": {
@@ -1110,6 +1589,7 @@
       }
     }
   },
+  "failedToRefreshStripeSubscription": "Kunde inte uppdatera abonnemanget",
   "failedToRenew": "Kunde inte förnya",
   "failedToSaveFilesOffline": "{count, plural, one{Kunde inte spara {count} fil offline} other{Kunde inte spara {count} filer offline}}",
   "@failedToSaveFilesOffline": {
@@ -1131,21 +1611,35 @@
       }
     }
   },
+  "failedToUpdateLike": "Det gick inte att uppdatera gillamarkeringen",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToVerifyPaymentStatus": "Det gick inte att kontrollera betalningsstatusen",
   "family": "Familj",
   "familyMoments": "Familjetid",
-  "faq": "FAQ",
+  "faq": "Vanliga frågor",
   "@faq": {
     "description": "FAQ link label"
   },
   "faqs": "Vanliga frågor",
+  "fasterUploads": "Snabbare uppladdningar",
   "favorite": "Favorit",
+  "feastingWithThem": "Måltid med {name}",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "featureBackupCodes": "Totalsträckskryptering säkerhetskopiering och synkronisering",
   "featureOpenSource": "Öppen källkod och\ngranskade av säkerhetsexperter",
   "featurePassAutomatically": "Skicka dem vidare automatiskt vid noedfall",
   "featureSaveImportant": "Spara dina viktiga dokument och inloggningsuppgifter",
   "featureSearchEtc": "Sök, etiketter, dela,\nNästa kod och mycket mer",
-  "featureShareAnytime": "Dela dem naer som helst",
+  "featureShareAnytime": "Dela dem när som helst",
   "feed": "Flöde",
+  "feedToEngageWithFamily": "Ett flöde för kontakt med familjen",
+  "festivities": "Festlig glädje",
   "fieldCopiedToClipboard": "{fieldName} kopierades till urklipp",
   "@fieldCopiedToClipboard": {
     "description": "Message when a field is copied to clipboard",
@@ -1167,9 +1661,57 @@
     "description": "Section header for file-related search results"
   },
   "filesAddedByYouWillBeRemovedFromTheCollection": "Objekt som lagts till av dig kommer att tas bort fraan samlingen",
+  "filesAlreadyLinkedToPerson": "{count, plural, one{{count} fil är redan kopplad till {personName}} other{{count} filer är redan kopplade till {personName}}}",
+  "@filesAlreadyLinkedToPerson": {
+    "description": "Toast shown when selected files are already manually tagged to the selected person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "filesAvailableOffline": "{count, plural, one{{count} fil är sparad offline} other{{count} filer är sparade offline}}",
+  "@filesAvailableOffline": {
+    "description": "Success message when files are saved offline",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesAvailableOfflinePartial": "{successCount, plural, one{Sparade {successCount} fil offline} other{Sparade {successCount} filer offline}}, {failureCount, plural, one{{failureCount} misslyckades} other{{failureCount} misslyckades}}",
+  "@filesAvailableOfflinePartial": {
+    "description": "Partial success message for offline save",
+    "placeholders": {
+      "failureCount": {
+        "type": "int",
+        "example": "1"
+      },
+      "successCount": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "fileSavedToGallery": "Fil sparad i galleri",
+  "filesCanBeRestoredFromTrash": "{count, plural, one{Objektet är inte säkerhetskopierat. Det kan återställas från papperskorgen.} other{Objekten är inte säkerhetskopierade. De kan återställas från papperskorgen.}}",
+  "@filesCanBeRestoredFromTrash": {
+    "description": "Delete confirmation message for device-only items that will be moved to trash.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "filesDeleted": "Filer borttagna",
-  "filesDeletedPermanently": "{count, plural, one{{count} objekt har raderats permanent} other{{count} objekt har raderats permanent}}",
+  "filesDeletedPermanently": "{count, plural, one{{count} objekt har tagits bort permanent} other{{count} objekt har tagits bort permanent}}",
   "@filesDeletedPermanently": {
     "description": "Success message when items are permanently deleted from trash",
     "placeholders": {
@@ -1179,7 +1721,21 @@
       }
     }
   },
-  "filesMarkedAsImportant": "{count, plural, one{{count} objekt markerat som viktigt} other{{count} objekt markerade som viktiga}}",
+  "filesInAlbumSafelyOnEnte": "{count, plural, one{Objektet i albumet är säkerhetskopierat till Ente. Ta bort kopian från enheten för att frigöra utrymme utan att förlora det.} other{Alla {formattedNumber} objekt i albumet är säkerhetskopierade till Ente. Ta bort kopiorna från enheten för att frigöra utrymme utan att förlora dem.}}",
+  "@filesInAlbumSafelyOnEnte": {
+    "description": "Explains that device copies for files in an album can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
+  "filesMarkedAsImportant": "{count, plural, one{{count} objekt markerades som viktigt} other{{count} objekt markerades som viktiga}}",
   "@filesMarkedAsImportant": {
     "description": "Success message when items are marked as important",
     "placeholders": {
@@ -1189,8 +1745,42 @@
       }
     }
   },
+  "filesRemovedFromOffline": "{count, plural, one{{count} fil har tagits bort från offline-lagringen} other{{count} filer har tagits bort från offline-lagringen}}",
+  "@filesRemovedFromOffline": {
+    "description": "Success message when offline copies are removed",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "filesRestoredSuccessfully": "{count, plural, one{{count} objekt har återställts} other{{count} objekt har återställts}}",
+  "@filesRestoredSuccessfully": {
+    "description": "Success message when items are restored from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesSafelyOnEnte": "{count, plural, one{Objektet är säkerhetskopierat till Ente. Ta bort kopian från enheten för att frigöra utrymme utan att förlora det.} other{Alla {formattedNumber} objekt är säkerhetskopierade till Ente. Ta bort kopiorna från enheten för att frigöra utrymme utan att förlora dem.}}",
+  "@filesSafelyOnEnte": {
+    "description": "Explains that device copies can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
   "filesSavedToGallery": "Filer sparade i galleri",
-  "filesSelected": "{count, plural, =0{Inga objekt markerade} one{{count} objekt markerat} other{{count} objekt markerade}}",
+  "filesSelected": "{count, plural, =0{Inga objekt valda} one{{count} objekt valt} other{{count} objekt valda}}",
   "@filesSelected": {
     "description": "Number of items selected for upload",
     "placeholders": {
@@ -1210,14 +1800,18 @@
   "@findThemQuickly": {
     "description": "Subtitle to indicate that the user can find people quickly by name"
   },
+  "fireworks": "Fyrverkerifinal",
   "flip": "Vänd",
+  "flowers": "Blomstrande skönheter",
   "focusOnSearchBar": "Fokusera på sök vid uppstart av app",
   "font": "Teckensnitt",
+  "food": "Kulinarisk glädje",
   "forestTrails": "Skogspromenader",
   "forgotPassword": "Glömt lösenord",
   "@forgotPassword": {
     "description": "Forgot password link label"
   },
+  "forgotRecoveryKey": "Har du glömt återställningsnyckeln?",
   "free10GB": "10GB gratis på <bold-green>ente</bold-green> Foton",
   "freeStorageOffer": "10% rabatt på <bold-green>ente</bold-green> foton",
   "freeStorageOfferDescription": "Använd koden \"AUTH\" för att få 10% rabatt första året",
@@ -1229,9 +1823,20 @@
     }
   },
   "freeUpDeviceSpace": "Frigör enhetens lagringsutrymme",
+  "freeUpDeviceSpaceConfirmDesc": "{count, plural, one{{count} säkerhetskopierad fil} other{{count} säkerhetskopierade filer}} tas bort permanent från den här enheten.",
+  "@freeUpDeviceSpaceConfirmDesc": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "freeUpDeviceSpaceDesc": "Ta bort säkerhetskopierade objekt.",
+  "freeUpDeviceSpaceDescICloud": "Filer i delade iCloud-album kan inte rensas",
+  "@freeUpDeviceSpaceDescICloud": {
+    "description": "Here 'cleared' means 'deleted' from the device"
+  },
   "freeUpSpace": "Frigör utrymme",
   "gallery": "Galleri",
-  "galleryMemoryLimitInfo": "Upp till 1000 minnen visas i galleriet",
+  "galleryMemoryLimitInfo": "Högst 1 000 minnen visas i galleriet",
   "general": "Allmänt",
   "generatingEncryptionKeys": "Skapar krypteringsnycklar...",
   "@generatingEncryptionKeys": {
@@ -1241,9 +1846,14 @@
   "@generatingEncryptionKeysTitle": {
     "description": "Generating encryption keys title"
   },
+  "getAnotherPartOfKitFrom": "Hämta en annan del av återställningsuppsättningen från",
+  "getInTouch": "Hör av dig",
   "getStarted": "Kom igång",
   "gettingReady": "Förbered dig",
+  "gettingStarted": "Kom igång",
+  "gettingStartedDesc": "Installera Locker, skapa ett konto och spara ditt första objekt",
   "giveUsAStarOnGithub": "Ge oss en stjärna på GitHub",
+  "goldenHourPortraits": "Porträtt i gyllene timmen",
   "googlePlayId": "Google Play ID",
   "goToUrl": "Gå till {url}",
   "@goToUrl": {
@@ -1254,6 +1864,11 @@
       }
     }
   },
+  "grantFullAccessPrompt": "Tillåt åtkomst till alla foton i Inställningar",
+  "grantGalleryPermissionDesc": "Ge behörighet att få åtkomst till och organisera foton med ansiktsigenkänning. All bearbetning sker på din enhet.",
+  "grantGalleryPermissionTitle": "Hitta dina favoriter",
+  "grantPermission": "Ge behörighet",
+  "grantPermissionDesc": "Tillåt att Ente får åtkomst till ditt bibliotek så att vi kan organisera det med ansiktsigenkänning. All bearbetning sker på din enhet.",
   "greenery": "Det gröna livet",
   "grid": "Rutnät",
   "groupBy": "Gruppera efter",
@@ -1261,16 +1876,19 @@
   "groupByMonth": "Månad",
   "groupByWeek": "Vecka",
   "groupByYear": "År",
+  "groupSelfies": "Alla vi",
   "guestView": "Gästvy",
+  "guestViewEnablePreSteps": "För att aktivera gästvyn måste du konfigurera en enhetskod eller skärmlås i systeminställningarna.",
   "happyBirthday": "Grattis på födelsedagen! 🥳",
   "hearUsWhereOptionalTitle": "Hur hörde du talas om Ente? (valfritt)",
   "@hearUsWhereOptionalTitle": {
     "description": "Title asking how user heard about Ente"
   },
-  "hearUsWhereTitle": "Hur hörde du talas om Ente?",
+  "hearUsWhereTitle": "Hur fick du höra talas om Ente?",
   "help": "Hjälp",
+  "helpAndSupport": "Hjälp och support",
   "hidden": "Dold",
-  "hiddenItemsWillShowUpHere": "Dolda objekt kommer visas här",
+  "hiddenItemsWillShowUpHere": "Dolda objekt visas här",
   "hide": "Dölj",
   "hideContent": "Dölj innehåll",
   "@hideContent": {
@@ -1285,24 +1903,43 @@
     "description": "Description of hide content feature on iOS"
   },
   "hideFromMemories": "Dölj från minnen",
+  "hideSharedItemsFromHomeGallery": "Dölj delade objekt i hemmagalleriet",
   "hiding": "Döljer...",
+  "hikingWithThem": "Vandrar med {name}",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "hintForDesktop": "Högerklicka på en kod för att redigera eller ta bort.",
   "hintForMobile": "Tryck länge på en kod för att redigera eller ta bort.",
+  "historicSites": "Historiska ekon",
+  "homeEmptyStateLegacyDescription": "Konfigurera Legacy så att personer du tycker om kan få åtkomst till viktig information om du inte kan göra det.",
+  "@homeEmptyStateLegacyDescription": {
+    "description": "Description shown in the empty Locker home state above the Legacy setup action"
+  },
   "hoorayyyy": "Huurraaaa!",
+  "hostedAtOsmFrance": "Drivs hos OSM France",
   "howItWorks": "Så här fungerar det",
   "@howItWorks": {
     "description": "How it works button label"
   },
   "howToViewShareeVerificationID": "Be dem att långtrycka på sin e-postadress på inställningsskärmen och verifiera att ID:n på båda enheterna matchar.",
-  "iCloudUnavailable": "iCloud otillgänglig",
+  "iCloudUnavailable": "iCloud är inte tillgängligt",
   "ignore": "Ignorera",
   "ignored": "ignorerad",
   "ignorePerson": "Ignorera person",
   "imageEditorBrightness": "Ljusstyrka",
   "imageEditorContrast": "Kontrast",
+  "imageEditorExposure": "Exponering",
+  "imageEditorFade": "Tona",
+  "imageEditorHue": "Nyans",
+  "imageEditorLuminance": "Luminans",
   "imageEditorSaturation": "Mättnad",
   "imageEditorSharpness": "Skärpa",
+  "imageEditorTemperature": "Temperatur",
   "imageNotAnalyzed": "Bild inte analyserad",
+  "immediate": "Omedelbart",
   "immediately": "Omedelbart",
   "@immediately": {
     "description": "Immediately option for auto lock timing"
@@ -1312,6 +1949,7 @@
   "importAegisGuide": "Använd alternativet \"Exportera valvet\" i Aegis inställningar.\n\nOm ditt valv är krypterat måste du ange valvlösenordet för att dekryptera valvet.",
   "importAndOTPGuide": "Exportera din säkerhetskopia från andOTP med alternativet \"Backup\" i Inställningar.\n\nOm din säkerhetskopia är krypterad måste du ange lösenordet för att dekryptera den.",
   "important": "Viktig",
+  "importantNotSupportedForSharedFiles": "Det går inte att markera delade filer som viktiga",
   "importBitwardenGuide": "Använd alternativet \"Exportera valv\" inom Bitwarden Tools och importera den okrypterade JSON-filen.",
   "importCodeDelimiterInfo": "Koderna kan separeras med kommatecken eller en ny rad",
   "importCodes": "Importera koder",
@@ -1319,9 +1957,22 @@
   "importEnterSetupKey": "Ange en konfigurationskod",
   "importFailureDesc": "Kunde inte tolka den valda filen.",
   "importFromGallery": "Importera från galleri",
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Importera 1 kod från Google Authenticator?} other{Importera {codeCount} koder från Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "Exportera dina konton från Google Authenticator till en QR-kod med alternativet \"Överför konton\". Skanna sedan QR-koden eller importera den från en bild.",
   "importInstruction": "Vänligen välj en fil som innehåller en lista över dina koder i följande format",
   "importLabel": "Importera",
   "importLastpassGuide": "Använd alternativet \"Överför konton\" i LastPass Authenticators inställningar och tryck på \"Exportera konton till fil\". Importera JSON-filen som laddas ner.",
+  "importOtpAuthGuide": "Exportera en krypterad säkerhetskopia från OTP Auth och välj sedan filen .otpauthdb eller .otpauthdp. Exporter från enstaka konton i .otpauth-format stöds också.",
+  "importProtonAuthGuide": "Använd alternativet \"Exportera\" i inställningarna för Proton Authenticator för att exportera dina koder.\n\nOm exporten är lösenordsskyddad måste du ange lösenordet för att dekryptera den.",
   "importRaivoGuide": "Använd alternativet \"Exportera OTPs till zip-arkiv\" i Raivos inställningar.\n\nExtrahera zip-filen och importera JSON-filen.",
   "importSelectAppExport": "Välj {appName} exporteringsfil",
   "@importSelectAppExport": {
@@ -1357,8 +2008,11 @@
   },
   "incorrectRecoveryKeyBody": "Återställningsnyckeln du angav är felaktig",
   "incorrectRecoveryKeyTitle": "Felaktig återställningsnyckel",
+  "indexingPausedStatusDescription": "Bearbetningen är pausad. Den återupptas automatiskt när enheten är redo. Enheten anses vara redo när batterinivå, batterihälsa och värmestatus är inom ett sunt intervall.",
   "info": "Info",
-  "informationDescription": "Spara och dela information med naera och kaera.",
+  "informationDescription": "Spara och dela information med nära och kära.",
+  "informationTypes": "Informationstyper",
+  "informationTypesDesc": "Dokument, anteckningar, kort, lösenord och andra objekttyper",
   "initialBackupCreated": "Första säkerhetskopia skapad!",
   "inOrder": "I ordning",
   "insecureDevice": "Osäker enhet",
@@ -1383,11 +2037,24 @@
     "description": "Detailed error message when endpoint is invalid"
   },
   "invalidKey": "Ogiltig nyckel",
+  "invalidProtonExportMessage": "Den valda filen är inte en giltig export från Proton Authenticator.",
+  "invalidProtonExportTitle": "Ogiltig Proton-export",
   "invalidQRCode": "Ogiltig QR-kod",
   "invalidRecoveryKey": "Återställningsnyckeln du angav är inte giltig. Kontrollera att den innehåller 24 ord och kontrollera stavningen av varje ord.\n\nOm du har angett en äldre återställningskod, se till att den är 64 tecken lång, och kontrollera var och en av bokstäverna.",
   "invalidReferralCode": "Ogiltig kod",
   "invite": "Bjud in",
+  "inviteLimitReached": "Du har lagt till 5 inbjudningar. Ta bort en för att lägga till en till.",
   "inviteMembers": "Bjud in medlemmar",
+  "inviteResent": "Inbjudan har skickats igen",
+  "invitesSentCount": "{count, plural, one{Inbjudan har skickats} other{Inbjudningar har skickats}}",
+  "@invitesSentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "inviteToEnte": "Bjud in till Ente",
   "ok": "OK",
   "@ok": {
@@ -1410,6 +2077,7 @@
       }
     }
   },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Objekt visar antalet dagar som återstår före permanent borttagning",
   "itemsStored": "Objekt lagrade",
   "itemsWillBeRemovedFromAlbum": "Valda objekt kommer att tas bort från detta album",
   "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Det ser ut som om något gick fel. Försök igen efter en stund. Om felet kvarstår, vänligen kontakta vår support.",
@@ -1422,6 +2090,10 @@
   },
   "join": "Gå med",
   "joinAlbum": "Gå med i album",
+  "joinAlbumConfirmationDialogBody": "Om du går med i ett album blir din e-postadress synlig för deltagarna.",
+  "joinAlbumSubtext": "för att visa och lägga till dina foton",
+  "joinAlbumSubtextViewer": "för att lägga till detta i delade album",
+  "keepOffline": "Behåll offline",
   "keepPhotos": "Behåll foton",
   "kiloMeterUnit": "km",
   "lakeside": "Sjönära lugn",
@@ -1430,15 +2102,73 @@
   "lastUpdated": "Senast uppdaterad",
   "lastWeek": "Förra veckan",
   "lastYearsTrip": "Förra årets resa",
+  "layout": "Layout",
   "layoutGrouped": "Grupperad",
+  "layoutJustified": "Justerad",
+  "layoutJustifiedComfort": "Justifierad · Bekväm",
+  "layoutJustifiedFlex": "Justifierad · Flexibel",
+  "layoutMasonry": "Mosaik",
   "layoutTrip": "Resa",
   "leave": "Lämna",
   "leaveAlbum": "Lämna album",
   "leaveCollection": "Laemna samling",
+  "leaveCollectionSuccessfully": "Lämnade samlingen",
   "leaveFamily": "Lämna familj",
+  "leaveFamilyPlan": "Lämna familjeabonnemang",
+  "@leaveFamilyPlan": {
+    "description": "Button label for leaving family plan",
+    "type": "text"
+  },
   "leaveSharedAlbum": "Lämna delat album?",
   "left": "Vänster",
+  "leftCollectionsSuccessfully": "{count, plural, one{Lämnade {count} samling} other{Lämnade {count} samlingar}}",
+  "@leftCollectionsSuccessfully": {
+    "description": "Success message when leaving collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "legacy": "Arv",
+  "legacyAccounts": "Äldre konton",
+  "legacyCongratulationsMessage": "Du har konfigurerat Legacy.\nBörja spara din viktiga information.",
+  "legacyDesc": "Betrodda kontakter, Legacy-återställningsuppsättningar och planering för kontoåterställning",
+  "legacyEmptyStateDescription": "Om du inte kan vara närvarande hjälper Legacy personer du tycker om att få åtkomst till din information i Locker.",
+  "legacyIntroCard1": "Vi ger dig 3 kort",
+  "legacyIntroCard2": "Dela dem med\n3 personer du litar på",
+  "legacyIntroCard3": "Vilka 2 som helst av 3 kan låsa upp din information i Locker",
+  "legacyIntroTitle": "Hjälp personer du tycker om att få åtkomst till viktig information om du inte kan göra det.",
+  "legacyInvite": "{email} har bjudit in dig att bli en betrodd kontakt",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyKitAllSetDescription": "Du kan skapa fler Legacy-återställningsuppsättningar eller återkalla åtkomst när som helst.",
+  "legacyKitAllSetTitle": "Din Legacy-återställningsuppsättning är klar!",
+  "legacyKitEmptyDescription": "Låt personer du litar på samarbeta för att återställa ditt konto",
+  "legacyKitMaxReached": "Du kan skapa högst 5 Legacy-återställningsuppsättningar.",
+  "legacyKitRecoveryAttemptInProgress": "Återställningsförsök pågår",
+  "legacyKitRecoveryAttemptMessage": "En återställning har påbörjats med den här äldre återställningsuppsättningen och kontot blir tillgängligt {availableAt}.\n\nDu kan avvisa återställningen när som helst innan dess.",
+  "@legacyKitRecoveryAttemptMessage": {
+    "placeholders": {
+      "availableAt": {
+        "type": "String",
+        "example": "April 7, 2026 7:34 PM"
+      }
+    }
+  },
+  "legacyKitRecoveryInProgress": "Återställning pågår",
+  "legacyKitRecoveryWarning": "Någon försöker återställa ditt konto med en äldre återställningsuppsättning",
+  "legacyKits": "Legacy-återställningsuppsättningar",
+  "legacyPageDesc": "Legacy låter betrodda kontakter få åtkomst till ditt konto om du inte kan göra det.",
+  "legacyPageDesc2": "Betrodda kontakter kan påbörja kontoåterställning och, om den inte blockeras inom 30 dagar, återställa lösenordet och få åtkomst till kontot.",
+  "letsTryThatAgain": "Vi försöker igen",
   "lightTheme": "Ljust",
   "like": "Gilla",
   "likeAll": "Gilla alla",
@@ -1477,18 +2207,135 @@
   "@likedYourVideo": {
     "description": "Social notification action text shown after a person's name, for example 'John liked your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
   },
+  "likesCount": "{count, plural, one{{count} gilla-markering} other{{count} gilla-markeringar}}",
+  "@likesCount": {
+    "description": "Number of likes with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "librarySharingAllCurrentAlbumsShared": "Alla dina nuvarande album delas",
   "librarySharingBannerDescription": "Dela alla dina album",
   "librarySharingDisable": "Inaktivera",
+  "librarySharingDisableDescription": "Album som du redan har delat fortsätter att delas med {recipient}, även nya foton som du lägger till i dem. Nya album delas inte automatiskt.\n\nOm du vill sluta dela ett album trycker du på det och väljer '{stopSharingLabel}'.",
+  "@librarySharingDisableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      },
+      "stopSharingLabel": {
+        "type": "String",
+        "example": "Stop sharing"
+      }
+    }
+  },
+  "librarySharingDisableTitle": "Inaktivera biblioteksdelning?",
+  "librarySharingEnableDescription": "Dina befintliga album och alla album som du skapar i framtiden delas automatiskt med {recipient}.",
+  "@librarySharingEnableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "librarySharingEnableTitle": "Aktivera biblioteksdelning?",
+  "librarySharingFailedAlbumCount": "{count, plural, one{Det gick inte att uppdatera {count} album.} other{Det gick inte att uppdatera {count} album.}}",
+  "@librarySharingFailedAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingFailedDescription": "Det gick inte att uppdatera de valda albumen.",
+  "librarySharingFailedTitle": "Delningen misslyckades",
+  "librarySharingHiddenAlbumsDescription": "Dolda album delas inte. Du kan när som helst sluta dela ett album.",
+  "librarySharingMemberSubtitle": "{count, plural, =0{Inga album delas • {storageUsage}} one{{count} album delas • {storageUsage}} other{{count} album delas • {storageUsage}}}",
+  "@librarySharingMemberSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "storageUsage": {
+        "type": "String",
+        "example": "2 GB"
+      }
+    }
+  },
+  "librarySharingMixed": "Blandat",
   "librarySharingNoAlbumsToShare": "Inga album att dela än",
+  "librarySharingPreviouslyUnsharedDescription": "{count, plural, one{Delningen stoppades tidigare för albumet, så det delades inte igen.} other{Delningen stoppades tidigare för albumen, så de delades inte igen.}}",
+  "@librarySharingPreviouslyUnsharedDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingPreviouslyUnsharedTitle": "{count, plural, one{{count} album delas inte} other{{count} album delas inte}}",
+  "@librarySharingPreviouslyUnsharedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingRetryFailedAlbums": "Försök igen med misslyckade album",
   "librarySharingRole": "Roll",
   "librarySharingRoles": "Roller",
+  "librarySharingShareAlbumCount": "{count, plural, one{Dela {count} album} other{Dela {count} album}}",
+  "@librarySharingShareAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "librarySharingShareAlbums": "Dela album",
+  "librarySharingSharedAlbumCount": "{count, plural, =0{Inga album delas} one{{count} album delas} other{{count} album delas}}",
+  "@librarySharingSharedAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "librarySharingShareWith": "Dela med",
   "librarySharingSharingWith": "Delar med",
   "librarySharingStopSharing": "Sluta dela",
+  "librarySharingStopSharingDescription": "{count, plural, one{Personen förlorar albumet och alla foton som personen har lagt till försvinner med personen. Du kan dela igen senare.} other{Personen förlorar albumen och alla foton som personen har lagt till försvinner med personen. Du kan dela igen senare.}}",
+  "@librarySharingStopSharingDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingStopSharingTitle": "{count, plural, one{Sluta dela {count} album?} other{Sluta dela {count} album?}}",
+  "@librarySharingStopSharingTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingTitle": "Biblioteksdelning",
   "librarySharingUpdateRoles": "Uppdatera roller",
   "limit": "Gräns",
   "linkCopiedToClipboard": "Länk kopierad till urklipp",
+  "linkDeletedSuccessfully": "Länken har tagits bort",
   "linkDeviceLimit": "Enhetsgräns",
   "linkEnabled": "Aktiverat",
   "linkExpired": "Upphört",
@@ -1502,15 +2349,44 @@
   "linkHasExpired": "Länk har upphört att gälla",
   "linkLabel": "Länk",
   "linkNeverExpires": "Aldrig",
+  "linkRequestLimitExceeded": "Det här albumet har visats på för många enheter",
   "links": "Länkar",
+  "list": "Lista",
   "livePhotos": "Livefoton",
   "loadingExifData": "Läser in EXIF-data...",
   "loadingGallery": "Läser in galleri...",
   "loadingModel": "Laddar ner modeller...",
   "loadingYourPhotos": "Laddar dina foton...",
+  "loadMessage1": "Du kan dela ditt abonnemang med din familj",
+  "loadMessage2": "Vi har bevarat över {memoriesCountInMillions} miljoner minnen hittills",
+  "@loadMessage2": {
+    "placeholders": {
+      "memoriesCountInMillions": {
+        "type": "int"
+      }
+    }
+  },
+  "loadMessage3": "Vi behåller 3 kopior av dina data, varav en i ett underjordiskt skyddsrum.",
+  "loadMessage4": "Alla våra appar är öppen källkod",
+  "loadMessage5": "Vår källkod och kryptografi har granskats externt",
+  "loadMessage6": "Du kan dela länkar till dina album med personer du tycker om",
+  "loadMessage7": "Våra mobilappar körs i bakgrunden för att kryptera och säkerhetskopiera alla nya foton du tar",
+  "loadMessage8": "{webUrl} har en smidig uppladdare",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "Vi använder XChaCha20-Poly1305 för att kryptera dina data säkert",
   "localBackupDailyManualCopy": "Skapar en lokal säkerhetskopiering per dag när du öppnar appen. Använd \"Backup now\" för att köra en manuell säkerhetskopiering. Säkerhetskopior behålls upp till 5 filer.",
   "localBackupSidebarTitle": "Lokal säkerhetskopia",
   "localGallery": "Lokalt galleri",
+  "localIndexing": "Lokal bearbetning",
+  "localSyncErrorMessage": "Något verkar ha gått fel eftersom synkroniseringen av lokala foton tar längre tid än väntat. Kontakta supportteamet.",
   "location": "Plats",
   "locationName": "Platsnamn",
   "locationPickerTip": "Du kan också lägga till en plats centrerad på ett foto från fotots informationsskärm",
@@ -1518,8 +2394,21 @@
     "description": "Helper tip text shown in the location picker that refers to the photo info screen."
   },
   "locations": "Platser",
+  "locationTagFeatureDescription": "En platsetikett grupperar alla foton som togs inom en viss radie från ett foto",
   "locationUpdatedAndBackupCreated": "Plats uppdaterad och initial säkerhetskopia skapad!",
   "lockButtonLabel": "Lås",
+  "lockerRecordsCount": "{count, plural, one{{formattedCount} post} other{{formattedCount} poster}}",
+  "@lockerRecordsCount": {
+    "description": "Delete impact row for Locker data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "loggingOut": "Loggar ut...",
   "@loggingOut": {
     "description": "Message shown while logging out"
@@ -1549,6 +2438,10 @@
   },
   "logout": "Logga ut",
   "logs": "Loggar",
+  "logsDialogBody": "Detta skickar loggar som hjälper oss att felsöka problemet. Observera att filnamn inkluderas för att spåra problem med specifika filer.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
   "logsDialogBodyLocker": "Detta skickar loggar foer att hjaelpa oss felsoeka ditt problem.",
   "@logsDialogBodyLocker": {
     "description": "Dialog body text for sending logs in Locker app (without file name warning)"
@@ -1557,26 +2450,40 @@
   "longPressAnEmailToVerifyEndToEndEncryption": "Tryck laenge paa en e-post foer att verifiera end-to-end-kryptering.",
   "lookBackOnYourMemories": "Se tillbaka på dina minnen 🌄",
   "lookingForVisualSimilarities": "Letar efter visuella likheter...",
+  "loopVideoOff": "Slå på upprepning",
+  "loopVideoOn": "Stäng av upprepning",
   "lostDevice": "Förlorad enhet?",
   "lostDeviceTitle": "Förlorad enhet?",
   "@lostDeviceTitle": {
     "description": "Lost device title"
   },
   "machineLearning": "Maskininlärning",
+  "machineLearningBannerSubtitle": "För magisk sökning och ansiktsigenkänning",
+  "magic": "Magisk",
+  "@magic": {
+    "description": "Section header for magic search results"
+  },
   "manage": "Hantera",
   "manageDeviceStorage": "Hantera enhetscache",
+  "manageDeviceStorageDesc": "Granska och rensa lokal lagring",
   "manageFamily": "Hantera familj",
   "manageLink": "Hantera länk",
   "manageParticipants": "Hantera",
-  "manageSubscription": "Hantera prenumeration",
+  "managePaymentMethod": "Hantera betalningsmetod",
+  "manageSubscription": "Hantera abonnemang",
   "manualSort": "Anpassad",
   "map": "Karta",
   "@map": {
     "description": "Label for the map view"
   },
   "maps": "Kartor",
+  "mapsPrivacyNotice": "Ungefärliga koordinater skickas till integritetsmedvetna tredje parter som OpenStreetMap för att visa karta och plats.",
   "markingAsImportant": "Markerar som viktig...",
   "me": "Jag",
+  "mediaManagementHintMessage": "Slå på mediehantering för Ente i Inställningar så visas inte frågorna längre.",
+  "@mediaManagementHintMessage": {
+    "description": "Message explaining that enabling Android media management permission avoids repeated delete confirmations."
+  },
   "mediaManagementHintTitle": "Trött på att bekräfta varje radering?",
   "@mediaManagementHintTitle": {
     "description": "Title of a sheet prompting Android users to enable media management permission."
@@ -1608,18 +2515,83 @@
       }
     }
   },
+  "memoryLink": "Minneslänk",
+  "memoryShareLinkDescription": "Den här länken upphör automatiskt att gälla om 7 dagar.",
   "merchandise": "Produkter",
+  "merge": "Slå ihop",
   "mergedPhotos": "Sammanslagna foton",
+  "mergeWithExisting": "Slå ihop med befintlig",
+  "mergeWithPersonDescription": "Alla foton från båda ansiktsgrupperna slås ihop under {name}.",
+  "@mergeWithPersonDescription": {
+    "description": "Description for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "mergeWithPersonTitle": "Slå ihop med {name}?",
+  "@mergeWithPersonTitle": {
+    "description": "Title for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "menubarMode": "Menyradsläge",
+  "message": "Meddelande",
   "minimizeAppOnCopy": "Minimera appen vid kopiering",
   "minimizeToTrayOnClose": "Minimera vid stängning",
+  "mixedGrouping": "Blandad gruppering?",
   "mlConsent": "Aktivera maskininlärning",
   "mlConsentConfirmation": "Jag förstår och vill aktivera maskininlärning",
   "mlConsentDescription": "Om du aktiverar maskininlärning, kommer Ente extrahera information som ansiktsgeometri från filer, inklusive de som delas med dig.\n\nDetta kommer att hända på din enhet, och all genererad biometrisk information kommer att helsträckskrypteras.",
   "mlConsentPrivacy": "Klicka här för mer information om denna funktion i vår integritetspolicy",
+  "mlCouldNotProcessItems": "{count, plural, one{Det gick inte att bearbeta {count} objekt} other{Det gick inte att bearbeta {count} objekt}}",
+  "@mlCouldNotProcessItems": {
+    "description": "Title shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mlIndexingDescription": "Observera att maskininlärning ökar användningen av bandbredd och batteri tills alla objekt har bearbetats. Överväg att använda skrivbordsappen för snabbare bearbetning; alla resultat synkroniseras automatiskt.",
+  "mlItemsCouldNotBeProcessed": "{count, plural, one{{count} objekt kunde inte behandlas för maskininlärning. Kontakta oss så hjälper vi dig.} other{{count} objekt kunde inte behandlas för maskininlärning. Kontakta oss så hjälper vi dig.}}",
+  "@mlItemsCouldNotBeProcessed": {
+    "description": "Description shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mlProcessingIssueReachOut": "Kontakta oss så hjälper vi dig.",
+  "@mlProcessingIssueReachOut": {
+    "description": "Support prompt shown when machine learning could not process one or more items"
+  },
+  "mlProgressBannerDescription": "Dina foton bearbetas på enheten för att hitta ansikten, objekt och mer.",
+  "mlProgressBannerStatus": "{indexed} av {total} foton har bearbetats",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "mlProgressBannerTitle": "Ha tålamod!",
   "moderateStrength": "Måttligt",
   "@moderateStrength": {
     "description": "Moderate password strength label"
   },
+  "modifyYourQueryOrTrySearchingFor": "Ändra sökningen eller prova att söka efter",
+  "moments": "Ögonblick",
   "month": "månad",
   "monthly": "Månadsvis",
   "@monthly": {
@@ -1642,7 +2614,20 @@
   "mostRecentlyUsed": "Senast använd",
   "mostRelevant": "Mest relevant",
   "mountains": "Över kullarna",
+  "movedSuccessfullyTo": "Flyttades till {albumName}",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
   "movedToTrash": "Flyttad till papperskorgen",
+  "moveItem": "{count, plural, one{Flytta objekt} other{Flytta objekt}}",
+  "@moveItem": {
+    "description": "Page title while moving one or more items to an album",
+    "placeholders": {
+      "count": {}
+    }
+  },
   "moveMultipleToTrashMessage": "Är du säker på att du vill flytta {count} objekt till papperskorgen?",
   "@moveMultipleToTrashMessage": {
     "placeholders": {
@@ -1653,7 +2638,7 @@
   "moveToAlbum": "Flytta till album",
   "moveToHiddenAlbum": "Flytta till dolt album",
   "movingFilesToAlbum": "Flyttar filer till album...",
-  "muteAudio": "Tysta ljud",
+  "muteAudio": "Stäng av ljud",
   "name": "Namn",
   "nDays": "{count} dagar",
   "@nDays": {
@@ -1678,6 +2663,7 @@
   "newest": "Nyaste",
   "newLocation": "Ny plats",
   "newPhotosEmoji": " ny 📸",
+  "newRange": "Nytt intervall",
   "next": "Nästa",
   "@next": {
     "description": "Next button label"
@@ -1694,6 +2680,11 @@
   },
   "nightLights": "Neonnätter",
   "no": "Nej",
+  "noAlbumsOnThisDevice": "Inga album\npå den här enheten",
+  "noAppToOpenFileDownloadInstead": "Ingen app kan förhandsvisa den här filen. Du kan ladda ner den och öppna den i en annan app.",
+  "@noAppToOpenFileDownloadInstead": {
+    "description": "Message shown when Android cannot find an app to open or preview a file"
+  },
   "noChangesWereMade": "Inga aendringar gjordes",
   "noCollections": "Inga samlingar",
   "noDefaultBackupFolder": "Kunde inte skapa standardmapp för säkerhetskopia.",
@@ -1705,6 +2696,16 @@
   },
   "noDeviceThatCanBeDeleted": "Du har inga filer på denna enhet som kan tas bort",
   "noDuplicates": "✨ Inga dubbletter",
+  "noEmailAppBody": "Kopiera ditt meddelande och skicka det till {email} från valfri e-posttjänst.",
+  "@noEmailAppBody": {
+    "description": "No-mail-app fallback subtitle with the target email address",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
   "noEmailAppFound": "Ingen e-postapp hittades",
   "noExifData": "Ingen EXIF-data",
   "noFacesFound": "Inga ansikten hittades",
@@ -1716,10 +2717,21 @@
     "description": "No internet connection error message"
   },
   "noItemsMatchSelectedFilters": "Inga objekt matchar de valda filtren",
+  "noLikesYet": "Inga gilla-markeringar ännu",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "noLimit": "Ingen gräns",
+  "noLimitSet": "Ingen gräns angiven",
   "noLocation": "Ingen plats",
   "@noLocation": {
     "description": "Search result label for files owned by the user with missing location metadata"
   },
+  "noLocationTag": "Ingen platsetikett",
+  "@noLocationTag": {
+    "description": "Search result label for files that do not have a manual location tag"
+  },
+  "noMatchesFound": "Inga träffar hittades!",
   "noPaymentAppFound": "Ingen betalningsapp hittades",
   "noPhotosFoundHere": "Inga foton hittades här",
   "noRecoveryKeyNoDecryption": "På grund av vårt punkt-till-punkt-krypteringssystem så kan dina data inte avkrypteras utan ditt lösenord eller återställningsnyckel",
@@ -1732,6 +2744,7 @@
   },
   "noResult": "Inga resultat",
   "noResultsFound": "Inga resultat hittades",
+  "noSessionsFound": "Inga sessioner hittades!",
   "noSimilarImagesFound": "Inga liknande bilder hittades",
   "noSuggestionsForPerson": "Inga förslag för {personName}",
   "@noSuggestionsForPerson": {
@@ -1765,7 +2778,9 @@
     }
   },
   "nothingToSeeHere": "Inget att se här",
+  "nothingToTidyUpHere": "Det finns inget att rensa här",
   "notifications": "Notiser",
+  "notifyMe": "Meddela mig",
   "notPersonLabel": "Inte {name}?",
   "@notPersonLabel": {
     "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
@@ -1786,17 +2801,31 @@
   "ocrNoTextDetected": "Ingen text upptäckt",
   "of_": "av",
   "offlineEnableBackupTagLabel": "10 GB GRATIS!",
+  "offlineFacesBannerSubtitle": "Registrera dig för att märka personer och enkelt hitta deras foton senare.",
+  "offlineFacesBannerTitle": "Vill du spara dessa ansikten?",
   "offlineHomeSignupBannerAction": "Säkerhetskopiera nu",
   "offlineHomeSignupBannerDescription": "Krypterade säkerhetskopiar på 3 platser för att hålla dina minnen säkra.",
   "offlineHomeSignupBannerTitle": "Skydda dina minnen för evigt",
   "offlineModeWarning": "Du har valt att fortsätta utan säkerhetskopior. Vänligen ta manuella säkerhetskopior för att se till att dina koder är säkra.",
+  "offlineNameFaceBannerSubtitle": "Registrera dig för att märka dem och enkelt hitta deras foton senare.",
   "offlineNameFaceBannerTitle": "Ge det här ansiktet ett namn",
+  "offlineSettingsBannerDesc": "Kryptering med noll kunskap innebär att dina minnen förblir dina.",
   "offlineSettingsBannerTitle": "Vi kan inte se dina foton. Någonsin.",
   "onboardingDesc": "Spara dina foton och videor. Alla minnen på ett ställe.",
   "onboardingTitle": "För allt som du inte vill glömma bort",
   "onDevice": "Enhet",
   "@onDevice": {
     "description": "The text displayed above folders/albums stored on device",
+    "type": "text"
+  },
+  "oneAccountAcrossEnteApps": "Du har ett konto i Ente Photos, Ente Auth och Ente Locker.",
+  "@oneAccountAcrossEnteApps": {
+    "description": "Explains that account deletion affects all Ente apps"
+  },
+  "oneLineAboutTheIssue": "En rad om problemet",
+  "onEnte": "På <branding>ente</branding>",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
     "type": "text"
   },
   "onlyFamilyAdminCanChangeCode": "Kontakta {familyAdminEmail} för att ändra din kod.",
@@ -1806,8 +2835,14 @@
     }
   },
   "onlyThem": "Endast dem",
+  "onlyUploadedFilesCanBeAddedToPerson": "Endast uppladdade filer kan läggas till för en person",
+  "@onlyUploadedFilesCanBeAddedToPerson": {
+    "description": "Shown when user tries to manually tag files that are not uploaded yet."
+  },
   "onTheRoad": "På vägarna igen",
   "onThisDay": "På denna dag",
+  "onThisDayMemories": "Minnen från den här dagen",
+  "onThisDayNotificationExplanation": "Minnen från den här dagen under tidigare år",
   "oops": "Hoppsan",
   "@oops": {
     "description": "Oops error title"
@@ -1815,17 +2850,32 @@
   "oopsCouldNotSaveEdits": "Oj då, kunde inte spara ändringar",
   "oopsSomethingWentWrong": "Oj, något gick fel",
   "openAlbumInBrowser": "Öppna album i webbläsare",
+  "openAlbumInBrowserTitle": "Använd webbappen för att lägga till foton i det här albumet",
   "openFile": "Öppna fil",
   "openLink": "Öppna länk",
   "openSettings": "Öppna inställningar",
+  "openstreetmapContributors": "OpenStreetMap-bidragsgivare",
   "optionalAsShortAsYouLike": "Valfritt, så kort som du vill...",
   "organization": "Organisation",
+  "organizationDesc": "Samlingar, favoriter, sökning och sätt att hålla ordning på objekt",
   "orPickAnExistingOne": "Eller välj en befintlig",
+  "orRemoveYourself": "Eller ta bort dig själv som {email}s betrodda kontakt",
+  "@orRemoveYourself": {
+    "description": "Text shown before remove contact button in ready state",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "otherDetectedFaces": "Andra upptäckta ansikten",
-  "others": "Andra",
+  "others": "Övriga",
   "pair": "Parkoppla",
   "pairUsingCode": "Parkoppla med en kod",
+  "pairWithAutoDesc": "Automatisk parkoppling fungerar bara med enheter som stöder Cast.",
+  "pairWithCodeDesc": "Parkoppling med PIN fungerar med vilken skärm som helst där du vill visa ditt album.",
   "panorama": "Panorama",
+  "parsingError": "Tolkningsfel",
   "partyWithThem": "Party med {name}",
   "@partyWithThem": {
     "placeholders": {
@@ -1876,6 +2926,7 @@
   "pay": "Betala",
   "paymentDetails": "Betalningsdetaljer",
   "paymentFailed": "Betalning misslyckades",
+  "paymentFailedMessage": "Tyvärr misslyckades betalningen. Kontakta supporten så hjälper vi dig!",
   "paymentFailedTalkToProvider": "Prata med {providerName} support om du debiterades",
   "@paymentFailedTalkToProvider": {
     "description": "The text to display when the payment failed",
@@ -1892,9 +2943,23 @@
   "pendingSyncs": "Varning",
   "pendingSyncsWarningBody": "En del av dina koder har inte säkerhetskopierats.\n\nSe till att du har en säkerhetskopia för dessa koder innan du loggar ut.",
   "people": "Människor",
+  "peopleAutoAddDesc": "Lägg automatiskt till foton av valda personer i det här albumet",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
+  },
   "peopleWidgetDesc": "Markera de personer du vill ska synas på startskärmen.",
   "period": "Tidsperiod",
   "permanentlyDelete": "Radera permanent",
+  "permanentlyDeleteFilesBody": "{count, plural, one{Det här objektet} other{Dessa {count} objekt}} tas bort permanent och kan inte återställas.",
+  "@permanentlyDeleteFilesBody": {
+    "description": "Confirmation body for permanent deletion from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "permanentlyDeleteYourEnteAccount": "Permanent radera ditt Ente-konto?",
   "@permanentlyDeleteYourEnteAccount": {
     "description": "Heading for final account deletion confirmation"
@@ -1918,9 +2983,46 @@
   },
   "pets": "Fluffigt sällskap",
   "photoGridSize": "Storlek på bildrutnät",
+  "photoLibraryAddPermissionRequired": "Ente behöver behörighet att spara foton och videor i Apple Bilder. Du kan tillåta åtkomst i Inställningar.",
+  "photoLibraryAddPermissionRestricted": "Åtkomst till bildbiblioteket är begränsad på den här enheten.",
+  "photoOrder": "Fotoordning",
   "photos": "Foton",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "Foton som du har lagt till tas bort från albumet",
+  "photosAndVideosCount": "{count, plural, one{{formattedCount} foto och video} other{{formattedCount} foton och videor}}",
+  "@photosAndVideosCount": {
+    "description": "Delete impact row for Photos data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
+  "photosCount": "{count, plural, =0{0 foton} one{{count} foto} other{{count} foton}}",
+  "@photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "photosKeepRelativeTimeDifference": "Foton behåller relativ tidsskillnad",
+  "photosSharedByWillAppearHere": "Foton som delas av {email} visas här.",
+  "@photosSharedByWillAppearHere": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "a@test.test"
+      }
+    }
+  },
   "physicalRecords": "Sak",
   "physicalRecordsDescription": "Spara platser foer fysiska foeremaal.",
+  "pickCenterPoint": "Välj mittpunkt",
+  "picnicDays": "Picknickminnen",
   "pin": "Fäst",
   "pinLock": "Pinkodslås",
   "@pinLock": {
@@ -1946,10 +3048,20 @@
   "pinPerson": "Fäst person",
   "pinText": "Fäst",
   "plainHTML": "Ren HTML",
+  "plainText": "Oformaterad text",
+  "plansStartAt": "Abonnemang börjar på {price}/månad",
+  "@plansStartAt": {
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "$1.99"
+      }
+    }
+  },
   "playbackSpeed": "Uppspelningshastighet",
   "playfulKids": "Lekfulla barn",
   "playOriginal": "Spela original",
-  "playstoreSubscription": "PlayStore-prenumeration",
+  "playstoreSubscription": "PlayStore-abonnemang",
   "playStream": "Spela ström",
   "pleaseCheckPasswordAndTryAgain": "Var god kontrollera ditt lösenord och försök igen.",
   "pleaseCheckYourInternetConnectionAndTryAgain": "Kontrollera din internetanslutning och försök igen.",
@@ -1965,7 +3077,14 @@
     }
   },
   "pleaseEnterADescription": "Vänligen ange en beskrivning",
+  "pleaseEnterASubject": "Ange ett ämne",
+  "pleaseGrantPermissions": "Ge behörigheter",
   "pleaseLoginAgain": "Vänligen logga in igen",
+  "pleaseNamePersonInPeopleSectionFirst": "Namnge först en person i Personer-sektionen",
+  "@pleaseNamePersonInPeopleSectionFirst": {
+    "description": "Shown when manual tagging requires at least one named person."
+  },
+  "pleaseSelectQuickLinksToRemove": "Välj snabblänkar att ta bort",
   "pleaseSendTheLogsTo": "Vänligen skicka loggarna till \n{toEmail}",
   "@pleaseSendTheLogsTo": {
     "description": "Message asking user to send logs to email address",
@@ -1981,12 +3100,21 @@
     "description": "Message asking user to try again"
   },
   "pleaseVerifyDetails": "Kontrollera dina detaljer och försök igen",
+  "pleaseVerifyTheCodeYouHaveEntered": "Kontrollera koden du har angett",
   "pleaseWait": "Vänligen vänta...",
   "@pleaseWait": {
     "description": "Please wait message"
   },
   "pleaseWaitDeletingAlbum": "Vänta, tar bort album",
+  "pleaseWaitForSometimeBeforeRetrying": "Vänta en stund innan du försöker igen",
   "pleaseWaitThisWillTakeAWhile": "Vänligen vänta, detta kommer att ta ett tag.",
+  "poolDays": "Dagar vid poolen",
+  "posingWithThem": "Poserar med {name}",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "preparingLogs": "Förbereder loggar...",
   "preserveMore": "Bevara mer",
   "pressAndHoldToPlayVideoDetailed": "Tryck på bilden och håll in för att spela video",
@@ -1997,14 +3125,27 @@
   "@privacyPolicyTitle": {
     "description": "Privacy policy title"
   },
+  "privateSpaceForEveryMember": "Privat utrymme för varje medlem",
   "proceed": "Fortsätt",
   "processed": "Bearbetade",
+  "processingImport": "Bearbetar {folderName}...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
   "publicLinkEnabled": "Offentlig länk aktiverad",
   "qr": "QR",
   "qrCode": "QR-kod",
   "questionmark": "?",
   "queued": "Köad",
   "radius": "Radie",
+  "rainyDays": "Regniga dagar",
+  "raiseTicket": "Skapa supportärende",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
   "rateUs": "Betygsätt oss",
   "rateUsOnStore": "Betygsätt oss på {storeName}",
   "@rateUsOnStore": {
@@ -2013,12 +3154,54 @@
     }
   },
   "rawCodeData": "Rå koddata",
+  "readyToBackupSubtitle": "Dina foton synkroniseras i bakgrunden. Den första säkerhetskopieringen kan ta en stund.",
+  "readyToBackupTitle": "Redo att säkerhetskopiera",
+  "reasonForLeaving": "Orsak till att du lämnar",
+  "@reasonForLeaving": {
+    "description": "Label for account deletion reason picker"
+  },
+  "reassignedToName": "Omtilldelades till {name}",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "Tilldelar om...",
+  "reassignMe": "Tilldela om \"Mig\"",
+  "receivedAlbumsLabel": "Mottagna",
+  "@receivedAlbumsLabel": {
+    "description": "Albums tab filter label for albums received from other people"
+  },
+  "receiveRemindersOnBirthdays": "Påminnelser när någon fyller år",
+  "recent": "Senaste",
+  "reclaimSpace": "Frigör {sizeInMBorGB}",
+  "@reclaimSpace": {
+    "description": "Heading that shows how much device storage can be reclaimed",
+    "placeholders": {
+      "sizeInMBorGB": {
+        "example": "2.28 GB",
+        "type": "String"
+      }
+    }
+  },
   "recordLocation": "Plats",
   "recordLocationHint": "Var foervaras detta foeremaal?",
   "recordNameHint": "Namn paa det fysiska foeremaaalet",
   "recordNotes": "Anteckningar",
   "recordNotesHint": "Ytterligare information om foeremaaalet",
   "recordSavedSuccessfully": "Posten sparades",
+  "recordSavedToMultipleCollections": "Posten sparades i {count, plural, one{{count} samling} other{{count} samlingar}}",
+  "@recordSavedToMultipleCollections": {
+    "description": "Success message when record is saved to multiple collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "recover": "Återställ",
   "@recover": {
     "description": "Recover button label"
@@ -2026,6 +3209,44 @@
   "recoverAccount": "Återställ konto",
   "@recoverAccount": {
     "description": "Recover account button label"
+  },
+  "recoverAccountAfter": "Du kan återställa {email}s konto efter {time}.",
+  "@recoverAccountAfter": {
+    "description": "Message when recovery is waiting",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "recoverAccountDesc": "Du kan återställa {email}s konto om {days} dagar efter att återställningsprocessen har påbörjats.",
+  "@recoverAccountDesc": {
+    "description": "Description for recover account page when recovery not started",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryInitiated": "Återställning påbörjad",
+  "recoveryInitiatedDesc": "Du kan komma åt kontot om {days} dagar. En avisering skickas till {email}.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
   },
   "recoveryKey": "Återställningsnyckel",
   "@recoveryKey": {
@@ -2043,11 +3264,38 @@
   "@recoveryKeySaved": {
     "description": "Recovery key saved confirmation message"
   },
+  "recoveryKeySaveDescription": "Vi lagrar inte den här nyckeln. Spara nyckeln med 24 ord på en säker plats.",
+  "@recoveryKeySaveDescription": {
+    "description": "Recovery key save description"
+  },
+  "recoveryKeySaveShortDescription": "Spara nyckeln på en säker plats.",
   "recoveryKeySuccessBody": "Grymt! Din återställningsnyckel är giltig. Tack för att du verifierade.\n\nKom ihåg att hålla din återställningsnyckel säker med backups.",
   "recoveryKeyVerified": "Återställningsnyckel verifierad",
   "recoveryKeyVerifyReason": "Din återställningsnyckel är det enda sättet att återställa dina foton om du glömmer ditt lösenord. Du hittar din återställningsnyckel i Inställningar > Säkerhet.\n\nAnge din återställningsnyckel här för att verifiera att du har sparat den ordentligt.",
+  "recoveryReady": "Du kan nu återställa {email}s konto genom att ange ett nytt lösenord.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
   "recoverySuccessful": "Återställning lyckades!",
+  "recoveryTimeUpdated": "Återställningstiden har uppdaterats",
+  "@recoveryTimeUpdated": {
+    "description": "Toast message shown when recovery time is updated successfully"
+  },
+  "recoveryWaitTime": "Väntetid för återställning",
   "recoveryWaitTimeChangeWarning": "Att ändra det här kommer att avbryta alla pågående försök.",
+  "recoveryWaitTimeDescription": "Hur snart kan kontot återställas efter att den äldre återställningsuppsättningen har skannats?",
+  "recoveryWarning": "En betrodd kontakt försöker få åtkomst till ditt konto",
+  "recoveryWarningBody": "{email} försöker återställa ditt konto.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
   "recreatePasswordBody": "Denna enhet är inte tillräckligt kraftfull för att verifiera ditt lösenord, men vi kan återskapa det på ett sätt som fungerar med alla enheter.\n\nLogga in med din återställningsnyckel och återskapa ditt lösenord (du kan använda samma igen om du vill).",
   "@recreatePasswordBody": {
     "description": "Body text for recreate password dialog"
@@ -2069,6 +3317,8 @@
   "referralCodeHint": "Du kan anpassa den här koden upp till 3 gånger",
   "referrals": "Hänvisningar",
   "referralsAreCurrentlyPaused": "Hänvisningar är för närvarande pausade",
+  "referralStats": "Värvningsstatistik",
+  "referralStep1": "1. Dela din kod med vänner",
   "referralStep2": "2. De får {storageInGB} GB gratis vid registrering",
   "@referralStep2": {
     "placeholders": {
@@ -2087,10 +3337,15 @@
       "storageAmountInGB": {}
     }
   },
+  "referralStorageInfo": "Värvningar från betalande prenumeranter ger bonuslagring.\n\nDu kan använda lagring upp till abonnemangsgränsen. Uppgradera för att använda resten av den intjänade lagringen.",
+  "rejectRecovery": "Avvisa återställning",
   "rejectSuggestions": "Neka förslag",
   "related": "Relaterat",
   "remindToEmptyDeviceTrash": "Töm även \"Nyligen borttagen\" från \"Inställningar\" -> \"Lagring\" för att göra anspråk på det frigjorda utrymmet",
   "remindToEmptyEnteTrash": "Töm också din \"Papperskorg\" för att göra anspråk på frigjort utrymme",
+  "remoteImages": "Fjärrbilder",
+  "remoteThumbnails": "Fjärrminiatyrbilder",
+  "remoteVideos": "Fjärrvideor",
   "remove": "Ta bort",
   "removeAccess": "Ta bort aatkomst",
   "removeAlbumParticipantBody": "{userEmail} kommer att tas bort från detta delade album\n\nAlla bilder som lagts till av dem kommer också att tas bort från albumet",
@@ -2109,33 +3364,79 @@
   "@removeContact": {
     "description": "Button label to remove a trusted contact"
   },
+  "removeContactDesc": "Om du tar bort kontakten måste du skicka en ny inbjudan, och kontakten måste acceptera den igen.",
+  "@removeContactDesc": {
+    "description": "Description for remove contact confirmation dialog"
+  },
   "removeContactPhoto": "Ta bort kontaktbild",
+  "removeDuplicates": "Dubbletter",
+  "removeDuplicatesDesc": "Ta bort exakta dubbletter",
   "removeFromAlbum": "Ta bort från album",
   "removeFromAlbumTitle": "Ta bort från album?",
+  "removeFromFamily": "Ta bort från familjen",
   "removeFromFavorite": "Ta bort från favoriter",
-  "removeLink": "Radera länk",
+  "removeFromPersonQuestion": "Ta bort från personen?",
+  "removeLink": "Ta bort länk",
+  "removeMemberConfirmBody": "{email} förlorar åtkomsten till den delade lagringen.",
+  "@removeMemberConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
   "removeMemberConfirmTitle": "Ta bort medlem?",
   "removeParticipant": "Ta bort användaren",
   "@removeParticipant": {
     "description": "menuSectionTitle for removing a participant"
   },
+  "removePersonLabel": "Ta bort personetikett",
+  "removePersonTag": "Ta bort persontagg",
   "removePublicLink": "Ta bort publik länk",
+  "removePublicLinkConfirmation": "Detta tar bort den offentliga länken för åtkomst till \"{collectionName}\".",
+  "@removePublicLinkConfirmation": {
+    "description": "Confirmation message when removing public link",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Collection"
+      }
+    }
+  },
   "removePublicLinks": "Ta bort offentliga länkar",
-  "removeShareItemsWarning": "Utvalda foton kommer inte att vara tillgängliga för någon som tittar på detta album, förutom fotoägaren.",
+  "removeShareItemsWarning": "Markerade foton kommer inte att vara tillgängliga för någon som tittar på detta album, förutom fotoägaren.",
   "removeWithQuestionMark": "Ta bort?",
+  "removeYourselfDesc": "Om du tar bort dig själv som betrodd kontakt förlorar du åtkomsten till {email}s konto efter inaktivitetsperioden.",
+  "@removeYourselfDesc": {
+    "description": "Description for remove yourself as trusted contact confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "removingFromFavorites": "Tar bort från favoriter...",
   "removingFromImportant": "Tar bort fraan viktigt...",
   "rename": "Döp om",
   "renameAlbum": "Döp om album",
   "renameCollection": "Byt namn paa samling",
   "renameFile": "Döp om fil",
-  "renewsOn": "Prenumerationen förnyas på {endDate}",
+  "renewsOn": "Abonnemang förnyas den {endDate}",
   "@renewsOn": {
     "placeholders": {
       "endDate": {}
     }
   },
-  "renewSubscription": "Förnya prenumeration",
+  "renewSubscription": "Förnya abonnemang",
+  "repliedToAComment": "svarade på en kommentar",
+  "@repliedToAComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToYourComment": "svarade på din kommentar",
+  "@repliedToYourComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
   "reply": "Svara",
   "@reply": {
     "description": "Reply action button label"
@@ -2158,13 +3459,18 @@
     "description": "Label for reporting a bug"
   },
   "reportAnIssue": "Anmäl ett problem",
+  "requestAFeature": "Begär en funktion",
+  "resendCode": "Skicka koden igen",
+  "resendInvite": "Skicka inbjudan igen",
   "reset": "Återställ",
   "resetIgnoredFiles": "Återställ ignorerade filer",
+  "resetIgnoredFilesDescription": "Återställ de ignorerade filerna så att Ente kan försöka ladda upp dem igen.",
   "resetPasswordTitle": "Återställ lösenord",
   "@resetPasswordTitle": {
     "description": "Reset password title"
   },
   "resetToDefault": "Återställ till standard",
+  "restartAppToApplyChanges": "Starta om appen för att tillämpa ändringen",
   "@resetToDefault": {
     "description": "Button text to reset cover photo to default"
   },
@@ -2173,9 +3479,26 @@
     "description": "Display text for an action which triggers a restore of item from trash",
     "type": "text"
   },
+  "restoredItems": "{count, plural, one{{count} objekt har återställts} other{{count} objekt har återställts}}",
+  "@restoredItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "restoreToAlbum": "Återställ till album",
   "restoringFiles": "Återställer filer...",
+  "restoringItems": "Återställer...",
+  "resumableUploads": "Återupptagbara uppladdningar",
   "retry": "Försök igen",
+  "review": "Granska",
+  "reviewSuggestions": "Granska förslag",
+  "revoke": "Återkalla",
+  "revokeInvite": "Återkalla inbjudan",
+  "@revokeInvite": {
+    "description": "Button label to revoke a pending trusted contact invite"
+  },
   "revokeInviteConfirmBody": "Inbjudan till {email} kommer att avbrytas.",
   "@revokeInviteConfirmBody": {
     "placeholders": {
@@ -2185,14 +3508,58 @@
       }
     }
   },
+  "revokeInviteConfirmTitle": "Återkalla inbjudan?",
+  "revokeLegacyKit": "Återkalla Legacy-återställningsuppsättning",
   "right": "Höger",
+  "ritualAddedToAlbum": "Lades till i album",
+  "ritualAddedToAlbumWithName": "Lades till i {albumName}",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAddToAlbumFailure": "Det gick inte att lägga till foton i albumet: {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
+  },
+  "ritualAddTooltip": "Lägg till ritual",
   "ritualAlbumLabel": "Album",
+  "ritualAlbumMissing": "Ritualalbum saknas. Redigera ritualen för att ange ett album.",
+  "ritualAlbumNotSet": "Inget album har angetts",
   "ritualAlbumSelectionPlaceholder": "Välj album",
+  "ritualBackToList": "Tillbaka till ritualer",
+  "ritualCameraNotFound": "Ingen kamera hittades på den här enheten.",
+  "ritualCameraStartError": "Det gick inte att starta kameran. Försök igen.",
+  "ritualCaptureAtLeastOne": "Ta minst ett foto först.",
+  "ritualCaptureError": "Det gick inte att ta fotot. Försök igen.",
   "ritualChooseAlbumLabel": "Välj ett album",
+  "ritualChooseDaysLabel": "Välj dagar för ritualen",
+  "ritualCreateAction": "Skapa ritual",
+  "ritualCreateNewTitle": "Skapa ny ritual",
+  "ritualCreateYourOwn": "Skapa en egen ritual",
+  "ritualCustomKeyboardLabel": "Anpassad (tangentbord)",
+  "ritualDefaultCameraTitle": "Ta ett foto",
+  "ritualEdit": "Redigera ritual",
+  "ritualEditorLabel": "Ritualredigerare",
+  "ritualEmojiKeyboardHint": "Tryck för att öppna emoji-tangentbordet",
   "ritualEmojiUseAction": "Använd",
+  "ritualEnterDescription": "Ange en beskrivning",
+  "ritualEnterPrompt": "Ange din ritual",
+  "ritualGetDailyReminders": "Få dagliga påminnelser",
   "ritualNoAlbumsYet": "Inga album än",
+  "ritualNoMatchingAlbums": "Inga matchande album",
   "ritualNoPhotosYet": "Inga foton än",
   "ritualNotificationMessage": "Ta ett foto nu",
+  "ritualNotificationsOffHint": "Notiser är avstängda. Tryck på en dag för att slå på dem.",
+  "ritualOpenCameraTooltip": "Öppna ritualkamera",
   "ritualPhotoLimit": "Du kan lägga till upp till {maxPhotos, plural, one{# foto.} other{# foton.}}",
   "@ritualPhotoLimit": {
     "placeholders": {
@@ -2203,7 +3570,23 @@
     }
   },
   "ritualPickEmojiTitle": "Välj en emoji",
+  "ritualSearchEmpty": "Skapa en ritual för att hålla igång din fotovana.",
   "ritualSelectAlbumTitle": "Välj album",
+  "ritualSendReminderLabel": "Skicka påminnelse",
+  "ritualSetAlbumToLaunchCamera": "Ange ett album för denna ritual för att starta kameran.",
+  "ritualShareUnavailable": "Det går inte att dela just nu. Försök igen.",
+  "ritualStartNew": "Starta ny ritual",
+  "ritualStartNewDescription": "Skapa en ritual, bygg sviter och dela dina framsteg.",
+  "ritualsTitle": "Ritualer",
+  "ritualUntitled": "Namnlös ritual",
+  "ritualUpdate": "Uppdatera ritual",
+  "riverCruises": "Flodkryssningsvyer",
+  "roadtripWithThem": "Roadtrip med {name}",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "rotate": "Rotera",
   "sameperson": "Samma person?",
   "save": "Spara",
@@ -2217,6 +3600,7 @@
   "saveCollage": "Spara collage",
   "saveContact": "Spara kontakt",
   "saveCopy": "Spara kopia",
+  "saveFileDescription": "Ladda upp viktiga filer.",
   "saveFileTitle": "Fil",
   "saveKey": "Spara nyckel",
   "@saveKey": {
@@ -2231,6 +3615,7 @@
     "description": "Description text asking user if they want to save to storage or share with other apps"
   },
   "savePerson": "Spara person",
+  "saveToEnte": "Spara i Ente",
   "saveToLocker": "Spara till Locker",
   "saveYourRecoveryKeyIfYouHaventAlready": "Spara din återställningsnyckel om du inte redan har gjort det",
   "saving": "Sparar...",
@@ -2246,6 +3631,8 @@
   "@scanFilenamePrefix": {
     "description": "Prefix of the default filename for a scanned document PDF, e.g. 'Scan 13 Aug 2026, 14.30.pdf'"
   },
+  "scannerAutoCaptureOff": "Stäng av automatisk avbildning",
+  "scannerAutoCaptureOn": "Slå på automatisk avbildning",
   "scannerCaptureModeAuto": "Automatisk",
   "@scannerCaptureModeAuto": {
     "description": "Label on the scanner capture-mode toggle while automatic capture is on"
@@ -2254,13 +3641,37 @@
   "@scannerCaptureModeManual": {
     "description": "Label on the scanner capture-mode toggle while capture is manual (automatic capture off)"
   },
+  "scannerNotSupportedOnDevice": "Dokumentskanning stöds inte på den här enheten",
+  "scannerTorchOff": "Stäng av ficklampan",
+  "scannerTorchOn": "Slå på ficklampan",
+  "scannerCapture": "Avbilda",
+  "scannerPreparing": "Förbereder skannern...",
+  "scanProcessing": "Bearbetar skanningen...",
+  "scanPageOfTotal": "Sida {current} av {total}",
+  "@scanPageOfTotal": {
+    "description": "Page position indicator in the document scanner review screen",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "scanSaved": "Skanningen har sparats",
   "scanThisBarcodeWithnyourAuthenticatorApp": "Skanna denna streckkod med\ndin autentiseringsapp",
   "scheduleShare": "Schemalaegg delning",
   "search": "Sök",
   "searchAlbums": "Sök album",
   "searchAlbumsEmptySection": "Album",
+  "searchAllPeople": "Sök alla personer",
   "searchAndDiscovery": "Sök och upptäck",
+  "searchAndDiscoveryDesc": "Ansikten, platser, beskrivningar och mer",
   "searchByAlbumNameHint": "Albumnamn",
+  "searchDiscoverEmptySection": "Bilder visas här när bearbetningen och synkroniseringen är klar",
   "searchEmptyDescription": "Foersoek att soeka efter naagot annat.",
   "searchEmptyTitle": "Inga traeffar hittades",
   "searchEverywhereSubtitle": "Soek i alla samlingar och filer.",
@@ -2276,8 +3687,18 @@
   },
   "searchFileTypesAndNamesEmptySection": "Filtyper och namn",
   "searchHint": "Sök...",
+  "searchHint1": "Snabb sökning på enheten",
+  "searchHint2": "Fotodatum, beskrivningar",
   "searchHint3": "Album, filnamn och typer",
   "searchHint4": "Plats",
+  "searchHint5": "Kommer snart: Ansikten och magisk sökning ✨",
+  "searchLocationEmptySection": "Gruppera foton som har tagits inom en viss radie från ett foto",
+  "searchPeopleEmptySection": "Bjud in personer så visas alla foton som de delar med dig här",
+  "searchPersonsEmptySection": "Personer visas här när bearbetningen och synkroniseringen är klar",
+  "searchResultCameraMake": "Kameratillverkare",
+  "@searchResultCameraMake": {
+    "description": "Search result subtitle label for camera make matches"
+  },
   "searchResultCameraModel": "Kameramodell",
   "@searchResultCameraModel": {
     "description": "Search result subtitle label for camera model matches"
@@ -2296,6 +3717,10 @@
   "@searchResultDescription": {
     "description": "Search result subtitle label for description matches"
   },
+  "searchResultFileExtension": "Filtillägg",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
   "searchResultFileName": "Filnamn",
   "@searchResultFileName": {
     "description": "Search result subtitle label for file name matches"
@@ -2308,11 +3733,49 @@
   "@searchResultType": {
     "description": "Search result subtitle label for file type matches"
   },
+  "searchResultUploadedBy": "Uppladdad av",
+  "@searchResultUploadedBy": {
+    "description": "Search result subtitle label for uploader results"
+  },
+  "searchSectionsLengthMismatch": "Längden på avsnitten stämmer inte överens: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
   "searchSettings": "Sök inställningar",
+  "secondsCount": "{count, plural, one{{count} sekund} other{{count} sekunder}}",
+  "@secondsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
   "secret": "Säkerhetsnyckel",
   "secretCanNotBeEmpty": "Secret kan inte vara tomt",
   "security": "Säkerhet",
+  "securityDesc": "Kryptering, återställningsnycklar, applås och kontoskydd",
   "seeAllCollections": "Se alla samlingar",
+  "seePublicAlbumLinksInApp": "Visa offentliga albumlänkar i appen",
+  "selectAlbumsToBackUpToEnte": "Välj album att säkerhetskopiera till Ente",
+  "selectAlbumToLikePhoto": "Välj album för att gilla fotot",
+  "@selectAlbumToLikePhoto": {
+    "description": "Instruction for liking photo"
+  },
+  "selectAlbumToLikeVideo": "Välj album för att gilla videon",
+  "@selectAlbumToLikeVideo": {
+    "description": "Instruction for liking video"
+  },
   "selectAll": "Markera alla",
   "selectAllShort": "Alla",
   "@selectAllShort": {
@@ -2321,6 +3784,7 @@
   "selectALocation": "Välj en plats",
   "selectALocationFirst": "Välj en plats först",
   "selectBackupFolder": "Välj en mapp för säkerhetskopiering",
+  "selectCoverPhoto": "Välj omslagsfoto",
   "selectDate": "Välj datum",
   "selected": "vald",
   "selectedAlbums": "{count} markerade",
@@ -2340,6 +3804,15 @@
     }
   },
   "selectedFilesAreNotOnEnte": "Markerade filer är inte på Ente",
+  "selectedFilesBackedUpToEnte": "Dessa objekt tas bort från alla album. Du kan återställa dem från papperskorgen.",
+  "@selectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that are backed up to Ente."
+  },
+  "selectedFilesSavedOnDeviceOnly": "Objekt som inte är säkerhetskopierade. Ta bort dem permanent från enheten?",
+  "@selectedFilesSavedOnDeviceOnly": {
+    "description": "Delete confirmation message for selected items that exist only on the device."
+  },
+  "selectedItemsWillBePermanentlyDeletedAndCannotBeRecovered": "De valda objekten tas bort permanent och kan inte återställas.",
   "selectedItemsWillBeRemovedFromThisPerson": "Markerade objekt kommer tas bort från den här personen, men raderas inte från ditt bibliotek.",
   "selectedPhotos": "{count} markerade",
   "@selectedPhotos": {
@@ -2379,16 +3852,47 @@
   "selectMorePhotos": "Välj fler foton",
   "selectOneDateAndTime": "Välj ett datum och tid",
   "selectOneDateAndTimeForAll": "Välj ett datum och tid för alla",
+  "selectPerson": "Välj person",
+  "selectPersonToLinkToThisContact": "Välj en person för att fylla i kontakten automatiskt",
+  "selectReason": "Välj orsak",
+  "@selectReason": {
+    "description": "Placeholder for account deletion reason picker"
+  },
+  "selectStartOfRange": "Välj början av intervallet",
   "selectTime": "Välj tid",
   "selectYourFace": "Välj ditt ansikte",
+  "selfiesWithThem": "Selfier med {name}",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "send": "Skicka",
   "@send": {
     "description": "Label for send button"
+  },
+  "sendCountInvites": "{count, plural, =0{Skicka inbjudningar} one{Skicka {count} inbjudan} other{Skicka {count} inbjudningar}}",
+  "@sendCountInvites": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
   },
   "sendInvite": "Skicka inbjudan",
   "sendLink": "Skicka länk",
   "sendLogsDescription": "Detta kommer att skicka över loggar för att hjälpa oss felsöka ditt problem. Även om vi vidtar försiktighetsåtgärder för att säkerställa att känslig information inte loggas, uppmuntrar vi dig att se dessa loggar innan du delar dem.",
   "sendQrCode": "Skicka QR-kod",
+  "sendToEmail": "Skicka till {email}",
+  "@sendToEmail": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
   "serverEndpoint": "Serverns slutpunkt",
   "@serverEndpoint": {
     "description": "Label for server endpoint setting"
@@ -2397,6 +3901,11 @@
   "@sessionExpired": {
     "description": "Error message when session has expired"
   },
+  "sessionIdMismatch": "Sessionens ID stämmer inte överens",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAContactPhoto": "Ange kontaktfoto",
   "setAPassword": "Ange ett lösenord",
   "setAs": "Sätt som",
   "setAsMyDefaultChoice": "Ställ in som mitt standard val",
@@ -2405,6 +3914,14 @@
   },
   "setBackupFolder": "Ange mapp för säkerhetskopiering",
   "setBackupPassword": "Ange lösenord för säkerhetskopia",
+  "setCover": "Ange omslag",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "Ange",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
   "setNewPassword": "Ställ in nytt lösenord",
   "@setNewPassword": {
     "description": "Set new password title"
@@ -2417,13 +3934,21 @@
   "@setPasswordTitle": {
     "description": "Set password title"
   },
+  "setRadius": "Ange radie",
+  "setSelectedPhoto": "Ange valt foto",
   "settings": "Inställningar",
   "setupComplete": "Konfiguration slutförd",
   "setupFirstAccount": "Konfigurera ditt första\nkonto",
+  "setupLegacy": "Konfigurera Legacy",
+  "@setupLegacy": {
+    "description": "Short action label on the home banner that opens Legacy setup"
+  },
   "setupLegacyDescription": "Välj 3 personer du litar på. 2 av dem kan tillsammans låsa upp din information – aldrig en ensam.",
+  "setupYourLegacy": "Konfigurera din Legacy",
   "share": "Dela",
   "shareALink": "Dela en länk",
   "shareAnAlbum": "Dela ett album",
+  "shareCodeEarnStorage": "Fördubbla din lagring i Ente",
   "shareCodes": "Dela koder",
   "shareCodesDuration": "Välj den tidsperiod under vilken du vill dela koder.",
   "shareCollection": "Dela samling",
@@ -2443,19 +3968,86 @@
     }
   },
   "sharedPhotoNotifications": "Nya delade foton och album",
+  "sharedPhotoNotificationsExplanation": "Nya foton och album som du ingår i eller som delas med dig",
   "sharedWith": "Delad med",
+  "shareItemCount": "{count, plural, one{Dela {count} objekt} other{Dela {count} objekt}}",
+  "@shareItemCount": {
+    "description": "Action to share the selected number of memory items",
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    }
+  },
   "shareKey": "Dela nyckel",
+  "shareLegacyDescription": "Skicka varje kort till den person som det är avsett för. Inget enskilt kort fungerar ensamt.",
   "shareLink": "Dela länk",
   "shareMemory": "Dela minne",
-  "shareThisLink": "Denna laenk ger alla som tar emot den aatkomst till ditt objekt. Du kan ta bort aatkomsten naer som helst genom att radera laenken.",
+  "shareMyVerificationID": "Här är mitt verifierings-ID: {verificationID} för ente.com.",
+  "@shareMyVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareNotSupportedForSharedFiles": "Det går inte att dela delade filer",
+  "shareStorageWith5Members": "Dela lagring med 5 medlemmar",
+  "shareTextConfirmOthersVerificationID": "Hej, kan du bekräfta att detta är ditt verifierings-ID för ente.com: {verificationID}",
+  "@shareTextConfirmOthersVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareTextRecommendUsingEnte": "Ladda ner Ente så kan vi enkelt dela filer i originalkvalitet\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForFamily": "Ladda ner Ente så att jag kan lägga till dig i mitt familjeabonnemang\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForPhotos": "Ladda ner Ente så kan vi enkelt dela foton och videor i originalkvalitet\n\nhttps://ente.com",
+  "shareTextReferralInvite": "Få 20 GB gratis med Ente Photos! Ladda ner appen på https://ente.com/invite och använd koden {referralCode}.",
+  "@shareTextReferralInvite": {
+    "placeholders": {
+      "referralCode": {}
+    }
+  },
+  "shareThisLink": "Länken ger åtkomst till objektet för alla som tar emot den. Du kan ta bort åtkomsten när som helst genom att radera länken.",
   "shareWithNonenteUsers": "Dela med icke-Ente användare",
+  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Dela med specifika personer} one{Delas med {numberOfPeople} person} other{Delas med {numberOfPeople} personer}}",
+  "@shareWithPeopleSectionTitle": {
+    "placeholders": {
+      "numberOfPeople": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "shareYourFeedbackHere": "Dela din återkoppling här",
+  "@shareYourFeedbackHere": {
+    "description": "Placeholder for optional account deletion feedback"
+  },
+  "shareYourLegacy": "Dela din Legacy",
+  "shareYourLegacyBannerDescription": "Hjälp personer du tycker om att få åtkomst till viktig information om du inte kan göra det.",
+  "@shareYourLegacyBannerDescription": {
+    "description": "Description of the home banner prompting the user to set up Legacy"
+  },
+  "shareYourLegacyBannerTitle": "Dela din Legacy",
+  "@shareYourLegacyBannerTitle": {
+    "description": "Title of the home banner prompting the user to set up Legacy"
+  },
+  "shareYourSubscription": "Dela ditt abonnemang med nära och kära",
   "sharing": "Delar...",
+  "sharingAndCollaboration": "Delning och samarbete",
+  "sharingAndCollaborationDesc": "Album, länkar och familjeabonnemang",
+  "shiftDatesAndTime": "Flytta datum och tid",
   "shouldHideCode": "Dölj koder",
+  "shouldRemoveFilesSmartAlbumsDesc": "Ska filer som är kopplade till personen och tidigare valts i smarta album tas bort?",
+  "showIgnored": "Visa ignorerade",
+  "showInMemories": "Visa i minnen",
   "showLargeIcons": "Visa stora ikoner",
+  "showLessFaces": "Visa färre ansikten",
   "showMemories": "Visa minnen",
   "showMoreFaces": "Visa fler ansikten",
   "showPerson": "Visa person",
   "showQRAuthMessage": "Autentisera för att visa QR-kod",
+  "showTextOnWidget": "Visa text på widget",
+  "shuffle": "Blanda",
   "sigInBackupReminder": "Ente kommer automatiskt säkerhetskopiera koder efter inloggning.\n\nVi rekommenderar fortfarande att exportera koder som en extra säkerhetskopia.",
   "signInToBackup": "Logga in för att säkerhetskopiera dina koder",
   "signOutFromOtherDevices": "Logga ut från andra enheter",
@@ -2486,10 +4078,32 @@
     }
   },
   "singIn": "Logga in",
+  "singleFileDeleteFromDevice": "Objektet är inte säkerhetskopierat. Ta bort det permanent från enheten?",
+  "@singleFileDeleteFromDevice": {
+    "description": "Delete confirmation message for a single item that exists only on the device."
+  },
+  "singleFileInBothLocalAndRemote": "Objektet finns både på enheten och i Ente.",
+  "@singleFileInBothLocalAndRemote": {
+    "description": "Delete confirmation message for a single item that exists both on the device and in Ente."
+  },
+  "singleFileInRemoteOnly": "Objektet tas bort från alla album. Du kan återställa det från papperskorgen.",
+  "@singleFileInRemoteOnly": {
+    "description": "Delete confirmation message for a single item that exists only in Ente."
+  },
   "skip": "Hoppa över",
+  "skippedFiles": "Överhoppade filer",
+  "slideshow": "Bildspel",
+  "slideshowSettings": "Bildspelsinställningar",
   "smartMemories": "Smarta minnen",
+  "smartSuggestions": "Smarta förslag",
   "snowAdventures": "Vinteräventyr",
+  "socialNotifications": "Gilla-markeringar och kommentarer",
+  "socialNotificationsExplanation": "Gilla-markeringar på dina foton och kommentarer på album som du ingår i",
   "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Någon som delar album med dig bör se samma ID på deras enhet.",
+  "someSelectedFilesBackedUpToEnte": "Dessa objekt finns både på enheten och i Ente.",
+  "@someSelectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that exist both on the device and in Ente."
+  },
   "somethingWentWrong": "Något gick fel",
   "somethingWentWrongMessage": "Något gick fel, vänligen försök igen",
   "somethingWentWrongParsingCode": "Vi kunde inte tolka {x} koder.",
@@ -2503,29 +4117,74 @@
     "description": "Generic error message"
   },
   "sorry": "Förlåt",
+  "sorryBackupFailedDesc": "Tyvärr gick det inte att säkerhetskopiera filen just nu. Vi försöker igen senare.",
   "sorryCouldNotAddToFavorites": "Tyvärr, kunde inte lägga till i favoriterna!",
-  "sorryCouldNotRemoveFromFavorites": "Tyvärr kunde inte ta bort från favoriter!",
+  "sorryCouldNotRemoveFromFavorites": "Förlåt, kunde inte ta bort från favoriter!",
   "sorryTheCodeYouveEnteredIsIncorrect": "Tyvärr, den kod som du har angett är felaktig",
   "@sorryTheCodeYouveEnteredIsIncorrect": {
     "description": "Detailed error message when code is incorrect"
   },
+  "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "Tyvärr kunde vi inte skapa säkra nycklar på den här enheten.\n\nRegistrera dig från en annan enhet.",
+  "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
+    "description": "Error message for insecure device"
+  },
+  "sorryWeHadToPauseYourBackups": "Tyvärr var vi tvungna att pausa dina säkerhetskopieringar",
   "sort": "Sortera",
   "sortAlbumsBy": "Sortera efter",
   "sortAToZ": "A–Z",
   "sortNewestFirst": "Nyast först",
   "sortOldestFirst": "Äldst först",
   "sortZToA": "Z–A",
+  "sportsAction": "Matchdags",
+  "sportsWithThem": "Sport med {name}",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnThem": "Fokus på {name}",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnYourself": "Fokus på dig själv",
   "stargazing": "Under stjärnorna",
   "startBackup": "Starta säkerhetskopiering",
   "startRecovery": "Starta återställning",
+  "startRecoveryDesc": "Vill du verkligen påbörja återställningen av {email}s konto?",
+  "@startRecoveryDesc": {
+    "description": "Description for start recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "startSnappingYourPhotosWillShowUpHere": "Börja ta bilder så visas dina foton här",
+  "startWithAddingPhotosOrFamiliarFaces": "Börja med att lägga till\nfoton eller välbekanta ansikten",
+  "startWithLatestPhotos": "Börja med de senaste fotona",
   "status": "Status",
+  "sticker": "Klistermärke",
+  "stopCastingBody": "Vill du sluta casta?",
+  "stopCastingTitle": "Sluta casta",
   "storage": "Lagring",
+  "storageAndPlans": "Lagring och abonnemang",
+  "storageAndPlansDesc": "Abonnemang, fakturering och lagringsanvändning",
   "storageBreakupFamily": "Familj",
   "storageBreakupYou": "Du",
   "@storageBreakupYou": {
     "description": "Label to indicate how much storage you are using when you are part of a family plan"
   },
+  "storageClaimed": "{storageAmountInGB} GB har tagits i anspråk!",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "storageLimit": "Lagringsgräns",
   "storageLimitExceeded": "Lagringsgräns överskriden",
+  "storageLimitExplanation": "Ange den största mängd lagring som medlemmen får använda. Uppladdning går inte när gränsen har nåtts.",
   "storageUsedOfTotal": "{used} av {total} använt",
   "@storageUsedOfTotal": {
     "placeholders": {
@@ -2540,18 +4199,27 @@
     }
   },
   "streamDetails": "Strömdetaljer",
+  "streetArt": "Gatukonstberättelser",
+  "streetFood": "Gatumat",
   "strongPassword": "Starkt lösenord",
   "strongStrength": "Starkt",
   "@strongStrength": {
     "description": "Strong password strength label"
   },
+  "subAlreadyLinkedErrMessage": "Ditt {id} är redan kopplat till ett annat Ente-konto.\nKontakta supporten om du vill använda ditt {id} med det här kontot.",
+  "@subAlreadyLinkedErrMessage": {
+    "placeholders": {
+      "id": {}
+    }
+  },
+  "subject": "Ämne",
   "submit": "Skicka",
   "subscribe": "Prenumerera",
-  "subscribeToChangeLinkSetting": "Du behöver ett betalt abonnemang för att ändra denna länkinställning.",
-  "subscribeToEnableSharing": "Du behöver en aktiv betald prenumeration för att möjliggöra delning.",
-  "subscription": "Prenumeration",
-  "subscriptionRequiredForSharing": "Du behoever en betald prenumeration foer att dela laenkar",
-  "subWillBeCancelledOn": "Din prenumeration kommer att avslutas på {endDate}",
+  "subscribeToChangeLinkSetting": "Du behöver ett betalt abonnemang för att ändra länkinställningen.",
+  "subscribeToEnableSharing": "Du behöver ett aktivt betalt abonnemang för att aktivera delning.",
+  "subscription": "Abonnemang",
+  "subscriptionRequiredForSharing": "Du behöver ett betalt abonnemang för att dela länkar",
+  "subWillBeCancelledOn": "Ditt abonnemang kommer att avslutas den {endDate}",
   "@subWillBeCancelledOn": {
     "placeholders": {
       "endDate": {}
@@ -2559,8 +4227,11 @@
   },
   "success": "Lyckades",
   "successfullyArchived": "Arkivering klar",
+  "successfullyHid": "Doldes",
   "successfullyUnarchived": "Arkivering ångrad",
+  "successfullyUnhid": "Visades igen",
   "suggestDeletion": "Föreslå radering",
+  "suggestDeletionDescription": "Markerade foton kommer tas bort från albumet. Fotoägarna får även ett förslag att granska och radera fotona.",
   "suggestFeatures": "Föreslå funktioner",
   "suggestions": "Förslag",
   "sunrise": "På horisonten",
@@ -2592,11 +4263,25 @@
   "@tapToUpload": {
     "description": "Shown in upload icon widet, inside a tooltip."
   },
+  "tapToUploadIsIgnoredDue": "Tryck för att ladda upp. Uppladdningen ignoreras för närvarande på grund av {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
   "tellUsWhatYouThink": "Berätta vad du tycker",
   "tempErrorContactSupportIfPersists": "Det ser ut som om något gick fel. Försök igen efter en stund. Om felet kvarstår, vänligen kontakta vår support.",
   "terminate": "Avsluta",
   "@terminate": {
     "description": "Terminate button label"
+  },
+  "terminateSession": "Avsluta sessionen?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
   },
   "termsOfServicesTitle": "Villkor",
   "@termsOfServicesTitle": {
@@ -2604,7 +4289,10 @@
   },
   "thankYou": "Tack",
   "thankYouForSubscribing": "Tack för att du prenumererar!",
+  "theLinkYouAreTryingToAccessHasExpired": "Länken du försöker öppna har upphört att gälla.",
   "theme": "Tema",
+  "thePersonGroupsWillNotBeDisplayed": "Persongrupperna visas inte längre i Personer-sektionen. Foton påverkas inte.",
+  "thePersonWillNotBeDisplayed": "Personen visas inte längre i Personer-sektionen. Foton påverkas inte.",
   "theRecoveryKeyYouEnteredIsIncorrect": "Återställningsnyckeln du angav är felaktig",
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
@@ -2637,6 +4325,7 @@
   "thisIsYourVerificationId": "Detta är ditt verifierings-ID",
   "thisMonth": "Denna månad",
   "thisWeek": "Denna vecka",
+  "thisWeekThroughTheYears": "Den här veckan genom åren",
   "thisWeekXYearsAgo": "{count, plural, one{Den här veckan {count} år sedan} other{Den här veckan {count} år sedan}}",
   "@thisWeekXYearsAgo": {
     "placeholders": {
@@ -2651,7 +4340,21 @@
   "@thisWillLogYouOutOfThisDevice": {
     "description": "Warning message for logging out of current device"
   },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "Detta gör datumet och tiden lika för alla valda foton.",
   "thisYear": "I år",
+  "throughTheYears": "{dateFormat} genom åren",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "throwbackWithThem": "Tillbakablick med {name}",
+  "@throwbackWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "timePerPhoto": "Tid per foto",
   "title": "Titel",
   "todaysLogs": "Dagens loggar",
   "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "För att aktivera applås, vänligen ställ in enhetens lösenord eller skärmlås i systeminställningarna.",
@@ -2665,6 +4368,7 @@
   },
   "totalSize": "Total storlek",
   "trash": "Papperskorg",
+  "restoreOrPermanentlyDeleteItems": "Återställ eller ta bort objekt permanent",
   "trashClearedSuccessfully": "Papperskorgen tömdes",
   "trashCode": "Ta bort kod?",
   "trashCodeMessage": "Är du säker på att du vill ta bort koden för {account}?",
@@ -2673,11 +4377,62 @@
       "account": {}
     }
   },
+  "trashDaysLeft": "{count, plural, =0{Snart} one{{count} dag} other{{count} dagar}}",
+  "@trashDaysLeft": {
+    "description": "Text to indicate number of days remaining before permanent deletion",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
   "trashIsEmpty": "Papperskorgen är tom",
+  "trim": "Beskär",
+  "tripInYear": "Resa under {year}",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "Resa till {location}",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "tropicalParadise": "Tropiska utflykter",
+  "troubleshooting": "Felsökning",
+  "troubleshootingDesc": "Vanliga problem och deras lösningar",
+  "trustedContactAccepted": "Du har lagt till {email} som betrodd kontakt. Personen har accepterat din inbjudan.",
+  "@trustedContactAccepted": {
+    "description": "Description shown when a trusted contact has accepted the invite",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContactInvitePending": "Du har bjudit in {email} att bli en betrodd kontakt. Personen har ännu inte accepterat inbjudan.",
+  "@trustedContactInvitePending": {
+    "description": "Description shown when a trusted contact invite is pending",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
   "trustedContacts": "Betrodda kontakter",
+  "trustedContactsEmptyDescription": "Utse en annan Ente-användare till betrodd kontakt för att återställa ditt konto",
   "trustedContactStatusAccepted": "Accepterad",
   "@trustedContactStatusAccepted": {
     "description": "Short status label shown for an accepted trusted contact"
+  },
+  "trustedContactStatusPending": "Väntar",
+  "@trustedContactStatusPending": {
+    "description": "Short status label shown for a pending trusted contact invite"
   },
   "tryAgain": "Försök igen",
   "@tryAgain": {
@@ -2694,32 +4449,69 @@
     "description": "Two-factor authentication title"
   },
   "twofactorSetup": "Tvåfaktorskonfiguration",
+  "twoFAVerification": "Tvåfaktorsverifiering",
   "type": "Typ",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "Galleritypen {galleryType} stöds inte vid namnbyte",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unableToCheckForUpdatesRightNow": "Det går inte att söka efter uppdateringar just nu",
+  "unableToExtractFileInformation": "Det gick inte att hämta information från filen",
   "unarchive": "Ångra arkivering",
   "@unarchive": {
     "description": "Action of 'Unarchiving' an element"
   },
   "unarchiveAlbum": "Ångra arkivering av album",
   "unarchiving": "Ångrar arkivering...",
+  "unavailableReferralCode": "Den här koden används redan",
   "uncategorized": "Okategoriserade",
+  "uncategorizedItemsWillShowUpHere": "Okategoriserade objekt visas här",
   "undo": "Ångra",
   "unhide": "Visa",
+  "unhideToAlbum": "Visa i album",
+  "unhiding": "Visar igen...",
+  "unhidingFilesToAlbum": "Visar filer igen i album",
   "unimportant": "Oviktig",
-  "unlock": "Lås upp",
+  "unlock": "lås upp",
   "@unlock": {
     "description": "Short action label used as the system authentication reason when unlocking the app"
   },
+  "unnamedCollection": "Namnlös samling",
+  "unnamedPeopleDoingSomethingTogether": "Gör något tillsammans",
+  "unnamedPeopleSpotlight": "Ett välbekant ansikte",
+  "unnamedPeopleThrowbackTogether": "Tillbakablick tillsammans",
+  "unnamedPeopleYouAndThem": "Ni två",
+  "unmuteAudio": "Slå på ljud",
+  "unpin": "Ta bort fästning",
   "unpinnedCodeMessage": "{code} har lösgjorts",
   "@unpinnedCodeMessage": {
     "placeholders": {
       "code": {}
     }
   },
+  "unpinnedCount": "{count, plural, one{Tog bort fästning från {count} objekt} other{Tog bort fästning från {count} objekt}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "unpinPerson": "Ta bort fästning av person",
   "unpinText": "Ångra fäst",
-  "unsavedNoteChangesDescription": "Du har osparade aendringar i denna anteckning. Om du gaar tillbaka nu kommer de att gaa foerlorade.",
-  "unsavedNoteChangesTitle": "Kassera aendringar?",
+  "unsavedChangesDescription": "Du har osparade ändringar. Om du går tillbaka nu går de förlorade.",
+  "unsavedNoteChangesDescription": "Du har osparade ändringar i den här anteckningen. Om du går tillbaka nu kommer de att gå förlorade.",
+  "unsavedNoteChangesTitle": "Kasta ändringar?",
   "unselectAll": "Avmarkera alla",
-  "untitled": "Namnloes",
+  "untitled": "Namnlös",
   "updateAvailable": "Uppdatering tillgänglig",
   "updateBackupPassword": "Uppdatera lösenord för säkerhetskopiering",
   "updated": "Uppdaterad",
@@ -2745,24 +4537,24 @@
     }
   },
   "uploadError": "Uppladdningsfel",
-  "uploadFileCountLimitErrorBody": "Du har naatt din filgraens. Uppgradera till en betald plan foer mer lagring.",
+  "uploadFileCountLimitErrorBody": "Du har nått din filgräns. Uppgradera till en betald plan för mer lagringsutrymme.",
   "@uploadFileCountLimitErrorBody": {
     "description": "Body shown when uploads fail because the locker already has the maximum file count"
   },
-  "uploadFileCountLimitErrorTitle": "Filgraensen naedd",
+  "uploadFileCountLimitErrorTitle": "Filgräns nådd",
   "@uploadFileCountLimitErrorTitle": {
     "description": "Title shown when uploads fail because the locker already has the maximum file count"
   },
-  "uploadFileCountLimitErrorToast": "Aatgaerden misslyckades. Du har naatt din filgraens.",
+  "uploadFileCountLimitErrorToast": "Åtgärd misslyckades. Du har nått din filgräns.",
   "@uploadFileCountLimitErrorToast": {
     "description": "Toast shown when info items fail to save due to hitting the file count limit"
   },
   "uploadFiles": "Ladda upp objekt",
-  "uploadFileTooLargeErrorBody": "Denna fil aer stoerre aen den maximala uppladdningsstorleken paa 10GB.",
+  "uploadFileTooLargeErrorBody": "Den här filer är större än den högst stödda uppladningsstorleken på 10 GB.",
   "@uploadFileTooLargeErrorBody": {
     "description": "Body shown when uploads fail because the file exceeds the supported size"
   },
-  "uploadFileTooLargeErrorTitle": "Filen aer foer stor",
+  "uploadFileTooLargeErrorTitle": "Filen är för stor",
   "@uploadFileTooLargeErrorTitle": {
     "description": "Title shown when uploads fail because the file exceeds the supported size"
   },
@@ -2777,6 +4569,15 @@
     }
   },
   "uploadingSingleMemory": "Bevarar 1 minne...",
+  "uploadIsIgnoredDueToIgnorereason": "Uppladdningen ignoreras på grund av {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
   "uploadStorageLimitErrorBody": "Du har slut på lagringsutrymme. Frigör lagringsutrymme för att fortsätta ladda upp.",
   "@uploadStorageLimitErrorBody": {
     "description": "Body shown when uploads fail due to running out of storage"
@@ -2785,22 +4586,47 @@
   "@uploadStorageLimitErrorTitle": {
     "description": "Title shown when uploads fail due to running out of storage"
   },
+  "uploadSubscriptionExpiredErrorBody": "Ditt Ente Photos-abonnemang har gått ut. Förnya abonnemanget för att fortsätta ladda upp.",
+  "@uploadSubscriptionExpiredErrorBody": {
+    "description": "Body shown when uploads fail because the Photos subscription is expired"
+  },
+  "uploadSubscriptionExpiredErrorTitle": "Abonnemang har gått ut",
+  "@uploadSubscriptionExpiredErrorTitle": {
+    "description": "Title shown when uploads fail because the Photos subscription is expired"
+  },
+  "usable": "användbar",
   "usageFamily": "Familj",
+  "usageYou": "Du",
   "useAsCover": "Använd som omslag",
-  "usedSpace": "Använt utrymme",
+  "usedSpace": "Använt lagringsutrymme",
+  "usedYourCode": "använde din kod",
+  "useMLToFindSimilarImages": "Ta bort objekt som liknar varandra",
   "useOffline": "Använd utan säkerhetskopior",
   "useRecoveryKey": "Använd återställningsnyckel",
   "@useRecoveryKey": {
     "description": "Use recovery key button label"
   },
-  "username": "Anvaendarnamn",
+  "username": "Användarnamn",
   "usernameHint": "Inloggnings-ID eller e-post",
-  "useSelectedPhoto": "Använd valt foto",
+  "useSelectedPhoto": "Använd markerat foto",
+  "usingStorage": "Använder {amount}",
+  "@usingStorage": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
   "validTill": "Giltig till {endDate}",
   "@validTill": {
     "placeholders": {
       "endDate": {}
     }
+  },
+  "verificationFailedPleaseTryAgain": "Verifiering misslyckades. Vänligen försök igen",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
   },
   "verify": "Verifiera",
   "@verify": {
@@ -2813,23 +4639,62 @@
   "verifyIDLabel": "Verifiera",
   "verifying": "Verifierar...",
   "verifyingRecoveryKey": "Verifierar återställningsnyckel...",
-  "verifyPassword": "Bekräfta lösenord",
+  "verifyPassword": "Verifiera lösenord",
   "@verifyPassword": {
     "description": "Verify password button label"
   },
+  "videoAlreadyInQueue": "Videofilen finns redan i kön",
+  "videoExportFailed": "Det gick inte att skapa videon. Vänligen försök igen.",
+  "videoExportSuccess": "Videon skapades på {path}",
+  "@videoExportSuccess": {
+    "description": "Toast shown when a video export completes, mentioning the filesystem path.",
+    "placeholders": {
+      "path": {
+        "description": "File path where the exported video was written",
+        "type": "String",
+        "example": "/tmp/ente_export.mp4"
+      }
+    }
+  },
   "videoInfo": "Videoinformation",
+  "videoPreviewAlreadyExists": "Förhandsvisningen av videon finns redan",
   "videos": "Videor",
+  "videoStreaming": "Strömningsbara videor",
+  "videoStreamingDescriptionLine1": "Spela upp videor direkt på valfri enhet.",
+  "videoStreamingDescriptionLine2": "Aktivera för att bearbeta videoströmmar på den här enheten.",
+  "videoStreamingNote": "Endast videor från de senaste 60 dagarna och kortare än en minut bearbetas på den här enheten. För äldre eller längre videor aktiverar du strömning i skrivbordsappen.",
   "viewActiveSessions": "Visa aktiva sessioner",
+  "viewAddOnButton": "Visa tillägg",
   "viewAllExifData": "Visa all EXIF-data",
+  "viewAllHelpTopics": "Visa alla hjälpavsnitt",
   "viewer": "Bildvy",
+  "viewersSuccessfullyAdded": "{count, plural, =0{Inga visningsbehöriga lades till} one{{count} visningsbehörig lades till} other{{count} visningsbehöriga lades till}}",
+  "@viewersSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of viewers that were successfully added."
+  },
   "viewLargeFiles": "Stora filer",
+  "viewLargeFilesDesc": "Identifiera objekt som använder mest utrymme",
   "viewLogs": "Visa loggar",
   "@viewLogs": {
     "description": "Button to view logs"
   },
   "viewLogsAction": "Visa loggar",
+  "viewPersonToUnlink": "Visa {name} för att ta bort kopplingen",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewPlans": "Visa abonnemang",
   "viewRawCodes": "Visa råa koder",
   "viewRecoveryKey": "Visa återställningsnyckel",
+  "vintageVibes": "Vintagekänsla",
   "visitWebToManage": "Vänligen besök {webUrl} för att hantera ditt abonnemang",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -2846,11 +4711,14 @@
   },
   "waitingForWifi": "Väntar på WiFi...",
   "warning": "Varning",
+  "waterfalls": "Jagande vattenfall",
   "weakStrength": "Svagt",
   "@weakStrength": {
     "description": "Weak password strength label"
   },
   "weAreOpenSource": "Vi har öppen källkod!",
+  "weddingMoments": "Bröllopsminnen",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Vi stödjer inte redigering av foton och album som du inte äger ännu",
   "weHaveSentCode": "Vi har skickat en kod till {email}",
   "@weHaveSentCode": {
     "placeholders": {
@@ -2875,6 +4743,7 @@
   "@whyAreYouLeaving": {
     "description": "Heading asking why the user is deleting their account"
   },
+  "widgets": "Widgetar",
   "wildlife": "In i vildmarken",
   "wishThemAHappyBirthday": "Önska {name} grattis på födelsedagen! 🎉",
   "@wishThemAHappyBirthday": {
@@ -2882,7 +4751,7 @@
       "name": {}
     }
   },
-  "yearly": "Årsvis",
+  "yearly": "Årligen",
   "@yearly": {
     "description": "The text to display for yearly plans",
     "type": "text"
@@ -2892,6 +4761,10 @@
     "placeholders": {
       "count": {}
     }
+  },
+  "yearShort": "år",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
   },
   "yes": "Ja",
   "yesCancel": "Ja, avbryt",
@@ -2917,7 +4790,7 @@
       }
     }
   },
-  "yesDiscardChanges": "Ja, avfärda ändringarna",
+  "yesDiscardChanges": "Ja, kasta ändringar",
   "yesIgnore": "Ja, ignorera",
   "yesLogout": "Ja, logga ut",
   "@yesLogout": {
@@ -2926,6 +4799,8 @@
   "yesRemove": "Ja, ta bort",
   "yesRenew": "Ja, förnya",
   "yesResetPerson": "Ja, återställ person",
+  "yesShowPeople": "Ja, visa personer",
+  "yesShowPerson": "Ja, visa personen",
   "you": "Du",
   "youAndThem": "Du och {name}",
   "@youAndThem": {
@@ -2934,6 +4809,7 @@
     }
   },
   "youAreOnTheLatestVersion": "Du är på den senaste versionen",
+  "youCannotAddYourselfAsLegacyContact": "Du kan inte lägga till dig själv som Legacy-kontakt",
   "youCannotDowngradeToThisPlan": "Du kan inte nedgradera till den här planen",
   "youCannotShareWithYourself": "Du kan inte dela med dig själv",
   "youHaveNoFileSuggestedForDeletion": "Du har inga filer som har föreslagits för borttagning",
@@ -2949,11 +4825,14 @@
     }
   },
   "yourMap": "Din karta",
+  "yourPhotosLookUnique": "Dina foton ser unika ut",
+  "yourPlanSupportsFamily": "Din prenumeration har redan stöd för familj",
   "yourPlanWasSuccessfullyDowngraded": "Din plan har nedgraderats",
   "yourPlanWasSuccessfullyUpgraded": "Din plan uppgraderades framgångsrikt",
   "yourPurchaseWasSuccessful": "Ditt köp lyckades",
+  "yourReferralCode": "Din värvningskod",
   "yourSubscriptionHasExpired": "Ditt abonnemang har gått ut",
-  "yourSubscriptionWasUpdatedSuccessfully": "Din prenumeration har uppdaterats",
+  "yourSubscriptionWasUpdatedSuccessfully": "Ditt abonnemang har uppdaterats",
   "yourTrashIsEmpty": "Din papperskorg är tom",
   "yourVerificationCodeHasExpired": "Din verifieringskod har upphört att gälla",
   "@yourVerificationCodeHasExpired": {
@@ -2961,7 +4840,45 @@
   },
   "youveNoDuplicateCodesThatCanBeCleared": "Du har inga dubbla koder som kan rensas",
   "youveNoDuplicateFilesThatCanBeCleared": "Du har inga dubbletter som kan rensas",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "Det finns inga filer i albumet som kan raderas",
   "zoomOutToSeePhotos": "Zooma ut för att se foton",
+  "backupPausedFreeUpDeviceStorage": "Säkerhetskopieringen är pausad. Frigör lagringsutrymme på den här enheten för att återuppta den.",
+  "cameraPermissionRequired": "Kameraåtkomst krävs för att ta foton.",
+  "cameraPermissionSettings": "Kameraåtkomst är avstängd. Aktivera den i Inställningar för att fortsätta.",
+  "cameraPermissionRestricted": "Kameraåtkomst är begränsad på den här enheten.",
+  "legacyKitSheetGreeting": "Hej {name}, förvara detta på ett säkert ställe.",
+  "@legacyKitSheetGreeting": {
+    "description": "Greeting printed at the top of a Legacy kit recovery sheet, addressed to the person holding it",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Mom"
+      }
+    }
+  },
+  "legacyKitSheetIntro": "Om jag inte kan vara närvarande eller förlorar åtkomst till mitt konto hjälper det här bladet dig att återställa dina foton, dokument och annat.",
+  "@legacyKitSheetIntro": {
+    "description": "Written in the voice of the account owner, addressed to the sheet holder"
+  },
+  "legacyKitSheetHowToRecover": "Hur du återställer ditt konto",
+  "legacyKitSheetStepGetAnother": "Det här är {index} av {total} blad. Be {names} om deras – du behöver bara ett till.",
+  "@legacyKitSheetStepGetAnother": {
+    "description": "First recovery step. {names} is a list of the other sheet holders, already joined and emphasised",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      },
+      "names": {
+        "type": "String",
+        "example": "Alex or Lawyer"
+      }
+    }
+  },
   "legacyKitSheetNameJoinerOr": " eller ",
   "@legacyKitSheetNameJoinerOr": {
     "description": "Joins the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the surrounding spaces"
@@ -2980,6 +4897,16 @@
       }
     }
   },
+  "legacyKitSheetStepScan": "Skanna de {count} bladen.",
+  "@legacyKitSheetStepScan": {
+    "description": "Third recovery step. {count} is how many sheets must be scanned together",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "legacyKitSheetNeedHelp": "Behöver du hjälp? Skriv till {email}",
   "@legacyKitSheetNeedHelp": {
     "description": "Footer printed at the bottom of a Legacy kit recovery sheet",
@@ -2990,5 +4917,24 @@
       }
     }
   },
-  "grantAccess": "Ge åtkomst"
+  "grantAccess": "Ge åtkomst",
+  "sharePhotos": "Dela foton",
+  "sharePersonPhotos": "Dela {name}s foton",
+  "@sharePersonPhotos": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unnamedPersonAlbumName": "Porträtt - {date}",
+  "@unnamedPersonAlbumName": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "shareAllPersonPhotos": "Dela alla foton",
+  "personShareFailedTitle": "Kunde inte dela foton"
 }

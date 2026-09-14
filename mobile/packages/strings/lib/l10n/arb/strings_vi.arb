@@ -1,4 +1,12 @@
 {
+  "wallpaper": "Hình nền",
+  "setWallpaper": "Đặt hình nền",
+  "wallpaperHome": "Màn hình chính",
+  "wallpaperLock": "Màn hình khóa",
+  "wallpaperBoth": "Màn hình chính và Màn hình khóa",
+  "wallpaperSet": "Đặt làm hình nền",
+  "wallpaperFailed": "Không thể đặt làm hình nền",
+  "wallpaperUnavailable": "Không được phép thay đổi hình nền trên thiết bị này",
   "about": "Giới thiệu",
   "acceptTrustInvite": "Chấp nhận lời mời",
   "account": "Tài khoản",
@@ -1155,6 +1163,10 @@
   "doubleTapToViewHiddenCode": "Bạn có thể nhấn đúp vào một mục để xem mã",
   "download": "Tải xuống",
   "downloadApplicationUpdate": "Tải xuống bản cập nhật",
+  "downloadDecryptionFailedMessage": "Không thể tải xuống mục này. Vui lòng liên hệ với chúng tôi để được hỗ trợ.",
+  "@downloadDecryptionFailedMessage": {
+    "description": "Message shown in the viewer when a downloaded item cannot be decrypted"
+  },
   "downloadFailed": "Tải xuống thất bại",
   "downloading": "Đang tải xuống...",
   "downloadingProgress": "Đang tải xuống... {percentage}%",
@@ -1837,7 +1849,7 @@
   "informationDescription": "Luu va chia se thong tin voi nguoi than.",
   "informationTypes": "Kiểu thông tin",
   "initialBackupCreated": "Bản sao lưu ban đầu đã được tạo!",
-  "inOrder": "Theo thứ tự",
+  "inOrder": "Trong trật tự",
   "insecureDevice": "Thiết bị không an toàn",
   "@insecureDevice": {
     "description": "Insecure device warning title"
@@ -1922,6 +1934,8 @@
   "layout": "Bố cục",
   "layoutGrouped": "Đã phân nhóm",
   "layoutJustified": "Căn đều",
+  "layoutJustifiedComfort": "Căn đều · Thoải mái",
+  "layoutJustifiedFlex": "Căn đều · Linh hoạt",
   "layoutTrip": "Chuyến đi",
   "leave": "Rời",
   "leaveAlbum": "Rời khỏi album",
@@ -2697,6 +2711,22 @@
   "photoLibraryAddPermissionRequired": "Ente cần quyền lưu ảnh và video vào Apple Photos. Bạn có thể cấp quyền truy cập trong phần Cài đặt.",
   "photoLibraryAddPermissionRestricted": "Quyền truy cập Thư viện ảnh bị hạn chế trên thiết bị này.",
   "photoOrder": "Thứ tự ảnh",
+  "photoViewerFilmstripLabel": "Chọn ảnh",
+  "@photoViewerFilmstripLabel": {
+    "description": "Accessibility label for the thumbnail filmstrip in the photo viewer"
+  },
+  "photoViewerFilmstripPosition": "Ảnh {current} trong số {total}",
+  "@photoViewerFilmstripPosition": {
+    "description": "Accessibility position within the thumbnail filmstrip in the photo viewer",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "photos": "Ảnh",
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Ảnh bạn đã thêm sẽ bị xóa khỏi album",
   "photosCount": "{count, plural, =0{Chưa có ảnh} other{{count} ảnh}}",
@@ -4383,5 +4413,41 @@
       }
     }
   },
-  "grantAccess": "Cấp quyền truy cập"
+  "grantAccess": "Cấp quyền truy cập",
+  "sharePhotos": "Chia sẻ ảnh",
+  "sharePersonPhotos": "Chia sẻ ảnh của {name}",
+  "@sharePersonPhotos": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unnamedPersonAlbumName": "Chân dung - {date}",
+  "@unnamedPersonAlbumName": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "shareAllPersonPhotos": "Chia sẻ tất cả ảnh",
+  "shareAllPersonPhotosDescription": "Tất cả ảnh của {name}, bao gồm trong tương lai",
+  "@shareAllPersonPhotosDescription": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "personShareFailedTitle": "Không thể chia sẻ ảnh",
+  "personShareFailedBody": "Không thể tạo album chia sẻ. Ảnh và các mục bạn đã chọn vẫn được giữ nguyên. Vui lòng thử lại.",
+  "personShareRollbackFailed": "Quá trình chia sẻ chưa hoàn tất và không thể xóa album “{name}”. Album này vẫn nằm trong mục Album và có thể vẫn đang có liên kết công khai hoạt động. Hãy xem lại hoặc xóa album tại đó trước khi thử lại. Các ảnh gốc của bạn vẫn được an toàn.",
+  "@personShareRollbackFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

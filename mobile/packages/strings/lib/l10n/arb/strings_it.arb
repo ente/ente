@@ -1,4 +1,12 @@
 {
+  "wallpaper": "Sfondo",
+  "setWallpaper": "Imposta sfondo",
+  "wallpaperHome": "Schermata Home",
+  "wallpaperLock": "Schermata di blocco",
+  "wallpaperBoth": "Schermata Home e di blocco",
+  "wallpaperSet": "Sfondo impostato",
+  "wallpaperFailed": "Impossibile impostare lo sfondo",
+  "wallpaperUnavailable": "Non è permesso modificare lo sfondo in questo dispositivo",
   "about": "Info",
   "acceptTrustInvite": "Accetta l'invito",
   "account": "Account",
@@ -150,6 +158,10 @@
       "storageAmount": {}
     }
   },
+  "addPage": "Aggiungi pagina",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
   "addParticipants": "Aggiungi Partecipanti",
   "addPeopleWidgetPrompt": "Aggiungi un widget persone alla schermata iniziale per personalizzarlo qui.",
   "addPerson": "Aggiungi persona",
@@ -180,6 +192,7 @@
   },
   "addYourPhotosNow": "Aggiungi le tue foto ora",
   "adjust": "Regola",
+  "adjustCrop": "Regola ritaglio",
   "admin": "Amministratore",
   "admins": "Amministratori",
   "adminsAndCollaboratorsCanAddPhotosDescription": "Amministratori e collaboratori possono aggiungere foto. Gli amministratori possono anche gestire foto e partecipanti.",
@@ -256,6 +269,7 @@
   "albumUpdated": "Album aggiornato",
   "algorithm": "Algoritmo",
   "align": "Allineamento",
+  "all": "Tutto",
   "allClear": "✨ Tutto pulito",
   "allFilesAlreadyMarkedAsImportant": "Tutti gli elementi sono gia contrassegnati come importanti",
   "allMemoriesPreserved": "Tutti i ricordi conservati",
@@ -384,6 +398,18 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
+  "authenticatorCodesCount": "{count, plural, one{{formattedCount} codice autenticatore} other{{formattedCount} codici autenticatori}}",
+  "@authenticatorCodesCount": {
+    "description": "Delete impact row for Auth data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "authToChangeEmailVerificationSetting": "Autenticati per modificare la verifica email",
   "authToChangeLockscreenSetting": "Autenticati per modificare le impostazioni della schermata di blocco",
   "authToChangeYourEmail": "Autenticati per cambiare la tua email",
@@ -393,6 +419,7 @@
   "authToInitiateAccountDeletion": "Sblocca per eliminare il tuo account",
   "authToInitiateSignIn": "Autenticazione per avviare l'accesso per il backup.",
   "authToManageLegacy": "Autenticati per gestire i tuoi contatti fidati",
+  "authToManageLegacyKit": "Autenticati per gestire i kit legacy",
   "authToSetBackupPassword": "Autenticarsi per impostare la password di backup",
   "authToUpdateBackupPassword": "Autenticarsi per aggiornare la password di backup",
   "authToViewPasskey": "Autenticati per visualizzare le tue passkey",
@@ -442,6 +469,33 @@
   "backupFile": "File di backup",
   "backupFolderLabel": "Cartella di backup:",
   "backupLocationChoiceDescription": "Dove vuoi salvare i tuoi backup?",
+  "backupMode": "Modalità backup",
+  "backupModeBackingUpItems": "{count, plural, one{Effettuo il backup di {formattedCount} elemento} other{Effettuo il backup di {formattedCount} elementi}}",
+  "@backupModeBackingUpItems": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12546"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "12,546"
+      }
+    }
+  },
+  "backupModeCheckingForMoreItems": "Controllo ulteriori elementi",
+  "backupModeFinishYourBackup": "Completa il backup",
+  "backupModeKeepAppOpen": "Mantieni l'app aperta",
+  "backupModeNoBackupInProgress": "Nessun backup in corso",
+  "backupModeNoBackupInProgressDescription": "Avvia un backup, poi torna alla modalità backup.",
+  "backupModePlugInPhone": "Collega il telefono. I backup usano la batteria.",
+  "backupModePreservingYourMemories": "Conservo i tuoi ricordi",
+  "backupModeScreenDimmingDescription": "Lo schermo si oscura per risparmiare batteria. Toccalo in qualunque momento per tornare.",
+  "backupModeScreenWillDim": "Lo schermo si oscurerà automaticamente per risparmiare batteria",
+  "backupModeSettingsDescription": "Mantieni l'app aperta per completare il backup",
+  "backupModeStart": "Avvia la modalità backup",
+  "backupModeStayInEnte": "Resta in Ente. Cambiare app interrompe il backup.",
+  "backupModeTapToWakeScreen": "Tocca per riattivare lo schermo",
   "backupOnlyNewPhotos": "Backup solo di nuove foto",
   "backupOnlyNewPhotosAllFoldersSelected": "Tutte le cartelle sono attualmente selezionate per il backup.\n\nÈ possibile continuare o aggiornare le cartelle selezionate.",
   "backupOnlyNewPhotosNoFoldersSelectedContinue": "Nessuna cartelle è attualmente selezionata per il backup.\n\nÈ possibile continuare o aggiornare le cartelle selezionate.",
@@ -468,6 +522,10 @@
   "birthday": "Compleanno",
   "birthdayJoy": "Gioia di compleanno",
   "birthdays": "Compleanni",
+  "black": "Nero",
+  "blockLegacyKitRecoveryMessage": "Blocca il tentativo di recupero attuale\nNota che potranno avviare un nuovo tentativo di recupero",
+  "blog": "Blog",
+  "blurred": "Sfocato",
   "bothIssuerAndAccountCanNotBeEmpty": "Sia l'emittente che l'account sono obbligatori",
   "bringYourFamilyAlong": "Porta con te la tua famiglia",
   "browseHelpPages": "Consulta la guida",
@@ -478,6 +536,7 @@
   "camera": "Fotocamera",
   "campingMoments": "Momenti di fuoco",
   "cancel": "Annulla",
+  "back": "Indietro",
   "@cancel": {
     "description": "Cancel button label"
   },
@@ -558,6 +617,7 @@
     "description": "Change email button label"
   },
   "changeLocationOfSelectedItems": "Cambiare la posizione degli elementi selezionati?",
+  "changePassword": "Modifica password",
   "changePasswordTitle": "Modifica password",
   "@changePasswordTitle": {
     "description": "Change password title"
@@ -570,6 +630,7 @@
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
   },
+  "checking": "Controllo...",
   "checkingModels": "Verifica dei modelli...",
   "checkStatus": "Verifica stato",
   "@checkStatus": {
@@ -656,6 +717,14 @@
   "collectPhotos": "Raccogli le foto",
   "color": "Colore",
   "colorfulMarkets": "Mercati vivaci",
+  "commentedOnAPhoto": "ha commentato una foto",
+  "@commentedOnAPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAVideo": "ha commentato un video",
+  "@commentedOnAVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
   "commentedOnYourPhoto": "ha commentato la tua foto",
   "@commentedOnYourPhoto": {
     "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
@@ -712,10 +781,19 @@
       }
     }
   },
+  "confirmDeleteAccountAcrossApps": "Capisco che tutti i miei dati di Ente Photos, Ente Auth e Ente Locker saranno eliminati.",
+  "@confirmDeleteAccountAcrossApps": {
+    "description": "Checkbox label for final account deletion confirmation"
+  },
+  "confirmPassword": "Conferma password",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
   "confirmPlanChange": "Conferma le modifiche al piano",
   "confirmRecoveryKey": "Conferma chiave di recupero",
   "confirmUpdatingkey": "Sei sicuro di voler aggiornare la chiave segreta?",
   "confirmYourRecoveryKey": "Conferma la tua chiave di recupero",
+  "congratulations": "Congratulazioni!",
   "connectToDevice": "Connetti al dispositivo",
   "contactDetails": "Dettagli contatto",
   "contactDetailsHint": "Numero di telefono, email o altre informazioni di contatto",
@@ -727,6 +805,10 @@
   "contactSupport": "Contatta il supporto",
   "@contactSupport": {
     "description": "Contact support button label"
+  },
+  "contactUs": "Contattaci",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
   },
   "contactToManageSubscription": "Vi preghiamo di contattarci all'indirizzo support@ente.com per gestire il vostro abbonamento {provider}.",
   "@contactToManageSubscription": {
@@ -792,18 +874,32 @@
   "createAlbum": "Crea un album",
   "createAlbumActionHint": "Premi a lungo per selezionare le foto e fai clic su + per creare un album",
   "createAnEnteAccount": "Crea un account per Ente",
+  "createAnotherKit": "Crea un altro kit",
   "createBackupNow": "Crea backup ora",
   "createCollaborativeLink": "Crea link collaborativo",
   "createCollage": "Crea un collage",
   "createCollection": "Crea raccolta",
+  "createdOn": "Creato il {date}",
+  "@createdOn": {
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Apr 1, 2026"
+      }
+    }
+  },
+  "createKit": "Crea Kit",
+  "createLegacyKit": "Crea kit legacy",
   "createNewTag": "Crea un nuovo tag",
   "createPublicLink": "Crea link pubblico",
   "createStream": "Crea flusso",
   "creatingLink": "Creazione link...",
   "creatingStream": "Creazione stream",
+  "credentialName": "Account",
   "credentialNameHint": "Nome del servizio",
   "credentialNotes": "Note aggiuntive",
   "credentialNotesHint": "Metodi di recupero, domande di sicurezza, ...",
+  "criticalUpdateAvailable": "Aggiornamento critico disponibile",
   "crop": "Ritaglia",
   "curatedMemories": "Ricordi importanti",
   "currentBackupFolder": "Cartella di backup corrente:",
@@ -894,6 +990,10 @@
   "deleteDuplicates": "Elimina i duplicati",
   "deleteEmptyAlbums": "Elimina gli album vuoti",
   "deleteEmptyAlbumsWithQuestionMark": "Eliminare gli album vuoti?",
+  "deleteEnteAccount": "Elimina account Ente",
+  "@deleteEnteAccount": {
+    "description": "Final destructive button label for account deletion"
+  },
   "deleteFiles": "Elimina file",
   "deleteFromBoth": "Elimina da entrambi",
   "deleteFromDevice": "Elimina dal dispositivo",
@@ -916,6 +1016,7 @@
       }
     }
   },
+  "deleteLegacyKitMessage": "I fogli condivisi non possono più essere usati per il recupero",
   "deleteLink": "Elimina link",
   "deleteLinkQuestion": "Eliminare il link?",
   "deleteLocation": "Elimina posizione",
@@ -968,13 +1069,32 @@
       "totalCount": {}
     }
   },
+  "deleteReasonBehaviour": "L'app o una funzionalità non si comporta come mi aspetto",
+  "@deleteReasonBehaviour": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonFoundAnotherService": "Ho trovato un altro servizio che mi piace di più",
+  "@deleteReasonFoundAnotherService": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonMissingFeature": "Manca una funzione chiave di cui ho bisogno",
+  "@deleteReasonMissingFeature": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonNotListed": "Il motivo non è elencato",
+  "@deleteReasonNotListed": {
+    "description": "Account deletion reason option"
+  },
   "deleteSharedAlbum": "Eliminare l'album condiviso?",
   "deleteSharedAlbumDialogBody": "L'album verrà eliminato per tutti\n\nPerderai l'accesso alle foto condivise in questo album che sono di proprietà di altri",
   "deleteShareLinkConfirmation": "Le persone con questo link non potranno piu accedere all'elemento.",
   "deleteSuggestions": "Suggerimenti di cancellazione",
+  "deleteSuggestionsDesc": "Visualizza gli elementi suggeriti per l'eliminazione",
   "deleteSuggestionSent": "Suggerimento di eliminazione inviato",
   "deleteTagMessage": "Sei sicuro di voler eliminare questo tag? Questa azione è irreversibile.",
   "deleteTagTitle": "Eliminare il tag?",
+  "deleteUnparseableCodeMessage": "Il codice sarà definitivamente eliminato da Auth. Non verrà spostato nel cestino.",
+  "deleteUnparseableCodeTitle": "Eliminare il codice non valido?",
   "deleteWithCount": "Elimina ({count})",
   "@deleteWithCount": {
     "placeholders": {
@@ -988,6 +1108,7 @@
   "deletingFiles": "Eliminazione in corso...",
   "deletingShareLink": "Eliminazione link...",
   "description": "Descrizione",
+  "deselectAll": "Deseleziona tutto",
   "desertDreams": "Sogni dal deserto",
   "designedForFamilies": "Progettato per le famiglie",
   "details": "Dettagli",
@@ -996,6 +1117,7 @@
   "@developerSettings": {
     "description": "Label for developer settings"
   },
+  "developerSettingsWarning": "Vuoi davvero modificare le impostazioni sviluppatore?",
   "deviceInfo": "Informazioni sul dispositivo",
   "deviceLock": "Blocco del dispositivo",
   "@deviceLock": {
@@ -1050,15 +1172,24 @@
   "documentsHint": "Documenti",
   "doesGroupContainMultiplePeople": "Questo raggruppamento contiene più persone?",
   "dog": "Cane",
+  "done": "Fatto",
   "doNotSignOut": "Non uscire",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
   },
   "dontHaveAnAccount": "Non hai un account?",
   "dontSave": "Non salvare",
+  "doThisLater": "Fallo più tardi",
+  "@doThisLater": {
+    "description": "Do this later button label"
+  },
   "doubleTapToViewHiddenCode": "Puoi toccare due volte una voce per visualizzare il codice",
   "download": "Scarica",
   "downloadApplicationUpdate": "Scarica l'aggiornamento",
+  "downloadDecryptionFailedMessage": "Impossibile scaricare questo elemento. Contattaci così possiamo aiutarti.",
+  "@downloadDecryptionFailedMessage": {
+    "description": "Message shown in the viewer when a downloaded item cannot be decrypted"
+  },
   "downloadFailed": "Scaricamento fallito",
   "downloading": "Scaricamento in corso...",
   "downloadingProgress": "Download in corso... {percentage}%",
@@ -1149,11 +1280,13 @@
     }
   },
   "earned": "ottenuti",
+  "earnFreeStorage": "Ottieni spazio gratuito",
   "earnMoreSpace": "Ottieni più spazio!",
   "edit": "Modifica",
   "editAutoAddPeople": "Modifica auto-aggiungi persone",
   "editCodeAuthMessage": "Autenticarsi per modificare il codice",
   "editContact": "Modifica contatto",
+  "editDetails": "Modifica dettagli",
   "editEmailAlreadyLinked": "Questa email è già collegata a {name}.",
   "@editEmailAlreadyLinked": {
     "placeholders": {
@@ -1263,6 +1396,10 @@
     "description": "Success message when endpoint is updated"
   },
   "ente": "Ente",
+  "enteAuth": "Ente Auth",
+  "@enteAuth": {
+    "description": "Product name"
+  },
   "enteLocker": "Ente Locker",
   "@enteLocker": {
     "description": "Product name"
@@ -1273,6 +1410,14 @@
   },
   "enterAlbumName": "Inserisci il nome dell'album",
   "enterAnEmailAddress": "Inserisci un indirizzo email",
+  "enterAppLockPassword": "Inserire la password di blocco",
+  "@enterAppLockPassword": {
+    "description": "Enter App lock password prompt for lock screen"
+  },
+  "enterAppLockPin": "Inserire il PIN di blocco",
+  "@enterAppLockPin": {
+    "description": "Enter App lock PIN prompt for lock screen"
+  },
   "enterAValidEmailAddress": "Inserisci un indirizzo email valido",
   "enterCode": "Inserisci codice",
   "enterCodeDescription": "Inserisci il codice fornito dal tuo amico per richiedere spazio gratuito per entrambi",
@@ -1296,6 +1441,10 @@
     "description": "Prompt to enter new password for encryption"
   },
   "enterNewTitle": "Inserisci un nuovo titolo",
+  "enterPassword": "Inserire la password",
+  "@enterPassword": {
+    "description": "Enter password field label"
+  },
   "enterPasswordToAegisVault": "Inserisci la password per accedere al vault Aegis",
   "enterPasswordToDecrypt2FASBackup": "Inserisci la password per decrittografare il backup 2FAS",
   "enterPasswordToDecryptAndOTP": "Inserisci la password per decriptare il backup andOTP",
@@ -1309,7 +1458,12 @@
   },
   "enterReferralCode": "Inserisci il codice invito",
   "enterThe6digitCodeFromnyourAuthenticatorApp": "Inserisci il codice di 6 cifre\ndalla tua app di autenticazione",
+  "enterThePasswordFor": "Inserire la password per",
+  "@enterThePasswordFor": {
+    "description": "Text shown before email on login password verification page"
+  },
   "enterValidEmail": "Inserisci un indirizzo email valido.",
+  "enterValidEmailDetailed": "L'email non sembra essere valida. Inserisci un indirizzo email valido",
   "enterYourNewEmailAddress": "Inserisci il tuo nuovo indirizzo email",
   "enterYourPassword": "Inserisci la tua password",
   "enterYourPasswordHint": "Inserisci la tua password",
@@ -1368,6 +1522,22 @@
       "name": {
         "type": "String",
         "description": "Person's name"
+      }
+    }
+  },
+  "memoryLaneAgeCaption": "{name} aveva {count, plural, one{{age} anno} other{{age} anni}}",
+  "@memoryLaneAgeCaption": {
+    "description": "Memory Lane age caption. The age placeholder is rendered as a separate, larger text widget; count selects the plural form.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "age": {
+        "type": "String",
+        "description": "Placeholder for the separately styled age number; retain this placeholder in every plural form."
       }
     }
   },
@@ -1903,7 +2073,7 @@
     }
   },
   "legacyAccounts": "Account Legacy",
-  "legacyDesc": "Contatti affidabili, Kit Legacy e pianificazione del recupero account",
+  "legacyDesc": "Contatti affidabili, kit legacy e pianificazione del recupero account",
   "legacyInvite": "{email} ti ha invitato a essere un contatto fidato",
   "@legacyInvite": {
     "placeholders": {
@@ -1913,6 +2083,8 @@
       }
     }
   },
+  "legacyKitMaxReached": "Puoi creare fino a 5 kit legacy.",
+  "legacyKitRecoveryAttemptInProgress": "Tentativo di recupero in corso",
   "legacyPageDesc": "Legacy consente ai contatti fidati di accedere al tuo account in tua assenza.",
   "legacyPageDesc2": "I contatti fidati possono avviare il recupero dell'account e, se non sono bloccati entro 30 giorni, reimpostare la password e accedere al tuo account.",
   "letsTryThatAgain": "Riproviamo",
