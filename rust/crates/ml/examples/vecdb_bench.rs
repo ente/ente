@@ -44,7 +44,9 @@ struct VecdbReport {
     single_total: Duration,
     bulk_count: usize,
     bulk_total: Duration,
-    snapshot_write: Duration,
+    pending_at_probe: usize,
+    pending_search_total: Duration,
+    index_and_snapshot: Duration,
     approx_total: Duration,
     exact_total: Duration,
     recall: f64,
@@ -64,6 +66,7 @@ struct VecdbReport {
     log_bytes: u64,
     snapshot_bytes: u64,
     memory_bytes: usize,
+    pending: usize,
 }
 
 fn main() {
@@ -312,7 +315,9 @@ struct IngestTimings {
     single_total: Duration,
     bulk_count: usize,
     bulk_total: Duration,
-    snapshot_write: Duration,
+    pending_at_probe: usize,
+    pending_search_total: Duration,
+    index_and_snapshot: Duration,
 }
 
 struct SearchTimings {
@@ -368,7 +373,9 @@ fn run_vecdb(
         single_total: ingest.single_total,
         bulk_count: ingest.bulk_count,
         bulk_total: ingest.bulk_total,
-        snapshot_write: ingest.snapshot_write,
+        pending_at_probe: ingest.pending_at_probe,
+        pending_search_total: ingest.pending_search_total,
+        index_and_snapshot: ingest.index_and_snapshot,
         approx_total: searches.approx_total,
         exact_total: searches.exact_total,
         recall: searches.recall,
@@ -388,6 +395,7 @@ fn run_vecdb(
         log_bytes: stats.log_bytes,
         snapshot_bytes,
         memory_bytes: stats.approximate_memory_bytes,
+        pending: stats.pending,
     }
 }
 
@@ -464,15 +472,25 @@ fn ingest_phase(db: &mut VecDb, data: &BenchData, attrs: bool, scale: usize) -> 
         }
     }
     let bulk_total = started.elapsed();
-    db.add("bench-probe", &data.probe).expect("vecdb probe add");
+    let pending_at_probe = db.stats().expect("vecdb stats").pending;
+    eprintln!("[scale {scale}] vecdb searches with {pending_at_probe} pending");
+    let pending_params = limit_params(SEARCH_K, false);
+    warm(db, &data.queries, &pending_params);
+    let (pending_search_total, _) = timed_searches(db, &data.queries, &pending_params);
+    eprintln!("[scale {scale}] vecdb index pending + snapshot");
     let started = Instant::now();
+    db.flush().expect("vecdb flush");
+    let index_and_snapshot = started.elapsed();
+    db.add("bench-probe", &data.probe).expect("vecdb probe add");
     db.flush().expect("vecdb flush");
     IngestTimings {
         single_count,
         single_total,
         bulk_count: rest.len(),
         bulk_total,
-        snapshot_write: started.elapsed(),
+        pending_at_probe,
+        pending_search_total,
+        index_and_snapshot,
     }
 }
 
@@ -721,16 +739,25 @@ fn print_vecdb_report(report: &VecdbReport) {
         per_op_text(report.single_total, report.single_count, "op"),
     );
     row(
-        "bulk add (1000/batch, fsync+auto snapshots)",
+        "bulk add (1000/batch, fsync, no graph work)",
         format!("{} vecs", report.bulk_count),
         report.bulk_total,
         per_op_text(report.bulk_total, report.bulk_count, "vec"),
     );
     row(
-        "snapshot write (flush at full scale)",
-        "-".to_string(),
-        report.snapshot_write,
-        String::new(),
+        &format!(
+            "search approx k={SEARCH_K} with {} pending",
+            report.pending_at_probe
+        ),
+        format!("{QUERY_COUNT} queries"),
+        report.pending_search_total,
+        per_op_text(report.pending_search_total, QUERY_COUNT, "query"),
+    );
+    row(
+        "index pending + snapshot (flush at full scale)",
+        format!("{} vecs", report.pending_at_probe),
+        report.index_and_snapshot,
+        per_op_text(report.index_and_snapshot, report.pending_at_probe, "vec"),
     );
     row(
         "search approx k=10",
@@ -811,11 +838,12 @@ fn print_vecdb_report(report: &VecdbReport) {
         if report.compaction_fired { "yes" } else { "NO" }
     );
     println!(
-        "    {:<44} log {}  snapshot {}  approx mem {}",
+        "    {:<44} log {}  snapshot {}  approx mem {}  pending {}",
         "sizes at full scale",
         fmt_bytes(report.log_bytes),
         fmt_bytes(report.snapshot_bytes),
-        fmt_bytes(report.memory_bytes as u64)
+        fmt_bytes(report.memory_bytes as u64),
+        report.pending
     );
 }
 
