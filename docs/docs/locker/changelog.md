@@ -7,6 +7,12 @@ description: Release notes of recent updates to Ente Locker
 
 A short summary list of changes to Ente Locker.
 
+## v1.0.9 (mobile) - Sep 2026
+
+- Scan paper documents with Locker.
+- Show last cached count of items stored when offline instead of a spinner. (@r4khul)
+- Upgrade to flutter 3.47.2
+
 ## v1.0.8 (mobile) - Aug 2026
 
 - Bug fixes and improvements
