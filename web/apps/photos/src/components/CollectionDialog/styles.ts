@@ -99,3 +99,11 @@ export const collectionDialogGridGap = 8;
 export const collectionDialogGridPaddingInline = 20;
 export const collectionDialogGridPaddingBlockStart = 16;
 export const collectionDialogGridPaddingBlockEnd = 20;
+
+/** Keep the divider inset fixed while the grid scrolls beneath it. */
+export const collectionDialogGridBodySx = {
+    flex: 1,
+    minHeight: 0,
+    pt: `${collectionDialogGridPaddingBlockStart}px`,
+    pb: `${collectionDialogGridPaddingBlockEnd}px`,
+};

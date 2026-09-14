@@ -8,12 +8,11 @@ import {
 import {
     collectionDialogBodyMutedSx as bodyMutedSx,
     collectionDialogFullScreenQuery,
+    collectionDialogGridBodySx,
     collectionDialogSx as dialogSx,
     collectionDialogDividerSx as dividerSx,
     collectionDialogGridColumns as GridColumns,
     collectionDialogGridGap as GridGap,
-    collectionDialogGridPaddingBlockEnd as GridPaddingBlockEnd,
-    collectionDialogGridPaddingBlockStart as GridPaddingBlockStart,
     collectionDialogGridPaddingInline as GridPaddingInline,
     collectionDialogHeaderActionsSx as headerActionsSx,
     collectionDialogHeaderRowSx as headerRowSx,
@@ -735,12 +734,10 @@ const AllAlbumsContent: React.FC<AllAlbumsContentProps> = ({
 
     return (
         <Box
-            sx={{
-                flex: 1,
-                minHeight: 0,
-                pt: `${GridPaddingBlockStart}px`,
-                pb: `${reserveFooterSpace ? GridFooterHeight : GridPaddingBlockEnd}px`,
-            }}
+            sx={[
+                collectionDialogGridBodySx,
+                reserveFooterSpace ? { pb: `${GridFooterHeight}px` } : {},
+            ]}
         >
             <AutoSizer>
                 {({ width, height }) => {

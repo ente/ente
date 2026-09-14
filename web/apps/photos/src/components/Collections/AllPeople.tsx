@@ -1,17 +1,17 @@
 import {
     CollectionDialogSearchField,
     CollectionTileButton,
+    CollectionTileTextOverlay,
 } from "@/components/CollectionDialog/Primitives";
 import {
     collectionDialogGridColumns as GridColumns,
     collectionDialogGridGap as GridGap,
-    collectionDialogGridPaddingBlockEnd as GridPaddingBlockEnd,
-    collectionDialogGridPaddingBlockStart as GridPaddingBlockStart,
     collectionDialogGridPaddingInline as GridPaddingInline,
     collectionDialogBodyMutedSx,
     collectionDialogControlRadius,
     collectionDialogDividerSx,
     collectionDialogFullScreenQuery,
+    collectionDialogGridBodySx,
     collectionDialogHeaderActionsSx,
     collectionDialogHeaderRowSx,
     collectionDialogHeaderSx,
@@ -262,41 +262,7 @@ const ShowMoreFacesButtonVerticalGap = 16;
 const ShowMoreFacesRowItemSize =
     ShowMoreFacesButtonHeight + 2 * ShowMoreFacesButtonVerticalGap;
 const ExpandedPeopleTopSpacing = GridGap;
-const PeopleListTopSpacing = GridPaddingBlockStart;
 const personCardShellClassName = "all-people-person-card";
-
-const addTopSpacing = (
-    value: React.CSSProperties["top"] | React.CSSProperties["height"],
-) =>
-    typeof value == "number"
-        ? value + PeopleListTopSpacing
-        : value
-          ? `calc(${value} + ${PeopleListTopSpacing}px)`
-          : undefined;
-
-const peopleListInnerStyle = (
-    style: React.CSSProperties | undefined,
-): React.CSSProperties => {
-    return {
-        ...style,
-        boxSizing: "border-box",
-        position: "relative",
-        height: addTopSpacing(style?.height),
-    };
-};
-
-const peopleRowStyle = (style: React.CSSProperties): React.CSSProperties => {
-    return { ...style, top: addTopSpacing(style.top) };
-};
-
-const PeopleListInner = React.forwardRef<
-    HTMLDivElement,
-    React.ComponentPropsWithoutRef<"div">
->(({ style, ...props }, ref) => (
-    <div ref={ref} {...props} style={peopleListInnerStyle(style)} />
-));
-
-PeopleListInner.displayName = "PeopleListInner";
 
 type TitleProps = {
     peopleCount: number;
@@ -480,7 +446,7 @@ const PeopleRow = React.memo(
 
         if (item.type == "showMoreButton") {
             return (
-                <div style={peopleRowStyle(style)}>
+                <div style={style}>
                     <ShowMoreFacesButton
                         showingAllPeople={showingAllPeople}
                         onClick={onToggleShowingAllPeople}
@@ -490,7 +456,7 @@ const PeopleRow = React.memo(
         }
 
         return (
-            <div style={peopleRowStyle(style)}>
+            <div style={style}>
                 <Stack
                     direction="row"
                     sx={{
@@ -524,7 +490,7 @@ const PeopleRow = React.memo(
 );
 
 const AllPeopleContent: React.FC<AllPeopleContentProps> = (props) => (
-    <Box sx={{ flex: 1, minHeight: 0, pb: `${GridPaddingBlockEnd}px` }}>
+    <Box sx={collectionDialogGridBodySx}>
         <AutoSizer>
             {({ width, height }) => (
                 <PeopleGrid {...props} width={width} height={height} />
@@ -609,7 +575,14 @@ const PeopleGrid: React.FC<
 
     if (hasSearchQuery && primaryPeople.length === 0) {
         return (
-            <Box sx={{ ...collectionDialogNoResultsSx, height }}>
+            <Box
+                sx={{
+                    ...collectionDialogNoResultsSx,
+                    width,
+                    height,
+                    minHeight: 0,
+                }}
+            >
                 <Typography sx={collectionDialogBodyMutedSx}>
                     {t("no_results")}
                 </Typography>
@@ -630,7 +603,6 @@ const PeopleGrid: React.FC<
             itemCount={items.length}
             itemSize={itemSize}
             itemData={itemData}
-            innerElementType={PeopleListInner}
         >
             {PeopleRow}
         </VariableSizeList>
@@ -708,7 +680,7 @@ const PersonCard: React.FC<PersonCardProps> = ({
             coverFaceID={person.displayFaceID}
             onClick={() => onSelectPerson(person.id)}
         >
-            <LargeTileTextOverlay>
+            <CollectionTileTextOverlay>
                 {person.name && (
                     <Tooltip title={person.name} arrow>
                         <Typography
@@ -729,7 +701,7 @@ const PersonCard: React.FC<PersonCardProps> = ({
                 <Typography variant="small" sx={{ opacity: 0.7 }}>
                     {t("photos_count", { count: person.fileIDs.length })}
                 </Typography>
-            </LargeTileTextOverlay>
+            </CollectionTileTextOverlay>
             {person.isPinned && (
                 <PinnedIconContainer>
                     <PushPinIcon sx={{ fontSize: 20, color: "white" }} />
