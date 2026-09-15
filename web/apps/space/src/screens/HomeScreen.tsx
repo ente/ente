@@ -2064,6 +2064,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     <SpaceFileViewer
                         focusReplyOnOpen={selectedViewer.focusReplyOnOpen}
                         photo={selectedViewer.photo}
+                        postActionMode={selectedViewer.postActionMode}
                         onClose={closeSelectedPhoto}
                         onOpenProfile={
                             selectedPhotoIsOwn && onOpenProfile
