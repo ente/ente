@@ -82,7 +82,7 @@ impl MlDb {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use std::collections::{HashMap, HashSet};
     use std::fmt::Debug;
     use std::path::Path;
@@ -101,6 +101,8 @@ mod tests {
         };
     }
 
+    pub(crate) use super::queries::clusters::tests::deny_cluster_summary_inserts_after;
+    pub(crate) use super::queries::pets::tests::seed as seed_pet_rows;
     pub(super) use cases;
 
     pub(super) fn open() -> (TempDir, MlDb) {
@@ -265,8 +267,8 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("ente.ml.db");
         let _db = MlDb::open(&path).unwrap();
-        assert_eq!(TARGET_VERSION, 15);
-        assert_eq!(user_version(&path), 15);
+        assert_eq!(TARGET_VERSION, 16);
+        assert_eq!(user_version(&path), 16);
         let connection = Connection::open(&path).unwrap();
         for table in [
             "faces",
@@ -283,6 +285,7 @@ mod tests {
             "pet_bodies",
             "pet_face_vector_id_map",
             "pet_body_vector_id_map",
+            "ml_store_meta",
         ] {
             let count: i64 = connection
                 .query_row(
@@ -305,7 +308,7 @@ mod tests {
             db.insert_clip_rows(&[full_clip(1)]).unwrap();
         }
         let db = MlDb::open(&path).unwrap();
-        assert_eq!(user_version(&path), 15);
+        assert_eq!(user_version(&path), 16);
         assert_eq!(db.count_clip_rows().unwrap(), 1);
     }
 
@@ -316,12 +319,12 @@ mod tests {
         drop(MlDb::open(&path).unwrap());
         Connection::open(&path)
             .unwrap()
-            .pragma_update(None, "user_version", 16)
+            .pragma_update(None, "user_version", 17)
             .unwrap();
         match MlDb::open(&path) {
             Err(Error::Database(crate::db::Error::Downgrade { current, target })) => {
-                assert_eq!(current, 16);
-                assert_eq!(target, 15);
+                assert_eq!(current, 17);
+                assert_eq!(target, 16);
             }
             other => panic!("expected downgrade error, got {:?}", other.err()),
         }
@@ -339,7 +342,7 @@ mod tests {
             connection.pragma_update(None, "user_version", 1).unwrap();
         }
         let db = MlDb::open(&path).unwrap();
-        assert_eq!(user_version(&path), 15);
+        assert_eq!(user_version(&path), 16);
         assert_eq!(db.count_clip_rows().unwrap(), 0);
     }
 }

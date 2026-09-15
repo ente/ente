@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use std::num::NonZeroUsize;
 
-use crate::db::pair;
+use crate::db::{Row, SqliteResult, pair};
 use crate::ml_db::schema;
 use crate::ml_db::vector_encoding::{decode_f32, encode_f32};
 use crate::ml_db::{MlDb, Result};
@@ -112,15 +113,44 @@ impl MlDb {
             .read_all(
                 "SELECT file_id, embedding FROM clip ORDER BY file_id DESC LIMIT ? OFFSET ?",
                 [limit, offset],
-                |row| {
-                    Ok(ClipRow {
-                        file_id: row.get(0)?,
-                        embedding: row.get(1)?,
-                    })
-                },
+                read_clip_row,
             )
             .map_err(Into::into)
     }
+
+    pub fn get_clip_rows_before(
+        &self,
+        before_file_id: Option<i64>,
+        limit: NonZeroUsize,
+    ) -> Result<Vec<ClipRow>> {
+        let limit = limit.get() as i64;
+        match before_file_id {
+            None => self.db.read_all(
+                "SELECT file_id, embedding FROM clip ORDER BY file_id DESC LIMIT ?",
+                [limit],
+                read_clip_row,
+            ),
+            Some(before_file_id) => self.db.read_all(
+                r#"
+                SELECT file_id, embedding
+                FROM clip
+                WHERE file_id < ?
+                ORDER BY file_id DESC
+                LIMIT ?
+                "#,
+                (before_file_id, limit),
+                read_clip_row,
+            ),
+        }
+        .map_err(Into::into)
+    }
+}
+
+fn read_clip_row(row: &Row<'_>) -> SqliteResult<ClipRow> {
+    Ok(ClipRow {
+        file_id: row.get(0)?,
+        embedding: row.get(1)?,
+    })
 }
 
 fn clip_row(embedding: &ClipEmbedding) -> (i64, Vec<u8>, i64) {
@@ -134,6 +164,7 @@ fn clip_row(embedding: &ClipEmbedding) -> (i64, Vec<u8>, i64) {
 #[cfg(test)]
 pub(in crate::ml_db) mod tests {
     use std::collections::HashMap;
+    use std::num::NonZeroUsize;
 
     use super::{CLIP_EMBEDDING_DIMENSIONS, ClipEmbedding, ClipRow, MlDb};
     use crate::ml_db::tests::{cases, check, open};
@@ -227,6 +258,24 @@ pub(in crate::ml_db) mod tests {
                 clip_row(3, vec![1.0, 2.0]),
                 clip_row(2, vec![0.25; CLIP_EMBEDDING_DIMENSIONS])
             ]
+        );
+    }
+
+    #[test]
+    fn clip_rows_page_by_keyset() {
+        let (_directory, db) = seeded();
+        let page_size = NonZeroUsize::new(2).unwrap();
+        let file_ids =
+            |page: &[ClipRow]| -> Vec<i64> { page.iter().map(|row| row.file_id).collect() };
+        let first_page = db.get_clip_rows_before(None, page_size).unwrap();
+        assert_eq!(file_ids(&first_page), [4, 3]);
+        assert_eq!(first_page[1].embedding, encode_f32([1.0, 2.0]));
+        let next_page = db.get_clip_rows_before(Some(3), page_size).unwrap();
+        assert_eq!(file_ids(&next_page), [2, 1]);
+        assert!(
+            db.get_clip_rows_before(Some(1), page_size)
+                .unwrap()
+                .is_empty()
         );
     }
 
