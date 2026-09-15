@@ -89,7 +89,7 @@ func (c *CollectionController) GetCollection(ctx *gin.Context, userID int64, cID
 	if err != nil {
 		return ente.Collection{}, stacktrace.Propagate(err, "")
 	}
-	collection, err := c.CollectionRepo.GetWithSharingDetailsForUser(cID, userID)
+	collection, err := c.CollectionRepo.WithSharingDetailsForUser(resp.Collection, userID)
 	if err != nil {
 		return ente.Collection{}, stacktrace.Propagate(err, "")
 	}

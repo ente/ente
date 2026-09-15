@@ -92,12 +92,8 @@ func (repo *CollectionRepository) Get(collectionID int64) (ente.Collection, erro
 	return c, nil
 }
 
-func (repo *CollectionRepository) GetWithSharingDetailsForUser(collectionID int64, actorUserID int64) (ente.Collection, error) {
-	c, err := repo.Get(collectionID)
-	if err != nil {
-		return c, stacktrace.Propagate(err, "")
-	}
-	sharees, err := repo.GetSharees(collectionID)
+func (repo *CollectionRepository) WithSharingDetailsForUser(c ente.Collection, actorUserID int64) (ente.Collection, error) {
+	sharees, err := repo.GetSharees(c.ID)
 	if err != nil {
 		return ente.Collection{}, stacktrace.Propagate(err, "failed to get sharees info")
 	}
@@ -122,12 +118,12 @@ func (repo *CollectionRepository) GetWithSharingDetailsForUser(collectionID int6
 	if actorUserID != c.Owner.ID {
 		var encryptedKey sql.NullString
 		err := repo.DB.QueryRow(`SELECT encrypted_key FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3`,
-			collectionID, actorUserID, false).Scan(&encryptedKey)
+			c.ID, actorUserID, false).Scan(&encryptedKey)
 		if err != nil {
 			return ente.Collection{}, stacktrace.Propagate(err, "failed to fetch sharee encrypted key")
 		}
 		if !encryptedKey.Valid {
-			return ente.Collection{}, stacktrace.Propagate(fmt.Errorf("share key missing for user %d collection %d", actorUserID, collectionID), "")
+			return ente.Collection{}, stacktrace.Propagate(fmt.Errorf("share key missing for user %d collection %d", actorUserID, c.ID), "")
 		}
 		c.EncryptedKey = encryptedKey.String
 	}
