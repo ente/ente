@@ -14,7 +14,9 @@ const REVERSE_PRUNE_SLACK: usize = 4;
 const EF_SEARCH_UPPER: usize = 1;
 const EF_SEARCH_FLOOR_SMALL: usize = 72;
 const EF_SEARCH_FLOOR_LARGE: usize = 56;
+const EF_SEARCH_FLOOR_HUGE: usize = 128;
 const EF_SEARCH_FLOOR_CROSSOVER: usize = 20_000;
+const EF_SEARCH_FLOOR_CROSSOVER_HUGE: usize = 250_000;
 const EF_SEARCH_LIMIT_FACTOR: usize = 4;
 const SMALL_FILTER_FLOOR: usize = 1024;
 const SMALL_FILTER_LIMIT_FACTOR: usize = 4;
@@ -879,8 +881,10 @@ fn result_bound(arena: &VectorArena, allowed: Option<&HashSet<u32>>) -> usize {
 fn ef_search_floor(live: usize) -> usize {
     if live < EF_SEARCH_FLOOR_CROSSOVER {
         EF_SEARCH_FLOOR_SMALL
-    } else {
+    } else if live < EF_SEARCH_FLOOR_CROSSOVER_HUGE {
         EF_SEARCH_FLOOR_LARGE
+    } else {
+        EF_SEARCH_FLOOR_HUGE
     }
 }
 
@@ -2752,6 +2756,41 @@ mod tests {
                     assert!(found.is_empty());
                 }
             }
+        }
+    }
+
+    #[test]
+    fn ef_search_floor_steps_at_both_crossovers() {
+        assert_eq!(ef_search_floor(0), 72);
+        assert_eq!(ef_search_floor(19_999), 72);
+        assert_eq!(ef_search_floor(20_000), 56);
+        assert_eq!(ef_search_floor(249_999), 56);
+        assert_eq!(ef_search_floor(250_000), 128);
+        assert_eq!(ef_search_floor(4_000_000), 128);
+        assert_eq!(ef_search_floor(usize::MAX), 128);
+    }
+
+    #[test]
+    fn ef_search_floor_drops_once_and_then_only_grows() {
+        assert!(
+            ef_search_floor(EF_SEARCH_FLOOR_CROSSOVER - 1)
+                > ef_search_floor(EF_SEARCH_FLOOR_CROSSOVER)
+        );
+        let mut previous = ef_search_floor(EF_SEARCH_FLOOR_CROSSOVER);
+        for live in [
+            EF_SEARCH_FLOOR_CROSSOVER,
+            100_000,
+            EF_SEARCH_FLOOR_CROSSOVER_HUGE - 1,
+            EF_SEARCH_FLOOR_CROSSOVER_HUGE,
+            1_000_000,
+            usize::MAX,
+        ] {
+            let floor = ef_search_floor(live);
+            assert!(
+                floor >= previous,
+                "floor at {live} was {floor}, below {previous}"
+            );
+            previous = floor;
         }
     }
 
