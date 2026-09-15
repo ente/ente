@@ -11,8 +11,11 @@ Future<bool> showAlbumSlideshow(
   BuildContext context, {
   required Iterable<EnteFile> files,
   required String title,
+  bool includeBackupExcludedFiles = false,
 }) async {
-  final ignoredIDs = await IgnoredFilesService.instance.idToIgnoreReasonMap;
+  final ignoredIDs = includeBackupExcludedFiles
+      ? null
+      : await IgnoredFilesService.instance.idToIgnoreReasonMap;
   if (!context.mounted) return false;
 
   final uploadedFileIDs = <int>{};
@@ -26,6 +29,7 @@ Future<bool> showAlbumSlideshow(
 
     final uploadedFileID = file.uploadedFileID;
     if (uploadedFileID == null &&
+        ignoredIDs != null &&
         IgnoredFilesService.instance.shouldSkipUpload(ignoredIDs, file)) {
       continue;
     }
