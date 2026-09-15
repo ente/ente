@@ -31,7 +31,7 @@ func (c *ClICtrl) syncFiles(ctx context.Context, account model.Account) error {
 		return readAlbumErr
 	}
 	for _, album := range remoteAlbums {
-		if !album.IsDeleted && filter.SkipAlbum(album, false) {
+		if filter.SkipAlbum(album, false) {
 			albumsToSkip[album.ID] = true
 		}
 	}

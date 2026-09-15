@@ -329,7 +329,6 @@ pub struct Collection {
     pub name_decryption_nonce: Option<String>,
     #[serde(rename = "type")]
     pub collection_type: String,
-    pub attributes: Option<CollectionAttributes>,
     pub sharees: Option<Vec<CollectionUser>>,
     #[serde(rename = "publicURLs")]
     pub public_urls: Option<Vec<PublicUrl>>,
@@ -340,11 +339,6 @@ pub struct Collection {
     pub pub_magic_metadata: Option<MagicMetadata>,
     pub shared_magic_metadata: Option<MagicMetadata>,
     pub app: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct CollectionAttributes {
-    pub version: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
