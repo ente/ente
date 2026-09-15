@@ -1,3 +1,4 @@
+import { SpaceAddFriendDialog } from "components/AddFriendDialog";
 import { SpacePageMeta } from "components/PageMeta";
 import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
@@ -11,15 +12,19 @@ import { consumeSentSpaceInviteFriend, spaceInviteURL } from "services/invite";
 import { savedSpaceOwnedSpaces } from "services/persistent-session";
 import { loadExistingSpaceId } from "services/profile";
 import {
+    clearSpaceFriendsCache,
     deleteCurrentPost,
     loadCurrentFeedPage,
+    loadCurrentFriendRequests,
     loadCurrentSpaceFriends,
     loadCurrentSpacePostAssetURL,
     loadCurrentSpacePostAvatarURL,
     loadCurrentUnreadStatus,
     replyToCurrentPost,
+    requestFriendByUsername,
     setCurrentPostLiked,
     updateCurrentPostCaption,
+    type SpaceFriendRequest,
     type SpacePost,
 } from "services/space";
 import { useSpaceAppState } from "state/app-state";
@@ -43,6 +48,10 @@ const Page: React.FC = () => {
     } = useSpaceAppState();
     const [friendRequestSentToastName, setFriendRequestSentToastName] =
         useState<string>();
+    const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
+    const [friendRequests, setFriendRequests] = useState<SpaceFriendRequest[]>(
+        [],
+    );
     const [feedItems, setFeedItems] = useState<SpacePost[]>([]);
     const [hasFeedLoadMoreError, setHasFeedLoadMoreError] = useState(false);
     const [feedNextCursor, setFeedNextCursor] = useState<string>();
@@ -90,6 +99,22 @@ const Page: React.FC = () => {
 
         setFriendRequestSentToastName(sentFriend.username.trim());
     }, [router.isReady]);
+
+    useEffect(() => {
+        if (!isAddFriendOpen || !profile?.spaceId) return;
+
+        let cancelled = false;
+        void loadCurrentFriendRequests(profile.spaceId)
+            .then((requests) => {
+                if (!cancelled) setFriendRequests(requests);
+            })
+            .catch((error: unknown) =>
+                log.error("Failed to load Space friend requests", error),
+            );
+        return () => {
+            cancelled = true;
+        };
+    }, [isAddFriendOpen, profile?.spaceId]);
 
     useEffect(() => {
         const request = { cancelled: false };
@@ -280,6 +305,7 @@ const Page: React.FC = () => {
                 }
                 onFriendRequestSentToastClose={closeFriendRequestSentToast}
                 onInviteFriendsToastClose={closeInviteFriendsToast}
+                onAddFriend={() => setIsAddFriendOpen(true)}
                 onPostPhotoSelect={setPendingPostPhotoFile}
                 onDeletePost={async (postId) => {
                     const spaceId = profile?.spaceId;
@@ -374,6 +400,56 @@ const Page: React.FC = () => {
                         : undefined
                 }
             />
+            {profile && (
+                <SpaceAddFriendDialog
+                    friendRequests={friendRequests}
+                    friends={friends}
+                    open={isAddFriendOpen}
+                    onClose={() => setIsAddFriendOpen(false)}
+                    profileLink={spaceInviteURL({
+                        spaceUsername: profile.username,
+                    })}
+                    username={profile.username}
+                    onAddFriend={async (username) => {
+                        const actorSpaceId = profile.spaceId;
+                        if (!actorSpaceId) throw new Error("Missing space.");
+                        const status = await requestFriendByUsername({
+                            spaceUsername: username,
+                        });
+                        try {
+                            if (status == "friend") {
+                                clearSpaceFriendsCache();
+                                const [requests, friends, feed] =
+                                    await Promise.all([
+                                        loadCurrentFriendRequests(actorSpaceId),
+                                        loadCurrentSpaceFriends(actorSpaceId),
+                                        loadCurrentFeedPage(actorSpaceId),
+                                    ]);
+                                setFriendRequests(requests);
+                                setFriends(friends);
+                                setFeedItems(feed.items);
+                                setFeedNextCursor(feed.nextCursor);
+                                await cacheCurrentSpaceFeedPage(
+                                    actorSpaceId,
+                                    feed,
+                                );
+                            } else {
+                                setFriendRequests(
+                                    await loadCurrentFriendRequests(
+                                        actorSpaceId,
+                                    ),
+                                );
+                            }
+                        } catch (error) {
+                            log.error(
+                                "Failed to refresh friends after sending request",
+                                error,
+                            );
+                        }
+                        return status;
+                    }}
+                />
+            )}
         </>
     );
 };

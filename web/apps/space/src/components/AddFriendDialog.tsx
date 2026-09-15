@@ -198,7 +198,7 @@ export const SpaceAddFriendDialog: React.FC<SpaceAddFriendDialogProps> = ({
                         textAlign: "center",
                     }}
                 >
-                    Enter your friend&apos;s username to add them on Space
+                    Enter your friend&apos;s username
                 </Box>
                 <Box
                     component="label"
