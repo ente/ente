@@ -255,15 +255,36 @@ pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_
 
 func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, updationTime int64, app ente.App, limit *int64) ([]ente.Collection, error) {
 	query := `
-		SELECT collections.collection_id, collections.owner_id, users.encrypted_email, users.email_decryption_nonce, collection_shares.encrypted_key, collections.name, collections.encrypted_name, collections.name_decryption_nonce, collections.type, collections.app, collections.pub_magic_metadata, collection_shares.magic_metadata, collections.updation_time, collection_shares.is_deleted, collection_shares.role_type, collection_shares.shared_at
+		SELECT collections.collection_id, collections.owner_id,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE users.encrypted_email END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE users.email_decryption_nonce END,
+			collection_shares.encrypted_key,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.name END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.encrypted_name END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.name_decryption_nonce END,
+			collections.type,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.app::text END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.pub_magic_metadata END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.magic_metadata END,
+			CASE WHEN collection_shares.is_deleted THEN collection_shares.updation_time ELSE GREATEST(collection_shares.updation_time, collections.updation_time) END AS effective_updation_time,
+			collection_shares.is_deleted,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.role_type END,
+			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.shared_at END
 		FROM collections
 		INNER JOIN users
 			ON collections.owner_id = users.user_id
 		INNER JOIN collection_shares
-			ON collections.collection_id = collection_shares.collection_id AND collection_shares.to_user_id = $1 AND (collection_shares.updation_time > $2 OR collections.updation_time > $2) AND users.encrypted_email IS NOT NULL AND app = $3`
+			ON collections.collection_id = collection_shares.collection_id
+		WHERE collection_shares.to_user_id = $1
+			AND (collection_shares.is_deleted = TRUE OR users.encrypted_email IS NOT NULL)
+			AND collections.app = $3
+			AND (
+				(collection_shares.is_deleted = FALSE AND (collection_shares.updation_time > $2 OR collections.updation_time > $2))
+				OR (collection_shares.is_deleted = TRUE AND collection_shares.updation_time > $2)
+			)`
 	args := []interface{}{userID, updationTime, string(app)}
 	if limit != nil {
-		query += " ORDER BY collections.updation_time ASC LIMIT $4"
+		query += " ORDER BY effective_updation_time ASC LIMIT $4"
 		args = append(args, *limit)
 	}
 
@@ -279,11 +300,12 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 		var c ente.Collection
 		var collectionName, encryptedName, nameDecryptionNonce sql.NullString
 		var encryptedEmail, emailDecryptionNonce []byte
-		var roleType sql.NullString
+		var collectionApp, roleType sql.NullString
 		var sharedAt sql.NullInt64
-		if err := rows.Scan(&c.ID, &c.Owner.ID, &encryptedEmail, &emailDecryptionNonce, &c.EncryptedKey, &collectionName, &encryptedName, &nameDecryptionNonce, &c.Type, &c.App, &c.PublicMagicMetadata, &c.SharedMagicMetadata, &c.UpdationTime, &c.IsDeleted, &roleType, &sharedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Owner.ID, &encryptedEmail, &emailDecryptionNonce, &c.EncryptedKey, &collectionName, &encryptedName, &nameDecryptionNonce, &c.Type, &collectionApp, &c.PublicMagicMetadata, &c.SharedMagicMetadata, &c.UpdationTime, &c.IsDeleted, &roleType, &sharedAt); err != nil {
 			return collections, stacktrace.Propagate(err, "")
 		}
+		c.App = collectionApp.String
 		if sharedAt.Valid {
 			sharedAtValue := sharedAt.Int64
 			c.SharedAt = &sharedAtValue

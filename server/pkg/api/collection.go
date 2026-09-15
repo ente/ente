@@ -76,9 +76,12 @@ func (h *CollectionHandler) GetV2(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, "Failed to get shared collections"))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"collections": append(ownedCollections, sharedCollections...),
-	})
+	collections := make([]any, 0, len(ownedCollections)+len(sharedCollections))
+	for _, collection := range ownedCollections {
+		collections = append(collections, collection)
+	}
+	collections = append(collections, sharedCollectionResponses(sharedCollections)...)
+	c.JSON(http.StatusOK, gin.H{"collections": collections})
 }
 
 func (h *CollectionHandler) GetWithLimit(c *gin.Context) {
@@ -105,8 +108,45 @@ func (h *CollectionHandler) GetWithLimit(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"owned":  ownedCollections,
-		"shared": sharedCollections,
+		"shared": sharedCollectionResponses(sharedCollections),
 	})
+}
+
+type deletedSharedCollectionOwner struct {
+	ID    int64  `json:"id"`
+	Email string `json:"email"`
+}
+
+// The compatibility fields can be removed after released clients accept ID-only tombstones.
+type deletedSharedCollection struct {
+	ID           int64                        `json:"id"`
+	Owner        deletedSharedCollectionOwner `json:"owner"`
+	EncryptedKey string                       `json:"encryptedKey"`
+	Type         string                       `json:"type"`
+	Attributes   struct{}                     `json:"attributes"`
+	UpdationTime int64                        `json:"updationTime"`
+	IsDeleted    bool                         `json:"isDeleted"`
+}
+
+func sharedCollectionResponses(collections []ente.Collection) []any {
+	responses := make([]any, 0, len(collections))
+	for _, collection := range collections {
+		if !collection.IsDeleted {
+			responses = append(responses, collection)
+			continue
+		}
+		responses = append(responses, deletedSharedCollection{
+			ID: collection.ID,
+			Owner: deletedSharedCollectionOwner{
+				ID: collection.Owner.ID,
+			},
+			EncryptedKey: collection.EncryptedKey,
+			Type:         collection.Type,
+			UpdationTime: collection.UpdationTime,
+			IsDeleted:    true,
+		})
+	}
+	return responses
 }
 
 func (h *CollectionHandler) Share(c *gin.Context) {
