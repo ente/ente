@@ -134,9 +134,13 @@ const SpacePostComposer: React.FC<SpacePostComposerProps> = ({
                 }
                 onDraftPostExitStart={() => setIsDraftPostExiting(true)}
                 onDraftPostPublished={() => {
-                    void clearBrowserBackState("back").then(() =>
-                        router.push(spaceRoutes.home),
-                    );
+                    void clearBrowserBackState("back").then(() => {
+                        if (router.pathname != spaceRoutes.home) {
+                            void router.push(spaceRoutes.home);
+                        } else {
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                        }
+                    });
                 }}
                 onPublishDraftPost={
                     draft.isPreviewPending || draft.error

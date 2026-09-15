@@ -4,10 +4,6 @@ import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React from "react";
 import {
-    markSpaceHomePostRead,
-    patchCachedSpaceHomePost,
-} from "services/home-posts";
-import {
     loadCurrentSpacePost,
     replyToCurrentPost,
     setCurrentPostLiked,
@@ -107,15 +103,6 @@ const Page: React.FC = () => {
                     return;
                 }
                 setPost(nextPost);
-                if (nextPost.spaceId != viewerSpaceId) {
-                    void markSpaceHomePostRead(viewerSpaceId, nextPost).catch(
-                        (error: unknown) =>
-                            log.warn(
-                                "Failed to mark Space post as read",
-                                error,
-                            ),
-                    );
-                }
             })
             .catch((error: unknown) => {
                 log.error("Failed to load space post", error);
@@ -199,9 +186,6 @@ const Page: React.FC = () => {
                 }
                 onSetPostLiked={async (nextPostId, liked) => {
                     await setCurrentPostLiked(actorSpaceId, nextPostId, liked);
-                    void patchCachedSpaceHomePost(actorSpaceId, nextPostId, {
-                        viewerLiked: liked,
-                    });
                 }}
             />
         </>

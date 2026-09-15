@@ -81,16 +81,10 @@ const routeSlideDirection = (
     targetPath: string | undefined,
     direction: SpaceRouteMotionDirection,
 ): SpaceRouteMotionDirection => {
-    if (
-        (currentPath == "/app" || currentPath == "/layout-demo") &&
-        targetPath == "/app/settings"
-    ) {
+    if (currentPath == "/app" && targetPath == "/app/settings") {
         return "back";
     }
-    if (
-        currentPath == "/app/settings" &&
-        (targetPath == "/app" || targetPath == "/layout-demo")
-    ) {
+    if (currentPath == "/app/settings" && targetPath == "/app") {
         return "forward";
     }
     return direction;

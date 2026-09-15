@@ -27,12 +27,10 @@ import {
     type SpaceViewerPostActionMode,
 } from "components/FileViewer";
 import { SpacePostFloatingActionButton } from "components/PostFloatingActionButton";
-import { ProfileLatestPost } from "components/ProfileLatestPost";
 import { SpaceLoadingSpinner } from "components/RouteFallback";
 import { SpaceShareIcon } from "components/ShareInviteButton";
 import log from "ente-base/log";
 import { useBrowserBackClose } from "hooks/use-browser-back-close";
-import { useProfileStickyHeader } from "hooks/use-profile-sticky-header";
 import React, { useState } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import type { SpaceInviteIntent } from "services/invite";
@@ -49,7 +47,7 @@ import {
 } from "styles/colors";
 import { spaceProfilePostRadius } from "styles/tiles";
 import { spaceTouchTargetSize } from "styles/touch-targets";
-import { firstNameFrom, formatSpaceDate } from "utils/display";
+import { firstNameFrom } from "utils/display";
 import { createLoadedLocalPostPhoto } from "utils/local-post-photo";
 import {
     canPreviewSpaceImageFile,
@@ -75,7 +73,6 @@ const profileCoverTopShadow =
     "linear-gradient(180deg, rgba(0, 0, 0, 0.26) 0%, rgba(0, 0, 0, 0.18) 36%, rgba(0, 0, 0, 0.08) 72%, rgba(0, 0, 0, 0) 100%)";
 const profileCoverSkeletonBackground = spaceSurface;
 const profileHeaderHeight = 56;
-const profileStickyHeaderHeight = 44;
 const profileAvatarTopOffset = 54;
 const profileAvatarSize = 132;
 const profileCoverHeight =
@@ -137,10 +134,6 @@ const buildPostMasonrySections = (
 ) => {
     const now = new Date();
     const dayMs = 24 * 60 * 60 * 1000;
-    const latestSection = {
-        title: "Latest",
-        tiles: new Array<PostMasonryTile>(),
-    };
     const sections = [
         {
             title: "Today",
@@ -168,10 +161,9 @@ const buildPostMasonrySections = (
             height: item.height ?? 1,
             width: item.width ?? 1,
         };
-        const section =
-            index == 0
-                ? latestSection
-                : sections.find(({ sinceMs }) => item.timestampMs >= sinceMs)!;
+        const section = sections.find(
+            ({ sinceMs }) => item.timestampMs >= sinceMs,
+        )!;
         section.tiles.push({
             aspectRatio: photoAspectRatio(dimensions),
             dimensions,
@@ -180,7 +172,7 @@ const buildPostMasonrySections = (
         });
     });
 
-    return [latestSection, ...sections]
+    return sections
         .filter(({ tiles }) => tiles.length > 0)
         .map(({ title, tiles }) => ({
             title,
@@ -513,7 +505,6 @@ interface ProfileScreenProps {
     ) => Promise<void>;
     onDeletePost?: (postId: number) => Promise<void> | void;
     onOpenFriends?: () => void;
-    onOpenPost?: (post: ProfilePostItem) => void;
     onOpenProfileCover?: () => void;
     onOpenProfilePhoto?: () => void;
     onOpenSettings?: () => void;
@@ -552,7 +543,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     onCreatePost,
     onDeletePost,
     onOpenFriends,
-    onOpenPost,
     onOpenProfileCover,
     onOpenProfilePhoto,
     onOpenSettings,
@@ -600,7 +590,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     >({});
     const [loadedCoverUrl, setLoadedCoverUrl] = useState<string | null>(null);
     const [postGridWidth, setPostGridWidth] = useState(0);
-    const profileIdentityRef = React.useRef<HTMLDivElement | null>(null);
     const postGridRef = React.useRef<HTMLDivElement | null>(null);
     const hasScrolledToLatestPost = React.useRef(false);
     const postInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -645,11 +634,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const canOpenProfileCover = Boolean(onOpenProfileCover);
     const canOpenProfilePhoto = Boolean(onOpenProfilePhoto);
     const hasProfilePosts = postsSharedCount > 0;
-    const { isSticky, shouldAnimate, syncScroll } = useProfileStickyHeader(
-        !isPublicProfile,
-        profileIdentityRef,
-        profileStickyHeaderHeight,
-    );
     React.useLayoutEffect(() => {
         const grid = postGridRef.current;
         if (!grid) return;
@@ -673,16 +657,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         if (!grid) return;
 
         window.scrollTo({
-            top:
-                window.scrollY +
-                grid.getBoundingClientRect().top -
-                (isPublicProfile ? 0 : profileStickyHeaderHeight) -
-                16,
+            top: window.scrollY + grid.getBoundingClientRect().top - 16,
             behavior: "instant",
         });
-        if (!isPublicProfile) syncScroll();
         hasScrolledToLatestPost.current = true;
-    }, [initialSection, isPublicProfile, postGridWidth, syncScroll]);
+    }, [initialSection, postGridWidth]);
     const shouldShowPostLoadingIndicator =
         isPostsLoading && (showPostLoadingIndicator ?? true);
     const isCoverImageLoading = Boolean(
@@ -920,7 +899,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         (postIndex: number) => {
             const item = viewerPostItems[postIndex];
             if (!item) return;
-            onOpenPost?.(item);
 
             const updateSelectedPost = (imageUrl: string) => {
                 setSelectedPost((currentPost) => {
@@ -950,7 +928,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         [
             loadPostImage,
             loadedPostImageURLFor,
-            onOpenPost,
             selectedPostForItem,
             viewerPostItems,
         ],
@@ -1120,23 +1097,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         rowAspectRatio: number,
     ) => {
         const imageUrl = loadedPostImageURLFor(item);
-        const isLatestPost = index == 0 && !isPublicProfile;
         const isUnavailable = !viewerPostIndexByID.has(item.id);
-        const tile = (
+        return (
             <ProfilePostTile
                 key={`${item.id}-${index}`}
                 flexGrow={aspectRatio / rowAspectRatio}
-                dimensions={
-                    isLatestPost
-                        ? {
-                              width: dimensions.width,
-                              height: Math.min(
-                                  dimensions.height,
-                                  (dimensions.width * 4) / 3,
-                              ),
-                          }
-                        : dimensions
-                }
+                dimensions={dimensions}
                 displayName={displayName}
                 imageUrl={imageUrl}
                 index={index}
@@ -1154,7 +1120,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 onOpen={(openedImageUrl) => {
                     const postIndex = viewerPostIndexByID.get(item.id);
                     if (postIndex == undefined) return;
-                    onOpenPost?.(item);
                     setSelectedPost(
                         selectedPostForItem(item, postIndex, openedImageUrl),
                     );
@@ -1162,39 +1127,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 onRememberDimensions={rememberLoadedPhotoDimensions}
             />
         );
-        if (!isLatestPost) return tile;
-
-        const postId = item.postId;
-        const spaceId = item.spaceId;
-        return (
-            <ProfileLatestPost
-                key={item.id}
-                caption={item.caption}
-                disabled={isUnavailable}
-                liked={item.viewerLiked ?? false}
-                onReply={
-                    isFriendProfile && onReplyToPost && postId && spaceId
-                        ? (text) => onReplyToPost(spaceId, postId, text)
-                        : undefined
-                }
-                onSetLiked={
-                    isFriendProfile && onSetPostLiked && postId
-                        ? (liked) => onSetPostLiked(postId, liked)
-                        : undefined
-                }
-            >
-                {tile}
-            </ProfileLatestPost>
-        );
     };
 
-    const renderHeader = (compact = false) => {
+    const renderHeader = () => {
         return (
             <Box
-                component={compact ? "nav" : "header"}
-                aria-label={compact ? "Profile navigation" : undefined}
-                aria-hidden={compact && !isSticky ? true : undefined}
-                inert={compact && !isSticky}
+                component="header"
                 sx={{
                     alignItems: "center",
                     color: coverForeground,
@@ -1202,44 +1140,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     gridTemplateColumns: isPublicProfile
                         ? undefined
                         : `${spaceTouchTargetSize}px minmax(0, 1fr) ${spaceTouchTargetSize}px`,
-                    height: compact
-                        ? profileStickyHeaderHeight
-                        : profileHeaderHeight,
-                    bgcolor: compact ? profileCoverBackground : undefined,
-                    backgroundImage:
-                        compact && coverImageUrl
-                            ? `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url("${coverImageUrl}")`
-                            : undefined,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    borderBottomLeftRadius: compact
-                        ? profileCoverRadius
-                        : undefined,
-                    borderBottomRightRadius: compact
-                        ? profileCoverRadius
-                        : undefined,
-                    boxShadow: compact
-                        ? "0 2px 10px rgba(0, 0, 0, 0.16)"
-                        : undefined,
-                    insetInline: compact ? 0 : undefined,
+                    height: profileHeaderHeight,
                     justifyContent: isPublicProfile
                         ? "space-between"
                         : undefined,
                     mx: "auto",
-                    opacity: compact && !isSticky ? 0 : 1,
-                    pointerEvents: compact && !isSticky ? "none" : undefined,
-                    position: compact ? "fixed" : "relative",
+                    position: "relative",
                     px: 2,
                     py: 0,
-                    top: compact ? 0 : undefined,
-                    transition:
-                        compact && shouldAnimate
-                            ? isSticky
-                                ? "opacity 240ms ease-in-out"
-                                : "opacity 160ms ease-out"
-                            : "none",
                     width: "100%",
-                    zIndex: compact ? 10 : 3,
+                    zIndex: 3,
                     "@media (min-width: 600px)": { maxWidth: 390 },
                 }}
             >
@@ -1540,9 +1450,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     />
                 )}
                 {renderHeader()}
-                {!isPublicProfile && renderHeader(true)}
                 <Box
-                    ref={profileIdentityRef}
                     sx={{
                         alignItems: "center",
                         display: "flex",
@@ -1987,24 +1895,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                         }}
                                     >
                                         {title}
-                                        {title == "Latest" && (
-                                            <Box
-                                                component="span"
-                                                sx={{
-                                                    color: "#85858D",
-                                                    display: "inline-flex",
-                                                    fontSize: 12,
-                                                    fontWeight: 500,
-                                                    gap: "4px",
-                                                }}
-                                            >
-                                                <span aria-hidden>·</span>
-                                                {formatSpaceDate(
-                                                    rows[0]!.tiles[0]!.item
-                                                        .timestampMs,
-                                                )}
-                                            </Box>
-                                        )}
                                     </Box>
                                     <Box
                                         sx={{
@@ -2012,11 +1902,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                             display: "flex",
                                             flexDirection: "column",
                                             gap: photoMasonryGap,
-                                            overflow:
-                                                title == "Latest" &&
-                                                !isPublicProfile
-                                                    ? "visible"
-                                                    : "hidden",
+                                            overflow: "hidden",
                                         }}
                                     >
                                         {rows.map((row) => {

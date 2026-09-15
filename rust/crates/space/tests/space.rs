@@ -158,6 +158,21 @@ async fn space_bootstrap_posts_and_friend_share_suite(endpoint: &str) {
         .await
         .expect("owner home posts should load");
     assert!(owner_home_posts.items.is_empty());
+    let owner_feed = owner_ctx
+        .list_feed(&owner_space.space_id, None, Some(10))
+        .await
+        .expect("owner feed should load");
+    assert_eq!(owner_feed.items.len(), 1);
+    assert_eq!(owner_feed.items[0].post_id, post_id);
+    let own_feed_post = owner_ctx
+        .decrypt_post_for_space(&owner_space.space_id, &owner_feed.items[0])
+        .await
+        .expect("own feed post should decrypt");
+    assert_eq!(
+        own_feed_post.caption_plaintext,
+        owner_post.caption_plaintext
+    );
+
     space::assert_http_status(
         owner_ctx
             .like_post(&owner_space.space_id, post_id, true)
@@ -237,6 +252,21 @@ async fn space_bootstrap_posts_and_friend_share_suite(endpoint: &str) {
     assert_eq!(
         home_post.caption_plaintext.as_deref(),
         Some(br#"{"caption":"hello world"}"#.as_slice())
+    );
+
+    let friend_feed = friend_ctx
+        .list_feed(&friend_space.space_id, None, Some(10))
+        .await
+        .expect("friend feed should load");
+    assert_eq!(friend_feed.items.len(), 1);
+    assert_eq!(friend_feed.items[0].post_id, post_id);
+    let friend_feed_post = friend_ctx
+        .decrypt_post_for_space(&owner_space.space_id, &friend_feed.items[0])
+        .await
+        .expect("friend feed post should decrypt");
+    assert_eq!(
+        friend_feed_post.caption_plaintext,
+        home_post.caption_plaintext
     );
 
     let liked = friend_ctx

@@ -8,7 +8,13 @@ import {
     type SpaceAccountCtxHandle,
     type SpaceLinkCtxHandle,
 } from "ente-space-wasm";
-import { clearCachedSpaceHomeItems } from "services/home-items";
+import {
+    invalidateCachedSpaceFeed,
+    patchCachedSpaceFeedPost,
+    prependCachedSpaceFeedPost,
+    removeCachedSpaceFeedPost,
+    removeCachedSpaceFeedPostsBySpace,
+} from "services/feed-cache";
 import type { PendingSpaceInvite } from "services/invite";
 import {
     cachedSpaceMediaBlobURL,
@@ -19,10 +25,6 @@ import {
     spaceProfileMediaCacheKey,
 } from "services/media-cache";
 import {
-    cacheOwnLatestPost,
-    patchCachedOwnLatestPost,
-} from "services/post-cache";
-import {
     ensureCurrentSpaceContext,
     loadExistingSpaceProfile,
     persistCurrentOwnedSpaces,
@@ -32,12 +34,9 @@ import {
     parseSpaceProfilePayload,
     spaceProfileTextField,
 } from "services/profile-payload";
-import { isFriendRequestCanceledError } from "utils/friend-errors";
 import { normalizeSpaceMessageText } from "utils/message-limits";
 
 export { clearSpaceMediaURLCache } from "services/media-cache";
-
-const currentHomePostsPageSize = 100;
 
 interface SpaceAvatar {
     keyVersion: number;
@@ -94,10 +93,6 @@ interface SpacePostResponse {
 interface SpacePostPageResponse {
     items?: SpacePostResponse[];
     nextCursor?: string;
-}
-
-interface SpaceHomePostPageResponse extends SpacePostPageResponse {
-    syncCursor: string;
 }
 
 type SpaceMessageConversationActivityType =
@@ -219,10 +214,9 @@ export interface SpacePost extends SpacePostBase {
     imageUrl?: string;
 }
 
-export interface SpaceHomePostPage {
+export interface SpacePostPage {
     items: SpacePost[];
     nextCursor?: string;
-    syncCursor: string;
 }
 
 export interface SpaceProfilePost extends SpacePostBase {
@@ -687,24 +681,6 @@ const profilePostFromPost = (post: SpacePostResponse): SpaceProfilePost => {
     };
 };
 
-const homePostPageFromAccountPage = async (
-    ctx: SpaceAccountCtxHandle,
-    page: SpaceHomePostPageResponse,
-    loadMedia = true,
-    viewerSpaceId?: string,
-): Promise<SpaceHomePostPage> => {
-    const items = await Promise.all(
-        (page.items ?? []).map((post) =>
-            postFromAccountPost(ctx, post, loadMedia, viewerSpaceId),
-        ),
-    );
-    return {
-        items,
-        nextCursor: page.nextCursor || undefined,
-        syncCursor: page.syncCursor,
-    };
-};
-
 const profilePostPageFromPage = (
     page: SpacePostPageResponse,
 ): SpaceProfilePostPage => ({
@@ -1036,7 +1012,6 @@ export const requestFriendByUsername = async ({
         ).requestFriendByUsername(spaceId, spaceUsername)) as {
             status?: string;
         };
-        await clearCachedSpaceHomeItems(spaceId);
         return response.status == "friend" ? "friend" : "requested";
     } finally {
         releaseCurrentSpaceContext(ctx);
@@ -1174,7 +1149,7 @@ export const removeCurrentSpaceFriend = async (
     const ctx = await ensureCurrentSpaceContext();
     try {
         await ctx.removeFriendBySpace(actorSpaceId, spaceId);
-        await clearCachedSpaceHomeItems(actorSpaceId);
+        await removeCachedSpaceFeedPostsBySpace(actorSpaceId, spaceId);
         await clearSpaceMediaCache();
         clearSpaceFriendsCache();
     } finally {
@@ -1182,21 +1157,26 @@ export const removeCurrentSpaceFriend = async (
     }
 };
 
-export const loadCurrentHomePostsPage = async (
+export const loadCurrentFeedPage = async (
     spaceId: string,
-    after?: string,
     cursor?: string,
-): Promise<SpaceHomePostPage> => {
+): Promise<SpacePostPage> => {
     const ctx = await ensureCurrentSpaceContext();
     try {
-        const page = (await ctx.listHomePosts(
+        const page = (await ctx.listFeed(
             spaceId,
-            after ?? null,
             cursor ?? null,
-            currentHomePostsPageSize,
-        )) as SpaceHomePostPageResponse;
+            10,
+        )) as SpacePostPageResponse;
         await persistCurrentOwnedSpaces(ctx);
-        return await homePostPageFromAccountPage(ctx, page, false, spaceId);
+        return {
+            items: await Promise.all(
+                (page.items ?? []).map((post) =>
+                    postFromAccountPost(ctx, post, false, spaceId),
+                ),
+            ),
+            nextCursor: page.nextCursor || undefined,
+        };
     } finally {
         releaseCurrentSpaceContext(ctx);
     }
@@ -1231,9 +1211,6 @@ export const loadCurrentSpaceProfilePostsPage = async (
                 60,
             )) as SpacePostPageResponse,
         );
-        if (!cursor && spaceId == viewerSpaceId) {
-            await cacheOwnLatestPost(spaceId, page.items[0]);
-        }
         return page;
     } finally {
         releaseCurrentSpaceContext(ctx);
@@ -1289,18 +1266,24 @@ export const loadCurrentSpacePostAvatarURL: SpacePostAvatarURLLoader = async (
         return null;
     }
 
+    const avatar = {
+        keyVersion: post.avatarKeyVersion,
+        objectID: post.avatarObjectID,
+        size: post.avatarSize,
+        updatedAt: post.avatarUpdatedAt,
+    };
+    const cachedAvatarURL = await cachedAccountAvatarURLIfPresent(
+        post.spaceId,
+        avatar,
+    );
+    if (cachedAvatarURL) return cachedAvatarURL;
     const profile = await loadExistingSpaceProfile();
     const ctx = await ensureCurrentSpaceContext();
     try {
         return await accountAvatarURL(
             ctx,
             post.spaceId,
-            {
-                keyVersion: post.avatarKeyVersion,
-                objectID: post.avatarObjectID,
-                size: post.avatarSize,
-                updatedAt: post.avatarUpdatedAt,
-            },
+            avatar,
             profile?.spaceId,
         );
     } finally {
@@ -1375,7 +1358,7 @@ export const createCurrentPhotoPost = async ({
         const object = firstObject(created);
         if (object) await cacheAccountPostAssetURL(created, object, file);
         const post = await postFromAccountPost(ctx, created, true, spaceId);
-        await cacheOwnLatestPost(spaceId, post);
+        await prependCachedSpaceFeedPost(spaceId, post);
         return post;
     } finally {
         releaseCurrentSpaceContext(ctx);
@@ -1395,6 +1378,7 @@ export const setCurrentPostLiked = async (
     const ctx = await ensureCurrentSpaceContext();
     try {
         await ctx.likePost(spaceId, BigInt(postId), liked);
+        await patchCachedSpaceFeedPost(spaceId, postId, { viewerLiked: liked });
     } finally {
         releaseCurrentSpaceContext(ctx);
     }
@@ -1644,12 +1628,7 @@ export const confirmCurrentFriendRequest = async (
             BigInt(requestId),
         );
         clearSpaceFriendsCache();
-        await clearCachedSpaceHomeItems(spaceId);
-    } catch (error) {
-        if (isFriendRequestCanceledError(error)) {
-            await clearCachedSpaceHomeItems(spaceId);
-        }
-        throw error;
+        await invalidateCachedSpaceFeed(spaceId);
     } finally {
         releaseCurrentSpaceContext(ctx);
     }
@@ -1665,12 +1644,6 @@ export const deleteCurrentFriendRequest = async (
             spaceId,
             BigInt(requestId),
         );
-        await clearCachedSpaceHomeItems(spaceId);
-    } catch (error) {
-        if (isFriendRequestCanceledError(error)) {
-            await clearCachedSpaceHomeItems(spaceId);
-        }
-        throw error;
     } finally {
         releaseCurrentSpaceContext(ctx);
     }
@@ -1726,7 +1699,7 @@ export const deleteCurrentPost = async (spaceId: string, postId: number) => {
     const ctx = await ensureCurrentSpaceContext();
     try {
         await ctx.deletePost(spaceId, BigInt(postId));
-        await patchCachedOwnLatestPost(spaceId, postId, undefined);
+        await removeCachedSpaceFeedPost(spaceId, postId);
     } finally {
         releaseCurrentSpaceContext(ctx);
     }
@@ -1744,7 +1717,7 @@ export const updateCurrentPostCaption = async (
             BigInt(postId),
             caption.trim() || null,
         );
-        await patchCachedOwnLatestPost(spaceId, postId, {
+        await patchCachedSpaceFeedPost(spaceId, postId, {
             caption: caption.trim() || undefined,
         });
     } finally {

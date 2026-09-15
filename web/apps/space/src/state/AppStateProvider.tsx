@@ -1,3 +1,4 @@
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import React, {
     useCallback,
@@ -8,7 +9,7 @@ import React, {
 } from "react";
 import type { SpaceLoginCredentials } from "screens/LoginScreen";
 import type { SetupProfile } from "screens/SetupProfileScreen";
-import { clearSpaceHomePostsMemoryCache } from "services/home-posts";
+import { clearSpaceFeedMemoryCache } from "services/feed-cache";
 import type { PendingSpacePasskeyVerification } from "services/passkey-verification";
 import { logoutRevokedSpaceSession } from "services/persistent-session";
 import {
@@ -25,6 +26,7 @@ import {
     createCurrentPhotoPost,
 } from "services/space";
 import {
+    type LocalSpaceFeedPost,
     type OnboardingEntrySource,
     type PendingCreateProfile,
     type RefreshSpaceProfileOptions,
@@ -34,6 +36,11 @@ import {
     type SpaceProfileLoadStatus,
     initialFriends,
 } from "state/app-state";
+import {
+    confirmLocalFeedPost,
+    createLocalFeedPostID,
+    failLocalFeedPost,
+} from "utils/local-feed-post";
 import { prepareSpacePostImageFromEdit } from "utils/post-image";
 
 const postStatusDurationMs = 2000;
@@ -44,6 +51,9 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
     const [cachedProfileAvatarUrl, setCachedProfileAvatarUrl] =
         useState<string>();
     const [friends, setFriends] = useState(initialFriends);
+    const [localFeedPosts, setLocalFeedPosts] = useState<LocalSpaceFeedPost[]>(
+        [],
+    );
     const [isLiveSignupVerification, setIsLiveSignupVerification] =
         useState(false);
     const [onboardingEntrySource, setOnboardingEntrySource] =
@@ -73,12 +83,26 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
     const profileLoadGenerationRef = useRef(0);
     const postPublishGenerationRef = useRef(0);
 
-    const postPreviewUrl = postPublication?.previewUrl;
+    const previewURLsRef = useRef(new Set<string>());
+    useEffect(() => {
+        const urls = new Set(
+            localFeedPosts.flatMap((item) =>
+                item.status == "pending" || item.status == "failed"
+                    ? [item.imageUrl]
+                    : [],
+            ),
+        );
+        if (postPublication?.previewUrl) urls.add(postPublication.previewUrl);
+        previewURLsRef.current.forEach((url) => {
+            if (!urls.has(url)) URL.revokeObjectURL(url);
+        });
+        previewURLsRef.current = urls;
+    }, [localFeedPosts, postPublication?.previewUrl]);
     useEffect(
         () => () => {
-            if (postPreviewUrl) URL.revokeObjectURL(postPreviewUrl);
+            previewURLsRef.current.forEach((url) => URL.revokeObjectURL(url));
         },
-        [postPreviewUrl],
+        [],
     );
 
     useEffect(() => {
@@ -102,6 +126,23 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             if (!spaceId) throw new Error("Missing space.");
 
             const generation = ++postPublishGenerationRef.current;
+            const localPostId = createLocalFeedPostID();
+            setLocalFeedPosts((current) => [
+                {
+                    avatarUrl: profile.avatarUrl,
+                    caption: caption.trim() || undefined,
+                    friendID: spaceId,
+                    height: image.height,
+                    id: localPostId,
+                    imageUrl: image.previewUrl,
+                    name: profile.fullName.trim() || profile.username.trim(),
+                    spaceId,
+                    status: "pending",
+                    timestampMs: Date.now(),
+                    width: image.width,
+                },
+                ...current,
+            ]);
             let publication: SpacePostPublication = {
                 phase: "posting",
                 previewUrl: image.previewUrl,
@@ -138,6 +179,18 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
                         },
                     };
                     setPostPublication(publication);
+                    setLocalFeedPosts((current) =>
+                        current.map((item) =>
+                            item.id == localPostId && item.status == "pending"
+                                ? {
+                                      ...item,
+                                      imageUrl: previewUrl,
+                                      height: preparedImage.height,
+                                      width: preparedImage.width,
+                                  }
+                                : item,
+                        ),
+                    );
                 }
                 const post = await createCurrentPhotoPost({
                     caption,
@@ -147,6 +200,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
                     thumbHash: preparedImage.thumbHash,
                     width: preparedImage.width,
                 });
+                confirmLocalFeedPost(setLocalFeedPosts, localPostId, post);
                 if (postPublishGenerationRef.current == generation) {
                     setPostPublication({
                         ...publication,
@@ -157,6 +211,13 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
                 }
                 return post;
             } catch (error) {
+                failLocalFeedPost(
+                    setLocalFeedPosts,
+                    localPostId,
+                    isNamedError(error, "post_limit_reached")
+                        ? "post-limit"
+                        : undefined,
+                );
                 if (postPublishGenerationRef.current == generation) {
                     setPostPublication({ ...publication, phase: "failed" });
                 }
@@ -325,7 +386,8 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         profileLoadGenerationRef.current += 1;
         clearCurrentSpaceContext();
         clearSpaceFriendsCache();
-        clearSpaceHomePostsMemoryCache();
+        clearSpaceFeedMemoryCache();
+        setLocalFeedPosts([]);
         clearSpaceMediaURLCache();
         applyProfile(null);
         setProfileLoadError(undefined);
@@ -351,6 +413,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             cachedProfileAvatarUrl,
             friends,
             isLiveSignupVerification,
+            localFeedPosts,
             onboardingEntrySource,
             pendingLoginCredentials,
             pendingPasskeyVerification,
@@ -367,6 +430,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             setPostPublication,
             publishPost,
             setFriends,
+            setLocalFeedPosts,
             setIsLiveSignupVerification,
             setOnboardingEntrySource,
             setPendingLoginCredentials,
@@ -383,6 +447,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             cachedProfileAvatarUrl,
             friends,
             isLiveSignupVerification,
+            localFeedPosts,
             onboardingEntrySource,
             pendingLoginCredentials,
             pendingPasskeyVerification,
