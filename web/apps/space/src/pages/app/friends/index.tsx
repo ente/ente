@@ -1,11 +1,9 @@
-import { SpaceFriendLimitToast } from "components/FriendLimitToast";
 import { SpaceFriendRequestCanceledToast } from "components/FriendRequestCanceledToast";
 import { SpacePageMeta } from "components/PageMeta";
 import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React, { useEffect } from "react";
 import { FriendsScreen } from "screens/FriendsScreen";
-import { removeCachedSpaceHomePostsBySpace } from "services/home-posts";
 import { spaceInviteURL } from "services/invite";
 import {
     clearSpaceFriendsCache,
@@ -20,14 +18,7 @@ import {
 } from "services/space";
 import { useSpaceAppState } from "state/app-state";
 import { spaceAppBackgroundColor } from "styles/colors";
-import {
-    isFriendRequestCanceledError,
-    spaceFriendLimitErrorMessage,
-} from "utils/friend-errors";
-import {
-    maximumSpaceFriendCount,
-    spaceFriendLimitMessage,
-} from "utils/friend-limits";
+import { isFriendRequestCanceledError } from "utils/friend-errors";
 import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
 
@@ -46,8 +37,6 @@ const Page: React.FC = () => {
     const [isFriendsLoading, setIsFriendsLoading] = React.useState(true);
     const [showFriendRequestCanceledToast, setShowFriendRequestCanceledToast] =
         React.useState(false);
-    const [friendLimitMessage, setFriendLimitMessage] =
-        React.useState<string>();
 
     useEffect(() => {
         if (profileLoadStatus == "ready" && !profile) {
@@ -157,29 +146,12 @@ const Page: React.FC = () => {
                 onAcceptFriendRequest={async (requestID) => {
                     const actorSpaceId = profile.spaceId;
                     if (!actorSpaceId) return;
-                    const sentRequestCount = friendRequests.filter(
-                        (request) => request.direction == "sent",
-                    ).length;
-                    if (
-                        friends.length + sentRequestCount >=
-                        maximumSpaceFriendCount
-                    ) {
-                        setFriendLimitMessage(spaceFriendLimitMessage);
-                        return;
-                    }
-
                     try {
                         await confirmCurrentFriendRequest(
                             actorSpaceId,
                             requestID,
                         );
                     } catch (error: unknown) {
-                        const limitMessage =
-                            spaceFriendLimitErrorMessage(error);
-                        if (limitMessage) {
-                            setFriendLimitMessage(limitMessage);
-                            return;
-                        }
                         if (!isFriendRequestCanceledError(error)) throw error;
                         setFriendRequests((currentRequests) =>
                             currentRequests.filter(
@@ -247,22 +219,12 @@ const Page: React.FC = () => {
                         actorSpaceId,
                         friend.spaceId,
                     );
-                    await removeCachedSpaceHomePostsBySpace(
-                        actorSpaceId,
-                        friend.spaceId,
-                    );
                     window.location.reload();
                 }}
             />
             {showFriendRequestCanceledToast && (
                 <SpaceFriendRequestCanceledToast
                     onClose={() => setShowFriendRequestCanceledToast(false)}
-                />
-            )}
-            {friendLimitMessage && (
-                <SpaceFriendLimitToast
-                    message={friendLimitMessage}
-                    onClose={() => setFriendLimitMessage(undefined)}
                 />
             )}
         </>

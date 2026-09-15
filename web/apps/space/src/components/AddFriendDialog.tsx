@@ -19,14 +19,7 @@ import {
     spaceText,
     spaceTextMuted,
 } from "styles/colors";
-import {
-    friendRequestErrorMessage,
-    isSpaceFriendLimitError,
-} from "utils/friend-errors";
-import {
-    maximumSpaceFriendCount,
-    spaceFriendLimitMessage,
-} from "utils/friend-limits";
+import { friendRequestErrorMessage } from "utils/friend-errors";
 
 const green = "#08C225";
 const dangerColor = "#F63A3A";
@@ -100,22 +93,12 @@ export const SpaceAddFriendDialog: React.FC<SpaceAddFriendDialogProps> = ({
             );
             return;
         }
-        const sentRequestCount = friendRequests.filter(
-            (request) => request.direction == "sent",
-        ).length;
-        if (friends.length + sentRequestCount >= maximumSpaceFriendCount) {
-            setErrorMessage(spaceFriendLimitMessage);
-            return;
-        }
-
         setErrorMessage(undefined);
         setIsSubmitting(true);
         void onAddFriend(normalizedUsername)
             .then(() => setIsSent(true))
             .catch((error: unknown) => {
-                if (!isSpaceFriendLimitError(error)) {
-                    log.error("Failed to send space friend request", error);
-                }
+                log.error("Failed to send space friend request", error);
                 setErrorMessage(
                     friendRequestErrorMessage(error, normalizedUsername),
                 );

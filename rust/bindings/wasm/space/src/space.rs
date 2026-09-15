@@ -30,10 +30,6 @@ impl Error {
             Self::Space(ente_space::Error::SpaceSlugReserved) => Some("space_slug_reserved"),
             Self::Space(ente_space::Error::InvalidSpaceSlug) => Some("invalid_space_slug"),
             Self::Space(ente_space::Error::PostLimitReached) => Some("post_limit_reached"),
-            Self::Space(ente_space::Error::FriendLimitReached) => Some("friend_limit_reached"),
-            Self::Space(ente_space::Error::OtherFriendLimitReached) => {
-                Some("other_friend_limit_reached")
-            }
             Self::Space(ente_space::Error::ProfileNotFound) => Some("profile_not_found"),
             Self::Space(ente_space::Error::SelfFriendship) => Some("self_friendship"),
             Self::Space(ente_space::Error::FriendRequestLimitReached) => {
@@ -1009,6 +1005,17 @@ impl SpaceAccountCtxHandle {
                 .await?,
         )
         .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = listFeed)]
+    pub async fn list_feed(
+        &self,
+        space_id: String,
+        cursor: Option<String>,
+        limit: Option<i32>,
+    ) -> Result<JsValue, Error> {
+        let page = self.inner.list_feed(&space_id, cursor, limit).await?;
+        swb::to_value(&account_post_page_to_js(&self.inner, page).await?).map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = listHomePosts)]

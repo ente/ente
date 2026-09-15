@@ -92,6 +92,38 @@ impl AccountSpaceCtx {
             .await?)
     }
 
+    pub async fn list_feed(
+        &self,
+        space_id: &str,
+        cursor: Option<String>,
+        limit: Option<i32>,
+    ) -> Result<PostPage> {
+        let mut query = Vec::new();
+        if let Some(value) = cursor.filter(|value| !value.trim().is_empty()) {
+            query.push(("cursor", value));
+        }
+        if let Some(value) = limit {
+            query.push(("limit", value.to_string()));
+        }
+        let path = format!("/spaces/{space_id}/feed");
+        let fetch_feed = async {
+            Ok(self
+                .api()
+                .get(&path)
+                .query(&query)
+                .send()
+                .await?
+                .error_for_status()?
+                .json()
+                .await?)
+        };
+        let (page, _) = futures_util::try_join!(
+            fetch_feed,
+            self.list_decrypted_friend_shares_cached(space_id)
+        )?;
+        Ok(page)
+    }
+
     pub async fn list_home_posts(
         &self,
         space_id: &str,

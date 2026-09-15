@@ -153,6 +153,21 @@ func (c *PostsController) List(ctx *gin.Context, req models.ListPostsRequest) (*
 	}, nil
 }
 
+func (c *PostsController) ListFeed(ctx context.Context, viewerSpace *repo.SpaceRecord, req models.ListFeedRequest) (*models.PostPage, error) {
+	posts, nextCursor, err := c.PostsRepo.ListFeed(ctx, viewerSpace.SpaceID, req.Cursor, req.Limit)
+	if err != nil {
+		return nil, err
+	}
+	items, err := c.postResponses(ctx, posts, true)
+	if err != nil {
+		return nil, err
+	}
+	return &models.PostPage{
+		Items:      items,
+		NextCursor: nextCursor,
+	}, nil
+}
+
 func (c *PostsController) ListHomePosts(ctx context.Context, viewerSpace *repo.SpaceRecord, req models.ListHomePostsRequest) (*models.HomePostPage, error) {
 	syncCreatedAt, err := c.PostsRepo.CurrentDatabaseTimeMicroseconds(ctx)
 	if err != nil {

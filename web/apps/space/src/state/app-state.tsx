@@ -27,9 +27,50 @@ export interface RefreshSpaceProfileOptions {
     throwOnError?: boolean;
 }
 
+export interface PendingSpaceFeedPost {
+    avatarUrl?: string | null;
+    caption?: string;
+    friendID: string;
+    height?: number;
+    id: string;
+    imageUrl: string;
+    name: string;
+    spaceId: string;
+    status: "pending";
+    timestampMs: number;
+    width?: number;
+}
+
+export type FailedSpaceFeedPost = Omit<PendingSpaceFeedPost, "status"> & {
+    reason?: "post-limit";
+    status: "failed";
+};
+
+export interface PostedSpaceFeedPost {
+    id: string;
+    post: SpacePost;
+    status: "posted";
+}
+
+export interface ReadySpaceFeedPost {
+    id: string;
+    post: SpacePost;
+    status: "ready";
+}
+
+export type LocalSpaceFeedPost =
+    | FailedSpaceFeedPost
+    | PendingSpaceFeedPost
+    | PostedSpaceFeedPost
+    | ReadySpaceFeedPost;
+
 export interface SpaceAppState {
     cachedProfileAvatarUrl?: string;
     friends: FriendProfile[];
+    localFeedPosts: LocalSpaceFeedPost[];
+    setLocalFeedPosts: React.Dispatch<
+        React.SetStateAction<LocalSpaceFeedPost[]>
+    >;
     isLiveSignupVerification: boolean;
     onboardingEntrySource: OnboardingEntrySource;
     pendingLoginCredentials: SpaceLoginCredentials | null;
