@@ -31,6 +31,9 @@ impl Error {
             Self::Space(ente_space::Error::InvalidSpaceSlug) => Some("invalid_space_slug"),
             Self::Space(ente_space::Error::PostLimitReached) => Some("post_limit_reached"),
             Self::Space(ente_space::Error::FriendLimitReached) => Some("friend_limit_reached"),
+            Self::Space(ente_space::Error::OtherFriendLimitReached) => {
+                Some("other_friend_limit_reached")
+            }
             Self::Space(ente_space::Error::ProfileNotFound) => Some("profile_not_found"),
             Self::Space(ente_space::Error::SelfFriendship) => Some("self_friendship"),
             Self::Space(ente_space::Error::FriendRequestLimitReached) => {

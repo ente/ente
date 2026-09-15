@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
+	"net/http"
 	"sort"
 	"strconv"
 	"sync"
@@ -389,7 +390,7 @@ func TestCreateFriendRequestEnforcesFriendLimit(t *testing.T) {
 	fillSpaceFriendLimit(t, ctx, module, requesterSpace, "friend_limit_member", MaxFriendsPerSpace)
 
 	_, _, err = testCreateFriendRequest(ctx, module, requesterID, requesterSpace.SpaceID, targetSpace.SpaceID, "requester-share-key", requesterSpace.CurrentVersion)
-	require.ErrorIs(t, err, ErrSpaceFriendLimitReached)
+	requireSpaceFriendLimitError(t, err, "SPACE_FRIEND_LIMIT_REACHED")
 }
 
 func TestCreateFriendRequestCountsSentRequestsTowardFriendLimit(t *testing.T) {
@@ -406,7 +407,7 @@ func TestCreateFriendRequestCountsSentRequestsTowardFriendLimit(t *testing.T) {
 		require.NoError(t, err)
 		_, created, err := testCreateFriendRequest(ctx, module, requesterID, requesterSpace.SpaceID, targetSpace.SpaceID, "requester-share-key", requesterSpace.CurrentVersion)
 		if i == MaxFriendsPerSpace {
-			require.ErrorIs(t, err, ErrSpaceFriendLimitReached)
+			requireSpaceFriendLimitError(t, err, "SPACE_FRIEND_LIMIT_REACHED")
 			require.False(t, created)
 		} else {
 			require.NoError(t, err)
@@ -446,7 +447,7 @@ func TestConfirmFriendRequestEnforcesFriendLimit(t *testing.T) {
 	fillSpaceFriendLimit(t, ctx, module, targetSpace, "confirm_limit_member", MaxFriendsPerSpace)
 
 	_, _, err = testConfirmFriendRequest(ctx, module, targetID, targetSpace.SpaceID, request.RequestID, "target-share-key", targetSpace.CurrentVersion)
-	require.ErrorIs(t, err, ErrSpaceFriendLimitReached)
+	requireSpaceFriendLimitError(t, err, "SPACE_FRIEND_LIMIT_REACHED")
 	require.Equal(t, int64(1), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_friend_requests WHERE request_id = $1`, request.RequestID))
 }
 
@@ -471,7 +472,55 @@ func TestConfirmFriendRequestCountsSentRequestsTowardFriendLimit(t *testing.T) {
 	require.True(t, created)
 
 	_, _, err = testConfirmFriendRequest(ctx, module, targetID, targetSpace.SpaceID, request.RequestID, "target-share-key", targetSpace.CurrentVersion)
-	require.ErrorIs(t, err, ErrSpaceFriendLimitReached)
+	requireSpaceFriendLimitError(t, err, "SPACE_FRIEND_LIMIT_REACHED")
+}
+
+func requireSpaceFriendLimitError(t *testing.T, err error, code string) {
+	t.Helper()
+	var apiErr *ente.ApiError
+	require.ErrorAs(t, err, &apiErr)
+	require.Equal(t, ente.ErrorCode(code), apiErr.Code)
+	require.Equal(t, http.StatusConflict, apiErr.HttpStatusCode)
+}
+
+func TestAcceptFriendRequestChecksOtherFriendLimit(t *testing.T) {
+	for _, operation := range []string{"confirm", "reciprocal"} {
+		for _, friendCount := range []int{MaxFriendsPerSpace - 1, MaxFriendsPerSpace} {
+			t.Run(operation+"/"+strconv.Itoa(friendCount), func(t *testing.T) {
+				module := newSpaceTestModule(t)
+				ctx := context.Background()
+				requesterID := insertSpaceUser(t, module, "other-limit-requester@example.com", "requester-public")
+				targetID := insertSpaceUser(t, module, "other-limit-target@example.com", "target-public")
+				requester, err := testCreateSpace(ctx, module, requesterID, "other_limit_requester", "root", "public", "secret", "nonce", "profile")
+				require.NoError(t, err)
+				target, err := testCreateSpace(ctx, module, targetID, "other_limit_target", "root", "public", "secret", "nonce", "profile")
+				require.NoError(t, err)
+				request, _, err := testCreateFriendRequest(ctx, module, requesterID, requester.SpaceID, target.SpaceID, "requester-share", requester.CurrentVersion)
+				require.NoError(t, err)
+				fillSpaceFriendLimit(t, ctx, module, requester, "other_limit_member", friendCount)
+
+				var becameFriends bool
+				if operation == "confirm" {
+					_, becameFriends, err = module.Friends.ConfirmFriendRequest(ctx, target.SpaceID, request.RequestID, []byte("target-share"), target.CurrentVersion)
+				} else {
+					_, _, becameFriends, err = module.Friends.CreateFriendRequest(ctx, targetID, target.SpaceID, requester.SpaceID, []byte("target-share"), target.CurrentVersion)
+				}
+
+				if friendCount == MaxFriendsPerSpace {
+					requireSpaceFriendLimitError(t, err, "SPACE_OTHER_FRIEND_LIMIT_REACHED")
+					require.False(t, becameFriends)
+					require.Equal(t, int64(1), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_friend_requests WHERE request_id = $1`, request.RequestID))
+					require.Equal(t, int64(0), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_friend_shares WHERE space_id = $1`, target.SpaceID))
+				} else {
+					require.NoError(t, err)
+					require.True(t, becameFriends)
+					require.Equal(t, int64(0), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_friend_requests WHERE request_id = $1`, request.RequestID))
+					require.Equal(t, int64(1), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_friend_shares WHERE space_id = $1`, target.SpaceID))
+				}
+				require.Equal(t, int64(MaxFriendsPerSpace), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_friend_shares WHERE space_id = $1`, requester.SpaceID))
+			})
+		}
+	}
 }
 
 func TestConfirmFriendRequestAllowsNinthFriend(t *testing.T) {

@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"net/http"
 	"strings"
 
+	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/base"
 	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
@@ -14,7 +16,6 @@ import (
 var (
 	ErrAlreadyFriends                 = errors.New("space users are already friends")
 	ErrSelfFriendship                 = errors.New("space users cannot friend themselves")
-	ErrSpaceFriendLimitReached        = errors.New("space friend limit reached")
 	ErrSpaceFriendRequestLimitReached = errors.New("space friend request limit reached")
 	ErrSpaceFriendRequestStale        = errors.New("space friend request keys are stale")
 )
@@ -188,7 +189,11 @@ func (r *FriendsRepository) CreateFriendRequest(ctx context.Context, requesterID
 		return nil, false, false, err
 	}
 	if requesterFriendCapacity >= MaxFriendsPerSpace {
-		return nil, false, false, ErrSpaceFriendLimitReached
+		return nil, false, false, &ente.ApiError{
+			Code:           ente.ErrorCode("SPACE_FRIEND_LIMIT_REACHED"),
+			Message:        "space friend limit reached",
+			HttpStatusCode: http.StatusConflict,
+		}
 	}
 
 	var reverse SpaceFriendRequestRecord
@@ -214,7 +219,11 @@ func (r *FriendsRepository) CreateFriendRequest(ctx context.Context, requesterID
 			return nil, false, false, err
 		}
 		if targetFriendCapacity > MaxFriendsPerSpace {
-			return nil, false, false, ErrSpaceFriendLimitReached
+			return nil, false, false, &ente.ApiError{
+				Code:           ente.ErrorCode("SPACE_OTHER_FRIEND_LIMIT_REACHED"),
+				Message:        "other space friend limit reached",
+				HttpStatusCode: http.StatusConflict,
+			}
 		}
 		if err := upsertMutualFriendSharesTx(ctx, tx,
 			friendShareMutation{
@@ -397,14 +406,22 @@ func (r *FriendsRepository) ConfirmFriendRequest(ctx context.Context, targetSpac
 			return 0, false, err
 		}
 		if targetFriendCapacity >= MaxFriendsPerSpace {
-			return 0, false, ErrSpaceFriendLimitReached
+			return 0, false, &ente.ApiError{
+				Code:           ente.ErrorCode("SPACE_FRIEND_LIMIT_REACHED"),
+				Message:        "space friend limit reached",
+				HttpStatusCode: http.StatusConflict,
+			}
 		}
 		requesterFriendCapacity, err := friendCapacityTx(ctx, tx, requesterSpaceID)
 		if err != nil {
 			return 0, false, err
 		}
 		if requesterFriendCapacity > MaxFriendsPerSpace {
-			return 0, false, ErrSpaceFriendLimitReached
+			return 0, false, &ente.ApiError{
+				Code:           ente.ErrorCode("SPACE_OTHER_FRIEND_LIMIT_REACHED"),
+				Message:        "other space friend limit reached",
+				HttpStatusCode: http.StatusConflict,
+			}
 		}
 	}
 	if err := upsertMutualFriendSharesTx(ctx, tx,

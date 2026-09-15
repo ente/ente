@@ -5,15 +5,16 @@ import {
     spaceToastAutoDismissDurationMs,
 } from "components/ActionToast";
 import React from "react";
-import { spaceFriendLimitMessage } from "utils/friend-limits";
 
 const dangerColor = "#F63A3A";
 
 interface SpaceFriendLimitToastProps {
+    message: string;
     onClose: () => void;
 }
 
 export const SpaceFriendLimitToast: React.FC<SpaceFriendLimitToastProps> = ({
+    message,
     onClose,
 }) => (
     <SpaceActionToast
@@ -28,7 +29,7 @@ export const SpaceFriendLimitToast: React.FC<SpaceFriendLimitToastProps> = ({
                 strokeWidth={1.8}
             />
         }
-        message={spaceFriendLimitMessage}
+        message={message}
         onClose={onClose}
     />
 );

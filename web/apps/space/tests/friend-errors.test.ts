@@ -7,6 +7,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
     friendRequestErrorMessage,
     isFriendRequestCanceledError,
+    isSpaceFriendLimitError,
+    spaceFriendLimitErrorMessage,
 } from "../src/utils/friend-errors";
 import { spaceFriendLimitMessage } from "../src/utils/friend-limits";
 
@@ -75,6 +77,7 @@ test.each([400, 404, 409, 500])(
             const error: unknown = await operation().catch((e: unknown) => e);
             expect(error).toBeInstanceOf(Error);
             expect(isFriendRequestCanceledError(error)).toBe(false);
+            expect(spaceFriendLimitErrorMessage(error)).toBeUndefined();
         }
     },
 );
@@ -91,6 +94,19 @@ test("a missing profile reaches the add-friend message", async () => {
 });
 
 test.each([
+    ["SPACE_FRIEND_LIMIT_REACHED", "You've filled all 9 friend spots."],
+    ["SPACE_OTHER_FRIEND_LIMIT_REACHED", "They've filled all 9 friend spots."],
+] as const)("%s reaches the acceptance message", async (code, message) => {
+    mockAPI(code, 409);
+    const error: unknown = await ctx
+        .confirmFriendRequest("self", 1n)
+        .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(isSpaceFriendLimitError(error)).toBe(true);
+    expect(spaceFriendLimitErrorMessage(error)).toBe(message);
+});
+
+test.each([
     ["SPACE_SELF_FRIENDSHIP", 400, "You can't add yourself as a friend."],
     [
         "SPACE_FRIEND_REQUEST_LIMIT_REACHED",
@@ -98,6 +114,11 @@ test.each([
         "@friend can't receive more friend requests right now.",
     ],
     ["SPACE_FRIEND_LIMIT_REACHED", 409, spaceFriendLimitMessage],
+    [
+        "SPACE_OTHER_FRIEND_LIMIT_REACHED",
+        409,
+        "They've filled all 9 friend spots.",
+    ],
     ["CONFLICT", 409, "Couldn't send the friend request. Please try again."],
 ] as const)(
     "%s reaches the add-friend message",
