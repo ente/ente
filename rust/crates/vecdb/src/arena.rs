@@ -17,6 +17,21 @@ pub(crate) enum UpsertOutcome {
     ReplacedInPlace(u32),
 }
 
+pub(crate) struct SlotMapping {
+    dense_of_slot: Vec<u32>,
+}
+
+impl SlotMapping {
+    const DROPPED: u32 = u32::MAX;
+
+    pub(crate) fn dense_of(&self, slot: u32) -> Option<u32> {
+        match self.dense_of_slot.get(slot as usize) {
+            Some(&dense) if dense != Self::DROPPED => Some(dense),
+            _ => None,
+        }
+    }
+}
+
 pub(crate) fn validate_key(key: &str) -> Result<(), VecDbError> {
     if key.is_empty() {
         return Err(VecDbError::InvalidKey("key is empty".to_string()));
@@ -252,12 +267,14 @@ impl VectorArena {
         Some(slot)
     }
 
-    pub(crate) fn compact_in_place(&mut self) {
+    pub(crate) fn compact_in_place(&mut self) -> SlotMapping {
+        let mut dense_of_slot = vec![SlotMapping::DROPPED; self.slots_to_keys.len()];
         let mut dense: u32 = 0;
         for slot in 0..self.slots_to_keys.len() as u32 {
             if !self.is_alive(slot) {
                 continue;
             }
+            dense_of_slot[slot as usize] = dense;
             if dense != slot {
                 self.move_vector(slot, dense);
                 let key = std::mem::take(&mut self.slots_to_keys[slot as usize]);
@@ -297,6 +314,7 @@ impl VectorArena {
             *word = (1u64 << (live % 64)) - 1;
         }
         self.free_slots = Vec::new();
+        SlotMapping { dense_of_slot }
     }
 
     fn move_vector(&mut self, src: u32, dst: u32) {
