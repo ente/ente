@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:io";
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_icons/ente_icons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -46,6 +47,7 @@ import "package:photos/ui/components/bottom_action_bar/selection_action_button_w
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/notification/toast.dart';
+import "package:photos/ui/sharing/offline_link_selection_sheet.dart";
 import "package:photos/ui/tools/collage/collage_creator_page.dart";
 import "package:photos/ui/viewer/actions/suggest_delete_sheet.dart";
 import "package:photos/ui/viewer/date/edit_date_sheet.dart";
@@ -223,6 +225,16 @@ class _FileSelectionActionsWidgetState
                 : HugeIcons.strokeRoundedShare08,
             key: shareButtonKey,
             onTap: _shareSelectedFiles,
+          ),
+        );
+      }
+
+      if (_canShowOfflineLinkOption(widget.selectedFiles.files)) {
+        items.add(
+          SelectionActionButton(
+            hugeIcon: HugeIcons.strokeRoundedLink02,
+            labelText: pendingTranslation("(i) Offline link"),
+            onTap: _showOfflineLinkShareSheet,
           ),
         );
       }
@@ -626,6 +638,24 @@ class _FileSelectionActionsWidgetState
   Future<void> _shareSelectedFiles() async {
     shareSelected(context, shareButtonKey, widget.selectedFiles.files.toList());
     widget.selectedFiles.clearAll();
+  }
+
+  Future<void> _showOfflineLinkShareSheet() async {
+    final files = widget.selectedFiles.files
+        .where((file) => file.localID != null)
+        .toList(growable: false);
+    await showBottomSheetComponent<void>(
+      context: context,
+      enableDrag: false,
+      builder: (_) => OfflineLinkSelectionSheet(files: files),
+    );
+  }
+
+  bool _canShowOfflineLinkOption(Iterable<EnteFile> files) {
+    // TODO: Move this entry point to local-gallery mode when the feature is ready.
+    return flagService.offlineLinkSharing &&
+        !isLocalGalleryMode &&
+        Configuration.instance.hasConfiguredAccount();
   }
 
   Future<void> _moveFiles() async {

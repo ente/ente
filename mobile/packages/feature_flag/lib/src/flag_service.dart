@@ -53,6 +53,8 @@ class FlagService {
     return (flags.internalUser || kDebugMode) && !isDisabled;
   }
 
+  bool get offlineLinkSharing => internalUser;
+
   bool get librarySharing =>
       internalUser || _isServerFlagEnabled(_librarySharingFlag);
 
