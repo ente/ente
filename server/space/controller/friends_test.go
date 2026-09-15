@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/ente/museum/ente"
@@ -149,6 +150,81 @@ func TestFriendRequestUnavailableDoesNotIncludeStaleKeys(t *testing.T) {
 	require.ErrorAs(t, err, &apiErr)
 	require.Equal(t, ente.ErrorCode("SPACE_FRIEND_REQUEST_UNAVAILABLE"), apiErr.Code)
 	require.Equal(t, http.StatusNotFound, apiErr.HttpStatusCode)
+}
+
+func TestAcceptFriendRequestIdentifiesWhoseLimitWasReached(t *testing.T) {
+	for _, operation := range []string{"confirm", "add"} {
+		for _, tc := range []struct {
+			name          string
+			fillRequester bool
+			friendCount   int
+			errorCode     ente.ErrorCode
+		}{
+			{"own limit", false, spacerepo.MaxFriendsPerSpace, "SPACE_FRIEND_LIMIT_REACHED"},
+			{"other limit", true, spacerepo.MaxFriendsPerSpace, "SPACE_OTHER_FRIEND_LIMIT_REACHED"},
+			{"reserved last spot", true, spacerepo.MaxFriendsPerSpace - 1, ""},
+		} {
+			t.Run(operation+"/"+tc.name, func(t *testing.T) {
+				friends, repos, ctx := setupFriendsControllerTest(t)
+				aliceID := insertSpaceControllerUser(t, repos, "alice-limit@example.com", "alice-public")
+				bobID := insertSpaceControllerUser(t, repos, "bob-limit@example.com", "bob-public")
+				alice, err := testCreateSpace(ctx, repos, aliceID, "alice", "root", "public", "secret", "nonce", "profile")
+				require.NoError(t, err)
+				bob, err := testCreateSpace(ctx, repos, bobID, "bobb", "root", "public", "secret", "nonce", "profile")
+				require.NoError(t, err)
+				request, _, _, err := repos.Friends.CreateFriendRequest(ctx, aliceID, alice.SpaceID, bob.SpaceID, []byte("requester-key"), alice.CurrentVersion)
+				require.NoError(t, err)
+				fullSpace := bob
+				if tc.fillRequester {
+					fullSpace = alice
+				}
+				for i := 0; i < tc.friendCount; i++ {
+					slug := "friend_" + strconv.Itoa(i)
+					friendID := insertSpaceControllerUser(t, repos, slug+"@example.com", slug+"-public")
+					friend, err := testCreateSpace(ctx, repos, friendID, slug, "root", "public", "secret", "nonce", "profile")
+					require.NoError(t, err)
+					_, err = repos.Spaces.DB.ExecContext(ctx, `
+						INSERT INTO space_friend_shares (space_id, friend_space_id, friend_sealed_space_key, key_version)
+						VALUES ($1, $2, $3, 1), ($2, $1, $3, 1)
+					`, fullSpace.SpaceID, friend.SpaceID, []byte("share-key"))
+					require.NoError(t, err)
+				}
+
+				var resp *models.FriendStatusResponse
+				if operation == "confirm" {
+					resp, err = friends.ConfirmRequest(ctx, bob, request.RequestID, models.ConfirmFriendRequestPayload{
+						TargetFriendSealedSpaceKey: base64.StdEncoding.EncodeToString([]byte("target-key")),
+						TargetKeyVersion:           bob.CurrentVersion,
+					})
+				} else {
+					resp, err = friends.Add(ctx, bob, models.AddFriendPayload{
+						TargetSpaceID:                 alice.SpaceID,
+						RequesterFriendSealedSpaceKey: base64.StdEncoding.EncodeToString([]byte("target-key")),
+						RequesterKeyVersion:           bob.CurrentVersion,
+					})
+				}
+				if tc.errorCode == "" {
+					require.NoError(t, err)
+					require.Equal(t, "friend", resp.Status)
+					requests, err := friends.ListRequests(ctx, bob)
+					require.NoError(t, err)
+					require.Empty(t, requests)
+				} else {
+					require.Nil(t, resp)
+					var apiErr *ente.ApiError
+					require.ErrorAs(t, err, &apiErr)
+					require.Equal(t, tc.errorCode, apiErr.Code)
+					require.Equal(t, http.StatusConflict, apiErr.HttpStatusCode)
+					requests, err := friends.ListRequests(ctx, bob)
+					require.NoError(t, err)
+					require.Len(t, requests, 1)
+					relationship, err := repos.Friends.GetRelationship(ctx, bob.SpaceID, alice.SpaceID)
+					require.NoError(t, err)
+					require.Empty(t, relationship)
+				}
+			})
+		}
+	}
 }
 
 func TestUnfriendBySpaceIDRemovesReciprocalShares(t *testing.T) {

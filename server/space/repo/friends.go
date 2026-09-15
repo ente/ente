@@ -15,6 +15,7 @@ var (
 	ErrAlreadyFriends                 = errors.New("space users are already friends")
 	ErrSelfFriendship                 = errors.New("space users cannot friend themselves")
 	ErrSpaceFriendLimitReached        = errors.New("space friend limit reached")
+	ErrSpaceOtherFriendLimitReached   = errors.New("other space friend limit reached")
 	ErrSpaceFriendRequestLimitReached = errors.New("space friend request limit reached")
 	ErrSpaceFriendRequestStale        = errors.New("space friend request keys are stale")
 )
@@ -214,7 +215,7 @@ func (r *FriendsRepository) CreateFriendRequest(ctx context.Context, requesterID
 			return nil, false, false, err
 		}
 		if targetFriendCapacity > MaxFriendsPerSpace {
-			return nil, false, false, ErrSpaceFriendLimitReached
+			return nil, false, false, ErrSpaceOtherFriendLimitReached
 		}
 		if err := upsertMutualFriendSharesTx(ctx, tx,
 			friendShareMutation{
@@ -404,7 +405,7 @@ func (r *FriendsRepository) ConfirmFriendRequest(ctx context.Context, targetSpac
 			return 0, false, err
 		}
 		if requesterFriendCapacity > MaxFriendsPerSpace {
-			return 0, false, ErrSpaceFriendLimitReached
+			return 0, false, ErrSpaceOtherFriendLimitReached
 		}
 	}
 	if err := upsertMutualFriendSharesTx(ctx, tx,

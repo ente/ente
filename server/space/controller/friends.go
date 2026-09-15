@@ -27,6 +27,14 @@ func newSpaceFriendLimitReachedError() *ente.ApiError {
 	}
 }
 
+func newSpaceOtherFriendLimitReachedError() *ente.ApiError {
+	return &ente.ApiError{
+		Code:           ente.ErrorCode("SPACE_OTHER_FRIEND_LIMIT_REACHED"),
+		Message:        "other space friend limit reached",
+		HttpStatusCode: http.StatusConflict,
+	}
+}
+
 func newSpaceFriendRequestUnavailableError(status int) *ente.ApiError {
 	return &ente.ApiError{
 		Code:           ente.ErrorCode("SPACE_FRIEND_REQUEST_UNAVAILABLE"),
@@ -76,6 +84,9 @@ func (c *FriendsController) Add(ctx context.Context, requesterSpace *repo.SpaceR
 		}
 		if errors.Is(stacktrace.RootCause(err), repo.ErrSpaceFriendLimitReached) {
 			return nil, newSpaceFriendLimitReachedError()
+		}
+		if errors.Is(stacktrace.RootCause(err), repo.ErrSpaceOtherFriendLimitReached) {
+			return nil, newSpaceOtherFriendLimitReachedError()
 		}
 		if errors.Is(stacktrace.RootCause(err), sql.ErrNoRows) {
 			return nil, ente.NewBadRequestWithMessage("space key version is stale")
@@ -149,6 +160,9 @@ func (c *FriendsController) ConfirmRequest(ctx context.Context, targetSpace *rep
 	if err != nil {
 		if errors.Is(stacktrace.RootCause(err), repo.ErrSpaceFriendLimitReached) {
 			return nil, newSpaceFriendLimitReachedError()
+		}
+		if errors.Is(stacktrace.RootCause(err), repo.ErrSpaceOtherFriendLimitReached) {
+			return nil, newSpaceOtherFriendLimitReachedError()
 		}
 		if errors.Is(stacktrace.RootCause(err), sql.ErrNoRows) {
 			return nil, newSpaceFriendRequestUnavailableError(http.StatusBadRequest)
