@@ -2582,6 +2582,15 @@
   "message": "Message",
   "minimizeAppOnCopy": "Minimize app on copy",
   "minimizeToTrayOnClose": "Minimize to tray on close",
+  "minutesCountShort": "{count}m",
+  "@minutesCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
   "mixedGrouping": "Mixed grouping?",
   "mlConsent": "Enable machine learning",
   "mlConsentConfirmation": "I understand, and wish to enable machine learning",
@@ -3808,6 +3817,15 @@
   "searchSettings": "Search settings",
   "secondsCount": "{count, plural, one{{count} second} other{{count} seconds}}",
   "@secondsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "secondsCountShort": "{count}s",
+  "@secondsCountShort": {
     "placeholders": {
       "count": {
         "type": "int",

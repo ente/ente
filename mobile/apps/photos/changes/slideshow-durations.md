@@ -1,0 +1,1 @@
+- Added longer slideshow duration options.

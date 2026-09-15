@@ -22,7 +22,7 @@ import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
-const _albumSlideshowDurationOptions = [5, 10, 15, 30];
+const _albumSlideshowDurationOptions = [5, 10, 15, 30, 60, 300, 600];
 
 class AlbumSlideshowPage extends StatefulWidget {
   AlbumSlideshowPage({required this.files, required this.title, super.key}) {
@@ -631,7 +631,11 @@ class _AlbumSlideshowSettingsSheetState
             children: [
               for (final seconds in _albumSlideshowDurationOptions)
                 _buildChip(
-                  label: context.strings.secondsCount(count: seconds),
+                  label: seconds < Duration.secondsPerMinute
+                      ? context.strings.secondsCountShort(count: seconds)
+                      : context.strings.minutesCountShort(
+                          count: seconds ~/ Duration.secondsPerMinute,
+                        ),
                   selected: seconds == _durationSeconds,
                   onTap: () {
                     if (seconds == _durationSeconds) return;
