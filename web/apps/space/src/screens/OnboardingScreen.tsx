@@ -3,9 +3,9 @@ import { SpaceMobileBestToast } from "components/MobileBestToast";
 import React from "react";
 
 export const onboardingGreen = "#08C225";
-export const onboardingTitle = "Share everyday photos with your closest people";
+export const onboardingTitle = "Share everyday photos with your people";
 export const onboardingDescription =
-    "Keep up with close friends and family. No ads. No algorithms. Just everyday photos, silly ones too.";
+    "Keep up with friends and family through photos. Share privately, without ads or algorithms.";
 
 const softGreen = "#E7F6E9";
 const copyGreen = "#AAFFB8";
@@ -188,10 +188,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                                     letterSpacing: 0,
                                     lineHeight: "29px",
                                     m: 0,
-                                    maxWidth: 320,
                                     overflowWrap: "anywhere",
                                     textWrap: "balance",
-                                    width: "calc(100% - 16px)",
+                                    width: "100%",
                                 }}
                             >
                                 {title}
@@ -207,7 +206,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                                     lineHeight: "20px",
                                     m: 0,
                                     mt: "12px",
-                                    textWrap: "balance",
+                                    textWrap: "pretty",
                                     width: "100%",
                                 }}
                             >
