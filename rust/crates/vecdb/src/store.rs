@@ -27,6 +27,7 @@ const SNAPSHOT_QUIET_THRESHOLD: usize = 1000;
 const SNAPSHOT_QUIET_GAP: Duration = Duration::from_secs(10);
 const COMPACTION_MIN_DEAD_RECORDS: u64 = 64;
 const COMPACTION_DEAD_RATIO: u64 = 10;
+const GRAPH_REBUILD_EROSION_RATIO: u64 = 8;
 const COMPACTION_BATCH_SIZE: usize = 1000;
 const HANDOFF_WAIT_ROUNDS: u32 = 750;
 const HANDOFF_CLOSE_WAIT_ROUNDS: u32 = 2500;
@@ -1164,7 +1165,7 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
         let _ = std::fs::remove_file(&temp_path);
         (mutations_since_snapshot, old_checkpoint)
     } else {
-        let live_records = {
+        let (live_records, graph_missing) = {
             let mut st = shared.state_write();
             let SearchState {
                 arena,
@@ -1172,17 +1173,31 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
                 attrs,
                 total_records,
             } = &mut *st;
-            attrs.repack(arena.live_slots());
-            arena.compact_in_place();
-            *graph = None;
+            if arena.dead_count() > 0 {
+                attrs.repack(arena.live_slots());
+                let live = arena.live_count() as u64;
+                let eroded = graph.as_ref().map_or(0, |installed| {
+                    installed.insert_ordinal().saturating_sub(live)
+                });
+                let renumbering_keeps_recall =
+                    eroded.saturating_mul(GRAPH_REBUILD_EROSION_RATIO) < live;
+                let mapping = arena.compact_in_place();
+                if renumbering_keeps_recall && let Some(installed) = graph {
+                    installed.renumber(&mapping);
+                } else {
+                    *graph = None;
+                }
+            }
             *total_records = arena.live_count() as u64;
-            *total_records as usize
+            (*total_records as usize, graph.is_none())
         };
-        let graph = {
-            let st = shared.state_read();
-            Graph::rebuild(&st.arena)
-        };
-        shared.state_write().graph = Some(graph);
+        if graph_missing {
+            let graph = {
+                let st = shared.state_read();
+                Graph::rebuild(&st.arena)
+            };
+            shared.state_write().graph = Some(graph);
+        }
         (live_records, compacted_checkpoint)
     };
     let restored =
@@ -2150,6 +2165,65 @@ mod tests {
         let matches = db.search(vector, &limit_params(1)).unwrap();
         assert_eq!(matches[0].key, key);
         assert!(matches[0].distance.abs() < 1.0e-3);
+    }
+
+    type GraphFingerprint = (Option<u32>, u64, Vec<(u32, u8, Vec<Vec<u32>>)>);
+
+    fn graph_fingerprint(graph: &Graph) -> GraphFingerprint {
+        let nodes = graph
+            .slots()
+            .map(|slot| {
+                let level = graph.level_of(slot).unwrap();
+                let lists = (0..=level)
+                    .map(|layer| graph.neighbors_of(slot, layer).to_vec())
+                    .collect();
+                (slot, level, lists)
+            })
+            .collect();
+        (graph.entry_point(), graph.insert_ordinal(), nodes)
+    }
+
+    fn renumbered_fingerprint(before: &GraphFingerprint, alive: &[bool]) -> GraphFingerprint {
+        let mut dense_of_slot: Vec<Option<u32>> = vec![None; alive.len()];
+        let mut dense = 0u32;
+        for (slot, &live) in alive.iter().enumerate() {
+            if live {
+                dense_of_slot[slot] = Some(dense);
+                dense += 1;
+            }
+        }
+        let dense_of = |slot: u32| dense_of_slot.get(slot as usize).copied().flatten();
+        let (entry_point, insert_ordinal, nodes) = before;
+        let renumbered: Vec<(u32, u8, Vec<Vec<u32>>)> = nodes
+            .iter()
+            .filter_map(|(slot, level, lists)| {
+                let slot = dense_of(*slot)?;
+                let lists = lists
+                    .iter()
+                    .map(|list| list.iter().copied().filter_map(dense_of).collect())
+                    .collect();
+                Some((slot, *level, lists))
+            })
+            .collect();
+        let highest = renumbered
+            .iter()
+            .fold(
+                None,
+                |best: Option<(u32, u8)>, &(slot, level, _)| match best {
+                    Some((_, best_level)) if best_level >= level => best,
+                    _ => Some((slot, level)),
+                },
+            )
+            .map(|(slot, _)| slot);
+        let entry_point = entry_point.and_then(dense_of).or(highest);
+        (entry_point, *insert_ordinal, renumbered)
+    }
+
+    fn snapshot_graph_body(bytes: &[u8]) -> &[u8] {
+        const MAGIC_AND_VERSION: usize = 6;
+        const GENERATION_AND_COVERED_OFFSET: usize = 24;
+        const TRAILING_CRC: usize = 4;
+        &bytes[MAGIC_AND_VERSION + GENERATION_AND_COVERED_OFFSET..bytes.len() - TRAILING_CRC]
     }
 
     fn assert_key_reads_open(db: &VecDb, key: &str, live: usize) {
@@ -3804,6 +3878,125 @@ mod tests {
     }
 
     #[test]
+    fn compaction_without_dead_slots_keeps_the_arena_and_the_graph() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 600, 1200)).unwrap();
+        let replacement = |index: u64| seeded_unit_vector(9000 + index, DIMS);
+        let generation_before = generation_of(&path);
+        for index in 0..66u64 {
+            db.add(&format!("key-{index}"), &replacement(index))
+                .unwrap();
+        }
+        assert_eq!(generation_of(&path), generation_before);
+        assert_eq!(db.stats().unwrap().dead_count, 66);
+        {
+            let mut half = db.shared.writer_half();
+            write_snapshot_now(&db.shared, &mut half).unwrap();
+        }
+        let query = seeded_unit_vector(31337, DIMS);
+        let before_snapshot = fs::read(snapshot_path(&path)).unwrap();
+        let before_search = db.search(&query, &limit_params(10)).unwrap();
+        let before_graph = {
+            let st = db.shared.state_read();
+            graph_fingerprint(st.graph.as_ref().unwrap())
+        };
+        {
+            let mut half = db.shared.writer_half();
+            compact(&db.shared, &mut half).unwrap();
+        }
+        assert_ne!(generation_of(&path), generation_before);
+        let stats = db.stats().unwrap();
+        assert_eq!(stats.live_count, 600);
+        assert_eq!(stats.dead_count, 0);
+        {
+            let st = db.shared.state_read();
+            assert_eq!(st.arena.slot_count(), 600);
+            assert_eq!(graph_fingerprint(st.graph.as_ref().unwrap()), before_graph);
+        }
+        assert_eq!(db.search(&query, &limit_params(10)).unwrap(), before_search);
+        let after_snapshot = fs::read(snapshot_path(&path)).unwrap();
+        assert_eq!(
+            snapshot_graph_body(&after_snapshot),
+            snapshot_graph_body(&before_snapshot)
+        );
+        for index in 0..600u64 {
+            let vector = if index < 66 {
+                replacement(index)
+            } else {
+                seeded_unit_vector(1200 + index, DIMS)
+            };
+            assert_own_nearest(&db, &format!("key-{index}"), &vector);
+        }
+        drop(db);
+        let reopened = open_writer(&path);
+        {
+            let st = reopened.shared.state_read();
+            assert_eq!(graph_fingerprint(st.graph.as_ref().unwrap()), before_graph);
+        }
+        assert_eq!(
+            reopened.search(&query, &limit_params(10)).unwrap(),
+            before_search
+        );
+    }
+
+    #[test]
+    fn re_adding_every_key_compacts_without_renumbering_the_arena() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 400, 1200)).unwrap();
+        let slots_before: Vec<Option<u32>> = {
+            let st = db.shared.state_read();
+            (0..400)
+                .map(|index| st.arena.slot_of_key(&format!("key-{index}")))
+                .collect()
+        };
+        let mut generations = vec![generation_of(&path)];
+        for index in 0..400u64 {
+            db.add(
+                &format!("key-{index}"),
+                &seeded_unit_vector(9000 + index, DIMS),
+            )
+            .unwrap();
+            let generation = generation_of(&path);
+            if generations.last() != Some(&generation) {
+                generations.push(generation);
+            }
+        }
+        assert_eq!(generations.len(), 7);
+        let stats = db.stats().unwrap();
+        assert_eq!(stats.live_count, 400);
+        assert_eq!(stats.dead_count, 16);
+        {
+            let st = db.shared.state_read();
+            assert_eq!(st.arena.slot_count(), 400);
+            let slots_after: Vec<Option<u32>> = (0..400)
+                .map(|index| st.arena.slot_of_key(&format!("key-{index}")))
+                .collect();
+            assert_eq!(slots_after, slots_before);
+        }
+        for index in 0..400u64 {
+            assert_own_nearest(
+                &db,
+                &format!("key-{index}"),
+                &seeded_unit_vector(9000 + index, DIMS),
+            );
+        }
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.len().unwrap(), 400);
+        for index in 0..400u64 {
+            assert_own_nearest(
+                &reopened,
+                &format!("key-{index}"),
+                &seeded_unit_vector(9000 + index, DIMS),
+            );
+        }
+    }
+
+    #[test]
     fn compaction_installs_the_graph_a_fresh_rebuild_of_the_compacted_log_builds() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
@@ -3833,6 +4026,296 @@ mod tests {
                 .any(|slot| installed.level_of(slot).unwrap() > 0)
         );
         test_support::assert_identical_graphs(installed, from_scratch);
+    }
+
+    fn installed_insert_ordinal(db: &VecDb) -> u64 {
+        let st = db.shared.state_read();
+        st.graph.as_ref().unwrap().insert_ordinal()
+    }
+
+    fn remove_leading_share(db: &VecDb, remaining: &mut Vec<usize>, percent: usize) {
+        let count = remaining.len() * percent / 100;
+        let keys: Vec<String> = remaining
+            .drain(..count)
+            .map(|index| format!("key-{index}"))
+            .collect();
+        assert_eq!(db.bulk_remove(&keys).unwrap(), count);
+        let stats = db.stats().unwrap();
+        assert_eq!(stats.dead_count, 0);
+        assert_eq!(stats.live_count, remaining.len());
+    }
+
+    #[test]
+    fn repeated_small_removals_rebuild_the_graph_once_the_erosion_reaches_the_gate() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 3000, 4100)).unwrap();
+        assert_eq!(installed_insert_ordinal(&db), 3000);
+        let mut remaining: Vec<usize> = (0..3000).collect();
+        let mut ordinals = Vec::new();
+        for _ in 0..4 {
+            remove_leading_share(&db, &mut remaining, 6);
+            ordinals.push((installed_insert_ordinal(&db), remaining.len() as u64));
+        }
+        assert_eq!(
+            ordinals,
+            vec![(3000, 2820), (2651, 2651), (2651, 2492), (2343, 2343)]
+        );
+        for index in remaining.iter().step_by(97) {
+            assert_own_nearest(
+                &db,
+                &format!("key-{index}"),
+                &seeded_unit_vector(4100 + *index as u64, DIMS),
+            );
+        }
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.len().unwrap(), remaining.len());
+        assert_eq!(installed_insert_ordinal(&reopened), 2343);
+    }
+
+    #[test]
+    fn in_place_replacements_count_toward_the_rebuild_gate() {
+        let dir = TempDir::new().unwrap();
+        let replaced = open_writer(&dir.path().join("replaced"));
+        let control = open_writer(&dir.path().join("control"));
+        for db in [&replaced, &control] {
+            bulk_add(db, &bulk_entries(0, 2000, 5200)).unwrap();
+        }
+        for index in 0..300u64 {
+            replaced
+                .add(
+                    &format!("key-{index}"),
+                    &seeded_unit_vector(7000 + index, DIMS),
+                )
+                .unwrap();
+        }
+        assert_eq!(installed_insert_ordinal(&replaced), 2300);
+        assert_eq!(installed_insert_ordinal(&control), 2000);
+        let removed: Vec<String> = (1000..1110).map(|index| format!("key-{index}")).collect();
+        for db in [&replaced, &control] {
+            assert_eq!(db.bulk_remove(&removed).unwrap(), 110);
+            let stats = db.stats().unwrap();
+            assert_eq!(stats.dead_count, 0);
+            assert_eq!(stats.live_count, 1890);
+        }
+        assert_eq!(installed_insert_ordinal(&replaced), 1890);
+        assert_eq!(installed_insert_ordinal(&control), 2000);
+    }
+
+    #[test]
+    fn compaction_installs_the_live_graph_renumbered_onto_the_compacted_slots() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let copy_path = dir.path().join("copy");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 300, 500)).unwrap();
+        let removals: Vec<String> = (0..32).map(|index| format!("key-{}", index * 7)).collect();
+        let removed_slots: Vec<u32> = {
+            let st = db.shared.state_read();
+            removals
+                .iter()
+                .map(|key| st.arena.slot_of_key(key).unwrap())
+                .collect()
+        };
+        let generation_before = generation_of(&path);
+        for key in &removals[..31] {
+            assert!(db.remove(key).unwrap());
+        }
+        assert_eq!(generation_of(&path), generation_before);
+        let before_graph = {
+            let st = db.shared.state_read();
+            graph_fingerprint(st.graph.as_ref().unwrap())
+        };
+        assert!(db.remove(&removals[31]).unwrap());
+        assert_ne!(generation_of(&path), generation_before);
+        let mut alive = vec![true; 300];
+        for &slot in &removed_slots {
+            alive[slot as usize] = false;
+        }
+        let expected = renumbered_fingerprint(&before_graph, &alive);
+        assert!(expected.2.iter().any(|(_, level, _)| *level > 0));
+        let st = db.shared.state_read();
+        let installed = st.graph.as_ref().unwrap();
+        assert_eq!(st.arena.live_count(), 268);
+        assert_eq!(st.arena.slot_count(), 268);
+        assert_eq!(graph_fingerprint(installed), expected);
+        drop(st);
+        let query = seeded_unit_vector(31337, DIMS);
+        let approx = db.search(&query, &limit_params(10)).unwrap();
+        for index in 0..300u64 {
+            let key = format!("key-{index}");
+            if removals.contains(&key) {
+                assert!(!db.contains(&key).unwrap());
+            } else {
+                assert_own_nearest(&db, &key, &seeded_unit_vector(500 + index, DIMS));
+            }
+        }
+        db.flush().unwrap();
+        fs::copy(&path, &copy_path).unwrap();
+        fs::copy(snapshot_path(&path), snapshot_path(&copy_path)).unwrap();
+        drop(db);
+        let reloaded = open_writer(&copy_path);
+        {
+            let st = reloaded.shared.state_read();
+            assert_eq!(graph_fingerprint(st.graph.as_ref().unwrap()), expected);
+        }
+        assert_eq!(reloaded.search(&query, &limit_params(10)).unwrap(), approx);
+    }
+
+    #[test]
+    fn a_compaction_with_dead_slots_keeps_every_live_key_findable_by_approximate_search() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 2000, 700)).unwrap();
+        let removals: Vec<String> = (0..2000)
+            .step_by(10)
+            .map(|index| format!("key-{index}"))
+            .collect();
+        let generation_before = generation_of(&path);
+        assert_eq!(db.bulk_remove(&removals).unwrap(), 200);
+        assert_ne!(generation_of(&path), generation_before);
+        assert_eq!(db.stats().unwrap().live_count, 1800);
+        {
+            let st = db.shared.state_read();
+            assert_eq!(st.arena.slot_count(), 1800);
+            test_support::assert_graph_invariants(st.graph.as_ref().unwrap());
+        }
+        let exact_one = SearchParams {
+            limit: Some(1),
+            exact: true,
+            ..SearchParams::default()
+        };
+        let exact_ten = SearchParams {
+            limit: Some(10),
+            exact: true,
+            ..SearchParams::default()
+        };
+        for index in 0..2000u64 {
+            let key = format!("key-{index}");
+            if removals.contains(&key) {
+                continue;
+            }
+            let vector = seeded_unit_vector(700 + index, DIMS);
+            assert_eq!(
+                db.search(&vector, &limit_params(1)).unwrap(),
+                db.search(&vector, &exact_one).unwrap(),
+                "approximate search lost {key}"
+            );
+        }
+        let mut approx_by_query = Vec::new();
+        for probe in 0..40u64 {
+            let query = seeded_unit_vector(0x9100_0000 + probe, DIMS);
+            let approx = db.search(&query, &limit_params(10)).unwrap();
+            let exact = db.search(&query, &exact_ten).unwrap();
+            assert_eq!(approx.len(), 10);
+            let wanted: HashSet<&str> = exact.iter().map(|hit| hit.key.as_str()).collect();
+            let hits = approx
+                .iter()
+                .filter(|hit| wanted.contains(hit.key.as_str()))
+                .count();
+            assert!(hits >= 9, "recall {hits}/10 for probe {probe}");
+            approx_by_query.push(approx);
+        }
+        db.flush().unwrap();
+        let installed = {
+            let st = db.shared.state_read();
+            graph_fingerprint(st.graph.as_ref().unwrap())
+        };
+        drop(db);
+        let reopened = open_writer(&path);
+        {
+            let st = reopened.shared.state_read();
+            assert_eq!(graph_fingerprint(st.graph.as_ref().unwrap()), installed);
+        }
+        for (probe, expected) in approx_by_query.iter().enumerate() {
+            let query = seeded_unit_vector(0x9100_0000 + probe as u64, DIMS);
+            assert_eq!(
+                &reopened.search(&query, &limit_params(10)).unwrap(),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn random_churn_across_automatic_compactions_keeps_the_graph_consistent() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 300, 1700)).unwrap();
+        let mut live: HashMap<String, Vec<f32>> = (0..300)
+            .map(|index| {
+                (
+                    format!("key-{index}"),
+                    seeded_unit_vector(1700 + index as u64, DIMS),
+                )
+            })
+            .collect();
+        let mut removed: Vec<String> = Vec::new();
+        let mut state = 0x5111_0000u64;
+        let mut next_id = 300u64;
+        let mut generation = generation_of(&path);
+        let mut compactions = 0usize;
+        for _ in 0..12 {
+            for _ in 0..60 {
+                let roll = splitmix64(&mut state);
+                let vector = seeded_unit_vector(splitmix64(&mut state), DIMS);
+                let keys: Vec<String> = live.keys().cloned().collect();
+                match roll % 10 {
+                    0..=3 => {
+                        let key = format!("key-{next_id}");
+                        next_id += 1;
+                        db.add(&key, &vector).unwrap();
+                        live.insert(key, vector);
+                    }
+                    4..=6 => {
+                        let key = keys[roll as usize % keys.len()].clone();
+                        db.add(&key, &vector).unwrap();
+                        live.insert(key, vector);
+                    }
+                    7..=8 => {
+                        let key = keys[roll as usize % keys.len()].clone();
+                        assert!(db.remove(&key).unwrap());
+                        live.remove(&key);
+                        removed.push(key);
+                    }
+                    _ => {
+                        if let Some(key) = removed.pop() {
+                            db.add(&key, &vector).unwrap();
+                            live.insert(key, vector);
+                        }
+                    }
+                }
+                let current = generation_of(&path);
+                if current != generation {
+                    generation = current;
+                    compactions += 1;
+                }
+            }
+            let st = db.shared.state_read();
+            let graph = st.graph.as_ref().unwrap();
+            test_support::assert_graph_invariants(graph);
+            assert_eq!(st.arena.live_count(), live.len());
+            for slot in graph.slots() {
+                assert!((slot as usize) < st.arena.slot_count());
+            }
+            for key in live.keys() {
+                assert!(st.arena.slot_of_key(key).is_some());
+            }
+        }
+        assert!(compactions >= 3, "only {compactions} compactions fired");
+        assert_eq!(db.len().unwrap(), live.len());
+        for (key, vector) in &live {
+            assert_own_nearest(&db, key, vector);
+        }
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.len().unwrap(), live.len());
+        for (key, vector) in &live {
+            assert_own_nearest(&reopened, key, vector);
+        }
     }
 
     #[test]
@@ -6101,5 +6584,295 @@ mod tests {
             &logged_add_records(&dir.path().join("i8"), dims),
             &[("again".to_string(), StoredVector::quantize(original))],
         );
+    }
+
+    fn assert_arena_graph_agreement(st: &SearchState, compacted: bool) {
+        let graph = st.graph.as_ref().expect("graph");
+        let slot_count = st.arena.slot_count();
+        if compacted {
+            assert_eq!(st.arena.dead_count(), 0, "a compaction left dead slots");
+        }
+        for slot in st.arena.live_slots() {
+            assert!(
+                graph.level_of(slot).is_some(),
+                "live arena slot {slot} is not a graph node"
+            );
+        }
+        for slot in graph.slots() {
+            assert!(
+                (slot as usize) < slot_count,
+                "graph node {slot} is beyond the {slot_count} arena slots"
+            );
+            if compacted {
+                assert!(
+                    st.arena.is_alive(slot),
+                    "graph node {slot} points at a dead arena slot"
+                );
+            }
+            let level = graph.level_of(slot).unwrap();
+            for layer in 0..=level {
+                for &neighbor in graph.neighbors_of(slot, layer) {
+                    assert!(
+                        (neighbor as usize) < slot_count,
+                        "node {slot} layer {layer} links to out-of-range {neighbor}"
+                    );
+                    if compacted {
+                        assert!(
+                            st.arena.is_alive(neighbor),
+                            "node {slot} layer {layer} links to dead slot {neighbor}"
+                        );
+                    }
+                    assert_ne!(neighbor, slot, "node {slot} layer {layer} self-links");
+                    assert_eq!(
+                        graph
+                            .neighbors_of(slot, layer)
+                            .iter()
+                            .filter(|&&other| other == neighbor)
+                            .count(),
+                        1,
+                        "node {slot} layer {layer} lists {neighbor} twice"
+                    );
+                }
+            }
+        }
+    }
+
+    fn assert_snapshot_round_trips(db: &VecDb) {
+        let (fingerprint, slot_count) = {
+            let st = db.shared.state_read();
+            (
+                graph_fingerprint(st.graph.as_ref().unwrap()),
+                st.arena.slot_count(),
+            )
+        };
+        let st = db.shared.state_read();
+        let graph = st.graph.as_ref().unwrap();
+        let parts = graph
+            .slots()
+            .map(|slot| {
+                let level = graph.level_of(slot).unwrap();
+                crate::graph::GraphNodeParts {
+                    slot,
+                    level,
+                    neighbors: (0..=level)
+                        .map(|layer| graph.neighbors_of(slot, layer).to_vec())
+                        .collect(),
+                }
+            })
+            .collect();
+        let reloaded = Graph::from_parts(
+            graph.entry_point(),
+            parts,
+            slot_count,
+            graph.insert_ordinal(),
+        )
+        .expect("from_parts rejected a live graph");
+        assert_eq!(graph_fingerprint(&reloaded), fingerprint);
+    }
+
+    fn property_churn_run(seed: u64, rounds: usize, initial: usize) -> (usize, usize) {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, initial, seed)).unwrap();
+        let mut live: HashMap<String, Vec<f32>> = (0..initial)
+            .map(|index| {
+                (
+                    format!("key-{index}"),
+                    seeded_unit_vector(seed + index as u64, DIMS),
+                )
+            })
+            .collect();
+        let mut removed: Vec<String> = Vec::new();
+        let mut state = seed ^ 0xA5A5_0000_1234_5678;
+        let mut next_id = initial as u64;
+        let mut generation = generation_of(&path);
+        let mut compactions = 0usize;
+        let mut unreachable = 0usize;
+        for _ in 0..rounds {
+            let roll = splitmix64(&mut state);
+            let vector = seeded_unit_vector(splitmix64(&mut state), DIMS);
+            let keys: Vec<String> = live.keys().cloned().collect();
+            match roll % 12 {
+                0..=3 => {
+                    let key = format!("new-{next_id}");
+                    next_id += 1;
+                    db.add(&key, &vector).unwrap();
+                    live.insert(key, vector);
+                }
+                4..=5 => {
+                    if !keys.is_empty() {
+                        let key = keys[roll as usize % keys.len()].clone();
+                        db.add(&key, &vector).unwrap();
+                        live.insert(key, vector);
+                    }
+                }
+                6..=8 => {
+                    if !keys.is_empty() {
+                        let key = keys[roll as usize % keys.len()].clone();
+                        assert!(db.remove(&key).unwrap());
+                        live.remove(&key);
+                        removed.push(key);
+                    }
+                }
+                9 => {
+                    if let Some(key) = removed.pop() {
+                        db.add(&key, &vector).unwrap();
+                        live.insert(key, vector);
+                    }
+                }
+                10 => {
+                    let count = (splitmix64(&mut state) % 40) as usize;
+                    let victims: Vec<String> = keys.iter().take(count).cloned().collect();
+                    if !victims.is_empty() {
+                        db.bulk_remove(&victims).unwrap();
+                        for key in victims {
+                            live.remove(&key);
+                            removed.push(key);
+                        }
+                    }
+                }
+                _ => {
+                    let count = (splitmix64(&mut state) % 30) as usize + 1;
+                    let fresh: Vec<(String, Vec<f32>)> = (0..count)
+                        .map(|offset| {
+                            let key = format!("new-{}", next_id + offset as u64);
+                            (key, seeded_unit_vector(splitmix64(&mut state), DIMS))
+                        })
+                        .collect();
+                    next_id += count as u64;
+                    bulk_add(&db, &fresh).unwrap();
+                    for (key, vector) in fresh {
+                        live.insert(key, vector);
+                    }
+                }
+            }
+            let current = generation_of(&path);
+            if current != generation {
+                generation = current;
+                compactions += 1;
+                {
+                    let st = db.shared.state_read();
+                    test_support::assert_graph_invariants(st.graph.as_ref().unwrap());
+                    assert_arena_graph_agreement(&st, true);
+                    assert_eq!(st.arena.live_count(), live.len());
+                }
+                assert_snapshot_round_trips(&db);
+            }
+        }
+        {
+            let st = db.shared.state_read();
+            test_support::assert_graph_invariants(st.graph.as_ref().unwrap());
+            assert_arena_graph_agreement(&st, false);
+        }
+        assert_eq!(db.len().unwrap(), live.len());
+        for (key, vector) in &live {
+            assert!(db.contains(key).unwrap(), "{key} vanished");
+            let matches = db.search(vector, &limit_params(1)).unwrap();
+            if matches.is_empty() || matches[0].key != *key {
+                unreachable += 1;
+            }
+        }
+        db.flush().unwrap();
+        let expected: Vec<Match> = live
+            .iter()
+            .take(1)
+            .map(|(_, vector)| db.search(vector, &limit_params(5)).unwrap())
+            .next()
+            .unwrap_or_default();
+        let probe = live.keys().next().map(|key| live[key].clone());
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.len().unwrap(), live.len());
+        if let Some(vector) = probe {
+            assert_eq!(
+                reopened.search(&vector, &limit_params(5)).unwrap(),
+                expected
+            );
+        }
+        (compactions, unreachable)
+    }
+
+    #[test]
+    fn property_random_churn_across_compactions_holds_every_contract() {
+        let mut total_compactions = 0usize;
+        let mut total_unreachable = 0usize;
+        for seed in 0..6u64 {
+            let (compactions, unreachable) =
+                property_churn_run(0x7000_0000 + seed * 0x1_0000, 900, 500);
+            total_compactions += compactions;
+            total_unreachable += unreachable;
+        }
+        assert!(
+            total_compactions >= 6,
+            "only {total_compactions} compactions fired"
+        );
+        assert_eq!(
+            total_unreachable, 0,
+            "{total_unreachable} live keys are not their own nearest under approximate search"
+        );
+    }
+
+    #[test]
+    fn a_fast_path_compaction_reproduces_the_slot_numbering_a_replay_would_assign() {
+        for seed in 0..8u64 {
+            let dir = TempDir::new().unwrap();
+            let path = dir.path().join("db");
+            let db = open_writer(&path);
+            bulk_add(&db, &bulk_entries(0, 400, 3000 + seed)).unwrap();
+            let mut state = 0x4242_0000 + seed;
+            let mut live: Vec<String> = (0..400).map(|index| format!("key-{index}")).collect();
+            let mut next_id = 400u64;
+            for _ in 0..600 {
+                let roll = splitmix64(&mut state);
+                let vector = seeded_unit_vector(splitmix64(&mut state), DIMS);
+                match roll % 5 {
+                    0 => {
+                        let key = format!("new-{next_id}");
+                        next_id += 1;
+                        db.add(&key, &vector).unwrap();
+                        live.push(key);
+                    }
+                    1 => {
+                        let index = roll as usize % live.len();
+                        let key = live.remove(index);
+                        db.remove(&key).unwrap();
+                    }
+                    _ => {
+                        let key = live[roll as usize % live.len()].clone();
+                        db.add(&key, &vector).unwrap();
+                    }
+                }
+            }
+            for _ in 0..3 {
+                let mut half = db.shared.writer_half();
+                compact(&db.shared, &mut half).unwrap();
+            }
+            let slots_now: Vec<(String, u32)> = {
+                let st = db.shared.state_read();
+                let mut pairs: Vec<(String, u32)> = st
+                    .arena
+                    .live_slots()
+                    .map(|slot| (st.arena.key_of_slot(slot).unwrap().to_string(), slot))
+                    .collect();
+                pairs.sort();
+                pairs
+            };
+            db.flush().unwrap();
+            drop(db);
+            fs::remove_file(snapshot_path(&path)).unwrap();
+            let replayed = open_writer(&path);
+            let slots_after: Vec<(String, u32)> = {
+                let st = replayed.shared.state_read();
+                let mut pairs: Vec<(String, u32)> = st
+                    .arena
+                    .live_slots()
+                    .map(|slot| (st.arena.key_of_slot(slot).unwrap().to_string(), slot))
+                    .collect();
+                pairs.sort();
+                pairs
+            };
+            assert_eq!(slots_now, slots_after, "seed {seed} renumbered on replay");
+        }
     }
 }
