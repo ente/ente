@@ -1164,7 +1164,7 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
         let _ = std::fs::remove_file(&temp_path);
         (mutations_since_snapshot, old_checkpoint)
     } else {
-        let live_records = {
+        let (live_records, graph_missing) = {
             let mut st = shared.state_write();
             let SearchState {
                 arena,
@@ -1172,17 +1172,21 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
                 attrs,
                 total_records,
             } = &mut *st;
-            attrs.repack(arena.live_slots());
-            arena.compact_in_place();
-            *graph = None;
+            if arena.dead_count() > 0 {
+                attrs.repack(arena.live_slots());
+                arena.compact_in_place();
+                *graph = None;
+            }
             *total_records = arena.live_count() as u64;
-            *total_records as usize
+            (*total_records as usize, graph.is_none())
         };
-        let graph = {
-            let st = shared.state_read();
-            Graph::rebuild(&st.arena)
-        };
-        shared.state_write().graph = Some(graph);
+        if graph_missing {
+            let graph = {
+                let st = shared.state_read();
+                Graph::rebuild(&st.arena)
+            };
+            shared.state_write().graph = Some(graph);
+        }
         (live_records, compacted_checkpoint)
     };
     let restored =
@@ -2150,6 +2154,29 @@ mod tests {
         let matches = db.search(vector, &limit_params(1)).unwrap();
         assert_eq!(matches[0].key, key);
         assert!(matches[0].distance.abs() < 1.0e-3);
+    }
+
+    type GraphFingerprint = (Option<u32>, u64, Vec<(u32, u8, Vec<Vec<u32>>)>);
+
+    fn graph_fingerprint(graph: &Graph) -> GraphFingerprint {
+        let nodes = graph
+            .slots()
+            .map(|slot| {
+                let level = graph.level_of(slot).unwrap();
+                let lists = (0..=level)
+                    .map(|layer| graph.neighbors_of(slot, layer).to_vec())
+                    .collect();
+                (slot, level, lists)
+            })
+            .collect();
+        (graph.entry_point(), graph.insert_ordinal(), nodes)
+    }
+
+    fn snapshot_graph_body(bytes: &[u8]) -> &[u8] {
+        const MAGIC_AND_VERSION: usize = 6;
+        const GENERATION_AND_COVERED_OFFSET: usize = 24;
+        const TRAILING_CRC: usize = 4;
+        &bytes[MAGIC_AND_VERSION + GENERATION_AND_COVERED_OFFSET..bytes.len() - TRAILING_CRC]
     }
 
     fn assert_key_reads_open(db: &VecDb, key: &str, live: usize) {
@@ -3801,6 +3828,125 @@ mod tests {
         assert_eq!(reopened.len().unwrap(), 1042);
         assert!(!reopened.contains("key-0").unwrap());
         assert!(reopened.contains("key-58").unwrap());
+    }
+
+    #[test]
+    fn compaction_without_dead_slots_keeps_the_arena_and_the_graph() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 600, 1200)).unwrap();
+        let replacement = |index: u64| seeded_unit_vector(9000 + index, DIMS);
+        let generation_before = generation_of(&path);
+        for index in 0..66u64 {
+            db.add(&format!("key-{index}"), &replacement(index))
+                .unwrap();
+        }
+        assert_eq!(generation_of(&path), generation_before);
+        assert_eq!(db.stats().unwrap().dead_count, 66);
+        {
+            let mut half = db.shared.writer_half();
+            write_snapshot_now(&db.shared, &mut half).unwrap();
+        }
+        let query = seeded_unit_vector(31337, DIMS);
+        let before_snapshot = fs::read(snapshot_path(&path)).unwrap();
+        let before_search = db.search(&query, &limit_params(10)).unwrap();
+        let before_graph = {
+            let st = db.shared.state_read();
+            graph_fingerprint(st.graph.as_ref().unwrap())
+        };
+        {
+            let mut half = db.shared.writer_half();
+            compact(&db.shared, &mut half).unwrap();
+        }
+        assert_ne!(generation_of(&path), generation_before);
+        let stats = db.stats().unwrap();
+        assert_eq!(stats.live_count, 600);
+        assert_eq!(stats.dead_count, 0);
+        {
+            let st = db.shared.state_read();
+            assert_eq!(st.arena.slot_count(), 600);
+            assert_eq!(graph_fingerprint(st.graph.as_ref().unwrap()), before_graph);
+        }
+        assert_eq!(db.search(&query, &limit_params(10)).unwrap(), before_search);
+        let after_snapshot = fs::read(snapshot_path(&path)).unwrap();
+        assert_eq!(
+            snapshot_graph_body(&after_snapshot),
+            snapshot_graph_body(&before_snapshot)
+        );
+        for index in 0..600u64 {
+            let vector = if index < 66 {
+                replacement(index)
+            } else {
+                seeded_unit_vector(1200 + index, DIMS)
+            };
+            assert_own_nearest(&db, &format!("key-{index}"), &vector);
+        }
+        drop(db);
+        let reopened = open_writer(&path);
+        {
+            let st = reopened.shared.state_read();
+            assert_eq!(graph_fingerprint(st.graph.as_ref().unwrap()), before_graph);
+        }
+        assert_eq!(
+            reopened.search(&query, &limit_params(10)).unwrap(),
+            before_search
+        );
+    }
+
+    #[test]
+    fn re_adding_every_key_compacts_without_renumbering_the_arena() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 400, 1200)).unwrap();
+        let slots_before: Vec<Option<u32>> = {
+            let st = db.shared.state_read();
+            (0..400)
+                .map(|index| st.arena.slot_of_key(&format!("key-{index}")))
+                .collect()
+        };
+        let mut generations = vec![generation_of(&path)];
+        for index in 0..400u64 {
+            db.add(
+                &format!("key-{index}"),
+                &seeded_unit_vector(9000 + index, DIMS),
+            )
+            .unwrap();
+            let generation = generation_of(&path);
+            if generations.last() != Some(&generation) {
+                generations.push(generation);
+            }
+        }
+        assert_eq!(generations.len(), 7);
+        let stats = db.stats().unwrap();
+        assert_eq!(stats.live_count, 400);
+        assert_eq!(stats.dead_count, 16);
+        {
+            let st = db.shared.state_read();
+            assert_eq!(st.arena.slot_count(), 400);
+            let slots_after: Vec<Option<u32>> = (0..400)
+                .map(|index| st.arena.slot_of_key(&format!("key-{index}")))
+                .collect();
+            assert_eq!(slots_after, slots_before);
+        }
+        for index in 0..400u64 {
+            assert_own_nearest(
+                &db,
+                &format!("key-{index}"),
+                &seeded_unit_vector(9000 + index, DIMS),
+            );
+        }
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.len().unwrap(), 400);
+        for index in 0..400u64 {
+            assert_own_nearest(
+                &reopened,
+                &format!("key-{index}"),
+                &seeded_unit_vector(9000 + index, DIMS),
+            );
+        }
     }
 
     #[test]
