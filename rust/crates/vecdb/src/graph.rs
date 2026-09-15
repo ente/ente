@@ -2873,6 +2873,67 @@ mod tests {
     }
 
     #[test]
+    fn renumbering_degenerate_graphs_holds() {
+        let mut arena = VectorArena::new(16).unwrap();
+        let mut graph = Graph::new();
+        graph.renumber(&arena.compact_in_place());
+        assert_eq!(graph.entry_point(), None);
+        assert_eq!(graph.node_count(), 0);
+
+        let mut arena = VectorArena::new(16).unwrap();
+        let mut graph = Graph::new();
+        apply_upsert(&mut arena, &mut graph, "solo", &axis_vector(16, 0));
+        graph.renumber(&arena.compact_in_place());
+        assert_eq!(graph.node_count(), 1);
+        assert_eq!(graph.entry_point(), Some(0));
+        assert_graph_invariants(&graph);
+        assert_round_trips(&graph, arena.slot_count());
+
+        let mut arena = VectorArena::new(16).unwrap();
+        let mut graph = Graph::new();
+        apply_upsert(&mut arena, &mut graph, "solo", &axis_vector(16, 0));
+        arena.remove("solo").unwrap();
+        graph.renumber(&arena.compact_in_place());
+        assert_eq!(graph.node_count(), 0);
+        assert_eq!(graph.entry_point(), None);
+        assert_round_trips(&graph, arena.slot_count());
+    }
+
+    #[test]
+    fn renumbering_tolerates_arena_slots_the_graph_never_saw() {
+        let (mut arena, mut graph) = build_clustered_fixture(200, 16, 6, 0x5E50_0000);
+        for index in 200..240u64 {
+            arena
+                .upsert(&format!("pending-{index}"), &seeded_unit_vector(index, 16))
+                .unwrap();
+        }
+        for index in 210..230u64 {
+            assert!(arena.remove(&format!("pending-{index}")).is_some());
+        }
+        for index in (0..200).step_by(9) {
+            assert!(arena.remove(&format!("key-{index}")).is_some());
+        }
+        let graphed_before: Vec<String> = graph
+            .slots()
+            .filter_map(|slot| arena.key_of_slot(slot).map(str::to_string))
+            .collect();
+        let mapping = arena.compact_in_place();
+        graph.renumber(&mapping);
+        let graphed_after: Vec<String> = graph
+            .slots()
+            .filter_map(|slot| arena.key_of_slot(slot).map(str::to_string))
+            .collect();
+        assert_eq!(graphed_before, graphed_after);
+        for slot in graph.slots() {
+            assert!((slot as usize) < arena.slot_count());
+            assert!(arena.is_alive(slot));
+        }
+        assert_graph_invariants(&graph);
+        assert!(!stale_downward_edge_exists(&graph));
+        assert_round_trips(&graph, arena.slot_count());
+    }
+
+    #[test]
     fn randomized_churn_upholds_contracts_determinism_and_connectivity() {
         let dims = 16;
         let mut primary = (VectorArena::new(dims).unwrap(), Graph::new());
