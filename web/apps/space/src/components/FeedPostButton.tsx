@@ -2,6 +2,7 @@ import { Add01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
 import React from "react";
+import { spaceSurface, spaceText } from "styles/colors";
 
 const green = "#08C225";
 const paleGreen = "#08C225";
@@ -11,17 +12,23 @@ const iconSize = 34;
 interface SpaceFeedPostButtonProps {
     disabled?: boolean;
     onClick?: () => void;
+    showFirstPostPrompt?: boolean;
 }
 
 export const SpaceFeedPostButton: React.FC<SpaceFeedPostButtonProps> = ({
     disabled = false,
     onClick,
+    showFirstPostPrompt = false,
 }) => (
     <Box
         className="green-bg"
         component="button"
         type="button"
-        aria-label="Post photo"
+        aria-label={
+            showFirstPostPrompt && !disabled
+                ? "Share your first photo"
+                : "Post photo"
+        }
         disabled={disabled}
         onClick={onClick}
         sx={{
@@ -61,6 +68,37 @@ export const SpaceFeedPostButton: React.FC<SpaceFeedPostButtonProps> = ({
             },
         }}
     >
+        {showFirstPostPrompt && !disabled && (
+            <Box
+                component="span"
+                sx={{
+                    bgcolor: spaceSurface,
+                    borderRadius: "16px",
+                    color: spaceText,
+                    fontFamily: '"Inter Variable", Inter, sans-serif',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    lineHeight: "20px",
+                    position: "absolute",
+                    px: "16px",
+                    py: "12px",
+                    right: "calc(100% + 12px)",
+                    whiteSpace: "nowrap",
+                    "&::after": {
+                        bgcolor: spaceSurface,
+                        content: '""',
+                        height: 8,
+                        position: "absolute",
+                        right: -4,
+                        top: "50%",
+                        transform: "translateY(-50%) rotate(45deg)",
+                        width: 8,
+                    },
+                }}
+            >
+                Share your first photo
+            </Box>
+        )}
         <HugeiconsIcon icon={Add01Icon} size={iconSize} strokeWidth={2.1} />
     </Box>
 );
