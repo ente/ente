@@ -160,13 +160,11 @@ export const AuthenticatedFriendProfile: React.FC<
         <>
             <SpacePageMeta themeColor={spaceAppBackgroundColor} />
             <ProfileScreen
-                friendsCount={displayedProfile.friendsCount}
                 headerVariant="friend"
                 initialSection={initialSection}
                 isCoverLoading={isProfileLoading}
                 isNameLoading={isProfileLoading && !immediateFriendProfile}
                 isPostsLoading={isPostsLoading}
-                isStatsLoading={isProfileLoading || isPostsLoading}
                 onBack={goBack}
                 onLoadPostImage={loadCurrentSpacePostAssetURL}
                 onMessageFriend={() =>
