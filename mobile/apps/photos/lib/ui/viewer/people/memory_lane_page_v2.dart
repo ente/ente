@@ -108,7 +108,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final musicController = MemoryMusicScope.maybeOf(context)?.controller;
+    final musicController = MemoryAudioScope.maybeOf(context)?.controller;
     if (widget.isActive) {
       unawaited(musicController?.setViewerActionPaused(true));
     }
@@ -124,7 +124,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
     }
     unawaited(_play(0));
     unawaited(
-      MemoryMusicScope.maybeOf(
+      MemoryAudioScope.maybeOf(
         context,
         listen: false,
       )?.controller?.setViewerActionPaused(true),

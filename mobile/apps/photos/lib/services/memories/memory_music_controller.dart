@@ -97,7 +97,7 @@ class MemoryMusicController extends ChangeNotifier {
       await _persistMuted(isMuted);
     } catch (error, stackTrace) {
       _logger.warning(
-        "Failed to persist memories audio mute state",
+        "Failed to persist memories music mute state",
         error,
         stackTrace,
       );

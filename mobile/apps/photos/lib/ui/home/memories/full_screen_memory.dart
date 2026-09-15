@@ -462,7 +462,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
     );
     if (index == null) return;
     final file = inheritedData.memories[index].file;
-    final controller = MemoryMusicScope.maybeOf(
+    final controller = MemoryAudioScope.maybeOf(
       context,
       listen: false,
     )?.controller;
@@ -678,7 +678,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
   void _pauseViewer() {
     if (!mounted) return;
     _isMusicViewerActionPaused = true;
-    final controller = MemoryMusicScope.maybeOf(
+    final controller = MemoryAudioScope.maybeOf(
       context,
       listen: false,
     )?.controller;
@@ -694,7 +694,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
     _isMusicViewerActionPaused = false;
     Bus.instance.fire(ResumeVideoEvent());
     _toggleAnimation(pause: false);
-    final controller = MemoryMusicScope.maybeOf(
+    final controller = MemoryAudioScope.maybeOf(
       context,
       listen: false,
     )?.controller;
@@ -706,7 +706,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
   @override
   Widget build(BuildContext context) {
     final inheritedData = FullScreenMemoryData.of(context);
-    final memoryMusic = MemoryMusicScope.maybeOf(context);
+    final memoryAudio = MemoryAudioScope.maybeOf(context);
     if (inheritedData == null || inheritedData.memories.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -806,7 +806,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
                             color: Colors.transparent,
                           ),
                           isFromMemories: true,
-                          isAudioMutedOverride: memoryMusic?.isMuted,
+                          isAudioMutedOverride: memoryAudio?.isVideoMuted,
                           shouldDisableScroll: (isLocked) {
                             _isMediaInteractionLocked = isLocked;
                             widget.onMediaInteractionLockChanged?.call(
@@ -847,7 +847,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
             _MemoryViewerScrimsAndCaption(
               socialControlsVisible: _socialControlsVisible,
             ),
-            if (memoryMusic != null)
+            if (memoryAudio != null)
               Positioned(
                 left:
                     MediaQuery.paddingOf(context).left +
@@ -856,7 +856,22 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
                     MediaQuery.paddingOf(context).bottom +
                     kMemoryBottomActionBarHeight +
                     _socialToActionBarGap,
-                child: _MemoryMusicMuteButton(memoryMusic),
+                child: ValueListenableBuilder<int>(
+                  valueListenable: inheritedData.indexNotifier,
+                  builder: (context, index, _) {
+                    final safeIndex = _clampedMemoryIndex(
+                      index,
+                      inheritedData.memories.length,
+                    );
+                    if (safeIndex == null) return const SizedBox.shrink();
+                    return _MemoryAudioMuteButton(
+                      memoryAudio,
+                      isVideo:
+                          inheritedData.memories[safeIndex].file.fileType ==
+                          FileType.video,
+                    );
+                  },
+                ),
               ),
             ValueListenableBuilder<int>(
               valueListenable: inheritedData.indexNotifier,
@@ -1077,14 +1092,17 @@ class _MemoryActionButton extends StatelessWidget {
   }
 }
 
-class _MemoryMusicMuteButton extends StatelessWidget {
-  final MemoryMusicScope memoryMusic;
+class _MemoryAudioMuteButton extends StatelessWidget {
+  final MemoryAudioScope memoryAudio;
+  final bool isVideo;
 
-  const _MemoryMusicMuteButton(this.memoryMusic);
+  const _MemoryAudioMuteButton(this.memoryAudio, {required this.isVideo});
 
   @override
   Widget build(BuildContext context) {
-    final isMuted = memoryMusic.isMuted;
+    final isMuted = isVideo
+        ? memoryAudio.isVideoMuted
+        : memoryAudio.isMusicMuted;
     return SizedBox.square(
       dimension: 48,
       child: IconButton(
@@ -1099,7 +1117,11 @@ class _MemoryMusicMuteButton extends StatelessWidget {
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           overlayColor: Colors.transparent,
         ),
-        onPressed: () => unawaited(memoryMusic.toggleMuted()),
+        onPressed: () => unawaited(
+          isVideo
+              ? memoryAudio.toggleVideoMuted()
+              : memoryAudio.toggleMusicMuted(),
+        ),
         icon: DecoratedBox(
           decoration: const BoxDecoration(
             color: Color(0x66000000),

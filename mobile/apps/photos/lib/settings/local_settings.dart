@@ -88,7 +88,8 @@ class LocalSettings {
   static const kRateUsPromptThreshold = 2;
   static const shouldLoopVideoKey = "video.should_loop";
   static const isMutedKey = "video.is_muted";
-  static const _memoriesAudioMutedKey = "memories.audio_muted";
+  static const _memoriesMusicMutedKey = "memories.audio_muted";
+  static const _memoriesVideoMutedKey = "memories.video_muted";
   static const _albumSlideshowDurationSecondsKey =
       "album_slideshow.duration_seconds";
   static const _albumSlideshowBlurredBackgroundKey =
@@ -641,12 +642,20 @@ class LocalSettings {
     return _prefs.getBool(isMutedKey) ?? false;
   }
 
-  Future<void> setMemoriesAudioMuted(bool value) async {
-    await _prefs.setBool(_memoriesAudioMutedKey, value);
+  Future<void> setMemoriesMusicMuted(bool value) async {
+    await _prefs.setBool(_memoriesMusicMutedKey, value);
   }
 
-  bool isMemoriesAudioMuted() {
-    return _prefs.getBool(_memoriesAudioMutedKey) ?? false;
+  bool isMemoriesMusicMuted() {
+    return _prefs.getBool(_memoriesMusicMutedKey) ?? false;
+  }
+
+  Future<void> setMemoriesVideoMuted(bool value) async {
+    await _prefs.setBool(_memoriesVideoMutedKey, value);
+  }
+
+  bool isMemoriesVideoMuted() {
+    return _prefs.getBool(_memoriesVideoMutedKey) ?? false;
   }
 
   int get albumSlideshowDurationSeconds =>

@@ -27,12 +27,14 @@ class _MemoryMusicSessionState extends State<MemoryMusicSession>
   static final _logger = Logger("MemoryMusicSession");
 
   MemoryMusicController? _controller;
-  late bool _isMuted;
+  late bool _isMusicMuted;
+  late bool _isVideoMuted;
 
   @override
   void initState() {
     super.initState();
-    _isMuted = localSettings.isMemoriesAudioMuted();
+    _isMusicMuted = localSettings.isMemoriesMusicMuted();
+    _isVideoMuted = localSettings.isMemoriesVideoMuted();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_initialize());
   }
@@ -46,8 +48,8 @@ class _MemoryMusicSessionState extends State<MemoryMusicSession>
     );
     final controller = MemoryMusicController(
       assignments: assignments,
-      initiallyMuted: _isMuted,
-      persistMuted: localSettings.setMemoriesAudioMuted,
+      initiallyMuted: _isMusicMuted,
+      persistMuted: localSettings.setMemoriesMusicMuted,
       player: JustAudioMemoryMusicPlayer(),
       tracks: tracks,
     );
@@ -58,20 +60,34 @@ class _MemoryMusicSessionState extends State<MemoryMusicSession>
     setState(() => _controller = controller);
   }
 
-  Future<void> _toggleMuted() async {
+  Future<void> _toggleMusicMuted() async {
     final controller = _controller;
     if (controller != null) {
       await controller.toggleMuted();
       return;
     }
 
-    final isMuted = !_isMuted;
-    setState(() => _isMuted = isMuted);
+    final isMuted = !_isMusicMuted;
+    setState(() => _isMusicMuted = isMuted);
     try {
-      await localSettings.setMemoriesAudioMuted(isMuted);
+      await localSettings.setMemoriesMusicMuted(isMuted);
     } catch (error, stackTrace) {
       _logger.warning(
-        "Failed to persist memories audio mute state",
+        "Failed to persist memories music mute state",
+        error,
+        stackTrace,
+      );
+    }
+  }
+
+  Future<void> _toggleVideoMuted() async {
+    final isMuted = !_isVideoMuted;
+    setState(() => _isVideoMuted = isMuted);
+    try {
+      await localSettings.setMemoriesVideoMuted(isMuted);
+    } catch (error, stackTrace) {
+      _logger.warning(
+        "Failed to persist memories video mute state",
         error,
         stackTrace,
       );
@@ -95,39 +111,47 @@ class _MemoryMusicSessionState extends State<MemoryMusicSession>
 
   @override
   Widget build(BuildContext context) {
-    return MemoryMusicScope(
+    return MemoryAudioScope(
       controller: _controller,
-      isMuted: _isMuted,
-      toggleMuted: _toggleMuted,
+      isMusicMuted: _isMusicMuted,
+      isVideoMuted: _isVideoMuted,
+      toggleMusicMuted: _toggleMusicMuted,
+      toggleVideoMuted: _toggleVideoMuted,
       child: widget.child,
     );
   }
 }
 
-class MemoryMusicScope extends InheritedNotifier<MemoryMusicController> {
-  final bool _isMuted;
-  final Future<void> Function() toggleMuted;
+class MemoryAudioScope extends InheritedNotifier<MemoryMusicController> {
+  final bool _isMusicMuted;
+  final bool isVideoMuted;
+  final Future<void> Function() toggleMusicMuted;
+  final Future<void> Function() toggleVideoMuted;
 
-  const MemoryMusicScope({
+  const MemoryAudioScope({
     required MemoryMusicController? controller,
-    required bool isMuted,
-    required this.toggleMuted,
+    required bool isMusicMuted,
+    required this.isVideoMuted,
+    required this.toggleMusicMuted,
+    required this.toggleVideoMuted,
     required super.child,
     super.key,
-  }) : _isMuted = isMuted,
+  }) : _isMusicMuted = isMusicMuted,
        super(notifier: controller);
 
   MemoryMusicController? get controller => notifier;
 
-  bool get isMuted => notifier?.isMuted ?? _isMuted;
+  bool get isMusicMuted => notifier?.isMuted ?? _isMusicMuted;
 
-  static MemoryMusicScope? maybeOf(BuildContext context, {bool listen = true}) {
+  static MemoryAudioScope? maybeOf(BuildContext context, {bool listen = true}) {
     return listen
-        ? context.dependOnInheritedWidgetOfExactType<MemoryMusicScope>()
-        : context.getInheritedWidgetOfExactType<MemoryMusicScope>();
+        ? context.dependOnInheritedWidgetOfExactType<MemoryAudioScope>()
+        : context.getInheritedWidgetOfExactType<MemoryAudioScope>();
   }
 
   @override
-  bool updateShouldNotify(MemoryMusicScope oldWidget) =>
-      _isMuted != oldWidget._isMuted || super.updateShouldNotify(oldWidget);
+  bool updateShouldNotify(MemoryAudioScope oldWidget) =>
+      _isMusicMuted != oldWidget._isMusicMuted ||
+      isVideoMuted != oldWidget.isVideoMuted ||
+      super.updateShouldNotify(oldWidget);
 }
