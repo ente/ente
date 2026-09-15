@@ -12,19 +12,31 @@ This guide walks you through creating your first item in Ente Locker. You'll lea
 1. Open Ente Locker
 2. Tap the **+** button at the bottom of the screen
 3. Select the type of item you want to add:
-    - **Document**: Upload PDFs, images, and scans
+    - **Document**: Scan paper documents with your phone's camera
+    - **File**: Upload PDFs, images, and other files
     - **Note**: Free-form text for any secure notes
     - **Secret**: Usernames and passwords
     - **Thing**: Track where physical documents are stored
 
-## Example: Uploading a document
+## Example: Scanning a document
+
+Document scanning is available in the Locker mobile app on Android and iOS.
+
+1. Tap the camera button on the home screen, or tap **+** and select **Document**
+2. Point the camera at a page. Locker can capture it automatically, or you can switch to **Manual** and tap the shutter button
+3. Scan any additional pages, then tap **Done**
+4. Review the pages. You can adjust the crop, rotate or delete a page, add another page, and rename the PDF
+5. Tap **Save to Ente**
+6. Leave collections unselected to use **Uncategorized**, or select one or more collections
+7. Tap **Save**
+
+## Example: Uploading a file
 
 1. Tap the **+** button
-2. Select **Document**
-3. Choose a file from your device (PDF, image, or scan)
-4. Add a descriptive title (e.g., "Passport Scan")
-5. Leave collections unselected to use **Uncategorized**. Or select one or more collections to organize this item
-6. Tap **Save**
+2. Select **File**
+3. Choose one or more files from your device
+4. Leave collections unselected to use **Uncategorized**, or select one or more collections
+5. Tap **Save**
 
 ## Example: Adding a secret
 

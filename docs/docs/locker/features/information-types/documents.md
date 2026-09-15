@@ -18,15 +18,28 @@ Documents let you upload and store files securely with end-to-end encryption. St
 - Medical records and prescriptions
 - Property documents
 
-## Uploading a document
+## Scanning a document
+
+Document scanning is available in the Locker mobile app on Android and iOS.
+
+1. Tap the camera button on the home screen, or tap the **+** button and select **Document**
+2. Point the camera at the page. Keep **Auto** enabled for automatic capture, or switch to **Manual** and tap the shutter button
+3. Repeat for any additional pages, then tap **Done**
+4. Review the scan. You can adjust the crop, rotate or delete pages, add another page, and rename the PDF
+5. Tap **Save to Ente**
+6. Select one or more collections, or leave them unselected to save to **Uncategorized**
+7. Tap **Save**
+
+Locker combines all scanned pages into one PDF before uploading it.
+
+## Uploading an existing file
 
 1. Open Ente Locker
 2. Tap the **+** button
-3. Select **Document**
-4. Choose a file from your device
-5. Add a title for the document
-6. Select one or more collections
-7. Tap **Save**
+3. Select **File**
+4. Choose one or more files from your device
+5. Select one or more collections, or leave them unselected to save to **Uncategorized**
+6. Tap **Save**
 
 ## Supported file formats
 
