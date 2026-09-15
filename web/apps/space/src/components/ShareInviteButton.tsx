@@ -3,7 +3,10 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
 import { spaceToastAutoDismissDurationMs } from "components/ActionToast";
 import React from "react";
-import { spaceEmptyStateButtonSx } from "styles/buttons";
+import {
+    spaceEmptyStateButtonSx,
+    spaceToastActionButtonSx,
+} from "styles/buttons";
 import {
     spaceAppBackgroundColor,
     spaceText,
@@ -22,7 +25,7 @@ interface SpaceShareInviteButtonProps {
     disabled?: boolean;
     profileLink?: string;
     sharing?: boolean;
-    variant?: "green" | "secondary" | "text";
+    variant?: "green" | "secondary" | "text" | "toast";
     onShareError?: (error: unknown) => void;
     onSharingChange?: (sharing: boolean) => void;
 }
@@ -122,16 +125,25 @@ export const SpaceShareInviteButton: React.FC<SpaceShareInviteButtonProps> = ({
                             },
                             "&:hover:not(:disabled)": { bgcolor: spaceText },
                         }
-                      : spaceEmptyStateButtonSx
+                      : variant == "toast"
+                        ? spaceToastActionButtonSx
+                        : spaceEmptyStateButtonSx
             }
         >
-            {variant != "text" && <SpaceShareIcon />}
-            {copied
-                ? "Invite link copied"
-                : canShare
-                  ? "Share invite link"
-                  : "Copy invite link"}
-            {variant == "text" && !copied && " instead"}
+            {variant != "text" && variant != "toast" && <SpaceShareIcon />}
+            {variant == "toast"
+                ? copied
+                    ? "Copied"
+                    : "Invite"
+                : copied
+                  ? "Invite link copied"
+                  : variant == "text"
+                    ? canShare
+                        ? "Not on Space? Share an invite link"
+                        : "Not on Space? Copy an invite link"
+                    : canShare
+                      ? "Share invite link"
+                      : "Copy invite link"}
         </Box>
     );
 };

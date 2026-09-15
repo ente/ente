@@ -15,7 +15,6 @@ import {
     type SpaceViewerPostActionMode,
 } from "components/FileViewer";
 import { SpaceHomeHeader } from "components/HomeHeader";
-import { SpaceInlinePostButton } from "components/InlinePostButton";
 import {
     spacePostLikeButtonPop,
     spacePostLikeHeartPop,
@@ -36,6 +35,7 @@ import {
     type SpacePostAvatarURLLoader,
 } from "services/space";
 import type { LocalSpaceFeedPost } from "state/app-state";
+import { spaceEmptyStateButtonSx } from "styles/buttons";
 import {
     spaceAppBackgroundColor,
     spaceSurface,
@@ -64,7 +64,6 @@ const dangerColor = "#F63A3A";
 const feedAvatarSize = 38;
 const feedLikeActionSize = spaceTouchTargetSize;
 const feedActionIconSize = 20;
-const emptyFeedItemGap = "22px";
 const feedHorizontalPadding = "16px";
 const minimumFeedPhotoFrameAspectRatio = 3 / 4;
 const feedMediaLoadRootMargin = "640px 0px";
@@ -105,6 +104,7 @@ interface HomeScreenProps {
     localFeedPosts?: LocalSpaceFeedPost[];
     showInstallPrompt?: boolean;
     showInviteFriendsToast?: boolean;
+    onAddFriend: () => void;
     onPostPhotoSelect: (file: File) => void;
     onDeletePost?: (postId: number) => Promise<void> | void;
     onLoadMoreFeedItems?: () => Promise<void> | void;
@@ -1319,7 +1319,7 @@ const AddedFriendToast: React.FC<AddedFriendToastProps> = ({
             px: feedHorizontalPadding,
             pointerEvents: "none",
             position: "fixed",
-            top: "calc(env(safe-area-inset-top) + 10px)",
+            top: "calc(env(safe-area-inset-top) + 12px)",
             transform: "translateX(-50%)",
             width: "100%",
             zIndex: 20,
@@ -1332,7 +1332,7 @@ const AddedFriendToast: React.FC<AddedFriendToastProps> = ({
             sx={{
                 alignItems: "center",
                 bgcolor: spaceSurface,
-                borderRadius: "18px",
+                borderRadius: "22px",
                 boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
                 boxSizing: "border-box",
                 color: textBase,
@@ -1342,11 +1342,11 @@ const AddedFriendToast: React.FC<AddedFriendToastProps> = ({
                 fontWeight: 650,
                 gap: "10px",
                 lineHeight: "20px",
-                minHeight: 50,
+                minHeight: spaceTouchTargetSize,
                 pointerEvents: "auto",
                 pl: "16px",
                 pr: "6px",
-                py: "3px",
+                py: 0,
                 width: "100%",
             }}
         >
@@ -1415,6 +1415,7 @@ const InviteFriendsToast: React.FC<InviteFriendsToastProps> = ({
             <SpaceShareInviteButton
                 profileLink={profileLink}
                 sharing={sharing}
+                variant="toast"
                 onShareError={(error) =>
                     log.error("Failed to share space invite", error)
                 }
@@ -1426,7 +1427,7 @@ const InviteFriendsToast: React.FC<InviteFriendsToastProps> = ({
         icon={
             <HugeiconsIcon icon={UserAdd02Icon} size={24} strokeWidth={1.9} />
         }
-        message="Invite friends to your Space"
+        message="Invite your friends"
         onClose={onClose}
     />
 );
@@ -1442,6 +1443,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     localFeedPosts = [],
     showInstallPrompt = false,
     showInviteFriendsToast = false,
+    onAddFriend,
     onPostPhotoSelect,
     onDeletePost,
     onLoadMoreFeedItems,
@@ -1528,7 +1530,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         !showInviteFriendsToast &&
         !selectedViewer;
     const showUnreadIndicator = hasUnreadMessages === true;
-    const profileFirstName = profile?.fullName.trim().split(/\s+/)[0];
     const openPostPhotoPicker = () => {
         if (isPostPhotoButtonDisabled) return;
 
@@ -1860,11 +1861,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         justifyContent: showFeedCards ? "flex-start" : "center",
                         minHeight: "calc(100svh - 64px)",
                         minWidth: 0,
-                        pb: showFeedCards
-                            ? "calc(env(safe-area-inset-bottom) + 112px)"
-                            : "56px",
-                        px: showFeedCards ? feedHorizontalPadding : 0,
-                        pt: showFeedCards ? "4px" : 0,
+                        pb: "calc(env(safe-area-inset-bottom) + 112px)",
+                        px: feedHorizontalPadding,
+                        pt: showFeedCards ? "4px" : "8px",
                         width: "100%",
                     }}
                 >
@@ -1955,58 +1954,108 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         </Box>
                     ) : (
                         <Box
+                            className="green-bg"
                             sx={{
                                 alignItems: "center",
+                                bgcolor: green,
+                                borderRadius: "24px",
+                                boxSizing: "border-box",
+                                color: "#FFFFFF",
                                 display: "flex",
                                 flexDirection: "column",
-                                justifyContent: "center",
-                                px: 3,
+                                height: "calc(100svh - 184px - env(safe-area-inset-bottom))",
+                                minHeight: 360,
+                                overflow: "hidden",
+                                px: "24px",
+                                pt: "72px",
+                                pb: "16px",
                                 textAlign: "center",
                                 width: "100%",
+                                "@media (max-height: 720px)": { pt: "32px" },
                             }}
                         >
                             <Box
-                                component="img"
-                                alt=""
-                                src="/images/ducky-camera.svg"
+                                component="h1"
                                 sx={{
-                                    display: "block",
-                                    height: "auto",
-                                    width: 220,
-                                    "@media (max-width: 340px)": { width: 196 },
+                                    fontFamily:
+                                        '"Nunito", "Inter Variable", sans-serif',
+                                    fontSize: 25,
+                                    fontWeight: 800,
+                                    lineHeight: "30px",
+                                    m: 0,
+                                    maxWidth: 260,
                                 }}
-                            />
+                            >
+                                Invite your close friends and family
+                            </Box>
                             <Box
                                 component="p"
                                 sx={{
-                                    color: textSecondary,
+                                    color: "rgba(255, 255, 255, 0.84)",
                                     fontFamily:
                                         '"Inter Variable", Inter, sans-serif',
-                                    fontSize: 14,
+                                    fontSize: 15,
                                     fontWeight: 500,
-                                    lineHeight: "20px",
+                                    lineHeight: "21px",
                                     m: 0,
-                                    mt: emptyFeedItemGap,
+                                    mt: "10px",
                                     maxWidth: 280,
                                 }}
                             >
-                                Welcome to your space, {profileFirstName}.
-                                <br />
-                                Share a little moment from your day.
+                                Keep up with each other through everyday photos.
                             </Box>
-                            <SpaceInlinePostButton
-                                disabled={isPostPhotoButtonDisabled}
-                                onClick={openPostPhotoPicker}
+                            <Box
+                                component="button"
+                                type="button"
+                                aria-haspopup="dialog"
+                                disabled={!profile}
+                                onClick={onAddFriend}
+                                sx={{
+                                    ...spaceEmptyStateButtonSx,
+                                    bgcolor: "#FFFFFF",
+                                    color: homeBackground,
+                                    flexShrink: 0,
+                                    mt: "24px",
+                                    "&:focus-visible": {
+                                        outline: `2px solid ${textBase}`,
+                                        outlineOffset: 2,
+                                    },
+                                    "&:hover:not(:disabled)": {
+                                        bgcolor: textBase,
+                                    },
+                                }}
+                            >
+                                <HugeiconsIcon
+                                    icon={UserAdd02Icon}
+                                    size={18}
+                                    strokeWidth={1.8}
+                                />
+                                Add friend
+                            </Box>
+                            <Box sx={{ flexGrow: 1, minHeight: "32px" }} />
+                            <Box
+                                component="img"
+                                alt=""
+                                src="/images/ducky-space.svg"
+                                sx={{
+                                    display: "block",
+                                    height: "auto",
+                                    maxWidth: 300,
+                                    minHeight: 0,
+                                    objectFit: "contain",
+                                    width: "100%",
+                                    "@media (max-height: 720px)": {
+                                        maxWidth: 228,
+                                    },
+                                }}
                             />
                         </Box>
                     )}
                 </Box>
-                {hasFeedItems && (
-                    <SpaceFeedPostButton
-                        disabled={isPostPhotoButtonDisabled}
-                        onClick={openPostPhotoPicker}
-                    />
-                )}
+                <SpaceFeedPostButton
+                    disabled={isPostPhotoButtonDisabled}
+                    onClick={openPostPhotoPicker}
+                />
                 {selectedViewer && (
                     <SpaceFileViewer
                         focusReplyOnOpen={selectedViewer.focusReplyOnOpen}
