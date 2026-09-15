@@ -38,6 +38,7 @@ import 'package:photos/services/notification_service.dart';
 import 'package:photos/services/social_notification_coordinator.dart';
 import 'package:photos/services/social_sync_service.dart';
 import 'package:photos/services/sync/diff_fetcher.dart';
+import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
 import 'package:photos/utils/network_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -101,6 +102,14 @@ class RemoteSyncService {
   Future<void> sync({bool silently = false}) async {
     if (!_config.hasConfiguredAccount()) {
       _logger.info("Skipping remote sync since account is not configured");
+      return;
+    }
+    if (Platform.isIOS &&
+        !LocalSyncService.instance.hasCompletedFirstImport() &&
+        permissionService.hasGrantedPermissions()) {
+      _logger.info(
+        "Deferring remote sync until first gallery import completes",
+      );
       return;
     }
     if (_existingSync != null) {

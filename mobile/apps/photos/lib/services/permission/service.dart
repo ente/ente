@@ -47,7 +47,7 @@ class PermissionService {
   }
 
   Future<void> onUpdatePermission(PermissionState state) async {
-    await _prefs.setBool(kHasGrantedPermissionsKey, true);
+    await _prefs.setBool(kHasGrantedPermissionsKey, state.hasAccess);
     await _prefs.setString(kPermissionStateKey, state.toString());
   }
 
