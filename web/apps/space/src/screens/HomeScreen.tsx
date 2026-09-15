@@ -2002,7 +2002,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     maxWidth: 280,
                                 }}
                             >
-                                Keep up with each other through everyday photos.
+                                Find them by their username or share your invite
+                                link.
                             </Box>
                             <Box
                                 component="button"
