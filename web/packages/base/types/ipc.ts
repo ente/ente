@@ -41,6 +41,11 @@ export interface Electron {
     clearAppLockConfigFromSafeStorage: () => Promise<void>;
     onMainWindowFocus: (cb: (() => void) | undefined) => void;
     onMainWindowBlur: (cb: (() => void) | undefined) => void;
+    onMainWindowFullscreenChange: (
+        cb: ((isFullscreen: boolean) => void) | undefined,
+    ) => void;
+    isMainWindowFullscreen: () => Promise<boolean>;
+    setMainWindowFullscreen: (isFullscreen: boolean) => void;
     setTitleBarOverlay: (
         themeMode: ThemeMode,
         isFileViewerOpen: boolean,

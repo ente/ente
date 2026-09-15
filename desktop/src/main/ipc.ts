@@ -276,6 +276,13 @@ export const attachIPCHandlers = () => {
 };
 
 export const attachMainWindowIPCHandlers = (mainWindow: BrowserWindow) => {
+    handle("isMainWindowFullscreen", () => mainWindow.isFullScreen());
+
+    on("setMainWindowFullscreen", (_, isFullscreen: unknown) => {
+        if (typeof isFullscreen != "boolean") return;
+        mainWindow.setFullScreen(isFullscreen);
+    });
+
     on(
         "setTitleBarOverlay",
         (_, themeMode: unknown, isFileViewerOpen: unknown) => {
