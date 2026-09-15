@@ -55,6 +55,11 @@ type ListPostsRequest struct {
 	Limit         int    `form:"limit"`
 }
 
+type ListFeedRequest struct {
+	Cursor string `form:"cursor"`
+	Limit  int    `form:"limit"`
+}
+
 type ListHomePostsRequest struct {
 	After  string `form:"after"`
 	Cursor string `form:"cursor"`
