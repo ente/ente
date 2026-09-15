@@ -27,7 +27,7 @@ import 'package:photos/services/sync/sync_service.dart';
 import "package:photos/ui/picker/external_media_picker_page.dart";
 import 'package:photos/ui/tabs/home_widget.dart';
 import "package:photos/ui/viewer/actions/file_viewer.dart";
-import "package:photos/utils/bg_task_utils.dart";
+import "package:photos/utils/background_tasks.dart";
 import "package:photos/utils/intent_util.dart";
 
 class EnteApp extends StatefulWidget {
@@ -142,7 +142,7 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
     final lifecycleAction = _appLifecycleActionFor(mediaExtentionAction);
     AppLifecycleService.instance.setMediaExtensionAction(lifecycleAction);
     if (lifecycleAction.action == IntentAction.main) {
-      unawaited(BgTaskUtils.configureWorkmanager());
+      unawaited(BackgroundTasks.configure().catchError((Object _) {}));
     }
     if (mediaExtentionAction.action == IntentAction.pick) {
       return ExternalMediaPickerPage(
@@ -264,8 +264,8 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
       }
       unawaited(_reloadCachesUpdatedInBackground(lastAppOpenTime));
       SyncService.instance.sync();
+      unawaited(BackgroundTasks.configure().catchError((Object _) {}));
       if (Platform.isIOS) {
-        unawaited(BgTaskUtils.ensureIOSProcessingTaskScheduled());
         MLService.instance.triggerML();
       }
     } else {

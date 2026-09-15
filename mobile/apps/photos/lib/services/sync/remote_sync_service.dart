@@ -99,6 +99,7 @@ class RemoteSyncService {
   }
 
   Future<void> sync({bool silently = false}) async {
+    if (SyncService.instance.backgroundWorkStopped) return;
     if (!_config.hasConfiguredAccount()) {
       _logger.info("Skipping remote sync since account is not configured");
       return;
@@ -129,7 +130,9 @@ class RemoteSyncService {
         await syncDeviceCollectionFilesForUpload();
       }
       await _pullDiff();
+      SyncService.instance.checkBackgroundWork();
       await trashSyncService.syncTrash();
+      SyncService.instance.checkBackgroundWork();
       await _collectionsService.movePendingRemovalActionsToUncategorized();
 
       if (AppLifecycleService.instance.isForeground) {
@@ -154,7 +157,9 @@ class RemoteSyncService {
       }
 
       final filesToBeUploaded = await _getFilesToBeUploaded();
+      SyncService.instance.checkBackgroundWork();
       final hasUploadedFiles = await _uploadFiles(filesToBeUploaded);
+      SyncService.instance.checkBackgroundWork();
       if (filesToBeUploaded.isNotEmpty) {
         _logger.info(
           "Files ${filesToBeUploaded.length} queued for upload, completed: "
@@ -190,6 +195,10 @@ class RemoteSyncService {
         _existingSync?.complete();
         _existingSync = null;
       }
+    } on SyncStopRequestedError {
+      _existingSync?.complete();
+      _existingSync = null;
+      rethrow;
     } catch (e, s) {
       _existingSync?.complete();
       _existingSync = null;
@@ -256,6 +265,7 @@ class RemoteSyncService {
     final Map<int, int> idsToRemoteUpdationTimeMap,
   ) async {
     for (final cid in idsToRemoteUpdationTimeMap.keys) {
+      SyncService.instance.checkBackgroundWork();
       await _syncCollectionDiff(
         cid,
         _collectionsService.getCollectionSyncTime(cid),
@@ -273,6 +283,7 @@ class RemoteSyncService {
     _logger.info('re-setting all collections syncTime to: $resetSyncTime');
     final collections = _collectionsService.getActiveCollections();
     for (final c in collections) {
+      SyncService.instance.checkBackgroundWork();
       final int newSyncTime = min(
         _collectionsService.getCollectionSyncTime(c.id),
         resetSyncTime,
@@ -282,6 +293,7 @@ class RemoteSyncService {
   }
 
   Future<void> _syncCollectionDiff(int collectionID, int sinceTime) async {
+    SyncService.instance.checkBackgroundWork();
     _logger.info(
       "[Collection-$collectionID] fetch diff silently: $_isExistingSyncSilent "
       "since: $sinceTime",
@@ -392,6 +404,7 @@ class RemoteSyncService {
 
     bool moreFilesMarkedForBackup = false;
     for (final deviceCollection in deviceCollections) {
+      SyncService.instance.checkBackgroundWork();
       final Set<String> localIDsToSync =
           pathIdToLocalIDs[deviceCollection.id]?.toSet() ?? {};
       if (deviceCollection.uploadStrategy == UploadStrategy.ifMissing) {
@@ -526,6 +539,7 @@ class RemoteSyncService {
   Future<void> removeFilesQueuedForUpload(List<int> collectionIDs) async {
     _logger.info("Removing files for collections $collectionIDs");
     for (int collectionID in collectionIDs) {
+      SyncService.instance.checkBackgroundWork();
       final List<EnteFile> pendingUploads = await _db
           .getPendingUploadForCollection(collectionID);
       if (pendingUploads.isEmpty) {
@@ -666,6 +680,7 @@ class RemoteSyncService {
     }
 
     for (final file in uploadQueue) {
+      if (SyncService.instance.shouldStopSync()) break;
       if (shouldThrottleUpload &&
           futures.length >= kMaximumPermissibleUploadsInThrottledMode) {
         break;
@@ -682,6 +697,7 @@ class RemoteSyncService {
     }
 
     for (final uploadedFileID in updatedFileIDs) {
+      if (SyncService.instance.shouldStopSync()) break;
       if (shouldThrottleUpload &&
           futures.length >= kMaximumPermissibleUploadsInThrottledMode) {
         break;

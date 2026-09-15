@@ -33,6 +33,7 @@ class SyncService {
   final _uploader = FileUploader.instance;
   bool _syncStopRequested = false;
   Completer<bool>? _existingSync;
+  bool Function()? _backgroundStopCheck;
   late SharedPreferences _prefs;
   SyncStatusUpdate? _lastSyncStatusEvent;
   bool _isInitialized = false;
@@ -112,6 +113,7 @@ class SyncService {
   }
 
   Future<bool> sync() async {
+    if (_backgroundStopCheck?.call() == true) return false;
     if (!_isInitialized) {
       _logger.warning("Sync requested before init, skipping");
       return false;
@@ -196,8 +198,18 @@ class SyncService {
   }
 
   bool shouldStopSync() {
-    return _syncStopRequested;
+    return _syncStopRequested || _backgroundStopCheck?.call() == true;
   }
+
+  void setBackgroundStopCheck(bool Function() check) {
+    _backgroundStopCheck = check;
+  }
+
+  void checkBackgroundWork() {
+    if (backgroundWorkStopped) throw SyncStopRequestedError();
+  }
+
+  bool get backgroundWorkStopped => _backgroundStopCheck?.call() == true;
 
   bool isSyncInProgress() {
     return _existingSync != null;
@@ -230,10 +242,13 @@ class SyncService {
   }
 
   Future<void> _doSync() async {
+    checkBackgroundWork();
     _logger.info("[SYNC] Starting local sync");
     await _localSyncService.sync();
+    checkBackgroundWork();
     if (isLocalGalleryMode) {
       await _localSyncService.syncAll();
+      checkBackgroundWork();
       if (Platform.isAndroid) {
         final processing = OfflineImportMetadataService.instance
             .processPendingFiles(
@@ -260,8 +275,10 @@ class SyncService {
     if (allowRemoteSync) {
       _logger.info("[SYNC] Starting remote sync");
       await _remoteSyncService.sync();
+      checkBackgroundWork();
 
       final shouldSync = await _localSyncService.syncAll();
+      checkBackgroundWork();
       if (shouldSync) {
         _logger.info("[SYNC] Starting second remote sync");
         await _remoteSyncService.sync();

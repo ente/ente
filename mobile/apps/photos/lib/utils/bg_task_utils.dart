@@ -11,6 +11,7 @@ import "package:photos/db/upload_locks_db.dart";
 import "package:photos/main.dart";
 import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/services/process_activity.dart";
+import "package:photos/utils/background_tasks.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:workmanager/workmanager.dart" as workmanager;
 
@@ -37,6 +38,11 @@ void callbackDispatcher() {
       () async {
         try {
           BgTaskUtils.$.info('Task started $tlog');
+          if (await BackgroundTasks.nativeEnabled(prefs)) {
+            await BackgroundTasks.configure();
+            failure = null;
+            return;
+          }
           if (isIOSProcessingTask) {
             await BgTaskUtils.scheduleIOSBackgroundProcessingTask();
           }
@@ -47,6 +53,11 @@ void callbackDispatcher() {
           );
           if (!ownsPipeline) {
             BgTaskUtils.$.info('Skipping $taskName, background pipeline busy');
+            failure = null;
+            return;
+          }
+          if (await BackgroundTasks.nativeEnabled(prefs)) {
+            await BackgroundTasks.configure();
             failure = null;
             return;
           }
@@ -103,6 +114,11 @@ void callbackDispatcher() {
       return;
     });
 
+    if (ownsPipeline &&
+        !timedOut &&
+        await BackgroundTasks.nativeEnabled(prefs)) {
+      await BackgroundTasks.configure().catchError((Object _) {});
+    }
     final error = failure;
     if (error != null) {
       return Future.error(error);
@@ -262,7 +278,7 @@ class BgTaskUtils {
     await prefs.remove(kLastBGTaskHeartBeatTime);
   }
 
-  static Future configureWorkmanager() async {
+  static Future<void> configureWorkmanager() async {
     try {
       await workmanager.Workmanager().initialize(callbackDispatcher);
       if (Platform.isIOS) {
@@ -316,10 +332,15 @@ class BgTaskUtils {
       }
     } catch (e) {
       $.warning("Failed to configure WorkManager: $e");
+      rethrow;
     }
   }
 
   static bool _processingTaskArmedThisProcess = false;
+
+  static void resetProcessingSchedule() {
+    _processingTaskArmedThisProcess = false;
+  }
 
   static Future<void> scheduleAndroidBackgroundProcessingTask() async {
     await workmanager.Workmanager().registerPeriodicTask(
@@ -348,6 +369,11 @@ class BgTaskUtils {
 
   // Workmanager does not resubmit one-shot processing tasks.
   static Future<bool> scheduleIOSBackgroundProcessingTask() async {
+    if (await BackgroundTasks.nativeEnabled(
+      await SharedPreferences.getInstance(),
+    )) {
+      return false;
+    }
     try {
       await workmanager.Workmanager().registerProcessingTask(
         iOSBackgroundProcessingTask,

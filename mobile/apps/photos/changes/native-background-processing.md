@@ -1,0 +1,1 @@
+- Internal users now use Ente's native background manager for sync and ML processing, with cooperative stopping when the app opens. Other users continue using Workmanager.

@@ -4,6 +4,7 @@ import 'dart:io';
 import "package:adaptive_theme/adaptive_theme.dart";
 import "package:computer/computer.dart";
 import "package:ente_account_deletion/account_deletion.dart";
+import "package:ente_background_manager/ente_background_manager.dart";
 import "package:ente_components/ente_components.dart" as components;
 import 'package:ente_crypto/ente_crypto.dart';
 import "package:ente_crypto_api/ente_crypto_api.dart" show registerCryptoApi;
@@ -46,6 +47,7 @@ import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/favorites_service.dart';
 import 'package:photos/services/home_widget_service.dart';
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import 'package:photos/services/machine_learning/ml_service.dart';
 import 'package:photos/services/machine_learning/semantic_search/semantic_search_service.dart';
@@ -65,6 +67,7 @@ import "package:photos/services/video_preview_service.dart";
 import "package:photos/src/rust/api/log.dart" as photos_rust_log;
 import "package:photos/src/rust/frb_generated.dart";
 import 'package:photos/ui/wallpaper/wallpaper_page.dart';
+import "package:photos/utils/background_tasks.dart";
 import "package:photos/utils/bg_task_utils.dart";
 import "package:photos/utils/device_info.dart";
 import "package:photos/utils/email_util.dart";
@@ -245,10 +248,33 @@ Future<void> runBackgroundTask(
   String mode = 'normal',
   Duration? mlSelfStop,
   Duration? mlLockWait,
+  BackgroundTask? nativeTask,
 }) async {
   // Created at task start so a stop that fires before ML begins stays
   // latched for the whole task.
   final mlRunControl = MlRunControl();
+  var finished = false;
+  var switchingBackend = false;
+  bool shouldStop() =>
+      finished || switchingBackend || nativeTask?.isStopping == true;
+  void checkStop() {
+    if (shouldStop()) throw const BackgroundTaskStopped();
+  }
+
+  SyncService.instance.setBackgroundStopCheck(shouldStop);
+  if (nativeTask != null) {
+    unawaited(
+      nativeTask.stopped.then((reason) {
+        if (finished) return;
+        mlRunControl.requestStop(
+          reason == BackgroundStopReason.foreground
+              ? MlStopReason.foregroundActive
+              : MlStopReason.backgroundDeadline,
+        );
+        SyncService.instance.stopSync();
+      }),
+    );
+  }
   final mlBudget =
       mlSelfStop ??
       (Platform.isIOS ? kBGTaskMLSelfStopIOS : kBGTaskMLSelfStopAndroid);
@@ -261,18 +287,26 @@ Future<void> runBackgroundTask(
           () => mlRunControl.requestStop(MlStopReason.backgroundDeadline),
         )
       : null;
-  final mlForegroundWatchTimer = Timer.periodic(
-    const Duration(milliseconds: 500),
-    (_) async {
-      if (mlRunControl.stopRequested) return;
-      if (await isForegroundEngineActive()) {
-        mlRunControl.requestStop(MlStopReason.foregroundActive);
-      }
-    },
-  );
+  final mlForegroundWatchTimer = nativeTask != null
+      ? null
+      : Timer.periodic(const Duration(milliseconds: 500), (_) async {
+          if (finished) return;
+          final prefs = await SharedPreferences.getInstance();
+          if (await BackgroundTasks.nativeEnabled(prefs)) {
+            switchingBackend = true;
+            mlRunControl.requestStop(MlStopReason.manual);
+            SyncService.instance.stopSync();
+          }
+          if (mlRunControl.stopRequested) return;
+          if (await isForegroundEngineActive()) {
+            mlRunControl.requestStop(MlStopReason.foregroundActive);
+          }
+        });
 
   try {
-    final isRunningInFG = await isForegroundEngineActive();
+    checkStop();
+    final isRunningInFG =
+        nativeTask == null && await isForegroundEngineActive();
     if (isRunningInFG) {
       _logger.info(
         "[BG TASK] Foreground recently active, skipping background work",
@@ -284,10 +318,18 @@ Future<void> runBackgroundTask(
       "[BG TASK] No recent foreground activity, proceeding with background work",
     );
 
-    await _runMinimally(taskId, tlog, mlRunControl, mlLockWait);
+    await _runMinimally(
+      taskId,
+      tlog,
+      mlRunControl,
+      mlLockWait,
+      checkStop: checkStop,
+      propagateFailure: nativeTask != null,
+    );
   } finally {
+    finished = true;
     mlSelfStopTimer?.cancel();
-    mlForegroundWatchTimer.cancel();
+    mlForegroundWatchTimer?.cancel();
   }
 }
 
@@ -295,13 +337,18 @@ Future<void> _runMinimally(
   String taskId,
   TimeLogger tlog,
   MlRunControl mlRunControl,
-  Duration? mlLockWait,
-) async {
+  Duration? mlLockWait, {
+  required void Function() checkStop,
+  required bool propagateFailure,
+}) async {
   try {
+    var successful = true;
+    checkStop();
     final PackageInfo packageInfo = await PackageInfo.fromPlatform();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await _scheduleHeartBeat(prefs, true);
     await _ensureRustInitialized(via: 'workmanager:$taskId');
+    checkStop();
 
     _logger.info("[BG TASK] NetworkClient init $tlog");
     await NetworkClient.instance.init(packageInfo, prefs);
@@ -321,6 +368,7 @@ Future<void> _runMinimally(
 
     _logger.info("(for debugging) Configuration init $tlog");
     await Configuration.instance.init(prefs);
+    checkStop();
     _logger.info("(for debugging) Configuration done $tlog");
 
     AppLifecycleService.instance.init(prefs);
@@ -329,18 +377,22 @@ Future<void> _runMinimally(
     );
 
     await Computer.shared().turnOn(workersCount: 4);
+    checkStop();
     CryptoUtil.init();
 
     // Initialize early so thermal/battery listeners can warm up while the
     // rest of background services are being initialized.
     final controller = computeController;
     await MemoryShareService.instance.init();
+    checkStop();
 
     _logger.info("(for debugging) CollectionsService init $tlog");
     await CollectionsService.instance.init(prefs);
+    checkStop();
     _logger.info("(for debugging) CollectionsService init done $tlog");
 
     await FileUploader.instance.init(prefs, true);
+    checkStop();
     LocalFileUpdateService.instance.init(prefs);
     await LocalSyncService.instance.init(prefs);
     RemoteSyncService.instance.init(prefs);
@@ -348,18 +400,25 @@ Future<void> _runMinimally(
     _isSyncInitialized = true;
 
     await UserService.instance.init();
+    checkStop();
     SocialNotificationCoordinator.instance.init(prefs);
     await NotificationService.instance.initializeForBackground();
 
     _logger.info("[BG TASK] update notification");
     updateService.showUpdateNotification().ignore();
     _logger.info("[BG TASK] sync starting");
-    await _sync('bgTaskActiveProcess');
+    if (propagateFailure) {
+      successful = await SyncService.instance.sync();
+    } else {
+      await _sync('bgTaskActiveProcess');
+    }
+    checkStop();
     _logger.info("[BG TASK] sync completed");
 
     _logger.info("[BG TASK] locale fetch");
     final locale = await getLocale();
     await initializeDateFormatting(locale?.languageCode ?? "en");
+    checkStop();
     _logger.info("[BG TASK] home widget sync");
     if (!isLocalGalleryMode &&
         hasGrantedMLConsent &&
@@ -377,10 +436,12 @@ Future<void> _runMinimally(
       }
     }
     await _homeWidgetSync(true);
+    checkStop();
 
     if ((isLocalGalleryMode || flagService.enableMLInBackground) &&
         hasGrantedMLConsent) {
       await controller.init();
+      checkStop();
       final canRunML = controller.requestCompute(ml: true);
       if (!canRunML) {
         _logger.info(
@@ -397,17 +458,26 @@ Future<void> _runMinimally(
             lockWait: mlLockWait,
           );
           _logger.info("[BG TASK] ML run disposition: ${disposition.name}");
+          if (disposition == MlRunDisposition.failed) successful = false;
         } finally {
           controller.releaseCompute(ml: true);
         }
       }
     }
     _logger.info("[BG TASK] smart albums sync");
+    checkStop();
     await smartAlbumsService.syncSmartAlbums();
+    checkStop();
+    if (propagateFailure && !successful) {
+      throw StateError("Background work reported a failure");
+    }
 
     _logger.info("[BG TASK] $taskId completed");
+  } on BackgroundTaskStopped {
+    if (propagateFailure) rethrow;
   } catch (e, s) {
     _logger.severe("[BG TASK] $taskId error", e, s);
+    if (propagateFailure) rethrow;
   }
 }
 

@@ -5,6 +5,7 @@ import "dart:io";
 import 'package:backup_exclusion/backup_exclusion.dart';
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:ente_account_deletion/account_deletion.dart';
+import 'package:ente_background_manager/ente_background_manager.dart';
 import 'package:ente_contacts/contacts.dart';
 import "package:ente_crypto/ente_crypto.dart";
 import 'package:ente_lock_screen/lock_screen_host.dart';
@@ -36,6 +37,7 @@ import 'package:photos/events/user_logged_out_event.dart';
 import 'package:photos/gateways/users/models/key_attributes.dart';
 import 'package:photos/gateways/users/models/key_gen_result.dart';
 import 'package:photos/gateways/users/models/private_key_attributes.dart';
+import 'package:photos/main.dart' show isProcessBg;
 import 'package:photos/module/upload/upload_artifact.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/authenticated_session.dart';
@@ -196,6 +198,11 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   Future<void> logout({bool autoLogout = false}) async {
     _logger.info("Logging out, autoLogout: $autoLogout");
     MLService.instance.stopActiveRun(MlStopReason.logout);
+    if (isProcessBg) {
+      unawaited(BackgroundManager.stopActiveRun());
+    } else {
+      await BackgroundManager.stopActiveRun();
+    }
     if (!autoLogout) {
       if (flagService.stopStreamProcess) {
         VideoPreviewService.instance.stop('logout');

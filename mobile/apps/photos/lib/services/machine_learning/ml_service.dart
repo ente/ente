@@ -607,7 +607,11 @@ class MLService {
         );
       }
       final Stream<List<FileMLInstruction>> instructionStream =
-          fetchEmbeddingsAndInstructions(fileDownloadMlLimit, mode: mode);
+          fetchEmbeddingsAndInstructions(
+            fileDownloadMlLimit,
+            mode: mode,
+            control: control,
+          );
 
       int fileAnalyzedCount = 0;
       final Stopwatch stopwatch = Stopwatch()..start();
