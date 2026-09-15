@@ -102,6 +102,7 @@ interface HomeScreenProps {
     isFeedLoading?: boolean;
     isFeedLoadingMore?: boolean;
     localFeedPosts?: LocalSpaceFeedPost[];
+    showFirstPostPrompt?: boolean;
     showInstallPrompt?: boolean;
     showInviteFriendsToast?: boolean;
     onAddFriend: () => void;
@@ -1441,6 +1442,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     isFeedLoading = false,
     isFeedLoadingMore = false,
     localFeedPosts = [],
+    showFirstPostPrompt = false,
     showInstallPrompt = false,
     showInviteFriendsToast = false,
     onAddFriend,
@@ -2056,6 +2058,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <SpaceFeedPostButton
                     disabled={isPostPhotoButtonDisabled}
                     onClick={openPostPhotoPicker}
+                    showFirstPostPrompt={showFirstPostPrompt}
                 />
                 {selectedViewer && (
                     <SpaceFileViewer

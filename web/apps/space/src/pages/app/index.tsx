@@ -14,6 +14,7 @@ import { loadExistingSpaceId } from "services/profile";
 import {
     clearSpaceFriendsCache,
     deleteCurrentPost,
+    hasCurrentSpacePosts,
     loadCurrentFeedPage,
     loadCurrentFriendRequests,
     loadCurrentSpaceFriends,
@@ -56,6 +57,7 @@ const Page: React.FC = () => {
     const [hasFeedLoadMoreError, setHasFeedLoadMoreError] = useState(false);
     const [feedNextCursor, setFeedNextCursor] = useState<string>();
     const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>();
+    const [hasOwnPosts, setHasOwnPosts] = useState<boolean>();
     const [isFeedLoading, setIsFeedLoading] = useState(true);
     const [isFeedLoadingMore, setIsFeedLoadingMore] = useState(false);
     const [isFriendsLoading, setIsFriendsLoading] = useState(true);
@@ -115,6 +117,23 @@ const Page: React.FC = () => {
             cancelled = true;
         };
     }, [isAddFriendOpen, profile?.spaceId]);
+
+    useEffect(() => {
+        setHasOwnPosts(undefined);
+        if (!spaceId) return;
+
+        let cancelled = false;
+        void hasCurrentSpacePosts(spaceId)
+            .then((hasPosts) => {
+                if (!cancelled) setHasOwnPosts(hasPosts);
+            })
+            .catch((error: unknown) =>
+                log.error("Failed to check for own Space posts", error),
+            );
+        return () => {
+            cancelled = true;
+        };
+    }, [spaceId]);
 
     useEffect(() => {
         const request = { cancelled: false };
@@ -291,6 +310,11 @@ const Page: React.FC = () => {
                 isFeedLoading={isFeedLoading}
                 isFeedLoadingMore={isFeedLoadingMore}
                 localFeedPosts={localFeedPosts}
+                showFirstPostPrompt={
+                    hasOwnPosts === false &&
+                    localFeedPosts.length == 0 &&
+                    !feedItems.some((post) => post.spaceId == spaceId)
+                }
                 profile={profile}
                 viewerSpaceId={spaceId ?? profile?.spaceId}
                 showInstallPrompt={

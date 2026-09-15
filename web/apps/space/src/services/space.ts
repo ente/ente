@@ -1196,6 +1196,23 @@ export const loadCurrentUnreadStatus = async (
     }
 };
 
+export const hasCurrentSpacePosts = async (
+    spaceId: string,
+): Promise<boolean> => {
+    const ctx = await ensureCurrentSpaceContext();
+    try {
+        const page = (await ctx.listPosts(
+            spaceId,
+            spaceId,
+            null,
+            1,
+        )) as SpacePostPageResponse;
+        return (page.items?.length ?? 0) > 0;
+    } finally {
+        releaseCurrentSpaceContext(ctx);
+    }
+};
+
 export const loadCurrentSpaceProfilePostsPage = async (
     spaceId: string,
     viewerSpaceId?: string,
