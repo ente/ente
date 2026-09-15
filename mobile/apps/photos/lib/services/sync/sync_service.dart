@@ -64,19 +64,10 @@ class SyncService {
     });
 
     Bus.instance.on<AccountConfiguredEvent>().listen((event) {
-      // This listener is only a transition hook for local-gallery -> online
-      // login. First import must have materialized local rows before remote
-      // sync can merge server files into them.
       if (!Configuration.instance.hasConfiguredAccount() ||
           isLocalGalleryMode) {
         _logger.info(
           "Account configured event ignored; account is not ready for online sync",
-        );
-        return;
-      }
-      if (!_localSyncService.hasCompletedFirstImport()) {
-        _logger.info(
-          "Account configured event ignored; first gallery import is not completed",
         );
         return;
       }
@@ -103,6 +94,12 @@ class SyncService {
       largeBackupSessionTracker.update(event);
       _logger.info("Sync status received " + event.toString());
       _lastSyncStatusEvent = event;
+      if (event.status == SyncStatus.completedFirstGalleryImport &&
+          Configuration.instance.hasConfiguredAccount() &&
+          !isLocalGalleryMode &&
+          !isSyncInProgress()) {
+        unawaited(sync());
+      }
     });
   }
 
@@ -208,13 +205,11 @@ class SyncService {
   }
 
   Future<void> onPermissionGranted() async {
-    if (!_isInitialized) {
-      _logger.warning(
-        "Permission-granted sync requested before init, skipping",
-      );
-      return;
+    final runningSync = _existingSync?.future;
+    if (runningSync != null) {
+      await runningSync;
     }
-    _doSync().ignore();
+    await sync();
   }
 
   void onDeviceCollectionSet(Set<int> collectionIDs) {

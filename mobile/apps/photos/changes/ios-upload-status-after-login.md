@@ -1,0 +1,1 @@
+- Fixed uploaded photos appearing as not uploaded after signing back in on iOS.
