@@ -15,13 +15,18 @@ import {
     spacePostLikePopTiming,
 } from "components/post-like-animation";
 import React from "react";
+import {
+    spaceControlBackground,
+    spaceControlBackgroundActive,
+    spaceControlBackgroundHover,
+} from "styles/colors";
 
 const green = "#08C225";
 const textBase = "#F4F4F4";
 const textSecondary = "#A6A6A6";
-const controlBackground = "#36363A";
-const controlBackgroundHover = "#404044";
-const controlBackgroundActive = "#48484D";
+const controlBackground = spaceControlBackground;
+const controlBackgroundHover = spaceControlBackgroundHover;
+const controlBackgroundActive = spaceControlBackgroundActive;
 const controlIcon = "#D8D8D8";
 export const spacePostReplyInputMinHeight = 48;
 const replyInputPadding = 14;

@@ -20,13 +20,13 @@ import {
 import { SpaceAvatarImage } from "components/AvatarImage";
 import { SpaceButtonSpinner } from "components/ButtonSpinner";
 import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
+import { SpaceFeedPostButton } from "components/FeedPostButton";
 import {
     SpaceFileViewer,
     SpaceViewerPostBackdrop,
     type SpaceViewerPhoto,
     type SpaceViewerPostActionMode,
 } from "components/FileViewer";
-import { SpacePostFloatingActionButton } from "components/PostFloatingActionButton";
 import { SpaceLoadingSpinner } from "components/RouteFallback";
 import { SpaceShareIcon } from "components/ShareInviteButton";
 import log from "ente-base/log";
@@ -2016,7 +2016,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     )}
                 </Box>
                 {isOwnerProfile && hasProfilePosts && (
-                    <SpacePostFloatingActionButton
+                    <SpaceFeedPostButton
                         disabled={isPostPhotoOpening}
                         onClick={openPostPhotoPicker}
                     />

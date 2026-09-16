@@ -38,6 +38,8 @@ import type { LocalSpaceFeedPost } from "state/app-state";
 import { spaceEmptyStateButtonSx } from "styles/buttons";
 import {
     spaceAppBackgroundColor,
+    spaceControlBackground,
+    spaceControlBackgroundHover,
     spaceSurface,
     spaceSurfaceHover,
     spaceText,
@@ -54,9 +56,9 @@ const green = "#08C225";
 const feedAccentBackground = "#263D2C";
 const feedAccentBackgroundHover = "#2C4B32";
 const feedCardBackground = spaceSurface;
-const feedActionBackground = "#38383D";
-const feedActionBackgroundHover = "#424247";
-const feedActionForeground = "#DEDEE2";
+const feedActionBackground = spaceControlBackground;
+const feedActionBackgroundHover = spaceControlBackgroundHover;
+const feedActionForeground = "#DEDEDE";
 const feedSkeletonElementBackground = spaceSurfaceHover;
 const textBase = spaceText;
 const textSecondary = spaceTextMuted;
@@ -1906,10 +1908,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                             sx={{
                                                 alignItems: "center",
                                                 appearance: "none",
-                                                bgcolor: feedAccentBackground,
+                                                bgcolor: feedActionBackground,
                                                 border: 0,
                                                 borderRadius: "18px",
-                                                color: green,
+                                                color: feedActionForeground,
                                                 cursor: "pointer",
                                                 display: "inline-flex",
                                                 fontFamily:
@@ -1928,7 +1930,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                                 },
                                                 "&:hover": {
                                                     bgcolor:
-                                                        feedAccentBackgroundHover,
+                                                        feedActionBackgroundHover,
                                                 },
                                             }}
                                         >
