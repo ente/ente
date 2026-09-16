@@ -51,12 +51,12 @@ import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 const homeBackground = spaceAppBackgroundColor;
 
 const green = "#08C225";
-const feedAccentBackground = "#243A2A";
-const feedAccentBackgroundHover = "#2A4930";
+const feedAccentBackground = "#263D2C";
+const feedAccentBackgroundHover = "#2C4B32";
 const feedCardBackground = spaceSurface;
-const feedActionBackground = "#36363B";
-const feedActionBackgroundHover = "#404044";
-const feedActionForeground = "#DCDCE0";
+const feedActionBackground = "#38383D";
+const feedActionBackgroundHover = "#424247";
+const feedActionForeground = "#DEDEE2";
 const feedSkeletonElementBackground = spaceSurfaceHover;
 const textBase = spaceText;
 const textSecondary = spaceTextMuted;
