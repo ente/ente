@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	b64 "encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
@@ -72,6 +71,7 @@ import (
 	userEntityRepo "github.com/ente/museum/pkg/repo/userentity"
 	"github.com/ente/museum/pkg/utils/billing"
 	"github.com/ente/museum/pkg/utils/config"
+	"github.com/ente/museum/pkg/utils/crypto"
 	"github.com/ente/museum/pkg/utils/s3config"
 	timeUtil "github.com/ente/museum/pkg/utils/time"
 	spaceapi "github.com/ente/museum/space/api"
@@ -126,16 +126,16 @@ func main() {
 	hashingKey := viper.GetString("key.hash")
 	jwtSecret := viper.GetString("jwt.secret")
 
-	secretEncryptionKeyBytes, err := b64.StdEncoding.DecodeString(secretEncryptionKey)
+	secretEncryptionKeyBytes, err := crypto.DecodeSecret(secretEncryptionKey)
 	if err != nil {
 		log.Fatal("Could not decode email-encryption-key", err)
 	}
-	hashingKeyBytes, err := b64.StdEncoding.DecodeString(hashingKey)
+	hashingKeyBytes, err := crypto.DecodeSecret(hashingKey)
 	if err != nil {
 		log.Fatal("Could not decode email-hash-key", err)
 	}
 
-	jwtSecretBytes, err := b64.URLEncoding.DecodeString(jwtSecret)
+	jwtSecretBytes, err := crypto.DecodeSecret(jwtSecret)
 	if err != nil {
 		log.Fatal("Could not decode jwt-secret ", err)
 	}
