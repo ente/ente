@@ -141,7 +141,21 @@ impl VecDbError {
 
 #[cfg(test)]
 pub(crate) mod test_support {
-    use super::graph::Graph;
+    use super::graph::{Graph, neighbor_cap};
+
+    pub(crate) fn assert_graph_invariants(graph: &Graph) {
+        for slot in graph.slots() {
+            let level = graph.level_of(slot).unwrap();
+            for layer in 0..=level {
+                let neighbors = graph.neighbors_of(slot, layer);
+                assert!(neighbors.len() <= neighbor_cap(layer as usize));
+                for &neighbor in neighbors {
+                    assert_ne!(neighbor, slot);
+                    assert!(graph.level_of(neighbor).is_some());
+                }
+            }
+        }
+    }
 
     pub(crate) fn assert_identical_graphs(first: &Graph, second: &Graph) {
         assert_eq!(first.entry_point(), second.entry_point());

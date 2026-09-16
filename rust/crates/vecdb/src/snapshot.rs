@@ -260,7 +260,7 @@ mod tests {
     use tempfile::TempDir;
 
     use super::super::SearchParams;
-    use super::super::arena::{UpsertOutcome, VectorArena};
+    use super::super::arena::VectorArena;
     use super::super::graph::search;
     use super::super::kernel::splitmix64;
     use super::super::test_support::{assert_identical_graphs, stale_downward_edge_exists};
@@ -359,30 +359,24 @@ mod tests {
         for index in [3, 41, 87, 150, 199] {
             arena.remove(&format!("key-{index}")).unwrap();
         }
-        let mut stale_seen = false;
         for round in 0..40u64 {
             let victim = graph
                 .entry_point()
                 .filter(|&slot| arena.is_alive(slot))
                 .unwrap_or_else(|| arena.live_slots().next().unwrap());
             let key = arena.key_of_slot(victim).unwrap().to_string();
-            assert_eq!(
-                arena
-                    .upsert(&key, &seeded_unit_vector(0x00A2_0000 + round, dims))
-                    .unwrap(),
-                UpsertOutcome::ReplacedInPlace(victim)
-            );
-            graph.reinsert(victim, &arena);
-            stale_seen |= stale_downward_edge_exists(&graph);
+            let outcome = arena
+                .upsert(&key, &seeded_unit_vector(0x00A2_0000 + round, dims))
+                .unwrap();
+            assert_eq!(outcome.retired, Some(victim));
+            graph.insert(outcome.slot, &arena);
         }
-        let UpsertOutcome::RecycledSlot(recycled) = arena
-            .upsert("recycled", &seeded_unit_vector(0x00A3_0000, dims))
-            .unwrap()
-        else {
-            panic!("expected a recycled slot");
-        };
-        graph.reinsert(recycled, &arena);
-        assert!(stale_seen);
+        let appended = arena
+            .upsert("appended", &seeded_unit_vector(0x00A3_0000, dims))
+            .unwrap();
+        assert_eq!(appended.retired, None);
+        graph.insert(appended.slot, &arena);
+        assert!(!stale_downward_edge_exists(&graph));
         (arena, graph)
     }
 
