@@ -15,12 +15,12 @@ func (h *Handlers) CreatePost(c *gin.Context, space *spacerepo.SpaceRecord) {
 	respondJSON(c, resp, err)
 }
 
-func (h *Handlers) ListHomePosts(c *gin.Context, space *spacerepo.SpaceRecord) {
-	var req models.ListHomePostsRequest
+func (h *Handlers) ListFeed(c *gin.Context, space *spacerepo.SpaceRecord) {
+	var req models.ListFeedRequest
 	if !bindQuery(c, &req) {
 		return
 	}
-	resp, err := h.Module.Posts.ListHomePosts(c, space, req)
+	resp, err := h.Module.Posts.ListFeed(c, space, req)
 	respondJSON(c, resp, err)
 }
 

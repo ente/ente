@@ -55,8 +55,7 @@ type ListPostsRequest struct {
 	Limit         int    `form:"limit"`
 }
 
-type ListHomePostsRequest struct {
-	After  string `form:"after"`
+type ListFeedRequest struct {
 	Cursor string `form:"cursor"`
 	Limit  int    `form:"limit"`
 }
@@ -400,10 +399,4 @@ type SpaceUnreadStatusResponse struct {
 type PostPage struct {
 	Items      []PostResponse `json:"items"`
 	NextCursor string         `json:"nextCursor,omitempty"`
-}
-
-type HomePostPage struct {
-	Items      []PostResponse `json:"items"`
-	NextCursor string         `json:"nextCursor,omitempty"`
-	SyncCursor string         `json:"syncCursor"`
 }

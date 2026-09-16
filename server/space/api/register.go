@@ -16,7 +16,7 @@ func Register(privateAPI, publicAPI gin.IRouter, handlers *Handlers) {
 	spaceAPI.POST("/uploads/presign", selected(handlers.PresignUpload))
 	spaceAPI.GET("/unread", selected(handlers.GetUnreadStatus))
 	spaceAPI.POST("/posts", selected(handlers.CreatePost))
-	spaceAPI.GET("/home-posts", selected(handlers.ListHomePosts))
+	spaceAPI.GET("/feed", selected(handlers.ListFeed))
 	spaceAPI.POST("/posts/:postID/caption", selected(handlers.UpdatePostCaption))
 	spaceAPI.PATCH("/posts/:postID/caption", selected(handlers.UpdatePostCaption))
 	spaceAPI.PUT("/posts/:postID/like", selected(handlers.LikePost))

@@ -15,14 +15,6 @@ const MaxPostsPerSpace = 250
 
 var ErrSpacePostLimitReached = errors.New("space post limit reached")
 
-func (r *PostsRepository) CurrentDatabaseTimeMicroseconds(ctx context.Context) (int64, error) {
-	var currentTime int64
-	if err := r.DB.QueryRowContext(ctx, `SELECT now_utc_micro_seconds()`).Scan(&currentTime); err != nil {
-		return 0, stacktrace.Propagate(err, "")
-	}
-	return currentTime, nil
-}
-
 func (r *PostsRepository) CountPosts(ctx context.Context, spaceID string) (int64, error) {
 	var count int64
 	if err := r.DB.QueryRowContext(ctx, `
@@ -187,41 +179,33 @@ func (r *PostsRepository) ListPostsBySpace(ctx context.Context, spaceID string, 
 	return out, nextCursor, nil
 }
 
-func (r *PostsRepository) ListHomePosts(ctx context.Context, viewerSpaceID string, after string, cursor string, limit int) ([]SpacePostRecord, string, error) {
+func (r *PostsRepository) ListFeed(ctx context.Context, viewerSpaceID string, cursor string, limit int) ([]SpacePostRecord, string, error) {
 	limit = optionalInt(limit, 25)
 	if limit > 100 {
 		limit = 100
 	}
 	args := []any{viewerSpaceID}
 	query := postRecordSelectSQL(`
-			       EXISTS (
+			       CASE WHEN p.space_id = $1 THEN FALSE ELSE EXISTS (
 			           SELECT 1
 			           FROM space_messages m
 			           WHERE m.kind = 'post_like'
 			             AND m.reply_post_id = p.post_id
 			             AND m.sender_space_id = $1
-			       )`) + `
-			FROM space_posts p
-			JOIN space_friend_shares fs ON fs.friend_space_id = $1 AND fs.space_id = p.space_id
+			       ) END`) + `
+			FROM (
+			    SELECT $1::TEXT AS space_id
+			    UNION ALL
+			    SELECT space_id FROM space_friend_shares WHERE friend_space_id = $1
+			) accessible_spaces
+			JOIN space_posts p ON p.space_id = accessible_spaces.space_id
 			JOIN spaces w ON w.space_id = p.space_id
 			` + spaceActorAvatarJoin("w", "w_avatar") + `
 			JOIN users u ON u.user_id = w.owner_id AND u.encrypted_email IS NOT NULL
-			WHERE p.is_deleted = FALSE
-			  AND (
-			      NOT EXISTS (
-			          SELECT 1 FROM space_posts newer
-			          WHERE newer.space_id = p.space_id
-			            AND newer.is_deleted = FALSE
-			            AND (newer.created_at, newer.post_id) > (p.created_at, p.post_id)
-			      )`
-	if afterCreatedAt, afterPostID, ok := parsePostBoundary(after); ok {
-		args = append(args, afterCreatedAt, afterPostID)
-		query += ` OR (p.created_at, p.post_id) > ($2, $3)`
-	}
-	query += `)`
+			WHERE p.is_deleted = FALSE`
 	if cursorCreatedAt, cursorPostID, ok := parsePostCursor(cursor); ok {
 		args = append(args, cursorCreatedAt, cursorPostID)
-		query += ` AND (p.created_at, p.post_id) < ($` + strconv.Itoa(len(args)-1) + `, $` + strconv.Itoa(len(args)) + `)`
+		query += ` AND (p.created_at, p.post_id) < ($2, $3)`
 	}
 	args = append(args, limit+1)
 	query += ` ORDER BY p.created_at DESC, p.post_id DESC LIMIT $` + strconv.Itoa(len(args))
@@ -410,14 +394,6 @@ func scanPostRecord(scanner interface{ Scan(dest ...any) error }) (*SpacePostRec
 }
 
 func parsePostCursor(cursor string) (int64, int64, bool) {
-	return parsePostPosition(cursor, false)
-}
-
-func parsePostBoundary(cursor string) (int64, int64, bool) {
-	return parsePostPosition(cursor, true)
-}
-
-func parsePostPosition(cursor string, allowZeroPostID bool) (int64, int64, bool) {
 	createdAtText, postIDText, ok := strings.Cut(strings.TrimSpace(cursor), ":")
 	if !ok {
 		return 0, 0, false
@@ -427,7 +403,7 @@ func parsePostPosition(cursor string, allowZeroPostID bool) (int64, int64, bool)
 		return 0, 0, false
 	}
 	postID, err := strconv.ParseInt(postIDText, 10, 64)
-	if err != nil || postID < 0 || (!allowZeroPostID && postID == 0) {
+	if err != nil || postID <= 0 {
 		return 0, 0, false
 	}
 	return createdAt, postID, true
