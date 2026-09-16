@@ -37,6 +37,7 @@ import "package:photos/ui/home/memories/memory_share_sheet.dart";
 import "package:photos/ui/home/memories/memory_video_prefetcher.dart";
 import "package:photos/ui/home/memories/memory_viewer_constants.dart";
 import "package:photos/ui/social/widgets/file_social_overlay.dart";
+import "package:photos/ui/viewer/actions/suggest_delete_sheet.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/file_details/favorite_widget.dart";
@@ -962,6 +963,10 @@ class BottomIcons extends StatelessWidget {
               : collectionsService.getCollectionByID(currentFile.collectionID!);
           final isHidden =
               currentFile.isUploaded && (collection?.isHidden() ?? false);
+          final canSuggestDelete = canSuggestDeleteForFile(
+            file: currentFile,
+            collection: collection,
+          );
           final rowChildren = <Widget>[
             _MemoryActionButton(
               tooltip: l10n.info,
@@ -1002,6 +1007,54 @@ class BottomIcons extends StatelessWidget {
                       selectedFiles: selectedFiles,
                       actionType: CollectionActionType.addFiles,
                     );
+                  });
+                },
+              ),
+            if (canSuggestDelete)
+              _MemoryActionButton(
+                tooltip: l10n.suggestDeletion,
+                icon: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedFlag01,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                onPressed: () async {
+                  await fullScreenState._runWithViewerPaused(() async {
+                    final actionIndex = _clampedMemoryIndex(
+                      inheritedData.indexNotifier.value,
+                      inheritedData.memories.length,
+                    );
+                    if (actionIndex == null) return;
+                    final actionFile = inheritedData.memories[actionIndex].file;
+                    final actionCollection = actionFile.collectionID == null
+                        ? null
+                        : collectionsService.getCollectionByID(
+                            actionFile.collectionID!,
+                          );
+                    if (actionCollection == null ||
+                        !canSuggestDeleteForFile(
+                          file: actionFile,
+                          collection: actionCollection,
+                        )) {
+                      return;
+                    }
+                    final didSuggestDelete = await showSuggestDeleteSheet(
+                      context: context,
+                      onConfirm: () async {
+                        await collectionsService.suggestDeleteFromCollection(
+                          actionCollection.id,
+                          [actionFile],
+                        );
+                      },
+                    );
+                    if (!didSuggestDelete) return;
+                    fullScreenState._setSocialControlsVisible(false);
+                    fullScreenState.hasFinalFileLoaded = false;
+                    fullScreenState._resetAnimation();
+                    inheritedData.removeCurrentMemory();
+                    if (inheritedData.memories.isEmpty && context.mounted) {
+                      Navigator.of(context).pop();
+                    }
                   });
                 },
               ),
