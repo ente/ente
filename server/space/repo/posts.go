@@ -201,17 +201,16 @@ func (r *PostsRepository) ListFeed(ctx context.Context, viewerSpaceID string, cu
 			             AND m.reply_post_id = p.post_id
 			             AND m.sender_space_id = $1
 			       ) END`) + `
-			FROM space_posts p
+			FROM (
+			    SELECT $1::TEXT AS space_id
+			    UNION ALL
+			    SELECT space_id FROM space_friend_shares WHERE friend_space_id = $1
+			) accessible_spaces
+			JOIN space_posts p ON p.space_id = accessible_spaces.space_id
 			JOIN spaces w ON w.space_id = p.space_id
 			` + spaceActorAvatarJoin("w", "w_avatar") + `
 			JOIN users u ON u.user_id = w.owner_id AND u.encrypted_email IS NOT NULL
-			WHERE p.is_deleted = FALSE
-			  AND (
-			      p.space_id = $1 OR EXISTS (
-			          SELECT 1 FROM space_friend_shares fs
-			          WHERE fs.friend_space_id = $1 AND fs.space_id = p.space_id
-			      )
-			  )`
+			WHERE p.is_deleted = FALSE`
 	if cursorCreatedAt, cursorPostID, ok := parsePostCursor(cursor); ok {
 		args = append(args, cursorCreatedAt, cursorPostID)
 		query += ` AND (p.created_at, p.post_id) < ($2, $3)`
