@@ -3,9 +3,8 @@ use crate::crypto::{decrypt_secretbox_payload, encrypt_secretbox_payload, genera
 use crate::error::{Error, Result};
 use crate::models::{DecryptedPost, HydratedKeys, PostObjectMetadata};
 use crate::transport::{
-    CreatePostRequest, CreatePostResponse, HomePostPage, LikePostResponse, PostObjectPayload,
-    PostPage, PostResponse, SpaceActorResponse, SpaceUnreadStatusResponse,
-    UpdatePostCaptionRequest,
+    CreatePostRequest, CreatePostResponse, LikePostResponse, PostObjectPayload, PostPage,
+    PostResponse, SpaceActorResponse, SpaceUnreadStatusResponse, UpdatePostCaptionRequest,
 };
 use ente_core::{b64, http};
 
@@ -119,42 +118,6 @@ impl AccountSpaceCtx {
         };
         let (page, _) = futures_util::try_join!(
             fetch_feed,
-            self.list_decrypted_friend_shares_cached(space_id)
-        )?;
-        Ok(page)
-    }
-
-    pub async fn list_home_posts(
-        &self,
-        space_id: &str,
-        after: Option<String>,
-        cursor: Option<String>,
-        limit: Option<i32>,
-    ) -> Result<HomePostPage> {
-        let mut query = Vec::new();
-        if let Some(value) = after.filter(|value| !value.trim().is_empty()) {
-            query.push(("after", value));
-        }
-        if let Some(value) = cursor.filter(|value| !value.trim().is_empty()) {
-            query.push(("cursor", value));
-        }
-        if let Some(value) = limit {
-            query.push(("limit", value.to_string()));
-        }
-        let path = format!("/spaces/{space_id}/home-posts");
-        let fetch_home_posts = async {
-            Ok(self
-                .api()
-                .get(&path)
-                .query(&query)
-                .send()
-                .await?
-                .error_for_status()?
-                .json()
-                .await?)
-        };
-        let (page, _) = futures_util::try_join!(
-            fetch_home_posts,
             self.list_decrypted_friend_shares_cached(space_id)
         )?;
         Ok(page)

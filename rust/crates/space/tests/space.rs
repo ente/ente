@@ -153,11 +153,6 @@ async fn space_bootstrap_posts_and_friend_share_suite(endpoint: &str) {
         owner_post.caption_plaintext.as_deref(),
         Some(br#"{"caption":"hello world"}"#.as_slice())
     );
-    let owner_home_posts = owner_ctx
-        .list_home_posts(&owner_space.space_id, None, None, Some(10))
-        .await
-        .expect("owner home posts should load");
-    assert!(owner_home_posts.items.is_empty());
     let owner_feed = owner_ctx
         .list_feed(&owner_space.space_id, None, Some(10))
         .await
@@ -229,44 +224,29 @@ async fn space_bootstrap_posts_and_friend_share_suite(endpoint: &str) {
     assert_eq!(owner_view_of_friend.profile, friend_profile_payload);
     assert_eq!(owner_view_of_friend.space_slug, friend_slug);
 
-    let home_posts = friend_ctx
-        .list_home_posts(&friend_space.space_id, None, None, Some(10))
-        .await
-        .expect("home posts should load after friend approval");
-    assert_eq!(home_posts.items.len(), 1);
-    assert_eq!(home_posts.items[0].post_id, post_id);
-    assert_eq!(home_posts.items[0].author.space_id, owner_space.space_id);
-    assert_eq!(home_posts.items[0].author.space_slug, updated_slug);
-    let home_post_author_profile = friend_ctx
-        .decrypt_actor_profile(&home_posts.items[0].author)
-        .await
-        .expect("friend should decrypt home post author profile");
-    assert_eq!(
-        home_post_author_profile.as_deref(),
-        Some(updated_profile.as_slice())
-    );
-    let home_post = friend_ctx
-        .decrypt_post_for_space(&home_posts.items[0].space_id, &home_posts.items[0])
-        .await
-        .expect("home post should decrypt");
-    assert_eq!(
-        home_post.caption_plaintext.as_deref(),
-        Some(br#"{"caption":"hello world"}"#.as_slice())
-    );
-
     let friend_feed = friend_ctx
         .list_feed(&friend_space.space_id, None, Some(10))
         .await
         .expect("friend feed should load");
     assert_eq!(friend_feed.items.len(), 1);
     assert_eq!(friend_feed.items[0].post_id, post_id);
+    assert_eq!(friend_feed.items[0].author.space_id, owner_space.space_id);
+    assert_eq!(friend_feed.items[0].author.space_slug, updated_slug);
+    let feed_post_author_profile = friend_ctx
+        .decrypt_actor_profile(&friend_feed.items[0].author)
+        .await
+        .expect("friend should decrypt feed post author profile");
+    assert_eq!(
+        feed_post_author_profile.as_deref(),
+        Some(updated_profile.as_slice())
+    );
     let friend_feed_post = friend_ctx
         .decrypt_post_for_space(&owner_space.space_id, &friend_feed.items[0])
         .await
         .expect("friend feed post should decrypt");
     assert_eq!(
         friend_feed_post.caption_plaintext,
-        home_post.caption_plaintext
+        owner_post.caption_plaintext
     );
 
     let liked = friend_ctx
@@ -366,11 +346,11 @@ async fn space_unfriend_revokes_reciprocal_account_access_suite(endpoint: &str) 
         .await
         .expect("owner should decrypt friend profile before unfriend");
     assert_eq!(owner_friend_profile.profile, friend_profile);
-    let home_posts = friend_ctx
-        .list_home_posts(&friend_space.space_id, None, None, Some(10))
+    let friend_feed = friend_ctx
+        .list_feed(&friend_space.space_id, None, Some(10))
         .await
-        .expect("friend home posts should load before unfriend");
-    assert!(home_posts.items.iter().any(|item| item.post_id == post_id));
+        .expect("friend feed should load before unfriend");
+    assert!(friend_feed.items.iter().any(|item| item.post_id == post_id));
     friend_ctx
         .like_post(&friend_space.space_id, post_id, true)
         .await
@@ -450,12 +430,12 @@ async fn space_unfriend_revokes_reciprocal_account_access_suite(endpoint: &str) 
         .expect("friend space keys should hydrate after unfriend");
     assert_eq!(hydrated.owned.len(), 1);
     assert!(hydrated.friends.is_empty());
-    let home_posts = friend_ctx
-        .list_home_posts(&friend_space.space_id, None, None, Some(10))
+    let friend_feed = friend_ctx
+        .list_feed(&friend_space.space_id, None, Some(10))
         .await
-        .expect("friend home posts should load after unfriend");
+        .expect("friend feed should load after unfriend");
     assert!(
-        home_posts
+        friend_feed
             .items
             .iter()
             .all(|item| item.space_id != owner_space.space_id)

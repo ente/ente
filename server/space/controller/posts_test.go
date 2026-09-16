@@ -3,8 +3,6 @@ package controller
 import (
 	"crypto/sha256"
 	"database/sql"
-	"strconv"
-	"strings"
 	"testing"
 
 	timeutil "github.com/ente/museum/pkg/utils/time"
@@ -103,26 +101,4 @@ func TestListPostsHydratesPostAssets(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, page.Items, feed.Items)
 
-}
-
-func TestListHomePostsSyncCursorUsesDatabaseTime(t *testing.T) {
-	controller, repos, ctx := setupPostsControllerTest(t)
-	aliceID := insertSpaceControllerUser(t, repos, "alice-home-sync@example.com", "alice-public")
-	aliceSpace, err := testCreateSpace(ctx, repos, aliceID, "alice_home_sync", "alice-space-key", "alice-home-sync-public", "alice-home-sync-secret", "alice-home-sync-secret-nonce", "alice-profile")
-	require.NoError(t, err)
-
-	before, err := repos.Posts.CurrentDatabaseTimeMicroseconds(ctx)
-	require.NoError(t, err)
-	page, err := controller.ListHomePosts(ctx, aliceSpace, models.ListHomePostsRequest{Limit: 10})
-	require.NoError(t, err)
-	after, err := repos.Posts.CurrentDatabaseTimeMicroseconds(ctx)
-	require.NoError(t, err)
-
-	createdAt, postID, found := strings.Cut(page.SyncCursor, ":")
-	require.True(t, found)
-	syncCreatedAt, err := strconv.ParseInt(createdAt, 10, 64)
-	require.NoError(t, err)
-	require.Equal(t, "0", postID)
-	require.GreaterOrEqual(t, syncCreatedAt, before)
-	require.LessOrEqual(t, syncCreatedAt, after)
 }

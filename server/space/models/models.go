@@ -60,12 +60,6 @@ type ListFeedRequest struct {
 	Limit  int    `form:"limit"`
 }
 
-type ListHomePostsRequest struct {
-	After  string `form:"after"`
-	Cursor string `form:"cursor"`
-	Limit  int    `form:"limit"`
-}
-
 type GetPostRequest struct {
 	SpaceID       string `form:"spaceId"`
 	ViewerSpaceID string `form:"viewerSpaceId"`
@@ -405,10 +399,4 @@ type SpaceUnreadStatusResponse struct {
 type PostPage struct {
 	Items      []PostResponse `json:"items"`
 	NextCursor string         `json:"nextCursor,omitempty"`
-}
-
-type HomePostPage struct {
-	Items      []PostResponse `json:"items"`
-	NextCursor string         `json:"nextCursor,omitempty"`
-	SyncCursor string         `json:"syncCursor"`
 }

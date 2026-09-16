@@ -1806,69 +1806,6 @@ async fn list_feed_uses_feed_endpoint() {
 }
 
 #[tokio::test]
-async fn list_home_posts_uses_home_posts_endpoint() {
-    let mut server = Server::new_async().await;
-    let ctx = test_account_ctx(&server.url());
-    let shares = server
-        .mock("GET", "/spaces/space_owner_main/friends/shares")
-        .match_header("x-space-session-token", "space-session-token")
-        .with_status(200)
-        .with_body("[]")
-        .create_async()
-        .await;
-    let home_posts = server
-        .mock("GET", "/spaces/space_owner_main/home-posts")
-        .match_header("x-space-session-token", "space-session-token")
-        .match_query(Matcher::AllOf(vec![
-            Matcher::UrlEncoded("after".into(), "1000:1".into()),
-            Matcher::UrlEncoded("cursor".into(), "cursor-1".into()),
-            Matcher::UrlEncoded("limit".into(), "5".into()),
-        ]))
-        .with_status(200)
-        .with_body(
-            json!({
-                "items": [{
-                    "postId": 42,
-                    "spaceId": "space_friend_gallery",
-                    "spaceSlug": "friend-gallery",
-                    "author": {
-                        "spaceId": "space_owner_gallery",
-                        "spaceSlug": "owner-gallery"
-                    },
-                    "encryptedPostKey": "cGFja2Vk",
-                    "captionCipher": "",
-                    "keyVersion": 3,
-                    "objects": [],
-                    "createdAt": "2026-04-16T00:00:00Z",
-                    "viewerLiked": true
-                }],
-                "nextCursor": "cursor-2",
-                "syncCursor": "2000:42"
-            })
-            .to_string(),
-        )
-        .create_async()
-        .await;
-
-    let page = ctx
-        .list_home_posts(
-            "space_owner_main",
-            Some("1000:1".to_owned()),
-            Some("cursor-1".to_owned()),
-            Some(5),
-        )
-        .await
-        .expect("home posts should load");
-
-    assert_eq!(page.items.len(), 1);
-    assert_eq!(page.items[0].post_id, 42);
-    assert_eq!(page.next_cursor, "cursor-2");
-    assert_eq!(page.sync_cursor, "2000:42");
-    shares.assert_async().await;
-    home_posts.assert_async().await;
-}
-
-#[tokio::test]
 async fn list_posts_uses_space_posts_page_endpoint() {
     let mut server = Server::new_async().await;
     let ctx = test_account_ctx(&server.url());

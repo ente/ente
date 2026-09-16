@@ -260,15 +260,6 @@ pub struct PostPage {
     pub next_cursor: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HomePostPage {
-    pub items: Vec<PostResponse>,
-    #[serde(default)]
-    pub next_cursor: String,
-    pub sync_cursor: String,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SpaceActorResponse {
