@@ -6565,7 +6565,14 @@ mod tests {
         }
     }
 
-    fn property_churn_run(seed: u64, rounds: usize, initial: usize) -> (usize, usize) {
+    fn own_hit_params() -> SearchParams {
+        SearchParams {
+            max_distance: Some(0.05),
+            ..SearchParams::default()
+        }
+    }
+
+    fn property_churn_run(seed: u64, rounds: usize, initial: usize) -> (usize, usize, usize) {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
         let db = open_writer(&path);
@@ -6584,6 +6591,7 @@ mod tests {
         let mut generation = generation_of(&path);
         let mut compactions = 0usize;
         let mut unreachable = 0usize;
+        let mut outside = 0usize;
         for _ in 0..rounds {
             let roll = splitmix64(&mut state);
             let vector = seeded_unit_vector(splitmix64(&mut state), DIMS);
@@ -6600,10 +6608,21 @@ mod tests {
                     if !keys.is_empty() {
                         let key = keys[roll as usize % keys.len()].clone();
                         let (held_vector, held_attrs) = live[&key].clone();
-                        let (vector, attrs) = match splitmix64(&mut state) % 4 {
+                        let (vector, attrs) = match splitmix64(&mut state) % 6 {
                             0 => (held_vector, held_attrs),
                             1 => (held_vector, churn_attrs(&mut state)),
                             2 => (vector, held_attrs),
+                            3 => (
+                                renormalized_jitter(&held_vector, splitmix64(&mut state), 1e-6),
+                                held_attrs,
+                            ),
+                            4 => (
+                                one_bit_flipped(
+                                    &held_vector,
+                                    (splitmix64(&mut state) % DIMS as u64) as usize,
+                                ),
+                                held_attrs,
+                            ),
                             _ => (vector, churn_attrs(&mut state)),
                         };
                         db.add_with_attrs(&key, &vector, &attrs).unwrap();
@@ -6698,6 +6717,14 @@ mod tests {
             if matches.is_empty() || matches[0].key != *key {
                 unreachable += 1;
             }
+            let inside = db
+                .search(vector, &own_hit_params())
+                .unwrap()
+                .iter()
+                .any(|found| found.key == *key);
+            if !inside {
+                outside += 1;
+            }
         }
         db.flush().unwrap();
         let probe = live.iter().next().map(|(_, (vector, _))| vector.clone());
@@ -6720,18 +6747,20 @@ mod tests {
                 expected
             );
         }
-        (compactions, unreachable)
+        (compactions, unreachable, outside)
     }
 
     #[test]
     fn property_random_churn_across_compactions_holds_every_contract() {
         let mut total_compactions = 0usize;
         let mut total_unreachable = 0usize;
+        let mut total_outside = 0usize;
         for seed in 0..6u64 {
-            let (compactions, unreachable) =
+            let (compactions, unreachable, outside) =
                 property_churn_run(0x7000_0000 + seed * 0x1_0000, 900, 500);
             total_compactions += compactions;
             total_unreachable += unreachable;
+            total_outside += outside;
         }
         assert!(
             total_compactions >= 6,
@@ -6740,6 +6769,10 @@ mod tests {
         assert_eq!(
             total_unreachable, 0,
             "{total_unreachable} live keys are not their own nearest under approximate search"
+        );
+        assert_eq!(
+            total_outside, 0,
+            "{total_outside} live keys fall outside a threshold search around their own vector"
         );
     }
 
@@ -7176,6 +7209,145 @@ mod tests {
                 expected
             );
             assert_eq!(rebuilt.shared.state_read().arena.slot_count(), slots);
+        }
+    }
+
+    fn renormalized_jitter(base: &[f32], seed: u64, amount: f32) -> Vec<f32> {
+        let noise = seeded_unit_vector(seed, base.len());
+        let mut values: Vec<f32> = base
+            .iter()
+            .zip(&noise)
+            .map(|(value, noise)| value + noise * amount)
+            .collect();
+        let norm = values.iter().map(|value| value * value).sum::<f32>().sqrt();
+        for value in &mut values {
+            *value /= norm;
+        }
+        values
+    }
+
+    fn one_bit_flipped(base: &[f32], index: usize) -> Vec<f32> {
+        let mut values = base.to_vec();
+        values[index] = f32::from_bits(values[index].to_bits() ^ 0x0000_0040);
+        values
+    }
+
+    fn assert_re_adds_keep_every_key_inside_the_threshold(
+        storage: StorageKind,
+        label: &str,
+        replacement: impl Fn(&[f32], u64) -> Vec<f32>,
+    ) {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_storage(&path, storage);
+        let keys: Vec<String> = (0..3000).map(|index| format!("key-{index}")).collect();
+        let vectors: Vec<Vec<f32>> = (0..3000)
+            .map(|index| seeded_unit_vector(0xE500_0000 + index as u64, I8_DIMS))
+            .collect();
+        db.bulk_add(&keys, &vectors).unwrap();
+        let victims: Vec<usize> = (0..60).step_by(3).collect();
+        let mut latest: Vec<Vec<f32>> = Vec::new();
+        let mut buried: Vec<&str> = Vec::new();
+        for &victim in &victims {
+            let mut last = vectors[victim].clone();
+            for round in 0..40u64 {
+                last = replacement(&vectors[victim], round);
+                db.add(&keys[victim], &last).unwrap();
+            }
+            let reachable = db
+                .search(&last, &threshold_params())
+                .unwrap()
+                .iter()
+                .any(|hit| hit.key == keys[victim]);
+            if !reachable {
+                buried.push(keys[victim].as_str());
+            }
+            latest.push(last);
+        }
+        assert!(
+            buried.is_empty(),
+            "{storage} {label}: the re-adds buried {buried:?}"
+        );
+        let lost = |reader: &VecDb| -> Vec<&str> {
+            victims
+                .iter()
+                .zip(&latest)
+                .filter(|(victim, query)| {
+                    !reader
+                        .search(query, &threshold_params())
+                        .unwrap()
+                        .iter()
+                        .any(|hit| hit.key == keys[**victim])
+                })
+                .map(|(victim, _)| keys[*victim].as_str())
+                .collect()
+        };
+        let on_writer = lost(&db);
+        assert!(
+            on_writer.is_empty(),
+            "{storage} {label}: the writer lost {on_writer:?}"
+        );
+        {
+            let st = db.shared.state_read();
+            test_support::assert_graph_invariants(st.graph.as_ref().unwrap());
+        }
+        db.flush().unwrap();
+        drop(db);
+        let read_only = VecDb::open_read_only(&path, I8_DIMS, Some(storage)).unwrap();
+        let on_reader = lost(&read_only);
+        assert!(
+            on_reader.is_empty(),
+            "{storage} {label}: a read-only open lost {on_reader:?}"
+        );
+        drop(read_only);
+        let reopened = open_storage(&path, storage);
+        let after_reopen = lost(&reopened);
+        assert!(
+            after_reopen.is_empty(),
+            "{storage} {label}: a writer reopen lost {after_reopen:?}"
+        );
+        {
+            let st = reopened.shared.state_read();
+            test_support::assert_graph_invariants(st.graph.as_ref().unwrap());
+        }
+    }
+
+    #[test]
+    fn keys_flapping_between_two_vectors_one_bit_apart_stay_inside_the_threshold() {
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            assert_re_adds_keep_every_key_inside_the_threshold(
+                storage,
+                "flapping over one bit",
+                |base, round| {
+                    if round.is_multiple_of(2) {
+                        one_bit_flipped(base, 5)
+                    } else {
+                        base.to_vec()
+                    }
+                },
+            );
+        }
+    }
+
+    #[test]
+    fn keys_re_added_with_a_renormalised_jitter_stay_inside_the_threshold() {
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            assert_re_adds_keep_every_key_inside_the_threshold(
+                storage,
+                "jittered by 1e-6",
+                |base, round| renormalized_jitter(base, 0xE5F0_0000 + round, 1e-6),
+            );
+        }
+    }
+
+    #[test]
+    fn keys_re_added_with_far_vectors_stay_inside_the_threshold() {
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            assert_re_adds_keep_every_key_inside_the_threshold(
+                storage,
+                "replaced by far vectors",
+                |_, round| seeded_unit_vector(0xE5FF_0000 + round, I8_DIMS),
+            );
         }
     }
 

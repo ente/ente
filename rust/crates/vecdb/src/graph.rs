@@ -58,6 +58,21 @@ fn reverse_prune_target(cap: usize, sorted_by_distance: &[Scored]) -> usize {
     }
 }
 
+fn drop_dead_to_fit(cap: usize, sorted_by_distance: &mut [Scored], arena: &VectorArena) -> usize {
+    let mut count = sorted_by_distance.len();
+    while count > reverse_prune_target(cap, &sorted_by_distance[..count]) {
+        let Some(farthest_dead) = sorted_by_distance[..count]
+            .iter()
+            .rposition(|entry| !arena.is_alive(entry.slot))
+        else {
+            break;
+        };
+        sorted_by_distance.copy_within(farthest_dead + 1..count, farthest_dead);
+        count -= 1;
+    }
+    count
+}
+
 fn select_neighbors(
     arena: &VectorArena,
     candidates: &[Scored],
@@ -484,9 +499,10 @@ impl Graph {
             };
         }
         scored[..count].sort_unstable();
+        let remaining = drop_dead_to_fit(cap, &mut scored[..count], arena);
         let mut kept = [0u32; LEVEL_ZERO_NEIGHBOR_CAP];
-        let target = reverse_prune_target(cap, &scored[..count]);
-        let kept_count = select_neighbors(arena, &scored[..count], target, &mut kept);
+        let target = reverse_prune_target(cap, &scored[..remaining]);
+        let kept_count = select_neighbors(arena, &scored[..remaining], target, &mut kept);
         self.write_level_list(slot, level, &kept[..kept_count]);
     }
 
@@ -1614,22 +1630,180 @@ mod tests {
         assert_eq!(members, burst, "{members} of {burst} burst members");
     }
 
+    const LIVE_ONLY_PRUNE: [u32; LEVEL_ZERO_NEIGHBOR_CAP - REVERSE_PRUNE_SLACK] = [
+        18, 16, 9, 5, 22, 32, 25, 24, 20, 15, 6, 4, 10, 11, 8, 14, 28, 27, 3, 31, 2, 26, 12, 1, 29,
+        7, 17, 23,
+    ];
+
+    const LIVE_ONLY_PRUNE_WITH_TWINS: [u32; LEVEL_ZERO_NEIGHBOR_CAP] = [
+        18, 16, 9, 5, 22, 32, 25, 24, 20, 15, 6, 4, 10, 11, 8, 14, 28, 27, 3, 31, 26, 12, 1, 2, 29,
+        7, 17, 23, 30, 33, 21, 19,
+    ];
+
+    fn link_back_fixture(twins: bool) -> (VectorArena, Graph) {
+        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
+        let mut arena = VectorArena::new(16).unwrap();
+        for index in 0..=cap + 1 {
+            let source = if twins && index == 2 { 1 } else { index };
+            let vector = seeded_unit_vector(0x11B0_0000 + source as u64, 16);
+            arena.upsert(&format!("key-{index}"), &vector).unwrap();
+        }
+        let mut graph = Graph::rebuild(&arena);
+        let full: Vec<u32> = (1..=cap as u32).collect();
+        graph.write_level_list(0, 0, &full);
+        (arena, graph)
+    }
+
+    fn ordered_by_distance(arena: &VectorArena, owner: u32, slots: &[u32]) -> Vec<u32> {
+        let mut ordered = slots.to_vec();
+        ordered.sort_by(|left, right| {
+            arena
+                .distance_between_slots(owner, *left)
+                .total_cmp(&arena.distance_between_slots(owner, *right))
+                .then(left.cmp(right))
+        });
+        ordered
+    }
+
     #[test]
     fn link_back_fills_to_the_cap_only_beside_equal_distances() {
         let cap = LEVEL_ZERO_NEIGHBOR_CAP;
         for (twins, expected) in [(false, cap - REVERSE_PRUNE_SLACK), (true, cap)] {
-            let mut arena = VectorArena::new(16).unwrap();
-            for index in 0..=cap + 1 {
-                let source = if twins && index == 2 { 1 } else { index };
-                let vector = seeded_unit_vector(0x11B0_0000 + source as u64, 16);
-                arena.upsert(&format!("key-{index}"), &vector).unwrap();
-            }
-            let mut graph = Graph::rebuild(&arena);
-            let full: Vec<u32> = (1..=cap as u32).collect();
-            graph.write_level_list(0, 0, &full);
+            let (arena, mut graph) = link_back_fixture(twins);
             graph.link_back(0, 0, cap as u32 + 1, cap, &arena);
             assert_eq!(graph.level_neighbors(0, 0).len(), expected);
         }
+    }
+
+    #[test]
+    fn link_back_prunes_an_all_live_list_by_distance_alone() {
+        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
+        for (twins, expected) in [
+            (false, LIVE_ONLY_PRUNE.as_slice()),
+            (true, LIVE_ONLY_PRUNE_WITH_TWINS.as_slice()),
+        ] {
+            let (arena, mut graph) = link_back_fixture(twins);
+            graph.link_back(0, 0, cap as u32 + 1, cap, &arena);
+            assert_eq!(graph.level_neighbors(0, 0), expected);
+        }
+    }
+
+    #[test]
+    fn link_back_drops_the_farthest_dead_entry_before_any_live_one() {
+        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
+        let incoming = cap as u32 + 1;
+        for (twins, target) in [(false, cap - REVERSE_PRUNE_SLACK), (true, cap)] {
+            let (mut arena, mut graph) = link_back_fixture(twins);
+            let full: Vec<u32> = (1..=cap as u32).collect();
+            for &slot in &full {
+                assert!(arena.remove(&format!("key-{slot}")).is_some());
+            }
+            graph.link_back(0, 0, incoming, cap, &arena);
+            let mut kept = graph.level_neighbors(0, 0).to_vec();
+            kept.sort_unstable();
+            let mut expected = ordered_by_distance(&arena, 0, &full)[..target - 1].to_vec();
+            expected.push(incoming);
+            expected.sort_unstable();
+            assert_eq!(kept, expected);
+        }
+    }
+
+    #[test]
+    fn link_back_drops_a_single_nearest_dead_entry_before_a_farther_live_one() {
+        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
+        let incoming = cap as u32 + 1;
+        let full: Vec<u32> = (1..=cap as u32).collect();
+        let (probe, _) = link_back_fixture(false);
+        let nearest = ordered_by_distance(&probe, 0, &full)[0];
+        let farthest = *ordered_by_distance(&probe, 0, &full).last().unwrap();
+        let (mut arena, mut graph) = link_back_fixture(false);
+        assert!(arena.remove(&format!("key-{nearest}")).is_some());
+        graph.link_back(0, 0, incoming, cap, &arena);
+        let kept = graph.level_neighbors(0, 0).to_vec();
+        assert!(
+            !kept.contains(&nearest),
+            "the nearest dead entry {nearest} survived: {kept:?}"
+        );
+        assert!(
+            kept.iter().all(|slot| arena.is_alive(*slot)),
+            "a dead entry survived beside live ones: {kept:?}"
+        );
+        assert_eq!(kept.len(), cap - REVERSE_PRUNE_SLACK, "kept={kept:?}");
+        assert!(farthest != nearest);
+    }
+
+    #[test]
+    fn link_back_drops_every_dead_entry_the_tie_guard_was_holding_up() {
+        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
+        let incoming = cap as u32 + 1;
+        let full: Vec<u32> = (1..=cap as u32).collect();
+        let (probe, _) = link_back_fixture(true);
+        let nearest = ordered_by_distance(&probe, 0, &full)
+            .into_iter()
+            .find(|slot| *slot != 1 && *slot != 2)
+            .unwrap();
+        let (mut arena, mut graph) = link_back_fixture(true);
+        assert!(arena.remove("key-2").is_some());
+        assert!(arena.remove(&format!("key-{nearest}")).is_some());
+        graph.link_back(0, 0, incoming, cap, &arena);
+        let kept = graph.level_neighbors(0, 0).to_vec();
+        assert!(
+            kept.iter().all(|slot| arena.is_alive(*slot)),
+            "a dead entry outlived the tie it was propping: {kept:?}"
+        );
+        assert!(kept.contains(&incoming), "kept={kept:?}");
+        assert_eq!(kept.len(), cap - REVERSE_PRUNE_SLACK, "kept={kept:?}");
+    }
+
+    #[test]
+    fn link_back_drops_a_dead_entry_before_a_live_one_at_an_upper_level() {
+        let cap = UPPER_LEVEL_NEIGHBOR_CAP;
+        let mut arena = VectorArena::new(16).unwrap();
+        for index in 0..=cap + 1 {
+            let vector = seeded_unit_vector(0x22C0_0000 + index as u64, 16);
+            arena.upsert(&format!("key-{index}"), &vector).unwrap();
+        }
+        let mut graph = Graph::new();
+        graph.reserve_slots(arena.slot_count());
+        for index in 0..=cap + 1 {
+            graph.attach_empty_node(index as u32, 1);
+        }
+        let full: Vec<u32> = (1..=cap as u32).collect();
+        graph.write_level_list(0, 1, &full);
+        let nearest = ordered_by_distance(&arena, 0, &full)[0];
+        assert!(arena.remove(&format!("key-{nearest}")).is_some());
+        let incoming = cap as u32 + 1;
+        graph.link_back(0, 1, incoming, cap, &arena);
+        let kept = graph.level_neighbors(0, 1).to_vec();
+        assert!(kept.len() <= cap, "upper level overflowed: {kept:?}");
+        assert!(
+            !kept.contains(&nearest),
+            "the nearest dead entry {nearest} survived at level 1: {kept:?}"
+        );
+        assert!(
+            kept.iter().all(|slot| arena.is_alive(*slot)),
+            "a dead entry survived at level 1: {kept:?}"
+        );
+        assert_eq!(kept.len(), cap - REVERSE_PRUNE_SLACK, "kept={kept:?}");
+    }
+
+    #[test]
+    fn link_back_lets_a_retired_owner_admit_a_live_node() {
+        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
+        let incoming = cap as u32 + 1;
+        let (mut arena, mut graph) = link_back_fixture(false);
+        assert!(arena.remove("key-0").is_some());
+        for slot in 1..=8u32 {
+            assert!(arena.remove(&format!("key-{slot}")).is_some());
+        }
+        graph.link_back(0, 0, incoming, cap, &arena);
+        let kept = graph.level_neighbors(0, 0).to_vec();
+        assert!(!arena.is_alive(0));
+        assert!(
+            kept.contains(&incoming),
+            "a dead owner refused the live node: {kept:?}"
+        );
+        assert!(kept.len() <= cap);
     }
 
     #[test]
@@ -1837,7 +2011,11 @@ mod tests {
             assert_eq!(graph.neighbors_of(7, layer as u8), list.as_slice());
         }
         for slot in pointing_at_old {
-            assert!(graph.neighbors_of(slot, 0).contains(&7));
+            let list = graph.neighbors_of(slot, 0);
+            assert!(
+                list.contains(&7) || list.contains(&300),
+                "slot {slot} dropped the retired node without admitting the live one"
+            );
         }
         assert!(!arena.is_alive(7));
         assert_eq!(arena.slot_of_key("key-7"), Some(300));
