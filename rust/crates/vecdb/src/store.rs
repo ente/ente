@@ -28,6 +28,7 @@ const SNAPSHOT_QUIET_GAP: Duration = Duration::from_secs(10);
 const COMPACTION_MIN_DEAD_RECORDS: u64 = 64;
 const COMPACTION_DEAD_RATIO: u64 = 10;
 const COMPACTION_BATCH_SIZE: usize = 1000;
+const GRAPH_REBUILD_EROSION_RATIO: u64 = 4;
 const HANDOFF_WAIT_ROUNDS: u32 = 750;
 const HANDOFF_CLOSE_WAIT_ROUNDS: u32 = 2500;
 const HANDOFF_WAIT_PARK: Duration = Duration::from_millis(2);
@@ -1172,9 +1173,15 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
                 attrs,
                 total_records,
             } = &mut *st;
+            let live = arena.live_count() as u64;
+            let detached_since_rebuild = graph.as_ref().map_or(0, |installed| {
+                installed.insert_ordinal().saturating_sub(live)
+            });
             if arena.dead_count() > 0 {
                 attrs.repack(arena.live_slots());
                 arena.compact_in_place();
+                *graph = None;
+            } else if detached_since_rebuild.saturating_mul(GRAPH_REBUILD_EROSION_RATIO) >= live {
                 *graph = None;
             }
             *total_records = arena.live_count() as u64;
@@ -3892,6 +3899,190 @@ mod tests {
             reopened.search(&query, &limit_params(10)).unwrap(),
             before_search
         );
+    }
+
+    fn installed_insert_ordinal(db: &VecDb) -> u64 {
+        let st = db.shared.state_read();
+        st.graph.as_ref().unwrap().insert_ordinal()
+    }
+
+    fn clustered_vector(index: usize, seed: u64) -> Vec<f32> {
+        let mut values: Vec<f32> = seeded_unit_vector(seed + index as u64, DIMS)
+            .into_iter()
+            .map(|value| value * 0.1)
+            .collect();
+        values[index % 10] += 1.0;
+        let norm = values.iter().map(|value| value * value).sum::<f32>().sqrt();
+        for value in &mut values {
+            *value /= norm;
+        }
+        values
+    }
+
+    fn unfindable(db: &VecDb, vectors: &[Vec<f32>], probes: &[usize]) -> Vec<usize> {
+        let params = SearchParams {
+            limit: Some(1),
+            ..Default::default()
+        };
+        probes
+            .iter()
+            .copied()
+            .filter(|&index| {
+                db.search(&vectors[index], &params).unwrap()[0].key != format!("key-{index}")
+            })
+            .collect()
+    }
+
+    fn clustered_index(path: &Path, seed: u64) -> (VecDb, Vec<String>, Vec<Vec<f32>>) {
+        let db = open_writer(path);
+        let keys: Vec<String> = (0..3000).map(|index| format!("key-{index}")).collect();
+        let vectors: Vec<Vec<f32>> = (0..3000)
+            .map(|index| clustered_vector(index, seed))
+            .collect();
+        db.bulk_add(&keys, &vectors).unwrap();
+        (db, keys, vectors)
+    }
+
+    #[test]
+    fn in_place_replacements_rebuild_the_graph_once_a_quarter_of_the_live_nodes_are_detached() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 2000, 5200)).unwrap();
+        assert_eq!(installed_insert_ordinal(&db), 2000);
+        let mut generations = vec![generation_of(&path)];
+        let mut compactions = Vec::new();
+        for index in 0..669u64 {
+            db.add(
+                &format!("key-{index}"),
+                &seeded_unit_vector(7000 + index, DIMS),
+            )
+            .unwrap();
+            let generation = generation_of(&path);
+            if generations.last() != Some(&generation) {
+                generations.push(generation);
+                compactions.push((index + 1, installed_insert_ordinal(&db)));
+            }
+        }
+        assert_eq!(compactions, vec![(223, 2223), (446, 2446), (669, 2000)]);
+        assert_eq!(db.stats().unwrap().dead_count, 0);
+    }
+
+    #[test]
+    fn deleting_most_of_a_cluster_keeps_the_survivors_findable_after_compaction() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let (db, keys, vectors) = clustered_index(&path, 6100);
+        let survivors: Vec<usize> = (2700..3000).step_by(10).collect();
+        assert_eq!(unfindable(&db, &vectors, &survivors), Vec::<usize>::new());
+        let removed: Vec<String> = (0..2700)
+            .step_by(10)
+            .map(|index| keys[index].clone())
+            .collect();
+        assert_eq!(db.bulk_remove(&removed).unwrap(), removed.len());
+        assert_eq!(db.stats().unwrap().dead_count, 0);
+        let compacted = unfindable(&db, &vectors, &survivors);
+        drop(db);
+        let reopened = open_writer(&path);
+        let rebuilt_path = dir.path().join("rebuilt");
+        fs::copy(&path, &rebuilt_path).unwrap();
+        let rebuilt = open_writer(&rebuilt_path);
+        let fresh = unfindable(&rebuilt, &vectors, &survivors);
+        assert!(fresh.len() <= 1, "fresh rebuild misses {fresh:?}");
+        assert_eq!(compacted, fresh);
+        assert_eq!(unfindable(&reopened, &vectors, &survivors), fresh);
+    }
+
+    #[test]
+    fn moving_most_of_a_cluster_elsewhere_keeps_the_survivors_findable() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let (db, keys, vectors) = clustered_index(&path, 6300);
+        let survivors: Vec<usize> = (2700..3000).step_by(10).collect();
+        assert_eq!(unfindable(&db, &vectors, &survivors), Vec::<usize>::new());
+        let moved: Vec<String> = (0..2700)
+            .step_by(10)
+            .map(|index| keys[index].clone())
+            .collect();
+        let destinations: Vec<Vec<f32>> = (0..2700)
+            .step_by(10)
+            .map(|index| vectors[index + 1].clone())
+            .collect();
+        for _ in 0..4 {
+            db.bulk_add(&moved, &destinations).unwrap();
+        }
+        assert_eq!(db.stats().unwrap().dead_count, 0);
+        assert_eq!(installed_insert_ordinal(&db), 3000);
+        assert_eq!(unfindable(&db, &vectors, &survivors), Vec::<usize>::new());
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(
+            unfindable(&reopened, &vectors, &survivors),
+            Vec::<usize>::new()
+        );
+    }
+
+    #[test]
+    fn a_fast_path_compaction_reproduces_the_slot_numbering_a_replay_would_assign() {
+        for seed in 0..8u64 {
+            let dir = TempDir::new().unwrap();
+            let path = dir.path().join("db");
+            let db = open_writer(&path);
+            bulk_add(&db, &bulk_entries(0, 400, 3000 + seed)).unwrap();
+            let mut state = 0x4242_0000 + seed;
+            let mut live: Vec<String> = (0..400).map(|index| format!("key-{index}")).collect();
+            let mut next_id = 400u64;
+            for _ in 0..600 {
+                let roll = splitmix64(&mut state);
+                let vector = seeded_unit_vector(splitmix64(&mut state), DIMS);
+                match roll % 5 {
+                    0 => {
+                        let key = format!("new-{next_id}");
+                        next_id += 1;
+                        db.add(&key, &vector).unwrap();
+                        live.push(key);
+                    }
+                    1 => {
+                        let index = roll as usize % live.len();
+                        let key = live.remove(index);
+                        db.remove(&key).unwrap();
+                    }
+                    _ => {
+                        let key = live[roll as usize % live.len()].clone();
+                        db.add(&key, &vector).unwrap();
+                    }
+                }
+            }
+            for _ in 0..3 {
+                let mut half = db.shared.writer_half();
+                compact(&db.shared, &mut half).unwrap();
+            }
+            let slots_now: Vec<(String, u32)> = {
+                let st = db.shared.state_read();
+                let mut pairs: Vec<(String, u32)> = st
+                    .arena
+                    .live_slots()
+                    .map(|slot| (st.arena.key_of_slot(slot).unwrap().to_string(), slot))
+                    .collect();
+                pairs.sort();
+                pairs
+            };
+            db.flush().unwrap();
+            drop(db);
+            fs::remove_file(snapshot_path(&path)).unwrap();
+            let replayed = open_writer(&path);
+            let slots_after: Vec<(String, u32)> = {
+                let st = replayed.shared.state_read();
+                let mut pairs: Vec<(String, u32)> = st
+                    .arena
+                    .live_slots()
+                    .map(|slot| (st.arena.key_of_slot(slot).unwrap().to_string(), slot))
+                    .collect();
+                pairs.sort();
+                pairs
+            };
+            assert_eq!(slots_now, slots_after, "seed {seed} renumbered on replay");
+        }
     }
 
     #[test]
