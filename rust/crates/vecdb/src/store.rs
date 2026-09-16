@@ -6619,4 +6619,398 @@ mod tests {
             "{total_unreachable} live keys are not their own nearest under approximate search"
         );
     }
+
+    fn attack_slot_map(db: &VecDb) -> Vec<(String, u32)> {
+        let st = db.shared.state_read();
+        let mut map: Vec<(String, u32)> = st
+            .arena
+            .live_slots()
+            .map(|slot| (st.arena.key_of_slot(slot).unwrap().to_string(), slot))
+            .collect();
+        map.sort();
+        map
+    }
+
+    fn graph_parts_of(db: &VecDb) -> (Option<u32>, Vec<GraphNodeParts>, u64) {
+        let st = db.shared.state_read();
+        let graph = st.graph.as_ref().unwrap();
+        let parts = graph
+            .slots()
+            .map(|slot| {
+                let level = graph.level_of(slot).unwrap();
+                GraphNodeParts {
+                    slot,
+                    level,
+                    neighbors: (0..=level)
+                        .map(|layer| graph.neighbors_of(slot, layer).to_vec())
+                        .collect(),
+                }
+            })
+            .collect();
+        (graph.entry_point(), parts, graph.insert_ordinal())
+    }
+
+    #[test]
+    fn attack_a_key_readded_two_hundred_times() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        let fillers: Vec<String> = (0..2500).map(|index| format!("filler-{index}")).collect();
+        let filler_vectors: Vec<Vec<f32>> = (0..2500)
+            .map(|index| seeded_unit_vector(0x7000_0000 + index as u64, DIMS))
+            .collect();
+        db.bulk_add(&fillers, &filler_vectors).unwrap();
+        let mut history: Vec<Vec<f32>> = Vec::new();
+        for round in 0..200u64 {
+            let vector = seeded_unit_vector(0x7900_0000 + round, DIMS);
+            db.add("churner", &vector).unwrap();
+            history.push(vector);
+        }
+        let latest = history.last().unwrap().clone();
+        assert_eq!(db.get("churner").unwrap().unwrap(), latest);
+        assert_eq!(
+            db.search(&latest, &limit_params(1)).unwrap()[0].key,
+            "churner"
+        );
+        for old in &history[..history.len() - 1] {
+            for found in db.search(old, &limit_params(5)).unwrap() {
+                assert!(
+                    found.key != "churner" || found.distance > 1e-3,
+                    "a retired vector still answers for the key"
+                );
+            }
+            let exact = SearchParams {
+                limit: Some(1),
+                exact: true,
+                ..SearchParams::default()
+            };
+            let top = db.search(old, &exact).unwrap();
+            assert!(top[0].key != "churner" || top[0].distance > 1e-3);
+        }
+        {
+            let st = db.shared.state_read();
+            assert_eq!(st.arena.live_count(), 2501);
+            assert_eq!(st.arena.slot_count(), 2700);
+            assert_eq!(st.arena.dead_count(), 199);
+            assert_eq!(st.arena.slot_of_key("churner"), Some(2699));
+        }
+        let before_compaction = attack_slot_map(&db);
+        db.flush().unwrap();
+        drop(db);
+        fs::remove_file(snapshot_path(&path)).unwrap();
+        let reopened = open_writer(&path);
+        assert_eq!(attack_slot_map(&reopened), before_compaction);
+        {
+            let st = reopened.shared.state_read();
+            assert_eq!(st.arena.slot_count(), 2700);
+            assert_eq!(st.arena.dead_count(), 199);
+        }
+        assert_eq!(
+            reopened.search(&latest, &limit_params(1)).unwrap()[0].key,
+            "churner"
+        );
+        compact(&reopened.shared, &mut reopened.shared.writer_half()).unwrap();
+        {
+            let st = reopened.shared.state_read();
+            assert_eq!(st.arena.slot_count(), 2501);
+            assert_eq!(st.arena.dead_count(), 0);
+            assert_eq!(st.arena.live_count(), 2501);
+            test_support::assert_graph_invariants(st.graph.as_ref().unwrap());
+        }
+        assert_eq!(
+            reopened.search(&latest, &limit_params(1)).unwrap()[0].key,
+            "churner"
+        );
+        assert_eq!(reopened.get("churner").unwrap().unwrap(), latest);
+    }
+
+    #[test]
+    fn attack_the_entry_point_key_is_replaced_over_and_over() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        let keys: Vec<String> = (0..1200).map(|index| format!("key-{index}")).collect();
+        let vectors: Vec<Vec<f32>> = (0..1200)
+            .map(|index| seeded_unit_vector(0x8000_0000 + index as u64, DIMS))
+            .collect();
+        db.bulk_add(&keys, &vectors).unwrap();
+        let original_entry = db.shared.state_read().graph.as_ref().unwrap().entry_point();
+        let mut live: Vec<(String, Vec<f32>)> =
+            keys.iter().cloned().zip(vectors.iter().cloned()).collect();
+        for round in 0..50u64 {
+            let entry = {
+                let st = db.shared.state_read();
+                let slot = st.graph.as_ref().unwrap().entry_point().unwrap();
+                st.arena
+                    .key_of_slot(slot)
+                    .map(str::to_string)
+                    .unwrap_or_else(|| {
+                        st.arena
+                            .key_of_slot(st.arena.live_slots().next().unwrap())
+                            .unwrap()
+                            .to_string()
+                    })
+            };
+            let vector = seeded_unit_vector(0x8800_0000 + round, DIMS);
+            db.add(&entry, &vector).unwrap();
+            for entries in &mut live {
+                if entries.0 == entry {
+                    entries.1 = vector.clone();
+                }
+            }
+            let st = db.shared.state_read();
+            assert_eq!(
+                st.graph.as_ref().unwrap().entry_point(),
+                original_entry,
+                "the entry point moved off the retired node"
+            );
+            test_support::assert_graph_invariants(st.graph.as_ref().unwrap());
+        }
+        assert!(
+            !db.shared
+                .state_read()
+                .arena
+                .is_alive(original_entry.unwrap())
+        );
+        let mut missing = 0;
+        for (key, vector) in &live {
+            if db.search(vector, &limit_params(1)).unwrap()[0].key != *key {
+                missing += 1;
+            }
+        }
+        assert_eq!(missing, 0, "{missing} keys are not their own nearest");
+    }
+
+    #[test]
+    fn attack_a_removed_key_is_resurrected_and_replaced_across_compactions() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        let keys: Vec<String> = (0..400).map(|index| format!("key-{index}")).collect();
+        let vectors: Vec<Vec<f32>> = (0..400)
+            .map(|index| seeded_unit_vector(0x9000_0000 + index as u64, DIMS))
+            .collect();
+        db.bulk_add(&keys, &vectors).unwrap();
+        for round in 0..4u64 {
+            assert!(db.remove("key-7").unwrap());
+            assert!(!db.contains("key-7").unwrap());
+            assert_eq!(db.get_attrs("key-7").unwrap(), None);
+            let vector = seeded_unit_vector(0x9900_0000 + round, DIMS);
+            db.add_with_attrs("key-7", &vector, &sample_attrs(round as i64))
+                .unwrap();
+            assert_eq!(
+                db.get_attrs("key-7").unwrap().unwrap(),
+                sample_attrs(round as i64)
+            );
+            compact(&db.shared, &mut db.shared.writer_half()).unwrap();
+            {
+                let st = db.shared.state_read();
+                assert_eq!(st.arena.dead_count(), 0);
+                assert_eq!(st.arena.slot_count(), 400);
+            }
+            assert_eq!(db.get("key-7").unwrap().unwrap(), vector);
+            assert_eq!(
+                db.get_attrs("key-7").unwrap().unwrap(),
+                sample_attrs(round as i64)
+            );
+            assert_eq!(
+                db.search(&vector, &limit_params(1)).unwrap()[0].key,
+                "key-7"
+            );
+        }
+        db.flush().unwrap();
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(
+            reopened.get_attrs("key-7").unwrap().unwrap(),
+            sample_attrs(3)
+        );
+        assert_eq!(reopened.len().unwrap(), 400);
+    }
+
+    #[test]
+    fn attack_a_read_only_handle_sees_the_writers_replacements() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        let keys: Vec<String> = (0..600).map(|index| format!("key-{index}")).collect();
+        let vectors: Vec<Vec<f32>> = (0..600)
+            .map(|index| seeded_unit_vector(0xA000_0000 + index as u64, DIMS))
+            .collect();
+        db.bulk_add(&keys, &vectors).unwrap();
+        let mut replaced: Vec<(String, Vec<f32>)> = Vec::new();
+        for index in (0..600).step_by(13) {
+            let vector = seeded_unit_vector(0xAA00_0000 + index as u64, DIMS);
+            db.add(&keys[index], &vector).unwrap();
+            replaced.push((keys[index].clone(), vector));
+        }
+        db.flush().unwrap();
+        let read_only = VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32)).unwrap();
+        for (key, vector) in &replaced {
+            assert_eq!(read_only.get(key).unwrap().unwrap(), *vector);
+            assert_eq!(
+                read_only.search(vector, &limit_params(1)).unwrap()[0].key,
+                *key
+            );
+            assert_eq!(db.search(vector, &limit_params(1)).unwrap()[0].key, *key);
+        }
+        assert_eq!(read_only.len().unwrap(), 600);
+        for key in &keys {
+            let mine = db
+                .search(&db.get(key).unwrap().unwrap(), &limit_params(3))
+                .unwrap();
+            let theirs = read_only
+                .search(&read_only.get(key).unwrap().unwrap(), &limit_params(3))
+                .unwrap();
+            assert_eq!(
+                mine.iter().map(|m| m.key.clone()).collect::<Vec<_>>(),
+                theirs.iter().map(|m| m.key.clone()).collect::<Vec<_>>()
+            );
+        }
+    }
+
+    #[test]
+    fn attack_the_live_set_empties_and_refills() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        let keys: Vec<String> = (0..40).map(|index| format!("key-{index}")).collect();
+        let vectors: Vec<Vec<f32>> = (0..40)
+            .map(|index| seeded_unit_vector(0xB000_0000 + index as u64, DIMS))
+            .collect();
+        db.bulk_add(&keys, &vectors).unwrap();
+        for key in &keys {
+            db.add(key, &seeded_unit_vector(0xB500_0000, DIMS)).unwrap();
+        }
+        assert_eq!(db.bulk_remove(&keys).unwrap(), 40);
+        assert!(db.is_empty().unwrap());
+        assert!(db.search(&vectors[0], &limit_params(1)).unwrap().is_empty());
+        let refill: Vec<Vec<f32>> = (0..40)
+            .map(|index| seeded_unit_vector(0xB900_0000 + index as u64, DIMS))
+            .collect();
+        db.bulk_add(&keys, &refill).unwrap();
+        assert_eq!(db.len().unwrap(), 40);
+        for (key, vector) in keys.iter().zip(&refill) {
+            assert_eq!(db.get(key).unwrap().unwrap(), *vector);
+            assert_eq!(db.search(vector, &limit_params(1)).unwrap()[0].key, *key);
+        }
+        {
+            let st = db.shared.state_read();
+            test_support::assert_graph_invariants(st.graph.as_ref().unwrap());
+        }
+        db.flush().unwrap();
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.len().unwrap(), 40);
+        for (key, vector) in keys.iter().zip(&refill) {
+            assert_eq!(reopened.get(key).unwrap().unwrap(), *vector);
+        }
+    }
+
+    #[test]
+    fn attack_replacement_inside_a_burst_of_exact_duplicates() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        let shared_vector = seeded_unit_vector(0xC000_0000, DIMS);
+        let twins: Vec<String> = (0..300).map(|index| format!("twin-{index}")).collect();
+        let twin_vectors: Vec<Vec<f32>> = (0..300).map(|_| shared_vector.clone()).collect();
+        let twin_attrs: Vec<Option<Vec<Attribute>>> = (0..300)
+            .map(|index| Some(sample_attrs(index as i64)))
+            .collect();
+        db.bulk_add_with_attrs(&twins, &twin_vectors, &twin_attrs)
+            .unwrap();
+        let away = seeded_unit_vector(0xC100_0000, DIMS);
+        db.add_with_attrs("twin-7", &away, &sample_attrs(777))
+            .unwrap();
+        assert_eq!(db.get("twin-7").unwrap().unwrap(), away);
+        assert_eq!(db.get_attrs("twin-7").unwrap().unwrap(), sample_attrs(777));
+        let exact = SearchParams {
+            limit: Some(1),
+            exact: true,
+            ..SearchParams::default()
+        };
+        assert_eq!(db.search(&away, &exact).unwrap()[0].key, "twin-7");
+        let neighbourhood = db.search(&shared_vector, &limit_params(300)).unwrap();
+        assert_eq!(neighbourhood.len(), 300);
+        let mut names: Vec<String> = neighbourhood
+            .iter()
+            .map(|found| found.key.clone())
+            .collect();
+        names.sort();
+        names.dedup();
+        assert_eq!(
+            names.len(),
+            300,
+            "a retired slot answered alongside its key"
+        );
+        let moved = neighbourhood
+            .iter()
+            .find(|found| found.key == "twin-7")
+            .unwrap();
+        assert!(moved.distance > 0.5, "the retired vector still answers");
+        {
+            let st = db.shared.state_read();
+            assert_eq!(st.arena.dead_count(), 1);
+            assert_eq!(st.attrs.get(7), None);
+            test_support::assert_graph_invariants(st.graph.as_ref().unwrap());
+        }
+        for index in 0..300 {
+            if index == 7 {
+                continue;
+            }
+            assert_eq!(
+                db.get_attrs(&format!("twin-{index}")).unwrap().unwrap(),
+                sample_attrs(index as i64)
+            );
+        }
+        compact(&db.shared, &mut db.shared.writer_half()).unwrap();
+        assert_eq!(db.get_attrs("twin-7").unwrap().unwrap(), sample_attrs(777));
+        assert_eq!(db.get_attrs("twin-8").unwrap().unwrap(), sample_attrs(8));
+        assert_eq!(db.search(&away, &exact).unwrap()[0].key, "twin-7");
+        assert_eq!(db.get("twin-7").unwrap().unwrap(), away);
+    }
+
+    #[test]
+    fn attack_a_snapshot_written_after_replacements_reloads_identically() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        let keys: Vec<String> = (0..900).map(|index| format!("key-{index}")).collect();
+        let vectors: Vec<Vec<f32>> = (0..900)
+            .map(|index| seeded_unit_vector(0xD000_0000 + index as u64, DIMS))
+            .collect();
+        db.bulk_add(&keys, &vectors).unwrap();
+        for index in (0..900).step_by(17) {
+            db.add(
+                &keys[index],
+                &seeded_unit_vector(0xDD00_0000 + index as u64, DIMS),
+            )
+            .unwrap();
+        }
+        assert!(db.remove("key-3").unwrap());
+        db.add("key-3", &seeded_unit_vector(0xDE00_0000, DIMS))
+            .unwrap();
+        db.flush().unwrap();
+        let (entry, parts, ordinal) = graph_parts_of(&db);
+        let written = attack_slot_map(&db);
+        drop(db);
+        let reopened = open_writer(&path);
+        {
+            let st = reopened.shared.state_read();
+            let reloaded = Graph::from_parts(entry, parts, st.arena.slot_count(), ordinal).unwrap();
+            test_support::assert_identical_graphs(&reloaded, st.graph.as_ref().unwrap());
+        }
+        assert_eq!(attack_slot_map(&reopened), written);
+        let rebuilt_path = dir.path().join("rebuilt");
+        fs::copy(&path, &rebuilt_path).unwrap();
+        let rebuilt = open_writer(&rebuilt_path);
+        assert_eq!(attack_slot_map(&rebuilt), written);
+        for key in &keys {
+            assert_eq!(
+                reopened.get(key).unwrap().unwrap(),
+                rebuilt.get(key).unwrap().unwrap()
+            );
+        }
+    }
 }

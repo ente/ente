@@ -2847,4 +2847,31 @@ mod tests {
             "i8-exact vs f32 truth recall@10 was {recall}"
         );
     }
+
+    #[test]
+    fn from_parts_still_tolerates_a_stale_downward_edge() {
+        let parts = vec![
+            GraphNodeParts {
+                slot: 0,
+                level: 2,
+                neighbors: vec![vec![1], vec![1], vec![1]],
+            },
+            GraphNodeParts {
+                slot: 1,
+                level: 0,
+                neighbors: vec![vec![0]],
+            },
+        ];
+        let graph = Graph::from_parts(Some(0), parts, 2, 7).unwrap();
+        assert_eq!(graph.neighbors_of(0, 2), &[1]);
+        assert_eq!(graph.level_of(1), Some(0));
+        assert!(stale_downward_edge_exists(&graph));
+        assert_eq!(graph.neighbors_of(1, 2), &[] as &[u32]);
+        let mut arena = VectorArena::new(8).unwrap();
+        arena.upsert("a", &axis_vector(8, 0)).unwrap();
+        arena.upsert("b", &axis_vector(8, 1)).unwrap();
+        let query = arena.pack_query(&axis_vector(8, 1)).unwrap();
+        let found = search(&graph, &arena, &query, &params(Some(2), None, false), None);
+        assert_eq!(keys(&found), ["b", "a"]);
+    }
 }
