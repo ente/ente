@@ -139,7 +139,6 @@ const Page: React.FC = () => {
         const request = { cancelled: false };
         const isCancelled = () => request.cancelled;
         let loadedSpaceId: string | undefined;
-        const feedRequestedAtMs = Date.now();
         let cachedFeedSyncedAtMs: number | undefined;
         setSpaceId(undefined);
         setFeedItems([]);
@@ -193,11 +192,14 @@ const Page: React.FC = () => {
 
                 setFeedItems(feed.items);
                 setFeedNextCursor(feed.nextCursor);
+                const refreshedPostIDs = new Set(
+                    feed.items.map((item) => item.postId),
+                );
                 setLocalFeedPosts((currentPosts) =>
                     currentPosts.filter(
                         (item) =>
                             item.status != "ready" ||
-                            item.post.timestampMs > feedRequestedAtMs,
+                            !refreshedPostIDs.has(item.post.postId),
                     ),
                 );
             })

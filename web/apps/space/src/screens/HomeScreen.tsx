@@ -1867,7 +1867,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         minWidth: 0,
                         pb: "calc(env(safe-area-inset-bottom) + 112px)",
                         px: feedHorizontalPadding,
-                        pt: showFeedCards ? "4px" : "8px",
+                        pt: showFeedCards ? "16px" : "8px",
                         width: "100%",
                     }}
                 >

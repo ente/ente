@@ -30,6 +30,7 @@ const Page: React.FC = () => {
         profileLoadError,
         profileLoadStatus,
         publishPost,
+        setLocalFeedPosts,
         setPostPublication,
     } = useSpaceAppState();
     const [friendsCount, setFriendsCount] = useState(0);
@@ -143,6 +144,14 @@ const Page: React.FC = () => {
                     setPostPublication((current) =>
                         current?.post.postId == postId ? null : current,
                     );
+                    setLocalFeedPosts((currentPosts) =>
+                        currentPosts.filter(
+                            (item) =>
+                                item.status == "pending" ||
+                                item.status == "failed" ||
+                                item.post.postId != postId,
+                        ),
+                    );
                     setPosts((currentPosts) =>
                         currentPosts.filter((post) => post.postId != postId),
                     );
@@ -163,6 +172,21 @@ const Page: React.FC = () => {
                                   },
                               }
                             : current,
+                    );
+                    setLocalFeedPosts((currentPosts) =>
+                        currentPosts.map((item) =>
+                            (item.status == "posted" ||
+                                item.status == "ready") &&
+                            item.post.postId == postId
+                                ? {
+                                      ...item,
+                                      post: {
+                                          ...item.post,
+                                          caption: normalizedCaption,
+                                      },
+                                  }
+                                : item,
+                        ),
                     );
                     setPosts((currentPosts) =>
                         currentPosts.map((post) =>
