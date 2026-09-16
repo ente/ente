@@ -11,9 +11,9 @@ pub(crate) const VECTORS_PER_CHUNK: usize = 4096;
 pub(crate) const MAX_KEY_BYTES: usize = 256;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct UpsertOutcome {
-    pub(crate) slot: u32,
-    pub(crate) retired: Option<u32>,
+pub(crate) enum UpsertOutcome {
+    Kept(u32),
+    Appended { slot: u32, retired: Option<u32> },
 }
 
 pub(crate) fn validate_key(key: &str) -> Result<(), VecDbError> {
@@ -213,6 +213,9 @@ impl VectorArena {
         }
         let retired = self.keys_to_slots.get(key).copied();
         if let Some(slot) = retired {
+            if self.slot_holds(slot, payload) {
+                return Ok(UpsertOutcome::Kept(slot));
+            }
             self.mark_dead(slot);
             self.live_count -= 1;
         }
@@ -232,7 +235,7 @@ impl VectorArena {
         self.mark_alive(slot);
         self.live_count += 1;
         self.write_vector(slot, payload);
-        Ok(UpsertOutcome { slot, retired })
+        Ok(UpsertOutcome::Appended { slot, retired })
     }
 
     pub(crate) fn remove(&mut self, key: &str) -> Option<u32> {
@@ -302,6 +305,33 @@ impl VectorArena {
 
     pub(crate) fn slot_of_key(&self, key: &str) -> Option<u32> {
         self.keys_to_slots.get(key).copied()
+    }
+
+    pub(crate) fn slot_holding(&self, key: &str, payload: VectorPayload<'_>) -> Option<u32> {
+        let slot = self.slot_of_key(key)?;
+        self.slot_holds(slot, payload).then_some(slot)
+    }
+
+    fn slot_holds(&self, slot: u32, payload: VectorPayload<'_>) -> bool {
+        let lanes = self.lanes_per_vector;
+        match (&self.storage, payload) {
+            (Storage::F32 { chunks }, VectorPayload::F32(values)) => {
+                slot_lanes(chunks, lanes, slot)
+                    .iter()
+                    .flat_map(|lane| lane.to_array())
+                    .map(f32::to_bits)
+                    .eq(values.iter().map(|value| value.to_bits()))
+            }
+            (Storage::I8 { chunks, scales }, VectorPayload::I8 { scale, values }) => {
+                scales[slot as usize].to_bits() == scale.to_bits()
+                    && slot_lanes(chunks, lanes, slot)
+                        .iter()
+                        .flat_map(|lane| lane.to_array())
+                        .eq(values.iter().copied())
+            }
+            (Storage::F32 { .. }, VectorPayload::I8 { .. })
+            | (Storage::I8 { .. }, VectorPayload::F32(_)) => false,
+        }
     }
 
     pub(crate) fn key_of_slot(&self, slot: u32) -> Option<&str> {
@@ -584,15 +614,19 @@ mod tests {
         }
     }
 
+    fn kept(slot: u32) -> UpsertOutcome {
+        UpsertOutcome::Kept(slot)
+    }
+
     fn appended(slot: u32) -> UpsertOutcome {
-        UpsertOutcome {
+        UpsertOutcome::Appended {
             slot,
             retired: None,
         }
     }
 
     fn replaced(slot: u32, retired: u32) -> UpsertOutcome {
-        UpsertOutcome {
+        UpsertOutcome::Appended {
             slot,
             retired: Some(retired),
         }
@@ -1203,14 +1237,21 @@ mod tests {
         assert_eq!(stored_scale.to_bits(), scale.to_bits());
         assert_eq!(stored_values, values);
         assert_eq!(arena.vector_values(0), dequantize(scale, &values));
+        assert_eq!(arena.upsert_payload("exact", payload).unwrap(), kept(0));
+        assert_eq!(arena.slot_count(), 1);
+        let rescaled_scale = f32::from_bits(0x3a1f_8f3d);
+        let rescaled = VectorPayload::I8 {
+            scale: rescaled_scale,
+            values: &values,
+        };
         assert_eq!(
-            arena.upsert_payload("exact", payload).unwrap(),
+            arena.upsert_payload("exact", rescaled).unwrap(),
             replaced(1, 0)
         );
-        assert_eq!(stored_i8(&arena, 1), (scale, values.clone()));
+        assert_eq!(stored_i8(&arena, 1), (rescaled_scale, values.clone()));
         assert_eq!(arena.remove("exact"), Some(1));
         assert_eq!(stored_i8(&arena, 0), (scale, values.clone()));
-        assert_eq!(stored_i8(&arena, 1), (scale, values.clone()));
+        assert_eq!(stored_i8(&arena, 1), (rescaled_scale, values.clone()));
         let other = VectorPayload::I8 {
             scale: 0.5,
             values: &vec![3i8; dims],

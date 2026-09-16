@@ -260,7 +260,7 @@ mod tests {
     use tempfile::TempDir;
 
     use super::super::SearchParams;
-    use super::super::arena::VectorArena;
+    use super::super::arena::{UpsertOutcome, VectorArena};
     use super::super::graph::search;
     use super::super::kernel::splitmix64;
     use super::super::test_support::{assert_identical_graphs, stale_downward_edge_exists};
@@ -365,17 +365,23 @@ mod tests {
                 .filter(|&slot| arena.is_alive(slot))
                 .unwrap_or_else(|| arena.live_slots().next().unwrap());
             let key = arena.key_of_slot(victim).unwrap().to_string();
-            let outcome = arena
+            let UpsertOutcome::Appended { slot, retired } = arena
                 .upsert(&key, &seeded_unit_vector(0x00A2_0000 + round, dims))
-                .unwrap();
-            assert_eq!(outcome.retired, Some(victim));
-            graph.insert(outcome.slot, &arena);
+                .unwrap()
+            else {
+                panic!("a new vector kept the old slot");
+            };
+            assert_eq!(retired, Some(victim));
+            graph.insert(slot, &arena);
         }
-        let appended = arena
+        let UpsertOutcome::Appended { slot, retired } = arena
             .upsert("appended", &seeded_unit_vector(0x00A3_0000, dims))
-            .unwrap();
-        assert_eq!(appended.retired, None);
-        graph.insert(appended.slot, &arena);
+            .unwrap()
+        else {
+            panic!("a fresh key kept an old slot");
+        };
+        assert_eq!(retired, None);
+        graph.insert(slot, &arena);
         assert!(!stale_downward_edge_exists(&graph));
         (arena, graph)
     }

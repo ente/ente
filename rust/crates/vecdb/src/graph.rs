@@ -1206,8 +1206,9 @@ mod tests {
     }
 
     fn apply_upsert(arena: &mut VectorArena, graph: &mut Graph, key: &str, vector: &[f32]) {
-        let slot = arena.upsert(key, vector).unwrap().slot;
-        graph.insert(slot, arena);
+        if let UpsertOutcome::Appended { slot, .. } = arena.upsert(key, vector).unwrap() {
+            graph.insert(slot, arena);
+        }
     }
 
     fn graph_parts(graph: &Graph) -> Vec<GraphNodeParts> {
@@ -1825,12 +1826,12 @@ mod tests {
         let outcome = arena.upsert("key-7", &new_vector).unwrap();
         assert_eq!(
             outcome,
-            UpsertOutcome {
+            UpsertOutcome::Appended {
                 slot: 300,
                 retired: Some(7)
             }
         );
-        graph.insert(outcome.slot, &arena);
+        graph.insert(300, &arena);
         assert_eq!(graph.level_of(7), Some(old_level));
         for (layer, list) in old_lists.iter().enumerate() {
             assert_eq!(graph.neighbors_of(7, layer as u8), list.as_slice());
@@ -1881,9 +1882,13 @@ mod tests {
         let entry_slot = graph.entry_point().unwrap();
         let entry_key = arena.key_of_slot(entry_slot).unwrap().to_string();
         let new_vector = seeded_unit_vector(0x5222_0000, 16);
-        let outcome = arena.upsert(&entry_key, &new_vector).unwrap();
-        assert_eq!(outcome.retired, Some(entry_slot));
-        graph.insert(outcome.slot, &arena);
+        let UpsertOutcome::Appended { slot, retired } =
+            arena.upsert(&entry_key, &new_vector).unwrap()
+        else {
+            panic!("a new vector kept the old slot");
+        };
+        assert_eq!(retired, Some(entry_slot));
+        graph.insert(slot, &arena);
         assert_eq!(graph.entry_point(), Some(entry_slot));
         assert!(!arena.is_alive(entry_slot));
         let query = arena.pack_query(&new_vector).unwrap();
@@ -1908,12 +1913,12 @@ mod tests {
         let outcome = arena.upsert("fresh", &new_vector).unwrap();
         assert_eq!(
             outcome,
-            UpsertOutcome {
+            UpsertOutcome::Appended {
                 slot: 300,
                 retired: None
             }
         );
-        graph.insert(outcome.slot, &arena);
+        graph.insert(300, &arena);
         assert_eq!(graph.level_of(3), Some(removed_level));
         let query = arena.pack_query(&new_vector).unwrap();
         for exact in [false, true] {
@@ -1941,12 +1946,12 @@ mod tests {
         let outcome = arena.upsert("solo", &axis_vector(8, 3)).unwrap();
         assert_eq!(
             outcome,
-            UpsertOutcome {
+            UpsertOutcome::Appended {
                 slot: 1,
                 retired: Some(0)
             }
         );
-        graph.insert(outcome.slot, &arena);
+        graph.insert(1, &arena);
         assert_eq!(graph.entry_point(), Some(0));
         assert_eq!(graph.node_count(), 2);
         let query = arena.pack_query(&axis_vector(8, 3)).unwrap();
@@ -2451,9 +2456,12 @@ mod tests {
                 .unwrap_or_else(|| arena.live_slots().next().unwrap());
             let key = arena.key_of_slot(victim).unwrap().to_string();
             let vector = seeded_unit_vector(0xB100_0000 + round, 16);
-            let outcome = arena.upsert(&key, &vector).unwrap();
-            assert_eq!(outcome.retired, Some(victim));
-            graph.insert(outcome.slot, &arena);
+            let UpsertOutcome::Appended { slot, retired } = arena.upsert(&key, &vector).unwrap()
+            else {
+                panic!("a new vector kept the old slot");
+            };
+            assert_eq!(retired, Some(victim));
+            graph.insert(slot, &arena);
             assert!(!stale_downward_edge_exists(&graph));
             assert_graph_invariants(&graph);
             let reloaded = Graph::from_parts(
