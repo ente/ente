@@ -403,7 +403,6 @@ export const loadExistingSpaceProfile = async (options?: {
 export const loadCachedCurrentSpaceAvatar = async () => {
     const avatar = savedSpaceProfileAvatar();
     if (!avatar) return undefined;
-    await restoreSpaceBrowserSessionIfNeeded();
     const avatarUrl = await cachedSpaceMediaBlobURLIfPresent(
         spaceProfileMediaCacheKey(
             avatar.spaceId,
