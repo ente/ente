@@ -1,0 +1,1 @@
+- Suggest deleting shared-album photos from Memories.
