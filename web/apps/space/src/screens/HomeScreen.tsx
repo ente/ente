@@ -1990,7 +1990,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     maxWidth: 260,
                                 }}
                             >
-                                Invite your close friends and family
+                                Invite your friends and family
                             </Box>
                             <Box
                                 component="p"
@@ -2003,11 +2003,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     lineHeight: "21px",
                                     m: 0,
                                     mt: "10px",
-                                    maxWidth: 280,
+                                    maxWidth: 250,
                                 }}
                             >
-                                Find them by their username or share your invite
-                                link.
+                                You’ll see posts from your friends and family
+                                here.
                             </Box>
                             <Box
                                 component="button"

@@ -4,7 +4,7 @@ import { onboardingDescription } from "screens/OnboardingScreen";
 
 const spacePreviewTitle = "Ente Space";
 const spacePreviewDescription =
-    "A private photo-sharing app for keeping up with close friends and family. Share everyday photos, with no ads or algorithms.";
+    "A private photo-sharing app for keeping up with friends and family. Share everyday photos, with no ads or algorithms.";
 const spaceInvitePreviewTitle = "You're invited to my Space";
 const spaceInvitePreviewDescription =
     "See the everyday photos I share on Ente Space.";

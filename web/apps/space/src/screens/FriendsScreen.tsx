@@ -910,7 +910,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                         }}
                     >
                         <Box component="p" sx={{ m: 0, maxWidth: 260 }}>
-                            Invite your close friends and family. Share everyday
+                            Invite your friends and family. Share everyday
                             photos and keep up with each other.
                         </Box>
                         <SpaceShareInviteButton
