@@ -112,7 +112,10 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
         if (mounted) {
           final dialog = createProgressDialog(
             context,
-            l10n.uploadedFilesProgress(completed: 0, total: filesToUpload.length),
+            l10n.uploadedFilesProgress(
+              completed: 0,
+              total: filesToUpload.length,
+            ),
           );
           progressDialog = dialog;
           didShowDialog = await dialog.show();
