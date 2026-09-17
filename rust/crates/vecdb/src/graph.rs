@@ -58,21 +58,6 @@ fn reverse_prune_target(cap: usize, sorted_by_distance: &[Scored]) -> usize {
     }
 }
 
-fn drop_dead_to_fit(cap: usize, sorted_by_distance: &mut [Scored], arena: &VectorArena) -> usize {
-    let mut count = sorted_by_distance.len();
-    while count > reverse_prune_target(cap, &sorted_by_distance[..count]) {
-        let Some(farthest_dead) = sorted_by_distance[..count]
-            .iter()
-            .rposition(|entry| !arena.is_alive(entry.slot))
-        else {
-            break;
-        };
-        sorted_by_distance.copy_within(farthest_dead + 1..count, farthest_dead);
-        count -= 1;
-    }
-    count
-}
-
 fn select_neighbors(
     arena: &VectorArena,
     candidates: &[Scored],
@@ -95,13 +80,17 @@ fn select_neighbors(
             count += 1;
         }
     }
-    for candidate in candidates {
-        if count == cap {
-            break;
-        }
-        if !selected[..count].contains(&candidate.slot) {
-            selected[count] = candidate.slot;
-            count += 1;
+    for alive in [true, false] {
+        for candidate in candidates {
+            if count == cap {
+                return count;
+            }
+            if arena.is_alive(candidate.slot) == alive
+                && !selected[..count].contains(&candidate.slot)
+            {
+                selected[count] = candidate.slot;
+                count += 1;
+            }
         }
     }
     count
@@ -325,7 +314,19 @@ impl Graph {
                     arena,
                     query,
                 };
-                context.search_layer(&entries, link_level, EF_CONSTRUCTION, Some(slot), &|_| true)
+                let live = context.search_layer(
+                    &entries,
+                    link_level,
+                    EF_CONSTRUCTION,
+                    Some(slot),
+                    &|candidate| arena.is_alive(candidate),
+                );
+                if live.is_empty() {
+                    context
+                        .search_layer(&entries, link_level, EF_CONSTRUCTION, Some(slot), &|_| true)
+                } else {
+                    live
+                }
             };
             let cap = neighbor_cap(link_level);
             let mut selected = [0u32; LEVEL_ZERO_NEIGHBOR_CAP];
@@ -499,10 +500,9 @@ impl Graph {
             };
         }
         scored[..count].sort_unstable();
-        let remaining = drop_dead_to_fit(cap, &mut scored[..count], arena);
         let mut kept = [0u32; LEVEL_ZERO_NEIGHBOR_CAP];
-        let target = reverse_prune_target(cap, &scored[..remaining]);
-        let kept_count = select_neighbors(arena, &scored[..remaining], target, &mut kept);
+        let target = reverse_prune_target(cap, &scored[..count]);
+        let kept_count = select_neighbors(arena, &scored[..count], target, &mut kept);
         self.write_level_list(slot, level, &kept[..kept_count]);
     }
 
@@ -1654,17 +1654,6 @@ mod tests {
         (arena, graph)
     }
 
-    fn ordered_by_distance(arena: &VectorArena, owner: u32, slots: &[u32]) -> Vec<u32> {
-        let mut ordered = slots.to_vec();
-        ordered.sort_by(|left, right| {
-            arena
-                .distance_between_slots(owner, *left)
-                .total_cmp(&arena.distance_between_slots(owner, *right))
-                .then(left.cmp(right))
-        });
-        ordered
-    }
-
     #[test]
     fn link_back_fills_to_the_cap_only_beside_equal_distances() {
         let cap = LEVEL_ZERO_NEIGHBOR_CAP;
@@ -1689,105 +1678,6 @@ mod tests {
     }
 
     #[test]
-    fn link_back_drops_the_farthest_dead_entry_before_any_live_one() {
-        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
-        let incoming = cap as u32 + 1;
-        for (twins, target) in [(false, cap - REVERSE_PRUNE_SLACK), (true, cap)] {
-            let (mut arena, mut graph) = link_back_fixture(twins);
-            let full: Vec<u32> = (1..=cap as u32).collect();
-            for &slot in &full {
-                assert!(arena.remove(&format!("key-{slot}")).is_some());
-            }
-            graph.link_back(0, 0, incoming, cap, &arena);
-            let mut kept = graph.level_neighbors(0, 0).to_vec();
-            kept.sort_unstable();
-            let mut expected = ordered_by_distance(&arena, 0, &full)[..target - 1].to_vec();
-            expected.push(incoming);
-            expected.sort_unstable();
-            assert_eq!(kept, expected);
-        }
-    }
-
-    #[test]
-    fn link_back_drops_a_single_nearest_dead_entry_before_a_farther_live_one() {
-        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
-        let incoming = cap as u32 + 1;
-        let full: Vec<u32> = (1..=cap as u32).collect();
-        let (probe, _) = link_back_fixture(false);
-        let nearest = ordered_by_distance(&probe, 0, &full)[0];
-        let farthest = *ordered_by_distance(&probe, 0, &full).last().unwrap();
-        let (mut arena, mut graph) = link_back_fixture(false);
-        assert!(arena.remove(&format!("key-{nearest}")).is_some());
-        graph.link_back(0, 0, incoming, cap, &arena);
-        let kept = graph.level_neighbors(0, 0).to_vec();
-        assert!(
-            !kept.contains(&nearest),
-            "the nearest dead entry {nearest} survived: {kept:?}"
-        );
-        assert!(
-            kept.iter().all(|slot| arena.is_alive(*slot)),
-            "a dead entry survived beside live ones: {kept:?}"
-        );
-        assert_eq!(kept.len(), cap - REVERSE_PRUNE_SLACK, "kept={kept:?}");
-        assert!(farthest != nearest);
-    }
-
-    #[test]
-    fn link_back_drops_every_dead_entry_the_tie_guard_was_holding_up() {
-        let cap = LEVEL_ZERO_NEIGHBOR_CAP;
-        let incoming = cap as u32 + 1;
-        let full: Vec<u32> = (1..=cap as u32).collect();
-        let (probe, _) = link_back_fixture(true);
-        let nearest = ordered_by_distance(&probe, 0, &full)
-            .into_iter()
-            .find(|slot| *slot != 1 && *slot != 2)
-            .unwrap();
-        let (mut arena, mut graph) = link_back_fixture(true);
-        assert!(arena.remove("key-2").is_some());
-        assert!(arena.remove(&format!("key-{nearest}")).is_some());
-        graph.link_back(0, 0, incoming, cap, &arena);
-        let kept = graph.level_neighbors(0, 0).to_vec();
-        assert!(
-            kept.iter().all(|slot| arena.is_alive(*slot)),
-            "a dead entry outlived the tie it was propping: {kept:?}"
-        );
-        assert!(kept.contains(&incoming), "kept={kept:?}");
-        assert_eq!(kept.len(), cap - REVERSE_PRUNE_SLACK, "kept={kept:?}");
-    }
-
-    #[test]
-    fn link_back_drops_a_dead_entry_before_a_live_one_at_an_upper_level() {
-        let cap = UPPER_LEVEL_NEIGHBOR_CAP;
-        let mut arena = VectorArena::new(16).unwrap();
-        for index in 0..=cap + 1 {
-            let vector = seeded_unit_vector(0x22C0_0000 + index as u64, 16);
-            arena.upsert(&format!("key-{index}"), &vector).unwrap();
-        }
-        let mut graph = Graph::new();
-        graph.reserve_slots(arena.slot_count());
-        for index in 0..=cap + 1 {
-            graph.attach_empty_node(index as u32, 1);
-        }
-        let full: Vec<u32> = (1..=cap as u32).collect();
-        graph.write_level_list(0, 1, &full);
-        let nearest = ordered_by_distance(&arena, 0, &full)[0];
-        assert!(arena.remove(&format!("key-{nearest}")).is_some());
-        let incoming = cap as u32 + 1;
-        graph.link_back(0, 1, incoming, cap, &arena);
-        let kept = graph.level_neighbors(0, 1).to_vec();
-        assert!(kept.len() <= cap, "upper level overflowed: {kept:?}");
-        assert!(
-            !kept.contains(&nearest),
-            "the nearest dead entry {nearest} survived at level 1: {kept:?}"
-        );
-        assert!(
-            kept.iter().all(|slot| arena.is_alive(*slot)),
-            "a dead entry survived at level 1: {kept:?}"
-        );
-        assert_eq!(kept.len(), cap - REVERSE_PRUNE_SLACK, "kept={kept:?}");
-    }
-
-    #[test]
     fn link_back_lets_a_retired_owner_admit_a_live_node() {
         let cap = LEVEL_ZERO_NEIGHBOR_CAP;
         let incoming = cap as u32 + 1;
@@ -1804,6 +1694,113 @@ mod tests {
             "a dead owner refused the live node: {kept:?}"
         );
         assert!(kept.len() <= cap);
+    }
+
+    #[test]
+    fn overflowing_backlinks_replace_redundant_retired_neighbors_with_live_ones() {
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            for (level, retire_owner) in [(0, false), (0, true), (1, false), (1, true)] {
+                let cap = neighbor_cap(level) as u32;
+                let incoming = cap + 1;
+                let mut arena = VectorArena::with_storage(32, storage).unwrap();
+                let mut vector = vec![0.0; 32];
+                vector[0] = 1.0;
+                arena.upsert("owner", &vector).unwrap();
+                if retire_owner {
+                    arena.remove("owner").unwrap();
+                }
+                vector[1] = 0.1;
+                let retired = normalized(vector.clone());
+                for index in 1..=cap {
+                    let key = format!("old-{index}");
+                    arena.upsert(&key, &retired).unwrap();
+                    arena.remove(&key).unwrap();
+                }
+                vector[1] = 0.15;
+                arena.upsert("incoming", &normalized(vector)).unwrap();
+                let parts = (0..=incoming)
+                    .map(|slot| GraphNodeParts {
+                        slot,
+                        level: level as u8,
+                        neighbors: vec![
+                            if slot == 0 {
+                                (1..=cap).collect()
+                            } else {
+                                vec![0]
+                            };
+                            level + 1
+                        ],
+                    })
+                    .collect();
+                let mut graph =
+                    Graph::from_parts(Some(0), parts, arena.slot_count(), u64::from(incoming) + 1)
+                        .unwrap();
+                graph.link_back(0, level, incoming, cap as usize, &arena);
+                let neighbors = graph.neighbors_of(0, level as u8);
+                assert_eq!(neighbors.len(), cap as usize);
+                assert!(neighbors.contains(&incoming));
+                assert!(!neighbors.contains(&cap));
+            }
+        }
+    }
+
+    #[test]
+    fn overflowing_backlinks_preserve_a_diverse_retired_bridge() {
+        for storage in [StorageKind::F32, StorageKind::I8] {
+            let mut arena = VectorArena::with_storage(32, storage).unwrap();
+            let mut owner = vec![0.0; 32];
+            owner[0] = 1.0;
+            arena.upsert("owner", &owner).unwrap();
+            let mut nearby = owner;
+            nearby[1] = 0.1;
+            let nearby = normalized(nearby);
+            for index in 1..32 {
+                arena.upsert(&format!("near-{index}"), &nearby).unwrap();
+            }
+            let mut bridge = vec![0.0; 32];
+            bridge[1] = -1.0;
+            arena.upsert("bridge", &bridge).unwrap();
+            let mut survivor = bridge;
+            survivor[2] = 0.1;
+            let survivor = normalized(survivor);
+            arena.upsert("survivor", &survivor).unwrap();
+            let parts = (0..34)
+                .map(|slot| GraphNodeParts {
+                    slot,
+                    level: 0,
+                    neighbors: vec![match slot {
+                        0 => (1..=32).collect(),
+                        32 => vec![33],
+                        _ => vec![0],
+                    }],
+                })
+                .collect();
+            let mut graph = Graph::from_parts(Some(0), parts, 34, 34).unwrap();
+            arena.remove("bridge").unwrap();
+            let query = arena.pack_query(&survivor).unwrap();
+            for index in 0..80 {
+                let slot = match arena.upsert("incoming", &nearby).unwrap() {
+                    UpsertOutcome::Appended { slot, .. } => slot,
+                    UpsertOutcome::Kept(_) => panic!("incoming was not retired"),
+                };
+                graph.reserve_slots(arena.slot_count());
+                graph.attach_empty_node(slot, 0);
+                graph.write_level_list(slot, 0, &[0]);
+                graph.link_back(0, 0, slot, LEVEL_ZERO_NEIGHBOR_CAP, &arena);
+                assert!(graph.neighbors_of(0, 0).contains(&32), "round {index}");
+                for (limit, distance) in [(Some(1), None), (None, Some(0.05))] {
+                    let found = search(
+                        &graph,
+                        &arena,
+                        &query,
+                        &params(limit, distance, false),
+                        None,
+                    );
+                    assert_eq!(keys(&found), ["survivor"]);
+                }
+                arena.remove("incoming").unwrap();
+            }
+        }
     }
 
     #[test]
@@ -2011,11 +2008,8 @@ mod tests {
             assert_eq!(graph.neighbors_of(7, layer as u8), list.as_slice());
         }
         for slot in pointing_at_old {
-            let list = graph.neighbors_of(slot, 0);
-            assert!(
-                list.contains(&7) || list.contains(&300),
-                "slot {slot} dropped the retired node without admitting the live one"
-            );
+            let neighbors = graph.neighbors_of(slot, 0);
+            assert!(neighbors.contains(&7) || neighbors.contains(&300));
         }
         assert!(!arena.is_alive(7));
         assert_eq!(arena.slot_of_key("key-7"), Some(300));

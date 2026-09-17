@@ -15,7 +15,7 @@ use super::kernel::{StoredVector, VectorPayload, quantize_for};
 use super::lock::WriterLock;
 use super::log::{
     HEADER_LEN, Log, LogCheckpoint, LogEntry, LogRecord, header_generation, open_writer_file,
-    remove_if_present, remove_stale_temp_sibling, sync_parent_dir,
+    remove_if_present, remove_stale_temp_sibling, sync_parent_dir, validate_entry,
 };
 use super::snapshot::{
     LoadedSnapshot, load_snapshot, remove_snapshot, snapshot_path, write_snapshot,
@@ -553,6 +553,17 @@ impl VecDb {
             Some(stored) => stored[index].as_payload(),
             None => VectorPayload::F32(&vectors[index]),
         };
+        for (index, key) in keys.iter().enumerate() {
+            validate_entry(
+                &LogEntry::Add {
+                    key,
+                    vector: payload_of(index),
+                    attrs: attrs_of(index),
+                },
+                self.shared.dims,
+                self.shared.storage,
+            )?;
+        }
         let last_entry_of_key: HashMap<&str, usize> = keys
             .iter()
             .enumerate()
@@ -6289,7 +6300,10 @@ mod tests {
             for (layer, list) in lists.iter().enumerate() {
                 assert_eq!(graph.neighbors_of(retired, layer as u8), list.as_slice());
             }
-            assert_eq!(level_zero_sources(graph, retired), sources);
+            for source in sources {
+                let neighbors = graph.neighbors_of(source, 0);
+                assert!(neighbors.contains(&retired) || neighbors.contains(&300));
+            }
             assert!(graph.level_of(300).is_some());
         }
         assert_eq!(db.get("key-7").unwrap().unwrap(), new_vector);

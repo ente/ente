@@ -821,7 +821,7 @@ fn decode_header(bytes: &[u8; HEADER_LEN]) -> Result<Header, VecDbError> {
     })
 }
 
-fn validate_entry(
+pub(crate) fn validate_entry(
     entry: &LogEntry<'_>,
     dims: usize,
     storage: StorageKind,
