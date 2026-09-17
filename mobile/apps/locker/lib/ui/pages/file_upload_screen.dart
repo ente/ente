@@ -11,10 +11,12 @@ import "package:locker/utils/file_icon_utils.dart";
 import 'package:path/path.dart' as path;
 
 class FileUploadScreenResult {
+  final List<File> files;
   final String note;
   final List<Collection> selectedCollections;
 
   FileUploadScreenResult({
+    required this.files,
     required this.note,
     required this.selectedCollections,
   });
@@ -208,6 +210,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                         .where((c) => _selectedCollectionIds.contains(c.id))
                         .toList();
                     final result = FileUploadScreenResult(
+                      files: List<File>.of(_files),
                       note: '',
                       selectedCollections: selectedCollections,
                     );
