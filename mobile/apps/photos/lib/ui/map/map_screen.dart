@@ -12,6 +12,7 @@ import "package:latlong2/latlong.dart";
 import "package:logging/logging.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/location/location.dart";
+import "package:photos/services/filter/db_filters.dart";
 import "package:photos/src/rust/api/map_cluster_api.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/map/image_marker.dart";
@@ -76,7 +77,11 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> initialize() async {
     try {
       center = widget.center;
-      allImages = await widget.filesFutureFn();
+      final unfilteredFiles = await widget.filesFutureFn();
+      allImages = await applyDBFilters(
+        unfilteredFiles,
+        DBFilterOptions(dedupeUploadID: false, ignoreSavedFiles: true),
+      );
       await processFiles(allImages);
     } catch (e, s) {
       _logger.severe("Error initializing map screen", e, s);
