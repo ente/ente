@@ -11,6 +11,7 @@ mod log;
 mod snapshot;
 mod store;
 
+pub use arena::validate_key;
 pub use store::{OpenCost, Stats, VecDb};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

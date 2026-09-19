@@ -16,7 +16,7 @@ pub(crate) enum UpsertOutcome {
     Unchanged(u32),
 }
 
-pub(crate) fn validate_key(key: &str) -> Result<(), VecDbError> {
+pub fn validate_key(key: &str) -> Result<(), VecDbError> {
     if key.is_empty() {
         return Err(VecDbError::InvalidKey("key is empty".to_string()));
     }

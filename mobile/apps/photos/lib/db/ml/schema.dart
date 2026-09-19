@@ -245,3 +245,13 @@ CREATE TABLE IF NOT EXISTS $petBodyVectorIdMappingTable (
 
 const deletePetBodyVectorIdMappingTable =
     'DELETE FROM $petBodyVectorIdMappingTable';
+
+const mlStoreMetaTable = 'ml_store_meta';
+
+const createMlStoreMetaTable =
+    '''
+CREATE TABLE IF NOT EXISTS $mlStoreMetaTable (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+''';
