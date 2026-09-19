@@ -20,6 +20,7 @@ import {
 import type { SxProps, Theme } from "@mui/material/styles";
 import React, { forwardRef, memo, useImperativeHandle, useRef } from "react";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
+import { ContextMeter } from "./ContextMeter";
 
 interface IconProps {
     size: number;
@@ -51,6 +52,12 @@ type SuggestedModelStatus =
 export type ChatComposerHandle = ChatInputHandle;
 
 export interface ChatComposerProps {
+    contextUsage?: {
+        usedTokens: number;
+        totalTokens: number;
+        estimated?: boolean;
+    };
+    onDraftChange: (text: string) => void;
     showModelGate: boolean;
     showDownloadProgress: boolean;
     downloadStatus: DownloadProgress | null;
@@ -92,6 +99,8 @@ export interface ChatComposerProps {
 export const ChatComposer = memo(
     forwardRef<ChatInputHandle, ChatComposerProps>(function ChatComposer(
         {
+            contextUsage,
+            onDraftChange,
             showModelGate,
             showDownloadProgress,
             downloadStatus,
@@ -140,10 +149,11 @@ export const ChatComposer = memo(
                 focus: () => inputRef.current?.focus(),
                 setText: (text) => {
                     draftRef.current = text;
+                    onDraftChange(text);
                     inputRef.current?.setText(text);
                 },
             }),
-            [],
+            [onDraftChange],
         );
 
         const isModelPreparationActive =
@@ -546,6 +556,21 @@ export const ChatComposer = memo(
                                     )}
 
                                     <ChatInput
+                                        contextIndicator={
+                                            contextUsage && (
+                                                <ContextMeter
+                                                    estimated={
+                                                        contextUsage.estimated
+                                                    }
+                                                    usedTokens={
+                                                        contextUsage.usedTokens
+                                                    }
+                                                    totalTokens={
+                                                        contextUsage.totalTokens
+                                                    }
+                                                />
+                                            )
+                                        }
                                         ref={inputRef}
                                         actionIconProps={actionIconProps}
                                         disableAttachmentButton={
@@ -569,6 +594,7 @@ export const ChatComposer = memo(
                                         initialText={draftRef.current}
                                         onTextChange={(text) => {
                                             draftRef.current = text;
+                                            onDraftChange(text);
                                         }}
                                         openAttachmentMenu={openAttachmentMenu}
                                         showAttachmentPicker={
