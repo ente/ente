@@ -35,6 +35,7 @@ internal object BackgroundRuntime {
     private const val TASK_DATA = "task"
     private const val WORK_TAG = "io.ente.background"
     private const val IDENTIFIER_TAG_PREFIX = "io.ente.background.task:"
+    private const val PREEMPTION_TIMEOUT_MS = 30_000L
     private val main = Handler(Looper.getMainLooper())
     private val scheduler = Executors.newSingleThreadExecutor()
     private val observers = LinkedHashSet<BackgroundManagerPlugin>()
@@ -44,6 +45,7 @@ internal object BackgroundRuntime {
     private var isAllowed: () -> Boolean = { false }
     private var isForeground = false
     private var active: Run? = null
+    private var pending: Pending? = null
     var createEngine: (Context) -> FlutterEngine = { FlutterEngine(it) }
     var findCallback: (Long) -> FlutterCallbackInformation? =
         FlutterCallbackInformation::lookupCallbackInformation
@@ -64,6 +66,15 @@ internal object BackgroundRuntime {
         var budgetTimer: Runnable? = null
         var foregroundTimer: Runnable? = null
         val stopResults = ArrayList<MethodChannel.Result>()
+    }
+
+    private class Pending(
+        val worker: BackgroundWorker,
+        val configuration: TaskConfiguration,
+        val startedAt: Long,
+        val completion: (Boolean) -> Unit,
+    ) {
+        var timer: Runnable? = null
     }
 
     fun install(app: Application, allowed: () -> Boolean) {
@@ -121,10 +132,12 @@ internal object BackgroundRuntime {
 
     fun foreground() {
         isForeground = true
+        skipPending("foreground")
         active?.let { stop(it, "foreground") }
     }
 
     fun requestStop(result: MethodChannel.Result? = null) {
+        skipPending("requested")
         val run = active
         if (run == null) {
             result?.success(null)
@@ -324,10 +337,12 @@ internal object BackgroundRuntime {
                     completion(false)
                     return@onMain
                 }
+            val occupant = active
+            val preempts = occupant != null && canPreempt(occupant, configuration)
             val skip =
                 when {
                     !enabled -> "disabled"
-                    active != null -> "busy"
+                    occupant != null && !preempts -> "busy"
                     isForeground -> "foreground"
                     else -> null
                 }
@@ -337,6 +352,10 @@ internal object BackgroundRuntime {
                     retireUnselectedSchedule(configuration.identifier)
                 }
                 completion(true)
+                return@onMain
+            }
+            if (occupant != null) {
+                preempt(occupant, Pending(worker, configuration, startedAt, completion))
                 return@onMain
             }
             val run = Run(worker, configuration, startedAt, completion)
@@ -458,8 +477,48 @@ internal object BackgroundRuntime {
         if (Looper.myLooper() == main.looper) action() else main.post { action() }
     }
 
+    private fun canPreempt(occupant: Run, configuration: TaskConfiguration): Boolean =
+        pending == null &&
+            !isForeground &&
+            occupant.teardownFailure == null &&
+            occupant.configuration.kind == "refresh" &&
+            configuration.kind == "processing"
+
+    private fun preempt(occupant: Run, waiting: Pending) {
+        pending = waiting
+        waiting.timer =
+            Runnable { if (pending === waiting) skipPending("busy") }
+                .also { main.postDelayed(it, PREEMPTION_TIMEOUT_MS) }
+        stop(occupant, "preempted")
+    }
+
+    private fun takePending(): Pending? {
+        val waiting = pending ?: return null
+        pending = null
+        waiting.timer?.let(main::removeCallbacks)
+        return waiting
+    }
+
+    private fun skipPending(reason: String) {
+        val waiting = takePending() ?: return
+        report(waiting.configuration.identifier, "skipped", reason)
+        waiting.completion(true)
+    }
+
+    private fun resumePending() {
+        val waiting = takePending() ?: return
+        start(waiting.worker, waiting.startedAt, waiting.completion)
+    }
+
     fun nativeStop(worker: BackgroundWorker) {
         main.post {
+            pending
+                ?.takeIf { it.worker === worker }
+                ?.let {
+                    takePending()
+                    report(it.configuration.identifier, "stopped", "system")
+                    it.completion(true)
+                }
             active
                 ?.takeIf { it.worker === worker }
                 ?.let {
@@ -527,12 +586,14 @@ internal object BackgroundRuntime {
             run.stopResults.forEach { it.error("teardown", failure.message, null) }
             run.stopResults.clear()
             run.completion(false)
+            resumePending()
             return
         }
         if (terminal != "completed") report(run.configuration.identifier, terminal, reason, error)
         run.completion(terminal != "failed" && terminal != "forcedTeardown")
         run.stopResults.forEach { it.success(null) }
         run.stopResults.clear()
+        resumePending()
     }
 
     private fun retireUnselectedSchedule(identifier: String) {

@@ -6,6 +6,8 @@
 		<array>
 			<string>io.ente.frame.iOSBackgroundAppRefresh</string>
 			<string>io.ente.frame.iOSBackgroundProcessing</string>
+			<string>io.ente.photos.nativeBackgroundRefresh</string>
+			<string>io.ente.photos.nativeBackgroundProcessing</string>
 		</array>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>

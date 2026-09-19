@@ -6,7 +6,7 @@ import "package:flutter/widgets.dart";
 
 enum BackgroundTaskKind { refresh, processing }
 
-enum BackgroundStopReason { foreground, budget, requested, system }
+enum BackgroundStopReason { foreground, budget, requested, preempted, system }
 
 enum BackgroundTaskResult { completed, skipped, stopped, failed }
 

@@ -11,22 +11,32 @@ import dev.fluttercommunity.workmanager.TaskDebugInfo
 import dev.fluttercommunity.workmanager.TaskResult
 import dev.fluttercommunity.workmanager.WorkmanagerDebug
 import dev.fluttercommunity.workmanager.pigeon.TaskStatus
-import org.json.JSONObject
+import io.ente.background.BackgroundManagerPlugin
 import kotlin.random.Random
+import org.json.JSONObject
 
 class EnteApplication : Application() {
   override fun onCreate() {
     super.onCreate()
     WorkmanagerDebug.setCurrent(EnteWorkmanagerDebugHandler())
     ForegroundHeartbeat.install(this)
+    BackgroundManagerPlugin.install(this) {
+      val prefs = getSharedPreferences(FLUTTER_SHARED_PREFERENCES, Context.MODE_PRIVATE)
+      !prefs.getBoolean(INTERNAL_USER_DISABLED_KEY, false) &&
+        (BuildConfig.DEBUG ||
+          runCatching {
+              JSONObject(prefs.getString(REMOTE_FLAGS_KEY, "{}") ?: "{}").opt("internalUser") ==
+                true
+            }
+            .getOrDefault(false))
+    }
   }
 
   companion object {
     const val FLUTTER_SHARED_PREFERENCES = "FlutterSharedPreferences"
     const val REMOTE_FLAGS_KEY = "flutter.remote_flags"
     const val INTERNAL_USER_DISABLED_KEY = "flutter.ls.internal_user_disabled"
-    const val BG_DEBUG_NOTIFICATIONS_ENABLED_KEY =
-      "flutter.ls.bg_debug_notifications_enabled"
+    const val BG_DEBUG_NOTIFICATIONS_ENABLED_KEY = "flutter.ls.bg_debug_notifications_enabled"
     const val TAG = "EnteApplication"
   }
 }
@@ -90,14 +100,15 @@ private class EnteWorkmanagerDebugHandler : WorkmanagerDebug() {
 
     return runCatching {
       JSONObject(remoteFlags).optBoolean("internalUser", false)
-    }.getOrElse {
-      Log.w(
-        EnteApplication.TAG,
-        "Failed to parse remote flags for Workmanager debug handler",
-        it,
-      )
-      false
     }
+      .getOrElse {
+        Log.w(
+          EnteApplication.TAG,
+          "Failed to parse remote flags for Workmanager debug handler",
+          it,
+        )
+        false
+      }
   }
 
   private fun formatNotification(
@@ -152,15 +163,16 @@ private class EnteWorkmanagerDebugHandler : WorkmanagerDebug() {
   private fun ensureNotificationChannel(notificationManager: NotificationManager) {
     val channel =
       NotificationChannel(
-        CHANNEL_ID,
-        CHANNEL_NAME,
-        NotificationManager.IMPORTANCE_MIN,
-      ).apply {
-        setSound(null, null)
-        enableVibration(false)
-        vibrationPattern = longArrayOf(0L)
-        setShowBadge(false)
-      }
+          CHANNEL_ID,
+          CHANNEL_NAME,
+          NotificationManager.IMPORTANCE_MIN,
+        )
+        .apply {
+          setSound(null, null)
+          enableVibration(false)
+          vibrationPattern = longArrayOf(0L)
+          setShowBadge(false)
+        }
     notificationManager.createNotificationChannel(channel)
   }
 

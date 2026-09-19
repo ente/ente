@@ -36,6 +36,8 @@ dependencies:
   encrypt: 5.0.3
   ente_account_deletion:
     path: ../../packages/account_deletion
+  ente_background_manager:
+    path: plugins/ente_background_manager
   ente_cast:
     path: plugins/ente_cast
   ente_components:

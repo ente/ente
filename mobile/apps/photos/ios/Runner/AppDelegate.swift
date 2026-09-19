@@ -3,6 +3,7 @@ import Flutter
 import UIKit
 import UserNotifications
 import app_links
+import ente_background_manager
 import workmanager_apple
 
 @main
@@ -33,6 +34,14 @@ import workmanager_apple
     }
 
     GeneratedPluginRegistrant.register(with: self)
+    BackgroundManagerPlugin.install(
+      isEnabled: { Self.shouldUseNativeBackgroundManager() },
+      registrant: { registry in GeneratedPluginRegistrant.register(with: registry) }
+    )
+    BackgroundManagerPlugin.registerTask(
+      identifier: "io.ente.photos.nativeBackgroundRefresh", processing: false)
+    BackgroundManagerPlugin.registerTask(
+      identifier: "io.ente.photos.nativeBackgroundProcessing", processing: true)
     WorkmanagerPlugin.setPluginRegistrantCallback { registry in
       GeneratedPluginRegistrant.register(with: registry)
     }
@@ -63,19 +72,38 @@ import workmanager_apple
     )
   }
 
+  private static func shouldUseNativeBackgroundManager() -> Bool {
+    let defaults = UserDefaults.standard
+    guard !defaults.bool(forKey: "flutter.ls.internal_user_disabled") else {
+      return false
+    }
+    #if DEBUG
+      return true
+    #else
+      guard let remoteFlags = defaults.string(forKey: "flutter.remote_flags"),
+        let data = remoteFlags.data(using: .utf8),
+        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+      else {
+        return false
+      }
+      return json["internalUser"] as? Bool ?? false
+    #endif
+  }
+
   private func shouldEnableWorkmanagerDebugNotifications() -> Bool {
     let defaults = UserDefaults.standard
     if defaults.bool(forKey: "flutter.ls.internal_user_disabled") {
       return false
     }
-    if !defaults.bool(forKey: "flutter.ls.bg_debug_notifications_enabled") &&
-        defaults.object(forKey: "flutter.ls.bg_debug_notifications_enabled") != nil {
+    if !defaults.bool(forKey: "flutter.ls.bg_debug_notifications_enabled")
+      && defaults.object(forKey: "flutter.ls.bg_debug_notifications_enabled") != nil
+    {
       return false
     }
 
     guard let remoteFlags = defaults.string(forKey: "flutter.remote_flags"),
-          let data = remoteFlags.data(using: .utf8),
-          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+      let data = remoteFlags.data(using: .utf8),
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     else {
       return false
     }

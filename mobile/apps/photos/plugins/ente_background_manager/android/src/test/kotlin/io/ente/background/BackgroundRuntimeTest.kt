@@ -69,19 +69,26 @@ class BackgroundRuntimeTest {
         awaitReply(beginConfigure(policy, enabled))
     }
 
-    private fun beginConfigure(policy: TaskConfiguration, enabled: Boolean = true): Reply {
-        val data = org.json.JSONObject(policy.encode())
+    private fun configure(policies: List<TaskConfiguration>) {
+        awaitReply(beginConfigure(policies, enabled = true))
+    }
+
+    private fun beginConfigure(policy: TaskConfiguration, enabled: Boolean = true): Reply =
+        beginConfigure(listOf(policy), enabled)
+
+    private fun beginConfigure(policies: List<TaskConfiguration>, enabled: Boolean): Reply {
         val result = Reply()
         BackgroundRuntime.configure(
             mapOf(
                 "enabled" to enabled,
                 "callbackHandle" to 1L,
                 "tasks" to
-                    listOf(
+                    policies.map { policy ->
+                        val data = org.json.JSONObject(policy.encode())
                         data.keys().asSequence().associateWith { key ->
                             data.get(key).takeUnless { it === org.json.JSONObject.NULL }
                         }
-                    ),
+                    },
             ),
             result,
         )
@@ -410,6 +417,66 @@ class BackgroundRuntimeTest {
 
         reconfigureWhileStarting(cooperative, enabled = true)
         reconfigureWhileStarting(cooperative, enabled = false)
+
+        val processing = cooperative.copy(identifier = "test.processing", kind = "processing")
+        configure(listOf(cooperative, processing))
+        val yielding = worker(cooperative).startWork()
+        val yieldingChannel = bootstrap()
+        val yieldingReady = yieldingChannel.call("ready") as Map<*, *>
+        val enginesBeforePreemption = engines.size
+        val waiting = worker(processing).startWork()
+        assertFalse(waiting.isDone)
+        assertTrue(startups.isEmpty())
+        assertEquals(enginesBeforePreemption, engines.size)
+        assertEquals("preempted", (yieldingChannel.sent.single().arguments as Map<*, *>)["reason"])
+        assertEquals(ListenableWorker.Result.success(), worker(processing).startWork().get())
+        assertFalse(waiting.isDone)
+        complete(yieldingChannel, yieldingReady)
+        assertEquals(ListenableWorker.Result.success(), yielding.get())
+        val resumedChannel = bootstrap()
+        val resumedReady = resumedChannel.call("ready") as Map<*, *>
+        assertEquals(processing.identifier, resumedReady["identifier"])
+        assertNull(resumedReady["stopReason"])
+        assertEquals(ListenableWorker.Result.success(), worker(cooperative).startWork().get())
+        assertTrue(resumedChannel.sent.isEmpty())
+        complete(resumedChannel, resumedReady)
+        assertEquals(ListenableWorker.Result.success(), waiting.get())
+
+        val unyielding = worker(cooperative).startWork()
+        val unyieldingChannel = bootstrap()
+        val unyieldingReady = unyieldingChannel.call("ready") as Map<*, *>
+        val timedOut = worker(processing).startWork()
+        main.idleFor(Duration.ofSeconds(29))
+        assertFalse(timedOut.isDone)
+        main.idleFor(Duration.ofSeconds(2))
+        assertEquals(ListenableWorker.Result.success(), timedOut.get())
+        complete(unyieldingChannel, unyieldingReady)
+        assertTrue(unyielding.isDone)
+        assertTrue(startups.isEmpty())
+
+        val interruptedRefresh = worker(cooperative).startWork()
+        val interruptedChannel = bootstrap()
+        val interruptedReady = interruptedChannel.call("ready") as Map<*, *>
+        val abandoned = worker(processing).startWork()
+        assertFalse(abandoned.isDone)
+        val arriving = Robolectric.buildActivity(Activity::class.java).create().start().resume()
+        assertEquals(ListenableWorker.Result.success(), abandoned.get())
+        complete(interruptedChannel, interruptedReady)
+        assertTrue(interruptedRefresh.isDone)
+        assertTrue(startups.isEmpty())
+        arriving.pause().stop().destroy()
+
+        val stoppedRefresh = worker(cooperative).startWork()
+        val stoppedRefreshChannel = bootstrap()
+        val stoppedRefreshReady = stoppedRefreshChannel.call("ready") as Map<*, *>
+        val stoppedWhileWaitingWorker = worker(processing)
+        val stoppedWhileWaiting = stoppedWhileWaitingWorker.startWork()
+        stoppedWhileWaitingWorker.onStopped()
+        main.idle()
+        complete(stoppedRefreshChannel, stoppedRefreshReady)
+        assertTrue(stoppedRefresh.isDone)
+        assertTrue(startups.isEmpty())
+        assertEquals(ListenableWorker.Result.success(), stoppedWhileWaiting.get())
         configure(cooperative)
 
         val teardownWorker = worker(cooperative)
