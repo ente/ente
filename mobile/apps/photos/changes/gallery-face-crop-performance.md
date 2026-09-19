@@ -1,0 +1,1 @@
+- Improved gallery performance when many items load the same uncached face avatar.

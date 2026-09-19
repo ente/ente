@@ -1,4 +1,3 @@
-import "dart:async";
 import "dart:io" show File;
 import "dart:math" show pow;
 
@@ -17,6 +16,7 @@ import "package:photos/module/download/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/machine_learning/face_thumbnail_generator.dart";
+import "package:photos/utils/face/face_crop_request_queue.dart";
 
 final _logger = Logger("FaceCropUtils");
 
@@ -26,16 +26,8 @@ final LRUMap<String, Uint8List?> _faceCropThumbnailCache = LRUMap(100);
 
 final LRUMap<String, String> _personOrClusterIdToCachedFaceID = LRUMap(2000);
 
-TaskQueue _queueFullFileFaceGenerations = TaskQueue<String>(
-  maxConcurrentTasks: 5,
-  taskTimeout: const Duration(minutes: 1),
-  maxQueueSize: 100,
-);
-TaskQueue _queueThumbnailFaceGenerations = TaskQueue<String>(
-  maxConcurrentTasks: 5,
-  taskTimeout: const Duration(minutes: 1),
-  maxQueueSize: 100,
-);
+final _queueFullFileFaceGenerations = FaceCropRequestQueue();
+final _queueThumbnailFaceGenerations = FaceCropRequestQueue();
 
 Uint8List? checkInMemoryCachedCropForPersonOrClusterID(
   String personOrClusterID,
@@ -333,9 +325,7 @@ Future<Map<String, Uint8List>?> _getFaceCropsUsingHeapPriorityQueue(
   Map<String, FaceBox> faceBoxeMap, {
   bool useFullFile = true,
 }) async {
-  final completer = Completer<Map<String, Uint8List>?>();
-
-  late final TaskQueue relevantTaskQueue;
+  late final FaceCropRequestQueue relevantTaskQueue;
   late final String taskId;
   if (useFullFile) {
     relevantTaskQueue = _queueFullFileFaceGenerations;
@@ -345,16 +335,11 @@ Future<Map<String, Uint8List>?> _getFaceCropsUsingHeapPriorityQueue(
     taskId = await _faceCropTaskId(file, useFullFile: false);
   }
 
-  await relevantTaskQueue.addTask(taskId, () async {
-    final faceCrops = await _getFaceCrops(
-      file,
-      faceBoxeMap,
-      useFullFile: useFullFile,
-    );
-    completer.complete(faceCrops);
-  });
-
-  return completer.future;
+  return relevantTaskQueue.getCrops(
+    taskId,
+    faceBoxeMap,
+    (faceBoxes) => _getFaceCrops(file, faceBoxes, useFullFile: useFullFile),
+  );
 }
 
 Future<String> _faceCropTaskId(
