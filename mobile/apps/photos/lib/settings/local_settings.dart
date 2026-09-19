@@ -151,6 +151,10 @@ class LocalSettings {
   );
   static const _kCraftingMemoriesBannerDismissed =
       'is_crafting_memories_banner_dismissed';
+  static const _kInitialMemoriesNotificationScheduledAt =
+      "memories.initial_notification_scheduled_at";
+  static const _kForcedInitialMemoriesRefresh =
+      "memories.forced_initial_memories_refresh";
 
   final SharedPreferences _prefs;
 
@@ -455,6 +459,10 @@ class LocalSettings {
     } else {
       return 0;
     }
+  }
+
+  bool hasInstallDateTime() {
+    return _prefs.containsKey('ls.install_time');
   }
 
   DateTime getInstallDateTime() {
@@ -895,6 +903,25 @@ class LocalSettings {
 
   Future<void> setCraftingMemoriesBannerDismissed() async {
     await _prefs.setBool(_kCraftingMemoriesBannerDismissed, true);
+  }
+
+  int? initialMemoriesNotificationScheduledAt() {
+    return _prefs.getInt(_kInitialMemoriesNotificationScheduledAt);
+  }
+
+  Future<void> markInitialMemoriesNotificationScheduled() async {
+    await _prefs.setInt(
+      _kInitialMemoriesNotificationScheduledAt,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  bool hasForcedInitialMemoriesRefresh() {
+    return _prefs.getBool(_kForcedInitialMemoriesRefresh) ?? false;
+  }
+
+  Future<void> markForcedInitialMemoriesRefresh() async {
+    await _prefs.setBool(_kForcedInitialMemoriesRefresh, true);
   }
 
   Future<bool> getCraftingMemoriesBannerDismissed() async {
