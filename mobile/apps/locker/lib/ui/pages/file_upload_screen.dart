@@ -7,16 +7,19 @@ import "package:hugeicons/hugeicons.dart";
 import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/configuration.dart';
 import 'package:locker/ui/components/collection_selection_widget.dart';
+import 'package:locker/ui/components/text_input_sheet.dart';
 import "package:locker/utils/file_icon_utils.dart";
 import 'package:path/path.dart' as path;
 
 class FileUploadScreenResult {
   final List<File> files;
+  final Map<String, String> fileNames;
   final String note;
   final List<Collection> selectedCollections;
 
   FileUploadScreenResult({
     required this.files,
+    required this.fileNames,
     required this.note,
     required this.selectedCollections,
   });
@@ -40,6 +43,7 @@ class FileUploadScreen extends StatefulWidget {
 
 class _FileUploadScreenState extends State<FileUploadScreen> {
   List<File> _files = [];
+  final Map<String, String> _fileNames = {};
   List<Collection> _availableCollections = [];
   final Set<int> _selectedCollectionIds = {};
 
@@ -76,6 +80,36 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
     setState(() {
       _availableCollections = updatedCollections;
     });
+  }
+
+  Future<void> _renameFile(File file) async {
+    final currentName = _fileNames[file.path] ?? path.basename(file.path);
+    final extension = path.extension(file.path);
+    final baseName = currentName.substring(
+      0,
+      currentName.length - extension.length,
+    );
+    final l10n = context.strings;
+
+    await showTextInputSheet(
+      context,
+      title: l10n.renameFile,
+      initialValue: baseName,
+      hintText: l10n.enterFileName,
+      submitButtonLabel: l10n.save,
+      onSubmit: (name) async {
+        if (!mounted || name == baseName) return;
+        var cleaned = name.replaceAll(RegExp(r'[/\\\x00-\x1f]'), '').trim();
+        if (extension.isNotEmpty &&
+            cleaned.toLowerCase().endsWith(extension.toLowerCase())) {
+          cleaned = cleaned
+              .substring(0, cleaned.length - extension.length)
+              .trim();
+        }
+        if (cleaned.isEmpty || cleaned == '.' || cleaned == '..') return;
+        setState(() => _fileNames[file.path] = '$cleaned$extension');
+      },
+    );
   }
 
   @override
@@ -211,6 +245,11 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                         .toList();
                     final result = FileUploadScreenResult(
                       files: List<File>.of(_files),
+                      fileNames: {
+                        for (final file in _files)
+                          file.path:
+                              _fileNames[file.path] ?? path.basename(file.path),
+                      },
                       note: '',
                       selectedCollections: selectedCollections,
                     );
@@ -226,7 +265,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
   }
 
   Widget _buildFileItem(File file, ColorTokens colors) {
-    final fileName = path.basename(file.path);
+    final fileName = _fileNames[file.path] ?? path.basename(file.path);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -249,9 +288,11 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
           const SizedBox(width: 12),
           IconButtonComponent(
             tooltip: context.strings.renameFile,
+            shouldSurfaceExecutionStates: false,
+            onTap: () => _renameFile(file),
             icon: HugeIcon(
               icon: HugeIcons.strokeRoundedEdit02,
-              color: colors.textLight,
+              color: colors.textBase,
               size: 20,
             ),
           ),
