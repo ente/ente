@@ -8,6 +8,7 @@ Future<dynamic> showTextInputSheet(
   required String hintText,
   required String submitButtonLabel,
   required FutureVoidCallbackParamStr onSubmit,
+  String? Function(String)? validator,
   String? initialValue,
   TextCapitalization textCapitalization = TextCapitalization.words,
   int? maxLength,
@@ -18,6 +19,7 @@ Future<dynamic> showTextInputSheet(
   var isSubmitting = false;
 
   final canSubmit = ValueNotifier<bool>(currentText.trim().isNotEmpty);
+  final validationError = ValueNotifier<String?>(null);
   final controller = selectInitialValue
       ? TextEditingController.fromValue(
           TextEditingValue(
@@ -35,6 +37,9 @@ Future<dynamic> showTextInputSheet(
     if (text.trim().isEmpty || isSubmitting) {
       return;
     }
+
+    validationError.value = validator?.call(text);
+    if (validationError.value != null) return;
 
     isSubmitting = true;
 
@@ -56,19 +61,27 @@ Future<dynamic> showTextInputSheet(
     builder: (sheetContext) => BottomSheetComponent(
       title: title,
       isKeyboardAware: true,
-      content: TextInputComponent(
-        controller: controller,
-        initialValue: controller == null ? initialValue : null,
-        hintText: hintText,
-        autofocus: true,
-        maxLength: maxLength,
-        textCapitalization: textCapitalization,
-        isPasswordInput: isPasswordInput,
-        onChanged: (value) {
-          currentText = value;
-          canSubmit.value = value.trim().isNotEmpty;
-        },
-        onSubmit: (value) => submit(sheetContext, value),
+      content: ValueListenableBuilder<String?>(
+        valueListenable: validationError,
+        builder: (_, error, _) => TextInputComponent(
+          controller: controller,
+          initialValue: controller == null ? initialValue : null,
+          hintText: hintText,
+          autofocus: true,
+          maxLength: maxLength,
+          textCapitalization: textCapitalization,
+          isPasswordInput: isPasswordInput,
+          message: error,
+          messageType: error == null
+              ? TextInputComponentMessageType.helper
+              : TextInputComponentMessageType.error,
+          onChanged: (value) {
+            currentText = value;
+            canSubmit.value = value.trim().isNotEmpty;
+            validationError.value = null;
+          },
+          onSubmit: (value) => submit(sheetContext, value),
+        ),
       ),
       actions: [
         ValueListenableBuilder<bool>(
@@ -81,6 +94,7 @@ Future<dynamic> showTextInputSheet(
       ],
     ),
   );
+  validationError.dispose();
   controller?.dispose();
   return result;
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import "package:ente_components/ente_components.dart";
@@ -91,23 +92,37 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
     );
     final l10n = context.strings;
 
+    String? nameForUpload(String name) {
+      if (name == baseName) return currentName;
+      var cleaned = name.replaceAll(RegExp(r'[/\\\x00-\x1f]'), '').trim();
+      if (extension.isNotEmpty &&
+          cleaned.toLowerCase().endsWith(extension.toLowerCase())) {
+        cleaned = cleaned
+            .substring(0, cleaned.length - extension.length)
+            .trim();
+      }
+      if (cleaned.isEmpty || cleaned == '.' || cleaned == '..') return null;
+      return '$cleaned$extension';
+    }
+
     await showTextInputSheet(
       context,
       title: l10n.renameFile,
       initialValue: baseName,
       hintText: l10n.enterFileName,
       submitButtonLabel: l10n.save,
+      validator: (name) {
+        final fileName = nameForUpload(name);
+        if (fileName == null) return l10n.enterFileName;
+        // The title is also used as a filesystem name when opening the upload.
+        if (utf8.encode(fileName).length > 255) return l10n.fileNameTooLong;
+        return null;
+      },
       onSubmit: (name) async {
-        if (!mounted || name == baseName) return;
-        var cleaned = name.replaceAll(RegExp(r'[/\\\x00-\x1f]'), '').trim();
-        if (extension.isNotEmpty &&
-            cleaned.toLowerCase().endsWith(extension.toLowerCase())) {
-          cleaned = cleaned
-              .substring(0, cleaned.length - extension.length)
-              .trim();
-        }
-        if (cleaned.isEmpty || cleaned == '.' || cleaned == '..') return;
-        setState(() => _fileNames[file.path] = '$cleaned$extension');
+        if (!mounted) return;
+        final fileName = nameForUpload(name);
+        if (fileName == null) return;
+        setState(() => _fileNames[file.path] = fileName);
       },
     );
   }
