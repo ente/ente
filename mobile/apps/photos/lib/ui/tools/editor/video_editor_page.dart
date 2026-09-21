@@ -5,6 +5,7 @@ import "dart:math";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import "package:logging/logging.dart";
 import 'package:native_video_editor/native_video_editor.dart';
 import 'package:path/path.dart' as path;
@@ -32,6 +33,7 @@ import "package:photos/ui/tools/editor/video_editor/video_editor_main_actions.da
 import "package:photos/ui/tools/editor/video_editor/video_editor_player_control.dart";
 import "package:photos/ui/tools/editor/video_editor/video_editor_widgets.dart";
 import "package:photos/ui/tools/editor/video_rotate_page.dart";
+import 'package:photos/ui/tools/editor/video_speed_page.dart';
 import "package:photos/ui/tools/editor/video_trim_page.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/gallery_save_title.dart";
@@ -222,6 +224,15 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
                                   VideoRotatePage(controller: _controller!),
                                 ),
                               ),
+                              const SizedBox(width: 24),
+                              VideoEditorBottomAction(
+                                label: context.strings.speed,
+                                hugeIcon:
+                                    HugeIcons.strokeRoundedDashboardSpeed02,
+                                onPressed: () => _openSubEditor(
+                                  VideoSpeedPage(controller: _controller!),
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 12),
@@ -240,9 +251,11 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
     if (!await ensurePhotoLibraryAddPermission(context)) return;
     if (!mounted) return;
 
-    final shouldUseNative = flagService.internalUser
-        ? _useNativeExport
-        : flagService.useNativeVideoEditor;
+    final shouldUseNative =
+        (flagService.internalUser
+            ? _useNativeExport
+            : flagService.useNativeVideoEditor) &&
+        _controller!.speed == 1.0;
 
     _logEditState(shouldUseNative: shouldUseNative);
 
@@ -539,6 +552,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
     final startTrimMs = controller.startTrim.inMilliseconds;
     final endTrimMs = controller.endTrim.inMilliseconds;
     final trimmedDurationMs = controller.trimmedDuration.inMilliseconds;
+    final editedDurationMs = controller.editedDuration.inMilliseconds;
     final videoDurationMs = controller.videoDuration.inMilliseconds;
     String fileSpaceCropSummary;
     try {
@@ -559,6 +573,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
       "trim={startMs:$startTrimMs, endMs:$endTrimMs, durationMs:$trimmedDurationMs, "
       "minMs:0, maxMs:$videoDurationMs, "
       "videoDurationMs:$videoDurationMs} "
+      "speed=${controller.speed}, editedDurationMs=$editedDurationMs "
       "crop={$cropInfo}",
     );
   }

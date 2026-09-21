@@ -4208,6 +4208,7 @@
   "sortNewestFirst": "Newest first",
   "sortOldestFirst": "Oldest first",
   "sortZToA": "Z-A",
+  "speed": "Speed",
   "sportsAction": "Game on",
   "sportsWithThem": "Sports with {name}",
   "@sportsWithThem": {

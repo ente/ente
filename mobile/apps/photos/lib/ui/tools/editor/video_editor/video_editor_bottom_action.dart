@@ -6,14 +6,18 @@ class VideoEditorBottomAction extends StatelessWidget {
     super.key,
     required this.label,
     this.icon,
+    this.hugeIcon,
     this.svgPath,
     this.child,
     required this.onPressed,
     this.isSelected = false,
-  }) : assert(icon != null || svgPath != null || child != null);
+  }) : assert(
+         icon != null || hugeIcon != null || svgPath != null || child != null,
+       );
 
   final String label;
   final IconData? icon;
+  final List<List<dynamic>>? hugeIcon;
   final String? svgPath;
   final Widget? child;
   final VoidCallback onPressed;
@@ -26,6 +30,7 @@ class VideoEditorBottomAction extends StatelessWidget {
       onTap: onPressed,
       svgPath: svgPath,
       icon: icon,
+      hugeIcon: hugeIcon,
       size: 60,
       isSelected: isSelected,
       child: child,

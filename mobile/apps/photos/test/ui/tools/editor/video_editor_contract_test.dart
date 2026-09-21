@@ -55,6 +55,20 @@ void main() {
         'scale=trunc(iw/2)*2:trunc(ih/2)*2',
       ]);
     });
+
+    test('applies speed after spatial edits', () {
+      expect(buildFfmpegVideoFilters(crop: null, rotation: 90, speed: 2), [
+        'transpose=1',
+        'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+        'setpts=(PTS-STARTPTS)/2.0',
+      ]);
+    });
+  });
+
+  test('audio tempo chains supported filters for quarter speed', () {
+    expect(buildFfmpegAudioTempoFilters(0.25), ['atempo=0.5', 'atempo=0.5']);
+    expect(buildFfmpegAudioTempoFilters(2), ['atempo=2.0']);
+    expect(buildFfmpegAudioTempoFilters(1), isEmpty);
   });
 
   test('FFmpeg plan preserves file paths as structured arguments', () {
@@ -71,5 +85,29 @@ void main() {
     expect(plan.arguments, contains("/tmp/input video's source.mp4"));
     expect(plan.arguments, contains('/tmp/output video.mp4'));
     expect(plan.arguments, containsAllInOrder(['-map', '0:a?']));
+  });
+
+  test('FFmpeg reads only the trimmed source before changing speed', () {
+    final controller = VideoEditorController.file(File('/tmp/input.mp4'));
+    addTearDown(controller.dispose);
+    controller.updateSpeed(0.25);
+
+    final plan = ExportService.createPlan(
+      controller: controller,
+      outputPath: '/tmp/output.mp4',
+    );
+
+    expect(plan.arguments, containsAllInOrder(['-t', '0.000000', '-i']));
+    expect(
+      plan.arguments,
+      containsAllInOrder([
+        '-vf',
+        'scale=trunc(iw/2)*2:trunc(ih/2)*2,setpts=(PTS-STARTPTS)/0.25',
+      ]),
+    );
+    expect(
+      plan.arguments,
+      containsAllInOrder(['-af', 'atempo=0.5,atempo=0.5']),
+    );
   });
 }
