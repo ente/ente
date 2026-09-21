@@ -1,0 +1,1 @@
+- Changed the photo permission prompt button to "Continue".
