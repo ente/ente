@@ -1,3 +1,4 @@
+import type { SessionStorageCrypto } from "ente-base/session-storage";
 import {
     createContext,
     useContext,
@@ -12,6 +13,7 @@ export interface AuthLoginFrameProps extends PropsWithChildren {
 }
 
 export interface AuthPageConfig {
+    decryptBox: SessionStorageCrypto["decryptBox"];
     LoginFrame?: ComponentType<AuthLoginFrameProps>;
     keepLoginLoadingOnRedirect?: boolean;
     recoveryKeyCloseDestination?: string;

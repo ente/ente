@@ -1,6 +1,5 @@
 import "dart:io";
 
-import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -21,7 +20,7 @@ import "package:photos/ui/components/bottom_action_bar/selection_action_button_w
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/notification/toast.dart";
-import "package:photos/ui/sharing/add_participant_page.dart";
+import "package:photos/ui/sharing/add_people_sheet.dart";
 import "package:photos/ui/viewer/album_slideshow/album_slideshow.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/magic_util.dart";
@@ -277,15 +276,7 @@ class _AlbumSelectionActionWidgetState
   }
 
   Future<void> _shareCollection() async {
-    final actions = <ActionTypesToShow>[
-      ActionTypesToShow.addViewer,
-      ActionTypesToShow.addCollaborator,
-      ActionTypesToShow.addAdmin,
-    ];
-    await routeToPage(
-      context,
-      AddParticipantPage(widget.selectedAlbums.albums.toList(), actions),
-    );
+    await showAddPeopleSheet(context, widget.selectedAlbums.albums.toList());
     widget.selectedAlbums.clearAll();
   }
 

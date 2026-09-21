@@ -43,9 +43,8 @@ class CollectionPopupMenuWidget extends StatelessWidget {
         EntePopupMenuOption(
           value: 'edit',
           label: context.strings.edit,
-          leadingWidget: HugeIcon(
+          leadingWidget: const HugeIcon(
             icon: HugeIcons.strokeRoundedEdit02,
-            color: colors.textBase,
             size: IconSizes.small,
           ),
         ),

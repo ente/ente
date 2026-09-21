@@ -6,7 +6,7 @@ import { CachedSpacePost } from "services/post-cache";
 import type { SpacePost, SpacePostPage } from "services/space";
 import { z } from "zod";
 
-const spaceFeedCacheVersion = 1;
+const spaceFeedCacheVersion = 2;
 const spaceFeedCacheSize = 10;
 
 const SpaceFeedCacheSnapshotSchema = z.object({
@@ -51,6 +51,10 @@ const cacheKey = async (spaceId: string) => {
 const clonePost = (post: SpacePost): SpacePost => ({
     ...post,
     imageAsset: post.imageAsset ? { ...post.imageAsset } : undefined,
+    photos: post.photos?.map((photo) => ({
+        ...photo,
+        imageAsset: photo.imageAsset ? { ...photo.imageAsset } : undefined,
+    })),
 });
 
 const cloneSnapshot = (
@@ -64,6 +68,9 @@ const cacheablePost = (post: SpacePost): SpacePost => {
     const cached = clonePost(post);
     delete cached.avatarUrl;
     delete cached.imageUrl;
+    cached.photos?.forEach((photo) => {
+        delete photo.imageUrl;
+    });
     return cached;
 };
 

@@ -44,6 +44,33 @@ class CollectionShareGateway {
     return sharees;
   }
 
+  Future<List<User>> shareBatch({
+    required int collectionID,
+    required Map<String, String> encryptedKeys,
+    required String role,
+  }) async {
+    final response = await _enteDio.post(
+      "/collections/share/batch",
+      data: {
+        "shares": encryptedKeys.entries
+            .map(
+              (entry) => {
+                "collectionID": collectionID,
+                "email": entry.key,
+                "encryptedKey": entry.value,
+                "role": role,
+              },
+            )
+            .toList(),
+      },
+    );
+    final sharees = <User>[];
+    for (final user in response.data["sharees"]) {
+      sharees.add(User.fromMap(user));
+    }
+    return sharees;
+  }
+
   Future<List<User>> unshare({
     required int collectionID,
     required String email,

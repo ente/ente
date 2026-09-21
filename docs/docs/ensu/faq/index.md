@@ -70,7 +70,8 @@ When encrypted sync and backup arrive (see [below](#sync)), your chats will be e
 Ensu picks a default model based on your device:
 
 - **macOS with 16 GB or more RAM**: Gemma 4 E4B (Q4_K_M), a 4-billion parameter model by Deepmind. This offers higher quality responses on machines that can handle it.
-- **All other platforms** (Android, iOS, Windows, Linux, lower-memory macOS, and web): LFM 2.5 VL 1.6B (Q4_0), a 1.6-billion parameter multimodal model by Liquid AI. This is compact enough to run well on phones and less powerful computers.
+- **High-memory Android and iOS devices**: Gemma 4 E2B (Q4_K_M), a smaller Gemma 4 model intended for mobile devices.
+- **All other platforms** (lower-memory Android and iOS devices, Windows, Linux, lower-memory macOS, and web): LFM 2.5 VL 1.6B (Q4_0), a 1.6-billion parameter multimodal model by Liquid AI. This is compact enough to run well on phones and less powerful computers.
 
 The model downloads automatically on first launch and is around 1 GB in size (varies by model).
 
@@ -99,6 +100,16 @@ Image attachments are not supported on the web version at this time.
 Yes, on iOS and Android. Tap the microphone in the chat composer and speak your prompt. Ensu transcribes it locally on your device, so your voice input is not sent to Ente or any external transcription service.
 
 This voice input feature is not available on the web and desktop version.
+
+### Can Ensu use my notes? {#local-notes}
+
+Yes, on iOS, Android, and desktop. Open **Settings → Your Notes** and add a folder containing Markdown files. Ensu indexes the notes locally so it can use relevant passages in its answers and show the source notes it used.
+
+Ensu does not modify the original files, and removing the folder from Ensu does not delete them. Your Notes is not available on the web version yet.
+
+### What are Ensu Packs? {#ensu-packs}
+
+Ensu Packs are optional knowledge packs that help Ensu provide answers grounded in sources such as Wikipedia and Wikibooks. On iOS, Android, and desktop, open **Settings → Ensu Packs** to download a pack and enable or disable it. Answers that use a pack include source attribution.
 
 ### Does Ensu support web search? {#web-search}
 

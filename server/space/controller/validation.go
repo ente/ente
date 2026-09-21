@@ -17,7 +17,7 @@ const (
 	maxSpaceCaptionCipherDecodedBytes    = 12 * 1024
 	maxSpaceAssetMetadataEncodedBytes    = 8 * 1024
 	maxSpaceAssetMetadataDecodedBytes    = 6 * 1024
-	maxSpacePostObjects                  = 1
+	maxSpacePostObjects                  = repo.MaxPostObjects
 	maxSpaceFriendSharesPerRefresh       = 500
 	maxSpaceObjectKeyBytes               = 512
 	maxSpaceLinkKDFSaltEncodedBytes      = 128

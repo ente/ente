@@ -70,6 +70,18 @@ class UsersGateway {
     }
   }
 
+  Future<List<String>> getPublicKeys(List<String> emails) async {
+    final response = await _enteDio.post(
+      "/users/public-keys",
+      data: {"emails": emails},
+    );
+    final values = response.data["publicKeys"] as List;
+    if (values.length != emails.length) {
+      throw StateError("Public-key batch response length mismatch");
+    }
+    return values.map((value) => value as String).toList();
+  }
+
   Future<UserDetails> getUserDetails({bool memoryCount = true}) async {
     final response = await _enteDio.get(
       "/users/details/v2",

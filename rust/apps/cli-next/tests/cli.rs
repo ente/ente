@@ -31,6 +31,9 @@ fn reads_do_not_initialize_storage() {
             vec!["accounts", "list", "--json"],
             vec!["accounts", "view", "missing"],
             vec!["photos", "album", "list"],
+            vec!["photos", "album", "view", "missing"],
+            vec!["photos", "file", "list"],
+            vec!["photos", "file", "view", "missing"],
             vec!["photos", "api", "/users/details/v2"],
         ] {
             let output = home
@@ -102,6 +105,12 @@ fn deleted_collections_are_filtered_before_decryption() {
             }]})
             .to_string(),
         )
+        .expect(1)
+        .create();
+    let subsequent = server
+        .mock("GET", "/collections/v2")
+        .match_query(mockito::Matcher::UrlEncoded("sinceTime".into(), "1".into()))
+        .with_body(json!({"collections": []}).to_string())
         .expect(2)
         .create();
     let home = TestHome::new();
@@ -111,7 +120,9 @@ fn deleted_collections_are_filtered_before_decryption() {
         success(home.run(&["photos", "album", "list"])).stdout,
         b"No albums.\n"
     );
+    assert!(failure(&home.run(&["photos", "album", "view", "12"])).contains("no album matches"));
     request.assert();
+    subsequent.assert();
 }
 
 #[cfg(unix)]
@@ -409,6 +420,12 @@ fn logout_reconciles_remote_and_local_session_state() {
     );
     assert_eq!(home.json(&["account", "list"]), json!([]));
     assert_eq!(home.read_vault(), json!({"accounts": [], "selected": null}));
+    assert_eq!(
+        fs::read_dir(home.dir.path().join("accounts"))
+            .unwrap()
+            .count(),
+        0
+    );
     revoked.assert();
 
     let unavailable = server
@@ -663,7 +680,7 @@ impl TestHome {
         self.write_vault(&json!({
             "selected": id,
             "accounts": [{
-                "storage_id": id, "name": "fixture", "email": "fixture@example.org",
+                "storage_id": id, "db_key": vec![42u8; 32], "name": "fixture", "email": "fixture@example.org",
                 "origin": origin, "user_id": 9007199254740993i64,
                 "identity": {
                     "master_key": vec![0u8; 32], "recovery_key": vec![0u8; 32],
@@ -718,6 +735,9 @@ fn failure(output: &Output) -> String {
     assert!(!output.status.success(), "command unexpectedly succeeded");
     String::from_utf8_lossy(&output.stderr).into_owned()
 }
+
+#[path = "support/files.rs"]
+mod files;
 
 #[cfg(feature = "museum")]
 #[path = "support/museum.rs"]

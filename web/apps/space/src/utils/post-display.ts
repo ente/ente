@@ -12,6 +12,7 @@ export const profilePostItemsFromPosts = (
         id: String(post.postId),
         imageAsset: post.imageAsset,
         imageUrl: post.imageUrl,
+        photos: post.photos,
         isUnavailable: post.isUnavailable,
         name: post.name,
         postId: post.postId,

@@ -82,6 +82,8 @@ pub struct MessagePayload {
     pub version: i32,
     pub kind: String,
     pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply_object_key: Option<String>,
 }
 
 #[derive(Clone)]

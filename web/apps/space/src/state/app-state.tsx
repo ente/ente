@@ -36,6 +36,7 @@ export interface PendingSpaceFeedPost {
     imageUrl: string;
     name: string;
     spaceId: string;
+    photoCount: number;
     status: "pending";
     timestampMs: number;
     width?: number;
@@ -75,7 +76,7 @@ export interface SpaceAppState {
     onboardingEntrySource: OnboardingEntrySource;
     pendingLoginCredentials: SpaceLoginCredentials | null;
     pendingPasskeyVerification: PendingSpacePasskeyVerification | null;
-    pendingPostPhotoFile: File | null;
+    pendingPostPhotoFiles: File[] | null;
     pendingProfileAvatarFile: File | null;
     pendingProfileCoverFile: File | null;
     pendingCreateProfile: PendingCreateProfile | null;
@@ -88,7 +89,7 @@ export interface SpaceAppState {
         React.SetStateAction<SpacePostPublication | null>
     >;
     publishPost: (
-        image: SpaceDraftPostImage,
+        images: SpaceDraftPostImage[],
         caption: string,
     ) => Promise<SpacePost>;
     refreshProfile: (
@@ -106,7 +107,9 @@ export interface SpaceAppState {
     setPendingPasskeyVerification: React.Dispatch<
         React.SetStateAction<PendingSpacePasskeyVerification | null>
     >;
-    setPendingPostPhotoFile: React.Dispatch<React.SetStateAction<File | null>>;
+    setPendingPostPhotoFiles: React.Dispatch<
+        React.SetStateAction<File[] | null>
+    >;
     setPendingProfileAvatarFile: React.Dispatch<
         React.SetStateAction<File | null>
     >;

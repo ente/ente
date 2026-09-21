@@ -172,8 +172,14 @@ export const AuthenticatedFriendProfile: React.FC<
                 }
                 onOpenProfileCover={() => setOpenProfileImage("cover")}
                 onOpenProfilePhoto={() => setOpenProfileImage("avatar")}
-                onReplyToPost={(postSpaceId, postId, text) =>
-                    replyToCurrentPost(actorSpaceId, postSpaceId, postId, text)
+                onReplyToPost={(postSpaceId, postId, text, objectKey) =>
+                    replyToCurrentPost(
+                        actorSpaceId,
+                        postSpaceId,
+                        postId,
+                        text,
+                        objectKey,
+                    )
                 }
                 onSetPostLiked={async (postId, liked) => {
                     const previousLiked =

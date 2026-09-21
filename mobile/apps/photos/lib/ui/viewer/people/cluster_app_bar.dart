@@ -142,7 +142,6 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
   }
 
   List<Widget> _getDefaultActions(BuildContext context) {
-    final iconColor = getEnteColorScheme(context).contentLight;
     final hasAccount = Configuration.instance.hasConfiguredAccount();
     final List<Widget> actions = <Widget>[];
     if (widget.selectedFiles.files.isNotEmpty) {
@@ -180,35 +179,35 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
         EntePopupMenuOption(
           value: ClusterPopupAction.memoryLane,
           label: context.strings.facesTimelineAppBarTitle,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedSparkles,
-            iconColor,
+          leadingWidget: const HugeIcon(
+            icon: HugeIcons.strokeRoundedSparkles,
+            size: IconSizes.small,
           ),
         ),
       if (!isLocalGalleryMode && hasAccount) ...[
         EntePopupMenuOption(
           value: ClusterPopupAction.ignore,
           label: context.strings.ignorePerson,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedUserBlock01,
-            iconColor,
+          leadingWidget: const HugeIcon(
+            icon: HugeIcons.strokeRoundedUserBlock01,
+            size: IconSizes.small,
           ),
         ),
         EntePopupMenuOption(
           value: ClusterPopupAction.breakupCluster,
           label: context.strings.mixedGrouping,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedUserMultiple,
-            iconColor,
+          leadingWidget: const HugeIcon(
+            icon: HugeIcons.strokeRoundedUserMultiple,
+            size: IconSizes.small,
           ),
         ),
         if (kDebugMode)
-          EntePopupMenuOption(
+          const EntePopupMenuOption(
             value: ClusterPopupAction.breakupClusterDebug,
             label: "Debug mixed grouping",
-            leadingWidget: galleryAppBarMenuIcon(
-              HugeIcons.strokeRoundedAiBrain01,
-              iconColor,
+            leadingWidget: HugeIcon(
+              icon: HugeIcons.strokeRoundedAiBrain01,
+              size: IconSizes.small,
             ),
           ),
       ],

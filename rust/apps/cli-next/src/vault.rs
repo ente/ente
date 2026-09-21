@@ -2,7 +2,7 @@ use std::{
     collections::BTreeMap,
     env,
     fs::{self, File, OpenOptions},
-    io::{self, ErrorKind},
+    io::ErrorKind,
     path::{Path, PathBuf},
 };
 
@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use zeroize::{ZeroizeOnDrop, Zeroizing};
 
-use crate::{args::Product, parse_json};
+use crate::{args::Product, home, parse_json};
 
 const SCHEMA_VERSION: u8 = 1;
 const VAULT_FILE: &str = "vault.json";
@@ -53,6 +53,7 @@ struct EncryptedVault {
 #[derive(Serialize, Deserialize)]
 pub struct Account {
     pub storage_id: Uuid,
+    pub db_key: DbKey,
     pub name: String,
     pub email: String,
     pub origin: String,
@@ -60,6 +61,9 @@ pub struct Account {
     pub identity: AccountKeys,
     pub sessions: BTreeMap<Product, StoredSession>,
 }
+
+#[derive(Serialize, Deserialize, ZeroizeOnDrop)]
+pub struct DbKey(pub [u8; Key::BYTES]);
 
 #[derive(Serialize, Deserialize, ZeroizeOnDrop)]
 pub struct AccountKeys {
@@ -76,8 +80,8 @@ pub struct StoredSession {
 impl Vault {
     pub fn open() -> Result<Self> {
         let override_key = environment_key()?;
-        let home = application_home()?;
-        create_home(&home).context("cannot create private CLI home")?;
+        let home = home::application_home()?;
+        home::create(&home).context("cannot create private CLI home")?;
         let home = fs::canonicalize(home)?;
         let lock = lock(&home)?;
         let encrypted = read_vault(&home)?;
@@ -155,7 +159,7 @@ impl VaultAccess {
 impl State {
     pub fn load() -> Result<Self> {
         let override_key = environment_key()?;
-        let home = application_home()?;
+        let home = home::application_home()?;
         // Atomic replacement makes the file a complete snapshot without a read lock.
         let Some(bytes) = read_vault(&home)? else {
             return Ok(Self::default());
@@ -227,20 +231,6 @@ fn read_vault(home: &Path) -> Result<Option<Vec<u8>>> {
     }
 }
 
-fn create_home(path: &Path) -> io::Result<()> {
-    #[cfg(unix)]
-    use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
-
-    let mut builder = fs::DirBuilder::new();
-    builder.recursive(true);
-    #[cfg(unix)]
-    builder.mode(0o700);
-    builder.create(path)?;
-    #[cfg(unix)]
-    fs::set_permissions(path, fs::Permissions::from_mode(0o700))?;
-    Ok(())
-}
-
 fn lock(home: &Path) -> Result<File> {
     let mut options = OpenOptions::new();
     options.read(true).write(true).create(true);
@@ -252,16 +242,6 @@ fn lock(home: &Path) -> Result<File> {
     let lock = options.open(home.join("vault.lock"))?;
     lock.lock().context("cannot lock the CLI vault")?;
     Ok(lock)
-}
-
-fn application_home() -> Result<PathBuf> {
-    if let Some(home) = env::var_os("ENTE_CLI_HOME") {
-        ensure!(!home.is_empty(), "ENTE_CLI_HOME cannot be empty");
-        return Ok(home.into());
-    }
-    Ok(dirs::data_local_dir()
-        .context("cannot find the application data directory; set ENTE_CLI_HOME")?
-        .join("ente-cli"))
 }
 
 fn environment_key() -> Result<Option<Key>> {

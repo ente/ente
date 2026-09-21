@@ -520,6 +520,7 @@ async fn space_unfriend_revokes_reciprocal_account_access_suite(endpoint: &str) 
                 &owner_space.space_id,
                 post_id,
                 "should fail",
+                None,
             )
             .await,
         403,

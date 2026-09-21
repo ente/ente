@@ -54,7 +54,7 @@ impl Drop for ObjectStore {
     }
 }
 
-fn handle(mut stream: TcpStream, objects: &mut HashMap<String, usize>) {
+fn handle(mut stream: TcpStream, objects: &mut HashMap<String, Vec<u8>>) {
     let mut request = Vec::new();
     let mut buffer = [0; 4096];
     let header_end = loop {
@@ -101,11 +101,18 @@ fn handle(mut stream: TcpStream, objects: &mut HashMap<String, usize>) {
     let path = target.split('?').next().unwrap_or(&target).to_owned();
     match method.as_str() {
         "PUT" => {
-            objects.insert(path, content_length);
+            objects.insert(path, request[header_end..].to_vec());
             respond(&mut stream, "200 OK", 0);
         }
         "HEAD" => match objects.get(&path) {
-            Some(content_length) => respond(&mut stream, "200 OK", *content_length),
+            Some(body) => respond(&mut stream, "200 OK", body.len()),
+            None => respond(&mut stream, "404 Not Found", 0),
+        },
+        "GET" => match objects.get(&path) {
+            Some(body) => {
+                respond(&mut stream, "200 OK", body.len());
+                let _ = stream.write_all(body);
+            }
             None => respond(&mut stream, "404 Not Found", 0),
         },
         _ => respond(&mut stream, "405 Method Not Allowed", 0),

@@ -18,7 +18,7 @@ const BG: i32 = UG * 128 + VG * 128 + YGB;
 const BR: i32 = VR * 128 + YGB;
 
 fn ceil_half(value: i32) -> i32 {
-    (value + 1) / 2
+    value / 2 + value % 2
 }
 
 fn clamp_u8(value: i32) -> u8 {
@@ -44,11 +44,14 @@ pub struct PlaneLayout {
     pub uv_pixel_stride: i32,
 }
 
-fn required_len(rows: i32, row_stride: i32, last_row_bytes: i32) -> usize {
-    if rows <= 0 {
-        return 0;
+fn required_len(rows: i32, row_stride: i32, last_row_bytes: i32) -> Result<usize, String> {
+    if rows <= 0 || row_stride < 0 || last_row_bytes < 0 {
+        return Err("invalid plane dimensions".to_owned());
     }
-    (rows - 1) as usize * row_stride as usize + last_row_bytes as usize
+    ((rows - 1) as usize)
+        .checked_mul(row_stride as usize)
+        .and_then(|length| length.checked_add(last_row_bytes as usize))
+        .ok_or_else(|| "plane size overflow".to_owned())
 }
 
 fn check_layout(
@@ -78,15 +81,19 @@ fn check_layout(
     }
     let cw = ceil_half(width);
     let ch = ceil_half(height);
-    if uv_row_stride < (cw - 1) * uv_pixel_stride + 1 {
+    let last_chroma_byte = (cw - 1)
+        .checked_mul(uv_pixel_stride)
+        .and_then(|value| value.checked_add(1))
+        .ok_or_else(|| "chroma stride overflow".to_owned())?;
+    if uv_row_stride < last_chroma_byte {
         return Err(format!(
             "uv row stride {uv_row_stride} is too small for {cw} chroma samples \
              at pixel stride {uv_pixel_stride}"
         ));
     }
 
-    let need_y = required_len(height, y_row_stride, width);
-    let need_uv = required_len(ch, uv_row_stride, (cw - 1) * uv_pixel_stride + 1);
+    let need_y = required_len(height, y_row_stride, width)?;
+    let need_uv = required_len(ch, uv_row_stride, last_chroma_byte)?;
     if y_plane.len() < need_y {
         return Err(format!(
             "y plane has {} bytes, needs {need_y}",
@@ -192,7 +199,7 @@ pub(crate) fn bgra_to_bgr(
         ));
     }
     let row_stride = row_stride as usize;
-    let needed = required_len(height, row_stride as i32, row_bytes as i32);
+    let needed = required_len(height, row_stride as i32, row_bytes as i32)?;
     if bgra.len() < needed {
         return Err(format!(
             "BGRA buffer has {} bytes, needs {needed}",
@@ -549,5 +556,27 @@ mod tests {
         assert!(bgra_to_bgr(&padded, 7, 2, 2).is_err());
         assert!(bgra_to_bgr(&padded, -8, 2, 2).is_err());
         assert!(bgra_to_bgr(&padded, stride as i32, 0, 2).is_err());
+    }
+}
+
+#[cfg(test)]
+mod invalid_metadata_tests {
+    use super::*;
+
+    #[test]
+    fn huge_camera_metadata_is_rejected_without_overflow() {
+        for width in [1, 3, i32::MAX] {
+            for stride in [1, i32::MAX] {
+                let layout = PlaneLayout {
+                    width,
+                    height: i32::MAX,
+                    y_row_stride: i32::MAX,
+                    uv_row_stride: stride,
+                    uv_pixel_stride: i32::MAX,
+                };
+                assert!(yuv420_to_bgr(&[], &[], &[], layout, 256, 256).is_err());
+                assert!(bgra_to_bgr(&[], stride, width, i32::MAX).is_err());
+            }
+        }
     }
 }

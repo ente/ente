@@ -4,6 +4,7 @@ edition.workspace = true
 
 [dependencies]
 ente-core.workspace = true
+serde.workspace = true
 thiserror.workspace = true
 
 [lints]

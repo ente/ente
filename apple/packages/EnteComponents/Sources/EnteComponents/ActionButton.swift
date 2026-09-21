@@ -20,7 +20,6 @@ public enum ActionSize: Sendable {
 }
 
 public struct ActionButton: View {
-    @Environment(\.entePalette) private var palette
     private let title: String
     private let variant: ActionVariant
     private let size: ActionSize
@@ -58,7 +57,6 @@ public struct ActionButton: View {
         .buttonStyle(
             ActionStyle(
                 variant: variant,
-                palette: palette,
                 cornerRadius: inlineLink ? 0 : EnteRadius.button
             )
         )
@@ -67,9 +65,9 @@ public struct ActionButton: View {
 }
 
 private struct ActionStyle: ButtonStyle {
+    @Environment(\.entePalette) private var palette
     @Environment(\.isEnabled) private var enabled
     let variant: ActionVariant
-    let palette: Palette
     let cornerRadius: CGFloat
 
     func makeBody(configuration: Configuration) -> some View {

@@ -65,6 +65,7 @@ class CollectionsService {
   static const int kMaximumWriteAttempts = 5;
   static const int _maxSocialCleanupRetries = 3;
   static const int _collectionKeyLength = 32;
+  static const int _shareBatchSize = 10;
 
   final _logger = Logger("CollectionsService");
 
@@ -867,6 +868,44 @@ class CollectionsService {
       return sharees;
     } on DioException catch (e) {
       if (e.response?.statusCode == 402) {
+        throw SharingNotPermittedForFreeAccountsError();
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<User>> shareBatch(
+    int collectionID,
+    Map<String, String> publicKeys,
+    CollectionParticipantRole role,
+  ) async {
+    var sharees = List<User>.from(
+      _collectionIDToCollections[collectionID]!.sharees,
+    );
+    final collectionKey = getCollectionKey(collectionID);
+    final shareRole = role.toStringVal();
+    try {
+      for (final batch in publicKeys.entries.toList().chunks(_shareBatchSize)) {
+        final encryptedKeys = <String, String>{};
+        for (final entry in batch) {
+          final encryptedKey = CryptoUtil.sealSync(
+            collectionKey,
+            CryptoUtil.base642bin(entry.value),
+          );
+          encryptedKeys[entry.key] = CryptoUtil.bin2base64(encryptedKey);
+        }
+
+        sharees = await collectionShareGateway.shareBatch(
+          collectionID: collectionID,
+          encryptedKeys: encryptedKeys,
+          role: shareRole,
+        );
+        _cacheSharees(_collectionIDToCollections[collectionID]!, sharees);
+        RemoteSyncService.instance.sync(silently: true).ignore();
+      }
+      return sharees;
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 402) {
         throw SharingNotPermittedForFreeAccountsError();
       }
       rethrow;

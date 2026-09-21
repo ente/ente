@@ -42,3 +42,7 @@ jobs:
                       ~/.gradle/wrapper
 
             - run: ./android/scripts/lint.sh
+
+            - name: Build Ensu
+              working-directory: android
+              run: ./gradlew --build-cache :ensu:app:assembleDebug

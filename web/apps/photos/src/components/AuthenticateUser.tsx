@@ -1,3 +1,4 @@
+import { useAuthPageConfig } from "ente-accounts/components/auth/AuthPageProvider";
 import { VerifyMasterPasswordForm } from "ente-accounts/components/VerifyMasterPasswordForm";
 import { checkSessionValidity } from "ente-accounts/services/session";
 import {
@@ -40,6 +41,7 @@ const AuthenticateUserDialogContents: React.FC<AuthenticateUserProps> = ({
     onClose,
     onAuthenticate,
 }) => {
+    const { decryptBox } = useAuthPageConfig();
     const { logout, showMiniDialog } = useBaseContext();
 
     const [user, setUser] = useState<LocalUser | undefined>();
@@ -76,6 +78,7 @@ const AuthenticateUserDialogContents: React.FC<AuthenticateUserProps> = ({
 
     return (
         <VerifyMasterPasswordForm
+            decryptBox={decryptBox}
             userEmail={user.email}
             keyAttributes={keyAttributes}
             submitButtonTitle={t("authenticate")}

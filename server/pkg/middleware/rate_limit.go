@@ -218,7 +218,7 @@ func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limi
 		return r.limit10ReqPerMin
 	}
 	if reqPath == "/spaces/:spaceID/uploads/presign" && reqMethod == http.MethodPost {
-		return r.limit10ReqPerMin
+		return r.limit60ReqPerMin
 	}
 	if reqPath == "/spaces/:spaceID/assets/redirect" && reqMethod == http.MethodGet {
 		return r.limit500ReqPerMin

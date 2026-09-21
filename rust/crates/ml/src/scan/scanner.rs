@@ -1,12 +1,12 @@
 use thiserror::Error;
 
+use super::appearance::render_document;
+use super::boundary::{SearchBudget, locate, refine_capture};
 use super::codec;
-use super::color::{ColorMode, auto_color_mode, quad_to_image};
-use super::detection::{detect_document_quad, extract_document, resize_for_max_pixels};
-use super::geometry::{ImageSize, Quad};
-use super::mask::Mask;
-use super::segmentation::{MASK_SIDE, Segmenter};
+use super::page::{RenderPlan, SourceExtent, quarter_turns, rotate_mask_quad};
+use super::segmentation::{MASK_SIDE, ProbabilityMap, Segmenter};
 use super::yuv::{PlaneLayout, bgra_to_bgr, yuv420_to_bgr};
+use super::{ColorMode, Quad};
 use crate::cv::image::ImageU8;
 
 const DEFAULT_MAX_PIXELS: u32 = 2_000_000;
@@ -73,12 +73,10 @@ impl ScannerSession {
         })
     }
 
-    fn segment(&self, bgr: &ImageU8) -> Result<Mask, ScanError> {
-        let probmap = self
-            .segmenter
-            .probability_map_u8(bgr)
-            .map_err(ScanError::Pipeline)?;
-        Ok(Mask::from_probmap(probmap, MASK_SIDE, MASK_SIDE))
+    fn segment(&self, bgr: &ImageU8) -> Result<ProbabilityMap, ScanError> {
+        self.segmenter
+            .probability_map(bgr)
+            .map_err(ScanError::Pipeline)
     }
 
     pub fn live_detect_bgra(
@@ -91,7 +89,7 @@ impl ScannerSession {
     ) -> Result<Option<Quad>, ScanError> {
         let bgr = bgra_to_bgr(bgra, to_i32(row_stride)?, to_i32(width)?, to_i32(height)?)
             .map_err(ScanError::InvalidInput)?;
-        let frame = ImageSize::new(bgr.width as f64, bgr.height as f64);
+        let frame = SourceExtent::new(bgr.width, bgr.height).map_err(ScanError::InvalidInput)?;
         self.live_detect(&bgr, frame, rotation_degrees)
     }
 
@@ -105,21 +103,28 @@ impl ScannerSession {
     ) -> Result<Option<Quad>, ScanError> {
         let bgr = yuv420_to_bgr(y, u, v, layout, MASK_SIDE, MASK_SIDE)
             .map_err(ScanError::InvalidInput)?;
-        let frame = ImageSize::new(layout.width as f64, layout.height as f64);
+        let frame =
+            SourceExtent::new(layout.width, layout.height).map_err(ScanError::InvalidInput)?;
         self.live_detect(&bgr, frame, rotation_degrees)
     }
 
     fn live_detect(
         &self,
         bgr: &ImageU8,
-        frame_size: ImageSize,
+        frame_size: SourceExtent,
         rotation_degrees: i32,
     ) -> Result<Option<Quad>, ScanError> {
+        let turns = quarter_turns(rotation_degrees).map_err(ScanError::InvalidInput)?;
         let mask = self.segment(bgr)?;
-        let quad_in_mask =
-            detect_document_quad(&mask, frame_size, true).map_err(ScanError::Pipeline)?;
-        let mask_size = ImageSize::new(mask.width as f64, mask.height as f64);
-        Ok(quad_in_mask.map(|q| q.rotate90(rotation_degrees / 90, mask_size)))
+        let detection = locate(&mask, frame_size, SearchBudget::Live);
+        log::debug!(
+            "live detection: {}, evidence {:.3}",
+            detection.reason,
+            detection.confidence
+        );
+        Ok(detection
+            .quad
+            .map(|quad| rotate_mask_quad(quad.corners, turns, MASK_SIDE as f64)))
     }
 
     pub fn process_capture(
@@ -150,25 +155,48 @@ impl ScannerSession {
         image_bytes: &[u8],
         max_pixels: Option<u32>,
     ) -> Result<ScanResult, ScanError> {
+        let budget = max_pixels.unwrap_or(DEFAULT_MAX_PIXELS);
+        validate_budget(budget)?;
         let bgr = codec::decode_bgr(image_bytes)?;
-        let max_pixels = max_pixels.unwrap_or(DEFAULT_MAX_PIXELS) as f64;
-
+        let extent = SourceExtent::new(bgr.width, bgr.height).map_err(ScanError::InvalidInput)?;
         let mask = self.segment(&bgr)?;
-        let original_size = ImageSize::new(bgr.width as f64, bgr.height as f64);
-        let quad_in_mask =
-            detect_document_quad(&mask, original_size, false).map_err(ScanError::Pipeline)?;
-
-        let Some(quad_in_mask) = quad_in_mask else {
-            let page = resize_for_max_pixels(&bgr, max_pixels).map_err(ScanError::Pipeline)?;
-            return finish(None, ColorMode::Color, &bgr, &page, DEFAULT_JPEG_QUALITY);
+        let detection = locate(&mask, extent, SearchBudget::Capture);
+        log::debug!(
+            "capture detection: {}, evidence {:.3}",
+            detection.reason,
+            detection.confidence
+        );
+        let quad = match detection.quad {
+            Some(quad) => refine_capture(
+                &bgr,
+                quad.in_source(extent),
+                quad.needs_complete_source_support,
+            )
+            .map_err(ScanError::Pipeline)?,
+            None => None,
         };
-
-        let quad = quad_to_image(&quad_in_mask, &mask, bgr.size());
-        let color_mode = auto_color_mode(&bgr, &mask, &quad).map_err(ScanError::Pipeline)?;
-        let page = extract_document(&bgr, &quad, 0, color_mode, max_pixels)
+        let Some(quad) = quad else {
+            let plan = RenderPlan::new(extent.full_frame(), extent, 0, budget)
+                .map_err(ScanError::Pipeline)?;
+            if plan.width == bgr.width && plan.height == bgr.height {
+                return finish(None, ColorMode::Color, extent, bgr, DEFAULT_JPEG_QUALITY);
+            }
+            let page = plan.render(&bgr).map_err(ScanError::Pipeline)?;
+            drop(bgr);
+            return finish(
+                None,
+                ColorMode::Color,
+                extent,
+                page.image,
+                DEFAULT_JPEG_QUALITY,
+            );
+        };
+        let plan = RenderPlan::new(quad, extent, 0, budget).map_err(ScanError::Pipeline)?;
+        let mut page = plan.render(&bgr).map_err(ScanError::Pipeline)?;
+        drop(bgr);
+        let mode = render_document(&mut page.image, page.valid.as_deref(), None)
             .map_err(ScanError::Pipeline)?;
-
-        finish(Some(quad), color_mode, &bgr, &page, DEFAULT_JPEG_QUALITY)
+        finish(Some(quad), mode, extent, page.image, DEFAULT_JPEG_QUALITY)
     }
 
     pub fn reprocess(
@@ -195,24 +223,38 @@ impl ScannerSession {
         source_bytes: &[u8],
         options: &ReprocessOptions,
     ) -> Result<ScanResult, ScanError> {
+        let budget = options.max_pixels.unwrap_or(DEFAULT_MAX_PIXELS);
+        validate_budget(budget)?;
+        quarter_turns(options.rotation_degrees).map_err(ScanError::InvalidInput)?;
         let bgr = codec::decode_bgr(source_bytes)?;
-        let page = extract_document(
-            &bgr,
-            &options.quad,
-            options.rotation_degrees,
-            options.color_mode,
-            options.max_pixels.unwrap_or(DEFAULT_MAX_PIXELS) as f64,
+        let extent = SourceExtent::new(bgr.width, bgr.height).map_err(ScanError::InvalidInput)?;
+        let plan = RenderPlan::new(options.quad, extent, options.rotation_degrees, budget)
+            .map_err(ScanError::InvalidInput)?;
+        let mut page = plan.render(&bgr).map_err(ScanError::Pipeline)?;
+        drop(bgr);
+        let mode = render_document(
+            &mut page.image,
+            page.valid.as_deref(),
+            Some(options.color_mode),
         )
         .map_err(ScanError::Pipeline)?;
-
         finish(
             Some(options.quad),
-            options.color_mode,
-            &bgr,
-            &page,
+            mode,
+            extent,
+            page.image,
             DEFAULT_JPEG_QUALITY,
         )
     }
+}
+
+fn validate_budget(budget: u32) -> Result<(), ScanError> {
+    if budget == 0 {
+        return Err(ScanError::InvalidInput(
+            "pixel budget must be positive".to_owned(),
+        ));
+    }
+    Ok(())
 }
 
 fn basename(path: &str) -> &str {
@@ -230,19 +272,76 @@ fn to_i32(value: u32) -> Result<i32, ScanError> {
 fn finish(
     quad: Option<Quad>,
     color_mode: ColorMode,
-    source: &ImageU8,
-    page: &ImageU8,
+    source: SourceExtent,
+    page: ImageU8,
     jpeg_quality: u8,
 ) -> Result<ScanResult, ScanError> {
+    let output_width = page.width as u32;
+    let output_height = page.height as u32;
     let processed_image = codec::encode_jpeg(page, jpeg_quality)?;
 
     Ok(ScanResult {
         quad,
         color_mode,
-        output_width: page.width as u32,
-        output_height: page.height as u32,
+        output_width,
+        output_height,
         source_width: source.width as u32,
         source_height: source.height as u32,
         processed_image,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reprocess_needs_no_model_and_repeated_original_rotations_do_not_accumulate_loss()
+    -> Result<(), ScanError> {
+        let session = ScannerSession {
+            segmenter: Segmenter::unavailable_for_render_tests(),
+        };
+        let source = ImageU8::new(
+            120,
+            80,
+            3,
+            (0..120 * 80 * 3)
+                .map(|i| ((i * 37 + i / 17 * 31) % 256) as u8)
+                .collect(),
+        )
+        .map_err(ScanError::Codec)?;
+        let bytes = codec::encode_jpeg(source, 90)?;
+        let extent = SourceExtent::new(120, 80).map_err(ScanError::InvalidInput)?;
+        let mut options = ReprocessOptions {
+            quad: extent.full_frame(),
+            rotation_degrees: 0,
+            color_mode: ColorMode::Color,
+            max_pixels: Some(6000),
+        };
+        let first = session.reprocess(&bytes, &options)?;
+        assert_eq!(first, session.reprocess(&bytes, &options)?);
+        for rotation in [90, 180, 270, 360] {
+            options.rotation_degrees = rotation;
+            let result = session.reprocess(&bytes, &options)?;
+            assert_eq!((result.source_width, result.source_height), (120, 80));
+            assert_eq!(result.quad, Some(options.quad));
+            assert_eq!(result.color_mode, ColorMode::Color);
+            assert!(result.output_width * result.output_height <= 6000);
+            if rotation % 180 == 90 {
+                assert_eq!(
+                    (result.output_width, result.output_height),
+                    (first.output_height, first.output_width)
+                );
+            }
+            if rotation == 360 {
+                assert_eq!(result.processed_image, first.processed_image);
+            }
+        }
+        options.max_pixels = Some(0);
+        assert!(matches!(
+            session.reprocess(&bytes, &options),
+            Err(ScanError::InvalidInput(_))
+        ));
+        Ok(())
+    }
 }

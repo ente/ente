@@ -87,6 +87,41 @@ test("persists the first publication before a feed has been cached", async () =>
     expect(cached?.dirty).toBe(true);
 });
 
+test("restores every photo in order and preserves shared post edits", async () => {
+    const original = post(3);
+    original.photos = ["cover", "second", "third"].map((objectKey, index) => ({
+        imageAsset: { ...original.imageAsset!, objectKey },
+        imageUrl: `blob:${objectKey}`,
+        height: 800 + index,
+        width: 1200,
+        thumbHash: `hash-${index}`,
+    }));
+    await cacheCurrentSpaceFeedPage("self", { items: [original] });
+    await patchCachedSpaceFeedPost("self", 3, {
+        caption: "Edited caption",
+        viewerLiked: true,
+    });
+    const firstRead = await loadCachedSpaceFeed("self");
+    firstRead!.items[0]!.photos![1]!.imageAsset!.objectKey =
+        "changed by caller";
+    clearSpaceFeedMemoryCache();
+    const restored = (await loadCachedSpaceFeed("self"))!.items[0]!;
+    expect(restored).toMatchObject({
+        caption: "Edited caption",
+        viewerLiked: true,
+    });
+    expect(
+        restored.photos?.map((photo) => photo.imageAsset?.objectKey),
+    ).toEqual(["cover", "second", "third"]);
+    expect(restored.photos?.map((photo) => photo.height)).toEqual([
+        800, 801, 802,
+    ]);
+    expect(restored.photos?.every((photo) => !("imageUrl" in photo))).toBe(
+        true,
+    );
+    expect(original.photos[1]?.imageUrl).toBe("blob:second");
+});
+
 test("serializes new posts, likes, edits and deletions without losing changes", async () => {
     await cacheCurrentSpaceFeedPage("self", {
         items: [post(2), post(1)],

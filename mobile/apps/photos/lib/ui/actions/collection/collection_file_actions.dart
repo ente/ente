@@ -1,9 +1,13 @@
 import "dart:async";
 
+import "package:dio/dio.dart";
+import "package:ente_components/ente_components.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/cupertino.dart';
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/errors.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/collection_updated_event.dart";
@@ -21,6 +25,8 @@ import 'package:photos/ui/components/action_sheet_widget.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/notification/toast.dart';
+import "package:photos/ui/payment/subscription.dart";
+import "package:photos/ui/settings/backup/free_space_options.dart";
 import 'package:photos/utils/dialog_util.dart';
 import "package:photos/utils/share_util.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
@@ -32,6 +38,7 @@ extension CollectionFileActions on CollectionActions {
     SelectedFiles selectedFiles,
     bool removingOthersFile, {
     bool isHidden = false,
+    String? body,
   }) async {
     final actionResult = await showActionSheet(
       context: context,
@@ -68,9 +75,11 @@ extension CollectionFileActions on CollectionActions {
         ),
       ],
       title: context.strings.removeFromAlbumTitle,
-      body: removingOthersFile
-          ? context.strings.removeShareItemsWarning
-          : context.strings.itemsWillBeRemovedFromAlbum,
+      body:
+          body ??
+          (removingOthersFile
+              ? context.strings.removeShareItemsWarning
+              : context.strings.itemsWillBeRemovedFromAlbum),
       actionSheetType: ActionSheetType.defaultActionSheet,
     );
     if (actionResult?.action != null &&
@@ -175,7 +184,11 @@ extension CollectionFileActions on CollectionActions {
         logger.severe("Failed to add to album", e, s);
         await dialog?.hide();
         if (!context.mounted) return false;
-        await showGenericErrorDialog(context: context, error: e);
+        if (_isStorageLimitError(e)) {
+          await _showStorageFullSheet(context);
+        } else {
+          await showGenericErrorDialog(context: context, error: e);
+        }
         return false;
       } finally {
         // Earlier collections may have succeeded before a later one failed.
@@ -294,7 +307,11 @@ extension CollectionFileActions on CollectionActions {
       logger.severe("Failed to add to album", e, s);
       await dialog?.hide();
       if (context.mounted) {
-        await showGenericErrorDialog(context: context, error: e);
+        if (_isStorageLimitError(e)) {
+          await _showStorageFullSheet(context);
+        } else {
+          await showGenericErrorDialog(context: context, error: e);
+        }
       }
       rethrow;
     }
@@ -335,4 +352,53 @@ extension CollectionFileActions on CollectionActions {
     }
     return false;
   }
+}
+
+enum _StorageFullAction { upgrade, freeUpSpace }
+
+Future<void> _showStorageFullSheet(BuildContext context) async {
+  final action = await showBottomSheetComponent<_StorageFullAction>(
+    context: context,
+    builder: (sheetContext) => BottomSheetComponent(
+      title: sheetContext.strings.notEnoughStorageTitle,
+      content: Text(
+        sheetContext.strings.notEnoughStorageBody,
+        style: TextStyles.body.copyWith(
+          color: sheetContext.componentColors.textLight,
+        ),
+      ),
+      actions: [
+        ButtonComponent(
+          label: sheetContext.strings.upgrade,
+          variant: ButtonComponentVariant.primary,
+          size: ButtonComponentSize.large,
+          onTap: () =>
+              Navigator.of(sheetContext).pop(_StorageFullAction.upgrade),
+        ),
+        ButtonComponent(
+          label: sheetContext.strings.freeUpSpace,
+          variant: ButtonComponentVariant.secondary,
+          size: ButtonComponentSize.large,
+          onTap: () =>
+              Navigator.of(sheetContext).pop(_StorageFullAction.freeUpSpace),
+        ),
+      ],
+    ),
+  );
+  if (!context.mounted) {
+    return;
+  }
+  switch (action) {
+    case _StorageFullAction.upgrade:
+      await routeToPage(context, getSubscriptionPage());
+    case _StorageFullAction.freeUpSpace:
+      await routeToPage(context, const FreeUpSpaceOptionsScreen());
+    case null:
+      return;
+  }
+}
+
+bool _isStorageLimitError(Object error) {
+  return error is StorageLimitExceededError ||
+      error is DioException && error.response?.statusCode == 426;
 }

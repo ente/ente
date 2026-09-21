@@ -5,9 +5,9 @@ import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:locker/services/scanner/scan_geometry.dart';
 import 'package:locker/services/scanner/scan_session_controller.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
+import 'package:locker/ui/pages/scanner/scan_projection.dart';
 
 class ScannerCropPage extends StatefulWidget {
   const ScannerCropPage({
@@ -66,15 +66,14 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
     return null;
   }
 
-  ScanQuad get _orderedQuad => orderClockwise(_corners);
+  ScanQuad? get _orderedQuad => ScanQuad.tryFromUnordered(_corners);
 
-  bool get _canSave =>
-      _corners.length == 4 &&
-      isUsableQuad(_orderedQuad.corners, minAreaFraction: _minAreaFraction);
+  bool get _canSave => (_orderedQuad?.area ?? 0) >= _minAreaFraction;
 
   Future<void> _save() async {
     final navigator = Navigator.of(context);
     final quad = _orderedQuad;
+    if (quad == null || quad.area < _minAreaFraction) return;
     await widget.session.updatePage(widget.pageId, quad: quad);
     if (mounted) navigator.pop();
   }
@@ -170,7 +169,11 @@ class _ScannerCropPageState extends State<ScannerCropPage> {
                             constraints.maxWidth,
                             constraints.maxHeight,
                           );
-                          final rect = fittedRect(container, _aspect);
+                          final rect = ScanProjection.fittedRect(
+                            container,
+                            _aspect,
+                          );
+                          if (rect == null) return const SizedBox.shrink();
 
                           Offset toScreen(Offset normalized) => Offset(
                             rect.left + normalized.dx * rect.width,

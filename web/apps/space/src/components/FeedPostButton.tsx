@@ -21,6 +21,7 @@ export const SpaceFeedPostButton: React.FC<SpaceFeedPostButtonProps> = ({
     showFirstPostPrompt = false,
 }) => (
     <Box
+        className="green-bg"
         component="button"
         type="button"
         aria-label={
@@ -38,14 +39,13 @@ export const SpaceFeedPostButton: React.FC<SpaceFeedPostButtonProps> = ({
             borderRadius: "50%",
             bottom: "calc(env(safe-area-inset-bottom) + 20px)",
             boxShadow: "0 10px 24px rgba(0, 0, 0, 0.22)",
-            color: "#FFFFFF",
+            color: disabled ? "rgba(255, 255, 255, 0.72)" : "#FFFFFF",
             cursor: disabled ? "default" : "pointer",
             display: "flex",
             fontSize: 0,
             height: buttonSize,
             justifyContent: "center",
             lineHeight: 0,
-            opacity: disabled ? 0.72 : 1,
             p: 0,
             position: "fixed",
             right: "max(20px, calc((100vw - 390px) / 2 + 20px))",

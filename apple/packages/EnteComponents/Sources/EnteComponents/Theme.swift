@@ -8,13 +8,19 @@ public enum EnteApp: Sendable {
 }
 
 public struct Palette: Sendable {
+    public let isDark: Bool
     public let primary: Color
     public let primaryDarker: Color
     public let text: Color
+    public let mutedText: Color
+    public let hintText: Color
     public let disabledText: Color
     public let reverseText: Color
+    public let surface: Color
     public let fill: Color
+    public let fillDarker: Color
     public let fillDarkest: Color
+    public let faintBorder: Color
     public let danger: Color
     public let dangerDarker: Color
 
@@ -33,13 +39,19 @@ public struct Palette: Sendable {
             primaryDarker = Color(hex: 0x0B4CAD)
         }
         return Palette(
+            isDark: dark,
             primary: primary,
             primaryDarker: primaryDarker,
             text: dark ? .white : .black,
+            mutedText: Color(hex: dark ? 0x999999 : 0x666666),
+            hintText: Color(hex: 0x969696),
             disabledText: Color(hex: dark ? 0x414141 : 0xD6D6D6),
             reverseText: dark ? .black : .white,
+            surface: Color(hex: dark ? 0x212121 : 0xFFFFFF),
             fill: Color(hex: dark ? 0x0A0A0A : 0xEAEAEA),
+            fillDarker: Color(hex: dark ? 0x141414 : 0xDEDEDE),
             fillDarkest: Color(hex: dark ? 0x292929 : 0xD2D2D2),
+            faintBorder: Color(hex: dark ? 0x2A2A2A : 0xEBEBEB),
             danger: Color(hex: 0xF63A3A),
             dangerDarker: Color(hex: 0xC52E2E)
         )
@@ -47,10 +59,14 @@ public struct Palette: Sendable {
 }
 
 public enum EnteSpacing {
+    public static let xs: CGFloat = 4
+    public static let md: CGFloat = 12
+    public static let lg: CGFloat = 16
     public static let xl: CGFloat = 20
 }
 
 public enum EnteRadius {
+    public static let medium: CGFloat = 12
     public static let button: CGFloat = 20
 }
 
@@ -62,6 +78,7 @@ public enum EnteTypography {
     public static let display2 = EnteFont.outfit(size: 24, relativeTo: .title)
     public static let body = EnteFont.inter(size: 14, weight: .medium, relativeTo: .body)
     public static let bodyBold = EnteFont.inter(size: 14, weight: .semibold, relativeTo: .body)
+    public static let mini = EnteFont.inter(size: 12, weight: .medium, relativeTo: .caption)
 }
 
 public struct EnteTheme<Content: View>: View {

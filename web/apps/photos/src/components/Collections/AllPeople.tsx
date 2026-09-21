@@ -34,7 +34,6 @@ import {
     Box,
     Button,
     Dialog,
-    DialogContent,
     IconButton,
     Stack,
     Tooltip,
@@ -42,7 +41,6 @@ import {
     styled,
     useMediaQuery,
 } from "@mui/material";
-import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
 import {
     OverflowMenu,
     OverflowMenuOption,
@@ -50,12 +48,7 @@ import {
 import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import { useBaseContext } from "ente-base/context";
 import { SlideUpTransition } from "ente-new/photos/components/mui/SlideUpTransition";
-import {
-    ItemCard,
-    LargeTileButton,
-    LargeTileCreateNewButton,
-    LargeTileTextOverlay,
-} from "ente-new/photos/components/Tiles";
+import { ItemCard } from "ente-new/photos/components/Tiles";
 import {
     addCGroup,
     addClusterToCGroup,
@@ -888,7 +881,8 @@ const AddPersonDialog: React.FC<AddPersonDialogProps> = ({
     people,
     cluster,
 }) => {
-    const isFullScreen = useMediaQuery("(max-width: 490px)");
+    const isFullScreen = useMediaQuery(collectionDialogFullScreenQuery);
+    const titleID = useId();
     const [openNameInput, setOpenNameInput] = useState(false);
 
     const cgroupPeople: CGroupPerson[] = people.filter(
@@ -929,20 +923,64 @@ const AddPersonDialog: React.FC<AddPersonDialogProps> = ({
     return (
         <>
             <Dialog
-                open={open && !openNameInput && cgroupPeople.length > 0}
+                open={open && cgroupPeople.length > 0}
                 onClose={onClose}
-                fullWidth
                 fullScreen={isFullScreen}
-                slotProps={{ paper: { sx: { maxWidth: "490px" } } }}
+                aria-labelledby={titleID}
+                maxWidth={false}
+                sx={{
+                    "& .MuiDialog-paper": {
+                        borderRadius: "32px",
+                        [`@media ${collectionDialogFullScreenQuery}`]: {
+                            borderRadius: 0,
+                        },
+                    },
+                }}
+                slots={{ transition: SlideUpTransition }}
+                slotProps={{ paper: { sx: collectionDialogPaperSx } }}
             >
-                <DialogTitle_>
-                    <Typography variant="h3">{t("add_name")}</Typography>
-                    <DialogCloseIconButton {...{ onClose }} />
-                </DialogTitle_>
+                <Stack sx={collectionDialogHeaderSx}>
+                    <Stack direction="row" sx={collectionDialogHeaderRowSx}>
+                        <Typography id={titleID} sx={collectionDialogTitleSx}>
+                            {t("add_name")}
+                        </Typography>
+                        <IconButton
+                            aria-label={t("close")}
+                            onClick={onClose}
+                            sx={collectionDialogIconButtonSx}
+                        >
+                            <CloseIcon sx={{ fontSize: 20 }} />
+                        </IconButton>
+                    </Stack>
+                </Stack>
+                <Box sx={collectionDialogDividerSx} />
                 <DialogContent_>
-                    <LargeTileCreateNewButton onClick={handleAddPerson}>
-                        {t("new_person")}
-                    </LargeTileCreateNewButton>
+                    <CollectionTileButton
+                        onClick={handleAddPerson}
+                        aria-label={t("new_person")}
+                        sx={(theme) => ({
+                            boxSizing: "border-box",
+                            border: "1px dashed",
+                            borderColor: "stroke.muted",
+                            color: "text.muted",
+                            "&:hover": { borderColor: "rgba(0 0 0 / 0.45)" },
+                            ...theme.applyStyles("dark", {
+                                "&:hover": {
+                                    borderColor: "rgba(255 255 255 / 0.45)",
+                                },
+                            }),
+                        })}
+                    >
+                        <AddIcon
+                            sx={{
+                                position: "absolute",
+                                top: "50%",
+                                left: "50%",
+                                transform: "translate(-50%, -50%)",
+                                fontSize: 20,
+                            }}
+                        />
+                    </CollectionTileButton>
                     {cgroupPeople.map((person) => (
                         <PersonPickerCard
                             key={person.id}
@@ -955,6 +993,8 @@ const AddPersonDialog: React.FC<AddPersonDialogProps> = ({
 
             <SingleInputDialog
                 open={openNameInput}
+                variant="people"
+                sx={{ "& .MuiDialog-paper": { borderRadius: "32px" } }}
                 onClose={() => {
                     setOpenNameInput(false);
                     if (!cgroupPeople.length) {
@@ -973,18 +1013,22 @@ const AddPersonDialog: React.FC<AddPersonDialogProps> = ({
     );
 };
 
-const DialogTitle_ = styled(Box)({
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "10px 8px 6px 24px",
+const DialogContent_ = styled(Box)({
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gridAutoRows: "max-content",
+    alignContent: "start",
+    alignItems: "start",
+    gap: `${GridGap}px`,
+    // Keep the scroll track clear of the dialog's rounded bottom corners.
+    marginBlock: "16px 32px",
+    marginInlineEnd: "8px",
+    paddingInline: `${GridPaddingInline}px ${GridPaddingInline - 8}px`,
+    scrollbarGutter: "stable",
 });
-
-const DialogContent_ = styled(DialogContent)`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-`;
 
 interface PersonPickerCardProps {
     person: Person;
@@ -996,13 +1040,29 @@ const PersonPickerCard: React.FC<PersonPickerCardProps> = ({
     onPersonClick,
 }) => (
     <ItemCard
-        TileComponent={LargeTileButton}
+        TileComponent={CollectionTileButton}
         coverFile={person.displayFaceFile}
         coverFaceID={person.displayFaceID}
         onClick={() => onPersonClick(person.id)}
     >
-        <LargeTileTextOverlay>
-            <Typography>{person.name ?? ""}</Typography>
-        </LargeTileTextOverlay>
+        <CollectionTileTextOverlay>
+            <Tooltip title={person.name ?? ""} arrow>
+                <Typography
+                    sx={{
+                        fontSize: 14,
+                        lineHeight: "20px",
+                        fontWeight: 500,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        overflowWrap: "anywhere",
+                    }}
+                >
+                    {person.name ?? ""}
+                </Typography>
+            </Tooltip>
+        </CollectionTileTextOverlay>
     </ItemCard>
 );

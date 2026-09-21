@@ -53,6 +53,29 @@ pub(crate) enum VectorPayload<'a> {
 }
 
 impl VectorPayload<'_> {
+    pub(crate) fn bitwise_eq(self, other: Self) -> bool {
+        match (self, other) {
+            (Self::F32(first), Self::F32(second)) => {
+                first.len() == second.len()
+                    && first
+                        .iter()
+                        .zip(second)
+                        .all(|(a, b)| a.to_bits() == b.to_bits())
+            }
+            (
+                Self::I8 {
+                    scale: first_scale,
+                    values: first,
+                },
+                Self::I8 {
+                    scale: second_scale,
+                    values: second,
+                },
+            ) => first_scale.to_bits() == second_scale.to_bits() && first == second,
+            _ => false,
+        }
+    }
+
     pub(crate) fn storage(&self) -> StorageKind {
         match self {
             Self::F32(_) => StorageKind::F32,

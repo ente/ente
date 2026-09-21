@@ -598,6 +598,7 @@ test("existing guardrails modified or deleted", (t) => {
             "apple/.swift-format": "{}\n",
             "apple/.swiftlint.yml": "only_rules: []\n",
             "apple/Package.swift": "// swift-tools-version: 6.0\n",
+            "apple/checks/lint-exceptions/check.mjs": "",
             "apple/scripts/lint.sh": "swift format lint --strict\n",
             "mobile/checks/x/check.rb": "",
             "rust/checks/x/check.py": "",
@@ -610,6 +611,7 @@ test("existing guardrails modified or deleted", (t) => {
             "apple/.swift-format": null,
             "apple/.swiftlint.yml": "only_rules: [empty_count]\n",
             "apple/Package.swift": "// swift-tools-version: 6.1\n",
+            "apple/checks/lint-exceptions/check.mjs": "\n",
             "apple/scripts/lint.sh": "swift format lint\n",
             "mobile/checks/x/check.rb": "\n",
             "rust/checks/x/check.py": "\n",
@@ -620,7 +622,7 @@ test("existing guardrails modified or deleted", (t) => {
     );
     assert.equal(
         output,
-        "10 guardrail files\n\n## Guardrail changes\n\n- `.github/scripts/x.mjs`\n- `.github/workflows/x.yml`\n- `apple/.swift-format`\n- `apple/.swiftlint.yml`\n- `apple/Package.swift`\n- `apple/scripts/lint.sh`\n- `mobile/checks/x/check.rb`\n- `rust/checks/x/check.py`\n- `web/apps/x/eslint.config.mjs`\n- `web/checks/x/check.mjs`\n\n",
+        "11 guardrail files\n\n## Guardrail changes\n\n- `.github/scripts/x.mjs`\n- `.github/workflows/x.yml`\n- `apple/.swift-format`\n- `apple/.swiftlint.yml`\n- `apple/Package.swift`\n- `apple/checks/lint-exceptions/check.mjs`\n- `apple/scripts/lint.sh`\n- `mobile/checks/x/check.rb`\n- `rust/checks/x/check.py`\n- `web/apps/x/eslint.config.mjs`\n- `web/checks/x/check.mjs`\n\n",
     );
 });
 
@@ -658,6 +660,8 @@ test("new lint and formatter configs need approval, including untracked files", 
 
 test("suppression lists need approval when added, edited, or deleted", (t) => {
     const files = {
+        "android/checks/lint-exceptions/suppressions.json": "{}\n",
+        "apple/checks/lint-exceptions/suppressions.json": "{}\n",
         "web/apps/photos/eslint-suppressions.json": "{}\n",
         "web/packages/new/nested/eslint-suppressions.json": "{}\n",
         "rust/checks/lint-exceptions/suppressions.json": "{}\n",
@@ -678,11 +682,11 @@ test("suppression lists need approval when added, edited, or deleted", (t) => {
     ]) {
         const { output, summary } = scan(t, before, after, { ci: true });
         assert.equal(output, 'categories=["guardrail files"]\n');
-        assert.match(summary, /4 guardrail files/);
+        assert.match(summary, /6 guardrail files/);
         for (const file of Object.keys(files))
             assert.ok(summary.includes(`\`${file}\``));
     }
-    assert.match(scan(t, {}, files, { commit: false }), /^4 guardrail files\n/);
+    assert.match(scan(t, {}, files, { commit: false }), /^6 guardrail files\n/);
 });
 
 test("Android lint configurations need approval when added, edited, or deleted", (t) => {

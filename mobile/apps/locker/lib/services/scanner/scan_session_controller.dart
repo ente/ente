@@ -169,9 +169,14 @@ class ScanSessionController extends ChangeNotifier {
     final specs = <PdfPageSpec>[];
     for (final page in List.of(_pages)) {
       final jpeg = await page.processedJpeg.readAsBytes();
-      final size = _pageSizeMm(page);
       specs.add(
-        PdfPageSpec(jpeg: jpeg, widthMm: size.widthMm, heightMm: size.heightMm),
+        PdfPageSpec(
+          jpeg: jpeg,
+          layout: PdfPageLayout.fromRaster(
+            widthPixels: page.width,
+            heightPixels: page.height,
+          ),
+        ),
       );
     }
     final bytes = const PdfWriter(creator: 'Ente Locker').build(specs);
@@ -183,13 +188,6 @@ class ScanSessionController extends ChangeNotifier {
     await file.writeAsBytes(bytes, flush: true);
     _exports.add(file);
     return file;
-  }
-
-  static ({double widthMm, double heightMm}) _pageSizeMm(ScannedPage page) {
-    const a4HeightMm = 297.0;
-    final longestPx = page.width > page.height ? page.width : page.height;
-    final scale = a4HeightMm / longestPx;
-    return constrainToMaxFormat(page.width * scale, page.height * scale);
   }
 
   Future<void> disposeSession() async {

@@ -14,6 +14,7 @@ import 'package:ente_auth/locale.dart';
 import 'package:ente_auth/theme/colors.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/account/logout_dialog.dart';
+import 'package:ente_auth/ui/components/dialog_widget.dart';
 import 'package:ente_auth/ui/home/widgets/rounded_action_buttons.dart';
 import 'package:ente_auth/ui/home_page.dart';
 import 'package:ente_auth/ui/settings/developer_settings_widget.dart';
@@ -21,6 +22,7 @@ import 'package:ente_auth/ui/settings/language_picker.dart';
 import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/navigation_util.dart';
+import 'package:ente_auth/utils/platform_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_events/event_bus.dart';
@@ -28,13 +30,19 @@ import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/alert_bottom_sheet.dart';
 import 'package:ente_ui/components/buttons/button_widget.dart';
 import 'package:ente_ui/components/buttons/models/button_result.dart';
+import 'package:ente_ui/components/buttons/models/button_type.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:local_auth/local_auth.dart';
 
 class OnboardingPage extends StatefulWidget {
-  const OnboardingPage({super.key});
+  final bool showOfflineKeyUnavailableDialog;
+
+  const OnboardingPage({
+    super.key,
+    this.showOfflineKeyUnavailableDialog = false,
+  });
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -68,6 +76,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
       await autoLogoutAlert(context);
     });
     _startAutoScroll();
+    if (widget.showOfflineKeyUnavailableDialog) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_showOfflineKeyUnavailableDialog());
+      });
+    }
     super.initState();
   }
 
@@ -254,6 +267,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
       return;
     }
     final bool hasOptedBefore = Configuration.instance.hasOptedForOfflineMode();
+    if (!Configuration.instance.hasConfiguredAccount() &&
+        hasOptedBefore &&
+        Configuration.instance.getOfflineSecretKey() == null) {
+      await _showOfflineKeyUnavailableDialog();
+      return;
+    }
     ButtonResult? result;
     if (!hasOptedBefore && !shouldSkipAuthGuidance) {
       if (!mounted) return;
@@ -281,6 +300,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
       );
     }
+  }
+
+  Future<void> _showOfflineKeyUnavailableDialog() async {
+    if (!mounted) return;
+    final l10n = context.strings;
+    await showDialogWidget(
+      context: context,
+      title: l10n.unableToAccessYourCodes,
+      body: l10n.offlineKeyUnavailableMessage,
+      buttons: [
+        ButtonWidget(
+          buttonType: ButtonType.neutral,
+          labelText: l10n.troubleshooting,
+          onTap: () => PlatformUtil.openUrlInBrowser(
+            "https://ente.com/help/auth/troubleshooting/offline-codes-unavailable",
+          ),
+        ),
+      ],
+      isDismissible: false,
+    );
   }
 
   void _startAutoScroll() {

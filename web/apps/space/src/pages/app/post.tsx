@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
 import { SpaceBackIcon } from "components/BackIcon";
 import { SpacePageMeta } from "components/PageMeta";
+import { SpacePostPhotoInput } from "components/PostPhotoInput";
 import { SpaceRouteFallback } from "components/RouteFallback";
 import React from "react";
 import { useSpaceAppState } from "state/app-state";
@@ -14,7 +15,6 @@ import {
     spaceTextMuted,
 } from "styles/colors";
 import { spaceTouchTargetSize } from "styles/touch-targets";
-import { spacePostImageInputAccept } from "utils/post-image";
 import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
 
@@ -29,11 +29,11 @@ const Page: React.FC = () => {
         profile,
         profileLoadError,
         profileLoadStatus,
-        pendingPostPhotoFile,
-        setPendingPostPhotoFile,
+        pendingPostPhotoFiles,
+        setPendingPostPhotoFiles,
     } = useSpaceAppState();
     const inputRef = React.useRef<HTMLInputElement | null>(null);
-    const isOpeningPost = Boolean(pendingPostPhotoFile);
+    const isOpeningPost = Boolean(pendingPostPhotoFiles);
 
     React.useEffect(() => {
         if (profileLoadStatus == "ready" && !profile) {
@@ -49,16 +49,6 @@ const Page: React.FC = () => {
             />
         );
     }
-
-    const handlePhotoSelect: React.ChangeEventHandler<HTMLInputElement> = (
-        event,
-    ) => {
-        const file = event.target.files?.[0];
-        event.target.value = "";
-        if (!file) return;
-
-        setPendingPostPhotoFile(file);
-    };
 
     return (
         <>
@@ -160,13 +150,9 @@ const Page: React.FC = () => {
                         >
                             Post a photo from your day.
                         </Box>
-                        <Box
-                            ref={inputRef}
-                            component="input"
-                            type="file"
-                            accept={spacePostImageInputAccept}
-                            onChange={handlePhotoSelect}
-                            sx={{ display: "none" }}
+                        <SpacePostPhotoInput
+                            inputRef={inputRef}
+                            onSelect={setPendingPostPhotoFiles}
                         />
                         <Box
                             className="green-bg"

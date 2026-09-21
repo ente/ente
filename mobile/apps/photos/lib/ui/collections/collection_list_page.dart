@@ -13,7 +13,6 @@ import "package:photos/models/selected_albums.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/settings/local_settings.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/flex_grid_view.dart";
 import "package:photos/ui/components/searchable_appbar.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
@@ -157,7 +156,6 @@ class _CollectionListPageState extends State<CollectionListPage> {
   }
 
   List<EntePopupMenuOption<_CollectionListMenuAction>> _buildMenuOptions() {
-    final colorScheme = getEnteColorScheme(context);
     final strings = context.strings;
     final currentViewType = albumViewType ?? localSettings.albumViewType();
     final isListView = currentViewType == AlbumViewType.list;
@@ -172,7 +170,6 @@ class _CollectionListPageState extends State<CollectionListPage> {
           : HugeIcons.strokeRoundedArrowDown02,
       size: 12,
       strokeWidth: 3,
-      color: colorScheme.textMuted,
     );
 
     return [
@@ -185,7 +182,6 @@ class _CollectionListPageState extends State<CollectionListPage> {
               : HugeIcons.strokeRoundedMenu01,
           size: 12,
           strokeWidth: 3,
-          color: colorScheme.contentLight,
         ),
       ),
       EntePopupMenuOption(

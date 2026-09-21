@@ -77,7 +77,8 @@ impl Error {
 
     pub fn is_retryable(&self) -> bool {
         match self {
-            Error::Network(e) => e.0.is_request() || e.0.is_body(),
+            // reqwest also reports interrupted bodies as decoding errors.
+            Error::Network(e) => e.0.is_request() || e.0.is_body() || e.0.is_decode(),
             Error::Http { status, .. } | Error::Api { status, .. } => {
                 *status == 429 || *status >= 500
             }
@@ -450,16 +451,38 @@ where
     retry_with_delays(&profile.delays(), operation).await
 }
 
+pub async fn retry_if<T, E, F, Fut>(operation: F, should_retry: impl Fn(&E) -> bool) -> Result<T, E>
+where
+    E: std::fmt::Display,
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, E>>,
+{
+    retry_operation(&RetryProfile::Interactive.delays(), operation, should_retry).await
+}
+
 async fn retry_with_delays<T, F, Fut>(delays: &[Duration], mut operation: F) -> Result<T, Error>
 where
     F: FnMut() -> Fut,
     Fut: Future<Output = Result<T, Error>>,
 {
+    retry_operation(delays, &mut operation, Error::is_retryable).await
+}
+
+async fn retry_operation<T, E, F, Fut>(
+    delays: &[Duration],
+    mut operation: F,
+    should_retry: impl Fn(&E) -> bool,
+) -> Result<T, E>
+where
+    E: std::fmt::Display,
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, E>>,
+{
     let mut delays = delays.iter();
     loop {
         match operation().await {
             Ok(value) => return Ok(value),
-            Err(error) if error.is_retryable() => match delays.next() {
+            Err(error) if should_retry(&error) => match delays.next() {
                 Some(delay) => {
                     log::warn!("retrying in {delay:?}: {error}");
                     sleep(*delay).await;
@@ -745,6 +768,7 @@ mod tests {
         let api = api(&server, None);
         let err = api.ping().await.unwrap_err();
         assert!(matches!(err, Error::Parse(_)));
+        assert!(!err.is_retryable());
     }
 
     #[tokio::test]

@@ -1560,6 +1560,7 @@ fn message_payload_limits_reject_oversized_text_and_payload() {
         version: 1,
         kind: MESSAGE_KIND_REGULAR.to_owned(),
         text: "hello".to_owned(),
+        reply_object_key: None,
     };
     let valid_plaintext = serde_json::to_vec(&valid).expect("valid payload json");
     validate_message_payload(&valid, valid_plaintext.len())
@@ -1577,6 +1578,83 @@ fn message_payload_limits_reject_oversized_text_and_payload() {
     let err = validate_message_payload(&valid, MAX_SPACE_MESSAGE_PAYLOAD_BYTES + 1)
         .expect_err("large serialized payload should be rejected");
     assert!(err.to_string().contains("payload must be"));
+}
+
+#[tokio::test]
+async fn post_replies_encrypt_photo_references_and_reject_other_photos() {
+    let mut server = Server::new_async().await;
+    let ctx = test_account_ctx(&server.url());
+    let (public_key, _) = generate_keypair().unwrap();
+    let owned = server
+        .mock("GET", "/account/space")
+        .with_body("[]")
+        .create_async()
+        .await;
+    let post = server.mock("GET", "/spaces/space_friend/posts/42")
+        .match_query(Matcher::UrlEncoded("viewerSpaceId".into(), "space_owner_main".into()))
+        .with_body(json!({
+            "postId": 42,
+            "spaceId": "space_friend",
+            "spaceSlug": "friend",
+            "author": { "spaceId": "space_friend", "spaceSlug": "friend", "publicKey": b64::encode(&public_key) },
+            "encryptedPostKey": "unused",
+            "keyVersion": 1,
+            "viewerLiked": false,
+            "createdAt": "2026-09-19T00:00:00Z",
+            "objects": [
+                { "objectKey": "first", "metadataCipher": "unused" },
+                { "objectKey": "second", "metadataCipher": "unused" }
+            ]
+        }).to_string())
+        .expect(4).create_async().await;
+    let reply = server
+        .mock("POST", "/spaces/space_owner_main/posts/42/reply")
+        .with_body_from_request(|request| {
+            let body: serde_json::Value = serde_json::from_slice(request.body().unwrap()).unwrap();
+            assert!(body.get("replyObjectKey").is_none());
+            json!({
+                "messageId": "reply",
+                "kind": "post_reply",
+                "senderSpaceId": "space_owner_main",
+                "recipientSpaceId": "space_friend",
+                "replyPostId": 42,
+                "messageCipher": body["messageCipher"],
+                "encryptedMessageKey": body["senderEncryptedMessageKey"],
+                "createdAt": "2026-09-19T00:00:00Z",
+                "updatedAt": "2026-09-19T00:00:00Z"
+            })
+            .to_string()
+            .into_bytes()
+        })
+        .expect(3)
+        .create_async()
+        .await;
+    for object_key in [None, Some("first"), Some("second")] {
+        let response = ctx
+            .reply_to_post("space_owner_main", "space_friend", 42, "Coo", object_key)
+            .await
+            .unwrap();
+        let decrypted = ctx
+            .decrypt_message("space_owner_main", &response)
+            .await
+            .unwrap();
+        assert_eq!(decrypted.payload.text, "Coo");
+        assert_eq!(decrypted.payload.reply_object_key.as_deref(), object_key);
+    }
+    let error = ctx
+        .reply_to_post(
+            "space_owner_main",
+            "space_friend",
+            42,
+            "Coo",
+            Some("unrelated"),
+        )
+        .await
+        .unwrap_err();
+    assert!(matches!(error, Error::InvalidInput(_)));
+    owned.assert_async().await;
+    post.assert_async().await;
+    reply.assert_async().await;
 }
 
 #[tokio::test]

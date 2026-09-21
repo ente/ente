@@ -66,7 +66,7 @@ export const SpaceHomeHeader: React.FC<SpaceHomeHeaderProps> = ({
             zIndex: 4,
             "&::after": {
                 bgcolor: headerBackground,
-                borderRadius: "22px",
+                borderRadius: "16px",
                 content: '""',
                 height: spaceHomeHeaderBarHeight,
                 left: "16px",
@@ -223,6 +223,15 @@ export const SpaceHomeHeader: React.FC<SpaceHomeHeaderProps> = ({
                 {showUnreadIndicator && (
                     <Box
                         sx={{
+                            "@keyframes spaceUnreadBadgePing": {
+                                "75%, 100%": {
+                                    opacity: 0,
+                                    transform: "scale(2.5)",
+                                },
+                            },
+                            "@media (prefers-reduced-motion: reduce)": {
+                                "&::after": { display: "none" },
+                            },
                             bgcolor: dangerColor,
                             border: `2px solid ${headerBackground}`,
                             borderRadius: "50%",
@@ -233,6 +242,18 @@ export const SpaceHomeHeader: React.FC<SpaceHomeHeaderProps> = ({
                             top: 5,
                             width: 12.5,
                             zIndex: 1,
+                            "&::after": {
+                                animation:
+                                    "spaceUnreadBadgePing 1.25s cubic-bezier(0, 0, 0.2, 1) 1 forwards",
+                                bgcolor: dangerColor,
+                                borderRadius: "50%",
+                                content: '""',
+                                inset: 0,
+                                opacity: 0.75,
+                                pointerEvents: "none",
+                                position: "absolute",
+                                zIndex: -1,
+                            },
                         }}
                     />
                 )}

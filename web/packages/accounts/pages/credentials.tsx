@@ -354,6 +354,7 @@ const Page: React.FC = () => {
                     host={host}
                     passwordForm={
                         <VerifyMasterPasswordForm
+                            decryptBox={decryptBox}
                             {...{
                                 userEmail,
                                 keyAttributes,

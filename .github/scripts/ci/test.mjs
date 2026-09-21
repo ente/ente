@@ -32,7 +32,7 @@ test("shared Android build inputs select Ensu", (t) => {
         "android/gradlew",
         "android/gradlew.bat",
     ]) {
-        assert.ok(select(t, [file]).includes("ensu-android-build"), file);
+        assert.ok(select(t, [file]).includes("android-lint"), file);
     }
 });
 
@@ -44,8 +44,7 @@ test("shared build inputs select their consumers", (t) => {
     ]);
     assert.deepEqual(select(t, ["rust/crates/core/src/lib.rs"]), [
         "android-lint",
-        "ensu-android-build",
-        "ensu-ios-build",
+        "apple-lint",
         "mobile-lint",
         "repo-lint",
         "rust-cli-test",

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 class JpegInfo {
@@ -58,38 +59,64 @@ class JpegInfo {
   }
 }
 
-class PdfPageSpec {
-  const PdfPageSpec({
-    required this.jpeg,
-    required this.widthMm,
-    required this.heightMm,
-  });
+class PdfPageLayout {
+  const PdfPageLayout._({required this.widthMm, required this.heightMm});
 
-  final Uint8List jpeg;
+  static const maximumLongEdgeMm = 297.0;
+  static const maximumShortEdgeMm = 215.9;
+
+  factory PdfPageLayout.fromRaster({
+    required int widthPixels,
+    required int heightPixels,
+  }) {
+    if (widthPixels <= 0 || heightPixels <= 0) {
+      throw ArgumentError('Raster dimensions must be positive');
+    }
+    final landscape = widthPixels > heightPixels;
+    final shortToLong =
+        math.min(widthPixels, heightPixels) /
+        math.max(widthPixels, heightPixels);
+    final fitsLongEdge = maximumLongEdgeMm * shortToLong <= maximumShortEdgeMm;
+    final longEdgeMm = fitsLongEdge
+        ? maximumLongEdgeMm
+        : maximumShortEdgeMm / shortToLong;
+    final shortEdgeMm = fitsLongEdge
+        ? maximumLongEdgeMm * shortToLong
+        : maximumShortEdgeMm;
+    if (!shortEdgeMm.isFinite || shortEdgeMm <= 0) {
+      throw ArgumentError('Raster aspect ratio must be finite and positive');
+    }
+    return PdfPageLayout._(
+      widthMm: landscape ? longEdgeMm : shortEdgeMm,
+      heightMm: landscape ? shortEdgeMm : longEdgeMm,
+    );
+  }
+
   final double widthMm;
   final double heightMm;
+
+  bool matchesRaster(JpegInfo info) {
+    if (info.width <= 0 || info.height <= 0) return false;
+    final ratio = widthMm / heightMm;
+    final rasterRatio = info.width / info.height;
+    return (ratio - rasterRatio).abs() <=
+        math.max(ratio, rasterRatio) * 32 * 2.220446049250313e-16;
+  }
 }
 
-({double widthMm, double heightMm}) constrainToMaxFormat(
-  double widthMm,
-  double heightMm,
-) {
-  const maxDim = 297.0;
-  const minDim = 215.9;
-  final scale = [
-    maxDim / (widthMm > heightMm ? widthMm : heightMm),
-    minDim / (widthMm < heightMm ? widthMm : heightMm),
-    1.0,
-  ].reduce((a, b) => a < b ? a : b);
-  return (widthMm: widthMm * scale, heightMm: heightMm * scale);
-}
+class PdfPageSpec {
+  const PdfPageSpec({required this.jpeg, required this.layout});
 
-const double pointsPerMm = 72.0 / 25.4;
+  final Uint8List jpeg;
+  final PdfPageLayout layout;
+}
 
 class PdfWriter {
   const PdfWriter({required this.creator});
 
   final String creator;
+
+  static const _pointsPerMillimeter = 72.0 / 25.4;
 
   Uint8List build(List<PdfPageSpec> pages, {DateTime? creationDate}) {
     final out = BytesBuilder(copy: false);
@@ -134,8 +161,11 @@ class PdfWriter {
     for (var i = 0; i < pages.length; i++) {
       final page = pages[i];
       final info = JpegInfo.parse(page.jpeg);
-      final widthPt = page.widthMm * pointsPerMm;
-      final heightPt = page.heightMm * pointsPerMm;
+      if (!page.layout.matchesRaster(info)) {
+        throw ArgumentError('Page layout must preserve the JPEG aspect ratio');
+      }
+      final widthPt = page.layout.widthMm * _pointsPerMillimeter;
+      final heightPt = page.layout.heightMm * _pointsPerMillimeter;
 
       startObject(pageObj(i));
       text(
@@ -179,9 +209,7 @@ class PdfWriter {
   }
 
   static String _num(double value) {
-    final rounded = (value * 1000).roundToDouble() / 1000;
-    if (rounded == rounded.roundToDouble()) return rounded.toStringAsFixed(0);
-    return rounded.toString();
+    return value.toStringAsFixed(9).replaceFirst(RegExp(r'\.?0+$'), '');
   }
 
   static String _escape(String value) => value

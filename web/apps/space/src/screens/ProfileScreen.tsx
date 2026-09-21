@@ -26,6 +26,9 @@ import {
     type SpaceViewerPhoto,
     type SpaceViewerPostActionMode,
 } from "components/FileViewer";
+import { SpacePostComposer } from "components/PostComposer";
+import { SpacePostPhotoInput } from "components/PostPhotoInput";
+import { SpacePostPhotosBadge } from "components/PostPhotosBadge";
 import { SpaceLoadingSpinner } from "components/RouteFallback";
 import { SpaceShareIcon } from "components/ShareInviteButton";
 import log from "ente-base/log";
@@ -33,7 +36,11 @@ import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React, { useState } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import type { SpaceInviteIntent } from "services/invite";
-import { isSpaceContentError, type SpacePostAsset } from "services/space";
+import {
+    isSpaceContentError,
+    type SpacePostAsset,
+    type SpacePostPhoto,
+} from "services/space";
 import { spaceEmptyStateButtonSx } from "styles/buttons";
 import {
     spaceAppBackground,
@@ -47,15 +54,11 @@ import {
 import { spaceProfilePostRadius } from "styles/tiles";
 import { spaceTouchTargetSize } from "styles/touch-targets";
 import { firstNameFrom } from "utils/display";
-import { createLoadedLocalPostPhoto } from "utils/local-post-photo";
 import {
-    canPreviewSpaceImageFile,
     spaceDefaultCoverImagePath,
-    spacePostImageErrorMessage,
-    spacePostImageInputAccept,
-    spacePostPreviewImageForFile,
     type SpaceDraftPostImage,
 } from "utils/post-image";
+import { viewerPhotosFromPost } from "utils/post-photos";
 import { profilePhotoGap, profilePhotoRows } from "utils/profile-photo-layout";
 import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 
@@ -98,6 +101,7 @@ export interface ProfilePostItem {
     id: string;
     imageAsset?: SpacePostAsset;
     imageUrl?: string;
+    photos?: SpacePostPhoto[];
     isUnavailable?: boolean;
     name?: string;
     postId?: number;
@@ -109,14 +113,9 @@ export interface ProfilePostItem {
 }
 
 interface SelectedProfilePost {
-    draftFile?: File;
-    draftImageError?: string;
     id: string;
-    isDraftImagePreviewPending?: boolean;
-    localObjectUrl?: string;
     photo: SpaceViewerPhoto;
-    postIndex?: number;
-    postActionMode?: SpaceViewerPostActionMode;
+    photoIndex: number;
 }
 
 interface PostMasonryTile {
@@ -456,6 +455,12 @@ const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
                     }}
                 />
             ) : null}
+            {!isUnavailable && (
+                <SpacePostPhotosBadge
+                    count={item.photos?.length ?? 1}
+                    inset={8}
+                />
+            )}
             {isUnavailable && (
                 <Box
                     sx={{
@@ -493,7 +498,7 @@ interface ProfileScreenProps {
     onAddFriendForPostAction?: (intent: SpaceInviteIntent) => void;
     onCreateSpace?: () => void;
     onCreatePost?: (
-        image: SpaceDraftPostImage,
+        images: SpaceDraftPostImage[],
         caption: string,
     ) => Promise<void>;
     onDeletePost?: (postId: number) => Promise<void> | void;
@@ -507,6 +512,7 @@ interface ProfileScreenProps {
         postSpaceId: string,
         postId: number,
         text: string,
+        objectKey: string,
     ) => Promise<void>;
     onSetPostLiked?: (postId: number, liked: boolean) => Promise<void>;
     onUnfriend?: () => Promise<void> | void;
@@ -556,8 +562,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 }) => {
     const [selectedPost, setSelectedPost] =
         useState<SelectedProfilePost | null>(null);
-    const [isDraftPostExiting, setIsDraftPostExiting] = useState(false);
-    const [isPostPhotoOpening, setIsPostPhotoOpening] = useState(false);
+    const [draftFiles, setDraftFiles] = useState<File[] | null>(null);
+    const isPostPhotoOpening = Boolean(draftFiles);
     const [isInviteLinkCopied, setIsInviteLinkCopied] = useState(false);
     const [deletedPostIDs, setDeletedPostIDs] = useState<Set<string>>(
         () => new Set(),
@@ -587,8 +593,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const postImageLoadsInFlightRef = React.useRef<
         Map<string, Promise<string | undefined>>
     >(new Map());
-    const localPostObjectUrlsRef = React.useRef<Set<string>>(new Set());
-    const activeLocalPostObjectUrlRef = React.useRef<string | null>(null);
     const isOwnerProfile = headerVariant == "owner";
     const isFriendProfile = headerVariant == "friend";
     const isAnonymousPublicProfile = headerVariant == "public-anonymous";
@@ -718,31 +722,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         setUnfriendErrorMessage(null);
     };
 
-    const revokeLocalPostObjectUrls = React.useCallback(() => {
-        localPostObjectUrlsRef.current.forEach((objectUrl) =>
-            URL.revokeObjectURL(objectUrl),
-        );
-        localPostObjectUrlsRef.current.clear();
-    }, []);
     const openPostPhotoPicker = () => {
-        if (isPostPhotoOpening) return;
-
-        postInputRef.current?.click();
+        if (!isPostPhotoOpening) postInputRef.current?.click();
     };
-    const closeSelectedPost = () => {
-        activeLocalPostObjectUrlRef.current = null;
-        setIsDraftPostExiting(false);
-        setSelectedPost(null);
-        revokeLocalPostObjectUrls();
-    };
-    const { clearBrowserBackState: clearSelectedPostHistory } =
-        useBrowserBackClose({
-            open: Boolean(selectedPost),
-            onClose: () => {
-                if (!isDraftPostExiting) closeSelectedPost();
-            },
-            stateKey: "space-profile-viewer",
-        });
+    const closeSelectedPost = () => setSelectedPost(null);
+    useBrowserBackClose({
+        open: Boolean(selectedPost),
+        onClose: closeSelectedPost,
+        stateKey: "space-profile-viewer",
+    });
     const rememberLoadedPhotoDimensions = (
         itemID: string,
         image: HTMLImageElement,
@@ -824,221 +812,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         [loadedPhotoDimensionsByID],
     );
 
-    const selectedPostForItem = React.useCallback(
-        (
-            item: ProfilePostItem,
-            postIndex: number,
-            imageUrl: string,
-        ): SelectedProfilePost => {
-            const dimensions = dimensionsForPost(item);
-            return {
-                id: item.id,
-                photo: {
-                    alt: `${displayName} post ${postIndex + 1}`,
-                    avatarUrl: profile.avatarUrl,
-                    caption: item.caption,
-                    height: dimensions.height,
-                    imageUrl,
-                    name: displayName,
-                    postId: item.postId,
-                    spaceId: item.spaceId,
-                    timestampMs: item.timestampMs,
-                    viewerLiked: item.viewerLiked,
-                    width: dimensions.width,
-                },
-                postIndex,
-            };
-        },
-        [dimensionsForPost, displayName, profile.avatarUrl],
-    );
-
-    const profileViewerPhotos = React.useMemo(
-        () =>
-            viewerPostItems.map((item, index) => {
-                const dimensions = dimensionsForPost(item);
-                return {
-                    alt: `${displayName} post ${index + 1}`,
-                    avatarUrl: profile.avatarUrl,
-                    caption: item.caption,
-                    height: dimensions.height,
-                    imageUrl:
-                        loadedPostImageURLFor(item) ??
-                        (selectedPost?.id == item.id
-                            ? selectedPost.photo.imageUrl
-                            : ""),
-                    name: displayName,
-                    postId: item.postId,
-                    spaceId: item.spaceId,
-                    timestampMs: item.timestampMs,
-                    viewerLiked: item.viewerLiked,
-                    width: dimensions.width,
-                };
-            }),
-        [
-            dimensionsForPost,
-            displayName,
-            loadedPostImageURLFor,
-            profile.avatarUrl,
-            selectedPost?.id,
-            selectedPost?.photo.imageUrl,
-            viewerPostItems,
-        ],
-    );
-
-    const handleSelectedPostIndexChange = React.useCallback(
-        (postIndex: number) => {
-            const item = viewerPostItems[postIndex];
-            if (!item) return;
-
-            const updateSelectedPost = (imageUrl: string) => {
-                setSelectedPost((currentPost) => {
-                    if (currentPost?.postIndex == undefined) {
-                        return currentPost;
-                    }
-                    if (
-                        currentPost.id == item.id &&
-                        currentPost.photo.imageUrl == imageUrl
-                    ) {
-                        return currentPost;
-                    }
-                    return selectedPostForItem(item, postIndex, imageUrl);
-                });
-            };
-
-            const imageUrl = loadedPostImageURLFor(item);
-            if (imageUrl) {
-                updateSelectedPost(imageUrl);
-                return;
-            }
-
-            void loadPostImage(item).then((loadedImageUrl) => {
-                if (loadedImageUrl) updateSelectedPost(loadedImageUrl);
-            });
-        },
-        [
-            loadPostImage,
-            loadedPostImageURLFor,
-            selectedPostForItem,
-            viewerPostItems,
-        ],
-    );
-
-    const selectedViewerPostIndex = selectedPost
-        ? viewerPostIndexByID.get(selectedPost.id)
-        : undefined;
-
-    React.useEffect(() => {
-        const currentPostIndex = selectedViewerPostIndex;
-        if (currentPostIndex == undefined) return;
-
-        for (const offset of [-1, 1]) {
-            const adjacentPost = viewerPostItems[currentPostIndex + offset];
-            if (!adjacentPost || loadedPostImageURLFor(adjacentPost)) continue;
-
-            void loadPostImage(adjacentPost);
-        }
-    }, [
-        loadPostImage,
-        loadedPostImageURLFor,
-        selectedViewerPostIndex,
-        viewerPostItems,
-    ]);
-
-    const prepareSelectedPostPhoto = async (file: File) => {
-        const canShowLocalPreview = canPreviewSpaceImageFile(file);
-        if (!canShowLocalPreview) {
-            const timestampMs = Date.now();
-            const draftKey = `pending-preview-${timestampMs}`;
-            activeLocalPostObjectUrlRef.current = draftKey;
-            setSelectedPost({
-                draftFile: file,
-                id: `local-${timestampMs}`,
-                isDraftImagePreviewPending: true,
-                localObjectUrl: draftKey,
-                photo: {
-                    alt: `${displayName || "You"} post`,
-                    avatarUrl: profile.avatarUrl,
-                    imageUrl: "",
-                    name: displayName || "You",
-                    timestampMs,
-                },
-                postActionMode: "draft-post",
-            });
-
-            window.setTimeout(() => {
-                if (activeLocalPostObjectUrlRef.current != draftKey) return;
-
-                void spacePostPreviewImageForFile(file)
-                    .then((preview) => {
-                        if (activeLocalPostObjectUrlRef.current != draftKey) {
-                            URL.revokeObjectURL(preview.url);
-                            return;
-                        }
-
-                        localPostObjectUrlsRef.current.add(preview.url);
-                        activeLocalPostObjectUrlRef.current = preview.url;
-                        setSelectedPost((currentPost) => {
-                            if (currentPost?.localObjectUrl != draftKey)
-                                return currentPost;
-
-                            return {
-                                ...currentPost,
-                                isDraftImagePreviewPending: false,
-                                localObjectUrl: preview.url,
-                                photo: {
-                                    ...currentPost.photo,
-                                    height: preview.height,
-                                    imageUrl: preview.url,
-                                    width: preview.width,
-                                },
-                            };
-                        });
-                    })
-                    .catch((error: unknown) => {
-                        log.error("Failed to prepare post preview", error);
-                        const message = spacePostImageErrorMessage(error);
-                        setSelectedPost((currentPost) => {
-                            if (currentPost?.localObjectUrl != draftKey)
-                                return currentPost;
-
-                            return { ...currentPost, draftImageError: message };
-                        });
-                    });
-            }, 0);
-            return;
-        }
-
-        const localPost = await createLoadedLocalPostPhoto({
+    const profileViewerPhotos = viewerPostItems.flatMap((item) =>
+        viewerPhotosFromPost({
+            ...item,
+            ...dimensionsForPost(item),
             avatarUrl: profile.avatarUrl,
-            file,
-            name: displayName || "You",
-        });
-        localPostObjectUrlsRef.current.add(localPost.objectUrl);
-        activeLocalPostObjectUrlRef.current = localPost.objectUrl;
-        setSelectedPost({
-            draftFile: file,
-            id: `local-${localPost.photo.timestampMs}`,
-            localObjectUrl: localPost.objectUrl,
-            photo: localPost.photo,
-            postActionMode: "draft-post",
-        });
-    };
-
-    const handlePostPhotoSelect: React.ChangeEventHandler<HTMLInputElement> = (
-        event,
-    ) => {
-        const file = event.target.files?.[0];
-        event.target.value = "";
-        if (!file) return;
-
-        setIsPostPhotoOpening(true);
-        void prepareSelectedPostPhoto(file)
-            .catch((error: unknown) => {
-                log.error("Failed to open post photo draft", error);
-            })
-            .finally(() => {
-                setIsPostPhotoOpening(false);
-            });
+            imageUrl: loadedPostImageURLFor(item),
+            name: displayName,
+        }),
+    );
+    const handleSelectedPostIndexChange = (photoIndex: number) => {
+        const photo = profileViewerPhotos[photoIndex];
+        if (!photo) return;
+        const item = viewerPostItems.find(
+            (item) => item.postId == photo.postId,
+        );
+        if (item) setSelectedPost({ id: item.id, photo, photoIndex });
     };
 
     const shareInvite = async () => {
@@ -1073,14 +862,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         });
     };
 
-    React.useEffect(
-        () => () => {
-            activeLocalPostObjectUrlRef.current = null;
-            revokeLocalPostObjectUrls();
-        },
-        [revokeLocalPostObjectUrls],
-    );
-
     const renderPostTile = (
         { aspectRatio, index, item }: PostMasonryTile,
         rowAspectRatio: number,
@@ -1107,9 +888,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 onOpen={(openedImageUrl) => {
                     const postIndex = viewerPostIndexByID.get(item.id);
                     if (postIndex == undefined) return;
-                    setSelectedPost(
-                        selectedPostForItem(item, postIndex, openedImageUrl),
+                    const photoIndex = profileViewerPhotos.findIndex(
+                        (photo) => photo.postId == item.postId,
                     );
+                    setSelectedPost({
+                        id: item.id,
+                        photoIndex,
+                        photo: {
+                            ...profileViewerPhotos[photoIndex]!,
+                            imageUrl: openedImageUrl,
+                        },
+                    });
                 }}
                 onRememberDimensions={rememberLoadedPhotoDimensions}
             />
@@ -1340,13 +1129,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 }}
             >
                 {isOwnerProfile && (
-                    <Box
-                        ref={postInputRef}
-                        component="input"
-                        type="file"
-                        accept={spacePostImageInputAccept}
-                        onChange={handlePostPhotoSelect}
-                        sx={{ display: "none" }}
+                    <SpacePostPhotoInput
+                        inputRef={postInputRef}
+                        onSelect={setDraftFiles}
                     />
                 )}
                 <Box
@@ -2002,70 +1787,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         onClick={openPostPhotoPicker}
                     />
                 )}
+                {draftFiles && onCreatePost && (
+                    <SpacePostComposer
+                        files={draftFiles}
+                        onClose={() => setDraftFiles(null)}
+                        onPublish={onCreatePost}
+                        onPublished={onPostSubmitted}
+                        profile={profile}
+                    />
+                )}
                 {selectedPost && (
                     <SpaceFileViewer
                         photo={selectedPost.photo}
-                        draftPostPreparationError={selectedPost.draftImageError}
-                        isDraftPostPreviewPending={
-                            selectedPost.isDraftImagePreviewPending
-                        }
-                        postActionMode={
-                            selectedPost.postActionMode ??
-                            selectedPostActionMode
-                        }
-                        photos={
-                            selectedViewerPostIndex == undefined
-                                ? undefined
-                                : profileViewerPhotos
-                        }
-                        photoIndex={selectedViewerPostIndex}
-                        onPhotoIndexChange={
-                            selectedViewerPostIndex == undefined
-                                ? undefined
-                                : handleSelectedPostIndexChange
-                        }
+                        photos={profileViewerPhotos}
+                        photoIndex={selectedPost.photoIndex}
+                        onPhotoIndexChange={handleSelectedPostIndexChange}
+                        onLoadPhoto={onLoadPostImage}
+                        postActionMode={selectedPostActionMode}
                         onClose={closeSelectedPost}
                         onAddFriendForPostAction={
                             isPublicProfile
                                 ? onAddFriendForPostAction
                                 : undefined
                         }
-                        onDraftPostExitStart={() => setIsDraftPostExiting(true)}
-                        onDraftPostPublished={() => {
-                            void clearSelectedPostHistory("back").then(() =>
-                                onPostSubmitted?.(),
-                            );
-                        }}
                         onDeletePost={
                             isOwnerProfile ? deleteSelectedPost : undefined
                         }
                         onOpenProfile={closeSelectedPost}
                         onReplyToPost={
                             isFriendProfile ? onReplyToPost : undefined
-                        }
-                        onPublishDraftPost={
-                            selectedPost.draftFile && onCreatePost
-                                ? (caption, edit) => {
-                                      const previewUrl =
-                                          selectedPost.photo.imageUrl;
-                                      const publishPromise = onCreatePost(
-                                          {
-                                              cropArea: edit.cropArea,
-                                              file: selectedPost.draftFile!,
-                                              height: edit.height,
-                                              previewUrl,
-                                              rotationDegrees:
-                                                  edit.rotationDegrees,
-                                              width: edit.width,
-                                          },
-                                          caption,
-                                      );
-                                      localPostObjectUrlsRef.current.delete(
-                                          previewUrl,
-                                      );
-                                      return publishPromise;
-                                  }
-                                : undefined
                         }
                         onSetPostLiked={onSetPostLiked}
                         onUpdatePostCaption={

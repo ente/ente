@@ -20,8 +20,7 @@ class GoogleAuthMigrationTracker {
       _reset();
       return migration.codes;
     }
-    if (!migration.hasValidBatchMetadata ||
-        (migration.batchSize > 1 && migration.batchId == 0)) {
+    if (!migration.hasValidBatchMetadata) {
       throw const FormatException('Invalid Google Authenticator export batch');
     }
     if (migration.batchSize == 1) {
@@ -40,15 +39,6 @@ class GoogleAuthMigrationTracker {
     ];
     _reset();
     return codes;
-  }
-
-  bool record(GoogleAuthMigration migration) {
-    if (!migration.hasValidBatchMetadata) return false;
-    try {
-      return add(migration) != null;
-    } on FormatException {
-      return false;
-    }
   }
 
   void _reset() {

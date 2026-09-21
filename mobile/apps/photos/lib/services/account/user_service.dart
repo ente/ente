@@ -58,6 +58,7 @@ class UserService {
   static const keyUserDetails = "user_details";
   static const kReferralSource = "referral_source";
   static const kIsEmailMFAEnabled = "is_email_mfa_enabled";
+  static const _publicKeyBatchSize = 10;
 
   final SRP6GroupParameters kDefaultSrpGroup = SRP6StandardGroups.rfc5054_4096;
   final _publicKeyCache = TimedCache<String, String>(
@@ -206,6 +207,7 @@ class UserService {
   }
 
   Future<String?> getPublicKey(String email) async {
+    email = email.trim().toLowerCase();
     final String? cachedPubKey = _publicKeyCache.get(email);
     if (cachedPubKey != null) {
       return cachedPubKey;
@@ -215,6 +217,56 @@ class UserService {
       _publicKeyCache.set(email, publicKey);
     }
     return publicKey;
+  }
+
+  Future<Map<String, String?>> getPublicKeys(Iterable<String> emails) async {
+    final normalizedEmails = <String>[];
+    final seen = <String>{};
+    for (final email in emails) {
+      final normalizedEmail = email.trim().toLowerCase();
+      if (normalizedEmail.isNotEmpty && seen.add(normalizedEmail)) {
+        normalizedEmails.add(normalizedEmail);
+      }
+    }
+
+    final result = <String, String?>{};
+    final uncached = <String>[];
+    for (final email in normalizedEmails) {
+      final publicKey = _publicKeyCache.get(email);
+      if (publicKey == null) {
+        uncached.add(email);
+      } else {
+        result[email] = publicKey;
+      }
+    }
+
+    for (final batch in uncached.chunks(_publicKeyBatchSize)) {
+      final publicKeys = await _getPublicKeyBatch(batch);
+      for (var index = 0; index < batch.length; index++) {
+        final publicKey = publicKeys[index];
+        result[batch[index]] = publicKey;
+        if (publicKey != null && publicKey.isNotEmpty) {
+          _publicKeyCache.set(batch[index], publicKey);
+        }
+      }
+    }
+    return result;
+  }
+
+  Future<List<String?>> _getPublicKeyBatch(List<String> emails) async {
+    try {
+      return await _gateway.getPublicKeys(emails);
+    } on DioException catch (error) {
+      if (error.response?.statusCode != 404) {
+        rethrow;
+      }
+    }
+
+    final publicKeys = <String?>[];
+    for (final email in emails) {
+      publicKeys.add(await _gateway.getPublicKey(email));
+    }
+    return publicKeys;
   }
 
   UserDetails? getCachedUserDetails() {

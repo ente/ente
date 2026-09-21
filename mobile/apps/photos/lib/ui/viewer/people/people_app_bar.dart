@@ -271,7 +271,6 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
   }
 
   List<Widget> _getDefaultActions(BuildContext context) {
-    final iconColor = getEnteColorScheme(context).contentLight;
     final bool isIgnored = person.data.isIgnored;
     final bool isPinned = person.data.isPinned;
     final bool hideFromMemories = person.data.hideFromMemories;
@@ -318,9 +317,9 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         EntePopupMenuOption(
           value: PeoplePopupAction.memoryLane,
           label: context.strings.facesTimelineAppBarTitle,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedSparkles,
-            iconColor,
+          leadingWidget: const HugeIcon(
+            icon: HugeIcons.strokeRoundedSparkles,
+            size: IconSizes.small,
           ),
         ),
       );
@@ -331,27 +330,27 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         EntePopupMenuOption(
           value: PeoplePopupAction.rename,
           label: context.strings.edit,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedPencilEdit01,
-            iconColor,
+          leadingWidget: const HugeIcon(
+            icon: HugeIcons.strokeRoundedPencilEdit01,
+            size: IconSizes.small,
           ),
         ),
         if (hasAssignedCluster)
           EntePopupMenuOption(
             value: PeoplePopupAction.reviewSuggestions,
             label: context.strings.review,
-            leadingWidget: galleryAppBarMenuIcon(
-              HugeIcons.strokeRoundedSearch01,
-              iconColor,
+            leadingWidget: const HugeIcon(
+              icon: HugeIcons.strokeRoundedSearch01,
+              size: IconSizes.small,
             ),
           ),
         if (hasAssignedCluster)
           EntePopupMenuOption(
             value: PeoplePopupAction.setCover,
             label: context.strings.setCover,
-            leadingWidget: galleryAppBarMenuIcon(
-              HugeIcons.strokeRoundedImage01,
-              iconColor,
+            leadingWidget: const HugeIcon(
+              icon: HugeIcons.strokeRoundedImage01,
+              size: IconSizes.small,
             ),
           ),
         EntePopupMenuOption(
@@ -359,11 +358,11 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
           label: isPinned
               ? context.strings.unpinPerson
               : context.strings.pinPerson,
-          leadingWidget: galleryAppBarMenuIcon(
-            isPinned
+          leadingWidget: HugeIcon(
+            icon: isPinned
                 ? HugeIcons.strokeRoundedPinOff
                 : HugeIcons.strokeRoundedPin,
-            iconColor,
+            size: IconSizes.small,
           ),
         ),
         EntePopupMenuOption(
@@ -371,11 +370,11 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
           label: hideFromMemories
               ? context.strings.showInMemories
               : context.strings.hideFromMemories,
-          leadingWidget: galleryAppBarMenuIcon(
-            hideFromMemories
+          leadingWidget: HugeIcon(
+            icon: hideFromMemories
                 ? HugeIcons.strokeRoundedView
                 : HugeIcons.strokeRoundedViewOffSlash,
-            iconColor,
+            size: IconSizes.small,
           ),
         ),
         if (isCurrentUserContactLink(
@@ -385,25 +384,25 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
           EntePopupMenuOption(
             value: PeoplePopupAction.reassignMe,
             label: context.strings.reassignMe,
-            leadingWidget: galleryAppBarMenuIcon(
-              HugeIcons.strokeRoundedUser,
-              iconColor,
+            leadingWidget: const HugeIcon(
+              icon: HugeIcons.strokeRoundedUser,
+              size: IconSizes.small,
             ),
           ),
         EntePopupMenuOption(
           value: PeoplePopupAction.ignore,
           label: context.strings.ignore,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedUserBlock01,
-            iconColor,
+          leadingWidget: const HugeIcon(
+            icon: HugeIcons.strokeRoundedUserBlock01,
+            size: IconSizes.small,
           ),
         ),
         EntePopupMenuOption(
           value: PeoplePopupAction.removeLabel,
           label: context.strings.remove,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedDelete01,
-            iconColor,
+          leadingWidget: const HugeIcon(
+            icon: HugeIcons.strokeRoundedDelete01,
+            size: IconSizes.small,
           ),
         ),
       ]);
@@ -412,26 +411,26 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         EntePopupMenuOption(
           value: PeoplePopupAction.rename,
           label: context.strings.edit,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedPencilEdit01,
-            iconColor,
+          leadingWidget: const HugeIcon(
+            icon: HugeIcons.strokeRoundedPencilEdit01,
+            size: IconSizes.small,
           ),
         ),
         if (hasAssignedCluster)
           EntePopupMenuOption(
             value: PeoplePopupAction.reviewSuggestions,
             label: context.strings.review,
-            leadingWidget: galleryAppBarMenuIcon(
-              HugeIcons.strokeRoundedSearch01,
-              iconColor,
+            leadingWidget: const HugeIcon(
+              icon: HugeIcons.strokeRoundedSearch01,
+              size: IconSizes.small,
             ),
           ),
         EntePopupMenuOption(
           value: PeoplePopupAction.unignore,
           label: context.strings.showPerson,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedView,
-            iconColor,
+          leadingWidget: const HugeIcon(
+            icon: HugeIcons.strokeRoundedView,
+            size: IconSizes.small,
           ),
         ),
       ]);

@@ -18,6 +18,16 @@ export const CachedSpacePost = z.object({
     friendID: z.string(),
     height: z.number().optional(),
     imageAsset: CachedSpacePostAsset.optional(),
+    photos: z
+        .array(
+            z.object({
+                height: z.number().optional(),
+                imageAsset: CachedSpacePostAsset.optional(),
+                thumbHash: z.string().optional(),
+                width: z.number().optional(),
+            }),
+        )
+        .optional(),
     isUnavailable: z.boolean().optional(),
     name: z.string(),
     postId: z.number(),

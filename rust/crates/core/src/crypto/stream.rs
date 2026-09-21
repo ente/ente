@@ -238,6 +238,52 @@ pub struct StreamingDecryptor<R: Read> {
     seen_final: bool,
 }
 
+pub struct DecryptingWriter<W: Write> {
+    decryptor: Decryptor,
+    writer: W,
+    buffer: Vec<u8>,
+}
+
+impl<W: Write> DecryptingWriter<W> {
+    pub fn new(header: &Header, key: &Key, writer: W) -> Self {
+        Self {
+            decryptor: Decryptor::new(header, key),
+            writer,
+            buffer: Vec::with_capacity(DECRYPTION_CHUNK_SIZE),
+        }
+    }
+
+    pub fn write(&mut self, mut data: &[u8]) -> Result<()> {
+        while !data.is_empty() {
+            if self.decryptor.seen_final {
+                return Err(Error::StreamTrailingData);
+            }
+            let count = data.len().min(DECRYPTION_CHUNK_SIZE - self.buffer.len());
+            self.buffer.extend_from_slice(&data[..count]);
+            data = &data[count..];
+            if self.buffer.len() == DECRYPTION_CHUNK_SIZE {
+                self.flush_chunk()?;
+            }
+        }
+        Ok(())
+    }
+
+    fn flush_chunk(&mut self) -> Result<()> {
+        self.decryptor.pull_in_place(&mut self.buffer)?;
+        self.writer.write_all(&self.buffer)?;
+        self.buffer.clear();
+        Ok(())
+    }
+
+    pub fn finish(mut self) -> Result<W> {
+        if !self.buffer.is_empty() {
+            self.flush_chunk()?;
+        }
+        self.decryptor.finish()?;
+        Ok(self.writer)
+    }
+}
+
 fn ensure_reader_exhausted<R: Read>(reader: &mut R) -> Result<()> {
     let mut extra = [0u8; 1];
 
@@ -863,6 +909,22 @@ mod tests {
         assert_eq!(Header::BYTES, 24);
         assert_eq!(Key::BYTES, 32);
         assert_eq!(ABYTES, 17);
+    }
+
+    #[test]
+    fn decrypting_writer_accepts_arbitrary_chunk_boundaries() {
+        let key = Key::generate();
+        for size in [0, 2 * ENCRYPTION_CHUNK_SIZE + 71] {
+            let plaintext = vec![37; size];
+            let mut ciphertext = Vec::new();
+            let header = encrypt_file(&mut plaintext.as_slice(), &mut ciphertext, &key).unwrap();
+            let mut writer = DecryptingWriter::new(&header, &key, Vec::new());
+            writer.write(&ciphertext[..13]).unwrap();
+            for chunk in ciphertext[13..].chunks(DECRYPTION_CHUNK_SIZE + 5) {
+                writer.write(chunk).unwrap();
+            }
+            assert_eq!(writer.finish().unwrap(), plaintext);
+        }
     }
 
     #[test]

@@ -18,6 +18,14 @@ pub enum Error {
 impl Error {
     fn name(&self) -> Option<&'static str> {
         match self {
+            Self::Space(ente_space::Error::Http(ente_core::http::Error::Http {
+                status: 404 | 410,
+                ..
+            })) => Some("content_unavailable"),
+            Self::Space(ente_space::Error::Http(ente_core::http::Error::Http {
+                status: 403,
+                ..
+            })) => Some("permission_denied"),
             Self::Space(error) if error.is_content_error() => Some("content_unavailable"),
             Self::Space(ente_space::Error::SpaceLimitReached) => Some("space_limit_reached"),
             Self::Space(ente_space::Error::SpaceSlugAlreadyExists) => {
@@ -146,6 +154,14 @@ pub struct PostPhotoAssetOptions {
     thumb_hash: Option<String>,
 }
 
+#[derive(Deserialize, Tsify)]
+pub struct PostPhotoInput {
+    #[serde(with = "swb::preserve")]
+    #[tsify(type = "Uint8Array")]
+    bytes: js_sys::Uint8Array,
+    options: PostPhotoAssetOptions,
+}
+
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatedSpace {
@@ -250,6 +266,7 @@ pub struct MessageResponse {
     recipient_space_id: String,
     text: String,
     reply_post_id: Option<i64>,
+    reply_object_key: Option<String>,
     reply_message_id: Option<String>,
     liked: bool,
     viewer_liked: bool,
@@ -278,6 +295,7 @@ struct MessageConversationActivity {
     message_id: Option<String>,
     text: Option<String>,
     post_id: Option<i64>,
+    reply_object_key: Option<String>,
     post_space_id: Option<String>,
     is_unavailable: bool,
 }
@@ -434,23 +452,6 @@ fn decode_b64_field(value: &str) -> Result<Vec<u8>, Error> {
     b64::decode(value)
         .map_err(ente_space::Error::from)
         .map_err(Into::into)
-}
-
-#[wasm_bindgen(js_name = encryptSpaceRootEntityKey)]
-pub fn encrypt_space_root_entity_key(
-    space_root_key_b64: &str,
-    master_key_b64: &str,
-) -> Result<String, Error> {
-    ente_space::encrypt_space_root_entity_key(space_root_key_b64, master_key_b64)
-        .map_err(Into::into)
-}
-
-#[wasm_bindgen(js_name = decryptSpaceRootEntityKey)]
-pub fn decrypt_space_root_entity_key(
-    encrypted_key_b64: &str,
-    master_key_b64: &str,
-) -> Result<String, Error> {
-    ente_space::decrypt_space_root_entity_key(encrypted_key_b64, master_key_b64).map_err(Into::into)
 }
 
 fn utf8_field(bytes: Vec<u8>, field: &str) -> Result<String, Error> {
@@ -654,7 +655,9 @@ fn account_message_to_js(
     decrypted: DecryptedMessage,
 ) -> Result<MessageResponse, Error> {
     message.kind = decrypted.payload.kind;
-    Ok(message_to_js(message, decrypted.payload.text))
+    let mut response = message_to_js(message, decrypted.payload.text);
+    response.reply_object_key = decrypted.payload.reply_object_key;
+    Ok(response)
 }
 
 fn message_to_js(message: ente_space::MessageResponse, text: String) -> MessageResponse {
@@ -665,6 +668,7 @@ fn message_to_js(message: ente_space::MessageResponse, text: String) -> MessageR
         recipient_space_id: message.recipient_space_id,
         text,
         reply_post_id: message.reply_post_id,
+        reply_object_key: None,
         reply_message_id: message.reply_message_id,
         liked: message.liked,
         viewer_liked: message.viewer_liked,
@@ -683,6 +687,7 @@ fn unavailable_message_to_js(message: ente_space::MessageResponse) -> MessageRes
         recipient_space_id: message.recipient_space_id,
         text: String::new(),
         reply_post_id: message.reply_post_id,
+        reply_object_key: None,
         reply_message_id: message.reply_message_id,
         liked: message.liked,
         viewer_liked: message.viewer_liked,
@@ -776,6 +781,9 @@ async fn message_conversation_activity_to_js(
         .as_ref()
         .map(|payload| payload.kind.clone())
         .unwrap_or_else(|| activity.kind.clone());
+    let reply_object_key = payload
+        .as_ref()
+        .and_then(|payload| payload.reply_object_key.clone());
     let text = payload.map(|payload| payload.text);
     Ok(MessageConversationActivity {
         id: activity.id,
@@ -786,6 +794,7 @@ async fn message_conversation_activity_to_js(
         message_id: activity.message_id,
         text,
         post_id: activity.post_id,
+        reply_object_key,
         post_space_id: activity.post_space_id,
         is_unavailable: false,
     })
@@ -803,6 +812,7 @@ fn unavailable_message_conversation_activity_to_js(
         message_id: activity.message_id,
         text: None,
         post_id: activity.post_id,
+        reply_object_key: None,
         post_space_id: activity.post_space_id,
         is_unavailable: true,
     }
@@ -1227,31 +1237,43 @@ impl SpaceAccountCtxHandle {
     pub async fn create_photo_post(
         &self,
         space_id: String,
-        photo_bytes: Vec<u8>,
+        photos: Vec<<PostPhotoInput as Tsify>::JsType>,
         caption: Option<String>,
-        photo_options: <PostPhotoAssetOptions as Tsify>::JsType,
     ) -> Result<<PostResponse as Tsify>::JsType, Error> {
-        let photo_options = PostPhotoAssetOptions::from_js(photo_options)?;
+        if photos.is_empty() || photos.len() > 10 {
+            return Err(
+                ente_space::Error::InvalidInput("Choose between 1 and 10 photos".into()).into(),
+            );
+        }
+        let photos = photos
+            .into_iter()
+            .map(PostPhotoInput::from_js)
+            .collect::<Result<Vec<_>, _>>()?;
         let post_key = self.inner.generate_post_key();
-        let object = self
-            .inner
-            .upload_post_photo_asset(
-                &space_id,
-                &post_key,
-                &photo_bytes,
-                ente_space::PostPhotoAssetOptions {
-                    width: photo_options.width,
-                    height: photo_options.height,
-                    media_type: photo_options.media_type,
-                    thumb_hash: photo_options.thumb_hash,
-                },
-            )
-            .await?;
+        let mut objects = Vec::with_capacity(photos.len());
+        for (position, photo) in photos.into_iter().enumerate() {
+            let mut object = self
+                .inner
+                .upload_post_photo_asset(
+                    &space_id,
+                    &post_key,
+                    &photo.bytes.to_vec(),
+                    ente_space::PostPhotoAssetOptions {
+                        width: photo.options.width,
+                        height: photo.options.height,
+                        media_type: photo.options.media_type,
+                        thumb_hash: photo.options.thumb_hash,
+                    },
+                )
+                .await?;
+            object.position = Some(position as i32);
+            objects.push(object);
+        }
         let (post_id, _) = self
             .inner
             .create_post(
                 &space_id,
-                &[object],
+                &objects,
                 caption.as_ref().map(String::as_bytes),
                 Some(&post_key),
             )
@@ -1407,10 +1429,17 @@ impl SpaceAccountCtxHandle {
         post_space_id: String,
         post_id: i64,
         text: String,
+        object_key: Option<String>,
     ) -> Result<<MessageResponse as Tsify>::JsType, Error> {
         let message = self
             .inner
-            .reply_to_post(&sender_space_id, &post_space_id, post_id, &text)
+            .reply_to_post(
+                &sender_space_id,
+                &post_space_id,
+                post_id,
+                &text,
+                object_key.as_deref(),
+            )
             .await?;
         let decrypted = self
             .inner
@@ -1792,69 +1821,84 @@ mod tests {
     async fn encrypted_message_kinds_preserve_server_events_and_allow_pokes() {
         let (ctx, message_key, encrypted_message_key) = message_context();
 
-        for (server_kind, payload_kind, expected_kind) in [
-            ("regular", "regular", "regular"),
-            ("regular", "poke", "poke"),
-            ("regular", "post_like", "regular"),
-            ("regular", "post_reply", "regular"),
-            ("regular", "friend_added", "regular"),
-            ("regular", "unknown", "regular"),
-            ("post_reply", "post_reply", "post_reply"),
-            ("post_reply", "regular", "post_reply"),
-            ("post_reply", "poke", "post_reply"),
-            ("post_reply", "post_like", "post_reply"),
-            ("post_reply", "friend_added", "post_reply"),
-        ] {
-            let plaintext = format!(r#"{{"version":1,"kind":"{payload_kind}","text":"hello"}}"#);
-            let cipher = b64::encode(&secretbox::encrypt_combined(
-                plaintext.as_bytes(),
-                &message_key,
-            ));
-            let mut response = message("message-1", &encrypted_message_key, &cipher);
-            response.kind = server_kind.into();
-            response.reply_post_id = (server_kind == "post_reply").then_some(42);
-            let activity = ente_space::MessageConversationActivity {
-                id: "activity-1".into(),
-                activity_type: if server_kind == "post_reply" {
-                    "post_reply".into()
-                } else {
-                    "message".into()
-                },
-                kind: response.kind.clone(),
-                created_at: response.created_at.clone(),
-                outgoing: false,
-                message_id: Some(response.message_id.clone()),
-                sender_space_id: response.sender_space_id.clone(),
-                recipient_space_id: response.recipient_space_id.clone(),
-                message_cipher: response.message_cipher.clone(),
-                encrypted_message_key: response.encrypted_message_key.clone(),
-                reply_message_id: None,
-                post_id: response.reply_post_id,
-                post_space_id: response.reply_post_id.map(|_| "space-1".into()),
-            };
-            let converted = resilient_account_message_response_to_js(&ctx, "space-1", response)
-                .await
-                .unwrap_or_else(|error| panic!("{error}"));
-            let converted_activity =
-                resilient_message_conversation_activity_to_js(&ctx, "space-1", activity.clone())
+        for reply_object_key in [None, Some("first"), Some("second")] {
+            for (server_kind, payload_kind, expected_kind) in [
+                ("regular", "regular", "regular"),
+                ("regular", "poke", "poke"),
+                ("regular", "post_like", "regular"),
+                ("regular", "post_reply", "regular"),
+                ("regular", "friend_added", "regular"),
+                ("regular", "unknown", "regular"),
+                ("post_reply", "post_reply", "post_reply"),
+                ("post_reply", "regular", "post_reply"),
+                ("post_reply", "poke", "post_reply"),
+                ("post_reply", "post_like", "post_reply"),
+                ("post_reply", "friend_added", "post_reply"),
+            ] {
+                let photo_field = reply_object_key
+                    .map(|key| format!(r#","replyObjectKey":"{key}""#))
+                    .unwrap_or_default();
+                let plaintext = format!(
+                    r#"{{"version":1,"kind":"{payload_kind}","text":"hello"{photo_field}}}"#
+                );
+                let cipher = b64::encode(&secretbox::encrypt_combined(
+                    plaintext.as_bytes(),
+                    &message_key,
+                ));
+                let mut response = message("message-1", &encrypted_message_key, &cipher);
+                response.kind = server_kind.into();
+                response.reply_post_id = (server_kind == "post_reply").then_some(42);
+                let activity = ente_space::MessageConversationActivity {
+                    id: "activity-1".into(),
+                    activity_type: if server_kind == "post_reply" {
+                        "post_reply".into()
+                    } else {
+                        "message".into()
+                    },
+                    kind: response.kind.clone(),
+                    created_at: response.created_at.clone(),
+                    outgoing: false,
+                    message_id: Some(response.message_id.clone()),
+                    sender_space_id: response.sender_space_id.clone(),
+                    recipient_space_id: response.recipient_space_id.clone(),
+                    message_cipher: response.message_cipher.clone(),
+                    encrypted_message_key: response.encrypted_message_key.clone(),
+                    reply_message_id: None,
+                    post_id: response.reply_post_id,
+                    post_space_id: response.reply_post_id.map(|_| "space-1".into()),
+                };
+                let converted = resilient_account_message_response_to_js(&ctx, "space-1", response)
                     .await
                     .unwrap_or_else(|error| panic!("{error}"));
+                let converted_activity = resilient_message_conversation_activity_to_js(
+                    &ctx,
+                    "space-1",
+                    activity.clone(),
+                )
+                .await
+                .unwrap_or_else(|error| panic!("{error}"));
 
-            assert_eq!(
-                converted.kind, expected_kind,
-                "message: server={server_kind}, payload={payload_kind}"
-            );
-            assert_eq!(
-                converted_activity.kind, expected_kind,
-                "activity: server={server_kind}, payload={payload_kind}"
-            );
-            assert_eq!(converted.text, "hello");
-            assert_eq!(converted.reply_post_id, activity.post_id);
-            assert!(!converted.is_unavailable);
-            assert_eq!(converted_activity.text.as_deref(), Some("hello"));
-            assert_eq!(converted_activity.activity_type, activity.activity_type);
-            assert_eq!(converted_activity.post_id, activity.post_id);
-            assert!(!converted_activity.is_unavailable);
+                assert_eq!(
+                    converted.kind, expected_kind,
+                    "message: server={server_kind}, payload={payload_kind}"
+                );
+                assert_eq!(
+                    converted_activity.kind, expected_kind,
+                    "activity: server={server_kind}, payload={payload_kind}"
+                );
+                assert_eq!(converted.reply_object_key.as_deref(), reply_object_key);
+                assert_eq!(
+                    converted_activity.reply_object_key.as_deref(),
+                    reply_object_key
+                );
+                assert_eq!(converted.text, "hello");
+                assert_eq!(converted.reply_post_id, activity.post_id);
+                assert!(!converted.is_unavailable);
+                assert_eq!(converted_activity.text.as_deref(), Some("hello"));
+                assert_eq!(converted_activity.activity_type, activity.activity_type);
+                assert_eq!(converted_activity.post_id, activity.post_id);
+                assert!(!converted_activity.is_unavailable);
+            }
         }
     }
 

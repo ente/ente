@@ -1,0 +1,1 @@
+- Refreshed the Add person picker and fixed overflowing name labels.

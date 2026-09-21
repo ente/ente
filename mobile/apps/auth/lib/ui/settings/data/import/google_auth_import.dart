@@ -5,6 +5,7 @@ import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/ui/scanner_gauth_page.dart';
 import 'package:ente_auth/ui/settings/data/import/google_auth_migration_tracker.dart';
+import 'package:ente_auth/ui/settings/data/import/google_auth_qr_parser.dart';
 import 'package:ente_auth/ui/settings/data/import/import_instruction_sheet.dart';
 import 'package:ente_auth/ui/settings/data/import/import_success.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
@@ -16,6 +17,8 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
 export 'package:ente_auth/ui/settings/data/import/google_auth_qr_parser.dart';
+
+final _logger = Logger('GoogleAuthImport');
 
 Future<bool> showGoogleAuthInstruction(BuildContext context) async {
   final l10n = context.strings;
@@ -64,80 +67,121 @@ Future<bool> showGoogleAuthInstruction(BuildContext context) async {
 }
 
 Future<bool> _importGoogleAuthFromImage(BuildContext context) async {
-  final migrationTracker = GoogleAuthMigrationTracker();
-  List<Code>? codes;
-  while (codes == null) {
-    if (!context.mounted) return false;
-    final importResult = await pickCodeFromImage(
-      context,
-      logger: Logger("GoogleAuthImport"),
-      pickFromFiles: true,
-    );
-    if (importResult == null) return false;
+  if (!context.mounted) return false;
+  final importResult = await pickCodeFromImage(
+    context,
+    logger: _logger,
+    pickFromFiles: true,
+  );
+  if (importResult == null || !context.mounted) return false;
+  final codes = await collectGoogleAuthImageBatches(
+    context,
+    importResult.googleAuthMigration,
+    logger: _logger,
+    pickFromFiles: true,
+  );
 
-    final migration = importResult.googleAuthMigration;
-    if (migration == null || migration.codes.isEmpty) {
-      if (!context.mounted) return false;
+  if (!context.mounted || codes == null) return false;
+  return _completeGoogleAuthImport(context, codes);
+}
+
+Future<List<Code>?> collectGoogleAuthImageBatches(
+  BuildContext context,
+  GoogleAuthMigration? migration, {
+  required Logger logger,
+  bool pickFromFiles = false,
+  GoogleAuthMigrationTracker? tracker,
+}) async {
+  final migrationTracker = tracker ?? GoogleAuthMigrationTracker();
+  while (true) {
+    final currentMigration = migration;
+    if (currentMigration == null || currentMigration.codes.isEmpty) {
+      if (!context.mounted) return null;
       await showErrorDialog(
         context,
         context.strings.invalidQRCode,
         context.strings.errorInvalidQRCodeBody,
       );
-      return false;
+      return null;
     }
+
     try {
-      codes = migrationTracker.add(migration);
+      final codes = migrationTracker.add(currentMigration);
+      if (codes != null) return codes;
     } on FormatException catch (error) {
-      if (!context.mounted) return false;
+      if (!context.mounted) return null;
       await showErrorDialog(
         context,
         context.strings.invalidQRCode,
         error.message,
       );
-      return false;
+      return null;
     }
-    if (codes == null && context.mounted) {
-      final result = await showImportInstructionSheet(
-        context: context,
-        title: 'Google Authenticator',
-        body:
-            '${context.strings.selectFile} '
-            '(${migrationTracker.receivedBatchCount}/${migrationTracker.batchSize})',
-        cancelLabel: context.strings.cancel,
-        semanticsIdentifier: 'auth_import_google_authenticator_next_file',
-        actions: [
-          ImportInstructionAction(
-            label: context.strings.selectFile,
-            result: ImportInstructionResult.primary,
-          ),
-        ],
-      );
-      if (result != ImportInstructionResult.primary) return false;
-    }
-  }
 
-  if (!context.mounted) return false;
-  final shouldImport = await confirmGoogleAuthImport(context, codes.length);
-  if (!shouldImport || !context.mounted) {
-    return false;
+    if (!context.mounted) return null;
+    final result = await showImportInstructionSheet(
+      context: context,
+      title: 'Google Authenticator',
+      body:
+          '${context.strings.selectFile} '
+          '(${migrationTracker.receivedBatchCount}/${migrationTracker.batchSize})',
+      cancelLabel: context.strings.cancel,
+      semanticsIdentifier: 'auth_import_google_authenticator_next_file',
+      actions: [
+        ImportInstructionAction(
+          label: context.strings.selectFile,
+          result: ImportInstructionResult.primary,
+        ),
+      ],
+    );
+    if (result != ImportInstructionResult.primary || !context.mounted) {
+      return null;
+    }
+    final importResult = await pickCodeFromImage(
+      context,
+      logger: logger,
+      pickFromFiles: pickFromFiles,
+    );
+    if (importResult == null) return null;
+    migration = importResult.googleAuthMigration;
   }
-  return _completeGoogleAuthImport(context, codes);
 }
 
 Future<bool> _completeGoogleAuthImport(
   BuildContext context,
   List<Code> codes,
 ) async {
-  final importedCount = await importGoogleAuthCodes(codes);
-  if (!context.mounted) return false;
-  await importSuccessDialog(context, importedCount);
+  int? importedCount;
+  final shouldImport = await confirmGoogleAuthImport(
+    context,
+    codes.length,
+    onImport: () async {
+      try {
+        importedCount = await importGoogleAuthCodes(codes);
+      } catch (error, stackTrace) {
+        _logger.severe(
+          'Failed to import Google Authenticator codes',
+          error,
+          stackTrace,
+        );
+        if (context.mounted) {
+          await showGenericErrorDialog(context: context, error: error);
+        }
+        rethrow;
+      }
+    },
+  );
+  final count = importedCount;
+  if (!shouldImport || count == null || !context.mounted) return false;
+  await importSuccessDialog(context, count);
   return true;
 }
 
 Future<bool> confirmGoogleAuthImport(
   BuildContext context,
-  int codeCount,
-) async {
+  int codeCount, {
+  FutureOr<void> Function()? onImport,
+}) async {
   final l10n = context.strings;
   final result = await showImportInstructionSheet(
     context: context,
@@ -149,6 +193,7 @@ Future<bool> confirmGoogleAuthImport(
       ImportInstructionAction(
         label: l10n.importLabel,
         result: ImportInstructionResult.primary,
+        onTap: onImport,
       ),
     ],
   );

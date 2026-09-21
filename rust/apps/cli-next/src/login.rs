@@ -20,7 +20,7 @@ use crate::{
     api,
     args::{LoginArgs, Product},
     parse_json, read_input,
-    vault::{Account, AccountKeys, State, StoredSession, Vault},
+    vault::{Account, AccountKeys, DbKey, State, StoredSession, Vault},
 };
 
 pub async fn login(
@@ -143,6 +143,7 @@ pub async fn login(
             vault.state.check_name(&new_name)?;
             let index = vault.state.accounts.len();
             vault.state.accounts.push(Account {
+                db_key: DbKey(*ente_core::crypto::Key::generate().as_bytes()),
                 storage_id: Uuid::new_v4(),
                 name: new_name,
                 email,

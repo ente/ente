@@ -1,0 +1,13 @@
+{
+    "android/apps/ensu/app/src/main/AndroidManifest.xml": ["UnusedAttribute"],
+    "android/apps/ensu/app/src/main/java/io/ente/ensu/AppViewModel.kt": [
+        "DEPRECATION"
+    ],
+    "android/apps/ensu/app/src/main/java/io/ente/ensu/HomeView.kt": ["Recycle"],
+    "android/apps/ensu/app/src/main/java/io/ente/ensu/chat/VoiceInput.kt": [
+        "MissingPermission"
+    ],
+    "android/apps/ensu/app/src/main/java/io/ente/ensu/notes/AndroidNotesSource.kt": [
+        "Recycle"
+    ]
+}

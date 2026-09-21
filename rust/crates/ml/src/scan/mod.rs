@@ -1,18 +1,30 @@
+mod appearance;
+mod boundary;
 mod codec;
-mod color;
-mod contour_orientation;
-mod detection;
-mod geometry;
-mod mask;
-mod perspective;
-mod postprocess;
-mod quad_score;
+mod page;
 mod scanner;
 mod segmentation;
 mod yuv;
 
-pub use color::ColorMode;
-pub use geometry::{Point, Quad};
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColorMode {
+    Color,
+    Grayscale,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Quad {
+    pub top_left: Point,
+    pub top_right: Point,
+    pub bottom_right: Point,
+    pub bottom_left: Point,
+}
 pub use scanner::{ReprocessOptions, ScanError, ScanResult, ScannerSession};
 pub use segmentation::MASK_SIDE;
 pub use yuv::PlaneLayout;

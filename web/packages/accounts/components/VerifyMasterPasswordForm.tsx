@@ -1,11 +1,12 @@
 import { Input, TextField } from "@mui/material";
-import { decryptBox, deriveKey } from "ente-accounts/services/crypto";
+import { deriveKey } from "ente-accounts/services/crypto";
 import type { SRPAttributes } from "ente-accounts/services/srp";
 import type { KeyAttributes } from "ente-accounts/services/user";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
 import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
+import type { SessionStorageCrypto } from "ente-base/session-storage";
 import { useFormik } from "formik";
 import { t } from "i18next";
 import { useCallback, useState, type ComponentType } from "react";
@@ -23,6 +24,7 @@ export interface VerifyMasterPasswordPresentationProps {
 }
 
 export interface VerifyMasterPasswordFormProps {
+    decryptBox: SessionStorageCrypto["decryptBox"];
     userEmail: string;
     srpAttributes?: SRPAttributes;
     keyAttributes: KeyAttributes | undefined;
@@ -43,6 +45,7 @@ export interface VerifyMasterPasswordFormProps {
 export const VerifyMasterPasswordForm: React.FC<
     VerifyMasterPasswordFormProps
 > = ({
+    decryptBox,
     userEmail,
     keyAttributes,
     srpAttributes,
@@ -82,34 +85,23 @@ export const VerifyMasterPasswordForm: React.FC<
         password: string,
         setFieldError: (message: string) => void,
     ) => {
+        const kdfAttributes = srpAttributes ?? keyAttributes;
+        if (!kdfAttributes)
+            throw new Error("Both SRP and key attributes are missing");
+
         let kek: string;
-        if (srpAttributes) {
-            try {
-                kek = await deriveKey(
-                    password,
-                    srpAttributes.kekSalt,
-                    srpAttributes.opsLimit,
-                    srpAttributes.memLimit,
-                );
-            } catch (e) {
-                log.error("Failed to derive kek", e);
-                setFieldError(t("weak_device_hint"));
-                return;
-            }
-        } else if (keyAttributes) {
-            try {
-                kek = await deriveKey(
-                    password,
-                    keyAttributes.kekSalt,
-                    keyAttributes.opsLimit,
-                    keyAttributes.memLimit,
-                );
-            } catch (e) {
-                log.error("Failed to derive kek", e);
-                setFieldError(t("weak_device_hint"));
-                return;
-            }
-        } else throw new Error("Both SRP and key attributes are missing");
+        try {
+            kek = await deriveKey(
+                password,
+                kdfAttributes.kekSalt,
+                kdfAttributes.opsLimit,
+                kdfAttributes.memLimit,
+            );
+        } catch (e) {
+            log.error("Failed to derive kek", e);
+            setFieldError(t("weak_device_hint"));
+            return;
+        }
 
         if (!keyAttributes && getKeyAttributes && srpAttributes) {
             try {

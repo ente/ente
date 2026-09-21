@@ -69,6 +69,7 @@ impl AccountSpaceCtx {
                 version: 1,
                 kind: MESSAGE_KIND_REGULAR.to_owned(),
                 text: text.to_owned(),
+                reply_object_key: None,
             },
             None,
         )
@@ -87,6 +88,7 @@ impl AccountSpaceCtx {
                 version: 1,
                 kind: MESSAGE_KIND_POKE.to_owned(),
                 text: POKE_MESSAGE_TEXT.to_owned(),
+                reply_object_key: None,
             },
             Some(MESSAGE_NOTIFICATION_KIND_POKE),
         )
@@ -142,6 +144,7 @@ impl AccountSpaceCtx {
             version: 1,
             kind: MESSAGE_KIND_REGULAR.to_owned(),
             text: text.to_owned(),
+            reply_object_key: None,
         };
         let request = self
             .message_request_for_payload(
@@ -170,6 +173,7 @@ impl AccountSpaceCtx {
         post_space_id: &str,
         post_id: i64,
         text: &str,
+        object_key: Option<&str>,
     ) -> Result<MessageResponse> {
         let post = self
             .get_post(post_space_id, post_id, Some(sender_space_id))
@@ -186,10 +190,19 @@ impl AccountSpaceCtx {
                 "post author public key is missing".into(),
             ));
         }
+        if let Some(object_key) = object_key
+            && !post
+                .objects
+                .iter()
+                .any(|object| object.object_key == object_key)
+        {
+            return Err(Error::InvalidInput("photo does not belong to post".into()));
+        }
         let payload = MessagePayload {
             version: 1,
             kind: MESSAGE_KIND_POST_REPLY.to_owned(),
             text: text.to_owned(),
+            reply_object_key: object_key.map(str::to_owned),
         };
         let request = self
             .message_request_for_payload(

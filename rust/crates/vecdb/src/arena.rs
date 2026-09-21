@@ -13,11 +13,10 @@ pub(crate) const MAX_KEY_BYTES: usize = 256;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum UpsertOutcome {
     NewSlot(u32),
-    RecycledSlot(u32),
-    ReplacedInPlace(u32),
+    Unchanged(u32),
 }
 
-pub(crate) fn validate_key(key: &str) -> Result<(), VecDbError> {
+pub fn validate_key(key: &str) -> Result<(), VecDbError> {
     if key.is_empty() {
         return Err(VecDbError::InvalidKey("key is empty".to_string()));
     }
@@ -118,7 +117,6 @@ pub(crate) struct VectorArena {
     keys_to_slots: HashMap<Box<str>, u32>,
     slots_to_keys: Vec<Box<str>>,
     alive: Vec<u64>,
-    free_slots: Vec<u32>,
     live_count: usize,
 }
 
@@ -145,7 +143,6 @@ impl VectorArena {
             keys_to_slots: HashMap::new(),
             slots_to_keys: Vec::new(),
             alive: Vec::new(),
-            free_slots: Vec::new(),
             live_count: 0,
         })
     }
@@ -163,7 +160,7 @@ impl VectorArena {
     }
 
     pub(crate) fn dead_count(&self) -> usize {
-        self.free_slots.len()
+        self.slot_count() - self.live_count
     }
 
     pub(crate) fn slot_count(&self) -> usize {
@@ -214,16 +211,10 @@ impl VectorArena {
             });
         }
         if let Some(&slot) = self.keys_to_slots.get(key) {
-            self.write_vector(slot, payload);
-            return Ok(UpsertOutcome::ReplacedInPlace(slot));
-        }
-        if let Some(slot) = self.free_slots.pop() {
-            self.slots_to_keys[slot as usize] = Box::from(key);
-            self.keys_to_slots.insert(Box::from(key), slot);
-            self.mark_alive(slot);
-            self.live_count += 1;
-            self.write_vector(slot, payload);
-            return Ok(UpsertOutcome::RecycledSlot(slot));
+            if self.matches_payload(slot, payload) {
+                return Ok(UpsertOutcome::Unchanged(slot));
+            }
+            self.retire_slot(slot);
         }
         let slot = self.slots_to_keys.len() as u32;
         if slot as usize == self.storage.chunk_count() * VECTORS_PER_CHUNK {
@@ -246,10 +237,14 @@ impl VectorArena {
 
     pub(crate) fn remove(&mut self, key: &str) -> Option<u32> {
         let slot = self.keys_to_slots.remove(key)?;
+        self.retire_slot(slot);
+        Some(slot)
+    }
+
+    fn retire_slot(&mut self, slot: u32) {
         self.mark_dead(slot);
         self.live_count -= 1;
-        self.free_slots.push(slot);
-        Some(slot)
+        self.slots_to_keys[slot as usize] = Box::from("");
     }
 
     pub(crate) fn compact_in_place(&mut self) {
@@ -296,7 +291,6 @@ impl VectorArena {
         {
             *word = (1u64 << (live % 64)) - 1;
         }
-        self.free_slots = Vec::new();
     }
 
     fn move_vector(&mut self, src: u32, dst: u32) {
@@ -360,6 +354,33 @@ impl VectorArena {
                 scale,
                 values: unpack_lanes_i8(lanes),
             },
+        }
+    }
+
+    pub(crate) fn matches_payload(&self, slot: u32, payload: VectorPayload<'_>) -> bool {
+        if payload.dims() != self.dims {
+            return false;
+        }
+        match (self.stored_query(slot), payload) {
+            (Query::F32(lanes, _), VectorPayload::F32(values)) => lanes
+                .iter()
+                .flat_map(|lane| lane.to_array())
+                .zip(values)
+                .all(|(stored, value)| stored.to_bits() == value.to_bits()),
+            (
+                Query::I8 { scale, lanes, .. },
+                VectorPayload::I8 {
+                    scale: other_scale,
+                    values,
+                },
+            ) => {
+                scale.to_bits() == other_scale.to_bits()
+                    && lanes
+                        .iter()
+                        .flat_map(|lane| lane.to_array())
+                        .eq(values.iter().copied())
+            }
+            _ => false,
         }
     }
 
@@ -763,7 +784,7 @@ mod tests {
     }
 
     #[test]
-    fn upsert_replaces_in_place() {
+    fn upsert_appends_a_version_and_preserves_the_retired_vector() {
         let mut arena = VectorArena::new(8).unwrap();
         let first = seeded_vector(1, 8);
         let second = seeded_vector(2, 8);
@@ -773,29 +794,32 @@ mod tests {
         );
         assert_eq!(
             arena.upsert("key", &second).unwrap(),
-            UpsertOutcome::ReplacedInPlace(0)
+            UpsertOutcome::NewSlot(1)
         );
-        assert_eq!(arena.vector_values(0), second);
+        assert_eq!(arena.vector_values(0), first);
+        assert_eq!(arena.vector_values(1), second);
+        assert_eq!(arena.slot_of_key("key"), Some(1));
+        assert!(!arena.is_alive(0));
         assert_eq!(arena.live_count(), 1);
-        assert_eq!(arena.slot_count(), 1);
+        assert_eq!(arena.slot_count(), 2);
     }
 
     #[test]
-    fn free_list_reuses_most_recently_freed_slot_first() {
+    fn new_keys_never_reuse_retired_slots() {
         let mut arena = arena_with_keys(8, &["a", "b", "c"]);
         assert_eq!(arena.remove("a"), Some(0));
         assert_eq!(arena.remove("c"), Some(2));
         assert_eq!(
             arena.upsert("d", &seeded_vector(4, 8)).unwrap(),
-            UpsertOutcome::RecycledSlot(2)
+            UpsertOutcome::NewSlot(3)
         );
         assert_eq!(
             arena.upsert("e", &seeded_vector(5, 8)).unwrap(),
-            UpsertOutcome::RecycledSlot(0)
+            UpsertOutcome::NewSlot(4)
         );
         assert_eq!(
             arena.upsert("f", &seeded_vector(6, 8)).unwrap(),
-            UpsertOutcome::NewSlot(3)
+            UpsertOutcome::NewSlot(5)
         );
     }
 
@@ -832,8 +856,8 @@ mod tests {
         assert_eq!(arena.dead_count(), 1);
         arena.upsert("d", &seeded_vector(9, 8)).unwrap();
         assert_eq!(arena.live_count(), 3);
-        assert_eq!(arena.dead_count(), 0);
-        assert_eq!(arena.live_slots().collect::<Vec<_>>(), vec![0, 1, 2]);
+        assert_eq!(arena.dead_count(), 1);
+        assert_eq!(arena.live_slots().collect::<Vec<_>>(), vec![0, 2, 3]);
     }
 
     #[test]
@@ -846,26 +870,27 @@ mod tests {
     }
 
     #[test]
-    fn readding_a_removed_key_recycles_like_any_new_key() {
+    fn readding_a_removed_key_appends_like_any_new_key() {
         let mut arena = arena_with_keys(8, &["a", "b"]);
         assert_eq!(arena.remove("a"), Some(0));
         let vector = seeded_vector(9, 8);
         assert_eq!(
             arena.upsert("a", &vector).unwrap(),
-            UpsertOutcome::RecycledSlot(0)
+            UpsertOutcome::NewSlot(2)
         );
-        assert_eq!(arena.key_of_slot(0), Some("a"));
-        assert_eq!(arena.vector_values(0), vector);
+        assert_eq!(arena.key_of_slot(0), None);
+        assert_eq!(arena.key_of_slot(2), Some("a"));
+        assert_eq!(arena.vector_values(2), vector);
         assert_eq!(arena.live_count(), 2);
-        assert_eq!(arena.dead_count(), 0);
+        assert_eq!(arena.dead_count(), 1);
         assert_eq!(arena.remove("b"), Some(1));
         assert_eq!(
             arena.upsert("c", &seeded_vector(10, 8)).unwrap(),
-            UpsertOutcome::RecycledSlot(1)
+            UpsertOutcome::NewSlot(3)
         );
         assert_eq!(
             arena.upsert("b", &seeded_vector(11, 8)).unwrap(),
-            UpsertOutcome::NewSlot(2)
+            UpsertOutcome::NewSlot(4)
         );
     }
 
@@ -928,11 +953,11 @@ mod tests {
         assert_eq!(arena.remove("key-9"), Some(9));
         assert_eq!(
             arena.upsert("key-5", &seeded_vector(50, 8)).unwrap(),
-            UpsertOutcome::ReplacedInPlace(5)
+            UpsertOutcome::NewSlot(10)
         );
         assert_eq!(
             arena.upsert("extra", &seeded_vector(60, 8)).unwrap(),
-            UpsertOutcome::RecycledSlot(9)
+            UpsertOutcome::NewSlot(11)
         );
         assert_eq!(arena.remove("key-2"), Some(2));
         let expected: Vec<(String, Vec<f32>)> = arena
@@ -945,12 +970,11 @@ mod tests {
             })
             .collect();
         assert_eq!(expected.len(), 7);
-        assert_eq!(arena.dead_count(), 3);
+        assert_eq!(arena.dead_count(), 5);
         arena.compact_in_place();
         assert_eq!(arena.live_count(), 7);
         assert_eq!(arena.slot_count(), 7);
         assert_eq!(arena.dead_count(), 0);
-        assert!(arena.free_slots.is_empty());
         for (index, (key, vector)) in expected.iter().enumerate() {
             let slot = index as u32;
             assert!(arena.is_alive(slot));
@@ -967,12 +991,12 @@ mod tests {
             arena.upsert("fresh", &seeded_vector(70, 8)).unwrap(),
             UpsertOutcome::NewSlot(7)
         );
-        let recycled = arena.slot_of_key("key-5").unwrap();
-        assert_eq!(arena.remove("key-5"), Some(recycled));
+        let retired = arena.slot_of_key("key-5").unwrap();
+        assert_eq!(arena.remove("key-5"), Some(retired));
         assert_eq!(arena.dead_count(), 1);
         assert_eq!(
             arena.upsert("reused", &seeded_vector(80, 8)).unwrap(),
-            UpsertOutcome::RecycledSlot(recycled)
+            UpsertOutcome::NewSlot(8)
         );
     }
 
@@ -1004,7 +1028,6 @@ mod tests {
         assert_eq!(arena.slot_count(), live);
         assert_eq!(arena.storage.chunk_count(), 1);
         assert_eq!(arena.alive.len(), live.div_ceil(64));
-        assert!(arena.free_slots.is_empty());
         for (index, (key, vector)) in expected.iter().enumerate() {
             assert_eq!(arena.slot_of_key(key), Some(index as u32));
             assert_eq!(&arena.vector_values(index as u32), vector);
@@ -1199,7 +1222,7 @@ mod tests {
         assert_eq!(arena.vector_values(0), dequantize(scale, &values));
         assert_eq!(
             arena.upsert_payload("exact", payload).unwrap(),
-            UpsertOutcome::ReplacedInPlace(0)
+            UpsertOutcome::Unchanged(0)
         );
         assert_eq!(stored_i8(&arena, 0), (scale, values.clone()));
         assert_eq!(arena.remove("exact"), Some(0));
@@ -1210,9 +1233,10 @@ mod tests {
         };
         assert_eq!(
             arena.upsert_payload("recycled", other).unwrap(),
-            UpsertOutcome::RecycledSlot(0)
+            UpsertOutcome::NewSlot(1)
         );
-        assert_eq!(stored_i8(&arena, 0), (0.5, vec![3i8; dims]));
+        assert_eq!(stored_i8(&arena, 0), (scale, values));
+        assert_eq!(stored_i8(&arena, 1), (0.5, vec![3i8; dims]));
     }
 
     #[test]

@@ -71,11 +71,11 @@ jobs:
                       ~/.cache/go-build
                       ~/.cache/.theseus/postgresql
 
-            - run: cargo test --locked --features museum,ente-ml/ml-assets
+            - run: cargo test --locked --workspace --exclude ente-cli-next --features museum,ente-ml/ml-assets
               env:
                   GITHUB_TOKEN: ${{ github.token }}
 
-            - run: cargo test --locked -p ente-cli-next --test cli --features museum --no-run
+            - run: cargo test --locked -p ente-cli-next --features museum --no-run
 
             - run: node .github/actions/restore-rust-target/mtimes.mjs save
               working-directory: ${{ github.workspace }}
@@ -255,7 +255,7 @@ jobs:
                   path: rust/target
 
     photos-desktop-ensu-android:
-        # For desktop-lint.yml, android-lint.yml and ensu-android-build.yml.
+        # For desktop-lint.yml and android-lint.yml.
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
@@ -320,7 +320,7 @@ jobs:
                   path: rust/target
 
     ensu-ios:
-        # For ensu-ios-build.yml.
+        # For apple-lint.yml.
         runs-on: macos-latest
         steps:
             - name: Checkout

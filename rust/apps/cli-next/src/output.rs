@@ -3,11 +3,14 @@ use std::io::Write;
 use anyhow::{Context, Result};
 use chrono::{DateTime, SecondsFormat};
 use dialoguer::console::{Alignment, measure_text_width, pad_str};
-use ente_photos::collections::{Collection, Visibility};
+use ente_photos::{collections::Collection, files::File};
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::{args::Product, vault::Account};
+use crate::{
+    args::{DEFAULT_LIST_LIMIT, ListArgs, Product},
+    vault::Account,
+};
 
 #[derive(Serialize)]
 pub struct AccountView<'a> {
@@ -48,20 +51,70 @@ impl TryFrom<Collection> for AlbumView {
     type Error = anyhow::Error;
 
     fn try_from(album: Collection) -> Result<Self> {
-        let updated_at = DateTime::from_timestamp_micros(album.updated_at_micros)
-            .context("album timestamp is outside the supported range")?
-            .to_rfc3339_opts(SecondsFormat::Micros, true);
+        let updated_at = timestamp(album.updated_at_micros)?;
         Ok(Self {
             id: album.id.to_string(),
             name: album.name,
             kind: album.kind.name(),
-            visibility: match album.visibility {
-                Visibility::Visible => "visible",
-                Visibility::Archived => "archived",
-                Visibility::Hidden => "hidden",
-            },
+            visibility: album.visibility.name(),
             owner_id: album.owner_id.to_string(),
             updated_at,
+        })
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileView {
+    id: String,
+    name: String,
+    #[serde(rename = "type")]
+    kind: &'static str,
+    owner_id: String,
+    album_ids: Vec<String>,
+    created_at: String,
+    modified_at: String,
+    updated_at: String,
+    location: Option<LocationView>,
+    caption: Option<String>,
+    hash: Option<String>,
+    date_time: Option<String>,
+    offset_time: Option<String>,
+    duration_seconds: Option<u64>,
+    width: Option<u32>,
+    height: Option<u32>,
+    visibility: &'static str,
+}
+
+#[derive(Serialize)]
+struct LocationView {
+    latitude: f64,
+    longitude: f64,
+}
+
+impl FileView {
+    pub fn new(file: File, album_ids: &[i64]) -> Result<Self> {
+        Ok(Self {
+            id: file.id.to_string(),
+            name: file.name,
+            kind: file.kind.name(),
+            owner_id: file.owner_id.to_string(),
+            album_ids: album_ids.iter().map(i64::to_string).collect(),
+            created_at: timestamp(file.created_at_micros)?,
+            modified_at: timestamp(file.modified_at_micros)?,
+            updated_at: timestamp(file.updated_at_micros)?,
+            location: file.location.as_ref().map(|location| LocationView {
+                latitude: location.latitude,
+                longitude: location.longitude,
+            }),
+            caption: file.caption,
+            hash: file.hash,
+            date_time: file.date_time,
+            offset_time: file.offset_time,
+            duration_seconds: file.duration_seconds,
+            width: file.width,
+            height: file.height,
+            visibility: file.visibility.name(),
         })
     }
 }
@@ -103,11 +156,12 @@ pub fn accounts(accounts: &[AccountView<'_>]) -> Result<()> {
         &mut stdout,
         ["SELECTED", "NAME", "EMAIL", "HOST", "LOGGED IN", "ID"],
         &rows,
-    )
+    )?;
+    Ok(())
 }
 
 pub fn account(account: &AccountView<'_>) -> Result<()> {
-    let fields = [
+    write_fields(&[
         ("Name", escape_controls(account.name)),
         ("Email", escape_controls(account.email)),
         ("Host", escape_controls(account.host)),
@@ -117,46 +171,108 @@ pub fn account(account: &AccountView<'_>) -> Result<()> {
             if account.selected { "yes" } else { "no" }.to_owned(),
         ),
         ("ID", account.id.clone()),
-    ];
-    let width = fields
-        .iter()
-        .map(|(name, _)| measure_text_width(name))
-        .max()
-        .unwrap_or(0);
-    let mut stdout = std::io::stdout().lock();
-    for (name, value) in fields {
-        writeln!(
-            stdout,
-            "{}  {value}",
-            pad_str(name, width, Alignment::Left, None)
-        )?;
-    }
-    Ok(())
+    ])
 }
 
-pub fn albums(albums: &[AlbumView]) -> Result<()> {
-    let mut stdout = std::io::stdout().lock();
-    if albums.is_empty() {
-        return writeln!(stdout, "No albums.").map_err(Into::into);
-    }
-    let rows = albums
-        .iter()
-        .map(|album| {
+pub fn albums(
+    albums: impl Iterator<Item = Result<AlbumView>>,
+    args: &ListArgs,
+    as_json: bool,
+) -> Result<()> {
+    list(
+        albums,
+        args,
+        as_json,
+        ["ID", "NAME", "TYPE", "VISIBILITY", "OWNER", "UPDATED"],
+        "No albums.",
+        |album| {
             [
-                album.id.clone(),
+                album.id,
                 escape_controls(&album.name),
                 album.kind.to_owned(),
                 album.visibility.to_owned(),
-                album.owner_id.clone(),
-                album.updated_at.clone(),
+                album.owner_id,
+                album.updated_at,
             ]
-        })
-        .collect::<Vec<_>>();
-    write_table(
-        &mut stdout,
-        ["ID", "NAME", "TYPE", "VISIBILITY", "OWNER", "UPDATED"],
-        &rows,
+        },
     )
+}
+
+pub fn album(album: &AlbumView) -> Result<()> {
+    write_fields(&[
+        ("Name", escape_controls(&album.name)),
+        ("Type", album.kind.to_owned()),
+        ("Visibility", album.visibility.to_owned()),
+        ("Owner", album.owner_id.clone()),
+        ("Updated", album.updated_at.clone()),
+        ("ID", album.id.clone()),
+    ])
+}
+
+pub fn files(
+    files: impl Iterator<Item = Result<FileView>>,
+    args: &ListArgs,
+    as_json: bool,
+) -> Result<()> {
+    list(
+        files,
+        args,
+        as_json,
+        ["ID", "NAME", "TYPE", "CREATED", "ALBUMS"],
+        "No files.",
+        |file| {
+            [
+                file.id,
+                escape_controls(&file.name),
+                file.kind.to_owned(),
+                file.created_at,
+                file.album_ids.join(","),
+            ]
+        },
+    )
+}
+
+pub fn file(file: &FileView) -> Result<()> {
+    let mut fields = vec![
+        ("Name", escape_controls(&file.name)),
+        ("Type", file.kind.to_owned()),
+        ("Visibility", file.visibility.to_owned()),
+        ("Created", file.created_at.clone()),
+        ("Modified", file.modified_at.clone()),
+        ("Updated", file.updated_at.clone()),
+        ("Owner", file.owner_id.clone()),
+        ("Albums", file.album_ids.join(", ")),
+        ("ID", file.id.clone()),
+    ];
+    for (label, value) in [
+        ("Caption", file.caption.as_deref().map(escape_controls)),
+        (
+            "Location",
+            file.location
+                .as_ref()
+                .map(|l| format!("{}, {}", l.latitude, l.longitude)),
+        ),
+        ("Date/time", file.date_time.as_deref().map(escape_controls)),
+        (
+            "UTC offset",
+            file.offset_time.as_deref().map(escape_controls),
+        ),
+        ("Duration", file.duration_seconds.map(|s| format!("{s} s"))),
+        ("Width", file.width.map(|w| w.to_string())),
+        ("Height", file.height.map(|h| h.to_string())),
+        ("Hash", file.hash.as_deref().map(escape_controls)),
+    ] {
+        if let Some(value) = value {
+            fields.push((label, value));
+        }
+    }
+    write_fields(&fields)
+}
+
+fn timestamp(micros: i64) -> Result<String> {
+    Ok(DateTime::from_timestamp_micros(micros)
+        .context("timestamp is outside the supported range")?
+        .to_rfc3339_opts(SecondsFormat::Micros, true))
 }
 
 fn products(account: &AccountView<'_>) -> String {
@@ -173,11 +289,73 @@ fn products(account: &AccountView<'_>) -> String {
     }
 }
 
+fn write_fields(fields: &[(&str, String)]) -> Result<()> {
+    let width = fields
+        .iter()
+        .map(|(name, _)| measure_text_width(name))
+        .max()
+        .unwrap_or(0);
+    let mut stdout = std::io::stdout().lock();
+    for (name, value) in fields {
+        writeln!(
+            stdout,
+            "{}  {value}",
+            pad_str(name, width, Alignment::Left, None)
+        )?;
+    }
+    Ok(())
+}
+
+fn list<T: Serialize, const N: usize>(
+    mut items: impl Iterator<Item = Result<T>>,
+    args: &ListArgs,
+    as_json: bool,
+    header: [&str; N],
+    empty: &str,
+    row: impl Fn(T) -> [String; N],
+) -> Result<()> {
+    let mut stdout = std::io::stdout().lock();
+    let limit = args.limit().map(|limit| limit as usize);
+    let values = items.by_ref().take(limit.unwrap_or(usize::MAX));
+    if as_json {
+        write!(stdout, "[")?;
+        for (index, value) in values.enumerate() {
+            let value = value?;
+            if index > 0 {
+                write!(stdout, ",")?;
+            }
+            serde_json::to_writer(&mut stdout, &value)?;
+        }
+        writeln!(stdout, "]")?;
+    } else {
+        let mut rows = values.map(|value| value.map(&row));
+        let first = rows
+            .by_ref()
+            .take(DEFAULT_LIST_LIMIT as usize)
+            .collect::<Result<Vec<_>>>()?;
+        if first.is_empty() {
+            writeln!(stdout, "{empty}")?;
+        } else {
+            let widths = write_table(&mut stdout, header, &first)?;
+            for row in rows {
+                write_row(&mut stdout, &row?, &widths)?;
+            }
+        }
+    }
+    stdout.flush()?;
+    if let Some(limit) = limit
+        && items.next().transpose()?.is_some()
+    {
+        eprintln!("Showing first {limit} results; use --limit N or --all to see more.");
+    }
+    Ok(())
+}
+
 fn write_table<const N: usize>(
     out: &mut impl Write,
     header: [&str; N],
     rows: &[[String; N]],
-) -> Result<()> {
+) -> Result<[usize; N]> {
     let header = header.map(str::to_owned);
     let widths: [usize; N] = std::array::from_fn(|column| {
         std::iter::once(&header)
@@ -187,22 +365,31 @@ fn write_table<const N: usize>(
             .unwrap_or(0)
     });
     for row in std::iter::once(&header).chain(rows) {
-        for (column, cell) in row.iter().enumerate() {
-            if column > 0 {
-                write!(out, "  ")?;
-            }
-            if column + 1 == N {
-                write!(out, "{cell}")?;
-            } else {
-                write!(
-                    out,
-                    "{}",
-                    pad_str(cell, widths[column], Alignment::Left, None)
-                )?;
-            }
-        }
-        writeln!(out)?;
+        write_row(out, row, &widths)?;
     }
+    Ok(widths)
+}
+
+fn write_row<const N: usize>(
+    out: &mut impl Write,
+    row: &[String; N],
+    widths: &[usize; N],
+) -> Result<()> {
+    for (column, cell) in row.iter().enumerate() {
+        if column > 0 {
+            write!(out, "  ")?;
+        }
+        if column + 1 == N {
+            write!(out, "{cell}")?;
+        } else {
+            write!(
+                out,
+                "{}",
+                pad_str(cell, widths[column], Alignment::Left, None)
+            )?;
+        }
+    }
+    writeln!(out)?;
     Ok(())
 }
 

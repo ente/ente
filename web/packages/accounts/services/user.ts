@@ -9,20 +9,13 @@ import {
 import {
     boxSealOpenBytes,
     decryptBox,
-    deriveInteractiveKey,
     deriveSensitiveKey,
     encryptBox,
     generateKey,
     generateKeyPair,
     toB64URLSafe,
 } from "ente-accounts/services/crypto";
-import { ensureMasterKeyFromSession } from "ente-accounts/services/prelogin-session";
-import {
-    generateSRPSetupAttributes,
-    getAndSaveSRPAttributes,
-    updateSRPAndKeyAttributes,
-    type UpdatedKeyAttr,
-} from "ente-accounts/services/srp";
+import { generateInteractiveKeyAttributes } from "ente-accounts/services/key-attributes";
 import {
     authenticatedRequestHeaders,
     ensureOk,
@@ -276,24 +269,11 @@ export const generateAndSaveInteractiveKeyAttributes = async (
     keyAttributes: KeyAttributes,
     key: string,
 ): Promise<KeyAttributes> => {
-    const {
-        key: interactiveKEK,
-        salt: kekSalt,
-        opsLimit,
-        memLimit,
-    } = await deriveInteractiveKey(password);
-
-    const { encryptedData: encryptedKey, nonce: keyDecryptionNonce } =
-        await encryptBox(key, interactiveKEK);
-
-    const interactiveKeyAttributes = {
-        ...keyAttributes,
-        encryptedKey,
-        keyDecryptionNonce,
-        kekSalt,
-        opsLimit,
-        memLimit,
-    };
+    const interactiveKeyAttributes = await generateInteractiveKeyAttributes(
+        password,
+        keyAttributes,
+        key,
+    );
     saveKeyAttributes(interactiveKeyAttributes);
     return interactiveKeyAttributes;
 };
@@ -311,42 +291,6 @@ const postChangeEmail = async (email: string, ott: string) =>
             body: JSON.stringify({ email, ott }),
         }),
     );
-
-export const changePassword = async (password: string) => {
-    const user = ensureLocalUser();
-    const masterKey = await ensureMasterKeyFromSession();
-    const keyAttributes = ensureSavedKeyAttributes();
-
-    const {
-        key: kek,
-        salt: kekSalt,
-        opsLimit,
-        memLimit,
-    } = await deriveSensitiveKey(password);
-
-    const { encryptedData: encryptedKey, nonce: keyDecryptionNonce } =
-        await encryptBox(masterKey, kek);
-    const updatedKeyAttr: UpdatedKeyAttr = {
-        encryptedKey,
-        keyDecryptionNonce,
-        kekSalt,
-        opsLimit,
-        memLimit,
-    };
-
-    await updateSRPAndKeyAttributes(
-        await generateSRPSetupAttributes(kek),
-        updatedKeyAttr,
-    );
-
-    await getAndSaveSRPAttributes(user.email);
-
-    await generateAndSaveInteractiveKeyAttributes(
-        password,
-        { ...keyAttributes, ...updatedKeyAttr },
-        masterKey,
-    );
-};
 
 export const resetSavedLocalUserTokens = async (
     userID: number,

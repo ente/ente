@@ -1,19 +1,22 @@
-import 'package:collection/collection.dart';
-import 'package:ente_components/ente_components.dart';
-import 'package:ente_pure_utils/ente_pure_utils.dart';
+import "package:collection/collection.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
-import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
-import 'package:photos/core/configuration.dart';
+import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
+import "package:photos/core/configuration.dart";
+import "package:photos/db/files_db.dart";
 import "package:photos/models/api/collection/user.dart";
-import 'package:photos/models/collection/collection.dart';
-import 'package:photos/service_locator.dart';
-import 'package:photos/services/contacts/contact_identity_resolver.dart';
-import "package:photos/ui/sharing/add_participant_page.dart";
-import 'package:photos/ui/sharing/manage_album_participant.dart';
-import 'package:photos/ui/sharing/public_link_enabled_actions_widget.dart';
-import 'package:photos/ui/sharing/share_components.dart';
-import 'package:photos/ui/sharing/user_avator_widget.dart';
+import "package:photos/models/collection/collection.dart";
+import "package:photos/service_locator.dart";
+import "package:photos/services/collections_service.dart";
+import "package:photos/services/contacts/contact_identity_resolver.dart";
+import "package:photos/ui/sharing/add_people_sheet.dart";
+import "package:photos/ui/sharing/public_link_enabled_actions_widget.dart";
+import "package:photos/ui/sharing/share_components.dart";
+import "package:photos/ui/sharing/widgets/confirm_sheet.dart";
+import "package:photos/ui/sharing/widgets/participant_role_row.dart";
+import "package:photos/ui/sharing/widgets/participant_row.dart";
+import "package:photos/ui/sharing/widgets/sharing_role.dart";
 
 class AlbumParticipantsPage extends StatefulWidget {
   final Collection collection;
@@ -25,7 +28,7 @@ class AlbumParticipantsPage extends StatefulWidget {
 }
 
 class _AlbumParticipantsPageState extends State<AlbumParticipantsPage> {
-  late int currentUserID;
+  late final int currentUserID;
   late Collection _collection;
   final GlobalKey _sendLinkButtonKey = GlobalKey();
 
@@ -42,190 +45,153 @@ class _AlbumParticipantsPageState extends State<AlbumParticipantsPage> {
       final latest = await collectionsService.fetchCollectionByID(
         widget.collection.id,
       );
-      if (mounted) {
-        setState(() {
-          _collection = latest;
-        });
+      if (!mounted) {
+        return;
       }
+      setState(() => _collection = latest);
     } catch (_) {}
   }
 
-  Future<void> _navigateToManageUser(User user) async {
-    if (user.id == currentUserID) {
-      return;
-    }
-    await routeToPage(
-      context,
-      ManageIndividualParticipant(collection: _collection, user: user),
-    );
+  Future<void> _navigateToAddUser() async {
+    await showAddPeopleSheet(context, [_collection]);
     await _refreshCollection();
   }
 
-  Future<void> _navigateToAddUser(List<ActionTypesToShow> actions) async {
-    await routeToPage(context, AddParticipantPage([_collection], actions));
-    await _refreshCollection();
+  Future<void> _leaveAlbum() async {
+    final count = await FilesDB.instance.collectionFileCountForOwner(
+      _collection.id,
+      currentUserID,
+    );
+    if (!mounted) {
+      return;
+    }
+    final left = await showDestructiveConfirmSheet(
+      context,
+      title: context.strings.leaveAlbumTitle(album: _collection.displayName),
+      body: context.strings.leaveAlbumBody(count: count),
+      actionLabel: context.strings.leaveAlbum,
+      onConfirm: () => CollectionsService.instance.leaveAlbum(_collection),
+    );
+    if (left && mounted) {
+      var remainingPops = 2;
+      Navigator.of(context).popUntil((route) {
+        if (route.isFirst || remainingPops == 0) {
+          return true;
+        }
+        remainingPops--;
+        return false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentUserID = Configuration.instance.getUserID()!;
     final role = _collection.getRole(currentUserID);
-    final bool isOwner = role == CollectionParticipantRole.owner;
-    final bool isAdmin = role == CollectionParticipantRole.admin;
-    final bool canManageParticipants = isOwner || isAdmin;
-    final bool hasActivePublicLink =
+    final isOwner = role == CollectionParticipantRole.owner;
+    final isAdmin = role == CollectionParticipantRole.admin;
+    final hasActivePublicLink =
         _collection.hasLink &&
         !(_collection.publicURLs.firstOrNull?.isExpired ?? true);
-    final bool shouldShowPublicLink =
+    final shouldShowPublicLink =
         _collection.type != CollectionType.uncategorized &&
         !isOwner &&
         hasActivePublicLink;
-    final int participants = 1 + _collection.sharees.length;
-    final User owner = _collection.owner;
-    if (owner.id == currentUserID && owner.email == "") {
+    final owner = _collection.owner;
+    if (owner.id == currentUserID && owner.email.isEmpty) {
       owner.email = Configuration.instance.getEmail()!;
     }
-    final List<User> allSharees = _collection.sharees;
-    final List<User> admins = [];
-    final List<User> collaborators = [];
-    final List<User> viewers = [];
-    for (final User sharee in allSharees) {
-      if (sharee.isAdmin) {
-        admins.add(sharee);
-      } else if (sharee.isCollaborator) {
-        collaborators.add(sharee);
-      } else {
-        viewers.add(sharee);
-      }
-    }
-    admins.sort((a, b) => a.email.compareTo(b.email));
-    collaborators.sort((a, b) => a.email.compareTo(b.email));
-    viewers.sort((a, b) => a.email.compareTo(b.email));
-    if (isAdmin && !admins.any((u) => u.id == currentUserID)) {
-      admins.insert(
-        0,
-        User(
-          id: currentUserID,
-          email: Configuration.instance.getEmail() ?? "",
-          role: CollectionParticipantRole.admin.toStringVal(),
-        ),
-      );
-    }
-
+    final sortedSharees = sortedCollectionSharees(_collection);
+    final participantRows = <Widget>[
+      for (final sharee in sortedSharees)
+        if (isAdmin && sharee.id != currentUserID)
+          ParticipantRoleRow(
+            key: ValueKey(sharee.id),
+            collection: _collection,
+            user: sharee,
+            currentUserID: currentUserID,
+            onCollectionChanged: () => setState(() {}),
+          )
+        else
+          ParticipantRow(
+            user: sharee,
+            role: _collection.getRole(sharee.id),
+            currentUserID: currentUserID,
+          ),
+    ];
     final children = <Widget>[
+      ShareSectionTitle(context.strings.sharedWith),
+      ScrollableParticipantRoster(rows: participantRows),
+      if (isAdmin && _collection.type != CollectionType.uncategorized) ...[
+        const SizedBox(height: Spacing.sm),
+        ButtonComponent(
+          label: context.strings.addPerson,
+          variant: ButtonComponentVariant.secondary,
+          size: ButtonComponentSize.large,
+          shouldSurfaceExecutionStates: false,
+          onTap: _navigateToAddUser,
+        ),
+      ],
       if (shouldShowPublicLink) ...[
+        const SizedBox(height: Spacing.xxl),
         ShareSectionTitle(context.strings.publicLinkEnabled),
         PublicLinkEnabledActionsWidget(
           collection: _collection,
           sendLinkButtonKey: _sendLinkButtonKey,
         ),
-        const SizedBox(height: Spacing.xxl),
       ],
-      ShareSectionTitle(context.strings.albumOwner),
-      ShareMenuGroup(
-        items: [
-          ShareMenuItem(
-            title: isOwner
-                ? context.strings.you
-                : _nameIfAvailableElseEmail(owner),
-            leading: UserAvatarWidget(owner),
-            isDisabled: true,
-          ),
-        ],
-      ),
-      ..._participantSection(
-        context,
-        title: context.strings.admins,
-        users: admins,
-        currentUserID: currentUserID,
-        canManageParticipants: canManageParticipants,
-        addTitle: admins.isNotEmpty
-            ? context.strings.addMoreAdmins
-            : context.strings.addAdmin,
-        addActions: const [ActionTypesToShow.addAdmin],
-        addIcon: HugeIcons.strokeRoundedCrown,
-      ),
-      ..._participantSection(
-        context,
-        title: context.strings.collaborator,
-        users: collaborators,
-        currentUserID: currentUserID,
-        canManageParticipants: canManageParticipants,
-        addTitle: collaborators.isNotEmpty
-            ? context.strings.addMore
-            : context.strings.addCollaborator,
-        addActions: const [ActionTypesToShow.addCollaborator],
-        addIcon: HugeIcons.strokeRoundedUserGroup,
-      ),
-      ..._participantSection(
-        context,
-        title: context.strings.viewer,
-        users: viewers,
-        currentUserID: currentUserID,
-        canManageParticipants: canManageParticipants,
-        addTitle: viewers.isNotEmpty
-            ? context.strings.addMore
-            : context.strings.addViewer,
-        addActions: const [ActionTypesToShow.addViewer],
-        addIcon: HugeIcons.strokeRoundedView,
-      ),
       const SizedBox(height: Spacing.xxl),
     ];
-
+    final subtitle = _subtitle(context, owner, role);
     return ShareScaffold(
       title: _collection.displayName,
-      subtitle: context.strings.albumParticipantsCount(count: participants),
+      subtitle: subtitle,
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        Spacing.lg,
+        Spacing.lg,
+        Spacing.xl,
+      ),
+      actions: isOwner
+          ? const []
+          : [
+              EntePopupMenuButton<int>(
+                optionsBuilder: () => [
+                  EntePopupMenuOption(
+                    value: 0,
+                    label: context.strings.leaveAlbum,
+                    labelColor: context.componentColors.warning,
+                    leadingWidget: HugeIcon(
+                      icon: HugeIcons.strokeRoundedLogout05,
+                      color: context.componentColors.warning,
+                      size: IconSizes.small,
+                      strokeWidth: 1.6,
+                    ),
+                    showDivider: false,
+                  ),
+                ],
+                onSelected: (_) => _leaveAlbum(),
+              ),
+            ],
       children: children,
     );
   }
 
-  List<Widget> _participantSection(
-    BuildContext context, {
-    required String title,
-    required List<User> users,
-    required int currentUserID,
-    required bool canManageParticipants,
-    required String addTitle,
-    required List<ActionTypesToShow> addActions,
-    required List<List<dynamic>> addIcon,
-  }) {
-    if (users.isEmpty && !canManageParticipants) {
-      return const [];
-    }
-
-    final items = <Widget>[
-      for (final user in users)
-        ShareMenuItem(
-          title: user.id == currentUserID
-              ? context.strings.you
-              : _nameIfAvailableElseEmail(user),
-          leading: UserAvatarWidget(user, type: AvatarType.medium),
-          showChevron: canManageParticipants && user.id != currentUserID,
-          isDisabled: !canManageParticipants || user.id == currentUserID,
-          onTap: canManageParticipants && user.id != currentUserID
-              ? () async {
-                  await _navigateToManageUser(user);
-                }
-              : null,
-        ),
-      if (canManageParticipants)
-        ShareMenuItem(
-          title: addTitle,
-          icon: addIcon,
-          onTap: () async {
-            await _navigateToAddUser(addActions);
-          },
-        ),
-    ];
-
-    return [
-      const SizedBox(height: Spacing.xxl),
-      ShareSectionTitle(title),
-      ShareMenuGroup(items: items),
-    ];
-  }
-
-  String _nameIfAvailableElseEmail(User user) {
-    return resolveDisplayName(user);
+  String _subtitle(
+    BuildContext context,
+    User owner,
+    CollectionParticipantRole role,
+  ) {
+    final sharedBy = context.strings.sharedByOwner(
+      owner: resolveDisplayName(owner),
+    );
+    final roleLine = switch (role) {
+      CollectionParticipantRole.viewer => context.strings.youAreViewer,
+      CollectionParticipantRole.collaborator =>
+        context.strings.youAreCollaborator,
+      CollectionParticipantRole.admin => context.strings.youAreAdmin,
+      CollectionParticipantRole.unknown ||
+      CollectionParticipantRole.owner => null,
+    };
+    return roleLine == null ? sharedBy : "$sharedBy • $roleLine";
   }
 }

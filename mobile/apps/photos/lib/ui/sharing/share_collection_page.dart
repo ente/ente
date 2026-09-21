@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/ente_strings.dart';
@@ -10,16 +9,14 @@ import 'package:photos/core/configuration.dart';
 import 'package:photos/models/api/collection/user.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/services/collections_service.dart';
-import 'package:photos/services/contacts/contact_identity_resolver.dart';
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
-import 'package:photos/ui/sharing/add_participant_page.dart';
-import 'package:photos/ui/sharing/album_participants_page.dart';
-import 'package:photos/ui/sharing/album_share_info_widget.dart';
-import 'package:photos/ui/sharing/manage_album_participant.dart';
+import 'package:photos/ui/sharing/add_people_sheet.dart';
 import 'package:photos/ui/sharing/manage_links_widget.dart';
 import 'package:photos/ui/sharing/public_link_enabled_actions_widget.dart';
 import 'package:photos/ui/sharing/share_components.dart';
-import 'package:photos/ui/sharing/user_avator_widget.dart';
+import 'package:photos/ui/sharing/widgets/participant_role_row.dart';
+import 'package:photos/ui/sharing/widgets/participant_row.dart';
+import 'package:photos/ui/sharing/widgets/sharing_role.dart';
 
 class ShareCollectionPage extends StatefulWidget {
   final Collection collection;
@@ -32,12 +29,10 @@ class ShareCollectionPage extends StatefulWidget {
 
 class _ShareCollectionPageState extends State<ShareCollectionPage> {
   late Collection _collection;
-  late List<User?> _sharees;
   final CollectionActions collectionActions = CollectionActions(
     CollectionsService.instance,
   );
   final GlobalKey sendLinkButtonKey = GlobalKey();
-  bool _redirectedToParticipants = false;
 
   @override
   void initState() {
@@ -63,110 +58,39 @@ class _ShareCollectionPageState extends State<ShareCollectionPage> {
     }
   }
 
-  Future<void> _navigateToManageUser() async {
-    if (_sharees.length == 1) {
-      await routeToPage(
-        context,
-        ManageIndividualParticipant(
-          collection: _collection,
-          user: _sharees.first!,
-        ),
-      );
-    } else {
-      await routeToPage(context, AlbumParticipantsPage(_collection));
-    }
+  Future<void> _navigateToAddUser() async {
+    await showAddPeopleSheet(context, [_collection]);
     await _refreshCollection();
   }
 
   @override
   Widget build(BuildContext context) {
     final int userID = Configuration.instance.getUserID() ?? -1;
-
-    if (!_redirectedToParticipants) {
-      final bool isOwner = _collection.owner.id == userID;
-      if (!isOwner) {
-        _redirectedToParticipants = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) {
-            return;
-          }
-          replacePage(context, AlbumParticipantsPage(_collection));
-        });
-      } else {
-        _redirectedToParticipants = true;
-      }
-    }
-
-    _sharees = _collection.sharees;
     final bool hasUrl = _collection.hasLink;
     final bool isOwner = _collection.owner.id == userID;
-    final bool canManageParticipants = isOwner;
-    final children = <Widget>[
-      ShareSectionTitle(
-        context.strings.shareWithPeopleSectionTitle(
-          numberOfPeople: _sharees.length,
-        ),
-      ),
-      EmailItemWidget(_collection, onTap: _navigateToManageUser),
-    ];
+    if (isOwner && _collection.owner.email.isEmpty) {
+      _collection.owner.email = Configuration.instance.getEmail() ?? "";
+    }
+    final sortedSharees = sortedCollectionSharees(_collection);
+    final children = <Widget>[ShareSectionTitle(context.strings.sharedWith)];
 
-    if (canManageParticipants) {
+    if (isOwner) {
       children.addAll([
-        if (_sharees.isNotEmpty) const SizedBox(height: Spacing.sm),
-        ShareMenuItem(
-          title: context.strings.addAdmin,
-          icon: HugeIcons.strokeRoundedCrown,
-          showChevron: true,
-          onTap: () async {
-            await routeToPage(
-              context,
-              AddParticipantPage(
-                [_collection],
-                const [ActionTypesToShow.addAdmin],
-              ),
-            );
-            await _refreshCollection();
-          },
-        ),
+        if (sortedSharees.isNotEmpty)
+          _participantRoster(userID, sortedSharees)
+        else ...[
+          Center(child: Image.asset("assets/on_device.png")),
+          if (!hasUrl)
+            ShareSectionDescription(context.strings.emptyAlbumShareMessage),
+        ],
         const SizedBox(height: Spacing.sm),
-        ShareMenuItem(
-          title: context.strings.addCollaborator,
-          icon: HugeIcons.strokeRoundedUserGroup,
-          showChevron: true,
-          onTap: () async {
-            unawaited(
-              routeToPage(
-                context,
-                AddParticipantPage(
-                  [_collection],
-                  const [ActionTypesToShow.addCollaborator],
-                ),
-              ).then((value) {
-                _refreshCollection().ignore();
-              }),
-            );
-          },
+        ButtonComponent(
+          label: context.strings.addPerson,
+          variant: ButtonComponentVariant.secondary,
+          size: ButtonComponentSize.large,
+          shouldSurfaceExecutionStates: false,
+          onTap: _navigateToAddUser,
         ),
-        const SizedBox(height: Spacing.sm),
-        ShareMenuItem(
-          title: context.strings.addViewer,
-          icon: HugeIcons.strokeRoundedView,
-          showChevron: true,
-          onTap: () async {
-            await routeToPage(
-              context,
-              AddParticipantPage(
-                [_collection],
-                const [ActionTypesToShow.addViewer],
-              ),
-            );
-            await _refreshCollection();
-          },
-        ),
-        if (_sharees.isEmpty && !hasUrl)
-          ShareSectionDescription(
-            context.strings.sharedAlbumSectionDescription,
-          ),
       ]);
     }
 
@@ -174,19 +98,30 @@ class _ShareCollectionPageState extends State<ShareCollectionPage> {
       children.addAll([
         const SizedBox(height: Spacing.xxl),
         ShareSectionTitle(
-          hasUrl
-              ? context.strings.publicLinkEnabled
-              : context.strings.shareALink,
+          hasUrl ? context.strings.publicLink : context.strings.shareALink,
         ),
       ]);
       if (hasUrl) {
-        children.add(
+        final url = _collection.publicURLs.first;
+        children.addAll([
+          if (!url.isExpired)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Spacing.sm),
+              child: Text(
+                url.enableCollect
+                    ? context.strings.publicLinkCollectDescription
+                    : context.strings.publicLinkViewDescription,
+                style: TextStyles.mini.copyWith(
+                  color: context.componentColors.textLight,
+                ),
+              ),
+            ),
           PublicLinkEnabledActionsWidget(
             collection: _collection,
             sendLinkButtonKey: sendLinkButtonKey,
             additionalItems: [
               ShareMenuItem(
-                title: context.strings.manageLink,
+                title: context.strings.linkSettings,
                 icon: HugeIcons.strokeRoundedSetting07,
                 showChevron: true,
                 onTap: () async {
@@ -202,7 +137,7 @@ class _ShareCollectionPageState extends State<ShareCollectionPage> {
               ),
             ],
           ),
-        );
+        ]);
       } else {
         children.addAll([
           ShareMenuItem(
@@ -244,61 +179,32 @@ class _ShareCollectionPageState extends State<ShareCollectionPage> {
       }
     }
 
-    return ShareScaffold(title: _collection.displayName, children: children);
+    return ShareScaffold(
+      title: _collection.displayName,
+      subtitle: isOwner && (_collection.hasSharees || _collection.hasLink)
+          ? context.strings.sharedByYou
+          : null,
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        Spacing.sm,
+        Spacing.lg,
+        Spacing.xl,
+      ),
+      children: children,
+    );
   }
-}
 
-class EmailItemWidget extends StatelessWidget {
-  final Collection collection;
-  final Function? onTap;
-
-  const EmailItemWidget(this.collection, {this.onTap, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    if (collection.sharees.isEmpty) {
-      return const SizedBox.shrink();
-    } else if (collection.sharees.length == 1) {
-      final User? user = collection.sharees.firstOrNull;
-      final resolvedName = user == null ? '' : resolveDisplayName(user);
-      return ShareMenuItem(
-        title: resolvedName,
-        leading: UserAvatarWidget(collection.sharees.first),
-        showChevron: true,
-        onTap: () async {
-          if (onTap != null) {
-            onTap!();
-          }
-        },
-      );
-    } else {
-      final sharees = collection.sharees;
-      const avatarSize = 24.0;
-      final total = sharees.length;
-      final limit = total > 2 ? 1 : 2;
-
-      return ShareMenuItem(
-        title: context.strings.manageParticipants,
-        subtitle: context.strings.albumParticipantsCount(
-          count: sharees.length + 1,
+  Widget _participantRoster(int userID, List<User> sortedSharees) {
+    final rows = <Widget>[
+      for (final sharee in sortedSharees)
+        ParticipantRoleRow(
+          key: ValueKey(sharee.id),
+          collection: _collection,
+          user: sharee,
+          currentUserID: userID,
+          onCollectionChanged: () => setState(() {}),
         ),
-        leading: SizedBox(
-          height: avatarSize,
-          child: AlbumSharesIcons(
-            sharees: sharees,
-            padding: EdgeInsets.zero,
-            limitCountTo: limit,
-            type: AvatarType.medium,
-            removeBorder: false,
-          ),
-        ),
-        showChevron: true,
-        onTap: () async {
-          if (onTap != null) {
-            onTap!();
-          }
-        },
-      );
-    }
+    ];
+    return ScrollableParticipantRoster(rows: rows);
   }
 }

@@ -14,12 +14,16 @@ class PublicLinkEnabledActionsWidget extends StatelessWidget {
   final Collection collection;
   final GlobalKey? sendLinkButtonKey;
   final List<Widget> additionalItems;
+  final bool showEmbedHtml;
+  final bool showShareActions;
 
   const PublicLinkEnabledActionsWidget({
     super.key,
     required this.collection,
     this.sendLinkButtonKey,
     this.additionalItems = const [],
+    this.showEmbedHtml = false,
+    this.showShareActions = true,
   });
 
   @override
@@ -55,45 +59,60 @@ class PublicLinkEnabledActionsWidget extends StatelessWidget {
             showShortToast(context, context.strings.linkCopiedToClipboard);
           },
         ),
-        ShareMenuItem(
-          key: effectiveKey,
-          title: context.strings.sendLink,
-          icon: HugeIcons.strokeRoundedSent,
-          onTap: () async {
-            await shareAlbumLink(
-              context,
-              url,
-              effectiveKey,
-              albumName: collection.displayName,
-              albumDescription: collection.displayDescription,
-            );
-          },
-        ),
-        ShareMenuItem(
-          title: context.strings.sendQrCode,
-          icon: HugeIcons.strokeRoundedQrCode,
-          onTap: () async {
-            await showDialog<void>(
-              context: context,
-              builder: (BuildContext dialogContext) {
-                return QrCodeDialog(
-                  data: url,
-                  title: collection.displayName,
-                  accentColor: const Color(0xFF08C225),
-                  shareFileName: 'ente_qr_${collection.displayName}.png',
-                  shareText:
-                      'Scan this QR code to view my ${collection.displayName} album on ente',
-                  dialogTitle: context.strings.qrCode,
-                  shareButtonText: context.strings.share,
-                  logoAssetPath: 'assets/qr_logo.png',
-                  branding: const QrSvgBranding(
-                    assetPath: 'assets/ente-branding.svg',
-                  ),
-                );
-              },
-            );
-          },
-        ),
+        if (showEmbedHtml)
+          ShareMenuItem(
+            title: context.strings.copyEmbedHtml,
+            leading: const Icon(Icons.code_rounded),
+            onTap: () async {
+              final embedHtml = CollectionsService.instance.getEmbedHtml(
+                collection,
+              );
+              await Clipboard.setData(ClipboardData(text: embedHtml));
+              if (!context.mounted) return;
+              showShortToast(context, context.strings.linkCopiedToClipboard);
+            },
+          ),
+        if (showShareActions) ...[
+          ShareMenuItem(
+            key: effectiveKey,
+            title: context.strings.sendLink,
+            icon: HugeIcons.strokeRoundedSent,
+            onTap: () async {
+              await shareAlbumLink(
+                context,
+                url,
+                effectiveKey,
+                albumName: collection.displayName,
+                albumDescription: collection.displayDescription,
+              );
+            },
+          ),
+          ShareMenuItem(
+            title: context.strings.sendQrCode,
+            icon: HugeIcons.strokeRoundedQrCode,
+            onTap: () async {
+              await showDialog<void>(
+                context: context,
+                builder: (BuildContext dialogContext) {
+                  return QrCodeDialog(
+                    data: url,
+                    title: collection.displayName,
+                    accentColor: const Color(0xFF08C225),
+                    shareFileName: 'ente_qr_${collection.displayName}.png',
+                    shareText:
+                        'Scan this QR code to view my ${collection.displayName} album on ente',
+                    dialogTitle: context.strings.qrCode,
+                    shareButtonText: context.strings.share,
+                    logoAssetPath: 'assets/qr_logo.png',
+                    branding: const QrSvgBranding(
+                      assetPath: 'assets/ente-branding.svg',
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
       ]);
     }
 

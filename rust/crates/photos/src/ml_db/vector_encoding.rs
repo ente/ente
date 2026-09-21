@@ -4,7 +4,7 @@ const EVECTOR_VALUES_PACKED_KEY: u32 = 0x0A;
 const EVECTOR_VALUES_FIXED64_KEY: u32 = 0x09;
 const MAX_GROUP_DEPTH: usize = 100;
 
-pub(super) fn encode_evector(values: &[f64]) -> Vec<u8> {
+pub(crate) fn encode_evector(values: &[f64]) -> Vec<u8> {
     if values.is_empty() {
         return Vec::new();
     }
@@ -17,7 +17,7 @@ pub(super) fn encode_evector(values: &[f64]) -> Vec<u8> {
     bytes
 }
 
-pub(super) fn decode_evector(bytes: &[u8]) -> Result<Vec<f64>> {
+pub(crate) fn decode_evector(bytes: &[u8]) -> Result<Vec<f64>> {
     let mut values = Vec::new();
     let mut offset = 0;
     while offset < bytes.len() {
@@ -44,11 +44,11 @@ pub(super) fn decode_evector(bytes: &[u8]) -> Result<Vec<f64>> {
     Ok(values)
 }
 
-pub(super) fn encode_f32(values: impl IntoIterator<Item = f32>) -> Vec<u8> {
+pub(crate) fn encode_f32(values: impl IntoIterator<Item = f32>) -> Vec<u8> {
     values.into_iter().flat_map(f32::to_le_bytes).collect()
 }
 
-pub(super) fn decode_f32(bytes: &[u8]) -> Vec<f32> {
+pub(crate) fn decode_f32(bytes: &[u8]) -> Vec<f32> {
     bytes
         .as_chunks::<4>()
         .0

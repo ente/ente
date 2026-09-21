@@ -179,19 +179,19 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
     } else {
       _loadLocalImage(context);
     }
-    final galleryContext = GalleryContextState.of(context);
     Widget? image;
     if (_imageProvider != null) {
       image = Image(image: _imageProvider!, fit: widget.fit);
     }
+    if (widget.rawThumbnail) {
+      return image ?? ThumbnailPlaceHolder(color: widget.placeholderColor);
+    }
+    final galleryContext = GalleryContextState.of(context);
     // todo: [2ndJuly22] pref-review if the content Widget which depends on
     // thumbnail fetch logic should be part of separate stateFull widget.
     // If yes, parent thumbnail widget can be stateless
     Widget? content;
     if (image != null) {
-      if (widget.rawThumbnail) {
-        return image;
-      }
       final shouldShowOwnerAvatar =
           widget.shouldShowOwnerAvatar &&
           galleryContext?.galleryType != GalleryType.sharedPublicCollection;

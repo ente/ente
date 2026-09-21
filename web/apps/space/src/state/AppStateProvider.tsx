@@ -62,8 +62,9 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         useState<SpaceLoginCredentials | null>(null);
     const [pendingPasskeyVerification, setPendingPasskeyVerification] =
         useState<PendingSpacePasskeyVerification | null>(null);
-    const [pendingPostPhotoFile, setPendingPostPhotoFile] =
-        useState<File | null>(null);
+    const [pendingPostPhotoFiles, setPendingPostPhotoFiles] = useState<
+        File[] | null
+    >(null);
     const [pendingProfileAvatarFile, setPendingProfileAvatarFile] =
         useState<File | null>(null);
     const [pendingProfileCoverFile, setPendingProfileCoverFile] =
@@ -118,87 +119,67 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
 
     const publishPost = useCallback(
         async (
-            image: Parameters<SpaceAppState["publishPost"]>[0],
+            images: Parameters<SpaceAppState["publishPost"]>[0],
             caption: string,
         ) => {
             const profile = profileRef.current;
             const spaceId = profile?.spaceId;
             if (!spaceId) throw new Error("Missing space.");
 
+            const cover = images[0]!;
+            const previewUrl = cover.previewUrl;
             const generation = ++postPublishGenerationRef.current;
             const localPostId = createLocalFeedPostID();
+            const timestampMs = Date.now();
             setLocalFeedPosts((current) => [
                 {
                     avatarUrl: profile.avatarUrl,
                     caption: caption.trim() || undefined,
                     friendID: spaceId,
-                    height: image.height,
+                    height: cover.height,
                     id: localPostId,
-                    imageUrl: image.previewUrl,
+                    imageUrl: previewUrl,
                     name: profile.fullName.trim() || profile.username.trim(),
+                    photoCount: images.length,
                     spaceId,
                     status: "pending",
-                    timestampMs: Date.now(),
-                    width: image.width,
+                    timestampMs,
+                    width: cover.width,
                 },
                 ...current,
             ]);
-            let publication: SpacePostPublication = {
+            const publication: SpacePostPublication = {
                 phase: "posting",
-                previewUrl: image.previewUrl,
+                previewUrl,
                 post: {
                     caption: caption.trim() || undefined,
                     friendID: spaceId,
-                    height: image.height,
-                    imageUrl: image.previewUrl,
+                    height: cover.height,
+                    imageUrl: previewUrl,
                     name: profile.fullName,
                     postId: 0,
                     spaceId,
-                    timestampMs: Date.now(),
+                    timestampMs,
                     viewerLiked: false,
-                    width: image.width,
+                    width: cover.width,
                 },
             };
             setPostPublication(publication);
             try {
-                const preparedImage = await prepareSpacePostImageFromEdit(
-                    image.file,
-                    image.cropArea,
-                    image.rotationDegrees,
-                );
-                if (postPublishGenerationRef.current == generation) {
-                    const previewUrl = URL.createObjectURL(preparedImage.file);
-                    publication = {
-                        ...publication,
-                        previewUrl,
-                        post: {
-                            ...publication.post,
-                            height: preparedImage.height,
-                            imageUrl: previewUrl,
-                            width: preparedImage.width,
-                        },
-                    };
-                    setPostPublication(publication);
-                    setLocalFeedPosts((current) =>
-                        current.map((item) =>
-                            item.id == localPostId && item.status == "pending"
-                                ? {
-                                      ...item,
-                                      imageUrl: previewUrl,
-                                      height: preparedImage.height,
-                                      width: preparedImage.width,
-                                  }
-                                : item,
+                const preparedImages = [];
+                for (const image of images) {
+                    preparedImages.push(
+                        await prepareSpacePostImageFromEdit(
+                            image.file,
+                            image.cropArea,
+                            image.rotationDegrees,
                         ),
                     );
                 }
                 const post = await createCurrentPhotoPost({
                     caption,
-                    file: preparedImage.file,
-                    height: preparedImage.height,
+                    images: preparedImages,
                     spaceId,
-                    thumbHash: preparedImage.thumbHash,
-                    width: preparedImage.width,
                 });
                 confirmLocalFeedPost(setLocalFeedPosts, localPostId, post);
                 if (postPublishGenerationRef.current == generation) {
@@ -396,7 +377,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         setPostPublication(null);
         setPendingLoginCredentials(null);
         setPendingPasskeyVerification(null);
-        setPendingPostPhotoFile(null);
+        setPendingPostPhotoFiles(null);
         setPendingProfileAvatarFile(null);
         setPendingProfileCoverFile(null);
         setPendingCreateProfile(null);
@@ -417,7 +398,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             onboardingEntrySource,
             pendingLoginCredentials,
             pendingPasskeyVerification,
-            pendingPostPhotoFile,
+            pendingPostPhotoFiles,
             pendingProfileAvatarFile,
             pendingProfileCoverFile,
             pendingCreateProfile,
@@ -435,7 +416,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             setOnboardingEntrySource,
             setPendingLoginCredentials,
             setPendingPasskeyVerification,
-            setPendingPostPhotoFile,
+            setPendingPostPhotoFiles,
             setPendingProfileAvatarFile,
             setPendingProfileCoverFile,
             setPendingCreateProfile,
@@ -451,7 +432,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             onboardingEntrySource,
             pendingLoginCredentials,
             pendingPasskeyVerification,
-            pendingPostPhotoFile,
+            pendingPostPhotoFiles,
             pendingProfileAvatarFile,
             pendingProfileCoverFile,
             pendingCreateProfile,

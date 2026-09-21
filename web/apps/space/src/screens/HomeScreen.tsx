@@ -21,6 +21,8 @@ import {
     spacePostLikePopDurationMs,
     spacePostLikePopTiming,
 } from "components/post-like-animation";
+import { SpacePostPhotoInput } from "components/PostPhotoInput";
+import { SpacePostPhotosCounter } from "components/PostPhotosCounter";
 import { SpacePWAInstallPrompt } from "components/PWAInstallPrompt";
 import { SpaceLoadingSpinner } from "components/RouteFallback";
 import { SpaceShareInviteButton } from "components/ShareInviteButton";
@@ -33,6 +35,7 @@ import {
     type SpacePost,
     type SpacePostAssetURLLoader,
     type SpacePostAvatarURLLoader,
+    type SpacePostPhoto,
 } from "services/space";
 import type { LocalSpaceFeedPost } from "state/app-state";
 import { spaceEmptyStateButtonSx } from "styles/buttons";
@@ -47,7 +50,7 @@ import {
 } from "styles/colors";
 import { spaceTouchTargetSize } from "styles/touch-targets";
 import { firstNameFrom, formatSpaceDate } from "utils/display";
-import { spacePostImageInputAccept } from "utils/post-image";
+import { spacePostPhotos, viewerPhotosFromPost } from "utils/post-photos";
 import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 
 const homeBackground = spaceAppBackgroundColor;
@@ -99,7 +102,7 @@ interface HomeScreenProps {
     showInstallPrompt?: boolean;
     showInviteFriendsToast?: boolean;
     onAddFriend: () => void;
-    onPostPhotoSelect: (file: File) => void;
+    onPostPhotoSelect: (files: File[]) => void;
     onDeletePost?: (postId: number) => Promise<void> | void;
     onLoadMoreFeedItems?: () => Promise<void> | void;
     onLoadPostAvatar?: SpacePostAvatarURLLoader;
@@ -113,6 +116,7 @@ interface HomeScreenProps {
         postSpaceId: string,
         postId: number,
         text: string,
+        objectKey: string,
     ) => Promise<void>;
     onSetPostLiked?: (postId: number, liked: boolean) => Promise<void>;
     onUpdatePostCaption?: (postId: number, caption: string) => Promise<void>;
@@ -126,10 +130,6 @@ interface FeedPhotoDimensions {
     width: number;
 }
 
-interface LoadedFeedPhotoDimensions extends FeedPhotoDimensions {
-    src: string;
-}
-
 interface DecodedImageState {
     failed?: boolean;
     height?: number;
@@ -139,6 +139,8 @@ interface DecodedImageState {
 }
 
 interface SelectedHomeViewer {
+    photoIndex: number;
+    photos: SpaceViewerPhoto[];
     focusReplyOnOpen?: boolean;
     photo: SpaceViewerPhoto;
     postActionMode?: SpaceViewerPostActionMode;
@@ -355,7 +357,17 @@ class FeedMotionList extends React.Component<FeedMotionListProps> {
 
 type FeedTimestampStatus = "failed" | "post-limit" | "posted" | "posting";
 
+interface FeedPostPhoto extends SpacePostPhoto {
+    isUnavailable?: boolean;
+}
+
+type FeedPhotoSource = SpacePostPhoto & Pick<SpacePost, "postId" | "spaceId">;
+
 interface FeedItemProps {
+    photoCount?: number;
+    photoIndex?: number;
+    photos?: FeedPostPhoto[];
+    onPhotoIndexChange?: (index: number) => void;
     aspectRatio: number;
     avatarUrl: string | null;
     caption?: string;
@@ -366,7 +378,7 @@ interface FeedItemProps {
     isUnavailable?: boolean;
     name: string;
     onLoadAvatar?: () => Promise<string | null | undefined>;
-    onLoadImage?: () => Promise<string | undefined>;
+    onLoadImage?: (index: number) => Promise<string | undefined>;
     onOpenFriend?: (friendID: string, username?: string) => void;
     onOpenPhoto?: (photo: SpaceViewerPhoto, focusReplyOnOpen?: boolean) => void;
     onOpenProfile?: () => void;
@@ -402,14 +414,7 @@ const dimensionsFromAspectRatio = (
     return { height, width: Math.round(safeAspectRatio * height) };
 };
 
-const feedPhotoFrameDimensionsFor = (
-    dimensions: FeedPhotoDimensions,
-): FeedPhotoDimensions =>
-    dimensions.width / dimensions.height < minimumFeedPhotoFrameAspectRatio
-        ? { height: 4, width: 3 }
-        : dimensions;
-
-const feedPostImageCacheKey = (item: SpacePost) =>
+const feedPostImageCacheKey = (item: FeedPhotoSource) =>
     [
         item.postId,
         item.imageAsset?.spaceId ?? item.spaceId,
@@ -632,7 +637,170 @@ const FeedPhotoCaption: React.FC<{ caption: string }> = ({ caption }) => {
     );
 };
 
+const FeedPhoto: React.FC<{
+    imageUrl?: string;
+    isActive: boolean;
+    isUnavailable: boolean;
+    name: string;
+    onLoadImage?: () => Promise<string | undefined>;
+    onOpenPhoto?: () => void;
+    shouldLoad: boolean;
+    thumbHash?: string;
+}> = ({
+    imageUrl,
+    isActive,
+    isUnavailable,
+    name,
+    onLoadImage,
+    onOpenPhoto,
+    shouldLoad,
+    thumbHash,
+}) => {
+    const decodedPhoto = useDecodedImage(imageUrl, true);
+    const isPostUnavailable = isUnavailable || Boolean(decodedPhoto.failed);
+    const displayImageUrl = decodedPhoto.src ?? undefined;
+    const isPhotoReady = Boolean(displayImageUrl) && decodedPhoto.ready;
+    const canOpenPhoto =
+        !isPostUnavailable && isPhotoReady && Boolean(onOpenPhoto);
+    const [showResolvedPhoto, setShowResolvedPhoto] = useState(false);
+    const thumbHashDataURL = React.useMemo(
+        () => thumbHashDataURLFromBase64(thumbHash),
+        [thumbHash],
+    );
+
+    React.useEffect(() => {
+        if (shouldLoad && !imageUrl && !isUnavailable) void onLoadImage?.();
+    }, [imageUrl, isUnavailable, onLoadImage, shouldLoad]);
+
+    React.useEffect(() => {
+        if (!isPhotoReady || showResolvedPhoto) return;
+        if (!thumbHashDataURL) {
+            setShowResolvedPhoto(true);
+            return;
+        }
+        const frameID = window.requestAnimationFrame(() =>
+            setShowResolvedPhoto(true),
+        );
+        return () => window.cancelAnimationFrame(frameID);
+    }, [isPhotoReady, showResolvedPhoto, thumbHashDataURL]);
+
+    return (
+        <Box
+            component="button"
+            type="button"
+            aria-label={
+                isPostUnavailable ? "Post unavailable" : `Open ${name} photo`
+            }
+            disabled={!canOpenPhoto}
+            tabIndex={isActive ? 0 : -1}
+            onClick={onOpenPhoto}
+            sx={{
+                appearance: "none",
+                bgcolor: "transparent",
+                border: 0,
+                cursor: canOpenPhoto ? "pointer" : "default",
+                display: "block",
+                height: "100%",
+                flex: "0 0 100%",
+                scrollSnapAlign: "start",
+                scrollSnapStop: "always",
+                maxWidth: "100%",
+                minWidth: 0,
+                overflow: "hidden",
+                p: 0,
+                position: "relative",
+                width: "100%",
+                "&:focus-visible": {
+                    outline: `2px solid ${green}`,
+                    outlineOffset: -2,
+                },
+            }}
+        >
+            {!isPostUnavailable && !thumbHashDataURL && !isPhotoReady && (
+                <Skeleton
+                    variant="rectangular"
+                    sx={{
+                        bgcolor: feedSkeletonElementBackground,
+                        display: "block",
+                        height: "100%",
+                        transform: "none",
+                        width: "100%",
+                    }}
+                />
+            )}
+            {!isPostUnavailable && thumbHashDataURL ? (
+                <Box
+                    component="img"
+                    alt=""
+                    aria-hidden
+                    src={thumbHashDataURL}
+                    sx={{
+                        display: "block",
+                        filter: "blur(14px)",
+                        height: "100%",
+                        inset: 0,
+                        objectFit: "cover",
+                        objectPosition: "center",
+                        position: "absolute",
+                        transform: "scale(1.08)",
+                        width: "100%",
+                    }}
+                />
+            ) : null}
+            {!isPostUnavailable && isPhotoReady && (
+                <Box
+                    component="img"
+                    alt={`${name} post`}
+                    src={displayImageUrl}
+                    draggable={false}
+                    sx={{
+                        display: "block",
+                        height: "100%",
+                        inset: 0,
+                        maxWidth: "100%",
+                        minWidth: 0,
+                        objectFit: "cover",
+                        objectPosition: "center",
+                        opacity: showResolvedPhoto ? 1 : 0,
+                        position: "absolute",
+                        transition: thumbHashDataURL
+                            ? "opacity 220ms ease"
+                            : "none",
+                        width: "100%",
+                        zIndex: 1,
+                        "@media (prefers-reduced-motion: reduce)": {
+                            opacity: 1,
+                            transition: "none",
+                        },
+                    }}
+                />
+            )}
+            {isPostUnavailable && (
+                <Box
+                    sx={{
+                        alignItems: "center",
+                        bgcolor: feedSkeletonElementBackground,
+                        color: spaceTextMuted,
+                        display: "flex",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        height: "100%",
+                        justifyContent: "center",
+                        width: "100%",
+                    }}
+                >
+                    Post unavailable
+                </Box>
+            )}
+        </Box>
+    );
+};
+
 const FeedItem: React.FC<FeedItemProps> = ({
+    photoCount = 1,
+    photoIndex = 0,
+    photos,
+    onPhotoIndexChange,
     aspectRatio,
     avatarUrl,
     caption,
@@ -661,15 +829,137 @@ const FeedItem: React.FC<FeedItemProps> = ({
     const [shouldLoadMedia, setShouldLoadMedia] = useState(
         !isUnavailable && Boolean(imageUrl) && !isAvatarPending,
     );
+    const feedPhotos = photos ?? [{ imageUrl, thumbHash }];
+    const activePhoto = feedPhotos[photoIndex]!;
+    const [settledPhotoIndex, setSettledPhotoIndex] = useState(photoIndex);
+    const carouselRef = React.useRef<HTMLDivElement | null>(null);
+    const photoAnimationRef = React.useRef<number | null>(null);
+    const swipeRef = React.useRef<{
+        pointerID: number;
+        index: number;
+        startLeft: number;
+        x: number;
+        y: number;
+        dragging: boolean;
+    } | null>(null);
+    const suppressPhotoClickRef = React.useRef(false);
+    const scrollToPhoto = React.useCallback(
+        (index: number) => {
+            const carousel = carouselRef.current;
+            if (!carousel) return;
+            if (photoAnimationRef.current != null) {
+                cancelAnimationFrame(photoAnimationRef.current);
+                photoAnimationRef.current = null;
+            }
+            const nextIndex = Math.max(
+                0,
+                Math.min(index, feedPhotos.length - 1),
+            );
+            const left = nextIndex * carousel.clientWidth;
+            const startLeft = carousel.scrollLeft;
+            carousel.style.scrollSnapType = "none";
+            if (
+                Math.abs(startLeft - left) < 1 ||
+                window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ) {
+                carousel.scrollLeft = left;
+                carousel.style.scrollSnapType = "";
+                setSettledPhotoIndex(nextIndex);
+                return;
+            }
+            const startTime = performance.now();
+            const animate = (time: number) => {
+                const progress = Math.min(1, (time - startTime) / 280);
+                carousel.scrollLeft =
+                    startLeft + (left - startLeft) * (1 - (1 - progress) ** 3);
+                if (progress < 1) {
+                    photoAnimationRef.current = requestAnimationFrame(animate);
+                } else {
+                    photoAnimationRef.current = null;
+                    carousel.style.scrollSnapType = "";
+                    setSettledPhotoIndex(nextIndex);
+                }
+            };
+            photoAnimationRef.current = requestAnimationFrame(animate);
+        },
+        [feedPhotos.length],
+    );
+    const finishPhotoSwipe = (event: React.PointerEvent<HTMLDivElement>) => {
+        const swipe = swipeRef.current;
+        if (swipe?.pointerID != event.pointerId) return;
+        swipeRef.current = null;
+        const dx = event.clientX - swipe.x;
+        const direction =
+            swipe.dragging &&
+            event.type != "pointercancel" &&
+            Math.abs(dx) >= 40
+                ? -Math.sign(dx)
+                : 0;
+        scrollToPhoto(swipe.index + direction);
+    };
+    React.useEffect(
+        () => () => {
+            if (photoAnimationRef.current != null)
+                cancelAnimationFrame(photoAnimationRef.current);
+        },
+        [],
+    );
+    React.useEffect(() => {
+        const carousel = carouselRef.current;
+        if (!carousel || feedPhotos.length < 2) return;
+        let delta = 0;
+        let advanced = false;
+        let wheelEndTimeout: ReturnType<typeof setTimeout>;
+        const handleWheel = (event: WheelEvent) => {
+            if (
+                event.ctrlKey ||
+                Math.abs(event.deltaX) <= Math.abs(event.deltaY)
+            )
+                return;
+            event.preventDefault();
+            clearTimeout(wheelEndTimeout);
+            wheelEndTimeout = setTimeout(() => {
+                delta = 0;
+                advanced = false;
+            }, 180);
+            if (advanced) return;
+            delta += event.deltaX;
+            if (Math.abs(delta) < 20) return;
+            advanced = true;
+            scrollToPhoto(
+                Math.round(carousel.scrollLeft / carousel.clientWidth) +
+                    Math.sign(delta),
+            );
+        };
+        carousel.addEventListener("wheel", handleWheel, { passive: false });
+        return () => {
+            clearTimeout(wheelEndTimeout);
+            carousel.removeEventListener("wheel", handleWheel);
+        };
+    }, [feedPhotos.length, scrollToPhoto]);
+    React.useEffect(() => {
+        const carousel = carouselRef.current;
+        if (!carousel) return;
+        if (
+            Math.round(carousel.scrollLeft / carousel.clientWidth) != photoIndex
+        ) {
+            if (photoAnimationRef.current != null) {
+                cancelAnimationFrame(photoAnimationRef.current);
+                photoAnimationRef.current = null;
+            }
+            carousel.style.scrollSnapType = "";
+            carousel.scrollTo({
+                left: photoIndex * carousel.clientWidth,
+                behavior: "instant",
+            });
+            setSettledPhotoIndex(photoIndex);
+        }
+    }, [photoIndex]);
     const rootRef = React.useRef<HTMLElement | null>(null);
     const firstName = firstNameFrom(name);
     const dateLabel = formatSpaceDate(timestampMs);
     const postingDotCount = usePostingDotCount(timestampStatus == "posting");
     const displayCaption = caption?.trim();
-    const thumbHashDataURL = React.useMemo(
-        () => thumbHashDataURLFromBase64(thumbHash),
-        [thumbHash],
-    );
     const canOpenAuthor = isOwnPost
         ? Boolean(onOpenProfile)
         : Boolean(onOpenFriend);
@@ -683,18 +973,17 @@ const FeedItem: React.FC<FeedItemProps> = ({
         }
         onOpenFriend?.(friendID, username);
     };
-    const [loadedPhotoDimensions, setLoadedPhotoDimensions] =
-        useState<LoadedFeedPhotoDimensions | null>(null);
-    const decodedPhoto = useDecodedImage(imageUrl, true);
+    const decodedPhoto = useDecodedImage(activePhoto.imageUrl);
     const decodedAvatar = useDecodedImage(avatarUrl, true);
-    const isPostUnavailable = isUnavailable || decodedPhoto.failed;
+    const isPostUnavailable =
+        isUnavailable || activePhoto.isUnavailable || decodedPhoto.failed;
     const showFooter = !isOwnPost && !isPostUnavailable;
     const displayImageUrl =
         (decodedPhoto.failed
             ? undefined
             : decodedPhoto.ready
               ? decodedPhoto.src
-              : imageUrl) ?? undefined;
+              : activePhoto.imageUrl) ?? undefined;
     const displayAvatarUrl =
         (decodedAvatar.failed
             ? undefined
@@ -702,60 +991,54 @@ const FeedItem: React.FC<FeedItemProps> = ({
               ? decodedAvatar.src
               : avatarUrl) ?? undefined;
     const isAvatarReady = !isAvatarPending && decodedAvatar.ready;
-    const photoDimensions =
-        loadedPhotoDimensions && loadedPhotoDimensions.src == displayImageUrl
-            ? loadedPhotoDimensions
-            : dimensionsFromAspectRatio(aspectRatio);
-    const feedPhotoFrameDimensions =
-        feedPhotoFrameDimensionsFor(photoDimensions);
+    const photoDimensions = {
+        height:
+            decodedPhoto.height ??
+            activePhoto.height ??
+            dimensionsFromAspectRatio(aspectRatio).height,
+        width:
+            decodedPhoto.width ??
+            activePhoto.width ??
+            dimensionsFromAspectRatio(aspectRatio).width,
+    };
+    const photoFrameAspectRatio = Math.max(
+        minimumFeedPhotoFrameAspectRatio,
+        photoDimensions.width / photoDimensions.height,
+    );
+    const [frameAspectRatio, setFrameAspectRatio] = useState(
+        photoFrameAspectRatio,
+    );
     const isPhotoReady = Boolean(displayImageUrl) && decodedPhoto.ready;
     const canOpenPhoto =
         !isPostUnavailable && isPhotoReady && Boolean(onOpenPhoto);
-    const [showResolvedPhoto, setShowResolvedPhoto] = useState(false);
-    const decodedPhotoHeight = decodedPhoto.height;
-    const decodedPhotoSrc = decodedPhoto.src;
-    const decodedPhotoWidth = decodedPhoto.width;
-    const rememberLoadedPhotoDimensions: React.ReactEventHandler<
-        HTMLImageElement
-    > = ({ currentTarget }) => {
-        if (!displayImageUrl) return;
-        const { naturalHeight, naturalWidth } = currentTarget;
-        if (!naturalHeight || !naturalWidth) return;
-
-        setLoadedPhotoDimensions((currentDimensions) => {
-            if (
-                currentDimensions?.height == naturalHeight &&
-                currentDimensions.src == displayImageUrl &&
-                currentDimensions.width == naturalWidth
-            ) {
-                return currentDimensions;
-            }
-
-            return {
-                height: naturalHeight,
-                src: displayImageUrl,
-                width: naturalWidth,
-            };
-        });
-    };
-    const openPhoto = (focusReplyOnOpen = false) => {
-        if (!canOpenPhoto || !displayImageUrl) return;
+    const openPhoto = (focusReplyOnOpen = false, index = photoIndex) => {
+        const selectedPhoto = feedPhotos[index]!;
+        if (!selectedPhoto.imageUrl || isUnavailable) return;
 
         onOpenPhoto?.(
             {
+                ...selectedPhoto,
                 alt: `${name} post`,
                 avatarUrl: displayAvatarUrl ?? null,
                 caption,
                 friendID,
-                height: photoDimensions.height,
-                imageUrl: displayImageUrl,
+                height:
+                    index == photoIndex
+                        ? photoDimensions.height
+                        : selectedPhoto.height,
+                imageUrl: selectedPhoto.imageUrl,
                 name,
                 postId,
+                postPhotoIndex: index,
+                postPhotoCount: photoCount,
                 spaceId,
                 timestampMs,
                 username,
                 viewerLiked: isLiked,
-                width: photoDimensions.width,
+                width:
+                    index == photoIndex
+                        ? photoDimensions.width
+                        : selectedPhoto.width,
             },
             focusReplyOnOpen,
         );
@@ -806,20 +1089,10 @@ const FeedItem: React.FC<FeedItemProps> = ({
         if (isPostUnavailable) return;
         if (!shouldLoadMedia) return;
 
-        if (!imageUrl) {
-            void onLoadImage?.();
-        }
         if (isAvatarPending) {
             void onLoadAvatar?.();
         }
-    }, [
-        imageUrl,
-        isAvatarPending,
-        isPostUnavailable,
-        onLoadAvatar,
-        onLoadImage,
-        shouldLoadMedia,
-    ]);
+    }, [isAvatarPending, isPostUnavailable, onLoadAvatar, shouldLoadMedia]);
 
     React.useEffect(() => {
         if (!decodedPhoto.failed) return;
@@ -829,25 +1102,10 @@ const FeedItem: React.FC<FeedItemProps> = ({
     }, [decodedPhoto.failed, postId]);
 
     React.useEffect(() => {
-        if (!decodedPhotoHeight || !decodedPhotoWidth) return;
-        if (!decodedPhotoSrc) return;
-
-        setLoadedPhotoDimensions((currentDimensions) => {
-            if (
-                currentDimensions?.height == decodedPhotoHeight &&
-                currentDimensions.src == decodedPhotoSrc &&
-                currentDimensions.width == decodedPhotoWidth
-            ) {
-                return currentDimensions;
-            }
-
-            return {
-                height: decodedPhotoHeight,
-                src: decodedPhotoSrc,
-                width: decodedPhotoWidth,
-            };
-        });
-    }, [decodedPhotoHeight, decodedPhotoSrc, decodedPhotoWidth]);
+        if (photoIndex == settledPhotoIndex) {
+            setFrameAspectRatio(photoFrameAspectRatio);
+        }
+    }, [photoFrameAspectRatio, photoIndex, settledPhotoIndex]);
 
     React.useEffect(() => {
         if (likePopID == 0) return;
@@ -858,20 +1116,6 @@ const FeedItem: React.FC<FeedItemProps> = ({
         );
         return () => window.clearTimeout(timeoutID);
     }, [likePopID]);
-
-    React.useEffect(() => {
-        setShowResolvedPhoto(false);
-        if (!isPhotoReady) return;
-        if (!thumbHashDataURL) {
-            setShowResolvedPhoto(true);
-            return;
-        }
-
-        const frameID = window.requestAnimationFrame(() =>
-            setShowResolvedPhoto(true),
-        );
-        return () => window.cancelAnimationFrame(frameID);
-    }, [displayImageUrl, isPhotoReady, thumbHashDataURL]);
 
     return (
         <Box
@@ -890,123 +1134,183 @@ const FeedItem: React.FC<FeedItemProps> = ({
         >
             <Box
                 sx={{
-                    aspectRatio: `${feedPhotoFrameDimensions.width} / ${feedPhotoFrameDimensions.height}`,
+                    aspectRatio: frameAspectRatio,
                     bgcolor: "transparent",
                     borderRadius: "16px",
                     maxWidth: "100%",
                     minWidth: 0,
                     overflow: "hidden",
                     position: "relative",
+                    transition: "aspect-ratio 220ms ease",
                     width: "100%",
+                    "@media (prefers-reduced-motion: reduce)": {
+                        transition: "none",
+                    },
                 }}
             >
+                {photoCount > 1 && (
+                    <Box
+                        sx={{
+                            display: "flex",
+                            position: "absolute",
+                            right: 16,
+                            top: 16,
+                            zIndex: 3,
+                            pointerEvents: "none",
+                        }}
+                    >
+                        <SpacePostPhotosCounter
+                            compact
+                            index={photoIndex}
+                            count={photoCount}
+                        />
+                    </Box>
+                )}
                 <Box
-                    component="button"
-                    type="button"
-                    aria-label={
-                        isPostUnavailable
-                            ? "Post unavailable"
-                            : `Open ${name} photo`
-                    }
-                    disabled={!canOpenPhoto}
-                    onClick={() => openPhoto()}
+                    ref={carouselRef}
+                    role={photoCount > 1 ? "group" : undefined}
+                    aria-label={photoCount > 1 ? "Post photos" : undefined}
+                    onPointerDown={(event) => {
+                        suppressPhotoClickRef.current = false;
+                        if (
+                            !event.isPrimary ||
+                            event.button != 0 ||
+                            feedPhotos.length < 2
+                        )
+                            return;
+                        const carousel = event.currentTarget;
+                        if (photoAnimationRef.current != null) {
+                            cancelAnimationFrame(photoAnimationRef.current);
+                            photoAnimationRef.current = null;
+                        }
+                        const index = Math.round(
+                            carousel.scrollLeft / carousel.clientWidth,
+                        );
+                        swipeRef.current = {
+                            pointerID: event.pointerId,
+                            index,
+                            startLeft: carousel.scrollLeft,
+                            x: event.clientX,
+                            y: event.clientY,
+                            dragging: false,
+                        };
+                    }}
+                    onPointerMove={(event) => {
+                        const swipe = swipeRef.current;
+                        if (swipe?.pointerID != event.pointerId) return;
+                        const dx = event.clientX - swipe.x;
+                        const dy = event.clientY - swipe.y;
+                        if (!swipe.dragging) {
+                            if (Math.max(Math.abs(dx), Math.abs(dy)) < 8)
+                                return;
+                            if (Math.abs(dy) >= Math.abs(dx)) {
+                                swipeRef.current = null;
+                                scrollToPhoto(swipe.index);
+                                return;
+                            }
+                            swipe.dragging = true;
+                            suppressPhotoClickRef.current = true;
+                            event.currentTarget.setPointerCapture(
+                                event.pointerId,
+                            );
+                            event.currentTarget.style.scrollSnapType = "none";
+                        }
+                        const carousel = event.currentTarget;
+                        carousel.scrollLeft = Math.max(
+                            (swipe.index - 1) * carousel.clientWidth,
+                            Math.min(
+                                (swipe.index + 1) * carousel.clientWidth,
+                                swipe.startLeft - dx,
+                            ),
+                        );
+                    }}
+                    onPointerUp={finishPhotoSwipe}
+                    onPointerCancel={finishPhotoSwipe}
+                    onClickCapture={(event) => {
+                        if (!suppressPhotoClickRef.current || event.detail == 0)
+                            return;
+                        suppressPhotoClickRef.current = false;
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }}
+                    onScroll={(event) => {
+                        const carousel = event.currentTarget;
+                        const index = Math.round(
+                            carousel.scrollLeft / carousel.clientWidth,
+                        );
+                        if (index != photoIndex) onPhotoIndexChange?.(index);
+                    }}
+                    onScrollEnd={(event) => {
+                        if (
+                            swipeRef.current?.dragging ||
+                            photoAnimationRef.current != null
+                        )
+                            return;
+                        const carousel = event.currentTarget;
+                        setSettledPhotoIndex(
+                            Math.round(
+                                carousel.scrollLeft / carousel.clientWidth,
+                            ),
+                        );
+                    }}
+                    onKeyDown={(event) => {
+                        if (
+                            event.key != "ArrowLeft" &&
+                            event.key != "ArrowRight"
+                        )
+                            return;
+                        event.preventDefault();
+                        const index = Math.max(
+                            0,
+                            Math.min(
+                                photoIndex +
+                                    (event.key == "ArrowLeft" ? -1 : 1),
+                                feedPhotos.length - 1,
+                            ),
+                        );
+                        (
+                            event.currentTarget.children[index] as HTMLElement
+                        ).focus({ preventScroll: true });
+                        scrollToPhoto(index);
+                    }}
                     sx={{
-                        appearance: "none",
-                        bgcolor: "transparent",
-                        border: 0,
-                        cursor: canOpenPhoto ? "pointer" : "default",
-                        display: "block",
+                        display: "flex",
                         height: "100%",
-                        maxWidth: "100%",
-                        minWidth: 0,
-                        overflow: "hidden",
-                        p: 0,
-                        position: "relative",
-                        width: "100%",
-                        "&:focus-visible": {
-                            outline: `2px solid ${green}`,
-                            outlineOffset: -2,
-                        },
+                        overflowX: "hidden",
+                        overscrollBehaviorX: "contain",
+                        scrollSnapType: "x mandatory",
+                        scrollbarWidth: "none",
+                        touchAction: "pan-y pinch-zoom",
+                        userSelect: "none",
+                        "&::-webkit-scrollbar": { display: "none" },
                     }}
                 >
-                    {!isPostUnavailable &&
-                        !thumbHashDataURL &&
-                        !isPhotoReady && (
-                            <Skeleton
-                                variant="rectangular"
-                                sx={{
-                                    bgcolor: feedSkeletonElementBackground,
-                                    display: "block",
-                                    height: "100%",
-                                    transform: "none",
-                                    width: "100%",
-                                }}
-                            />
-                        )}
-                    {!isPostUnavailable && thumbHashDataURL ? (
-                        <Box
-                            component="img"
-                            alt=""
-                            aria-hidden
-                            src={thumbHashDataURL}
-                            sx={{
-                                display: "block",
-                                filter: "blur(14px)",
-                                height: "100%",
-                                inset: 0,
-                                objectFit: "cover",
-                                objectPosition: "center",
-                                position: "absolute",
-                                transform: "scale(1.08)",
-                                width: "100%",
-                            }}
+                    {feedPhotos.map((photo, index) => (
+                        <FeedPhoto
+                            key={index}
+                            imageUrl={photo.imageUrl}
+                            isActive={index == photoIndex}
+                            isUnavailable={
+                                isUnavailable || Boolean(photo.isUnavailable)
+                            }
+                            name={name}
+                            onLoadImage={
+                                onLoadImage
+                                    ? () => onLoadImage(index)
+                                    : undefined
+                            }
+                            onOpenPhoto={
+                                onOpenPhoto
+                                    ? () => openPhoto(false, index)
+                                    : undefined
+                            }
+                            shouldLoad={
+                                shouldLoadMedia &&
+                                Math.abs(index - photoIndex) <= 1
+                            }
+                            thumbHash={photo.thumbHash}
                         />
-                    ) : null}
-                    {!isPostUnavailable && isPhotoReady && (
-                        <Box
-                            component="img"
-                            alt={`${name} post`}
-                            src={displayImageUrl}
-                            onLoad={rememberLoadedPhotoDimensions}
-                            sx={{
-                                display: "block",
-                                height: "100%",
-                                inset: 0,
-                                maxWidth: "100%",
-                                minWidth: 0,
-                                objectFit: "cover",
-                                objectPosition: "center",
-                                opacity: showResolvedPhoto ? 1 : 0,
-                                position: "absolute",
-                                transition: thumbHashDataURL
-                                    ? "opacity 220ms ease"
-                                    : "none",
-                                width: "100%",
-                                zIndex: 1,
-                                "@media (prefers-reduced-motion: reduce)": {
-                                    opacity: 1,
-                                    transition: "none",
-                                },
-                            }}
-                        />
-                    )}
-                    {isPostUnavailable && (
-                        <Box
-                            sx={{
-                                alignItems: "center",
-                                bgcolor: feedSkeletonElementBackground,
-                                color: spaceTextMuted,
-                                display: "flex",
-                                fontSize: 14,
-                                fontWeight: 600,
-                                height: "100%",
-                                justifyContent: "center",
-                                width: "100%",
-                            }}
-                        >
-                            Post unavailable
-                        </Box>
-                    )}
+                    ))}
                 </Box>
                 <Box
                     aria-hidden
@@ -1037,7 +1341,7 @@ const FeedItem: React.FC<FeedItemProps> = ({
                         minHeight: 32,
                         pointerEvents: "none",
                         position: "absolute",
-                        right: 12,
+                        right: photoCount > 1 ? 68 : 12,
                         top: 12,
                         zIndex: 2,
                     }}
@@ -1453,6 +1757,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 }) => {
     const [selectedViewer, setSelectedViewer] =
         useState<SelectedHomeViewer | null>(null);
+    const [feedPhotoIndices, setFeedPhotoIndices] = useState<
+        Record<number, number>
+    >({});
     const [isInviteSharing, setIsInviteSharing] = useState(false);
     const [loadedFeedAvatarURLsByKey, setLoadedFeedAvatarURLsByKey] = useState<
         Record<string, string | null>
@@ -1469,13 +1776,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     const feedAvatarLoadsInFlightRef = React.useRef<
         Map<string, Promise<string | null>>
     >(new Map());
-    const feedImageLoadsInFlightRef = React.useRef<
+    const feedImageLoadsRef = React.useRef<
         Map<string, Promise<string | undefined>>
     >(new Map());
-    const isPostPhotoButtonDisabled =
-        !profile ||
-        !viewerSpaceId ||
-        localFeedPosts.some((item) => item.status == "pending");
     const selectedPhotoFriendID = selectedViewer?.photo.friendID;
     const selectedPhotoIsOwn =
         Boolean(viewerSpaceId) && selectedPhotoFriendID == viewerSpaceId;
@@ -1521,17 +1824,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         !selectedViewer;
     const showUnreadIndicator = hasUnreadMessages === true;
     const openPostPhotoPicker = () => {
-        if (isPostPhotoButtonDisabled) return;
-
         postInputRef.current?.click();
     };
     const openFeedPhoto = (
+        post: SpacePost,
         photo: SpaceViewerPhoto,
         focusReplyOnOpen = false,
     ) => {
         const isOwnPost =
             Boolean(viewerSpaceId) && photo.friendID == viewerSpaceId;
+        const photoIndex = photo.postPhotoIndex ?? 0;
+        const photos = viewerPhotosFromPost({
+            ...post,
+            avatarUrl: photo.avatarUrl,
+            viewerLiked: photo.viewerLiked,
+        });
+        photos[photoIndex] = { ...photos[photoIndex]!, ...photo };
         setSelectedViewer({
+            photoIndex,
+            photos,
             focusReplyOnOpen: isOwnPost ? false : focusReplyOnOpen,
             photo,
             postActionMode: isOwnPost ? "hidden" : "like-only",
@@ -1555,7 +1866,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         await onDeletePost(postId);
     };
     const loadedFeedImageURLFor = React.useCallback(
-        (item: SpacePost) =>
+        (item: FeedPhotoSource) =>
             item.imageUrl ??
             loadedFeedImageURLsByKey[feedPostImageCacheKey(item)],
         [loadedFeedImageURLsByKey],
@@ -1569,7 +1880,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         [loadedFeedAvatarURLsByKey],
     );
     const loadFeedPostImage = React.useCallback(
-        (item: SpacePost) => {
+        (item: FeedPhotoSource) => {
             const loadedImageUrl = loadedFeedImageURLFor(item);
             if (loadedImageUrl) return Promise.resolve(loadedImageUrl);
             if (!item.imageAsset || !onLoadPostImage) {
@@ -1580,8 +1891,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             if (unavailableFeedPostsByKey[cacheKey]) {
                 return Promise.resolve(undefined);
             }
-            const inFlight = feedImageLoadsInFlightRef.current.get(cacheKey);
-            if (inFlight) return inFlight;
+            const existingLoad = feedImageLoadsRef.current.get(cacheKey);
+            if (existingLoad) return existingLoad;
 
             const load = onLoadPostImage(item.imageAsset)
                 .then((imageUrl) => {
@@ -1593,6 +1904,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     return imageUrl;
                 })
                 .catch((error: unknown) => {
+                    feedImageLoadsRef.current.delete(cacheKey);
                     log.warn("Failed to load feed post image", error);
                     if (isSpaceContentError(error)) {
                         setUnavailableFeedPostsByKey((current) => ({
@@ -1601,11 +1913,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         }));
                     }
                     return undefined;
-                })
-                .finally(() => {
-                    feedImageLoadsInFlightRef.current.delete(cacheKey);
                 });
-            feedImageLoadsInFlightRef.current.set(cacheKey, load);
+            feedImageLoadsRef.current.set(cacheKey, load);
             return load;
         },
         [loadedFeedImageURLFor, onLoadPostImage, unavailableFeedPostsByKey],
@@ -1655,7 +1964,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         key: React.Key,
         timestampStatus?: FeedTimestampStatus,
     ) => {
-        const imageUrl = loadedFeedImageURLFor(item);
+        const postPhotos = spacePostPhotos(item).map((photo, index) => ({
+            ...photo,
+            postId: item.postId,
+            spaceId: item.spaceId,
+            imageUrl:
+                photo.imageUrl ?? (index == 0 ? item.imageUrl : undefined),
+        }));
+        const photos = postPhotos.map((photo) => ({
+            ...photo,
+            imageUrl: loadedFeedImageURLFor(photo),
+            isUnavailable: Boolean(
+                unavailableFeedPostsByKey[feedPostImageCacheKey(photo)],
+            ),
+        }));
+        const imageUrl = photos[0]?.imageUrl;
         const avatarUrl = loadedFeedAvatarURLFor(item);
         const isAvatarPending = !item.isUnavailable && avatarUrl === undefined;
         const isUnavailable =
@@ -1682,15 +2005,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         ? () => loadFeedPostAvatar(item)
                         : undefined
                 }
-                onLoadImage={
-                    imageUrl || isUnavailable
-                        ? undefined
-                        : () => loadFeedPostImage(item)
-                }
+                onLoadImage={(index) => loadFeedPostImage(postPhotos[index]!)}
                 onOpenFriend={onOpenFriend}
-                onOpenPhoto={openFeedPhoto}
+                onOpenPhoto={(photo, focusReply) =>
+                    openFeedPhoto({ ...item, photos }, photo, focusReply)
+                }
                 onOpenProfile={onOpenProfile}
                 onSetPostLiked={onSetPostLiked}
+                photos={photos}
+                photoCount={photos.length}
+                photoIndex={feedPhotoIndices[item.postId] ?? 0}
+                onPhotoIndexChange={(index) =>
+                    setFeedPhotoIndices((current) => ({
+                        ...current,
+                        [item.postId]: index,
+                    }))
+                }
                 postId={item.postId}
                 spaceId={item.spaceId}
                 thumbHash={item.thumbHash}
@@ -1724,6 +2054,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 isOwnPost
                 name={item.name}
                 onOpenProfile={onOpenProfile}
+                photoCount={item.photoCount}
                 postId={0}
                 timestampStatus={
                     item.status == "failed"
@@ -1792,14 +2123,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         onLoadMoreFeedItems,
     ]);
 
-    const handlePostPhotoSelect: React.ChangeEventHandler<HTMLInputElement> = (
-        event,
-    ) => {
-        const file = event.target.files?.[0];
-        event.target.value = "";
-        if (file) onPostPhotoSelect(file);
-    };
-
     return (
         <Box
             component="main"
@@ -1832,13 +2155,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     onOpenMessages={onOpenMessages}
                     onOpenProfile={onOpenProfile}
                 >
-                    <Box
-                        ref={postInputRef}
-                        component="input"
-                        type="file"
-                        accept={spacePostImageInputAccept}
-                        onChange={handlePostPhotoSelect}
-                        sx={{ display: "none" }}
+                    <SpacePostPhotoInput
+                        inputRef={postInputRef}
+                        onSelect={onPostPhotoSelect}
                     />
                 </SpaceHomeHeader>
                 <Box
@@ -1973,6 +2292,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     lineHeight: "30px",
                                     m: 0,
                                     maxWidth: 260,
+                                    textWrap: "balance",
                                 }}
                             >
                                 Invite your friends and family
@@ -1989,10 +2309,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     m: 0,
                                     mt: "10px",
                                     maxWidth: 250,
+                                    textWrap: "balance",
                                 }}
                             >
-                                You’ll see posts from your friends and family
-                                here.
+                                Keep up with each other through
+                                <br />
+                                everyday photos.
                             </Box>
                             <Box
                                 component="button"
@@ -2043,14 +2365,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     )}
                 </Box>
                 <SpaceFeedPostButton
-                    disabled={isPostPhotoButtonDisabled}
                     onClick={openPostPhotoPicker}
                     showFirstPostPrompt={showFirstPostPrompt}
                 />
                 {selectedViewer && (
                     <SpaceFileViewer
+                        closeOnSwipePastEnd
                         focusReplyOnOpen={selectedViewer.focusReplyOnOpen}
                         photo={selectedViewer.photo}
+                        photos={selectedViewer.photos}
+                        photoIndex={selectedViewer.photoIndex}
+                        onPhotoIndexChange={(index) => {
+                            setSelectedViewer((current) =>
+                                current
+                                    ? { ...current, photoIndex: index }
+                                    : null,
+                            );
+                            setFeedPhotoIndices((current) => ({
+                                ...current,
+                                [selectedViewer.photo.postId!]: index,
+                            }));
+                        }}
+                        onLoadPhoto={onLoadPostImage}
                         postActionMode={selectedViewer.postActionMode}
                         onClose={closeSelectedPhoto}
                         onOpenProfile={
@@ -2077,7 +2413,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     }
                                   : undefined
                         }
-                        onSwipeLeft={closeSelectedPhoto}
                         onReplyToPost={
                             !selectedPhotoIsOwn &&
                             selectedViewer.photo.friendID != viewerSpaceId

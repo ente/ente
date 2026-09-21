@@ -821,7 +821,7 @@ fn decode_header(bytes: &[u8; HEADER_LEN]) -> Result<Header, VecDbError> {
     })
 }
 
-fn validate_entry(
+pub(crate) fn validate_entry(
     entry: &LogEntry<'_>,
     dims: usize,
     storage: StorageKind,
@@ -900,6 +900,20 @@ fn encoded_attr_len(attr: &Attribute) -> usize {
             AttrValue::Bool(_) => 1,
             AttrValue::I64(_) | AttrValue::F64(_) => 8,
         }
+}
+
+pub(crate) fn add_record_len(
+    key: &str,
+    dims: usize,
+    storage: StorageKind,
+    attrs: &[Attribute],
+) -> u64 {
+    (RECORD_PREFIX_LEN
+        + key.len()
+        + vector_payload_len(storage, dims)
+        + 1
+        + attrs.iter().map(encoded_attr_len).sum::<usize>()
+        + RECORD_CRC_LEN) as u64
 }
 
 fn encode_record_into(buffer: &mut Vec<u8>, entry: &LogEntry<'_>) {
@@ -1023,6 +1037,48 @@ pub(crate) fn sync_parent_dir(_path: &Path) -> Result<(), VecDbError> {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[test]
+    fn add_record_size_matches_encoded_bytes_for_both_storage_formats() {
+        let vector = seeded_vector(9, 32);
+        let attrs = vec![
+            Attribute {
+                name: "name".into(),
+                value: AttrValue::Str("影像".into()),
+            },
+            Attribute {
+                name: "flag".into(),
+                value: AttrValue::Bool(true),
+            },
+            Attribute {
+                name: "count".into(),
+                value: AttrValue::I64(-23),
+            },
+            Attribute {
+                name: "score".into(),
+                value: AttrValue::F64(0.125),
+            },
+        ];
+        for stored in [
+            StoredVector::F32(vector.clone()),
+            StoredVector::quantize(&vector),
+        ] {
+            for attrs in [&[][..], attrs.as_slice()] {
+                let payload = stored.as_payload();
+                let entry = LogEntry::Add {
+                    key: "photo-影像",
+                    vector: payload,
+                    attrs,
+                };
+                let mut encoded = Vec::new();
+                encode_record_into(&mut encoded, &entry);
+                assert_eq!(
+                    add_record_len("photo-影像", 32, payload.storage(), attrs),
+                    encoded.len() as u64
+                );
+            }
+        }
+    }
 
     fn seeded_vector(seed: u64, dims: usize) -> Vec<f32> {
         let mut state = seed;

@@ -2,21 +2,15 @@ import {
     replaceSavedLocalUser,
     savedPartialLocalUser,
 } from "ente-accounts/services/accounts-db";
-import {
-    decryptBox,
-    encryptBox,
-    fromB64,
-    generateKey,
-    toB64,
-} from "ente-accounts/services/crypto";
 import { accountLogout } from "ente-accounts/services/logout";
 import { ensureOk, publicRequestHeaders } from "ente-base/http";
 import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";
 import { removeAuthToken } from "ente-base/token";
 import {
-    decryptSpaceRootEntityKey,
-    encryptSpaceRootEntityKey,
+    decryptBox,
+    encryptBox,
+    generateKey,
     type SpaceKeyResponse,
 } from "ente-space-wasm";
 import { spaceBootstrapAuthHeaders } from "services/bootstrap-auth";
@@ -68,34 +62,6 @@ const SpaceEntityKeyResponse = z.object({
     encryptedKey: z.string(),
     header: z.string(),
 });
-type SpaceEntityKeyResponse = z.infer<typeof SpaceEntityKeyResponse>;
-
-const spaceEntityKeyHeaderBytes = 24;
-
-const splitSpaceEntityKey = async (encryptedKey: string) => {
-    const combined = await fromB64(encryptedKey);
-    if (combined.length <= spaceEntityKeyHeaderBytes) {
-        throw new Error("Space entity key is missing header.");
-    }
-    return {
-        encryptedKey: await toB64(combined.slice(spaceEntityKeyHeaderBytes)),
-        header: await toB64(combined.slice(0, spaceEntityKeyHeaderBytes)),
-    };
-};
-
-const combineSpaceEntityKey = async ({
-    encryptedKey,
-    header,
-}: SpaceEntityKeyResponse) => {
-    const headerBytes = await fromB64(header);
-    const encryptedKeyBytes = await fromB64(encryptedKey);
-    const combined = new Uint8Array(
-        headerBytes.length + encryptedKeyBytes.length,
-    );
-    combined.set(headerBytes);
-    combined.set(encryptedKeyBytes, headerBytes.length);
-    return toB64(combined);
-};
 
 const savedPersistedSession = () => {
     const value = localStorage.getItem(spaceBrowserSessionStorageKey);
@@ -264,20 +230,22 @@ export const getOrCreateSpaceRootKey = async (
     authToken: string,
 ) => {
     const candidate = await generateKey();
-    const encryptedKey = await encryptSpaceRootEntityKey(candidate, masterKey);
-    const splitKey = await splitSpaceEntityKey(encryptedKey);
+    const { encryptedData: encryptedKey, nonce: header } = await encryptBox(
+        candidate,
+        masterKey,
+    );
     const res = await fetch(await apiURL("/user-entity/key/ensure"), {
         method: "POST",
         headers: {
             ...spaceBootstrapAuthHeaders(authToken),
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ type: "space", ...splitKey }),
+        body: JSON.stringify({ type: "space", encryptedKey, header }),
     });
     ensureOk(res);
     const ensured = SpaceEntityKeyResponse.parse(await res.json());
-    return await decryptSpaceRootEntityKey(
-        await combineSpaceEntityKey(ensured),
+    return decryptBox(
+        { encryptedData: ensured.encryptedKey, nonce: ensured.header },
         masterKey,
     );
 };

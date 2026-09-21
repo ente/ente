@@ -10,6 +10,9 @@ const routeWithProfileImageFlowSource = (
     source?: ProfileImageFlowSource,
 ) => (source == "settings" ? `${route}?from=settings` : route);
 
+export const postPhotoIdFromObjectKey = (objectKey: string) =>
+    objectKey.slice(objectKey.lastIndexOf("/") + 1);
+
 export const spaceRoutes = {
     friend: (username: string) => `/${encodeURIComponent(username)}`,
     friendPage: "/profile-link",
@@ -22,8 +25,8 @@ export const spaceRoutes = {
     onboarding: "/",
     passkeysFinish: "/passkeys/finish",
     passkeysVerify: "/passkeys/verify",
-    post: (spaceId: string, postId: number) =>
-        `/app/posts/${encodeURIComponent(spaceId)}/${encodeURIComponent(String(postId))}`,
+    post: (spaceId: string, postId: number, objectKey?: string) =>
+        `/app/posts/${encodeURIComponent(spaceId)}/${encodeURIComponent(String(postId))}${objectKey === undefined ? "" : `?photo=${encodeURIComponent(postPhotoIdFromObjectKey(objectKey))}`}`,
     editProfileCover: "/app/profile/cover-edit",
     editProfileCoverFrom: (source?: ProfileImageFlowSource) =>
         routeWithProfileImageFlowSource("/app/profile/cover-edit", source),

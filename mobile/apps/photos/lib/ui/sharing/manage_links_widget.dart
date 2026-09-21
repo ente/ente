@@ -1,15 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:collection/collection.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_crypto/ente_crypto.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
-import 'package:ente_qr_ui/ente_qr_ui.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/date_time_picker.dart';
 import 'package:flutter/material.dart';
-import "package:flutter/services.dart";
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/core/constants.dart';
 import "package:photos/core/errors.dart";
@@ -23,15 +20,15 @@ import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/payment/subscription.dart';
 import 'package:photos/ui/sharing/pickers/layout_picker_page.dart';
+import 'package:photos/ui/sharing/public_link_enabled_actions_widget.dart';
 import 'package:photos/ui/sharing/share_components.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/public_link_layout_util.dart';
-import "package:photos/utils/share_util.dart";
 
 class ManageSharedLinkWidget extends StatefulWidget {
-  final Collection? collection;
+  final Collection collection;
 
-  const ManageSharedLinkWidget({super.key, this.collection});
+  const ManageSharedLinkWidget({super.key, required this.collection});
 
   @override
   State<ManageSharedLinkWidget> createState() => _ManageSharedLinkWidgetState();
@@ -45,72 +42,58 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
   );
   final GlobalKey sendLinkButtonKey = GlobalKey();
 
-  String _getLayoutDisplayName(String? layout, BuildContext context) {
-    final normalizedLayout = normalizePublicLinkLayout(layout);
-    switch (normalizedLayout) {
-      case 'masonry':
-        return context.strings.layoutMasonry;
-      case 'trip':
-        return context.strings.layoutTrip;
-      case 'grouped':
-        return context.strings.layoutGrouped;
-      default:
-        return context.strings.layoutMasonry;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final collection = widget.collection!;
-    final isCollectEnabled =
-        collection.publicURLs.firstOrNull?.enableCollect ?? false;
-    final isDownloadEnabled =
-        collection.publicURLs.firstOrNull?.enableDownload ?? true;
-    final isPasswordEnabled =
-        collection.publicURLs.firstOrNull?.passwordEnabled ?? false;
-    final isJoinEnabled = collection.publicURLs.firstOrNull?.enableJoin ?? true;
-    final enableComment =
-        collection.publicURLs.firstOrNull?.enableComment ?? false;
-    final PublicURL url = collection.publicURLs.firstOrNull!;
-    final String urlValue = CollectionsService.instance.getPublicUrl(
-      collection,
-    );
-    final colors = context.componentColors;
+    final collection = widget.collection;
+    final url = collection.publicURLs.first;
+    final isQuickLink = collection.isQuickLinkCollection();
 
     return ShareScaffold(
-      title: context.strings.manageLink,
+      title: context.strings.linkSettings,
       children: [
+        PublicLinkEnabledActionsWidget(
+          collection: collection,
+          sendLinkButtonKey: sendLinkButtonKey,
+          showEmbedHtml: true,
+          showShareActions: isQuickLink,
+        ),
+        if (!url.isExpired)
+          Padding(
+            padding: const EdgeInsets.only(top: Spacing.sm),
+            child: Text(
+              context.strings.publicLinkAccessDescription,
+              style: TextStyles.mini.copyWith(
+                color: context.componentColors.textLight,
+              ),
+            ),
+          ),
+        const SizedBox(height: Spacing.lg),
         ShareMenuGroup(
           items: [
             ShareMenuItem(
               title: context.strings.albumLayout,
               subtitle: _getLayoutDisplayName(
-                collection.pubMagicMetadata.layout ?? "masonry",
+                collection.pubMagicMetadata.layout,
                 context,
               ),
-              icon: HugeIcons.strokeRoundedLayoutTable01,
+              icon: HugeIcons.strokeRoundedGridView,
               showChevron: true,
               onTap: () async {
-                unawaited(
-                  routeToPage(context, LayoutPickerPage(collection)).then((
-                    value,
-                  ) {
-                    setState(() {});
-                  }),
-                );
+                await routeToPage(context, LayoutPickerPage(collection));
+                if (mounted) setState(() {});
               },
             ),
           ],
         ),
-        const SizedBox(height: Spacing.sm),
+        const SizedBox(height: Spacing.lg),
         ShareMenuGroup(
           items: [
             ShareMenuItem(
-              key: ValueKey("Allow collect $isCollectEnabled"),
+              key: ValueKey("Allow collect ${url.enableCollect}"),
               title: context.strings.allowAddingPhotos,
               icon: HugeIcons.strokeRoundedImageAdd01,
               trailing: ToggleSwitchComponent(
-                selected: isCollectEnabled,
+                selected: url.enableCollect,
                 onChanged: (selected) async {
                   await _updateUrlSettings(context, {
                     'enableCollect': selected,
@@ -119,72 +102,11 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
               ),
             ),
             ShareMenuItem(
-              key: ValueKey("Enable comment $enableComment"),
-              title: context.strings.enableComment,
-              icon: HugeIcons.strokeRoundedComment01,
-              trailing: ToggleSwitchComponent(
-                selected: enableComment,
-                onChanged: (selected) async {
-                  await _updateUrlSettings(context, {
-                    'enableComment': selected,
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: Spacing.sm),
-        ShareMenuGroup(
-          items: [
-            ShareMenuItem(
-              title: context.strings.linkExpiry,
-              subtitle: (url.hasExpiry
-                  ? (url.isExpired
-                        ? context.strings.linkExpired
-                        : context.strings.linkEnabled)
-                  : context.strings.linkNeverExpires),
-              titleMaxLines: 1,
-              icon: HugeIcons.strokeRoundedCalendar03,
-              showChevron: true,
-              onTap: () async {
-                await _showLinkExpirySheet(context, url);
-              },
-            ),
-          ],
-        ),
-        if (url.hasExpiry) ...[
-          ShareSectionDescription(
-            url.isExpired
-                ? context.strings.expiredLinkInfo
-                : context.strings.linkExpiresOn(
-                    expiryTime: getFormattedTime(
-                      DateTime.fromMicrosecondsSinceEpoch(url.validTill),
-                      context: context,
-                    ),
-                  ),
-          ),
-          const SizedBox(height: Spacing.sm),
-        ],
-        const SizedBox(height: Spacing.sm),
-        ShareMenuGroup(
-          items: [
-            ShareMenuItem(
-              title: context.strings.linkDeviceLimit,
-              subtitle: url.deviceLimit == 0
-                  ? context.strings.noDeviceLimit
-                  : "${url.deviceLimit}",
-              icon: HugeIcons.strokeRoundedLaptop,
-              showChevron: true,
-              onTap: () async {
-                await _showDeviceLimitSheet(context, url);
-              },
-            ),
-            ShareMenuItem(
-              key: ValueKey("Allow downloads $isDownloadEnabled"),
-              title: context.strings.allowDownloads,
+              key: ValueKey("Allow downloads ${url.enableDownload}"),
+              title: context.strings.downloadPhotos,
               icon: HugeIcons.strokeRoundedDownload04,
               trailing: ToggleSwitchComponent(
-                selected: isDownloadEnabled,
+                selected: url.enableDownload,
                 onChanged: (selected) async {
                   await _updateUrlSettings(context, {
                     'enableDownload': selected,
@@ -203,22 +125,63 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
               ),
             ),
             ShareMenuItem(
-              key: ValueKey("Allow join $isJoinEnabled"),
-              title: context.strings.allowJoiningAlbum,
-              icon: HugeIcons.strokeRoundedUserMultiple,
+              key: ValueKey("Enable comment ${url.enableComment}"),
+              title: context.strings.commentAndReact,
+              icon: HugeIcons.strokeRoundedMessage01,
               trailing: ToggleSwitchComponent(
-                selected: isJoinEnabled,
+                selected: url.enableComment,
                 onChanged: (selected) async {
-                  await _updateUrlSettings(context, {'enableJoin': selected});
+                  await _updateUrlSettings(context, {
+                    'enableComment': selected,
+                  });
                 },
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: Spacing.lg),
+        ShareMenuGroup(
+          items: [
             ShareMenuItem(
-              key: ValueKey("Password lock $isPasswordEnabled"),
-              title: context.strings.passwordLock,
-              icon: HugeIcons.strokeRoundedLockPassword,
+              key: ValueKey("Allow join ${url.enableJoin}"),
+              title: context.strings.allowJoining,
+              subtitle: url.enableDownload
+                  ? context.strings.allowJoiningDescription
+                  : context.strings.enableDownloadsToAllowJoining,
+              icon: HugeIcons.strokeRoundedUserAdd01,
               trailing: ToggleSwitchComponent(
-                selected: isPasswordEnabled,
+                selected: url.enableJoin,
+                onChanged: url.enableDownload
+                    ? (selected) =>
+                          _updateUrlSettings(context, {'enableJoin': selected})
+                    : null,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Spacing.lg),
+        ShareMenuGroup(
+          items: [
+            ShareMenuItem(
+              title: context.strings.linkExpiry,
+              subtitle: (url.hasExpiry
+                  ? (url.isExpired
+                        ? context.strings.linkExpired
+                        : context.strings.linkEnabled)
+                  : context.strings.linkNeverExpires),
+              titleMaxLines: 1,
+              icon: HugeIcons.strokeRoundedCalendar03,
+              showChevron: true,
+              onTap: () async {
+                await _showLinkExpirySheet(context, url);
+              },
+            ),
+            ShareMenuItem(
+              key: ValueKey("Password lock ${url.passwordEnabled}"),
+              title: context.strings.password,
+              icon: HugeIcons.strokeRoundedSquareLock01,
+              trailing: ToggleSwitchComponent(
+                selected: url.passwordEnabled,
                 onChanged: (selected) async {
                   if (selected) {
                     unawaited(
@@ -252,28 +215,47 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                 },
               ),
             ),
+            ShareMenuItem(
+              title: context.strings.linkDeviceLimit,
+              subtitle: url.deviceLimit == 0
+                  ? context.strings.noLimit
+                  : "${url.deviceLimit}",
+              icon: HugeIcons.strokeRoundedLaptop,
+              showChevron: true,
+              onTap: () async {
+                await _showDeviceLimitSheet(context, url);
+              },
+            ),
           ],
         ),
-        const SizedBox(height: Spacing.sm),
-        ShareMenuGroup(items: _linkActionItems(context, url, urlValue)),
-        const SizedBox(height: Spacing.sm),
+        if (url.hasExpiry)
+          ShareSectionDescription(
+            url.isExpired
+                ? context.strings.expiredLinkInfo
+                : context.strings.linkExpiresOn(
+                    expiryTime: getFormattedTime(
+                      DateTime.fromMicrosecondsSinceEpoch(url.validTill),
+                      context: context,
+                    ),
+                  ),
+          ),
+        const SizedBox(height: Spacing.lg),
         ShareMenuGroup(
           items: [
             ShareMenuItem(
               title: context.strings.removeLink,
-              leading: Icon(Icons.remove_circle_outline, color: colors.warning),
+              icon: HugeIcons.strokeRoundedMinusSignCircle,
               isDestructive: true,
               onTap: () async {
                 final bool result = await sharingActions.disableUrl(
                   context,
                   collection,
                 );
-                if (result && mounted) {
-                  if (!context.mounted) return;
-                  Navigator.of(context).pop();
+                if (result && context.mounted) {
+                  final navigator = Navigator.of(context);
+                  navigator.pop();
                   if (collection.isQuickLinkCollection()) {
-                    if (!context.mounted) return;
-                    Navigator.of(context).pop();
+                    navigator.pop();
                   }
                 }
               },
@@ -285,85 +267,12 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
     );
   }
 
-  List<Widget> _linkActionItems(
-    BuildContext context,
-    PublicURL url,
-    String urlValue,
-  ) {
-    if (url.isExpired) {
-      return [
-        ShareMenuItem(
-          title: context.strings.linkHasExpired,
-          leading: const Icon(Icons.error_outline_rounded),
-          isDestructive: true,
-          isDisabled: true,
-        ),
-      ];
-    }
-
-    return [
-      ShareMenuItem(
-        title: context.strings.copyLink,
-        icon: HugeIcons.strokeRoundedCopy01,
-        showOnlyLoadingState: true,
-        onTap: () async {
-          await Clipboard.setData(ClipboardData(text: urlValue));
-          if (!context.mounted) return;
-          showShortToast(context, context.strings.linkCopiedToClipboard);
-        },
-      ),
-      ShareMenuItem(
-        title: context.strings.copyEmbedHtml,
-        leading: const Icon(Icons.code_rounded),
-        onTap: () async {
-          final embedHtml = CollectionsService.instance.getEmbedHtml(
-            widget.collection!,
-          );
-          await Clipboard.setData(ClipboardData(text: embedHtml));
-          if (!context.mounted) return;
-          showShortToast(context, context.strings.linkCopiedToClipboard);
-        },
-      ),
-      ShareMenuItem(
-        key: sendLinkButtonKey,
-        title: context.strings.sendLink,
-        icon: HugeIcons.strokeRoundedSent,
-        onTap: () async {
-          await shareAlbumLink(
-            context,
-            urlValue,
-            sendLinkButtonKey,
-            albumName: widget.collection!.displayName,
-            albumDescription: widget.collection!.displayDescription,
-          );
-        },
-      ),
-      ShareMenuItem(
-        title: context.strings.sendQrCode,
-        icon: HugeIcons.strokeRoundedQrCode,
-        onTap: () async {
-          await showDialog<void>(
-            context: context,
-            builder: (BuildContext dialogContext) {
-              return QrCodeDialog(
-                data: urlValue,
-                title: widget.collection!.displayName,
-                accentColor: const Color(0xFF08C225),
-                shareFileName: 'ente_qr_${widget.collection!.displayName}.png',
-                shareText:
-                    'Scan this QR code to view my ${widget.collection!.displayName} album on ente',
-                dialogTitle: context.strings.qrCode,
-                shareButtonText: context.strings.share,
-                logoAssetPath: 'assets/qr_logo.png',
-                branding: const QrSvgBranding(
-                  assetPath: 'assets/ente-branding.svg',
-                ),
-              );
-            },
-          );
-        },
-      ),
-    ];
+  String _getLayoutDisplayName(String? layout, BuildContext context) {
+    return switch (normalizePublicLinkLayout(layout)) {
+      'trip' => context.strings.layoutTrip,
+      'grouped' => context.strings.layoutGrouped,
+      _ => context.strings.layoutMasonry,
+    };
   }
 
   Future<void> _showLinkExpirySheet(BuildContext context, PublicURL url) async {
@@ -424,9 +333,12 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                   final newValidTill = _validTillForExpiryOption(
                     expiryOption.expireAfterInMicroseconds,
                   );
-                  await _updateShareUrlFromPicker(context, {
-                    'validTill': newValidTill,
-                  });
+                  await _updateUrlSettings(
+                    context,
+                    {'validTill': newValidTill},
+                    showProgressDialog: false,
+                    showToast: false,
+                  );
                   if (sheetContext.mounted) {
                     Navigator.of(sheetContext).pop();
                   }
@@ -451,9 +363,12 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
     }
 
     if (!context.mounted) return;
-    await _updateShareUrlFromPicker(context, {
-      'validTill': timeInMicrosecondsFromEpoch,
-    });
+    await _updateUrlSettings(
+      context,
+      {'validTill': timeInMicrosecondsFromEpoch},
+      showProgressDialog: false,
+      showToast: false,
+    );
   }
 
   int _validTillForExpiryOption(int expireAfterInMicroseconds) {
@@ -508,15 +423,18 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
             for (final deviceLimit in deviceLimits)
               MenuComponent(
                 key: ValueKey(deviceLimit),
-                title: deviceLimit == 0 ? l10n.noDeviceLimit : "$deviceLimit",
+                title: deviceLimit == 0 ? l10n.noLimit : "$deviceLimit",
                 trailing: currentDeviceLimit == deviceLimit
                     ? shareCheck(sheetContext)
                     : null,
                 showOnlyLoadingState: true,
                 onTap: () async {
-                  await _updateShareUrlFromPicker(context, {
-                    'deviceLimit': deviceLimit,
-                  });
+                  await _updateUrlSettings(
+                    context,
+                    {'deviceLimit': deviceLimit},
+                    showProgressDialog: false,
+                    showToast: false,
+                  );
                   if (sheetContext.mounted) {
                     Navigator.of(sheetContext).pop();
                   }
@@ -526,32 +444,6 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
         ),
       ),
     );
-  }
-
-  Future<void> _updateShareUrlFromPicker(
-    BuildContext context,
-    Map<String, dynamic> prop,
-  ) async {
-    try {
-      await CollectionsService.instance.updateShareUrl(
-        widget.collection!,
-        prop,
-      );
-      if (mounted) {
-        setState(() {});
-      }
-    } catch (e) {
-      if (e is LinkEditNotAllowedError) {
-        if (context.mounted) {
-          await _showLinkEditNotAllowedDialog(context);
-        }
-      } else {
-        if (context.mounted) {
-          await showGenericErrorDialog(context: context, error: e);
-        }
-      }
-      rethrow;
-    }
   }
 
   Future<Map<String, dynamic>> _getEncryptedPassword(String pass) async {
@@ -572,19 +464,17 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
     BuildContext context,
     Map<String, dynamic> prop, {
     bool showProgressDialog = true,
+    bool showToast = true,
   }) async {
     final dialog = showProgressDialog
         ? createProgressDialog(context, context.strings.pleaseWait)
         : null;
     await dialog?.show();
     try {
-      await CollectionsService.instance.updateShareUrl(
-        widget.collection!,
-        prop,
-      );
+      await CollectionsService.instance.updateShareUrl(widget.collection, prop);
       await dialog?.hide();
       if (context.mounted) {
-        showShortToast(context, context.strings.albumUpdated);
+        if (showToast) showShortToast(context, context.strings.albumUpdated);
         setState(() {});
       }
     } catch (e) {

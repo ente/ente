@@ -7,30 +7,38 @@ import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/pause_video_event.dart";
+import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/collection/collection_items.dart';
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/selected_files.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/ui/actions/collection/collection_file_actions.dart";
+import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 
-class AlbumsItemWidget extends StatelessWidget {
+class AlbumsItemWidget extends StatefulWidget {
   final EnteFile file;
   final int currentUserID;
   const AlbumsItemWidget(this.file, this.currentUserID, {super.key});
 
   @override
+  State<AlbumsItemWidget> createState() => _AlbumsItemWidgetState();
+}
+
+class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
+  @override
   Widget build(BuildContext context) {
     final Future<List<Widget>> chipsFuture;
-    if (file.uploadedFileID != null) {
+    if (widget.file.uploadedFileID != null) {
       chipsFuture = _collectionsListOfFile(
         context,
-        FilesDB.instance.getAllCollectionIDsOfFile(file.uploadedFileID!),
-        currentUserID,
+        FilesDB.instance.getAllCollectionIDsOfFile(widget.file.uploadedFileID!),
+        widget.currentUserID,
       );
     } else {
       chipsFuture = _deviceFoldersListOfFile(
-        Future.sync(() => {file.deviceFolder ?? ''}),
+        Future.sync(() => {widget.file.deviceFolder ?? ''}),
       );
     }
 
@@ -46,8 +54,10 @@ class AlbumsItemWidget extends StatelessWidget {
           builder: (context, snapshot) {
             final chips = snapshot.data ?? const <Widget>[];
             return Wrap(
-              spacing: Spacing.sm,
-              runSpacing: Spacing.sm,
+              spacing: widget.file.uploadedFileID == null
+                  ? Spacing.sm
+                  : Spacing.xs,
+              runSpacing: widget.file.uploadedFileID == null ? Spacing.sm : 0,
               children: chips,
             );
           },
@@ -88,43 +98,48 @@ class AlbumsItemWidget extends StatelessWidget {
       for (var collectionID in collectionIDs) {
         final c = CollectionsService.instance.getCollectionByID(collectionID)!;
         chips.add(
-          FilterChipComponent(
+          _AlbumChip(
             label: c.isHidden() ? context.strings.hidden : c.displayName,
-            onChanged: (_) {
-              if (c.isHidden()) {
-                return;
-              }
+            onTap: () {
+              if (c.isHidden()) return;
               Bus.instance.fire(PauseVideoEvent());
               routeToPage(
                 context,
                 CollectionPage(
                   CollectionWithThumbnail(c, null),
-                  fileToJumpTo: file,
+                  fileToJumpTo: widget.file,
                 ),
               );
             },
+            onRemove: _canRemoveFrom(c)
+                ? () => _removeFromCollection(context, c)
+                : null,
           ),
         );
       }
       chips.add(
-        IconButtonComponent(
-          size: FilterChipComponent.minHeight,
-          icon: HugeIcon(
-            icon: HugeIcons.strokeRoundedPlusSign,
-            size: IconSizes.small,
-            color: colors.textBase,
+        Padding(
+          padding: const EdgeInsetsDirectional.only(top: Spacing.sm),
+          child: IconButtonComponent(
+            size: FilterChipComponent.minHeight,
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedPlusSign,
+              size: IconSizes.small,
+              color: colors.textBase,
+            ),
+            variant: IconButtonComponentVariant.circular,
+            shouldSurfaceExecutionStates: false,
+            onTap: () async {
+              final selectedFiles = SelectedFiles();
+              selectedFiles.files.add(widget.file);
+              await showCollectionActionSheet(
+                context,
+                selectedFiles: selectedFiles,
+                actionType: CollectionActionType.addFiles,
+              );
+              if (mounted) setState(() {});
+            },
           ),
-          variant: IconButtonComponentVariant.circular,
-          shouldSurfaceExecutionStates: false,
-          onTap: () {
-            final selectedFiles = SelectedFiles();
-            selectedFiles.files.add(file);
-            showCollectionActionSheet(
-              context,
-              selectedFiles: selectedFiles,
-              actionType: CollectionActionType.addFiles,
-            );
-          },
         ),
       );
       return chips;
@@ -134,5 +149,126 @@ class AlbumsItemWidget extends StatelessWidget {
       ).info("Failed to build shared album chips", e, s);
       return [];
     }
+  }
+
+  bool _canRemoveFrom(Collection collection) {
+    if (collection.type == CollectionType.uncategorized ||
+        collection.type == CollectionType.favorites ||
+        collection.isQuickLinkCollection() ||
+        collection.isDefaultHidden()) {
+      return false;
+    }
+    return widget.file.ownerID == widget.currentUserID ||
+        CollectionsService.instance.canRemoveFilesFromAllParticipants(
+          collection,
+        );
+  }
+
+  Future<void> _removeFromCollection(
+    BuildContext context,
+    Collection collection,
+  ) async {
+    final selectedFiles = SelectedFiles();
+    selectedFiles.files.add(widget.file);
+    final collectionActions = CollectionActions(CollectionsService.instance);
+    final removingOthersFile =
+        widget.file.ownerID != widget.currentUserID &&
+        CollectionsService.instance.canRemoveFilesFromAllParticipants(
+          collection,
+        );
+    await collectionActions.showRemoveFromCollectionSheetV2(
+      context,
+      collection,
+      selectedFiles,
+      removingOthersFile,
+      isHidden: collection.isHidden(),
+      body: context.strings.itemWillBeRemovedFromThisAlbum,
+    );
+    if (mounted) setState(() {});
+  }
+}
+
+class _AlbumChip extends StatelessWidget {
+  const _AlbumChip({required this.label, required this.onTap, this.onRemove});
+
+  final String label;
+  final VoidCallback onTap;
+  final Future<void> Function()? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final chip = FilterChipComponent(label: label, onChanged: (_) => onTap());
+    if (onRemove == null) {
+      return Padding(
+        padding: const EdgeInsetsDirectional.only(
+          top: Spacing.sm,
+          end: Spacing.sm,
+        ),
+        child: chip,
+      );
+    }
+
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsetsDirectional.only(
+            top: Spacing.sm,
+            end: Spacing.sm,
+          ),
+          child: chip,
+        ),
+        PositionedDirectional(
+          top: Spacing.xs / 2,
+          end: Spacing.xs / 2,
+          child: _RemoveAlbumButton(onTap: onRemove!),
+        ),
+      ],
+    );
+  }
+}
+
+class _RemoveAlbumButton extends StatelessWidget {
+  const _RemoveAlbumButton({required this.onTap});
+
+  final Future<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Tooltip(
+      message: context.strings.removeFromAlbum,
+      child: Semantics(
+        button: true,
+        label: context.strings.removeFromAlbum,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: SizedBox.square(
+              dimension: 24,
+              child: Center(
+                child: SizedBox.square(
+                  dimension: 16,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.fillBase,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedCancel01,
+                        size: 10,
+                        color: colors.textReverse,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

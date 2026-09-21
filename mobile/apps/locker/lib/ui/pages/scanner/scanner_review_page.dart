@@ -9,11 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
-import 'package:locker/services/scanner/scan_geometry.dart';
 import 'package:locker/services/scanner/scan_session_controller.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
 import 'package:locker/ui/components/text_input_sheet.dart';
 import 'package:locker/ui/pages/scanner/delayed_reveal.dart';
+import 'package:locker/ui/pages/scanner/scan_projection.dart';
 import 'package:locker/ui/pages/scanner/scanner_crop_page.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -259,8 +259,9 @@ class _ScannerReviewPageState extends State<ScannerReviewPage>
     return LayoutBuilder(
       builder: (context, constraints) {
         final box = constraints.biggest;
-        final before = fittedRect(box, aspect);
-        final after = fittedRect(box, 1 / aspect);
+        final before = ScanProjection.fittedRect(box, aspect);
+        final after = ScanProjection.fittedRect(box, 1 / aspect);
+        if (before == null || after == null) return const SizedBox.shrink();
         final targetScale = after.width / before.height;
         return AnimatedBuilder(
           animation: _rotateController,

@@ -383,7 +383,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
                         const Flexible(child: SizedBox(height: 32)),
                         ButtonWidgetV2(
                           buttonType: ButtonTypeV2.neutral,
-                          labelText: context.strings.grantPermission,
+                          labelText: context.strings.continueLabel,
                           onTap: _onTapOfflineGrantPermission,
                         ),
                         const Flexible(child: SizedBox(height: 20)),

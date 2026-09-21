@@ -44,28 +44,9 @@
     "description": "Title for active sessions page"
   },
   "add": "Add",
-  "addAdmin": "Add admin",
-  "addAdmins": "{count, plural, =0{Add admin} one{Add admin} other{Add admins}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "Add an album widget to your home screen to customize it here.",
   "addANameAndPhoto": "Add a name and photo",
-  "addANewEmail": "Add a new email",
   "addCode": "Add code",
-  "addCollaborator": "Add collaborator",
-  "addCollaborators": "{count, plural, =0{Add collaborator} one{Add collaborator} other{Add collaborators}}",
-  "@addCollaborators": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addedAMemoryTo": "added a memory to {albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -75,7 +56,6 @@
       }
     }
   },
-  "addedAs": "Added as",
   "addedBy": "Added by {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -142,7 +122,6 @@
   "addMember": "Add member",
   "addMemoriesWidgetPrompt": "Add a memories widget to your home screen to customize it here.",
   "addMore": "Add more",
-  "addMoreAdmins": "Add more admins",
   "addName": "Add name",
   "addNew": "Add new",
   "@addNew": {
@@ -162,7 +141,6 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addParticipants": "Add participants",
   "addPeopleWidgetPrompt": "Add a people widget to your home screen to customize it here.",
   "addPerson": "Add person",
   "@addPerson": {
@@ -183,30 +161,10 @@
   "addTrustedContact": "Add trusted contact",
   "addTrustedPerson": "Add a trusted person",
   "addUpTo5MembersFree": "Add up to 5 members free",
-  "addViewer": "Add viewer",
-  "addViewers": "{count, plural, =0{Add viewer} one{Add viewer} other{Add viewers}}",
-  "@addViewers": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addYourPhotosNow": "Add your photos now",
   "adjust": "Adjust",
   "adjustCrop": "Adjust crop",
   "admin": "Admin",
-  "admins": "Admins",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Admins and collaborators can add photos. Admins can also manage photos & participants.",
-  "adminsCanManagePhotosAndParticipants": "Admins can manage photos & participants.",
-  "adminsSuccessfullyAdded": "{count, plural, =0{No admins were added} one{{count} admin successfully added} other{{count} admins successfully added}}",
-  "@adminsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of admins that were successfully added."
-  },
   "admiringThem": "Admiring {name}",
   "@admiringThem": {
     "placeholders": {
@@ -224,20 +182,6 @@
   "albumEditsWillNotBeSaved": "Your edits to this album won't be saved.",
   "albumLayout": "Album layout",
   "albumName": "Album name",
-  "albumOwner": "Owner",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{No Participants} one{{count} Participant} other{{count} Participants}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Albums",
   "albumsCount": "{count, plural, one{{count} album} other{{count} albums}}",
   "@albumsCount": {
@@ -281,7 +225,9 @@
   },
   "allowAppToOpenSharedAlbumLinks": "Allow app to open shared album links",
   "allowDownloads": "Allow downloads",
+  "allowJoining": "Allow joining",
   "allowJoiningAlbum": "Allow joining album",
+  "allowJoiningDescription": "Viewers with an Ente account can join your album and stay updated",
   "allowPermBody": "Please allow access to your photos from Settings so Ente can display and backup your library.",
   "allowPermTitle": "Allow access to photos",
   "allPersonGroupingWillReset": "All groupings for this person will be reset, and you will lose all suggestions made for this person",
@@ -581,12 +527,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} will not be able to add more photos to this album\n\nThey will still be able to remove existing photos added by them",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Cannot delete shared files",
   "cannotMoveToSharedAlbums": "Can't move to shared albums",
   "cannotMoveToSharedAlbumsMessage": "Items can only be added to shared albums, not moved. Would you like to add instead?",
@@ -623,7 +563,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Change permissions",
-  "changePermissionsQuestion": "Change permissions?",
   "changeYourReferralCode": "Change your code",
   "checkForUpdates": "Check for updates",
   "checkInboxAndSpamFolder": "Please check your inbox (and spam) to complete verification",
@@ -682,17 +621,6 @@
   "codeIssuerHint": "Issuer",
   "collabLinkSectionDescription": "Let people add photos without an Ente account",
   "collaborator": "Collaborator",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Collaborators can add photos and videos to the shared album.",
-  "collaboratorsSuccessfullyAdded": "{count, plural, =0{Added 0 collaborator} one{Added {count} collaborator} other{Added {count} collaborators}}",
-  "@collaboratorsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of collaborators that were successfully added."
-  },
   "collageLayout": "Layout",
   "collageSaved": "Collage saved to gallery",
   "collectionCannotBeDeleted": "This collection cannot be deleted",
@@ -717,6 +645,7 @@
   "collectPhotos": "Collect photos",
   "color": "Color",
   "colorfulMarkets": "Vibrant markets",
+  "commentAndReact": "Comment and react",
   "commentedOnAPhoto": "commented on a photo",
   "@commentedOnAPhoto": {
     "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
@@ -1192,6 +1121,7 @@
       }
     }
   },
+  "downloadPhotos": "Download photos",
   "downloadSkippedAlreadyAvailableOnDevice": "{fileName} is already available in the {albumName} album on your device",
   "@downloadSkippedAlreadyAvailableOnDevice": {
     "description": "Toast shown in single-file download flow when the file already exists locally",
@@ -1373,6 +1303,7 @@
   "enableAutomaticBackups": "Automatic backups",
   "enableBackupsIosInstruction": "To enable backups on iOS, choose a folder in Files (for example \"On My iPhone\").",
   "enableComment": "Comments and reactions",
+  "enableDownloadsToAllowJoining": "Enable downloads to allow joining.",
   "enabled": "Enabled",
   "enableMaps": "Enable maps",
   "encrypted": "Encrypted",
@@ -2154,6 +2085,7 @@
       "count": {}
     }
   },
+  "itemWillBeRemovedFromThisAlbum": "This item will be removed from this album",
   "items": "{count} items",
   "@items": {
     "description": "Number of items in a collection",
@@ -2446,6 +2378,7 @@
   "linkLabel": "Link",
   "linkNeverExpires": "Never",
   "linkRequestLimitExceeded": "This album has been viewed on too many devices",
+  "linkSettings": "Link settings",
   "links": "Links",
   "list": "List",
   "livePhotos": "Live Photos",
@@ -2559,12 +2492,10 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Manage",
   "manageDeviceStorage": "Manage device cache",
   "manageDeviceStorageDesc": "Review and clear local storage",
   "manageFamily": "Manage family",
   "manageLink": "Manage link",
-  "manageParticipants": "Manage",
   "managePaymentMethod": "Manage payment method",
   "manageSubscription": "Manage subscription",
   "manualSort": "Custom",
@@ -2898,6 +2829,7 @@
     }
   },
   "nothingToSeeHere": "Nothing to see here",
+  "nothingToCleanUp": "Nothing to clean up",
   "nothingToTidyUpHere": "Nothing to tidy up here",
   "notifications": "Notifications",
   "notifyMe": "Notify me",
@@ -2926,6 +2858,7 @@
   "offlineHomeSignupBannerAction": "Back up now",
   "offlineHomeSignupBannerDescription": "Encrypted backups across 3 locations to keep your memories safe.",
   "offlineHomeSignupBannerTitle": "Protect your memories forever",
+  "offlineKeyUnavailableMessage": "Ente Auth cannot access the key for your offline codes.",
   "offlineModeWarning": "You have chosen to proceed without backups. Please take manual backups to make sure your codes are safe.",
   "offlineNameFaceBannerSubtitle": "Sign up to tag them and easily find their photos later.",
   "offlineNameFaceBannerTitle": "Give this face a name",
@@ -2978,7 +2911,6 @@
   "optionalAsShortAsYouLike": "Optional, as short as you like...",
   "organization": "Organization",
   "organizationDesc": "Collections, favorites, search, and ways to keep items organized",
-  "orPickAnExistingOne": "Or pick an existing one",
   "orRemoveYourself": "Or remove yourself as {email}'s trusted contact",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -3270,7 +3202,11 @@
       "folderName": {}
     }
   },
+  "publicLink": "Public link",
+  "publicLinkAccessDescription": "Anyone with the link can open the album without an Ente account.",
+  "publicLinkCollectDescription": "Anyone with this link can add photos to your album.",
   "publicLinkEnabled": "Public link enabled",
+  "publicLinkViewDescription": "Anyone with this link can access your album.",
   "qr": "QR",
   "qrCode": "QR code",
   "questionmark": "?",
@@ -3484,12 +3420,6 @@
   "remoteVideos": "Remote videos",
   "remove": "Remove",
   "removeAccess": "Remove access",
-  "removeAlbumParticipantBody": "{userEmail} will be removed from this shared album\n\nAny photos added by them will also be removed from the album",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} will be removed from this shared collection\n\nAny items added by them will also be removed from the collection",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -3505,6 +3435,14 @@
     "description": "Description for remove contact confirmation dialog"
   },
   "removeContactPhoto": "Remove contact photo",
+  "removedItems": "{count, plural, one{Removed {count} item} other{Removed {count} items}}",
+  "@removedItems": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "removeDuplicates": "Duplicates",
   "removeDuplicatesDesc": "Remove exact duplicates",
   "removeFromAlbum": "Remove from album",
@@ -4098,7 +4036,6 @@
   "shareCodesDuration": "Select the duration for which you want to share codes.",
   "shareCollection": "Share collection",
   "shared": "Shared",
-  "sharedAlbumSectionDescription": "Create shared and collaborative albums with other Ente users, including users on free plans.",
   "sharedAlbumsLabel": "Shared",
   "@sharedAlbumsLabel": {
     "description": "Albums tab label for albums shared by you"
@@ -4154,15 +4091,6 @@
   },
   "shareThisLink": "This link allows anyone who receives it to access your item. You can remove access at any time by deleting the link.",
   "shareWithNonenteUsers": "Share with non-Ente users",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Share with specific people} one{Shared with {numberOfPeople} person} other{Shared with {numberOfPeople} people}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "shareYourFeedbackHere": "Share your feedback here",
   "@shareYourFeedbackHere": {
     "description": "Placeholder for optional account deletion feedback"
@@ -4605,6 +4533,7 @@
       }
     }
   },
+  "unableToAccessYourCodes": "Unable to access your codes",
   "unableToCheckForUpdatesRightNow": "Unable to check for updates right now",
   "unableToExtractFileInformation": "Unable to extract information from this file",
   "unarchive": "Unarchive",
@@ -4813,16 +4742,6 @@
   "viewAllExifData": "View all EXIF data",
   "viewAllHelpTopics": "View all help topics",
   "viewer": "Viewer",
-  "viewersSuccessfullyAdded": "{count, plural, =0{Added 0 viewers} one{Added {count} viewer} other{Added {count} viewers}}",
-  "@viewersSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of viewers that were successfully added."
-  },
   "viewLargeFiles": "Large files",
   "viewLargeFilesDesc": "Identify items using the most space",
   "viewLogs": "View logs",
@@ -5064,5 +4983,86 @@
   "personShareFailedTitle": "Could not share photos",
   "personShareFailedBody": "The shared album could not be created. Your photos and selection are unchanged. Please try again.",
   "personShareRollbackFailed": "The share did not finish, and the album “{name}” could not be removed. It remains in Albums and may have an active public link. Review or delete it there before trying again. Your original photos are safe.",
-  "@personShareRollbackFailed": {"placeholders": {"name": {"type": "String"}}}
+  "@personShareRollbackFailed": {"placeholders": {"name": {"type": "String"}}},
+  "sharedByYou": "Shared by you",
+  "sharedByOwner": "Shared by {owner}",
+  "@sharedByOwner": {
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "youAreViewer": "You are a viewer",
+  "youAreCollaborator": "You are a collaborator",
+  "youAreAdmin": "You are an admin",
+  "emptyAlbumShareMessage": "You have not shared this album with anyone yet.",
+  "addPeople": "Add people",
+  "fromYourContacts": "From your contacts",
+  "chooseAccess": "Choose access",
+  "permissions": "Permissions",
+  "viewerRoleDescription": "View and download photos",
+  "collaboratorRoleDescription": "Plus add their own photos",
+  "adminRoleDescription": "Plus add and remove people",
+  "addAsViewers": "{count, plural, one{Add as viewer} other{Add as viewers}}",
+  "@addAsViewers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addAsCollaborators": "{count, plural, one{Add as collaborator} other{Add as collaborators}}",
+  "@addAsCollaborators": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addAsAdmins": "{count, plural, one{Add as admin} other{Add as admins}}",
+  "@addAsAdmins": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noEnteAccountWithThisEmail": "No Ente account with this email.",
+  "shareALinkInline": "Share a link.",
+  "personAlreadyHasAccess": "This person already has access.",
+  "removePersonTitle": "Remove {name}?",
+  "@removePersonTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removePersonBody": "{count, plural, =0{They lose access to this album straight away.} one{They lose access to this album straight away. The {count} photo they added will be removed.} other{They lose access to this album straight away. The {count} photos they added will be removed.}}",
+  "@removePersonBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "leaveAlbumTitle": "Leave {album}?",
+  "@leaveAlbumTitle": {
+    "placeholders": {
+      "album": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveAlbumBody": "{count, plural, =0{You will lose access to this album straight away.} one{You will lose access to this album straight away. The {count} photo you added will be removed.} other{You will lose access to this album straight away. The {count} photos you added will be removed.}}",
+  "@leaveAlbumBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notEnoughStorageTitle": "Not enough storage",
+  "notEnoughStorageBody": "You do not have enough free space on Ente to add new photos. Free up space or upgrade to keep adding."
 }

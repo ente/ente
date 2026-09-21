@@ -24,3 +24,5 @@ App lock protects access to the app UI. It is not a recovery password for your c
 ## Back up your codes
 
 Open `Settings > Data > Local backup` to enable automatic local backups, or create an encrypted export from the Data settings. Keep your backup or export files and password somewhere safe.
+
+If Ente Auth cannot access your offline codes, follow the [offline-code recovery steps](/auth/troubleshooting/offline-codes-unavailable) before resetting the app.

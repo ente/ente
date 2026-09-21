@@ -17,7 +17,7 @@ const SessionKeyData = z.object({
 
 type SessionKeyData = z.infer<typeof SessionKeyData>;
 
-interface SessionStorageCrypto {
+export interface SessionStorageCrypto {
     decryptBox: (
         box: { encryptedData: string; nonce: string },
         key: string,

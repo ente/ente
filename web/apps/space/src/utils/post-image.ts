@@ -32,6 +32,12 @@ export interface SpaceImageCropArea {
     y: number;
 }
 
+export interface SpacePostPhotoEdit {
+    cropArea?: SpaceImageCropArea;
+    rotationDegrees: number;
+    aspect?: number;
+}
+
 export interface SpaceDraftPostImage {
     cropArea?: SpaceImageCropArea;
     file: File;
@@ -175,6 +181,18 @@ export const spacePostPreviewImageForFile = async (
         URL.revokeObjectURL(imageURL);
         throw error;
     }
+};
+
+export const spacePostPreviewImageFromEdit = async (
+    imageURL: string,
+    edit: SpacePostPhotoEdit,
+): Promise<SpacePostPreviewImage> => {
+    const { blob, height, width } = await webPBlobFromEditedImage(
+        imageURL,
+        edit.cropArea,
+        edit.rotationDegrees,
+    );
+    return { url: URL.createObjectURL(blob), height, width };
 };
 
 export const prepareSpaceAvatarImage = async (

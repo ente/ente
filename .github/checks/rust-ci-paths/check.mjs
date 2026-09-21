@@ -7,9 +7,8 @@ const pathsFile = ".github/scripts/ci/paths.json";
 const workflows = readJSON(resolve(root, pathsFile));
 const bindings = {
     "android-lint": "uniffi",
+    "apple-lint": "uniffi",
     "desktop-lint": "napi",
-    "ensu-android-build": "uniffi",
-    "ensu-ios-build": "uniffi",
     "mobile-lint": "frb",
 };
 const { packages } = JSON.parse(

@@ -1,0 +1,1 @@
+- Remove photos from albums from the file info sheet.

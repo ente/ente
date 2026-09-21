@@ -2,7 +2,6 @@ import "dart:async";
 
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 
 class GalleryAppBarIconButtonSurface extends StatelessWidget {
   const GalleryAppBarIconButtonSurface({required this.icon, super.key});
@@ -47,8 +46,4 @@ Widget galleryAppBarPopupMenuAction<T>({
       child: GalleryAppBarIconButtonSurface(icon: icon),
     ),
   );
-}
-
-Widget galleryAppBarMenuIcon(List<List<dynamic>> icon, Color color) {
-  return HugeIcon(icon: icon, size: IconSizes.small, color: color);
 }

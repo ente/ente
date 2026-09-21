@@ -1,0 +1,1 @@
+- Faster album sharing with multiple people.

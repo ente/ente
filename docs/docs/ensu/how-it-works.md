@@ -40,7 +40,8 @@ The model itself is a single file, usually 600 MB to 2 GB on phones and a few GB
 When Ensu opens for the first time, it picks a default model based on your device and downloads it from [Hugging Face](https://huggingface.co):
 
 - **Desktop (MacOS, Windows, Linux) with 16 GB or more RAM**: Gemma 4 E4B (Q4_K_M), a 4-billion parameter multimodal model by DeepMind, around 6 GB.
-- **Everywhere else** (Android, iOS, lower-memory desktop, and web): LFM 2.5 VL 1.6B (Q4_0), a 1.6-billion parameter multimodal model by Liquid AI, around 700 MB.
+- **High-memory Android and iOS devices**: Gemma 4 E2B (Q4_K_M), a smaller Gemma 4 model intended for mobile devices.
+- **Everywhere else** (lower-memory mobile and desktop devices, and web): LFM 2.5 VL 1.6B (Q4_0), a 1.6-billion parameter multimodal model by Liquid AI, around 700 MB.
 
 Native downloads are resumable: if the download is interrupted, Ensu picks it up from where it stopped the next time you launch the app. Downloads happen in parallel where possible, and retry automatically.
 
@@ -66,6 +67,8 @@ Local data includes:
 - **The model file** (and the mmproj file for multimodal models). This is the largest item.
 - **Voice transcription models** on iOS and Android, if you use voice input.
 - **Your chat history**: messages, attachments, session titles, and branch metadata.
+- **Your Notes indexes**, if you add local Markdown folders. Ensu reads the source files without modifying them.
+- **Ensu Packs**, if you choose to download them.
 - **Settings**: your system prompt, model choice, and other preferences.
 - **Logs**, for debugging. These do not include your chat content and are only used when you choose to export them.
 
@@ -99,6 +102,7 @@ What is sent over the network at all:
 
 - The chat model download from Hugging Face on first launch (and when you switch models or update Ensu and a model version changes).
 - On iOS and Android, the Parakeet transcription model and Silero VAD model download from `models.ente.com` the first time voice input is used, unless they are already cached.
+- Ensu Packs download when you choose to install or update one.
 - Software update checks, which the platform's app store or the desktop auto-updater handles.
 - If you sign in for the future sync feature (see below), the standard authentication exchange.
 

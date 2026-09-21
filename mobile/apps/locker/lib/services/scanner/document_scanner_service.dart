@@ -226,23 +226,28 @@ class DocumentScannerService {
   }
 
   static ScanQuad _normalized(RustQuad quad, double width, double height) {
-    Offset scale(RustPoint point) => Offset(point.x / width, point.y / height);
-    return ScanQuad([
-      scale(quad.topLeft),
-      scale(quad.topRight),
-      scale(quad.bottomRight),
-      scale(quad.bottomLeft),
-    ]);
+    return ScanQuad.fromSourcePixels([
+      for (final point in [
+        quad.topLeft,
+        quad.topRight,
+        quad.bottomRight,
+        quad.bottomLeft,
+      ])
+        Offset(point.x, point.y),
+    ], Size(width, height));
   }
 
   static RustQuad _inSourcePixels(ScanQuad quad, int width, int height) {
-    RustPoint scale(Offset corner) =>
-        RustPoint(x: corner.dx * width, y: corner.dy * height);
+    final corners = quad.toSourcePixels(
+      Size(width.toDouble(), height.toDouble()),
+    );
+    RustPoint at(int index) =>
+        RustPoint(x: corners[index].dx, y: corners[index].dy);
     return RustQuad(
-      topLeft: scale(quad.corners[0]),
-      topRight: scale(quad.corners[1]),
-      bottomRight: scale(quad.corners[2]),
-      bottomLeft: scale(quad.corners[3]),
+      topLeft: at(0),
+      topRight: at(1),
+      bottomRight: at(2),
+      bottomLeft: at(3),
     );
   }
 

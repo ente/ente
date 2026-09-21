@@ -143,11 +143,21 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   Map<String, WidgetBuilder> get _getRoutes {
     return {
-      "/": (context) =>
-          Configuration.instance.hasConfiguredAccount() ||
-              Configuration.instance.hasOptedForOfflineMode()
-          ? const HomePage()
-          : const OnboardingPage(),
+      "/": (context) {
+        final config = Configuration.instance;
+        if (config.hasConfiguredAccount()) {
+          return const HomePage();
+        }
+        final hasOfflineAccount = config.hasOptedForOfflineMode();
+        final shouldShowOfflineKeyUnavailableDialog =
+            hasOfflineAccount && config.getOfflineSecretKey() == null;
+        return !shouldShowOfflineKeyUnavailableDialog && hasOfflineAccount
+            ? const HomePage()
+            : OnboardingPage(
+                showOfflineKeyUnavailableDialog:
+                    shouldShowOfflineKeyUnavailableDialog,
+              );
+      },
     };
   }
 

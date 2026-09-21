@@ -15,7 +15,22 @@
         "rust/crates/image/**",
         "rust/tools/codegen/**"
     ],
-    "apple-lint": [".github/workflows/apple-lint.yml", "apple/**"],
+    "apple-lint": [
+        ".github/actions/restore-rust-target/**",
+        ".github/workflows/apple-lint.yml",
+        "apple/**",
+        "rust/.cargo/config.toml",
+        "rust/Cargo.lock",
+        "rust/Cargo.toml",
+        "rust/bindings/uniffi/**",
+        "rust/crates/assets/**",
+        "rust/crates/cast/**",
+        "rust/crates/core/**",
+        "rust/crates/ensu/**",
+        "rust/crates/ensu-crypto/**",
+        "rust/crates/image/**",
+        "rust/tools/codegen/**"
+    ],
     "dependency-review": [
         "**/Cargo.lock",
         "**/Cargo.toml",
@@ -45,45 +60,6 @@
         "rust/tools/codegen/**"
     ],
     "docs-verify-build": [".github/workflows/docs-verify-build.yml", "docs/**"],
-    "ensu-android-build": [
-        ".github/actions/restore-rust-target/**",
-        ".github/workflows/ensu-android-build.yml",
-        "android/build.gradle.kts",
-        "android/settings.gradle.kts",
-        "android/gradle.properties",
-        "android/gradle/**",
-        "android/gradlew",
-        "android/gradlew.bat",
-        "android/apps/ensu/**",
-        "rust/.cargo/config.toml",
-        "rust/Cargo.lock",
-        "rust/Cargo.toml",
-        "rust/bindings/uniffi/**",
-        "rust/crates/assets/**",
-        "rust/crates/cast/**",
-        "rust/crates/core/**",
-        "rust/crates/ensu/**",
-        "rust/crates/ensu-crypto/**",
-        "rust/crates/image/**",
-        "rust/tools/codegen/**"
-    ],
-    "ensu-ios-build": [
-        ".github/actions/restore-rust-target/**",
-        ".github/workflows/ensu-ios-build.yml",
-        "apple/apps/ensu/**",
-        "apple/packages/EnteOnnxRuntime/**",
-        "rust/.cargo/config.toml",
-        "rust/Cargo.lock",
-        "rust/Cargo.toml",
-        "rust/bindings/uniffi/**",
-        "rust/crates/assets/**",
-        "rust/crates/cast/**",
-        "rust/crates/core/**",
-        "rust/crates/ensu/**",
-        "rust/crates/ensu-crypto/**",
-        "rust/crates/image/**",
-        "rust/tools/codegen/**"
-    ],
     "infra-lint-staff": [
         ".github/workflows/infra-lint-staff.yml",
         "infra/staff/**"
@@ -138,7 +114,8 @@
         "rust/crates/exif/**",
         "rust/crates/location/**",
         "rust/crates/photos/**",
-        "rust/crates/test-support/**"
+        "rust/crates/test-support/**",
+        "rust/crates/vecdb/**"
     ],
     "rust-lint": [
         ".github/actions/restore-rust-target/**",

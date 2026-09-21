@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
-import 'package:locker/services/scanner/scan_geometry.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
 
 class ScanQuadOverlay extends StatefulWidget {
@@ -51,9 +50,15 @@ class _ScanQuadOverlayState extends State<ScanQuadOverlay>
       setState(() => _displayed = target);
       return;
     }
-    if (maxCornerDistance(current, target) <= ScanQuadOverlay._settled) return;
+    final aligned = target.alignedTo(current);
+    if (current.maxCornerDistanceTo(aligned) <= ScanQuadOverlay._settled) {
+      return;
+    }
     setState(
-      () => _displayed = lerpQuad(current, target, ScanQuadOverlay._smoothing),
+      () => _displayed = current.interpolateTo(
+        aligned,
+        ScanQuadOverlay._smoothing,
+      ),
     );
   }
 

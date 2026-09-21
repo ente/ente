@@ -89,6 +89,9 @@ Future<Map> _getVideoProps(
   RootIsolateToken rootIsolateToken,
 ) async {
   BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+  // This path may run before or without the app-level initializer, so disable
+  // live log forwarding before probing to keep FFprobe output off the UI thread.
+  await FFmpegKitConfig.disableLogs();
   final session = await FFprobeKit.getMediaInformation(filePath);
   final mediaInfo = session.getMediaInformation();
 

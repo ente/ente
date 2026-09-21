@@ -1,70 +1,91 @@
-import 'package:locker/services/scanner/scan_geometry.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
 
 enum AutoCaptureState { searching, arming, cooldown }
 
 class AutoCaptureController {
-  static const armHold = Duration(milliseconds: 1500);
+  static const armHold = Duration(milliseconds: 700);
 
   static const armGrace = Duration(milliseconds: 250);
 
   static const clearHold = Duration(milliseconds: 700);
 
-  static const maxFrameGap = Duration(milliseconds: 200);
-
   static const minAreaFraction = 0.15;
 
   AutoCaptureState _state = AutoCaptureState.searching;
   double _progress = 0;
-  Duration _graceElapsed = Duration.zero;
-  Duration _clearElapsed = Duration.zero;
-  DateTime? _lastFrameAt;
+  Duration _armedElapsed = Duration.zero;
+  Duration? _missingSince;
+  Duration _missingGrace = armGrace;
+  Duration? _clearSince;
+  Duration? _lastFrameAt;
 
   AutoCaptureState get state => _state;
 
   double get progress => _progress;
 
-  bool onFrame(ScanQuad? stableQuad, {required bool captureBusy}) {
-    final now = DateTime.now();
+  bool onFrame(
+    ScanQuad? stableQuad, {
+    required bool captureBusy,
+    required Duration timestamp,
+    bool resetProgress = false,
+    bool? documentPresent,
+  }) {
     final last = _lastFrameAt;
-    _lastFrameAt = now;
-    var dt = last == null ? Duration.zero : now.difference(last);
-    if (dt.isNegative) dt = Duration.zero;
-    if (dt > maxFrameGap) dt = maxFrameGap;
+    if (timestamp.isNegative || (last != null && timestamp <= last)) {
+      invalidateArming();
+      return false;
+    }
+    _lastFrameAt = timestamp;
+    final dt = last == null || resetProgress ? Duration.zero : timestamp - last;
+    if (resetProgress) {
+      invalidateArming();
+      _clearSince = null;
+    }
 
     final eligible =
-        stableQuad != null && _areaFraction(stableQuad) >= minAreaFraction;
+        !captureBusy &&
+        stableQuad != null &&
+        stableQuad.area >= minAreaFraction;
 
     switch (_state) {
       case AutoCaptureState.searching:
         if (eligible) {
           _state = AutoCaptureState.arming;
           _progress = 0;
-          _graceElapsed = Duration.zero;
+          _armedElapsed = Duration.zero;
+          _missingSince = null;
         }
         return false;
       case AutoCaptureState.arming:
         if (eligible) {
-          _graceElapsed = Duration.zero;
-          _progress += dt.inMicroseconds / armHold.inMicroseconds;
-          if (_progress >= 1) {
+          final missingSince = _missingSince;
+          _missingSince = null;
+          if (missingSince == null) {
+            _armedElapsed += dt;
+          } else if (timestamp - missingSince > _missingGrace) {
+            _armedElapsed = Duration.zero;
+          }
+          _progress = _armedElapsed.inMicroseconds / armHold.inMicroseconds;
+          if (_armedElapsed >= armHold) {
             notifyCaptureStarted();
             return true;
           }
         } else {
-          _graceElapsed += dt;
-          if (_graceElapsed >= armGrace) {
-            _state = AutoCaptureState.searching;
-            _progress = 0;
+          if (_missingSince == null) {
+            _missingSince = timestamp;
+            _missingGrace = dt > armGrace ? dt + armGrace : armGrace;
+            if (_missingGrace > armHold) _missingGrace = armHold;
+          } else if (timestamp - _missingSince! >= _missingGrace) {
+            invalidateArming();
           }
         }
         return false;
       case AutoCaptureState.cooldown:
-        if (stableQuad != null || captureBusy) {
-          _clearElapsed = Duration.zero;
+        if ((documentPresent ?? stableQuad != null) || captureBusy) {
+          _clearSince = null;
         } else {
-          _clearElapsed += dt;
-          if (_clearElapsed >= clearHold) {
+          _clearSince ??= timestamp;
+          if (timestamp - _clearSince! >= clearHold) {
             _state = AutoCaptureState.searching;
           }
         }
@@ -75,16 +96,27 @@ class AutoCaptureController {
   void notifyCaptureStarted() {
     _state = AutoCaptureState.cooldown;
     _progress = 0;
-    _clearElapsed = Duration.zero;
+    _armedElapsed = Duration.zero;
+    _missingSince = null;
+    _clearSince = null;
+  }
+
+  void invalidateArming() {
+    if (_state != AutoCaptureState.arming) return;
+    _state = AutoCaptureState.searching;
+    _progress = 0;
+    _armedElapsed = Duration.zero;
+    _missingSince = null;
+    _missingGrace = armGrace;
   }
 
   void reset() {
     _state = AutoCaptureState.searching;
     _progress = 0;
-    _graceElapsed = Duration.zero;
-    _clearElapsed = Duration.zero;
+    _armedElapsed = Duration.zero;
+    _missingSince = null;
+    _missingGrace = armGrace;
+    _clearSince = null;
     _lastFrameAt = null;
   }
-
-  static double _areaFraction(ScanQuad quad) => quadArea(quad.corners);
 }

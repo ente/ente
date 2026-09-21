@@ -697,7 +697,6 @@ class _AlbumsTabState extends State<AlbumsTab>
   }
 
   List<EntePopupMenuOption<_AlbumsMenuAction>> _buildAlbumsMenuOptions() {
-    final colorScheme = getEnteColorScheme(context);
     final strings = context.strings;
     final isListView = _viewType.value == AlbumViewType.list;
     final showSortActions = !_hasSearchQuery;
@@ -712,7 +711,6 @@ class _AlbumsTabState extends State<AlbumsTab>
           : HugeIcons.strokeRoundedArrowDown02,
       size: 12,
       strokeWidth: 3,
-      color: colorScheme.textMuted,
     );
 
     return [
@@ -726,7 +724,6 @@ class _AlbumsTabState extends State<AlbumsTab>
               : HugeIcons.strokeRoundedMenu01,
           size: 12,
           strokeWidth: 3,
-          color: colorScheme.contentLight,
         ),
       ),
       if (showSortActions) ...[

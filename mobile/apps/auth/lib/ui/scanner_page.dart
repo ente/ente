@@ -6,6 +6,7 @@ import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/components/buttons/icon_button_widget.dart';
 import 'package:ente_auth/ui/components/scanner_camera_view.dart';
 import 'package:ente_auth/ui/settings/data/import/google_auth_import.dart';
+import 'package:ente_auth/ui/settings/data/import/google_auth_migration_tracker.dart';
 import 'package:ente_auth/utils/gallery_import_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
@@ -47,6 +48,7 @@ class ScannerPageState extends State<ScannerPage> {
   bool _isHandlingGoogleAuthImport = false;
   bool _isTogglingFlash = false;
   bool? _isFlashOn;
+  final _migrationTracker = GoogleAuthMigrationTracker();
 
   // Pause the camera on Android and resume it on iOS for hot reload.
   @override
@@ -104,8 +106,18 @@ class ScannerPageState extends State<ScannerPage> {
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  child: showGalleryImport
-                      ? Row(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_migrationTracker.batchSize > 0)
+                        Text(
+                          '${l10n.scanACode} '
+                          '(${_migrationTracker.receivedBatchCount}/'
+                          '${_migrationTracker.batchSize})',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      if (showGalleryImport)
+                        Row(
                           children: [
                             const Spacer(),
                             if (showTorch)
@@ -140,11 +152,15 @@ class ScannerPageState extends State<ScannerPage> {
                               iconColor: actionIconColor,
                             ),
                           ],
-                        )
-                      : Text(
+                        ),
+                      if (!showGalleryImport &&
+                          _migrationTracker.batchSize == 0)
+                        Text(
                           l10n.scanACode,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -275,16 +291,30 @@ class ScannerPageState extends State<ScannerPage> {
       return;
     }
     _isHandlingGoogleAuthImport = true;
-    bool shouldResumeCamera = true;
+    bool shouldResumeCamera = false;
     try {
-      await controller?.pause();
-      final codes = parseGoogleAuth(qrCode);
-      if (codes.isEmpty) {
+      final migration = parseGoogleAuthMigration(qrCode);
+      if (migration.codes.isEmpty) {
         if (mounted) {
           showToastAboveBottomControls(context, context.strings.invalidQRCode);
         }
         return;
       }
+      final receivedBatchCount = _migrationTracker.receivedBatchCount;
+      final codes = _migrationTracker.add(migration);
+      if (codes == null) {
+        if (mounted &&
+            receivedBatchCount != _migrationTracker.receivedBatchCount) {
+          setState(() {});
+        }
+        return;
+      }
+      if (!mounted || _hasCompletedScan) {
+        return;
+      }
+      setState(() {});
+      await controller?.pause();
+      shouldResumeCamera = true;
       if (!mounted || _hasCompletedScan) {
         return;
       }
@@ -294,6 +324,13 @@ class ScannerPageState extends State<ScannerPage> {
       }
       shouldResumeCamera = false;
       _completeWithResult(ScannerPageResult.googleAuthCodes(codes));
+    } on FormatException catch (error) {
+      if (mounted) {
+        showToastAboveBottomControls(
+          context,
+          '${context.strings.error} ${error.message}',
+        );
+      }
     } catch (e, s) {
       _logger.severe("Error importing Google Authenticator QR", e, s);
       if (mounted) {
@@ -323,19 +360,23 @@ class ScannerPageState extends State<ScannerPage> {
         context,
         logger: _logger,
       );
-      if (importResult == null) {
+      if (importResult == null || !mounted) {
         return;
       }
-      final googleAuthCodes = importResult.googleAuthCodes;
-      if (googleAuthCodes != null) {
-        if (!mounted) return;
+      final firstMigration = importResult.googleAuthMigration;
+      if (firstMigration != null) {
+        final googleAuthCodes = await collectGoogleAuthImageBatches(
+          context,
+          firstMigration,
+          logger: _logger,
+          tracker: _migrationTracker,
+        );
+        if (!mounted || _hasCompletedScan || googleAuthCodes == null) return;
         final shouldImport = await confirmGoogleAuthImport(
           context,
           googleAuthCodes.length,
         );
-        if (!shouldImport || !mounted || _hasCompletedScan) {
-          return;
-        }
+        if (!shouldImport || !mounted || _hasCompletedScan) return;
         shouldResumeCamera = false;
         _completeWithResult(ScannerPageResult.googleAuthCodes(googleAuthCodes));
         return;

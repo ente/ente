@@ -118,7 +118,12 @@ pub const CREATE_PET_BODY_VECTOR_ID_MAPPING_TABLE: &str =
   pet_body_id TEXT NOT NULL UNIQUE
 );";
 
-pub const MIGRATION_SCRIPTS: [&str; 15] = [
+pub const CREATE_ML_STORE_META_TABLE: &str = "CREATE TABLE IF NOT EXISTS ml_store_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);";
+
+pub const MIGRATION_SCRIPTS: [&str; 16] = [
     CREATE_FACES_TABLE,
     CREATE_FACE_CLUSTERS_TABLE,
     CREATE_CLUSTER_PERSON_TABLE,
@@ -134,6 +139,7 @@ pub const MIGRATION_SCRIPTS: [&str; 15] = [
     CREATE_PET_BODIES_TABLE,
     CREATE_PET_FACE_VECTOR_ID_MAPPING_TABLE,
     CREATE_PET_BODY_VECTOR_ID_MAPPING_TABLE,
+    CREATE_ML_STORE_META_TABLE,
 ];
 
 pub const DELETE_FACES: &str = "DELETE FROM faces";
@@ -149,3 +155,4 @@ pub const DELETE_PET_FACES: &str = "DELETE FROM pet_faces";
 pub const DELETE_PET_BODIES: &str = "DELETE FROM pet_bodies";
 pub const DELETE_PET_FACE_VECTOR_ID_MAPPING: &str = "DELETE FROM pet_face_vector_id_map";
 pub const DELETE_PET_BODY_VECTOR_ID_MAPPING: &str = "DELETE FROM pet_body_vector_id_map";
+pub const DELETE_ML_STORE_META: &str = "DELETE FROM ml_store_meta";

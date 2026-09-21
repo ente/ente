@@ -123,7 +123,7 @@ void main() async {
       }
     });
   }
-  FFmpegKitConfig.init().ignore();
+  _initializeFFmpegKit().ignore();
   await rive.RiveNative.init();
   MediaKit.ensureInitialized();
 
@@ -139,6 +139,11 @@ void main() async {
   );
 
   unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+}
+
+Future<void> _initializeFFmpegKit() async {
+  await FFmpegKitConfig.init();
+  await FFmpegKitConfig.disableLogs();
 }
 
 Future<void> _runInForeground(

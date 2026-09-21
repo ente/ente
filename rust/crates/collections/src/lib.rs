@@ -1,3 +1,5 @@
+pub mod client;
+
 use ente_core::{
     Session, b64,
     crypto::{self, Key, Nonce, sealed, secretbox},
@@ -32,11 +34,17 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
+    Http(#[from] ente_core::http::Error),
+    #[error(transparent)]
     Decode(#[from] b64::DecodeError),
     #[error(transparent)]
     Crypto(#[from] crypto::Error),
     #[error("Owned collection is missing its key decryption nonce")]
     MissingKeyDecryptionNonce,
+    #[error("invalid collection {id}: {reason}")]
+    InvalidCollection { id: i64, reason: &'static str },
+    #[error("file changes did not advance the cursor for collection {0}")]
+    CursorDidNotAdvance(i64),
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 import {
-    encryptSpaceRootEntityKey,
+    encryptBox,
     openSpaceAccountContext,
     type SpaceAccountCtxHandle,
 } from "ente-space-wasm";
@@ -16,6 +16,7 @@ const publicKey = Buffer.from([9, ...new Array<number>(31).fill(0)]).toString(
 
 beforeEach(async () => {
     const key = Buffer.alloc(32, 1).toString("base64");
+    const { encryptedData, nonce } = await encryptBox(key, key);
     ctx = await openSpaceAccountContext({
         baseUrl: "http://localhost",
         clientPackage: "io.ente.space.web",
@@ -26,7 +27,10 @@ beforeEach(async () => {
                 spaceId: "self",
                 spaceSlug: "self",
                 keyVersion: 1,
-                rootWrappedSpaceKey: await encryptSpaceRootEntityKey(key, key),
+                rootWrappedSpaceKey: Buffer.concat([
+                    Buffer.from(nonce, "base64"),
+                    Buffer.from(encryptedData, "base64"),
+                ]).toString("base64"),
             },
         ],
     });

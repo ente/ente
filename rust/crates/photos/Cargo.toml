@@ -8,10 +8,16 @@ ente-collections.workspace = true
 ente-core.workspace = true
 ente-exif.workspace = true
 ente-location.workspace = true
+ente-vecdb.workspace = true
+log.workspace = true
 quick-xml.workspace = true
 rusqlite = { workspace = true, default-features = true }
 serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+futures-util.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

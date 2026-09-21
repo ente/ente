@@ -6,20 +6,18 @@ use fast_image_resize::{
 };
 
 use crate::cv::OpResult;
-use crate::cv::image::{ImageF32, ImageU8};
+use crate::cv::image::ImageU8;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Interp {
     Bilinear,
     Area,
-    Bicubic,
 }
 
 impl Interp {
     fn alg(self, upscaling: bool) -> ResizeAlg {
         match self {
             Interp::Bilinear => ResizeAlg::Interpolation(FilterType::Bilinear),
-            Interp::Bicubic => ResizeAlg::Interpolation(FilterType::CatmullRom),
             Interp::Area if upscaling => ResizeAlg::Interpolation(FilterType::Bilinear),
             Interp::Area => ResizeAlg::Convolution(FilterType::Box),
         }
@@ -79,31 +77,4 @@ pub(crate) fn resize_u8(
         interp.alg(width >= src.width && height >= src.height),
     )?;
     ImageU8::new(width, height, src.channels, data)
-}
-
-pub(crate) fn resize_f32(
-    src: &ImageF32,
-    width: i32,
-    height: i32,
-    interp: Interp,
-) -> OpResult<ImageF32> {
-    if width == src.width && height == src.height {
-        return Ok(src.clone());
-    }
-    let bytes: Vec<u8> = src.data.iter().flat_map(|v| v.to_ne_bytes()).collect();
-    let out = run(
-        &bytes,
-        (src.width, src.height),
-        pixel_type(src.channels, true)?,
-        width,
-        height,
-        interp.alg(width >= src.width && height >= src.height),
-    )?;
-    let data = out
-        .as_chunks::<4>()
-        .0
-        .iter()
-        .map(|b| f32::from_ne_bytes([b[0], b[1], b[2], b[3]]))
-        .collect();
-    ImageF32::new(width, height, src.channels, data)
 }

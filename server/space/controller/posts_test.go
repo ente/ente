@@ -3,11 +3,19 @@ package controller
 import (
 	"crypto/sha256"
 	"database/sql"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"slices"
+	"strconv"
 	"testing"
 
+	"github.com/ente/museum/pkg/utils/config"
+	"github.com/ente/museum/pkg/utils/s3config"
 	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/ente/museum/space/models"
 	spacerepo "github.com/ente/museum/space/repo"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,18 +50,126 @@ func TestCreatePostRequiresAssetMetadataCipher(t *testing.T) {
 	require.Contains(t, err.Error(), "metadataCipher is required")
 }
 
-func TestCreatePostRejectsMultipleObjects(t *testing.T) {
-	controller := &PostsController{}
+func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
+	for _, test := range []struct {
+		count     int
+		abandoned int
+	}{
+		{count: 1},
+		{count: 2},
+		{count: 10},
+		{count: 10, abandoned: 1},
+		{count: 10, abandoned: 10},
+	} {
+		t.Run(fmt.Sprintf("%d_photos_after_%d_abandoned", test.count, test.abandoned), func(t *testing.T) {
+			controller, repos, ctx := setupPostsControllerTest(t)
+			storage := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodHead {
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					return
+				}
+				w.Header().Set("Content-Length", "123")
+			}))
+			t.Cleanup(storage.Close)
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			require.NoError(t, config.ConfigureViper("local"))
+			viper.Set("s3.b2-eu-cen.key", "test-key")
+			viper.Set("s3.b2-eu-cen.secret", "test-secret")
+			viper.Set("s3.b2-eu-cen.endpoint", storage.URL)
+			viper.Set("s3.b2-eu-cen.region", "us-east-1")
+			viper.Set("s3.b2-eu-cen.bucket", "test-bucket")
+			viper.Set("s3.b2-eu-cen.use_path_style_urls", true)
+			viper.Set(spaceAssetsPrimaryBucketConfigKey, "b2-eu-cen")
+			repos.Assets.S3Config = s3config.NewS3Config()
+			ownerID := insertSpaceControllerUser(t, repos, "multi-photo@example.com", "public")
+			space, err := testCreateSpace(ctx, repos, ownerID, "multi_photo", "space-key", "public", "secret", "nonce", "profile")
+			require.NoError(t, err)
 
-	_, err := controller.Create(t.Context(), &spacerepo.SpaceRecord{}, models.CreatePostRequest{
-		EncryptedPostKey: "post-key",
-		Objects: []models.PostObjectPayload{
-			{ObjectKey: "first"},
-			{ObjectKey: "second"},
-		},
-	})
+			assets := &AssetsController{AssetsRepo: repos.Assets}
+			reserve := func() string {
+				response, err := assets.PresignUpload(ctx, space, models.PresignUploadRequest{
+					Size:       123,
+					ContentMD5: "XUFAKrxLKna5cZ2REBfFkg==",
+				}, "space-test")
+				require.NoError(t, err)
+				return response.ObjectKey
+			}
+			abandoned := make([]string, test.abandoned)
+			for i := range abandoned {
+				abandoned[i] = reserve()
+			}
+			objects := make([]models.PostObjectPayload, test.count)
+			for position := range test.count {
+				objects[position] = models.PostObjectPayload{
+					ObjectKey:      reserve(),
+					Size:           123,
+					Position:       position,
+					MetadataCipher: "bWV0YWRhdGE=",
+				}
+			}
+			requestObjects := slices.Clone(objects)
+			slices.Reverse(requestObjects)
+			caption := "Y2FwdGlvbg=="
+			created, err := controller.Create(ctx, space, models.CreatePostRequest{
+				EncryptedPostKey: "cG9zdC1rZXk=",
+				CaptionCipher:    &caption,
+				KeyVersion:       space.CurrentVersion,
+				Objects:          requestObjects,
+			})
+			require.NoError(t, err)
+			feed, err := controller.ListFeed(ctx, space, models.ListFeedRequest{Limit: 10})
+			require.NoError(t, err)
+			require.Len(t, feed.Items, 1)
+			require.Equal(t, created.PostID, feed.Items[0].PostID)
+			require.Equal(t, caption, feed.Items[0].CaptionCipher)
+			require.Equal(t, objects, feed.Items[0].Objects)
+			for _, object := range objects {
+				_, err := repos.Assets.GetTempObject(ctx, object.ObjectKey, spacerepo.TempObjectPurposePost, &space.SpaceID)
+				require.ErrorIs(t, err, sql.ErrNoRows)
+			}
+			for _, objectKey := range abandoned {
+				staged, err := repos.Assets.GetTempObject(ctx, objectKey, spacerepo.TempObjectPurposePost, &space.SpaceID)
+				require.NoError(t, err)
+				require.Equal(t, staged.ExpiresAt, staged.CleanupAfter)
+			}
+		})
+	}
+}
 
-	require.ErrorContains(t, err, "too many post objects")
+func TestCreatePostRejectsInvalidObjectCount(t *testing.T) {
+	for _, test := range []struct {
+		count   int
+		message string
+	}{
+		{count: 0, message: "encryptedPostKey and objects are required"},
+		{count: 11, message: "too many post objects"},
+	} {
+		t.Run(strconv.Itoa(test.count), func(t *testing.T) {
+			_, err := (&PostsController{}).Create(t.Context(), &spacerepo.SpaceRecord{}, models.CreatePostRequest{
+				EncryptedPostKey: "cG9zdC1rZXk=",
+				KeyVersion:       1,
+				Objects:          make([]models.PostObjectPayload, test.count),
+			})
+			require.ErrorContains(t, err, test.message)
+		})
+	}
+}
+
+func TestCreatePostRejectsInvalidObjectPosition(t *testing.T) {
+	for _, position := range []int{-1, 10} {
+		t.Run(strconv.Itoa(position), func(t *testing.T) {
+			_, err := (&PostsController{}).Create(t.Context(), &spacerepo.SpaceRecord{}, models.CreatePostRequest{
+				EncryptedPostKey: "cG9zdC1rZXk=",
+				KeyVersion:       1,
+				Objects: []models.PostObjectPayload{{
+					ObjectKey: "photo",
+					Position:  position,
+				}},
+			})
+			require.ErrorContains(t, err, "invalid object position")
+		})
+	}
 }
 
 func TestListPostsHydratesPostAssets(t *testing.T) {

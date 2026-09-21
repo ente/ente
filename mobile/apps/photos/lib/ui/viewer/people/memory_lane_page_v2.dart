@@ -22,6 +22,7 @@ import "package:photos/services/memory_lane/memory_lane_service.dart";
 import "package:photos/services/memory_share_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/home/memories/memory_music_session.dart";
+import "package:photos/ui/home/memories/memory_progress_indicator.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
 import "package:photos/ui/viewer/people/memory_lane_page.dart";
 import "package:photos/utils/dialog_util.dart";
@@ -78,10 +79,14 @@ class MemoryLanePageV2 extends StatefulWidget {
 }
 
 class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
-  static const _playbackInterval = Duration(milliseconds: 800);
+  late final _playbackInterval = Duration(
+    seconds: widget.isFromMemoriesStrip ? 3 : 1,
+  );
 
   final _logger = Logger("MemoryLanePageV2");
   Timer? _playbackTimer;
+  AnimationController? _progressAnimationController;
+  final _playbackElapsed = Stopwatch();
   Object? _playbackToken;
   int? _photoPointer;
   bool _useFastTransition = false;
@@ -196,15 +201,17 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
     final token = Object();
     setState(() {
       _playbackTimer?.cancel();
+      _playbackElapsed
+        ..stop()
+        ..reset();
+      _progressAnimationController?.reset();
       _selectEntry(index, fastTransition: fastTransition);
-      _playbackToken =
-          index < _entries.length - 1 || widget.onNextMemory != null
-          ? token
-          : null;
+      _playbackToken = token;
     });
-    if (_playbackToken == null) return;
     await _chunkinator!.get(_entries[index]);
     if (!mounted || !widget.isActive || _playbackToken != token) return;
+    _playbackElapsed.start();
+    _progressAnimationController?.forward(from: 0);
     _playbackTimer = Timer(_playbackInterval, () {
       if (index < _entries.length - 1) {
         unawaited(_play(index + 1));
@@ -218,6 +225,8 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
   void _pause() {
     setState(() {
       _playbackTimer?.cancel();
+      _playbackElapsed.stop();
+      _progressAnimationController?.stop();
       _playbackToken = null;
     });
   }
@@ -338,6 +347,10 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
+    final safePadding = MediaQuery.paddingOf(context);
+    final toolbarTopPadding = widget.isFromMemoriesStrip
+        ? math.max(40.0 - safePadding.top, 0.0) + 16
+        : 16.0;
     return FutureBuilder<void>(
       future: _memoryLaneLoaded,
       builder: (context, snapshot) {
@@ -453,12 +466,39 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                 ),
               ),
             ),
+            if (widget.isFromMemoriesStrip && _entries.isNotEmpty)
+              Positioned(
+                top: math.max(safePadding.top, 40),
+                left: safePadding.left + 16,
+                right: safePadding.right + 16,
+                child: MemoryProgressIndicator(
+                  totalSteps: _entries.length,
+                  currentIndex: i,
+                  duration: _playbackInterval,
+                  unselectedColor: Colors.white.withValues(alpha: 0.4),
+                  animationController: (controller) {
+                    _progressAnimationController = controller;
+                    controller.value =
+                        (_playbackElapsed.elapsedMicroseconds /
+                                _playbackInterval.inMicroseconds)
+                            .clamp(0.0, 1.0);
+                    if (_playbackElapsed.isRunning) controller.forward();
+                  },
+                  onAnimationControllerDisposed: (controller) {
+                    if (_progressAnimationController == controller) {
+                      _progressAnimationController = null;
+                    }
+                  },
+                ),
+              ),
             Scaffold(
               backgroundColor: Colors.transparent,
               appBar: PreferredSize(
-                preferredSize: const Size.fromHeight(kToolbarHeight + 16),
+                preferredSize: Size.fromHeight(
+                  kToolbarHeight + toolbarTopPadding,
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 16),
+                  padding: EdgeInsets.only(top: toolbarTopPadding),
                   child: AppBar(
                     centerTitle: false,
                     backgroundColor: Colors.transparent,
@@ -594,9 +634,9 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                             ),
                             child: Align(
                               child: AspectRatio(
-                                aspectRatio: 3 / 5,
+                                aspectRatio: 3 / 4,
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(24),
+                                  borderRadius: BorderRadius.circular(16),
                                   child: AnimatedSwitcher(
                                     duration: Duration(
                                       milliseconds: _useFastTransition
@@ -754,7 +794,8 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                             ),
                             SizedBox(height: screenSize.height * 0.01),
                           ],
-                          if (_entries.isNotEmpty)
+                          if (_entries.isNotEmpty &&
+                              !widget.isFromMemoriesStrip)
                             ConstrainedBox(
                               constraints: const BoxConstraints(minHeight: 32),
                               child: Padding(

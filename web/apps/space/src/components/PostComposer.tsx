@@ -3,11 +3,16 @@ import {
     SpaceViewerPostBackdrop,
     type SpaceViewerPhoto,
 } from "components/FileViewer";
+import {
+    SpacePostPhotoEditor,
+    type SpacePostPhotoEditResult,
+} from "components/PostPhotoEditor";
+import { SpacePostPhotoInput } from "components/PostPhotoInput";
+import { SpacePostPhotoStrip } from "components/PostPhotoStrip";
 import log from "ente-base/log";
 import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
-import type { SpacePost } from "services/space";
 import { useSpaceAppState } from "state/app-state";
 import { createLoadedLocalPostPhoto } from "utils/local-post-photo";
 import {
@@ -15,174 +20,312 @@ import {
     spacePostImageErrorMessage,
     spacePostPreviewImageForFile,
     type SpaceDraftPostImage,
+    type SpacePostPhotoEdit,
 } from "utils/post-image";
+import { maxSpacePostPhotos, movePostPhoto } from "utils/post-photos";
 import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
 
-interface PendingPostDraft {
+interface DraftPhoto {
+    file: File;
+    id: number;
     error?: string;
-    isPreviewPending: boolean;
-    photo: SpaceViewerPhoto;
+    photo?: SpaceViewerPhoto;
+    originalPhoto?: SpaceViewerPhoto;
+    edit?: SpacePostPhotoEdit;
 }
 
-interface SpacePostComposerProps {
-    file: File;
+let nextDraftPhotoID = 0;
+const draftPhotos = (files: File[]): DraftPhoto[] =>
+    files.map((file) => ({ file, id: nextDraftPhotoID++ }));
+
+export const SpacePostComposer: React.FC<{
+    files: File[];
     onClose: () => void;
     onPublish: (
-        image: SpaceDraftPostImage,
+        images: SpaceDraftPostImage[],
         caption: string,
-    ) => Promise<SpacePost>;
+    ) => Promise<void>;
+    onPublished?: () => void;
     profile: SetupProfile;
-}
-
-const SpacePostComposer: React.FC<SpacePostComposerProps> = ({
-    file,
-    onClose,
-    onPublish,
-    profile,
-}) => {
-    const router = useSpaceRouter();
-    const publishedPreviewURLRef = React.useRef<string>(undefined);
+}> = ({ files, onClose, onPublish, onPublished, profile }) => {
     const displayName =
         profile.fullName.trim() || profile.username.trim() || "You";
-    const [draft, setDraft] = React.useState<PendingPostDraft>(() => ({
-        isPreviewPending: true,
-        photo: {
-            alt: `${displayName} post`,
+    const [drafts, setDrafts] = React.useState(() => draftPhotos(files));
+    const [activeIndex, setActiveIndex] = React.useState(0);
+    const [isPublishing, setIsPublishing] = React.useState(false);
+    const [isExiting, setIsExiting] = React.useState(false);
+    const [isEditing, setIsEditing] = React.useState(false);
+    const inputRef = React.useRef<HTMLInputElement | null>(null);
+    const previewURLsRef = React.useRef(new Set<string>());
+    const publishedPreviewURLRef = React.useRef<string>(undefined);
+    const preparingRef = React.useRef(new Set<number>());
+    const draftsRef = React.useRef(drafts);
+    draftsRef.current = drafts;
+    const mountedRef = React.useRef(false);
+    const placeholder = React.useMemo<SpaceViewerPhoto>(
+        () => ({
             avatarUrl: profile.avatarUrl,
             imageUrl: "",
+            postPhotoCount: 0,
             name: displayName,
             timestampMs: Date.now(),
-        },
-    }));
-    const [isDraftPostExitAnimating, setIsDraftPostExitAnimating] =
-        React.useState(false);
-    const [isDraftPostExiting, setIsDraftPostExiting] = React.useState(false);
+        }),
+        [displayName, profile.avatarUrl],
+    );
 
     const { clearBrowserBackState } = useBrowserBackClose({
         open: true,
         onClose: () => {
-            if (!isDraftPostExiting) onClose();
+            if (!isPublishing) onClose();
         },
         stateKey: "space-post-composer",
     });
 
     React.useEffect(() => {
-        let cancelled = false;
-        let previewURL: string | undefined;
-
-        const preparePreview = async () => {
-            if (canPreviewSpaceImageFile(file)) {
-                return await createLoadedLocalPostPhoto({
-                    avatarUrl: profile.avatarUrl,
-                    file,
-                    name: displayName,
-                });
-            }
-
-            const preview = await spacePostPreviewImageForFile(file);
-            return {
-                objectUrl: preview.url,
-                photo: {
-                    alt: `${displayName} post`,
-                    avatarUrl: profile.avatarUrl,
-                    height: preview.height,
-                    imageUrl: preview.url,
-                    name: displayName,
-                    timestampMs: Date.now(),
-                    width: preview.width,
-                },
-            };
-        };
-
-        void preparePreview()
-            .then((preview) => {
-                previewURL = preview.objectUrl;
-                if (cancelled) {
-                    URL.revokeObjectURL(preview.objectUrl);
-                    return;
-                }
-                setDraft({ isPreviewPending: false, photo: preview.photo });
-            })
-            .catch((error: unknown) => {
-                log.error("Failed to prepare post preview", error);
-                if (cancelled) return;
-                setDraft((current) => ({
-                    ...current,
-                    error: spacePostImageErrorMessage(error),
-                    isPreviewPending: false,
-                }));
-            });
-
+        mountedRef.current = true;
+        const urls = previewURLsRef.current;
         return () => {
-            cancelled = true;
-            if (previewURL && previewURL != publishedPreviewURLRef.current) {
-                URL.revokeObjectURL(previewURL);
-            }
+            mountedRef.current = false;
+            urls.forEach((url) => {
+                if (url != publishedPreviewURLRef.current)
+                    URL.revokeObjectURL(url);
+            });
+            urls.clear();
         };
-    }, [displayName, file, profile.avatarUrl]);
+    }, []);
+
+    React.useEffect(() => {
+        const isActiveDraft = (id: number) =>
+            mountedRef.current &&
+            draftsRef.current.some((item) => item.id == id);
+        const pending = drafts.filter(
+            (draft) =>
+                !draft.photo &&
+                !draft.error &&
+                !preparingRef.current.has(draft.id),
+        );
+        pending.forEach((draft) => preparingRef.current.add(draft.id));
+        void (async () => {
+            for (const draft of pending) {
+                if (!isActiveDraft(draft.id)) continue;
+                try {
+                    let photo: SpaceViewerPhoto;
+                    if (canPreviewSpaceImageFile(draft.file)) {
+                        photo = (
+                            await createLoadedLocalPostPhoto({
+                                avatarUrl: profile.avatarUrl,
+                                file: draft.file,
+                                name: displayName,
+                            })
+                        ).photo;
+                    } else {
+                        const preview = await spacePostPreviewImageForFile(
+                            draft.file,
+                        );
+                        photo = {
+                            ...placeholder,
+                            imageUrl: preview.url,
+                            height: preview.height,
+                            width: preview.width,
+                        };
+                    }
+                    if (!isActiveDraft(draft.id)) {
+                        URL.revokeObjectURL(photo.imageUrl);
+                        continue;
+                    }
+                    previewURLsRef.current.add(photo.imageUrl);
+                    setDrafts((current) =>
+                        current.map((item) =>
+                            item.id == draft.id
+                                ? { ...item, photo, originalPhoto: photo }
+                                : item,
+                        ),
+                    );
+                } catch (error) {
+                    log.error("Failed to prepare post preview", error);
+                    if (isActiveDraft(draft.id))
+                        setDrafts((current) =>
+                            current.map((item) =>
+                                item.id == draft.id
+                                    ? {
+                                          ...item,
+                                          error: spacePostImageErrorMessage(
+                                              error,
+                                          ),
+                                      }
+                                    : item,
+                            ),
+                        );
+                } finally {
+                    preparingRef.current.delete(draft.id);
+                }
+            }
+        })();
+    }, [displayName, drafts, placeholder, profile.avatarUrl]);
+
+    const addPhotos = (files: File[]) => {
+        setActiveIndex(drafts.length);
+        setDrafts((current) => [...current, ...draftPhotos(files)]);
+    };
+    const removePhoto = () => {
+        if (drafts.length == 1) {
+            onClose();
+            return;
+        }
+        const removed = drafts[activeIndex];
+        if (!removed) return;
+        for (const url of new Set([
+            removed.photo?.imageUrl,
+            removed.originalPhoto?.imageUrl,
+        ])) {
+            if (url) {
+                URL.revokeObjectURL(url);
+                previewURLsRef.current.delete(url);
+            }
+        }
+        setDrafts((current) =>
+            current.filter((draft) => draft.id != removed.id),
+        );
+        setActiveIndex(Math.max(0, Math.min(activeIndex, drafts.length - 2)));
+    };
+    const movePhoto = (from: number, to: number) => {
+        setDrafts((current) => movePostPhoto(current, from, to));
+        setActiveIndex(to);
+    };
+    const applyEdits = (results: SpacePostPhotoEditResult[], index: number) => {
+        const nextDrafts = drafts.map((draft) => {
+            const result = results.find((result) => result.id == draft.id);
+            if (!result) return draft;
+            if (draft.photo!.imageUrl != draft.originalPhoto!.imageUrl) {
+                URL.revokeObjectURL(draft.photo!.imageUrl);
+                previewURLsRef.current.delete(draft.photo!.imageUrl);
+            }
+            const photo = result.preview
+                ? {
+                      ...draft.originalPhoto!,
+                      imageUrl: result.preview.url,
+                      width: result.preview.width,
+                      height: result.preview.height,
+                  }
+                : draft.originalPhoto!;
+            previewURLsRef.current.add(photo.imageUrl);
+            return { ...draft, edit: result.edit, photo };
+        });
+        setDrafts(nextDrafts);
+        setActiveIndex(index);
+        setIsEditing(false);
+    };
+    const photos = drafts.map((draft, index) => ({
+        ...(draft.photo ?? placeholder),
+        postPhotoIndex: index,
+        postPhotoCount: drafts.length,
+    }));
+    const isPreparing = drafts.some((draft) => !draft.photo && !draft.error);
+    const preparationError = drafts.find((draft) => draft.error)?.error;
+    const controls =
+        files.length > 1 ? (
+            <>
+                <SpacePostPhotoInput
+                    inputRef={inputRef}
+                    onSelect={addPhotos}
+                    remaining={maxSpacePostPhotos - drafts.length}
+                />
+                <SpacePostPhotoStrip
+                    activeIndex={activeIndex}
+                    disabled={isPublishing}
+                    onAdd={() => inputRef.current?.click()}
+                    onMove={movePhoto}
+                    onRemove={removePhoto}
+                    onSelect={setActiveIndex}
+                    photos={drafts.map((draft) => ({
+                        id: draft.id,
+                        imageUrl: draft.photo?.imageUrl,
+                    }))}
+                />
+            </>
+        ) : undefined;
 
     return (
         <>
-            <SpaceViewerPostBackdrop exiting={isDraftPostExitAnimating} />
+            <SpaceViewerPostBackdrop exiting={isExiting} />
             <SpaceFileViewer
-                draftPostPreparationError={draft.error}
-                isDraftPostPreviewPending={draft.isPreviewPending}
+                draftPhotoControls={controls}
+                draftPostPreparationError={preparationError}
+                isDraftPostPreviewPending={isPreparing || !drafts.length}
                 onClose={onClose}
-                onDraftPostExitAnimationStart={() =>
-                    setIsDraftPostExitAnimating(true)
-                }
-                onDraftPostExitStart={() => setIsDraftPostExiting(true)}
+                onEditDraftPhoto={() => setIsEditing(true)}
+                onDraftPostExitStart={() => setIsPublishing(true)}
+                onDraftPostExitAnimationStart={() => setIsExiting(true)}
                 onDraftPostPublished={() => {
-                    void clearBrowserBackState("back").then(() => {
-                        if (router.pathname != spaceRoutes.home) {
-                            void router.push(spaceRoutes.home);
-                        } else {
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                        }
-                    });
+                    void clearBrowserBackState("back").then(onPublished);
                 }}
                 onPublishDraftPost={
-                    draft.isPreviewPending || draft.error
+                    preparationError || isPreparing || !drafts.length
                         ? undefined
-                        : (caption, edit) => {
+                        : (caption) => {
                               publishedPreviewURLRef.current =
-                                  draft.photo.imageUrl;
+                                  drafts[0]!.photo!.imageUrl;
                               return onPublish(
-                                  {
-                                      cropArea: edit.cropArea,
-                                      file,
-                                      height: edit.height,
-                                      previewUrl: draft.photo.imageUrl,
-                                      rotationDegrees: edit.rotationDegrees,
-                                      width: edit.width,
-                                  },
+                                  drafts.map((draft) => ({
+                                      cropArea: draft.edit?.cropArea,
+                                      file: draft.file,
+                                      height: draft.photo!.height,
+                                      previewUrl: draft.photo!.imageUrl,
+                                      rotationDegrees:
+                                          draft.edit?.rotationDegrees,
+                                      width: draft.photo!.width,
+                                  })),
                                   caption,
-                              ).then(() => undefined);
+                              );
                           }
                 }
-                photo={draft.photo}
+                photo={photos[0] ?? placeholder}
+                photos={photos.length ? photos : [placeholder]}
+                photoIndex={activeIndex}
+                onPhotoIndexChange={setActiveIndex}
                 postActionMode="draft-post"
             />
+            {isEditing && (
+                <SpacePostPhotoEditor
+                    initialIndex={activeIndex}
+                    onClose={() => setIsEditing(false)}
+                    onDone={applyEdits}
+                    photos={drafts.map((draft) => ({
+                        id: draft.id,
+                        imageURL: draft.originalPhoto!.imageUrl,
+                        previewURL: draft.photo!.imageUrl,
+                        width: draft.originalPhoto!.width!,
+                        height: draft.originalPhoto!.height!,
+                        edit: draft.edit,
+                    }))}
+                />
+            )}
         </>
     );
 };
 
 export const SpacePostComposerHost: React.FC = () => {
     const {
-        pendingPostPhotoFile,
+        pendingPostPhotoFiles,
         profile,
         publishPost,
-        setPendingPostPhotoFile,
+        setPendingPostPhotoFiles,
     } = useSpaceAppState();
-
-    if (!pendingPostPhotoFile || !profile) return null;
-
+    const router = useSpaceRouter();
+    if (!pendingPostPhotoFiles || !profile) return null;
     return (
         <SpacePostComposer
-            file={pendingPostPhotoFile}
-            onClose={() => setPendingPostPhotoFile(null)}
-            onPublish={publishPost}
+            files={pendingPostPhotoFiles}
+            onClose={() => setPendingPostPhotoFiles(null)}
+            onPublish={async (images, caption) => {
+                await publishPost(images, caption);
+            }}
+            onPublished={() => {
+                if (router.pathname != spaceRoutes.home)
+                    void router.push(spaceRoutes.home);
+                else window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             profile={profile}
         />
     );

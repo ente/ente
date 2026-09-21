@@ -5,7 +5,6 @@ import 'dart:ui';
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter/return_code.dart';
 import 'package:ffmpeg_kit_flutter/statistics.dart';
-import 'package:logging/logging.dart';
 import 'package:photos/ui/tools/editor/video_crop_util.dart';
 import 'package:photos/ui/tools/editor/video_editor/video_editor_controller.dart';
 
@@ -22,8 +21,6 @@ class FfmpegVideoExportPlan {
 }
 
 class ExportService {
-  static final _logger = Logger('ExportService');
-
   static FfmpegVideoExportPlan createPlan({
     required VideoEditorController controller,
     required String outputPath,
@@ -110,12 +107,7 @@ class ExportService {
             }
           }
         },
-        (log) {
-          final message = log.getMessage();
-          if (message.isNotEmpty) {
-            _logger.fine('FFmpeg[${log.getLevel()}] $message');
-          }
-        },
+        null,
         (statistics) {
           if (onProgress != null) {
             onProgress(_progress(statistics, plan.duration));

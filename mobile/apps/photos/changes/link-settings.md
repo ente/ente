@@ -1,0 +1,1 @@
+- Improved album link settings with clearer labels and grouped options.

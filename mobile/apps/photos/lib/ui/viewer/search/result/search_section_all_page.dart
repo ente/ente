@@ -383,7 +383,6 @@ class _SearchSectionAllPageState extends State<SearchSectionAllPage> {
   }
 
   List<EntePopupMenuOption<_LocationSortKey>> _locationSortOptions() {
-    final colors = context.componentColors;
     final strings = context.strings;
     final activeDirection = HugeIcon(
       icon: _locationSortAscending
@@ -391,7 +390,6 @@ class _SearchSectionAllPageState extends State<SearchSectionAllPage> {
           : HugeIcons.strokeRoundedArrowDown02,
       size: 12,
       strokeWidth: 3,
-      color: colors.textLight,
     );
 
     return [

@@ -142,7 +142,7 @@ const completeSRPSetup = async ({
 export const getAndSaveSRPAttributes = async (userEmail: string) =>
     saveSRPAttributes(ensure(await getSRPAttributes(userEmail)));
 
-export interface UpdatedKeyAttr {
+interface UpdatedKeyAttr {
     kekSalt: string;
     encryptedKey: string;
     keyDecryptionNonce: string;

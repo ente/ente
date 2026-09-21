@@ -1,4 +1,5 @@
 import type {
+    EncryptedBox,
     OpenAccountSpaceCtxInput,
     OpenSpaceLinkCtxInput,
     SpaceAccountCtxHandle,
@@ -22,15 +23,13 @@ export type {
 
 const wasm = () => import("./pkg/ente_space_wasm");
 
-export const encryptSpaceRootEntityKey = async (
-    spaceRootKeyB64: string,
-    masterKeyB64: string,
-) => (await wasm()).encryptSpaceRootEntityKey(spaceRootKeyB64, masterKeyB64);
+export const generateKey = async () => (await wasm()).cryptoGenerateKey();
 
-export const decryptSpaceRootEntityKey = async (
-    encryptedKeyB64: string,
-    masterKeyB64: string,
-) => (await wasm()).decryptSpaceRootEntityKey(encryptedKeyB64, masterKeyB64);
+export const encryptBox = async (dataB64: string, keyB64: string) =>
+    (await wasm()).cryptoEncryptBox(dataB64, keyB64);
+
+export const decryptBox = async (box: EncryptedBox, keyB64: string) =>
+    (await wasm()).cryptoDecryptBox(box.encryptedData, box.nonce, keyB64);
 
 export const openSpaceAccountContext = async (
     input: OpenAccountSpaceCtxInput,

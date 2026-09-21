@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:locker/services/scanner/scan_geometry.dart';
 import 'package:locker/services/scanner/scanner_models.dart';
+import 'package:locker/ui/pages/scanner/scan_projection.dart';
 
 abstract final class CaptureFlightTuning {
   static const arcHeight = 0.08;
@@ -324,7 +324,7 @@ void paintMappedSnapshot(
   required double develop,
 }) {
   canvas.save();
-  final homography = homographyMatrix(sourceQuad, imageQuad);
+  final homography = ScanProjection.projectiveTransform(sourceQuad, imageQuad);
   if (homography != null) {
     canvas.transform(homography);
   } else {

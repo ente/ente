@@ -503,8 +503,6 @@ class _MergeClustersToPersonPageState extends State<MergeClustersToPersonPage> {
                                         icon: directionIcon,
                                         size: 12,
                                         strokeWidth: 3,
-                                        color:
-                                            context.componentColors.textLight,
                                       );
                                     }
 

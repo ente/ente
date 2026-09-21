@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
+import { SpaceAboutButton } from "components/AboutSpaceButton";
+import { SpaceAddFriendButton } from "components/AddFriendButton";
 import { AuthenticatedFriendProfile } from "components/AuthenticatedFriendProfile";
-import { SpaceButtonSpinner } from "components/ButtonSpinner";
 import { SpaceMobileBestToast } from "components/MobileBestToast";
 import { SpacePageMeta } from "components/PageMeta";
 import { SpacePublicProfileNotificationControl } from "components/PublicProfileNotificationControl";
@@ -144,7 +145,6 @@ const PublicFriendRequestScreen: React.FC<PublicFriendRequestScreenProps> = ({
                 color: "white",
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between",
                 minHeight: { xs: "calc(100svh - 16px)", sm: "100svh" },
                 overflow: "hidden",
                 position: "relative",
@@ -199,6 +199,7 @@ const PublicFriendRequestScreen: React.FC<PublicFriendRequestScreenProps> = ({
                 </Box>
                 <Box />
             </Box>
+            <Box sx={{ flex: 1, minHeight: 24 }} />
             <Box
                 sx={{
                     alignItems: "center",
@@ -246,56 +247,36 @@ const PublicFriendRequestScreen: React.FC<PublicFriendRequestScreenProps> = ({
             </Box>
             <Box
                 sx={{
+                    alignItems: "center",
+                    display: "flex",
+                    flex: 1,
+                    justifyContent: "center",
+                    minHeight: 80,
+                }}
+            >
+                <SpaceAboutButton
+                    isAddingFriend={isAddingFriend}
+                    onAddFriend={onAddFriend}
+                    showAddingFriendSpinner={showAddingFriendSpinner}
+                    username={identity.username}
+                />
+            </Box>
+            <Box
+                sx={{
                     boxSizing: "border-box",
                     flexShrink: 0,
                     maxWidth: 390,
                     mx: "auto",
                     pb: "calc(env(safe-area-inset-bottom) + clamp(36px, calc(5.5svh + 12px), 56px))",
                     px: 3,
-                    pt: 3,
                     width: "100%",
                 }}
             >
-                <Box
-                    component="button"
-                    type="button"
-                    disabled={isAddingFriend}
-                    aria-label={isAddingFriend ? "Adding friend" : undefined}
-                    aria-busy={isAddingFriend ? true : undefined}
-                    onClick={onAddFriend}
-                    sx={{
-                        alignItems: "center",
-                        appearance: "none",
-                        bgcolor: "white",
-                        border: 0,
-                        borderRadius: "24px",
-                        color: "black",
-                        cursor: isAddingFriend ? "default" : "pointer",
-                        display: "flex",
-                        fontFamily: '"Inter Variable", Inter, sans-serif',
-                        fontSize: 16,
-                        fontWeight: 700,
-                        justifyContent: "center",
-                        lineHeight: "24px",
-                        minHeight: 60,
-                        p: "18px 24px",
-                        mx: "auto",
-                        width: "min(100%, 300px)",
-                        "&:hover": isAddingFriend
-                            ? undefined
-                            : { bgcolor: "#F4F4F4" },
-                        "&:focus-visible": {
-                            outline: "2px solid rgba(255 255 255 / 0.88)",
-                            outlineOffset: 3,
-                        },
-                    }}
-                >
-                    {showAddingFriendSpinner ? (
-                        <SpaceButtonSpinner />
-                    ) : (
-                        "Add Friend"
-                    )}
-                </Box>
+                <SpaceAddFriendButton
+                    isAddingFriend={isAddingFriend}
+                    onAddFriend={onAddFriend}
+                    showAddingFriendSpinner={showAddingFriendSpinner}
+                />
             </Box>
         </Box>
         <SpaceMobileBestToast />

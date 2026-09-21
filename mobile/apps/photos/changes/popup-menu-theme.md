@@ -1,0 +1,1 @@
+- Fixed menu colors not updating when switching between light and dark themes.

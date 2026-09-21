@@ -101,7 +101,7 @@ export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
                 <Box
                     ref={replyInputRef}
                     component="textarea"
-                    aria-label="Reply to post"
+                    aria-label="Reply to photo"
                     disabled={disabled || replyActionPhase != null}
                     placeholder="Reply..."
                     rows={1}

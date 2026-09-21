@@ -2,6 +2,7 @@ import "dart:convert";
 
 import 'package:bip39/bip39.dart' as bip39;
 import "package:crypto/crypto.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
@@ -9,8 +10,6 @@ import "package:flutter/services.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/services/account/user_service.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/base_bottom_sheet.dart";
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/utils/share_util.dart";
@@ -21,11 +20,12 @@ Future<void> showVerifyIdentitySheet(
   String email = '',
   String? title,
 }) {
-  return showBaseBottomSheet<void>(
-    context,
-    title: title ?? context.strings.verify,
-    headerSpacing: 20,
-    child: _VerifyIdentitySheetContent(self: self, email: email),
+  return showBottomSheetComponent<void>(
+    context: context,
+    builder: (sheetContext) => BottomSheetComponent(
+      title: title ?? sheetContext.strings.verify,
+      content: _VerifyIdentitySheetContent(self: self, email: email),
+    ),
   );
 }
 
@@ -56,8 +56,7 @@ class _VerifyIdentitySheetContentState
         ? context.strings.someoneSharingAlbumsWithYouShouldSeeTheSameId
         : context.strings.howToViewShareeVerificationID;
 
-    final colorScheme = getEnteColorScheme(context);
-    final textStyle = getEnteTextTheme(context);
+    final colors = context.componentColors;
 
     return FutureBuilder<String>(
       future: _getPublicKey(),
@@ -70,7 +69,7 @@ class _VerifyIdentitySheetContentState
               children: [
                 Text(
                   context.strings.emailNoEnteAccountPhotos(email: widget.email),
-                  style: textStyle.small.copyWith(color: colorScheme.textMuted),
+                  style: TextStyles.body.copyWith(color: colors.textLight),
                 ),
                 const SizedBox(height: 20),
                 ButtonWidget(
@@ -93,14 +92,14 @@ class _VerifyIdentitySheetContentState
             children: [
               Text(
                 subTitle,
-                style: textStyle.small.copyWith(color: colorScheme.textMuted),
+                style: TextStyles.body.copyWith(color: colors.textLight),
               ),
               const SizedBox(height: 20),
               _verificationIDSheetWidget(context, publicKey),
               const SizedBox(height: 20),
               Text(
                 bottomText,
-                style: textStyle.small.copyWith(color: colorScheme.textMuted),
+                style: TextStyles.body.copyWith(color: colors.textLight),
               ),
             ],
           );
@@ -110,7 +109,7 @@ class _VerifyIdentitySheetContentState
           ).severe("failed to end userID", snapshot.error);
           return Text(
             context.strings.somethingWentWrong,
-            style: textStyle.bodyMuted,
+            style: TextStyles.large.copyWith(color: colors.textLight),
           );
         }
         return const SizedBox(height: 200, child: EnteLoadingWidget());
@@ -132,8 +131,7 @@ class _VerifyIdentitySheetContentState
   }
 
   Widget _verificationIDSheetWidget(BuildContext context, String publicKey) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     final String verificationID = _generateVerificationID(publicKey);
 
     return GestureDetector(
@@ -141,14 +139,14 @@ class _VerifyIdentitySheetContentState
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: colorScheme.primary700,
+          color: colors.primary,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
         width: double.infinity,
         child: Text(
           verificationID,
-          style: textTheme.body.copyWith(
-            color: Colors.white,
+          style: TextStyles.large.copyWith(
+            color: colors.textReverse,
             fontFamily: 'monospace',
             letterSpacing: 0.5,
             height: 1.5,

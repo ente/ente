@@ -359,30 +359,29 @@ mod tests {
         for index in [3, 41, 87, 150, 199] {
             arena.remove(&format!("key-{index}")).unwrap();
         }
-        let mut stale_seen = false;
         for round in 0..40u64 {
             let victim = graph
                 .entry_point()
                 .filter(|&slot| arena.is_alive(slot))
                 .unwrap_or_else(|| arena.live_slots().next().unwrap());
             let key = arena.key_of_slot(victim).unwrap().to_string();
+            let slot = arena.slot_count() as u32;
             assert_eq!(
                 arena
                     .upsert(&key, &seeded_unit_vector(0x00A2_0000 + round, dims))
                     .unwrap(),
-                UpsertOutcome::ReplacedInPlace(victim)
+                UpsertOutcome::NewSlot(slot)
             );
-            graph.reinsert(victim, &arena);
-            stale_seen |= stale_downward_edge_exists(&graph);
+            graph.insert(slot, &arena);
+            assert!(!stale_downward_edge_exists(&graph));
         }
-        let UpsertOutcome::RecycledSlot(recycled) = arena
-            .upsert("recycled", &seeded_unit_vector(0x00A3_0000, dims))
+        let UpsertOutcome::NewSlot(slot) = arena
+            .upsert("fresh", &seeded_unit_vector(0x00A3_0000, dims))
             .unwrap()
         else {
-            panic!("expected a recycled slot");
+            panic!("expected a new slot");
         };
-        graph.reinsert(recycled, &arena);
-        assert!(stale_seen);
+        graph.insert(slot, &arena);
         (arena, graph)
     }
 

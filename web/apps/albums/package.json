@@ -21,7 +21,7 @@
         "ente-gallery": "*",
         "ente-media": "*",
         "ente-utils": "*",
-        "exifreader": "4.40.3",
+        "exifreader": "4.45.0",
         "file-type": "21.3.4",
         "formik": "2.4.9",
         "get-user-locale": "3.0.0",

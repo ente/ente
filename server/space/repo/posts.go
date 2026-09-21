@@ -11,7 +11,10 @@ import (
 	"github.com/ente/stacktrace"
 )
 
-const MaxPostsPerSpace = 250
+const (
+	MaxPostsPerSpace = 250
+	MaxPostObjects   = 10
+)
 
 var ErrSpacePostLimitReached = errors.New("space post limit reached")
 

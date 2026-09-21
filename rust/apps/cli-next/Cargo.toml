@@ -18,13 +18,18 @@ ente-core.workspace = true
 ente-photos.workspace = true
 keyring = { workspace = true, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 reqwest.workspace = true
+rusqlite = { workspace = true, features = ["bundled-sqlcipher"] }
 serde.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true
+thiserror.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
 url.workspace = true
 uuid = { workspace = true, features = ["serde", "v4"] }
 zeroize.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+rusqlite = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
 
 [dev-dependencies]
 ente-test-support.workspace = true

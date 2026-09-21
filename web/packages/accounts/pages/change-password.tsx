@@ -6,12 +6,14 @@ import {
     AccountsPageFooter,
     AccountsPageTitle,
 } from "ente-accounts/components/layouts/centered-paper";
+import { changePassword } from "ente-accounts/services/password";
 import { appHomeRoute, stashRedirect } from "ente-accounts/services/redirect";
-import { changePassword, type LocalUser } from "ente-accounts/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import { LinkButton } from "ente-base/components/LinkButton";
 import { LoadingIndicator } from "ente-base/components/loaders";
 import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
+import { decryptBox as preloginDecryptBox } from "ente-prelogin-wasm";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -53,12 +55,13 @@ interface PageContentsProps {
 }
 
 const PageContents: React.FC<PageContentsProps> = ({ user, isReset }) => {
-    const { Shell } = useAuthPageConfig();
+    const { Shell, decryptBox: appDecryptBox } = useAuthPageConfig();
+    const decryptBox = isReset ? preloginDecryptBox : appDecryptBox;
     const router = useRouter();
 
     const handleSubmit: NewPasswordFormProps["onSubmit"] = useCallback(
         async (password, setPasswordsFieldError) =>
-            changePassword(password)
+            changePassword(password, decryptBox)
                 .then(() => void router.push(appHomeRoute))
                 .catch((e: unknown) => {
                     log.error("Could not change password", e);
@@ -68,7 +71,7 @@ const PageContents: React.FC<PageContentsProps> = ({ user, isReset }) => {
                             : t("generic_error"),
                     );
                 }),
-        [router],
+        [router, decryptBox],
     );
 
     if (isReset) {

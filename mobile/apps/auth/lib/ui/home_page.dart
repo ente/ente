@@ -1268,19 +1268,22 @@ class _HomePageState extends State<HomePage> {
         context,
         logger: _logger,
       );
-      if (importResult == null) {
+      if (importResult == null || !mounted) {
         return;
       }
-      final googleAuthCodes = importResult.googleAuthCodes;
-      if (googleAuthCodes != null) {
-        if (!mounted) return;
+      final firstMigration = importResult.googleAuthMigration;
+      if (firstMigration != null) {
+        final googleAuthCodes = await collectGoogleAuthImageBatches(
+          context,
+          firstMigration,
+          logger: _logger,
+        );
+        if (!mounted || googleAuthCodes == null) return;
         final shouldImport = await confirmGoogleAuthImport(
           context,
           googleAuthCodes.length,
         );
-        if (!shouldImport) {
-          return;
-        }
+        if (!shouldImport) return;
         await _completeGoogleAuthImport(googleAuthCodes);
         return;
       }

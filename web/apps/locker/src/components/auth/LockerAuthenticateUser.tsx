@@ -9,6 +9,7 @@ import {
     InputAdornment,
     Stack,
 } from "@mui/material";
+import { useAuthPageConfig } from "ente-accounts/components/auth/AuthPageProvider";
 import {
     VerifyMasterPasswordForm,
     type VerifyMasterPasswordPresentationProps,
@@ -102,6 +103,7 @@ export const LockerAuthenticateUser: React.FC<LockerAuthenticateUserProps> = ({
 const LockerAuthenticateUserDialogContents: React.FC<
     LockerAuthenticateUserProps
 > = ({ open, onClose, onAuthenticate }) => {
+    const { decryptBox } = useAuthPageConfig();
     const { logout, showMiniDialog } = useBaseContext();
 
     const [user, setUser] = useState<LocalUser | undefined>();
@@ -139,6 +141,7 @@ const LockerAuthenticateUserDialogContents: React.FC<
 
     return (
         <VerifyMasterPasswordForm
+            decryptBox={decryptBox}
             presentation={LockerPasswordForm}
             userEmail={user.email}
             keyAttributes={keyAttributes}

@@ -51,8 +51,17 @@ void main() {
     final tracker = GoogleAuthMigrationTracker();
 
     expect(
-      tracker.record(_testMigration(batchId: 42, batchSize: 1, batchIndex: 0)),
-      true,
+      tracker.add(_testMigration(batchId: 42, batchSize: 1, batchIndex: 0)),
+      isNotNull,
+    );
+  });
+
+  test('completes an export without batch metadata', () {
+    final tracker = GoogleAuthMigrationTracker();
+
+    expect(
+      tracker.add(_testMigration(batchId: 0, batchSize: 0, batchIndex: 0)),
+      isNotNull,
     );
   });
 
@@ -60,16 +69,29 @@ void main() {
     final tracker = GoogleAuthMigrationTracker();
 
     expect(
-      tracker.record(_testMigration(batchId: 42, batchSize: 3, batchIndex: 2)),
-      false,
+      tracker.add(_testMigration(batchId: 42, batchSize: 3, batchIndex: 2)),
+      isNull,
     );
     expect(
-      tracker.record(_testMigration(batchId: 42, batchSize: 3, batchIndex: 0)),
-      false,
+      tracker.add(_testMigration(batchId: 42, batchSize: 3, batchIndex: 0)),
+      isNull,
     );
     expect(
-      tracker.record(_testMigration(batchId: 42, batchSize: 3, batchIndex: 1)),
-      true,
+      tracker.add(_testMigration(batchId: 42, batchSize: 3, batchIndex: 1)),
+      isNotNull,
+    );
+  });
+
+  test('accepts multi-batch exports with a zero batch id', () {
+    final tracker = GoogleAuthMigrationTracker();
+
+    expect(
+      tracker.add(_testMigration(batchId: 0, batchSize: 2, batchIndex: 0)),
+      isNull,
+    );
+    expect(
+      tracker.add(_testMigration(batchId: 0, batchSize: 2, batchIndex: 1)),
+      isNotNull,
     );
   });
 
@@ -77,37 +99,31 @@ void main() {
     final tracker = GoogleAuthMigrationTracker();
 
     expect(
-      tracker.record(_testMigration(batchId: 42, batchSize: 2, batchIndex: 0)),
-      false,
+      tracker.add(_testMigration(batchId: 42, batchSize: 2, batchIndex: 0)),
+      isNull,
     );
     expect(
-      tracker.record(_testMigration(batchId: 42, batchSize: 2, batchIndex: 0)),
-      false,
+      tracker.add(_testMigration(batchId: 42, batchSize: 2, batchIndex: 0)),
+      isNull,
     );
     expect(
-      tracker.record(_testMigration(batchId: 7, batchSize: 2, batchIndex: 1)),
-      false,
+      () =>
+          tracker.add(_testMigration(batchId: 7, batchSize: 2, batchIndex: 1)),
+      throwsFormatException,
     );
     expect(
-      tracker.record(_testMigration(batchId: 42, batchSize: 2, batchIndex: 1)),
-      true,
+      tracker.add(_testMigration(batchId: 42, batchSize: 2, batchIndex: 1)),
+      isNotNull,
     );
   });
 
-  test('does not complete without valid migration batch metadata', () {
+  test('rejects invalid migration batch metadata', () {
     final tracker = GoogleAuthMigrationTracker();
 
     expect(
-      tracker.record(_testMigration(batchId: 0, batchSize: 2, batchIndex: 1)),
-      false,
-    );
-    expect(
-      tracker.record(_testMigration(batchId: 42, batchSize: 0, batchIndex: 0)),
-      false,
-    );
-    expect(
-      tracker.record(_testMigration(batchId: 42, batchSize: 2, batchIndex: 2)),
-      false,
+      () =>
+          tracker.add(_testMigration(batchId: 42, batchSize: 2, batchIndex: 2)),
+      throwsFormatException,
     );
   });
 

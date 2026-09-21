@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/services/library_sharing_service.dart';
+import 'package:photos/ui/sharing/widgets/sharing_role.dart';
 
 List<EntePopupMenuOption<CollectionParticipantRole>> librarySharingRoleOptions(
   BuildContext context, {
@@ -15,7 +16,7 @@ List<EntePopupMenuOption<CollectionParticipantRole>> librarySharingRoleOptions(
         value: role,
         label: librarySharingRoleLabel(context, role),
         leadingWidget: HugeIcon(
-          icon: librarySharingRoleIcon(role),
+          icon: sharingRoleIcon(role),
           size: IconSizes.small,
           strokeWidth: 1.6,
         ),
@@ -49,7 +50,7 @@ class LibrarySharingRoleBadge extends StatelessWidget {
           ),
           child: Center(
             child: HugeIcon(
-              icon: librarySharingRoleIcon(role),
+              icon: sharingRoleIcon(role),
               size: IconSizes.micro,
               color: colors.textBase,
               strokeWidth: 1.8,
@@ -88,7 +89,7 @@ class LibrarySharingRoleSelector extends StatelessWidget {
         children: [
           if (role != null) ...[
             HugeIcon(
-              icon: librarySharingRoleIcon(role!),
+              icon: sharingRoleIcon(role!),
               size: IconSizes.small,
               color: colors.textBase,
               strokeWidth: 1.8,
@@ -112,14 +113,6 @@ class LibrarySharingRoleSelector extends StatelessWidget {
       ),
     );
   }
-}
-
-List<List<dynamic>> librarySharingRoleIcon(CollectionParticipantRole role) {
-  return switch (role) {
-    CollectionParticipantRole.admin => HugeIcons.strokeRoundedCrown02,
-    CollectionParticipantRole.collaborator => HugeIcons.strokeRoundedUserGroup,
-    _ => HugeIcons.strokeRoundedView,
-  };
 }
 
 String librarySharingRoleLabel(

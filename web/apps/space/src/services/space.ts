@@ -43,6 +43,8 @@ import {
     spaceProfileTextField,
 } from "services/profile-payload";
 import { normalizeSpaceMessageText } from "utils/message-limits";
+import { spacePostDeletedEvent } from "utils/post-events";
+import { postQuoteErrorState, postQuotePhotoIndex } from "utils/post-quote";
 
 export { clearSpaceMediaURLCache } from "services/media-cache";
 
@@ -79,9 +81,16 @@ export interface SpacePostAsset {
     spaceId: string;
 }
 
-export interface SpacePost extends SpacePostBase {
+export interface SpacePostPhoto {
+    height?: number;
     imageAsset?: SpacePostAsset;
     imageUrl?: string;
+    thumbHash?: string;
+    width?: number;
+}
+
+export interface SpacePost extends SpacePostBase, SpacePostPhoto {
+    photos?: SpacePostPhoto[];
 }
 
 export interface SpacePostPage {
@@ -89,10 +98,7 @@ export interface SpacePostPage {
     nextCursor?: string;
 }
 
-export interface SpaceProfilePost extends SpacePostBase {
-    imageAsset?: SpacePostAsset;
-    imageUrl?: string;
-}
+export type SpaceProfilePost = SpacePost;
 
 export interface SpaceProfilePostPage {
     items: SpaceProfilePost[];
@@ -140,6 +146,9 @@ export type SpaceMessageKind = MessageResponse["kind"];
 export interface SpaceMessageQuote {
     imageUrl?: string;
     isUnavailable?: boolean;
+    hasLoadError?: boolean;
+    objectKey?: string;
+    photoCount?: number;
     postId: number;
     spaceId: string;
 }
@@ -154,6 +163,7 @@ export interface SpaceMessage {
     recipient: FriendProfile;
     replyMessageId?: string;
     replyPostId?: number;
+    replyObjectKey?: string;
     sender: FriendProfile;
     text: string;
     updatedAtMs: number;
@@ -163,12 +173,7 @@ export interface SpaceMessage {
 
 export type SpaceMessageActivityType = MessageConversationActivity["type"];
 
-export interface SpaceMessageActivityPost {
-    imageUrl?: string;
-    isDeleted?: boolean;
-    postId: number;
-    spaceId: string;
-}
+export type SpaceMessageActivityPost = SpaceMessageQuote;
 
 export interface SpaceMessageActivity {
     createdAtMs: number;
@@ -439,6 +444,14 @@ const cacheAccountPostAssetURL = async (
 const firstObject = (post: PostResponse) =>
     post.objects.find((object) => object.objectKey.trim()) ?? null;
 
+const postPhotosFromResponse = (post: PostResponse): SpacePostPhoto[] =>
+    post.objects.map((object) => ({
+        height: object.height,
+        imageAsset: postAssetFrom(post, object),
+        thumbHash: object.thumbHash,
+        width: object.width,
+    }));
+
 const postBaseFromResponse = (
     post: PostResponse,
     author: FriendProfile,
@@ -489,6 +502,7 @@ const postFromAccountPost = async (
         height: object.height,
         imageAsset: postAssetFrom(post, object),
         imageUrl,
+        photos: postPhotosFromResponse(post),
         thumbHash: object.thumbHash,
         width: object.width,
     };
@@ -506,6 +520,7 @@ const profilePostFromPost = (post: PostResponse): SpaceProfilePost => {
         avatarUrl: null,
         height: object.height,
         imageAsset: postAssetFrom(post, object),
+        photos: postPhotosFromResponse(post),
         thumbHash: object.thumbHash,
         width: object.width,
     };
@@ -618,13 +633,18 @@ const messageQuoteFromPostResponse = async (
     post: PostResponse,
     includeImage: boolean,
     viewerSpaceId?: string,
+    objectKey?: string,
 ): Promise<SpaceMessageQuote> => {
-    const object = firstObject(post);
+    const photoIndex = postQuotePhotoIndex(post.objects, objectKey);
+    const object = post.objects[photoIndex];
     const quote: SpaceMessageQuote = {
+        objectKey,
+        photoCount: post.objects.length,
         postId: post.postId,
         spaceId: post.spaceId,
     };
-    if (!includeImage || !object) return quote;
+    if (!object || post.isUnavailable) return { ...quote, isUnavailable: true };
+    if (!includeImage) return quote;
 
     try {
         const imageUrl = await accountPostAssetURL(
@@ -640,7 +660,7 @@ const messageQuoteFromPostResponse = async (
         quote.imageUrl = imageUrl;
     } catch (error) {
         log.warn("Failed to load quoted post image", error);
-        quote.isUnavailable = true;
+        Object.assign(quote, postQuoteErrorState(error));
     }
     return quote;
 };
@@ -656,6 +676,7 @@ const messageQuoteFromReplyPost = async (
     }
 
     const fallbackQuote: SpaceMessageQuote = {
+        objectKey: message.replyObjectKey,
         postId: message.replyPostId,
         spaceId: message.recipientSpaceId,
     };
@@ -672,10 +693,11 @@ const messageQuoteFromReplyPost = async (
             post,
             includeImage,
             viewerSpaceId,
+            message.replyObjectKey,
         );
     } catch (error) {
         log.warn("Failed to load quoted post", error);
-        return { ...fallbackQuote, isUnavailable: true };
+        return { ...fallbackQuote, ...postQuoteErrorState(error) };
     }
 };
 
@@ -719,6 +741,7 @@ const messageFromSpaceMessage = async (
         recipient,
         replyMessageId: message.replyMessageId,
         replyPostId: message.replyPostId,
+        replyObjectKey: message.replyObjectKey,
         sender,
         text: message.text,
         updatedAtMs: timestampMsFromSpaceDate(message.updatedAt),
@@ -732,14 +755,17 @@ const messageActivityPostFromActivity = (
     if (typeof activity.postId != "number" || !activity.postSpaceId) {
         return undefined;
     }
-    return { postId: activity.postId, spaceId: activity.postSpaceId };
+    return {
+        postId: activity.postId,
+        spaceId: activity.postSpaceId,
+        objectKey: activity.replyObjectKey,
+    };
 };
 
 export const loadCurrentMessageActivityPostPreview = async (
     post: SpaceMessageActivityPost,
     viewerSpaceId?: string,
 ): Promise<SpaceMessageActivityPost | undefined> => {
-    if (post.isDeleted) return post;
     const ctx = await ensureCurrentSpaceContext();
     try {
         const response = await ctx.getPost(
@@ -747,17 +773,13 @@ export const loadCurrentMessageActivityPostPreview = async (
             BigInt(post.postId),
             viewerSpaceId ?? null,
         );
-        const quote = await messageQuoteFromPostResponse(
+        return await messageQuoteFromPostResponse(
             ctx,
             response,
             true,
             viewerSpaceId,
+            post.objectKey,
         );
-        return {
-            ...post,
-            imageUrl: quote.imageUrl,
-            isDeleted: quote.isUnavailable,
-        };
     } finally {
         releaseCurrentSpaceContext(ctx);
     }
@@ -1132,37 +1154,36 @@ export const loadCurrentFriendAvatarURL = async (
 
 export const createCurrentPhotoPost = async ({
     caption,
-    file,
-    height,
+    images,
     spaceId,
-    thumbHash,
-    width,
 }: {
     caption?: string;
-    file: File;
-    height?: number;
+    images: { file: File; height: number; width: number; thumbHash: string }[];
     spaceId: string;
-    thumbHash: string;
-    width?: number;
 }) => {
     const ctx = await ensureCurrentSpaceContext();
     try {
-        const bytes = new Uint8Array(await file.arrayBuffer());
-        const normalizedWidth = normalizedImageDimension(width);
-        const normalizedHeight = normalizedImageDimension(height);
+        const photos = await Promise.all(
+            images.map(async (image) => ({
+                bytes: new Uint8Array(await image.file.arrayBuffer()),
+                options: {
+                    width: normalizedImageDimension(image.width),
+                    height: normalizedImageDimension(image.height),
+                    mediaType: image.file.type || undefined,
+                    thumbHash: image.thumbHash || undefined,
+                },
+            })),
+        );
         const created = await ctx.createPhotoPost(
             spaceId,
-            bytes,
+            photos,
             caption?.trim() || null,
-            {
-                width: normalizedWidth,
-                height: normalizedHeight,
-                mediaType: file.type || undefined,
-                thumbHash: thumbHash || undefined,
-            },
         );
-        const object = firstObject(created);
-        if (object) await cacheAccountPostAssetURL(created, object, file);
+        await Promise.all(
+            created.objects.map((object, index) =>
+                cacheAccountPostAssetURL(created, object, images[index]!.file),
+            ),
+        );
         const post = await postFromAccountPost(ctx, created, true, spaceId);
         await prependCachedSpaceFeedPost(spaceId, post);
         return post;
@@ -1195,6 +1216,7 @@ export const replyToCurrentPost = async (
     postSpaceId: string,
     postId: number,
     text: string,
+    objectKey: string,
 ) => {
     const messageText = normalizeSpaceMessageText(text);
     const ctx = await ensureCurrentSpaceContext();
@@ -1204,6 +1226,7 @@ export const replyToCurrentPost = async (
             postSpaceId,
             BigInt(postId),
             messageText,
+            objectKey,
         );
     } finally {
         releaseCurrentSpaceContext(ctx);
@@ -1483,6 +1506,7 @@ export const deleteCurrentPost = async (spaceId: string, postId: number) => {
     const ctx = await ensureCurrentSpaceContext();
     try {
         await ctx.deletePost(spaceId, BigInt(postId));
+        window.dispatchEvent(new Event(spacePostDeletedEvent));
         await removeCachedSpaceFeedPost(spaceId, postId);
     } finally {
         releaseCurrentSpaceContext(ctx);

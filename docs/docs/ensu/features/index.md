@@ -42,6 +42,7 @@ Attach images to your messages and ask the model about them.
 
 - Click the attachment icon in the composer and choose an image.
 - Drag and drop images onto the composer.
+- A progress indicator appears while Ensu prepares the image.
 - Click a preview thumbnail to expand it full-screen, or click the close icon to remove it.
 
 The image is resized to the model's input size on your device before the model sees it. The image data never leaves the device. Image attachments are not available on the web version yet.
@@ -53,6 +54,20 @@ Tap the microphone in the chat composer and speak your prompt. Ensu transcribes 
 On iOS and Android, the first use of voice input downloads the Parakeet transcription model and the Silero VAD model from `models.ente.com` if they are not already cached. After that, transcription works fully offline. Your voice is never sent to Ente or any cloud transcription service.
 
 Voice input is not available on desktop or the web version.
+
+### Chat with your Markdown notes (iOS, Android, desktop)
+
+Ensu can answer questions using Markdown notes stored in a folder on your device. Open **Settings → Your Notes**, choose **Add notes folder**, and select the folder you want Ensu to index.
+
+Ensu finds relevant passages locally and includes source links with grounded answers. It reads and indexes the Markdown files without modifying the originals. Removing a folder from Ensu also leaves the source files untouched.
+
+Your Notes is not available on the web version yet.
+
+### Ensu Packs (iOS, Android, desktop)
+
+Ensu Packs are optional, downloadable knowledge packs that help ground answers in sources such as Wikipedia and Wikibooks. Open **Settings → Ensu Packs** to download a pack and enable or disable it. Grounded answers include source attribution.
+
+Ensu Packs are not available on the web version yet.
 
 ### Resumable model downloads
 
@@ -72,6 +87,8 @@ Click or tap a session to switch to it. The composer remembers any in-progress t
 ### Session search
 
 Click the search icon at the top of the sidebar to filter sessions by title. The title is generated automatically from the first messages of each chat.
+
+On desktop, use the rename button beside a session in the sidebar to give the chat your own title.
 
 ### Edit messages
 
@@ -116,7 +133,7 @@ The in-app **What's new** dialog shows the latest changelog entries on each plat
 - No account is required.
 - No analytics, no telemetry, and no tracking of your prompts.
 - Chats, attachments, and voice input never leave your device.
-- Model downloads are the only chat-related network traffic: chat models download from Hugging Face, and voice input on iOS and Android downloads the Parakeet and Silero VAD transcription models from `models.ente.com` if they are not cached.
+- Chat models download from Hugging Face. Voice input on iOS and Android downloads the Parakeet and Silero VAD transcription models from `models.ente.com` if they are not cached. Ensu Packs are downloaded only when you choose to install them.
 
 Learn more in [How it works](/ensu/how-it-works).
 
