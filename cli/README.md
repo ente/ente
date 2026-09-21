@@ -74,7 +74,7 @@ go run main.go docs
 
 ## Docker
 
-If you fancy Docker, you can also run the CLI within a container.
+For Docker, you can also run the CLI within a container.
 
 ### Configure
 
