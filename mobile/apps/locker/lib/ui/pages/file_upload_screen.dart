@@ -247,6 +247,15 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
             ),
           ),
           const SizedBox(width: 12),
+          IconButtonComponent(
+            tooltip: context.strings.renameFile,
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedEdit02,
+              color: colors.textLight,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
               setState(() {
