@@ -72,11 +72,20 @@ class FileUploader {
     }
   }
 
-  Future<EnteFile> upload(File file, Collection collection) {
+  Future<EnteFile> upload(
+    File file,
+    Collection collection, {
+    String? fileName,
+  }) {
     _totalCountInUploadSession++;
     final String path = file.path;
     final completer = Completer<EnteFile>();
-    _queue[path] = FileUploadItem(file, collection, completer);
+    _queue[path] = FileUploadItem(
+      file,
+      collection,
+      completer,
+      fileName: fileName,
+    );
     _allBackups[path] = BackupItem(
       status: BackupItemStatus.inQueue,
       file: file,
@@ -213,6 +222,7 @@ class FileUploader {
         _encryptAndUploadFileToCollection(
           pendingEntry.file,
           pendingEntry.collection,
+          fileName: pendingEntry.fileName,
         );
       }
     }
@@ -222,12 +232,18 @@ class FileUploader {
     File file,
     Collection collection, {
     bool forcedUpload = false,
+    String? fileName,
   }) async {
     _uploadCounter++;
     final path = file.path;
     try {
-      final uploadedFile = await _tryToUpload(file, collection, forcedUpload)
-          .timeout(
+      final uploadedFile =
+          await _tryToUpload(
+            file,
+            collection,
+            forcedUpload,
+            fileName: fileName,
+          ).timeout(
             kFileUploadTimeout,
             onTimeout: () {
               const message = "Upload timed out for file";
@@ -281,8 +297,9 @@ class FileUploader {
   Future<EnteFile> _tryToUpload(
     File file,
     Collection collection,
-    bool forcedUpload,
-  ) async {
+    bool forcedUpload, {
+    String? fileName,
+  }) async {
     if (_allBackups[file.path] != null &&
         _allBackups[file.path]!.status != BackupItemStatus.uploading) {
       _allBackups[file.path] = _allBackups[file.path]!.copyWith(
@@ -384,7 +401,7 @@ class FileUploader {
         fileMd5,
       );
 
-      final enteFile = EnteFile.fromFile(file);
+      final enteFile = EnteFile.fromFile(file, fileName: fileName);
 
       final encryptedMetadataResult = await CryptoUtil.encryptData(
         utf8.encode(jsonEncode(enteFile.metadata)),
@@ -809,6 +826,7 @@ class FileUploader {
 
 class FileUploadItem {
   final File file;
+  final String? fileName;
   final Collection collection;
   final Completer<EnteFile> completer;
   UploadStatus status;
@@ -817,6 +835,7 @@ class FileUploadItem {
     this.file,
     this.collection,
     this.completer, {
+    this.fileName,
     this.status = UploadStatus.notStarted,
   });
 }

@@ -126,6 +126,7 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
           final fileUploadFuture = FileUploader.instance.upload(
             file,
             uploadResult.selectedCollections.first,
+            fileName: uploadResult.fileNames[file.path],
           );
           futures.add(
             fileUploadFuture.then<void>(

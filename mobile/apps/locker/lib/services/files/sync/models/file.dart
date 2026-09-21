@@ -48,10 +48,10 @@ class EnteFile {
 
   static final _logger = Logger('File');
 
-  static EnteFile fromFile(File file) {
+  static EnteFile fromFile(File file, {String? fileName}) {
     final enteFile = EnteFile();
     enteFile.localPath = file.path;
-    enteFile.title = file.path.split('/').last;
+    enteFile.title = fileName ?? file.path.split('/').last;
     enteFile.creationTime = file.statSync().changed.millisecondsSinceEpoch;
     enteFile.modificationTime = file.statSync().modified.millisecondsSinceEpoch;
     enteFile.fileType = FileType.other;
