@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:locker/services/configuration.dart';
 import 'package:locker/services/files/download/file_downloader.dart'
     as file_downloader;
 import 'package:locker/services/files/offline/offline_file_storage.dart';
@@ -41,6 +43,40 @@ void main() {
         await root.delete(recursive: true);
       }
     });
+
+    for (final title in ['${'a' * 251}.pdf', '${'\u6587' * 83}ab.pdf']) {
+      test(
+        'stages a 255-byte filename with ${title.length} characters',
+        () async {
+          expect(utf8.encode(title).length, 255);
+          final file = lockerFile(uploadedFileID: 904, title: title);
+          final temporaryPath = file_downloader.getTemporaryDecryptedFilePath(
+            file,
+          );
+
+          final temporaryFile = await writeFile(
+            temporaryPath,
+            'downloaded bytes',
+          );
+
+          expect(await temporaryFile.readAsString(), 'downloaded bytes');
+          expect(file.displayName, title);
+          expect(
+            p.dirname(temporaryPath),
+            p.normalize(Configuration.instance.getTempDirectory()),
+          );
+          expect(temporaryPath, isNot(getCachedDecryptedFilePath(file)));
+          expect(
+            temporaryPath,
+            isNot(
+              file_downloader.getTemporaryDecryptedFilePath(
+                lockerFile(uploadedFileID: 905, title: title),
+              ),
+            ),
+          );
+        },
+      );
+    }
 
     test(
       'returns ID-keyed cached decrypted copy and ignores localPath',

@@ -318,6 +318,7 @@ class FileUtil {
         name: baseName,
         bytes: bytes,
         fileExtension: fileExtension,
+        includeExtension: fileExtension.isNotEmpty,
         mimeType: MimeType.other,
       );
 

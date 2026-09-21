@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_network/network.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:locker/service_locator.dart';
 import 'package:locker/services/configuration.dart';
 import 'package:locker/services/db/locker_db.dart';
@@ -13,14 +14,13 @@ import 'package:locker/services/files/download/models/task.dart';
 import 'package:locker/services/files/offline/offline_file_storage.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 import 'package:logging/logging.dart';
-import 'package:path/path.dart' as p;
 
 final _logger = Logger("FileDownloader");
 
-String _getTemporaryDecryptedFilePath(EnteFile file) {
+@visibleForTesting
+String getTemporaryDecryptedFilePath(EnteFile file) {
   final String tempDir = Configuration.instance.getTempDirectory();
-  final String safeDisplayName = p.basename(file.displayName);
-  return "$tempDir${file.uploadedFileID}_$safeDisplayName";
+  return "$tempDir${file.uploadedFileID}.decrypted";
 }
 
 Future<File> ensureEncryptedOfflineCopy(
@@ -143,7 +143,7 @@ Future<File?> openFile(
     final String logPrefix = 'File-${file.uploadedFileID}:';
     final int startTime = DateTime.now().millisecondsSinceEpoch;
     final String decryptedFilePath = useTemporaryDecryptedFile
-        ? _getTemporaryDecryptedFilePath(file)
+        ? getTemporaryDecryptedFilePath(file)
         : getCachedDecryptedFilePath(file);
     final File decryptedFile = File(decryptedFilePath);
     final int sizeInBytes =
@@ -221,7 +221,7 @@ Future<File?> downloadAndDecrypt(
 
   final String decryptedFilePath = shouldUseCache
       ? cachedDecryptedFilePath
-      : _getTemporaryDecryptedFilePath(file);
+      : getTemporaryDecryptedFilePath(file);
   final File decryptedFile = File(decryptedFilePath);
 
   final startTime = DateTime.now().millisecondsSinceEpoch;
