@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 const _offlineEncryptedDirName = 'offline_documents';
 const _openHandoffDirName = 'open_handoff';
+const _decryptedCacheSuffix = '.decrypted';
 final _logger = Logger('OfflineFileStorage');
 
 String _safeExtension(String fileName) {
@@ -37,7 +38,16 @@ String getPreferredFileExtension(
     return nameExtension;
   }
 
-  final pathExtension = _safeExtension(fallbackPath ?? '');
+  final path = fallbackPath ?? '';
+  final uploadedFileID = file?.uploadedFileID;
+  final isInternalDecryptedCache =
+      uploadedFileID != null &&
+      p.basename(path) == '$uploadedFileID$_decryptedCacheSuffix';
+  if (isInternalDecryptedCache) {
+    return '';
+  }
+
+  final pathExtension = _safeExtension(path);
   if (pathExtension.isNotEmpty) {
     return pathExtension;
   }
@@ -48,7 +58,7 @@ String getPreferredFileExtension(
 String getCachedDecryptedFilePath(EnteFile file) {
   final String cacheDir = Configuration.instance.getCacheDirectory();
   final String extension = getPreferredFileExtension(file);
-  return "$cacheDir${file.uploadedFileID}.decrypted$extension";
+  return "$cacheDir${file.uploadedFileID}$_decryptedCacheSuffix$extension";
 }
 
 String getOpenHandoffDirectoryPath() {

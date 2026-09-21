@@ -199,6 +199,26 @@ void main() {
       },
     );
 
+    test(
+      'opens a maximum-length extensionless name from the decrypted cache',
+      () async {
+        final displayName = 'a' * 255;
+        final file = lockerFile(uploadedFileID: 659, title: displayName);
+        final source = File(getCachedDecryptedFilePath(file));
+        await source.writeAsString('extensionless bytes');
+
+        final handoffFile = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: displayName,
+          lockerFile: file,
+        );
+
+        expect(p.basename(source.path), '659.decrypted');
+        expect(p.basename(handoffFile.path), displayName);
+        expect(await handoffFile.readAsString(), 'extensionless bytes');
+      },
+    );
+
     test('sanitizes display names before creating the handoff copy', () async {
       final source = File(p.join(root.path, 'source.bin'));
       await source.writeAsString('safe bytes');
