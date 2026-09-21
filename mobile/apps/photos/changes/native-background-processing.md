@@ -1,0 +1,1 @@
+- Internal users now use Ente's native background manager to schedule the existing sync and ML tasks. Other users continue using Workmanager.

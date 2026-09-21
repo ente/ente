@@ -1041,7 +1041,7 @@ export const loadCurrentSpaceProfilePostsPage = async (
                 spaceId,
                 viewerSpaceId ?? null,
                 cursor ?? null,
-                60,
+                250,
             ),
         );
         return page;

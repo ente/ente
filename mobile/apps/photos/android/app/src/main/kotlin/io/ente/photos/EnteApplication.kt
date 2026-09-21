@@ -11,6 +11,7 @@ import dev.fluttercommunity.workmanager.TaskDebugInfo
 import dev.fluttercommunity.workmanager.TaskResult
 import dev.fluttercommunity.workmanager.WorkmanagerDebug
 import dev.fluttercommunity.workmanager.pigeon.TaskStatus
+import io.ente.background.BackgroundManagerPlugin
 import org.json.JSONObject
 import kotlin.random.Random
 
@@ -19,6 +20,14 @@ class EnteApplication : Application() {
     super.onCreate()
     WorkmanagerDebug.setCurrent(EnteWorkmanagerDebugHandler())
     ForegroundHeartbeat.install(this)
+    BackgroundManagerPlugin.install(this) {
+      val prefs = getSharedPreferences(FLUTTER_SHARED_PREFERENCES, Context.MODE_PRIVATE)
+      !prefs.getBoolean(INTERNAL_USER_DISABLED_KEY, false) &&
+        runCatching {
+            JSONObject(prefs.getString(REMOTE_FLAGS_KEY, "{}") ?: "{}").opt("internalUser") == true
+          }
+          .getOrDefault(false)
+    }
   }
 
   companion object {

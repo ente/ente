@@ -3,6 +3,7 @@ import Flutter
 import UIKit
 import UserNotifications
 import app_links
+import ente_background_manager
 import workmanager_apple
 
 @main
@@ -33,6 +34,14 @@ import workmanager_apple
     }
 
     GeneratedPluginRegistrant.register(with: self)
+    BackgroundManagerPlugin.install(
+      isEnabled: { Self.shouldUseNativeBackgroundManager() },
+      registrant: { registry in GeneratedPluginRegistrant.register(with: registry) }
+    )
+    BackgroundManagerPlugin.registerTask(
+      identifier: "io.ente.photos.nativeBackgroundRefresh", processing: false)
+    BackgroundManagerPlugin.registerTask(
+      identifier: "io.ente.photos.nativeBackgroundProcessing", processing: true)
     WorkmanagerPlugin.setPluginRegistrantCallback { registry in
       GeneratedPluginRegistrant.register(with: registry)
     }
@@ -61,6 +70,20 @@ import workmanager_apple
     WorkmanagerDebug.setCurrent(
       NotificationDebugHandler(threadIdentifier: Self.workmanagerDebugThreadIdentifier)
     )
+  }
+
+  private static func shouldUseNativeBackgroundManager() -> Bool {
+    let defaults = UserDefaults.standard
+    guard !defaults.bool(forKey: "flutter.ls.internal_user_disabled") else {
+      return false
+    }
+    guard let remoteFlags = defaults.string(forKey: "flutter.remote_flags"),
+      let data = remoteFlags.data(using: .utf8),
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else {
+      return false
+    }
+    return json["internalUser"] as? Bool ?? false
   }
 
   private func shouldEnableWorkmanagerDebugNotifications() -> Bool {

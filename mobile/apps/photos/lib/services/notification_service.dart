@@ -281,6 +281,34 @@ class NotificationService {
     );
   }
 
+  Future<void> showBackgroundDebugNotification(
+    String title,
+    String message,
+  ) async {
+    await _ensurePluginInitialized();
+    const channelID = "io.ente.photos.background.debug";
+    const androidSpecs = AndroidNotificationDetails(
+      channelID,
+      "Background debug",
+      importance: Importance.min,
+      priority: Priority.min,
+      playSound: false,
+      enableVibration: false,
+      icon: 'notification_icon',
+    );
+    const iosSpecs = DarwinNotificationDetails(
+      threadIdentifier: channelID,
+      presentSound: false,
+    );
+    await _notificationsPlugin.show(
+      DateTime.now().microsecondsSinceEpoch.remainder(1 << 31),
+      title,
+      message,
+      const NotificationDetails(android: androidSpecs, iOS: iosSpecs),
+      payload: "ente://home",
+    );
+  }
+
   Future<void> scheduleNotification(
     String title, {
     String? message,

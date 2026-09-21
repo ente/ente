@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 import { SpaceBackIcon } from "components/BackIcon";
 import { SpaceButtonSpinner } from "components/ButtonSpinner";
+import { SpaceLiveStatus } from "components/LiveStatus";
 import {
     estimatePasswordStrength,
     type PasswordStrength,
@@ -201,7 +202,15 @@ const TextInput: React.FC<TextInputProps> = ({
             >
                 <Box sx={{ display: "flex", gap: "2px", minWidth: 0 }}>
                     <Box component="span">{label}</Box>
-                    {required && <Box sx={{ color: warning }}>*</Box>}
+                    {required && (
+                        <Box
+                            component="span"
+                            aria-hidden
+                            sx={{ color: warning }}
+                        >
+                            *
+                        </Box>
+                    )}
                 </Box>
                 {labelAccessory}
             </Box>
@@ -248,9 +257,8 @@ const TextInput: React.FC<TextInputProps> = ({
                     <Box
                         component="button"
                         type="button"
-                        aria-label={
-                            showPassword ? "Hide password" : "Show password"
-                        }
+                        aria-label="Show password"
+                        aria-pressed={showPassword}
                         onClick={() => setShowPassword((value) => !value)}
                         sx={{
                             alignItems: "center",
@@ -346,6 +354,9 @@ export const CreateAccountScreen: React.FC<CreateAccountScreenProps> = ({
                 placeItems: { xs: "stretch", sm: "start center" },
             }}
         >
+            <SpaceLiveStatus>
+                {isSubmitting ? "Creating account" : ""}
+            </SpaceLiveStatus>
             <Box
                 sx={{
                     bgcolor: "transparent",

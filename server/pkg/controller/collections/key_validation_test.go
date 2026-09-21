@@ -3,6 +3,7 @@ package collections
 import (
 	"encoding/base64"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ente/museum/ente"
@@ -97,13 +98,13 @@ func TestValidateSealedCollectionKey(t *testing.T) {
 }
 
 func TestValidateCollectionKeyRejectsInvalidBase64(t *testing.T) {
-	if err := validateSealedCollectionKey("not-base64@@@"); err == nil {
+	if err := validateSealedCollectionKey(strings.Repeat("!", len(b64OfLen(sealedCollectionKeyLen)))); err == nil {
 		t.Fatal("validateSealedCollectionKey() error = nil, want error")
 	}
-	if err := validateOwnedCollectionKey("not-base64@@@", b64OfLen(secretboxNonceBytes)); err == nil {
+	if err := validateOwnedCollectionKey(strings.Repeat("!", len(b64OfLen(encryptedCollectionKeyLen))), b64OfLen(secretboxNonceBytes)); err == nil {
 		t.Fatal("validateOwnedCollectionKey() encryptedKey error = nil, want error")
 	}
-	if err := validateOwnedCollectionKey(b64OfLen(encryptedCollectionKeyLen), "not-base64@@@"); err == nil {
+	if err := validateOwnedCollectionKey(b64OfLen(encryptedCollectionKeyLen), strings.Repeat("!", len(b64OfLen(secretboxNonceBytes)))); err == nil {
 		t.Fatal("validateOwnedCollectionKey() keyDecryptionNonce error = nil, want error")
 	}
 }

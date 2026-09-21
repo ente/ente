@@ -14,6 +14,8 @@ PODS:
     - FlutterMacOS
   - device_info_plus (0.0.1):
     - Flutter
+  - ente_background_manager (0.0.1):
+    - Flutter
   - ente_cast (0.0.1):
     - Flutter
   - ente_mail (0.0.1):
@@ -249,6 +251,7 @@ DEPENDENCIES:
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - cupertino_http (from `.symlinks/plugins/cupertino_http/darwin`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
+  - ente_background_manager (from `.symlinks/plugins/ente_background_manager/ios`)
   - ente_cast (from `.symlinks/plugins/ente_cast/ios`)
   - ente_mail (from `.symlinks/plugins/ente_mail/ios`)
   - ente_panorama_viewer (from `.symlinks/plugins/ente_panorama_viewer/ios`)
@@ -337,6 +340,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/cupertino_http/darwin"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
+  ente_background_manager:
+    :path: ".symlinks/plugins/ente_background_manager/ios"
   ente_cast:
     :path: ".symlinks/plugins/ente_cast/ios"
   ente_mail:
@@ -448,6 +453,7 @@ SPEC CHECKSUMS:
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   cupertino_http: 94ac07f5ff090b8effa6c5e2c47871d48ab7c86c
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
+  ente_background_manager: f10e3bd64ccd32a3232f0fbacabdd5545af8d81e
   ente_cast: a25feb3127397e5fc6aff03a12120916707757d4
   ente_mail: 90753dd584f49ee092759a32d4143ca51db69641
   ente_panorama_viewer: 87bb22e7868c3005314f80c05ee0787aa07edcd8

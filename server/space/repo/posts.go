@@ -143,8 +143,8 @@ func (r *PostsRepository) GetPost(ctx context.Context, postID int64, viewerSpace
 
 func (r *PostsRepository) ListPostsBySpace(ctx context.Context, spaceID string, viewerSpaceID string, cursor string, limit int) ([]SpacePostRecord, string, error) {
 	limit = optionalInt(limit, 50)
-	if limit > 100 {
-		limit = 100
+	if limit > MaxPostsPerSpace {
+		limit = MaxPostsPerSpace
 	}
 	args := []any{spaceID, viewerSpaceID}
 	query := postRecordSelectSQL(`

@@ -8,6 +8,7 @@ const activeFill = "rgba(8, 194, 37, 0.08)";
 
 interface SpaceOtpInputProps {
     ariaLabel: string;
+    errorMessageID?: string;
     onChange: (value: string) => void;
     value: string;
 }
@@ -15,7 +16,7 @@ interface SpaceOtpInputProps {
 export const SpaceOtpInput = React.forwardRef<
     HTMLInputElement,
     SpaceOtpInputProps
->(({ ariaLabel, onChange, value }, ref) => {
+>(({ ariaLabel, errorMessageID, onChange, value }, ref) => {
     const [activeIndex, setActiveIndex] = React.useState<number | undefined>(
         value.length < spaceOTPCodeLength ? value.length : undefined,
     );
@@ -174,7 +175,10 @@ export const SpaceOtpInput = React.forwardRef<
                 component="input"
                 ref={ref}
                 aria-label={ariaLabel}
+                aria-describedby={errorMessageID}
+                aria-invalid={Boolean(errorMessageID)}
                 autoComplete="one-time-code"
+                required
                 inputMode="numeric"
                 maxLength={spaceOTPCodeLength}
                 onBeforeInput={handleBeforeInput}

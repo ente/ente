@@ -484,7 +484,6 @@ const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
 interface ProfileScreenProps {
     friendsCount?: number;
     headerVariant?: "friend" | "owner" | "public" | "public-anonymous";
-    initialSection?: "latest";
     isAddingFriend?: boolean;
     showAddingFriendSpinner?: boolean;
     isCoverLoading?: boolean;
@@ -528,7 +527,6 @@ interface ProfileScreenProps {
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     friendsCount = 0,
     headerVariant = "owner",
-    initialSection,
     isAddingFriend = false,
     isCoverLoading = false,
     isNameLoading = false,
@@ -588,7 +586,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const [loadedCoverUrl, setLoadedCoverUrl] = useState<string | null>(null);
     const [postGridWidth, setPostGridWidth] = useState(0);
     const postGridRef = React.useRef<HTMLDivElement | null>(null);
-    const hasScrolledToLatestPost = React.useRef(false);
     const postInputRef = React.useRef<HTMLInputElement | null>(null);
     const postImageLoadsInFlightRef = React.useRef<
         Map<string, Promise<string | undefined>>
@@ -640,23 +637,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         observer.observe(grid);
         return () => observer.disconnect();
     }, [hasProfilePosts]);
-    React.useLayoutEffect(() => {
-        if (
-            initialSection != "latest" ||
-            !postGridWidth ||
-            hasScrolledToLatestPost.current
-        ) {
-            return;
-        }
-        const grid = postGridRef.current;
-        if (!grid) return;
-
-        window.scrollTo({
-            top: window.scrollY + grid.getBoundingClientRect().top - 16,
-            behavior: "instant",
-        });
-        hasScrolledToLatestPost.current = true;
-    }, [initialSection, postGridWidth]);
     const shouldShowPostLoadingIndicator =
         isPostsLoading && (showPostLoadingIndicator ?? true);
     const isCoverImageLoading = Boolean(

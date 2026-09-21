@@ -1,7 +1,8 @@
 import { Box } from "@mui/material";
 import { SpaceBackIcon } from "components/BackIcon";
 import { SpaceButtonSpinner } from "components/ButtonSpinner";
-import React, { useEffect, useRef, useState } from "react";
+import { SpaceLiveStatus } from "components/LiveStatus";
+import React, { useEffect, useId, useRef, useState } from "react";
 import {
     spaceAppBackground,
     spaceOnAccent,
@@ -36,6 +37,7 @@ interface LoginScreenProps {
 }
 
 interface TextInputProps {
+    autoComplete?: string;
     autoFocus?: boolean;
     inputRef?: React.Ref<HTMLInputElement>;
     label: string;
@@ -74,6 +76,7 @@ const EyeIcon: React.FC = () => (
 );
 
 const TextInput: React.FC<TextInputProps> = ({
+    autoComplete,
     autoFocus,
     inputRef,
     label,
@@ -84,6 +87,7 @@ const TextInput: React.FC<TextInputProps> = ({
     type = "text",
     value,
 }) => {
+    const inputID = useId();
     const [showPassword, setShowPassword] = useState(false);
     const internalInputRef = useRef<HTMLInputElement | null>(null);
     const isPassword = type == "password";
@@ -112,6 +116,7 @@ const TextInput: React.FC<TextInputProps> = ({
         <Box sx={{ width: "100%" }}>
             <Box
                 component="label"
+                htmlFor={inputID}
                 sx={{
                     color: textBase,
                     display: "flex",
@@ -124,7 +129,11 @@ const TextInput: React.FC<TextInputProps> = ({
                 }}
             >
                 {label}
-                {required && <Box sx={{ color: warning }}>*</Box>}
+                {required && (
+                    <Box component="span" aria-hidden sx={{ color: warning }}>
+                        *
+                    </Box>
+                )}
             </Box>
             <Box
                 sx={{
@@ -143,11 +152,14 @@ const TextInput: React.FC<TextInputProps> = ({
             >
                 <Box
                     component="input"
+                    id={inputID}
                     ref={setInputRef}
+                    autoComplete={autoComplete}
                     autoFocus={autoFocus}
                     onChange={(event) => onChange?.(event.target.value)}
                     placeholder={placeholder}
                     readOnly={readOnly}
+                    required={required}
                     type={isPassword && showPassword ? "text" : type}
                     value={value}
                     sx={{
@@ -170,9 +182,8 @@ const TextInput: React.FC<TextInputProps> = ({
                     <Box
                         component="button"
                         type="button"
-                        aria-label={
-                            showPassword ? "Hide password" : "Show password"
-                        }
+                        aria-label="Show password"
+                        aria-pressed={showPassword}
                         onClick={togglePasswordVisibility}
                         onPointerDown={(event) => event.preventDefault()}
                         sx={{
@@ -260,6 +271,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     const [email, setEmail] = useState(initialEmail ?? "");
     const [password, setPassword] = useState("");
     const passwordInputRef = useRef<HTMLInputElement | null>(null);
+    const continuePointerTypeRef = useRef("");
     const appliedInitialEmailRef = useRef<string | undefined>(initialEmail);
 
     useEffect(() => {
@@ -290,21 +302,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         if (canContinue) void onContinue?.({ email, password });
     };
 
-    const handleContinuePointerDown: React.PointerEventHandler<
-        HTMLButtonElement
-    > = (event) => {
-        if (event.pointerType != "touch") return;
-
-        event.preventDefault();
-        submitLogin();
-        if (document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-        }
-    };
-
     const handleSubmit: React.SubmitEventHandler<HTMLFormElement> = (event) => {
         event.preventDefault();
         submitLogin();
+    };
+
+    const handleContinueClick: React.MouseEventHandler<HTMLButtonElement> = (
+        event,
+    ) => {
+        if (
+            event.detail > 0 &&
+            continuePointerTypeRef.current == "touch" &&
+            document.activeElement instanceof HTMLElement
+        ) {
+            document.activeElement.blur();
+        }
     };
 
     return (
@@ -318,6 +330,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 placeItems: { xs: "stretch", sm: "start center" },
             }}
         >
+            <SpaceLiveStatus>
+                {isSubmitting ? "Signing in" : ""}
+            </SpaceLiveStatus>
             <Box
                 sx={{
                     bgcolor: "transparent",
@@ -402,6 +417,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     }}
                 >
                     <TextInput
+                        autoComplete="username"
                         label="Email"
                         onChange={readOnlyEmail ? undefined : setEmail}
                         placeholder="Enter your email"
@@ -411,6 +427,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         value={email}
                     />
                     <TextInput
+                        autoComplete="current-password"
                         label="Password"
                         inputRef={passwordInputRef}
                         onChange={setPassword}
@@ -461,7 +478,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         disabled={!canContinue}
                         aria-label={isSubmitting ? "Signing in" : undefined}
                         aria-busy={isSubmitting ? true : undefined}
-                        onPointerDown={handleContinuePointerDown}
+                        onPointerDown={(event) => {
+                            continuePointerTypeRef.current = event.pointerType;
+                        }}
+                        onClick={handleContinueClick}
                         sx={{
                             alignItems: "center",
                             bgcolor: isContinueButtonActive

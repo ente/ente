@@ -10,6 +10,9 @@ import (
 )
 
 func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []ente.CollectionFileItem, cID int64) error {
+	if err := validateCollectionFileItems(files); err != nil {
+		return err
+	}
 	resp, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
 		CollectionID:   cID,
 		ActorUserID:    userID,
@@ -50,6 +53,9 @@ func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []
 }
 
 func (c *CollectionController) RestoreFiles(ctx *gin.Context, userID int64, cID int64, files []ente.CollectionFileItem) error {
+	if err := validateCollectionFileItems(files); err != nil {
+		return err
+	}
 	_, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
 		CollectionID:   cID,
 		ActorUserID:    userID,
@@ -84,6 +90,9 @@ func (c *CollectionController) RestoreFiles(ctx *gin.Context, userID int64, cID 
 func (c *CollectionController) MoveFiles(ctx *gin.Context, req ente.MoveFilesRequest) error {
 	if req.FromCollectionID == req.ToCollectionID {
 		return ente.NewBadRequestWithMessage("source and destination collections must differ")
+	}
+	if err := validateCollectionFileItems(req.Files); err != nil {
+		return err
 	}
 	userID := auth.GetUserID(ctx.Request.Header)
 	r1, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{

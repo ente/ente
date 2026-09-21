@@ -21,6 +21,7 @@ import { SpaceCaptionText } from "components/CaptionText";
 import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
 import { spacePostLikePopDurationMs } from "components/post-like-animation";
 import { SpacePostPhotosCounter } from "components/PostPhotosCounter";
+import { SpacePostPhotosDots } from "components/PostPhotosDots";
 import { SpacePostReplyControls } from "components/PostReplyControls";
 import log from "ente-base/log";
 import type PhotoSwipe from "photoswipe";
@@ -253,7 +254,11 @@ const viewerCaptionTextSx = {
     whiteSpace: "pre-wrap",
 } as const;
 
-const SpaceViewerCaption: React.FC<{ caption: string }> = ({ caption }) => {
+const SpaceViewerPhotoOverlay: React.FC<{
+    caption: string;
+    photoIndex: number;
+    photoCount: number;
+}> = ({ caption, photoIndex, photoCount }) => {
     const bubbleRef = React.useRef<HTMLParagraphElement | null>(null);
     const [isLongCaption, setIsLongCaption] = React.useState(false);
 
@@ -276,19 +281,16 @@ const SpaceViewerCaption: React.FC<{ caption: string }> = ({ caption }) => {
     return (
         <>
             <Box
-                ref={bubbleRef}
-                component="p"
                 aria-hidden={isLongCaption || undefined}
                 data-space-viewer-chrome="true"
-                title={caption}
                 sx={{
-                    ...viewerCaptionTextSx,
+                    alignItems: "center",
                     bottom: "14%",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
                     left: "50%",
-                    m: 0,
-                    maxWidth: "78vw",
-                    minWidth: 0,
-                    overflowWrap: "break-word",
+                    pointerEvents: "none",
                     position: "fixed",
                     transform: "translateX(-50%)",
                     visibility: isLongCaption ? "hidden" : "visible",
@@ -296,35 +298,62 @@ const SpaceViewerCaption: React.FC<{ caption: string }> = ({ caption }) => {
                     zIndex: 2,
                 }}
             >
-                <SpaceCaptionText caption={caption} />
+                <SpacePostPhotosDots index={photoIndex} count={photoCount} />
+                <Box
+                    ref={bubbleRef}
+                    component="p"
+                    title={caption}
+                    sx={{
+                        ...viewerCaptionTextSx,
+                        display: caption ? "block" : "none",
+                        m: 0,
+                        minWidth: 0,
+                        overflowWrap: "break-word",
+                        width: "100%",
+                    }}
+                >
+                    <SpaceCaptionText caption={caption} />
+                </Box>
             </Box>
             {isLongCaption && (
                 <Box
-                    role="region"
-                    aria-label="Caption"
-                    tabIndex={0}
                     sx={{
-                        ...viewerCaptionTextSx,
-                        bgcolor: "rgba(32, 32, 32, 0.85)",
-                        borderRadius: "16px",
-                        boxSizing: "border-box",
-                        fontWeight: 400,
-                        lineHeight: "22px",
-                        maxHeight: "33svh",
-                        overflowWrap: "anywhere",
-                        overflowY: "auto",
-                        overscrollBehaviorY: "contain",
-                        p: "14px 16px",
-                        scrollbarWidth: "thin",
-                        textAlign: "left",
-                        textWrap: "wrap",
-                        "&:focus-visible": {
-                            outline: `2px solid ${green}`,
-                            outlineOffset: 2,
-                        },
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "16px",
                     }}
                 >
-                    {caption}
+                    <SpacePostPhotosDots
+                        index={photoIndex}
+                        count={photoCount}
+                    />
+                    <Box
+                        role="region"
+                        aria-label="Caption"
+                        tabIndex={0}
+                        sx={{
+                            ...viewerCaptionTextSx,
+                            bgcolor: "rgba(32, 32, 32, 0.85)",
+                            borderRadius: "16px",
+                            boxSizing: "border-box",
+                            fontWeight: 400,
+                            lineHeight: "22px",
+                            maxHeight: "33svh",
+                            overflowWrap: "anywhere",
+                            overflowY: "auto",
+                            overscrollBehaviorY: "contain",
+                            p: "14px 16px",
+                            scrollbarWidth: "thin",
+                            textAlign: "left",
+                            textWrap: "wrap",
+                            "&:focus-visible": {
+                                outline: `2px solid ${green}`,
+                                outlineOffset: 2,
+                            },
+                        }}
+                    >
+                        {caption}
+                    </Box>
                 </Box>
             )}
         </>
@@ -2130,7 +2159,10 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                     </Box>
                 </Box>
             )}
-            {(hasDisplayCaption || showPhotoLikeButton) &&
+            {!isDraftPost &&
+                (hasDisplayCaption ||
+                    showPhotoLikeButton ||
+                    postPhotoCount > 1) &&
                 !isCaptionEditing && (
                     <Box
                         data-space-viewer-bottom="true"
@@ -2148,10 +2180,12 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                             zIndex: 2,
                         }}
                     >
-                        {hasDisplayCaption && (
-                            <SpaceViewerCaption
+                        {(hasDisplayCaption || postPhotoCount > 1) && (
+                            <SpaceViewerPhotoOverlay
                                 key={activePostKey}
                                 caption={displayCaption}
+                                photoIndex={postPhotoIndex}
+                                photoCount={postPhotoCount}
                             />
                         )}
                         {showPhotoLikeButton && (

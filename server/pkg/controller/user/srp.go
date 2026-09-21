@@ -243,12 +243,10 @@ func (c *UserController) createAndInsertSRPSession(
 		return nil, nil, stacktrace.Propagate(err, "")
 	}
 	if unverifiedSessions >= MaxUnverifiedSessionInAnHour {
-		go c.DiscordController.NotifyPotentialAbuse(fmt.Sprintf("Too many unverified sessions for user %s", srpUserID.String()))
 		return nil, nil, stacktrace.Propagate(&ente.ApiError{
 			Code:           "TOO_MANY_UNVERIFIED_SESSIONS",
 			HttpStatusCode: http.StatusTooManyRequests,
 		}, "")
-
 	}
 
 	serverSecret := srp.GenKey()

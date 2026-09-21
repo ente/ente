@@ -39,6 +39,7 @@ export const VerifyTwoFactorScreen: React.FC<VerifyTwoFactorScreenProps> = ({
     onBack,
     onVerify,
 }) => {
+    const errorMessageID = React.useId();
     const initialOTP = sanitizeSpaceOTP(initialCode);
     const [otp, setOtp] = useState(initialOTP);
     const inputRef = useRef<HTMLInputElement | null>(null);
@@ -210,12 +211,16 @@ export const VerifyTwoFactorScreen: React.FC<VerifyTwoFactorScreenProps> = ({
                         <Box sx={{ width: "100%" }}>
                             <SpaceOtpInput
                                 ref={inputRef}
+                                errorMessageID={
+                                    errorMessage ? errorMessageID : undefined
+                                }
                                 ariaLabel="2FA code"
                                 onChange={setOtp}
                                 value={otp}
                             />
                             {errorMessage && (
                                 <Box
+                                    id={errorMessageID}
                                     role="alert"
                                     sx={{
                                         color: warning,

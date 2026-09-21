@@ -152,9 +152,7 @@ export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
                                 : replyActionPhase == "done"
                                   ? "Reply sent"
                                   : "Send reply"
-                            : liked
-                              ? "Unlike photo"
-                              : "Like photo"
+                            : "Like photo"
                     }
                     aria-pressed={isReplyMode ? undefined : liked}
                     aria-disabled={

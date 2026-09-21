@@ -150,7 +150,7 @@ const TextInput: React.FC<TextInputProps> = ({
         >
             {label}
             {required && (
-                <Box component="span" sx={{ color: warning }}>
+                <Box component="span" aria-hidden sx={{ color: warning }}>
                     *
                 </Box>
             )}
@@ -177,6 +177,7 @@ const TextInput: React.FC<TextInputProps> = ({
                 id={id}
                 onChange={(event) => onChange?.(event.target.value)}
                 placeholder={placeholder}
+                required={required}
                 type="text"
                 value={value}
                 sx={{

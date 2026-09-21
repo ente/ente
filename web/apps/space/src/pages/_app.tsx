@@ -26,6 +26,7 @@ import {
     spaceTextMuted,
 } from "styles/colors";
 import "styles/globals.css";
+import { spacePageTitle } from "utils/page-titles";
 
 const interFontURL = new URL(
     "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
@@ -116,7 +117,7 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
             storageManager={null}
         >
             <CustomHead
-                title="Ente Space"
+                title={spacePageTitle(router.pathname)}
                 viewportContent="width=device-width, initial-scale=1, maximum-scale=1"
             >
                 <link

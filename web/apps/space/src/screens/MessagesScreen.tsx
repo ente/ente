@@ -16,6 +16,7 @@ import {
     Popper,
 } from "@mui/material";
 import { SpaceAvatarImage } from "components/AvatarImage";
+import { SpaceLiveStatus } from "components/LiveStatus";
 import { SpacePostPhotoInput } from "components/PostPhotoInput";
 import { SpacePostPhotosBadge } from "components/PostPhotosBadge";
 import { SpaceLoadingSpinner } from "components/RouteFallback";
@@ -56,10 +57,9 @@ const outgoingBubble = "#176B2A";
 const incomingBubble = spaceSurface;
 const outgoingMessageText = "#FFFFFF";
 const incomingMessageText = spaceText;
-const outgoingQuoteBubble = "#124F21";
+const outgoingQuoteBubble = "#213425";
 const incomingQuoteBubble = spaceSurfaceHover;
 const incomingQuoteText = spaceTextMuted;
-const outgoingQuoteText = "#C7E8CE";
 const quoteRule = "#666666";
 const dangerColor = "#F63A3A";
 const composerHeight = 48;
@@ -1184,7 +1184,8 @@ const QuoteFrame: React.FC<{
     children: React.ReactNode;
     isOwn: boolean;
     mb?: string;
-}> = ({ children, isOwn, mb = "8px" }) => (
+    subtle?: boolean;
+}> = ({ children, isOwn, mb = "8px", subtle = false }) => (
     <Box
         sx={{
             alignItems: "stretch",
@@ -1201,7 +1202,7 @@ const QuoteFrame: React.FC<{
             aria-hidden
             sx={{
                 alignSelf: "stretch",
-                bgcolor: quoteRule,
+                bgcolor: subtle ? "#444444" : quoteRule,
                 borderRadius: "999px",
                 flexShrink: 0,
                 width: 3,
@@ -1223,14 +1224,12 @@ const MessageReplyPreview: React.FC<{
         : false;
 
     return (
-        <QuoteFrame isOwn={isOwn}>
+        <QuoteFrame isOwn={isOwn} subtle>
             <Box
                 sx={{
-                    bgcolor: parentIsOwn
-                        ? outgoingQuoteBubble
-                        : incomingQuoteBubble,
+                    bgcolor: parentIsOwn ? outgoingQuoteBubble : spaceSurface,
                     borderRadius,
-                    color: parentIsOwn ? outgoingQuoteText : incomingQuoteText,
+                    color: textSecondary,
                     fontFamily: '"Inter Variable", Inter, sans-serif',
                     fontSize: 13,
                     fontWeight: 600,
@@ -1649,11 +1648,6 @@ const MessageBubble: React.FC<{
                                     WebkitTouchCallout: "none",
                                     WebkitUserSelect: "none",
                                 },
-                                "&:hover": {
-                                    bgcolor: isOwn
-                                        ? outgoingBubble
-                                        : spaceSurfaceHover,
-                                },
                             }}
                         >
                             <Box
@@ -1749,6 +1743,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
     const [sendPhase, setSendPhase] = React.useState<"idle" | "sending">(
         "idle",
     );
+    const [actionStatus, setActionStatus] = React.useState("");
     const [isInviteSharing, setIsInviteSharing] = React.useState(false);
     const [activityPostsByKey, setActivityPostsByKey] = React.useState<
         Record<string, SpaceMessageActivityPost>
@@ -1886,6 +1881,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
         stickToThreadBottomRef.current = true;
         smoothNextMessageScrollRef.current = true;
         setSendPhase("sending");
+        setActionStatus("Sending message");
         setMessageText("");
         setReplyingTo(null);
         const sendPromise = repliedMessage
@@ -1894,6 +1890,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
         void sendPromise
             .then(() => {
                 setSendPhase("idle");
+                setActionStatus("Message sent");
             })
             .catch((error: unknown) => {
                 smoothNextMessageScrollRef.current = false;
@@ -1903,6 +1900,9 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                     (currentReplyingTo) => currentReplyingTo ?? repliedMessage,
                 );
                 setSendPhase("idle");
+                setActionStatus(
+                    "Couldn't send message. Your draft has been restored. Try again.",
+                );
             });
     };
 
@@ -2191,6 +2191,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
 
     return (
         <>
+            <SpaceLiveStatus>{actionStatus}</SpaceLiveStatus>
             <SpacePostPhotoInput
                 inputRef={postPhotoInputRef}
                 onSelect={onPostPhotoSelect}
@@ -2411,6 +2412,12 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                         <>
                             <Box
                                 ref={threadScrollRef}
+                                role="log"
+                                aria-label={`Messages with ${selectedName}`}
+                                aria-busy={
+                                    isThreadLoading || isThreadRecipientLoading
+                                }
+                                aria-relevant="additions text"
                                 onScroll={handleThreadScroll}
                                 sx={{
                                     boxSizing: "border-box",
@@ -2624,6 +2631,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                                                 }}
                                             >
                                                 <MenuList
+                                                    aria-label="Message actions"
                                                     autoFocus
                                                     onKeyDown={
                                                         handleMessageActionsKeyDown

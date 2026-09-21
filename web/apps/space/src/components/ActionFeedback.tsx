@@ -33,6 +33,7 @@ export const SpaceActionFeedbackIcon: React.FC<
     return (
         <Box
             component="span"
+            aria-hidden
             sx={{
                 display: "grid",
                 height: size,

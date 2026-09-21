@@ -250,10 +250,11 @@ Future<void> runBackgroundTask(
   String mode = 'normal',
   Duration? mlSelfStop,
   Duration? mlLockWait,
+  MlRunControl? control,
 }) async {
   // Created at task start so a stop that fires before ML begins stays
   // latched for the whole task.
-  final mlRunControl = MlRunControl();
+  final mlRunControl = control ?? MlRunControl();
   final mlBudget =
       mlSelfStop ??
       (Platform.isIOS ? kBGTaskMLSelfStopIOS : kBGTaskMLSelfStopAndroid);
