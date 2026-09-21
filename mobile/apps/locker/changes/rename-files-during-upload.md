@@ -1,0 +1,1 @@
+- Rename documents during the upload (@fosszil)
