@@ -7,16 +7,11 @@
     "description": "Title for active sessions page"
   },
   "add": "اضافه کردن",
-  "addAdmin": "اضافه کردن مدیر",
   "addANameAndPhoto": "اضافه کردن یک نام و عکس",
-  "addANewEmail": "افزودن ایمیل جدید",
   "addCode": "اضافه کردن کد",
-  "addCollaborator": "افزودن همکار",
-  "addedAs": "اضافه شده به عنوان",
   "addLocationButton": "اضافه کردن",
   "addMember": "افزودن عضو",
   "addMore": "افزودن بیشتر",
-  "addMoreAdmins": "اضافه کردن مدیر های بیشتر",
   "addName": "افزودن نام",
   "addNew": "ایجاد جدید",
   "@addNew": {
@@ -24,7 +19,6 @@
   },
   "addNewEmail": "افزودن ایمیل جدید",
   "addOns": "افزونه‌ها",
-  "addParticipants": "افزودن شرکت‌‌کنندگان",
   "addPerson": "اضافه کردن فرد",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -37,15 +31,10 @@
   "addToCollection": "افزودن به مجموعه",
   "addToEnte": "افزودن به Ente",
   "addToHiddenAlbum": "افزودن به آلبوم پنهان",
-  "addViewer": "افزودن بیننده",
   "advanced": "پیشرفته",
   "after1Year": "بعد از 1 سال",
   "albumLayout": "چینش آلبوم",
   "albumName": "نام آلبوم",
-  "albumOwner": "مالک",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "آلبوم‌ها",
   "albumsOnDevicePermissionCta": "دادن اجازه دسترسی",
   "albumUpdated": "آلبوم به‌روز شد",
@@ -167,7 +156,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "تغییر مجوزها؟",
   "checkInboxAndSpamFolder": "لطفا صندوق ورودی (و هرزنامه) خود را برای تایید کامل بررسی کنید",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
@@ -185,7 +173,6 @@
   "close": "بستن",
   "codeIssuerHint": "صادر کننده",
   "collaborator": "همکار",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "همکاران می‌توانند عکس‌ها و ویدیوها را به آلبوم اشتراک گذاری شده اضافه کنند.",
   "color": "رنگ",
   "compactMode": "حالت فشرده",
   "confirm": "تایید",
@@ -565,10 +552,8 @@
   "@lostDeviceTitle": {
     "description": "Lost device title"
   },
-  "manage": "مدیریت",
   "manageFamily": "مدیریت خانواده",
   "manageLink": "مدیریت پیوند",
-  "manageParticipants": "مدیریت",
   "manageSubscription": "مدیریت اشتراک",
   "manualSort": "سفارشی",
   "merchandise": "کالا",

@@ -5,9 +5,6 @@
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
-  "addANewEmail": "เพิ่มอีเมลใหม่",
-  "addCollaborator": "เพิ่มผู้ทำงานร่วมกัน",
-  "addedAs": "เพิ่มเป็น",
   "addedBy": "เพิ่มโดย {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -23,16 +20,11 @@
   "addMore": "เพิ่มอีก",
   "addToAlbum": "เพิ่มไปยังอัลบั้ม",
   "addToEnte": "เพิ่มไปที่ Ente",
-  "addViewer": "เพิ่มผู้ชม",
   "after1Day": "หลังจาก 1 วัน",
   "after1Hour": "หลังจาก 1 ชั่วโมง",
   "after1Month": "หลังจาก 1 เดือน",
   "after1Week": "หลังจาก 1 สัปดาห์",
   "after1Year": "หลังจาก 1 ปี",
-  "albumOwner": "เจ้าของ",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "อัลบั้ม",
   "albumUpdated": "อัปเดตอัลบั้มแล้ว",
   "allowAddingPhotos": "อนุญาตให้เพิ่มรูปภาพ",
@@ -50,12 +42,6 @@
   "@cancel": {
     "description": "Cancel button label"
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} จะไม่สามารถเพิ่มรูปภาพในอัลบั้มนี้ได้อีก\n\nพวกเขาจะยังสามารถลบรูปภาพของเขาเอง ในอัลบั้มนี้ได้อยู่",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "canNotOpenTitle": "ไม่สามารถเปิดอัลบั้มนี้ได้",
   "canOnlyCreateLinkForFilesOwnedByYou": "สามารถสร้างลิงก์ได้เฉพาะไฟล์ที่คุณเป็นเจ้าของ",
   "changeEmail": "เปลี่ยนอีเมล",
@@ -67,7 +53,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "ปรับเปลี่ยนสิทธิ์?",
   "changeYourReferralCode": "เปลี่ยนโค้ดของคุณ",
   "checkForUpdates": "ตรวจหาอัปเดต",
   "checkInboxAndSpamFolder": "โปรดตรวจสอบกล่องจดหมาย (และสแปม) ของคุณ เพื่อยืนยันให้เสร็จสิ้น",
@@ -271,9 +256,7 @@
   "@loginTerms": {
     "description": "Terms agreement text for login"
   },
-  "manage": "จัดการ",
   "manageLink": "จัดการลิงก์",
-  "manageParticipants": "จัดการ",
   "manageSubscription": "จัดการ การสมัครสมาชิก",
   "map": "แผนที่",
   "@map": {
@@ -322,7 +305,6 @@
   },
   "oopsSomethingWentWrong": "อ๊ะ มีบางอย่างผิดพลาด",
   "openstreetmapContributors": "ผู้มีส่วนร่วม OpenStreetMap",
-  "orPickAnExistingOne": "หรือเลือกที่มีอยู่แล้ว",
   "password": "รหัสผ่าน",
   "@password": {
     "description": "Password field label"

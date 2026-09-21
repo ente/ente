@@ -18,10 +18,8 @@
     "description": "Error shown when account exists but signup is incomplete"
   },
   "add": "追加",
-  "addAdmin": "管理者を追加",
   "addANameAndPhoto": "名前と写真を追加",
   "addCode": "コードを追加",
-  "addedAs": "追加:",
   "addedBy": "{emailOrName} が追加",
   "@addedBy": {
     "placeholders": {
@@ -44,7 +42,6 @@
   "addLocationButton": "追加",
   "addMember": "メンバーを追加",
   "addMore": "さらに追加",
-  "addMoreAdmins": "管理者を追加",
   "addName": "名前を追加",
   "addNew": "新規追加",
   "@addNew": {
@@ -60,7 +57,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "参加者を追加",
   "addPerson": "人物を追加",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -77,11 +73,8 @@
     "description": "Action label to add selected files to an existing person."
   },
   "addTrustedContact": "信頼できる連絡先を追加",
-  "addViewer": "ビューアーを追加",
   "addYourPhotosNow": "写真を今すぐ追加する",
   "admin": "管理者",
-  "admins": "管理者",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "管理者や共同編集者は写真を追加できます。管理者は写真や参加者を管理することもできます。",
   "admiringThem": "{name}に注目！",
   "@admiringThem": {
     "placeholders": {
@@ -95,10 +88,6 @@
   "after1Week": "1週間後",
   "after1Year": "1年後",
   "albumLayout": "アルバムのレイアウト",
-  "albumOwner": "所有者",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "アルバム",
   "albumsWidgetDesc": "ホーム画面で表示したいアルバムを選択してください。",
   "albumTitle": "アルバムタイトル",
@@ -286,12 +275,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} は写真をアルバムに追加できなくなります\n\n※{user} が追加した写真は今後も{user} が削除できます",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "共有ファイルは削除できません",
   "canNotOpenBody": "申し訳ありません。このアルバムをアプリで開くことができませんでした。",
   "canNotOpenTitle": "このアルバムは開けません",
@@ -305,7 +288,6 @@
   "changeLocationOfSelectedItems": "選択したアイテムの位置を変更しますか？",
   "changePassword": "パスワードを変更",
   "changePermissions": "権限を変更",
-  "changePermissionsQuestion": "権限を変更しますか？",
   "changeYourReferralCode": "コードを変更する",
   "checkForUpdates": "アップデートを確認",
   "checking": "確認中…",
@@ -337,7 +319,6 @@
   "codeChangeLimitReached": "コード変更の回数上限に達しました。",
   "codeCopiedToClipboard": "コードがクリップボードにコピーされました",
   "codeIssuerHint": "発行者",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "共同編集者は共有アルバムに写真やビデオを追加できます。",
   "collageLayout": "レイアウト",
   "collageSaved": "コラージュをギャラリーに保存しました",
   "collectionCannotBeDeleted": "このコレクションは削除できません",
@@ -1192,11 +1173,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "管理",
   "manageDeviceStorage": "端末のキャッシュを管理",
   "manageFamily": "ファミリーの管理",
   "manageLink": "リンクを管理",
-  "manageParticipants": "管理",
   "managePaymentMethod": "支払い方法の管理",
   "manageSubscription": "サブスクリプションの管理",
   "manualSort": "カスタム",
@@ -1405,7 +1384,6 @@
   "openSettings": "設定を開く",
   "openstreetmapContributors": "OpenStreetMap のコントリビューター",
   "optionalAsShortAsYouLike": "省略可能、好きなだけお書きください...",
-  "orPickAnExistingOne": "または既存のものを選択",
   "otherDetectedFaces": "その他の検出された顔",
   "pair": "ペアリング",
   "panorama": "パノラマ",
@@ -1707,12 +1685,6 @@
   "remoteVideos": "デバイス上にない動画",
   "remove": "削除",
   "removeAccess": "アクセスを削除",
-  "removeAlbumParticipantBody": "{userEmail} はこの共有アルバムから退出します\n\n{userEmail} が追加した写真もアルバムから削除されます",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail}はこの共有コレクションから削除されます\n\nその人が追加したアイテムもコレクションから削除されます",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -2059,7 +2031,6 @@
   "shareALink": "リンクをシェアする",
   "shareCodes": "コードを共有",
   "shareCodesDuration": "コードを共有したい期間を選択してください。",
-  "sharedAlbumSectionDescription": "無料プランのユーザーを含む、他のEnteユーザーと共有および共同アルバムを作成します。",
   "sharedWith": "共有先",
   "shareLink": "リンクの共有",
   "shareTextRecommendUsingEnteForPhotos": "Enteをダウンロードして、写真や動画を簡単に共有\n\nhttps://ente.com",

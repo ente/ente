@@ -24,21 +24,9 @@
     "description": "Title for active sessions page"
   },
   "add": "新增",
-  "addAdmin": "新增管理員",
-  "addAdmins": "{count, plural, =0{新增管理員} one{新增管理員} other{新增管理員}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "在主畫面新增相簿小工具，即可在此自訂。",
   "addANameAndPhoto": "新增名稱和照片",
   "addCode": "加入驗證碼",
-  "addCollaborator": "新增協作者",
   "addedAMemoryTo": "新增了 1 個回憶到 {albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -48,7 +36,6 @@
       }
     }
   },
-  "addedAs": "新增為",
   "addedBy": "由 {emailOrName} 新增",
   "@addedBy": {
     "placeholders": {
@@ -114,7 +101,6 @@
   "addMember": "新增成員",
   "addMemoriesWidgetPrompt": "在主畫面新增回憶小工具，即可在此自訂。",
   "addMore": "新增更多",
-  "addMoreAdmins": "新增更多管理員",
   "addName": "新增名稱",
   "addNew": "新增",
   "@addNew": {
@@ -129,7 +115,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "新增參與者",
   "addPeopleWidgetPrompt": "在主畫面新增人物小工具，即可在此自訂。",
   "addPerson": "加入到人物",
   "@addPerson": {
@@ -147,23 +132,9 @@
   },
   "addTrustedContact": "新增受信任聯絡人",
   "addUpTo5MembersFree": "免費新增最多 5 位成員",
-  "addViewer": "新增檢視者",
   "addYourPhotosNow": "立即新增您的照片",
   "adjust": "調整",
   "admin": "管理員",
-  "admins": "管理員",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "管理員和協作者都可以新增照片。管理員還可以管理照片與參與者。",
-  "adminsCanManagePhotosAndParticipants": "管理員可以管理照片與參與者。",
-  "adminsSuccessfullyAdded": "{count, plural, =0{未新增管理員} one{已成功新增 {count} 位管理員} other{已成功新增 {count} 位管理員}}",
-  "@adminsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of admins that were successfully added."
-  },
   "admiringThem": "欣賞 {name}",
   "@admiringThem": {
     "placeholders": {
@@ -173,10 +144,6 @@
   "advanced": "進階",
   "aerialViews": "空中視角",
   "albumLayout": "相簿版面",
-  "albumOwner": "擁有者",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "相簿",
   "albumsCount": "{count, plural, one{{count} 個相簿} other{{count} 個相簿}}",
   "@albumsCount": {
@@ -435,12 +402,6 @@
   },
   "cancelSubscription": "取消訂閱",
   "candidLaughter": "開懷大笑",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} 將無法新增更多照片到此相簿\n\n他們仍可移除由他們新增的相片",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "無法刪除共享檔案",
   "cannotMoveToSharedAlbums": "無法移動到共享相簿",
   "cannotMoveToSharedAlbumsMessage": "項目只能新增到共享相簿，不能移動。是否要改為新增？",
@@ -467,7 +428,6 @@
   "cat": "貓咪",
   "centerPoint": "中心點",
   "changeLocationOfSelectedItems": "更改所選項目的位置？",
-  "changePermissionsQuestion": "更改權限？",
   "changeYourReferralCode": "更改您的推薦碼",
   "checkForUpdates": "檢查更新",
   "checkInboxAndSpamFolder": "請檢查收件匣（以及垃圾郵件）以完成驗證",
@@ -522,7 +482,6 @@
   "codeCopiedToClipboard": "驗證碼已複製到剪貼簿",
   "codeIssuerHint": "發行方",
   "collabLinkSectionDescription": "讓沒有 Ente 帳號的人也能新增照片",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "協作者可新增照片與影片到共享相簿。",
   "collageLayout": "版面配置",
   "collageSaved": "拼貼已儲存到相簿",
   "collectionLabel": "集合",
@@ -1634,11 +1593,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "管理",
   "manageDeviceStorage": "管理裝置快取",
   "manageFamily": "管理家庭",
   "manageLink": "管理連結",
-  "manageParticipants": "管理",
   "managePaymentMethod": "管理付款方式",
   "manageSubscription": "管理訂閱",
   "manualSort": "自訂",
@@ -2305,12 +2262,6 @@
   "remoteThumbnails": "遠端縮圖",
   "remoteVideos": "遠端影片",
   "remove": "移除",
-  "removeAlbumParticipantBody": "{userEmail} 將從此共享相簿中移除\n\n他們新增的任何照片也會從相簿中移除",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeContact": "移除聯絡人",
   "@removeContact": {
     "description": "Button label to remove a trusted contact"
@@ -2781,7 +2732,6 @@
   "shareCodes": "分享驗證碼",
   "shareCodesDuration": "請選擇您想分享驗證碼的持續時間。",
   "shared": "已分享",
-  "sharedAlbumSectionDescription": "與其他 Ente 使用者（包括免費方案使用者）建立共享與協作相簿。",
   "sharedAlbumsLabel": "已分享",
   "@sharedAlbumsLabel": {
     "description": "Albums tab label for albums shared by you"

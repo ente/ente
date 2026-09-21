@@ -36,28 +36,9 @@
     "description": "Title for active sessions page"
   },
   "add": "Add",
-  "addAdmin": "Add admin",
-  "addAdmins": "{count, plural, =0{Add admin} one{Add admin} other{Add admins}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "Add an album widget to your home screen to customize it here.",
   "addANameAndPhoto": "Add a name and photo",
-  "addANewEmail": "Add a new email",
   "addCode": "Добавяне на код",
-  "addCollaborator": "Add collaborator",
-  "addCollaborators": "{count, plural, =0{Add collaborator} one{Add collaborator} other{Add collaborators}}",
-  "@addCollaborators": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addedAMemoryTo": "added a memory to {albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -67,7 +48,6 @@
       }
     }
   },
-  "addedAs": "Added as",
   "addedBy": "Added by {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -134,7 +114,6 @@
   "addMember": "Add member",
   "addMemoriesWidgetPrompt": "Add a memories widget to your home screen to customize it here.",
   "addMore": "Add more",
-  "addMoreAdmins": "Add more admins",
   "addName": "Add name",
   "addNew": "Add new",
   "@addNew": {
@@ -150,7 +129,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Add participants",
   "addPeopleWidgetPrompt": "Add a people widget to your home screen to customize it here.",
   "addPerson": "Add person",
   "@addPerson": {
@@ -171,29 +149,9 @@
   "addTrustedContact": "Add trusted contact",
   "addTrustedPerson": "Add a trusted person",
   "addUpTo5MembersFree": "Add up to 5 members free",
-  "addViewer": "Add viewer",
-  "addViewers": "{count, plural, =0{Add viewer} one{Add viewer} other{Add viewers}}",
-  "@addViewers": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addYourPhotosNow": "Add your photos now",
   "adjust": "Adjust",
   "admin": "Admin",
-  "admins": "Admins",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Admins and collaborators can add photos. Admins can also manage photos & participants.",
-  "adminsCanManagePhotosAndParticipants": "Admins can manage photos & participants.",
-  "adminsSuccessfullyAdded": "{count, plural, =0{No admins were added} one{{count} admin successfully added} other{{count} admins successfully added}}",
-  "@adminsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of admins that were successfully added."
-  },
   "admiringThem": "Admiring {name}",
   "@admiringThem": {
     "placeholders": {
@@ -211,20 +169,6 @@
   "albumEditsWillNotBeSaved": "Your edits to this album won't be saved.",
   "albumLayout": "Album layout",
   "albumName": "Album name",
-  "albumOwner": "Owner",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{No Participants} one{{count} Participant} other{{count} Participants}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Albums",
   "albumsCount": "{count, plural, one{{count} album} other{{count} albums}}",
   "@albumsCount": {
@@ -538,12 +482,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} will not be able to add more photos to this album\n\nThey will still be able to remove existing photos added by them",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Изтриването не е възможно за споделени файлове",
   "cannotMoveToSharedAlbums": "Can't move to shared albums",
   "cannotMoveToSharedAlbumsMessage": "Items can only be added to shared albums, not moved. Would you like to add instead?",
@@ -580,7 +518,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Change permissions",
-  "changePermissionsQuestion": "Change permissions?",
   "changeYourReferralCode": "Change your code",
   "checkForUpdates": "Провери за актуализации",
   "checkInboxAndSpamFolder": "Моля, проверете входящата си поща (и спама), за да завършите проверката",
@@ -639,17 +576,6 @@
   "codeIssuerHint": "Издател",
   "collabLinkSectionDescription": "Позволи да добавят снимки без да е необходим профил в Ente",
   "collaborator": "Collaborator",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Collaborators can add photos and videos to the shared album.",
-  "collaboratorsSuccessfullyAdded": "{count, plural, =0{Added 0 collaborator} one{Added {count} collaborator} other{Added {count} collaborators}}",
-  "@collaboratorsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of collaborators that were successfully added."
-  },
   "collageLayout": "Layout",
   "collageSaved": "Collage saved to gallery",
   "collectionCannotBeDeleted": "Тази колекция не може да бъде изтрита",
@@ -984,16 +910,6 @@
   "deleteMultipleCollectionsDialogBody": "{count, plural, one{{count} колекция} other{{count} колекции}} ще бъдат изтрити завинаги.",
   "@deleteMultipleCollectionsDialogBody": {
     "description": "Confirmation message body for deleting multiple collections",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "3"
-      }
-    }
-  },
-  "deleteMultipleFilesDialogBody": "{count, plural, one{{count} елемент} other{{count} елемента}} ще бъдат изтрити завинаги.",
-  "@deleteMultipleFilesDialogBody": {
-    "description": "Confirmation message body for deleting multiple items",
     "placeholders": {
       "count": {
         "type": "int",
@@ -2288,12 +2204,10 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Manage",
   "manageDeviceStorage": "Manage device cache",
   "manageDeviceStorageDesc": "Review and clear local storage",
   "manageFamily": "Manage family",
   "manageLink": "Manage link",
-  "manageParticipants": "Manage",
   "managePaymentMethod": "Manage payment method",
   "manageSubscription": "Manage subscription",
   "manualSort": "Персонализирано",
@@ -2660,7 +2574,6 @@
   "optionalAsShortAsYouLike": "Optional, as short as you like...",
   "organization": "Organization",
   "organizationDesc": "Collections, favorites, search, and ways to keep items organized",
-  "orPickAnExistingOne": "Or pick an existing one",
   "orRemoveYourself": "Or remove yourself as {email}'s trusted contact",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -3133,12 +3046,6 @@
   "remoteVideos": "Remote videos",
   "remove": "Remove",
   "removeAccess": "Remove access",
-  "removeAlbumParticipantBody": "{userEmail} will be removed from this shared album\n\nAny photos added by them will also be removed from the album",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} will be removed from this shared collection\n\nAny items added by them will also be removed from the collection",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -3673,7 +3580,6 @@
   "shareCodesDuration": "Изберете продължителността, за която искате да споделите кодовете.",
   "shareCollection": "Share collection",
   "shared": "Shared",
-  "sharedAlbumSectionDescription": "Create shared and collaborative albums with other Ente users, including users on free plans.",
   "sharedAlbumsLabel": "Shared",
   "@sharedAlbumsLabel": {
     "description": "Albums tab label for albums shared by you"
@@ -3723,15 +3629,6 @@
   "shareTextRecommendUsingEnteForPhotos": "Download Ente so we can easily share original quality photos and videos\n\nhttps://ente.com",
   "shareThisLink": "This link allows anyone who receives it to access your item. You can remove access at any time by deleting the link.",
   "shareWithNonenteUsers": "Share with non-Ente users",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Share with specific people} one{Shared with {numberOfPeople} person} other{Shared with {numberOfPeople} people}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "shareYourFeedbackHere": "Споделете вашата обратната връзка тук",
   "@shareYourFeedbackHere": {
     "description": "Placeholder for optional account deletion feedback"
@@ -4376,16 +4273,6 @@
   "viewAllExifData": "View all EXIF data",
   "viewAllHelpTopics": "View all help topics",
   "viewer": "Viewer",
-  "viewersSuccessfullyAdded": "{count, plural, =0{Added 0 viewers} one{Added {count} viewer} other{Added {count} viewers}}",
-  "@viewersSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of viewers that were successfully added."
-  },
   "viewLargeFiles": "Large files",
   "viewLargeFilesDesc": "Identify items using the most space",
   "viewLogs": "View logs",
@@ -4481,16 +4368,6 @@
   "yesDeleteCollections": "Да, изтрий {count, plural, one{колекцията} other{колекциите}}",
   "@yesDeleteCollections": {
     "description": "Button label for confirming deletion of one or more collections",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "3"
-      }
-    }
-  },
-  "yesDeleteFiles": "Да, изтрий {count, plural, one{елемента} other{елементите}}",
-  "@yesDeleteFiles": {
-    "description": "Button label for confirming deletion of one or more items",
     "placeholders": {
       "count": {
         "type": "int",

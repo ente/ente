@@ -7,22 +7,14 @@
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
-  "addANewEmail": "Gehitu e-mail berria",
-  "addCollaborator": "Gehitu laguntzailea",
-  "addedAs": "Honela gehituta:",
   "addingToFavorites": "Gogokoetan gehitzen...",
   "addMore": "Gehitu gehiago",
-  "addViewer": "Gehitu ikuslea",
   "advanced": "Aurreratuak",
   "after1Day": "Egun bat barru",
   "after1Hour": "Ordubete barru",
   "after1Month": "Hilabete bat barru",
   "after1Week": "Astebete barru",
   "after1Year": "Urtebete barru",
-  "albumOwner": "Jabea",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Albumak",
   "albumUpdated": "Albuma eguneratuta",
   "allowAddingPhotos": "Utzi argazkiak gehitzen",
@@ -49,12 +41,6 @@
   "@cancel": {
     "description": "Cancel button label"
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user}-(e)k ezin izango du argazki gehiago gehitu album honetan \n\nBaina haiek gehitutako argazkiak kendu ahal izango dituzte",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "canNotOpenBody": "Sentitzen dugu, album hau ezin da aplikazioan ireki.",
   "canNotOpenTitle": "Ezin dut album hau ireki",
   "canOnlyRemoveFilesOwnedByYou": "Zure fitxategiak baino ezin duzu ezabatu",
@@ -66,7 +52,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "Baimenak aldatu nahi?",
   "checkInboxAndSpamFolder": "Mesedez, aztertu zure inbox (eta spam) karpetak egiaztatzea osotzeko",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
@@ -75,7 +60,6 @@
   "codeChangeLimitReached": "Sentitzen dugu, zure kode aldaketa muga gainditu duzu.",
   "codeCopiedToClipboard": "Kodea arbelean kopiatuta",
   "collaborator": "Laguntzailea",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Laguntzaileek argazkiak eta bideoak gehitu ahal dituzte album partekatuan.",
   "collectPhotos": "Bildu argazkiak",
   "confirm": "Baieztatu",
   "@confirm": {
@@ -275,10 +259,8 @@
   },
   "lostDevice": "Gailua galdu duzu?",
   "machineLearning": "Ikasketa automatikoa",
-  "manage": "Kudeatu",
   "manageDeviceStorage": "Kudeatu gailuaren katxea",
   "manageLink": "Kudeatu esteka",
-  "manageParticipants": "Kudeatu",
   "memoryCount": "{count, plural,=0{oroitzapenik ez}one{oroitzapen {formattedCount}} other{{formattedCount} oroitzapen}}",
   "@memoryCount": {
     "description": "The text to display the number of memories",
@@ -324,7 +306,6 @@
     "description": "Oops error title"
   },
   "oopsSomethingWentWrong": "Oops, zerbait txarto joan da",
-  "orPickAnExistingOne": "Edo aukeratu lehengo bat",
   "password": "Pasahitza",
   "@password": {
     "description": "Password field label"
@@ -397,12 +378,6 @@
   },
   "referralsAreCurrentlyPaused": "Erreferentziak momentuz geldituta daude",
   "remove": "Kendu",
-  "removeAlbumParticipantBody": "{userEmail} partekatutako album honetatik ezabatuko da \n\nHaiek gehitutako argazki guztiak ere ezabatuak izango dira albumetik",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeFromAlbum": "Kendu albumetik",
   "removeFromAlbumTitle": "Albumetik kendu?",
   "removeLink": "Ezabatu esteka",
@@ -459,7 +434,6 @@
   },
   "setupComplete": "Prestaketa burututa",
   "shareALink": "Partekatu esteka",
-  "sharedAlbumSectionDescription": "Sortu partekatutako eta parte hartzeko albumak beste Ente erabiltzaileekin, debaldeko planak dituztenak barne.",
   "shareWithNonenteUsers": "Partekatu Ente erabiltzen ez dutenekin",
   "sharing": "Partekatzen...",
   "signUpTerms": "<u-terms>Zerbitzu baldintzak</u-terms> eta <u-policy>pribatutasun politikak</u-policy> onartzen ditut",

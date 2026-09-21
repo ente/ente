@@ -23,10 +23,7 @@
     "description": "Title for active sessions page"
   },
   "add": "添加",
-  "addAdmin": "添加管理员",
   "addCode": "添加代码",
-  "addCollaborator": "添加协作者",
-  "addedAs": "已添加为",
   "addedBy": "由 {emailOrName} 添加",
   "@addedBy": {
     "placeholders": {
@@ -49,7 +46,6 @@
   "addLocationButton": "添加",
   "addMember": "添加成员",
   "addMore": "添加更多",
-  "addMoreAdmins": "添加更多管理员",
   "addName": "添加名称",
   "addOnPageSubtitle": "附加组件详情",
   "addOns": "附加组件",
@@ -60,7 +56,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "添加参与者",
   "addPerson": "添加人员",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -76,12 +71,9 @@
     "description": "Action label to add selected files to an existing person."
   },
   "addUpTo5MembersFree": "免费添加最多 5 位成员",
-  "addViewer": "添加查看者",
   "addYourPhotosNow": "立即添加您的照片",
   "adjust": "调整",
   "admin": "管理员",
-  "admins": "管理员",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "管理员和合作员可以添加照片。管理员也可以管理照片和参与者。",
   "admiringThem": "欣赏 {name}",
   "@admiringThem": {
     "placeholders": {
@@ -93,10 +85,6 @@
   "after1Week": "1 周后",
   "after1Year": "1 年后",
   "albumLayout": "相册布局",
-  "albumOwner": "所有者",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "相册",
   "albumTitle": "相册标题",
   "albumUpdated": "相册已更新",
@@ -278,12 +266,6 @@
   },
   "cancelRecovery": "取消恢复",
   "cancelSubscription": "取消订阅",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} 将无法添加更多照片到此相册\n\n他们仍然能够删除他们添加的现有照片",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "无法删除共享文件",
   "cannotMoveToSharedAlbums": "无法移动到共享相册",
   "cannotMoveToSharedAlbumsMessage": "项目只能添加到共享相册，无法移动。要改为添加吗？",
@@ -306,7 +288,6 @@
     "description": "Change password title"
   },
   "changePermissions": "更改权限",
-  "changePermissionsQuestion": "要修改权限吗？",
   "changeYourReferralCode": "更改您的代码",
   "checkForUpdates": "检查更新",
   "checkInboxAndSpamFolder": "请检查您的收件箱 (或者是在您的“垃圾邮件”列表内) 以完成验证",
@@ -353,7 +334,6 @@
   "codeIssuerHint": "发行人",
   "collabLinkSectionDescription": "允许他人在没有 Ente 账号的情况下添加照片",
   "collaborator": "协作者",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "协作者可以将照片和视频添加到共享相册中。",
   "collageLayout": "布局",
   "collageSaved": "拼贴已保存到相册",
   "collectionCannotBeEdited": "此集合无法编辑",
@@ -1294,11 +1274,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "管理",
   "manageDeviceStorage": "管理设备缓存",
   "manageFamily": "管理家庭计划",
   "manageLink": "管理链接",
-  "manageParticipants": "管理",
   "manageSubscription": "管理订阅",
   "manualSort": "自定义",
   "map": "地图",
@@ -1817,12 +1795,6 @@
   "remoteThumbnails": "云端缩略图",
   "remoteVideos": "云端视频",
   "remove": "移除",
-  "removeAlbumParticipantBody": "{userEmail} 将从这个共享相册中删除\n\nTA们添加的任何照片也将从相册中删除",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeFromAlbum": "从相册中移除",
   "removeFromAlbumTitle": "要从相册中移除吗？",
   "removeFromFavorite": "从收藏中移除",
@@ -2199,7 +2171,6 @@
   "share": "分享",
   "shareCodes": "分享代码",
   "shareCodesDuration": "选择您要分享代码的期限。",
-  "sharedAlbumSectionDescription": "与其他 Ente 用户（包括免费计划用户）创建共享和协作相册。",
   "shareKey": "共享密钥",
   "shareLink": "分享链接",
   "shareMyVerificationID": "这是我的 ente.com 验证 ID：{verificationID}。",

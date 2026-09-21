@@ -18,11 +18,7 @@
     "description": "Title for active sessions page"
   },
   "add": "Afegeix",
-  "addAdmin": "Afegeix administrador",
-  "addANewEmail": "Afegeix un nou correu",
   "addCode": "Afegeix codi",
-  "addCollaborator": "Afegeix col·laborador",
-  "addedAs": "Afegit com",
   "addedBy": "Afegit per {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -43,7 +39,6 @@
   "addLocation": "Afegeix ubicació",
   "addLocationButton": "Afegeix",
   "addMore": "Afegeix més",
-  "addMoreAdmins": "Afegeix més administradors",
   "addName": "Afegeix nom",
   "addOnPageSubtitle": "Detalls dels complements",
   "addOns": "Complements",
@@ -54,7 +49,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Afegeix participants",
   "addPerson": "Afegeix persona",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -69,13 +63,9 @@
   "@addToPerson": {
     "description": "Action label to add selected files to an existing person."
   },
-  "addViewer": "Afegeix visualitzador",
   "addYourPhotosNow": "Afegeix les teves fotos ara",
   "adjust": "Ajusta",
   "admin": "Administrador",
-  "admins": "Administradors",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Els administradors i els col·laboradors poden afegir fotos. Els administradors també poden gestionar fotos i participants.",
-  "adminsCanManagePhotosAndParticipants": "Els administradors poden gestionar les fotos i els participants.",
   "admiringThem": "Admirant {name}",
   "@admiringThem": {
     "placeholders": {
@@ -90,10 +80,6 @@
   "after1Week": "Després d'1 setmana",
   "after1Year": "Després d'1 any",
   "albumLayout": "Disposició de l'àlbum",
-  "albumOwner": "Propietari",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Àlbums",
   "albumTitle": "Títol de l'àlbum",
   "albumUpdated": "Àlbum actualitzat",
@@ -271,12 +257,6 @@
   },
   "cancelRecovery": "Cancel·la recuperació",
   "cancelSubscription": "Cancel·la subscripció",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} no podrà afegir més fotos a aquest àlbum\n\nEncara podrà eliminar les fotos existents afegides per ells",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "No es poden esborrar fitxers compartits",
   "cannotMoveToSharedAlbums": "No es pot moure a àlbums compartits",
   "cannotMoveToSharedAlbumsMessage": "Els elements només es poden afegir a àlbums compartits, no moure. Vols afegir-los en el seu lloc?",
@@ -294,7 +274,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "Canviar permisos?",
   "changeYourReferralCode": "Canvia el teu codi",
   "checking": "Comprovant...",
   "checkingModels": "Comprovant models...",
@@ -334,7 +313,6 @@
   "codeCopiedToClipboard": "Codi copiat al porta-retalls",
   "codeIssuerHint": "Emissor",
   "collaborator": "Col·laborador",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Els col·laboradors poden afegir fotos i vídeos a l'àlbum compartit.",
   "collageLayout": "Disposició",
   "collageSaved": "Collage guardat a la galeria",
   "collectPhotos": "Recull fotos",
@@ -1125,11 +1103,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Gestiona",
   "manageDeviceStorage": "Gestiona la memòria cau del dispositiu",
   "manageFamily": "Gestiona família",
   "manageLink": "Gestiona enllaç",
-  "manageParticipants": "Gestiona",
   "manageSubscription": "Gestiona subscripció",
   "manualSort": "Personalitzat",
   "map": "Mapa",
@@ -1332,7 +1308,6 @@
   "openFile": "Obre fitxer",
   "openstreetmapContributors": "Col·laboradors d'OpenStreetMap",
   "optionalAsShortAsYouLike": "Opcional, tan curt com vulguis...",
-  "orPickAnExistingOne": "O tria'n un d'existent",
   "otherDetectedFaces": "Altres cares detectades",
   "pair": "Aparella",
   "partyWithThem": "Festa amb {name}",
@@ -1609,12 +1584,6 @@
   "remoteThumbnails": "Miniatures remotes",
   "remoteVideos": "Vídeos remots",
   "remove": "Elimina",
-  "removeAlbumParticipantBody": "{userEmail} s'eliminarà d'aquest àlbum compartit\n\nQualsevol foto afegida per ells també s'eliminarà de l'àlbum",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeFromAlbum": "Elimina de l'àlbum",
   "removeFromAlbumTitle": "Eliminar de l'àlbum?",
   "removeFromFavorite": "Elimina de favorits",
@@ -1983,7 +1952,6 @@
   "shareALink": "Comparteix un enllaç",
   "shareCodes": "Comparteix codis",
   "shareCodesDuration": "Selecciona la durada per a la qual vols compartir els codis.",
-  "sharedAlbumSectionDescription": "Crea àlbums compartits i col·laboratius amb altres usuaris d'Ente, inclosos els usuaris de plans gratuïts.",
   "shareLink": "Comparteix enllaç",
   "shareWithNonenteUsers": "Comparteix amb usuaris no Ente",
   "sharing": "Compartint...",

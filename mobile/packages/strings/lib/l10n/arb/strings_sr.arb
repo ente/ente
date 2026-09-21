@@ -7,10 +7,7 @@
     "description": "Title for active sessions page"
   },
   "add": "Додај",
-  "addANewEmail": "Додај нови имејл",
   "addCode": "Додај кôд",
-  "addCollaborator": "Додај сарадника",
-  "addedAs": "Додат као",
   "addedSuccessfullyTo": "Успешно додато у {albumName}",
   "@addedSuccessfullyTo": {
     "placeholders": {
@@ -35,13 +32,11 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Додај учеснике",
   "addPhotos": "Додај фотографије",
   "addTag": "Додај ознаку",
   "addToAlbum": "Додај у албум",
   "addToEnte": "Додај у Енте",
   "addToHiddenAlbum": "Додај у тајни албум",
-  "addViewer": "Додај посматрача",
   "adjust": "Прилагоди",
   "advanced": "Напредно",
   "after1Day": "Након 1 дана",
@@ -49,10 +44,6 @@
   "after1Month": "Након 1 месеца",
   "after1Week": "Након 1 недеље",
   "after1Year": "Након 1 године",
-  "albumOwner": "Власник",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Албуми",
   "albumTitle": "Наслов албума",
   "albumUpdated": "Албум ажуриран",
@@ -184,12 +175,6 @@
     }
   },
   "cancelSubscription": "Откажи претплату",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} неће више моћи да додаје фотографије у овај албум\nИ даље ће моћи да уклони фотографије које је претходно додао",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Не могу да обришем дељене фајлове",
   "canNotOpenBody": "Жао ми је, овај албум се не може отворити у апликацији.",
   "canNotOpenTitle": "Не могу да отворим овај албум",
@@ -200,7 +185,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "Измените дозволе?",
   "checkInboxAndSpamFolder": "Молимо вас да проверите примљену пошту (и нежељену пошту) да бисте довршили верификацију",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
@@ -219,7 +203,6 @@
   "codeCopiedToClipboard": "Копирано у међуспремник",
   "codeIssuerHint": "Издавач",
   "collaborator": "Сарадник",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Сарадници могу додати фотографије и клипове у заједнички албум.",
   "collectPhotos": "Прикупи фотографије",
   "color": "Боја",
   "compactMode": "Компактни режим",
@@ -708,11 +691,9 @@
     "description": "Lost device title"
   },
   "machineLearning": "Машинско учење",
-  "manage": "Управљај",
   "manageDeviceStorage": "Управљај кеш меморијом уређаја",
   "manageFamily": "Управљај породицом",
   "manageLink": "Управљај везом",
-  "manageParticipants": "Управљај",
   "manageSubscription": "Управљај претплатом",
   "manualSort": "Прилагођено",
   "map": "Мапа",
@@ -847,7 +828,6 @@
   "onThisDayMemories": "Успомене на данашњи дан",
   "oopsSomethingWentWrong": "Упс, дошло је до грешке",
   "optionalAsShortAsYouLike": "Опционо, коико год кратко желите...",
-  "orPickAnExistingOne": "Или изабери већ постојећи",
   "otherDetectedFaces": "Друга препозната лица",
   "pair": "Упари",
   "panorama": "Панорама",
@@ -1018,12 +998,6 @@
   "referrals": "Препоруке",
   "referralsAreCurrentlyPaused": "Препоручивање је тренутно паузирано",
   "remove": "Уклони",
-  "removeAlbumParticipantBody": "{userEmail} ће бити уклоњен из овог дељеног албума.\n\nСве фотографије које су они додали ће такође бити уклоњене",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeFromAlbum": "Уклони из албума",
   "removeFromAlbumTitle": "Уклони из албума?",
   "removeLink": "Уклони везу",
@@ -1175,7 +1149,6 @@
   "shareALink": "Подели везу",
   "shareCodes": "Дели кôдове",
   "shareCodesDuration": "Изаберите трајање за које желите да поделите кôдове.",
-  "sharedAlbumSectionDescription": "Креирај дељене и заједничке албуме са другим Енте корисницима, укључујући и оне на бесплатним плановима.",
   "shareWithNonenteUsers": "Пошаљи корисницима који немају Енте налог",
   "sharing": "Делим...",
   "shouldHideCode": "Сакриј кодове",

@@ -44,28 +44,9 @@
     "description": "Title for active sessions page"
   },
   "add": "Thêm",
-  "addAdmin": "Thêm quản trị viên",
-  "addAdmins": "{count, plural, =0{Thêm quản trị viên} other{Thêm các quản trị viên}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "Thêm một widget album vào màn hình chính để tùy chỉnh nó ở đây.",
   "addANameAndPhoto": "Thêm tên và ảnh",
-  "addANewEmail": "Thêm một email mới",
   "addCode": "Thêm mã",
-  "addCollaborator": "Thêm cộng tác viên",
-  "addCollaborators": "{count, plural, =0{Thêm cộng tác viên} other{Thêm cộng tác viên}}",
-  "@addCollaborators": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addedAMemoryTo": "đã thêm một kỷ niệm vào {albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -75,7 +56,6 @@
       }
     }
   },
-  "addedAs": "Đã thêm như",
   "addedBy": "Được thêm bởi {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -142,7 +122,6 @@
   "addMember": "Thêm thành viên",
   "addMemoriesWidgetPrompt": "Thêm một widget kỷ niệm vào màn hình chính để tùy chỉnh nó ở đây.",
   "addMore": "Thêm nhiều hơn",
-  "addMoreAdmins": "Thêm quản trị viên khác",
   "addName": "Thêm tên",
   "addNew": "Thêm mới",
   "@addNew": {
@@ -162,7 +141,6 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addParticipants": "Thêm người tham gia",
   "addPeopleWidgetPrompt": "Thêm một widget người vào màn hình chính để tùy chỉnh nó ở đây.",
   "addPerson": "Thêm người",
   "@addPerson": {
@@ -183,30 +161,10 @@
   "addTrustedContact": "Thêm liên hệ tin cậy",
   "addTrustedPerson": "Thêm một người tin cậy",
   "addUpTo5MembersFree": "Tối đa 5 thành viên miễn phí",
-  "addViewer": "Thêm người xem",
-  "addViewers": "{count, plural, =0{Thêm người xem} other{Thêm người xem}}",
-  "@addViewers": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addYourPhotosNow": "Thêm ảnh của bạn ngay bây giờ",
   "adjust": "Điều chỉnh",
   "adjustCrop": "Điều chỉnh khung hình",
   "admin": "Quản trị",
-  "admins": "Quản trị viên",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Quản trị viên và cộng tác viên có thể thêm ảnh. Quản trị viên có thể quản lý ảnh và người tham gia.",
-  "adminsCanManagePhotosAndParticipants": "Quản trị viên có thể quản lý ảnh và người tham gia.",
-  "adminsSuccessfullyAdded": "{count, plural, =0{Chưa thêm quản trị viên} other{{count} quản trị viên đã được thêm}}",
-  "@adminsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of admins that were successfully added."
-  },
   "admiringThem": "Ngưỡng mộ {name}",
   "@admiringThem": {
     "placeholders": {
@@ -224,20 +182,6 @@
   "albumEditsWillNotBeSaved": "Sửa đổi của bạn với album này sẽ không được lưu.",
   "albumLayout": "Bố cục album",
   "albumName": "Tên album",
-  "albumOwner": "Chủ sở hữu",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{Không người tham gia} other{{count} Người tham gia}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Album",
   "albumsCount": "{count, plural, other{{count} album}}",
   "@albumsCount": {
@@ -581,12 +525,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} sẽ không thể thêm ảnh vào album này\n\nHọ vẫn có thể xóa ảnh đã thêm bởi họ",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Không thể xóa các tệp đã chia sẻ",
   "cannotMoveToSharedAlbums": "Không thể chuyển vào album đã chia sẻ",
   "cannotMoveToSharedAlbumsMessage": "Bạn chỉ có thể thêm mục vào album đã chia sẻ, không thể di chuyển. Bạn có muốn thêm thay vì di chuyển?",
@@ -623,7 +561,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Thay doi quyen",
-  "changePermissionsQuestion": "Thay đổi quyền?",
   "changeYourReferralCode": "Thay đổi mã",
   "checkForUpdates": "Kiểm tra cập nhật",
   "checkInboxAndSpamFolder": "Vui lòng kiểm tra hộp thư đến (và thư rác) để hoàn tất xác minh",
@@ -682,17 +619,6 @@
   "codeIssuerHint": "Dịch vụ",
   "collabLinkSectionDescription": "Cho phép mọi người thêm ảnh mà không cần tài khoản Ente",
   "collaborator": "Cộng tác viên",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Cộng tác viên có thể thêm ảnh và video vào album chia sẻ.",
-  "collaboratorsSuccessfullyAdded": "{count, plural, =0{Chưa có cộng tác viên} other{Đã thêm {count} cộng tác viên}}",
-  "@collaboratorsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of collaborators that were successfully added."
-  },
   "collageLayout": "Bố cục",
   "collageSaved": "Ảnh ghép đã được lưu vào thư viện",
   "collectionCannotBeDeleted": "Không thể xóa bộ sưu tập này",
@@ -2244,11 +2170,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Quản lý",
   "manageDeviceStorage": "Quản lý bộ nhớ đệm thiết bị",
   "manageFamily": "Quản lý gia đình",
   "manageLink": "Quản lý liên kết",
-  "manageParticipants": "Quản lý",
   "managePaymentMethod": "Quản lý phương thức thanh toán",
   "manageSubscription": "Quản lý gói",
   "manualSort": "Tùy chỉnh",
@@ -2598,7 +2522,6 @@
   "openstreetmapContributors": "Người đóng góp OpenStreetMap",
   "optionalAsShortAsYouLike": "Tùy chọn, ngắn dài tùy ý...",
   "organization": "Tổ chức",
-  "orPickAnExistingOne": "Hoặc chọn một cái có sẵn",
   "orRemoveYourself": "Hoặc gỡ bạn khỏi vai trò liên hệ tin cậy của {email}",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -3041,12 +2964,6 @@
   "remoteVideos": "Video bên ngoài",
   "remove": "Xóa",
   "removeAccess": "Xoa quyen truy cap",
-  "removeAlbumParticipantBody": "{userEmail} sẽ bị xóa khỏi album chia sẻ này\n\nBất kỳ ảnh nào được thêm bởi họ cũng sẽ bị xóa khỏi album",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} se bi xoa khoi bo suu tap duoc chia se nay\n\nCac muc do ho them cung se bi xoa khoi bo suu tap",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -3583,7 +3500,6 @@
   "shareCodesDuration": "Chọn thời hạn bạn muốn chia sẻ mã.",
   "shareCollection": "Chia sẻ bộ sưu tập",
   "shared": "Đã chia sẻ",
-  "sharedAlbumSectionDescription": "Tạo album chia sẻ và cộng tác với người dùng Ente khác, bao gồm người dùng gói miễn phí.",
   "sharedAlbumsLabel": "Đã chia sẻ",
   "@sharedAlbumsLabel": {
     "description": "Albums tab label for albums shared by you"
@@ -3636,15 +3552,6 @@
   },
   "shareThisLink": "Lien ket nay cho phep bat ky ai nhan duoc truy cap muc cua ban. Ban co the xoa quyen truy cap bat ky luc nao bang cach xoa lien ket.",
   "shareWithNonenteUsers": "Chia sẻ với người không dùng Ente",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Chia sẻ với người cụ thể} other{Đã chia sẻ với {numberOfPeople} người}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "shareYourSubscription": "Chia sẻ gói của bạn với người thân",
   "sharing": "Đang chia sẻ...",
   "sharingAndCollaboration": "Chia sẻ và cộng tác",
@@ -4251,16 +4158,6 @@
   "viewAllExifData": "Xem thông số Exif",
   "viewAllHelpTopics": "Xem tất cả chủ đề trợ giúp",
   "viewer": "Người xem",
-  "viewersSuccessfullyAdded": "{count, plural, =0{Chưa thêm người xem} other{Đã thêm {count} người xem}}",
-  "@viewersSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of viewers that were successfully added."
-  },
   "viewLargeFiles": "Xóa tệp dung lượng lớn",
   "viewLogs": "Xem nhật ký",
   "@viewLogs": {

@@ -24,11 +24,7 @@
     "description": "Title for active sessions page"
   },
   "add": "Añadir",
-  "addAdmin": "Añadir administrador",
-  "addANewEmail": "Agregar nuevo correo electrónico",
   "addCode": "Añadir código",
-  "addCollaborator": "Agregar colaborador",
-  "addedAs": "Agregado como",
   "addedBy": "Añadido por {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -52,7 +48,6 @@
   "addLocationButton": "Añadir",
   "addMember": "Añadir miembro",
   "addMore": "Añadir más",
-  "addMoreAdmins": "Añadir más administradores",
   "addName": "Añadir nombre",
   "addNew": "Añadir nuevo",
   "@addNew": {
@@ -68,7 +63,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Añadir participantes",
   "addPerson": "Añadir persona",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -87,13 +81,9 @@
   },
   "addTrustedContact": "Añadir contacto de emergencia",
   "addUpTo5MembersFree": "Añadir hasta 5 miembros gratis",
-  "addViewer": "Añadir espectador",
   "addYourPhotosNow": "Añade tus fotos ahora",
   "adjust": "Ajustar",
   "admin": "Administrador",
-  "admins": "Administradores",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Los administradores y colaboradores pueden añadir fotos. Los administradores también pueden administrar fotos y participantes.",
-  "adminsCanManagePhotosAndParticipants": "Los administradores pueden administrar fotos y participantes.",
   "admiringThem": "Admirando a {name}",
   "@admiringThem": {
     "placeholders": {
@@ -108,10 +98,6 @@
   "after1Week": "Después de una semana",
   "after1Year": "Después de un año",
   "albumLayout": "Diseño del álbum",
-  "albumOwner": "Propietario",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Álbumes",
   "albumsWidgetDesc": "Selecciona los álbumes que quieres ver en tu pantalla de inicio.",
   "albumTitle": "Título del álbum",
@@ -352,12 +338,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} no podrá añadir más fotos a este álbum\n\nTodavía podrán eliminar las fotos ya añadidas por ellos",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "No se pueden eliminar los archivos compartidos",
   "cannotMoveToSharedAlbums": "No se puede mover a álbumes compartidos",
   "cannotMoveToSharedAlbumsMessage": "Los elementos solo pueden añadirse a los álbumes compartidos, no movidos. ¿Te gustaría añadir en su lugar?",
@@ -383,7 +363,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Cambiar permisos",
-  "changePermissionsQuestion": "¿Cambiar permisos?",
   "changeYourReferralCode": "Cambiar tu código",
   "checkForUpdates": "Comprobar actualizaciones",
   "checking": "Comprobando...",
@@ -434,7 +413,6 @@
   "codeCopiedToClipboard": "Código copiado al portapapeles",
   "codeIssuerHint": "Emisor",
   "collaborator": "Colaborador",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Colaboradores pueden añadir fotos y vídeos al álbum compartido.",
   "collageLayout": "Disposición",
   "collageSaved": "Collage guardado en la galería",
   "collectionCannotBeDeleted": "Esta coleccion no se puede eliminar",
@@ -1516,11 +1494,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Administrar",
   "manageDeviceStorage": "Gestionar almacenamiento caché del dispositivo",
   "manageFamily": "Administrar familia",
   "manageLink": "Administrar enlace",
-  "manageParticipants": "Administrar",
   "managePaymentMethod": "Gestionar métodos de pago",
   "manageSubscription": "Administrar tu suscripción",
   "manualSort": "Personalizado",
@@ -1792,7 +1768,6 @@
   "openLink": "Abrir para ver",
   "openstreetmapContributors": "Contribuidores de OpenStreetMap",
   "optionalAsShortAsYouLike": "Opcional, tan corto como quieras...",
-  "orPickAnExistingOne": "O elige uno existente",
   "orRemoveYourself": "O eliminarte como contacto de confianza de {email}",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -2127,12 +2102,6 @@
   "remoteVideos": "Vídeos remotos",
   "remove": "Quitar",
   "removeAccess": "Eliminar acceso",
-  "removeAlbumParticipantBody": "{userEmail} será eliminado de este álbum compartido\n\nCualquier foto añadida por ellos también será eliminada del álbum",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} sera eliminado de esta coleccion compartida\n\nTodos los elementos agregados por esta persona tambien seran eliminados de la coleccion",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -2600,7 +2569,6 @@
   "shareALink": "Compartir un enlace",
   "shareCodes": "Compartir código",
   "shareCodesDuration": "Selecciona la duración durante la cual deseas compartir el código.",
-  "sharedAlbumSectionDescription": "Crea álbumes compartidos y colaborativos con otros usuarios de Ente, incluyendo usuarios de planes gratuitos.",
   "sharedPhotoNotifications": "Nuevas fotos y álbumes compartidos",
   "sharedWith": "Compartido con",
   "shareKey": "Compartir clave",

@@ -5,10 +5,7 @@
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
-  "addANewEmail": "Tambah email baru",
   "addCode": "Tambahkan kode",
-  "addCollaborator": "Tambah kolaborator",
-  "addedAs": "Ditambahkan sebagai",
   "addedBy": "Ditambahkan oleh {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -38,17 +35,12 @@
   "addToAlbum": "Tambah ke album",
   "addToEnte": "Tambah ke Ente",
   "addToHiddenAlbum": "Tambah ke album tersembunyi",
-  "addViewer": "Tambahkan pemirsa",
   "advanced": "Lanjutan",
   "after1Day": "Setelah 1 hari",
   "after1Hour": "Setelah 1 jam",
   "after1Month": "Setelah 1 bulan",
   "after1Week": "Setelah 1 minggu",
   "after1Year": "Setelah 1 tahun",
-  "albumOwner": "Pemilik",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Album",
   "albumTitle": "Judul album",
   "albumUpdated": "Album diperbarui",
@@ -158,12 +150,6 @@
     }
   },
   "cancelSubscription": "Batalkan langganan",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} tidak akan dapat menambahkan foto lagi ke album ini\n\nIa masih dapat menghapus foto yang ditambahkan olehnya sendiri",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Tidak dapat menghapus file berbagi",
   "canNotOpenBody": "Maaf, album ini tidak dapat dibuka di aplikasi.",
   "canNotOpenTitle": "Tidak dapat membuka album ini",
@@ -172,7 +158,6 @@
   "castIPMismatchBody": "Harap pastikan kamu berada pada jaringan yang sama dengan TV-nya.",
   "castIPMismatchTitle": "Gagal mentransmisikan album",
   "changeLocationOfSelectedItems": "Ubah lokasi pada item terpilih?",
-  "changePermissionsQuestion": "Ubah izin?",
   "checkInboxAndSpamFolder": "Silakan periksa kotak masuk (serta kotak spam) untuk menyelesaikan verifikasi",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
@@ -188,7 +173,6 @@
   "codeCopiedToClipboard": "Kode tersalin ke papan klip",
   "codeIssuerHint": "Penerbit",
   "collaborator": "Kolaborator",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Kolaborator bisa menambahkan foto dan video ke album bersama ini.",
   "collageLayout": "Tata letak",
   "collageSaved": "Kolase tersimpan ke galeri",
   "collectPhotos": "Kumpulkan foto",
@@ -709,11 +693,9 @@
     "description": "Lost device title"
   },
   "machineLearning": "Pemelajaran mesin",
-  "manage": "Atur",
   "manageDeviceStorage": "Mengelola cache perangkat",
   "manageFamily": "Atur keluarga",
   "manageLink": "Atur link",
-  "manageParticipants": "Atur",
   "manageSubscription": "Atur langganan",
   "manualSort": "Kustom",
   "map": "Peta",
@@ -837,7 +819,6 @@
   "oopsSomethingWentWrong": "Aduh, terjadi kesalahan",
   "openstreetmapContributors": "Kontributor OpenStreetMap",
   "optionalAsShortAsYouLike": "Opsional, pendek pun tak apa...",
-  "orPickAnExistingOne": "Atau pilih yang sudah ada",
   "pair": "Tautkan",
   "passkeyAuthTitle": "Verifikasi passkey",
   "@passkeyAuthTitle": {
@@ -971,12 +952,6 @@
   "remoteThumbnails": "Thumbnail jarak jauh",
   "remoteVideos": "Video jarak jauh",
   "remove": "Hapus",
-  "removeAlbumParticipantBody": "{userEmail} akan dikeluarkan dari album berbagi ini\n\nSemua foto yang ia tambahkan juga akan dihapus dari album ini",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeFromAlbum": "Hapus dari album",
   "removeFromAlbumTitle": "Hapus dari album?",
   "removeFromFavorite": "Hapus dari favorit",
@@ -1132,7 +1107,6 @@
   "shareALink": "Bagikan link",
   "shareCodes": "Bagikan kode",
   "shareCodesDuration": "Pilih durasi untuk berbagi kode.",
-  "sharedAlbumSectionDescription": "Buat album bersama dan kolaborasi dengan pengguna Ente lain, termasuk pengguna paket gratis.",
   "shareLink": "Bagikan link",
   "shareWithNonenteUsers": "Bagikan ke pengguna non-Ente",
   "sharing": "Membagikan...",

@@ -12,48 +12,25 @@
     "description": "Title for active sessions page"
   },
   "add": "Hozzaadas",
-  "addAdmin": "Adminisztrátor hozzáadása",
-  "addANewEmail": "Új email cím hozzáadása",
   "addCode": "Kód hozzáadása",
-  "addCollaborator": "Együttműködő hozzáadása",
-  "addedAs": "Hozzáadva mint",
   "addEmail": "E-mail hozzadasa",
   "addFamilyMember": "Családtag hozzáadása",
   "addingToFavorites": "Hozzáadás a kedvencekhez...",
   "addMember": "Tag hozzáadása",
   "addMore": "További hozzáadása",
-  "addMoreAdmins": "További adminisztrátorok hozzáadása",
   "addNew": "Új hozzáadása",
   "@addNew": {
     "description": "Text to add a new item (location tag, album, caption etc)"
   },
   "addNewEmail": "Uj e-mail hozzadasa",
-  "addParticipants": "Resztvevok hozzaadasa",
   "addTag": "Címke hozzáadása",
   "addToAlbum": "Hozzáadás albumhoz",
   "addToCollection": "Hozzadas gyujtemennyhez",
   "addToEnte": "Hozzáadás az Entéhez",
   "addUpTo5MembersFree": "Legfeljebb 5 tagot adhatsz hozzá ingyen",
-  "addViewer": "Megtekintésre jogosult hozzáadása",
   "admin": "Adminisztrátor",
-  "admins": "Adminisztrátorok",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "A rendszergazdák és a közreműködők is adhatnak hozzá fotókat. A rendszergazdák emellett a fotókat és a résztvevőket is kezelhetik.",
   "after1Day": "1 nap múlva",
   "albumLayout": "Albumelrendezés",
-  "albumOwner": "Tulajdonos",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{Nincs résztvevő} one{{count} résztvevő} other{{count} résztvevő}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Album",
   "albumsOnEnteEmptyFeatureAccessAnyDevice": "Férj hozzá bármilyen eszközön",
   "albumsOnEnteEmptyFeaturePrivacy": "Teljes biztonság végpontok közötti titkosítással",
@@ -202,12 +179,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} nem tud több fotót hozzáadni ehhez az albumhoz.\n\nTovábbra is el tudja távolítani az általa hozzáadott meglévő fotókat",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Nem lehet törölni a megosztott fájlokat",
   "cannotMoveToSharedAlbums": "Nem helyezhető át megosztott albumokba",
   "cannotMoveToSharedAlbumsMessage": "Az elemeket csak hozzáadni lehet a megosztott albumokhoz, áthelyezni nem. Inkább hozzáadod?",
@@ -220,7 +191,6 @@
     "description": "Change email button label"
   },
   "changePermissions": "Engedelyek modositasa",
-  "changePermissionsQuestion": "Engedélyek módosítása?",
   "changeYourReferralCode": "Kód módosítása",
   "checkForUpdates": "Frissítések ellenőrzése",
   "checking": "Ellenőrzés...",
@@ -247,7 +217,6 @@
   "codeIssuerHint": "Kibocsátó",
   "collabLinkSectionDescription": "Engedélyezheti másoknak, hogy Ente fiók nélkül adjanak hozzá fotókat",
   "collaborator": "Együttműködő",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Az együttműködők hozzá adhatnak fotókat és videókat a megosztott albumban.",
   "collageLayout": "Elrendezés",
   "collectionCannotBeDeleted": "Ez a gyujtemeny nem torolheto",
   "collectionCannotBeEdited": "Ez a gyujtemeny nem szerkesztheto",
@@ -940,10 +909,8 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Kezelés",
   "manageDeviceStorage": "Eszköz gyorsítótárának kezelése",
   "manageLink": "Hivatkozás kezelése",
-  "manageParticipants": "Kezelés",
   "managePaymentMethod": "Fizetési módok kezelése",
   "manageSubscription": "Előfizetés kezelése",
   "manualSort": "Egyéni",
@@ -1088,7 +1055,6 @@
   },
   "oopsSomethingWentWrong": "Hoppá, valami hiba történt",
   "optionalAsShortAsYouLike": "Opcionális, lehet rövid is...",
-  "orPickAnExistingOne": "Vagy válasszon egy létezőt",
   "parsingError": "Feldolgozási hiba",
   "passkeyAuthTitle": "Passkey hitelesítés",
   "@passkeyAuthTitle": {
@@ -1234,12 +1200,6 @@
   "remindToEmptyEnteTrash": "Ürítsd ki a \"Kukát\" is, hogy visszaszerezd a felszabadult helyet",
   "remove": "Eltávolítás",
   "removeAccess": "Hozzaferes eltavolitasa",
-  "removeAlbumParticipantBody": "{userEmail} felhasználó el lesz távolítva ebből a megosztott albumból\n\nAz általa hozzáadott összes fotó is eltávolításra kerül az albumból",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} eltavolitasra kerul ebbol a megosztott gyutemenybol\n\nAz altala hozzaadott elemek is eltavolitasra kerulnek a gyujtemennybol",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -1435,7 +1395,6 @@
   "shareALink": "Hivatkozás megosztása",
   "shareCodes": "Kódok megosztása",
   "shareCodesDuration": "Válaszd ki a kódok megosztásának időtartamát.",
-  "sharedAlbumSectionDescription": "Hozzon létre megosztott és együttműködő albumokat más Ente-felhasználókkal, beleértve az ingyenes csomagokat használó felhasználókat is.",
   "sharedPhotoNotifications": "Új megosztott fotók és albumok",
   "sharedPhotoNotificationsExplanation": "Új fotók és albumok amikben benne vagy vagy meg van osztva veled",
   "sharedWith": "Megosztva",
@@ -1458,15 +1417,6 @@
   "shareTextRecommendUsingEnteForPhotos": "Töltsd le az Ente alkalmazást, hogy könnyen megoszthassuk az eredeti minőségű fotókat és videókat https://ente.com",
   "shareThisLink": "Ez a link lehetove teszi barkinek, aki megkapja, hogy hozzaferjen az elemehez. Barmikor eltavolithatja a hozzaferest a link torlesevel.",
   "shareWithNonenteUsers": "Megosztás nem Ente felhasználókkal",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Megosztás konkrét személyekkel} one{Megosztva {numberOfPeople} személlyel} other{Megosztva {numberOfPeople} személlyel}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "shareYourSubscription": "Oszd meg az előfizetésedet a szeretteiddel",
   "sharing": "Megosztás...",
   "sharingAndCollaboration": "Megosztás és együttműködés",

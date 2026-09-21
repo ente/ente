@@ -23,12 +23,8 @@
     "description": "Title for active sessions page"
   },
   "add": "Toevoegen",
-  "addAdmin": "Beheerder toevoegen",
   "addANameAndPhoto": "Voeg een naam en foto toe",
-  "addANewEmail": "Nieuw e-mailadres toevoegen",
   "addCode": "Code toevoegen",
-  "addCollaborator": "Samenwerker toevoegen",
-  "addedAs": "Toegevoegd als",
   "addedBy": "Toegevoegd door {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -52,7 +48,6 @@
   "addLocationButton": "Toevoegen",
   "addMember": "Lid toevoegen",
   "addMore": "Meer toevoegen",
-  "addMoreAdmins": "Meer beheerders toevoegen",
   "addName": "Naam toevoegen",
   "addNew": "Nieuwe toevoegen",
   "@addNew": {
@@ -67,7 +62,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Voeg deelnemers toe",
   "addPerson": "Persoon toevoegen",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -86,11 +80,9 @@
   },
   "addTrustedContact": "Vertrouwde contactpersoon toevoegen",
   "addUpTo5MembersFree": "Voeg maximaal 5 leden gratis toe",
-  "addViewer": "Voeg kijker toe",
   "addYourPhotosNow": "Voeg nu je foto's toe",
   "adjust": "Aanpassen",
   "admin": "Beheerder",
-  "admins": "Beheerders",
   "admiringThem": "{name} bewonderen",
   "@admiringThem": {
     "placeholders": {
@@ -105,20 +97,6 @@
   "after1Week": "Na 1 week",
   "after1Year": "Na 1 jaar",
   "albumLayout": "Albumweergave",
-  "albumOwner": "Eigenaar",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{Geen deelnemers} one{{count} Deelnemer} other{{count} Deelnemers}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albumsOnDevicePermissionFeatureAllowAccessFaceRecognition": "Geef Ente toegang tot je foto's om ze met gezichtsherkenning te ordenen",
   "albumTitle": "Albumtitel",
   "albumUpdated": "Album bijgewerkt",
@@ -334,12 +312,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} zal geen foto's meer kunnen toevoegen aan dit album\n\nDe gebruiker zal nog steeds bestaande foto's kunnen verwijderen die door hen zijn toegevoegd",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Kan gedeelde bestanden niet verwijderen",
   "cannotMoveToSharedAlbums": "Kan niet verplaatsen naar gedeelde albums",
   "cannotMoveToSharedAlbumsMessage": "Items kunnen alleen worden toegevoegd aan gedeeld albums, niet verplaatst. Wil je in plaats daarvan toevoegen?",
@@ -364,7 +336,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Machtigingen wijzigen",
-  "changePermissionsQuestion": "Rechten aanpassen?",
   "changeYourReferralCode": "Code wijzigen",
   "checkForUpdates": "Controleer op updates",
   "checkInboxAndSpamFolder": "Controleer je inbox (en spam) om verificatie te voltooien",
@@ -418,7 +389,6 @@
   "codeCopiedToClipboard": "Code gekopieerd naar klembord",
   "codeIssuerHint": "Uitgever",
   "collaborator": "Samenwerker",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Samenwerkers kunnen foto's en video's toevoegen aan het gedeelde album.",
   "collageSaved": "Collage opgeslagen in gallerij",
   "collectionCannotBeDeleted": "Deze collectie kan niet worden verwijderd",
   "collectionCannotBeEdited": "Deze collectie kan niet worden bewerkt",
@@ -1486,11 +1456,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Beheren",
   "manageDeviceStorage": "Apparaatcache beheren",
   "manageFamily": "Familie abonnement beheren",
   "manageLink": "Beheer link",
-  "manageParticipants": "Beheren",
   "managePaymentMethod": "Betaalmethode beheren",
   "manageSubscription": "Abonnement beheren",
   "manualSort": "Aangepast",
@@ -1758,7 +1726,6 @@
   "openSettings": "Instellingen openen",
   "openstreetmapContributors": "OpenStreetMap bijdragers",
   "optionalAsShortAsYouLike": "Optioneel, zo kort als je wilt...",
-  "orPickAnExistingOne": "Of kies een bestaande",
   "otherDetectedFaces": "Andere gedetecteerde gezichten",
   "pair": "Koppelen",
   "partyWithThem": "Feest met {name}",
@@ -2080,12 +2047,6 @@
   "remoteVideos": "Externe video's",
   "remove": "Verwijder",
   "removeAccess": "Toegang verwijderen",
-  "removeAlbumParticipantBody": "{userEmail} zal worden verwijderd uit dit gedeelde album\n\nAlle door hen toegevoegde foto's worden ook uit het album verwijderd",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} wordt verwijderd uit deze gedeelde collectie\n\nItems die door hem/haar zijn toegevoegd worden ook uit de collectie verwijderd",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -2497,7 +2458,6 @@
   "shareAnAlbum": "Een album delen",
   "shareCodes": "Codes delen",
   "shareCodesDuration": "Selecteer de duur waarvoor je codes wilt delen.",
-  "sharedAlbumSectionDescription": "Maak gedeelde en collaboratieve albums met andere Ente gebruikers, inclusief gebruikers met gratis abonnementen.",
   "sharedAlbumWithYou": "heeft {albumName} met u gedeeld",
   "@sharedAlbumWithYou": {
     "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",

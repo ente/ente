@@ -6,7 +6,6 @@
     "description": "Title for active sessions page"
   },
   "addCode": "Dodaj kodo",
-  "addedAs": "Dodaj kot",
   "addedSuccessfullyTo": "Uspešno dodano v {albumName}",
   "@addedSuccessfullyTo": {
     "placeholders": {
@@ -18,10 +17,6 @@
   "addSelected": "Dodaj izbrane",
   "addToAlbum": "Dodaj v album",
   "advanced": "Napredno",
-  "albumOwner": "Lastnik",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "all": "Vsi",
   "androidBiometricHint": "Potrdite identiteto",
   "@androidBiometricHint": {
@@ -461,7 +456,6 @@
   "@lostDeviceTitle": {
     "description": "Lost device title"
   },
-  "manage": "Upravljaj",
   "manualSort": "Po meri",
   "merchandise": "Trgovina",
   "minimizeAppOnCopy": "Ob kopiranju, minimiziraj aplikacijo",

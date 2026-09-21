@@ -24,12 +24,9 @@
     "description": "Title for active sessions page"
   },
   "add": "Přidat",
-  "addAdmin": "Přidat správce",
   "addAlbumWidgetPrompt": "Přidejte na domovskou obrazovku widget alba a upravte jej zde.",
   "addANameAndPhoto": "Přidat jméno a fotografii",
-  "addANewEmail": "Přidejte nový email",
   "addCode": "Přidat kód",
-  "addCollaborator": "Přidat spolupracovníka",
   "addedAMemoryTo": "přidána vzpomínka do {albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -39,7 +36,6 @@
       }
     }
   },
-  "addedAs": "Přidán jako",
   "addedBy": "Přidáno uživatelem {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -76,7 +72,6 @@
   "addMember": "Přidat člena",
   "addMemoriesWidgetPrompt": "Přidejte na domovskou obrazovku widget vzpomínek a upravte jej zde.",
   "addMore": "Přidat další",
-  "addMoreAdmins": "Přidat více správců",
   "addName": "Přidat název",
   "addNew": "Přidat nový",
   "@addNew": {
@@ -92,7 +87,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Přidat účastníky",
   "addPeopleWidgetPrompt": "Přidejte na domovskou obrazovku widget lidí a upravte jej zde.",
   "addPerson": "Přidat osobu",
   "@addPerson": {
@@ -115,9 +109,6 @@
   "addYourPhotosNow": "Přidejte své fotografie nyní",
   "adjust": "Upravit",
   "admin": "Správce",
-  "admins": "Správci",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Správci a spolupracovníci můžou přidávat fotografie. Správci můžou navíc spravovat fotografie a účastníky.",
-  "adminsCanManagePhotosAndParticipants": "Správci mohou spravovat fotografie a účastníky.",
   "admiringThem": "Obdiv k {name}",
   "@admiringThem": {
     "placeholders": {
@@ -132,10 +123,6 @@
   "after1Week": "Po 1 týdnu",
   "after1Year": "Po 1 roce",
   "albumLayout": "Rozložení alba",
-  "albumOwner": "Vlastník",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Alba",
   "albumsWidgetDesc": "Vyberte alba, která chcete zobrazit na své domovské obrazovce.",
   "albumTitle": "Nadpis alba",
@@ -374,12 +361,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} nebudou moci přidávat další fotografie do tohoto alba\n\nStále však budou moci odebrat fotografie, které sami přidali",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Sdílené soubory nelze odstranit",
   "cannotMoveToSharedAlbums": "Nelze přesunout do sdílených alb",
   "cannotMoveToSharedAlbumsMessage": "Položky mohou být pouze přidány do sdílených alb, nikoliv přesunuty. Chcete je tedy místo toho přidat?",
@@ -405,7 +386,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Změnit oprávnění",
-  "changePermissionsQuestion": "Změnit oprávnění?",
   "changeYourReferralCode": "Změnit svůj kód",
   "checkForUpdates": "Zkontrolovat aktualizace",
   "checkInboxAndSpamFolder": "Zkontrolujte prosím svou doručenou poštu (a spam) pro dokončení ověření",
@@ -463,7 +443,6 @@
   "codeCopiedToClipboard": "Kód zkopírován do schránky",
   "codeIssuerHint": "Vydavatel",
   "collaborator": "Spolupracovník",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Spolupracovníci mohou do sdíleného alba přidávat fotografie a videa.",
   "collageLayout": "Rozvržení",
   "collageSaved": "Koláž uložena do galerie",
   "collectionCannotBeDeleted": "Tuto kolekci nelze smazat",
@@ -1668,11 +1647,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Spravovat",
   "manageDeviceStorage": "Spravovat mezipaměť zařízení",
   "manageFamily": "Spravovat rodinu",
   "manageLink": "Spravovat odkaz",
-  "manageParticipants": "Spravovat",
   "managePaymentMethod": "Spravovat způsob platby",
   "manageSubscription": "Spravovat předplatné",
   "manualSort": "Vlastní",
@@ -1972,7 +1949,6 @@
   "openSettings": "Otevřít nastavení",
   "openstreetmapContributors": "Přispěvatelé OpenStreetMap",
   "optionalAsShortAsYouLike": "Volitelné, tak krátké, jak chcete...",
-  "orPickAnExistingOne": "Nebo vyberte existující",
   "orRemoveYourself": "Nebo se odstraňte jako důvěryhodný kontakt uživatele {email}",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -2354,12 +2330,6 @@
   "remoteVideos": "Vzdálená videa",
   "remove": "Odstranit",
   "removeAccess": "Odebrat přístup",
-  "removeAlbumParticipantBody": "{userEmail} budou odebráni z tohoto sdíleného alba\n\nVšechny jimi přidané fotografie budou z alba také odebrány",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} bude odebrán z této sdílené kolekce\n\nVšechny položky přidané touto osobou budou také odebrány z kolekce",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -2838,7 +2808,6 @@
   "shareCodes": "Sdílet kódy",
   "shareCodesDuration": "Vyberte dobu, po kterou chcete kódy sdílet.",
   "shareCollection": "Sdílet kolekci",
-  "sharedAlbumSectionDescription": "Vytvářejte sdílená a společná alba s ostatními uživateli Ente, včetně uživatelů na bezplatném plánu.",
   "sharedAlbumWithYou": "sdílel(a) s Vámi {albumName}",
   "@sharedAlbumWithYou": {
     "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",

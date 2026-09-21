@@ -12,28 +12,19 @@
     "description": "Title for active sessions page"
   },
   "add": "Tilføj",
-  "addANewEmail": "Tilføj en ny e-mail",
   "addCode": "Tilføj kode",
-  "addCollaborator": "Tilføj samarbejdspartner",
-  "addedAs": "Tilføjet som",
   "addEmail": "Tilføj e-mail",
   "addingToFavorites": "Tilføjer til favoritter...",
   "addMore": "Tilføj flere",
   "addNewEmail": "Tilføj ny e-mail",
   "addOnPageSubtitle": "Oplysninger om tilføjelser",
-  "addParticipants": "Tilføj deltagere",
   "addToCollection": "Tilføj til samling",
-  "addViewer": "Tilføj seer",
   "advanced": "Avanceret",
   "after1Day": "Efter 1 dag",
   "after1Hour": "Efter 1 time",
   "after1Month": "Efter 1 måned",
   "after1Week": "Efter 1 uge",
   "after1Year": "Efter 1 år",
-  "albumOwner": "Ejer",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albumUpdated": "Album er opdateret",
   "all": "Alt",
   "allFilesAlreadyMarkedAsImportant": "Alle elementer er allerede markeret som vigtige",
@@ -118,12 +109,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} vil ikke kunne tilføje flere billeder til dette album\n\nDe vil stadig kunne fjerne eksisterende billeder tilføjet af dem",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Kan ikke slette delte filer",
   "canNotOpenBody": "Beklager, dette album kan ikke åbnes i appen.",
   "canOnlyRemoveFilesOwnedByYou": "Kan kun fjerne filer ejet af dig",
@@ -137,7 +122,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Skift tilladelser",
-  "changePermissionsQuestion": "Rediger rettigheder?",
   "checkForUpdates": "Tjek for opdateringer",
   "checking": "Tjekker...",
   "checkStatus": "Tjek status",
@@ -673,9 +657,7 @@
     "description": "Lost device title"
   },
   "machineLearning": "Maskinlæring",
-  "manage": "Administrér",
   "manageLink": "Administrer link",
-  "manageParticipants": "Administrer",
   "markingAsImportant": "Markerer som vigtig...",
   "minimizeAppOnCopy": "Minimer app ved kopiering",
   "mlConsent": "Aktiver maskinlæring",
@@ -749,7 +731,6 @@
     "description": "Oops error title"
   },
   "oopsSomethingWentWrong": "Ups, noget gik galt",
-  "orPickAnExistingOne": "Eller vælg en eksisterende",
   "passkeyAuthTitle": "Bekræftelse af adgangskode",
   "@passkeyAuthTitle": {
     "description": "Passkey authentication title"

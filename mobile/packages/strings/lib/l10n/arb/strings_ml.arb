@@ -1,9 +1,5 @@
 {
   "account": "അക്കൗണ്ട്",
-  "albumOwner": "ഉടമ",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "blog": "ബ്ലോഗ്",
   "calculating": "കണക്കുകൂട്ടുന്നു...",
   "cancel": "റദ്ദാക്കുക",

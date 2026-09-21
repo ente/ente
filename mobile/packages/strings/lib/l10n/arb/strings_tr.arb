@@ -25,12 +25,8 @@
     "description": "Title for active sessions page"
   },
   "add": "Ekle",
-  "addAdmin": "Yönetici ekle",
   "addANameAndPhoto": "Bir isim ya da fotoğraf ekleyin",
-  "addANewEmail": "Yeni e-posta ekle",
   "addCode": "Kod ekle",
-  "addCollaborator": "Düzenleyici ekle",
-  "addedAs": "Eklendi",
   "addedBy": "{emailOrName} tarafından eklendi",
   "@addedBy": {
     "placeholders": {
@@ -54,7 +50,6 @@
   "addLocationButton": "Ekle",
   "addMember": "Üye ekle",
   "addMore": "Daha fazla ekle",
-  "addMoreAdmins": "Daha fazla yönetici ekle",
   "addName": "İsim Ekle",
   "addNew": "Yeni ekle",
   "@addNew": {
@@ -70,7 +65,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Katılımcı ekle",
   "addPerson": "Kişi ekle",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -87,13 +81,9 @@
     "description": "Action label to add selected files to an existing person."
   },
   "addTrustedContact": "Güvenilir kişi ekle",
-  "addViewer": "Görüntüleyici ekle",
   "addYourPhotosNow": "Fotoğraflarınızı şimdi ekleyin",
   "adjust": "Ayarla",
   "admin": "Yönetici",
-  "admins": "Yöneticiler",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Yöneticiler ve işbirlikçiler fotoğraf ekleyebilir. Yöneticiler ayrıca fotoğrafları ve katılımcıları da yönetebilir.",
-  "adminsCanManagePhotosAndParticipants": "Yöneticiler fotoğrafları ve katılımcıları yönetebilir.",
   "admiringThem": "{name}'e hayran kalmak",
   "@admiringThem": {
     "placeholders": {
@@ -110,10 +100,6 @@
   "albumEditsWillNotBeSaved": "Bu albüme yaptığınız düzenlemeler kaydedilmeyecektir.",
   "albumLayout": "Albüm düzeni",
   "albumName": "Albüm ismi",
-  "albumOwner": "Sahip",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Albümler",
   "albumsOnDevicePermissionCta": "Erişime izin ver",
   "albumTitle": "Albüm Başlığı",
@@ -323,12 +309,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user}, bu albüme daha fazla fotoğraf ekleyemeyecek.\n\nAncak, kendi eklediği mevcut fotoğrafları kaldırmaya devam edebilecektir",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Dosyalar silinemiyor",
   "cannotMoveToSharedAlbums": "Paylaşılan albüme taşınamıyor",
   "cannotMoveToSharedAlbumsMessage": "Ögeler, paylaşılan albümlere eklenebilir, taşınamaz. Taşımak yerine eklemek ister misiniz?",
@@ -346,7 +326,6 @@
   },
   "changeLocationOfSelectedItems": "Seçilen öğelerin konumu değiştirilsin mi?",
   "changePermissions": "İzinleri değiştir",
-  "changePermissionsQuestion": "İzinleri değiştir?",
   "changeYourReferralCode": "Kodu değiştir",
   "checkingModels": "Modeller kontrol ediliyor...",
   "chooseBackupLocation": "Yedekleme konumu seçin",
@@ -375,7 +354,6 @@
   "codeCopiedToClipboard": "Kodunuz panoya kopyalandı",
   "codeIssuerHint": "Yayınlayan",
   "collaborator": "Düzenleyici",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Düzenleyiciler, paylaşılan albüme fotoğraf ve videolar ekleyebilir.",
   "collageLayout": "Düzen",
   "collageSaved": "Kolajınız galeriye kaydedildi",
   "collectionCannotBeDeleted": "Bu koleksiyon silinemez",
@@ -1258,11 +1236,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Yönet",
   "manageDeviceStorage": "Cihaz önbelleğini yönet",
   "manageFamily": "Aileyi yönet",
   "manageLink": "Bağlantıyı yönet",
-  "manageParticipants": "Yönet",
   "managePaymentMethod": "Ödeme yöntemini yönet",
   "manageSubscription": "Aboneliği yönet",
   "manualSort": "Özel",
@@ -1487,7 +1463,6 @@
   "openSettings": "Ayarları aç",
   "openstreetmapContributors": "OpenStreetMap katkıda bululanlar",
   "optionalAsShortAsYouLike": "İsteğe bağlı, istediğiniz kadar kısa...",
-  "orPickAnExistingOne": "Veya mevcut birini seçiniz",
   "otherDetectedFaces": "Tespit edilen diğer yüzler",
   "pair": "Eşleştir",
   "parsingError": "Ayrıştırma hatası",
@@ -1762,12 +1737,6 @@
   "remoteVideos": "Uzak Videolar",
   "remove": "Kaldır",
   "removeAccess": "Erişimi kaldır",
-  "removeAlbumParticipantBody": "{userEmail} bu paylaşılan albümden kaldırılacaktır\n\nOnlar tarafından eklenen tüm fotoğraflar da albümden kaldırılacaktır",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} bu paylaşılan koleksiyondan kaldırılacak\n\nOnun eklediği öğeler de koleksiyondan kaldırılacak",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -2082,7 +2051,6 @@
   "shareALink": "Bir bağlantı paylaş",
   "shareCodes": "Kodları paylaş",
   "shareCodesDuration": "Kodları paylaşma süresini seçin.",
-  "sharedAlbumSectionDescription": "Diğer Ente kullanıcılarıyla paylaşılan ve topluluk albümleri oluşturun, bu arada ücretsiz planlara sahip kullanıcıları da içerir.",
   "sharedPhotoNotifications": "Yeni paylaşılan fotoğraf ve albümler",
   "sharedWith": "Paylaşılan",
   "shareKey": "Anahtarı paylaş",
