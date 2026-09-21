@@ -34,4 +34,30 @@ void main() {
       0.5,
     );
   });
+
+  testWidgets('speed chips can be activated through semantics', (tester) async {
+    double selectedSpeed = 1.0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: darkThemeData,
+        home: Scaffold(
+          body: VideoSpeedOptions(
+            currentSpeed: selectedSpeed,
+            onSpeedSelected: (speed) => selectedSpeed = speed,
+          ),
+        ),
+      ),
+    );
+
+    final chip = tester.widget<Semantics>(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == '0.5x',
+      ),
+    );
+    expect(chip.properties.button, isTrue);
+    expect(chip.properties.onTap, isNotNull);
+    chip.properties.onTap!();
+    expect(selectedSpeed, 0.5);
+  });
 }
