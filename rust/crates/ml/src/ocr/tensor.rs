@@ -42,11 +42,32 @@ impl BgrNormalization {
     }
 }
 
+pub(super) enum VerticalAlignment {
+    Top,
+    Center,
+}
+
 pub(crate) fn write_bgr_planes(
     rgb: &ImageU8,
     planes: &mut [f32],
     plane_width: usize,
     normalization: BgrNormalization,
+) -> MlResult<()> {
+    write_bgr_planes_aligned(
+        rgb,
+        planes,
+        plane_width,
+        normalization,
+        VerticalAlignment::Center,
+    )
+}
+
+pub(super) fn write_bgr_planes_aligned(
+    rgb: &ImageU8,
+    planes: &mut [f32],
+    plane_width: usize,
+    normalization: BgrNormalization,
+    alignment: VerticalAlignment,
 ) -> MlResult<()> {
     let width = rgb.width as usize;
     let height = rgb.height as usize;
@@ -76,7 +97,10 @@ pub(crate) fn write_bgr_planes(
     });
     let (blue, rest) = planes.split_at_mut(plane);
     let (green, red) = rest.split_at_mut(plane);
-    let top = (plane_height - height) / 2 * plane_width;
+    let top = match alignment {
+        VerticalAlignment::Top => 0,
+        VerticalAlignment::Center => (plane_height - height) / 2 * plane_width,
+    };
     let bottom = top + height * plane_width;
     for channel in [&mut *blue, &mut *green, &mut *red] {
         channel[..top].fill(0.0);

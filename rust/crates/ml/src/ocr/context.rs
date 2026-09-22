@@ -1,6 +1,9 @@
 use ort::session::{Session, SessionInputValue};
 use ort::value::{Tensor, TensorRef};
 
+use super::tensor::{BgrNormalization, VerticalAlignment, write_bgr_planes_aligned};
+use crate::cv::image::ImageU8;
+use crate::error::MlResult;
 use crate::onnx::{SessionRunError, SessionRunResult};
 
 #[derive(Clone)]
@@ -58,17 +61,21 @@ pub(super) fn infer(
     Ok((shape.to_vec(), values.to_vec()))
 }
 
-pub(super) fn detector(raw: &[f32], height: usize, width: usize) -> Vec<Input> {
+pub(super) fn detector(rgb: &ImageU8) -> MlResult<Vec<Input>> {
     let side = 960;
     let mut image = Input::zeros("x", &[1, 3, side, side]);
-    for channel in 0..3 {
-        for y in 0..height {
-            let source = (channel * height + y) * width;
-            let target = (channel * side + y) * side;
-            image.values[target..target + width].copy_from_slice(&raw[source..source + width]);
-        }
-    }
-    detector_paths(image, height, width)
+    write_bgr_planes_aligned(
+        rgb,
+        &mut image.values,
+        side,
+        BgrNormalization::IMAGENET,
+        VerticalAlignment::Top,
+    )?;
+    Ok(detector_paths(
+        image,
+        rgb.height as usize,
+        rgb.width as usize,
+    ))
 }
 
 pub(super) struct Line {
@@ -239,9 +246,56 @@ pub(super) fn recognizer_paths(mut selected: Vec<Input>, width: usize) -> Vec<In
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ocr::tensor::write_bgr_planes;
 
     fn input<'a>(inputs: &'a [Input], name: &str) -> &'a Input {
         inputs.iter().find(|input| input.name == name).unwrap()
+    }
+
+    #[test]
+    fn detector_input_preserves_normalization_and_top_left_padding() {
+        for (height, width) in [
+            (1, 1),
+            (32, 32),
+            (960, 480),
+            (448, 960),
+            (960, 672),
+            (704, 960),
+            (960, 736),
+            (960, 704),
+            (960, 960),
+        ] {
+            let rgb = ImageU8::new(
+                width as i32,
+                height as i32,
+                3,
+                (0..width * height * 3)
+                    .map(|i| (i * 37 + i / 13) as u8)
+                    .collect(),
+            )
+            .unwrap();
+            let mut compact = vec![0.0; 3 * height * width];
+            write_bgr_planes(&rgb, &mut compact, width, BgrNormalization::IMAGENET).unwrap();
+            let inputs = detector(&rgb).unwrap();
+            let actual = input(&inputs, "x");
+            assert_eq!(actual.shape, [1, 3, 960, 960]);
+            for channel in 0..3 {
+                for y in 0..960 {
+                    for x in 0..960 {
+                        let expected = if y < height && x < width {
+                            compact[(channel * height + y) * width + x]
+                        } else {
+                            0.0
+                        };
+                        assert_eq!(
+                            actual.values[(channel * 960 + y) * 960 + x].to_bits(),
+                            expected.to_bits(),
+                            "{width}x{height}, channel {channel}, pixel ({x}, {y})"
+                        );
+                    }
+                }
+            }
+        }
     }
 
     #[test]
@@ -254,16 +308,27 @@ mod tests {
             (704, 960, 3),
             (960, 736, 4),
         ] {
-            let raw = vec![0.5; 3 * height * width];
-            let inputs = detector(&raw, height, width);
+            let rgb = ImageU8::new(
+                width as i32,
+                height as i32,
+                3,
+                vec![128; 3 * height * width],
+            )
+            .unwrap();
+            let inputs = detector(&rgb).unwrap();
             let image = input(&inputs, "x");
             assert_eq!(image.shape, [1, 3, 960, 960]);
-            for channel in 0..3 {
+            let normalized = [
+                (128.0f32 / 255.0 - 0.485) / 0.229,
+                (128.0f32 / 255.0 - 0.456) / 0.224,
+                (128.0f32 / 255.0 - 0.406) / 0.225,
+            ];
+            for (channel, expected) in normalized.into_iter().enumerate() {
                 for row in 0..960 {
                     let pixels =
                         &image.values[(channel * 960 + row) * 960..(channel * 960 + row + 1) * 960];
                     if row < height {
-                        assert!(pixels[..width].iter().all(|&v| v == 0.5));
+                        assert!(pixels[..width].iter().all(|&v| v == expected));
                         assert!(pixels[width..].iter().all(|&v| v == 0.0));
                     } else {
                         assert!(pixels.iter().all(|&v| v == 0.0));

@@ -5,7 +5,6 @@ use super::geometry::{
     clip_to_bounds, mean_inside_quad, min_area_rect, min_edge, order_corners, scale_points, unclip,
 };
 use super::session::{OcrModel, OcrSession};
-use super::tensor::{BgrNormalization, write_bgr_planes};
 use crate::cv;
 use crate::cv::image::{Contour, ImageU8};
 use crate::error::{MlError, MlResult};
@@ -54,8 +53,7 @@ impl TextDetector {
         let (input_width, input_height) = detector_input_size(working.width, working.height);
         let resized = cv::resize_u8(working, input_width, input_height, cv::Interp::Bilinear)
             .map_err(MlError::Preprocess)?;
-        let input = normalized_bgr_planes(&resized)?;
-        let values = self.infer(&input, input_width, input_height)?;
+        let values = self.infer(&resized)?;
         let probability_map = ProbabilityMap {
             width: input_width as usize,
             height: input_height as usize,
@@ -75,10 +73,11 @@ impl TextDetector {
         })
     }
 
-    fn infer(&self, input: &[f32], width: i32, height: i32) -> MlResult<Vec<f32>> {
+    fn infer(&self, rgb: &ImageU8) -> MlResult<Vec<f32>> {
+        let (width, height) = (rgb.width, rgb.height);
         let expected_shape = [1i64, 1, 960, 960];
         let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
-        let inputs = super::context::detector(input, height as usize, width as usize);
+        let inputs = super::context::detector(rgb)?;
         let (values, _usage) = session.run(|session| {
             let (shape, values) = super::context::infer(session, &inputs)?;
             if shape != expected_shape || values.len() != 960 * 960 {
@@ -114,17 +113,6 @@ pub(crate) fn detector_input_size(width: i32, height: i32) -> (i32, i32) {
 fn rounded_to_stride(side: f64) -> i32 {
     let stride = f64::from(INPUT_STRIDE);
     ((side.trunc() / stride).round_ties_even() as i32 * INPUT_STRIDE).max(INPUT_STRIDE)
-}
-
-fn normalized_bgr_planes(rgb: &ImageU8) -> MlResult<Vec<f32>> {
-    let mut planes = vec![0.0f32; rgb.width as usize * rgb.height as usize * 3];
-    write_bgr_planes(
-        rgb,
-        &mut planes,
-        rgb.width as usize,
-        BgrNormalization::IMAGENET,
-    )?;
-    Ok(planes)
 }
 
 impl DetectionCandidate {
@@ -452,20 +440,5 @@ mod tests {
         assert_eq!(detector_input_size(1920, 1441), (960, 704));
         assert_eq!(detector_input_size(960, 960), (960, 960));
         assert_eq!(detector_input_size(1, 1), (32, 32));
-    }
-
-    #[test]
-    fn detector_planes_are_bgr_and_normalised_per_channel() {
-        let pixel = ImageU8::new(1, 1, 3, vec![10, 20, 30]).unwrap();
-        let planes = normalized_bgr_planes(&pixel).unwrap();
-        let expected = [
-            (30.0 / 255.0 - 0.485) / 0.229,
-            (20.0 / 255.0 - 0.456) / 0.224,
-            (10.0 / 255.0 - 0.406) / 0.225,
-        ];
-        assert_eq!(planes.len(), 3);
-        for (actual, expected) in planes.iter().zip(expected) {
-            assert!((actual - expected).abs() <= 1e-6, "{planes:?}");
-        }
     }
 }
