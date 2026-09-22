@@ -162,8 +162,13 @@ class RemoteSyncService {
         throw WiFiUnavailableError();
       }
 
+      // this run adds stale entries from earlier syncs (if any)
+      await _completePendingCollaborativeAdds();
       final filesToBeUploaded = await _getFilesToBeUploaded();
       final hasUploadedFiles = await _uploadFiles(filesToBeUploaded);
+      // links files to shared collection
+      await _completePendingCollaborativeAdds();
+
       if (filesToBeUploaded.isNotEmpty) {
         _logger.info(
           "Files ${filesToBeUploaded.length} queued for upload, completed: "
@@ -602,6 +607,62 @@ class RemoteSyncService {
     return collection.id;
   }
 
+  bool _isSharedAddPlaceholder(EnteFile file, int ownerID) {
+    // detect if a file was added as a placeholder for a shared collection
+    if (file.collectionID == null) {
+      return false;
+    }
+    final collection = _collectionsService.getCollectionByID(file.collectionID!);
+    return collection != null &&
+        !collection.isOwner(ownerID) &&
+        collection.canAdd(ownerID);
+  }
+
+  Future<void> _completePendingCollaborativeAdds() async {
+    final int? ownerID = _config.getUserID();
+    if (ownerID == null) {
+      return;
+    }
+    for (final placeholder in await _db.getFilesPendingForUpload()) {
+      if (placeholder.localID == null ||
+          placeholder.generatedID == null ||
+          !_isSharedAddPlaceholder(placeholder, ownerID)) {
+        continue;
+      }
+      EnteFile? uploaded;
+      for (final file in await _db.getFilesByLocalID(placeholder.localID!)) {
+        if (file.uploadedFileID != null) {
+          uploaded = file;
+          break;
+        }
+      }
+      if (uploaded == null) {
+        continue;
+      }
+      try {
+        await _collectionsService.addOrCopyToCollection(
+          placeholder.collectionID!,
+          [uploaded.copyWith()],
+        );
+        await _db.deleteByGeneratedID(placeholder.generatedID!);
+        Bus.instance.fire(
+          CollectionUpdatedEvent(
+            placeholder.collectionID,
+            <EnteFile>[],
+            "pendingSharedAdd",
+          ),
+        );
+      } catch (e, s) {
+        _logger.warning(
+          "Failed to add uploaded file to shared collection "
+          "${placeholder.collectionID}",
+          e,
+          s,
+        );
+      }
+    }
+  }
+
   Future<List<EnteFile>> _getFilesToBeUploaded() async {
     // Only-new filtering happens while auto-backup mappings are created. Do
     // not apply it here; this queue also includes manually selected files.
@@ -619,6 +680,7 @@ class RemoteSyncService {
     final List<EnteFile> filesToBeUploaded = [];
     int ignoredForUpload = 0;
     int skippedVideos = 0;
+    final int? ownerID = _config.getUserID();
     final whitelistedIDs =
         (_prefs.getStringList(_ignoreBackUpSettingsForIDs_) ?? <String>[])
             .toSet();
@@ -631,6 +693,9 @@ class RemoteSyncService {
       }
       if (shouldSkipUploadFunc(file)) {
         ignoredForUpload++;
+        continue;
+      }
+      if (ownerID != null && _isSharedAddPlaceholder(file, ownerID)) {
         continue;
       }
       filesToBeUploaded.add(file);
