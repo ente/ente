@@ -200,24 +200,22 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
                             children: [
                               VideoEditorBottomAction(
                                 label: context.strings.trim,
-                                svgPath:
-                                    "assets/video-editor/video-editor-trim-action.svg",
+                                hugeIcon: HugeIcons.strokeRoundedScissor,
                                 onPressed: () => _openSubEditor(
                                   VideoTrimPage(controller: _controller!),
                                 ),
                               ),
                               VideoEditorBottomAction(
                                 label: context.strings.crop,
-                                svgPath:
-                                    "assets/video-editor/video-editor-crop-action.svg",
+                                hugeIcon: HugeIcons.strokeRoundedCrop,
                                 onPressed: () => _openSubEditor(
                                   VideoCropPage(controller: _controller!),
                                 ),
                               ),
                               VideoEditorBottomAction(
                                 label: context.strings.rotate,
-                                svgPath:
-                                    "assets/video-editor/video-editor-rotate-action.svg",
+                                hugeIcon: HugeIcons
+                                    .strokeRoundedOrientationPotraitToLandscape,
                                 onPressed: () => _openSubEditor(
                                   VideoRotatePage(controller: _controller!),
                                 ),
