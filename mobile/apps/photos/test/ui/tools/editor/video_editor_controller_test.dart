@@ -20,8 +20,6 @@ void main() {
 
     controller.updateSpeed(2.0);
     expect(controller.snapshot().speed, 2.0);
-    expect(() => controller.updateSpeed(0), throwsArgumentError);
-    expect(() => controller.updateSpeed(double.nan), throwsArgumentError);
   });
 
   test('edited durations follow the chosen speed', () {

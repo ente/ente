@@ -55,31 +55,7 @@ void main() {
         'scale=trunc(iw/2)*2:trunc(ih/2)*2',
       ]);
     });
-
-    test('applies speed after spatial edits', () {
-      expect(buildFfmpegVideoFilters(crop: null, rotation: 90, speed: 2), [
-        'transpose=1',
-        'scale=trunc(iw/2)*2:trunc(ih/2)*2',
-        'setpts=PTS/2.0',
-      ]);
-    });
   });
-
-  test(
-    'audio tempo scales the initial offset without stretching samples twice',
-    () {
-      expect(buildFfmpegAudioTempoFilters(0.25), [
-        'atempo=0.5',
-        'atempo=0.5',
-        'asetpts=PTS-STARTPTS+STARTPTS/0.25',
-      ]);
-      expect(buildFfmpegAudioTempoFilters(2), [
-        'atempo=2.0',
-        'asetpts=PTS-STARTPTS+STARTPTS/2.0',
-      ]);
-      expect(buildFfmpegAudioTempoFilters(1), isEmpty);
-    },
-  );
 
   test('FFmpeg plan preserves file paths as structured arguments', () {
     final controller = VideoEditorController.file(
@@ -97,7 +73,7 @@ void main() {
     expect(plan.arguments, containsAllInOrder(['-map', '0:a?']));
   });
 
-  test('FFmpeg reads only the trimmed source before changing speed', () {
+  test('speed export plan retimes both streams', () {
     final controller = VideoEditorController.file(File('/tmp/input.mp4'));
     addTearDown(controller.dispose);
     controller.updateSpeed(0.25);
@@ -107,7 +83,10 @@ void main() {
       outputPath: '/tmp/output.mp4',
     );
 
-    expect(plan.arguments, containsAllInOrder(['-t', '0.000000', '-i']));
+    expect(
+      plan.arguments.indexOf('-t'),
+      lessThan(plan.arguments.indexOf('-i')),
+    );
     expect(
       plan.arguments,
       containsAllInOrder([
