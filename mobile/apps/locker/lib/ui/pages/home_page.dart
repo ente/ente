@@ -39,6 +39,7 @@ import "package:locker/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import 'package:locker/utils/collection_sort_util.dart';
 import 'package:logging/logging.dart';
+import 'package:path_provider/path_provider.dart';
 
 class LockerHomeHeader extends StatelessWidget {
   const LockerHomeHeader({
@@ -412,12 +413,8 @@ class _HomePageState extends UploaderPageState<HomePage>
   Future<void> _handleSharedFiles(List<SharedMediaFile> sharedFiles) async {
     _logger.info('_handleSharedFiles called with ${sharedFiles.length} files');
 
-    if (!mounted) {
-      _logger.warning('Context not mounted, cannot handle shared files');
-      return;
-    }
-
     try {
+      if (!mounted) return;
       final files = <File>[];
       for (final sharedFile in sharedFiles) {
         _logger.info('Processing shared file');
@@ -426,20 +423,20 @@ class _HomePageState extends UploaderPageState<HomePage>
           if (await file.exists()) {
             files.add(file);
           } else {
-            _logger.warning('Shared file does not exist');
+            throw const FileSystemException('Shared file does not exist');
           }
         } else {
-          _logger.warning('Shared file has empty path');
+          throw const FileSystemException('Shared file could not be read');
         }
       }
 
       if (mounted && files.isNotEmpty) {
         _logger.info('Opening upload screen for ${files.length} shared files');
-        await uploadFiles(files);
+        await uploadFiles(
+          {for (final file in files) file.path: file}.values.toList(),
+        );
       }
 
-      await ReceiveSharingIntent.instance.reset();
-      _logger.info('Reset sharing intent after handling files');
     } catch (e) {
       _logger.severe('Error handling shared files: $e');
       if (mounted) {
@@ -459,6 +456,27 @@ class _HomePageState extends UploaderPageState<HomePage>
             ],
           ),
         );
+      }
+    } finally {
+      try {
+        await ReceiveSharingIntent.instance.reset();
+      } catch (e, s) {
+        _logger.warning('Failed to reset sharing intent', e, s);
+      }
+      if (Platform.isAndroid) {
+        try {
+          final cache = await getTemporaryDirectory();
+          for (final file in sharedFiles) {
+            final directory = File(file.path).parent;
+            if (directory.parent.path == cache.path &&
+                directory.path.startsWith('${cache.path}/locker_share_') &&
+                await directory.exists()) {
+              await directory.delete(recursive: true);
+            }
+          }
+        } catch (e, s) {
+          _logger.warning('Failed to clean up shared documents', e, s);
+        }
       }
     }
   }
