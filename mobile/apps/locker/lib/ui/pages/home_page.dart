@@ -436,7 +436,6 @@ class _HomePageState extends UploaderPageState<HomePage>
           {for (final file in files) file.path: file}.values.toList(),
         );
       }
-
     } catch (e) {
       _logger.severe('Error handling shared files: $e');
       if (mounted) {
