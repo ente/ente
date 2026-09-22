@@ -1,0 +1,1 @@
+- Added support for multi-file import via share sheet in Android (@fosszil)
