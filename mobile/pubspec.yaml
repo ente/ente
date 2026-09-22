@@ -61,6 +61,9 @@ dev_dependencies:
   flutter_lints: 6.0.0
 
 dependency_overrides:
+  # Keep the Apple isolate-teardown fix without native_dio_adapter 1.6.0's
+  # shared request-cleanup changes. Adapter 1.5.1 declares Cupertino ^2.3.0.
+  cupertino_http: 3.1.0
   # Hosted 3.4.1 drops DB rows but fails to delete cache files; use the
   # upstream delete fix until a fixed release ships.
   flutter_cache_manager:

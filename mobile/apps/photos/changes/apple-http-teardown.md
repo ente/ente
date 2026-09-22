@@ -1,0 +1,1 @@
+- Fixed a crash when background network activity finishes on iOS.

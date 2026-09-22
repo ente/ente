@@ -15,7 +15,7 @@ dependencies:
     path: ../../packages/events
   flutter:
     sdk: flutter
-  native_dio_adapter: 1.6.0
+  native_dio_adapter: 1.5.1
   package_info_plus: 8.3.1
   ua_client_hints: 1.4.1
   uuid: 4.5.3

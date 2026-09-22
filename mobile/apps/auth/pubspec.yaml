@@ -103,7 +103,7 @@ dependencies:
     git:
       url: https://github.com/ente/move_to_background.git
       ref: 0cdfeed654d79636eff0c57110f3f6ad5801ba2f
-  native_dio_adapter: 1.6.0
+  native_dio_adapter: 1.5.1
   otp: 3.2.0
   package_info_plus: 8.3.1
   password_strength: 0.2.0
