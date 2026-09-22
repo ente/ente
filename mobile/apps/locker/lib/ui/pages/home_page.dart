@@ -418,19 +418,24 @@ class _HomePageState extends UploaderPageState<HomePage>
     }
 
     try {
+      final files = <File>[];
       for (final sharedFile in sharedFiles) {
         _logger.info('Processing shared file');
         if (sharedFile.path.isNotEmpty) {
           final file = File(sharedFile.path);
           if (await file.exists()) {
-            _logger.info('File exists, uploading');
-            await uploadFiles([file]);
+            files.add(file);
           } else {
             _logger.warning('Shared file does not exist');
           }
         } else {
           _logger.warning('Shared file has empty path');
         }
+      }
+
+      if (mounted && files.isNotEmpty) {
+        _logger.info('Opening upload screen for ${files.length} shared files');
+        await uploadFiles(files);
       }
 
       await ReceiveSharingIntent.instance.reset();
