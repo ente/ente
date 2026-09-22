@@ -60,16 +60,26 @@ void main() {
       expect(buildFfmpegVideoFilters(crop: null, rotation: 90, speed: 2), [
         'transpose=1',
         'scale=trunc(iw/2)*2:trunc(ih/2)*2',
-        'setpts=(PTS-STARTPTS)/2.0',
+        'setpts=PTS/2.0',
       ]);
     });
   });
 
-  test('audio tempo chains supported filters for quarter speed', () {
-    expect(buildFfmpegAudioTempoFilters(0.25), ['atempo=0.5', 'atempo=0.5']);
-    expect(buildFfmpegAudioTempoFilters(2), ['atempo=2.0']);
-    expect(buildFfmpegAudioTempoFilters(1), isEmpty);
-  });
+  test(
+    'audio tempo scales the initial offset without stretching samples twice',
+    () {
+      expect(buildFfmpegAudioTempoFilters(0.25), [
+        'atempo=0.5',
+        'atempo=0.5',
+        'asetpts=PTS-STARTPTS+STARTPTS/0.25',
+      ]);
+      expect(buildFfmpegAudioTempoFilters(2), [
+        'atempo=2.0',
+        'asetpts=PTS-STARTPTS+STARTPTS/2.0',
+      ]);
+      expect(buildFfmpegAudioTempoFilters(1), isEmpty);
+    },
+  );
 
   test('FFmpeg plan preserves file paths as structured arguments', () {
     final controller = VideoEditorController.file(
@@ -102,12 +112,15 @@ void main() {
       plan.arguments,
       containsAllInOrder([
         '-vf',
-        'scale=trunc(iw/2)*2:trunc(ih/2)*2,setpts=(PTS-STARTPTS)/0.25',
+        'scale=trunc(iw/2)*2:trunc(ih/2)*2,setpts=PTS/0.25',
       ]),
     );
     expect(
       plan.arguments,
-      containsAllInOrder(['-af', 'atempo=0.5,atempo=0.5']),
+      containsAllInOrder([
+        '-af',
+        'atempo=0.5,atempo=0.5,asetpts=PTS-STARTPTS+STARTPTS/0.25',
+      ]),
     );
   });
 }

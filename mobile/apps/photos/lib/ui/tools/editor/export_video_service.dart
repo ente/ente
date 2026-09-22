@@ -174,7 +174,7 @@ List<String> buildFfmpegVideoFilters({
   }
   filters.add('scale=trunc(iw/2)*2:trunc(ih/2)*2');
   if (speed != 1.0) {
-    filters.add('setpts=(PTS-STARTPTS)/$speed');
+    filters.add('setpts=PTS/$speed');
   }
   return filters;
 }
@@ -196,5 +196,6 @@ List<String> buildFfmpegAudioTempoFilters(double speed) {
     remaining /= 2.0;
   }
   filters.add('atempo=$remaining');
+  filters.add('asetpts=PTS-STARTPTS+STARTPTS/$speed');
   return filters;
 }
