@@ -23,7 +23,6 @@ class VideoRotatePage extends StatelessWidget {
                 controller.rotate90Degrees(VideoRotationDirection.left),
             icon: Icons.rotate_left,
           ),
-          const SizedBox(width: 24),
           VideoEditorBottomAction(
             label: context.strings.right,
             onPressed: () =>

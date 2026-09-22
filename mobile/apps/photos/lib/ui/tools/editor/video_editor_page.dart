@@ -206,7 +206,6 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
                                   VideoTrimPage(controller: _controller!),
                                 ),
                               ),
-                              const SizedBox(width: 24),
                               VideoEditorBottomAction(
                                 label: context.strings.crop,
                                 svgPath:
@@ -215,7 +214,6 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
                                   VideoCropPage(controller: _controller!),
                                 ),
                               ),
-                              const SizedBox(width: 24),
                               VideoEditorBottomAction(
                                 label: context.strings.rotate,
                                 svgPath:
@@ -224,7 +222,6 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
                                   VideoRotatePage(controller: _controller!),
                                 ),
                               ),
-                              const SizedBox(width: 24),
                               VideoEditorBottomAction(
                                 label: context.strings.speed,
                                 hugeIcon:
