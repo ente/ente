@@ -26,6 +26,7 @@ dependencies:
       ref: 82e365fed8a1a76f6eea0220de98389eed7b0445
   connectivity_plus: 6.1.4
   crypto: 3.0.7
+  cupertino_http: 3.1.0
   cupertino_icons: 1.0.8
   defer_pointer: 0.0.2
   device_info_plus: 11.5.0
@@ -160,7 +161,7 @@ dependencies:
       url: https://github.com/ente/move_to_background.git
       ref: 0cdfeed654d79636eff0c57110f3f6ad5801ba2f
   nanoid: 1.0.0
-  native_dio_adapter: 1.5.1
+  native_dio_adapter: 1.6.0
   native_video_editor:
     path: ../../packages/native_video_editor
   native_video_player: 4.0.1

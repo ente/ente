@@ -9,9 +9,6 @@ PODS:
     - Flutter
   - connectivity_plus (0.0.1):
     - Flutter
-  - cupertino_http (0.0.1):
-    - Flutter
-    - FlutterMacOS
   - device_info_plus (0.0.1):
     - Flutter
   - ente_cast (0.0.1):
@@ -247,7 +244,6 @@ DEPENDENCIES:
   - backup_exclusion (from `.symlinks/plugins/backup_exclusion/ios`)
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
-  - cupertino_http (from `.symlinks/plugins/cupertino_http/darwin`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - ente_cast (from `.symlinks/plugins/ente_cast/ios`)
   - ente_mail (from `.symlinks/plugins/ente_mail/ios`)
@@ -333,8 +329,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/camera_avfoundation/ios"
   connectivity_plus:
     :path: ".symlinks/plugins/connectivity_plus/ios"
-  cupertino_http:
-    :path: ".symlinks/plugins/cupertino_http/darwin"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
   ente_cast:
@@ -446,7 +440,6 @@ SPEC CHECKSUMS:
   backup_exclusion: 7aa8535339e746fb217cfdfe8fb8f8a718e4cb0b
   camera_avfoundation: 5675ca25298b6f81fa0a325188e7df62cc217741
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
-  cupertino_http: 94ac07f5ff090b8effa6c5e2c47871d48ab7c86c
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   ente_cast: a25feb3127397e5fc6aff03a12120916707757d4
   ente_mail: 90753dd584f49ee092759a32d4143ca51db69641
