@@ -1,0 +1,1 @@
+- Warn before closing photo details with an unsaved description.
