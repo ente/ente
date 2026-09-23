@@ -4165,6 +4165,20 @@
   },
   "skip": "Skip",
   "skippedFiles": "Skipped files",
+  "sharedFilesSkipped": "{count, plural, one{{count} shared file could not be read and was skipped.} other{{count} shared files could not be read and were skipped.}}",
+  "@sharedFilesSkipped": {
+    "description": "Warning shown before uploading readable files from a partial Android share",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "noSharedFilesReadable": "None of the shared files could be read. Please try sharing them again.",
+  "@noSharedFilesReadable": {
+    "description": "Error shown when every file in an incoming share is unreadable"
+  },
   "slideshow": "Slideshow",
   "slideshowSettings": "Slideshow settings",
   "smartMemories": "Smart memories",

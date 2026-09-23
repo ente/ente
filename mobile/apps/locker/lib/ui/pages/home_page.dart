@@ -411,6 +411,15 @@ class _HomePageState extends UploaderPageState<HomePage>
   }
 
   Future<void> _handleSharedFiles(List<SharedMediaFile> sharedFiles) async {
+    sharedFiles = sharedFiles
+        .where(
+          (file) =>
+              file.type != SharedMediaType.url &&
+              file.type != SharedMediaType.text &&
+              file.type != SharedMediaType.mailto,
+        )
+        .toList();
+    if (sharedFiles.isEmpty) return;
     _logger.info('_handleSharedFiles called with ${sharedFiles.length} files');
 
     try {
@@ -418,16 +427,38 @@ class _HomePageState extends UploaderPageState<HomePage>
       final files = <File>[];
       for (final sharedFile in sharedFiles) {
         _logger.info('Processing shared file');
-        if (sharedFile.path.isNotEmpty) {
-          final file = File(sharedFile.path);
-          if (await file.exists()) {
+        final file = File(sharedFile.path);
+        try {
+          if (sharedFile.path.isNotEmpty && await file.exists()) {
             files.add(file);
-          } else {
-            throw const FileSystemException('Shared file does not exist');
           }
-        } else {
-          throw const FileSystemException('Shared file could not be read');
+        } on FileSystemException catch (e, s) {
+          _logger.warning('Unable to access shared file', e, s);
         }
+      }
+
+      final skippedCount = sharedFiles.length - files.length;
+      if (mounted && skippedCount > 0) {
+        await showBottomSheetComponent(
+          context: context,
+          builder: (sheetContext) => BottomSheetComponent(
+            title: files.isEmpty
+                ? context.strings.uploadError
+                : context.strings.skippedFiles,
+            message: files.isEmpty
+                ? context.strings.noSharedFilesReadable
+                : context.strings.sharedFilesSkipped(count: skippedCount),
+            illustration: LockerBottomSheetIllustration.warningGrey,
+            actions: files.isEmpty
+                ? []
+                : [
+                    ButtonComponent(
+                      label: context.strings.continueLabel,
+                      onTap: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+          ),
+        );
       }
 
       if (mounted && files.isNotEmpty) {
