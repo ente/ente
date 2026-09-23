@@ -61,7 +61,7 @@ pub(super) fn infer(
     Ok((shape.to_vec(), values.to_vec()))
 }
 
-pub(super) fn detector(rgb: &ImageU8) -> MlResult<Vec<Input>> {
+pub(super) fn detector_image(rgb: &ImageU8) -> MlResult<Input> {
     let side = 960;
     let mut image = Input::zeros("x", &[1, 3, side, side]);
     write_bgr_planes_aligned(
@@ -71,11 +71,7 @@ pub(super) fn detector(rgb: &ImageU8) -> MlResult<Vec<Input>> {
         BgrNormalization::IMAGENET,
         VerticalAlignment::Top,
     )?;
-    Ok(detector_paths(
-        image,
-        rgb.height as usize,
-        rgb.width as usize,
-    ))
+    Ok(image)
 }
 
 pub(super) struct Line {
@@ -165,7 +161,7 @@ fn detector_auxiliary(index: usize, height: usize, width: usize, h: usize, w: us
     inputs
 }
 
-fn detector_paths(image: Input, height: usize, width: usize) -> Vec<Input> {
+pub(super) fn detector_paths(image: Input, height: usize, width: usize) -> Vec<Input> {
     static UNUSED: std::sync::OnceLock<Vec<Vec<Input>>> = std::sync::OnceLock::new();
     let shapes = &[(960, 480), (480, 960), (960, 704), (704, 960), (960, 960)];
     let unused = UNUSED.get_or_init(|| {
@@ -276,8 +272,7 @@ mod tests {
             .unwrap();
             let mut compact = vec![0.0; 3 * height * width];
             write_bgr_planes(&rgb, &mut compact, width, BgrNormalization::IMAGENET).unwrap();
-            let inputs = detector(&rgb).unwrap();
-            let actual = input(&inputs, "x");
+            let actual = detector_image(&rgb).unwrap();
             assert_eq!(actual.shape, [1, 3, 960, 960]);
             for channel in 0..3 {
                 for y in 0..960 {
@@ -315,7 +310,7 @@ mod tests {
                 vec![128; 3 * height * width],
             )
             .unwrap();
-            let inputs = detector(&rgb).unwrap();
+            let inputs = detector_paths(detector_image(&rgb).unwrap(), height, width);
             let image = input(&inputs, "x");
             assert_eq!(image.shape, [1, 3, 960, 960]);
             let normalized = [

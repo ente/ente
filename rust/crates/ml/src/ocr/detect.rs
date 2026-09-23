@@ -76,8 +76,9 @@ impl TextDetector {
     fn infer(&self, rgb: &ImageU8) -> MlResult<Vec<f32>> {
         let (width, height) = (rgb.width, rgb.height);
         let expected_shape = [1i64, 1, 960, 960];
+        let image = super::context::detector_image(rgb)?;
         let mut session = self.session.lock().unwrap_or_else(PoisonError::into_inner);
-        let inputs = super::context::detector(rgb)?;
+        let inputs = super::context::detector_paths(image, height as usize, width as usize);
         let (values, _usage) = session.run(|session| {
             let (shape, values) = super::context::infer(session, &inputs)?;
             if shape != expected_shape || values.len() != 960 * 960 {
