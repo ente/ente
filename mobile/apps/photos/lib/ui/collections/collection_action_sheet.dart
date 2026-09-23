@@ -329,6 +329,12 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
                 collections.removeWhere((c) => recentIds.contains(c.id));
               }
 
+              if (widget.actionType == CollectionActionType.autoAddPeople) {
+                final userID = Configuration.instance.getUserID()!;
+                collections.removeWhere((c) => !c.canAutoAdd(userID));
+                recentCollections.removeWhere((c) => !c.canAutoAdd(userID));
+              }
+
               List<Collection> sharedCollections = [];
               if (widget.actionType == CollectionActionType.moveFiles) {
                 sharedCollections = _getSharedCollections();
