@@ -1,5 +1,3 @@
-import "dart:async";
-
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
@@ -32,6 +30,7 @@ class SmartAlbumPeople extends StatefulWidget {
 class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
   final _selectedPeople = SelectedPeople();
   SmartAlbumConfig? currentConfig;
+  bool _hasSaveError = false;
 
   final _logger = Logger("SmartAlbumPeople");
 
@@ -72,12 +71,13 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                     currentConfig!.personIDs,
                   )
                 : _selectedPeople.personIds.isNotEmpty;
+            final canSave = areIdsChanged || _hasSaveError;
             return ButtonComponent(
               variant: ButtonComponentVariant.primary,
               label: context.strings.save,
               shouldSurfaceExecutionStates: false,
-              isDisabled: !areIdsChanged,
-              onTap: areIdsChanged
+              isDisabled: !canSave,
+              onTap: canSave
                   ? () async {
                       final dialog = createProgressDialog(
                         context,
@@ -85,20 +85,11 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                         isDismissible: false,
                       );
 
-                      if (_selectedPeople.personIds.length ==
-                              currentConfig?.personIDs.length &&
-                          _selectedPeople.personIds
-                              .toSet()
-                              .difference(
-                                currentConfig?.personIDs.toSet() ?? {},
-                              )
-                              .isEmpty) {
-                        Navigator.pop(context);
-                        return;
-                      }
-
                       try {
                         await dialog.show();
+                        currentConfig = await smartAlbumsService.getConfig(
+                          widget.collectionId,
+                        );
                         SmartAlbumConfig newConfig;
 
                         if (currentConfig == null) {
@@ -120,9 +111,15 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                               .toList();
 
                           if (removedPersonIds.isNotEmpty) {
-                            if (!context.mounted) return;
+                            if (!context.mounted) {
+                              await dialog.hide();
+                              return;
+                            }
                             final toDelete = await removeFilesDialog(context);
-                            await dialog.show();
+                            if (toDelete == null) {
+                              await dialog.hide();
+                              return;
+                            }
 
                             if (toDelete) {
                               for (final personId in removedPersonIds) {
@@ -180,6 +177,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                         );
                         await dialog.hide();
                         if (!context.mounted) return;
+                        setState(() => _hasSaveError = true);
                         await showGenericErrorDialog(
                           context: context,
                           error: error,
@@ -208,9 +206,8 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
   }
 }
 
-Future<bool> removeFilesDialog(BuildContext context) async {
-  final completer = Completer<bool>();
-  await showActionSheet(
+Future<bool?> removeFilesDialog(BuildContext context) async {
+  final result = await showActionSheet(
     context: context,
     body: context.strings.shouldRemoveFilesSmartAlbumsDesc,
     buttons: [
@@ -222,9 +219,6 @@ Future<bool> removeFilesDialog(BuildContext context) async {
         buttonAction: ButtonAction.first,
         shouldSurfaceExecutionStates: true,
         isInAlert: true,
-        onTap: () async {
-          completer.complete(true);
-        },
       ),
       ButtonWidget(
         labelText: context.strings.no,
@@ -233,12 +227,9 @@ Future<bool> removeFilesDialog(BuildContext context) async {
         shouldStickToDarkTheme: true,
         buttonAction: ButtonAction.cancel,
         isInAlert: true,
-        onTap: () async {
-          completer.complete(false);
-        },
       ),
     ],
   );
 
-  return completer.future;
+  return result == null ? null : result.action == ButtonAction.first;
 }

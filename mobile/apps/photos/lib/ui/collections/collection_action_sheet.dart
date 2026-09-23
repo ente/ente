@@ -241,7 +241,7 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
               final ProgressDialog dialog = createProgressDialog(
                 context,
                 context.strings.uploadingFilesToAlbum,
-                isDismissible: true,
+                isDismissible: false,
               );
               final updatedAlbumIds = <int>{};
               Object? firstError;
