@@ -1117,6 +1117,10 @@
       "title": "HTX"
     },
     {
+      "title": "Hueber",
+      "slug": "hueber"
+    },
+    {
       "title": "HuggingFace",
       "altNames": [
         "Hugging Face"
