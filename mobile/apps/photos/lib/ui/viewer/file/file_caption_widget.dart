@@ -31,13 +31,17 @@ class FileCaptionWidget extends StatefulWidget {
   State<FileCaptionWidget> createState() => _FileCaptionWidgetState();
 }
 
-class _FileCaptionWidgetState extends State<FileCaptionWidget> {
+class _FileCaptionWidgetState extends State<FileCaptionWidget>
+    with AutomaticKeepAliveClientMixin {
   static const int maxLength = 5000;
 
   final _textController = TextEditingController();
   final _focusNode = FocusNode();
   String? editedCaption;
   late String defaultHintText = context.strings.fileInfoAddDescHint;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -57,6 +61,7 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
