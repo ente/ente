@@ -20,6 +20,7 @@ class MainActivity : FlutterFragmentActivity() {
         private val shareExecutor = Executors.newSingleThreadExecutor()
         private val pendingShares = mutableListOf<List<String>>()
         private var sharedFilesChannel: MethodChannel? = null
+        private var shareGeneration = 0
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,6 +52,11 @@ class MainActivity : FlutterFragmentActivity() {
             setMethodCallHandler { call, result ->
                 if (call.method == "takeNextShare") {
                     result.success(pendingShares.removeFirstOrNull())
+                } else if (call.method == "clearPendingShares") {
+                    shareGeneration++
+                    pendingShares.flatten().also { pendingShares.clear() }
+                        .let(::deletePreparedFiles)
+                    result.success(null)
                 } else {
                     result.notImplemented()
                 }
@@ -72,13 +78,24 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun enqueueSharedFiles(intent: Intent) {
+        val generation = shareGeneration
         shareExecutor.execute {
             val files = prepareSharedFiles(intent)
             runOnUiThread {
+                if (generation != shareGeneration) {
+                    deletePreparedFiles(files)
+                    return@runOnUiThread
+                }
                 pendingShares.add(files)
                 sharedFilesChannel?.invokeMethod("sharesReady", null)
             }
         }
+    }
+
+    private fun deletePreparedFiles(files: Iterable<String>) {
+        files.map { File(it).parentFile }.filter {
+            it?.parentFile == cacheDir && it.name.startsWith(sharePrefix)
+        }.forEach { it.deleteRecursively() }
     }
 
     @Suppress("DEPRECATION")
