@@ -549,10 +549,7 @@ class _HomePageState extends UploaderPageState<HomePage>
 
   void disposeSharing() {
     _mediaStreamSubscription?.cancel();
-    if (Platform.isAndroid) {
-      unawaited(_sharedFilesChannel.invokeMethod('clearPendingShares'));
-      _sharedFilesChannel.setMethodCallHandler(null);
-    }
+    if (Platform.isAndroid) _sharedFilesChannel.setMethodCallHandler(null);
     ReceiveSharingIntent.instance.reset();
     _logger.info('Sharing functionality disposed');
   }
