@@ -456,7 +456,6 @@ class _HomePageState extends UploaderPageState<HomePage>
               file.type != SharedMediaType.mailto,
         )
         .toList();
-    if (sharedFiles.isEmpty) return;
     _logger.info('_handleSharedFiles called with ${sharedFiles.length} files');
 
     try {
