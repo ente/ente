@@ -82,7 +82,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                       final dialog = createProgressDialog(
                         context,
                         context.strings.pleaseWait,
-                        isDismissible: true,
+                        isDismissible: false,
                       );
 
                       if (_selectedPeople.personIds.length ==
@@ -165,14 +165,16 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                         }
 
                         await smartAlbumsService.saveConfig(newConfig);
-                        unawaited(smartAlbumsService.syncSmartAlbums());
+                        await smartAlbumsService.syncSmartAlbumsFor({
+                          widget.collectionId,
+                        });
 
                         await dialog.hide();
                         if (!context.mounted) return;
                         Navigator.pop(context);
                       } catch (error, stackTrace) {
                         _logger.severe(
-                          "Error saving smart album config",
+                          "Error updating smart album",
                           error,
                           stackTrace,
                         );
