@@ -87,6 +87,7 @@ import { saveStringAsFile } from "ente-base/utils/web";
 import { useRouter } from "next/router";
 import React, {
     useCallback,
+    useDeferredValue,
     useEffect,
     useMemo,
     useRef,
@@ -108,6 +109,63 @@ const DEFAULT_WEB_CONTEXT_SIZE = 4096;
 const ADVANCED_SETTINGS_UNLOCK_KEY = "ensu.advancedSettingsUnlocked";
 const MODEL_SETTINGS_STORAGE_KEY = "ensu.modelSettings";
 const SYSTEM_PROMPT_STORAGE_KEY = "ensu.systemPrompt";
+const CONTEXT_USAGE_STORAGE_KEY = "ensu.contextUsageBySession.v1";
+
+interface ContextUsage {
+    settingsKey: string;
+    usedTokens: number;
+    totalTokens: number;
+}
+
+type ContextUsageBySession = Record<string, ContextUsage>;
+
+const loadContextUsageBySession = (): ContextUsageBySession => {
+    if (typeof window === "undefined") return {};
+    try {
+        const parsed: unknown = JSON.parse(
+            window.localStorage.getItem(CONTEXT_USAGE_STORAGE_KEY) ?? "{}",
+        );
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            return {};
+        }
+
+        return Object.fromEntries(
+            Object.entries(parsed).filter(([, candidate]) => {
+                if (
+                    !candidate ||
+                    typeof candidate !== "object" ||
+                    Array.isArray(candidate)
+                ) {
+                    return false;
+                }
+                const usage = candidate as Partial<ContextUsage>;
+                return (
+                    typeof usage.settingsKey === "string" &&
+                    typeof usage.usedTokens === "number" &&
+                    Number.isFinite(usage.usedTokens) &&
+                    usage.usedTokens >= 0 &&
+                    typeof usage.totalTokens === "number" &&
+                    Number.isFinite(usage.totalTokens) &&
+                    usage.totalTokens > 0
+                );
+            }),
+        );
+    } catch {
+        return {};
+    }
+};
+
+const persistContextUsageBySession = (usage: ContextUsageBySession) => {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.setItem(
+            CONTEXT_USAGE_STORAGE_KEY,
+            JSON.stringify(usage),
+        );
+    } catch {
+        // Keep live usage available when WebView storage is unavailable or full.
+    }
+};
 
 const formatImageProcessingErrorForLog = (error: unknown) => {
     const { name, message } = tauriCommandError(error);
@@ -622,6 +680,10 @@ const Page: React.FC = () => {
         number | null
     >(null);
     const [loadedModelName, setLoadedModelName] = useState<string | null>(null);
+    const [contextUsageBySession, setContextUsageBySession] =
+        useState<ContextUsageBySession>({});
+    const [contextDraft, setContextDraft] = useState("");
+    const deferredContextDraft = useDeferredValue(contextDraft);
     const [modelGateStatus, setModelGateStatus] = useState<
         | "checking"
         | "missing"
@@ -638,6 +700,9 @@ const Page: React.FC = () => {
 
     const providerRef = useRef<LlmProvider | null>(null);
     const currentJobIdRef = useRef<number | null>(null);
+    const contextUsageBySessionRef = useRef<ContextUsageBySession>({});
+    const contextUsageRevisionRef = useRef(new Map<string, number>());
+    const deletedSessionIdsRef = useRef(new Set<string>());
     const activeKnowledgeSourcesRef = useRef<GroundedSource[]>([]);
     const activeKnowledgeDownloadsRef = useRef(new Set<string>());
     const knowledgeCatalogPromiseRef = useRef<Promise<KnowledgePack[]> | null>(
@@ -711,6 +776,12 @@ const Page: React.FC = () => {
     }>({ sessionId: undefined, promise: null });
 
     const chatKeyInitCancelledRef = useRef(false);
+
+    useEffect(() => {
+        const stored = loadContextUsageBySession();
+        contextUsageBySessionRef.current = stored;
+        setContextUsageBySession(stored);
+    }, []);
 
     const scheduleIdleTask = useCallback(
         (callback: () => void, timeout = 1200) => {
@@ -1434,9 +1505,27 @@ const Page: React.FC = () => {
         void refreshSessions();
     }, [chatKey, isChatStoreBridgeReady, refreshSessions]);
 
+    const clearContextUsageForSession = useCallback((sessionId: string) => {
+        contextUsageRevisionRef.current.set(
+            sessionId,
+            (contextUsageRevisionRef.current.get(sessionId) ?? 0) + 1,
+        );
+        const next = Object.fromEntries(
+            Object.entries(contextUsageBySessionRef.current).filter(
+                ([id]) => id !== sessionId,
+            ),
+        );
+        contextUsageBySessionRef.current = next;
+        setContextUsageBySession(next);
+        persistContextUsageBySession(next);
+    }, []);
+
     const cancelActiveGenerationForNavigation = useCallback(() => {
         if (!isGenerating && !generationStartingRef.current) return;
 
+        if (currentSessionIdRef.current) {
+            clearContextUsageForSession(currentSessionIdRef.current);
+        }
         generationTokenRef.current += 1;
         beginGenerationStop();
         const jobId = currentJobIdRef.current;
@@ -1470,7 +1559,12 @@ const Page: React.FC = () => {
             .finally(() => {
                 endGenerationStop();
             });
-    }, [beginGenerationStop, endGenerationStop, isGenerating]);
+    }, [
+        beginGenerationStop,
+        clearContextUsageForSession,
+        endGenerationStop,
+        isGenerating,
+    ]);
 
     useEffect(() => {
         currentSessionIdRef.current = currentSessionId;
@@ -1875,6 +1969,28 @@ const Page: React.FC = () => {
     const modelSettingsKey = useMemo(
         () => JSON.stringify(getModelSettings()),
         [getModelSettings],
+    );
+
+    const updateContextUsageForSession = useCallback(
+        (sessionId: string, settingsKey: string, event: GenerateEvent) => {
+            if (
+                event.type !== "context_usage" ||
+                deletedSessionIdsRef.current.has(sessionId)
+            ) {
+                return;
+            }
+            const next = {
+                ...contextUsageBySessionRef.current,
+                [sessionId]: {
+                    settingsKey,
+                    usedTokens: event.used,
+                    totalTokens: event.capacity,
+                },
+            };
+            contextUsageBySessionRef.current = next;
+            setContextUsageBySession(next);
+        },
+        [],
     );
 
     const formatErrorMessage = useCallback((error: unknown) => {
@@ -2452,6 +2568,74 @@ const Page: React.FC = () => {
         [approxTokens, slicePathUntil, stripHiddenParts, systemPrompt],
     );
 
+    const displayedContextUsage = useMemo(() => {
+        const saved = currentSessionId
+            ? contextUsageBySession[currentSessionId]
+            : undefined;
+        const hasDraft =
+            !!deferredContextDraft.trim() ||
+            pendingDocuments.length > 0 ||
+            pendingImages.length > 0;
+        if (
+            saved?.settingsKey === modelSettingsKey &&
+            (isGenerating || !hasDraft)
+        )
+            return saved;
+        if (
+            isGenerating ||
+            !modelSettingsLoaded ||
+            modelGateStatus === "checking" ||
+            !providerRef.current
+        )
+            return undefined;
+        const { contextSize, maxTokens: outputBudget } =
+            providerRef.current.resolveRuntimeSettings(getModelSettings());
+        const prompt = buildPromptWithImages(
+            buildPromptWithDocuments(
+                deferredContextDraft.trim().replaceAll("\0", ""),
+                pendingDocuments,
+            ),
+            pendingImages.length,
+        );
+        const path = messageState.path.filter(
+            (message) => message.sessionUuid === currentSessionId,
+        );
+        const history = buildHistory(
+            path,
+            prompt,
+            contextSize,
+            outputBudget,
+            editingMessage?.messageUuid,
+        );
+        return {
+            usedTokens:
+                approxTokens(buildChatSystemPrompt(systemPrompt)) +
+                approxTokens(prompt) +
+                history.reduce(
+                    (total, message) => total + approxTokens(message.content),
+                    0,
+                ),
+            totalTokens: contextSize,
+            estimated: true,
+        };
+    }, [
+        currentSessionId,
+        contextUsageBySession,
+        deferredContextDraft,
+        pendingDocuments,
+        pendingImages,
+        modelSettingsKey,
+        isGenerating,
+        modelSettingsLoaded,
+        modelGateStatus,
+        getModelSettings,
+        messageState.path,
+        buildHistory,
+        editingMessage,
+        approxTokens,
+        systemPrompt,
+    ]);
+
     const handleNewChat = useCallback(() => {
         cancelActiveGenerationForNavigation();
         setCurrentSessionId(undefined);
@@ -2502,7 +2686,16 @@ const Page: React.FC = () => {
 
     const removeSessionFromState = useCallback(
         (sessionId: string) => {
+            deletedSessionIdsRef.current.add(sessionId);
             manuallyRenamedSessionIdsRef.current.delete(sessionId);
+            const remainingContextUsage = Object.fromEntries(
+                Object.entries(contextUsageBySessionRef.current).filter(
+                    ([storedSessionId]) => storedSessionId !== sessionId,
+                ),
+            );
+            contextUsageBySessionRef.current = remainingContextUsage;
+            setContextUsageBySession(remainingContextUsage);
+            persistContextUsageBySession(remainingContextUsage);
             setSessions((prev) =>
                 prev.filter((session) => session.sessionUuid !== sessionId),
             );
@@ -2961,6 +3154,9 @@ const Page: React.FC = () => {
                 return;
             }
             generationStartingRef.current = true;
+            clearContextUsageForSession(activeSessionId);
+            const contextUsageRevision =
+                contextUsageRevisionRef.current.get(activeSessionId);
             generationActiveRef.current = true;
             setIsGenerating(true);
             currentJobIdRef.current = null;
@@ -3030,6 +3226,7 @@ const Page: React.FC = () => {
                 }
             }
 
+            const settingsKey = JSON.stringify(settings);
             let errorMessage: string | null = null;
             activeKnowledgeSourcesRef.current = [];
 
@@ -3192,15 +3389,35 @@ const Page: React.FC = () => {
                             repeatPenalty: REPEAT_PENALTY,
                         },
                         (event: GenerateEvent) => {
+                            if (
+                                event.type === "context_usage" &&
+                                contextUsageRevisionRef.current.get(
+                                    activeSessionId,
+                                ) !== contextUsageRevision
+                            ) {
+                                return;
+                            }
                             if (!isActiveGeneration()) {
+                                updateContextUsageForSession(
+                                    activeSessionId,
+                                    settingsKey,
+                                    event,
+                                );
                                 const jobId =
-                                    event.type === "text"
-                                        ? event.job_id
-                                        : event.summary.job_id;
+                                    event.type === "done"
+                                        ? event.summary.job_id
+                                        : event.job_id;
                                 void provider.cancelGeneration(jobId);
                                 return;
                             }
-                            if (event.type === "text") {
+                            if (event.type === "context_usage") {
+                                currentJobIdRef.current = event.job_id;
+                                updateContextUsageForSession(
+                                    activeSessionId,
+                                    settingsKey,
+                                    event,
+                                );
+                            } else if (event.type === "text") {
                                 if (!currentJobIdRef.current) {
                                     currentJobIdRef.current = event.job_id;
                                 }
@@ -3322,6 +3539,7 @@ const Page: React.FC = () => {
                     );
                 }
             } finally {
+                persistContextUsageBySession(contextUsageBySessionRef.current);
                 if (isActiveGeneration()) {
                     activeKnowledgeSourcesRef.current = [];
                     generationActiveRef.current = false;
@@ -3359,6 +3577,8 @@ const Page: React.FC = () => {
             enabledKnowledgePackIds,
             knowledgePacks,
             loadEnabledKnowledgeCatalogOnce,
+            updateContextUsageForSession,
+            clearContextUsageForSession,
         ],
     );
 
@@ -3428,9 +3648,14 @@ const Page: React.FC = () => {
                 (switcher.currentIndex - 1 + switcher.total) % switcher.total;
             const target = switcher.targets[nextIndex];
             if (!target) return;
+            if (currentSessionId) clearContextUsageForSession(currentSessionId);
             void updateBranchSelectionState(switcher.selectionKey, target);
         },
-        [updateBranchSelectionState],
+        [
+            currentSessionId,
+            clearContextUsageForSession,
+            updateBranchSelectionState,
+        ],
     );
 
     const handleNextBranch = useCallback(
@@ -3439,9 +3664,14 @@ const Page: React.FC = () => {
             const nextIndex = (switcher.currentIndex + 1) % switcher.total;
             const target = switcher.targets[nextIndex];
             if (!target) return;
+            if (currentSessionId) clearContextUsageForSession(currentSessionId);
             void updateBranchSelectionState(switcher.selectionKey, target);
         },
-        [updateBranchSelectionState],
+        [
+            currentSessionId,
+            clearContextUsageForSession,
+            updateBranchSelectionState,
+        ],
     );
 
     const handleOpenDrawer = useCallback(() => {
@@ -4609,6 +4839,8 @@ const Page: React.FC = () => {
                     )}
 
                     <ChatComposer
+                        contextUsage={displayedContextUsage}
+                        onDraftChange={setContextDraft}
                         ref={composerRef}
                         showModelGate={showModelGate}
                         showDownloadProgress={showDownloadProgress}
