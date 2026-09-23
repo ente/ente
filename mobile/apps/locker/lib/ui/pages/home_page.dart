@@ -11,6 +11,7 @@ import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/utils/dialog_util.dart';
 import "package:ente_utils/email_util.dart";
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import "package:flutter_svg/flutter_svg.dart";
 import "package:hugeicons/hugeicons.dart";
 import 'package:listen_sharing_intent/listen_sharing_intent.dart';
@@ -185,6 +186,10 @@ class _HomePageState extends UploaderPageState<HomePage>
   double _drawerDragDx = 0;
   late bool _hasSetupLegacyKit;
   final _logger = Logger('HomePage');
+  static const _sharedFilesChannel = MethodChannel(
+    'io.ente.locker/shared_files',
+  );
+  bool _isReadingAndroidShares = false;
   StreamSubscription? _mediaStreamSubscription;
   StreamSubscription<Uri>? _deepLinkSubscription;
   StreamSubscription<TriggerLogoutEvent>? _triggerLogoutSubscription;
@@ -358,6 +363,13 @@ class _HomePageState extends UploaderPageState<HomePage>
   void initializeSharing() {
     _logger.info('Initializing sharing functionality...');
 
+    if (Platform.isAndroid) {
+      _sharedFilesChannel.setMethodCallHandler((call) async {
+        if (call.method == 'sharesReady') await _readAndroidShares();
+      });
+      unawaited(_readAndroidShares());
+    }
+
     try {
       _mediaStreamSubscription = ReceiveSharingIntent.instance
           .getMediaStream()
@@ -384,6 +396,31 @@ class _HomePageState extends UploaderPageState<HomePage>
     }
 
     _checkInitialSharedContent();
+  }
+
+  Future<void> _readAndroidShares() async {
+    if (_isReadingAndroidShares || !mounted) return;
+    _isReadingAndroidShares = true;
+    try {
+      while (mounted) {
+        final paths = await _sharedFilesChannel.invokeListMethod<String>(
+          'takeNextShare',
+        );
+        if (paths == null) return;
+        await _handleSharedFiles(
+          paths
+              .map(
+                (path) =>
+                    SharedMediaFile(path: path, type: SharedMediaType.file),
+              )
+              .toList(),
+        );
+      }
+    } catch (e, s) {
+      _logger.warning('Failed to receive Android shared files', e, s);
+    } finally {
+      _isReadingAndroidShares = false;
+    }
   }
 
   Future<void> _checkInitialSharedContent() async {
@@ -513,6 +550,7 @@ class _HomePageState extends UploaderPageState<HomePage>
 
   void disposeSharing() {
     _mediaStreamSubscription?.cancel();
+    if (Platform.isAndroid) _sharedFilesChannel.setMethodCallHandler(null);
     ReceiveSharingIntent.instance.reset();
     _logger.info('Sharing functionality disposed');
   }
