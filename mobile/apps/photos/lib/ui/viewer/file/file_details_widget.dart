@@ -174,8 +174,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
               child: canEditCaption
                   ? FileCaptionWidget(
                       file: widget.file,
-                      onPendingEditChanged:
-                          widget.onPendingCaptionEditChanged,
+                      onPendingEditChanged: widget.onPendingCaptionEditChanged,
                     )
                   : FileCaptionReadyOnly(caption: widget.file.caption!),
             ),
