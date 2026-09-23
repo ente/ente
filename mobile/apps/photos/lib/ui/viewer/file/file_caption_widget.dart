@@ -24,8 +24,13 @@ class FileCaptionReadyOnly extends StatelessWidget {
 
 class FileCaptionWidget extends StatefulWidget {
   final EnteFile file;
+  final ValueChanged<bool> onPendingEditChanged;
 
-  const FileCaptionWidget({required this.file, super.key});
+  const FileCaptionWidget({
+    required this.file,
+    required this.onPendingEditChanged,
+    super.key,
+  });
 
   @override
   State<FileCaptionWidget> createState() => _FileCaptionWidgetState();
@@ -79,6 +84,7 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget>
               setState(() {
                 editedCaption = value;
               });
+              widget.onPendingEditChanged(_hasPendingCaptionEdit);
             },
           ),
         ),
@@ -120,6 +126,7 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget>
     }
     if (isSuccess) {
       widget.file.pubMagicMetadata?.caption = editedCaption;
+      widget.onPendingEditChanged(false);
       final generatedID = widget.file.generatedID;
       if (generatedID != null) {
         Bus.instance.fire(FileCaptionUpdatedEvent(generatedID));

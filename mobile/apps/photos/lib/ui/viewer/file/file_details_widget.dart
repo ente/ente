@@ -40,8 +40,16 @@ import "package:photos/ui/viewer/file_details/video_exif_item.dart";
 class FileDetailsWidget extends StatefulWidget {
   final EnteFile file;
   final ScrollController? scrollController;
+  final ValueChanged<bool> onPendingCaptionEditChanged;
+  final VoidCallback onCloseRequested;
 
-  const FileDetailsWidget(this.file, {this.scrollController, super.key});
+  const FileDetailsWidget(
+    this.file, {
+    this.scrollController,
+    required this.onPendingCaptionEditChanged,
+    required this.onCloseRequested,
+    super.key,
+  });
 
   @override
   State<FileDetailsWidget> createState() => _FileDetailsWidgetState();
@@ -164,7 +172,11 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
           : Padding(
               padding: const EdgeInsets.only(top: 8, bottom: 24),
               child: canEditCaption
-                  ? FileCaptionWidget(file: widget.file)
+                  ? FileCaptionWidget(
+                      file: widget.file,
+                      onPendingEditChanged:
+                          widget.onPendingCaptionEditChanged,
+                    )
                   : FileCaptionReadyOnly(caption: widget.file.caption!),
             ),
     );
@@ -311,7 +323,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
                       icon: HugeIcons.strokeRoundedCancel01,
                       size: IconSizes.small,
                     ),
-                    onTap: () => Navigator.pop(context),
+                    onTap: widget.onCloseRequested,
                   ),
                 ],
               ),
