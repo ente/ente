@@ -3,8 +3,6 @@ import "dart:convert";
 
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
-import "package:photos/core/event_bus.dart";
-import "package:photos/events/smart_album_syncing_event.dart";
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/collection/smart_album_config.dart";
 import "package:photos/models/file/file.dart";
@@ -20,8 +18,6 @@ class SmartAlbumsService {
   int _lastCacheRefreshTime = 0;
 
   Future<Map<int, SmartAlbumConfig>>? _cachedConfigsFuture;
-
-  (int, bool)? syncingCollection;
 
   void clearCache() {
     _cachedConfigsFuture = null;
@@ -139,11 +135,6 @@ class SmartAlbumsService {
         continue;
       }
 
-      syncingCollection = (collectionId, false);
-      Bus.instance.fire(
-        SmartAlbumSyncingEvent(collectionId: collectionId, isSyncing: false),
-      );
-
       final infoMap = config.infoMap;
 
       final updatedAtMap = await entityService.getUpdatedAts(
@@ -182,11 +173,6 @@ class SmartAlbumsService {
         pendingSyncFileSet = {...pendingSyncFileSet, ...fileIds};
       }
 
-      syncingCollection = (collectionId, true);
-      Bus.instance.fire(
-        SmartAlbumSyncingEvent(collectionId: collectionId, isSyncing: true),
-      );
-
       if (pendingSyncFiles.isNotEmpty) {
         try {
           await CollectionsService.instance.addOrCopyToCollection(
@@ -203,8 +189,6 @@ class SmartAlbumsService {
         }
       }
     }
-    syncingCollection = null;
-    Bus.instance.fire(SmartAlbumSyncingEvent());
     if (collectionIds != null && hasFailed) {
       throw StateError("Failed to sync one or more smart albums");
     }

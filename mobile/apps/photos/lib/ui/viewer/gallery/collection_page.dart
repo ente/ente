@@ -14,7 +14,6 @@ import "package:photos/models/search/hierarchical/hierarchical_search_filter.dar
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/services/ignored_files_service.dart';
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
-import "package:photos/ui/viewer/actions/smart_albums_status_widget.dart";
 import "package:photos/ui/viewer/gallery/empty_album_state.dart";
 import 'package:photos/ui/viewer/gallery/empty_state.dart';
 import 'package:photos/ui/viewer/gallery/gallery.dart';
@@ -154,7 +153,6 @@ class CollectionPage extends StatelessWidget {
                       );
                     },
                   ),
-                  SmartAlbumsStatusWidget(collection: c.collection),
                   FileSelectionOverlayBar(
                     galleryType,
                     _selectedFiles,
