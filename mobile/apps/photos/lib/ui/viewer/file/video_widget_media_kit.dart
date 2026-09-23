@@ -8,6 +8,7 @@ import "package:media_kit/media_kit.dart";
 import "package:media_kit_video/media_kit_video.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/events/details_sheet_event.dart";
 import "package:photos/events/guest_view_event.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/events/resume_video_event.dart";
@@ -68,12 +69,14 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   VideoController? controller;
   final _progressNotifier = ValueNotifier<double?>(null);
   bool _isAppInFG = true;
+  late StreamSubscription<DetailsSheetEvent> detailsSheetEventSubscription;
   late StreamSubscription<PauseVideoEvent> pauseVideoSubscription;
   late StreamSubscription<ResumeVideoEvent> resumeVideoSubscription;
   StreamSubscription<VideoMuteChangedEvent>? _muteSubscription;
   bool isGuestView = false;
   late final StreamSubscription<GuestViewEvent> _guestViewEventSubscription;
   bool _isGuestView = false;
+  bool _isDetailsSheetOpen = false;
   StreamSubscription<StreamSwitchedEvent>? _streamSwitchedSubscription;
   StreamSubscription<DownloadTask>? _downloadTaskSubscription;
   final _transformationController = TransformationController();
@@ -97,10 +100,22 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
       if (event.fileTag != null && event.fileTag != widget.file.tag) return;
       player.pause();
     });
+    detailsSheetEventSubscription = Bus.instance.on<DetailsSheetEvent>().listen(
+      (event) {
+        if (!event.isSameFile(
+          uploadedFileID: widget.file.uploadedFileID,
+          localID: widget.file.localID,
+        )) {
+          return;
+        }
+        _isDetailsSheetOpen = event.opened;
+        if (event.opened) player.pause();
+      },
+    );
     resumeVideoSubscription = Bus.instance.on<ResumeVideoEvent>().listen((
       event,
     ) {
-      if (widget.isActive) player.play();
+      if (widget.isActive && !_isDetailsSheetOpen) player.play();
     });
     if (!widget.isFromMemories) {
       _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
@@ -153,7 +168,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   void didUpdateWidget(covariant VideoWidgetMediaKit oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive != widget.isActive) {
-      widget.isActive ? player.play() : player.pause();
+      widget.isActive && !_isDetailsSheetOpen ? player.play() : player.pause();
     }
     if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {
       _applyVolume();
@@ -211,6 +226,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   void dispose() {
     _streamSwitchedSubscription?.cancel();
     _guestViewEventSubscription.cancel();
+    detailsSheetEventSubscription.cancel();
     pauseVideoSubscription.cancel();
     resumeVideoSubscription.cancel();
     _muteSubscription?.cancel();
@@ -336,7 +352,10 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           controller = VideoController(player);
         }
         _applyVolume();
-        player.open(Media(url), play: _isAppInFG && widget.isActive);
+        player.open(
+          Media(url),
+          play: _isAppInFG && widget.isActive && !_isDetailsSheetOpen,
+        );
       });
       int duration = controller!.player.state.duration.inSeconds;
       if (duration == 0) {
