@@ -1,0 +1,1 @@
+- Add text to photos with a choice of fonts, colors, backgrounds, and alignment.
