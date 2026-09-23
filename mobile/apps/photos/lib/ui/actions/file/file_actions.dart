@@ -8,6 +8,7 @@ import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/details_sheet_event.dart";
+import "package:photos/events/pause_video_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/module/metadata/panorama.dart';
@@ -110,6 +111,9 @@ Future<void> showSingleFileDeleteSheet(
 Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
   if (file.canEditMetaInfo && file.isPanorama() == null) {
     guardedCheckPanorama(file).ignore();
+  }
+  if (file.isVideo) {
+    Bus.instance.fire(PauseVideoEvent(fileTag: file.tag));
   }
   Bus.instance.fire(
     DetailsSheetEvent(
