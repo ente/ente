@@ -77,6 +77,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   late final StreamSubscription<GuestViewEvent> _guestViewEventSubscription;
   bool _isGuestView = false;
   bool _isDetailsSheetOpen = false;
+  bool _wasPlayingBeforeDetailsSheet = false;
   StreamSubscription<StreamSwitchedEvent>? _streamSwitchedSubscription;
   StreamSubscription<DownloadTask>? _downloadTaskSubscription;
   final _transformationController = TransformationController();
@@ -102,14 +103,20 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     });
     detailsSheetEventSubscription = Bus.instance.on<DetailsSheetEvent>().listen(
       (event) {
-        if (!event.isSameFile(
-          uploadedFileID: widget.file.uploadedFileID,
-          localID: widget.file.localID,
-        )) {
+        if (!event.isSameFile(fileTag: widget.file.tag)) {
           return;
         }
-        _isDetailsSheetOpen = event.opened;
-        if (event.opened) player.pause();
+        if (event.opened) {
+          _wasPlayingBeforeDetailsSheet = player.state.playing;
+          _isDetailsSheetOpen = true;
+          player.pause();
+        } else {
+          _isDetailsSheetOpen = false;
+          if (_wasPlayingBeforeDetailsSheet && widget.isActive) {
+            player.play();
+          }
+          _wasPlayingBeforeDetailsSheet = false;
+        }
       },
     );
     resumeVideoSubscription = Bus.instance.on<ResumeVideoEvent>().listen((

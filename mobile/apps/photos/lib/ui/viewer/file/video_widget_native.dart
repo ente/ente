@@ -101,6 +101,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   final _transformationController = TransformationController();
   bool _isZooming = false;
   bool _isDetailsSheetOpen = false;
+  bool _wasPlayingBeforeDetailsSheet = false;
   OverlayEntry? _longPressSpeedIndicatorEntry;
 
   @override
@@ -143,14 +144,21 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     });
     detailsSheetEventSubscription = Bus.instance.on<DetailsSheetEvent>().listen(
       (event) {
-        if (!event.isSameFile(
-          uploadedFileID: widget.file.uploadedFileID,
-          localID: widget.file.localID,
-        )) {
+        if (!event.isSameFile(fileTag: widget.file.tag)) {
           return;
         }
-        _isDetailsSheetOpen = event.opened;
-        if (event.opened) _controller?.pause();
+        if (event.opened) {
+          _wasPlayingBeforeDetailsSheet =
+              _controller?.playbackStatus == PlaybackStatus.playing;
+          _isDetailsSheetOpen = true;
+          _controller?.pause();
+        } else {
+          _isDetailsSheetOpen = false;
+          if (_wasPlayingBeforeDetailsSheet && widget.isActive) {
+            _controller?.play();
+          }
+          _wasPlayingBeforeDetailsSheet = false;
+        }
       },
     );
     resumeVideoSubscription = Bus.instance.on<ResumeVideoEvent>().listen((
