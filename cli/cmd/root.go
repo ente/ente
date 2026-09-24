@@ -29,10 +29,19 @@ func GenerateDocs() error {
 func Execute(controller *pkg.ClICtrl, ver string) {
 	ctrl = controller
 	version = ver
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
+	if code := exitCode(rootCmd.Execute()); code != 0 {
+		os.Exit(code)
 	}
+}
+
+// exitCode maps the outcome of a command to the process exit code. A failed
+// command, such as an export whose account sync errored, must not look like a
+// success to scripts and cron jobs.
+func exitCode(err error) int {
+	if err != nil {
+		return 1
+	}
+	return 0
 }
 
 func init() {
