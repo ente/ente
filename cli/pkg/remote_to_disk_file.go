@@ -17,6 +17,19 @@ import (
 	"time"
 )
 
+// needsDownload reports whether the entry still has to be written under the
+// export root in use now. The recorded sync state is keyed by album and file
+// only, so it stays set when the account is pointed at another export
+// directory: the album folders, their .meta files and the per file metadata are
+// recreated there, but the media files themselves are not, so such entries have
+// to be downloaded again.
+func needsDownload(entry *model.AlbumFileEntry, diskInfo *albumDiskInfo) bool {
+	if !entry.SyncedLocally {
+		return true
+	}
+	return !diskInfo.IsFileOnDisk(entry.FileID)
+}
+
 func (c *ClICtrl) syncFiles(ctx context.Context, account model.Account) error {
 	log.Printf("Starting file download")
 	exportRoot := account.ExportDir
@@ -44,9 +57,6 @@ func (c *ClICtrl) syncFiles(ctx context.Context, account model.Account) error {
 	defer utils.TimeTrack(time.Now(), "process_files")
 	var albumDiskInfo *albumDiskInfo
 	for i, albumFileEntry := range entries {
-		if albumFileEntry.SyncedLocally {
-			continue
-		}
 		if _, ok := albumsToSkip[albumFileEntry.AlbumID]; ok {
 			continue
 		}
@@ -68,6 +78,9 @@ func (c *ClICtrl) syncFiles(ctx context.Context, account model.Account) error {
 			if err != nil {
 				return err
 			}
+		}
+		if !needsDownload(albumFileEntry, albumDiskInfo) {
+			continue
 		}
 		fileBytes, err := c.GetValue(ctx, model.RemoteFiles, fmt.Appendf(nil, "%d", albumFileEntry.FileID))
 		if err != nil {
