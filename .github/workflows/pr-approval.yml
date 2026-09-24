@@ -151,6 +151,15 @@ jobs:
                       }
                       return true;
 
+            - name: Check out the PR head
+              if: steps.quota.outputs.result == 'true'
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ github.event.pull_request.head.sha }}
+                  persist-credentials: false
+                  path: review
+                  allow-unsafe-pr-checkout: true
+
             - name: Prepare review context
               if: steps.quota.outputs.result == 'true'
               id: review-context
@@ -159,13 +168,17 @@ jobs:
                   script: |
                       const { mkdir, writeFile } = require("node:fs/promises");
                       const { join } = require("node:path");
-                      const { base, head, title, body } = context.payload.pull_request;
+                      const { base, head } = context.payload.pull_request;
                       const { data } = await github.rest.repos.compareCommitsWithBasehead({
                           ...context.repo,
                           basehead: `${base.sha}...${head.sha}`,
                           per_page: 1,
                       });
                       core.setOutput("merge-base", data.merge_base_commit.sha);
+                      const { data: { title, body } } = await github.rest.pulls.get({
+                          ...context.repo,
+                          pull_number: context.payload.pull_request.number,
+                      });
                       await writeFile(
                           join(process.env.RUNNER_TEMP, "pr-metadata.json"),
                           JSON.stringify({ title, body }, null, 2),
@@ -175,6 +188,8 @@ jobs:
                       await writeFile(
                           join(codexHome, "config.toml"),
                           [
+                              'model_reasoning_effort = "high"',
+                              "",
                               `[projects.${JSON.stringify(join(process.env.GITHUB_WORKSPACE, "review"))}]`,
                               'trust_level = "untrusted"',
                               "",
@@ -183,15 +198,6 @@ jobs:
                               "",
                           ].join("\n"),
                       );
-
-            - name: Check out the PR head
-              if: steps.quota.outputs.result == 'true'
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-              with:
-                  ref: ${{ github.event.pull_request.head.sha }}
-                  persist-credentials: false
-                  path: review
-                  allow-unsafe-pr-checkout: true
 
             - name: Fetch the merge base
               if: steps.quota.outputs.result == 'true'
@@ -211,7 +217,6 @@ jobs:
                   openai-api-key: ${{ secrets.OPENAI_API_KEY }}
                   responses-api-endpoint: ${{ format('{0}/responses', vars.OPENAI_BASE_URL) }}
                   model: ${{ vars.CODEX_MODEL || 'gpt-6-astra' }}
-                  effort: high
                   codex-args: '["--ephemeral", "review", "-"]'
                   permission-profile: ":read-only"
                   safety-strategy: drop-sudo
