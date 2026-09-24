@@ -107,32 +107,41 @@ Future<void> showSingleFileDeleteSheet(
   }
 }
 
+final _openDetailsSheetFileTags = <String>{};
+
 Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
-  if (file.canEditMetaInfo && file.isPanorama() == null) {
-    guardedCheckPanorama(file).ignore();
+  final fileTag = file.tag;
+  if (!_openDetailsSheetFileTags.add(fileTag)) return;
+
+  try {
+    if (file.canEditMetaInfo && file.isPanorama() == null) {
+      guardedCheckPanorama(file).ignore();
+    }
+    Bus.instance.fire(
+      DetailsSheetEvent(
+        fileTag: fileTag,
+        localID: file.localID,
+        uploadedFileID: file.uploadedFileID,
+        opened: true,
+      ),
+    );
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DraggableDetailsSheet(file: file),
+    );
+  } finally {
+    _openDetailsSheetFileTags.remove(fileTag);
+    Bus.instance.fire(
+      DetailsSheetEvent(
+        fileTag: fileTag,
+        localID: file.localID,
+        uploadedFileID: file.uploadedFileID,
+        opened: false,
+      ),
+    );
   }
-  Bus.instance.fire(
-    DetailsSheetEvent(
-      fileTag: file.tag,
-      localID: file.localID,
-      uploadedFileID: file.uploadedFileID,
-      opened: true,
-    ),
-  );
-  await showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _DraggableDetailsSheet(file: file),
-  );
-  Bus.instance.fire(
-    DetailsSheetEvent(
-      fileTag: file.tag,
-      localID: file.localID,
-      uploadedFileID: file.uploadedFileID,
-      opened: false,
-    ),
-  );
 }
 
 class _DraggableDetailsSheet extends StatefulWidget {
