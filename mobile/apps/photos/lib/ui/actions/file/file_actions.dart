@@ -107,11 +107,32 @@ Future<void> showSingleFileDeleteSheet(
   }
 }
 
-final _openDetailsSheetFileIdentities = <Object>{};
+final _openDetailsSheetResumeIntent = <Object, bool?>{};
+
+({bool isOpen, bool shouldResume}) detailsSheetPlaybackStateFor(
+  EnteFile file,
+  bool isActive,
+) {
+  final identity = DetailsSheetEvent.identityFor(file);
+  final isOpen = _openDetailsSheetResumeIntent.containsKey(identity);
+  if (isOpen && isActive) _openDetailsSheetResumeIntent[identity] ??= true;
+  return (
+    isOpen: isOpen,
+    shouldResume: isOpen && (_openDetailsSheetResumeIntent[identity] ?? false),
+  );
+}
+
+void rememberDetailsSheetResumeIntent(EnteFile file, bool shouldResume) {
+  final identity = DetailsSheetEvent.identityFor(file);
+  if (_openDetailsSheetResumeIntent.containsKey(identity)) {
+    _openDetailsSheetResumeIntent[identity] ??= shouldResume;
+  }
+}
 
 Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
   final fileIdentity = DetailsSheetEvent.identityFor(file);
-  if (!_openDetailsSheetFileIdentities.add(fileIdentity)) return;
+  if (_openDetailsSheetResumeIntent.containsKey(fileIdentity)) return;
+  _openDetailsSheetResumeIntent[fileIdentity] = null;
 
   try {
     if (file.canEditMetaInfo && file.isPanorama() == null) {
@@ -132,7 +153,7 @@ Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
       builder: (_) => _DraggableDetailsSheet(file: file),
     );
   } finally {
-    _openDetailsSheetFileIdentities.remove(fileIdentity);
+    _openDetailsSheetResumeIntent.remove(fileIdentity);
     Bus.instance.fire(
       DetailsSheetEvent(
         fileIdentity: fileIdentity,

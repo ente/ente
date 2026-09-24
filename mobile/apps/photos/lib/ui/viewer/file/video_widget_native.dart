@@ -110,6 +110,12 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       'initState for ${widget.file.generatedID} with tag ${widget.file.tag} and name ${widget.file.displayName}',
     );
     super.initState();
+    final sheetState = detailsSheetPlaybackStateFor(
+      widget.file,
+      widget.isActive,
+    );
+    _isDetailsSheetOpen = sheetState.isOpen;
+    _wasPlayingBeforeDetailsSheet = sheetState.shouldResume;
     widget.playbackSpeed.addListener(_onPlaybackSpeedChanged);
     _seekController = VideoSeekController(
       seek: (target) async {
@@ -150,10 +156,17 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
           return;
         }
         if (event.opened) {
+          if (_isDetailsSheetOpen) return;
           _wasPlayingBeforeDetailsSheet =
               _controller?.playbackStatus == PlaybackStatus.playing ||
               (widget.isActive && !_isPlaybackReady.value);
           _isDetailsSheetOpen = true;
+          if (widget.isActive) {
+            rememberDetailsSheetResumeIntent(
+              widget.file,
+              _wasPlayingBeforeDetailsSheet,
+            );
+          }
           _controller?.pause();
         } else {
           _isDetailsSheetOpen = false;
@@ -219,6 +232,12 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   void didUpdateWidget(covariant VideoWidgetNative oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive != widget.isActive) {
+      if (widget.isActive && _isDetailsSheetOpen) {
+        _wasPlayingBeforeDetailsSheet = detailsSheetPlaybackStateFor(
+          widget.file,
+          true,
+        ).shouldResume;
+      }
       unawaited(_syncPlayback());
     }
     if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {

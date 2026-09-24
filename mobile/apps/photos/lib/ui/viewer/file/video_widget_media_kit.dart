@@ -89,6 +89,12 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
       'initState for ${widget.file.generatedID} with tag ${widget.file.tag} and name ${widget.file.displayName}',
     );
     super.initState();
+    final sheetState = detailsSheetPlaybackStateFor(
+      widget.file,
+      widget.isActive,
+    );
+    _isDetailsSheetOpen = sheetState.isOpen;
+    _wasPlayingBeforeDetailsSheet = sheetState.shouldResume;
     WidgetsBinding.instance.addObserver(this);
 
     if (widget.selectedPreview) {
@@ -109,6 +115,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           return;
         }
         if (event.opened) {
+          if (_isDetailsSheetOpen) return;
           final playerState = player.state;
           _wasPlayingBeforeDetailsSheet =
               playerState.playing ||
@@ -117,6 +124,12 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
                   !playerState.completed &&
                   (controller == null || playerState.buffering));
           _isDetailsSheetOpen = true;
+          if (widget.isActive) {
+            rememberDetailsSheetResumeIntent(
+              widget.file,
+              _wasPlayingBeforeDetailsSheet,
+            );
+          }
           player.pause();
         } else {
           _isDetailsSheetOpen = false;
@@ -183,6 +196,12 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   void didUpdateWidget(covariant VideoWidgetMediaKit oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive != widget.isActive) {
+      if (widget.isActive && _isDetailsSheetOpen) {
+        _wasPlayingBeforeDetailsSheet = detailsSheetPlaybackStateFor(
+          widget.file,
+          true,
+        ).shouldResume;
+      }
       widget.isActive && !_isDetailsSheetOpen ? player.play() : player.pause();
     }
     if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {
