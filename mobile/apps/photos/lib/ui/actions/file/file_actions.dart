@@ -109,11 +109,13 @@ Future<void> showSingleFileDeleteSheet(
 
 final _openDetailsSheetResumeIntent = <Object, bool?>{};
 
+Object detailsSheetIdentityFor(BuildContext context, EnteFile file) =>
+    (ModalRoute.of(context), DetailsSheetEvent.identityFor(file));
+
 ({bool isOpen, bool shouldResume}) detailsSheetPlaybackStateFor(
-  EnteFile file,
+  Object identity,
   bool isActive,
 ) {
-  final identity = DetailsSheetEvent.identityFor(file);
   final isOpen = _openDetailsSheetResumeIntent.containsKey(identity);
   if (isOpen && isActive) _openDetailsSheetResumeIntent[identity] ??= true;
   return (
@@ -122,15 +124,14 @@ final _openDetailsSheetResumeIntent = <Object, bool?>{};
   );
 }
 
-void rememberDetailsSheetResumeIntent(EnteFile file, bool shouldResume) {
-  final identity = DetailsSheetEvent.identityFor(file);
+void rememberDetailsSheetResumeIntent(Object identity, bool shouldResume) {
   if (_openDetailsSheetResumeIntent.containsKey(identity)) {
     _openDetailsSheetResumeIntent[identity] ??= shouldResume;
   }
 }
 
 Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
-  final fileIdentity = DetailsSheetEvent.identityFor(file);
+  final fileIdentity = detailsSheetIdentityFor(context, file);
   if (_openDetailsSheetResumeIntent.containsKey(fileIdentity)) return;
   _openDetailsSheetResumeIntent[fileIdentity] = null;
 

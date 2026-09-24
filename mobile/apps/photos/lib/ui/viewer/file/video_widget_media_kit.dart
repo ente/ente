@@ -76,6 +76,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   bool isGuestView = false;
   late final StreamSubscription<GuestViewEvent> _guestViewEventSubscription;
   bool _isGuestView = false;
+  Object? _detailsSheetIdentity;
   bool _isDetailsSheetOpen = false;
   bool _wasPlayingBeforeDetailsSheet = false;
   StreamSubscription<StreamSwitchedEvent>? _streamSwitchedSubscription;
@@ -89,19 +90,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
       'initState for ${widget.file.generatedID} with tag ${widget.file.tag} and name ${widget.file.displayName}',
     );
     super.initState();
-    final sheetState = detailsSheetPlaybackStateFor(
-      widget.file,
-      widget.isActive,
-    );
-    _isDetailsSheetOpen = sheetState.isOpen;
-    _wasPlayingBeforeDetailsSheet = sheetState.shouldResume;
     WidgetsBinding.instance.addObserver(this);
-
-    if (widget.selectedPreview) {
-      loadPreview();
-    } else {
-      loadOriginal();
-    }
 
     pauseVideoSubscription = Bus.instance.on<PauseVideoEvent>().listen((event) {
       if (event.fileTag != null && event.fileTag != widget.file.tag) return;
@@ -109,9 +98,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     });
     detailsSheetEventSubscription = Bus.instance.on<DetailsSheetEvent>().listen(
       (event) {
-        if (!event.isSameFile(
-          fileIdentity: DetailsSheetEvent.identityFor(widget.file),
-        )) {
+        if (!event.isSameFile(fileIdentity: _detailsSheetIdentity)) {
           return;
         }
         if (event.opened) {
@@ -126,7 +113,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           _isDetailsSheetOpen = true;
           if (widget.isActive) {
             rememberDetailsSheetResumeIntent(
-              widget.file,
+              _detailsSheetIdentity!,
               _wasPlayingBeforeDetailsSheet,
             );
           }
@@ -193,12 +180,31 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_detailsSheetIdentity != null) return;
+    _detailsSheetIdentity = detailsSheetIdentityFor(context, widget.file);
+    final sheetState = detailsSheetPlaybackStateFor(
+      _detailsSheetIdentity!,
+      widget.isActive,
+    );
+    _isDetailsSheetOpen = sheetState.isOpen;
+    _wasPlayingBeforeDetailsSheet = sheetState.shouldResume;
+
+    if (widget.selectedPreview) {
+      loadPreview();
+    } else {
+      loadOriginal();
+    }
+  }
+
+  @override
   void didUpdateWidget(covariant VideoWidgetMediaKit oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive != widget.isActive) {
       if (widget.isActive && _isDetailsSheetOpen) {
         _wasPlayingBeforeDetailsSheet = detailsSheetPlaybackStateFor(
-          widget.file,
+          _detailsSheetIdentity!,
           true,
         ).shouldResume;
       }
