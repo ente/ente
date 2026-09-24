@@ -410,7 +410,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     return Hero(
       tag: widget.tagPrefix! + widget.file.tag,
       child: VisibilityDetector(
-        key: Key(widget.file.generatedID.toString()),
+        key: ObjectKey(this),
         onVisibilityChanged: (info) {
           if (info.visibleFraction == 1) {
             setState(() {
