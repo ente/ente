@@ -107,7 +107,13 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           return;
         }
         if (event.opened) {
-          _wasPlayingBeforeDetailsSheet = player.state.playing;
+          final playerState = player.state;
+          _wasPlayingBeforeDetailsSheet =
+              playerState.playing ||
+              (_isAppInFG &&
+                  widget.isActive &&
+                  !playerState.completed &&
+                  (controller == null || playerState.buffering));
           _isDetailsSheetOpen = true;
           player.pause();
         } else {

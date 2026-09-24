@@ -149,7 +149,8 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
         }
         if (event.opened) {
           _wasPlayingBeforeDetailsSheet =
-              _controller?.playbackStatus == PlaybackStatus.playing;
+              _controller?.playbackStatus == PlaybackStatus.playing ||
+              (widget.isActive && !_isPlaybackReady.value);
           _isDetailsSheetOpen = true;
           _controller?.pause();
         } else {
