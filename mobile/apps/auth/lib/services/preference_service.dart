@@ -9,6 +9,7 @@ enum CodeSortKey {
   mostFrequentlyUsed,
   recentlyUsed,
   manual,
+  newestFirst,
 }
 
 class PreferenceService {

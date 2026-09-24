@@ -1233,6 +1233,9 @@ class _HomePageState extends State<HomePage> {
       case CodeSortKey.manual:
         codes.sort((a, b) => a.display.position.compareTo(b.display.position));
         break;
+      case CodeSortKey.newestFirst:
+        codes.sort(_compareNewestFirst);
+        break;
     }
     if (sortKey != CodeSortKey.manual) {
       int insertIndex = 0;
@@ -1244,6 +1247,24 @@ class _HomePageState extends State<HomePage> {
         }
       }
     }
+  }
+
+  // Most recently added first. createdAt is kept across edits and syncs;
+  // generatedID breaks ties, and codes that are not saved yet come first.
+  static int _compareNewestFirst(Code a, Code b) {
+    final aCreatedAt = a.createdAt;
+    final bCreatedAt = b.createdAt;
+    if (aCreatedAt == null || bCreatedAt == null) {
+      if (aCreatedAt == bCreatedAt) {
+        return 0;
+      }
+      return aCreatedAt == null ? -1 : 1;
+    }
+    final byCreatedAt = bCreatedAt.compareTo(aCreatedAt);
+    if (byCreatedAt != 0) {
+      return byCreatedAt;
+    }
+    return (b.generatedID ?? 0).compareTo(a.generatedID ?? 0);
   }
 
   bool get _shouldFocusAddedCode {

@@ -22,6 +22,8 @@ class Code {
   final String rawData;
   final int counter;
   bool? hasSynced;
+  // Creation time of the stored entry (microseconds), used for sorting.
+  int? createdAt;
 
   final CodeDisplay display;
 
@@ -106,7 +108,7 @@ class Code {
       "&period=$updatePeriod&secret=$updatedSecret${updatedType == Type.hotp ? "&counter=$updatedCounter" : ""}",
       generatedID: generatedID,
       display: updatedDisplay,
-    );
+    )..createdAt = createdAt;
   }
 
   static Code fromAccountAndSecret(
