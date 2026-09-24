@@ -144,12 +144,21 @@ func (c *ClICtrl) downloadEntry(ctx context.Context,
 		if err != nil {
 			return err
 		}
+		// The decrypted copy is a temp artifact: it is needed only until the
+		// entry has been moved into the export, so drop whatever is left of it
+		// however this entry ends, otherwise the temp filesystem fills up (#6551).
+		defer func() { _ = os.Remove(*decrypt) }()
 		fileDiskMetadata := mapper.MapRemoteFileToDiskMetadata(file)
 		extension := filepath.Ext(fileDiskMetadata.Title)
 		baseFileName := strings.TrimSuffix(filepath.Clean(filepath.Base(fileDiskMetadata.Title)), extension)
 		diskMetaFileName := diskInfo.GenerateUniqueMetaFileName(baseFileName, extension)
 		if file.IsLivePhoto() {
-			imagePath, videoPath, err := UnpackLive(*decrypt)
+			// Unpacking writes the image and the video side by side into a
+			// scratch directory under the temp folder, which is dropped along
+			// with the zip once they have been moved into the export.
+			unpackDir := c.tempPath(file.ID, unpackedTempSuffix)
+			defer os.RemoveAll(unpackDir)
+			imagePath, videoPath, err := UnpackLive(*decrypt, unpackDir)
 			if err != nil {
 				return err
 			}
