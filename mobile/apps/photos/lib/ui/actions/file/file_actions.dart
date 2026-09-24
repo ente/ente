@@ -107,11 +107,11 @@ Future<void> showSingleFileDeleteSheet(
   }
 }
 
-final _openDetailsSheetFileTags = <String>{};
+final _openDetailsSheetFileIdentities = <Object>{};
 
 Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
-  final fileTag = file.tag;
-  if (!_openDetailsSheetFileTags.add(fileTag)) return;
+  final fileIdentity = DetailsSheetEvent.identityFor(file);
+  if (!_openDetailsSheetFileIdentities.add(fileIdentity)) return;
 
   try {
     if (file.canEditMetaInfo && file.isPanorama() == null) {
@@ -119,7 +119,7 @@ Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
     }
     Bus.instance.fire(
       DetailsSheetEvent(
-        fileTag: fileTag,
+        fileIdentity: fileIdentity,
         localID: file.localID,
         uploadedFileID: file.uploadedFileID,
         opened: true,
@@ -132,10 +132,10 @@ Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
       builder: (_) => _DraggableDetailsSheet(file: file),
     );
   } finally {
-    _openDetailsSheetFileTags.remove(fileTag);
+    _openDetailsSheetFileIdentities.remove(fileIdentity);
     Bus.instance.fire(
       DetailsSheetEvent(
-        fileTag: fileTag,
+        fileIdentity: fileIdentity,
         localID: file.localID,
         uploadedFileID: file.uploadedFileID,
         opened: false,

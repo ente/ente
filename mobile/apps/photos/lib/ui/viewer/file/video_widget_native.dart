@@ -144,7 +144,9 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     });
     detailsSheetEventSubscription = Bus.instance.on<DetailsSheetEvent>().listen(
       (event) {
-        if (!event.isSameFile(fileTag: widget.file.tag)) {
+        if (!event.isSameFile(
+          fileIdentity: DetailsSheetEvent.identityFor(widget.file),
+        )) {
           return;
         }
         if (event.opened) {
