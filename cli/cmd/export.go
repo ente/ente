@@ -9,7 +9,7 @@ var exportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Starts the export process",
 	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		shared, _ := cmd.Flags().GetBool("shared")
 		hidden, _ := cmd.Flags().GetBool("hidden")
 		albums, _ := cmd.Flags().GetStringSlice("albums")
@@ -22,7 +22,7 @@ var exportCmd = &cobra.Command{
 			Albums:        albums,
 			Emails:        emails,
 		}
-		ctrl.Export(filters)
+		return ctrl.Export(filters)
 	},
 }
 
