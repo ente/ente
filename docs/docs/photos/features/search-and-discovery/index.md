@@ -36,7 +36,9 @@ Learn more about [adding descriptions to photos](/photos/faq/metadata-and-editin
 
 ### Album search
 
-Search for albums by name or search within specific albums to narrow down results.
+Search for albums by name or search within specific albums to narrow down results. On mobile, album search also includes archived albums under an **Archive** heading.
+
+When you are adding or moving photos on mobile and no album matches your search, select **Create album** to make one with the name you searched for and continue the action.
 
 ### Photos without location data
 

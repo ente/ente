@@ -96,6 +96,12 @@ Once you've named persons:
 - Works across all your albums
 - Search is instant and happens on your device
 
+### Sharing photos of a person
+
+On mobile, open a named person and tap the share button. You can select specific photos and either share the original files or create a public link. You can also enable **Share all photos** before creating the link so that new photos of that person are added to the shared album automatically.
+
+Only photos you own can be included. Sharing creates an album for the selected photos; it does not share face-recognition data.
+
 ## Managing Face Groupings
 
 ### Merging persons

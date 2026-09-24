@@ -1,11 +1,11 @@
 ---
 title: Android gallery integration
-description: Use Ente as a system gallery on Android — pick photos from Ente in other apps and open camera thumbnails directly in Ente
+description: Use Ente as a system gallery on Android, pick photos in other apps, open camera thumbnails, and set wallpapers
 ---
 
 # Android gallery integration
 
-On Android, Ente integrates with the rest of the system so it can act like a regular gallery app. Other apps can pick photos and videos from your Ente library, and tapping a thumbnail in your camera app can open the photo directly in Ente's viewer.
+On Android, Ente integrates with the rest of the system so it can act like a regular gallery app. Other apps can pick photos and videos from your Ente library, tapping a thumbnail in your camera app can open the photo directly in Ente's viewer, and you can set a photo as your wallpaper.
 
 > [!NOTE]
 >
@@ -59,3 +59,13 @@ Ente also registers as a gallery app, so on Android versions that let you choose
 3. Select **Ente Photos**
 
 Once set as default, the camera thumbnail review and other gallery-style intents open in Ente without asking each time.
+
+## Set a photo as your wallpaper
+
+1. Open a photo in Ente.
+2. Tap the three dots in the top-right corner and select **Set as**.
+3. Select **Wallpaper** if Android shows an app chooser.
+4. Move or zoom the photo to adjust the crop, then tap **Set wallpaper**.
+5. Choose **Home screen**, **Lock screen**, or **Home and lock screens**.
+
+This option is available for photos and Live Photos. Ente uses the still image from a Live Photo as the wallpaper.
