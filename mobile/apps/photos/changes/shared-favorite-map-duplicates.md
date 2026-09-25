@@ -1,0 +1,1 @@
+- Prevent duplicate shared map photos when favorited.
