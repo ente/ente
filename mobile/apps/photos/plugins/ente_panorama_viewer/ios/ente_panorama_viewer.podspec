@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.license          = { :type => 'AGPL-3.0-only' }
   s.author           = { 'Ente' => 'code@ente.com' }
   s.source           = { :path => '.' }
-  s.source_files     = 'Classes/**/*'
+  s.source_files     = 'ente_panorama_viewer/Sources/ente_panorama_viewer/**/*.swift'
   s.dependency 'Flutter'
   s.frameworks = 'CoreMotion'
   s.platform         = :ios, '15.1'
