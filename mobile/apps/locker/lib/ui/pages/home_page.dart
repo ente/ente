@@ -11,6 +11,7 @@ import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/utils/dialog_util.dart';
 import "package:ente_utils/email_util.dart";
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import "package:flutter_svg/flutter_svg.dart";
 import "package:hugeicons/hugeicons.dart";
 import 'package:listen_sharing_intent/listen_sharing_intent.dart';
@@ -39,6 +40,7 @@ import "package:locker/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import 'package:locker/utils/collection_sort_util.dart';
 import 'package:logging/logging.dart';
+import 'package:path_provider/path_provider.dart';
 
 class LockerHomeHeader extends StatelessWidget {
   const LockerHomeHeader({
@@ -184,6 +186,10 @@ class _HomePageState extends UploaderPageState<HomePage>
   double _drawerDragDx = 0;
   late bool _hasSetupLegacyKit;
   final _logger = Logger('HomePage');
+  static const _sharedFilesChannel = MethodChannel(
+    'io.ente.locker/shared_files',
+  );
+  bool _isReadingAndroidShares = false;
   StreamSubscription? _mediaStreamSubscription;
   StreamSubscription<Uri>? _deepLinkSubscription;
   StreamSubscription<TriggerLogoutEvent>? _triggerLogoutSubscription;
@@ -357,6 +363,13 @@ class _HomePageState extends UploaderPageState<HomePage>
   void initializeSharing() {
     _logger.info('Initializing sharing functionality...');
 
+    if (Platform.isAndroid) {
+      _sharedFilesChannel.setMethodCallHandler((call) async {
+        if (call.method == 'sharesReady') await _readAndroidShares();
+      });
+      unawaited(_readAndroidShares());
+    }
+
     try {
       _mediaStreamSubscription = ReceiveSharingIntent.instance
           .getMediaStream()
@@ -385,6 +398,31 @@ class _HomePageState extends UploaderPageState<HomePage>
     _checkInitialSharedContent();
   }
 
+  Future<void> _readAndroidShares() async {
+    if (_isReadingAndroidShares || !mounted) return;
+    _isReadingAndroidShares = true;
+    try {
+      while (mounted) {
+        final paths = await _sharedFilesChannel.invokeListMethod<String>(
+          'takeNextShare',
+        );
+        if (paths == null) return;
+        await _handleSharedFiles(
+          paths
+              .map(
+                (path) =>
+                    SharedMediaFile(path: path, type: SharedMediaType.file),
+              )
+              .toList(),
+        );
+      }
+    } catch (e, s) {
+      _logger.warning('Failed to receive Android shared files', e, s);
+    } finally {
+      _isReadingAndroidShares = false;
+    }
+  }
+
   Future<void> _checkInitialSharedContent() async {
     try {
       _logger.info('Checking for initial shared content...');
@@ -410,31 +448,61 @@ class _HomePageState extends UploaderPageState<HomePage>
   }
 
   Future<void> _handleSharedFiles(List<SharedMediaFile> sharedFiles) async {
+    sharedFiles = sharedFiles
+        .where(
+          (file) =>
+              file.type != SharedMediaType.url &&
+              file.type != SharedMediaType.text &&
+              file.type != SharedMediaType.mailto,
+        )
+        .toList();
     _logger.info('_handleSharedFiles called with ${sharedFiles.length} files');
 
-    if (!mounted) {
-      _logger.warning('Context not mounted, cannot handle shared files');
-      return;
-    }
-
     try {
+      if (!mounted) return;
+      final files = <File>[];
       for (final sharedFile in sharedFiles) {
         _logger.info('Processing shared file');
-        if (sharedFile.path.isNotEmpty) {
-          final file = File(sharedFile.path);
-          if (await file.exists()) {
-            _logger.info('File exists, uploading');
-            await uploadFiles([file]);
-          } else {
-            _logger.warning('Shared file does not exist');
+        final file = File(sharedFile.path);
+        try {
+          if (sharedFile.path.isNotEmpty && await file.exists()) {
+            files.add(file);
           }
-        } else {
-          _logger.warning('Shared file has empty path');
+        } on FileSystemException catch (e, s) {
+          _logger.warning('Unable to access shared file', e, s);
         }
       }
 
-      await ReceiveSharingIntent.instance.reset();
-      _logger.info('Reset sharing intent after handling files');
+      final skippedCount = sharedFiles.length - files.length;
+      if (mounted && skippedCount > 0) {
+        await showBottomSheetComponent(
+          context: context,
+          builder: (sheetContext) => BottomSheetComponent(
+            title: files.isEmpty
+                ? context.strings.uploadError
+                : context.strings.skippedFiles,
+            message: files.isEmpty
+                ? context.strings.noSharedFilesReadable
+                : context.strings.sharedFilesSkipped(count: skippedCount),
+            illustration: LockerBottomSheetIllustration.warningGrey,
+            actions: files.isEmpty
+                ? []
+                : [
+                    ButtonComponent(
+                      label: context.strings.continueLabel,
+                      onTap: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+          ),
+        );
+      }
+
+      if (mounted && files.isNotEmpty) {
+        _logger.info('Opening upload screen for ${files.length} shared files');
+        await uploadFiles(
+          {for (final file in files) file.path: file}.values.toList(),
+        );
+      }
     } catch (e) {
       _logger.severe('Error handling shared files: $e');
       if (mounted) {
@@ -455,11 +523,33 @@ class _HomePageState extends UploaderPageState<HomePage>
           ),
         );
       }
+    } finally {
+      try {
+        await ReceiveSharingIntent.instance.reset();
+      } catch (e, s) {
+        _logger.warning('Failed to reset sharing intent', e, s);
+      }
+      if (Platform.isAndroid) {
+        try {
+          final cache = await getTemporaryDirectory();
+          for (final file in sharedFiles) {
+            final directory = File(file.path).parent;
+            if (directory.parent.path == cache.path &&
+                directory.path.startsWith('${cache.path}/locker_share_') &&
+                await directory.exists()) {
+              await directory.delete(recursive: true);
+            }
+          }
+        } catch (e, s) {
+          _logger.warning('Failed to clean up shared documents', e, s);
+        }
+      }
     }
   }
 
   void disposeSharing() {
     _mediaStreamSubscription?.cancel();
+    if (Platform.isAndroid) _sharedFilesChannel.setMethodCallHandler(null);
     ReceiveSharingIntent.instance.reset();
     _logger.info('Sharing functionality disposed');
   }

@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_lock_screen/lock_screen_host.dart';
+import 'package:flutter/services.dart';
 import 'package:locker/services/authenticated_session.dart';
 import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/favorites_service.dart';
@@ -28,6 +31,11 @@ class Configuration extends BaseConfiguration
 
   @override
   Future<void> logout({bool autoLogout = false}) async {
+    if (Platform.isAndroid) {
+      await const MethodChannel(
+        'io.ente.locker/shared_files',
+      ).invokeMethod<void>('clearPendingShares');
+    }
     CollectionService.instance.clearCache();
     FavoritesService.instance.clearCache();
     await super.logout(autoLogout: autoLogout);
