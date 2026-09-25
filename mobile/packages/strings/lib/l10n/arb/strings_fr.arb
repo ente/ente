@@ -25,28 +25,9 @@
     "description": "Title for active sessions page"
   },
   "add": "Ajouter",
-  "addAdmin": "Ajouter un administrateur",
-  "addAdmins": "{count, plural, =0{Ajouter un admin} one{Ajouter un admin} other{Ajouter des admins}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "Ajoutez un widget album à votre écran d'accueil pour le personnaliser ici.",
   "addANameAndPhoto": "Ajouter un nom et une photo",
-  "addANewEmail": "Ajouter un nouvel email",
   "addCode": "Ajouter un code",
-  "addCollaborator": "Ajouter un collaborateur",
-  "addCollaborators": "{count, plural, =0{Ajouter un collaborateur} one{Ajouter un collaborateur} other{Ajouter des collaborateurs}}",
-  "@addCollaborators": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addedAMemoryTo": "a ajouté un souvenir à {albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -56,7 +37,6 @@
       }
     }
   },
-  "addedAs": "Ajouté comme",
   "addedBy": "Ajouté par {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -123,7 +103,6 @@
   "addMember": "Ajouter un membre",
   "addMemoriesWidgetPrompt": "Ajoutez un widget souvenirs à votre écran d'accueil pour le personnaliser ici.",
   "addMore": "Ajouter",
-  "addMoreAdmins": "Ajouter d'autres administrateurs",
   "addName": "Ajouter un nom",
   "addNew": "Ajouter un nouveau",
   "@addNew": {
@@ -143,7 +122,6 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addParticipants": "Ajouter des participants",
   "addPeopleWidgetPrompt": "Ajoutez un widget de personnes à votre écran d'accueil pour le personnaliser ici.",
   "addPerson": "Ajouter une personne",
   "@addPerson": {
@@ -164,30 +142,10 @@
   "addTrustedContact": "Ajouter un contact de confiance",
   "addTrustedPerson": "Ajouter une personne de confiance",
   "addUpTo5MembersFree": "Ajoutez jusqu'à 5 membres gratuitement",
-  "addViewer": "Ajouter un observateur",
-  "addViewers": "{count, plural, =0{Ajouter un observateur} one{Ajouter un observateur} other{Ajouter des observateurs}}",
-  "@addViewers": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addYourPhotosNow": "Ajoutez vos photos maintenant",
   "adjust": "Ajuster",
   "adjustCrop": "Ajuster le recadrage",
   "admin": "Administrateur",
-  "admins": "Administrateurs",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Les administrateurs et les collaborateurs peuvent ajouter des photos. Les administrateurs peuvent en plus gérer les photos et les participants.",
-  "adminsCanManagePhotosAndParticipants": "Les admins peuvent gérer les photos et les participants.",
-  "adminsSuccessfullyAdded": "{count, plural, =0{Aucun admin ajouté} one{{count} admin ajouté} other{{count} admins ajoutés}}",
-  "@adminsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of admins that were successfully added."
-  },
   "admiringThem": "Admirant {name}",
   "@admiringThem": {
     "placeholders": {
@@ -205,20 +163,6 @@
   "albumEditsWillNotBeSaved": "Vos modifications à cet album ne seront pas sauvegardées.",
   "albumLayout": "Disposition de l'album",
   "albumName": "Nom de l'album",
-  "albumOwner": "Propriétaire",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{Aucun Participant} one{{count} Participant} other{{count} Participants}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Albums",
   "albumsCount": "{count, plural, one{{count} album} other{{count} albums}}",
   "@albumsCount": {
@@ -523,12 +467,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} Ne (pourra) pas ajouter de photos supplémentaires à cet album.\nIl sera toujours possible de supprimer les photos existantes",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Les fichiers partagés ne peuvent pas être supprimés",
   "cannotMoveToSharedAlbums": "Impossible de déplacer vers les albums partagés",
   "cannotMoveToSharedAlbumsMessage": "Les éléments peuvent être ajoutés qu'aux albums partagés, et non déplacés. Voulez-vous ajouter à la place ?",
@@ -554,7 +492,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Changer les permissions",
-  "changePermissionsQuestion": "Modifier les permissions ?",
   "changeYourReferralCode": "Modifier votre code",
   "checkForUpdates": "Vérifier les mises à jour",
   "checking": "Vérification...",
@@ -609,17 +546,6 @@
   "codeIssuerHint": "Émetteur",
   "collabLinkSectionDescription": "Autoriser les personnes à ajouter des photos sans compte Ente",
   "collaborator": "Collaborateur",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Les collaborateurs peuvent ajouter des photos et des vidéos à l'album partagé.",
-  "collaboratorsSuccessfullyAdded": "{count, plural, =0{0 collaborateur ajouté} one{{count} collaborateur ajouté} other{{count} collaborateurs ajoutés}}",
-  "@collaboratorsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of collaborators that were successfully added."
-  },
   "collageLayout": "Disposition",
   "collageSaved": "Collage sauvegardé dans la galerie",
   "collectionCannotBeDeleted": "Cette collection ne peut pas etre supprimee",
@@ -1871,11 +1797,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Gérer",
   "manageDeviceStorage": "Gérer le cache de l'appareil",
   "manageFamily": "Gérer la famille",
   "manageLink": "Gérer le lien",
-  "manageParticipants": "Gérer",
   "managePaymentMethod": "Gérer le mode de paiement",
   "manageSubscription": "Gérer l'abonnement",
   "manualSort": "Personnaliser",
@@ -2194,7 +2118,6 @@
   "openSettings": "Ouvrir les paramètres",
   "openstreetmapContributors": "Contributeurs d'OpenStreetMap",
   "optionalAsShortAsYouLike": "Optionnel, aussi court que vous le souhaitez...",
-  "orPickAnExistingOne": "Ou sélectionner un email existant",
   "orRemoveYourself": "Ou vosu retirer en tant que contact fiable de {email}",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -2548,12 +2471,6 @@
   "remoteVideos": "Vidéos distantes",
   "remove": "Supprimer",
   "removeAccess": "Supprimer l'acces",
-  "removeAlbumParticipantBody": "{userEmail} sera retiré de cet album partagé\n\nToutes les photos ajoutées par eux seront également retirées de l'album",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} sera supprime de cette collection partagee\n\nTous les elements ajoutes par cette personne seront egalement supprimes de la collection",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -3036,7 +2953,6 @@
   "shareCodes": "Partager les codes",
   "shareCodesDuration": "Sélectionnez la durée pour laquelle vous souhaitez partager les codes.",
   "shared": "Partagé",
-  "sharedAlbumSectionDescription": "Créez des albums partagés et collaboratifs avec d'autres utilisateurs de Ente, y compris des utilisateurs ayant des plans gratuits.",
   "sharedAlbumsLabel": "Partagés",
   "@sharedAlbumsLabel": {
     "description": "Albums tab label for albums shared by you"
@@ -3072,15 +2988,6 @@
   "shareTextRecommendUsingEnteForPhotos": "Téléchargez Ente pour pouvoir facilement partager des photos et vidéos en qualité originale\n\nhttps://ente.com",
   "shareThisLink": "Ce lien permet a toute personne qui le recoit d'acceder a ton element. Tu peux supprimer l'acces a tout moment en supprimant le lien.",
   "shareWithNonenteUsers": "Partager avec des utilisateurs non-Ente",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Partager avec des personnes spécifiques} one{Partagé avec {numberOfPeople} personne} other{Partagé avec {numberOfPeople} personnes}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "shareYourSubscription": "Partagez votre abonnement avec vos proches",
   "sharing": "Partage...",
   "sharingAndCollaboration": "Partage et collaboration",
@@ -3638,16 +3545,6 @@
   "viewAllExifData": "Visualiser toutes les données EXIF",
   "viewAllHelpTopics": "Voir toutes les rubriques d'aide",
   "viewer": "Observateur",
-  "viewersSuccessfullyAdded": "{count, plural, =0{0 spectateur ajouté} one{{count} spectateur ajouté} other{{count} spectateurs ajoutés}}",
-  "@viewersSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of viewers that were successfully added."
-  },
   "viewLargeFiles": "Fichiers volumineux",
   "viewLogs": "Afficher les journaux",
   "@viewLogs": {

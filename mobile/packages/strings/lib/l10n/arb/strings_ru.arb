@@ -36,28 +36,9 @@
     "description": "Title for active sessions page"
   },
   "add": "Добавить",
-  "addAdmin": "Добавить администратора",
-  "addAdmins": "{count, plural, =0{Добавить администратора} one{Добавить администратора} few{Добавить администраторов} many{Добавить администраторов} other{Добавить администраторов}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "Добавьте виджет альбома на главный экран, чтобы настроить его здесь.",
   "addANameAndPhoto": "Добавьте имя и фото",
-  "addANewEmail": "Добавьте новую электронную почту",
   "addCode": "Добавить код",
-  "addCollaborator": "Добавить соавтора",
-  "addCollaborators": "{count, plural, =0{Добавить соавтора} one{Добавить соавтора} few{Добавить соавторов} many{Добавить соавторов} other{Добавить соавторов}}",
-  "@addCollaborators": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addedAMemoryTo": "добавил(а) воспоминание в {albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -67,7 +48,6 @@
       }
     }
   },
-  "addedAs": "Добавлен как",
   "addedBy": "Добавлено {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -134,7 +114,6 @@
   "addMember": "Добавить участника",
   "addMemoriesWidgetPrompt": "Добавьте виджет воспоминаний на главный экран, чтобы настроить его здесь.",
   "addMore": "Добавить ещё",
-  "addMoreAdmins": "Добавить ещё администратора",
   "addName": "Добавить имя",
   "addNew": "Добавить новое",
   "@addNew": {
@@ -154,7 +133,6 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addParticipants": "Добавить участников",
   "addPeopleWidgetPrompt": "Добавьте виджет людей на главный экран, чтобы настроить его здесь.",
   "addPerson": "Добавить человека",
   "@addPerson": {
@@ -175,29 +153,9 @@
   "addTrustedContact": "Добавить доверенный контакт",
   "addTrustedPerson": "Добавить доверенное лицо",
   "addUpTo5MembersFree": "Добавьте до 5 участников бесплатно",
-  "addViewer": "Добавить зрителя",
-  "addViewers": "{count, plural, =0{Добавить зрителя} one{Добавить зрителя} few{Добавить зрителей} many{Добавить зрителей} other{Добавить зрителей}}",
-  "@addViewers": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addYourPhotosNow": "Добавьте ваши фото",
   "adjust": "Отрегулировать",
   "admin": "Администратор",
-  "admins": "Администраторы",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Администраторы и соавторы могут добавлять фотографии, управлять существующими фотографиями и менять состав участников.",
-  "adminsCanManagePhotosAndParticipants": "Администраторы могут управлять фотографиями и участниками.",
-  "adminsSuccessfullyAdded": "{count, plural, =0{Администраторы не добавлены} one{Успешно добавлен {count} администратор} few{Успешно добавлено {count} администратора} many{Успешно добавлено {count} администраторов} other{Успешно добавлено {count} администратора}}",
-  "@adminsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of admins that were successfully added."
-  },
   "admiringThem": "Любуясь {name}",
   "@admiringThem": {
     "placeholders": {
@@ -215,20 +173,6 @@
   "albumEditsWillNotBeSaved": "Ваши правки в этом альбоме не будут сохранены.",
   "albumLayout": "Макет альбома",
   "albumName": "Название альбома",
-  "albumOwner": "Владелец",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{Нет участников} one{{count} участник} few{{count} участника} many{{count} участников} other{{count} участника}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Альбомы",
   "albumsCount": "{count, plural, one{{count} альбом} few{{count} альбома} many{{count} альбомов} other{{count} альбома}}",
   "@albumsCount": {
@@ -530,12 +474,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} не сможет добавлять новые фото в этот альбом\n\nЭтот пользователь всё ещё сможет удалять существующие фото, добавленные им",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Нельзя удалить общие файлы",
   "cannotMoveToSharedAlbums": "Нельзя переместить в общие альбомы",
   "cannotMoveToSharedAlbumsMessage": "Элементы могут быть только добавлены в общие альбомы, а не перемещены. Хотите добавить вместо этого?",
@@ -572,7 +510,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Изменить разрешения",
-  "changePermissionsQuestion": "Изменить разрешения?",
   "changeYourReferralCode": "Изменить код",
   "checkForUpdates": "Проверить обновления",
   "checkInboxAndSpamFolder": "Пожалуйста, проверьте ваш почтовый ящик (и спам) для завершения верификации",
@@ -631,17 +568,6 @@
   "codeIssuerHint": "Эмитент",
   "collabLinkSectionDescription": "Разрешить людям добавлять фотографии без учётной записи Ente",
   "collaborator": "Соавтор",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Соавторы могут добавлять фото и видео в общий альбом.",
-  "collaboratorsSuccessfullyAdded": "{count, plural, =0{Добавлено 0 соавторов} one{Добавлен {count} соавтор} few{Добавлено {count} соавтора} many{Добавлено {count} соавторов} other{Добавлено {count} соавтора}}",
-  "@collaboratorsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of collaborators that were successfully added."
-  },
   "collageLayout": "Макет",
   "collageSaved": "Коллаж сохранён в галерее",
   "collectionCannotBeDeleted": "Эта коллекция не может быть удалена",
@@ -1887,11 +1813,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Управлять",
   "manageDeviceStorage": "Управление кэшем устройства",
   "manageFamily": "Управление семьёй",
   "manageLink": "Управлять ссылкой",
-  "manageParticipants": "Управлять",
   "managePaymentMethod": "Управлять методом оплаты",
   "manageSubscription": "Управление подпиской",
   "manualSort": "Пользовательская",
@@ -2215,7 +2139,6 @@
   "openstreetmapContributors": "Участники OpenStreetMap",
   "optionalAsShortAsYouLike": "Необязательно, насколько коротко пожелаете...",
   "organization": "Организация",
-  "orPickAnExistingOne": "Или выберите существующую",
   "orRemoveYourself": "Или удалите себя из списка доверенных контактов {email}",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -2583,12 +2506,6 @@
   "remoteVideos": "Видео вне устройства",
   "remove": "Удалить",
   "removeAccess": "Отозвать доступ",
-  "removeAlbumParticipantBody": "{userEmail} будет удалён из этого общего альбома\n\nВсе фото, добавленные этим пользователем, также будут удалены из альбома",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} будет удалён из этой общей коллекции\n\nВсе добавленные им элементы также будут удалены из коллекции",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -3090,7 +3007,6 @@
   "shareCodes": "Поделиться кодами",
   "shareCodesDuration": "Выберите продолжительность, на которую вы хотите поделиться кодами.",
   "shared": "Общий",
-  "sharedAlbumSectionDescription": "Создавайте общие и совместные альбомы с другими пользователями Ente, включая пользователей на бесплатных тарифах.",
   "sharedAlbumsLabel": "Общие",
   "@sharedAlbumsLabel": {
     "description": "Albums tab label for albums shared by you"
@@ -3127,15 +3043,6 @@
   "shareTextRecommendUsingEnteForPhotos": "Скачай Ente, чтобы мы могли легко делиться фото и видео в оригинальном качестве\n\nhttps://ente.com",
   "shareThisLink": "Эта ссылка позволяет любому, кто её получит, получить доступ к вашему элементу. Вы можете удалить доступ в любое время, удалив ссылку.",
   "shareWithNonenteUsers": "Поделиться с пользователями, не использующими Ente",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Поделиться с отдельными людьми} one{Доступно {numberOfPeople} человеку} few{Доступно {numberOfPeople} людям} many{Доступно {numberOfPeople} людям} other{Доступно {numberOfPeople} людям}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "shareYourSubscription": "Поделитесь своей подпиской с близкими",
   "sharing": "Отправка...",
   "sharingAndCollaboration": "Совместное использование.",
@@ -3688,16 +3595,6 @@
   "viewAllExifData": "Посмотреть все данные EXIF",
   "viewAllHelpTopics": "Посмотреть все темы справки",
   "viewer": "Зритель",
-  "viewersSuccessfullyAdded": "{count, plural, =0{Добавлено 0 зрителей} one{Добавлен {count} зритель} few{Добавлено {count} зрителя} many{Добавлено {count} зрителей} other{Добавлено {count} зрителя}}",
-  "@viewersSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of viewers that were successfully added."
-  },
   "viewLargeFiles": "Большие файлы",
   "viewLogs": "Просмотреть логи",
   "@viewLogs": {

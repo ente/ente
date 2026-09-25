@@ -26,11 +26,8 @@
     "description": "Title for active sessions page"
   },
   "add": "Lisa",
-  "addAdmin": "Lisa peakasutaja",
   "addANameAndPhoto": "Lisa nimi ja foto",
-  "addANewEmail": "Lisa uus e-posti aadress",
   "addCode": "Lisa kood",
-  "addedAs": "Lisatud kui",
   "addFiles": "Lisa faile",
   "addFromDevice": "Lisa seadmest",
   "addingPhotos": "Fotod on lisamisel",
@@ -55,10 +52,6 @@
   },
   "addTag": "Lisa silt",
   "addToAlbum": "Lisa albumisse",
-  "albumOwner": "Omanik",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Albumid",
   "albumsCount": "{count, plural, one{{count} album} other{{count} albumit}}",
   "@albumsCount": {
@@ -153,7 +146,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "Muuta õiguseid?",
   "checkForUpdates": "Kontrolli uuendusi",
   "clearBackupPassword": "Eemalda varukoopia salasõna",
   "close": "Sulge",
@@ -556,9 +548,7 @@
   "@lostDeviceTitle": {
     "description": "Lost device title"
   },
-  "manage": "Halda",
   "manageLink": "Halda linki",
-  "manageParticipants": "Halda",
   "manageSubscription": "Halda tellimust",
   "manualSort": "Kohandatud",
   "merchandise": "Kaup",

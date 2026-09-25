@@ -18,10 +18,7 @@
     "description": "Title for active sessions page"
   },
   "add": "Дадаць",
-  "addANewEmail": "Дадаць новую электронную пошту",
   "addCode": "Дадаць код",
-  "addCollaborator": "Дадаць суаўтара",
-  "addedAs": "Дададзена як",
   "addedBy": "Дададзена {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -56,14 +53,12 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Дадаць удзельнікаў",
   "addPhotos": "Дадаць фатаграфіі",
   "addSelected": "Дадаць выбраныя",
   "addTag": "Дадаць тэг",
   "addToAlbum": "Дадаць у альбом",
   "addToEnte": "Дадаць у Ente",
   "addToHiddenAlbum": "Дадаць у схаваны альбом",
-  "addViewer": "Дадаць гледача",
   "addYourPhotosNow": "Дадайце свае фатаграфіі",
   "adjust": "Рэгуляваць",
   "admiringThem": "Любуючыся {name}",
@@ -79,10 +74,6 @@
   "after1Week": "Праз 1 тыдзень",
   "after1Year": "Праз 1 год",
   "albumLayout": "Макет альбома",
-  "albumOwner": "Уладальнік",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Альбомы",
   "albumTitle": "Назва альбома",
   "albumUpdated": "Альбом абноўлены",
@@ -250,12 +241,6 @@
   },
   "cancelRecovery": "Скасаваць аднаўленне",
   "cancelSubscription": "Скасаваць падпіску",
-  "cannotAddMorePhotosAfterBecomingViewer": "У карыстальніка {user} не будзе магчымасці дадаваць іншыя фатаграфіі ў гэты альбом\n\nДадзены карыстальнік усё яшчэ можа выдаляць існуючыя фатаграфіі, якія ён дадаваў раней",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Немагчыма выдаліць абагуленыя файлы",
   "canNotOpenBody": "Прабачце, але гэты альбом немагчыма адкрыць у праграме.",
   "canNotOpenTitle": "Немагчыма адкрыць гэты альбом",
@@ -271,7 +256,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "Змяніць дазволы?",
   "checking": "Праверка...",
   "checkingModels": "Праверка мадэляў...",
   "checkStatus": "Праверыць статус",
@@ -309,7 +293,6 @@
   "codeCopiedToClipboard": "Код скапіяваны ў буфер абмену",
   "codeIssuerHint": "Выдавец",
   "collaborator": "Суаўтар",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Суаўтары могуць дадаваць фатаграфіі і відэа ў абагулены альбом.",
   "collageLayout": "Макет",
   "collageSaved": "Калаж захаваны ў галерэі",
   "collectPhotos": "Збор фатаграфій",
@@ -1122,11 +1105,9 @@
     "description": "Lost device title"
   },
   "machineLearning": "Машыннае навучанне",
-  "manage": "Кіраванне",
   "manageDeviceStorage": "Кіраваць кэшам прылады",
   "manageFamily": "Кіраванне сям'ёй",
   "manageLink": "Кіраваць спасылкай",
-  "manageParticipants": "Кіраванне",
   "manageSubscription": "Кіраваць падпіскай",
   "manualSort": "Карыстальніцкае",
   "map": "Карта",
@@ -1317,7 +1298,6 @@
   "openFile": "Адкрыць файл",
   "openstreetmapContributors": "Удзельнікі OpenStreetMap",
   "optionalAsShortAsYouLike": "Неабавязкова і так коратка, як вы захочаце...",
-  "orPickAnExistingOne": "Або выберыце адзін з існуючых",
   "otherDetectedFaces": "Іншыя выяўленыя твары",
   "pair": "Спалучыць",
   "panorama": "Панарама",
@@ -1615,12 +1595,6 @@
   "remoteThumbnails": "Аддаленыя мініяцюры",
   "remoteVideos": "Аддаленыя відэа",
   "remove": "Выдаліць",
-  "removeAlbumParticipantBody": "{userEmail} будзе выдалены з гэтага абагуленага альбома\n\nЛюбыя фатаграфіі, якія дададзены гэтым карыстальнікам, таксама будуць выдалены з альбома",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeFromAlbum": "Выдаліць з альбома",
   "removeFromAlbumTitle": "Выдаліць з альбома?",
   "removeFromFavorite": "Выдаліць з абранага",
@@ -1933,7 +1907,6 @@
   "shareALink": "Абагуліць спасылку",
   "shareCodes": "Абагуліць коды",
   "shareCodesDuration": "Выберыце працягласць, на якую вы хочаце абагуліць коды.",
-  "sharedAlbumSectionDescription": "Стварайце абагуленыя і сумесныя альбомы з іншымі карыстальнікамі Ente, уключаючы карыстальнікаў з бясплатным тарыфным планам.",
   "shareLink": "Абагуліць спасылку",
   "shareWithNonenteUsers": "Абагуліць з карыстальнікамі, якія не карыстаюцца Ente",
   "sharing": "Абагульванне...",

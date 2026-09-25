@@ -36,21 +36,8 @@
     "description": "Title for active sessions page"
   },
   "add": "Pridėti",
-  "addAdmin": "Įtraukti administratorių",
-  "addAdmins": "{count, plural, =0 {Įtraukti administratorių} one {Įtraukti administratorių} few {Įtraukti administratorius} many {Įtraukti administratoriaus} other {Įtraukti administratorių}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "Pridėkite albumo valdiklį prie savo pradžios ekrano, kad tinkintumėte jį čia.",
-  "addANewEmail": "Įtraukite naują el. paštą",
   "addCode": "Pridėti kodą",
-  "addCollaborator": "Pridėti bendradarbį",
   "addedAMemoryTo": "įtraukė prisiminimą į „{albumName}“",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -60,7 +47,6 @@
       }
     }
   },
-  "addedAs": "Pridėta kaip",
   "addedBy": "Įtraukė {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -94,7 +80,6 @@
   "addLocationButton": "Pridėti",
   "addMember": "Įtraukti narį",
   "addMore": "Pridėti daugiau",
-  "addMoreAdmins": "Įtraukti daugiau administratorių",
   "addName": "Pridėti vardą",
   "addNew": "Pridėti naują",
   "@addNew": {
@@ -113,7 +98,6 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addParticipants": "Įtraukti dalyvių",
   "addPhotos": "Įtraukti nuotraukų",
   "addSelected": "Pridėti pasirinktus",
   "addTag": "Pridėti žymę",
@@ -121,12 +105,9 @@
   "addToCollection": "Įtraukti į kolekciją",
   "addToEnte": "Pridėti į „Ente“",
   "addToHiddenAlbum": "Įtraukti į paslėptą albumą",
-  "addViewer": "Pridėti žiūrėtoją",
   "addYourPhotosNow": "Įtraukite savo nuotraukas dabar",
   "adjust": "Priderinti",
   "admin": "Administratorius",
-  "admins": "Administratoriai",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Administratoriai ir bendradarbiai gali įkelti nuotraukas. Administratoriai taip pat gali tvarkyti nuotraukas ir dalyvius.",
   "admiringThem": "Žavisi {name}",
   "@admiringThem": {
     "placeholders": {
@@ -141,10 +122,6 @@
   "after1Year": "Po 1 metų",
   "albumLayout": "Albumo išdėstymas",
   "albumName": "Albumo pavadinimas",
-  "albumOwner": "Savininkas",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Albumai",
   "albumsCount": "{count, plural, one{{count} albumas} few{{count} albumai} many{{count} albumo} other{{count} albumų}}",
   "@albumsCount": {
@@ -352,12 +329,6 @@
   },
   "cancelRecovery": "Atšaukti atkūrimą",
   "cancelSubscription": "Atsisakyti prenumeratos",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} negalės pridėti daugiau nuotraukų į šį albumą\n\nJie vis tiek galės pašalinti esamas pridėtas nuotraukas",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Negalima ištrinti bendrinamų failų.",
   "canNotOpenBody": "Atsiprašome, šio albumo negalima atverti programoje.",
   "canNotOpenTitle": "Negalima atverti šio albumo",
@@ -389,7 +360,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "Keisti leidimus?",
   "checkForUpdates": "Tikrinti, ar yra atnaujinimų",
   "checkInboxAndSpamFolder": "Patikrinkite savo gautieją (ir šlamštą), kad užbaigtumėte patvirtinimą",
   "@checkInboxAndSpamFolder": {
@@ -436,7 +406,6 @@
   "codeIssuerHint": "Išdavėjas",
   "collabLinkSectionDescription": "Leiskite žmonėms pridėti nuotraukas be „Ente“ paskyros.",
   "collaborator": "Bendradarbis",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Bendradarbiai gali pridėti nuotraukų ir vaizdo įrašų į bendrintą albumą.",
   "collageLayout": "Išdėstymas",
   "collageSaved": "Koliažas išsaugotas į galeriją",
   "collectPhotos": "Rinkti nuotraukas",
@@ -1426,12 +1395,10 @@
   },
   "machineLearning": "Mašininis mokymasis",
   "machineLearningBannerSubtitle": "Magiškai paieškai ir veidų atpažinimui",
-  "manage": "Tvarkyti",
   "manageDeviceStorage": "Tvarkyti įrenginio podėlį",
   "manageDeviceStorageDesc": "Peržiūrėkite ir išvalykite vietinę saugyklą",
   "manageFamily": "Tvarkyti šeimą",
   "manageLink": "Tvarkyti nuorodą",
-  "manageParticipants": "Tvarkyti",
   "manageSubscription": "Tvarkyti prenumeratą",
   "manualSort": "Pasirinktinis",
   "map": "Žemėlapis",
@@ -1677,7 +1644,6 @@
   "openFile": "Atverti failą",
   "openstreetmapContributors": "„OpenStreetMap“ bendradarbiai",
   "optionalAsShortAsYouLike": "Nebūtina, trumpai, kaip jums patinka...",
-  "orPickAnExistingOne": "Arba pasirinkite esamą",
   "otherDetectedFaces": "Kiti aptikti veidai",
   "others": "Kiti",
   "pair": "Susieti",
@@ -2020,12 +1986,6 @@
   "remoteThumbnails": "Nuotolinės miniatiūros",
   "remoteVideos": "Nuotoliniai vaizdo įrašai",
   "remove": "Šalinti",
-  "removeAlbumParticipantBody": "{userEmail} bus pašalintas iš šio bendrinamo albumo.\n\nVisos jų pridėtos nuotraukos taip pat bus pašalintos iš albumo.",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeDuplicates": "Dublikatai",
   "removeDuplicatesDesc": "Pašalinkite tikslus dublikatus.",
   "removeFromAlbum": "Šalinti iš albumo",
@@ -2406,7 +2366,6 @@
   "shareCodes": "Bendrinti kodus",
   "shareCodesDuration": "Pasirinkite trukmę, kuriai norite bendrinti kodus.",
   "shared": "Bendrinta",
-  "sharedAlbumSectionDescription": "Sukurkite bendrinamus ir bendradarbiaujamus albumus su kitais „Ente“ naudotojais, įskaitant naudotojus nemokamuose planuose.",
   "sharedAlbumsLabel": "Bendrinti",
   "@sharedAlbumsLabel": {
     "description": "Albums tab label for albums shared by you"
@@ -2954,16 +2913,6 @@
   "yesCancel": "Taip, atsisakyti",
   "yesConvertToViewer": "Taip, keisti į žiūrėtoją",
   "yesDelete": "Taip, ištrinti",
-  "yesDeleteFiles": "Taip, ištrinti {count, plural, one {elementą} few {elementus} many {elemento} other{elementų}}",
-  "@yesDeleteFiles": {
-    "description": "Button label for confirming deletion of one or more items",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "3"
-      }
-    }
-  },
   "yesDiscardChanges": "Taip, atmesti pakeitimus",
   "yesIgnore": "Taip, ignoruoti",
   "yesLogout": "Taip, atsijungti",

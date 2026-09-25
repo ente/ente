@@ -8,19 +8,8 @@
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
-  "addAdmin": "ଆଡମିନ ଯୋଡନ୍ତୁ",
-  "addANewEmail": "ନୂଆ ଇମେଲ୍‌ ଯୋଡନ୍ତୁ",
-  "addCollaborator": "ସହଯୋଗୀ ଯୋଡନ୍ତୁ",
   "addMore": "ଅଧିକ ଯୋଗ କରନ୍ତୁ",
-  "addMoreAdmins": "ଆହୁରି ଆଡମିନ ଯୋଡନ୍ତୁ",
-  "addViewer": "ଦର୍ଶକ ଯୋଡନ୍ତୁ",
   "admin": "ଆଡମିନ",
-  "admins": "ଆଡମିନଗୁଡ଼ିକ",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "ଆଡମିନ ଏବଂ ସହଯୋଗୀଗଣ ଫଟୋଗୁଡିକ ଯୋଡିପାରିବେ। ପ୍ରଶାସକମାନେ ଫଟୋ ଏବଂ ଅଂଶଗ୍ରହଣକାରୀଙ୍କୁ ମଧ୍ୟ ପରିଚାଳନା କରିପାରିବେ ।",
-  "albumOwner": "ମାଲିକ",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "cancel": "ବାତିଲ କରନ୍ତୁ",
   "@cancel": {
     "description": "Cancel button label"
@@ -39,7 +28,6 @@
   },
   "codeCopiedToClipboard": "କ୍ଲିପବୋର୍ଡକୁ କୋଡ୍ କପି ହୋଇଛି",
   "collaborator": "ସହଯୋଗୀ",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "ସହଯୋଗୀଗଣ ଅଂଶୀଦାର ହୋଇଥିବା ଆଲବମରେ ଫଟୋ ଏବଂ ଭିଡିଓ ଗୁଡିକ ଯୋଡିପାରିବେ।",
   "confirm": "ନିଶ୍ଚିତ କରନ୍ତୁ",
   "@confirm": {
     "description": "Confirm button label"
@@ -177,7 +165,6 @@
   "@oops": {
     "description": "Oops error title"
   },
-  "orPickAnExistingOne": "ନହେଲେ ଆଗରୁ ଥିବାରୁ ବାଛନ୍ତୁ",
   "password": "ପାସ୍‌ୱର୍ଡ଼",
   "@password": {
     "description": "Password field label"

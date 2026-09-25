@@ -21,28 +21,9 @@
     "description": "Title for active sessions page"
   },
   "add": "شامل کریں",
-  "addAdmin": "ایڈمن شامل کریں",
-  "addAdmins": "{count, plural, =0{ایڈمن شامل کریں} one{ایڈمن شامل کریں} other{ایڈمنز شامل کریں}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "یہاں حسب ضرورت کرنے کے لیے ہوم اسکرین پر البم ویجیٹ شامل کریں.",
   "addANameAndPhoto": "نام اور تصویر شامل کریں",
-  "addANewEmail": "نئی ای میل شامل کریں",
   "addCode": "کوڈ شامل کریں",
-  "addCollaborator": "معاون شامل کریں",
-  "addCollaborators": "{count, plural, =0{تعاون کنندہ شامل کریں} one{تعاون کنندہ شامل کریں} other{تعاون کنندہ شامل کریں}}",
-  "@addCollaborators": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addedAMemoryTo": "{albumName} میں ایک یاد شامل کی",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -52,7 +33,6 @@
       }
     }
   },
-  "addedAs": "بطور شامل کیا گیا",
   "addedBy": "{emailOrName} کی طرف سے شامل کیا گیا",
   "@addedBy": {
     "placeholders": {
@@ -118,7 +98,6 @@
   "addMember": "ممبر شامل کریں",
   "addMemoriesWidgetPrompt": "یہاں حسب ضرورت کرنے کے لیے اپنی ہوم اسکرین پر یادیں ویجیٹ شامل کریں.",
   "addMore": "مزید شامل کریں",
-  "addMoreAdmins": "مزید ایڈمنز شامل کریں",
   "addName": "نام شامل کریں",
   "addNew": "نیا شامل کریں",
   "@addNew": {
@@ -133,7 +112,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "شرکاء شامل کریں",
   "addPeopleWidgetPrompt": "یہاں حسب ضرورت کرنے کے لیے ہوم اسکرین پر لوگوں کا ویجیٹ شامل کریں.",
   "addPerson": "شخص شامل کریں",
   "@addPerson": {
@@ -151,29 +129,9 @@
   },
   "addTrustedContact": "قابل اعتماد رابطہ شامل کریں",
   "addUpTo5MembersFree": "۵ اراکین تک مفت شامل کریں",
-  "addViewer": "ناظر شامل کریں",
-  "addViewers": "{count, plural, =0{ویور شامل کریں} one{ویور شامل کریں} other{ویورز شامل کریں}}",
-  "@addViewers": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addYourPhotosNow": "ابھی اپنی تصاویر شامل کریں",
   "adjust": "ایڈجسٹ کریں",
   "admin": "ایڈمن",
-  "admins": "ایڈمنز",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "ایڈمنز اور معاونین تصاویر شامل کر سکتے ہیں. ایڈمنز تصاویر اور شرکاء کا انتظام بھی کر سکتے ہیں.",
-  "adminsCanManagePhotosAndParticipants": "ایڈمنز تصاویر اور شرکاء کا انتظام کر سکتے ہیں.",
-  "adminsSuccessfullyAdded": "{count, plural, =0{کوئی ایڈمن شامل نہیں کیا گیا} one{{count} ایڈمن کامیابی سے شامل کیا گیا} other{{count} ایڈمنز کامیابی سے شامل کیے گئے}}",
-  "@adminsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of admins that were successfully added."
-  },
   "admiringThem": "{name} کی تعریف",
   "@admiringThem": {
     "placeholders": {
@@ -187,20 +145,6 @@
   "after1Week": "۱ ہفتہ بعد",
   "after1Year": "۱ سال بعد",
   "albumLayout": "البم کا خاکہ",
-  "albumOwner": "مالک",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{کوئی شریک نہیں} one{{count} شریک} other{{count} شرکا}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "البمز",
   "albumsCount": "{count, plural, one{{count} البم} other{{count} البمز}}",
   "@albumsCount": {
@@ -440,12 +384,6 @@
   },
   "cancelSubscription": "سبسکرپشن منسوخ کریں",
   "candidLaughter": "ہنسی کا پھوار",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} اس البم میں مزید تصاویر شامل کرنے کے قابل نہیں ہوں گے\n\nوہ اب بھی ان کے ذریعہ شامل کردہ موجودہ تصاویر کو ہٹا سکیں گے",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "مشترکہ فائلیں ڈیلیٹ نہیں کی جا سکتیں",
   "cannotMoveToSharedAlbums": "مشترکہ البمز میں منتقل نہیں کیا جا سکتا",
   "cannotMoveToSharedAlbumsMessage": "آئٹمز صرف مشترکہ البمز میں شامل کیے جا سکتے ہیں، منتقل نہیں. کیا آپ اس کے بجائے شامل کرنا چاہیں گے؟",
@@ -470,7 +408,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "اجازتیں تبدیل کریں؟",
   "changeYourReferralCode": "اپنا کوڈ تبدیل کریں",
   "checkForUpdates": "اپ ڈیٹس چیک کریں",
   "checkInboxAndSpamFolder": "تصدیق مکمل کرنے کے لیے براہ کرم اپنا ان باکس (اور اسپام) چیک کریں",
@@ -521,17 +458,6 @@
   "codeCopiedToClipboard": "کوڈ کلپ بورڈ پر کاپی ہو گیا",
   "codeIssuerHint": "جاری کنندہ",
   "collaborator": "معاون",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "معاونین مشترکہ البم میں تصاویر اور ویڈیوز شامل کر سکتے ہیں.",
-  "collaboratorsSuccessfullyAdded": "{count, plural, =0{0 تعاون کنندہ شامل کیا گیا} one{{count} تعاون کنندہ شامل کیا گیا} other{{count} تعاون کنندہ شامل کیے گئے}}",
-  "@collaboratorsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of collaborators that were successfully added."
-  },
   "collageLayout": "لی آؤٹ",
   "collageSaved": "کولاج گیلری میں محفوظ ہو گیا",
   "collectPhotos": "تصاویر جمع کریں",
@@ -1631,11 +1557,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "انتظام کریں",
   "manageDeviceStorage": "ڈیوائس کیشے کا انتظام کریں",
   "manageFamily": "فیملی کا انتظام کریں",
   "manageLink": "لنک کا انتظام کریں",
-  "manageParticipants": "انتظام کریں",
   "managePaymentMethod": "ادائیگی کا طریقہ نظم کریں",
   "manageSubscription": "سبسکرپشن کا انتظام کریں",
   "manualSort": "اپنی مرضی کے مطابق",
@@ -1925,7 +1849,6 @@
   "openSettings": "سیٹنگز کھولیں",
   "openstreetmapContributors": "OpenStreetMap تعاون کنندگان",
   "optionalAsShortAsYouLike": "اختیاری، جتنا مختصر آپ چاہیں...",
-  "orPickAnExistingOne": "یا موجودہ میں سے منتخب کریں",
   "orRemoveYourself": "یا خود کو {email} کا قابل اعتماد رابطہ ہٹائیں",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -2282,12 +2205,6 @@
   "remoteThumbnails": "ریموٹ تھمب نیلز",
   "remoteVideos": "ریموٹ ویڈیوز",
   "remove": "ہٹائیں",
-  "removeAlbumParticipantBody": "{userEmail} کو اس مشترکہ البم سے نکال دیا جائے گا\n\nان کی جانب سے شامل کی گئی تمام تصاویر بھی البم سے ہٹا دی جائیں گی",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeContact": "رابطہ ہٹائیں",
   "@removeContact": {
     "description": "Button label to remove a trusted contact"
@@ -2732,7 +2649,6 @@
   "shareAnAlbum": "البم شیئر کریں",
   "shareCodes": "کوڈز شیئر کریں",
   "shareCodesDuration": "وہ دورانیہ منتخب کریں جس کے لیے آپ کوڈز شیئر کرنا چاہتے ہیں۔",
-  "sharedAlbumSectionDescription": "دوسرے Ente صارفین کے ساتھ مشترکہ اور باہمی البمز بنائیں، بشمول مفت پلان والے صارفین.",
   "sharedAlbumWithYou": "آپ کے ساتھ {albumName} شیئر کیا",
   "@sharedAlbumWithYou": {
     "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -2762,15 +2678,6 @@
   "shareTextRecommendUsingEnteForFamily": "Ente ڈاؤن لوڈ کریں تاکہ میں آپ کو اپنے فیملی پلان میں شامل کر سکوں۔\n\nhttps://ente.com",
   "shareTextRecommendUsingEnteForPhotos": "Ente ڈاؤن لوڈ کریں تاکہ ہم اصل معیار کی تصاویر اور ویڈیوز آسانی سے شیئر کر سکیں۔\n\nhttps://ente.com",
   "shareWithNonenteUsers": "غیر Ente صارفین کے ساتھ شیئر کریں",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{مخصوص لوگوں کے ساتھ شیئر کریں} one{{numberOfPeople} شخص کے ساتھ شیئر کیا گیا} other{{numberOfPeople} لوگوں کے ساتھ شیئر کیا گیا}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "shareYourSubscription": "اپنی سبسکرپشن اپنے پیاروں کے ساتھ شیئر کریں",
   "sharing": "شیئر کیا جا رہا ہے...",
   "sharingAndCollaboration": "شیئرنگ اور تعاون",
@@ -3260,16 +3167,6 @@
   "viewAllExifData": "تمام EXIF ڈیٹا دیکھیں",
   "viewAllHelpTopics": "تمام مدد کے موضوعات دیکھیں",
   "viewer": "ناظر",
-  "viewersSuccessfullyAdded": "{count, plural, =0{0 ویورز شامل کیے گئے} one{{count} ویور شامل کیا گیا} other{{count} ویورز شامل کیے گئے}}",
-  "@viewersSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of viewers that were successfully added."
-  },
   "viewLargeFiles": "بڑی فائلیں",
   "viewLogs": "لاگز دیکھیں",
   "@viewLogs": {

@@ -1,63 +1,186 @@
 {
-  "@@locale": "ckb",
   "accountSetupIncompleteCreateAccount": "سازکردنی هەژمار تەواو نەبووە. هەژمارێک دروست بکە بۆ تەواوکردنی.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
+  },
   "cancel": "هەڵوەشاندنەوە",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
   "changeEmail": "ئیمەیڵ بگۆڕە",
+  "@changeEmail": {
+    "description": "Change email button label"
+  },
   "changePasswordTitle": "تێپەڕوشە بگۆڕە",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
   "confirmPassword": "تێپەڕوشە پشتڕاست بکەرەوە",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
   "continueLabel": "بەردەوامبوون",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
   "createAccount": "هەژمار دروست بکە",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
   "createAccountTitle": "هەژمارێک دروست بکە",
   "decrypting": "ئاشكراکردن...",
   "deleteAccount": "سڕینەوەی هەژمار",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
   "email": "ئیمەیڵ",
+  "@email": {
+    "description": "Email field label"
+  },
   "emailAlreadyRegistered": "ئەم ئیمەیڵە بەکارهاتووە.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
   "emailHint": "ناونیشانی ئیمەیڵەکەت بنووسە",
   "emailNotRegistered": "ئەم ئیمەیڵە بوونی نییە.",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
   "encryptionKeys": "کلیلەکانی کۆدکردن",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
   "enterValidEmail": "تکایە ناونیشانی ئیمەیڵی دروست بنووسە.",
   "enterYourNewEmailAddress": "ناونیشانی ئیمەیڵە نوێکەت بنووسە",
   "enterYourPassword": "تێپەڕوشەکەت بنووسە",
   "enterYourRecoveryKey": "کلیلی هێنانەوەت بنووسە",
   "forgotPassword": "تێپەڕوشەکەم بیرچووەتەوە",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
   "forgotRecoveryKey": "کلیلی هێنانەوەت لەبیر کردووە؟",
   "generatingEncryptionKeys": "دروستکردنی کلیلەکانی کۆدکردن...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
   "howItWorks": "چۆن کار دەکات",
+  "@howItWorks": {
+    "description": "How it works button label"
+  },
   "incorrectPasswordTitle": "تێپەڕوشە هەڵەیە",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
   "incorrectRecoveryKeyBody": "کلیلی هێنانەوەی نووسراو هەڵەیە",
   "incorrectRecoveryKeyTitle": "کلیلی هێنانەوە هەڵەیە",
   "invalidEmailAddress": "ناونیشانی ئیمەیڵ نادروستە",
   "ok": "باشە",
+  "@ok": {
+    "description": "Generic OK button label"
+  },
   "logInLabel": "چوونەژوورەوە",
+  "@logInLabel": {
+    "description": "Log in button label"
+  },
   "loginTerms": "بە چوونەژوورەوەم، ڕەزامەندم بە <u-terms>مەرجەکانی خزمەتگوزاری</u-terms> و <u-policy>تایبەتمەندێتیی ڕامیاری</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
   "moderateStrength": "مامناوەند",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
   "noRecoveryKeyNoDecryption": "بەهۆی سروشتی پڕۆتۆکۆڵی کۆدکردنی کۆتایی بۆ کۆتایی، زانیارییەکانت ناکرێت ئاشکرا بکرێن بەبێ تێپەڕوشەکەت یان کلیلی هێنانەوەت",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
   "ocrNoTextDetected": "هیچ دەقێک نەدۆزرایەوە",
-  "ocrProcessingOverlayMessage": "دۆزینەوەی دەق...",
   "onboardingDesc": "وێنە و ڤیدیۆکانت هەڵبگرە. هەموو یادگارییەک، لە یەک شوێندا.",
   "onboardingTitle": "بۆ هەموو ئەو شتانەی ناتەوێ لەبیریان بکەیت",
   "password": "تێپەڕوشە",
+  "@password": {
+    "description": "Password field label"
+  },
   "passwordChangedSuccessfully": "بە سەرکەوتوویی تێپەڕوشەکەت گۆڕا",
+  "@passwordChangedSuccessfully": {
+    "description": "Password changed successfully message"
+  },
   "passwordsDontMatch": "تێپەڕوشەکان یەک ناگرنەوە",
   "passwordsMatch": "تێپەڕوشەکان یەک دەگرنەوە",
   "passwordStrength": "بەهێزیی تێپەڕوشە: {passwordStrengthValue}",
+  "@passwordStrength": {
+    "description": "Text to indicate the password strength",
+    "placeholders": {
+      "passwordStrengthValue": {
+        "description": "The strength of the password as a string",
+        "type": "String",
+        "example": "Weak or Moderate or Strong"
+      }
+    }
+  },
   "passwordWarning": "ئێمە ئەم تێپەڕوشەیە هەڵناگرین، بۆیە ئەگەر بیرت چووەوە، <underline>ناتوانین زانیارییەکانت ئاشکرا بکەین</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
   "pleaseWait": "تکایە چاوەڕوان بە...",
+  "@pleaseWait": {
+    "description": "Please wait message"
+  },
   "privacyPolicyTitle": "تایبەتمەندێتیی ڕامیاری",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy title"
+  },
   "readyToBackupTitle": "ئامادەیە بۆ پاشەکەوتکردن",
   "recoverySuccessful": "هێنانەوە سەرکەوتوو بوو!",
   "resendCode": "کۆدەکە بنێرەوە",
   "resetPasswordTitle": "تێپەڕوشە ڕێکبخەرەوە",
+  "@resetPasswordTitle": {
+    "description": "Reset password title"
+  },
   "retry": "هەوڵ بدەرەوە",
   "setPasswordTitle": "تێپەڕوشە دابنێ",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
   "signUpTerms": "ڕەزامەندم بە <u-terms>مەرجەکانی خزمەتگوزاری</u-terms> و <u-policy>تایبەتمەندێتیی ڕامیاری</u-policy>",
+  "@signUpTerms": {
+    "description": "Terms agreement text for sign up"
+  },
   "sorry": "ببورە",
   "strongPassword": "تێپەڕوشەی بەهێز",
   "strongStrength": "بەهێز",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
   "termsOfServicesTitle": "مەرجەکان",
+  "@termsOfServicesTitle": {
+    "description": "Terms of service title"
+  },
   "toResetVerifyEmail": "بۆ نوێکردنەوەی تێپەڕوشەکەت، سەرەتا ئیمەیڵەکەت بسەلمێنە.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
   "verify": "سەلماندن",
+  "@verify": {
+    "description": "Verify button label"
+  },
   "verifyEmail": "ئیمەیڵ بسەلمێنە",
+  "@verifyEmail": {
+    "description": "Verify email title"
+  },
   "weakStrength": "لاواز",
-  "weHaveSentCodeTo": "کۆدێکمان نارد بۆ {email}"
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weHaveSentCodeTo": "کۆدێکمان نارد بۆ {email}",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  }
 }

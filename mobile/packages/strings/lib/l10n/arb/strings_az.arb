@@ -18,10 +18,6 @@
     "description": "Title for active sessions page"
   },
   "add": "Əlavə et",
-  "addAdmin": "Admin əlavə et",
-  "addANewEmail": "Yeni e-poçt əlavə et",
-  "addCollaborator": "Əməkdaş əlavə et",
-  "addedAs": "Olaraq əlavə edildi",
   "addedBy": "{emailOrName} tərəfindən əlavə edildi",
   "@addedBy": {
     "placeholders": {
@@ -42,7 +38,6 @@
   "addLocation": "Məkan əlavə et",
   "addLocationButton": "Əlavə et",
   "addMore": "Daha çox əlavə et",
-  "addMoreAdmins": "Daha çox admin əlavə et",
   "addName": "Ad əlavə et",
   "addNew": "Yeni əlavə et",
   "@addNew": {
@@ -57,7 +52,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "İştirakçı əlavə et",
   "addPerson": "Şəxs əlavə et",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -72,12 +66,8 @@
     "description": "Action label to add selected files to an existing person."
   },
   "addTrustedContact": "Etibarlı kontakt əlavə edin",
-  "addViewer": "İzləyici əlavə et",
   "addYourPhotosNow": "Şəkillərinizi indi əlavə edin",
   "adjust": "Tənzimlə",
-  "admins": "Adminlər",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Adminlər və əməkdaşlar fotoşəkillər əlavə edə bilərlər. Adminlər həmçinin fotoşəkilləri və iştirakçıları idarə edə bilərlər.",
-  "adminsCanManagePhotosAndParticipants": "Adminlər şəkilləri və iştirakçıları idarə edə bilərlər.",
   "admiringThem": "{name} personasına heyranlıqla",
   "@admiringThem": {
     "placeholders": {
@@ -92,10 +82,6 @@
   "after1Week": "1 həftədən sonra",
   "after1Year": "1 ildən sonra",
   "albumLayout": "Albom düzəni",
-  "albumOwner": "Sahib",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Albomlar",
   "albumTitle": "Albom başlığı",
   "albumUpdated": "Albom yeniləndi",
@@ -286,12 +272,6 @@
     }
   },
   "cancelSubscription": "Abunəliyi ləğv et",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} bu alboma daha çox fotoşəkil əlavə edə bilməyəcək. \n\nOnlar hələ də özləri tərəfindən əlavə edilmiş mövcud fotoşəkilləri silə biləcəklər",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Paylaşılan faylları silmək olmur",
   "cannotMoveToSharedAlbums": "Paylaşılan albomlara köçürmək mümkün deyil",
   "cannotMoveToSharedAlbumsMessage": "Elementlər paylaşılan albomlara yalnız əlavə edilə bilər, köçürülə bilməz. Əvəzində əlavə etmək istərdinizmi?",
@@ -315,7 +295,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "İcazələr dəyişdirilsin?",
   "changeYourReferralCode": "Kodunuzu dəyişdirin",
   "checkForUpdates": "Yenilənmələri yoxla",
   "checkInboxAndSpamFolder": "Təsdiqləməni tamamlamaq üçün, lütfən, gələnlər qutunuzu (və spam qovluğunu) yoxlayın",
@@ -361,7 +340,6 @@
   "codeChangeLimitReached": "Bağışlayın, siz kod dəyişdirmə limitinə çatdınız.",
   "codeCopiedToClipboard": "Kod müvəqqəti yaddaşa kopyalandı",
   "collaborator": "Əməkdaş",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Əməkdaşlar paylaşılan alboma fotoşəkillər və videolar əlavə edə bilərlər.",
   "collageLayout": "Düzen",
   "collageSaved": "Kollaj qalereyaya yadda saxlanıldı",
   "collectPhotos": "Fotoları topla",
@@ -1168,11 +1146,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "İdarə et",
   "manageDeviceStorage": "Cihaz keşini idarə et",
   "manageFamily": "Ailəni idarə et",
   "manageLink": "Linki idarə et",
-  "manageParticipants": "İdarə et",
   "manageSubscription": "Abunəliyi idarə et",
   "map": "Xəritə",
   "@map": {
@@ -1383,7 +1359,6 @@
   "openFile": "Faylı aç",
   "openstreetmapContributors": "OpenStreetMap iştirakçıları",
   "optionalAsShortAsYouLike": "İstəyə bağlı, istədiyiniz qədər qısa...",
-  "orPickAnExistingOne": "Və ya mövcud olanlardan birini seçin",
   "orRemoveYourself": "Və ya özünüzü {email} üçün etibarlı kontakt siyahısından çıxarın",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -1688,12 +1663,6 @@
   "remoteThumbnails": "Uzaqdakı kiçik şəkillər",
   "remoteVideos": "Uzaqdakı videolar",
   "remove": "Sil",
-  "removeAlbumParticipantBody": "{userEmail} bu paylaşılan albomdan çıxarılacaq.\n\nOnlar tərəfindən əlavə edilmiş bütün fotoşəkillər də albomdan silinəcək",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeContact": "Kontaktı silin",
   "@removeContact": {
     "description": "Button label to remove a trusted contact"
@@ -2055,7 +2024,6 @@
   "setupComplete": "Quraşdırma tamamlandı",
   "share": "Paylaş",
   "shareALink": "Link paylaş",
-  "sharedAlbumSectionDescription": "Digər Ente istifadəçiləri ilə pulsuz plan istifadəçiləri daxil olmaqla paylaşılan və birgə işlənilən albomlar yaradın.",
   "shareKey": "Açarı paylaş",
   "shareLink": "Linki paylaş",
   "shareWithNonenteUsers": "Ente istifadəçisi olmayanlarla paylaş",

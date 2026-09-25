@@ -13,10 +13,6 @@
     "description": "Title for active sessions page"
   },
   "add": "Adăugare",
-  "addAdmin": "Adăugați administrator",
-  "addANewEmail": "Adăugați un e-mail nou",
-  "addCollaborator": "Adăugare colaborator",
-  "addedAs": "Adăugat ca",
   "addedBy": "Adăugat de {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -36,7 +32,6 @@
   "addLocation": "Adăugare locație",
   "addLocationButton": "Adăugare",
   "addMore": "Adăugați mai mulți",
-  "addMoreAdmins": "Adăugați mai mulți administratori",
   "addName": "Adăugare nume",
   "addNew": "Adăugare nou",
   "@addNew": {
@@ -52,17 +47,13 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Adauga participanti",
   "addPhotos": "Adăugați fotografii",
   "addSelected": "Adăugați selectate",
   "addToAlbum": "Adăugare la album",
   "addToCollection": "Adauga la colectie",
   "addToEnte": "Adăugare la Ente",
   "addToHiddenAlbum": "Adăugați la album ascuns",
-  "addViewer": "Adăugare observator",
   "addYourPhotosNow": "Adăugați-vă fotografiile acum",
-  "admins": "Administratori",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Administratorii și colaboratorii pot adăuga fotografii. Administratorii pot gestiona fotografiile și participanții.",
   "advanced": "Avansat",
   "after1Day": "După o zi",
   "after1Hour": "După o oră",
@@ -70,20 +61,6 @@
   "after1Week": "După o săptămâna",
   "after1Year": "După un an",
   "albumLayout": "Aspect album",
-  "albumOwner": "Proprietar",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{Niciun participant} one{{count} participant} few{{count} participanți} other{{count} de participanți}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Albume",
   "albumTitle": "Titlu album",
   "albumUpdated": "Album actualizat",
@@ -215,12 +192,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} nu va putea să mai adauge fotografii la acest album\n\nVa putea să elimine fotografii existente adăugate de el/ea",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Nu se pot șterge fișierele distribuite",
   "canNotOpenBody": "Ne pare rău, acest album nu poate fi deschis în aplicație.",
   "canNotOpenTitle": "Nu se poate deschide acest album",
@@ -233,7 +204,6 @@
   "centerPoint": "Punctul central",
   "changeLocationOfSelectedItems": "Schimbați locația articolelor selectate?",
   "changePermissions": "Schimba permisiunile",
-  "changePermissionsQuestion": "Schimbați permisiunile?",
   "checkInboxAndSpamFolder": "Vă rugăm să verificaţi inbox-ul (şi spam) pentru a finaliza verificarea",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
@@ -253,7 +223,6 @@
   "codeIssuerHint": "Emitent",
   "collabLinkSectionDescription": "Permiteți utilizatorilor să adauge fotografii fără a avea un cont Ente",
   "collaborator": "Colaborator",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Colaboratorii pot adăuga fotografii și videoclipuri la albumul distribuit.",
   "collageLayout": "Aspect",
   "collageSaved": "Colaj salvat în galerie",
   "collectionCannotBeDeleted": "Aceasta colectie nu poate fi stearsa",
@@ -954,11 +923,9 @@
   "longPressAnEmailToVerifyEndToEndEncryption": "Apăsați lung un e-mail pentru a verifica criptarea integrală.",
   "lostDevice": "Dispozitiv pierdut?",
   "machineLearning": "Învățare automată",
-  "manage": "Gestionare",
   "manageDeviceStorage": "Gestionați memoria cache a dispozitivului",
   "manageFamily": "Administrați familia",
   "manageLink": "Gestionați linkul",
-  "manageParticipants": "Gestionare",
   "manageSubscription": "Gestionare abonament",
   "map": "Hartă",
   "@map": {
@@ -1105,7 +1072,6 @@
   "openFile": "Deschidere fișier",
   "openstreetmapContributors": "Contribuitori OpenStreetMap",
   "optionalAsShortAsYouLike": "Opțional, cât de scurt doriți...",
-  "orPickAnExistingOne": "Sau alegeți unul existent",
   "pair": "Asociere",
   "panorama": "Panoramă",
   "passkey": "Cheie de acces",
@@ -1285,12 +1251,6 @@
   "remoteVideos": "Videoclipuri la distanță",
   "remove": "Eliminare",
   "removeAccess": "Elimina accesul",
-  "removeAlbumParticipantBody": "{userEmail} va fi eliminat din acest album distribuit\n\nOrice fotografii adăugate de acesta vor fi, de asemenea, eliminate din album",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} va fi eliminat din aceasta colectie partajata\n\nOrice elemente adaugate de ei vor fi de asemenea eliminate din colectie",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -1488,7 +1448,6 @@
   "setupComplete": "Configurare finalizată",
   "share": "Distribuire",
   "shareALink": "Distribuiți un link",
-  "sharedAlbumSectionDescription": "Creați albume distribuite și colaborative cu alți utilizatori Ente, inclusiv cu utilizatorii planurilor gratuite.",
   "sharedWith": "Partajat cu",
   "shareKey": "Distribuiți cheia",
   "shareLink": "Distribuiți linkul",

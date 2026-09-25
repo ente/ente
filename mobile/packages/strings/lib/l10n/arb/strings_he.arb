@@ -36,28 +36,9 @@
     "description": "Title for active sessions page"
   },
   "add": "להוסיף",
-  "addAdmin": "הוספת מנהל",
-  "addAdmins": "{count, plural, =0{הוספת אדמין} one{הוספת אדמין} other{הוספת אדמינים}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "להוסיף ווידג'ט אלבום למסך הבית כדי לעצב אותו כאן.",
   "addANameAndPhoto": "להוסיף שם ותמונה",
-  "addANewEmail": "הוסף דוא\"ל חדש",
   "addCode": "הוסף קוד",
-  "addCollaborator": "הוסף משתף פעולה",
-  "addCollaborators": "{count, plural, =0{הוספת משתף פעולה} one{הוספת משתף פעולה} other{הוספת משתפי פעולה}}",
-  "@addCollaborators": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addedAMemoryTo": "נוסף זיכרון ל-{albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -67,7 +48,6 @@
       }
     }
   },
-  "addedAs": "הוסף בתור",
   "addedBy": "נוסף על ידי {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -134,7 +114,6 @@
   "addMember": "להוסיף חבר",
   "addMemoriesWidgetPrompt": "יש להוסיף ווידג'ט זיכרונות למסך הבית כדי לעצב אותו כאן.",
   "addMore": "הוסף עוד",
-  "addMoreAdmins": "להוסיף עוד אדמינים",
   "addName": "הוסף שם",
   "addNew": "הוסף חדש",
   "@addNew": {
@@ -154,7 +133,6 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addParticipants": "הוסף משתתפים",
   "addPeopleWidgetPrompt": "יש להוסיף ווידג'ט אנשים לדף הבית שלך כדי לעצב אותו כאן.",
   "addPerson": "הוסף אדם",
   "@addPerson": {
@@ -175,29 +153,16 @@
   "addTrustedContact": "להוסיף איש קשר אמין",
   "addTrustedPerson": "להוסיף אדם אמין",
   "addUpTo5MembersFree": "להוסיף עד 5 משתמשים בחינם",
-  "addViewer": "הוסף צופה",
-  "addViewers": "{count, plural, =0{להוסיף צופה} one{להוסיף צופה} other{להוסיף צופים}}",
-  "@addViewers": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addYourPhotosNow": "להוסיף את התמונות שלך עכשיו",
   "adjust": "לסדר",
   "adjustCrop": "לסדר חיתוך",
   "admin": "מנהל",
-  "admins": "מנהלים",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "אדמינים ומשתפי פעולה יכולים להוסיף תמונות. אדמינים יכולים גם לנהל תמונות ומשתתפים.",
   "advanced": "מתקדם",
   "after1Day": "אחרי יום 1",
   "after1Hour": "אחרי שעה 1",
   "after1Month": "אחרי חודש 1",
   "after1Week": "אחרי שבוע 1",
   "after1Year": "אחרי שנה 1",
-  "albumOwner": "בעלים",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "אלבומים",
   "albumTitle": "כותרת האלבום",
   "albumUpdated": "האלבום עודכן",
@@ -311,12 +276,6 @@
     }
   },
   "cancelSubscription": "בטל מנוי",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} לא יוכל להוסיף עוד תמונות לאלבום זה\n\nהם עדיין יכולו להסיר תמונות קיימות שנוספו על ידיהם",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "לא ניתן למחוק את הקבצים המשותפים",
   "canOnlyCreateLinkForFilesOwnedByYou": "ניתן אך ורק ליצור קישור לקבצים שאתה בבעולתם",
   "canOnlyRemoveFilesOwnedByYou": "יכול להסיר רק קבצים שבבעלותך",
@@ -329,7 +288,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "שנה הרשאה?",
   "checkInboxAndSpamFolder": "אנא בדוק את תיבת הדואר שלך (והספאם) כדי להשלים את האימות",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
@@ -344,7 +302,6 @@
   "codeCopiedToClipboard": "הקוד הועתק ללוח",
   "codeIssuerHint": "מנפיק",
   "collaborator": "משתף פעולה",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "משתפי פעולה יכולים להוסיף תמונות וסרטונים לאלבום המשותף.",
   "collageLayout": "פריסה",
   "collageSaved": "הקולז נשמר לגלריה",
   "collectPhotos": "אסוף תמונות",
@@ -848,10 +805,8 @@
   "@lostDeviceTitle": {
     "description": "Lost device title"
   },
-  "manage": "נהל",
   "manageFamily": "נהל משפחה",
   "manageLink": "ניהול קישור",
-  "manageParticipants": "נהל",
   "manageSubscription": "נהל מנוי",
   "manualSort": "מותאם",
   "map": "מפה",
@@ -939,7 +894,6 @@
   },
   "oopsSomethingWentWrong": "אופס, משהו השתבש",
   "optionalAsShortAsYouLike": "אופציונלי, קצר ככל שתרצה...",
-  "orPickAnExistingOne": "או בחר באחד קיים",
   "parsingError": "שגיאת ניתוח",
   "passkey": "מפתח גישה",
   "passkeyAuthTitle": "אימות באמצעות סיסמה",
@@ -1113,12 +1067,6 @@
   "remindToEmptyDeviceTrash": "גם נקה \"נמחק לאחרונה\" מ-\"הגדרות\" -> \"אחסון\" על מנת לקבל המקום אחסון שהתפנה",
   "remindToEmptyEnteTrash": "גם נקה את ה-\"אשפה\" שלך על מנת לקבל את המקום אחסון שהתפנה",
   "remove": "הסר",
-  "removeAlbumParticipantBody": "{userEmail} יוסר מהאלבום המשותף הזה\n\nגם תמונות שנוספו על ידיהם יוסרו מהאלבום",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeFromAlbum": "הסר מהאלבום",
   "removeFromAlbumTitle": "הסר מהאלבום?",
   "removeLink": "הסרת קישור",
@@ -1252,7 +1200,6 @@
   "shareALink": "שתף קישור",
   "shareCodes": "שיתוף הקודים",
   "shareCodesDuration": "בחירת משך הזמן שבמהלכו ברצונך לשתף את הקודים.",
-  "sharedAlbumSectionDescription": "צור אלבומים הניתנים לשיתוף ושיתוף פעולה עם משתמשי ente אחרים, כולל משתמשים בתוכניות החינמיות.",
   "shareLink": "שתף קישור",
   "shareWithNonenteUsers": "שתף עם משתמשים שהם לא של ente",
   "sharing": "משתף...",

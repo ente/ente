@@ -16,10 +16,7 @@
     "description": "Title for active sessions page"
   },
   "add": "Προσθήκη",
-  "addANewEmail": "Προσθήκη νέας διεύθυνσης ηλ. ταχυδρομείου",
   "addCode": "Προσθήκη κωδικού",
-  "addCollaborator": "Προσθήκη συνεργάτη",
-  "addedAs": "Προστέθηκε ως",
   "addEmail": "Προσθήκη email",
   "addingToFavorites": "Προσθήκη στα αγαπημένα...",
   "addLocation": "Προσθήκη τοποθεσίας",
@@ -31,11 +28,9 @@
     "description": "Text to add a new item (location tag, album, caption etc)"
   },
   "addNewEmail": "Προσθήκη νέου email",
-  "addParticipants": "Προσθήκη συμμετεχόντων",
   "addToAlbum": "Πρσθήκη σε άλμπουμ",
   "addToCollection": "Προσθήκη σε συλλογή",
   "addToEnte": "Προσθήκη στο Ente",
-  "addViewer": "Προσθήκη θεατή",
   "addYourPhotosNow": "Προσθέστε τις φωτογραφίες σας τώρα",
   "advanced": "Για προχωρημένους",
   "after1Day": "Μετά από 1 ημέρα",
@@ -43,10 +38,6 @@
   "after1Month": "Μετά από 1 μήνα",
   "after1Week": "Μετά από 1 εβδομάδα",
   "after1Year": "Μετά από 1 χρόνο",
-  "albumOwner": "Κάτοχος",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Άλμπουμ",
   "albumTitle": "Τίτλος άλμπουμ",
   "algorithm": "Αλγόριθμος",
@@ -177,7 +168,6 @@
   "codeCopiedToClipboard": "Ο κωδικός αντιγράφηκε στο πρόχειρο",
   "codeIssuerHint": "Εκδότης",
   "collaborator": "Συνεργάτης",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Οι συνεργάτες μπορούν να προσθέτουν φωτογραφίες και βίντεο στο κοινόχρηστο άλμπουμ.",
   "collageLayout": "Διάταξη",
   "collageSaved": "Το κολάζ αποθηκεύτηκε στη συλλογή",
   "collectionCannotBeDeleted": "Αυτή η συλλογή δεν μπορεί να διαγραφεί",
@@ -891,7 +881,6 @@
     "description": "Lost device title"
   },
   "machineLearning": "Μηχανική μάθηση",
-  "manage": "Διαχείριση",
   "manageDeviceStorage": "Διαχείριση προσωρινής μνήμης συσκευής",
   "manageLink": "Διαχείριση συνδέσμου",
   "manageSubscription": "Διαχειριστείτε τη συνδρομή σας",
@@ -1020,7 +1009,6 @@
   "oopsCouldNotSaveEdits": "Ωχ, δεν ήταν δυνατή η αποθήκευση των αλλαγών",
   "oopsSomethingWentWrong": "Ωχ, κάτι πήγε στραβά",
   "openstreetmapContributors": "Συντελεστές του OpenStreetMap",
-  "orPickAnExistingOne": "Ή επιλέξτε από υπάρχοντες",
   "pair": "Σύζευξη",
   "passkey": "Κλειδί πρόσβασης",
   "passkeyAuthTitle": "Επιβεβαίωση κλειδιού πρόσβασης",
@@ -1245,12 +1233,6 @@
   "remindToEmptyEnteTrash": "Αδειάστε επίσης τον \"Κάδο απορριμμάτων\" για να ανακτήσετε τον ελεύθερο χώρο",
   "remove": "Αφαίρεση",
   "removeAccess": "Αφαίρεση πρόσβασης",
-  "removeAlbumParticipantBody": "Ο χρήστης {userEmail} θα αφαιρεθεί από το άλμπουμ\n\nΟποιεσδήποτε φωτογραφίες έχει προσθέσει θα αφαιρεθούν επίσης από το άλμπουμ",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "Ο/Η {userEmail} θα αφαιρεθεί από αυτή την κοινή συλλογή\n\nΤα στοιχεία που προστέθηκαν από αυτόν/αυτήν θα αφαιρεθούν επίσης από τη συλλογή",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -1431,7 +1413,6 @@
   "shareALink": "Μοιραστείτε έναν σύνδεσμο",
   "shareCodes": "Κοινοποίηση κωδικών",
   "shareCodesDuration": "Επιλέξτε τη διάρκεια για την οποία θέλετε να μοιραστείτε τους κωδικούς.",
-  "sharedAlbumSectionDescription": "Δημιουργία κοινόχρηστων και συνεργατικών άλμπουμ με άλλους χρήστες Ente, συμπεριλαμβανομένων των χρηστών με δωρεάν συνδρομή.",
   "sharedWith": "Κοινοποιήθηκε με",
   "shareLink": "Μοιραστείτε έναν σύνδεσμο",
   "shareThisLink": "Αυτός ο σύνδεσμος επιτρέπει σε οποιονδήποτε τον λάβει να έχει πρόσβαση στο στοιχείο σας. Μπορείτε να αφαιρέσετε την πρόσβαση ανά πάσα στιγμή διαγράφοντας τον σύνδεσμο.",

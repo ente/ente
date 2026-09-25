@@ -20,11 +20,8 @@
     "description": "Error shown when account exists but signup is incomplete"
   },
   "add": "추가",
-  "addAdmin": "관리자 추가",
   "addANameAndPhoto": "이름과 사진 추가",
-  "addANewEmail": "새 이메일 추가",
   "addCode": "코드 추가하기",
-  "addCollaborator": "협업자 추가",
   "addEmail": "이메일 추가",
   "addingToFavorites": "즐겨 찾기에 추가 중...",
   "addMore": "더 추가",
@@ -33,16 +30,10 @@
     "description": "Text to add a new item (location tag, album, caption etc)"
   },
   "addNewEmail": "새 이메일 추가",
-  "addParticipants": "참여자 추가",
   "addTag": "태그 추가",
   "addToCollection": "컬렉션에 추가",
-  "addViewer": "뷰어 추가",
   "advanced": "고급",
   "albumLayout": "앨범 레이아웃",
-  "albumOwner": "소유자",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albumUpdated": "앨범 업데이트 됨",
   "algorithm": "알고리즘",
   "all": "모든 항목",
@@ -150,7 +141,6 @@
   },
   "changePassword": "비밀번호 변경",
   "changePermissions": "권한 변경",
-  "changePermissionsQuestion": "권한 변경?",
   "checkForUpdates": "업데이트 확인",
   "checkInboxAndSpamFolder": "검증을 위해 메일 보관함을 (또는 스팸 메일 보관함) 확인해주세요",
   "@checkInboxAndSpamFolder": {
@@ -712,10 +702,8 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "관리",
   "manageDeviceStorage": "장비 cache 관리",
   "manageLink": "링크 관리",
-  "manageParticipants": "관리",
   "manualSort": "사용자 정의",
   "markingAsImportant": "중요로 표시 중...",
   "merchandise": "제품",
@@ -800,7 +788,6 @@
   "ocrNoTextDetected": "문자가 발견되지 않았습니다",
   "offlineModeWarning": "백업 없이 진행하는 것을 선택하셨습니다. 코드의 안전성을 위해 별도의 백업 대책을 마련해주세요.",
   "oopsSomethingWentWrong": "문제가 생겼습니다",
-  "orPickAnExistingOne": "또는 기존 항목 선택",
   "passkey": "패스키",
   "passkeyAuthTitle": "패스키 검증",
   "@passkeyAuthTitle": {

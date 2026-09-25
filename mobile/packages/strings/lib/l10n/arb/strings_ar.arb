@@ -1,4 +1,10 @@
 {
+  "wallpaper": "خلفية",
+  "setWallpaper": "تعيين خلفية",
+  "wallpaperHome": "الشاشة الرئيسية",
+  "wallpaperLock": "قفل الشاشة",
+  "wallpaperBoth": "الشاشة الرئيسية و قفل الشاشة",
+  "wallpaperSet": "تعيين خلفية",
   "acceptTrustInvite": "قبول الدعوة",
   "account": "الحساب",
   "accountCredentials": "سري",
@@ -19,10 +25,7 @@
     "description": "Title for active sessions page"
   },
   "add": "إضافة",
-  "addANewEmail": "إضافة بريد إلكتروني جديد",
   "addCode": "أضف رمز",
-  "addCollaborator": "إضافة متعاون",
-  "addedAs": "تمت الإضافة كـ",
   "addedBy": "تمت الإضافة بواسطة {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -42,6 +45,7 @@
   "addingToFavorites": "جارٍ الإضافة إلى المفضلة...",
   "addLocation": "إضافة موقع",
   "addLocationButton": "إضافة",
+  "addMember": "إضافة عضو",
   "addMore": "إضافة المزيد",
   "addName": "إضافة اسم",
   "addNewEmail": "إضافة بريد إلكتروني جديد",
@@ -54,7 +58,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "إضافة مشاركين",
   "addPhotos": "إضافة صور",
   "addSelected": "إضافة المحدد",
   "addTag": "إضافة وسم",
@@ -62,9 +65,9 @@
   "addToCollection": "إضافة إلى المجموعة",
   "addToEnte": "إضافة إلى Ente",
   "addToHiddenAlbum": "إضافة إلى الألبوم المخفي",
-  "addViewer": "إضافة مشاهد",
   "addYourPhotosNow": "أضف صورك الآن",
   "adjust": "تعديل",
+  "admin": "مشرف",
   "admiringThem": "الإعجاب بـ {name}",
   "@admiringThem": {
     "placeholders": {
@@ -77,11 +80,11 @@
   "after1Month": "بعد شهر",
   "after1Week": "بعد أسبوع",
   "after1Year": "بعد سنة",
-  "albumOwner": "المالك",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
+  "albumName": "اسم الألبوم",
   "albums": "الألبومات",
+  "albumsOnDevicePermissionFeatureControlUploads": "أنت تتحكم في ما يتم تحميله",
+  "albumsOnEnteEmptyFeaturePrivacy": "خصوصية كاملة مع التشفير التام بين الطرفين",
+  "albumsOnEnteEmptyTitle": "النسخ الاحتياطي لذكرياتك",
   "albumTitle": "عنوان الألبوم",
   "albumUpdated": "تم تحديث الألبوم",
   "algorithm": "الخوارزمية",
@@ -239,12 +242,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "لن يتمكن {user} من إضافة المزيد من الصور إلى هذا الألبوم\n\nسيظل بإمكانه إزالة الصور الحالية التي أضافها",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "لا يمكن حذف الملفات المشتركة",
   "canNotOpenBody": "عذرًا، لا يمكن فتح هذا الألبوم في التطبيق.",
   "canNotOpenTitle": "لا يمكن فتح هذا الألبوم",
@@ -260,7 +257,6 @@
     "description": "Change password title"
   },
   "changePermissions": "تغيير الصلاحيات",
-  "changePermissionsQuestion": "تغيير الإذن؟",
   "checking": "جارٍ التحقق...",
   "checkingModels": "جارٍ فحص النماذج...",
   "chooseBackupLocation": "اختر موقع النسخة الاحتياطية",
@@ -282,7 +278,6 @@
   "codeCopiedToClipboard": "تم نسخ الرمز إلى الحافظة",
   "codeIssuerHint": "المصدِّر",
   "collaborator": "متعاون",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "يمكن للمتعاونين إضافة الصور ومقاطع الفيديو إلى الألبوم المشترك.",
   "collageLayout": "التخطيط",
   "collageSaved": "تم حفظ الكولاج في المعرض.",
   "collectionCannotBeDeleted": "لا يمكن حذف هذه المجموعة",
@@ -1063,11 +1058,9 @@
     "description": "Lost device title"
   },
   "machineLearning": "تعلم الآلة",
-  "manage": "إدارة",
   "manageDeviceStorage": "إدارة مساحة تخزين الجهاز",
   "manageFamily": "إدارة العائلة",
   "manageLink": "إدارة الرابط",
-  "manageParticipants": "إدارة المشاركين",
   "manageSubscription": "إدارة الاشتراك",
   "manualSort": "مخصّص",
   "map": "الخريطة",
@@ -1235,7 +1228,6 @@
   "openFile": "فتح الملف",
   "openstreetmapContributors": "مساهمو OpenStreetMap",
   "optionalAsShortAsYouLike": "اختياري، قصير كما تشاء...",
-  "orPickAnExistingOne": "أو اختر واحدًا موجودًا",
   "otherDetectedFaces": "وجوه أخرى تم اكتشافها",
   "pair": "إقران",
   "panorama": "بانوراما",
@@ -1477,12 +1469,6 @@
   "remoteVideos": "مقاطع الفيديو عن بعد",
   "remove": "إزالة",
   "removeAccess": "إزالة الوصول",
-  "removeAlbumParticipantBody": "سيتم إزالة {userEmail} من هذا الألبوم المشترك.\n\nسيتم أيضًا إزالة أي صور أضافها إلى الألبوم.",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "ستتم إزالة {userEmail} من هذه المجموعة المشتركة\n\nسيتم أيضاً إزالة أي عناصر أضافها من المجموعة",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -1747,7 +1733,6 @@
   "shareALink": "مشاركة رابط",
   "shareCodes": "شارك الرموز",
   "shareCodesDuration": "حدد المدة التي تريد أن تشارك فيها ألاكوا د.",
-  "sharedAlbumSectionDescription": "أنشئ ألبومات مشتركة وتعاونية مع مستخدمي Ente الآخرين، بما في ذلك المستخدمين ذوي الاشتراكات المجانية.",
   "sharedWith": "مشترك مع",
   "shareLink": "مشاركة الرابط",
   "shareThisLink": "يسمح هذا الرابط لأي شخص يستلمه بالوصول إلى عنصرك. يمكنك إزالة الوصول في أي وقت عن طريق حذف الرابط.",
@@ -2196,5 +2181,5 @@
   "youveNoDuplicateCodesThatCanBeCleared": "لا توجد لديك أي أكواد مكررة يمكن حذفها",
   "youveNoDuplicateFilesThatCanBeCleared": "لا توجد لديك أي ملفات مكررة يمكن مسحها",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "لا توجد لديك ملفات في هذا الألبوم يمكن حذفها.",
-  "zoomOutToSeePhotos": "قم بالتصغير لرؤية الصور"
+  "zoomOutToSeePhotos": "صغر لرؤية الصور"
 }
