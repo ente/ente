@@ -24,20 +24,29 @@ class FileCaptionReadyOnly extends StatelessWidget {
 
 class FileCaptionWidget extends StatefulWidget {
   final EnteFile file;
+  final ValueChanged<bool> onPendingEditChanged;
 
-  const FileCaptionWidget({required this.file, super.key});
+  const FileCaptionWidget({
+    required this.file,
+    required this.onPendingEditChanged,
+    super.key,
+  });
 
   @override
   State<FileCaptionWidget> createState() => _FileCaptionWidgetState();
 }
 
-class _FileCaptionWidgetState extends State<FileCaptionWidget> {
+class _FileCaptionWidgetState extends State<FileCaptionWidget>
+    with AutomaticKeepAliveClientMixin {
   static const int maxLength = 5000;
 
   final _textController = TextEditingController();
   final _focusNode = FocusNode();
   String? editedCaption;
   late String defaultHintText = context.strings.fileInfoAddDescHint;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -57,6 +66,7 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -74,6 +84,7 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget> {
               setState(() {
                 editedCaption = value;
               });
+              widget.onPendingEditChanged(_hasPendingCaptionEdit);
             },
           ),
         ),
@@ -115,6 +126,7 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget> {
     }
     if (isSuccess) {
       widget.file.pubMagicMetadata?.caption = editedCaption;
+      widget.onPendingEditChanged(false);
       final generatedID = widget.file.generatedID;
       if (generatedID != null) {
         Bus.instance.fire(FileCaptionUpdatedEvent(generatedID));

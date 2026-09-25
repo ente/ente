@@ -121,6 +121,7 @@ Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    enableDrag: false,
     backgroundColor: Colors.transparent,
     builder: (_) => _DraggableDetailsSheet(file: file),
   );
@@ -144,6 +145,8 @@ class _DraggableDetailsSheet extends StatefulWidget {
 class _DraggableDetailsSheetState extends State<_DraggableDetailsSheet> {
   final _sheetController = DraggableScrollableController();
   bool _isExpanded = false;
+  bool _hasPendingCaptionEdit = false;
+  bool _closeRequested = false;
 
   @override
   void initState() {
@@ -167,12 +170,49 @@ class _DraggableDetailsSheetState extends State<_DraggableDetailsSheet> {
     }
   }
 
+  void _onPendingCaptionEditChanged(bool hasChanges) {
+    if (_hasPendingCaptionEdit == hasChanges) return;
+    setState(() => _hasPendingCaptionEdit = hasChanges);
+  }
+
+  Future<void> _onClose() async {
+    if (_closeRequested || ModalRoute.of(context)?.isCurrent != true) return;
+    _closeRequested = true;
+    if (!_hasPendingCaptionEdit) {
+      Navigator.of(context).pop();
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final shouldDiscard = await showBottomSheetComponent<bool>(
+      context: context,
+      builder: (_) => BottomSheetComponent(
+        title: context.strings.unsavedNoteChangesTitle,
+        message: context.strings.unsavedChangesDescription,
+        illustration: Image.asset("assets/warning-red.png"),
+        actions: [
+          ButtonComponent(
+            label: context.strings.discardChanges,
+            variant: ButtonComponentVariant.critical,
+            onTap: () => Navigator.of(context).pop(true),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (shouldDiscard == true) {
+      Navigator.of(context).pop();
+    } else {
+      _closeRequested = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 60;
     final disableSnap = isKeyboardOpen || _isExpanded;
-    return DraggableScrollableSheet(
+    final sheet = DraggableScrollableSheet(
       controller: _sheetController,
+      shouldCloseOnMinExtent: !_hasPendingCaptionEdit,
       initialChildSize: disableSnap ? 0.95 : 0.75,
       minChildSize: disableSnap ? 0.75 : 0.5,
       maxChildSize: 0.95,
@@ -190,8 +230,17 @@ class _DraggableDetailsSheetState extends State<_DraggableDetailsSheet> {
         child: FileDetailsWidget(
           widget.file,
           scrollController: scrollController,
+          onPendingCaptionEditChanged: _onPendingCaptionEditChanged,
+          onCloseRequested: _onClose,
         ),
       ),
+    );
+    return PopScope(
+      canPop: !_hasPendingCaptionEdit,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _onClose();
+      },
+      child: sheet,
     );
   }
 }
