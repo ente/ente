@@ -3,8 +3,6 @@ import "dart:convert";
 
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
-import "package:photos/core/event_bus.dart";
-import "package:photos/events/smart_album_syncing_event.dart";
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/collection/smart_album_config.dart";
 import "package:photos/models/file/file.dart";
@@ -20,8 +18,6 @@ class SmartAlbumsService {
   int _lastCacheRefreshTime = 0;
 
   Future<Map<int, SmartAlbumConfig>>? _cachedConfigsFuture;
-
-  (int, bool)? syncingCollection;
 
   void clearCache() {
     _cachedConfigsFuture = null;
@@ -81,22 +77,39 @@ class SmartAlbumsService {
   }
 
   Future<void> syncSmartAlbums() async {
+    await _syncSmartAlbums();
+  }
+
+  Future<void> syncSmartAlbumsFor(Set<int> collectionIds) =>
+      _syncSmartAlbums(collectionIds: collectionIds);
+
+  Future<void> _syncSmartAlbums({Set<int>? collectionIds}) async {
     final isMLEnabled = hasGrantedMLConsent;
     if (!isMLEnabled) {
       _logger.warning("ML is not enabled, skipping smart album sync");
+      if (collectionIds != null) throw StateError("ML is not enabled");
       return;
     }
 
     _logger.info("Syncing Smart Albums");
     final cachedConfigs = await getSmartConfigs();
+    if (collectionIds != null &&
+        !cachedConfigs.keys.toSet().containsAll(collectionIds)) {
+      throw StateError("Smart album config is missing");
+    }
     final userId = Configuration.instance.getUserID();
     if (userId == null) {
       _logger.warning("No user ID, skipping smart album sync");
+      if (collectionIds != null) throw StateError("No user ID");
       return;
     }
 
+    var hasFailed = false;
     for (final entry in cachedConfigs.entries) {
       final collectionId = entry.key;
+      if (collectionIds != null && !collectionIds.contains(collectionId)) {
+        continue;
+      }
       final config = entry.value;
 
       if (config.personIDs.isEmpty) {
@@ -114,17 +127,13 @@ class SmartAlbumsService {
         _logger.warning(
           "For config ($collectionId) user does not have permission",
         );
+        hasFailed = true;
         if (collection?.isDeleted ?? false) {
           await _deleteEntry(userId: userId, collectionId: collectionId);
         }
 
         continue;
       }
-
-      syncingCollection = (collectionId, false);
-      Bus.instance.fire(
-        SmartAlbumSyncingEvent(collectionId: collectionId, isSyncing: false),
-      );
 
       final updatedAtMap = await entityService.getUpdatedAts(
         EntityType.cgroup,
@@ -164,11 +173,6 @@ class SmartAlbumsService {
         pendingSyncFileSet = {...pendingSyncFileSet, ...fileIds};
       }
 
-      syncingCollection = (collectionId, true);
-      Bus.instance.fire(
-        SmartAlbumSyncingEvent(collectionId: collectionId, isSyncing: true),
-      );
-
       if (pendingSyncFiles.isNotEmpty) {
         try {
           await CollectionsService.instance.addOrCopyToCollection(
@@ -181,11 +185,13 @@ class SmartAlbumsService {
           await saveConfig(newConfig);
         } catch (e, sT) {
           _logger.warning(e, sT);
+          hasFailed = true;
         }
       }
     }
-    syncingCollection = null;
-    Bus.instance.fire(SmartAlbumSyncingEvent());
+    if (collectionIds != null && hasFailed) {
+      throw StateError("Failed to sync one or more smart albums");
+    }
     _logger.fine("Smart Albums sync completed");
   }
 
