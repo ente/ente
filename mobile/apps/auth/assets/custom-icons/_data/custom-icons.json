@@ -1,6 +1,13 @@
 {
   "icons": [
     {
+      "title": "PJe",
+      "altNames": [
+        "Processo Judicial Eletronico"
+      ],
+      "slug": "pje"
+    },
+    {
       "title": "1xBet",
       "slug": "1x_bet"
     },
@@ -82,7 +89,7 @@
       "title": "aliyun",
       "hex": "F76E05",
       "altNames": [
-        "\u963f\u91cc\u4e91"
+        "阿里云"
       ]
     },
     {
@@ -124,7 +131,7 @@
       "title": "Ankara University",
       "slug": "ankara_university",
       "altNames": [
-        "Ankara \u00dcniversitesi"
+        "Ankara Üniversitesi"
       ]
     },
     {
@@ -205,7 +212,7 @@
       "title": "BaiduCloud",
       "slug": "baidu_cloud",
       "altNames": [
-        "\u767e\u5ea6\u4e91",
+        "百度云",
         "baiduyun"
       ]
     },
@@ -257,7 +264,7 @@
       "title": "Binance",
       "slug": "binance_exchange",
       "altNames": [
-        "\u5e01\u5b89"
+        "币安"
       ]
     },
     {
@@ -402,10 +409,10 @@
       "title": "Bugzilla"
     },
     {
-      "title": "Bundesagentur f\u00fcr Arbeit",
+      "title": "Bundesagentur für Arbeit",
       "slug": "bundesagentur_fur_arbeit",
       "altNames": [
-        "Agentur f\u00fcr Arbeit"
+        "Agentur für Arbeit"
       ]
     },
     {
@@ -989,7 +996,7 @@
       "slug": "fzj",
       "hex": "023d6b",
       "altNames": [
-        "Forschungszentrum J\u00fclich",
+        "Forschungszentrum Jülich",
         "FZJ IdP",
         "iffLogin"
       ]
@@ -1049,7 +1056,7 @@
       "title": "Gosuslugi",
       "slug": "gosuslugi",
       "altNames": [
-        "\u0413\u043e\u0441\u0443\u0441\u043b\u0443\u0433\u0438"
+        "Госуслуги"
       ]
     },
     {
@@ -1255,7 +1262,7 @@
     {
       "title": "jianguoyun",
       "altNames": [
-        "\u575a\u679c\u4e91"
+        "坚果云"
       ]
     },
     {
@@ -1365,7 +1372,7 @@
       "title": "Lark",
       "slug": "lark",
       "altNames": [
-        "\u98de\u4e66"
+        "飞书"
       ]
     },
     {
@@ -1669,7 +1676,7 @@
       "slug": "netease_mail",
       "hex": "D81E06",
       "altNames": [
-        "\u7f51\u6613\u90ae\u7bb1",
+        "网易邮箱",
         "Mail.163"
       ]
     },
@@ -1706,7 +1713,7 @@
       "title": "Nintendo",
       "hex": "000000",
       "altNames": [
-        "\u4efb\u5929\u5802",
+        "任天堂",
         "Nintendo Account"
       ]
     },
@@ -1769,7 +1776,7 @@
     {
       "title": "NVIDIA"
     },
-        {
+    {
       "title": "OCENSA",
       "slug": "ocensa"
     },
@@ -1780,7 +1787,7 @@
       "title": "okx",
       "hex": "000000",
       "altNames": [
-        "\u6b27\u6613"
+        "欧易"
       ]
     },
     {
@@ -1908,7 +1915,7 @@
       "slug": "peking_university",
       "hex": "9A0000",
       "altNames": [
-        "\u5317\u4eac\u5927\u5b66",
+        "北京大学",
         "PKU",
         "Peking Univ"
       ]
@@ -2028,7 +2035,7 @@
       "title": "qiniuyun",
       "hex": "02A7E0",
       "altNames": [
-        "\u4e03\u725b\u4e91",
+        "七牛云",
         "qiniu"
       ]
     },
@@ -2210,7 +2217,7 @@
         "sei",
         "sei!",
         "SEI!",
-        "Sistema Eletr\u00f4nico de Informa\u00e7\u00f5es",
+        "Sistema Eletrônico de Informações",
         "SEI/SEDE"
       ]
     },
@@ -2415,7 +2422,7 @@
       "title": "tencent cloud",
       "slug": "tencent_cloud",
       "altNames": [
-        "\u817e\u8baf\u4e91",
+        "腾讯云",
         "tencentcloud"
       ]
     },
@@ -2459,7 +2466,7 @@
       "title": "tianyiyun",
       "hex": "F3A22F",
       "altNames": [
-        "\u5929\u7ffc\u4e91"
+        "天翼云"
       ]
     },
     {
@@ -2532,7 +2539,7 @@
       "title": "TU Dresden",
       "slug": "tu_dresden",
       "altNames": [
-        "Technische Universit\u00e4t Dresden",
+        "Technische Universität Dresden",
         "Dresden University of Technology"
       ],
       "hex": "00305d"
@@ -2639,7 +2646,7 @@
         "uscis.gov"
       ]
     },
-      {
+    {
       "title": "UU",
       "altNames": [
         "Utrecht University",
@@ -2665,7 +2672,7 @@
       "title": "VGN",
       "slug": "vgn",
       "altNames": [
-        "Ver\u00adkehrs\u00adver\u00adbund Gro\u00df\u00adraum N\u00fcrn\u00adberg"
+        "Ver­kehrs­ver­bund Groß­raum Nürn­berg"
       ]
     },
     {
@@ -2691,7 +2698,7 @@
     {
       "title": "volcengine",
       "altNames": [
-        "\u706b\u5c71\u5f15\u64ce"
+        "火山引擎"
       ]
     },
     {
@@ -2815,7 +2822,7 @@
       "slug": "yandex",
       "altNames": [
         "Ya",
-        "\u042f\u043d\u0434\u0435\u043a\u0441"
+        "Яндекс"
       ]
     },
     {
