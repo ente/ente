@@ -25,6 +25,7 @@ import "package:photos/models/memories/people_memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
 import "package:photos/models/memories/smart_memory_constants.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/services/app_navigation_service.dart";
 import "package:photos/services/language_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
@@ -41,6 +42,7 @@ import "package:photos/ui/home/memories/memory_music_session.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/people/people_page.dart";
 import "package:photos/utils/cache_util.dart";
+import "package:photos/utils/ml_util.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:synchronized/synchronized.dart";
 
@@ -716,6 +718,22 @@ class MemoriesCacheService {
     return cache;
   }
 
+  Future<void> _backfillInitialMemoriesNotification(
+    MemoriesCache? oldCache,
+  ) async {
+    if (oldCache == null ||
+        localSettings.initialMemoriesNotificationScheduledAt() != null) {
+      return;
+    }
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: 21))
+        .microsecondsSinceEpoch;
+    if (oldCache.peopleShownLogs.any((log) => log.lastTimeShown <= cutoff) ||
+        oldCache.clipShownLogs.any((log) => log.lastTimeShown <= cutoff)) {
+      await localSettings.markInitialMemoriesNotificationScheduled();
+    }
+  }
+
   static Future<List<SmartMemory>> fromCacheToMemories(
     MemoriesCache cache,
   ) async {
@@ -824,6 +842,63 @@ class MemoriesCacheService {
     }
   }
 
+  Future<bool> _shouldForceInitialMemoriesRefresh() async {
+    if (!flagService.internalUser ||
+        localSettings.hasForcedInitialMemoriesRefresh() ||
+        DateTime.now().difference(localSettings.getInstallDateTime()).inDays >=
+            21) {
+      return false;
+    }
+    try {
+      final indexStatus = await getIndexStatus();
+      final totalItems = indexStatus.indexedItems + indexStatus.pendingItems;
+      final indexPercent = totalItems > 0
+          ? 100 * indexStatus.indexedItems / totalItems
+          : 0.0;
+      return indexPercent > 90;
+    } catch (e, s) {
+      _logger.warning(
+        "Failed to check ML status for initial memories refresh",
+        e,
+        s,
+      );
+      return false;
+    }
+  }
+
+  Future<void> _scheduleMemoriesNotification(List<SmartMemory> memories) async {
+    if (!flagService.internalUser ||
+        !memories.any(
+          (m) =>
+              (m.type == .people || m.type == .clip) &&
+              m.memories.isNotEmpty &&
+              m.shouldShowNow(),
+        )) {
+      return;
+    }
+    if (localSettings.initialMemoriesNotificationScheduledAt() != null) return;
+    if (DateTime.now().difference(localSettings.getInstallDateTime()).inDays >=
+        21) {
+      await localSettings.markInitialMemoriesNotificationScheduled();
+      return;
+    }
+    final notifications = NotificationService.instance;
+    if (!await notifications.hasGrantedPermissions()) return;
+    final strings = await LanguageService.locals;
+    if (AppLifecycleService.instance.isForeground) {
+      await localSettings.markInitialMemoriesNotificationScheduled();
+      return;
+    }
+    await notifications.showNotification(
+      strings.memoriesReadyNotificationTitle,
+      strings.memoriesReadyNotificationBody,
+      id: 314159265,
+      channelID: "memoriesReady",
+      channelName: strings.memories,
+    );
+    await localSettings.markInitialMemoriesNotificationScheduled();
+  }
+
   Future<void> updateCache({bool forced = false}) async {
     if (!showAnyMemories) {
       return;
@@ -835,7 +910,11 @@ class MemoriesCacheService {
     _checkIfTimeToUpdateCache();
 
     return _memoriesUpdateLock.synchronized(() async {
-      if ((!_shouldUpdate && !forced)) {
+      final forceInitialMemoriesRefresh =
+          await _shouldForceInitialMemoriesRefresh();
+      final shouldUpdate =
+          _shouldUpdate || forced || forceInitialMemoriesRefresh;
+      if (!shouldUpdate) {
         _logger.info(
           "No update needed (shouldUpdate: $_shouldUpdate, forced: $forced)",
         );
@@ -854,6 +933,7 @@ class MemoriesCacheService {
         w?.log("gotten old cache");
         final MemoriesCache newCache = _processOldCache(oldCache);
         w?.log("processed old cache");
+        await _backfillInitialMemoriesNotification(newCache);
         final now = DateTime.now();
         final next = now.add(kMemoriesUpdateFrequency);
         final mlReady = await _isMlReady();
@@ -938,6 +1018,10 @@ class MemoriesCacheService {
         );
         w?.log("cacheWritten");
         await _cacheUpdated();
+        if (forceInitialMemoriesRefresh) {
+          await localSettings.markForcedInitialMemoriesRefresh();
+        }
+        await _scheduleMemoriesNotification(_cachedMemories!);
         w?.logAndReset('_cacheUpdated method done');
       } catch (e, s) {
         _logger.severe("Error updating memories cache", e, s);

@@ -2530,6 +2530,8 @@
     }
   },
   "memories": "Memories",
+  "memoriesReadyNotificationTitle": "Rediscover your memories ✨",
+  "memoriesReadyNotificationBody": "Your first ones are ready, made on your phone.",
   "memoriesWidgetDesc": "Select the kinds of memories you want to see on your home screen.",
   "memoryCount": "{count, plural, =0{no memories} one{{formattedCount} memory} other{{formattedCount} memories}}",
   "@memoryCount": {
