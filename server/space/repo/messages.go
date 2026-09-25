@@ -28,6 +28,11 @@ const spaceMessageBaseSelectColumns = `
 	m.reply_message_id,
 	(m.recipient_liked_at IS NOT NULL) AS liked,
 	(m.recipient_liked_at IS NOT NULL AND m.recipient_space_id = %[1]s) AS viewer_liked,
+	COALESCE(m.recipient_reaction_cipher, '\x'::bytea),
+	CASE
+		WHEN m.sender_space_id = %[1]s THEN COALESCE(m.sender_encrypted_reaction_key, '\x'::bytea)
+		ELSE COALESCE(m.recipient_encrypted_reaction_key, '\x'::bytea)
+	END AS encrypted_reaction_key,
 	m.is_deleted,
 	m.created_at,
 	m.updated_at,
@@ -91,6 +96,8 @@ SELECT
 	recipient_space_id,
 	message_cipher,
 	encrypted_message_key,
+	reaction_cipher,
+	encrypted_reaction_key,
 	reply_message_id,
 	notification_created_at
 FROM (
@@ -123,6 +130,8 @@ FROM (
 			WHEN m.sender_space_id = $1 THEN m.sender_encrypted_message_key
 			ELSE m.recipient_encrypted_message_key
 		END AS encrypted_message_key,
+		NULL::bytea AS reaction_cipher,
+		NULL::bytea AS encrypted_reaction_key,
 		m.reply_message_id,
 		CASE
 			WHEN m.recipient_space_id = $1 AND m.kind IN ('regular', 'post_reply', 'post_like', 'friend_added') THEN m.created_at
@@ -153,12 +162,38 @@ FROM (
 			WHEN m.sender_space_id = $1 THEN m.sender_encrypted_message_key
 			ELSE m.recipient_encrypted_message_key
 		END AS encrypted_message_key,
+		NULL::bytea AS reaction_cipher,
+		NULL::bytea AS encrypted_reaction_key,
 		m.reply_message_id,
 		CASE WHEN m.sender_space_id = $1 THEN m.recipient_liked_at ELSE NULL::bigint END AS notification_created_at,
 		(m.recipient_space_id = $1) AS is_outgoing
 	FROM peer_messages m
 	WHERE m.kind IN ('regular', 'post_reply')
 	  AND m.recipient_liked_at IS NOT NULL
+
+	UNION ALL
+
+	SELECT
+		CASE WHEN m.sender_space_id = $1 THEN m.recipient_space_id ELSE m.sender_space_id END AS friend_space_id,
+		'message_like' AS activity_type,
+		'message_like:' || m.message_id || ':' || m.recipient_space_id AS activity_id,
+		m.recipient_reacted_at AS activity_created_at,
+		m.message_id,
+		NULL::bigint AS post_id,
+		NULL::text AS post_space_id,
+		m.kind AS message_kind,
+		m.sender_space_id,
+		m.recipient_space_id,
+		m.message_cipher,
+		CASE WHEN m.sender_space_id = $1 THEN m.sender_encrypted_message_key ELSE m.recipient_encrypted_message_key END AS encrypted_message_key,
+		m.recipient_reaction_cipher AS reaction_cipher,
+		CASE WHEN m.sender_space_id = $1 THEN m.sender_encrypted_reaction_key ELSE m.recipient_encrypted_reaction_key END AS encrypted_reaction_key,
+		m.reply_message_id,
+		CASE WHEN m.sender_space_id = $1 THEN m.recipient_reacted_at ELSE NULL::bigint END AS notification_created_at,
+		(m.recipient_space_id = $1) AS is_outgoing
+	FROM peer_messages m
+	WHERE m.kind IN ('regular', 'post_reply')
+	  AND m.recipient_reacted_at IS NOT NULL
 ) activity`
 
 const chatSummaryActivityRowsSQL = inputConversationPeersSQL + conversationActivityRowsSQL + `
@@ -300,34 +335,71 @@ func (r *MessagesRepository) SetLike(ctx context.Context, messageID string, acto
 
 func (r *MessagesRepository) SetLikeWithChanged(ctx context.Context, messageID string, actorSpaceID string, like bool) (bool, error) {
 	if like {
-		result, err := r.DB.ExecContext(ctx, `
-			UPDATE space_messages
-			SET recipient_liked_at = now_utc_micro_seconds()
-			WHERE message_id = $1
-			  AND recipient_space_id = $2
-			  AND kind IN ('regular', 'post_reply')
-			  AND is_deleted = FALSE
-			  AND recipient_liked_at IS NULL
-		`, messageID, actorSpaceID)
-		if err != nil {
-			return false, stacktrace.Propagate(err, "")
+		var added bool
+		err := r.DB.QueryRowContext(ctx, `
+			WITH previous AS (
+				SELECT recipient_liked_at
+				FROM space_messages
+				WHERE message_id = $1 AND recipient_space_id = $2
+				  AND kind IN ('regular', 'post_reply') AND is_deleted = FALSE
+				FOR UPDATE
+			)
+			UPDATE space_messages AS m
+			SET recipient_liked_at = now_utc_micro_seconds(),
+			    recipient_reaction_cipher = NULL,
+			    sender_encrypted_reaction_key = NULL,
+			    recipient_encrypted_reaction_key = NULL,
+			    recipient_reacted_at = NULL
+			FROM previous
+			WHERE m.message_id = $1 AND m.recipient_space_id = $2
+			  AND previous.recipient_liked_at IS NULL
+			RETURNING TRUE
+		`, messageID, actorSpaceID).Scan(&added)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
 		}
-		affected, err := result.RowsAffected()
-		return affected > 0, stacktrace.Propagate(err, "")
+		return added, stacktrace.Propagate(err, "")
 	}
 	result, err := r.DB.ExecContext(ctx, `
 		UPDATE space_messages
-		SET recipient_liked_at = NULL
+		SET recipient_liked_at = NULL,
+		    recipient_reaction_cipher = NULL,
+		    sender_encrypted_reaction_key = NULL,
+		    recipient_encrypted_reaction_key = NULL,
+		    recipient_reacted_at = NULL
 		WHERE message_id = $1
 		  AND recipient_space_id = $2
 		  AND kind IN ('regular', 'post_reply')
-		  AND recipient_liked_at IS NOT NULL
+		  AND (recipient_liked_at IS NOT NULL OR recipient_reacted_at IS NOT NULL)
 	`, messageID, actorSpaceID)
 	if err != nil {
 		return false, stacktrace.Propagate(err, "")
 	}
 	affected, err := result.RowsAffected()
 	return affected > 0, stacktrace.Propagate(err, "")
+}
+
+func (r *MessagesRepository) SetReaction(ctx context.Context, messageID, actorSpaceID string, cipher, senderKey, recipientKey []byte) (bool, error) {
+	var added bool
+	err := r.DB.QueryRowContext(ctx, `
+		WITH previous AS (
+			SELECT recipient_reacted_at
+			FROM space_messages
+			WHERE message_id = $1 AND recipient_space_id = $2
+			  AND kind IN ('regular', 'post_reply') AND is_deleted = FALSE
+			FOR UPDATE
+		)
+		UPDATE space_messages AS m
+		SET recipient_reaction_cipher = $3,
+		    sender_encrypted_reaction_key = $4,
+		    recipient_encrypted_reaction_key = $5,
+		    recipient_reacted_at = COALESCE(m.recipient_reacted_at, now_utc_micro_seconds()),
+		    recipient_liked_at = NULL
+		FROM previous
+		WHERE m.message_id = $1 AND m.recipient_space_id = $2
+		RETURNING previous.recipient_reacted_at IS NULL
+	`, messageID, actorSpaceID, cipher, senderKey, recipientKey).Scan(&added)
+	return added, stacktrace.Propagate(err, "")
 }
 
 func (r *MessagesRepository) DeleteMessage(ctx context.Context, messageID string, senderSpaceID string) error {
@@ -436,6 +508,8 @@ func scanMessageRecord(scanner interface{ Scan(dest ...any) error }) (*SpaceMess
 		&rec.ReplyMessageID,
 		&rec.Liked,
 		&rec.ViewerLiked,
+		&rec.ReactionCipher,
+		&rec.EncryptedReactionKey,
 		&rec.IsDeleted,
 		&rec.CreatedAt,
 		&rec.UpdatedAt,
@@ -474,6 +548,8 @@ func conversationActivityScanDest(activity *SpaceMessageConversationActivityReco
 		&activity.RecipientSpaceID,
 		&activity.MessageCipher,
 		&activity.EncryptedMessageKey,
+		&activity.ReactionCipher,
+		&activity.EncryptedReactionKey,
 		&activity.ReplyMessageID,
 	}
 }

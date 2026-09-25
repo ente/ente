@@ -34,6 +34,7 @@ func (noopSpaceActivityNotifier) OnSpacePostReplied(SpaceActivityActor, int64)  
 func (noopSpaceActivityNotifier) OnSpaceMessageSent(SpaceActivityActor, int64)     {}
 func (noopSpaceActivityNotifier) OnSpacePokeSent(SpaceActivityActor, int64)        {}
 func (noopSpaceActivityNotifier) OnSpaceMessageLiked(SpaceActivityActor, int64)    {}
+func (noopSpaceActivityNotifier) OnSpaceMessageReacted(SpaceActivityActor, int64)  {}
 func (noopSpaceActivityNotifier) OnSpaceFriendAdded(SpaceActivityActor, int64)     {}
 func (noopSpaceActivityNotifier) OnSpaceFriendRequested(SpaceActivityActor, int64) {}
 

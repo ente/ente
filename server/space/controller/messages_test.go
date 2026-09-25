@@ -93,11 +93,44 @@ func TestMessageLikeAndDeleteAccess(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, viewed.Liked)
 	require.True(t, viewed.ViewerLiked)
+	reaction := models.SetMessageReactionRequest{
+		SenderSpaceID:                 bobSpace.SpaceID,
+		ReactionCipher:                spaceTestB64("laugh"),
+		SenderEncryptedReactionKey:    spaceTestB64("bob-reaction-key"),
+		RecipientEncryptedReactionKey: spaceTestB64("alice-reaction-key"),
+	}
+	_, err = controller.SetReaction(ctx, bobSpace, message.MessageID, reaction)
+	require.Error(t, err)
+	reacted, err := controller.SetReaction(ctx, aliceSpace, message.MessageID, reaction)
+	require.NoError(t, err)
+	require.True(t, reacted.Reacted)
+	viewed, err = repos.Messages.GetMessage(ctx, message.MessageID, bobSpace.SpaceID)
+	require.NoError(t, err)
+	require.False(t, viewed.Liked)
+	require.Equal(t, []byte("laugh"), viewed.ReactionCipher)
+	require.Equal(t, []byte("bob-reaction-key"), viewed.EncryptedReactionKey)
+	summaries, err := repos.Messages.ListLatestChatSummaries(ctx, bobSpace.SpaceID, []string{aliceSpace.SpaceID})
+	require.NoError(t, err)
+	require.Equal(t, "message_like", summaries[aliceSpace.SpaceID].LatestActivity.Type)
+	require.Equal(t, []byte("laugh"), summaries[aliceSpace.SpaceID].LatestActivity.ReactionCipher)
+	_, err = controller.SetLike(ctx, aliceSpace, message.MessageID, true)
+	require.NoError(t, err)
+	viewed, err = repos.Messages.GetMessage(ctx, message.MessageID, aliceSpace.SpaceID)
+	require.NoError(t, err)
+	require.True(t, viewed.Liked)
+	require.Empty(t, viewed.ReactionCipher)
+	require.NoError(t, controller.DeleteReaction(ctx, aliceSpace, message.MessageID))
+	viewed, err = repos.Messages.GetMessage(ctx, message.MessageID, aliceSpace.SpaceID)
+	require.NoError(t, err)
+	require.False(t, viewed.Liked)
+	require.Empty(t, viewed.ReactionCipher)
 
 	require.NoError(t, controller.Delete(ctx, bobSpace, messageToDelete.MessageID))
 	_, err = controller.SetLike(ctx, aliceSpace, messageToDelete.MessageID, true)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "cannot like a deleted message")
+	_, err = controller.SetReaction(ctx, aliceSpace, messageToDelete.MessageID, reaction)
+	require.Error(t, err)
 
 	require.NoError(t, repos.Friends.DeleteFriendship(ctx, aliceSpace.SpaceID, bobSpace.SpaceID))
 	_, err = controller.SetLike(ctx, aliceSpace, message.MessageID, false)

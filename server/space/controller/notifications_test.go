@@ -68,6 +68,10 @@ func (n *recordingSpaceActivityNotifier) OnSpaceMessageLiked(actor SpaceActivity
 	n.record(spaceActivityMessageLiked, actor, recipientUserID)
 }
 
+func (n *recordingSpaceActivityNotifier) OnSpaceMessageReacted(actor SpaceActivityActor, recipientUserID int64) {
+	n.record(spaceActivityMessageReacted, actor, recipientUserID)
+}
+
 func (n *recordingSpaceActivityNotifier) OnSpaceFriendAdded(actor SpaceActivityActor, recipientUserID int64) {
 	n.record(spaceActivityFriendAdded, actor, recipientUserID)
 }
@@ -281,11 +285,52 @@ func TestMessageActivitiesAndLikeTransition(t *testing.T) {
 		recipientIDs: []int64{aliceID},
 	}
 	require.Equal(t, expectedLike, requireSpaceActivity(t, notifier))
+	likedMessage, err := repos.Messages.GetMessage(ctx, message.MessageID, aliceSpace.SpaceID)
+	require.NoError(t, err)
+	_, err = messages.SetLike(ctx, bobSpace, message.MessageID, true)
+	require.NoError(t, err)
+	requireNoSpaceActivity(t, notifier)
+	likedRetry, err := repos.Messages.GetMessage(ctx, message.MessageID, aliceSpace.SpaceID)
+	require.NoError(t, err)
+	require.Equal(t, likedMessage.UpdatedAt, likedRetry.UpdatedAt)
+	reaction := models.SetMessageReactionRequest{
+		SenderSpaceID:                 aliceSpace.SpaceID,
+		ReactionCipher:                spaceTestB64("laugh"),
+		SenderEncryptedReactionKey:    spaceTestB64("alice-reaction-key"),
+		RecipientEncryptedReactionKey: spaceTestB64("bob-reaction-key"),
+	}
+	_, err = messages.SetReaction(ctx, bobSpace, message.MessageID, reaction)
+	require.NoError(t, err)
+	require.Equal(t, recordedSpaceActivity{
+		event:        spaceActivityMessageReacted,
+		actorUserID:  bobID,
+		actorSpaceID: bobSpace.SpaceID,
+		actorSlug:    bobSpace.SpaceSlug,
+		recipientIDs: []int64{aliceID},
+	}, requireSpaceActivity(t, notifier))
+	_, err = messages.SetLike(ctx, bobSpace, message.MessageID, true)
+	require.NoError(t, err)
+	require.Equal(t, expectedLike, requireSpaceActivity(t, notifier))
 	_, err = messages.SetLike(ctx, bobSpace, message.MessageID, true)
 	require.NoError(t, err)
 	requireNoSpaceActivity(t, notifier)
 	_, err = messages.SetLike(ctx, bobSpace, message.MessageID, false)
 	require.NoError(t, err)
+	requireNoSpaceActivity(t, notifier)
+	_, err = messages.SetReaction(ctx, bobSpace, message.MessageID, reaction)
+	require.NoError(t, err)
+	require.Equal(t, recordedSpaceActivity{
+		event:        spaceActivityMessageReacted,
+		actorUserID:  bobID,
+		actorSpaceID: bobSpace.SpaceID,
+		actorSlug:    bobSpace.SpaceSlug,
+		recipientIDs: []int64{aliceID},
+	}, requireSpaceActivity(t, notifier))
+	reaction.ReactionCipher = spaceTestB64("surprised")
+	_, err = messages.SetReaction(ctx, bobSpace, message.MessageID, reaction)
+	require.NoError(t, err)
+	requireNoSpaceActivity(t, notifier)
+	require.NoError(t, messages.DeleteReaction(ctx, bobSpace, message.MessageID))
 	requireNoSpaceActivity(t, notifier)
 
 	postID, err := testCreatePost(ctx, repos, aliceID, aliceSpace.SpaceID, "post-key", nil, aliceSpace.CurrentVersion, nil)
