@@ -11,10 +11,11 @@ use crate::models::{
     ConversationChatSummary, Conversations, Message, MessageActivity, MessageContent, MessagePage,
     MessagePayload,
 };
+use crate::reactions::{canonical_reaction, validate_received_reaction};
 use crate::transport::{
     ConversationChatSummaryResponse, ConversationsResponse, CreateMessageRequest,
     LikeMessageResponse, MessageConversationActivity, MessagePageResponse, MessageResponse,
-    SpaceActorResponse,
+    SetMessageReactionRequest, SpaceActorResponse,
 };
 use ente_core::b64;
 
@@ -114,6 +115,22 @@ impl AccountSpaceCtx {
                 })
         };
         let content = retain_content_error(content)?;
+        let reaction = if message.is_deleted {
+            None
+        } else {
+            self.open_message_reaction(
+                viewer_space_id,
+                &message.reaction_cipher,
+                &message.encrypted_reaction_key,
+            )
+            .await?
+            .or_else(|| {
+                (message.liked
+                    && message.reaction_cipher.is_empty()
+                    && message.encrypted_reaction_key.is_empty())
+                .then(|| "❤️".to_owned())
+            })
+        };
         Ok(Message {
             message_id: message.message_id,
             kind,
@@ -124,6 +141,7 @@ impl AccountSpaceCtx {
             reply_message_id: message.reply_message_id,
             liked: message.liked,
             viewer_liked: message.viewer_liked,
+            reaction,
             created_at: message.created_at,
             updated_at: message.updated_at,
         })
@@ -204,6 +222,19 @@ impl AccountSpaceCtx {
             })
         };
         let content = retain_content_error(content)?;
+        let reaction = self
+            .open_message_reaction(
+                viewer_space_id,
+                &activity.reaction_cipher,
+                &activity.encrypted_reaction_key,
+            )
+            .await?
+            .or_else(|| {
+                (activity.activity_type == "message_like"
+                    && activity.reaction_cipher.is_empty()
+                    && activity.encrypted_reaction_key.is_empty())
+                .then(|| "❤️".to_owned())
+            });
         Ok(MessageActivity {
             id: activity.id,
             activity_type: activity.activity_type,
@@ -212,6 +243,7 @@ impl AccountSpaceCtx {
             outgoing: activity.outgoing,
             message_id: activity.message_id,
             content,
+            reaction,
             post_id: activity.post_id,
             post_space_id: activity.post_space_id,
         })
@@ -456,6 +488,103 @@ impl AccountSpaceCtx {
         }
     }
 
+    pub async fn set_message_reaction(
+        &self,
+        space_id: &str,
+        message_id: &str,
+        sender_space_id: &str,
+        emoji: &str,
+    ) -> Result<()> {
+        let message_id = message_id.trim();
+        if message_id.is_empty() {
+            return Err(Error::InvalidInput("invalid message reaction".into()));
+        }
+        let emoji = canonical_reaction(emoji)?;
+        if emoji == "❤️" {
+            self.like_message(space_id, message_id, true).await?;
+            return Ok(());
+        }
+        let path = format!("/spaces/{space_id}/messages/{message_id}/reaction");
+        let friend = self
+            .friend_actor_for_space(space_id, sender_space_id)
+            .await?;
+        let identity = self.space_identity_for(space_id).await?;
+        let reaction_key = generate_key();
+        let request = SetMessageReactionRequest {
+            sender_space_id: sender_space_id.to_owned(),
+            reaction_cipher: b64::encode(&encrypt_secretbox_payload(
+                &reaction_key,
+                emoji.as_bytes(),
+            )?),
+            sender_encrypted_reaction_key: b64::encode(&seal_with_public_key(
+                &reaction_key,
+                &b64::decode(&friend.public_key)?,
+            )?),
+            recipient_encrypted_reaction_key: b64::encode(&seal_with_public_key(
+                &reaction_key,
+                &identity.public_key,
+            )?),
+        };
+        self.api()
+            .put(&path)
+            .json(&request)
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
+    }
+
+    pub async fn delete_message_reaction(&self, space_id: &str, message_id: &str) -> Result<()> {
+        let message_id = message_id.trim();
+        if message_id.is_empty() {
+            return Err(Error::InvalidInput("message id is required".into()));
+        }
+        let path = format!("/spaces/{space_id}/messages/{message_id}/reaction");
+        self.api().delete(&path).send().await?.error_for_status()?;
+        Ok(())
+    }
+
+    async fn open_message_reaction(
+        &self,
+        space_id: &str,
+        cipher: &str,
+        encrypted_key: &str,
+    ) -> Result<Option<String>> {
+        match self
+            .decrypt_message_reaction(space_id, cipher, encrypted_key)
+            .await
+        {
+            Ok(reaction) => Ok(reaction),
+            Err(error) if error.is_content_error() => {
+                log::warn!("Space message reaction is unavailable: {error}");
+                Ok(None)
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    async fn decrypt_message_reaction(
+        &self,
+        space_id: &str,
+        cipher: &str,
+        encrypted_key: &str,
+    ) -> Result<Option<String>> {
+        if cipher.is_empty() || encrypted_key.is_empty() {
+            return Ok(None);
+        }
+        let identity = self.space_identity_for(space_id).await?;
+        let key = open_with_keypair(
+            &b64::decode(encrypted_key)?,
+            &identity.public_key,
+            &identity.secret_key,
+        )?;
+        let plaintext = decrypt_secretbox_payload(&key, &b64::decode(cipher)?)?;
+        let emoji = String::from_utf8(plaintext)
+            .map_err(|err| Error::InvalidInput(format!("invalid message reaction: {err}")))?;
+        validate_received_reaction(&emoji)?;
+        Ok(Some(emoji))
+    }
+
     pub async fn delete_message(&self, space_id: &str, message_id: &str) -> Result<()> {
         let message_id = message_id.trim();
         if message_id.is_empty() {
@@ -503,5 +632,36 @@ impl AccountSpaceCtx {
             reply_message_id: reply_message_id.map(ToOwned::to_owned),
             notification_kind,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::client::test_support::{test_account_ctx, test_public_key};
+
+    #[tokio::test]
+    async fn decrypts_complex_and_future_reactions_without_a_catalog_gate() {
+        let ctx = test_account_ctx("http://localhost");
+        let key = generate_key();
+        let encrypted_key =
+            b64::encode(&seal_with_public_key(&key, &test_public_key(&ctx)).unwrap());
+        for emoji in ["👩🏽‍💻", "🫱🏻‍🫲🏿", "🇮🇳", "1️⃣", "\u{1faff}"]
+        {
+            let cipher = b64::encode(&encrypt_secretbox_payload(&key, emoji.as_bytes()).unwrap());
+            assert_eq!(
+                ctx.open_message_reaction("space_owner_main", &cipher, &encrypted_key)
+                    .await
+                    .unwrap(),
+                Some(emoji.to_owned()),
+            );
+        }
+        let cipher = b64::encode(&encrypt_secretbox_payload(&key, &[b'a'; 129]).unwrap());
+        assert!(
+            ctx.open_message_reaction("space_owner_main", &cipher, &encrypted_key)
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 }

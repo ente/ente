@@ -15,6 +15,7 @@ export type {
     PostPhoto,
     PostResponse,
     ProfileAvatarResponse,
+    ReactionEmoji,
     SpaceAccountCtxHandle,
     SpaceActorResponse,
     SpaceKeyResponse,
@@ -23,6 +24,8 @@ export type {
 } from "./pkg/ente_space_wasm";
 
 const wasm = () => import("./pkg/ente_space_wasm");
+
+export const reactionEmojis = async () => (await wasm()).spaceReactionEmojis();
 
 export const generateKey = async () => (await wasm()).cryptoGenerateKey();
 

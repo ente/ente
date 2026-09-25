@@ -267,6 +267,7 @@ pub struct MessageResponse {
     reply_message_id: Option<String>,
     liked: bool,
     viewer_liked: bool,
+    reaction: Option<String>,
     is_deleted: bool,
     created_at: String,
     updated_at: String,
@@ -300,6 +301,7 @@ struct MessageConversationActivity {
     outgoing: bool,
     message_id: Option<String>,
     text: Option<String>,
+    reaction: Option<String>,
     post_id: Option<i64>,
     reply_object_key: Option<String>,
     post_space_id: Option<String>,
@@ -488,18 +490,6 @@ pub struct LikePostResponse {
 
 impl From<ente_space::LikePostResponse> for LikePostResponse {
     fn from(value: ente_space::LikePostResponse) -> Self {
-        Self { liked: value.liked }
-    }
-}
-
-#[derive(Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct LikeMessageResponse {
-    liked: bool,
-}
-
-impl From<ente_space::LikeMessageResponse> for LikeMessageResponse {
-    fn from(value: ente_space::LikeMessageResponse) -> Self {
         Self { liked: value.liked }
     }
 }
@@ -697,6 +687,7 @@ impl From<ente_space::Message> for MessageResponse {
             reply_message_id: message.reply_message_id,
             liked: message.liked,
             viewer_liked: message.viewer_liked,
+            reaction: message.reaction,
             is_deleted,
             created_at: message.created_at,
             updated_at: message.updated_at,
@@ -727,12 +718,55 @@ impl From<ente_space::MessageActivity> for MessageConversationActivity {
             outgoing: activity.outgoing,
             message_id: activity.message_id,
             text,
+            reaction: activity.reaction,
             post_id: activity.post_id,
             reply_object_key,
             post_space_id: activity.post_space_id,
             is_unavailable,
         }
     }
+}
+
+#[derive(Serialize, Tsify)]
+pub struct ReactionEmoji {
+    emoji: String,
+    name: String,
+    group: u8,
+    tags: Vec<String>,
+    skins: Vec<ReactionEmojiVariant>,
+}
+
+#[derive(Serialize, Tsify)]
+pub struct ReactionEmojiVariant {
+    emoji: String,
+    name: String,
+    tone: Vec<u8>,
+}
+
+#[wasm_bindgen(js_name = spaceReactionEmojis)]
+pub fn space_reaction_emojis() -> Result<Vec<<ReactionEmoji as Tsify>::JsType>, Error> {
+    ente_space::reaction_emojis()
+        .iter()
+        .map(|entry| {
+            ReactionEmoji {
+                emoji: entry.emoji.clone(),
+                name: entry.name.clone(),
+                group: entry.group,
+                tags: entry.tags.clone(),
+                skins: entry
+                    .skins
+                    .iter()
+                    .map(|skin| ReactionEmojiVariant {
+                        emoji: skin.emoji.clone(),
+                        name: skin.name.clone(),
+                        tone: skin.tone.clone(),
+                    })
+                    .collect(),
+            }
+            .into_js()
+            .map_err(Into::into)
+        })
+        .collect()
 }
 
 #[wasm_bindgen(js_name = spaceOpenAccountCtx)]
@@ -1242,20 +1276,30 @@ impl SpaceAccountCtxHandle {
         MessageResponse::from(message).into_js().map_err(Into::into)
     }
 
-    #[wasm_bindgen(js_name = likeMessage)]
-    pub async fn like_message(
+    #[wasm_bindgen(js_name = setMessageReaction)]
+    pub async fn set_message_reaction(
         &self,
         space_id: String,
         message_id: String,
-        like: bool,
-    ) -> Result<<LikeMessageResponse as Tsify>::JsType, Error> {
-        LikeMessageResponse::from(
-            self.inner
-                .like_message(&space_id, &message_id, like)
-                .await?,
-        )
-        .into_js()
-        .map_err(Into::into)
+        sender_space_id: String,
+        emoji: String,
+    ) -> Result<(), Error> {
+        self.inner
+            .set_message_reaction(&space_id, &message_id, &sender_space_id, &emoji)
+            .await
+            .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = deleteMessageReaction)]
+    pub async fn delete_message_reaction(
+        &self,
+        space_id: String,
+        message_id: String,
+    ) -> Result<(), Error> {
+        self.inner
+            .delete_message_reaction(&space_id, &message_id)
+            .await
+            .map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = deleteMessage)]

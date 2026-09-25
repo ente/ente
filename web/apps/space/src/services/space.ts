@@ -148,7 +148,7 @@ export interface SpaceMessage {
     id: string;
     isDeleted: boolean;
     kind: SpaceMessageKind;
-    liked: boolean;
+    reaction?: string;
     quote?: SpaceMessageQuote;
     recipient: FriendProfile;
     replyMessageId?: string;
@@ -157,7 +157,6 @@ export interface SpaceMessage {
     sender: FriendProfile;
     text: string;
     updatedAtMs: number;
-    viewerLiked: boolean;
     isUnavailable?: boolean;
 }
 
@@ -171,6 +170,7 @@ export interface SpaceMessageActivity {
     kind?: SpaceMessageKind;
     messageId?: string;
     outgoing: boolean;
+    reaction?: string;
     post?: SpaceMessageActivityPost;
     text?: string;
     type: SpaceMessageActivityType;
@@ -688,7 +688,7 @@ const messageFromSpaceMessage = async (
         isDeleted: message.isDeleted,
         isUnavailable: message.isUnavailable,
         kind: message.kind,
-        liked: message.liked,
+        reaction: message.reaction ?? undefined,
         quote,
         recipient,
         replyMessageId: message.replyMessageId,
@@ -697,7 +697,6 @@ const messageFromSpaceMessage = async (
         sender,
         text: message.text,
         updatedAtMs: timestampMsFromSpaceDate(message.updatedAt),
-        viewerLiked: message.viewerLiked,
     };
 };
 
@@ -747,6 +746,7 @@ const messageActivityFromSpaceActivity = (
         kind: activity.kind || undefined,
         messageId: activity.messageId,
         outgoing: activity.outgoing,
+        reaction: activity.reaction ?? undefined,
         post,
         text: activity.text?.trim() || undefined,
         type: activity.type,
@@ -1255,14 +1255,24 @@ export const replyToCurrentMessage = async (
     }
 };
 
-export const setCurrentMessageLiked = async (
+export const setCurrentMessageReaction = async (
     spaceId: string,
     messageId: string,
-    liked: boolean,
+    senderSpaceId: string,
+    reaction: string | null,
 ) => {
     const ctx = await ensureCurrentSpaceContext();
     try {
-        await ctx.likeMessage(spaceId, messageId, liked);
+        if (reaction) {
+            await ctx.setMessageReaction(
+                spaceId,
+                messageId,
+                senderSpaceId,
+                reaction,
+            );
+        } else {
+            await ctx.deleteMessageReaction(spaceId, messageId);
+        }
     } finally {
         releaseCurrentSpaceContext(ctx);
     }

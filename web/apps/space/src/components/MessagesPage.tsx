@@ -19,7 +19,7 @@ import {
     replyToCurrentMessage,
     sendCurrentMessage,
     sendCurrentPoke,
-    setCurrentMessageLiked,
+    setCurrentMessageReaction,
     shouldAutoReadMessageActivities,
     type SpaceMessage,
     type SpaceMessageConversation,
@@ -27,6 +27,10 @@ import {
 import { useSpaceAppState } from "state/app-state";
 import { spaceAppBackgroundColor } from "styles/colors";
 import { isFriendRequestCanceledError } from "utils/friend-errors";
+import {
+    localMessageIdPrefix,
+    reconcileMessageThread,
+} from "utils/message-thread";
 import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
 
@@ -50,8 +54,6 @@ const isFriendRequestConversation = (conversation: SpaceMessageConversation) =>
     conversation.latestActivity.type == "friend_request";
 
 let nextLocalMessageID = 0;
-
-const localMessageIdPrefix = "space-local-message-";
 
 const createLocalMessageID = () =>
     `${localMessageIdPrefix}${Date.now()}-${nextLocalMessageID++}`;
@@ -101,13 +103,11 @@ const createLocalMessage = ({
         id: createLocalMessageID(),
         isDeleted: false,
         kind,
-        liked: false,
         recipient,
         replyMessageId,
         sender: currentProfileMessageActor(profile),
         text,
         updatedAtMs: createdAtMs,
-        viewerLiked: false,
     };
 };
 
@@ -147,6 +147,7 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
     const selectedFriendSpaceIdRef = React.useRef<string | undefined>(
         undefined,
     );
+    const confirmedDuringThreadLoadRef = React.useRef<Set<string> | null>(null);
     const markedReadSpaceIdRef = React.useRef<string | undefined>(undefined);
     const conversationsLoadGenerationRef = React.useRef(0);
     const previousSelectedSpaceIdRef = React.useRef<string | undefined>(
@@ -463,6 +464,7 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
     const replaceMessageIfThreadIsCurrent = React.useCallback(
         (spaceId: string, localMessageId: string, message: SpaceMessage) => {
             if (selectedFriendSpaceIdRef.current != spaceId) return;
+            confirmedDuringThreadLoadRef.current?.add(message.id);
             setMessages((currentMessages) => {
                 const hasConfirmedMessage = currentMessages.some(
                     (currentMessage) => currentMessage.id == message.id,
@@ -604,13 +606,16 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
         const actorSpaceId = profile?.spaceId;
         if (!profile || !actorSpaceId || !selectedSpaceId) {
             selectedFriendSpaceIdRef.current = undefined;
+            confirmedDuringThreadLoadRef.current = null;
             setMessages([]);
             setIsThreadLoading(false);
             return;
         }
 
         let cancelled = false;
+        const confirmedDuringLoad = new Set<string>();
         selectedFriendSpaceIdRef.current = selectedSpaceId;
+        confirmedDuringThreadLoadRef.current = confirmedDuringLoad;
         setMessages([]);
         setIsThreadLoading(true);
         const viewer = currentProfileMessageActor(profile);
@@ -623,26 +628,28 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
         )
             .then((page) => {
                 if (!cancelled) {
-                    const loadedMessageIds = new Set(
-                        page.items.map((message) => message.id),
-                    );
-                    setMessages((currentMessages) => [
-                        ...page.items,
-                        ...currentMessages.filter(
-                            (message) => !loadedMessageIds.has(message.id),
+                    setMessages((currentMessages) =>
+                        reconcileMessageThread(
+                            page.items,
+                            currentMessages,
+                            confirmedDuringLoad,
                         ),
-                    ]);
+                    );
                 }
             })
             .catch((error: unknown) =>
                 log.error("Failed to load message thread", error),
             )
             .finally(() => {
+                if (confirmedDuringThreadLoadRef.current == confirmedDuringLoad)
+                    confirmedDuringThreadLoadRef.current = null;
                 if (!cancelled) setIsThreadLoading(false);
             });
 
         return () => {
             cancelled = true;
+            if (confirmedDuringThreadLoadRef.current == confirmedDuringLoad)
+                confirmedDuringThreadLoadRef.current = null;
         };
         // This fetch is keyed by thread identity. Actor display hydration should
         // not clear and refetch the open thread.
@@ -815,20 +822,27 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                     }
                     void refreshConversations();
                 }}
-                onSetMessageLiked={async (messageId, liked) => {
-                    await setCurrentMessageLiked(
+                onSetMessageReaction={async (
+                    messageId,
+                    senderSpaceId,
+                    reaction,
+                ) => {
+                    await setCurrentMessageReaction(
                         actorSpaceId,
                         messageId,
-                        liked,
+                        senderSpaceId,
+                        reaction,
                     );
                     setMessages((currentMessages) =>
                         currentMessages.map((message) =>
                             message.id == messageId
-                                ? { ...message, liked, viewerLiked: liked }
+                                ? {
+                                      ...message,
+                                      reaction: reaction ?? undefined,
+                                  }
                                 : message,
                         ),
                     );
-                    void refreshConversations();
                 }}
                 profileLink={spaceInviteURL({
                     spaceUsername: profile.username,

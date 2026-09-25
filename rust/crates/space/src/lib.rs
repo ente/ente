@@ -1,7 +1,9 @@
 pub mod client;
 pub mod crypto;
+mod emoji;
 pub mod error;
 pub mod models;
+mod reactions;
 pub mod transport;
 
 pub use client::{
@@ -11,6 +13,7 @@ pub use client::{
     MAX_SPACE_MESSAGE_TEXT_BYTES, MAX_SPACE_MESSAGE_TEXT_CHARS, MAX_SPACE_POST_PLAINTEXT_BYTES,
     MAX_SPACE_POST_UPLOAD_BYTES, PostPhotoAssetOptions, PostPhotoInput, SpaceLinkCtx,
 };
+pub use emoji::{ReactionEmoji, ReactionEmojiVariant, reaction_emojis};
 pub use error::{Error, Result};
 pub use models::{
     ConversationChatSummary, Conversations, CreatedSpace, CreatedSpaceLink, DecryptedFriendShare,
