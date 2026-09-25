@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.3.1
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
 	github.com/zalando/go-keyring v0.2.3
-	golang.org/x/crypto v0.53.0
+	golang.org/x/crypto v0.57.0
 )
 
 require (
@@ -37,10 +37,10 @@ require (
 	github.com/spf13/viper v1.16.0
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.etcd.io/bbolt v1.3.7
-	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/term v0.44.0
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/term v0.46.0
+	golang.org/x/text v0.42.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
