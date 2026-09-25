@@ -2,12 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import assets from "../src/data/emoji-assets.json";
 import catalog from "../src/data/emoji-catalog.json";
-import {
-    emojiForTone,
-    emojiKey,
-    findEmoji,
-    sameEmoji,
-} from "../src/utils/emoji";
+import { emojiKey, findEmoji, sameEmoji } from "../src/utils/emoji";
 
 describe("emoji catalog interoperability", () => {
     it("covers every picker variant in Rust validation and local artwork", () => {
@@ -62,13 +57,8 @@ describe("emoji picker search and tones", () => {
             findEmoji(catalog, "👍", 0, 3).map((entry) => entry.emoji),
         ).toContain("👍🏽");
         expect(
-            emojiForTone(catalog.find((entry) => entry.emoji === "👍")!, 3)
-                .emoji,
-        ).toBe("👍🏽");
-        expect(
-            emojiForTone(catalog.find((entry) => entry.emoji === "❤️")!, 3)
-                .emoji,
-        ).toBe("❤️");
+            findEmoji(catalog, "❤️", 0, 3).map((entry) => entry.emoji),
+        ).toContain("❤️");
         expect(
             findEmoji(catalog, "", 4, 3).every((entry) =>
                 catalog.some(

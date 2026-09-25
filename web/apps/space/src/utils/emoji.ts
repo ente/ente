@@ -7,7 +7,7 @@ export const emojiKey = (emoji: string) =>
 export const sameEmoji = (first: string | undefined, second: string) =>
     first !== undefined && emojiKey(first) === emojiKey(second);
 
-export interface EmojiVariant {
+interface EmojiVariant {
     emoji: string;
     name: string;
     tone: number | number[];
@@ -21,7 +21,7 @@ export interface EmojiEntry {
     skins?: EmojiVariant[];
 }
 
-export const emojiForTone = (entry: EmojiEntry, tone: number) =>
+const emojiForTone = (entry: EmojiEntry, tone: number) =>
     entry.skins?.find((skin) =>
         Array.isArray(skin.tone)
             ? skin.tone.every((value) => value === tone)
