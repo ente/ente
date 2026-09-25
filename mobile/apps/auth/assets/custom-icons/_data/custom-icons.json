@@ -2108,6 +2108,15 @@
       "hex": "000000"
     },
     {
+      "title": "Remote HR",
+      "slug": "remote",
+      "altNames": [
+        "Remote",
+        "remote.com",
+        "employ.remote.com"
+      ]
+    },
+    {
       "title": "Reolink",
       "slug": "reolink"
     },
