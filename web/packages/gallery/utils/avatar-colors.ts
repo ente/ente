@@ -1,5 +1,5 @@
 // Keep this palette and length-based selection in sync with mobile.
-export const avatarColors = [
+const avatarColors = [
     "#76549A",
     "#DF7861",
     "#94B49F",

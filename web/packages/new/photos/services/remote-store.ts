@@ -11,7 +11,7 @@ export const fetchFeatureFlags = async () => {
     return res;
 };
 
-export const getRemoteValue = async (key: string, defaultValue: string) => {
+const getRemoteValue = async (key: string, defaultValue: string) => {
     const res = await fetch(
         await apiURL("/remote-store", { key, defaultValue }),
         { headers: await authenticatedRequestHeaders() },

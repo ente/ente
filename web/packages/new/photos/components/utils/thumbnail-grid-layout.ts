@@ -1,5 +1,5 @@
 export const thumbnailGap = 4;
-export const thumbnailMaxHeight = 180;
+const thumbnailMaxHeight = 180;
 export const thumbnailMaxWidth = 180;
 export const thumbnailLayoutMinColumns = 4;
 

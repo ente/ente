@@ -10,6 +10,7 @@ public enum EnteApp: Sendable {
 public struct Palette: Sendable {
     public let isDark: Bool
     public let primary: Color
+    public let primarySurface: Color
     public let primaryDark: Color
     public let primaryDarker: Color
     public let text: Color
@@ -47,9 +48,16 @@ public struct Palette: Sendable {
             primaryDark = Color(hex: 0x0E5FD9)
             primaryDarker = Color(hex: 0x0B4CAD)
         }
+        let primarySurface: UInt =
+            switch app {
+            case .photos: dark ? 0x292929 : 0xDDEEDF
+            case .auth: dark ? 0x271C32 : 0xF4E7FC
+            case .locker: dark ? 0x292929 : 0xE7EFFA
+            }
         return Palette(
             isDark: dark,
             primary: primary,
+            primarySurface: Color(hex: primarySurface),
             primaryDark: primaryDark,
             primaryDarker: primaryDarker,
             text: dark ? .white : .black,

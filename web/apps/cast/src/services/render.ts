@@ -83,7 +83,7 @@ export const imageURLGenerator = async function* (castData: CastData) {
     }
 };
 
-export const getRemoteCastCollectionFiles = async (
+const getRemoteCastCollectionFiles = async (
     castToken: string,
 ): Promise<RemoteEnteFile[]> => {
     const filesByID = new Map<number, RemoteEnteFile>();

@@ -1,0 +1,1 @@
+- Upgrade ua_client_hints to 1.5.0 for SwiftPM support.

@@ -14,7 +14,6 @@ import type { PublicMemoryCredentials } from "ente-base/public-memory";
 import type { EnteFile } from "ente-media/file";
 import { playableVideoURL, renderableImageBlob } from "./convert";
 import {
-    NetworkDownloadError,
     createDownloadManager,
     isNetworkDownloadError,
     type FileDownloadOpts,
@@ -22,8 +21,8 @@ import {
 } from "./download-core";
 import { hlsPlaylistDataForFile, type HLSPlaylistDataForFile } from "./video";
 
-export { NetworkDownloadError, isNetworkDownloadError };
-export type { FileDownloadOpts, RenderableSourceURLs };
+export { isNetworkDownloadError };
+export type { RenderableSourceURLs };
 
 class DownloadManager {
     publicAlbumsCredentials: PublicAlbumsCredentials | undefined;

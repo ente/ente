@@ -1,4 +1,4 @@
-import { decryptBox } from "ente-base/crypto";
+import { decryptBoxBytes } from "ente-base/crypto";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
 import { z } from "zod";
@@ -47,24 +47,6 @@ export const getUnifiedSocialDiff = async (
     return decryptSocialDiff(collectionKey, await res.json());
 };
 
-// Remote filters this feed to activity relevant to the current user.
-// This includes replies or reactions to them and activity on files they own.
-export const getAlbumFeed = async (
-    collectionID: number,
-    collectionKey: string,
-): Promise<UnifiedSocialDiff> => {
-    const res = await fetch(
-        await apiURL("/social/album-feed", {
-            collectionID,
-            sinceTime: 0,
-            limit: 1000,
-        }),
-        { headers: await authenticatedRequestHeaders() },
-    );
-    ensureOk(res);
-    return decryptSocialDiff(collectionKey, await res.json());
-};
-
 const decryptSocialDiff = async (
     collectionKey: string,
     responseJson: unknown,
@@ -90,13 +72,11 @@ const decryptSocialDiff = async (
             continue;
         }
         try {
-            const decryptedB64 = await decryptBox(
+            const decrypted = await decryptBoxBytes(
                 { encryptedData: comment.cipher, nonce: comment.nonce },
                 collectionKey,
             );
-            const text = new TextDecoder().decode(
-                Uint8Array.from(atob(decryptedB64), (c) => c.charCodeAt(0)),
-            );
+            const text = new TextDecoder().decode(decrypted);
             const decryptedComment = {
                 id: comment.id,
                 collectionID: comment.collectionID,
@@ -120,14 +100,12 @@ const decryptSocialDiff = async (
     for (const reaction of data.reactions) {
         if (reaction.isDeleted || !reaction.cipher || !reaction.nonce) continue;
         try {
-            const decryptedB64 = await decryptBox(
+            const decrypted = await decryptBoxBytes(
                 { encryptedData: reaction.cipher, nonce: reaction.nonce },
                 collectionKey,
             );
             const reactionType = unpadReaction(
-                new TextDecoder().decode(
-                    Uint8Array.from(atob(decryptedB64), (c) => c.charCodeAt(0)),
-                ),
+                new TextDecoder().decode(decrypted),
             );
             reactions.push({
                 id: reaction.id,
@@ -208,13 +186,11 @@ export const getAnonProfiles = async (
     for (const profile of profiles) {
         if (!profile.cipher || !profile.nonce) continue;
         try {
-            const decryptedB64 = await decryptBox(
+            const decrypted = await decryptBoxBytes(
                 { encryptedData: profile.cipher, nonce: profile.nonce },
                 collectionKey,
             );
-            const userName = new TextDecoder().decode(
-                Uint8Array.from(atob(decryptedB64), (c) => c.charCodeAt(0)),
-            );
+            const userName = new TextDecoder().decode(decrypted);
             if (userName) {
                 anonUserNames.set(profile.anonUserID, userName);
             }

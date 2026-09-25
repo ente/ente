@@ -13,7 +13,7 @@ import { z } from "zod";
 
 const ObjectUploadURL = z.object({ objectKey: z.string(), url: z.string() });
 
-export type ObjectUploadURL = z.infer<typeof ObjectUploadURL>;
+type ObjectUploadURL = z.infer<typeof ObjectUploadURL>;
 
 export const fetchPublicAlbumsUploadURLWithMetadata = async (
     {
@@ -70,7 +70,7 @@ const MultipartUploadURLs = z.object({
     completeURL: z.string(),
 });
 
-export type MultipartUploadURLs = z.infer<typeof MultipartUploadURLs>;
+type MultipartUploadURLs = z.infer<typeof MultipartUploadURLs>;
 
 interface PutFileOptions {
     contentMd5?: string;
@@ -221,7 +221,7 @@ export interface PostEnteFileRequest {
     pubMagicMetadata?: RemoteMagicMetadata;
 }
 
-export interface UploadedFileObjectAttributes {
+interface UploadedFileObjectAttributes {
     objectKey: string;
     decryptionHeader: string;
     size: number;

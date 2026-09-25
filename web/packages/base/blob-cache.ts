@@ -29,9 +29,7 @@ export const blobCache = async (
 
 // Electron's custom protocols cannot use Cache API, so desktop uses OPFS.
 // Browsers stay on Cache API because OPFS writes are not universally usable here.
-export const openBlobCache = async (
-    name: BlobCacheNamespace,
-): Promise<BlobCache> =>
+const openBlobCache = async (name: BlobCacheNamespace): Promise<BlobCache> =>
     isDesktop ? openOPFSCacheWeb(name) : openWebCache(name);
 
 export const clearBlobCache = async (name: BlobCacheNamespace) => {

@@ -23,18 +23,18 @@ const CDN_BASE = `https://cdn.jsdelivr.net/npm/@wllama/wllama@${wllamaPackage.ve
 const MIN_GGUF_BYTES = 1024 * 1024;
 const DEFAULT_GENERATION_MAX_TOKENS = 8_192;
 
-export type WasmProgressCallback = (event: {
+type WasmProgressCallback = (event: {
     loaded: number;
     total?: number;
     status?: string;
 }) => void;
 
-export const defaultWasmPaths: AssetsPathConfig = {
+const defaultWasmPaths: AssetsPathConfig = {
     "single-thread/wllama.wasm": `${CDN_BASE}/single-thread/wllama.wasm`,
     "multi-thread/wllama.wasm": `${CDN_BASE}/multi-thread/wllama.wasm`,
 };
 
-export type BackendType = "tauri" | "wasm";
+type BackendType = "tauri" | "wasm";
 
 export interface InferenceOptions {
     backend?: "auto" | BackendType;
@@ -45,14 +45,14 @@ export interface InferenceOptions {
     };
 }
 
-export interface LoadModelParams {
+interface LoadModelParams {
     modelPath: string;
     nGpuLayers?: number | null;
     useMmap?: boolean | null;
     useMlock?: boolean | null;
 }
 
-export interface ContextParams {
+interface ContextParams {
     contextSize?: number | null;
     nThreads?: number | null;
     nBatch?: number | null;

@@ -495,34 +495,6 @@ export const subscribeToPublicSpaceWebPush = async (
     return permission;
 };
 
-export const unsubscribeFromPublicSpaceWebPush = async (
-    session: PublicSpaceLinkSession,
-    route: string,
-) => {
-    const prepared = await preparedSpaceWebPush();
-    if (!prepared) throw new Error("Web push is unavailable.");
-    const key = publicTargetKey(route);
-    const target = await getTarget(key);
-    if (!target) return;
-    const subscription =
-        await prepared.registration.pushManager.getSubscription();
-    const endpoint = subscription?.endpoint || target.endpoint;
-    if (!endpoint) {
-        await deleteTarget(key);
-        return;
-    }
-    if (subscription && (await removingLastTarget(key))) {
-        if (!(await subscription.unsubscribe())) {
-            throw new Error("Failed to unsubscribe from web push.");
-        }
-        await deleteTarget(key);
-        await session.unsubscribeWebPush(endpoint);
-        return;
-    }
-    await session.unsubscribeWebPush(endpoint);
-    await deleteTarget(key);
-};
-
 const base64URLKey = (value: string): ArrayBuffer => {
     const padding = "=".repeat((4 - (value.length % 4)) % 4);
     const bytes = Uint8Array.from(

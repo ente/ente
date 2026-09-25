@@ -61,7 +61,7 @@ export const renderableImageBlobWeb = async (
 
 let _isHEICSupported: Promise<boolean> | undefined;
 
-export const isHEICSupported = () =>
+const isHEICSupported = () =>
     (_isHEICSupported ??= new Promise((resolve) => {
         const image = new Image();
         image.onload = () => resolve(true);

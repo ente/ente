@@ -12,16 +12,11 @@ export {
     generateKeyPair,
     recoveryKeyFromMnemonicOrHex,
 } from "ente-prelogin-wasm";
-export type {
-    EncryptedBoxB64 as EncryptedBox,
-    KeyPair,
-} from "ente-prelogin-wasm";
-
 export type { DerivedKey } from "./kdf";
 
 const b64ToBinary = (b64: string) => atob(b64);
 
-export const fromB64 = (b64String: string): Promise<Uint8Array> => {
+const fromB64 = (b64String: string): Promise<Uint8Array> => {
     const binary = b64ToBinary(b64String);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
@@ -30,7 +25,7 @@ export const fromB64 = (b64String: string): Promise<Uint8Array> => {
     return Promise.resolve(bytes);
 };
 
-export const toB64 = (bytes: Uint8Array): Promise<string> => {
+const toB64 = (bytes: Uint8Array): Promise<string> => {
     let binary = "";
     for (const byte of bytes) binary += String.fromCharCode(byte);
     return Promise.resolve(btoa(binary));

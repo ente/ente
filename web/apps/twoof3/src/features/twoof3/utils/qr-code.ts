@@ -1,6 +1,6 @@
 import encodeQR from "qr";
 
-export interface QrModule {
+interface QrModule {
     finder: boolean;
     x: number;
     y: number;

@@ -1,6 +1,6 @@
 import React from "react";
 
-export type SpacePWAInstallMode =
+type SpacePWAInstallMode =
     | "android-fallback"
     | "ios-chrome"
     | "ios-fallback"

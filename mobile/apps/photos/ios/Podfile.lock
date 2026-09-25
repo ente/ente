@@ -228,7 +228,7 @@ PODS:
     - sqlite3/perf-threadsafe
     - sqlite3/rtree
     - sqlite3/session
-  - ua_client_hints (1.4.1):
+  - ua_client_hints (1.5.0):
     - Flutter
   - url_launcher_ios (0.0.1):
     - Flutter
@@ -510,7 +510,7 @@ SPEC CHECKSUMS:
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   sqlite3: 8d708bc63e9f4ce48f0ad9d6269e478c5ced1d9b
   sqlite3_flutter_libs: d13b8b3003f18f596e542bcb9482d105577eff41
-  ua_client_hints: 92fe0d139619b73ec9fcb46cc7e079a26178f586
+  ua_client_hints: 64dff09b3f846e425fc1a8d174f264a64c5b76c6
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
   video_player_avfoundation: 33f12ee023e354af9d062d2c366503424a914d10
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556

@@ -43,9 +43,7 @@ export const CustomHead: React.FC<React.PropsWithChildren<CustomHeadProps>> = ({
     </Head>
 );
 
-export const CustomHeadPhotosStatic: React.FC<CustomHeadProps> = ({
-    title,
-}) => (
+const CustomHeadPhotosStatic: React.FC<CustomHeadProps> = ({ title }) => (
     <CustomHead title={title} description={photosPreviewDescription}>
         <meta property="og:type" content="website" />
         <meta property="og:title" content={title} />
@@ -69,7 +67,7 @@ export const CustomHeadPhotos: React.FC<CustomHeadProps> = ({ title }) =>
     );
 
 // Link preview crawlers only see static HTML, and og:image must be absolute.
-export const CustomHeadAlbumsStatic: React.FC = () => (
+const CustomHeadAlbumsStatic: React.FC = () => (
     <Head>
         <AlbumsFontPreloads />
         <title>Ente Photos</title>
@@ -103,7 +101,7 @@ export const CustomHeadAlbums: React.FC<CustomHeadProps> = ({ title }) =>
         <CustomHeadAlbumsStatic />
     );
 
-export const CustomHeadShareStatic: React.FC = () => (
+const CustomHeadShareStatic: React.FC = () => (
     <Head>
         <title>Ente Locker</title>
         <link rel="icon" href="/images/favicon.png" type="image/png" />

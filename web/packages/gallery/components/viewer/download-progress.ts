@@ -1,7 +1,7 @@
 import type { FileDownloadProgress } from "ente-gallery/services/download-core";
 import type { ItemData } from "./data-source-core";
 
-export type DownloadProgressPhase =
+type DownloadProgressPhase =
     | "preparing"
     | "downloading"
     | "decrypting"

@@ -1,4 +1,4 @@
-export const isArrayBufferBacked = (
+const isArrayBufferBacked = (
     bytes: Uint8Array,
 ): bytes is Uint8Array<ArrayBuffer> => bytes.buffer instanceof ArrayBuffer;
 

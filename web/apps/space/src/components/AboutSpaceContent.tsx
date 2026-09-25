@@ -33,7 +33,7 @@ export const SpaceAboutContent: React.FC<{ children: React.ReactNode }> = ({
     <Content>
         <section className="hero green-bg">
             <div className="heroCopy">
-                <h2>Share everyday photos with your people.</h2>
+                <h2>Share your life through everyday photos</h2>
             </div>
             <div className="heroVisual">
                 <FeedPreview />

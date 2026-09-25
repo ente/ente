@@ -26,7 +26,7 @@ export function PasskeyVerificationPresentation(
     );
 }
 
-export function PasskeyVerificationForm({
+function PasskeyVerificationForm({
     email,
     host,
     verificationStatus,

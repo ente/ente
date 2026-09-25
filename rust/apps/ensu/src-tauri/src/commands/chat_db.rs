@@ -395,16 +395,6 @@ pub async fn chat_db_insert_message(
 }
 
 #[tauri::command]
-pub async fn chat_db_update_message_text(
-    state: State<'_, ChatDbState>,
-    message_uuid: String,
-    text: String,
-) -> Result<(), ApiError> {
-    let uuid = parse_uuid(&message_uuid)?;
-    with_chat_db_async(&state, move |db| db.update_message_text(uuid, &text)).await
-}
-
-#[tauri::command]
 pub async fn chat_db_upsert_session(
     state: State<'_, ChatDbState>,
     input: ChatSessionUpsertInput,

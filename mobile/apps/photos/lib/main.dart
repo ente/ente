@@ -409,6 +409,9 @@ Future<void> _runMinimally(
       }
     }
     _logger.info("[BG TASK] smart albums sync");
+    if (hasGrantedMLConsent && !PersonService.isInitialized) {
+      PersonService.init(entityService, MLDataDB.instance, prefs);
+    }
     await smartAlbumsService.syncSmartAlbums();
 
     _logger.info("[BG TASK] $taskId completed");
@@ -535,6 +538,7 @@ Future<void> _init(
     RemoteSyncService.instance.init(preferences);
     _logger.info("RemoteFileMLService done $tlog");
 
+    PersonService.init(entityService, MLDataDB.instance, preferences);
     _logger.info("SyncService init $tlog");
     await SyncService.instance.init(preferences);
     _isSyncInitialized = true;
@@ -564,7 +568,6 @@ Future<void> _init(
     }
     _logger.info("PushService/HomeWidget done $tlog");
     unawaited(MLService.instance.init());
-    PersonService.init(entityService, MLDataDB.instance, preferences);
     try {
       await PersonService.instance.refreshPersonCache();
     } catch (e, s) {

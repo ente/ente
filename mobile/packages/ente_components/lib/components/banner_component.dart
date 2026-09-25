@@ -17,6 +17,7 @@ class BannerComponent extends StatelessWidget {
     this.leadingIcon,
     this.leadingWidget,
     this.state = BannerComponentState.neutral,
+    this.foregroundColor,
     this.subtitle,
     this.trailingWidget,
     super.key,
@@ -32,6 +33,7 @@ class BannerComponent extends StatelessWidget {
   final List<List<dynamic>>? leadingIcon;
   final Widget? leadingWidget;
   final BannerComponentState state;
+  final Color? foregroundColor;
   final Widget? trailingWidget;
   final VoidCallback onTap;
 
@@ -82,7 +84,7 @@ class BannerComponent extends StatelessWidget {
                         ? HugeIcon(
                             icon: leadingIcon ?? _defaultLeadingIcon,
                             size: _leadingIconSize,
-                            color: accentColor,
+                            color: foregroundColor ?? accentColor,
                           )
                         : SizedBox(
                             width: _leadingIconSize,
@@ -90,7 +92,7 @@ class BannerComponent extends StatelessWidget {
                             child: Center(
                               child: IconTheme.merge(
                                 data: IconThemeData(
-                                  color: accentColor,
+                                  color: foregroundColor ?? accentColor,
                                   size: _leadingIconSize,
                                 ),
                                 child: leadingWidget,
@@ -105,7 +107,7 @@ class BannerComponent extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyles.bodyBold.copyWith(
-                                color: titleColor,
+                                color: foregroundColor ?? titleColor,
                               ),
                             )
                           : Column(
@@ -117,7 +119,7 @@ class BannerComponent extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyles.bodyBold.copyWith(
-                                    color: titleColor,
+                                    color: foregroundColor ?? titleColor,
                                   ),
                                 ),
                                 const SizedBox(height: Spacing.xs),

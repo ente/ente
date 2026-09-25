@@ -85,9 +85,7 @@ class _AccountCredentialsPageState
 
   @override
   bool validateForm() {
-    return _nameController.text.trim().isNotEmpty &&
-        _usernameController.text.trim().isNotEmpty &&
-        _passwordController.text.trim().isNotEmpty;
+    return _nameController.text.trim().isNotEmpty;
   }
 
   @override
@@ -128,7 +126,6 @@ class _AccountCredentialsPageState
         label: context.strings.username,
         hintText: context.strings.usernameHint,
         controller: _usernameController,
-        isRequired: true,
         textInputAction: TextInputAction.next,
         onChanged: (_) => onFieldChanged(),
       ),
@@ -137,7 +134,6 @@ class _AccountCredentialsPageState
         label: context.strings.password,
         hintText: context.strings.passwordHint,
         controller: _passwordController,
-        isRequired: true,
         isPasswordInput: true,
         textInputAction: TextInputAction.next,
         onChanged: (_) => onFieldChanged(),
@@ -162,25 +158,34 @@ class _AccountCredentialsPageState
     final passwordText = _passwordController.text;
     final notesText = _notesController.text;
 
-    final fields = <Widget>[
-      buildViewField(label: context.strings.username, value: usernameText),
-      const SizedBox(height: 24),
-      buildViewField(
-        label: context.strings.password,
-        value: passwordText,
-        isSecret: true,
-      ),
-    ];
+    final fields = <Widget>[];
+
+    if (usernameText.trim().isNotEmpty) {
+      fields.add(
+        buildViewField(label: context.strings.username, value: usernameText),
+      );
+    }
+
+    if (passwordText.trim().isNotEmpty) {
+      if (fields.isNotEmpty) fields.add(const SizedBox(height: 24));
+      fields.add(
+        buildViewField(
+          label: context.strings.password,
+          value: passwordText,
+          isSecret: true,
+        ),
+      );
+    }
 
     if (notesText.trim().isNotEmpty) {
-      fields.addAll([
-        const SizedBox(height: 24),
+      if (fields.isNotEmpty) fields.add(const SizedBox(height: 24));
+      fields.add(
         buildViewField(
           label: context.strings.credentialNotes,
           value: notesText,
           maxLines: 6,
         ),
-      ]);
+      );
     }
 
     return fields;

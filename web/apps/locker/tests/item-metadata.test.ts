@@ -146,3 +146,22 @@ test("a rejected metadata update leaves the cache unchanged", async () => {
         originalMetadata,
     );
 });
+
+test("clearing optional credential fields replaces the saved info data", async () => {
+    decryptMetadataJSON.mockResolvedValue({
+        info: {
+            type: "accountCredential",
+            data: { name: "Netflix", username: "old", password: "old" },
+        },
+    });
+
+    await updateInfoItem(1, "accountCredential", { name: "Netflix" });
+
+    const metadata = JSON.parse(
+        new TextDecoder().decode(encryptBlob.mock.calls[0]![0] as Uint8Array),
+    ) as Record<string, unknown>;
+    expect(metadata.info).toEqual({
+        type: "accountCredential",
+        data: { name: "Netflix" },
+    });
+});

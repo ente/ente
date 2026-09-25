@@ -1,15 +1,19 @@
 use super::{
     AccountSpaceCtx, MESSAGE_KIND_POKE, MESSAGE_KIND_POST_REPLY, MESSAGE_KIND_REGULAR,
-    validate_message_payload,
+    retain_content_error, validate_message_payload,
 };
 use crate::crypto::{
     decrypt_secretbox_payload, encrypt_secretbox_payload, generate_key, open_with_keypair,
     seal_with_public_key,
 };
 use crate::error::{Error, Result};
-use crate::models::{DecryptedMessage, MessagePayload};
+use crate::models::{
+    ConversationChatSummary, Conversations, Message, MessageActivity, MessageContent, MessagePage,
+    MessagePayload,
+};
 use crate::transport::{
-    ConversationsResponse, CreateMessageRequest, LikeMessageResponse, MessagePage, MessageResponse,
+    ConversationChatSummaryResponse, ConversationsResponse, CreateMessageRequest,
+    LikeMessageResponse, MessageConversationActivity, MessagePageResponse, MessageResponse,
     SpaceActorResponse,
 };
 use ente_core::b64;
@@ -18,16 +22,37 @@ const MESSAGE_NOTIFICATION_KIND_POKE: &str = "poke";
 const POKE_MESSAGE_TEXT: &str = "Poked";
 
 impl AccountSpaceCtx {
-    pub async fn list_conversations(&self, space_id: &str) -> Result<ConversationsResponse> {
+    pub async fn list_conversations(&self, space_id: &str) -> Result<Conversations> {
         let path = format!("/spaces/{space_id}/conversations");
-        Ok(self
+        let response: ConversationsResponse = self
             .api()
             .get(&path)
             .send()
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        let mut friends = Vec::with_capacity(response.friends.len());
+        for friend in response.friends {
+            friends.push(self.open_friend(friend).await?);
+        }
+        let mut chat_summaries = std::collections::BTreeMap::new();
+        for (friend_space_id, summary) in response.chat_summaries {
+            chat_summaries.insert(
+                friend_space_id,
+                self.open_conversation_summary(space_id, summary).await?,
+            );
+        }
+        Ok(Conversations {
+            friends,
+            pending_requests: response
+                .pending_requests
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            chat_summaries,
+            latest_post_created_at: response.latest_post_created_at,
+        })
     }
 
     pub async fn list_message_thread(
@@ -45,7 +70,7 @@ impl AccountSpaceCtx {
             query.push(("limit", value.to_string()));
         }
         let path = format!("/spaces/{viewer_space_id}/friends/{space_id}/messages");
-        Ok(self
+        let page: MessagePageResponse = self
             .api()
             .get(&path)
             .query(&query)
@@ -53,7 +78,143 @@ impl AccountSpaceCtx {
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        let mut items = Vec::with_capacity(page.items.len());
+        for message in page.items {
+            items.push(self.open_message(viewer_space_id, message).await?);
+        }
+        Ok(MessagePage {
+            items,
+            next_cursor: page.next_cursor,
+        })
+    }
+
+    async fn open_message(
+        &self,
+        viewer_space_id: &str,
+        message: MessageResponse,
+    ) -> Result<Message> {
+        let mut kind = message.kind.clone();
+        let content = if message.is_deleted {
+            Ok(None)
+        } else if kind == "post_like" || kind == "friend_added" {
+            Ok(Some(MessageContent {
+                text: message.text.clone(),
+                reply_object_key: None,
+            }))
+        } else {
+            self.decrypt_message(viewer_space_id, &message)
+                .await
+                .map(|payload| {
+                    kind = payload.kind;
+                    Some(MessageContent {
+                        text: payload.text,
+                        reply_object_key: payload.reply_object_key,
+                    })
+                })
+        };
+        let content = retain_content_error(content)?;
+        Ok(Message {
+            message_id: message.message_id,
+            kind,
+            sender_space_id: message.sender_space_id,
+            recipient_space_id: message.recipient_space_id,
+            content,
+            reply_post_id: message.reply_post_id,
+            reply_message_id: message.reply_message_id,
+            liked: message.liked,
+            viewer_liked: message.viewer_liked,
+            created_at: message.created_at,
+            updated_at: message.updated_at,
+        })
+    }
+
+    async fn open_sent_message(
+        &self,
+        space_id: &str,
+        response: MessageResponse,
+    ) -> Result<Message> {
+        let message = self.open_message(space_id, response).await?;
+        let content = message.content?;
+        if content.is_none() {
+            return Err(Error::InvalidInput("sent message is deleted".into()));
+        }
+        Ok(Message {
+            content: Ok(content),
+            ..message
+        })
+    }
+
+    pub(super) async fn open_conversation_summary(
+        &self,
+        viewer_space_id: &str,
+        summary: ConversationChatSummaryResponse,
+    ) -> Result<ConversationChatSummary> {
+        let mut unread_activities = Vec::with_capacity(summary.unread_activities.len());
+        for activity in summary.unread_activities {
+            unread_activities.push(
+                self.open_message_activity(viewer_space_id, activity)
+                    .await?,
+            );
+        }
+        let latest_activity = self
+            .open_message_activity(viewer_space_id, summary.latest_activity)
+            .await?;
+        for activity in &mut unread_activities {
+            if activity.id == latest_activity.id && latest_activity.kind == MESSAGE_KIND_POKE {
+                activity.kind = MESSAGE_KIND_POKE.to_owned();
+            }
+        }
+        Ok(ConversationChatSummary {
+            latest_activity,
+            unread_activities,
+        })
+    }
+
+    async fn open_message_activity(
+        &self,
+        viewer_space_id: &str,
+        activity: MessageConversationActivity,
+    ) -> Result<MessageActivity> {
+        let mut kind = activity.kind.clone();
+        let content = if activity.message_cipher.trim().is_empty()
+            || activity.encrypted_message_key.trim().is_empty()
+            || activity.message_id.is_none()
+        {
+            Ok(None)
+        } else {
+            let server_kind = if kind.trim().is_empty() {
+                MESSAGE_KIND_REGULAR
+            } else {
+                &kind
+            };
+            self.decrypt_message_fields(
+                viewer_space_id,
+                server_kind,
+                &activity.encrypted_message_key,
+                &activity.message_cipher,
+            )
+            .await
+            .map(|payload| {
+                kind = payload.kind;
+                Some(MessageContent {
+                    text: payload.text,
+                    reply_object_key: payload.reply_object_key,
+                })
+            })
+        };
+        let content = retain_content_error(content)?;
+        Ok(MessageActivity {
+            id: activity.id,
+            activity_type: activity.activity_type,
+            kind,
+            created_at: activity.created_at,
+            outgoing: activity.outgoing,
+            message_id: activity.message_id,
+            content,
+            post_id: activity.post_id,
+            post_space_id: activity.post_space_id,
+        })
     }
 
     pub async fn send_message(
@@ -61,7 +222,7 @@ impl AccountSpaceCtx {
         sender_space_id: &str,
         space_id: &str,
         text: &str,
-    ) -> Result<MessageResponse> {
+    ) -> Result<Message> {
         self.send_direct_message(
             sender_space_id,
             space_id,
@@ -76,11 +237,7 @@ impl AccountSpaceCtx {
         .await
     }
 
-    pub async fn send_poke(
-        &self,
-        sender_space_id: &str,
-        space_id: &str,
-    ) -> Result<MessageResponse> {
+    pub async fn send_poke(&self, sender_space_id: &str, space_id: &str) -> Result<Message> {
         self.send_direct_message(
             sender_space_id,
             space_id,
@@ -101,7 +258,7 @@ impl AccountSpaceCtx {
         space_id: &str,
         payload: MessagePayload,
         notification_kind: Option<&str>,
-    ) -> Result<MessageResponse> {
+    ) -> Result<Message> {
         let friend = self
             .friend_actor_for_space(sender_space_id, space_id)
             .await?;
@@ -115,7 +272,7 @@ impl AccountSpaceCtx {
             )
             .await?;
         let path = format!("/spaces/{sender_space_id}/friends/{space_id}/messages");
-        Ok(self
+        let response = self
             .api()
             .post(&path)
             .json(&request)
@@ -123,7 +280,8 @@ impl AccountSpaceCtx {
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        self.open_sent_message(sender_space_id, response).await
     }
 
     pub async fn reply_to_message(
@@ -132,7 +290,7 @@ impl AccountSpaceCtx {
         space_id: &str,
         message_id: &str,
         text: &str,
-    ) -> Result<MessageResponse> {
+    ) -> Result<Message> {
         let reply_message_id = message_id.trim();
         if reply_message_id.is_empty() {
             return Err(Error::InvalidInput("message id is required".into()));
@@ -156,7 +314,7 @@ impl AccountSpaceCtx {
             )
             .await?;
         let path = format!("/spaces/{sender_space_id}/friends/{space_id}/messages");
-        Ok(self
+        let response = self
             .api()
             .post(&path)
             .json(&request)
@@ -164,7 +322,8 @@ impl AccountSpaceCtx {
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        self.open_sent_message(sender_space_id, response).await
     }
 
     pub async fn reply_to_post(
@@ -174,7 +333,7 @@ impl AccountSpaceCtx {
         post_id: i64,
         text: &str,
         object_key: Option<&str>,
-    ) -> Result<MessageResponse> {
+    ) -> Result<Message> {
         let post = self
             .get_post_raw(post_space_id, post_id, Some(sender_space_id))
             .await?;
@@ -214,7 +373,7 @@ impl AccountSpaceCtx {
             )
             .await?;
         let path = format!("/spaces/{sender_space_id}/posts/{post_id}/reply");
-        Ok(self
+        let response = self
             .api()
             .post(&path)
             .json(&request)
@@ -222,32 +381,46 @@ impl AccountSpaceCtx {
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        self.open_sent_message(sender_space_id, response).await
     }
 
-    pub async fn decrypt_message(
+    async fn decrypt_message(
         &self,
         space_id: &str,
         message: &MessageResponse,
-    ) -> Result<DecryptedMessage> {
+    ) -> Result<MessagePayload> {
         if message.is_deleted {
             return Err(Error::InvalidInput("message is deleted".into()));
         }
+        self.decrypt_message_fields(
+            space_id,
+            &message.kind,
+            &message.encrypted_message_key,
+            &message.message_cipher,
+        )
+        .await
+    }
+
+    async fn decrypt_message_fields(
+        &self,
+        space_id: &str,
+        kind: &str,
+        encrypted_message_key: &str,
+        message_cipher: &str,
+    ) -> Result<MessagePayload> {
         let identity = self.space_identity_for(space_id).await?;
-        let sealed_key = b64::decode(&message.encrypted_message_key)?;
+        let sealed_key = b64::decode(encrypted_message_key)?;
         let message_key =
             open_with_keypair(&sealed_key, &identity.public_key, &identity.secret_key)?;
-        let packed_message = b64::decode(&message.message_cipher)?;
+        let packed_message = b64::decode(message_cipher)?;
         let plaintext = decrypt_secretbox_payload(&message_key, &packed_message)?;
         let mut payload: MessagePayload = serde_json::from_slice(&plaintext)
             .map_err(|err| Error::InvalidInput(format!("invalid message payload: {err}")))?;
-        if message.kind != MESSAGE_KIND_REGULAR || payload.kind != MESSAGE_KIND_POKE {
-            payload.kind = message.kind.clone();
+        if kind != MESSAGE_KIND_REGULAR || payload.kind != MESSAGE_KIND_POKE {
+            payload.kind = kind.to_owned();
         }
-        Ok(DecryptedMessage {
-            message_key,
-            payload,
-        })
+        Ok(payload)
     }
 
     pub async fn like_message(
@@ -298,7 +471,7 @@ impl AccountSpaceCtx {
         sender_space_id: &str,
         space_id: &str,
     ) -> Result<SpaceActorResponse> {
-        let friends = self.list_space_friends(sender_space_id).await?;
+        let friends = self.list_space_friends_raw(sender_space_id).await?;
         friends
             .into_iter()
             .map(|value| value.friend)

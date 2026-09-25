@@ -24,7 +24,7 @@ export interface PublicAlbumsCredentials {
 
 export const linkDeviceTokenRequestHeader = "X-Auth-Link-Device-Token";
 
-export const linkDeviceTokenResponseHeader = "X-Link-Device-Token";
+const linkDeviceTokenResponseHeader = "X-Link-Device-Token";
 
 export const linkDeviceTokenFromResponse = (res: Response) =>
     res.headers.get(linkDeviceTokenResponseHeader) ?? undefined;
@@ -154,21 +154,3 @@ export const retryEnsuringHTTPOk: HTTPRequestRetrier = (
         ensureOk(r);
         return r;
     }, opts);
-
-export const retryEnsuringHTTPOkOr4xx: HTTPRequestRetrier = (
-    request: () => Promise<Response>,
-    opts?: HTTPRequestRetrierOpts,
-) =>
-    retryAsyncOperation(
-        async () => {
-            const r = await request();
-            ensureOk(r);
-            return r;
-        },
-        {
-            ...opts,
-            abortIfNeeded(e) {
-                if (isHTTP4xxError(e)) throw e;
-            },
-        },
-    );

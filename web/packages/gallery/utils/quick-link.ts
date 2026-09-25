@@ -33,7 +33,7 @@ export const isPossibleSingleFileQuickLinkName = (
     });
 
 // Keep date formatting in sync with mobile.
-export const quickLinkDateRangeForCreationTimes = (
+const quickLinkDateRangeForCreationTimes = (
     firstCreationTime: number,
     secondCreationTime: number,
 ) => {

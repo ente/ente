@@ -111,7 +111,7 @@ PODS:
     - sqlite3/rtree
     - sqlite3/session
   - SwiftyGif (5.4.5)
-  - ua_client_hints (1.4.1):
+  - ua_client_hints (1.5.0):
     - Flutter
   - url_launcher_ios (0.0.1):
     - Flutter
@@ -238,7 +238,7 @@ SPEC CHECKSUMS:
   sqlite3: 8d708bc63e9f4ce48f0ad9d6269e478c5ced1d9b
   sqlite3_flutter_libs: d13b8b3003f18f596e542bcb9482d105577eff41
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
-  ua_client_hints: 92fe0d139619b73ec9fcb46cc7e079a26178f586
+  ua_client_hints: 64dff09b3f846e425fc1a8d174f264a64c5b76c6
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
 PODFILE CHECKSUM: d732296d669eef6955fe041b27235c882d88df54

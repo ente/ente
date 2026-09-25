@@ -243,43 +243,12 @@ export const computeMediaCropStyle = ({
     };
 };
 
-export const getFrameCreationDate = (frame?: PublicMemoryShareFrame) => {
+const getFrameCreationDate = (frame?: PublicMemoryShareFrame) => {
     if (typeof frame?.creationTime !== "number") {
         return undefined;
     }
     const date = new Date(frame.creationTime / 1000);
     return Number.isNaN(date.getTime()) ? undefined : date;
-};
-
-export const formatLaneCaption = ({
-    frame,
-    metadata,
-    fallbackLabel,
-}: {
-    frame?: PublicMemoryShareFrame;
-    metadata?: PublicMemoryShareMetadata;
-    fallbackLabel: string;
-}) => {
-    const creationDate = getFrameCreationDate(frame);
-    if (!creationDate) {
-        return fallbackLabel;
-    }
-
-    const personName = metadata?.personName?.trim() ?? "";
-    const captionType =
-        metadata?.captionType ?? (metadata?.birthDate ? "age" : "yearsAgo");
-    const roundedValue = laneCaptionValue({
-        captionType,
-        creationDate,
-        birthDate: metadata?.birthDate,
-    });
-    const yearsLabel = `${roundedValue} year${roundedValue === 1 ? "" : "s"}`;
-
-    if (captionType === "age") {
-        return `${yearsLabel} old`;
-    }
-
-    return personName ? `${personName} ${yearsLabel} ago` : `${yearsLabel} ago`;
 };
 
 export const buildLaneCaptionModel = ({

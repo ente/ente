@@ -20,7 +20,7 @@ export const LazyPublicFeedSidebar = dynamic<PublicFeedSidebarProps>(
 
 let fileViewerPreload: Promise<void> | undefined;
 
-export const preloadFileViewer = () => {
+const preloadFileViewer = () => {
     if (typeof window === "undefined") {
         return Promise.resolve();
     }

@@ -1,7 +1,7 @@
 // Mimics the localForage interface, but deliberately keeps data only in
 // memory, never persisting it, so that each iframe embed stays isolated from
 // other embeds.
-export class InMemoryStorage {
+class InMemoryStorage {
     private storage = new Map<string, unknown>();
 
     getItem(key: string): unknown {

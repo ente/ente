@@ -34,7 +34,7 @@ export interface EnteFile {
     pubMagicMetadata?: MagicMetadata<FilePublicMagicMetadataData>;
 }
 
-export interface FileObjectAttributes {
+interface FileObjectAttributes {
     decryptionHeader: string;
 }
 
@@ -42,7 +42,7 @@ export const RemoteFileObjectAttributes = z.looseObject({
     decryptionHeader: z.string(),
 });
 
-export interface FileInfo {
+interface FileInfo {
     fileSize?: number;
     thumbSize?: number;
 }

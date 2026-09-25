@@ -7,6 +7,43 @@ import "package:locker/services/info_file_service.dart";
 
 void main() {
   group("InfoFileService.extractInfoFromFile", () {
+    test("reads partial records with omitted optional fields", () {
+      final secretFile = EnteFile()
+        ..fileType = FileType.info
+        ..title = "Netflix"
+        ..pubMagicMetadata = PubMagicMetadata(
+          info: {
+            "type": "accountCredential",
+            "data": {"name": "Netflix", "notes": "Ask Sam"},
+          },
+          noThumb: true,
+        );
+      final thingFile = EnteFile()
+        ..fileType = FileType.info
+        ..title = "Passport"
+        ..pubMagicMetadata = PubMagicMetadata(
+          info: {
+            "type": "physicalRecord",
+            "data": {"name": "Passport"},
+          },
+          noThumb: true,
+        );
+
+      final secretItem = InfoFileService.instance.extractInfoFromFile(
+        secretFile,
+      )!;
+      final secret = secretItem.data as AccountCredentialData;
+      final thing =
+          InfoFileService.instance.extractInfoFromFile(thingFile)!.data
+              as PhysicalRecordData;
+
+      expect(secret.username, isEmpty);
+      expect(secret.password, isEmpty);
+      expect(secret.notes, "Ask Sam");
+      expect(thing.location, isEmpty);
+      expect(InfoFileService.instance.getInfoFileTitle(secretItem), "Netflix");
+    });
+
     test("parses hyphenated account credential types", () {
       final file = EnteFile()
         ..fileType = FileType.info

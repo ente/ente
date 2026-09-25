@@ -1,4 +1,4 @@
-export type LlmRole = "system" | "user" | "assistant";
+type LlmRole = "system" | "user" | "assistant";
 
 export interface LlmMessage {
     role: LlmRole;

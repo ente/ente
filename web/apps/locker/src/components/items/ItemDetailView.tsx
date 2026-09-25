@@ -456,7 +456,7 @@ export const ItemDetailView: React.FC<ItemDetailViewProps> = ({
 
 interface FieldRowProps {
     label: string;
-    value: string;
+    value?: string;
     onCopy: (value: string, field: string) => void;
     secret?: boolean;
     multiline?: boolean;

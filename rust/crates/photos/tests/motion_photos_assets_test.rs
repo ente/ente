@@ -1,4 +1,7 @@
-use ente_photos::{extract_motion_video_from_path, get_motion_video_index_from_path};
+use ente_photos::{
+    extract_motion_video_file_from_path, extract_motion_video_from_path,
+    get_motion_video_index_from_path,
+};
 use std::path::{Path, PathBuf};
 
 // External fixtures live beside the repository unless overridden.
@@ -111,4 +114,43 @@ fn validates_known_motion_photo_indices_when_fixtures_present() {
         .expect("extract dual_mp4_video_first.jpg video")
         .expect("video present");
     assert!(dual_first_video.len() > 1_000_000);
+}
+
+#[test]
+fn file_extraction_matches_video_bytes_when_fixtures_present() {
+    let output_directory = tempfile::tempdir().expect("output directory");
+    for name in [
+        "motionphoto.jpg",
+        "motionphoto.heic",
+        "pixel_6_small_video.jpg",
+        "dual_mp4_video_last.jpg",
+        "dual_mp4_video_first.jpg",
+    ] {
+        let Some(path) = fixture(name) else {
+            eprintln!("Skipping: external fixture {name} not present");
+            return;
+        };
+        let source = std::fs::read(&path).expect("read fixture");
+        let index = get_motion_video_index_from_path(&path)
+            .expect("find video")
+            .expect("video present");
+        let expected = &source[index.start..index.end];
+
+        for supplied_index in [None, Some(index)] {
+            let video = extract_motion_video_from_path(&path, supplied_index.clone())
+                .expect("extract bytes")
+                .expect("video present");
+            let output = extract_motion_video_file_from_path(
+                &path,
+                output_directory.path(),
+                "clip.mp4",
+                supplied_index,
+            )
+            .expect("extract file")
+            .expect("video file present");
+
+            assert_eq!(video, expected, "{name}");
+            assert_eq!(std::fs::read(output).unwrap(), expected, "{name}");
+        }
+    }
 }

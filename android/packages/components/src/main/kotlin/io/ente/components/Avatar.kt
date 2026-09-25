@@ -1,6 +1,7 @@
 package io.ente.components
 
 import android.icu.text.BreakIterator
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -24,10 +31,10 @@ public fun Avatar(
     modifier: Modifier = Modifier,
     identity: String = name,
     size: AvatarSize = AvatarSize.Regular,
+    painter: Painter? = null,
 ) {
     val palette = LocalEntePalette.current
     val colorIndex = remember(identity) { avatarIndex(identity) }
-    val initials = remember(name) { avatarInitials(name) }
     val color = avatarColors(palette)[colorIndex]
     Box(
         modifier =
@@ -35,10 +42,19 @@ public fun Avatar(
                 .size(size.dimension)
                 .clip(CircleShape)
                 .background(color)
-                .border(size.border, palette.background, CircleShape),
+                .border(size.border, palette.background, CircleShape)
+                .clearAndSetSemantics {
+                    contentDescription = name
+                    role = Role.Image
+                },
         contentAlignment = Alignment.Center,
     ) {
-        Text(initials, style = size.textStyle, color = Color.White)
+        if (painter == null) {
+            val initials = remember(name) { avatarInitials(name) }
+            Text(initials, style = size.textStyle, color = Color.White)
+        } else {
+            Image(painter, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop)
+        }
     }
 }
 

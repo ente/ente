@@ -135,8 +135,6 @@ class SmartAlbumsService {
         continue;
       }
 
-      final infoMap = config.infoMap;
-
       final updatedAtMap = await entityService.getUpdatedAts(
         EntityType.cgroup,
         config.personIDs.toList(),
@@ -147,9 +145,7 @@ class SmartAlbumsService {
 
       var newConfig = config;
       for (final personId in config.personIDs) {
-        if (updatedAtMap[personId] == null ||
-            infoMap[personId] != null &&
-                (updatedAtMap[personId]! <= infoMap[personId]!.updatedAt)) {
+        if (updatedAtMap[personId] == null) {
           continue;
         }
 
@@ -165,6 +161,10 @@ class SmartAlbumsService {
                   ) ||
                   e.ownerID != userId,
             );
+
+        if (fileIds.isEmpty) {
+          continue;
+        }
 
         pendingSyncFiles = {
           ...pendingSyncFiles,

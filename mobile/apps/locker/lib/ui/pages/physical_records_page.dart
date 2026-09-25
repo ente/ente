@@ -80,8 +80,7 @@ class _PhysicalRecordsPageState
 
   @override
   bool validateForm() {
-    return _nameController.text.trim().isNotEmpty &&
-        _locationController.text.trim().isNotEmpty;
+    return _nameController.text.trim().isNotEmpty;
   }
 
   @override
@@ -120,7 +119,6 @@ class _PhysicalRecordsPageState
         label: context.strings.recordLocation,
         hintText: context.strings.recordLocationHint,
         controller: _locationController,
-        isRequired: true,
         textCapitalization: TextCapitalization.sentences,
         textInputAction: TextInputAction.next,
         onChanged: (_) => onFieldChanged(),
@@ -141,22 +139,26 @@ class _PhysicalRecordsPageState
 
   @override
   List<Widget> buildViewFields() {
-    final fields = <Widget>[
-      buildViewField(
-        label: context.strings.recordLocation,
-        value: _locationController.text,
-      ),
-    ];
+    final fields = <Widget>[];
+
+    if (_locationController.text.trim().isNotEmpty) {
+      fields.add(
+        buildViewField(
+          label: context.strings.recordLocation,
+          value: _locationController.text,
+        ),
+      );
+    }
 
     if (_notesController.text.trim().isNotEmpty) {
-      fields.addAll([
-        const SizedBox(height: 24),
+      if (fields.isNotEmpty) fields.add(const SizedBox(height: 24));
+      fields.add(
         buildViewField(
           label: context.strings.recordNotes,
           value: _notesController.text,
           maxLines: 6,
         ),
-      ]);
+      );
     }
 
     return fields;

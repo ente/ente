@@ -46,6 +46,7 @@ const MESSAGE_KIND_REGULAR: &str = "regular";
 const MESSAGE_KIND_POKE: &str = "poke";
 const MESSAGE_KIND_POST_REPLY: &str = "post_reply";
 const ONLY_PHOTOS_UPLOAD_MESSAGE: &str = "only photos can be uploaded";
+
 pub const MAX_SPACE_POST_UPLOAD_BYTES: usize = 5 * 1024 * 1024;
 pub const MAX_SPACE_AVATAR_UPLOAD_BYTES: usize = 2 * 1024 * 1024;
 pub const MAX_SPACE_COVER_UPLOAD_BYTES: usize = 2 * 1024 * 1024;
@@ -61,12 +62,24 @@ pub const MAX_SPACE_MESSAGE_CIPHER_DECODED_BYTES: usize = 6 * 1024;
 pub const MAX_SPACE_MESSAGE_PAYLOAD_BYTES: usize =
     MAX_SPACE_MESSAGE_CIPHER_DECODED_BYTES - SECRETBOX_PAYLOAD_OVERHEAD_BYTES;
 
+fn retain_content_error<T>(result: Result<T>) -> Result<Result<T>> {
+    match result {
+        Err(error) if !error.is_content_error() => Err(error),
+        result => Ok(result),
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct PostPhotoAssetOptions {
     pub width: Option<i32>,
     pub height: Option<i32>,
     pub media_type: Option<String>,
     pub thumb_hash: Option<String>,
+}
+
+pub struct PostPhotoInput {
+    pub bytes: Vec<u8>,
+    pub options: PostPhotoAssetOptions,
 }
 
 fn profile_object_id_from_key(object_key: &str) -> Result<String> {

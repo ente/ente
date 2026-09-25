@@ -6,7 +6,7 @@ const CHECKSUM_LENGTH = 4;
 const SHARE_OVERHEAD = HEADER_LENGTH + CHECKSUM_LENGTH;
 const ID_LENGTH = 6;
 const MAX_SECRET_BYTES = 2048;
-export const SHARE_PREFIX = "2of3-";
+const SHARE_PREFIX = "2of3-";
 
 const gfMul = (left: number, right: number) => {
     let result = 0;
@@ -116,7 +116,7 @@ export interface ParsedShare {
     version: 1 | 2;
 }
 
-export const encodedShareLengthForSecretBytes = (secretByteLength: number) =>
+const encodedShareLengthForSecretBytes = (secretByteLength: number) =>
     SHARE_PREFIX.length + base64UrlLength(SHARE_OVERHEAD + secretByteLength);
 
 export const maxSecretBytesForEncodedShareLength = (maxShareLength: number) => {

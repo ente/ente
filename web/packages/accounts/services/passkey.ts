@@ -83,7 +83,7 @@ const TwoFactorRecoveryStatus = z.object({
     isPasskeyRecoveryEnabled: z.boolean(),
 });
 
-export const getTwoFactorRecoveryStatus = async () => {
+const getTwoFactorRecoveryStatus = async () => {
     const res = await fetch(await apiURL("/users/two-factor/recovery-status"), {
         headers: await authenticatedRequestHeaders(),
     });

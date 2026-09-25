@@ -12,7 +12,7 @@ import { FileType } from "ente-media/file-type";
 import { ensurePrecondition } from "ente-utils/ensure";
 import { z } from "zod";
 
-export interface HLSPlaylistData {
+interface HLSPlaylistData {
     playlistURL: string;
     width: number;
     height: number;

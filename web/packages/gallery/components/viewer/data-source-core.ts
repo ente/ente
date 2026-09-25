@@ -29,18 +29,18 @@ export type ItemData = PhotoSwipeSlideData & {
     isTransient?: boolean;
 };
 
-export interface FileInfoExif {
+interface FileInfoExif {
     tags: RawExifTags | undefined;
     parsed: ParsedMetadata | undefined;
 }
 
-export interface HLSPlaylistData {
+interface HLSPlaylistData {
     playlistURL: string;
     width: number;
     height: number;
 }
 
-export type HLSPlaylistDataForFile = HLSPlaylistData | "skip" | undefined;
+type HLSPlaylistDataForFile = HLSPlaylistData | "skip" | undefined;
 
 export interface ItemDataOpts {
     videoQuality?: "auto" | "original";

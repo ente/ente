@@ -123,7 +123,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio
+    image: pgsty/silo
     ports:
       - 3200:3200 # MinIO API
       # Uncomment to enable the MinIO web UI.

@@ -10,7 +10,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import React from "react";
 
-export enum LockerInfoType {
+enum LockerInfoType {
     Note = "note",
     PhysicalRecord = "physicalRecord",
     AccountCredential = "accountCredential",

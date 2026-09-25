@@ -1,0 +1,6 @@
+{
+    "workspaces": {
+        "apps/*": { "next": true },
+        "apps/payments": { "next": false }
+    }
+}

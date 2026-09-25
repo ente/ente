@@ -117,7 +117,7 @@ const createCollection = async (
 const decryptRemoteKeyAndCollection = async (collection: RemoteCollection) =>
     decryptRemoteCollection(collection, await decryptCollectionKey(collection));
 
-export const decryptCollectionKey = async (
+const decryptCollectionKey = async (
     collection: RemoteCollection,
 ): Promise<string> => {
     if (!collectionKeyOpener) {
@@ -159,7 +159,7 @@ const CollectionsResponse = z.object({
     collections: z.array(RemoteCollection),
 });
 
-export interface CollectionChange {
+interface CollectionChange {
     id: number;
     collection?: Collection;
     updationTime: number;
@@ -551,7 +551,7 @@ const forgetPendingFavoriteFileIDs = (fileIDs: number[]) => {
     }
 };
 
-export const copyFiles = async (
+const copyFiles = async (
     dstCollection: Collection,
     files: EnteFile[],
 ): Promise<EnteFile[]> => {
@@ -1118,7 +1118,7 @@ const savedOrCreateUserFavoritesCollection = async () => {
     return pendingUserFavoritesCollectionPromise;
 };
 
-export const savedUserFavoritesCollection = async () => {
+const savedUserFavoritesCollection = async () => {
     const userID = ensureLocalUser().id;
     const collections = await savedCollections();
     return (
@@ -1271,13 +1271,6 @@ export const isArchivedCollection = (collection: Collection) =>
     collection.magicMetadata?.data.visibility == ItemVisibility.archived ||
     collection.sharedMagicMetadata?.data.visibility == ItemVisibility.archived;
 
-export const canRemoveFilesFromAllParticipants = (collection: Collection) => {
-    const userID = ensureLocalUser().id;
-    if (collection.owner.id == userID) return true;
-    const sharee = collection.sharees.find((s) => s.id == userID);
-    return sharee?.role == "ADMIN";
-};
-
 export const hideFiles = async (files: EnteFile[]) => {
     const userID = ensureLocalUser().id;
     const defaultHiddenCollection = await getOrCreateDefaultHiddenCollection();
@@ -1406,9 +1399,7 @@ const PendingRemovalActionsResponse = z.object({
     actions: z.array(CollectionAction).nullish(),
 });
 
-export const fetchPendingRemovalActions = async (): Promise<
-    CollectionAction[]
-> => {
+const fetchPendingRemovalActions = async (): Promise<CollectionAction[]> => {
     const res = await fetch(
         await apiURL("/collection-actions/pending-remove"),
         { headers: await authenticatedRequestHeaders() },

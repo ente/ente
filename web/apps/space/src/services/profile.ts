@@ -121,7 +121,7 @@ const cloneSetupProfile = (profile: SetupProfile | null) =>
 const cloneOwnedSpace = (space: SpaceKeyResponse | undefined) =>
     space ? { ...space } : undefined;
 
-export const openCurrentSpaceContext = async () => {
+const openCurrentSpaceContext = async () => {
     const config = await currentSpaceContextConfig();
     if (!config) return undefined;
 
@@ -446,6 +446,7 @@ export const spaceUsernameAvailability = async (
 export const saveSpaceProfile = async (
     profile: SetupProfileInput,
     referredBySpaceId?: string,
+    options?: { removeImage?: "avatar" | "cover" },
 ): Promise<SetupProfile> => {
     const username = normalizeSpaceUsername(profile.username);
 
@@ -536,6 +537,18 @@ export const saveSpaceProfile = async (
                       profile.coverFile,
                   )
                 : URL.createObjectURL(profile.coverFile);
+        } else if (options?.removeImage == "avatar" && existingSpace) {
+            updateResponse = await ctx.removeSpaceProfileAvatar(
+                spaceId,
+                profilePayload,
+            );
+            avatarUrl = null;
+        } else if (options?.removeImage == "cover" && existingSpace) {
+            updateResponse = await ctx.removeSpaceProfileCover(
+                spaceId,
+                profilePayload,
+            );
+            coverUrl = null;
         } else if (existingSpace) {
             updateResponse = await ctx.updateSpaceProfile(
                 spaceId,
@@ -545,18 +558,36 @@ export const saveSpaceProfile = async (
 
         const savedProfile = {
             avatarKeyVersion:
-                updateResponse?.avatar?.keyVersion ?? profile.avatarKeyVersion,
+                options?.removeImage == "avatar"
+                    ? undefined
+                    : (updateResponse?.avatar?.keyVersion ??
+                      profile.avatarKeyVersion),
             avatarObjectID:
-                updateResponse?.avatar?.objectID ?? profile.avatarObjectID,
+                options?.removeImage == "avatar"
+                    ? undefined
+                    : (updateResponse?.avatar?.objectID ??
+                      profile.avatarObjectID),
             avatarUpdatedAt:
-                updateResponse?.avatar?.updatedAt ?? profile.avatarUpdatedAt,
+                options?.removeImage == "avatar"
+                    ? undefined
+                    : (updateResponse?.avatar?.updatedAt ??
+                      profile.avatarUpdatedAt),
             avatarUrl,
             coverKeyVersion:
-                updateResponse?.cover?.keyVersion ?? profile.coverKeyVersion,
+                options?.removeImage == "cover"
+                    ? undefined
+                    : (updateResponse?.cover?.keyVersion ??
+                      profile.coverKeyVersion),
             coverObjectID:
-                updateResponse?.cover?.objectID ?? profile.coverObjectID,
+                options?.removeImage == "cover"
+                    ? undefined
+                    : (updateResponse?.cover?.objectID ??
+                      profile.coverObjectID),
             coverUpdatedAt:
-                updateResponse?.cover?.updatedAt ?? profile.coverUpdatedAt,
+                options?.removeImage == "cover"
+                    ? undefined
+                    : (updateResponse?.cover?.updatedAt ??
+                      profile.coverUpdatedAt),
             coverUrl,
             fullName: profile.fullName.trim(),
             username: spaceSlug,
@@ -572,9 +603,18 @@ export const saveSpaceProfile = async (
     }
 };
 
-export const spaceProfileErrorMessage = (error: unknown) => {
+export const removeSpaceProfileCover = async (profile: SetupProfile) =>
+    await saveSpaceProfile(profile, undefined, { removeImage: "cover" });
+
+export const removeSpaceProfileAvatar = async (profile: SetupProfile) =>
+    await saveSpaceProfile(profile, undefined, { removeImage: "avatar" });
+
+export const spaceProfileErrorMessage = (
+    error: unknown,
+    fallbackMessage = "Couldn't save your profile. Please try again.",
+) => {
     if (!(error instanceof Error)) {
-        return "Couldn't save your profile. Please try again.";
+        return fallbackMessage;
     }
     if (error.name == "space_slug_already_exists")
         return "This username is already taken.";
@@ -592,5 +632,5 @@ export const spaceProfileErrorMessage = (error: unknown) => {
     if (error.name == "permission_denied") {
         return "You do not have access to update this profile.";
     }
-    return "Couldn't save your profile. Please try again.";
+    return fallbackMessage;
 };

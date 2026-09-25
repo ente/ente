@@ -42,7 +42,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio
+    image: pgsty/silo
     ports:
       - 3200:3200 # MinIO API
       # - 3201:3201 # MinIO Console (uncomment to access externally)

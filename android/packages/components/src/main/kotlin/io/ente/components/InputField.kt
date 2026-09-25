@@ -109,7 +109,10 @@ public fun InputField(
                                 .clip(shape)
                                 .background(if (enabled) palette.surface else palette.fill)
                                 .border(1.dp, border, shape)
-                                .padding(EnteSpacing.lg),
+                                .padding(
+                                    horizontal = EnteSpacing.lg,
+                                    vertical = if (singleLine) 0.dp else EnteSpacing.lg,
+                                ),
                         verticalAlignment =
                             if (singleLine) Alignment.CenterVertically else Alignment.Top,
                     ) {
@@ -117,7 +120,10 @@ public fun InputField(
                             it()
                             Spacer(Modifier.width(EnteSpacing.sm))
                         }
-                        Box(Modifier.weight(1f)) {
+                        Box(
+                            Modifier.weight(1f)
+                                .padding(vertical = if (singleLine) EnteSpacing.lg else 0.dp)
+                        ) {
                             if (value.isEmpty() && placeholder != null) {
                                 Text(placeholder, style = EnteTypography.body, color = hintColor)
                             }

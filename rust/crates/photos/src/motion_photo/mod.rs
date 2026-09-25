@@ -67,13 +67,13 @@ pub fn extract_motion_video_from_path<P: AsRef<Path>>(
     index: Option<VideoIndex>,
 ) -> Result<Option<Vec<u8>>, MotionPhotoError> {
     let bytes = fs::read(file_path)?;
-    extract_motion_video(&bytes, index).map(Some)
+    extract_motion_video(&bytes, index).map(|video| Some(video.to_vec()))
 }
 
 fn extract_motion_video(
     bytes: &[u8],
     index: Option<VideoIndex>,
-) -> Result<Vec<u8>, MotionPhotoError> {
+) -> Result<&[u8], MotionPhotoError> {
     let video_index = index.or_else(|| get_motion_video_index(bytes));
     let Some(video_index) = video_index else {
         return Err(MotionPhotoError::VideoNotFound);
@@ -83,7 +83,7 @@ fn extract_motion_video(
         return Err(MotionPhotoError::InvalidIndex);
     }
 
-    Ok(bytes[video_index.start..video_index.end].to_vec())
+    Ok(&bytes[video_index.start..video_index.end])
 }
 
 pub fn extract_motion_video_file_from_path<P: AsRef<Path>, Q: AsRef<Path>>(
@@ -94,9 +94,8 @@ pub fn extract_motion_video_file_from_path<P: AsRef<Path>, Q: AsRef<Path>>(
 ) -> Result<Option<PathBuf>, MotionPhotoError> {
     validate_output_file_name(file_name)?;
 
-    let Some(video) = extract_motion_video_from_path(file_path, index)? else {
-        return Ok(None);
-    };
+    let bytes = fs::read(file_path)?;
+    let video = extract_motion_video(&bytes, index)?;
     fs::create_dir_all(destination_directory.as_ref())?;
     let output = destination_directory.as_ref().join(file_name);
     fs::write(&output, video)?;
@@ -385,6 +384,55 @@ mod tests {
 
         assert!(!temp.path().join("escaped.mp4").exists());
         assert!(!output_dir.join("nested").exists());
+    }
+
+    #[test]
+    fn file_extraction_rejects_invalid_input_before_creating_output() {
+        let temp = tempdir().expect("temp dir");
+        let image = temp.path().join("source.jpg");
+        let output_dir = temp.path().join("out");
+        fs::write(&image, b"still image").expect("write source");
+
+        for index in [
+            VideoIndex { start: 0, end: 0 },
+            VideoIndex { start: 5, end: 3 },
+            VideoIndex { start: 0, end: 12 },
+        ] {
+            assert!(matches!(
+                extract_motion_video_file_from_path(&image, &output_dir, "clip.mp4", Some(index)),
+                Err(MotionPhotoError::InvalidIndex)
+            ));
+            assert!(!output_dir.exists());
+        }
+
+        assert!(matches!(
+            extract_motion_video_file_from_path(&image, &output_dir, "clip.mp4", None),
+            Err(MotionPhotoError::VideoNotFound)
+        ));
+        assert!(!output_dir.exists());
+    }
+
+    #[test]
+    fn file_extraction_preserves_selected_bytes_when_overwriting() {
+        let temp = tempdir().expect("temp dir");
+        let image = temp.path().join("source.jpg");
+        let source = b"image-prefix-video-data-trailing-preview";
+        let index = VideoIndex { start: 13, end: 23 };
+
+        for file_name in ["clip.mp4", "source.jpg"] {
+            fs::write(&image, source).expect("write source");
+            fs::write(temp.path().join(file_name), source).expect("write existing output");
+            let output = extract_motion_video_file_from_path(
+                &image,
+                temp.path(),
+                file_name,
+                Some(index.clone()),
+            )
+            .expect("extract video")
+            .expect("video output");
+
+            assert_eq!(fs::read(output).unwrap(), source[index.start..index.end]);
+        }
     }
 
     #[test]

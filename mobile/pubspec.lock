@@ -443,7 +443,7 @@ packages:
     source: hosted
     version: "1.0.2"
   cupertino_http:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
       name: cupertino_http
       sha256: d57188b07349a373bec9a78997a80c00e1de08dab0fe454b3f86c84661ac457c
@@ -1044,13 +1044,13 @@ packages:
     source: hosted
     version: "9.0.0"
   flutter_secure_storage_linux:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: flutter_secure_storage_linux
-      sha256: be76c1d24a97d0b98f8b54bce6b481a380a6590df992d0098f868ad54dc8f688
+      sha256: "4d91bfc23047422cbcd73ac684bc169859ee766482517c22172c86596bf1464b"
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.3"
+    version: "1.2.1"
   flutter_secure_storage_macos:
     dependency: transitive
     description:
@@ -1783,10 +1783,10 @@ packages:
     dependency: transitive
     description:
       name: native_dio_adapter
-      sha256: "9bbfa5221fd287eb063962bbe6534290e5f87933e576fac210149fb80253b89a"
+      sha256: "89a84d8936a108c206e481b8da090422abb1351febac4956cd4a8113627ebb5e"
       url: "https://pub.dev"
     source: hosted
-    version: "1.5.1"
+    version: "1.6.0"
   native_toolchain_c:
     dependency: transitive
     description:
@@ -2758,10 +2758,10 @@ packages:
     dependency: transitive
     description:
       name: ua_client_hints
-      sha256: "1b8759a46bfeab355252881df27f2604c01bded86aa2b578869fb1b638b23118"
+      sha256: de6a9a4d1c81724577ee95fc6fccd69a1714c03ceb2246c7899f91961208c2b2
       url: "https://pub.dev"
     source: hosted
-    version: "1.4.1"
+    version: "1.5.0"
   unicode:
     dependency: transitive
     description:

@@ -1,0 +1,1 @@
+- Updated the email verification illustration, aligned account and app lock headers and account back arrows with Auth's colors, and styled the backup prompt with Auth purple.

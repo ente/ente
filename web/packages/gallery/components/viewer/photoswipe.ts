@@ -51,8 +51,4 @@ export class FileViewerPhotoSwipe<
 }
 
 export { moreButtonID, moreMenuID, resetMoreMenuButtonOnMenuClose };
-export type {
-    FileViewerPhotoSwipeAnnotatedFile,
-    FileViewerPhotoSwipeDataSource,
-    FileViewerPhotoSwipeDelegate,
-};
+export type { FileViewerPhotoSwipeAnnotatedFile, FileViewerPhotoSwipeDelegate };

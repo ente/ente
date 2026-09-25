@@ -29,14 +29,9 @@ export interface Face {
     embedding: number[];
 }
 
-export interface Point {
+interface Point {
     x: number;
     y: number;
-}
-
-export interface Dimensions {
-    width: number;
-    height: number;
 }
 
 export interface Box {

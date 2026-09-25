@@ -75,6 +75,8 @@ const messageGroupTimeThresholdMs = 10 * 60 * 1000;
 const messageTimeSeparatorThresholdMs = 60 * 60 * 1000;
 const messageLongPressMs = 520;
 const messageLongPressMoveTolerancePx = 10;
+const messageReplySwipeThresholdPx = 64;
+const messageReplySwipeMinThresholdPx = 20;
 const messageActionsTouchOpenMouseSuppressMs = 900;
 const dayMs = 24 * 60 * 60 * 1000;
 const shouldShowPostSomething = (
@@ -1404,6 +1406,7 @@ const isMessageLongPressIgnoredTarget = (target: EventTarget | null) =>
 
 const MessageBubble: React.FC<{
     activityPost?: SpaceMessageActivityPost;
+    canReply: boolean;
     friendName: string;
     groupsWithNext: boolean;
     groupsWithPrevious: boolean;
@@ -1416,11 +1419,13 @@ const MessageBubble: React.FC<{
     ) => void;
     onLoadActivityPost?: (post: SpaceMessageActivityPost) => void;
     onOpenQuotePost: (quote: SpaceMessageQuote) => void;
+    onReply: (message: SpaceMessage) => void;
     ownSpaceID?: string;
     parentMessage?: SpaceMessage;
     profile: SetupProfile;
 }> = ({
     activityPost,
+    canReply,
     friendName,
     groupsWithNext,
     groupsWithPrevious,
@@ -1429,6 +1434,7 @@ const MessageBubble: React.FC<{
     onOpenActions,
     onLoadActivityPost,
     onOpenQuotePost,
+    onReply,
     ownSpaceID,
     parentMessage,
     profile,
@@ -1466,10 +1472,20 @@ const MessageBubble: React.FC<{
           ? "flex-end"
           : "flex-start";
     const longPressTimerRef = React.useRef<number | undefined>(undefined);
-    const longPressStartRef = React.useRef<
-        { x: number; y: number } | undefined
-    >(undefined);
     const didOpenLongPressRef = React.useRef(false);
+    const gestureStartRef = React.useRef<
+        | {
+              pointerId: number;
+              x: number;
+              y: number;
+              active: boolean;
+              thresholdPx: number;
+              maxOffsetPx: number;
+              resistancePx: number;
+          }
+        | undefined
+    >(undefined);
+    const [swipeOffset, setSwipeOffset] = React.useState(0);
 
     const clearLongPressTimer = React.useCallback(() => {
         if (longPressTimerRef.current == undefined) return;
@@ -1477,17 +1493,18 @@ const MessageBubble: React.FC<{
         longPressTimerRef.current = undefined;
     }, []);
 
-    const cancelLongPress = React.useCallback(() => {
+    const cancelGesture = () => {
         clearLongPressTimer();
-        longPressStartRef.current = undefined;
+        gestureStartRef.current = undefined;
         didOpenLongPressRef.current = false;
-    }, [clearLongPressTimer]);
+        setSwipeOffset(0);
+    };
 
     const openActions = React.useCallback(
         (bubbleElement: HTMLElement, source: MessageActionsOpenSource) => {
             if (isSystemMessage || isUnavailable) return;
             clearLongPressTimer();
-            longPressStartRef.current = undefined;
+            setSwipeOffset(0);
             window.getSelection()?.removeAllRanges();
             onOpenActions(message, bubbleElement, source);
         },
@@ -1507,24 +1524,48 @@ const MessageBubble: React.FC<{
         openActions(event.currentTarget, "contextmenu");
     };
 
-    const handleTouchStart = (event: React.TouchEvent<HTMLElement>) => {
-        if (isSystemMessage || isUnavailable) {
-            cancelLongPress();
-            return;
-        }
+    const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
+        if (event.pointerType != "touch") return;
         if (
-            event.touches.length != 1 ||
+            isSystemMessage ||
+            isUnavailable ||
+            event.button != 0 ||
+            gestureStartRef.current ||
             isMessageLongPressIgnoredTarget(event.target)
         ) {
-            cancelLongPress();
+            cancelGesture();
             return;
         }
 
-        const touch = event.touches[0]!;
-        const bubbleElement = event.currentTarget;
-        clearLongPressTimer();
+        const rowRect = event.currentTarget
+            .closest("li")!
+            .getBoundingClientRect();
+        const availableRightPx = Math.max(
+            0,
+            Math.min(window.innerWidth - 8, rowRect.right + 8) - event.clientX,
+        );
+        const resistancePx = rowRect.width * 0.42;
+        gestureStartRef.current = {
+            pointerId: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+            active: false,
+            thresholdPx: Math.min(
+                messageReplySwipeThresholdPx,
+                Math.max(
+                    messageReplySwipeMinThresholdPx,
+                    availableRightPx * 0.65,
+                ),
+                availableRightPx,
+            ),
+            maxOffsetPx:
+                resistancePx * Math.log1p(availableRightPx / resistancePx),
+            resistancePx,
+        };
         didOpenLongPressRef.current = false;
-        longPressStartRef.current = { x: touch.clientX, y: touch.clientY };
+        event.currentTarget.setPointerCapture(event.pointerId);
+
+        const bubbleElement = event.currentTarget;
         longPressTimerRef.current = window.setTimeout(() => {
             longPressTimerRef.current = undefined;
             didOpenLongPressRef.current = true;
@@ -1532,30 +1573,71 @@ const MessageBubble: React.FC<{
         }, messageLongPressMs);
     };
 
-    const handleTouchMove = (event: React.TouchEvent<HTMLElement>) => {
-        const start = longPressStartRef.current;
-        const touch = event.touches[0];
-        if (!start || !touch) return;
-
-        if (
-            Math.hypot(touch.clientX - start.x, touch.clientY - start.y) >
-            messageLongPressMoveTolerancePx
-        ) {
-            cancelLongPress();
+    const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+        const start = gestureStartRef.current;
+        if (!start) return;
+        if (event.pointerId != start.pointerId) return;
+        if (didOpenLongPressRef.current) return;
+        const dx = event.clientX - start.x;
+        const dy = event.clientY - start.y;
+        if (Math.hypot(dx, dy) > messageLongPressMoveTolerancePx)
+            clearLongPressTimer();
+        if (!canReply || isPoke) return;
+        if (!start.active) {
+            if (
+                (Math.abs(dy) > messageLongPressMoveTolerancePx &&
+                    Math.abs(dy) >= Math.abs(dx)) ||
+                dx < -messageLongPressMoveTolerancePx
+            ) {
+                gestureStartRef.current = undefined;
+                return;
+            }
+            if (
+                dx <= messageLongPressMoveTolerancePx ||
+                dx <= Math.abs(dy) * 1.2
+            )
+                return;
+            start.active = true;
         }
+        setSwipeOffset(
+            Math.min(
+                start.maxOffsetPx,
+                start.resistancePx *
+                    Math.log1p(Math.max(dx, 0) / start.resistancePx),
+            ),
+        );
+    };
+
+    const handlePointerUp = (event: React.PointerEvent<HTMLElement>) => {
+        const start = gestureStartRef.current;
+        if (!start) return;
+        if (event.pointerId != start.pointerId) return;
+        clearLongPressTimer();
+        gestureStartRef.current = undefined;
+        setSwipeOffset(0);
+        if (didOpenLongPressRef.current) {
+            if (event.cancelable) event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+
+        if (!start.active) return;
+        const dx = event.clientX - start.x;
+        const dy = event.clientY - start.y;
+        if (dx < start.thresholdPx || dx <= Math.abs(dy) * 1.2) return;
+        if (event.cancelable) event.preventDefault();
+        event.stopPropagation();
+        onReply(message);
     };
 
     const handleTouchEnd = (event: React.TouchEvent<HTMLElement>) => {
-        clearLongPressTimer();
-        longPressStartRef.current = undefined;
         if (!didOpenLongPressRef.current) return;
-
         if (event.cancelable) event.preventDefault();
         event.stopPropagation();
         didOpenLongPressRef.current = false;
     };
 
-    React.useEffect(() => cancelLongPress, [cancelLongPress]);
+    React.useEffect(() => clearLongPressTimer, [clearLongPressTimer]);
 
     return (
         <Box
@@ -1612,92 +1694,120 @@ const MessageBubble: React.FC<{
                         />
                     )}
                     {hasBodyBubble && (
-                        <Box
-                            data-message-bubble
-                            onContextMenu={handleContextMenu}
-                            onTouchCancel={cancelLongPress}
-                            onTouchEnd={handleTouchEnd}
-                            onTouchMove={handleTouchMove}
-                            onTouchStart={handleTouchStart}
-                            sx={{
-                                bgcolor: isOwn
-                                    ? outgoingBubble
-                                    : incomingBubble,
-                                borderRadius: bubbleBorderRadius,
-                                color: isOwn
-                                    ? outgoingMessageText
-                                    : incomingMessageText,
-                                cursor: isUnavailable
-                                    ? "default"
-                                    : "context-menu",
-                                display: "block",
-                                maxWidth: "100%",
-                                minWidth: 0,
-                                ml: 0,
-                                overflow: "visible",
-                                position: "relative",
-                                px: messageBubblePaddingX,
-                                py: messageBubblePaddingY,
-                                textAlign: "left",
-                                touchAction: "pan-y",
-                                userSelect: "none",
-                                WebkitTouchCallout: "none",
-                                WebkitUserSelect: "none",
-                                width: "fit-content",
-                                "& *": {
-                                    userSelect: "none",
-                                    WebkitTouchCallout: "none",
-                                    WebkitUserSelect: "none",
-                                },
-                            }}
-                        >
+                        <Box sx={{ maxWidth: "100%", position: "relative" }}>
+                            {canReply && !isUnavailable && !isPoke && (
+                                <Box
+                                    aria-hidden
+                                    sx={{
+                                        alignItems: "center",
+                                        color: "#888888",
+                                        display: "flex",
+                                        height: "100%",
+                                        justifyContent: "center",
+                                        left: 0,
+                                        opacity: Math.min(swipeOffset / 24, 1),
+                                        position: "absolute",
+                                        top: 0,
+                                        width: 40,
+                                        "& svg": { height: 12, width: 16 },
+                                    }}
+                                >
+                                    <ReplyIcon />
+                                </Box>
+                            )}
                             <Box
+                                data-message-bubble
+                                onContextMenu={handleContextMenu}
+                                onPointerCancel={cancelGesture}
+                                onPointerDown={handlePointerDown}
+                                onPointerMove={handlePointerMove}
+                                onPointerUp={handlePointerUp}
+                                onTouchEnd={handleTouchEnd}
                                 sx={{
+                                    bgcolor: isOwn
+                                        ? outgoingBubble
+                                        : incomingBubble,
+                                    borderRadius: bubbleBorderRadius,
                                     color: isOwn
                                         ? outgoingMessageText
                                         : incomingMessageText,
-                                    fontFamily:
-                                        '"Inter Variable", Inter, sans-serif',
-                                    fontStyle:
-                                        isUnavailable || isPoke
-                                            ? "italic"
-                                            : "normal",
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    lineHeight: "21px",
-                                    overflowWrap: "anywhere",
-                                    whiteSpace: "pre-wrap",
+                                    cursor: isUnavailable
+                                        ? "default"
+                                        : "context-menu",
+                                    display: "block",
+                                    maxWidth: "100%",
+                                    minWidth: 0,
+                                    ml: 0,
+                                    overflow: "visible",
+                                    position: "relative",
+                                    px: messageBubblePaddingX,
+                                    py: messageBubblePaddingY,
+                                    textAlign: "left",
+                                    touchAction: "pan-y",
+                                    transform: `translateX(${swipeOffset}px)`,
+                                    transition:
+                                        swipeOffset > 0
+                                            ? "none"
+                                            : "transform 160ms ease-out",
+                                    userSelect: "none",
+                                    WebkitTouchCallout: "none",
+                                    WebkitUserSelect: "none",
+                                    width: "fit-content",
+                                    "& *": {
+                                        userSelect: "none",
+                                        WebkitTouchCallout: "none",
+                                        WebkitUserSelect: "none",
+                                    },
                                 }}
                             >
-                                {isUnavailable
-                                    ? "Message unavailable"
-                                    : isPoke
-                                      ? pokeText
-                                      : message.text}
-                            </Box>
-                            {!isUnavailable && message.liked && (
                                 <Box
-                                    component="span"
-                                    role="img"
-                                    aria-label="Liked"
                                     sx={{
-                                        alignItems: "center",
-                                        bottom: -5,
-                                        color: green,
-                                        display: "inline-flex",
-                                        justifyContent: "center",
-                                        lineHeight: 0,
-                                        pointerEvents: "none",
-                                        position: "absolute",
-                                        zIndex: 2,
-                                        ...(isOwn
-                                            ? { left: -2 }
-                                            : { right: -2 }),
+                                        color: isOwn
+                                            ? outgoingMessageText
+                                            : incomingMessageText,
+                                        fontFamily:
+                                            '"Inter Variable", Inter, sans-serif',
+                                        fontStyle:
+                                            isUnavailable || isPoke
+                                                ? "italic"
+                                                : "normal",
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        lineHeight: "21px",
+                                        overflowWrap: "anywhere",
+                                        whiteSpace: "pre-wrap",
                                     }}
                                 >
-                                    <MessageLikeHeartIcon />
+                                    {isUnavailable
+                                        ? "Message unavailable"
+                                        : isPoke
+                                          ? pokeText
+                                          : message.text}
                                 </Box>
-                            )}
+                                {!isUnavailable && message.liked && (
+                                    <Box
+                                        component="span"
+                                        role="img"
+                                        aria-label="Liked"
+                                        sx={{
+                                            alignItems: "center",
+                                            bottom: -5,
+                                            color: green,
+                                            display: "inline-flex",
+                                            justifyContent: "center",
+                                            lineHeight: 0,
+                                            pointerEvents: "none",
+                                            position: "absolute",
+                                            zIndex: 2,
+                                            ...(isOwn
+                                                ? { left: -2 }
+                                                : { right: -2 }),
+                                        }}
+                                    >
+                                        <MessageLikeHeartIcon />
+                                    </Box>
+                                )}
+                            </Box>
                         </Box>
                     )}
                 </Box>
@@ -1979,6 +2089,15 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
         closeMessageActions();
     };
 
+    const startReply = (message: SpaceMessage) => {
+        if (!canInteract) return;
+        flushSync(() => {
+            closeMessageActions();
+            setReplyingTo(messageByID.get(message.id) ?? message);
+        });
+        composerRef.current?.focus();
+    };
+
     const handleMessageAction = (
         action: "copy" | "delete" | "like" | "reply",
     ) => {
@@ -2008,11 +2127,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                 );
                 break;
             case "reply":
-                flushSync(() => {
-                    closeMessageActions();
-                    setReplyingTo(targetMessage);
-                });
-                composerRef.current?.focus();
+                startReply(targetMessage);
                 break;
             case "delete":
                 closeMessageActions();
@@ -2438,6 +2553,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                                     minHeight: 0,
                                     overscrollBehaviorY: "contain",
                                     overflowY: "auto",
+                                    overflowX: "hidden",
                                     px: "14px",
                                     py: "12px",
                                 }}
@@ -2549,6 +2665,9 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                                                                           ]
                                                                         : undefined
                                                                 }
+                                                                canReply={
+                                                                    canInteract
+                                                                }
                                                                 friendName={
                                                                     selectedName
                                                                 }
@@ -2575,6 +2694,9 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                                                                 }
                                                                 onOpenQuotePost={
                                                                     onOpenQuotePost
+                                                                }
+                                                                onReply={
+                                                                    startReply
                                                                 }
                                                                 ownSpaceID={
                                                                     profile.spaceId

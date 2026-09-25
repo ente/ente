@@ -42,7 +42,7 @@ import {
     type TimestampedFileSystemUploadItem,
 } from "./upload";
 
-export type HLSGenerationEnabledStatus = "processing" | "idle";
+type HLSGenerationEnabledStatus = "processing" | "idle";
 
 export type HLSGenerationStatus =
     | { enabled: false }
@@ -466,7 +466,7 @@ const tickNow = () => {
     _state.queueProcessor ??= processQueue();
 };
 
-export const isHLSGenerationEnabled = () => _state.isHLSGenerationEnabled;
+const isHLSGenerationEnabled = () => _state.isHLSGenerationEnabled;
 
 const processQueue = async () => {
     if (!isHLSGenerationSupported || !isHLSGenerationEnabled()) {

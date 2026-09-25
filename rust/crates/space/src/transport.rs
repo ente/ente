@@ -173,7 +173,7 @@ pub struct MessageResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct MessagePage {
+pub struct MessagePageResponse {
     pub items: Vec<MessageResponse>,
     #[serde(default)]
     pub next_cursor: String,

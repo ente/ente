@@ -593,7 +593,12 @@ class RustMLDataDB with MLDataDBOrchestration implements IMLDataDB<int> {
   Future<List<EmbeddingVector>> getAllClipVectors() async {
     final db = await _db;
     final rows = await db.getAllClipVectors();
-    return rows.map(mappers.toEmbeddingVector).toList();
+    return rows
+        .where(
+          (row) => row.embedding.length == ClipVectorDB.embeddingDimensions,
+        )
+        .map(mappers.toEmbeddingVector)
+        .toList();
   }
 
   @override

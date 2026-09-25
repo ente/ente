@@ -26,7 +26,7 @@ export const SpaceFeedPostButton: React.FC<SpaceFeedPostButtonProps> = ({
         type="button"
         aria-label={
             showFirstPostPrompt && !disabled
-                ? "Share your first photo"
+                ? "Share a photo from your day"
                 : "Post photo"
         }
         disabled={disabled}
@@ -95,7 +95,7 @@ export const SpaceFeedPostButton: React.FC<SpaceFeedPostButtonProps> = ({
                     },
                 }}
             >
-                Share your first photo
+                Share a photo from your day
             </Box>
         )}
         <HugeiconsIcon icon={Add01Icon} size={iconSize} strokeWidth={2.1} />

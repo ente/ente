@@ -55,7 +55,7 @@ export type NestedSidebarDrawerVisibilityProps = ModalVisibilityProps & {
     onRootClose: () => void;
 };
 
-export const NestedSidebarDrawer: React.FC<
+const NestedSidebarDrawer: React.FC<
     NestedSidebarDrawerVisibilityProps & DrawerProps
 > = ({ onClose, onRootClose, ...rest }) => {
     // Backdrop taps close the entire stack.

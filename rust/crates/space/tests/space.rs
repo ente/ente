@@ -3,7 +3,7 @@
 
 mod support;
 
-use ente_space::{AccountSpaceCtx, PostPhotoAssetOptions};
+use ente_space::{AccountSpaceCtx, PostPhotoAssetOptions, PostPhotoInput};
 use ente_test_support::{Museum, TestResult};
 
 use crate::support::{auth, space};
@@ -124,30 +124,23 @@ async fn space_bootstrap_posts_and_friend_share_suite(endpoint: &str) {
     assert_eq!(looked_up.space_id, owner_space.space_id);
     assert_eq!(looked_up.space_slug, updated_slug);
 
-    let post_key = owner_ctx.generate_post_key();
-    let object = owner_ctx
-        .upload_post_photo_asset(
+    let post = owner_ctx
+        .create_photo_post(
             &owner_space.space_id,
-            &post_key,
-            TEST_WEBP_BYTES,
-            PostPhotoAssetOptions {
-                width: Some(320),
-                height: Some(240),
-                media_type: Some("image/webp".to_owned()),
-                thumb_hash: None,
-            },
-        )
-        .await
-        .expect("post asset upload should succeed");
-    let (post_id, _post_key) = owner_ctx
-        .create_post(
-            &owner_space.space_id,
-            &[object],
-            Some(br#"{"caption":"hello world"}"#),
-            Some(&post_key),
+            std::iter::once(PostPhotoInput {
+                bytes: TEST_WEBP_BYTES.to_vec(),
+                options: PostPhotoAssetOptions {
+                    width: Some(320),
+                    height: Some(240),
+                    media_type: Some("image/webp".to_owned()),
+                    thumb_hash: None,
+                },
+            }),
+            Some(r#"{"caption":"hello world"}"#),
         )
         .await
         .expect("post creation should succeed");
+    let post_id = post.post_id;
     let owner_post = owner_ctx
         .get_post(&owner_space.space_id, post_id, None)
         .await
@@ -307,30 +300,23 @@ async fn space_unfriend_revokes_reciprocal_account_access_suite(endpoint: &str) 
         .await
         .expect("friend space creation failed");
 
-    let post_key = owner_ctx.generate_post_key();
-    let object = owner_ctx
-        .upload_post_photo_asset(
+    let post = owner_ctx
+        .create_photo_post(
             &owner_space.space_id,
-            &post_key,
-            TEST_WEBP_BYTES,
-            PostPhotoAssetOptions {
-                width: Some(320),
-                height: Some(240),
-                media_type: Some("image/webp".to_owned()),
-                thumb_hash: None,
-            },
-        )
-        .await
-        .expect("post asset upload should succeed");
-    let (post_id, _post_key) = owner_ctx
-        .create_post(
-            &owner_space.space_id,
-            &[object],
-            Some(br#"{"caption":"before unfriend"}"#),
-            Some(&post_key),
+            std::iter::once(PostPhotoInput {
+                bytes: TEST_WEBP_BYTES.to_vec(),
+                options: PostPhotoAssetOptions {
+                    width: Some(320),
+                    height: Some(240),
+                    media_type: Some("image/webp".to_owned()),
+                    thumb_hash: None,
+                },
+            }),
+            Some(r#"{"caption":"before unfriend"}"#),
         )
         .await
         .expect("post creation should succeed");
+    let post_id = post.post_id;
 
     request_and_confirm_friend(
         &friend_ctx,
@@ -388,11 +374,10 @@ async fn space_unfriend_revokes_reciprocal_account_access_suite(endpoint: &str) 
         .iter()
         .find(|message| message.message_id == direct_message.message_id)
         .expect("direct message should be in owner thread before unfriend");
-    let decrypted_message = owner_ctx
-        .decrypt_message(&owner_space.space_id, owner_thread_message)
-        .await
-        .expect("owner should decrypt direct message before unfriend");
-    assert_eq!(decrypted_message.payload.text, "hello before unfriend");
+    assert!(matches!(
+        &owner_thread_message.content,
+        Ok(Some(content)) if content.text == "hello before unfriend"
+    ));
     owner_ctx
         .like_message(&owner_space.space_id, &direct_message.message_id, true)
         .await
@@ -465,11 +450,10 @@ async fn space_unfriend_revokes_reciprocal_account_access_suite(endpoint: &str) 
         .iter()
         .find(|message| message.message_id == direct_message.message_id)
         .expect("direct message should remain in owner thread after unfriend");
-    let decrypted_message = owner_ctx
-        .decrypt_message(&owner_space.space_id, owner_thread_message)
-        .await
-        .expect("owner should still decrypt old direct message after unfriend");
-    assert_eq!(decrypted_message.payload.text, "hello before unfriend");
+    assert!(matches!(
+        &owner_thread_message.content,
+        Ok(Some(content)) if content.text == "hello before unfriend"
+    ));
     space::assert_invalid_input_contains(
         friend_ctx
             .send_message(&friend_space.space_id, &owner_space.space_id, "should fail")

@@ -7,7 +7,7 @@ import { ensureMasterKeyFromSession } from "ente-new/photos/services/account-key
 import { nullToUndefined } from "ente-utils/transform";
 import { z } from "zod";
 
-export const ensureUserKeyPair = async (): Promise<KeyPair> => {
+const ensureUserKeyPair = async (): Promise<KeyPair> => {
     const { encryptedSecretKey, secretKeyDecryptionNonce, publicKey } =
         ensureSavedKeyAttributes();
     const privateKey = await decryptBox(

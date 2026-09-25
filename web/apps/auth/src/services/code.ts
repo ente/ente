@@ -18,7 +18,7 @@ export interface Code {
     uriString: string;
 }
 
-export interface CodeDisplay {
+interface CodeDisplay {
     trashed?: boolean;
     pinned?: boolean;
     note?: string;

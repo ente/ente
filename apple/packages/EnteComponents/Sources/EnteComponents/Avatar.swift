@@ -3,25 +3,41 @@ import SwiftUI
 public struct Avatar: View {
     @Environment(\.entePalette) private var palette
     private let name: String
+    private let image: Image?
     private let identity: String
     private let size: AvatarSize
 
-    public init(_ name: String, identity: String? = nil, size: AvatarSize = .regular) {
+    public init(
+        _ name: String, image: Image? = nil, identity: String? = nil, size: AvatarSize = .regular
+    ) {
         self.name = name
+        self.image = image
         self.identity = identity ?? name
         self.size = size
     }
 
     public var body: some View {
-        Text(avatarInitials(name))
-            .font(size.font)
-            .foregroundStyle(Color.white)
-            .frame(width: size.dimension, height: size.dimension)
-            .background(colour)
-            .clipShape(Circle())
-            .overlay {
-                Circle().stroke(palette.background, lineWidth: size.border)
+        Group {
+            if let image {
+                image.resizable().renderingMode(.original).scaledToFill()
+            } else {
+                Text(avatarInitials(name))
+                    .font(size.font)
+                    .foregroundStyle(Color.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.1)
             }
+        }
+        .frame(width: size.dimension, height: size.dimension)
+        .background(colour)
+        .clipShape(Circle())
+        .contentShape(Circle())
+        .overlay {
+            Circle().strokeBorder(palette.background, lineWidth: size.border)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(name)
+        .accessibilityAddTraits(.isImage)
     }
 
     private var colour: Color {
