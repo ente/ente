@@ -322,21 +322,34 @@ type LikeMessageResponse struct {
 	Liked bool `json:"liked"`
 }
 
+type SetMessageReactionRequest struct {
+	SenderSpaceID                 string `json:"senderSpaceId" binding:"required"`
+	ReactionCipher                string `json:"reactionCipher" binding:"required"`
+	SenderEncryptedReactionKey    string `json:"senderEncryptedReactionKey" binding:"required"`
+	RecipientEncryptedReactionKey string `json:"recipientEncryptedReactionKey" binding:"required"`
+}
+
+type MessageReactionResponse struct {
+	Reacted bool `json:"reacted"`
+}
+
 type MessageResponse struct {
-	MessageID           string  `json:"messageId"`
-	Kind                string  `json:"kind"`
-	SenderSpaceID       string  `json:"senderSpaceId"`
-	RecipientSpaceID    string  `json:"recipientSpaceId"`
-	MessageCipher       string  `json:"messageCipher,omitempty"`
-	EncryptedMessageKey string  `json:"encryptedMessageKey,omitempty"`
-	Text                string  `json:"text,omitempty"`
-	ReplyPostID         *int64  `json:"replyPostId,omitempty"`
-	ReplyMessageID      *string `json:"replyMessageId,omitempty"`
-	Liked               bool    `json:"liked"`
-	ViewerLiked         bool    `json:"viewerLiked"`
-	IsDeleted           bool    `json:"isDeleted"`
-	CreatedAt           string  `json:"createdAt"`
-	UpdatedAt           string  `json:"updatedAt"`
+	MessageID            string  `json:"messageId"`
+	Kind                 string  `json:"kind"`
+	SenderSpaceID        string  `json:"senderSpaceId"`
+	RecipientSpaceID     string  `json:"recipientSpaceId"`
+	MessageCipher        string  `json:"messageCipher,omitempty"`
+	EncryptedMessageKey  string  `json:"encryptedMessageKey,omitempty"`
+	Text                 string  `json:"text,omitempty"`
+	ReplyPostID          *int64  `json:"replyPostId,omitempty"`
+	ReplyMessageID       *string `json:"replyMessageId,omitempty"`
+	Liked                bool    `json:"liked"`
+	ViewerLiked          bool    `json:"viewerLiked"`
+	ReactionCipher       string  `json:"reactionCipher,omitempty"`
+	EncryptedReactionKey string  `json:"encryptedReactionKey,omitempty"`
+	IsDeleted            bool    `json:"isDeleted"`
+	CreatedAt            string  `json:"createdAt"`
+	UpdatedAt            string  `json:"updatedAt"`
 }
 
 type MessagePage struct {
@@ -345,19 +358,21 @@ type MessagePage struct {
 }
 
 type MessageConversationActivityResponse struct {
-	ID                  string  `json:"id"`
-	Type                string  `json:"type"`
-	Kind                string  `json:"kind,omitempty"`
-	CreatedAt           string  `json:"createdAt"`
-	Outgoing            bool    `json:"outgoing,omitempty"`
-	MessageID           *string `json:"messageId,omitempty"`
-	SenderSpaceID       string  `json:"senderSpaceId,omitempty"`
-	RecipientSpaceID    string  `json:"recipientSpaceId,omitempty"`
-	MessageCipher       string  `json:"messageCipher,omitempty"`
-	EncryptedMessageKey string  `json:"encryptedMessageKey,omitempty"`
-	ReplyMessageID      *string `json:"replyMessageId,omitempty"`
-	PostID              *int64  `json:"postId,omitempty"`
-	PostSpaceID         string  `json:"postSpaceId,omitempty"`
+	ID                   string  `json:"id"`
+	Type                 string  `json:"type"`
+	Kind                 string  `json:"kind,omitempty"`
+	CreatedAt            string  `json:"createdAt"`
+	Outgoing             bool    `json:"outgoing,omitempty"`
+	MessageID            *string `json:"messageId,omitempty"`
+	SenderSpaceID        string  `json:"senderSpaceId,omitempty"`
+	RecipientSpaceID     string  `json:"recipientSpaceId,omitempty"`
+	MessageCipher        string  `json:"messageCipher,omitempty"`
+	EncryptedMessageKey  string  `json:"encryptedMessageKey,omitempty"`
+	ReactionCipher       string  `json:"reactionCipher,omitempty"`
+	EncryptedReactionKey string  `json:"encryptedReactionKey,omitempty"`
+	ReplyMessageID       *string `json:"replyMessageId,omitempty"`
+	PostID               *int64  `json:"postId,omitempty"`
+	PostSpaceID          string  `json:"postSpaceId,omitempty"`
 }
 
 type ConversationChatSummaryResponse struct {

@@ -28,6 +28,7 @@ const (
 	spaceActivityMessageSent     = "message_sent"
 	spaceActivityPokeSent        = "poke_sent"
 	spaceActivityMessageLiked    = "message_liked"
+	spaceActivityMessageReacted  = "message_reacted"
 	spaceActivityFriendAdded     = "friend_added"
 	spaceActivityFriendRequested = "friend_requested"
 	spaceWebPushSendRate         = "50-H"
@@ -61,6 +62,7 @@ type SpaceActivityNotifier interface {
 	OnSpaceMessageSent(actor SpaceActivityActor, recipientUserID int64)
 	OnSpacePokeSent(actor SpaceActivityActor, recipientUserID int64)
 	OnSpaceMessageLiked(actor SpaceActivityActor, recipientUserID int64)
+	OnSpaceMessageReacted(actor SpaceActivityActor, recipientUserID int64)
 	OnSpaceFriendAdded(actor SpaceActivityActor, recipientUserID int64)
 	OnSpaceFriendRequested(actor SpaceActivityActor, recipientUserID int64)
 }
@@ -144,6 +146,10 @@ func (n *SpaceWebPushSender) OnSpacePokeSent(actor SpaceActivityActor, recipient
 
 func (n *SpaceWebPushSender) OnSpaceMessageLiked(actor SpaceActivityActor, recipientUserID int64) {
 	n.sendAccountActivity(actor, "liked a message", "View conversation", spaceActivityMessageLiked, conversationURL(actor.SpaceID), recipientUserID)
+}
+
+func (n *SpaceWebPushSender) OnSpaceMessageReacted(actor SpaceActivityActor, recipientUserID int64) {
+	n.sendAccountActivity(actor, "reacted to your message", "View conversation", spaceActivityMessageReacted, conversationURL(actor.SpaceID), recipientUserID)
 }
 
 func (n *SpaceWebPushSender) OnSpaceFriendAdded(actor SpaceActivityActor, recipientUserID int64) {

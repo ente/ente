@@ -20,12 +20,14 @@ const (
 
 	spaceMessageNotificationKindPoke = "poke"
 
-	maxSpaceMessageCipherEncodedBytes = 8 * 1024
-	maxSpaceMessageCipherDecodedBytes = 6 * 1024
-	maxSpaceMessageKeyEncodedBytes    = 1024
-	maxSpaceMessageKeyDecodedBytes    = 768
-	spaceMessageIDPrefix              = "wmsg_"
-	spaceMessageIDSuffixLength        = 22
+	maxSpaceMessageCipherEncodedBytes  = 8 * 1024
+	maxSpaceMessageCipherDecodedBytes  = 6 * 1024
+	maxSpaceReactionCipherEncodedBytes = 1024
+	maxSpaceReactionCipherDecodedBytes = 768
+	maxSpaceMessageKeyEncodedBytes     = 1024
+	maxSpaceMessageKeyDecodedBytes     = 768
+	spaceMessageIDPrefix               = "wmsg_"
+	spaceMessageIDSuffixLength         = 22
 )
 
 type MessagesController struct {
@@ -261,6 +263,64 @@ func (c *MessagesController) SetLike(ctx context.Context, actorSpace *repo.Space
 	return &models.LikeMessageResponse{Liked: like}, nil
 }
 
+func (c *MessagesController) SetReaction(ctx context.Context, actorSpace *repo.SpaceRecord, messageID string, req models.SetMessageReactionRequest) (*models.MessageReactionResponse, error) {
+	messageID = strings.TrimSpace(messageID)
+	if messageID == "" {
+		return nil, ente.NewBadRequestWithMessage("messageId is required")
+	}
+	message, err := c.MessagesRepo.GetMessage(ctx, messageID, actorSpace.SpaceID)
+	if err != nil {
+		return nil, err
+	}
+	if message.IsDeleted || (message.Kind != spaceMessageKindRegular && message.Kind != spaceMessageKindPostReply) {
+		return nil, ente.NewBadRequestWithMessage("cannot react to this message")
+	}
+	if message.RecipientSpaceID != actorSpace.SpaceID {
+		return nil, ente.NewBadRequestWithMessage("only the recipient can react to a message")
+	}
+	if message.SenderSpaceID != req.SenderSpaceID {
+		return nil, ente.NewBadRequestWithMessage("senderSpaceId does not match message")
+	}
+	if _, err := c.FriendsRepo.GetShareForFriendAndSpace(ctx, actorSpace.SpaceID, message.SenderSpaceID); err != nil {
+		if errors.Is(stacktrace.RootCause(err), sql.ErrNoRows) {
+			return nil, ente.ErrPermissionDenied
+		}
+		return nil, err
+	}
+	cipher, err := decodeEncodedSpaceField("reactionCipher", req.ReactionCipher, maxSpaceReactionCipherEncodedBytes, maxSpaceReactionCipherDecodedBytes)
+	if err != nil {
+		return nil, err
+	}
+	senderKey, err := decodeEncodedSpaceField("senderEncryptedReactionKey", req.SenderEncryptedReactionKey, maxSpaceMessageKeyEncodedBytes, maxSpaceMessageKeyDecodedBytes)
+	if err != nil {
+		return nil, err
+	}
+	recipientKey, err := decodeEncodedSpaceField("recipientEncryptedReactionKey", req.RecipientEncryptedReactionKey, maxSpaceMessageKeyEncodedBytes, maxSpaceMessageKeyDecodedBytes)
+	if err != nil {
+		return nil, err
+	}
+	if len(cipher) == 0 || len(senderKey) == 0 || len(recipientKey) == 0 {
+		return nil, ente.NewBadRequestWithMessage("reaction cipher and encrypted keys are required")
+	}
+	otherSpace, err := c.SpacesRepo.GetSpaceByID(ctx, message.SenderSpaceID)
+	if err != nil {
+		return nil, err
+	}
+	added, err := c.MessagesRepo.SetReaction(ctx, messageID, actorSpace.SpaceID, cipher, senderKey, recipientKey)
+	if err != nil {
+		return nil, err
+	}
+	if added {
+		go c.ActivityNotifier.OnSpaceMessageReacted(spaceActivityActor(actorSpace), otherSpace.OwnerID)
+	}
+	return &models.MessageReactionResponse{Reacted: true}, nil
+}
+
+func (c *MessagesController) DeleteReaction(ctx context.Context, actorSpace *repo.SpaceRecord, messageID string) error {
+	_, err := c.SetLike(ctx, actorSpace, messageID, false)
+	return err
+}
+
 func (c *MessagesController) Delete(ctx context.Context, senderSpace *repo.SpaceRecord, messageID string) error {
 	messageID = strings.TrimSpace(messageID)
 	if messageID == "" {
@@ -382,18 +442,20 @@ func decodeCreateMessageRequest(req models.CreateMessageRequest) ([]byte, []byte
 
 func toMessageResponse(message repo.SpaceMessageRecord) *models.MessageResponse {
 	resp := &models.MessageResponse{
-		MessageID:           message.MessageID,
-		Kind:                message.Kind,
-		SenderSpaceID:       message.SenderSpaceID,
-		RecipientSpaceID:    message.RecipientSpaceID,
-		MessageCipher:       encodeSpaceField(message.MessageCipher),
-		EncryptedMessageKey: encodeSpaceField(message.EncryptedMessageKey),
-		Text:                message.Text,
-		Liked:               message.Liked,
-		ViewerLiked:         message.ViewerLiked,
-		IsDeleted:           message.IsDeleted,
-		CreatedAt:           formatMicros(message.CreatedAt),
-		UpdatedAt:           formatMicros(message.UpdatedAt),
+		MessageID:            message.MessageID,
+		Kind:                 message.Kind,
+		SenderSpaceID:        message.SenderSpaceID,
+		RecipientSpaceID:     message.RecipientSpaceID,
+		MessageCipher:        encodeSpaceField(message.MessageCipher),
+		EncryptedMessageKey:  encodeSpaceField(message.EncryptedMessageKey),
+		Text:                 message.Text,
+		Liked:                message.Liked,
+		ViewerLiked:          message.ViewerLiked,
+		ReactionCipher:       encodeSpaceField(message.ReactionCipher),
+		EncryptedReactionKey: encodeSpaceField(message.EncryptedReactionKey),
+		IsDeleted:            message.IsDeleted,
+		CreatedAt:            formatMicros(message.CreatedAt),
+		UpdatedAt:            formatMicros(message.UpdatedAt),
 	}
 	if message.ReplyPostID.Valid {
 		replyPostID := message.ReplyPostID.Int64
@@ -443,6 +505,10 @@ func toMessageConversationActivityResponse(activity repo.SpaceMessageConversatio
 	}
 	if len(activity.EncryptedMessageKey) > 0 {
 		resp.EncryptedMessageKey = encodeSpaceField(activity.EncryptedMessageKey)
+	}
+	if len(activity.ReactionCipher) > 0 {
+		resp.ReactionCipher = encodeSpaceField(activity.ReactionCipher)
+		resp.EncryptedReactionKey = encodeSpaceField(activity.EncryptedReactionKey)
 	}
 	if activity.ReplyMessageID.Valid {
 		replyMessageID := activity.ReplyMessageID.String

@@ -133,20 +133,22 @@ type SpaceTempObjectRecord struct {
 }
 
 type SpaceMessageRecord struct {
-	MessageID           string
-	Kind                string
-	SenderSpaceID       string
-	RecipientSpaceID    string
-	MessageCipher       []byte
-	EncryptedMessageKey []byte
-	ReplyPostID         sql.NullInt64
-	ReplyMessageID      sql.NullString
-	Liked               bool
-	ViewerLiked         bool
-	IsDeleted           bool
-	Text                string
-	CreatedAt           int64
-	UpdatedAt           int64
+	MessageID            string
+	Kind                 string
+	SenderSpaceID        string
+	RecipientSpaceID     string
+	MessageCipher        []byte
+	EncryptedMessageKey  []byte
+	ReplyPostID          sql.NullInt64
+	ReplyMessageID       sql.NullString
+	Liked                bool
+	ViewerLiked          bool
+	ReactionCipher       []byte
+	EncryptedReactionKey []byte
+	IsDeleted            bool
+	Text                 string
+	CreatedAt            int64
+	UpdatedAt            int64
 }
 
 type SpaceConversationChatSummaryRecord struct {
@@ -156,19 +158,21 @@ type SpaceConversationChatSummaryRecord struct {
 }
 
 type SpaceMessageConversationActivityRecord struct {
-	ID                  string
-	Type                string
-	Kind                sql.NullString
-	CreatedAt           int64
-	Outgoing            bool
-	MessageID           sql.NullString
-	SenderSpaceID       sql.NullString
-	RecipientSpaceID    sql.NullString
-	MessageCipher       []byte
-	EncryptedMessageKey []byte
-	ReplyMessageID      sql.NullString
-	PostID              sql.NullInt64
-	PostSpaceID         sql.NullString
+	ID                   string
+	Type                 string
+	Kind                 sql.NullString
+	CreatedAt            int64
+	Outgoing             bool
+	MessageID            sql.NullString
+	SenderSpaceID        sql.NullString
+	RecipientSpaceID     sql.NullString
+	MessageCipher        []byte
+	EncryptedMessageKey  []byte
+	ReactionCipher       []byte
+	EncryptedReactionKey []byte
+	ReplyMessageID       sql.NullString
+	PostID               sql.NullInt64
+	PostSpaceID          sql.NullString
 }
 
 type CreateSpaceMessageRecord struct {
