@@ -107,30 +107,63 @@ Future<void> showSingleFileDeleteSheet(
   }
 }
 
-Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
-  if (file.canEditMetaInfo && file.isPanorama() == null) {
-    guardedCheckPanorama(file).ignore();
+final _openDetailsSheetResumeIntent = <Object, bool?>{};
+
+Object detailsSheetIdentityFor(BuildContext context, EnteFile file) =>
+    (ModalRoute.of(context), DetailsSheetEvent.identityFor(file));
+
+({bool isOpen, bool shouldResume}) detailsSheetPlaybackStateFor(
+  Object identity,
+  bool isActive,
+) {
+  final isOpen = _openDetailsSheetResumeIntent.containsKey(identity);
+  if (isOpen && isActive) _openDetailsSheetResumeIntent[identity] ??= true;
+  return (
+    isOpen: isOpen,
+    shouldResume: isOpen && (_openDetailsSheetResumeIntent[identity] ?? false),
+  );
+}
+
+void rememberDetailsSheetResumeIntent(Object identity, bool shouldResume) {
+  if (_openDetailsSheetResumeIntent.containsKey(identity)) {
+    _openDetailsSheetResumeIntent[identity] ??= shouldResume;
   }
-  Bus.instance.fire(
-    DetailsSheetEvent(
-      localID: file.localID,
-      uploadedFileID: file.uploadedFileID,
-      opened: true,
-    ),
-  );
-  await showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _DraggableDetailsSheet(file: file),
-  );
-  Bus.instance.fire(
-    DetailsSheetEvent(
-      localID: file.localID,
-      uploadedFileID: file.uploadedFileID,
-      opened: false,
-    ),
-  );
+}
+
+Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
+  final fileIdentity = detailsSheetIdentityFor(context, file);
+  if (_openDetailsSheetResumeIntent.containsKey(fileIdentity)) return;
+  _openDetailsSheetResumeIntent[fileIdentity] = null;
+
+  try {
+    if (file.canEditMetaInfo && file.isPanorama() == null) {
+      guardedCheckPanorama(file).ignore();
+    }
+    Bus.instance.fire(
+      DetailsSheetEvent(
+        fileIdentity: fileIdentity,
+        localID: file.localID,
+        uploadedFileID: file.uploadedFileID,
+        opened: true,
+      ),
+    );
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DraggableDetailsSheet(file: file),
+    );
+  } finally {
+    _openDetailsSheetResumeIntent.remove(fileIdentity);
+    Bus.instance.fire(
+      DetailsSheetEvent(
+        fileIdentity: fileIdentity,
+        localID: file.localID,
+        uploadedFileID: file.uploadedFileID,
+        opened: false,
+      ),
+    );
+  }
 }
 
 class _DraggableDetailsSheet extends StatefulWidget {

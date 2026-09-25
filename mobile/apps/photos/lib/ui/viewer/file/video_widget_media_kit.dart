@@ -8,6 +8,7 @@ import "package:media_kit/media_kit.dart";
 import "package:media_kit_video/media_kit_video.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/events/details_sheet_event.dart";
 import "package:photos/events/guest_view_event.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/events/resume_video_event.dart";
@@ -68,12 +69,16 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   VideoController? controller;
   final _progressNotifier = ValueNotifier<double?>(null);
   bool _isAppInFG = true;
+  late StreamSubscription<DetailsSheetEvent> detailsSheetEventSubscription;
   late StreamSubscription<PauseVideoEvent> pauseVideoSubscription;
   late StreamSubscription<ResumeVideoEvent> resumeVideoSubscription;
   StreamSubscription<VideoMuteChangedEvent>? _muteSubscription;
   bool isGuestView = false;
   late final StreamSubscription<GuestViewEvent> _guestViewEventSubscription;
   bool _isGuestView = false;
+  Object? _detailsSheetIdentity;
+  bool _isDetailsSheetOpen = false;
+  bool _wasPlayingBeforeDetailsSheet = false;
   StreamSubscription<StreamSwitchedEvent>? _streamSwitchedSubscription;
   StreamSubscription<DownloadTask>? _downloadTaskSubscription;
   final _transformationController = TransformationController();
@@ -87,20 +92,45 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    if (widget.selectedPreview) {
-      loadPreview();
-    } else {
-      loadOriginal();
-    }
-
     pauseVideoSubscription = Bus.instance.on<PauseVideoEvent>().listen((event) {
       if (event.fileTag != null && event.fileTag != widget.file.tag) return;
       player.pause();
     });
+    detailsSheetEventSubscription = Bus.instance.on<DetailsSheetEvent>().listen(
+      (event) {
+        if (!event.isSameFile(fileIdentity: _detailsSheetIdentity)) {
+          return;
+        }
+        if (event.opened) {
+          if (_isDetailsSheetOpen) return;
+          final playerState = player.state;
+          _wasPlayingBeforeDetailsSheet =
+              playerState.playing ||
+              (_isAppInFG &&
+                  widget.isActive &&
+                  !playerState.completed &&
+                  (controller == null || playerState.buffering));
+          _isDetailsSheetOpen = true;
+          if (widget.isActive) {
+            rememberDetailsSheetResumeIntent(
+              _detailsSheetIdentity!,
+              _wasPlayingBeforeDetailsSheet,
+            );
+          }
+          player.pause();
+        } else {
+          _isDetailsSheetOpen = false;
+          if (_wasPlayingBeforeDetailsSheet && widget.isActive) {
+            player.play();
+          }
+          _wasPlayingBeforeDetailsSheet = false;
+        }
+      },
+    );
     resumeVideoSubscription = Bus.instance.on<ResumeVideoEvent>().listen((
       event,
     ) {
-      if (widget.isActive) player.play();
+      if (widget.isActive && !_isDetailsSheetOpen) player.play();
     });
     if (!widget.isFromMemories) {
       _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
@@ -150,10 +180,35 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_detailsSheetIdentity != null) return;
+    _detailsSheetIdentity = detailsSheetIdentityFor(context, widget.file);
+    final sheetState = detailsSheetPlaybackStateFor(
+      _detailsSheetIdentity!,
+      widget.isActive,
+    );
+    _isDetailsSheetOpen = sheetState.isOpen;
+    _wasPlayingBeforeDetailsSheet = sheetState.shouldResume;
+
+    if (widget.selectedPreview) {
+      loadPreview();
+    } else {
+      loadOriginal();
+    }
+  }
+
+  @override
   void didUpdateWidget(covariant VideoWidgetMediaKit oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive != widget.isActive) {
-      widget.isActive ? player.play() : player.pause();
+      if (widget.isActive && _isDetailsSheetOpen) {
+        _wasPlayingBeforeDetailsSheet = detailsSheetPlaybackStateFor(
+          _detailsSheetIdentity!,
+          true,
+        ).shouldResume;
+      }
+      widget.isActive && !_isDetailsSheetOpen ? player.play() : player.pause();
     }
     if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {
       _applyVolume();
@@ -211,6 +266,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   void dispose() {
     _streamSwitchedSubscription?.cancel();
     _guestViewEventSubscription.cancel();
+    detailsSheetEventSubscription.cancel();
     pauseVideoSubscription.cancel();
     resumeVideoSubscription.cancel();
     _muteSubscription?.cancel();
@@ -336,7 +392,10 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           controller = VideoController(player);
         }
         _applyVolume();
-        player.open(Media(url), play: _isAppInFG && widget.isActive);
+        player.open(
+          Media(url),
+          play: _isAppInFG && widget.isActive && !_isDetailsSheetOpen,
+        );
       });
       int duration = controller!.player.state.duration.inSeconds;
       if (duration == 0) {
