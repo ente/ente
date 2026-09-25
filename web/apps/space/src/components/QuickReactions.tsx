@@ -29,7 +29,7 @@ const buttonStyle = {
     justifyContent: "center",
     p: 0,
     width: 40,
-    "& > span": { transform: "translateY(2px)" },
+    "& > span": { transform: "translateY(1px)" },
     "&[aria-pressed=true]": { bgcolor: hoverBackground },
     "@media (hover: hover)": { "&:hover": { bgcolor: hoverBackground } },
     "&:focus-visible": {
