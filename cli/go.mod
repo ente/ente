@@ -1,6 +1,6 @@
 module github.com/ente/cli
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/go-resty/resty/v2 v2.7.0
