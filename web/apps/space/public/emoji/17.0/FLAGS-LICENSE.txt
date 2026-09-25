@@ -52,5 +52,5 @@ national law which made them Public Domain in that nation (e.g. `{{PD-AM-exempt}
 	MX-YUC	https://commons.wikimedia.org/wiki/File:Flag_of_Yucatan.svg
 	MX-ZAC	https://commons.wikimedia.org/wiki/File:Flag_of_Zacatecas.svg
 
-For individual details, revision history, and information on contributors, see 
+For individual details, revision history, and information on contributors, see
 files in `html/`.
