@@ -144,6 +144,15 @@ pub struct CreateMessageRequest {
     pub notification_kind: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetMessageReactionRequest {
+    pub sender_space_id: String,
+    pub reaction_cipher: String,
+    pub sender_encrypted_reaction_key: String,
+    pub recipient_encrypted_reaction_key: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MessageResponse {
@@ -165,6 +174,10 @@ pub struct MessageResponse {
     pub liked: bool,
     #[serde(default)]
     pub viewer_liked: bool,
+    #[serde(default)]
+    pub reaction_cipher: String,
+    #[serde(default)]
+    pub encrypted_reaction_key: String,
     #[serde(default)]
     pub is_deleted: bool,
     pub created_at: String,
@@ -200,6 +213,10 @@ pub struct MessageConversationActivity {
     pub message_cipher: String,
     #[serde(default)]
     pub encrypted_message_key: String,
+    #[serde(default)]
+    pub reaction_cipher: String,
+    #[serde(default)]
+    pub encrypted_reaction_key: String,
     #[serde(default)]
     pub reply_message_id: Option<String>,
     #[serde(default)]

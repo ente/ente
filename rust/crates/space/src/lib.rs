@@ -2,6 +2,7 @@ pub mod client;
 pub mod crypto;
 pub mod error;
 pub mod models;
+mod reactions;
 pub mod transport;
 
 pub use client::{

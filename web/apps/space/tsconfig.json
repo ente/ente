@@ -4,6 +4,7 @@
     "include": [
         "src",
         "tests",
+        "scripts/*.mts",
         "vitest.config.ts",
         "next-env.d.ts",
         "../../packages/base/global-electron.d.ts",

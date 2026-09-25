@@ -66,15 +66,20 @@ async fn message_thread_keeps_content_failures_local_to_each_message() {
         reply_message_id: None,
         liked: false,
         viewer_liked: false,
+        reaction_cipher: String::new(),
+        encrypted_reaction_key: String::new(),
         is_deleted: false,
         created_at: "2026-09-23T00:00:00Z".into(),
         updated_at: "2026-09-23T00:00:00Z".into(),
     };
-    let readable = message(
+    let mut readable = message(
         "readable",
         "regular",
         br#"{"version":1,"kind":"regular","text":"hello","replyObjectKey":"photo"}"#,
     );
+    readable.reaction_cipher =
+        b64::encode(&encrypt_secretbox_payload(&key, "😂".as_bytes()).unwrap());
+    readable.encrypted_reaction_key = encrypted_key.clone();
     let poke = message(
         "poke",
         "regular",
@@ -105,6 +110,7 @@ async fn message_thread_keeps_content_failures_local_to_each_message() {
     assert_eq!(opened.next_cursor, "next");
     assert_eq!(opened.items.len(), 6);
     assert_eq!(content(&opened.items[0]).text, "hello");
+    assert_eq!(opened.items[0].reaction.as_deref(), Some("😂"));
     assert_eq!(
         content(&opened.items[0]).reply_object_key.as_deref(),
         Some("photo")
@@ -137,6 +143,8 @@ async fn unread_poke_uses_latest_activity_kind() {
         recipient_space_id: "space_owner_main".into(),
         message_cipher: String::new(),
         encrypted_message_key: String::new(),
+        reaction_cipher: String::new(),
+        encrypted_reaction_key: String::new(),
         reply_message_id: None,
         post_id: None,
         post_space_id: None,
@@ -155,6 +163,46 @@ async fn unread_poke_uses_latest_activity_kind() {
         .unwrap();
 
     assert_eq!(summary.unread_activities[0].kind, "poke");
+}
+
+#[tokio::test]
+async fn unreadable_reaction_does_not_become_legacy_heart() {
+    let server = Server::new_async().await;
+    let ctx = test_account_ctx(&server.url());
+    let activity = MessageConversationActivity {
+        id: "message_like:message-1:space_owner_main".into(),
+        activity_type: "message_like".into(),
+        kind: "regular".into(),
+        created_at: "2026-08-01T00:00:00Z".into(),
+        outgoing: false,
+        message_id: Some("message-1".into()),
+        sender_space_id: "space_friend".into(),
+        recipient_space_id: "space_owner_main".into(),
+        message_cipher: String::new(),
+        encrypted_message_key: String::new(),
+        reaction_cipher: "%".into(),
+        encrypted_reaction_key: "%".into(),
+        reply_message_id: None,
+        post_id: None,
+        post_space_id: None,
+    };
+    let mut legacy = activity.clone();
+    legacy.reaction_cipher.clear();
+    legacy.encrypted_reaction_key.clear();
+
+    let summary = ctx
+        .open_conversation_summary(
+            "space_owner_main",
+            ConversationChatSummaryResponse {
+                latest_activity: activity,
+                unread_activities: vec![legacy],
+            },
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(summary.latest_activity.reaction, None);
+    assert_eq!(summary.unread_activities[0].reaction.as_deref(), Some("❤️"));
 }
 
 #[tokio::test]
@@ -186,6 +234,10 @@ async fn conversation_activities_open_content_and_preserve_server_kind() {
             recipient_space_id: "space_owner_main".into(),
             message_cipher: b64::encode(&encrypt_secretbox_payload(&key, &plaintext).unwrap()),
             encrypted_message_key: encrypted_key.clone(),
+            reaction_cipher: b64::encode(
+                &encrypt_secretbox_payload(&key, "🎉".as_bytes()).unwrap(),
+            ),
+            encrypted_reaction_key: encrypted_key.clone(),
             reply_message_id: None,
             post_id: None,
             post_space_id: None,
@@ -201,6 +253,7 @@ async fn conversation_activities_open_content_and_preserve_server_kind() {
             .await
             .unwrap();
         assert_eq!(summary.latest_activity.kind, expected_kind);
+        assert_eq!(summary.latest_activity.reaction.as_deref(), Some("🎉"));
         let content = summary.latest_activity.content.unwrap().unwrap();
         assert_eq!(content.text, "hello");
         assert_eq!(content.reply_object_key.as_deref(), Some("photo"));
@@ -217,6 +270,8 @@ async fn conversation_activities_open_content_and_preserve_server_kind() {
         recipient_space_id: "space_owner_main".into(),
         message_cipher: b64::encode(&encrypt_secretbox_payload(&key, b"not-json").unwrap()),
         encrypted_message_key: encrypted_key,
+        reaction_cipher: String::new(),
+        encrypted_reaction_key: String::new(),
         reply_message_id: None,
         post_id: None,
         post_space_id: None,
@@ -1748,6 +1803,7 @@ async fn message_actions_use_message_endpoints() {
             }])
             .to_string(),
         )
+        .expect(2)
         .create_async()
         .await;
     let reply = server
@@ -1791,6 +1847,29 @@ async fn message_actions_use_message_endpoints() {
         .with_body(json!({"liked": true}).to_string())
         .create_async()
         .await;
+    let react = server
+        .mock(
+            "PUT",
+            "/spaces/space_owner_main/messages/wmsg_reply/reaction",
+        )
+        .match_body(Matcher::AllOf(vec![
+            Matcher::Regex("\"senderSpaceId\":\"space_friend\"".into()),
+            Matcher::Regex("\"reactionCipher\":\"[^\"]+\"".into()),
+            Matcher::Regex("\"senderEncryptedReactionKey\":\"[^\"]+\"".into()),
+            Matcher::Regex("\"recipientEncryptedReactionKey\":\"[^\"]+\"".into()),
+        ]))
+        .with_status(200)
+        .with_body(json!({"reacted": true}).to_string())
+        .create_async()
+        .await;
+    let unreact = server
+        .mock(
+            "DELETE",
+            "/spaces/space_owner_main/messages/wmsg_reply/reaction",
+        )
+        .with_status(200)
+        .create_async()
+        .await;
     let delete = server
         .mock("DELETE", "/spaces/space_owner_main/messages/wmsg_reply")
         .match_header("x-space-session-token", "space-session-token")
@@ -1806,6 +1885,12 @@ async fn message_actions_use_message_endpoints() {
         .like_message("space_owner_main", "wmsg_reply", true)
         .await
         .expect("message like should be sent");
+    ctx.set_message_reaction("space_owner_main", "wmsg_reply", "space_friend", "👩🏽‍💻")
+        .await
+        .expect("message reaction should be sent");
+    ctx.delete_message_reaction("space_owner_main", "wmsg_reply")
+        .await
+        .expect("message reaction should be removed");
     ctx.delete_message("space_owner_main", "wmsg_reply")
         .await
         .expect("message delete should be sent");
@@ -1815,6 +1900,8 @@ async fn message_actions_use_message_endpoints() {
     friends.assert_async().await;
     reply.assert_async().await;
     like.assert_async().await;
+    react.assert_async().await;
+    unreact.assert_async().await;
     delete.assert_async().await;
 }
 

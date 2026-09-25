@@ -1,2 +1,4 @@
 package-lock.json
 packages/wasm/*/pkg/**
+apps/space/src/data/emoji-assets.json
+apps/space/src/data/emoji-catalog.json
