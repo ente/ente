@@ -9,7 +9,7 @@ let package = Package(
     targets: [
         .target(
             name: "MailCore",
-            path: "Classes",
+            path: "ente_mail/Sources/ente_mail",
             exclude: ["MailPlugin.swift"]
         ),
         .testTarget(
