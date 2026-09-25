@@ -82,6 +82,7 @@ class SortCodeMenuWidget extends StatelessWidget {
       CodeSortKey.mostFrequentlyUsed => l10n.mostFrequentlyUsed,
       CodeSortKey.recentlyUsed => l10n.mostRecentlyUsed,
       CodeSortKey.manual => l10n.manualSort,
+      CodeSortKey.newestFirst => l10n.sortNewestFirst,
     };
   }
 }
