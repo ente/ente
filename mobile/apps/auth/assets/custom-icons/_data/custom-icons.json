@@ -2801,6 +2801,15 @@
       ]
     },
     {
+      "title": "Yoti",
+      "altNames": [
+        "Yoti Hub",
+        "Yoti Portal",
+        "hub.yoti.com",
+        "identity.yoti.com"
+      ]
+    },
+    {
       "title": "Zabbix",
       "slug": "zabbix"
     },
