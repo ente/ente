@@ -59,6 +59,7 @@ class ImageEditorPage extends StatefulWidget {
 class _ImageEditorPageState extends State<ImageEditorPage> {
   final _mainEditorBarKey = GlobalKey<ImageEditorMainBottomBarState>();
   final editorKey = GlobalKey<ProImageEditorState>();
+  SubEditor? _activeSubEditor;
   final _logger = Logger("ImageEditor");
 
   Future<Uint8List> compressImage(Uint8List bytes) async {
@@ -244,6 +245,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               _showExitConfirmationDialog(context);
             },
             mainEditorCallbacks: MainEditorCallbacks(
+              onOpenSubEditor: (editor) => _activeSubEditor = editor,
               onStartCloseSubEditor: (value) {
                 _mainEditorBarKey.currentState?.setState(() {});
               },
@@ -254,6 +256,14 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           ),
           configs: ProImageEditorConfigs(
             i18n: I18n(
+              textEditor: I18nTextEditor(
+                inputHintText: context.strings.imageEditorEnterText,
+                bottomNavigationBarText: context.strings.imageEditorText,
+                back: context.strings.cancel,
+                done: context.strings.done,
+                textAlign: context.strings.align,
+                backgroundMode: context.strings.background,
+              ),
               tuneEditor: I18nTuneEditor(
                 brightness: context.strings.imageEditorBrightness,
                 contrast: context.strings.imageEditorContrast,
@@ -294,9 +304,13 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                 SubEditorMode.filter,
                 SubEditorMode.tune,
                 SubEditorMode.paint,
+                SubEditorMode.text,
                 SubEditorMode.emoji,
               ],
               style: MainEditorStyle(
+                subEditorPage: imageEditorSubEditorPageStyle(
+                  () => _activeSubEditor,
+                ),
                 uiOverlayStyle: SystemUiOverlayStyle(
                   systemNavigationBarContrastEnforced: true,
                   systemNavigationBarColor: Colors.transparent,
@@ -439,56 +453,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                 },
               ),
             ),
-            textEditor: TextEditorConfigs(
-              showBackgroundModeButton: true,
-              showTextAlignButton: true,
-              style: const TextEditorStyle(
-                background: Colors.transparent,
-                textFieldMargin: EdgeInsets.only(top: kToolbarHeight),
-              ),
-              widgets: TextEditorWidgets(
-                appBar: (textEditor, rebuildStream) => ReactiveAppbar(
-                  builder: (context) {
-                    return ImageEditorAppBar(
-                      key: const Key('image_editor_app_bar'),
-                      configs: textEditor.configs,
-                      done: () => textEditor.done(),
-                      close: () => textEditor.close(),
-                    );
-                  },
-                  stream: rebuildStream,
-                ),
-                bodyItems: (editor, rebuildStream) {
-                  return [
-                    ReactiveWidget(
-                      builder: (context) {
-                        return Positioned.fill(
-                          child: GestureDetector(
-                            onTap: () {},
-                            child: Container(color: Colors.transparent),
-                          ),
-                        );
-                      },
-                      stream: rebuildStream,
-                    ),
-                  ];
-                },
-                colorPicker:
-                    (textEditor, rebuildStream, currentColor, setColor) => null,
-                bottomBar: (editorState, rebuildStream) {
-                  return ReactiveWidget(
-                    builder: (context) {
-                      return ImageEditorTextBar(
-                        configs: editorState.configs,
-                        callbacks: editorState.callbacks,
-                        editor: editorState,
-                      );
-                    },
-                    stream: rebuildStream,
-                  );
-                },
-              ),
-            ),
+            textEditor: imageEditorTextConfigs(context),
             cropRotateEditor: CropRotateEditorConfigs(
               style: CropRotateEditorStyle(
                 background: colors.backgroundBase,

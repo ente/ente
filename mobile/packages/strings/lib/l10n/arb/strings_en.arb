@@ -1951,15 +1951,38 @@
   "ignore": "Ignore",
   "ignored": "ignored",
   "ignorePerson": "Ignore person",
+  "imageEditorAlignCenter": "Align center",
+  "imageEditorAlignLeft": "Align left",
+  "imageEditorAlignRight": "Align right",
+  "imageEditorBackgroundColor": "Background color",
   "imageEditorBrightness": "Brightness",
   "imageEditorContrast": "Contrast",
+  "imageEditorEnterText": "Enter text",
   "imageEditorExposure": "Exposure",
   "imageEditorFade": "Fade",
   "imageEditorHue": "Hue",
   "imageEditorLuminance": "Luminance",
+  "imageEditorNoBackground": "No background",
+  "@imageEditorNoBackground": {
+    "description": "Text background style with no visible background"
+  },
   "imageEditorSaturation": "Saturation",
   "imageEditorSharpness": "Sharpness",
+  "imageEditorSolidBackground": "Solid background",
+  "@imageEditorSolidBackground": {
+    "description": "Text background style with a fully opaque color"
+  },
   "imageEditorTemperature": "Temperature",
+  "imageEditorText": "Text",
+  "@imageEditorText": {
+    "description": "Tool for adding text to a photo"
+  },
+  "imageEditorTextColor": "Text color",
+  "imageEditorTranslucentBackground": "Translucent background",
+  "@imageEditorTranslucentBackground": {
+    "description": "Text background style with a half-transparent color"
+  },
+  "imageEditorWhite": "White",
   "imageNotAnalyzed": "Image not analyzed",
   "immediate": "Immediate",
   "immediately": "Immediately",
