@@ -268,12 +268,12 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
                 onKeyDown={() => {
                     draggedRef.current = false;
                 }}
-                onClick={(event) => {
+                onClick={() => {
                     if (draggedRef.current) {
                         draggedRef.current = false;
                         return;
                     }
-                    if (event.detail === 0) setOpen(false);
+                    setOpen(false);
                 }}
                 sx={{
                     ...buttonStyle,

@@ -2144,6 +2144,7 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
         const isOwn = isCurrentProfileMessage(message, profile);
         const isPoke = message.kind == "poke";
         if (isPoke && (!isOwn || !canInteract)) return;
+        setEmojiPickerTarget(null);
         ignoreMessageActionsBackdropUntilRef.current =
             source == "touch"
                 ? Date.now() + messageActionsTouchOpenMouseSuppressMs
@@ -2855,6 +2856,14 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                                         <Box
                                             role="group"
                                             aria-label="Message options"
+                                            onBlur={(event) => {
+                                                if (
+                                                    !event.currentTarget.contains(
+                                                        event.relatedTarget,
+                                                    )
+                                                )
+                                                    closeMessageActions();
+                                            }}
                                             onClick={(event) => {
                                                 if (
                                                     event.target ==

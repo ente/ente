@@ -1255,27 +1255,37 @@ export const replyToCurrentMessage = async (
     }
 };
 
-export const setCurrentMessageReaction = async (
+const pendingMessageReactions = new Set<Promise<void>>();
+
+export const setCurrentMessageReaction = (
     spaceId: string,
     messageId: string,
     senderSpaceId: string,
     reaction: string | null,
 ) => {
-    const ctx = await ensureCurrentSpaceContext();
-    try {
-        if (reaction) {
-            await ctx.setMessageReaction(
-                spaceId,
-                messageId,
-                senderSpaceId,
-                reaction,
-            );
-        } else {
-            await ctx.deleteMessageReaction(spaceId, messageId);
+    const pending = (async () => {
+        const ctx = await ensureCurrentSpaceContext();
+        try {
+            if (reaction) {
+                await ctx.setMessageReaction(
+                    spaceId,
+                    messageId,
+                    senderSpaceId,
+                    reaction,
+                );
+            } else {
+                await ctx.deleteMessageReaction(spaceId, messageId);
+            }
+        } finally {
+            releaseCurrentSpaceContext(ctx);
         }
-    } finally {
-        releaseCurrentSpaceContext(ctx);
-    }
+    })();
+    pendingMessageReactions.add(pending);
+    void pending.then(
+        () => pendingMessageReactions.delete(pending),
+        () => pendingMessageReactions.delete(pending),
+    );
+    return pending;
 };
 
 export const deleteCurrentMessage = async (
@@ -1293,6 +1303,7 @@ export const deleteCurrentMessage = async (
 export const loadCurrentMessageConversations = async (
     spaceId: string,
 ): Promise<SpaceMessageConversationList> => {
+    await Promise.allSettled(pendingMessageReactions);
     const ctx = await ensureCurrentSpaceContext();
     try {
         const response = await ctx.listConversations(spaceId);
