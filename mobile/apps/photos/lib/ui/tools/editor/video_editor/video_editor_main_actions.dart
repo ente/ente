@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import "package:flutter/material.dart";
 
 class VideoEditorMainActions extends StatelessWidget {
@@ -7,20 +9,30 @@ class VideoEditorMainActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Align(
-        alignment: Alignment.center,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          clipBehavior: Clip.none,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: children,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Align(
+            alignment: Alignment.center,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: min(constraints.maxWidth, 600),
+                  maxWidth: 600,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
+                  children: children,
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

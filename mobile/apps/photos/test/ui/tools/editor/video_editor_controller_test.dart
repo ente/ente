@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,29 @@ import 'package:photos/ui/tools/editor/video_editor/video_editor_widgets.dart';
 
 void main() {
   const sourceCrop = Rect.fromLTRB(0.1, 0.2, 0.6, 0.8);
+
+  test('speed can be canceled or kept through editor snapshots', () {
+    final controller = VideoEditorController.file(File('unused.mp4'));
+    addTearDown(controller.dispose);
+    final initialState = controller.snapshot();
+
+    controller.updateSpeed(0.5);
+    expect(controller.speed, 0.5);
+    controller.restore(initialState);
+    expect(controller.speed, 1.0);
+
+    controller.updateSpeed(2.0);
+    expect(controller.snapshot().speed, 2.0);
+  });
+
+  test('edited durations follow the chosen speed', () {
+    const sourceDuration = Duration(seconds: 8);
+    expect(
+      scaledVideoDuration(sourceDuration, 0.25),
+      const Duration(seconds: 32),
+    );
+    expect(scaledVideoDuration(sourceDuration, 2), const Duration(seconds: 4));
+  });
 
   test('clockwise crop rotation preserves the selected visual region', () {
     _expectRectClose(

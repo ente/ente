@@ -8,6 +8,9 @@ import 'package:video_player/video_player.dart';
 
 enum VideoRotationDirection { left, right }
 
+Duration scaledVideoDuration(Duration duration, double speed) =>
+    Duration(microseconds: (duration.inMicroseconds / speed).round());
+
 class VideoMinimumDurationError implements Exception {
   const VideoMinimumDurationError(this.minimum, this.actual);
 
@@ -23,6 +26,7 @@ class VideoEditorState {
     required this.maxCrop,
     required this.rotation,
     required this.preferredCropAspectRatio,
+    required this.speed,
   });
 
   final Duration startTrim;
@@ -31,6 +35,7 @@ class VideoEditorState {
   final Offset maxCrop;
   final int rotation;
   final double? preferredCropAspectRatio;
+  final double speed;
 }
 
 class VideoEditorController extends ChangeNotifier {
@@ -53,6 +58,7 @@ class VideoEditorController extends ChangeNotifier {
   Offset _maxCrop = const Offset(1, 1);
   int _rotation = 0;
   double? _preferredCropAspectRatio;
+  double _speed = 1.0;
 
   bool get initialized => _initialized;
   NativeVideoInfo get videoInfo => _videoInfo!;
@@ -68,6 +74,20 @@ class VideoEditorController extends ChangeNotifier {
   Offset get maxCrop => _maxCrop;
   int get rotation => _rotation;
   double? get preferredCropAspectRatio => _preferredCropAspectRatio;
+  double get speed => _speed;
+  Duration get editedDuration => scaledVideoDuration(trimmedDuration, _speed);
+
+  void updateSpeed(double speed) {
+    if (!speed.isFinite || speed <= 0) {
+      throw ArgumentError.value(speed, 'speed');
+    }
+    if (_speed == speed) return;
+    _speed = speed;
+    if (video.value.isInitialized) {
+      unawaited(video.setPlaybackSpeed(speed));
+    }
+    notifyListeners();
+  }
 
   set preferredCropAspectRatio(double? ratio) {
     if (ratio != null && (!ratio.isFinite || ratio <= 0)) {
@@ -158,6 +178,7 @@ class VideoEditorController extends ChangeNotifier {
     maxCrop: _maxCrop,
     rotation: _rotation,
     preferredCropAspectRatio: _preferredCropAspectRatio,
+    speed: _speed,
   );
 
   void restore(VideoEditorState state) {
@@ -167,6 +188,7 @@ class VideoEditorController extends ChangeNotifier {
     _maxCrop = state.maxCrop;
     _rotation = state.rotation;
     _preferredCropAspectRatio = state.preferredCropAspectRatio;
+    updateSpeed(state.speed);
     if (videoPosition < _startTrim || videoPosition > _endTrim) {
       unawaited(video.seekTo(_startTrim));
     }

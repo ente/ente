@@ -14,8 +14,11 @@ class VideoEditorPlayerControl extends StatelessWidget {
       child: AnimatedBuilder(
         animation: Listenable.merge([controller, controller.video]),
         builder: (_, _) {
-          final duration = controller.trimmedDuration;
-          Duration pos = controller.videoPosition - controller.startTrim;
+          final duration = controller.editedDuration;
+          Duration pos = scaledVideoDuration(
+            controller.videoPosition - controller.startTrim,
+            controller.speed,
+          );
           if (pos.isNegative) {
             pos = Duration.zero;
           } else if (pos > duration) {
