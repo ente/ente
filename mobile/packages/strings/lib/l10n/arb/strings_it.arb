@@ -1938,6 +1938,7 @@
   },
   "importSuccessTitle": "Evviva!",
   "importTypeEnteEncrypted": "Esportazione Ente criptata",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Codice errato",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

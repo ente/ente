@@ -1105,6 +1105,7 @@
   },
   "importSuccessTitle": "耶！",
   "importTypeEnteEncrypted": "Ente 加密导出",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "代码错误",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

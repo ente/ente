@@ -736,6 +736,7 @@
   },
   "importSuccessTitle": "הידד!",
   "importTypeEnteEncrypted": "ייצוא מוצפן של Ente",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "קוד שגוי",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

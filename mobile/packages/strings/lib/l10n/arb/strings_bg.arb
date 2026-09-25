@@ -1939,6 +1939,7 @@
   },
   "importSuccessTitle": "Ура!",
   "importTypeEnteEncrypted": "Ente шифрован експорт",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Неправилен код",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

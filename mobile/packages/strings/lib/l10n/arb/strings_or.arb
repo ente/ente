@@ -366,5 +366,6 @@
       }
     }
   },
-  "you": "ଆପଣ"
+  "you": "ଆପଣ",
+  "importTypeOpenAuthenticator": "Open Authenticator"
 }

@@ -480,6 +480,7 @@
   },
   "importSuccessTitle": "Jee!",
   "importTypeEnteEncrypted": "Ente krüptitud ekspordina",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Vigane kood",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

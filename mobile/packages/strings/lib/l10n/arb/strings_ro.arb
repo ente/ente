@@ -773,6 +773,7 @@
   "importSelectJsonFile": "Selectează fișierul JSON",
   "importSuccessTitle": "Ura!",
   "importTypeEnteEncrypted": "Export Ente criptat",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Cod incorect",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

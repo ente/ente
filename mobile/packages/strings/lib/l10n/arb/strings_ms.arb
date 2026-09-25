@@ -29,6 +29,7 @@
   "getStarted": "Mulakan",
   "importAccountPageTitle": "Masukkan butiran akaun",
   "importEnterSetupKey": "Masukkan kunci persediaan",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectDetails": "Butiran tidak betul",
   "loggingOut": "Log keluar...",
   "@loggingOut": {

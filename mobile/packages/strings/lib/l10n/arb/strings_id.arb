@@ -585,6 +585,7 @@
   },
   "importSuccessTitle": "Yey! :>",
   "importTypeEnteEncrypted": "Eksporan Ente terenkripsi",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Kode salah",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

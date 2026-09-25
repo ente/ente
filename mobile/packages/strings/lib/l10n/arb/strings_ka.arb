@@ -67,6 +67,7 @@
   "importAccountPageTitle": "შეიყვანეთ ანგარიშის მონაცემები",
   "importCodes": "კოდების იმპორტირება",
   "importEnterSetupKey": "შეიყვანეთ დაყენების კოდი",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectDetails": "არასწორი მონაცემები",
   "incorrectPasswordTitle": "არასწორი პაროლი",
   "@incorrectPasswordTitle": {

@@ -948,6 +948,7 @@
   },
   "importSuccessTitle": "Ótimo!",
   "importTypeEnteEncrypted": "Exportação encriptada do Ente",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectDetails": "Detalhes incorretos",
   "incorrectPasswordTitle": "Palavra-passe incorreta",
   "@incorrectPasswordTitle": {

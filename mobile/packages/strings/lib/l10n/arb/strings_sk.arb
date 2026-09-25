@@ -383,6 +383,7 @@
   },
   "importSuccessTitle": "Jéj!",
   "importTypeEnteEncrypted": "Šifrovaný Ente export",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Neplatný kód",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

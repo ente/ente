@@ -1126,6 +1126,7 @@
   },
   "importSuccessTitle": "Hura!",
   "importTypeEnteEncrypted": "Zaszyfrowany eksport Ente",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Nieprawidłowy kod",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

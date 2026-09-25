@@ -15,6 +15,7 @@ enum ImportType {
   lastpass,
   proton,
   andOTP,
+  openAuthenticator,
   otpAuth,
 }
 
@@ -27,6 +28,7 @@ class ImportCodePage extends StatelessWidget {
     ImportType.twoFas,
     ImportType.aegis,
     ImportType.andOTP,
+    ImportType.openAuthenticator,
     ImportType.bitwarden,
     ImportType.googleAuthenticator,
     ImportType.proton,
@@ -57,6 +59,8 @@ class ImportCodePage extends StatelessWidget {
         return 'Proton Authenticator';
       case ImportType.andOTP:
         return 'andOTP';
+      case ImportType.openAuthenticator:
+        return context.strings.importTypeOpenAuthenticator;
       case ImportType.otpAuth:
         return 'OTP Auth';
     }

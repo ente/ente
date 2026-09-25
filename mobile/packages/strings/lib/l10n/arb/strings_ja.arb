@@ -997,6 +997,7 @@
   },
   "importSuccessTitle": "やりました！",
   "importTypeEnteEncrypted": "Ente 暗号化されたエクスポート",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectDetails": "不正な詳細",
   "incorrectRecoveryKeyBody": "リカバリーキーが間違っています",
   "incorrectRecoveryKeyTitle": "リカバリーキーの誤り",

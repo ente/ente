@@ -592,6 +592,7 @@
   },
   "importSuccessTitle": "Jeeee!",
   "importTypeEnteEncrypted": "Ente шифрован извоз",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Погрешан кôд",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

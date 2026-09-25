@@ -146,6 +146,7 @@
     }
   },
   "importSelectJsonFile": "JSON फाइल चुनें",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectDetails": "ग़लत विवरण",
   "incorrectPasswordTitle": "ग़लत पासवर्ड",
   "@incorrectPasswordTitle": {

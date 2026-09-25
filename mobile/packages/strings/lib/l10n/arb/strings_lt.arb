@@ -1159,6 +1159,7 @@
   },
   "importSuccessTitle": "Valio!",
   "importTypeEnteEncrypted": "„Ente“ užšifruotas eksportas",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Neteisingas kodas",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

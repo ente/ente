@@ -579,5 +579,6 @@
   "yesDelete": "ยืนยันการลบ",
   "you": "คุณ",
   "youAreOnTheLatestVersion": "คุณอยู่ในเวอร์ชั่นปัจจุบันแล้ว",
-  "youCannotShareWithYourself": "คุณไม่สามารถแชร์กับตัวเองได้"
+  "youCannotShareWithYourself": "คุณไม่สามารถแชร์กับตัวเองได้",
+  "importTypeOpenAuthenticator": "Open Authenticator"
 }

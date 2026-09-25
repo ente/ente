@@ -1993,6 +1993,7 @@
   "importInstruction": "Please select a file that contains a list of your codes in the following format",
   "importLabel": "Import",
   "importLastpassGuide": "Use the \"Transfer accounts\" option within Lastpass Authenticator Settings and press \"Export accounts to file\". Import the JSON downloaded.",
+  "importOpenAuthenticatorGuide": "Use the options under \"Backups\" in Open Authenticator's Settings to create and export a backup.\n\nYou will need to enter the backup password you set when creating it.",
   "importOtpAuthGuide": "Export an encrypted backup from OTP Auth, then select the .otpauthdb or .otpauthdp file. Single-account .otpauth exports are also supported.",
   "importProtonAuthGuide": "Use the \"Export\" option in Proton Authenticator Settings to export your codes.\n\nIf your export is password protected, you will need to enter the password to decrypt it.",
   "importRaivoGuide": "Use the \"Export OTPs to Zip archive\" option in Raivo's Settings.\n\nExtract the zip file and import the JSON file.",
@@ -2015,6 +2016,7 @@
   },
   "importSuccessTitle": "Yay!",
   "importTypeEnteEncrypted": "Ente encrypted export",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Incorrect code",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

@@ -1399,6 +1399,7 @@
   },
   "importSuccessTitle": "耶！",
   "importTypeEnteEncrypted": "Ente 加密匯出",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectDetails": "詳細資訊不正確",
   "incorrectRecoveryKey": "復原金鑰不正確",
   "@incorrectRecoveryKey": {

@@ -1403,6 +1403,7 @@
   },
   "importSuccessTitle": "Paráda!",
   "importTypeEnteEncrypted": "Šifrovaný export z Ente",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Nesprávný kód",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

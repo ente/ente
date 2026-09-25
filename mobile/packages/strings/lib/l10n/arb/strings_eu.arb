@@ -564,5 +564,6 @@
   "yesDelete": "Bai, ezabatu",
   "yesRemove": "Bai, ezabatu",
   "you": "Zu",
-  "youCannotShareWithYourself": "Ezin duzu zeure buruarekin partekatu"
+  "youCannotShareWithYourself": "Ezin duzu zeure buruarekin partekatu",
+  "importTypeOpenAuthenticator": "Open Authenticator"
 }

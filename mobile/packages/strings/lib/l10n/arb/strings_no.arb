@@ -642,6 +642,7 @@
   "@immediately": {
     "description": "Immediately option for auto lock timing"
   },
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Feil kode",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

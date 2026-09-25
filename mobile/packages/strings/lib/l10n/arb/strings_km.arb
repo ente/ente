@@ -94,6 +94,7 @@
     "description": "Immediately option for auto lock timing"
   },
   "importLabel": "នាំ​ចូល",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "invalidEmailTitle": "អ៊ីម៉ែលនេះមិនត្រឹមត្រូវទេ",
   "@invalidEmailTitle": {
     "description": "Title for invalid email error dialog"

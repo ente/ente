@@ -149,6 +149,7 @@
   "importLabel": "Tuo",
   "importSelectJsonFile": "Valitse JSON-tiedosto",
   "importTypeEnteEncrypted": "Ente salattu vienti",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectDetails": "Virheelliset tiedot",
   "incorrectPasswordTitle": "Salasana on väärin",
   "@incorrectPasswordTitle": {

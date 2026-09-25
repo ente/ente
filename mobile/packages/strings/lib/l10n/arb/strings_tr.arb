@@ -1045,6 +1045,7 @@
   },
   "importSuccessTitle": "Oley!",
   "importTypeEnteEncrypted": "Ente şifrelenmiş dışa aktarma",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Yanlış kod",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

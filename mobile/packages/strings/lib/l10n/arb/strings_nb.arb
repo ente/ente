@@ -413,6 +413,7 @@
   },
   "importSuccessTitle": "Jippi!",
   "importTypeEnteEncrypted": "Ente kryptert eksport",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Feil kode",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

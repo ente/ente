@@ -795,6 +795,7 @@
   },
   "importSuccessTitle": "Jaj!",
   "importTypeEnteEncrypted": "Ente titkosított exportálás",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Helytelen kód",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

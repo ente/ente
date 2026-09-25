@@ -376,6 +376,7 @@
   },
   "importSuccessTitle": "Juhu!",
   "importTypeEnteEncrypted": "Ente šifriran izvoz",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Nepravilna koda",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

@@ -1294,6 +1294,7 @@
   },
   "importSuccessTitle": "¡Hurra!",
   "importTypeEnteEncrypted": "Exportación cifrada de Ente",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Código incorrecto",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

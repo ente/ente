@@ -1383,6 +1383,7 @@
   },
   "importSuccessTitle": "واہ!",
   "importTypeEnteEncrypted": "Ente انکرپٹڈ ایکسپورٹ",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "غلط کوڈ",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

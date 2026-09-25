@@ -445,5 +445,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "importTypeOpenAuthenticator": "Open Authenticator"
 }

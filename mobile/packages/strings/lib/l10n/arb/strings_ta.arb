@@ -69,5 +69,6 @@
   "verify": "சரிபார்க்கவும்",
   "@verify": {
     "description": "Verify button label"
-  }
+  },
+  "importTypeOpenAuthenticator": "Open Authenticator"
 }

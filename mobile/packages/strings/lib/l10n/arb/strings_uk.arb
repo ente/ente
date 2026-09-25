@@ -1107,6 +1107,7 @@
   },
   "importSuccessTitle": "Гей, любо!",
   "importTypeEnteEncrypted": "Зашифрований експорт Ente",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Невірний код",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

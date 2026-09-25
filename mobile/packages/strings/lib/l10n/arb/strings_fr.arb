@@ -1588,6 +1588,7 @@
   },
   "importSuccessTitle": "Youpi !",
   "importTypeEnteEncrypted": "Export chiffré Ente",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Code non valide",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

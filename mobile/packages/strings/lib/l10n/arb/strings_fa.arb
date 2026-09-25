@@ -482,6 +482,7 @@
     }
   },
   "importSuccessTitle": "آره!",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "کد اشتباه",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

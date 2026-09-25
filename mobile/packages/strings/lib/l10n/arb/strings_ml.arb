@@ -181,5 +181,6 @@
     "description": "The text to display for yearly plans",
     "type": "text"
   },
-  "yes": "അതെ"
+  "yes": "അതെ",
+  "importTypeOpenAuthenticator": "Open Authenticator"
 }

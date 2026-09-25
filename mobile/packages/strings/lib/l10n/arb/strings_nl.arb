@@ -1253,6 +1253,7 @@
   },
   "importSuccessTitle": "Joepie!",
   "importTypeEnteEncrypted": "Ente-versleutelde export",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "Onjuiste code",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

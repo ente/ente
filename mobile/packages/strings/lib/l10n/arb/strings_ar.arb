@@ -889,6 +889,7 @@
   },
   "importSuccessTitle": "مرحى!",
   "importTypeEnteEncrypted": "تصدير مشفَّر ente",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "رمز غير صحيح",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"

@@ -589,6 +589,7 @@
   },
   "importSuccessTitle": "야호!",
   "importTypeEnteEncrypted": "Ente로 암호화된 내보내기",
+  "importTypeOpenAuthenticator": "Open Authenticator",
   "incorrectCode": "잘못된 코드",
   "@incorrectCode": {
     "description": "Error message when code is incorrect"
