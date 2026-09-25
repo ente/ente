@@ -185,7 +185,7 @@ func (c *CollectionController) RemoveFilesV3(ctx *gin.Context, actorUserID int64
 				return stacktrace.Propagate(err, "failed to create collection action REMOVE")
 			}
 		} else {
-			return stacktrace.NewError("actor %d with role %s is not allowed to remove files owned by collectionOwner %d", actorUserID, *role, collectionOwnerID)
+			return stacktrace.NewError("actor %d with role %s is not allowed to remove files owned by collectionOwner %d", actorUserID, role, collectionOwnerID)
 		}
 	}
 	if len(others) > 0 {
@@ -249,7 +249,7 @@ func (c *CollectionController) isRemoveAllowed(ctx *gin.Context,
 		if collectionOwnerID == actorUserID {
 			return stacktrace.Propagate(ente.NewBadRequestWithMessage("can not remove files owned collection owner, admins can perform remove suggestion"), "")
 		} else if role == nil || *role != ente.ADMIN {
-			return stacktrace.Propagate(ente.NewBadRequestWithMessage("can not remove files owned by album owner"), "role %s", *role)
+			return stacktrace.Propagate(ente.NewBadRequestWithMessage("can not remove files owned by album owner"), "role %s", role)
 		}
 	}
 	if collectionOwnerID == actorUserID {

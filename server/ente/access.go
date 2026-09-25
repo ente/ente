@@ -17,6 +17,14 @@ func (c *CollectionParticipantRole) CanAdd() bool {
 	return *c == OWNER || *c == COLLABORATOR || *c == ADMIN
 }
 
+// String lets a *CollectionParticipantRole be safely used with %s/%v, even when nil.
+func (c *CollectionParticipantRole) String() string {
+	if c == nil {
+		return "none"
+	}
+	return string(*c)
+}
+
 func (c *CollectionParticipantRole) CanRemoveAny() bool {
 	if c == nil {
 		return false

@@ -61,3 +61,23 @@ func TestCollectionFileActionsRejectInvalidItems(t *testing.T) {
 		})
 	}
 }
+
+func TestIsRemoveAllowedNilRoleDoesNotPanic(t *testing.T) {
+	controller := &CollectionController{}
+	const owner = int64(1)
+	const actor = int64(2)
+
+	t.Run("actor lacks role on owner-owned files", func(t *testing.T) {
+		err := controller.isRemoveAllowed(nil, actor, owner, nil, map[int64][]int64{owner: {10}})
+		if err == nil || !strings.Contains(err.Error(), "role none") {
+			t.Fatalf("isRemoveAllowed() error = %v, want message containing %q", err, "role none")
+		}
+	})
+
+	t.Run("actor lacks role on others' files", func(t *testing.T) {
+		err := controller.isRemoveAllowed(nil, actor, owner, nil, map[int64][]int64{actor: {10}, 3: {11}})
+		if err == nil {
+			t.Fatalf("isRemoveAllowed() error = nil, want permission denied")
+		}
+	})
+}
