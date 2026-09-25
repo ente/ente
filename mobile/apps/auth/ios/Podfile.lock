@@ -220,7 +220,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
-  backup_exclusion: 7aa8535339e746fb217cfdfe8fb8f8a718e4cb0b
+  backup_exclusion: 4d22d4efd0f5bc0190c41502ed47ffa84eca0edb
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
