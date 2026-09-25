@@ -1,11 +1,9 @@
 {
   "icons": [
     {
-      "title": "PJe",
-      "altNames": [
-        "Processo Judicial Eletronico"
-      ],
-      "slug": "pje"
+      "title": "1984 Hosting",
+      "slug": "1984",
+      "hex": "000000"
     },
     {
       "title": "1xBet",
@@ -531,6 +529,10 @@
       "title": "ClouDNS"
     },
     {
+      "title": "Co-Wheels",
+      "slug": "cowheels"
+    },
+    {
       "title": "Cocos Capital",
       "slug": "cocos_capital",
       "altNames": [
@@ -538,19 +540,22 @@
       ]
     },
     {
-      "title": "Co-Wheels",
-      "slug": "cowheels"
+      "title": "Coinbase"
     },
     {
-      "title": "Coinbase"
+      "title": "Coincheck",
+      "slug": "coincheck",
+      "altNames": [
+        "コインチェック"
+      ]
+    },
+    {
+      "title": "CoinDCX"
     },
     {
       "title": "CoinMarketCap",
       "slug": "coinmarketcap",
       "hex": "000000"
-    },
-    {
-      "title": "CoinDCX"
     },
     {
       "title": "CoinSpot"
@@ -724,6 +729,10 @@
     },
     {
       "title": "Discourse"
+    },
+    {
+      "title": "DLsite",
+      "slug": "dlsite"
     },
     {
       "title": "DMarket"
@@ -958,14 +967,14 @@
       "title": "Finary"
     },
     {
-      "title": "Fiwind"
-    },
-    {
       "title": "Firefox",
       "slug": "firefoxbrowser",
       "altNames": [
         "Firefox Browser"
       ]
+    },
+    {
+      "title": "Fiwind"
     },
     {
       "title": "Floxar",
@@ -1021,6 +1030,10 @@
         "Gate.io",
         "gate.io"
       ]
+    },
+    {
+      "title": "Gateway Sentry",
+      "slug": "gatewaysentry"
     },
     {
       "title": "GERID"
@@ -1112,11 +1125,6 @@
     },
     {
       "title": "Hover"
-    },
-    {
-      "title": "1984 Hosting",
-      "slug": "1984",
-      "hex": "000000"
     },
     {
       "title": "HRDocumentBox",
@@ -1461,6 +1469,9 @@
       ]
     },
     {
+      "title": "Luno"
+    },
+    {
       "title": "MacRumors",
       "slug": "macrumors",
       "altNames": [
@@ -1547,14 +1558,6 @@
       "title": "MEXC"
     },
     {
-      "title": "MyFigureCollection",
-      "slug": "mfc",
-      "altNames": [
-        "MyFigureCollection.net",
-        "MFC"
-      ]
-    },
-    {
       "title": "microsoft"
     },
     {
@@ -1596,6 +1599,14 @@
       "hex": "000000",
       "altNames": [
         "Mozilla Account"
+      ]
+    },
+    {
+      "title": "MyFigureCollection",
+      "slug": "mfc",
+      "altNames": [
+        "MyFigureCollection.net",
+        "MFC"
       ]
     },
     {
@@ -1798,6 +1809,10 @@
       ]
     },
     {
+      "title": "Onidel",
+      "slug": "onidel"
+    },
+    {
       "title": "Online Payment Platform",
       "slug": "online_payment_platform",
       "altNames": [
@@ -1937,9 +1952,12 @@
       "hex": "000000"
     },
     {
-      "title": "PSNProfiles",
-      "slug": "psnprofiles",
-      "hex": "000000"
+      "title": "PJe",
+      "altNames": [
+        "Processo Judicial Eletronico",
+        "Processo Judicial Eletrônico"
+      ],
+      "slug": "pje"
     },
     {
       "title": "Plus Crypto",
@@ -2024,6 +2042,11 @@
       "hex": "E57000"
     },
     {
+      "title": "PSNProfiles",
+      "slug": "psnprofiles",
+      "hex": "000000"
+    },
+    {
       "title": "Pufferfish Host",
       "slug": "pufferfish_host"
     },
@@ -2095,6 +2118,17 @@
       "title": "RealVNC",
       "slug": "realvnc",
       "hex": "488aec"
+    },
+    {
+      "title": "Recruit",
+      "slug": "recruit",
+      "altNames": [
+        "リクルート",
+        "リクルートID",
+        "recruit id",
+        "recruit holdings",
+        "rgf"
+      ]
     },
     {
       "title": "RedFlagDeals",
@@ -2171,16 +2205,16 @@
       "slug": "runescape_wiki"
     },
     {
+      "title": "Rust Language Forum",
+      "slug": "rust_language_forum",
+      "hex": "000000"
+    },
+    {
       "title": "RustDesk",
       "slug": "rustdesk",
       "altNames": [
         "RustDesk Connection"
       ]
-    },
-    {
-      "title": "Rust Language Forum",
-      "slug": "rust_language_forum",
-      "hex": "000000"
     },
     {
       "title": "Samsung",
@@ -2860,41 +2894,8 @@
       "slug": "zoom_platform"
     },
     {
-      "title": "DLsite",
-      "slug": "dlsite"
-    },
-    {
       "title": "Zyxel Nebula",
       "slug": "zyxel-nebula"
-    },
-    {
-      "title": "Gateway Sentry",
-      "slug": "gatewaysentry"
-    },
-    {
-      "title": "Onidel",
-      "slug": "onidel"
-    },
-    {
-      "title": "Recruit",
-      "slug": "recruit",
-      "altNames": [
-        "リクルート",
-        "リクルートID",
-        "recruit id",
-        "recruit holdings",
-        "rgf"
-      ]
-    },
-    {
-      "title": "Coincheck",
-      "slug": "coincheck",
-      "altNames": [
-        "コインチェック"
-      ]
-    },
-    {
-      "title": "Luno"
     }
   ]
 }
