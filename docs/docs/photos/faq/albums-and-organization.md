@@ -82,7 +82,7 @@ Slideshow plays the photos in an album one after another, full screen, on your d
 
 ### How do I start a slideshow from an album? {#start-album-slideshow}
 
-Album slideshows are available in Ente Photos on iOS and Android.
+Album slideshows are available in Ente Photos on iOS and Android for both Ente albums and **On device** albums.
 
 **On mobile:**
 
@@ -101,7 +101,7 @@ You can select albums you own and albums shared with you.
 
 Tap the middle of the screen to show the controls. Then tap the settings button in the top-right corner. You can choose:
 
-- **Time per photo:** 5, 10, 15, or 30 seconds
+- **Time per photo:** 5, 10, 15, or 30 seconds; or 1, 5, or 10 minutes
 - **Photo order:** In order or Shuffle
 - **Background:** Blurred or Black
 
@@ -121,7 +121,7 @@ Yes, for photos that are already on your device. Ente needs an internet connecti
 
 ### Can I start a slideshow from On device albums or Gallery mode? {#album-slideshow-gallery-mode}
 
-No. Album slideshows are available only for Ente albums after you sign in. You cannot start one from an **On device** album or while using [Gallery mode](/photos/faq/gallery-mode).
+Yes. Open an **On device** album, tap the three dots in the top-right corner, and select **Slideshow**. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
 
 ## Uncategorized
 
