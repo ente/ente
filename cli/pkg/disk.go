@@ -30,6 +30,23 @@ func (a *albumDiskInfo) IsFilePresent(file model.RemoteFile) bool {
 	return ok
 }
 
+// IsFileOnDisk reports whether the media files of fileID are present in the
+// album directory under ExportRoot. The sync state persisted in the db is keyed
+// by album and file only, so it cannot tell whether a file was written to the
+// export root that is in use now; presence has to be read back from the disk.
+func (a *albumDiskInfo) IsFileOnDisk(fileID int64) bool {
+	diskFileMetadata, ok := (*a.FileIdToDiskFileMap)[fileID]
+	if !ok || diskFileMetadata.Info == nil || len(diskFileMetadata.Info.FileNames) == 0 {
+		return false
+	}
+	for _, fileName := range diskFileMetadata.Info.FileNames {
+		if !a.IsFileNamePresent(fileName) {
+			return false
+		}
+	}
+	return true
+}
+
 func (a *albumDiskInfo) IsFileNamePresent(fileName string) bool {
 	_, ok := (*a.FileNames)[strings.ToLower(fileName)]
 	return ok
