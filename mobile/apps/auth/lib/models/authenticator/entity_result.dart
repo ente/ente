@@ -4,10 +4,5 @@ class EntityResult {
   final bool hasSynced;
   final int createdAt;
 
-  EntityResult(
-    this.generatedID,
-    this.rawData,
-    this.hasSynced,
-    this.createdAt,
-  );
+  EntityResult(this.generatedID, this.rawData, this.hasSynced, this.createdAt);
 }

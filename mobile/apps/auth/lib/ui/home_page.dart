@@ -1250,19 +1250,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   static int _compareNewestFirst(Code a, Code b) {
-    final aCreatedAt = a.createdAt;
-    final bCreatedAt = b.createdAt;
-    if (aCreatedAt == null || bCreatedAt == null) {
-      if (aCreatedAt == bCreatedAt) {
-        return 0;
-      }
-      return aCreatedAt == null ? -1 : 1;
-    }
-    final byCreatedAt = bCreatedAt.compareTo(aCreatedAt);
+    final byCreatedAt = b.createdAt!.compareTo(a.createdAt!);
     if (byCreatedAt != 0) {
       return byCreatedAt;
     }
-    return (b.generatedID ?? 0).compareTo(a.generatedID ?? 0);
+    return b.generatedID!.compareTo(a.generatedID!);
   }
 
   bool get _shouldFocusAddedCode {
