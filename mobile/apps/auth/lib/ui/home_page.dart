@@ -1249,8 +1249,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Most recently added first. createdAt is kept across edits and syncs;
-  // generatedID breaks ties, and codes that are not saved yet come first.
   static int _compareNewestFirst(Code a, Code b) {
     final aCreatedAt = a.createdAt;
     final bCreatedAt = b.createdAt;
