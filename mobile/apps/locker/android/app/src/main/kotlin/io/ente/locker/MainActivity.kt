@@ -21,6 +21,7 @@ class MainActivity : FlutterFragmentActivity() {
         private val pendingShares = mutableListOf<List<String>>()
         private var sharedFilesChannel: MethodChannel? = null
         private var shareGeneration = 0
+        private var sessionGeneration = 0
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,16 +51,20 @@ class MainActivity : FlutterFragmentActivity() {
         super.configureFlutterEngine(flutterEngine)
         sharedFilesChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).apply {
             setMethodCallHandler { call, result ->
-                if (call.method == "takeNextShare") {
-                    result.success(pendingShares.removeFirstOrNull())
-                } else if (call.method == "clearPendingShares") {
-                    shareGeneration++
-                    pendingShares.flatten().also { pendingShares.clear() }
-                        .let(::deletePreparedFiles)
-                    result.success(null)
-                } else {
+                if (call.method != "takeNextShare" && call.method != "clearPendingShares") {
                     result.notImplemented()
+                    return@setMethodCallHandler
                 }
+                val generation = call.arguments as Int
+                // Retry invalidation on reads if the logout channel call failed.
+                if (generation != sessionGeneration) {
+                    sessionGeneration = generation
+                    shareGeneration++
+                    val discarded = pendingShares.flatten()
+                    pendingShares.clear()
+                    shareExecutor.execute { deletePreparedFiles(discarded) }
+                }
+                result.success(if (call.method == "takeNextShare") pendingShares.removeFirstOrNull() else null)
             }
         }
     }

@@ -190,6 +190,9 @@ class _HomePageState extends UploaderPageState<HomePage>
     'io.ente.locker/shared_files',
   );
   bool _isReadingAndroidShares = false;
+  final _shareGeneration = Configuration.instance.shareGeneration;
+  bool get _isShareSessionCurrent =>
+      _shareGeneration == Configuration.instance.shareGeneration;
   StreamSubscription? _mediaStreamSubscription;
   StreamSubscription<Uri>? _deepLinkSubscription;
   StreamSubscription<TriggerLogoutEvent>? _triggerLogoutSubscription;
@@ -399,12 +402,13 @@ class _HomePageState extends UploaderPageState<HomePage>
   }
 
   Future<void> _readAndroidShares() async {
-    if (_isReadingAndroidShares || !mounted) return;
+    if (_isReadingAndroidShares || !mounted || !_isShareSessionCurrent) return;
     _isReadingAndroidShares = true;
     try {
-      while (mounted) {
+      while (mounted && _isShareSessionCurrent) {
         final paths = await _sharedFilesChannel.invokeListMethod<String>(
           'takeNextShare',
+          _shareGeneration,
         );
         if (paths == null) return;
         await _handleSharedFiles(
@@ -459,7 +463,7 @@ class _HomePageState extends UploaderPageState<HomePage>
     _logger.info('_handleSharedFiles called with ${sharedFiles.length} files');
 
     try {
-      if (!mounted) return;
+      if (!mounted || !_isShareSessionCurrent) return;
       final files = <File>[];
       for (final sharedFile in sharedFiles) {
         _logger.info('Processing shared file');
@@ -474,7 +478,7 @@ class _HomePageState extends UploaderPageState<HomePage>
       }
 
       final skippedCount = sharedFiles.length - files.length;
-      if (mounted && skippedCount > 0) {
+      if (mounted && _isShareSessionCurrent && skippedCount > 0) {
         await showBottomSheetComponent(
           context: context,
           builder: (sheetContext) => BottomSheetComponent(
@@ -497,7 +501,7 @@ class _HomePageState extends UploaderPageState<HomePage>
         );
       }
 
-      if (mounted && files.isNotEmpty) {
+      if (mounted && _isShareSessionCurrent && files.isNotEmpty) {
         _logger.info('Opening upload screen for ${files.length} shared files');
         await uploadFiles(
           {for (final file in files) file.path: file}.values.toList(),
@@ -505,7 +509,7 @@ class _HomePageState extends UploaderPageState<HomePage>
       }
     } catch (e) {
       _logger.severe('Error handling shared files: $e');
-      if (mounted) {
+      if (mounted && _isShareSessionCurrent) {
         await showBottomSheetComponent(
           context: context,
           builder: (_) => BottomSheetComponent(

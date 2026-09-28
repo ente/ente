@@ -16,6 +16,9 @@ class Configuration extends BaseConfiguration
   static final Configuration instance = Configuration._privateConstructor();
 
   final _logger = Logger('Configuration');
+  // Survives page replacement and advances even when native cleanup fails.
+  int _shareGeneration = 0;
+  int get shareGeneration => _shareGeneration;
 
   @override
   EnteAppIdentity get appIdentity => const EnteAppIdentity(
@@ -31,10 +34,15 @@ class Configuration extends BaseConfiguration
 
   @override
   Future<void> logout({bool autoLogout = false}) async {
+    _shareGeneration++;
     if (Platform.isAndroid) {
-      await const MethodChannel(
-        'io.ente.locker/shared_files',
-      ).invokeMethod<void>('clearPendingShares');
+      try {
+        await const MethodChannel('io.ente.locker/shared_files')
+            .invokeMethod<void>('clearPendingShares', _shareGeneration)
+            .timeout(const Duration(seconds: 5));
+      } catch (e, s) {
+        _logger.warning('Failed to clear pending shares on logout', e, s);
+      }
     }
     CollectionService.instance.clearCache();
     FavoritesService.instance.clearCache();
