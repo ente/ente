@@ -846,7 +846,8 @@ class MemoriesCacheService {
     if (!flagService.internalUser ||
         localSettings.hasForcedInitialMemoriesRefresh() ||
         DateTime.now().difference(localSettings.getInstallDateTime()).inDays >=
-            21) {
+            21 ||
+        !await _isMlReady()) {
       return false;
     }
     try {

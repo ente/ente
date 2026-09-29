@@ -461,10 +461,6 @@ class LocalSettings {
     }
   }
 
-  bool hasInstallDateTime() {
-    return _prefs.containsKey('ls.install_time');
-  }
-
   DateTime getInstallDateTime() {
     if (_prefs.containsKey('ls.install_time')) {
       return DateTime.fromMillisecondsSinceEpoch(
