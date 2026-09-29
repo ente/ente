@@ -20,7 +20,7 @@ transcribe-rs = { git = "https://github.com/cjpais/transcribe-rs.git", rev = "ef
 url.workspace = true
 uuid = { workspace = true, features = ["v4", "rng-getrandom"] }
 zeroize.workspace = true
-zstd = "0.13.3"
+zstd = "0.14.0"
 
 [dev-dependencies]
 tempfile.workspace = true
@@ -29,7 +29,7 @@ tempfile.workspace = true
 # macOS disables OpenMP because Apple's clang lacks libomp. llama.cpp uses its
 # own thread pool, Accelerate, and Metal on arm64 instead.
 [target.'cfg(target_os = "macos")'.dependencies]
-llama-cpp-2 = { version = "=0.1.144", default-features = false, features = ["mtmd"] }
+llama-cpp-2 = { version = "=0.1.156", default-features = false, features = ["mtmd"] }
 
 # Linux Vulkan needs a system Vulkan loader and glslc.
 [target.'cfg(target_os = "linux")'.dependencies]

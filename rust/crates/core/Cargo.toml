@@ -5,8 +5,8 @@ edition.workspace = true
 [dependencies]
 # Keep argon2 on stable 0.5.x for now. This retains a second digest 0.10
 # chain (via blake2 0.10) until argon2 0.6 reaches stable.
-argon2 = "0.5.0"
-base64 = "0.22.0"
+argon2 = "0.6.0"
+base64 = "0.23.1"
 blake2b_simd = "1.0.0"
 crypto_secretbox = { version = "0.1.0", default-features = false, features = ["alloc", "salsa20"] }
 crypto_secretstream = "=0.2.0"
@@ -16,7 +16,7 @@ log.workspace = true
 md-5.workspace = true
 rand_core_06 = { package = "rand_core", version = "0.6.0", features = ["getrandom"] }
 reqwest = { workspace = true, features = ["http2", "charset", "system-proxy", "json", "rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
-salsa20 = "0.10.0"
+salsa20 = "0.11.0"
 serde.workspace = true
 serde_json.workspace = true
 subtle.workspace = true
@@ -34,7 +34,7 @@ reqwest = { workspace = true, features = ["stream"] }
 tokio = { workspace = true, features = ["time"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-gloo-timers = { version = "0.3.0", features = ["futures"] }
+gloo-timers = { version = "0.4.0", features = ["futures"] }
 
 [dev-dependencies]
 mockito.workspace = true
