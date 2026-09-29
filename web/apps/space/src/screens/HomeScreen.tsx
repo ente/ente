@@ -51,6 +51,7 @@ import {
     spaceText,
     spaceTextMuted,
 } from "styles/colors";
+import { minimumPostPhotoFrameAspectRatio } from "styles/tiles";
 import { spaceTouchTargetSize } from "styles/touch-targets";
 import { firstNameFrom, formatSpaceDate } from "utils/display";
 import { spacePostPhotos, viewerPhotosFromPost } from "utils/post-photos";
@@ -72,7 +73,6 @@ const feedAvatarSize = 38;
 const feedLikeActionSize = spaceTouchTargetSize;
 const feedActionIconSize = 20;
 const feedHorizontalPadding = "16px";
-const minimumFeedPhotoFrameAspectRatio = 3 / 4;
 const feedMediaLoadRootMargin = "640px 0px";
 const feedLoadMoreRootMargin = "0px 0px 160px 0px";
 const feedRowEnterDurationMs = 460;
@@ -845,7 +845,6 @@ const FeedItem: React.FC<FeedItemProps> = ({
     );
     const feedPhotos = photos ?? [{ imageUrl, thumbHash }];
     const activePhoto = feedPhotos[photoIndex]!;
-    const [settledPhotoIndex, setSettledPhotoIndex] = useState(photoIndex);
     const carouselRef = React.useRef<HTMLDivElement | null>(null);
     const photoAnimationRef = React.useRef<number | null>(null);
     const swipeRef = React.useRef<{
@@ -878,7 +877,6 @@ const FeedItem: React.FC<FeedItemProps> = ({
             ) {
                 carousel.scrollLeft = left;
                 carousel.style.scrollSnapType = "";
-                setSettledPhotoIndex(nextIndex);
                 return;
             }
             const startTime = performance.now();
@@ -891,7 +889,6 @@ const FeedItem: React.FC<FeedItemProps> = ({
                 } else {
                     photoAnimationRef.current = null;
                     carousel.style.scrollSnapType = "";
-                    setSettledPhotoIndex(nextIndex);
                 }
             };
             photoAnimationRef.current = requestAnimationFrame(animate);
@@ -966,7 +963,6 @@ const FeedItem: React.FC<FeedItemProps> = ({
                 left: photoIndex * carousel.clientWidth,
                 behavior: "instant",
             });
-            setSettledPhotoIndex(photoIndex);
         }
     }, [photoIndex]);
     const rootRef = React.useRef<HTMLElement | null>(null);
@@ -1015,12 +1011,16 @@ const FeedItem: React.FC<FeedItemProps> = ({
             activePhoto.width ??
             dimensionsFromAspectRatio(aspectRatio).width,
     };
-    const photoFrameAspectRatio = Math.max(
-        minimumFeedPhotoFrameAspectRatio,
-        photoDimensions.width / photoDimensions.height,
-    );
-    const [frameAspectRatio, setFrameAspectRatio] = useState(
-        photoFrameAspectRatio,
+    const firstPhoto = feedPhotos[0]!;
+    const firstPhotoAspectRatio =
+        firstPhoto.width && firstPhoto.height
+            ? firstPhoto.width / firstPhoto.height
+            : aspectRatio;
+    const frameAspectRatio = Math.max(
+        minimumPostPhotoFrameAspectRatio,
+        feedPhotos.length > 1
+            ? firstPhotoAspectRatio
+            : photoDimensions.width / photoDimensions.height,
     );
     const isPhotoReady = Boolean(displayImageUrl) && decodedPhoto.ready;
     const canOpenPhoto =
@@ -1114,12 +1114,6 @@ const FeedItem: React.FC<FeedItemProps> = ({
             `Post ${postId} is unavailable because the browser could not decode its image`,
         );
     }, [decodedPhoto.failed, postId]);
-
-    React.useEffect(() => {
-        if (photoIndex == settledPhotoIndex) {
-            setFrameAspectRatio(photoFrameAspectRatio);
-        }
-    }, [photoFrameAspectRatio, photoIndex, settledPhotoIndex]);
 
     React.useEffect(() => {
         if (likePopID == 0) return;
@@ -1253,19 +1247,6 @@ const FeedItem: React.FC<FeedItemProps> = ({
                             carousel.scrollLeft / carousel.clientWidth,
                         );
                         if (index != photoIndex) onPhotoIndexChange?.(index);
-                    }}
-                    onScrollEnd={(event) => {
-                        if (
-                            swipeRef.current?.dragging ||
-                            photoAnimationRef.current != null
-                        )
-                            return;
-                        const carousel = event.currentTarget;
-                        setSettledPhotoIndex(
-                            Math.round(
-                                carousel.scrollLeft / carousel.clientWidth,
-                            ),
-                        );
                     }}
                     onKeyDown={(event) => {
                         if (

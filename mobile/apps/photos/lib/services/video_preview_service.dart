@@ -957,6 +957,12 @@ class VideoPreviewService {
       final detailsCache = await cacheManager.getFileFromCache(
         _getDetailsCacheKey(objectID),
       );
+      for (final cachedFile in [playlistCache, detailsCache]) {
+        if (cachedFile != null &&
+            cachedFile.file.lengthSync() > maxHlsMetadataBytes) {
+          throw const FormatException("HLS metadata exceeds the allowed size");
+        }
+      }
       late final String playlistTemplate;
       if (playlistCache != null) {
         playlistTemplate = playlistCache.file.readAsStringSync();
@@ -1089,14 +1095,14 @@ class VideoPreviewService {
       encryptionKey,
       encryptedData: fetchResult.encryptedData,
       header: fetchResult.decryptionHeader,
+      maxOutputBytes: maxHlsMetadataBytes,
     );
     return playlistData;
   }
 
   int? parseDurationFromHLS(String playlist) {
-    final lines = playlist.split("\n");
     double totalDuration = 0.0;
-    for (final line in lines) {
+    for (final line in LineSplitter.split(playlist)) {
       if (line.startsWith("#EXTINF:")) {
         final durationStr = line.substring(8, line.length - 1);
         final duration = double.tryParse(durationStr);

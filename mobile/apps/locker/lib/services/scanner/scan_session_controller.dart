@@ -88,12 +88,15 @@ class ScanSessionController extends ChangeNotifier {
   ) =>
       _service.detectLiveBgra(bytes, rowStride, width, height, rotationDegrees);
 
-  void addCapture(Uint8List capturedJpeg) {
+  void addCapture(Uint8List capturedJpeg, {ScanCaptureRegion? region}) {
     _pendingCount++;
     notifyListeners();
     _queue = _queue.then((_) async {
       try {
-        final page = await _service.processCapture(capturedJpeg);
+        final page = await _service.processCapture(
+          capturedJpeg,
+          region: region,
+        );
         if (_disposed) {
           await _service.disposePage(page);
           return;
@@ -109,12 +112,19 @@ class ScanSessionController extends ChangeNotifier {
     });
   }
 
-  Future<ScannedPage?> replaceCapture(String pageId, Uint8List capturedJpeg) {
+  Future<ScannedPage?> replaceCapture(
+    String pageId,
+    Uint8List capturedJpeg, {
+    ScanCaptureRegion? region,
+  }) {
     _pendingCount++;
     notifyListeners();
     final task = _queue.then<ScannedPage?>((_) async {
       try {
-        final replacement = await _service.processCapture(capturedJpeg);
+        final replacement = await _service.processCapture(
+          capturedJpeg,
+          region: region,
+        );
         final index = _pages.indexWhere((page) => page.id == pageId);
         if (_disposed || index < 0) {
           await _service.disposePage(replacement);
@@ -195,12 +205,14 @@ class ScanSessionController extends ChangeNotifier {
   }
 
   Future<File> buildPdf() async {
+    await waitForPending();
+    final pages = List.of(_pages);
     final fileName = _fileName;
     if (fileName == null) {
       throw StateError('fileName has not been set');
     }
     final specs = <PdfPageSpec>[];
-    for (final page in List.of(_pages)) {
+    for (final page in pages) {
       final jpeg = await page.processedJpeg.readAsBytes();
       specs.add(
         PdfPageSpec(

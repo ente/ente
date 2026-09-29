@@ -1,10 +1,12 @@
-use super::AccountSpaceCtx;
+use super::{AccountSpaceCtx, retain_content_error};
 use crate::crypto::seal_with_public_key;
 use crate::error::{Error, Result};
+use crate::models::{SpaceActor, SpaceFriend, SpaceFriendRequest, SpaceSentFriendRequest};
 use crate::transport::{
     AddFriendPayload, ConfirmFriendRequestPayload, FriendRelationshipResponse,
     FriendStatusResponse, FriendTargetPayload, RefreshFriendSharesRequest, ShareUpdatePayload,
-    SpaceFriendRequestResponse, SpaceFriendResponse, SpaceSentFriendRequestResponse,
+    SpaceActorResponse, SpaceFriendRequestResponse, SpaceFriendResponse,
+    SpaceSentFriendRequestResponse,
 };
 use ente_core::b64;
 use ente_core::http;
@@ -73,34 +75,33 @@ impl AccountSpaceCtx {
             .await
     }
 
-    pub async fn list_friend_requests(
-        &self,
-        space_id: &str,
-    ) -> Result<Vec<SpaceFriendRequestResponse>> {
+    pub async fn list_friend_requests(&self, space_id: &str) -> Result<Vec<SpaceFriendRequest>> {
         let path = format!("/spaces/{space_id}/friends/requests");
-        Ok(self
+        let requests: Vec<SpaceFriendRequestResponse> = self
             .api()
             .get(&path)
             .send()
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        Ok(requests.into_iter().map(Into::into).collect())
     }
 
     pub async fn list_sent_friend_requests(
         &self,
         space_id: &str,
-    ) -> Result<Vec<SpaceSentFriendRequestResponse>> {
+    ) -> Result<Vec<SpaceSentFriendRequest>> {
         let path = format!("/spaces/{space_id}/friends/requests/sent");
-        Ok(self
+        let requests: Vec<SpaceSentFriendRequestResponse> = self
             .api()
             .get(&path)
             .send()
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        Ok(requests.into_iter().map(Into::into).collect())
     }
 
     pub async fn confirm_friend_request(
@@ -195,7 +196,19 @@ impl AccountSpaceCtx {
         Ok(())
     }
 
-    pub async fn list_space_friends(&self, space_id: &str) -> Result<Vec<SpaceFriendResponse>> {
+    pub async fn list_space_friends(&self, space_id: &str) -> Result<Vec<SpaceFriend>> {
+        let friends = self.list_space_friends_raw(space_id).await?;
+        let mut items = Vec::with_capacity(friends.len());
+        for friend in friends {
+            items.push(self.open_friend(friend).await?);
+        }
+        Ok(items)
+    }
+
+    pub(super) async fn list_space_friends_raw(
+        &self,
+        space_id: &str,
+    ) -> Result<Vec<SpaceFriendResponse>> {
         let path = format!("/spaces/{space_id}/friends");
         Ok(self
             .api()
@@ -205,6 +218,19 @@ impl AccountSpaceCtx {
             .error_for_status()?
             .json()
             .await?)
+    }
+
+    pub(super) async fn open_friend(&self, friend: SpaceFriendResponse) -> Result<SpaceFriend> {
+        Ok(SpaceFriend {
+            friend: self.open_friend_actor(friend.friend).await?,
+            share_key_version: friend.share_key_version,
+            created_at: friend.created_at,
+        })
+    }
+
+    async fn open_friend_actor(&self, actor: SpaceActorResponse) -> Result<SpaceActor> {
+        let profile = retain_content_error(self.decrypt_actor_profile(&actor).await)?;
+        Ok(SpaceActor::from_response(actor, profile))
     }
 
     pub async fn get_relationship(
@@ -232,7 +258,7 @@ impl AccountSpaceCtx {
             .ok_or_else(|| {
                 Error::InvalidInput(format!("space {space_id} is not owned by the account"))
             })?;
-        let friends = self.list_space_friends(space_id).await?;
+        let friends = self.list_space_friends_raw(space_id).await?;
         let mut updates = Vec::new();
         for friend in friends {
             if friend.share_key_version == access.key_version {

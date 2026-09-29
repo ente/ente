@@ -9,11 +9,22 @@ use crate::{core_db::Db, replica, vault::DbKey};
 const MIGRATIONS: &[&str] = &[replica::SCHEMA];
 
 pub fn open(account_dir: &Path, key: &DbKey, create: bool) -> Result<Db> {
+    let connection = connect(&account_dir.join("data.db"), key, create)?;
+    connection.execute_batch(
+        "PRAGMA foreign_keys = ON; PRAGMA temp_store = MEMORY; PRAGMA journal_mode = WAL;",
+    )?;
+    let mut db = Db::new(connection);
+    db.migrate(MIGRATIONS)?;
+    Ok(db)
+}
+
+pub fn connect(path: &Path, key: &DbKey, create: bool) -> Result<Connection> {
     let mut flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX;
     if create {
         flags |= OpenFlags::SQLITE_OPEN_CREATE;
     }
-    let connection = Connection::open_with_flags(account_dir.join("data.db"), flags)?;
+    let connection = Connection::open_with_flags(path, flags)?;
+    connection.busy_timeout(std::time::Duration::from_secs(5))?;
     connection
         .query_row("PRAGMA cipher_version", [], |row| row.get::<_, String>(0))
         .context("this CLI build does not support encrypted databases")?;
@@ -29,10 +40,5 @@ pub fn open(account_dir: &Path, key: &DbKey, create: bool) -> Result<Db> {
             row.get::<_, i64>(0)
         })
         .context("cannot open the encrypted database")?;
-    connection.execute_batch(
-        "PRAGMA foreign_keys = ON; PRAGMA temp_store = MEMORY; PRAGMA journal_mode = WAL;",
-    )?;
-    let mut db = Db::new(connection);
-    db.migrate(MIGRATIONS)?;
-    Ok(db)
+    Ok(connection)
 }

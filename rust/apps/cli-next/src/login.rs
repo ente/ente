@@ -7,8 +7,8 @@ use std::{
 use anyhow::{Context, Result, ensure};
 use dialoguer::{Input, Password, Select, console::Term};
 use ente_accounts::{
-    AuthFlow, AuthFlowUi, DEFAULT_API_ORIGIN, LoginParams, OtpPurpose, SecondFactorMethod,
-    TotpPurpose, auth,
+    AccountsClient, AuthenticatedAccount, DEFAULT_API_ORIGIN, auth,
+    login::{LoginFlow, LoginStep},
 };
 use ente_core::http::{Api, ApiConfig, Http};
 use serde::Deserialize;
@@ -58,12 +58,13 @@ pub async fn login(
         .ping()
         .await
         .context("cannot reach the selected Ente server")?;
-    let (params, mut ui) = match credentials {
-        Some(credentials) => credentials.into_login(),
-        None => LoginUi::prompt()?,
+    let interactive = credentials.is_none();
+    let mut credentials = match credentials {
+        Some(credentials) => credentials,
+        None => Credentials::prompt()?,
     };
     let client = api::accounts_client(&origin, product)?;
-    let mut authenticated = AuthFlow::new(&client, &mut ui).login(params).await?;
+    let mut authenticated = authenticate(&client, &mut credentials, interactive).await?;
     client.set_auth_token(Some(ente_core::b64::encode_url_safe(
         &authenticated.secrets.token,
     )));
@@ -86,7 +87,7 @@ pub async fn login(
         let mut new_name = requested_name.unwrap_or_else(|| email.clone());
         if snapshot_existing.is_none() {
             while let Err(error) = snapshot.check_name(&new_name) {
-                if !ui.interactive {
+                if !interactive {
                     return Err(error);
                 }
                 eprintln!("{error}");
@@ -226,150 +227,121 @@ impl Credentials {
             .context("login input must contain email and password, with optional otp and totp")
     }
 
-    fn into_login(mut self) -> (LoginParams, LoginUi) {
-        let params = LoginParams {
-            email: std::mem::take(&mut self.email),
-            password: Zeroizing::new(std::mem::take(&mut self.password)),
-        };
-        (
-            params,
-            LoginUi {
-                interactive: false,
-                credentials: Some(self),
-            },
-        )
-    }
-}
-
-struct LoginUi {
-    interactive: bool,
-    credentials: Option<Credentials>,
-}
-
-impl LoginUi {
-    fn prompt() -> Result<(LoginParams, Self)> {
+    fn prompt() -> Result<Self> {
         ensure!(
             io::stdin().is_terminal() && io::stderr().is_terminal(),
             "noninteractive login requires --input <file> or --input -"
         );
-        let email = Input::new()
-            .with_prompt("Email")
-            .interact_on(&Term::stderr())?;
-        let password = Password::new()
-            .with_prompt("Password")
-            .interact_on(&Term::stderr())?;
-        Ok((
-            LoginParams {
-                email,
-                password: Zeroizing::new(password),
-            },
-            Self {
-                interactive: true,
-                credentials: None,
-            },
-        ))
-    }
-
-    fn secret_prompt(&self, label: &str) -> ente_accounts::Result<String> {
-        Password::new()
-            .with_prompt(label)
-            .interact_on(&Term::stderr())
-            .map_err(|error| ente_accounts::Error::Ui(Box::new(error)))
+        Ok(Self {
+            email: Input::new()
+                .with_prompt("Email")
+                .interact_on(&Term::stderr())?,
+            password: Password::new()
+                .with_prompt("Password")
+                .interact_on(&Term::stderr())?,
+            otp: None,
+            totp: None,
+        })
     }
 }
 
-impl AuthFlowUi for LoginUi {
-    fn read_email_otp(
-        &mut self,
-        _email: &str,
-        _purpose: OtpPurpose,
-        _resent: bool,
-    ) -> ente_accounts::Result<String> {
-        if self.interactive {
-            return self.secret_prompt("Email verification code");
-        }
-        self.credentials
-            .as_mut()
-            .and_then(|c| c.otp.take())
-            .ok_or_else(|| {
-                ente_accounts::Error::InvalidInput(
-                    "login requires an email verification code; supply otp in --input".into(),
-                )
-            })
+async fn authenticate(
+    client: &AccountsClient,
+    credentials: &mut Credentials,
+    interactive: bool,
+) -> Result<AuthenticatedAccount> {
+    let (mut flow, mut step) = LoginFlow::start(client, credentials.email.clone()).await?;
+    loop {
+        step = match step {
+            LoginStep::EmailCode => loop {
+                let code = verification_code(
+                    &mut credentials.otp,
+                    interactive,
+                    "Email verification code",
+                    "otp",
+                )?;
+                match flow.submit_code(client, &code).await {
+                    Ok(next) => break next,
+                    Err(ente_accounts::Error::IncorrectEmailVerificationCode) if interactive => {
+                        eprintln!("Incorrect email verification code. Try again.");
+                    }
+                    Err(ente_accounts::Error::EmailVerificationCodeExpired) if interactive => {
+                        flow.resend_code(client).await?;
+                    }
+                    Err(error) => return Err(error.into()),
+                }
+            },
+            LoginStep::Password => flow.submit_password(client, &credentials.password).await?,
+            LoginStep::SecondFactor { totp, passkey } => {
+                let use_passkey = match (totp, passkey) {
+                    (true, true) if interactive => {
+                        Select::new()
+                            .with_prompt("Verify with")
+                            .items(&["Authenticator code", "Passkey in browser"])
+                            .interact_on(&Term::stderr())?
+                            == 1
+                    }
+                    (true, _) => false,
+                    (false, true) => true,
+                    (false, false) => {
+                        return Err(
+                            ente_accounts::Error::Protocol("Missing second factor".into()).into(),
+                        );
+                    }
+                };
+                if use_passkey {
+                    ensure!(
+                        interactive,
+                        "passkey login requires an interactive terminal"
+                    );
+                    let url = flow.passkey_url(client, "ente-cli://passkey")?;
+                    eprintln!("Open this URL to verify your passkey:\n{url}");
+                    loop {
+                        Input::<String>::new()
+                            .with_prompt("Press Enter after completing verification")
+                            .allow_empty(true)
+                            .interact_on(&Term::stderr())?;
+                        if let Some(next) = flow.poll_passkey(client).await? {
+                            break next;
+                        }
+                    }
+                } else {
+                    loop {
+                        let code = verification_code(
+                            &mut credentials.totp,
+                            interactive,
+                            "Authenticator code",
+                            "totp",
+                        )?;
+                        match flow.submit_code(client, &code).await {
+                            Ok(next) => break next,
+                            Err(ente_accounts::Error::IncorrectTotp) if interactive => {
+                                eprintln!("Incorrect TOTP code. Try again.");
+                            }
+                            Err(error) => return Err(error.into()),
+                        }
+                    }
+                }
+            }
+            LoginStep::Complete(account) => return Ok(*account),
+        };
     }
+}
 
-    fn read_totp_code(&mut self, _purpose: TotpPurpose) -> ente_accounts::Result<String> {
-        if self.interactive {
-            return self.secret_prompt("Authenticator code");
-        }
-        self.credentials
-            .as_mut()
-            .and_then(|c| c.totp.take())
-            .ok_or_else(|| {
-                ente_accounts::Error::InvalidInput(
-                    "login requires an authenticator code; supply totp in --input".into(),
-                )
-            })
+fn verification_code(
+    supplied: &mut Option<String>,
+    interactive: bool,
+    label: &str,
+    field: &str,
+) -> Result<String> {
+    if interactive {
+        return Ok(Password::new()
+            .with_prompt(label)
+            .interact_on(&Term::stderr())?);
     }
-
-    fn report_retryable_error(&mut self, message: &str) -> ente_accounts::Result<()> {
-        if !self.interactive {
-            return Err(ente_accounts::Error::InvalidInput(message.into()));
-        }
-        eprintln!("{message}");
-        Ok(())
-    }
-
-    fn choose_second_factor(
-        &mut self,
-        methods: &[SecondFactorMethod],
-    ) -> ente_accounts::Result<SecondFactorMethod> {
-        if !self.interactive {
-            return Ok(SecondFactorMethod::Totp);
-        }
-        let labels: Vec<_> = methods
-            .iter()
-            .map(|method| match method {
-                SecondFactorMethod::Totp => "Authenticator code",
-                SecondFactorMethod::Passkey => "Passkey in browser",
-            })
-            .collect();
-        let index = Select::new()
-            .with_prompt("Verify with")
-            .items(&labels)
-            .interact_on(&Term::stderr())
-            .map_err(|error| ente_accounts::Error::Ui(Box::new(error)))?;
-        Ok(methods[index])
-    }
-
-    fn present_passkey_verification(&mut self, url: &str) -> ente_accounts::Result<()> {
-        if !self.interactive {
-            return Err(ente_accounts::Error::InvalidInput(
-                "passkey login requires an interactive terminal".into(),
-            ));
-        }
-        eprintln!("Open this URL to verify your passkey:\n{url}");
-        Ok(())
-    }
-
-    fn wait_for_passkey_verification(&mut self) -> ente_accounts::Result<()> {
-        Input::<String>::new()
-            .with_prompt("Press Enter after completing verification")
-            .allow_empty(true)
-            .interact_on(&Term::stderr())
-            .map_err(|error| ente_accounts::Error::Ui(Box::new(error)))?;
-        Ok(())
-    }
-
-    fn present_totp_secret(
-        &mut self,
-        _secret_code: &str,
-        _qr_code: &str,
-    ) -> ente_accounts::Result<()> {
-        Err(ente_accounts::Error::InvalidInput(
-            "login cannot enroll a new authenticator".into(),
-        ))
-    }
+    supplied
+        .take()
+        .with_context(|| format!("login requires {label}; supply {field} in --input"))
 }
 
 #[cfg(test)]
@@ -378,22 +350,26 @@ mod tests {
 
     #[test]
     fn noninteractive_codes_come_from_their_login_input_fields() {
-        let credentials: Credentials = parse_json(
+        let mut credentials: Credentials = parse_json(
             br#"{"email":"user@example.org","password":"secret","otp":"123456","totp":"654321"}"#,
         )
         .unwrap();
-        let mut ui = LoginUi {
-            interactive: false,
-            credentials: Some(credentials),
-        };
         assert_eq!(
-            ui.read_email_otp("user@example.org", OtpPurpose::Login, false)
-                .unwrap(),
+            verification_code(
+                &mut credentials.otp,
+                false,
+                "Email verification code",
+                "otp"
+            )
+            .unwrap(),
             "123456"
         );
-        assert_eq!(ui.read_totp_code(TotpPurpose::Login).unwrap(), "654321");
+        assert_eq!(
+            verification_code(&mut credentials.totp, false, "Authenticator code", "totp").unwrap(),
+            "654321"
+        );
         assert!(
-            ui.read_totp_code(TotpPurpose::Login)
+            verification_code(&mut credentials.totp, false, "Authenticator code", "totp")
                 .unwrap_err()
                 .to_string()
                 .contains("supply totp in --input")

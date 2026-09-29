@@ -3,7 +3,10 @@ use std::io::Write;
 use anyhow::{Context, Result};
 use chrono::{DateTime, SecondsFormat};
 use dialoguer::console::{Alignment, measure_text_width, pad_str};
-use ente_photos::{collections::Collection, files::File};
+use ente_photos::{
+    collections::{Collection, Visibility},
+    files::File,
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -73,7 +76,7 @@ pub struct FileView {
     owner_id: String,
     album_ids: Vec<String>,
     created_at: String,
-    modified_at: String,
+    modified_at: Option<String>,
     updated_at: String,
     location: Option<LocationView>,
     caption: Option<String>,
@@ -83,7 +86,7 @@ pub struct FileView {
     duration_seconds: Option<u64>,
     width: Option<u32>,
     height: Option<u32>,
-    visibility: &'static str,
+    visibility: Option<&'static str>,
 }
 
 #[derive(Serialize)]
@@ -101,7 +104,7 @@ impl FileView {
             owner_id: file.owner_id.to_string(),
             album_ids: album_ids.iter().map(i64::to_string).collect(),
             created_at: timestamp(file.created_at_micros)?,
-            modified_at: timestamp(file.modified_at_micros)?,
+            modified_at: file.modified_at_micros.map(timestamp).transpose()?,
             updated_at: timestamp(file.updated_at_micros)?,
             location: file.location.as_ref().map(|location| LocationView {
                 latitude: location.latitude,
@@ -114,7 +117,7 @@ impl FileView {
             duration_seconds: file.duration_seconds,
             width: file.width,
             height: file.height,
-            visibility: file.visibility.name(),
+            visibility: file.visibility.map(Visibility::name),
         })
     }
 }
@@ -236,9 +239,12 @@ pub fn file(file: &FileView) -> Result<()> {
     let mut fields = vec![
         ("Name", escape_controls(&file.name)),
         ("Type", file.kind.to_owned()),
-        ("Visibility", file.visibility.to_owned()),
+        (
+            "Visibility",
+            file.visibility.unwrap_or("unavailable").to_owned(),
+        ),
         ("Created", file.created_at.clone()),
-        ("Modified", file.modified_at.clone()),
+        ("Modified", file.modified_at.clone().unwrap_or_default()),
         ("Updated", file.updated_at.clone()),
         ("Owner", file.owner_id.clone()),
         ("Albums", file.album_ids.join(", ")),

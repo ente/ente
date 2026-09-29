@@ -1,0 +1,1 @@
+- Added What's new to Locker's About page.

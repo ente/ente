@@ -31,7 +31,6 @@ export const ItemFormFields: React.FC<{
                         onChange={(event) =>
                             onChange("title", event.target.value)
                         }
-                        required
                         autoFocus
                     />
                     <FormField
@@ -66,7 +65,6 @@ export const ItemFormFields: React.FC<{
                         onChange={(event) =>
                             onChange("username", event.target.value)
                         }
-                        required
                     />
                     <FormField
                         label={t("password")}
@@ -74,7 +72,6 @@ export const ItemFormFields: React.FC<{
                         onChange={(event) =>
                             onChange("password", event.target.value)
                         }
-                        required
                         type={showPassword ? "text" : "password"}
                         slotProps={{
                             input: {
@@ -128,7 +125,6 @@ export const ItemFormFields: React.FC<{
                         onChange={(event) =>
                             onChange("location", event.target.value)
                         }
-                        required
                     />
                     <FormField
                         label={t("recordNotes")}

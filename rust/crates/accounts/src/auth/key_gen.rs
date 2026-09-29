@@ -47,7 +47,6 @@ pub fn generate_keys_with_strength(
 
     let key_attributes = KeyAttributes {
         kek_salt: b64::encode(derived.salt.as_bytes()),
-        kek_hash: None,
         encrypted_key: enc_key,
         key_decryption_nonce: key_nonce,
         public_key: b64::encode(public_key.as_bytes()),
@@ -105,7 +104,6 @@ pub fn generate_key_attributes_for_new_password_with_strength(
 
     let key_attributes = KeyAttributes {
         kek_salt: b64::encode(derived.salt.as_bytes()),
-        kek_hash: None,
         encrypted_key: enc_key,
         key_decryption_nonce: key_nonce,
         mem_limit: derived.params.mem_limit,

@@ -17,7 +17,7 @@ type AppUpdateCheckResult =
     | { kind: "available"; version: string }
     | { kind: "error" };
 
-export const checkForAppUpdates = async (): Promise<AppUpdateCheckResult> => {
+const checkForAppUpdates = async (): Promise<AppUpdateCheckResult> => {
     if (!isTauriRuntime()) return { kind: "not-supported" };
     if (inFlightUpdateCheck) return inFlightUpdateCheck;
 

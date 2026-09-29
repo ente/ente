@@ -4,9 +4,9 @@ import log from "ente-base/log";
 
 const ENABLED_PACKS_STORAGE_KEY = "ensu.desktop.enabledKnowledgePacks";
 
-export type KnowledgePackStatus = "download" | "ready" | "updateAvailable";
+type KnowledgePackStatus = "download" | "ready" | "updateAvailable";
 
-export interface KnowledgeAttribution {
+interface KnowledgeAttribution {
     credit: string;
     licenseLabel: string;
     licenseUrl: string;
@@ -22,7 +22,7 @@ export interface KnowledgePack {
     attribution: KnowledgeAttribution;
 }
 
-export interface SourceCitation {
+interface SourceCitation {
     datasetId: string;
     datasetLabel: string;
     credit: string;
@@ -32,7 +32,7 @@ export interface SourceCitation {
     licenseUrl: string;
 }
 
-export interface NoteSourceReference {
+interface NoteSourceReference {
     collectionId: string;
     collectionLabel?: string;
     documentId: string;

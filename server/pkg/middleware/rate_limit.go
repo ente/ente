@@ -13,10 +13,29 @@ import (
 	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/ente/museum/pkg/utils/network"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter/v3"
 )
+
+type rateLimitScope string
+
+const (
+	rateLimitScopeIP            rateLimitScope = "ip"
+	rateLimitScopeCollection    rateLimitScope = "collection"
+	rateLimitScopeUser          rateLimitScope = "user"
+	rateLimitScopeRouteGlobal   rateLimitScope = "route_global"
+	rateLimitScopeProcessGlobal rateLimitScope = "process_global"
+	processGlobalRateLimitURL                  = "all"
+)
+
+var rateLimitRejections = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "museum_rate_limit_rejections_total",
+	Help: "The number of requests rejected by Museum rate limiters",
+}, []string{"scope", "method", "url"})
 
 type RateLimitMiddleware struct {
 	count              int64
@@ -69,6 +88,7 @@ func (r *RateLimitMiddleware) Stop() {
 func (r *RateLimitMiddleware) GlobalRateLimiter() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !r.Increment() {
+			recordRateLimitRejection(rateLimitScopeProcessGlobal, c.Request.Method, processGlobalRateLimitURL)
 			if r.count%100 == 0 {
 				go r.discordCtrl.NotifyPotentialAbuse(fmt.Sprintf("Global ratelimit (%d) breached %d", r.limit, r.count))
 			}
@@ -84,15 +104,15 @@ func (r *RateLimitMiddleware) APIRateLimitMiddleware(urlSanitizer func(_ *gin.Co
 		requestPath := urlSanitizer(c)
 
 		if globalRateLimiter := r.getGlobalLimiter(requestPath, c.Request.Method); globalRateLimiter != nil {
-			if r.isRateLimited(c, globalRateLimiter, globalRateLimitKey(requestPath), fmt.Sprintf("🌍 Global rate limit: %s", requestPath)) {
+			if r.isRateLimited(c, globalRateLimiter, globalRateLimitKey(requestPath), requestPath, rateLimitScopeRouteGlobal, fmt.Sprintf("🌍 Global rate limit: %s", requestPath)) {
 				return
 			}
 		}
 
 		rateLimiter := r.getLimiter(requestPath, c.Request.Method)
 		if rateLimiter != nil {
-			key := r.getRateLimitKey(c, requestPath)
-			if r.isRateLimited(c, rateLimiter, key, fmt.Sprintf("🌐 IP rate limit: %s", requestPath)) {
+			key, scope := r.getRateLimitKey(c, requestPath)
+			if r.isRateLimited(c, rateLimiter, key, requestPath, scope, fmt.Sprintf("🌐 IP rate limit: %s", requestPath)) {
 				return
 			}
 		}
@@ -104,7 +124,7 @@ func (r *RateLimitMiddleware) APIRateLimitForUserMiddleware(urlSanitizer func(_ 
 	return func(c *gin.Context) {
 		requestPath := urlSanitizer(c)
 		if globalRateLimiter := r.getGlobalLimiter(requestPath, c.Request.Method); globalRateLimiter != nil {
-			if r.isRateLimited(c, globalRateLimiter, globalRateLimitKey(requestPath), fmt.Sprintf("🌍 Global rate limit: %s", requestPath)) {
+			if r.isRateLimited(c, globalRateLimiter, globalRateLimitKey(requestPath), requestPath, rateLimitScopeRouteGlobal, fmt.Sprintf("🌍 Global rate limit: %s", requestPath)) {
 				return
 			}
 		}
@@ -116,7 +136,7 @@ func (r *RateLimitMiddleware) APIRateLimitForUserMiddleware(urlSanitizer func(_ 
 				log.Error("userID must be present in request header for applying rate-limit")
 				return
 			}
-			if r.isRateLimited(c, rateLimiter, fmt.Sprintf("%d-%s", userID, requestPath), fmt.Sprintf("👤 User rate limit: %s user=%d", requestPath, userID)) {
+			if r.isRateLimited(c, rateLimiter, fmt.Sprintf("%d-%s", userID, requestPath), requestPath, rateLimitScopeUser, fmt.Sprintf("👤 User rate limit: %s user=%d", requestPath, userID)) {
 				return
 			}
 		}
@@ -124,7 +144,7 @@ func (r *RateLimitMiddleware) APIRateLimitForUserMiddleware(urlSanitizer func(_ 
 	}
 }
 
-func (r *RateLimitMiddleware) isRateLimited(c *gin.Context, rateLimiter *limiter.Limiter, key string, message string) bool {
+func (r *RateLimitMiddleware) isRateLimited(c *gin.Context, rateLimiter *limiter.Limiter, key string, requestPath string, scope rateLimitScope, message string) bool {
 	limitContext, err := rateLimiter.Get(c, key)
 	if err != nil {
 		log.Error("Failed to check rate limit", err)
@@ -133,10 +153,20 @@ func (r *RateLimitMiddleware) isRateLimited(c *gin.Context, rateLimiter *limiter
 	if !limitContext.Reached {
 		return false
 	}
+	recordRateLimitRejection(scope, c.Request.Method, requestPath)
 	go r.discordCtrl.NotifyPotentialAbuse(message)
-	log.Error(fmt.Sprintf("Rate limit breached %s", key))
+	log.WithFields(log.Fields{
+		"rate_limit_scope": scope,
+		"req_id":           requestid.Get(c),
+		"req_method":       c.Request.Method,
+		"req_uri":          requestPath,
+	}).Error("Rate limit breached")
 	c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit breached, try later"})
 	return true
+}
+
+func recordRateLimitRejection(scope rateLimitScope, method string, requestPath string) {
+	rateLimitRejections.WithLabelValues(string(scope), method, requestPath).Inc()
 }
 
 func (r *RateLimitMiddleware) getGlobalLimiter(reqPath string, reqMethod string) *limiter.Limiter {
@@ -156,21 +186,21 @@ func globalRateLimitKey(reqPath string) string {
 	return reqPath
 }
 
-func (r *RateLimitMiddleware) getRateLimitKey(c *gin.Context, reqPath string) string {
+func (r *RateLimitMiddleware) getRateLimitKey(c *gin.Context, reqPath string) (string, rateLimitScope) {
 	if !isPublicCollectionUploadURLPath(reqPath) {
-		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath)
+		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath), rateLimitScopeIP
 	}
 	value, ok := c.Get(auth.PublicAccessKey)
 	if !ok {
 		log.WithField("path", reqPath).Warn("public access context missing for collection scoped rate limit")
-		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath)
+		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath), rateLimitScopeIP
 	}
 	accessContext, ok := value.(ente.PublicAccessContext)
 	if !ok {
 		log.WithField("path", reqPath).Warn("invalid public access context for collection scoped rate limit")
-		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath)
+		return fmt.Sprintf("%s-%s", network.GetClientIP(c), reqPath), rateLimitScopeIP
 	}
-	return fmt.Sprintf("collection:%d-%s", accessContext.CollectionID, reqPath)
+	return fmt.Sprintf("collection:%d-%s", accessContext.CollectionID, reqPath), rateLimitScopeCollection
 }
 
 func isPublicCollectionUploadURLPath(reqPath string) bool {

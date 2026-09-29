@@ -525,10 +525,10 @@ func insertSpaceUser(t *testing.T, module *Module, email string, publicKey strin
 	})
 	_, err := module.Spaces.DB.Exec(`
 		INSERT INTO key_attributes (
-			user_id, kek_salt, kek_hash_bytes, encrypted_key, key_decryption_nonce,
+			user_id, kek_salt, encrypted_key, key_decryption_nonce,
 			public_key, encrypted_secret_key, secret_key_decryption_nonce
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`, userID, "salt", []byte{1, 2, 3}, "encrypted-key", "nonce", publicKey, "encrypted-secret-key", "secret-nonce")
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, userID, "salt", "encrypted-key", "nonce", publicKey, "encrypted-secret-key", "secret-nonce")
 	require.NoError(t, err)
 	return userID
 }

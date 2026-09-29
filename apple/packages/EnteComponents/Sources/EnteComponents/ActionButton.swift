@@ -20,10 +20,12 @@ public enum ActionSize: Sendable {
 }
 
 public struct ActionButton: View {
+    @Environment(\.isEnabled) private var enabled
     private let title: String
     private let variant: ActionVariant
     private let size: ActionSize
     private let density: ActionDensity
+    private let loading: Bool
     private let action: () -> Void
 
     public init(
@@ -31,12 +33,14 @@ public struct ActionButton: View {
         variant: ActionVariant = .primary,
         size: ActionSize = .large,
         density: ActionDensity = .regular,
+        loading: Bool = false,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.variant = variant
         self.size = size
         self.density = density
+        self.loading = loading
         self.action = action
     }
 
@@ -47,6 +51,13 @@ public struct ActionButton: View {
                 .underline(variant == .criticalText || variant == .link)
                 .lineLimit(2)
                 .font(density == .regular ? EnteTypography.bodyBold : EnteTypography.body)
+                .opacity(loading ? 0 : 1)
+                .overlay {
+                    if loading {
+                        ActionProgress()
+                            .accessibilityHidden(true)
+                    }
+                }
                 .frame(maxWidth: size == .large ? .infinity : nil, minHeight: inlineLink ? nil : 24)
                 .padding(.horizontal, inlineLink ? 0 : EnteSpacing.xl)
                 .padding(.vertical, inlineLink ? 4 : density == .regular ? 14 : 12)
@@ -54,16 +65,19 @@ public struct ActionButton: View {
         .buttonStyle(
             ActionStyle(
                 variant: variant,
+                enabled: enabled,
                 cornerRadius: inlineLink ? 0 : EnteRadius.button
             )
         )
+        .disabled(loading)
+        .accessibilityLabel(title)
     }
 }
 
 private struct ActionStyle: ButtonStyle {
     @Environment(\.entePalette) private var palette
-    @Environment(\.isEnabled) private var enabled
     let variant: ActionVariant
+    let enabled: Bool
     let cornerRadius: CGFloat
 
     func makeBody(configuration: Configuration) -> some View {
@@ -91,5 +105,19 @@ private struct ActionStyle: ButtonStyle {
         case .criticalText: (.clear, pressed ? palette.dangerDarker : palette.danger)
         case .link: (.clear, pressed ? palette.primaryDarker : palette.primary)
         }
+    }
+}
+
+private struct ActionProgress: View {
+    @State private var rotating = false
+
+    var body: some View {
+        Circle()
+            .trim(from: 0.15, to: 0.85)
+            .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            .frame(width: 20, height: 20)
+            .rotationEffect(.degrees(rotating ? 360 : 0))
+            .animation(.linear(duration: 0.8).repeatForever(autoreverses: false), value: rotating)
+            .onAppear { rotating = true }
     }
 }

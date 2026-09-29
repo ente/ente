@@ -6,7 +6,7 @@ import {
     authTransientProps,
 } from "./styles";
 
-export type ButtonVariant = "primary" | "secondary";
+type ButtonVariant = "primary" | "secondary";
 
 export interface ButtonProps extends Omit<
     React.ButtonHTMLAttributes<HTMLButtonElement>,

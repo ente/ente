@@ -41,6 +41,8 @@ class SettingsPage extends StatelessWidget {
   final ValueNotifier<String?> emailNotifier;
   final GlobalKey<ScaffoldState> scaffoldKey;
 
+  static const _darkBackupPromptColor = Color(0xFFB868E7);
+
   @override
   Widget build(BuildContext context) {
     final hasLoggedIn = Configuration.instance.hasConfiguredAccount();
@@ -81,6 +83,9 @@ class SettingsPage extends StatelessWidget {
           title: l10n.signInToBackup,
           leadingIcon: HugeIcons.strokeRoundedCloudUpload,
           state: BannerComponentState.informative,
+          foregroundColor: Theme.of(context).brightness == Brightness.dark
+              ? _darkBackupPromptColor
+              : context.componentColors.primaryDark,
           trailingWidget: const Icon(Icons.arrow_forward),
           onTap: () => _showBackupReminder(context),
         ),

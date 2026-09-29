@@ -77,7 +77,7 @@ const sourceChipSx = {
 const sourceChipLabel = (label: string, sourceCount: number) =>
     sourceCount > 1 ? `${label} +${sourceCount - 1}` : label;
 
-export interface ParsedDocuments {
+interface ParsedDocuments {
     text: string;
     documents: DocumentAttachment[];
 }

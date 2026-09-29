@@ -1,4 +1,4 @@
-export interface FileLinkMeta {
+interface FileLinkMeta {
     encryptedFileKey?: string;
     encryptedFileKeyNonce?: string;
     kdfNonce?: string;

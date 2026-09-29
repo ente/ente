@@ -412,7 +412,6 @@ func insertCompleteSendOTTTestUser(t *testing.T, db *sql.DB, userRepo *repo.User
 func sendOTTTestKeyAttributes() ente.KeyAttributes {
 	return ente.KeyAttributes{
 		KEKSalt:                  "kek-salt",
-		KEKHash:                  "kek-hash",
 		EncryptedKey:             "encrypted-key",
 		KeyDecryptionNonce:       "key-decryption-nonce",
 		PublicKey:                "public-key",

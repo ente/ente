@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use ente_core::b64;
-use ente_space::{AccountSpaceCtx, DecryptedMessage, MessagePayload, SpaceLinkCtx};
+use ente_space::{AccountSpaceCtx, SpaceLinkCtx};
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen as swb;
 use tsify::Tsify;
@@ -53,10 +53,6 @@ impl Error {
 
     fn message(&self) -> String {
         ente_core::error::chain(self)
-    }
-
-    fn is_content_error(&self) -> bool {
-        matches!(self, Self::Space(error) if error.is_content_error())
     }
 }
 
@@ -284,6 +280,15 @@ pub struct MessagePage {
     next_cursor: String,
 }
 
+impl From<ente_space::MessagePage> for MessagePage {
+    fn from(page: ente_space::MessagePage) -> Self {
+        Self {
+            items: page.items.into_iter().map(Into::into).collect(),
+            next_cursor: page.next_cursor,
+        }
+    }
+}
+
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 struct MessageConversationActivity {
@@ -328,6 +333,19 @@ struct ConversationChatSummaryResponse {
     unread_activities: Vec<MessageConversationActivity>,
 }
 
+impl From<ente_space::ConversationChatSummary> for ConversationChatSummaryResponse {
+    fn from(summary: ente_space::ConversationChatSummary) -> Self {
+        Self {
+            latest_activity: summary.latest_activity.into(),
+            unread_activities: summary
+                .unread_activities
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        }
+    }
+}
+
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct ConversationsResponse {
@@ -335,6 +353,25 @@ pub struct ConversationsResponse {
     pending_requests: Vec<SpaceFriendRequestResponse>,
     chat_summaries: BTreeMap<String, ConversationChatSummaryResponse>,
     latest_post_created_at: Option<String>,
+}
+
+impl From<ente_space::Conversations> for ConversationsResponse {
+    fn from(conversations: ente_space::Conversations) -> Self {
+        Self {
+            friends: conversations.friends.into_iter().map(Into::into).collect(),
+            pending_requests: conversations
+                .pending_requests
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            chat_summaries: conversations
+                .chat_summaries
+                .into_iter()
+                .map(|(space_id, summary)| (space_id, summary.into()))
+                .collect(),
+            latest_post_created_at: conversations.latest_post_created_at,
+        }
+    }
 }
 
 #[derive(Serialize, Tsify)]
@@ -353,12 +390,32 @@ pub struct SpaceFriendRequestResponse {
     created_at: String,
 }
 
+impl From<ente_space::SpaceFriendRequest> for SpaceFriendRequestResponse {
+    fn from(request: ente_space::SpaceFriendRequest) -> Self {
+        Self {
+            request_id: request.request_id,
+            requester: request.requester.into(),
+            created_at: request.created_at,
+        }
+    }
+}
+
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct SpaceSentFriendRequestResponse {
     request_id: i64,
     target: SpaceActorResponse,
     created_at: String,
+}
+
+impl From<ente_space::SpaceSentFriendRequest> for SpaceSentFriendRequestResponse {
+    fn from(request: ente_space::SpaceSentFriendRequest) -> Self {
+        Self {
+            request_id: request.request_id,
+            target: request.target.into(),
+            created_at: request.created_at,
+        }
+    }
 }
 
 #[derive(Serialize, Tsify)]
@@ -453,104 +510,90 @@ fn decode_b64_field(value: &str) -> Result<Vec<u8>, Error> {
         .map_err(Into::into)
 }
 
-fn created_space_to_js(value: ente_space::CreatedSpace) -> CreatedSpace {
-    CreatedSpace {
-        space_id: value.space_id,
-        space_slug: value.space_slug,
+impl From<ente_space::CreatedSpace> for CreatedSpace {
+    fn from(value: ente_space::CreatedSpace) -> Self {
+        Self {
+            space_id: value.space_id,
+            space_slug: value.space_slug,
+        }
     }
 }
 
-fn profile_to_js(value: ente_space::DecryptedSpaceProfile) -> DecryptedSpaceProfile {
-    DecryptedSpaceProfile {
-        space_id: value.space_id,
-        space_slug: value.space_slug,
-        version: value.version,
-        friends: value.friends,
-        posts: None,
-        profile: value.profile.map(Into::into),
-        avatar: value.avatar.map(Into::into),
-        cover: value.cover.map(Into::into),
-        updated_at: value.updated_at,
+impl From<ente_space::DecryptedSpaceProfile> for DecryptedSpaceProfile {
+    fn from(value: ente_space::DecryptedSpaceProfile) -> Self {
+        Self {
+            space_id: value.space_id,
+            space_slug: value.space_slug,
+            version: value.version,
+            friends: value.friends,
+            posts: None,
+            profile: value.profile.map(Into::into),
+            avatar: value.avatar.map(Into::into),
+            cover: value.cover.map(Into::into),
+            updated_at: value.updated_at,
+        }
     }
 }
 
-fn actor_to_js(
-    actor: ente_space::SpaceActorResponse,
-    profile: Option<ente_space::SpaceProfile>,
-) -> SpaceActorResponse {
-    SpaceActorResponse {
-        space_id: actor.space_id,
-        space_slug: actor.space_slug,
-        public_key: actor.public_key,
-        key_version: actor.key_version,
-        profile: profile.map(Into::into),
-        avatar: actor.avatar.map(Into::into),
-    }
-}
-
-async fn account_actor_to_js(
-    ctx: &AccountSpaceCtx,
-    actor: ente_space::SpaceActorResponse,
-) -> Result<SpaceActorResponse, Error> {
-    match ctx.decrypt_actor_profile(&actor).await.map_err(Error::from) {
-        Ok(profile) => Ok(actor_to_js(actor, profile)),
-        Err(error) if error.is_content_error() => {
+impl From<ente_space::SpaceActor> for SpaceActorResponse {
+    fn from(actor: ente_space::SpaceActor) -> Self {
+        let profile = actor.profile.unwrap_or_else(|error| {
             log::warn!(
                 "Space profile {} fell back to public fields: {}",
                 actor.space_id,
-                error.message()
+                ente_core::error::chain(&error)
             );
-            Ok(public_actor_to_js(actor))
+            None
+        });
+        Self {
+            space_id: actor.space_id,
+            space_slug: actor.space_slug,
+            public_key: actor.public_key,
+            key_version: actor.key_version,
+            profile: profile.map(Into::into),
+            avatar: actor.avatar.map(Into::into),
         }
-        Err(error) => Err(error),
     }
 }
 
-fn public_actor_to_js(actor: ente_space::SpaceActorResponse) -> SpaceActorResponse {
-    actor_to_js(actor, None)
+impl From<ente_space::SpaceFriend> for SpaceFriendResponse {
+    fn from(friend: ente_space::SpaceFriend) -> Self {
+        Self {
+            friend: friend.friend.into(),
+            share_key_version: friend.share_key_version,
+            created_at: friend.created_at,
+        }
+    }
 }
 
-fn post_to_js(post: ente_space::Post) -> PostResponse {
-    let (caption, photos, is_unavailable) = match post.content {
-        Ok(content) => (
-            content.caption,
-            content.photos.into_iter().map(Into::into).collect(),
-            false,
-        ),
-        Err(error) => {
-            log::warn!(
-                "Space post {} is unavailable: {}",
-                post.post_id,
-                ente_core::error::chain(&error)
-            );
-            (None, Vec::new(), true)
+impl From<ente_space::Post> for PostResponse {
+    fn from(post: ente_space::Post) -> Self {
+        let (caption, photos, is_unavailable) = match post.content {
+            Ok(content) => (
+                content.caption,
+                content.photos.into_iter().map(Into::into).collect(),
+                false,
+            ),
+            Err(error) => {
+                log::warn!(
+                    "Space post {} is unavailable: {}",
+                    post.post_id,
+                    ente_core::error::chain(&error)
+                );
+                (None, Vec::new(), true)
+            }
+        };
+        Self {
+            post_id: post.post_id,
+            space_id: post.space_id,
+            space_slug: post.space_slug,
+            author: post.author.into(),
+            caption,
+            photos,
+            is_unavailable,
+            created_at: post.created_at,
+            viewer_liked: post.viewer_liked,
         }
-    };
-    let profile = post.author.profile.unwrap_or_else(|error| {
-        log::warn!(
-            "Space profile {} fell back to public fields: {}",
-            post.author.space_id,
-            ente_core::error::chain(&error)
-        );
-        None
-    });
-    PostResponse {
-        post_id: post.post_id,
-        space_id: post.space_id,
-        space_slug: post.space_slug,
-        author: SpaceActorResponse {
-            space_id: post.author.space_id,
-            space_slug: post.author.space_slug,
-            public_key: post.author.public_key,
-            key_version: post.author.key_version,
-            profile: profile.map(Into::into),
-            avatar: post.author.avatar.map(Into::into),
-        },
-        caption,
-        photos,
-        is_unavailable,
-        created_at: post.created_at,
-        viewer_liked: post.viewer_liked,
     }
 }
 
@@ -620,198 +663,75 @@ impl From<ente_space::PostPhoto> for PostPhoto {
     }
 }
 
-fn post_page_to_js(page: ente_space::PostPage) -> PostPage {
-    PostPage {
-        items: page.items.into_iter().map(post_to_js).collect(),
-        next_cursor: page.next_cursor,
-    }
-}
-
-fn account_message_to_js(
-    mut message: ente_space::MessageResponse,
-    decrypted: DecryptedMessage,
-) -> Result<MessageResponse, Error> {
-    message.kind = decrypted.payload.kind;
-    let mut response = message_to_js(message, decrypted.payload.text);
-    response.reply_object_key = decrypted.payload.reply_object_key;
-    Ok(response)
-}
-
-fn message_to_js(message: ente_space::MessageResponse, text: String) -> MessageResponse {
-    MessageResponse {
-        message_id: message.message_id,
-        kind: message.kind,
-        sender_space_id: message.sender_space_id,
-        recipient_space_id: message.recipient_space_id,
-        text,
-        reply_post_id: message.reply_post_id,
-        reply_object_key: None,
-        reply_message_id: message.reply_message_id,
-        liked: message.liked,
-        viewer_liked: message.viewer_liked,
-        is_deleted: message.is_deleted,
-        created_at: message.created_at,
-        updated_at: message.updated_at,
-        is_unavailable: false,
-    }
-}
-
-fn unavailable_message_to_js(message: ente_space::MessageResponse) -> MessageResponse {
-    MessageResponse {
-        message_id: message.message_id,
-        kind: message.kind,
-        sender_space_id: message.sender_space_id,
-        recipient_space_id: message.recipient_space_id,
-        text: String::new(),
-        reply_post_id: message.reply_post_id,
-        reply_object_key: None,
-        reply_message_id: message.reply_message_id,
-        liked: message.liked,
-        viewer_liked: message.viewer_liked,
-        is_deleted: message.is_deleted,
-        created_at: message.created_at,
-        updated_at: message.updated_at,
-        is_unavailable: true,
-    }
-}
-
-async fn account_message_response_to_js(
-    ctx: &AccountSpaceCtx,
-    viewer_space_id: &str,
-    message: ente_space::MessageResponse,
-) -> Result<MessageResponse, Error> {
-    if message.is_deleted {
-        return Ok(message_to_js(message, String::new()));
-    }
-    if message.kind != "post_like" && message.kind != "friend_added" {
-        let decrypted = ctx.decrypt_message(viewer_space_id, &message).await?;
-        return account_message_to_js(message, decrypted);
-    }
-
-    let text = message.text.clone();
-    Ok(message_to_js(message, text))
-}
-
-async fn resilient_account_message_response_to_js(
-    ctx: &AccountSpaceCtx,
-    viewer_space_id: &str,
-    message: ente_space::MessageResponse,
-) -> Result<MessageResponse, Error> {
-    let fallback = message.clone();
-    match account_message_response_to_js(ctx, viewer_space_id, message).await {
-        Ok(message) => Ok(message),
-        Err(error) if error.is_content_error() => {
-            log::warn!(
-                "Space message {} is unavailable: {}",
-                fallback.message_id,
-                error.message()
-            );
-            Ok(unavailable_message_to_js(fallback))
+impl From<ente_space::PostPage> for PostPage {
+    fn from(page: ente_space::PostPage) -> Self {
+        Self {
+            items: page.items.into_iter().map(Into::into).collect(),
+            next_cursor: page.next_cursor,
         }
-        Err(error) => Err(error),
     }
 }
 
-async fn message_conversation_activity_payload(
-    ctx: &AccountSpaceCtx,
-    viewer_space_id: &str,
-    activity: &ente_space::MessageConversationActivity,
-) -> Result<Option<MessagePayload>, Error> {
-    if activity.message_cipher.trim().is_empty()
-        || activity.encrypted_message_key.trim().is_empty()
-        || activity.message_id.is_none()
-    {
-        return Ok(None);
-    }
-
-    let message = ente_space::MessageResponse {
-        message_id: activity.message_id.clone().unwrap_or_default(),
-        kind: if activity.kind.trim().is_empty() {
-            "regular".to_owned()
-        } else {
-            activity.kind.clone()
-        },
-        sender_space_id: activity.sender_space_id.clone(),
-        recipient_space_id: activity.recipient_space_id.clone(),
-        message_cipher: activity.message_cipher.clone(),
-        encrypted_message_key: activity.encrypted_message_key.clone(),
-        text: String::new(),
-        reply_post_id: activity.post_id,
-        reply_message_id: activity.reply_message_id.clone(),
-        liked: false,
-        viewer_liked: false,
-        is_deleted: false,
-        created_at: activity.created_at.clone(),
-        updated_at: activity.created_at.clone(),
-    };
-    let decrypted = ctx.decrypt_message(viewer_space_id, &message).await?;
-    Ok(Some(decrypted.payload))
-}
-
-async fn message_conversation_activity_to_js(
-    ctx: &AccountSpaceCtx,
-    viewer_space_id: &str,
-    activity: ente_space::MessageConversationActivity,
-) -> Result<MessageConversationActivity, Error> {
-    let payload = message_conversation_activity_payload(ctx, viewer_space_id, &activity).await?;
-    let kind = payload
-        .as_ref()
-        .map(|payload| payload.kind.clone())
-        .unwrap_or_else(|| activity.kind.clone());
-    let reply_object_key = payload
-        .as_ref()
-        .and_then(|payload| payload.reply_object_key.clone());
-    let text = payload.map(|payload| payload.text);
-    Ok(MessageConversationActivity {
-        id: activity.id,
-        activity_type: activity.activity_type,
-        kind,
-        created_at: activity.created_at,
-        outgoing: activity.outgoing,
-        message_id: activity.message_id,
-        text,
-        post_id: activity.post_id,
-        reply_object_key,
-        post_space_id: activity.post_space_id,
-        is_unavailable: false,
-    })
-}
-
-fn unavailable_message_conversation_activity_to_js(
-    activity: ente_space::MessageConversationActivity,
-) -> MessageConversationActivity {
-    MessageConversationActivity {
-        id: activity.id,
-        activity_type: activity.activity_type,
-        kind: activity.kind,
-        created_at: activity.created_at,
-        outgoing: activity.outgoing,
-        message_id: activity.message_id,
-        text: None,
-        post_id: activity.post_id,
-        reply_object_key: None,
-        post_space_id: activity.post_space_id,
-        is_unavailable: true,
-    }
-}
-
-async fn resilient_message_conversation_activity_to_js(
-    ctx: &AccountSpaceCtx,
-    viewer_space_id: &str,
-    activity: ente_space::MessageConversationActivity,
-) -> Result<MessageConversationActivity, Error> {
-    let fallback = activity.clone();
-    match message_conversation_activity_to_js(ctx, viewer_space_id, activity).await {
-        Ok(activity) => Ok(activity),
-        Err(error) if error.is_content_error() => {
-            log::warn!(
-                "Space conversation activity {} is unavailable: {}",
-                fallback.id,
-                error.message()
-            );
-            Ok(unavailable_message_conversation_activity_to_js(fallback))
+impl From<ente_space::Message> for MessageResponse {
+    fn from(message: ente_space::Message) -> Self {
+        let (text, reply_object_key, is_deleted, is_unavailable) = match message.content {
+            Ok(Some(content)) => (content.text, content.reply_object_key, false, false),
+            Ok(None) => (String::new(), None, true, false),
+            Err(error) => {
+                log::warn!(
+                    "Space message {} is unavailable: {}",
+                    message.message_id,
+                    ente_core::error::chain(&error)
+                );
+                (String::new(), None, false, true)
+            }
+        };
+        Self {
+            message_id: message.message_id,
+            kind: message.kind,
+            sender_space_id: message.sender_space_id,
+            recipient_space_id: message.recipient_space_id,
+            text,
+            reply_post_id: message.reply_post_id,
+            reply_object_key,
+            reply_message_id: message.reply_message_id,
+            liked: message.liked,
+            viewer_liked: message.viewer_liked,
+            is_deleted,
+            created_at: message.created_at,
+            updated_at: message.updated_at,
+            is_unavailable,
         }
-        Err(error) => Err(error),
+    }
+}
+
+impl From<ente_space::MessageActivity> for MessageConversationActivity {
+    fn from(activity: ente_space::MessageActivity) -> Self {
+        let (text, reply_object_key, is_unavailable) = match activity.content {
+            Ok(Some(content)) => (Some(content.text), content.reply_object_key, false),
+            Ok(None) => (None, None, false),
+            Err(error) => {
+                log::warn!(
+                    "Space conversation activity {} is unavailable: {}",
+                    activity.id,
+                    ente_core::error::chain(&error)
+                );
+                (None, None, true)
+            }
+        };
+        Self {
+            id: activity.id,
+            activity_type: activity.activity_type,
+            kind: activity.kind,
+            created_at: activity.created_at,
+            outgoing: activity.outgoing,
+            message_id: activity.message_id,
+            text,
+            post_id: activity.post_id,
+            reply_object_key,
+            post_space_id: activity.post_space_id,
+            is_unavailable,
+        }
     }
 }
 
@@ -861,7 +781,7 @@ pub struct SpaceLinkCtxHandle {
 impl SpaceLinkCtxHandle {
     #[wasm_bindgen(js_name = getProfile)]
     pub fn get_profile(&self) -> Result<<DecryptedSpaceProfile as Tsify>::JsType, Error> {
-        let mut profile = profile_to_js(self.inner.profile().clone());
+        let mut profile = DecryptedSpaceProfile::from(self.inner.profile().clone());
         profile.posts = Some(self.inner.posts());
         profile.into_js().map_err(Into::into)
     }
@@ -869,7 +789,7 @@ impl SpaceLinkCtxHandle {
     #[wasm_bindgen(js_name = listPosts)]
     pub async fn list_posts(&self) -> Result<<PostPage as Tsify>::JsType, Error> {
         let page = self.inner.list_posts().await?;
-        post_page_to_js(page).into_js().map_err(Into::into)
+        PostPage::from(page).into_js().map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = subscribeWebPush)]
@@ -944,7 +864,7 @@ impl SpaceAccountCtxHandle {
         profile: String,
         referred_by_space_id: Option<String>,
     ) -> Result<<CreatedSpace as Tsify>::JsType, Error> {
-        created_space_to_js(
+        CreatedSpace::from(
             self.inner
                 .create_space_with_referrer(
                     &space_slug,
@@ -975,7 +895,7 @@ impl SpaceAccountCtxHandle {
         space_id: String,
         viewer_space_id: Option<String>,
     ) -> Result<<DecryptedSpaceProfile as Tsify>::JsType, Error> {
-        profile_to_js(
+        DecryptedSpaceProfile::from(
             self.inner
                 .get_space_profile_for_display(&space_id, viewer_space_id.as_deref(), None)
                 .await?,
@@ -1006,22 +926,9 @@ impl SpaceAccountCtxHandle {
         profile: String,
         avatar_bytes: Vec<u8>,
     ) -> Result<<UpdateSpaceProfileResponse as Tsify>::JsType, Error> {
-        let space_key = self
-            .inner
-            .resolve_owned_space_key(&space_id)
-            .await?
-            .ok_or_else(|| {
-                ente_space::Error::InvalidInput(format!(
-                    "space {space_id} is not owned by the account"
-                ))
-            })?;
-        let avatar = self
-            .inner
-            .upload_avatar(&space_id, &space_key, &avatar_bytes)
-            .await?;
         UpdateSpaceProfileResponse::from(
             self.inner
-                .update_space_profile(&space_id, profile.as_bytes(), Some(avatar), false)
+                .update_space_profile_with_avatar(&space_id, profile.as_bytes(), &avatar_bytes)
                 .await?,
         )
         .into_js()
@@ -1035,29 +942,39 @@ impl SpaceAccountCtxHandle {
         profile: String,
         cover_bytes: Vec<u8>,
     ) -> Result<<UpdateSpaceProfileResponse as Tsify>::JsType, Error> {
-        let space_key = self
-            .inner
-            .resolve_owned_space_key(&space_id)
-            .await?
-            .ok_or_else(|| {
-                ente_space::Error::InvalidInput(format!(
-                    "space {space_id} is not owned by the account"
-                ))
-            })?;
-        let cover = self
-            .inner
-            .upload_cover(&space_id, &space_key, &cover_bytes)
-            .await?;
         UpdateSpaceProfileResponse::from(
             self.inner
-                .update_space_profile_assets(
-                    &space_id,
-                    profile.as_bytes(),
-                    None,
-                    Some(cover),
-                    false,
-                    false,
-                )
+                .update_space_profile_with_cover(&space_id, profile.as_bytes(), &cover_bytes)
+                .await?,
+        )
+        .into_js()
+        .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = removeSpaceProfileCover)]
+    pub async fn remove_space_profile_cover(
+        &self,
+        space_id: String,
+        profile: String,
+    ) -> Result<<UpdateSpaceProfileResponse as Tsify>::JsType, Error> {
+        UpdateSpaceProfileResponse::from(
+            self.inner
+                .remove_space_profile_cover(&space_id, profile.as_bytes())
+                .await?,
+        )
+        .into_js()
+        .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = removeSpaceProfileAvatar)]
+    pub async fn remove_space_profile_avatar(
+        &self,
+        space_id: String,
+        profile: String,
+    ) -> Result<<UpdateSpaceProfileResponse as Tsify>::JsType, Error> {
+        UpdateSpaceProfileResponse::from(
+            self.inner
+                .remove_space_profile_avatar(&space_id, profile.as_bytes())
                 .await?,
         )
         .into_js()
@@ -1113,7 +1030,7 @@ impl SpaceAccountCtxHandle {
         limit: Option<i32>,
     ) -> Result<<PostPage as Tsify>::JsType, Error> {
         let page = self.inner.list_feed(&space_id, cursor, limit).await?;
-        post_page_to_js(page).into_js().map_err(Into::into)
+        PostPage::from(page).into_js().map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = unreadStatus)]
@@ -1149,7 +1066,7 @@ impl SpaceAccountCtxHandle {
         cursor: Option<String>,
         limit: Option<i32>,
     ) -> Result<<PostPage as Tsify>::JsType, Error> {
-        post_page_to_js(
+        PostPage::from(
             self.inner
                 .list_posts(&space_id, viewer_space_id.as_deref(), cursor, limit)
                 .await?,
@@ -1169,7 +1086,7 @@ impl SpaceAccountCtxHandle {
             .inner
             .get_post(&space_id, post_id, viewer_space_id.as_deref())
             .await?;
-        post_to_js(post).into_js().map_err(Into::into)
+        PostResponse::from(post).into_js().map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = createPhotoPost)]
@@ -1179,49 +1096,24 @@ impl SpaceAccountCtxHandle {
         photos: Vec<<PostPhotoInput as Tsify>::JsType>,
         caption: Option<String>,
     ) -> Result<<PostResponse as Tsify>::JsType, Error> {
-        if photos.is_empty() || photos.len() > 10 {
-            return Err(
-                ente_space::Error::InvalidInput("Choose between 1 and 10 photos".into()).into(),
-            );
-        }
         let photos = photos
             .into_iter()
             .map(PostPhotoInput::from_js)
             .collect::<Result<Vec<_>, _>>()?;
-        let post_key = self.inner.generate_post_key();
-        let mut objects = Vec::with_capacity(photos.len());
-        for (position, photo) in photos.into_iter().enumerate() {
-            let mut object = self
-                .inner
-                .upload_post_photo_asset(
-                    &space_id,
-                    &post_key,
-                    &photo.bytes.to_vec(),
-                    ente_space::PostPhotoAssetOptions {
-                        width: photo.options.width,
-                        height: photo.options.height,
-                        media_type: photo.options.media_type,
-                        thumb_hash: photo.options.thumb_hash,
-                    },
-                )
-                .await?;
-            object.position = Some(position as i32);
-            objects.push(object);
-        }
-        let (post_id, _) = self
-            .inner
-            .create_post(
-                &space_id,
-                &objects,
-                caption.as_ref().map(String::as_bytes),
-                Some(&post_key),
-            )
-            .await?;
+        let photos = photos.into_iter().map(|photo| ente_space::PostPhotoInput {
+            bytes: photo.bytes.to_vec(),
+            options: ente_space::PostPhotoAssetOptions {
+                width: photo.options.width,
+                height: photo.options.height,
+                media_type: photo.options.media_type,
+                thumb_hash: photo.options.thumb_hash,
+            },
+        });
         let post = self
             .inner
-            .get_post(&space_id, post_id, Some(&space_id))
+            .create_photo_post(&space_id, photos, caption.as_deref())
             .await?;
-        post_to_js(post).into_js().map_err(Into::into)
+        PostResponse::from(post).into_js().map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = downloadPostAsset)]
@@ -1300,13 +1192,7 @@ impl SpaceAccountCtxHandle {
             .inner
             .send_message(&sender_space_id, &space_id, &text)
             .await?;
-        let decrypted = self
-            .inner
-            .decrypt_message(&sender_space_id, &message)
-            .await?;
-        account_message_to_js(message, decrypted)?
-            .into_js()
-            .map_err(Into::into)
+        MessageResponse::from(message).into_js().map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = sendPoke)]
@@ -1316,13 +1202,7 @@ impl SpaceAccountCtxHandle {
         space_id: String,
     ) -> Result<<MessageResponse as Tsify>::JsType, Error> {
         let message = self.inner.send_poke(&sender_space_id, &space_id).await?;
-        let decrypted = self
-            .inner
-            .decrypt_message(&sender_space_id, &message)
-            .await?;
-        account_message_to_js(message, decrypted)?
-            .into_js()
-            .map_err(Into::into)
+        MessageResponse::from(message).into_js().map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = replyToMessage)]
@@ -1337,13 +1217,7 @@ impl SpaceAccountCtxHandle {
             .inner
             .reply_to_message(&sender_space_id, &space_id, &message_id, &text)
             .await?;
-        let decrypted = self
-            .inner
-            .decrypt_message(&sender_space_id, &message)
-            .await?;
-        account_message_to_js(message, decrypted)?
-            .into_js()
-            .map_err(Into::into)
+        MessageResponse::from(message).into_js().map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = replyToPost)]
@@ -1365,13 +1239,7 @@ impl SpaceAccountCtxHandle {
                 object_key.as_deref(),
             )
             .await?;
-        let decrypted = self
-            .inner
-            .decrypt_message(&sender_space_id, &message)
-            .await?;
-        account_message_to_js(message, decrypted)?
-            .into_js()
-            .map_err(Into::into)
+        MessageResponse::from(message).into_js().map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = likeMessage)]
@@ -1404,55 +1272,9 @@ impl SpaceAccountCtxHandle {
         space_id: String,
     ) -> Result<<ConversationsResponse as Tsify>::JsType, Error> {
         let response = self.inner.list_conversations(&space_id).await?;
-        let mut friends = Vec::with_capacity(response.friends.len());
-        for friend in response.friends {
-            friends.push(SpaceFriendResponse {
-                friend: account_actor_to_js(&self.inner, friend.friend).await?,
-                share_key_version: friend.share_key_version,
-                created_at: friend.created_at,
-            });
-        }
-
-        let mut pending_requests = Vec::with_capacity(response.pending_requests.len());
-        for request in response.pending_requests {
-            pending_requests.push(SpaceFriendRequestResponse {
-                request_id: request.request_id,
-                requester: public_actor_to_js(request.requester),
-                created_at: request.created_at,
-            });
-        }
-
-        let mut chat_summaries = BTreeMap::new();
-        for (friend_space_id, summary) in response.chat_summaries {
-            let mut unread_activities = Vec::with_capacity(summary.unread_activities.len());
-            for activity in summary.unread_activities {
-                unread_activities.push(
-                    resilient_message_conversation_activity_to_js(&self.inner, &space_id, activity)
-                        .await?,
-                );
-            }
-            chat_summaries.insert(
-                friend_space_id,
-                ConversationChatSummaryResponse {
-                    latest_activity: resilient_message_conversation_activity_to_js(
-                        &self.inner,
-                        &space_id,
-                        summary.latest_activity,
-                    )
-                    .await?,
-                    unread_activities,
-                },
-            );
-        }
-
-        ConversationsResponse {
-            friends,
-            pending_requests,
-            chat_summaries,
-            latest_post_created_at: response.latest_post_created_at,
-        }
-        .into_js()
-        .map_err(Into::into)
+        ConversationsResponse::from(response)
+            .into_js()
+            .map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = listMessageThread)]
@@ -1467,19 +1289,7 @@ impl SpaceAccountCtxHandle {
             .inner
             .list_message_thread(&viewer_space_id, &space_id, cursor, limit)
             .await?;
-        let mut items = Vec::with_capacity(page.items.len());
-        for message in page.items {
-            items.push(
-                resilient_account_message_response_to_js(&self.inner, &viewer_space_id, message)
-                    .await?,
-            );
-        }
-        MessagePage {
-            items,
-            next_cursor: page.next_cursor,
-        }
-        .into_js()
-        .map_err(Into::into)
+        MessagePage::from(page).into_js().map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = updatePostCaption)]
@@ -1509,18 +1319,14 @@ impl SpaceAccountCtxHandle {
         space_id: String,
     ) -> Result<Vec<<SpaceFriendResponse as Tsify>::JsType>, Error> {
         let friends = self.inner.list_space_friends(&space_id).await?;
-        let mut items = Vec::with_capacity(friends.len());
-        for friend in friends {
-            items.push(
-                SpaceFriendResponse {
-                    friend: account_actor_to_js(&self.inner, friend.friend).await?,
-                    share_key_version: friend.share_key_version,
-                    created_at: friend.created_at,
-                }
-                .into_js()?,
-            );
-        }
-        Ok(items)
+        friends
+            .into_iter()
+            .map(|friend| {
+                SpaceFriendResponse::from(friend)
+                    .into_js()
+                    .map_err(Into::into)
+            })
+            .collect()
     }
 
     #[wasm_bindgen(js_name = listFriendRequests)]
@@ -1529,18 +1335,14 @@ impl SpaceAccountCtxHandle {
         space_id: String,
     ) -> Result<Vec<<SpaceFriendRequestResponse as Tsify>::JsType>, Error> {
         let requests = self.inner.list_friend_requests(&space_id).await?;
-        let mut items = Vec::with_capacity(requests.len());
-        for request in requests {
-            items.push(
-                SpaceFriendRequestResponse {
-                    request_id: request.request_id,
-                    requester: public_actor_to_js(request.requester),
-                    created_at: request.created_at,
-                }
-                .into_js()?,
-            );
-        }
-        Ok(items)
+        requests
+            .into_iter()
+            .map(|request| {
+                SpaceFriendRequestResponse::from(request)
+                    .into_js()
+                    .map_err(Into::into)
+            })
+            .collect()
     }
 
     #[wasm_bindgen(js_name = listSentFriendRequests)]
@@ -1549,18 +1351,14 @@ impl SpaceAccountCtxHandle {
         space_id: String,
     ) -> Result<Vec<<SpaceSentFriendRequestResponse as Tsify>::JsType>, Error> {
         let requests = self.inner.list_sent_friend_requests(&space_id).await?;
-        let mut items = Vec::with_capacity(requests.len());
-        for request in requests {
-            items.push(
-                SpaceSentFriendRequestResponse {
-                    request_id: request.request_id,
-                    target: public_actor_to_js(request.target),
-                    created_at: request.created_at,
-                }
-                .into_js()?,
-            );
-        }
-        Ok(items)
+        requests
+            .into_iter()
+            .map(|request| {
+                SpaceSentFriendRequestResponse::from(request)
+                    .into_js()
+                    .map_err(Into::into)
+            })
+            .collect()
     }
 
     #[wasm_bindgen(js_name = confirmFriendRequest)]
@@ -1600,216 +1398,5 @@ impl SpaceAccountCtxHandle {
             .unfriend_by_space(&actor_space_id, &space_id)
             .await
             .map_err(Into::into)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use ente_core::crypto::{Key, SecretKey, sealed, secretbox};
-
-    use super::*;
-
-    fn message(
-        message_id: &str,
-        encrypted_message_key: &str,
-        message_cipher: &str,
-    ) -> ente_space::MessageResponse {
-        ente_space::MessageResponse {
-            message_id: message_id.into(),
-            kind: "regular".into(),
-            sender_space_id: "space-2".into(),
-            recipient_space_id: "space-1".into(),
-            message_cipher: message_cipher.into(),
-            encrypted_message_key: encrypted_message_key.into(),
-            text: String::new(),
-            reply_post_id: None,
-            reply_message_id: None,
-            liked: false,
-            viewer_liked: false,
-            is_deleted: false,
-            created_at: "2026-08-01T00:00:00Z".into(),
-            updated_at: "2026-08-01T00:00:00Z".into(),
-        }
-    }
-
-    fn message_context() -> (AccountSpaceCtx, Key, String) {
-        let root_key = Key::generate();
-        let secret_key = SecretKey::generate();
-        let public_key = secret_key.public_key();
-        let encrypted_secret_key = secretbox::encrypt_combined(secret_key.as_bytes(), &root_key);
-        let ctx = AccountSpaceCtx::open(ente_space::OpenAccountSpaceCtxInput {
-            base_url: "http://localhost".into(),
-            space_session_token: None,
-            space_root_key: root_key.as_bytes().to_vec(),
-            initial_owned_spaces: Some(vec![ente_space::SpaceKeyResponse {
-                space_id: "space-1".into(),
-                space_slug: "alice".into(),
-                root_wrapped_space_key: String::new(),
-                public_key: b64::encode(public_key.as_bytes()),
-                encrypted_secret_key: b64::encode(&encrypted_secret_key),
-                encrypted_profile: String::new(),
-                key_version: 1,
-            }]),
-            user_agent: None,
-            client_package: None,
-            client_version: None,
-        })
-        .unwrap();
-        let message_key = Key::generate();
-        let sealed_message_key = sealed::seal(message_key.as_bytes(), &public_key).unwrap();
-        let encrypted_message_key = b64::encode(&sealed_message_key);
-        (ctx, message_key, encrypted_message_key)
-    }
-
-    #[tokio::test]
-    async fn encrypted_message_kinds_preserve_server_events_and_allow_pokes() {
-        let (ctx, message_key, encrypted_message_key) = message_context();
-
-        for reply_object_key in [None, Some("first"), Some("second")] {
-            for (server_kind, payload_kind, expected_kind) in [
-                ("regular", "regular", "regular"),
-                ("regular", "poke", "poke"),
-                ("regular", "post_like", "regular"),
-                ("regular", "post_reply", "regular"),
-                ("regular", "friend_added", "regular"),
-                ("regular", "unknown", "regular"),
-                ("post_reply", "post_reply", "post_reply"),
-                ("post_reply", "regular", "post_reply"),
-                ("post_reply", "poke", "post_reply"),
-                ("post_reply", "post_like", "post_reply"),
-                ("post_reply", "friend_added", "post_reply"),
-            ] {
-                let photo_field = reply_object_key
-                    .map(|key| format!(r#","replyObjectKey":"{key}""#))
-                    .unwrap_or_default();
-                let plaintext = format!(
-                    r#"{{"version":1,"kind":"{payload_kind}","text":"hello"{photo_field}}}"#
-                );
-                let cipher = b64::encode(&secretbox::encrypt_combined(
-                    plaintext.as_bytes(),
-                    &message_key,
-                ));
-                let mut response = message("message-1", &encrypted_message_key, &cipher);
-                response.kind = server_kind.into();
-                response.reply_post_id = (server_kind == "post_reply").then_some(42);
-                let activity = ente_space::MessageConversationActivity {
-                    id: "activity-1".into(),
-                    activity_type: if server_kind == "post_reply" {
-                        "post_reply".into()
-                    } else {
-                        "message".into()
-                    },
-                    kind: response.kind.clone(),
-                    created_at: response.created_at.clone(),
-                    outgoing: false,
-                    message_id: Some(response.message_id.clone()),
-                    sender_space_id: response.sender_space_id.clone(),
-                    recipient_space_id: response.recipient_space_id.clone(),
-                    message_cipher: response.message_cipher.clone(),
-                    encrypted_message_key: response.encrypted_message_key.clone(),
-                    reply_message_id: None,
-                    post_id: response.reply_post_id,
-                    post_space_id: response.reply_post_id.map(|_| "space-1".into()),
-                };
-                let converted = resilient_account_message_response_to_js(&ctx, "space-1", response)
-                    .await
-                    .unwrap_or_else(|error| panic!("{error}"));
-                let converted_activity = resilient_message_conversation_activity_to_js(
-                    &ctx,
-                    "space-1",
-                    activity.clone(),
-                )
-                .await
-                .unwrap_or_else(|error| panic!("{error}"));
-
-                assert_eq!(
-                    converted.kind, expected_kind,
-                    "message: server={server_kind}, payload={payload_kind}"
-                );
-                assert_eq!(
-                    converted_activity.kind, expected_kind,
-                    "activity: server={server_kind}, payload={payload_kind}"
-                );
-                assert_eq!(converted.reply_object_key.as_deref(), reply_object_key);
-                assert_eq!(
-                    converted_activity.reply_object_key.as_deref(),
-                    reply_object_key
-                );
-                assert_eq!(converted.text, "hello");
-                assert_eq!(converted.reply_post_id, activity.post_id);
-                assert!(!converted.is_unavailable);
-                assert_eq!(converted_activity.text.as_deref(), Some("hello"));
-                assert_eq!(converted_activity.activity_type, activity.activity_type);
-                assert_eq!(converted_activity.post_id, activity.post_id);
-                assert!(!converted_activity.is_unavailable);
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn corrupt_message_and_activity_become_unavailable() {
-        let (ctx, message_key, encrypted_message_key) = message_context();
-        let valid_cipher = b64::encode(&secretbox::encrypt_combined(
-            br#"{"version":1,"kind":"regular","text":"hello"}"#,
-            &message_key,
-        ));
-        let corrupt_cipher = b64::encode(&secretbox::encrypt_combined(b"not-json", &message_key));
-
-        let first = resilient_account_message_response_to_js(
-            &ctx,
-            "space-1",
-            message("message-1", &encrypted_message_key, &valid_cipher),
-        )
-        .await
-        .unwrap_or_else(|error| panic!("{error}"));
-        let corrupt = resilient_account_message_response_to_js(
-            &ctx,
-            "space-1",
-            message("message-2", &encrypted_message_key, &corrupt_cipher),
-        )
-        .await
-        .unwrap_or_else(|error| panic!("{error}"));
-        let last = resilient_account_message_response_to_js(
-            &ctx,
-            "space-1",
-            message("message-3", &encrypted_message_key, &valid_cipher),
-        )
-        .await
-        .unwrap_or_else(|error| panic!("{error}"));
-
-        assert!(!first.is_unavailable);
-        assert!(corrupt.is_unavailable);
-        assert!(!last.is_unavailable);
-
-        let activity = ente_space::MessageConversationActivity {
-            id: "activity-1".into(),
-            activity_type: "message".into(),
-            kind: "regular".into(),
-            created_at: "2026-08-01T00:00:00Z".into(),
-            outgoing: false,
-            message_id: Some("message-2".into()),
-            sender_space_id: "space-2".into(),
-            recipient_space_id: "space-1".into(),
-            message_cipher: corrupt_cipher,
-            encrypted_message_key,
-            reply_message_id: None,
-            post_id: None,
-            post_space_id: None,
-        };
-        let activity = resilient_message_conversation_activity_to_js(&ctx, "space-1", activity)
-            .await
-            .unwrap_or_else(|error| panic!("{error}"));
-
-        assert!(activity.is_unavailable);
-    }
-
-    #[test]
-    fn http_errors_are_not_content_errors() {
-        let error = Error::from(ente_space::Error::Http(ente_core::http::Error::Http {
-            status: 500,
-            path: "/space".into(),
-        }));
-
-        assert!(!error.is_content_error());
     }
 }

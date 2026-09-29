@@ -89,7 +89,7 @@ impl Vault {
             keyring::Entry::new("io.ente.cli", &home.to_string_lossy())
         })?;
         let state = match encrypted {
-            Some(bytes) => decrypt(&bytes, &key)?,
+            Some(bytes) => decrypt(&bytes, &key, &home)?,
             None => State::default(),
         };
         Ok(Self {
@@ -144,7 +144,7 @@ impl VaultAccess {
         let Self { home, key } = self;
         let lock = lock(&home)?;
         let state = match read_vault(&home)? {
-            Some(bytes) => decrypt(&bytes, &key)?,
+            Some(bytes) => decrypt(&bytes, &key, &home)?,
             None => State::default(),
         };
         Ok(Vault {
@@ -168,7 +168,7 @@ impl State {
         let key = load_key(override_key, true, || {
             keyring::Entry::new("io.ente.cli", &home.to_string_lossy())
         })?;
-        decrypt(&bytes, &key)
+        decrypt(&bytes, &key, &home)
     }
 
     pub fn named(&self, name: &str) -> Result<usize> {
@@ -305,7 +305,7 @@ fn keyring_error(error: keyring::Error, exists: bool) -> anyhow::Error {
     }
 }
 
-fn decrypt(bytes: &[u8], key: &Key) -> Result<State> {
+fn decrypt(bytes: &[u8], key: &Key, home: &Path) -> Result<State> {
     let unlock_error =
         || anyhow::anyhow!("cannot unlock CLI vault: wrong key or damaged ciphertext");
     let encrypted: EncryptedVault =
@@ -318,7 +318,9 @@ fn decrypt(bytes: &[u8], key: &Key) -> Result<State> {
         parse_json(&plaintext).context("invalid CLI vault contents")?;
     ensure!(
         version.schema_version == SCHEMA_VERSION,
-        "unsupported CLI vault schema"
+        "unsupported CLI vault schema {}; this build supports {SCHEMA_VERSION}.\nTo start fresh, move {} aside, then log in again.",
+        version.schema_version,
+        home.join(VAULT_FILE).display(),
     );
     let stored: VersionedState<State> =
         parse_json(&plaintext).context("invalid CLI vault contents")?;

@@ -48,7 +48,7 @@ export const getStoredAnonIdentity = (
     }
 };
 
-export const storeAnonIdentity = (
+const storeAnonIdentity = (
     collectionID: number,
     identity: AnonIdentity,
 ): void => {
@@ -56,7 +56,7 @@ export const storeAnonIdentity = (
     localStorage.setItem(getStorageKey(collectionID), JSON.stringify(identity));
 };
 
-export const clearAnonIdentity = (collectionID: number): void => {
+const clearAnonIdentity = (collectionID: number): void => {
     if (typeof window === "undefined") return;
     localStorage.removeItem(getStorageKey(collectionID));
 };
@@ -200,7 +200,7 @@ export const deletePublicReaction = async (
 
 const UpsertReactionResponse = z.object({ id: z.string() });
 
-export interface PublicReaction {
+interface PublicReaction {
     id: string;
     fileID: number;
     commentID?: string;
@@ -225,11 +225,6 @@ const RemotePublicReaction = z.object({
     createdAt: z.number(),
     updatedAt: z.number(),
 });
-
-export interface AnonProfile {
-    anonUserID: string;
-    userName: string;
-}
 
 export interface PublicAnonProfiles {
     anonUserNames: Map<string, string>;
@@ -284,11 +279,6 @@ const GetAnonProfilesResponse = z.object({
         .transform((v) => v ?? []),
 });
 
-export interface Participant {
-    userID: number;
-    emailMasked: string;
-}
-
 export const getPublicParticipantsMaskedEmails = async (
     credentials: PublicAlbumsCredentials,
 ): Promise<Map<number, string>> => {
@@ -315,7 +305,7 @@ const GetParticipantsResponse = z.object({
     participants: z.array(RemoteParticipant),
 });
 
-export interface PublicComment {
+interface PublicComment {
     id: string;
     collectionID: number;
     fileID?: number;

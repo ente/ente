@@ -16,7 +16,7 @@ import {
 
 export type PublicMemoryViewerVariant = "share" | "lane";
 
-export interface LoadedPublicMemoryPageData {
+interface LoadedPublicMemoryPageData {
     accessToken: string;
     files: EnteFile[];
     laneFrames?: (PublicMemoryShareFrame | undefined)[];

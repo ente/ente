@@ -432,22 +432,6 @@ func storageWarningDeletionScheduledError() error {
 	}, "storage warning deletion scheduled")
 }
 
-func (c *UserController) alertStorageWarningDeletionScheduledLoginBlock(userID int64, app ente.App) {
-	log.WithFields(log.Fields{
-		"user_id": userID,
-		"app":     app,
-		"code":    StorageWarningDeletionScheduledCode,
-	}).Warn("blocked login due to storage warning scheduled deletion")
-
-	if c.DiscordController != nil {
-		discordController := c.DiscordController
-		go discordController.NotifyThrottled(
-			fmt.Sprintf("🔒 Storage warning login block hit: user_id=%d app=%s", userID, app),
-			15*t.Minute,
-		)
-	}
-}
-
 func (c *UserController) ensureStorageWarningDeletionLoginAllowed(userID int64, app ente.App) error {
 	if c.NotificationHistoryRepo == nil || !shouldEnforceStorageWarningDeletionLoginBlock(app) {
 		return nil
@@ -472,7 +456,11 @@ func (c *UserController) ensureStorageWarningDeletionLoginAllowed(userID int64, 
 			}).Info("allowing login during storage warning grace")
 			return nil
 		}
-		c.alertStorageWarningDeletionScheduledLoginBlock(userID, app)
+		log.WithFields(log.Fields{
+			"user_id": userID,
+			"app":     app,
+			"code":    StorageWarningDeletionScheduledCode,
+		}).Warn("blocked login due to storage warning scheduled deletion")
 		return storageWarningDeletionScheduledError()
 	}
 	return nil

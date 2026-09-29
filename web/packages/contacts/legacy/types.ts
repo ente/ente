@@ -1,4 +1,4 @@
-export interface LegacyUser {
+interface LegacyUser {
     id: number;
     email: string;
 }

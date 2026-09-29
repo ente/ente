@@ -5,7 +5,12 @@ use ente_core::{
 };
 use serde::Deserialize;
 
-use crate::collections::{Collection, Visibility};
+use crate::{
+    collections::Visibility,
+    source::{self, Documents, MetadataError},
+};
+
+pub use ente_collections::client::File as RemoteFile;
 
 #[derive(Debug)]
 pub struct File {
@@ -15,7 +20,7 @@ pub struct File {
     pub name: String,
     pub kind: Kind,
     pub created_at_micros: i64,
-    pub modified_at_micros: i64,
+    pub modified_at_micros: Option<i64>,
     pub location: Option<Location>,
     pub caption: Option<String>,
     pub hash: Option<String>,
@@ -24,12 +29,12 @@ pub struct File {
     pub duration_seconds: Option<u64>,
     pub width: Option<u32>,
     pub height: Option<u32>,
-    pub visibility: Visibility,
+    pub visibility: Option<Visibility>,
     pub key: Key,
     pub header: Header,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
     Image,
     Video,
@@ -54,17 +59,6 @@ pub struct Location {
     pub longitude: f64,
 }
 
-pub struct Change {
-    pub id: i64,
-    pub file: Option<File>,
-}
-
-pub struct Page {
-    pub changes: Vec<Change>,
-    pub cursor: i64,
-    pub has_more: bool,
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
@@ -77,37 +71,18 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Collections(#[from] ente_collections::Error),
-}
-
-pub async fn diff(session: &Session, collection: &Collection, since: i64) -> Result<Page, Error> {
-    let page = ente_collections::client::files_diff(session, collection.id, since).await?;
-    let changes = page
-        .files
-        .into_iter()
-        .map(|remote| {
-            Ok(Change {
-                id: remote.id,
-                file: if remote.is_deleted() {
-                    None
-                } else {
-                    Some(File::open(remote, &collection.key)?)
-                },
-            })
-        })
-        .collect::<Result<_, Error>>()?;
-    Ok(Page {
-        changes,
-        cursor: page.cursor,
-        has_more: page.has_more,
-    })
+    #[error(transparent)]
+    Metadata(#[from] MetadataError),
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn download<W: std::io::Write>(
     session: &Session,
-    file: &File,
+    id: i64,
+    key: &Key,
+    header: &Header,
     mut output: impl FnMut() -> std::io::Result<W>,
-) -> Result<(), Error> {
+) -> Result<W, Error> {
     use ente_core::crypto::stream::DecryptingWriter;
     use futures_util::StreamExt;
 
@@ -118,7 +93,7 @@ pub async fn download<W: std::io::Write>(
                 let output = output?;
                 let signed: DownloadUrl = session
                     .api
-                    .get(&format!("/files/download/v3/{}", file.id))
+                    .get(&format!("/files/download/v3/{id}"))
                     .send()
                     .await?
                     .error_for_code()
@@ -133,12 +108,11 @@ pub async fn download<W: std::io::Write>(
                     .await?
                     .error_for_status()?;
                 let mut body = std::pin::pin!(response.bytes_stream());
-                let mut decryptor = DecryptingWriter::new(&file.header, &file.key, output);
+                let mut decryptor = DecryptingWriter::new(header, key, output);
                 while let Some(chunk) = body.next().await {
                     decryptor.write(&chunk?)?;
                 }
-                decryptor.finish()?;
-                Ok(())
+                Ok(decryptor.finish()?)
             }
         },
         |error| matches!(error, Error::Http(error) if error.is_retryable()),
@@ -152,81 +126,94 @@ struct DownloadUrl {
     url: String,
 }
 
-impl File {
-    fn open(remote: ente_collections::client::File, collection_key: &Key) -> Result<Self, Error> {
-        let key = remote.open_key(collection_key)?;
-        let metadata: Metadata = blob::decrypt_json(
-            &blob::EncryptedBlob {
-                encrypted_data: b64::decode(
-                    remote.metadata.encrypted_data.as_deref().unwrap_or(""),
-                )?,
-                decryption_header: Header::try_from_slice(&b64::decode(
-                    &remote.metadata.decryption_header,
-                )?)?,
-            },
+pub fn decrypt(remote: &RemoteFile, collection_key: &Key) -> Result<(Key, Documents), Error> {
+    let key = remote.open_key(collection_key)?;
+    let documents = Documents {
+        original: blob::decrypt(
+            &b64::decode(remote.metadata.encrypted_data.as_deref().unwrap_or(""))?,
+            &Header::try_from_slice(&b64::decode(&remote.metadata.decryption_header)?)?,
             &key,
-        )?;
-        let public: PublicMetadata = match remote.pub_magic_metadata {
-            Some(encrypted) => encrypted.open(&key)?,
-            None => PublicMetadata::default(),
-        };
-        let private: PrivateMetadata = match remote.magic_metadata {
-            Some(encrypted) => encrypted.open(&key)?,
-            None => PrivateMetadata::default(),
-        };
-        let kind = match metadata.file_type {
-            Some(0) => Kind::Image,
-            Some(1) => Kind::Video,
-            Some(2) => Kind::LivePhoto,
-            _ => Kind::Unknown,
-        };
-        let hash = metadata.hash.filter(|hash| !hash.is_empty()).or_else(|| {
-            if matches!(kind, Kind::LivePhoto) {
-                metadata
-                    .image_hash
-                    .zip(metadata.video_hash)
-                    .map(|(image, video)| format!("{image}:{video}"))
-            } else {
-                None
-            }
+        )?,
+        public: remote
+            .pub_magic_metadata
+            .as_ref()
+            .map(|m| m.decrypt(&key))
+            .transpose()?,
+        private: remote
+            .magic_metadata
+            .as_ref()
+            .map(|m| m.decrypt(&key))
+            .transpose()?,
+        shared: None,
+    };
+    Ok((key, documents))
+}
+
+pub fn interpret(
+    remote: &RemoteFile,
+    key: &Key,
+    documents: &Documents,
+    user_id: i64,
+) -> Result<File, Error> {
+    let metadata: Metadata = source::parse(&documents.original, "invalid original file metadata")?;
+    let public: PublicMetadata =
+        source::optional(documents.public.as_deref(), "invalid public file metadata")?;
+    let private: PrivateMetadata = source::optional(
+        documents.private.as_deref(),
+        "invalid private file metadata",
+    )?;
+    let kind = match metadata.file_type {
+        Some(0) => Kind::Image,
+        Some(1) => Kind::Video,
+        Some(2) => Kind::LivePhoto,
+        _ => Kind::Unknown,
+    };
+    let hash = metadata.hash.filter(|hash| !hash.is_empty()).or_else(|| {
+        if kind == Kind::LivePhoto {
+            metadata
+                .image_hash
+                .zip(metadata.video_hash)
+                .map(|(image, video)| format!("{image}:{video}"))
+        } else {
+            None
+        }
+    });
+    let location = public
+        .lat
+        .zip(public.long)
+        .or(metadata.latitude.zip(metadata.longitude))
+        .filter(|&(lat, long)| lat != 0.0 || long != 0.0)
+        .map(|(latitude, longitude)| Location {
+            latitude,
+            longitude,
         });
-        let location = public
-            .lat
-            .zip(public.long)
-            .or(metadata.latitude.zip(metadata.longitude))
-            .filter(|&(lat, long)| lat != 0.0 || long != 0.0)
-            .map(|(latitude, longitude)| Location {
-                latitude,
-                longitude,
-            });
-        Ok(File {
-            id: remote.id,
-            owner_id: remote.owner_id,
-            updated_at_micros: remote.updation_time,
-            name: public.edited_name.unwrap_or(metadata.title),
-            kind,
-            created_at_micros: public.edited_time.unwrap_or(metadata.creation_time),
-            modified_at_micros: metadata.modification_time.unwrap_or(metadata.creation_time),
-            location,
-            caption: public.caption.map(|caption| match caption {
-                Caption::Text(text) => text,
-                Caption::Number(number) => number.to_string(),
-            }),
-            hash,
-            date_time: public.date_time,
-            offset_time: public.offset_time,
-            duration_seconds: metadata.duration,
-            width: public.w,
-            height: public.h,
-            visibility: match private.visibility {
-                Some(1) => Visibility::Archived,
-                Some(2) => Visibility::Hidden,
-                _ => Visibility::Visible,
-            },
-            key,
-            header: Header::try_from_slice(&b64::decode(&remote.file.decryption_header)?)?,
-        })
-    }
+    Ok(File {
+        id: remote.id,
+        owner_id: remote.owner_id,
+        updated_at_micros: remote.updation_time,
+        name: public.edited_name.unwrap_or(metadata.title),
+        kind,
+        created_at_micros: public.edited_time.unwrap_or(metadata.creation_time),
+        modified_at_micros: metadata.modification_time,
+        location,
+        caption: public.caption.map(|caption| match caption {
+            Caption::Text(text) => text,
+            Caption::Number(number) => number.to_string(),
+        }),
+        hash,
+        date_time: public.date_time,
+        offset_time: public.offset_time,
+        duration_seconds: metadata.duration,
+        width: public.w,
+        height: public.h,
+        visibility: if remote.owner_id == user_id {
+            Some(Visibility::from_value(private.visibility)?)
+        } else {
+            None
+        },
+        key: Key::from_bytes(*key.as_bytes()),
+        header: Header::try_from_slice(&b64::decode(&remote.file.decryption_header)?)?,
+    })
 }
 
 #[derive(Deserialize)]

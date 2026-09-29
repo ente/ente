@@ -208,7 +208,9 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         [],
     );
 
-    const applyProfile = useCallback((nextProfile: SetupProfile | null) => {
+    const applyProfile = useCallback<SpaceAppState["setProfile"]>((update) => {
+        const nextProfile =
+            typeof update == "function" ? update(profileRef.current) : update;
         setCachedProfileAvatarUrl(undefined);
         const previousAvatarURL = avatarURLRef.current;
         if (previousAvatarURL && previousAvatarURL != nextProfile?.avatarUrl) {

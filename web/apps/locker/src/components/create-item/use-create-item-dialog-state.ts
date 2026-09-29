@@ -24,7 +24,10 @@ import {
     filterNonEmptyUploadItems,
     uploadQueueItemKey,
 } from "./file-upload-helpers";
-import { getRequiredFields } from "./item-form-fields-utils";
+import {
+    getRequiredFields,
+    itemFormDataForSave,
+} from "./item-form-fields-utils";
 import { useUploadQueue, type LockerUploadCallbacks } from "./use-upload-queue";
 
 export type CreateOption = LockerItemType;
@@ -402,14 +405,7 @@ export const useCreateItemDialogState = ({
         setError(null);
         setUpgradeCTAType(null);
         try {
-            const cleanData = Object.fromEntries(
-                Object.entries(formData)
-                    .filter(
-                        ([, value]) =>
-                            typeof value === "string" && value.trim(),
-                    )
-                    .map(([key, value]) => [key, value.trim()]),
-            );
+            const cleanData = itemFormDataForSave(formType, formData);
             await onSave(formType, cleanData, selectedCollectionIDs);
             handleClose();
         } catch (error) {

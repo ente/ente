@@ -61,9 +61,6 @@ dev_dependencies:
   flutter_lints: 6.0.0
 
 dependency_overrides:
-  # Keep the Apple isolate-teardown fix without native_dio_adapter 1.6.0's
-  # shared request-cleanup changes. Adapter 1.5.1 declares Cupertino ^2.3.0.
-  cupertino_http: 3.1.0
   # Hosted 3.4.1 drops DB rows but fails to delete cache files; use the
   # upstream delete fix until a fixed release ships.
   flutter_cache_manager:
@@ -71,6 +68,8 @@ dependency_overrides:
       url: https://github.com/Baseflow/flutter_cache_manager.git
       ref: 54904e499a06d0364a2b3f4ca9789e5f829f1879
       path: flutter_cache_manager
+  # 1.2.2 and 1.2.3 write secrets that GNOME Keyring cannot reload (#5589).
+  flutter_secure_storage_linux: 1.2.1
   # Fixes an iOS AVFoundation crash for videos whose minFrameDuration is zero.
   # https://github.com/flutter/flutter/issues/151031
   video_player_avfoundation:

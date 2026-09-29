@@ -56,13 +56,6 @@ export const findUserUncategorizedCollection = <
             collection.type == "uncategorized" && collection.owner.id == userID,
     );
 
-export type CollectionParticipantRole =
-    | "VIEWER"
-    | "COLLABORATOR"
-    | "ADMIN"
-    | "OWNER"
-    | "UNKNOWN";
-
 export type CollectionNewParticipantRole = "VIEWER" | "COLLABORATOR" | "ADMIN";
 
 export interface CollectionUser {

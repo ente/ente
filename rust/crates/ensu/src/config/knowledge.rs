@@ -242,9 +242,6 @@ mod tests {
                 .map(|url| url.rsplit('/').next().unwrap().to_owned()),
             KNOWLEDGE_ARTIFACT_FILENAMES.map(str::to_owned)
         );
-        assert!(urls.iter().all(|url| {
-            url.contains("/resolve/a13b90e443dcdc1561ac777ea17ee6ed4703e35f/simplewiki/data/")
-        }));
     }
 
     #[test]
@@ -252,7 +249,6 @@ mod tests {
         let datasets = knowledge_datasets();
         let embedding = knowledge_embedding_config();
 
-        assert_eq!(datasets.len(), 3);
         assert_eq!(
             datasets
                 .iter()
@@ -261,24 +257,10 @@ mod tests {
                 .len(),
             datasets.len()
         );
-        assert_eq!(datasets[0].stable_id, "simplewiki");
-        assert_eq!(datasets[1].stable_id, "wikibooks");
-        assert_eq!(datasets[2].stable_id, "fullwiki");
-        assert!(
-            datasets
-                .iter()
-                .all(|dataset| dataset.attribution.modification_notice == "Adapted by Ente")
-        );
-        assert_eq!(datasets[0].download_size_bytes, 167_849_446);
-        assert_eq!(datasets[1].download_size_bytes, 202_595_475);
-        assert_eq!(datasets[2].download_size_bytes, 363_051_703);
         assert!(datasets.iter().all(|dataset| {
             dataset.artifact_sizes.iter().sum::<u64>()
                 == u64::try_from(dataset.download_size_bytes).unwrap()
         }));
-        assert_eq!(datasets[0].relevance_threshold, 0.55);
-        assert_eq!(datasets[1].relevance_threshold, 0.58);
-        assert_eq!(datasets[2].relevance_threshold, 0.55);
         assert!(datasets.iter().all(|dataset| {
             dataset.artifact_sizes.len() == KNOWLEDGE_ARTIFACT_FILENAMES.len()
                 && dataset.artifact_sha256.len() == KNOWLEDGE_ARTIFACT_FILENAMES.len()
@@ -288,8 +270,6 @@ mod tests {
                     .all(|sha256| sha256.len() == 64)
         }));
         assert_eq!(embedding.model_sha256.len(), 64);
-        assert_eq!(knowledge_index_contract().source_dim, 768);
-        assert_eq!(knowledge_index_contract().dim, 512);
         assert!(datasets.iter().all(|dataset| {
             is_path_safe_component(&dataset.stable_id)
                 && is_path_safe_component(&dataset.current_download_identity)

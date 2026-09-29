@@ -26,6 +26,7 @@ public class Palette
 internal constructor(
     public val isDark: Boolean,
     public val primary: Color,
+    public val primarySurface: Color,
     public val primaryDark: Color,
     public val primaryDarker: Color,
     public val text: Color,
@@ -110,6 +111,12 @@ private fun palette(app: EnteApp, dark: Boolean): Palette {
     return Palette(
         isDark = dark,
         primary = primary,
+        primarySurface =
+            when (app) {
+                EnteApp.Photos -> Color(if (dark) 0xFF292929 else 0xFFDDEEDF)
+                EnteApp.Auth -> Color(if (dark) 0xFF271C32 else 0xFFF4E7FC)
+                EnteApp.Locker -> Color(if (dark) 0xFF292929 else 0xFFE7EFFA)
+            },
         primaryDark =
             when (app) {
                 EnteApp.Photos -> Color(0xFF069D1E)

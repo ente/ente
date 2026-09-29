@@ -72,9 +72,6 @@ pub enum Error {
 
     #[error("{0}")]
     Protocol(String),
-
-    #[error(transparent)]
-    Ui(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl From<b64::DecodeError> for Error {

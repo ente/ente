@@ -131,7 +131,7 @@ interface PublicSpaceIdentityResponse {
     spaceSlug?: string;
 }
 
-export type SpaceMessageKind = MessageResponse["kind"];
+type SpaceMessageKind = MessageResponse["kind"];
 
 export interface SpaceMessageQuote {
     imageUrl?: string;
@@ -161,7 +161,7 @@ export interface SpaceMessage {
     isUnavailable?: boolean;
 }
 
-export type SpaceMessageActivityType = MessageConversationActivity["type"];
+type SpaceMessageActivityType = MessageConversationActivity["type"];
 
 export type SpaceMessageActivityPost = SpaceMessageQuote;
 
@@ -1300,14 +1300,9 @@ export const loadCurrentMessageConversations = async (
                     ? messageActivityFromSpaceActivity(summary.latestActivity)
                     : undefined;
                 const unreadActivities = summary
-                    ? summary.unreadActivities
-                          .map(messageActivityFromSpaceActivity)
-                          .map((activity) =>
-                              activity.id == latestActivity?.id &&
-                              isPokeMessageActivity(latestActivity)
-                                  ? { ...activity, kind: "poke" as const }
-                                  : activity,
-                          )
+                    ? summary.unreadActivities.map(
+                          messageActivityFromSpaceActivity,
+                      )
                     : [];
                 const unreadCount =
                     messageConversationUnreadCount(unreadActivities);

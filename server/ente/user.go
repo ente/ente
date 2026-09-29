@@ -66,7 +66,6 @@ type EmailAuthorizationResponse struct {
 
 type KeyAttributes struct {
 	KEKSalt                           string `json:"kekSalt" binding:"required"`
-	KEKHash                           string `json:"kekHash"`
 	EncryptedKey                      string `json:"encryptedKey" binding:"required"`
 	KeyDecryptionNonce                string `json:"keyDecryptionNonce" binding:"required"`
 	PublicKey                         string `json:"publicKey" binding:"required"`

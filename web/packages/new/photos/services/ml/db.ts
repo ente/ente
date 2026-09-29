@@ -122,14 +122,6 @@ export const savedCLIPIndexes = async () => {
     return await db.getAll("clip-index");
 };
 
-export const addFileEntry = async (fileID: number) => {
-    const db = await mlDB();
-    const tx = db.transaction("file-status", "readwrite");
-    if ((await tx.store.getKey(fileID)) === undefined)
-        await tx.store.put(newFileStatus(fileID));
-    return tx.done;
-};
-
 export const updateAssumingLocalFiles = async (
     localFileIDs: number[],
     localTrashFilesIDs: Set<number>,
@@ -173,16 +165,6 @@ export const updateAssumingLocalFiles = async (
             tx.done,
         ].flat(),
     );
-};
-
-export const resetFailedFileStatuses = async () => {
-    const db = await mlDB();
-    const tx = db.transaction("file-status", "readwrite");
-    const ids = await tx.store
-        .index("status")
-        .getAllKeys(IDBKeyRange.only("failed"));
-
-    await Promise.all([ids.map((id) => tx.store.delete(id)), tx.done].flat());
 };
 
 export const savedIndexCounts = async () => {

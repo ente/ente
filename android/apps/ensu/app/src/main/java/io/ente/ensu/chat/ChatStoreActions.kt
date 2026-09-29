@@ -1194,16 +1194,7 @@ internal class ChatStoreActions(
 
         val buffer = StringBuilder()
         try {
-            llmProvider.ensureModelReady(selection) {}
-            llmProvider.generateChat(
-                selection = selection,
-                messages = messages,
-                imageFiles = emptyList(),
-                temperature = 0.2f,
-                maxTokens = 64,
-            ) { token ->
-                buffer.append(token)
-            }
+            llmProvider.generateTitle(selection, messages) { token -> buffer.append(token) }
         } catch (err: kotlinx.coroutines.CancellationException) {
             throw err
         } catch (err: Throwable) {

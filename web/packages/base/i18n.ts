@@ -170,6 +170,7 @@ export const formattedListJoin = (value: string[]) =>
     listJoinFormat().format(value);
 
 // Marks user-visible text pending translation.
+/* @public */
 export const pt = (s: string) => s;
 
 // Marks intentionally untranslated text.

@@ -21,6 +21,9 @@ pub async fn run(
     selected: Option<&str>,
     options: &Options,
 ) -> Result<()> {
+    if let PhotosLibraryCommand::Export(args) = command {
+        return crate::export::run(args, selected, options).await;
+    }
     ensure!(
         !options.offline
             || !matches!(
@@ -35,7 +38,7 @@ pub async fn run(
     let (account, home) = open_account(selected, !options.offline)?;
     let session = api::session(&account, Product::Photos)?;
     let mut db = db::open(&home.path, &account.db_key, !options.offline)?;
-    let mut replica = Replica::new(&mut db);
+    let mut replica = Replica::new(&mut db, session.user_id);
     if !options.offline {
         replica.sync_collections(&session).await?;
     } else {
@@ -45,6 +48,7 @@ pub async fn run(
         );
     }
     match command {
+        PhotosLibraryCommand::Export(_) => unreachable!(),
         PhotosLibraryCommand::Album { command } => album(command, &replica, options),
         PhotosLibraryCommand::File { album, command } => {
             file(command, album.as_deref(), &session, &mut replica, options).await
@@ -158,12 +162,18 @@ async fn file(
                 .filter(|p| !p.as_os_str().is_empty())
                 .unwrap_or(Path::new("."));
             let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
-            files::download(session, &entry.file, || {
-                let file = temporary.as_file_mut();
-                file.set_len(0)?;
-                file.rewind()?;
-                file.try_clone()
-            })
+            files::download(
+                session,
+                entry.file.id,
+                &entry.file.key,
+                &entry.file.header,
+                || {
+                    let file = temporary.as_file_mut();
+                    file.set_len(0)?;
+                    file.rewind()?;
+                    file.try_clone()
+                },
+            )
             .await?;
             temporary.as_file().sync_all()?;
             let bytes = temporary.as_file().metadata()?.len();

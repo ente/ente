@@ -106,6 +106,60 @@ impl AccountSpaceCtx {
             .await
     }
 
+    pub async fn update_space_profile_with_avatar(
+        &self,
+        space_id: &str,
+        profile: &[u8],
+        avatar_bytes: &[u8],
+    ) -> Result<UpdateSpaceProfileResponse> {
+        let space_key = self
+            .resolve_owned_space_key(space_id)
+            .await?
+            .ok_or_else(|| {
+                Error::InvalidInput(format!("space {space_id} is not owned by the account"))
+            })?;
+        let avatar = self
+            .upload_avatar(space_id, &space_key, avatar_bytes)
+            .await?;
+        self.update_space_profile(space_id, profile, Some(avatar), false)
+            .await
+    }
+
+    pub async fn update_space_profile_with_cover(
+        &self,
+        space_id: &str,
+        profile: &[u8],
+        cover_bytes: &[u8],
+    ) -> Result<UpdateSpaceProfileResponse> {
+        let space_key = self
+            .resolve_owned_space_key(space_id)
+            .await?
+            .ok_or_else(|| {
+                Error::InvalidInput(format!("space {space_id} is not owned by the account"))
+            })?;
+        let cover = self.upload_cover(space_id, &space_key, cover_bytes).await?;
+        self.update_space_profile_assets(space_id, profile, None, Some(cover), false, false)
+            .await
+    }
+
+    pub async fn remove_space_profile_cover(
+        &self,
+        space_id: &str,
+        profile: &[u8],
+    ) -> Result<UpdateSpaceProfileResponse> {
+        self.update_space_profile_assets(space_id, profile, None, None, false, true)
+            .await
+    }
+
+    pub async fn remove_space_profile_avatar(
+        &self,
+        space_id: &str,
+        profile: &[u8],
+    ) -> Result<UpdateSpaceProfileResponse> {
+        self.update_space_profile(space_id, profile, None, true)
+            .await
+    }
+
     pub async fn update_space_profile_assets(
         &self,
         space_id: &str,

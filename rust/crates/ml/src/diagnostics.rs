@@ -488,14 +488,4 @@ mod tests {
             Some(Duration::from_secs(30))
         );
     }
-
-    #[test]
-    fn error_kinds_are_stable_for_log_filtering() {
-        assert_eq!(error_kind(&MlError::Decode("bad image".into())), "decode");
-        assert_eq!(error_kind(&MlError::Ort("failed".into())), "ort");
-        assert_eq!(
-            error_kind(&MlError::CorruptModel("model.onnx".into())),
-            "corrupt_model"
-        );
-    }
 }

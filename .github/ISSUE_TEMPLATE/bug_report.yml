@@ -25,6 +25,8 @@ body:
           options:
               - Ente Photos
               - Ente Auth
+              - Ente Locker
+              - Ensu
     - type: dropdown
       attributes:
           label: What platform are you using?

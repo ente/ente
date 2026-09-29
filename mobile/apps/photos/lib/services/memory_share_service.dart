@@ -24,6 +24,7 @@ import 'package:photos/service_locator.dart' show entityService;
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/utils/face_crop_util.dart';
 import 'package:photos/utils/file_key.dart';
+import 'package:photos/utils/gzip.dart';
 
 class MemoryShareService {
   MemoryShareService._();
@@ -896,8 +897,12 @@ class MemoryShareService {
     Uint8List decryptedMetadata,
     MemoryShareType shareType,
   ) {
+    _validateMetadataSize(decryptedMetadata.length);
     if (shareType == MemoryShareType.lane) {
-      final decompressed = GZipCodec().decode(decryptedMetadata);
+      final decompressed = gunzipBytes(
+        decryptedMetadata,
+        maxOutputBytes: _maxMemoryShareMetadataBytes,
+      );
       return jsonDecode(utf8.decode(decompressed));
     }
     return jsonDecode(utf8.decode(decryptedMetadata));

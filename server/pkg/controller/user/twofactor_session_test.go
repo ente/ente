@@ -43,7 +43,7 @@ func TestTwoFactorSessionIsConsumedOnlyAfterSuccessfulAuthorization(t *testing.T
 		HashingKey:          testutil.HashingKey(),
 	}
 	if err = userRepo.SetKeyAttributes(userID, ente.KeyAttributes{
-		KEKSalt: "salt", KEKHash: "hash", EncryptedKey: "key", KeyDecryptionNonce: "nonce",
+		KEKSalt: "salt", EncryptedKey: "key", KeyDecryptionNonce: "nonce",
 		PublicKey: base64.StdEncoding.EncodeToString(publicKey[:]), EncryptedSecretKey: "secret-key",
 		SecretKeyDecryptionNonce: "secret-nonce", MemLimit: 1, OpsLimit: 1,
 	}); err != nil {

@@ -4,71 +4,16 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ente_accounts::{
-    AccountsClient, AccountsClientConfig, AuthFlow, AuthFlowUi, CreateAccountParams, LoginParams,
-    OtpPurpose, SecondFactorMethod, SetupTwoFactorParams, TotpPurpose,
+    AccountsClient, AccountsClientConfig, TwoFactorSetup,
+    login::{LoginFlow, LoginStep},
+    signup::Signup,
 };
-use ente_core::crypto::SecretVec;
 use ente_test_support::{HARDCODED_OTT, HARDCODED_OTT_EMAIL_SUFFIX, Museum, TestResult};
 use hmac::{Hmac, KeyInit, Mac};
 use sha1::Sha1;
 use uuid::Uuid;
-use zeroize::Zeroizing;
 
 type HmacSha1 = Hmac<Sha1>;
-
-struct TestUi {
-    totp_secret: Option<String>,
-}
-
-impl AuthFlowUi for TestUi {
-    fn read_email_otp(
-        &mut self,
-        _email: &str,
-        _purpose: OtpPurpose,
-        _resent: bool,
-    ) -> ente_accounts::Result<String> {
-        Ok(HARDCODED_OTT.into())
-    }
-
-    fn read_totp_code(&mut self, _purpose: TotpPurpose) -> ente_accounts::Result<String> {
-        self.totp_secret
-            .as_deref()
-            .map(current_totp)
-            .ok_or_else(|| ente_accounts::Error::InvalidInput("TOTP secret missing".into()))
-    }
-
-    fn report_retryable_error(&mut self, _message: &str) -> ente_accounts::Result<()> {
-        Ok(())
-    }
-
-    fn choose_second_factor(
-        &mut self,
-        _methods: &[SecondFactorMethod],
-    ) -> ente_accounts::Result<SecondFactorMethod> {
-        Ok(SecondFactorMethod::Totp)
-    }
-
-    fn present_passkey_verification(&mut self, _url: &str) -> ente_accounts::Result<()> {
-        Err(ente_accounts::Error::InvalidInput(
-            "Passkey flow not expected".into(),
-        ))
-    }
-
-    fn wait_for_passkey_verification(&mut self) -> ente_accounts::Result<()> {
-        Err(ente_accounts::Error::InvalidInput(
-            "Passkey flow not expected".into(),
-        ))
-    }
-
-    fn present_totp_secret(
-        &mut self,
-        secret_code: &str,
-        _qr_code: &str,
-    ) -> ente_accounts::Result<()> {
-        self.totp_secret = Some(secret_code.to_string());
-        Ok(())
-    }
-}
 
 #[test]
 fn accounts() -> TestResult {
@@ -83,36 +28,39 @@ async fn run(endpoint: String) -> TestResult {
     );
     let password = format!("Accounts-{}!", Uuid::new_v4().simple());
     let client = accounts_client(endpoint);
-    let mut ui = TestUi { totp_secret: None };
-    let mut flow = AuthFlow::new(&client, &mut ui);
-    let created = flow
-        .create_account(CreateAccountParams {
-            email: email.clone(),
-            password: Zeroizing::new(password.clone()),
-            source: Some("testAccount".into()),
-        })
-        .await
-        .unwrap();
+    client.send_otp(&email, "signup").await?;
+    let response = client
+        .verify_email(&email, HARDCODED_OTT, Some("testAccount"))
+        .await?;
+    let created = Signup::verified(email.clone(), response)?
+        .prepare(&client, &password)
+        .await?
+        .finish(&client)
+        .await?;
+    let setup = TwoFactorSetup::start(
+        &client,
+        &created.secrets.master_key,
+        &created.key_attributes,
+    )
+    .await?;
+    setup
+        .enable(&client, &current_totp(&setup.secret_code))
+        .await?;
 
-    let mut ui = TestUi { totp_secret: None };
-    let setup = AuthFlow::new(&client, &mut ui)
-        .setup_two_factor(SetupTwoFactorParams {
-            master_key: SecretVec::new(created.secrets.master_key.clone()),
-            key_attributes: Some(created.key_attributes.clone()),
-        })
-        .await
-        .unwrap();
-
-    let mut ui = TestUi {
-        totp_secret: Some(setup.secret_code),
+    let login_client = accounts_client(endpoint);
+    let (mut flow, mut step) = LoginFlow::start(&login_client, email.clone()).await?;
+    let login = loop {
+        step = match step {
+            LoginStep::EmailCode => flow.submit_code(&login_client, HARDCODED_OTT).await?,
+            LoginStep::Password => flow.submit_password(&login_client, &password).await?,
+            LoginStep::SecondFactor { totp: true, .. } => {
+                flow.submit_code(&login_client, &current_totp(&setup.secret_code))
+                    .await?
+            }
+            LoginStep::SecondFactor { .. } => panic!("expected authenticator verification"),
+            LoginStep::Complete(account) => break account,
+        };
     };
-    let login = AuthFlow::new(&accounts_client(endpoint), &mut ui)
-        .login(LoginParams {
-            email: email.clone(),
-            password: Zeroizing::new(password),
-        })
-        .await
-        .unwrap();
     assert_eq!(login.user_id, created.user_id);
     assert_eq!(login.secrets.master_key, created.secrets.master_key);
     assert_eq!(client.email().await.unwrap(), email);

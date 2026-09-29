@@ -31,11 +31,6 @@ export const fromB64 = async (
     );
 };
 
-export const toB64URLSafe = async (input: Uint8Array) => {
-    await sodium.ready;
-    return sodium.to_base64(input, sodium.base64_variants.URLSAFE);
-};
-
 export const toB64URLSafeNoPadding = async (input: Uint8Array) => {
     await sodium.ready;
     return sodium.to_base64(input, sodium.base64_variants.URLSAFE_NO_PADDING);
@@ -48,11 +43,6 @@ export const fromB64URLSafeNoPadding = async (
     return ensureArrayBufferBacked(
         sodium.from_base64(input, sodium.base64_variants.URLSAFE_NO_PADDING),
     );
-};
-
-export const toHex = async (input: string) => {
-    await sodium.ready;
-    return sodium.to_hex(await fromB64(input));
 };
 
 export const fromHex = async (input: string): Promise<string> => {
@@ -237,11 +227,6 @@ export const decryptBlobBytes = async (
     return ensureArrayBufferBacked(pullResult.message);
 };
 
-export const decryptBlob = (
-    blob: EncryptedBlob,
-    key: BytesOrB64,
-): Promise<string> => decryptBlobBytes(blob, key).then(toB64);
-
 export const decryptMetadataJSON = async (
     blob: EncryptedBlob,
     key: BytesOrB64,
@@ -335,15 +320,6 @@ export const chunkHashFinal = async (hashState: SodiumStateAddress) => {
     return toB64(hash);
 };
 
-export const generateKeyPair = async () => {
-    await sodium.ready;
-    const keyPair = sodium.crypto_box_keypair();
-    return {
-        publicKey: await toB64(keyPair.publicKey),
-        privateKey: await toB64(keyPair.privateKey),
-    };
-};
-
 export const boxSeal = async (data: string, publicKey: string) => {
     await sodium.ready;
     return toB64(
@@ -365,10 +341,7 @@ export const boxSealOpenBytes = async (
     );
 };
 
-export const boxSealOpen = async (encryptedData: string, keyPair: KeyPair) =>
-    toB64(await boxSealOpenBytes(encryptedData, keyPair));
-
-export const generateDeriveKeySalt = async () => {
+const generateDeriveKeySalt = async () => {
     await sodium.ready;
     return await toB64(sodium.randombytes_buf(sodium.crypto_pwhash_SALTBYTES));
 };
@@ -401,32 +374,4 @@ export const deriveInteractiveKey = async (
 
     const key = await deriveKey(passphrase, salt, opsLimit, memLimit);
     return { key, salt, opsLimit, memLimit };
-};
-
-export const deriveModerateKey = async (
-    passphrase: string,
-): Promise<DerivedKey> => {
-    const salt = await generateDeriveKeySalt();
-    const opsLimit = sodium.crypto_pwhash_OPSLIMIT_MODERATE;
-    const memLimit = sodium.crypto_pwhash_MEMLIMIT_MODERATE;
-
-    const key = await deriveKey(passphrase, salt, opsLimit, memLimit);
-    return { key, salt, opsLimit, memLimit };
-};
-
-export const deriveSubKeyBytes = async (
-    key: BytesOrB64,
-    subKeyLength: number,
-    subKeyID: number,
-    context: string,
-): Promise<Uint8Array<ArrayBuffer>> => {
-    await sodium.ready;
-    return ensureArrayBufferBacked(
-        sodium.crypto_kdf_derive_from_key(
-            subKeyLength,
-            subKeyID,
-            context,
-            await bytes(key),
-        ),
-    );
 };

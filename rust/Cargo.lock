@@ -2447,9 +2447,12 @@ dependencies = [
  "dialoguer",
  "dirs 5.0.1",
  "ente-accounts",
+ "ente-collections",
  "ente-core",
  "ente-photos",
+ "ente-photos-export",
  "ente-test-support",
+ "futures-util",
  "keyring",
  "mockito",
  "reqwest 0.12.28",
@@ -2462,6 +2465,7 @@ dependencies = [
  "url",
  "uuid",
  "zeroize",
+ "zip 8.6.0",
 ]
 
 [[package]]
@@ -2470,6 +2474,7 @@ version = "0.0.0"
 dependencies = [
  "ente-core",
  "serde",
+ "serde_json",
  "thiserror 2.0.18",
 ]
 
@@ -2788,6 +2793,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ente-photos-export"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "ente-collections",
+ "ente-core",
+ "ente-photos",
+ "icu_casemap",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "unicode-normalization",
+ "uuid",
+ "zip 8.6.0",
+]
+
+[[package]]
 name = "ente-photos-frb"
 version = "0.0.0"
 dependencies = [
@@ -2853,8 +2878,6 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
- "sha2 0.11.0",
- "srp",
  "thiserror 2.0.18",
  "tokio",
  "url",

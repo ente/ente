@@ -1,6 +1,6 @@
 import type { SpaceViewerPhoto } from "components/FileViewer";
 
-export interface LocalPostPhotoDimensions {
+interface LocalPostPhotoDimensions {
     height: number;
     width: number;
 }
@@ -38,14 +38,6 @@ const localPostPhoto = ({
         width: dimensions?.width,
     },
 });
-
-export const createLocalPostPhoto = (
-    attributes: CreateLocalPostPhotoAttributes,
-): LocalPostPhoto =>
-    localPostPhoto({
-        ...attributes,
-        objectUrl: URL.createObjectURL(attributes.file),
-    });
 
 export const createLoadedLocalPostPhoto = async (
     attributes: CreateLocalPostPhotoAttributes,

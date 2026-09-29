@@ -1,10 +1,10 @@
 import "package:ente_components/ente_components.dart";
 import "package:ente_lock_screen/lock_screen_settings.dart";
+import 'package:ente_lock_screen/ui/lock_screen_app_bar_logo.dart';
 import "package:ente_lock_screen/ui/lock_screen_submit_fab.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:flutter_svg/flutter_svg.dart";
 
 class LockScreenConfirmPassword extends StatefulWidget {
   const LockScreenConfirmPassword({super.key, required this.password});
@@ -65,11 +65,7 @@ class _LockScreenConfirmPasswordState extends State<LockScreenConfirmPassword> {
           icon: Icon(Icons.arrow_back, color: colorTheme.textBase),
         ),
         centerTitle: true,
-        title: SvgPicture.asset(
-          LockScreenSettings.instance.appLogoAsset,
-          height: LockScreenSettings.instance.appLogoHeight,
-          colorFilter: ColorFilter.mode(colorTheme.primary, BlendMode.srcIn),
-        ),
+        title: const LockScreenAppBarLogo(),
       ),
       floatingActionButton: LockScreenSubmitFab(
         label: context.strings.confirm,

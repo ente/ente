@@ -1,0 +1,23 @@
+[package]
+name = "ente-photos-export"
+edition.workspace = true
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+chrono = { workspace = true, features = ["std"] }
+ente-collections.workspace = true
+ente-core.workspace = true
+ente-photos.workspace = true
+icu_casemap.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"] }
+unicode-normalization.workspace = true
+uuid = { workspace = true, features = ["v4"] }
+zip.workspace = true
+
+[lints]
+workspace = true

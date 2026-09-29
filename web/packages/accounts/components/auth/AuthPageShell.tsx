@@ -11,7 +11,7 @@ import {
     type AuthPresentationConfig,
 } from "./styles";
 
-export interface AuthBrandCopy {
+interface AuthBrandCopy {
     headline: string;
     subtitle: string;
     bullets: readonly [string, string, string];

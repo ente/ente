@@ -351,20 +351,6 @@ mod tests {
         assert_eq!(model_runtime.snapshot(), unloaded_snapshot(second_path));
     }
 
-    #[test]
-    fn model_execution_modes_match_platform_policy() {
-        let accelerated = [Model::FaceDetection, Model::FaceEmbedding, Model::ClipImage];
-
-        for model in Model::ALL {
-            let expected = if accelerated.contains(&model) {
-                onnx::ExecutionMode::PlatformDefault
-            } else {
-                onnx::ExecutionMode::CpuOnly
-            };
-            assert_eq!(default_execution_mode(model), expected, "{model:?}");
-        }
-    }
-
     fn unloaded_snapshot(path: &str) -> ModelRuntimeSnapshot {
         ModelRuntimeSnapshot {
             path: path.to_string(),

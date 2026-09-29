@@ -82,7 +82,12 @@ class AuthenticatorService {
         );
         final hasSynced = !(e.id == null || e.shouldSync);
         entities.add(
-          EntityResult(e.generatedID, utf8.decode(decryptedValue), hasSynced),
+          EntityResult(
+            e.generatedID,
+            utf8.decode(decryptedValue),
+            hasSynced,
+            e.createdAt,
+          ),
         );
       } catch (e, s) {
         _logger.severe(e, s);

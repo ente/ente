@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
@@ -43,7 +42,9 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
 
   CameraController? _camera;
   _CameraStatus _status = _CameraStatus.starting;
-  ScanQuad? _stableQuad;
+  ScanCaptureRegion? _captureRegion;
+  Size? _liveFrameSize;
+  ScanQuad? _displayQuad;
   bool _analysisInFlight = false;
   Duration? _analysisObservedAt;
   bool _takingPicture = false;
@@ -139,7 +140,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
     _resetLiveTracking();
     setState(() {
       _status = _CameraStatus.starting;
-      _stableQuad = null;
+      _captureRegion = null;
     });
     _autoCapture.reset();
     try {
@@ -201,7 +202,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
     if (camera == null) return;
     setState(() {
       _camera = null;
-      _stableQuad = null;
+      _captureRegion = null;
     });
     _autoCapture.reset();
     await camera.dispose();
@@ -261,6 +262,14 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
         return;
       }
       final now = _frameClock.elapsed;
+      final frameSize = rotation % 180 == 0
+          ? Size(image.width.toDouble(), image.height.toDouble())
+          : Size(image.height.toDouble(), image.width.toDouble());
+      if (_liveFrameSize != null && _liveFrameSize != frameSize) {
+        _stabilizer.reset();
+        _autoCapture.invalidateArming();
+      }
+      _liveFrameSize = frameSize;
       final sample = _stabilizer.update(
         raw,
         observedAt: observedAt,
@@ -282,7 +291,13 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
           documentPresent: raw != null,
         );
       }
-      setState(() => _stableQuad = sample.displayQuad);
+      setState(() {
+        _displayQuad = sample.displayQuad;
+        final quad = sample.quad;
+        _captureRegion = quad == null
+            ? null
+            : ScanCaptureRegion(quad: quad, frameSize: frameSize);
+      });
       if (fire) unawaited(_capture());
     } catch (_) {
       if (mounted && generation == _analysisGeneration && camera == _camera) {
@@ -307,14 +322,19 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
         return;
       }
     }
-    setState(() => _stableQuad = null);
+    setState(() {
+      _captureRegion = null;
+      _displayQuad = null;
+    });
   }
 
   void _resetLiveTracking() {
     _analysisGeneration++;
     _quadExpiry?.cancel();
     _stabilizer.reset(observedBefore: _frameClock.elapsed);
-    _stableQuad = null;
+    _captureRegion = null;
+    _displayQuad = null;
+    _liveFrameSize = null;
   }
 
   Future<void> _capture() async {
@@ -323,12 +343,13 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
       return;
     }
     final retakePageId = _retakePageId;
-    final quad = _stableQuad ?? ScanQuad.fullFrame();
+    final region = _captureRegion;
+    final quad = region?.quad ?? ScanQuad.fullFrame();
     _autoCapture.notifyCaptureStarted();
     unawaited(HapticFeedback.mediumImpact());
     setState(() {
       _takingPicture = true;
-      _stableQuad = null;
+      _captureRegion = null;
       _snapQuad = quad;
       _snapId++;
     });
@@ -338,9 +359,13 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
       final bytes = await shot.readAsBytes();
       unawaited(_deleteQuietly(File(shot.path)));
       if (retakePageId == null) {
-        _onShotTaken(bytes, quad);
+        _onShotTaken(bytes, region);
       } else {
-        final replacement = await _session.replaceCapture(retakePageId, bytes);
+        final replacement = await _session.replaceCapture(
+          retakePageId,
+          bytes,
+          region: region,
+        );
         if (!mounted || replacement == null) return;
         unawaited(_openReview());
       }
@@ -360,11 +385,13 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
     } catch (_) {}
   }
 
-  void _onShotTaken(Uint8List bytes, ScanQuad quad) {
+  void _onShotTaken(Uint8List bytes, ScanCaptureRegion? region) {
     final capture = _PendingCapture(_captureSeq++);
     _pending.add(capture);
-    _session.addCapture(bytes);
-    unawaited(_launchFlight(capture, bytes, quad));
+    _session.addCapture(bytes, region: region);
+    unawaited(
+      _launchFlight(capture, bytes, region?.quad ?? ScanQuad.fullFrame()),
+    );
   }
 
   Future<void> _launchFlight(
@@ -461,7 +488,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
         _flights.removeWhere((flight) => flight.capture == oldest);
         markFailed = false;
       } else {
-        oldest.processed = true;
+        oldest.pageId = _session.lastPage!.id;
       }
       unresolved--;
     }
@@ -469,12 +496,14 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
   }
 
   void _purgeResolved() {
-    _PendingCapture? newestLanded;
+    _PendingCapture? newestSnapshot;
     for (final capture in _pending) {
-      if (capture.landed) newestLanded = capture;
+      if (capture.landed && !capture.resolved && capture.spec != null) {
+        newestSnapshot = capture;
+      }
     }
     for (final capture in _pending) {
-      if (capture.landed && (capture.failed || capture != newestLanded)) {
+      if (capture.landed && (capture.resolved || capture != newestSnapshot)) {
         _releaseSnapshot(capture);
       }
     }
@@ -492,10 +521,14 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
   }
 
   ({int count, Widget? thumbnail, File? heroFile}) _pagesButtonState() {
-    final hiddenPages = _pending
-        .where((capture) => capture.processed && !capture.landed)
-        .length;
-    final shownPages = math.max(0, _session.pageCount - hiddenPages);
+    final hiddenPageIds = {
+      for (final capture in _pending)
+        if (capture.processed && !capture.landed) capture.pageId!,
+    };
+    final shownPages = _session.pages
+        .where((page) => !hiddenPageIds.contains(page.id))
+        .toList();
+    final lastPage = shownPages.isEmpty ? null : shownPages.last;
     final landedUnprocessed = _pending
         .where((capture) => capture.landed && !capture.resolved)
         .length;
@@ -504,24 +537,21 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
         if (capture.landed && !capture.failed && capture.spec != null) capture,
     ];
     Widget? thumbnail;
-    final heroFile = shownPages > 0
-        ? _session.pages[shownPages - 1].processedJpeg
-        : null;
+    final heroFile = lastPage?.processedJpeg;
     if (showingSnapshot.isNotEmpty) {
       final capture = showingSnapshot.last;
       thumbnail = CaptureSnapshotThumbnail(
         key: ValueKey('capture-${capture.id}'),
         spec: capture.spec!,
       );
-    } else if (shownPages > 0) {
-      final page = _session.pages[shownPages - 1];
+    } else if (lastPage != null) {
       thumbnail = ScannerProcessedThumbnail(
-        key: ValueKey(page.processedJpeg.path),
-        page: page,
+        key: ValueKey(lastPage.processedJpeg.path),
+        page: lastPage,
       );
     }
     return (
-      count: shownPages + landedUnprocessed,
+      count: shownPages.length + landedUnprocessed,
       thumbnail: thumbnail,
       heroFile: heroFile,
     );
@@ -776,7 +806,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
                   ScanQuadOverlay(
                     quad: _takingPicture || _flights.isNotEmpty
                         ? null
-                        : _stableQuad,
+                        : _displayQuad,
                     color: colors.primary,
                     armingProgress: _autoMode ? _autoCapture.progress : 0,
                   ),
@@ -800,8 +830,10 @@ class _PendingCapture {
   final int id;
   CaptureFlightSpec? spec;
   bool landed = false;
-  bool processed = false;
+  String? pageId;
   bool failed = false;
+
+  bool get processed => pageId != null;
 
   bool get resolved => processed || failed;
 }

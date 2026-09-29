@@ -560,6 +560,17 @@ class TimeMemoriesCalculator {
     return memoryResults;
   }
 
+  static int? _onThisDayOffset(DateTime fileDate, DateTime startPoint) {
+    for (final year in [startPoint.year, startPoint.year + 1]) {
+      final occurrence = DateTime.utc(year, fileDate.month, fileDate.day);
+      final dayOffset = _calendarDayDifference(startPoint, occurrence);
+      if (dayOffset >= 0 && dayOffset < kMemoriesUpdateFrequency.inDays) {
+        return dayOffset;
+      }
+    }
+    return null;
+  }
+
   static Future<List<OnThisDayMemory>> computeOnThisDayMemories(
     Iterable<EnteFile> allFiles,
     DateTime currentTime, {
@@ -592,10 +603,10 @@ class TimeMemoriesCalculator {
       if (!historicalCandidates.contains(fileDate.month * 100 + fileDate.day)) {
         continue;
       }
-      final dayMatch = _historicalDateMatch(fileDate, startPoint);
-      if (dayMatch == null) continue;
+      final dayOffset = _onThisDayOffset(fileDate, startPoint);
+      if (dayOffset == null) continue;
       daysToMemories
-          .putIfAbsent(dayMatch.dayOffset, () => [])
+          .putIfAbsent(dayOffset, () => [])
           .add(
             Memory.fromFile(
               file,
@@ -606,7 +617,7 @@ class TimeMemoriesCalculator {
               ),
             ),
           );
-      daysToYears.putIfAbsent(dayMatch.dayOffset, () => {}).add(fileDate.year);
+      daysToYears.putIfAbsent(dayOffset, () => {}).add(fileDate.year);
     }
 
     for (var day = 0; day < daysToCompute; day++) {
@@ -665,8 +676,16 @@ class TimeMemoriesCalculator {
       );
       final onThisDayMemory = OnThisDayMemory(
         filteredMemories,
-        startPoint.add(Duration(days: day)).microsecondsSinceEpoch,
-        startPoint.add(Duration(days: day + 1)).microsecondsSinceEpoch,
+        DateTime(
+          currentYear,
+          currentMonth,
+          currentDay + day,
+        ).microsecondsSinceEpoch,
+        DateTime(
+          currentYear,
+          currentMonth,
+          currentDay + day + 1,
+        ).microsecondsSinceEpoch,
       );
       memoryResults.add(onThisDayMemory);
     }

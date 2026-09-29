@@ -79,12 +79,12 @@ const AuthenticatorEntityDiffResponse = z.object({
 
 const authenticatorEntityDiffBatchSize = 2500;
 
-export interface AuthenticatorEntityDiffResult {
+interface AuthenticatorEntityDiffResult {
     entities: AuthenticatorEntity[];
     timeOffset: number | undefined;
 }
 
-export const authenticatorEntityDiff = async (
+const authenticatorEntityDiff = async (
     authenticatorKey: string,
 ): Promise<AuthenticatorEntityDiffResult> => {
     const decrypt = (encryptedData: string, decryptionHeader: string) =>
@@ -149,14 +149,14 @@ export const authenticatorEntityDiff = async (
     return { entities, timeOffset };
 };
 
-export const AuthenticatorEntityKey = z.object({
+const AuthenticatorEntityKey = z.object({
     encryptedKey: z.string(),
     header: z.string(),
 });
 
-export type AuthenticatorEntityKey = z.infer<typeof AuthenticatorEntityKey>;
+type AuthenticatorEntityKey = z.infer<typeof AuthenticatorEntityKey>;
 
-export const getAuthenticatorEntityKey = async (): Promise<
+const getAuthenticatorEntityKey = async (): Promise<
     AuthenticatorEntityKey | undefined
 > => {
     const res = await fetch(await apiURL("/authenticator/key"), {

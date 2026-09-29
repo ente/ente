@@ -109,46 +109,6 @@ export const PlaybackGlyph: React.FC<{ paused: boolean }> = ({ paused }) => {
     );
 };
 
-export const LanePlaybackGlyph: React.FC<{ paused: boolean }> = ({
-    paused,
-}) => {
-    if (paused) {
-        return (
-            <Box
-                sx={{
-                    width: 0,
-                    height: 0,
-                    borderTop: "6px solid transparent",
-                    borderBottom: "6px solid transparent",
-                    borderLeft: "10px solid white",
-                    ml: "2px",
-                }}
-            />
-        );
-    }
-
-    return (
-        <Box sx={{ display: "flex", gap: "4px" }}>
-            <Box
-                sx={{
-                    width: "4px",
-                    height: "12px",
-                    borderRadius: "1px",
-                    backgroundColor: "white",
-                }}
-            />
-            <Box
-                sx={{
-                    width: "4px",
-                    height: "12px",
-                    borderRadius: "1px",
-                    backgroundColor: "white",
-                }}
-            />
-        </Box>
-    );
-};
-
 export const LaneCaptionText: React.FC<{
     model: LaneCaptionModel;
     previousValue?: number;

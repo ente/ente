@@ -1721,11 +1721,12 @@ class DartMLDataDB
 
     final List<EmbeddingVector> embeddings = [];
     for (final result in results) {
+      final bytes = result[embeddingColumn] as Uint8List;
+      if (bytes.lengthInBytes != ClipVectorDB.embeddingBytesLength) continue;
       final embedding = EmbeddingVector(
         fileID: result[fileIDColumn],
-        embedding: Float32List.view(result[embeddingColumn].buffer),
+        embedding: Float32List.sublistView(bytes),
       );
-      if (embedding.isEmpty) continue;
       embeddings.add(embedding);
     }
     return embeddings;

@@ -1,8 +1,13 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 use zeroize::ZeroizeOnDrop;
 
 use crate::Result;
-use crate::transport::{ProfileAvatarResponse, ProfileCoverResponse, SpaceKeyResponse};
+use crate::transport::{
+    ProfileAvatarResponse, ProfileCoverResponse, SpaceActorResponse, SpaceFriendRequestResponse,
+    SpaceKeyResponse, SpaceSentFriendRequestResponse,
+};
 
 #[derive(Clone)]
 pub struct OpenAccountSpaceCtxInput {
@@ -73,6 +78,60 @@ pub struct SpaceActor {
     pub avatar: Option<ProfileAvatarResponse>,
 }
 
+impl SpaceActor {
+    pub(crate) fn from_response(
+        actor: SpaceActorResponse,
+        profile: Result<Option<SpaceProfile>>,
+    ) -> Self {
+        Self {
+            space_id: actor.space_id,
+            space_slug: actor.space_slug,
+            public_key: actor.public_key,
+            key_version: actor.key_version,
+            profile,
+            avatar: actor.avatar,
+        }
+    }
+}
+
+pub struct SpaceFriend {
+    pub friend: SpaceActor,
+    pub share_key_version: i32,
+    pub created_at: String,
+}
+
+pub struct SpaceFriendRequest {
+    pub request_id: i64,
+    pub requester: SpaceActor,
+    pub created_at: String,
+}
+
+impl From<SpaceFriendRequestResponse> for SpaceFriendRequest {
+    fn from(request: SpaceFriendRequestResponse) -> Self {
+        Self {
+            request_id: request.request_id,
+            requester: SpaceActor::from_response(request.requester, Ok(None)),
+            created_at: request.created_at,
+        }
+    }
+}
+
+pub struct SpaceSentFriendRequest {
+    pub request_id: i64,
+    pub target: SpaceActor,
+    pub created_at: String,
+}
+
+impl From<SpaceSentFriendRequestResponse> for SpaceSentFriendRequest {
+    fn from(request: SpaceSentFriendRequestResponse) -> Self {
+        Self {
+            request_id: request.request_id,
+            target: SpaceActor::from_response(request.target, Ok(None)),
+            created_at: request.created_at,
+        }
+    }
+}
+
 pub struct PostContent {
     pub caption: Option<String>,
     pub photos: Vec<PostPhoto>,
@@ -130,6 +189,54 @@ pub struct PostPage {
     pub next_cursor: String,
 }
 
+pub struct Message {
+    pub message_id: String,
+    pub kind: String,
+    pub sender_space_id: String,
+    pub recipient_space_id: String,
+    pub content: Result<Option<MessageContent>>,
+    pub reply_post_id: Option<i64>,
+    pub reply_message_id: Option<String>,
+    pub liked: bool,
+    pub viewer_liked: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+pub struct MessageContent {
+    pub text: String,
+    pub reply_object_key: Option<String>,
+}
+
+pub struct MessagePage {
+    pub items: Vec<Message>,
+    pub next_cursor: String,
+}
+
+pub struct MessageActivity {
+    pub id: String,
+    pub activity_type: String,
+    pub kind: String,
+    pub created_at: String,
+    pub outgoing: bool,
+    pub message_id: Option<String>,
+    pub content: Result<Option<MessageContent>>,
+    pub post_id: Option<i64>,
+    pub post_space_id: Option<String>,
+}
+
+pub struct ConversationChatSummary {
+    pub latest_activity: MessageActivity,
+    pub unread_activities: Vec<MessageActivity>,
+}
+
+pub struct Conversations {
+    pub friends: Vec<SpaceFriend>,
+    pub pending_requests: Vec<SpaceFriendRequest>,
+    pub chat_summaries: BTreeMap<String, ConversationChatSummary>,
+    pub latest_post_created_at: Option<String>,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PostObjectMetadata {
@@ -155,12 +262,6 @@ pub struct MessagePayload {
     pub text: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reply_object_key: Option<String>,
-}
-
-#[derive(Clone)]
-pub struct DecryptedMessage {
-    pub message_key: Vec<u8>,
-    pub payload: MessagePayload,
 }
 
 #[derive(Clone, ZeroizeOnDrop)]

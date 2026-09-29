@@ -36,8 +36,6 @@ zip.workspace = true
 [dev-dependencies]
 ente-test-support.workspace = true
 mockito.workspace = true
-sha2.workspace = true
-srp.workspace = true
 url.workspace = true
 
 [lints]

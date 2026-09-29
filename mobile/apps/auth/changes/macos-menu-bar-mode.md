@@ -1,1 +1,0 @@
-- Added an optional menu bar mode on macOS for quick access to your 2FA codes (@ivnnv).

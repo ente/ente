@@ -48,7 +48,6 @@ pub async fn create_account(endpoint: &str, email_prefix: &str) -> TestAccount {
     let encrypted_recovery_with_master = secretbox::encrypt(recovery_key.as_bytes(), &master_key);
     let key_attributes = KeyAttributes {
         kek_salt: account_fixture::KEK_SALT.into(),
-        kek_hash: None,
         encrypted_key: b64::encode(&encrypted_master_key.encrypted_data),
         key_decryption_nonce: b64::encode(encrypted_master_key.nonce.as_bytes()),
         public_key: b64::encode(public_key.as_bytes()),

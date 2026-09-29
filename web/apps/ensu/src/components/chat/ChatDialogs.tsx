@@ -96,7 +96,7 @@ const compactInlineLinkSx = {
     cursor: "pointer",
 } as const;
 
-export interface ModelSettingsDraft {
+interface ModelSettingsDraft {
     modelId: string;
     contextLength: string;
 }

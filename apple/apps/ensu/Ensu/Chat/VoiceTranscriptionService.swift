@@ -83,6 +83,7 @@ final class VoiceTranscriptionService {
     typealias TranscriptHandler = @MainActor @Sendable (String) -> Void
 
     weak var modelMaintenance: (any ModelMaintenance)?
+    var onTaskActivityChanged: (@MainActor @Sendable (Bool) -> Void)?
     private let transcriber: Transcriber
     private let assetStore: AssetStore
     private let modelAssets: [Asset]
@@ -90,6 +91,9 @@ final class VoiceTranscriptionService {
     private var preloadTask: Task<Void, Never>?
     private var activeVoiceTaskId = UUID()
     private var activeDownloadId: UUID?
+    private var activeTaskCount = 0
+
+    var hasActiveTasks: Bool { activeTaskCount > 0 }
 
     private let recorder = PcmAudioRecorder()
 
@@ -97,6 +101,21 @@ final class VoiceTranscriptionService {
         self.transcriber = transcriber
         self.assetStore = assetStore
         self.modelAssets = [transcriptionModelAsset(), voiceActivityModelAsset()]
+    }
+
+    private func launchVoiceTask(
+        priority: TaskPriority, operation: @escaping @Sendable () async -> Void
+    ) -> Task<Void, Never> {
+        activeTaskCount += 1
+        if activeTaskCount == 1 { onTaskActivityChanged?(true) }
+        let task = Task.detached(priority: priority, operation: operation)
+        Task { [weak self] in
+            await task.value
+            guard let self else { return }
+            self.activeTaskCount -= 1
+            if self.activeTaskCount == 0 { self.onTaskActivityChanged?(false) }
+        }
+        return task
     }
 
     func startRecording(
@@ -152,7 +171,7 @@ final class VoiceTranscriptionService {
 
         let maintenance = modelMaintenance
         let maintenanceScope = maintenance?.suspendMaintenance()
-        transcriptionTask = Task.detached(priority: .userInitiated) { [weak self] in
+        transcriptionTask = launchVoiceTask(priority: .userInitiated) { [weak self] in
             defer { maintenanceScope?.close() }
             await maintenance?.awaitMaintenance()
             do {
@@ -226,7 +245,7 @@ final class VoiceTranscriptionService {
 
         let maintenance = modelMaintenance
         let maintenanceScope = maintenance?.suspendMaintenance()
-        transcriptionTask = Task.detached(priority: .userInitiated) { [weak self] in
+        transcriptionTask = launchVoiceTask(priority: .userInitiated) { [weak self] in
             defer { maintenanceScope?.close() }
             await maintenance?.awaitMaintenance()
             do {
@@ -301,7 +320,7 @@ final class VoiceTranscriptionService {
         preloadTask?.cancel()
         let maintenance = modelMaintenance
         let maintenanceScope = maintenance?.suspendMaintenance()
-        preloadTask = Task.detached(priority: .utility) {
+        preloadTask = launchVoiceTask(priority: .utility) {
             defer { maintenanceScope?.close() }
             await maintenance?.awaitMaintenance()
             do {

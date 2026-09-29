@@ -137,11 +137,21 @@ class DocumentScannerService {
     _logger.warning('Live detection frame failed', error);
   }
 
-  Future<ScannedPage> processCapture(Uint8List capturedJpeg) async {
+  Future<ScannedPage> processCapture(
+    Uint8List capturedJpeg, {
+    ScanCaptureRegion? region,
+  }) async {
     try {
       final result = await _readySession.processCapture(
         imageBytes: capturedJpeg,
         maxPixels: _maxPixels,
+        region: region == null
+            ? null
+            : RustCaptureRegion(
+                normalizedQuad: _inSourcePixels(region.quad, 1, 1),
+                frameWidth: region.frameSize.width.round(),
+                frameHeight: region.frameSize.height.round(),
+              ),
       );
       final id = '${DateTime.now().microsecondsSinceEpoch}_${_counter++}';
       final source = File(p.join(_root.path, '${id}_src.jpg'));

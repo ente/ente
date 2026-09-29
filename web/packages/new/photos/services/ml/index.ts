@@ -24,12 +24,7 @@ import {
 import { deleteUserEntity } from "../user-entity/remote";
 import type { ClusterFacesReason, FaceCluster } from "./cluster";
 import { regenerateFaceCrops } from "./crop";
-import {
-    clearMLDB,
-    resetFailedFileStatuses,
-    savedFaceIndex,
-    savedIndexCounts,
-} from "./db";
+import { clearMLDB, savedFaceIndex, savedIndexCounts } from "./db";
 import { fileIDFromFaceID } from "./face";
 import {
     _applyPersonSuggestionUpdates,
@@ -50,7 +45,6 @@ class MLState {
     mlStatusSnapshot: MLStatus | undefined;
     peopleStateListeners: (() => void)[] = [];
     peopleStateSnapshot: PeopleState | undefined;
-    needsResetFailures = false;
     inFlightFaceCropRegens = new Map<number, Promise<void>>();
     faceCropObjectURLCache = new Map<string, string>();
 }
@@ -158,10 +152,6 @@ const getIsMLEnabledRemote = () => getRemoteFlag(mlRemoteKey);
 const updateIsMLEnabledRemote = (enabled: boolean) =>
     updateRemoteFlag(mlRemoteKey, enabled);
 
-export const retryIndexingFailuresIfNeeded = () => {
-    _state.needsResetFailures = true;
-};
-
 export const pullMLStatus = async () => {
     _state.isMLEnabled = await getIsMLEnabledRemote();
     setIsMLEnabledLocal(_state.isMLEnabled);
@@ -174,11 +164,6 @@ export const mlSync = async (reason: ClusterFacesReason = "ml-sync") => {
     _state.isSyncing = true;
 
     try {
-        if (_state.needsResetFailures) {
-            _state.needsResetFailures = false;
-            await resetFailedFileStatuses();
-        }
-
         // Keep the order: files, faces, cgroups, clusters, then people.
         await worker().then((w) => w.index());
 
@@ -467,7 +452,7 @@ export const deleteCGroup = async ({ id }: CGroup) => {
     return mlSync("delete-cgroup");
 };
 
-export const setCGroupPinned = async (cgroup: CGroup, isPinned: boolean) => {
+const setCGroupPinned = async (cgroup: CGroup, isPinned: boolean) => {
     await updateOrCreateUserEntities(
         "cgroup",
         [{ ...cgroup, data: { ...cgroup.data, isPinned } }],

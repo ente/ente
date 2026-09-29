@@ -505,6 +505,59 @@ impl Context {
     ) -> Result<GenerationSummary, Error> {
         generate_chat_stream(self, request, sink)
     }
+
+    pub fn truncate_text_chat_messages(
+        &self,
+        messages: Vec<ChatMessage>,
+        max_tokens: u32,
+    ) -> Result<Vec<ChatMessage>, Error> {
+        let max_tokens = max_tokens.min(self.context_size());
+        let mut request = ChatRequest {
+            messages,
+            ..Default::default()
+        };
+        loop {
+            let tokens = self.measure_text_chat_prompt(&request)?;
+            if tokens <= max_tokens as usize {
+                return Ok(request.messages);
+            }
+            let index = request
+                .messages
+                .iter()
+                .rposition(|message| message.role != "system")
+                .ok_or(Error::PromptTooLong {
+                    tokens,
+                    context_size: max_tokens,
+                })?;
+            let content = std::mem::take(&mut request.messages[index].content);
+            let tokens = self.measure_text_chat_prompt(&request)?;
+            if tokens > max_tokens as usize {
+                if request.messages[..index]
+                    .iter()
+                    .all(|message| message.role == "system")
+                {
+                    return Err(Error::PromptTooLong {
+                        tokens,
+                        context_size: max_tokens,
+                    });
+                }
+                request.messages.remove(index);
+                continue;
+            }
+            let (mut low, mut high) = (0, content.len());
+            while low < high {
+                let end = content.ceil_char_boundary(low + (high - low).div_ceil(2));
+                request.messages[index].content = content[..end].to_owned();
+                if self.measure_text_chat_prompt(&request)? <= max_tokens as usize {
+                    low = end;
+                } else {
+                    high = content.floor_char_boundary(end - 1);
+                }
+            }
+            request.messages[index].content = content[..low].to_owned();
+            return Ok(request.messages);
+        }
+    }
 }
 
 fn generate_chat_stream(

@@ -33,7 +33,7 @@ const RemoteTrashItem = z.looseObject({
     deleteBy: z.number(),
 });
 
-export type RemoteTrashItem = z.infer<typeof RemoteTrashItem>;
+type RemoteTrashItem = z.infer<typeof RemoteTrashItem>;
 
 export const pullTrash = async (
     collections: Collection[],

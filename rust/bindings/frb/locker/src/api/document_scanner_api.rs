@@ -21,6 +21,13 @@ pub struct RustQuad {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct RustCaptureRegion {
+    pub normalized_quad: RustQuad,
+    pub frame_width: u32,
+    pub frame_height: u32,
+}
+
+#[derive(Clone, Copy, Debug)]
 pub enum RustColorMode {
     Color,
     Grayscale,
@@ -122,9 +129,18 @@ impl ScannerSession {
         &self,
         image_bytes: Vec<u8>,
         max_pixels: Option<u32>,
+        region: Option<RustCaptureRegion>,
     ) -> Result<RustScanResult, RustScanError> {
         catch_panic(|| {
-            let result = self.inner.process_capture(&image_bytes, max_pixels)?;
+            let result = self.inner.process_capture_with_region(
+                &image_bytes,
+                max_pixels,
+                region.map(|region| scan::CaptureRegion {
+                    normalized_quad: to_quad(region.normalized_quad),
+                    frame_width: region.frame_width,
+                    frame_height: region.frame_height,
+                }),
+            )?;
             Ok(to_api_scan_result(result))
         })
     }

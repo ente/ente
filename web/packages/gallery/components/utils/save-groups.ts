@@ -45,7 +45,7 @@ export type UpdateSaveGroup = (
     tranform: (prev: SaveGroup) => SaveGroup,
 ) => void;
 
-export type RemoveSaveGroup = (saveGroup: SaveGroup) => void;
+type RemoveSaveGroup = (saveGroup: SaveGroup) => void;
 
 // Module state lets route remounts rehydrate in-progress downloads.
 type SaveGroupsListener = () => void;

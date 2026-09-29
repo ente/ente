@@ -10,8 +10,6 @@ import {
 import { gunzipWithLimit } from "ente-new/photos/utils/gzip";
 import { z } from "zod";
 
-export type { PublicMemoryCredentials } from "ente-base/public-memory";
-
 const maxMemoryShareMetadataBytes = 1024 * 1024;
 
 export interface PublicMemoryShareInfo {
@@ -192,17 +190,4 @@ export const decryptMemoryShareMetadata = async (
         birthDate: metadata.birthDate,
         frames,
     };
-};
-
-export const decryptMemoryShareName = async (
-    metadataCipher: string,
-    metadataNonce: string,
-    shareKey: string,
-): Promise<string> => {
-    const metadata = await decryptMemoryShareMetadata(
-        metadataCipher,
-        metadataNonce,
-        shareKey,
-    );
-    return metadata.name;
 };

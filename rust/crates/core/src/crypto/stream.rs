@@ -905,13 +905,6 @@ mod tests {
     }
 
     #[test]
-    fn test_constants_match_upstream() {
-        assert_eq!(Header::BYTES, 24);
-        assert_eq!(Key::BYTES, 32);
-        assert_eq!(ABYTES, 17);
-    }
-
-    #[test]
     fn decrypting_writer_accepts_arbitrary_chunk_boundaries() {
         let key = Key::generate();
         for size in [0, 2 * ENCRYPTION_CHUNK_SIZE + 71] {

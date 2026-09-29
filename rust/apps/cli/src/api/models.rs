@@ -59,7 +59,6 @@ pub struct VerifySrpSessionRequest {
 #[serde(rename_all = "camelCase")]
 pub struct KeyAttributes {
     pub kek_salt: String,
-    pub kek_hash: Option<String>,
     pub encrypted_key: String,
     pub key_decryption_nonce: String,
     pub public_key: String,

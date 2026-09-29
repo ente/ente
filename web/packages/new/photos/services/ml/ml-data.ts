@@ -17,7 +17,7 @@ export interface RemoteMLData {
 
 export type RawRemoteMLData = Record<string, unknown>;
 
-export type ParsedRemoteMLData = Partial<{
+type ParsedRemoteMLData = Partial<{
     face: RemoteFaceIndex;
     clip: RemoteCLIPIndex;
 }>;

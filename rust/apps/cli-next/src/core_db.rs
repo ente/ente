@@ -7,7 +7,7 @@ pub use rusqlite::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
+    #[error("{0}")]
     Sqlite(#[from] SqliteError),
     #[error("database version {current} is newer than this build supports ({target})")]
     Downgrade { current: i64, target: i64 },
@@ -54,5 +54,17 @@ impl Db {
         let result = write(&transaction)?;
         transaction.commit()?;
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sqlite_errors_preserve_their_source() {
+        let error = Error::Sqlite(SqliteError::InvalidQuery);
+        let source = std::error::Error::source(&error).unwrap();
+        assert!(source.is::<SqliteError>());
     }
 }

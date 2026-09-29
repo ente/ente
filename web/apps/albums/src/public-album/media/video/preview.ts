@@ -6,13 +6,17 @@ import {
     fetchFileData,
     fetchFilePreviewData,
 } from "ente-gallery/services/file-data";
-import { reconstructHLSPlaylist } from "ente-gallery/utils/hls";
+import {
+    maxHLSMetadataBytes,
+    reconstructHLSPlaylist,
+} from "ente-gallery/utils/hls";
 import { fileLogID, type EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
+import { gunzipWithLimit } from "ente-new/photos/utils/gzip";
 import { ensurePrecondition } from "ente-utils/ensure";
 import { z } from "zod";
 
-export interface HLSPlaylistData {
+interface HLSPlaylistData {
     playlistURL: string;
     width: number;
     height: number;
@@ -82,14 +86,12 @@ const decryptPlaylistJSON = async (
     file: EnteFile,
 ) => {
     const decryptedBytes = await decryptBlobBytes(encryptedPlaylist, file.key);
-    const jsonString = await gunzip(decryptedBytes);
+    const jsonString = await gunzipWithLimit(
+        decryptedBytes,
+        maxHLSMetadataBytes,
+    );
     return PlaylistJSON.parse(JSON.parse(jsonString));
 };
-
-const gunzip = async (data: Uint8Array<ArrayBuffer>) =>
-    await new Response(
-        new Blob([data]).stream().pipeThrough(new DecompressionStream("gzip")),
-    ).text();
 
 const blobToDataURL = (blob: Blob) =>
     new Promise<string>((resolve) => {

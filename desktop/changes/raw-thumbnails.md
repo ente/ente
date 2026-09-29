@@ -1,0 +1,1 @@
+- Improved thumbnail support for camera RAW photos on Windows and Linux.

@@ -1,0 +1,1 @@
+- Preserve HDR gain maps in Ultra HDR JPEG thumbnails generated on Windows and Linux.

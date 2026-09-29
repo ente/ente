@@ -1,0 +1,1 @@
+- Updated image processing on Windows and Linux with security and reliability fixes.

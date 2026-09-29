@@ -4,7 +4,7 @@ edition.workspace = true
 
 [dependencies]
 thiserror.workspace = true
-unicode-normalization = "0.1.25"
+unicode-normalization.workspace = true
 
 [lints]
 workspace = true

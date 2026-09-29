@@ -3,15 +3,17 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use ente_core::crypto::{SecretString, SecretVec};
+use ente_core::{
+    b64,
+    crypto::{SecretString, SecretVec},
+};
 
-#[derive(Clone, Serialize, Deserialize)]
+use crate::{Error, Result};
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyAttributes {
     pub kek_salt: String,
-    // Legacy KEK hash, present only on old accounts (base64).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub kek_hash: Option<String>,
     pub encrypted_key: String,
     pub key_decryption_nonce: String,
     pub public_key: String,
@@ -33,7 +35,6 @@ impl fmt::Debug for KeyAttributes {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("KeyAttributes")
             .field("kek_salt", &"[REDACTED]")
-            .field("kek_hash", &self.kek_hash.as_ref().map(|_| "[REDACTED]"))
             .field("encrypted_key", &"[REDACTED]")
             .field("key_decryption_nonce", &"[REDACTED]")
             .field("public_key", &"[REDACTED]")
@@ -124,6 +125,40 @@ pub struct SrpAttributes {
     pub is_email_mfa_enabled: bool,
 }
 
+impl SrpAttributes {
+    pub(crate) fn validate_setup(
+        &self,
+        srp_user_id: Uuid,
+        srp_salt: &[u8],
+        keys: &KeyAttributes,
+        operation: &str,
+    ) -> Result<()> {
+        let mut mismatches = Vec::new();
+        if self.srp_user_id != srp_user_id {
+            mismatches.push("srpUserID");
+        }
+        if self.srp_salt != b64::encode(srp_salt) {
+            mismatches.push("srpSalt");
+        }
+        if self.kek_salt != keys.kek_salt {
+            mismatches.push("kekSalt");
+        }
+        if self.mem_limit != keys.mem_limit {
+            mismatches.push("memLimit");
+        }
+        if self.ops_limit != keys.ops_limit {
+            mismatches.push("opsLimit");
+        }
+        if !mismatches.is_empty() {
+            return Err(Error::Protocol(format!(
+                "Remote SRP attributes mismatched after {operation}: {}",
+                mismatches.join(", ")
+            )));
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -131,7 +166,6 @@ mod tests {
     fn sample_key_attributes() -> KeyAttributes {
         KeyAttributes {
             kek_salt: "server-kek-salt".to_string(),
-            kek_hash: Some("server-kek-hash".to_string()),
             encrypted_key: "server-encrypted-key".to_string(),
             key_decryption_nonce: "server-key-nonce".to_string(),
             public_key: "server-public-key".to_string(),
@@ -153,7 +187,6 @@ mod tests {
         let debug = format!("{attrs:?}");
         assert!(debug.contains("[REDACTED]"));
         assert!(!debug.contains("server-kek-salt"));
-        assert!(!debug.contains("server-kek-hash"));
         assert!(!debug.contains("server-encrypted-key"));
         assert!(!debug.contains("server-key-nonce"));
         assert!(!debug.contains("server-public-key"));

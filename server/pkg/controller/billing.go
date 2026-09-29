@@ -357,6 +357,10 @@ func (c *BillingController) HandleAccountDeletion(ctx context.Context, userID in
 	logger.Info("updating billing on account deletion")
 	subscription, err := c.BillingRepo.GetUserSubscription(userID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Info("no subscription found; skipping billing cleanup")
+			return true, nil
+		}
 		return false, stacktrace.Propagate(err, "")
 	}
 	billingLogger := logger.WithFields(log.Fields{

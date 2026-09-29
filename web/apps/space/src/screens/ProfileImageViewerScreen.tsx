@@ -1,12 +1,15 @@
 import { ArrowLeft02Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, Skeleton } from "@mui/material";
+import type { SpaceActionPhase } from "components/ActionFeedback";
 import { spaceAppAvatarCropSize } from "components/AvatarCropPage";
 import { SpaceAvatarImage } from "components/AvatarImage";
+import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
 import React, { useEffect, useRef } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import {
     spaceAppBackground,
+    spaceDanger,
     spaceOnAccent,
     spaceSurface,
     spaceText,
@@ -130,6 +133,7 @@ export const FriendProfileImageViewerScreen: React.FC<
 
 interface ProfileImageViewerScreenProps {
     onBack: () => void;
+    onRemoveImage?: () => Promise<void>;
     onSelectFile: (file: File) => void;
     profile: SetupProfile;
     variant: "avatar" | "cover";
@@ -137,10 +141,19 @@ interface ProfileImageViewerScreenProps {
 
 export const ProfileImageViewerScreen: React.FC<
     ProfileImageViewerScreenProps
-> = ({ onBack, onSelectFile, profile, variant }) => {
+> = ({ onBack, onRemoveImage, onSelectFile, profile, variant }) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const [isRemoveImageSheetOpen, setIsRemoveImageSheetOpen] =
+        React.useState(false);
+    const [removeImageActionPhase, setRemoveImageActionPhase] =
+        React.useState<SpaceActionPhase | null>(null);
+    const [removeImageErrorMessage, setRemoveImageErrorMessage] =
+        React.useState<string | null>(null);
     const isCover = variant == "cover";
     const title = isCover ? "Cover image" : "Profile picture";
+    const removeLabel = isCover
+        ? "Remove cover image"
+        : "Remove profile picture";
     const actionLabel = isCover
         ? "Change cover image"
         : "Change profile picture";
@@ -161,6 +174,31 @@ export const ProfileImageViewerScreen: React.FC<
         const file = event.target.files?.[0];
         event.target.value = "";
         if (file) onSelectFile(file);
+    };
+
+    const cancelRemoveImage = () => {
+        if (removeImageActionPhase) return;
+        setRemoveImageErrorMessage(null);
+        setIsRemoveImageSheetOpen(false);
+    };
+
+    const confirmRemoveImage = async () => {
+        if (!onRemoveImage || removeImageActionPhase) return;
+
+        setRemoveImageActionPhase("busy");
+        setRemoveImageErrorMessage(null);
+        try {
+            await onRemoveImage();
+            setIsRemoveImageSheetOpen(false);
+            setRemoveImageActionPhase(null);
+        } catch (error) {
+            setRemoveImageErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : `Couldn't remove your ${isCover ? "cover image" : "profile picture"}. Please try again.`,
+            );
+            setRemoveImageActionPhase(null);
+        }
     };
 
     return (
@@ -372,8 +410,55 @@ export const ProfileImageViewerScreen: React.FC<
                     >
                         {actionLabel}
                     </Box>
+                    {onRemoveImage && (
+                        <Box
+                            component="button"
+                            type="button"
+                            disabled={Boolean(removeImageActionPhase)}
+                            onClick={() => {
+                                setRemoveImageErrorMessage(null);
+                                setIsRemoveImageSheetOpen(true);
+                            }}
+                            sx={{
+                                bgcolor: "transparent",
+                                border: 0,
+                                color: spaceDanger,
+                                cursor: removeImageActionPhase
+                                    ? "default"
+                                    : "pointer",
+                                display: "block",
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 14,
+                                fontWeight: 500,
+                                height: 44,
+                                lineHeight: "20px",
+                                mt: 1,
+                                p: 0,
+                                width: "100%",
+                                "&:focus-visible": {
+                                    outline: `2px solid ${spaceDanger}`,
+                                    outlineOffset: 3,
+                                },
+                            }}
+                        >
+                            {removeLabel}
+                        </Box>
+                    )}
                 </Box>
             </Box>
+            <ConfirmationActionSheet
+                open={isRemoveImageSheetOpen}
+                title={`${removeLabel}?`}
+                description={`Your profile will use the default ${isCover ? "cover image" : "profile picture"}.`}
+                confirmLabel={removeLabel}
+                confirmActionPhase={removeImageActionPhase}
+                confirmDisabled={Boolean(removeImageActionPhase)}
+                errorMessage={removeImageErrorMessage}
+                cancelDisabled={Boolean(removeImageActionPhase)}
+                onCancel={cancelRemoveImage}
+                onConfirm={() => void confirmRemoveImage()}
+            />
         </Box>
     );
 };

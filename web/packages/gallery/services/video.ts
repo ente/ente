@@ -11,13 +11,16 @@ import { apiURL } from "ente-base/origins";
 import type { PublicMemoryCredentials } from "ente-base/public-memory";
 import { ensureAuthToken } from "ente-base/token";
 import { uniqueFilesByID } from "ente-gallery/utils/file";
-import { reconstructHLSPlaylist } from "ente-gallery/utils/hls";
+import {
+    maxHLSMetadataBytes,
+    reconstructHLSPlaylist,
+} from "ente-gallery/utils/hls";
 import { fileLogID, type EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
 import { updateFilePublicMagicMetadata } from "ente-new/photos/services/file";
 import { savedCollectionFiles } from "ente-new/photos/services/photos-fdb";
 import { savedTrashItemFileIDs } from "ente-new/photos/services/trash";
-import { gunzip, gzip } from "ente-new/photos/utils/gzip";
+import { gunzipWithLimit, gzip } from "ente-new/photos/utils/gzip";
 import { randomSample } from "ente-utils/array";
 import { ensurePrecondition } from "ente-utils/ensure";
 import { wait } from "ente-utils/promise";
@@ -42,7 +45,7 @@ import {
     type TimestampedFileSystemUploadItem,
 } from "./upload";
 
-export type HLSGenerationEnabledStatus = "processing" | "idle";
+type HLSGenerationEnabledStatus = "processing" | "idle";
 
 export type HLSGenerationStatus =
     | { enabled: false }
@@ -197,13 +200,15 @@ export const hlsPlaylistDataForFile = async (
     );
     if (!playlistFileData) return undefined;
 
-    const {
-        type,
-        playlist: playlistTemplate,
-        width,
-        height,
-    } = await decryptPlaylistJSON(playlistFileData, file);
+    let playlistJSON: PlaylistJSON;
+    try {
+        playlistJSON = await decryptPlaylistJSON(playlistFileData, file);
+    } catch (e) {
+        log.error(`Failed to read HLS playlist for ${fileLogID(file)}`, e);
+        return undefined;
+    }
 
+    const { type, playlist: playlistTemplate, width, height } = playlistJSON;
     if (type != "hls_video") return undefined;
 
     const videoURL = await fetchFilePreviewData(
@@ -243,7 +248,10 @@ const decryptPlaylistJSON = async (
     file: EnteFile,
 ) => {
     const decryptedBytes = await decryptBlobBytes(encryptedPlaylist, file.key);
-    const jsonString = await gunzip(decryptedBytes);
+    const jsonString = await gunzipWithLimit(
+        decryptedBytes,
+        maxHLSMetadataBytes,
+    );
     return PlaylistJSON.parse(JSON.parse(jsonString));
 };
 
@@ -466,7 +474,7 @@ const tickNow = () => {
     _state.queueProcessor ??= processQueue();
 };
 
-export const isHLSGenerationEnabled = () => _state.isHLSGenerationEnabled;
+const isHLSGenerationEnabled = () => _state.isHLSGenerationEnabled;
 
 const processQueue = async () => {
     if (!isHLSGenerationSupported || !isHLSGenerationEnabled()) {

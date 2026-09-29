@@ -1,0 +1,1 @@
+- Fixed face previews failing to load when local photo files become unavailable.

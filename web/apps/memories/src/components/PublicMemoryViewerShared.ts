@@ -5,7 +5,7 @@ import type {
     PublicMemoryShareMetadata,
 } from "../services/public-memory";
 
-export interface PublicMemoryViewerBaseProps {
+interface PublicMemoryViewerBaseProps {
     files: EnteFile[];
     currentIndex: number;
     memoryName: string;
@@ -24,7 +24,6 @@ export type MemoryViewerProps = PublicMemoryViewerBaseProps;
 export const IMAGE_AUTO_PROGRESS_DURATION_MS = 5000;
 export const MOBILE_LAYOUT_BREAKPOINT_PX = 600;
 export const EDGE_NAV_TAP_ZONE_RATIO = 0.2;
-export const HOLD_TO_PAUSE_NAV_SUPPRESSION_MS = 250;
 export const ENTE_BRAND_TAG_IMAGE_PATH = "/images/ente-brand-tag.svg";
 
 export function readViewport() {
@@ -92,11 +91,7 @@ const JoinNowButtonRoot = styled(Button)({
     paddingBlock: "14px",
     paddingInline: "30px",
 });
-const MobileJoinNowButtonRoot = styled(Button)(joinNowButtonStyles);
-
 export const JoinNowButton = JoinNowButtonRoot as typeof Button;
-
-export const MobileJoinNowButton = MobileJoinNowButtonRoot as typeof Button;
 
 export const ViewerFooterBar = styled("div")({
     width: "100%",

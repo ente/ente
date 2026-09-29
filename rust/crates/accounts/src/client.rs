@@ -20,18 +20,6 @@ use crate::{
     types::AccountsClientConfig,
 };
 
-const SRP_A_LEN: usize = 512;
-
-fn pad_left(data: &[u8], len: usize) -> Vec<u8> {
-    if data.len() >= len {
-        return data.to_vec();
-    }
-
-    let mut padded = vec![0u8; len - data.len()];
-    padded.extend_from_slice(data);
-    padded
-}
-
 fn require_srp_m2(auth_response: &AuthResponse) -> Result<&str> {
     auth_response
         .srp_m2
@@ -119,7 +107,7 @@ impl AccountsClient {
             &srp_salt,
             &creds.login_key,
         )?;
-        let a_pub = pad_left(&srp_session.public_a(), SRP_A_LEN);
+        let a_pub = srp_session.public_a();
 
         let session = self
             .create_srp_session(&srp_attrs.srp_user_id, &a_pub)

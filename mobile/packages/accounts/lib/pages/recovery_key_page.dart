@@ -3,6 +3,7 @@ import 'dart:io' as io;
 
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:dots_indicator/dots_indicator.dart';
+import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_configuration/constants.dart';
@@ -14,7 +15,6 @@ import 'package:ente_utils/ente_utils.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -88,13 +88,7 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.backgroundBase,
         centerTitle: true,
-        title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorScheme.primary700,
-            BlendMode.srcIn,
-          ),
-        ),
+        title: const AccountAppBarLogo(),
         leading: widget.showAppBar == false
             ? const SizedBox.shrink()
             : IconButton(
@@ -102,7 +96,7 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                color: colorScheme.primary700,
+                color: getAccountAppBarColor(context),
               ),
       ),
       body: SafeArea(

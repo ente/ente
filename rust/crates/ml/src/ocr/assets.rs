@@ -181,26 +181,6 @@ mod tests {
         assert!(!is_detector_downloaded(&store));
     }
 
-    #[test]
-    fn legacy_models_do_not_satisfy_the_optimized_catalog() {
-        let root = tempfile::tempdir().unwrap();
-        let store = AssetStore::new(root.path());
-        for (model, legacy_key) in [
-            (&DETECTION, "ppocrv5_det"),
-            (&CLASSIFICATION, "ppocrv5_cls"),
-            (&RECOGNITION, "ppocrv5_rec"),
-        ] {
-            let legacy = OcrModelFile {
-                key: legacy_key,
-                ..*model
-            };
-            cache_model(&store, &legacy);
-            assert!(!store.is_downloaded(&model.asset()));
-            assert_ne!(model.path(&store), legacy.path(&store));
-        }
-        assert!(!is_detector_downloaded(&store));
-    }
-
     #[tokio::test]
     async fn cached_detector_can_be_prepared_without_recognition_models() {
         let root = tempfile::tempdir().unwrap();

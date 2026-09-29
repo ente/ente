@@ -7,6 +7,7 @@ mod process;
 mod server;
 
 pub use museum::Museum;
+pub use object_store::{HeldReads, ObjectStoreControl};
 
 pub type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 

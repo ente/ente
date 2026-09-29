@@ -38,6 +38,7 @@ members = [
     "crates/ml",
     "crates/paste",
     "crates/photos",
+    "crates/photos-export",
     "crates/space",
     "crates/test-support",
     "crates/vecdb",
@@ -72,6 +73,7 @@ ente-locker = { path = "crates/locker" }
 ente-ml = { path = "crates/ml" }
 ente-paste = { path = "crates/paste" }
 ente-photos = { path = "crates/photos" }
+ente-photos-export = { path = "crates/photos-export" }
 ente-space = { path = "crates/space" }
 ente-test-support = { path = "crates/test-support" }
 ente-uniffi-log = { path = "bindings/uniffi/log" }
@@ -85,6 +87,7 @@ futures-util = "0.3.32"
 getrandom = { version = "0.4.0", features = ["wasm_js"] }
 hkdf = "0.13.0"
 hmac = "0.13.0"
+icu_casemap = "1.5.1"
 image = "0.25.10"
 js-sys = "0.3.102"
 keyring = { version = "3.6.3", default-features = false }
@@ -109,6 +112,7 @@ tempfile = "3.27.0"
 thiserror = "2.0.18"
 tokio = "1.41.0"
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }
+unicode-normalization = "0.1.25"
 uniffi = { version = "=0.31.2" }
 uniffi_bindgen = { version = "=0.31.2", default-features = false, features = ["cargo-metadata"] }
 url = "2.5.8"

@@ -1,5 +1,6 @@
 import "package:dio/dio.dart";
 import "package:ente_accounts/ente_accounts.dart";
+import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import "package:ente_components/ente_components.dart";
 import "package:ente_configuration/base_configuration.dart";
 import "package:ente_crypto_api/ente_crypto_api.dart";
@@ -10,7 +11,6 @@ import "package:ente_ui/theme/ente_theme.dart";
 import "package:ente_ui/utils/dialog_util.dart";
 import "package:ente_utils/email_util.dart";
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import "package:logging/logging.dart";
 
 class LoginPasswordVerificationPage extends StatefulWidget {
@@ -73,16 +73,10 @@ class _LoginPasswordVerificationPageState
         scrolledUnderElevation: 0,
         backgroundColor: colorScheme.backgroundBase,
         centerTitle: true,
-        title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorScheme.primary700,
-            BlendMode.srcIn,
-          ),
-        ),
+        title: const AccountAppBarLogo(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.primary700,
+          color: getAccountAppBarColor(context),
           onPressed: () {
             Navigator.of(context).pop();
           },

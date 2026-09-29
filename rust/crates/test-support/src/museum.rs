@@ -96,6 +96,10 @@ impl Museum {
     pub fn temp_dir(&self) -> &Path {
         self.temp_dir.path()
     }
+
+    pub fn object_store(&self) -> std::sync::Arc<crate::ObjectStoreControl> {
+        self._object_store.control.clone()
+    }
 }
 
 fn server_dir() -> TestResult<PathBuf> {

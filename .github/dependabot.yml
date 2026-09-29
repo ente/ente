@@ -21,3 +21,29 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 0
+
+  - package-ecosystem: "github-actions"
+    directories:
+      - "/"
+      - "/.github/actions/*"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        applies-to: "version-updates"
+        patterns:
+          - "*"
+
+  - package-ecosystem: "cargo"
+    directory: "/rust"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      rust:
+        applies-to: "version-updates"
+        patterns:
+          - "*"

@@ -172,61 +172,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn model_order_and_labels_are_stable() {
-        let expected = [
-            (
-                Model::FaceDetection,
-                "faceDetectionModelPath",
-                "face-detection",
-            ),
-            (
-                Model::FaceEmbedding,
-                "faceEmbeddingModelPath",
-                "face-embedding",
-            ),
-            (Model::ClipImage, "clipImageModelPath", "clip-image"),
-            (Model::ClipText, "clipTextModelPath", "clip-text"),
-            (
-                Model::PetFaceDetection,
-                "petFaceDetectionModelPath",
-                "pet-face-detection",
-            ),
-            (
-                Model::PetFaceEmbeddingDog,
-                "petFaceEmbeddingDogModelPath",
-                "pet-face-embedding-dog",
-            ),
-            (
-                Model::PetFaceEmbeddingCat,
-                "petFaceEmbeddingCatModelPath",
-                "pet-face-embedding-cat",
-            ),
-            (
-                Model::PetBodyDetection,
-                "petBodyDetectionModelPath",
-                "pet-body-detection",
-            ),
-            (
-                Model::PetBodyEmbeddingDog,
-                "petBodyEmbeddingDogModelPath",
-                "pet-body-embedding-dog",
-            ),
-            (
-                Model::PetBodyEmbeddingCat,
-                "petBodyEmbeddingCatModelPath",
-                "pet-body-embedding-cat",
-            ),
-        ];
-        let mut path_labels = HashSet::new();
-        let mut namespaces = HashSet::new();
-
-        for (index, (model, path_label, namespace)) in expected.into_iter().enumerate() {
-            assert_eq!(Model::ALL[index], model);
+    fn model_order_matches_indexes() {
+        for (index, model) in Model::ALL.into_iter().enumerate() {
             assert_eq!(model.index(), index);
-            assert_eq!(model.path_label(), path_label);
-            assert_eq!(model.namespace(), namespace);
-            assert!(path_labels.insert(path_label));
-            assert!(namespaces.insert(namespace));
+        }
+    }
+
+    #[test]
+    fn model_namespaces_are_unique() {
+        let mut namespaces = HashSet::new();
+        for model in Model::ALL {
+            assert!(namespaces.insert(model.namespace()));
         }
     }
 

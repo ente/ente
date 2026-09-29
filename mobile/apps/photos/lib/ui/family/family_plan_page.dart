@@ -72,6 +72,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
   StreamSubscription<PeopleChangedEvent>? _peopleChangedSubscription;
 
   bool get _isFreeUser =>
+      endpointConfig.isProduction &&
       _userDetails.subscription.productID == freeProductID &&
       !_userDetails.hasPaidAddon();
 

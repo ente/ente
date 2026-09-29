@@ -12,7 +12,7 @@ import type { CreateProfileSource } from "utils/routes";
 
 export type OnboardingEntrySource = "direct" | "add-friend-link";
 export type SpaceProfileLoadStatus = "error" | "loading" | "ready";
-export type SpacePostPublishPhase = "failed" | "posted" | "posting";
+type SpacePostPublishPhase = "failed" | "posted" | "posting";
 export interface SpacePostPublication {
     phase: SpacePostPublishPhase;
     post: SpacePost;
@@ -27,7 +27,7 @@ export interface RefreshSpaceProfileOptions {
     throwOnError?: boolean;
 }
 
-export interface PendingSpaceFeedPost {
+interface PendingSpaceFeedPost {
     avatarUrl?: string | null;
     caption?: string;
     friendID: string;
@@ -47,13 +47,13 @@ export type FailedSpaceFeedPost = Omit<PendingSpaceFeedPost, "status"> & {
     status: "failed";
 };
 
-export interface PostedSpaceFeedPost {
+interface PostedSpaceFeedPost {
     id: string;
     post: SpacePost;
     status: "posted";
 }
 
-export interface ReadySpaceFeedPost {
+interface ReadySpaceFeedPost {
     id: string;
     post: SpacePost;
     status: "ready";
@@ -119,7 +119,7 @@ export interface SpaceAppState {
     setPendingCreateProfile: React.Dispatch<
         React.SetStateAction<PendingCreateProfile | null>
     >;
-    setProfile: (profile: SetupProfile | null) => void;
+    setProfile: React.Dispatch<React.SetStateAction<SetupProfile | null>>;
     setSignupEmail: React.Dispatch<React.SetStateAction<string>>;
 }
 

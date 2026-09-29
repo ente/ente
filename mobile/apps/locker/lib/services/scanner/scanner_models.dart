@@ -4,6 +4,13 @@ import 'dart:ui';
 
 enum ScanColorMode { color, grayscale }
 
+class ScanCaptureRegion {
+  const ScanCaptureRegion({required this.quad, required this.frameSize});
+
+  final ScanQuad quad;
+  final Size frameSize;
+}
+
 class ScanQuad {
   ScanQuad._(List<Offset> corners) : corners = List.unmodifiable(corners);
 

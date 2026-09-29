@@ -62,6 +62,7 @@
     "devDependencies": {
         "concurrently": "10.0.4",
         "eslint": "10.4.1",
+        "knip": "6.31.0",
         "prettier": "3.8.3",
         "typescript": "6.0.3"
     },

@@ -135,6 +135,13 @@ class SettingsSearchRegistry {
         routeBuilder: (_) => const AboutPage(),
       ),
       SettingsSearchItem(
+        title: l10n.whatsNew,
+        sectionPath: l10n.about,
+        icon: HugeIcons.strokeRoundedParty,
+        routeBuilder: (_) => const AboutPage(),
+        keywords: ["changelog", "updates"],
+      ),
+      SettingsSearchItem(
         title: l10n.weAreOpenSource,
         sectionPath: l10n.about,
         icon: HugeIcons.strokeRoundedInformationCircle,

@@ -186,7 +186,7 @@ const isAllowedRedirectScheme = (url: URL) =>
 
 // Ente-hosted and local builds restrict redirect hosts.
 // Self-hosted Accounts must accept its own hosts.
-export const isWhitelistedRedirect = (redirectURL: URL) => {
+const isWhitelistedRedirect = (redirectURL: URL) => {
     if (!isAllowedRedirectScheme(redirectURL)) return false;
     if (!shouldRestrictToWhitelistedRedirect()) return true;
     return (
@@ -201,7 +201,7 @@ export const isWhitelistedRedirect = (redirectURL: URL) => {
     );
 };
 
-export const shouldRestrictToWhitelistedRedirect = () => {
+const shouldRestrictToWhitelistedRedirect = () => {
     const hostname = new URL(window.location.origin).hostname;
     return (
         hostname.endsWith("localhost") ||

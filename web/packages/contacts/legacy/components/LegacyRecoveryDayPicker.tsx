@@ -8,7 +8,7 @@ import {
 import { isSxArray } from "ente-base/components/utils/sx";
 import React from "react";
 
-export const legacyRecoveryDayOptions = [7, 14, 30] as const;
+const legacyRecoveryDayOptions = [7, 14, 30] as const;
 
 interface LegacyRecoveryDayPickerProps {
     selectedDays: number;

@@ -150,7 +150,9 @@ class _ScannerReviewPageState extends State<ScannerReviewPage>
   void _onSessionChanged() {
     if (!mounted) return;
     if (widget.session.pageCount == 0 && !widget.session.isProcessing) {
-      Navigator.of(context).pop(false);
+      if (ModalRoute.of(context)?.isCurrent == true) {
+        Navigator.of(context).pop(false);
+      }
       return;
     }
     setState(() {
@@ -166,8 +168,14 @@ class _ScannerReviewPageState extends State<ScannerReviewPage>
     return pages[_index.clamp(0, pages.length - 1)];
   }
 
-  Future<File> _buildPdf() async {
+  bool get _canExport =>
+      mounted &&
+      ModalRoute.of(context)?.isCurrent == true &&
+      widget.session.pageCount > 0;
+
+  Future<File?> _buildPdf() async {
     await widget.session.waitForPending();
+    if (!_canExport) return null;
     return widget.session.buildPdf();
   }
 
@@ -183,9 +191,9 @@ class _ScannerReviewPageState extends State<ScannerReviewPage>
 
   Future<void> _saveToEnte() => _runExclusive(() async {
     final pdf = await _buildPdf();
-    if (!mounted) return;
+    if (!_canExport || pdf == null) return;
     final didUpload = await widget.onUploadFiles([pdf]);
-    if (!mounted) return;
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
     if (didUpload) {
       showShortToast(context, context.strings.scanSaved);
       Navigator.of(context).pop(true);
@@ -194,6 +202,7 @@ class _ScannerReviewPageState extends State<ScannerReviewPage>
 
   Future<void> _share() => _runExclusive(() async {
     final pdf = await _buildPdf();
+    if (!_canExport || pdf == null) return;
     await SharePlus.instance.share(ShareParams(files: [XFile(pdf.path)]));
   });
 

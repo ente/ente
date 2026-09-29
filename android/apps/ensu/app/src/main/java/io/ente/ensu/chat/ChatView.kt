@@ -51,6 +51,7 @@ import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.device.ChatDeviceCapability
+import kotlinx.coroutines.Job
 
 @Composable
 fun ChatView(
@@ -73,6 +74,7 @@ fun ChatView(
     onDismissUnsupportedDeviceDialog: () -> Unit,
     onOverflowTrim: () -> Unit,
     onOverflowCancel: () -> Unit,
+    onVoiceInputJob: (Job) -> Unit,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -89,6 +91,7 @@ fun ChatView(
         rememberVoiceTranscriptionController(
             assetStore = assetStore,
             transcriber = transcriber,
+            onVoiceInputJob = onVoiceInputJob,
             onTranscript = { transcript ->
                 latestOnMessageChange(appendVoiceTranscript(latestMessageText, transcript))
             },

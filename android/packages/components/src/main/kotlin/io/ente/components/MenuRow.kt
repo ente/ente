@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,7 +80,12 @@ public fun MenuRow(
     ) {
         leading?.let {
             CompositionLocalProvider(LocalContentColor provides palette.mutedText) {
-                Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) { it() }
+                Box(
+                    Modifier.size(36.dp).clearAndSetSemantics {},
+                    contentAlignment = Alignment.Center,
+                ) {
+                    it()
+                }
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(EnteSpacing.xs)) {

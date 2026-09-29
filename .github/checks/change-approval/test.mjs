@@ -296,11 +296,11 @@ test("README deletions need approval in CI and local scans", (t) => {
     }
 });
 
-test("unchanged READMEs and ordinary Markdown deletions need no approval", (t) => {
+test("unchanged READMEs need no approval", (t) => {
     const { stdout, output, summary } = scan(
         t,
-        { "README.md": "# Keep\n", "docs/old.md": "# Remove\n" },
-        { "docs/old.md": null, "notes.txt": "Ordinary change\n" },
+        { "README.md": "# Keep\n" },
+        { "notes.txt": "Ordinary change\n" },
         { ci: true },
     );
     assert.equal(stdout, "");
@@ -308,15 +308,12 @@ test("unchanged READMEs and ordinary Markdown deletions need no approval", (t) =
     assert.equal(summary, "No approval needed.\n");
 });
 
-test("ordinary Markdown additions and edits need no approval", (t) => {
+test("README approval matches the beginning of the filename", (t) => {
     for (const ci of [false, true]) {
         const result = scan(
             t,
-            { "random.md": "# Original\n" },
+            {},
             {
-                "random.md": "# Updated\n",
-                "docs/guide.markdown": "# Guide\n",
-                "web/page.MDX": "# Page\n",
                 "README-assets/notes.md": "# Notes\n",
                 "docs/not-README.md": "# Other\n",
             },

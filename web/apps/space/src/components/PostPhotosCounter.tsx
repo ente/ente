@@ -16,10 +16,12 @@ export const SpacePostPhotosCounter = ({
             aria-label={`Photo ${index + 1} of ${count}`}
             sx={{
                 alignItems: "center",
-                bgcolor: "#FFFFFF",
+                bgcolor: compact
+                    ? "rgba(32, 32, 32, 0.55)"
+                    : "rgba(32, 32, 32, 0.85)",
                 borderRadius: "999px",
                 boxSizing: "border-box",
-                color: "#000000",
+                color: "#E6E6E6",
                 display: "inline-flex",
                 fontFamily: '"Inter Variable", Inter, sans-serif',
                 fontSize: compact ? 11 : 12,

@@ -381,5 +381,3 @@ export const LockerPage: React.FC = () => {
         </Stack>
     );
 };
-
-export default LockerPage;

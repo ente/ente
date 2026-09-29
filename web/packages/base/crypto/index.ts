@@ -8,12 +8,10 @@ import type {
     DerivedKey,
     EncryptedBlob,
     EncryptedBlobB64,
-    EncryptedBlobBytes,
     EncryptedBox,
     EncryptedBoxB64,
     EncryptedFile,
     InitChunkDecryptionResult,
-    InitChunkEncryptionResult,
     KeyPair,
     SodiumStateAddress,
 } from "./types";
@@ -40,11 +38,6 @@ export const fromB64 = (b64String: string): Promise<Uint8Array> =>
         ? libsodium.fromB64(b64String)
         : sharedWorker().then((w) => w.fromB64(b64String));
 
-export const toB64URLSafe = (bytes: Uint8Array): Promise<string> =>
-    inWorker()
-        ? libsodium.toB64URLSafe(bytes)
-        : sharedWorker().then((w) => w.toB64URLSafe(bytes));
-
 export const toB64URLSafeNoPadding = (bytes: Uint8Array): Promise<string> =>
     inWorker()
         ? libsodium.toB64URLSafeNoPadding(bytes)
@@ -56,11 +49,6 @@ export const fromB64URLSafeNoPadding = (
     inWorker()
         ? libsodium.fromB64URLSafeNoPadding(b64String)
         : sharedWorker().then((w) => w.fromB64URLSafeNoPadding(b64String));
-
-export const toHex = (b64String: string): Promise<string> =>
-    inWorker()
-        ? libsodium.toHex(b64String)
-        : sharedWorker().then((w) => w.toHex(b64String));
 
 export const fromHex = (hexString: string): Promise<string> =>
     inWorker()
@@ -93,14 +81,6 @@ export const encryptBlob = (
         ? libsodium.encryptBlob(data, key)
         : sharedWorker().then((w) => w.encryptBlob(data, key));
 
-export const encryptBlobBytes = (
-    data: BytesOrB64,
-    key: BytesOrB64,
-): Promise<EncryptedBlobBytes> =>
-    inWorker()
-        ? libsodium.encryptBlobBytes(data, key)
-        : sharedWorker().then((w) => w.encryptBlobBytes(data, key));
-
 export const encryptMetadataJSON = (
     jsonValue: unknown,
     key: BytesOrB64,
@@ -108,32 +88,6 @@ export const encryptMetadataJSON = (
     inWorker()
         ? libsodium.encryptMetadataJSON(jsonValue, key)
         : sharedWorker().then((w) => w.encryptMetadataJSON(jsonValue, key));
-
-export const encryptStreamBytes = (
-    data: Uint8Array,
-    key: BytesOrB64,
-): Promise<EncryptedFile> =>
-    inWorker()
-        ? libsodium.encryptStreamBytes(data, key)
-        : sharedWorker().then((w) => w.encryptStreamBytes(data, key));
-
-export const initChunkEncryption = (
-    key: BytesOrB64,
-): Promise<InitChunkEncryptionResult> =>
-    inWorker()
-        ? libsodium.initChunkEncryption(key)
-        : sharedWorker().then((w) => w.initChunkEncryption(key));
-
-export const encryptStreamChunk = (
-    data: Uint8Array,
-    state: SodiumStateAddress,
-    isFinalChunk: boolean,
-): Promise<Uint8Array<ArrayBuffer>> =>
-    inWorker()
-        ? libsodium.encryptStreamChunk(data, state, isFinalChunk)
-        : sharedWorker().then((w) =>
-              w.encryptStreamChunk(data, state, isFinalChunk),
-          );
 
 export const decryptBox = (
     box: EncryptedBox,
@@ -150,14 +104,6 @@ export const decryptBoxBytes = (
     inWorker()
         ? libsodium.decryptBoxBytes(box, key)
         : sharedWorker().then((w) => w.decryptBoxBytes(box, key));
-
-export const decryptBlob = (
-    blob: EncryptedBlob,
-    key: BytesOrB64,
-): Promise<string> =>
-    inWorker()
-        ? libsodium.decryptBlob(blob, key)
-        : sharedWorker().then((w) => w.decryptBlob(blob, key));
 
 export const decryptBlobBytes = (
     blob: EncryptedBlob,
@@ -199,23 +145,10 @@ export const decryptMetadataJSON = (
         ? libsodium.decryptMetadataJSON(blob, key)
         : sharedWorker().then((w) => w.decryptMetadataJSON(blob, key));
 
-export const generateKeyPair = (): Promise<KeyPair> =>
-    inWorker()
-        ? libsodium.generateKeyPair()
-        : sharedWorker().then((w) => w.generateKeyPair());
-
 export const boxSeal = (data: string, publicKey: string): Promise<string> =>
     inWorker()
         ? libsodium.boxSeal(data, publicKey)
         : sharedWorker().then((w) => w.boxSeal(data, publicKey));
-
-export const boxSealOpen = (
-    encryptedData: string,
-    keyPair: KeyPair,
-): Promise<string> =>
-    inWorker()
-        ? libsodium.boxSealOpen(encryptedData, keyPair)
-        : sharedWorker().then((w) => w.boxSealOpen(encryptedData, keyPair));
 
 export const boxSealOpenBytes = (
     encryptedData: string,
@@ -226,11 +159,6 @@ export const boxSealOpenBytes = (
         : sharedWorker().then((w) =>
               w.boxSealOpenBytes(encryptedData, keyPair),
           );
-
-export const generateDeriveKeySalt = (): Promise<string> =>
-    inWorker()
-        ? libsodium.generateDeriveKeySalt()
-        : sharedWorker().then((w) => w.generateDeriveKeySalt());
 
 export const deriveKey = (
     passphrase: string,
@@ -250,20 +178,3 @@ export const deriveInteractiveKey = (
     inWorker()
         ? libsodium.deriveInteractiveKey(passphrase)
         : sharedWorker().then((w) => w.deriveInteractiveKey(passphrase));
-
-export const deriveModerateKey = (passphrase: string): Promise<DerivedKey> =>
-    inWorker()
-        ? libsodium.deriveModerateKey(passphrase)
-        : sharedWorker().then((w) => w.deriveModerateKey(passphrase));
-
-export const deriveSubKeyBytes = async (
-    key: string,
-    subKeyLength: number,
-    subKeyID: number,
-    context: string,
-): Promise<Uint8Array> =>
-    inWorker()
-        ? libsodium.deriveSubKeyBytes(key, subKeyLength, subKeyID, context)
-        : sharedWorker().then((w) =>
-              w.deriveSubKeyBytes(key, subKeyLength, subKeyID, context),
-          );

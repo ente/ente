@@ -6,10 +6,10 @@ const ClusterIDsByCGroupID = z.record(z.string(), z.array(z.string()));
 export type ClusterIDsByCGroupID = z.infer<typeof ClusterIDsByCGroupID>;
 
 // Keep this in KV to avoid an IndexedDB migration.
-export const savedRejectedClusters = async (): Promise<ClusterIDsByCGroupID> =>
+const savedRejectedClusters = async (): Promise<ClusterIDsByCGroupID> =>
     ClusterIDsByCGroupID.parse((await getKV("rejectedClusters")) ?? {});
 
-export const saveRejectedClusters = (entries: ClusterIDsByCGroupID) =>
+const saveRejectedClusters = (entries: ClusterIDsByCGroupID) =>
     setKV("rejectedClusters", entries);
 
 export const savedRejectedClustersForCGroup = async (

@@ -521,10 +521,18 @@ fn photos_lists_limit_output_and_stream_complete_results() {
     connection
         .pragma_update(None, "key", format!("x'{}'", "2a".repeat(32)))
         .unwrap();
+    let encoded: String = connection
+        .query_row("SELECT record FROM photos_files WHERE id=150", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    let mut record: Value = serde_json::from_str(&encoded).unwrap();
+    let public = serde_json::to_vec(&json!({"editedTime":i64::MAX})).unwrap();
+    record["documents"]["public"] = json!(ente_core::b64::encode(&public));
     connection
         .execute(
-            "UPDATE photos_files SET created_at=?1 WHERE id=150",
-            [i64::MAX],
+            "UPDATE photos_files SET record=?1 WHERE id=150",
+            [record.to_string()],
         )
         .unwrap();
     drop(connection);
@@ -547,7 +555,7 @@ fn photos_lists_limit_output_and_stream_complete_results() {
     }
 }
 
-fn collection(id: i64, name: &str, key: &Key) -> Value {
+pub(super) fn collection(id: i64, name: &str, key: &Key) -> Value {
     let wrapped = secretbox::encrypt(key.as_bytes(), &Key::from_bytes([0; 32]));
     json!({
         "id": id, "owner": {"id": 9007199254740993i64}, "name": name, "type": "album",
@@ -556,7 +564,7 @@ fn collection(id: i64, name: &str, key: &Key) -> Value {
     })
 }
 
-fn remote_file(id: i64, collection_key: &Key, original: &[u8]) -> (Value, Vec<u8>) {
+pub(super) fn remote_file(id: i64, collection_key: &Key, original: &[u8]) -> (Value, Vec<u8>) {
     let key = Key::generate();
     let wrapped = secretbox::encrypt(key.as_bytes(), collection_key);
     let metadata = blob::encrypt_json(
@@ -600,7 +608,7 @@ fn remote_file(id: i64, collection_key: &Key, original: &[u8]) -> (Value, Vec<u8
     )
 }
 
-fn page(
+pub(super) fn page(
     server: &mut mockito::ServerGuard,
     collection: i64,
     since: i64,

@@ -25,7 +25,7 @@ pub struct Quad {
     pub bottom_right: Point,
     pub bottom_left: Point,
 }
-pub use scanner::{ReprocessOptions, ScanError, ScanResult, ScannerSession};
+pub use scanner::{CaptureRegion, ReprocessOptions, ScanError, ScanResult, ScannerSession};
 pub use segmentation::MASK_SIDE;
 pub use yuv::PlaneLayout;
 

@@ -41,6 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.core.content.OnTrimMemoryProvider
+import androidx.core.util.Consumer
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -197,20 +199,38 @@ fun HomeView(
             scope.launch { drawerState.close() }
         }
 
-        DisposableEffect(lifecycleOwner) {
+        DisposableEffect(lifecycleOwner, isChatRoute) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
                     latestStore.notesStore.setForeground(true)
                     latestStore.refreshModelDownloadInfo()
+                    latestStore.setChatActive(isChatRoute)
+                } else if (event == Lifecycle.Event.ON_PAUSE) {
+                    latestStore.setChatActive(false)
                 } else if (event == Lifecycle.Event.ON_STOP) {
                     latestStore.notesStore.setForeground(false)
+                    latestStore.setChatActive(false)
                 }
             }
             latestStore.notesStore.setForeground(
                 lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
             )
             lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+            latestStore.setChatActive(
+                isChatRoute &&
+                    lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+            )
+            onDispose {
+                latestStore.setChatActive(false)
+                lifecycleOwner.lifecycle.removeObserver(observer)
+            }
+        }
+
+        DisposableEffect(lifecycleOwner) {
+            val callbacks = lifecycleOwner as? OnTrimMemoryProvider
+            val listener = Consumer<Int> { latestStore.suppressChatWarmup() }
+            callbacks?.addOnTrimMemoryListener(listener)
+            onDispose { callbacks?.removeOnTrimMemoryListener(listener) }
         }
 
         LaunchedEffect(whatsNewService) {

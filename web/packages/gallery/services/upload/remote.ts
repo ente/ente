@@ -127,7 +127,7 @@ const MultipartUploadURLs = z.object({
     completeURL: z.string(),
 });
 
-export type MultipartUploadURLs = z.infer<typeof MultipartUploadURLs>;
+type MultipartUploadURLs = z.infer<typeof MultipartUploadURLs>;
 
 const MultipartUploadURLsResponse = z.object({ urls: MultipartUploadURLs });
 
@@ -288,7 +288,7 @@ export interface PostEnteFileRequest {
     pubMagicMetadata?: RemoteMagicMetadata;
 }
 
-export interface UploadedFileObjectAttributes {
+interface UploadedFileObjectAttributes {
     objectKey: string;
     decryptionHeader: string;
     size: number;

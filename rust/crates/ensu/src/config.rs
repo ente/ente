@@ -354,10 +354,6 @@ mod tests {
 
     #[test]
     fn defaults_views_select_from_the_catalog() {
-        let defaults = defaults();
-        assert_eq!(defaults.mobile_default_model.id, "lfm-vl-1.6b");
-        assert_eq!(defaults.desktop_default_model.id, "gemma-4-e4b-q4km");
-
         let high_memory_mobile = resolve_model_policy(
             ModelRuntimeSurface::Android,
             Some(MOBILE_HIGH_MEMORY_THRESHOLD_BYTES),

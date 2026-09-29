@@ -24,18 +24,11 @@ impl Interp {
     }
 }
 
-fn pixel_type(channels: i32, is_f32: bool) -> OpResult<PixelType> {
-    Ok(match (is_f32, channels) {
-        (false, 1) => PixelType::U8,
-        (false, 3) => PixelType::U8x3,
-        (true, 1) => PixelType::F32,
-        (true, 3) => PixelType::F32x3,
-        (is_f32, n) => {
-            return Err(format!(
-                "resize: unsupported {n}-channel {} image",
-                if is_f32 { "f32" } else { "u8" }
-            ));
-        }
+fn pixel_type(channels: i32) -> OpResult<PixelType> {
+    Ok(match channels {
+        1 => PixelType::U8,
+        3 => PixelType::U8x3,
+        n => return Err(format!("resize: unsupported {n}-channel u8 image")),
     })
 }
 
@@ -71,7 +64,7 @@ pub(crate) fn resize_u8(
     let data = run(
         &src.data,
         (src.width, src.height),
-        pixel_type(src.channels, false)?,
+        pixel_type(src.channels)?,
         width,
         height,
         interp.alg(width >= src.width && height >= src.height),

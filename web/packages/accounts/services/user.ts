@@ -44,7 +44,7 @@ export interface LocalUser {
 export const ensureLocalUser = (): LocalUser =>
     ensureExpectedLoggedInValue(savedLocalUser());
 
-export const ensureExpectedLoggedInValue = <T>(t: T | undefined): T => {
+const ensureExpectedLoggedInValue = <T>(t: T | undefined): T => {
     if (!t) throw new Error("Not logged in");
     return t;
 };

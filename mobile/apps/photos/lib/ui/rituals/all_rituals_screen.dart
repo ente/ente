@@ -19,10 +19,7 @@ import "package:photos/ui/rituals/ritual_privacy.dart";
 import "package:photos/ui/rituals/start_new_ritual_card.dart";
 
 class AllRitualsScreen extends StatelessWidget {
-  const AllRitualsScreen({super.key, this.ritual});
-
-  // Legacy param; retained for call sites that pass it.
-  final Ritual? ritual;
+  const AllRitualsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -111,6 +111,7 @@ internal fun HomeNavigation(
                     popExitTransition = { backExit() },
                 ) {
                     ChatView(
+                        onVoiceInputJob = store::trackVoiceInput,
                         chatState = appState.chat,
                         assetStore = store.assetStore,
                         transcriber = store.transcriber,

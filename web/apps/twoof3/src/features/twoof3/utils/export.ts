@@ -15,7 +15,7 @@ const QR_SIZE = 860;
 const APP_LINK = "2of3.ente.com";
 const PRINTED_SHARE_CHARS_PER_LINE = 80;
 const PRINTED_SHARE_LINE_COUNT = 4;
-export const MAX_PRINTED_SHARE_LENGTH =
+const MAX_PRINTED_SHARE_LENGTH =
     PRINTED_SHARE_CHARS_PER_LINE * PRINTED_SHARE_LINE_COUNT;
 export const MAX_SECRET_BYTES_FOR_PRINTED_CARD =
     maxSecretBytesForEncodedShareLength(MAX_PRINTED_SHARE_LENGTH);
@@ -375,7 +375,7 @@ export const preparePrintWindow = (title: string) => {
 const escapeScriptTagContent = (value: string) =>
     value.replace(/<\/script/giu, "<\\/script");
 
-export const createOfflineRecoveryHtml = async () => {
+const createOfflineRecoveryHtml = async () => {
     const { OFFLINE_QR_DECODER_SOURCE } = await import("./offline-qr-source");
 
     return `<!doctype html>

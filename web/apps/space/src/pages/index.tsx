@@ -52,13 +52,8 @@ interface PageProps {
     invitePreview?: boolean;
 }
 
-const addFriendOnboardingTitle = (username: string) => (
-    <>
-        {`See @${username}'s`}
-        <br />
-        everyday photos
-    </>
-);
+const addFriendOnboardingTitle = (username: string) =>
+    `See what @${username}’s up to`;
 
 const addFriendPostActionOnboardingTitle = (
     username: string,
@@ -223,12 +218,10 @@ const PublicFriendRequestScreen: React.FC<PublicFriendRequestScreenProps> = ({
                         m: 0,
                         maxWidth: "100%",
                         overflowWrap: "anywhere",
+                        textWrap: "balance",
                     }}
                 >
-                    <Box component="span" sx={{ display: "block" }}>
-                        {`See @${identity.username}’s`}
-                    </Box>
-                    everyday photos
+                    {addFriendOnboardingTitle(identity.username)}
                 </Box>
                 <Box
                     component="p"
@@ -242,7 +235,7 @@ const PublicFriendRequestScreen: React.FC<PublicFriendRequestScreenProps> = ({
                         maxWidth: 260,
                     }}
                 >
-                    {`Add @${identity.username} as a friend to see what they're up to on Ente Space`}
+                    {`Add @${identity.username} as a friend to see their life in photos and share a little of yours on Ente Space`}
                 </Box>
             </Box>
             <Box

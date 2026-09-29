@@ -136,6 +136,7 @@ actor LlmProvider {
     private var currentModelKey: LoadedModelKey?
     private var currentContextLength: Int?
     private var backendInitialized = false
+    private var chatWarmupOwner: UUID?
     private nonisolated let currentJobId = OSAllocatedUnfairLock<Int64?>(initialState: nil)
     private nonisolated let generationControl = OSAllocatedUnfairLock<ChatGenerationControl?>(
         initialState: nil)
@@ -245,12 +246,39 @@ actor LlmProvider {
         }
     }
 
+    func prewarmChatModelIfDownloaded(
+        _ selection: LlmModelSelection, owner: UUID
+    ) async throws {
+        try await withModelLock {
+            guard isChatModelReady(selection) else { return }
+            unloadTranscriptionModelIfLoaded()
+            try Task.checkCancellation()
+            guard loadedContextLength(selection) == nil else { return }
+            do {
+                try await ensureModelReadyLocked(
+                    selection, onProgress: { _ in }, allowRecovery: false, shouldDownload: false)
+                try Task.checkCancellation()
+                chatWarmupOwner = owner
+            } catch {
+                unloadModel()
+                throw error
+            }
+        }
+    }
+
+    func releaseChatWarmup(owner: UUID) async {
+        try? await modelLoadGate.withLock {
+            if chatWarmupOwner == owner { unloadModel() }
+        }
+    }
+
     private func ensureModelReadyLocked(
         _ selection: LlmModelSelection,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void,
         allowRecovery: Bool,
         shouldDownload: Bool = true
     ) async throws {
+        chatWarmupOwner = nil
         let capability = currentChatDeviceCapability()
         if !capability.isChatSupported {
             throw UnsupportedDeviceMemoryError(capability: capability)
@@ -328,6 +356,48 @@ actor LlmProvider {
         }
     }
 
+    func generateTitle(
+        _ selection: LlmModelSelection,
+        messages: [LlmMessage],
+        onToken: @escaping @Sendable (String) -> Void
+    ) async throws {
+        let control = ChatGenerationControl()
+        try await withTaskCancellationHandler {
+            try await withModelLock {
+                try control.checkCancellation()
+                try await ensureModelReadyLocked(
+                    selection, onProgress: { _ in }, allowRecovery: true)
+                try control.checkCancellation()
+                unloadTranscriptionModelIfLoaded()
+                guard let model = loadedModel, let loadedContext else { throw CancellationError() }
+                generationControl.withLock { $0 = control }
+                defer { generationControl.withLock { $0 = nil } }
+                let context = try model.newContext(
+                    params: LlmContextParams(
+                        contextSize: Int32(min(2048, loadedContext.contextSize())),
+                        nThreads: Int32(max(1, ProcessInfo.processInfo.activeProcessorCount - 1)),
+                        nBatch: 128
+                    ))
+                let outputTokens = 48
+                let inputTokens = max(0, min(2000, Int(context.contextSize()) - outputTokens))
+                let titleMessages = try context.truncateTextChatMessages(
+                    messages: messages.map {
+                        LlmChatMessage(role: $0.role.roleString, content: $0.text)
+                    },
+                    maxTokens: UInt32(inputTokens)
+                )
+                _ = try await generateChatLocked(
+                    selection,
+                    messages: titleMessages,
+                    imageFiles: [], temperature: 0.2, maxTokens: outputTokens,
+                    contextOverride: context, control: control, onToken: onToken
+                )
+            }
+        } onCancel: {
+            control.cancel(invalidatePreparation: false)
+        }
+    }
+
     func withConversationContext<T: Sendable>(
         _ selection: LlmModelSelection,
         _ operation: @MainActor (LlmContext, ChatGenerationControl) async throws -> T
@@ -378,6 +448,7 @@ actor LlmProvider {
         imageFiles: [URL],
         temperature: Float,
         maxTokens: Int?,
+        contextOverride: LlmContext? = nil,
         control: ChatGenerationControl? = nil,
         onToken: @escaping @Sendable (String) -> Void
     ) async throws -> GenerationSummary {
@@ -385,7 +456,7 @@ actor LlmProvider {
         if !capability.isChatSupported {
             throw UnsupportedDeviceMemoryError(capability: capability)
         }
-        guard let context = loadedContext else {
+        guard let context = contextOverride ?? loadedContext else {
             throw NSError(
                 domain: "LlmProvider", code: -1,
                 userInfo: [NSLocalizedDescriptionKey: "Model not loaded"])
@@ -568,6 +639,7 @@ actor LlmProvider {
     }
 
     private func unloadModel() {
+        chatWarmupOwner = nil
         loadedContext = nil
         loadedModel = nil
         currentModelKey = nil

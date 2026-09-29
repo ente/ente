@@ -82,7 +82,6 @@ fn main() {
             commands::chat_db::chat_db_delete_session,
             commands::chat_db::chat_db_get_messages,
             commands::chat_db::chat_db_insert_message,
-            commands::chat_db::chat_db_update_message_text,
             commands::chat_db::chat_db_upsert_session,
             commands::chat_db::chat_db_insert_message_with_uuid,
             commands::chat_db::chat_db_compress_attachment_image_file,

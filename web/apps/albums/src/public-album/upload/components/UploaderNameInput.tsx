@@ -118,9 +118,12 @@ export const UploaderNameInput: React.FC<UploaderNameInputProps> = ({
     );
 };
 
-export const UploaderNameInputForm: React.FC<
-    Omit<UploaderNameInputProps, "open">
-> = ({ onClose, uploaderName, uploadFileCount, onSubmit }) => {
+const UploaderNameInputForm: React.FC<Omit<UploaderNameInputProps, "open">> = ({
+    onClose,
+    uploaderName,
+    uploadFileCount,
+    onSubmit,
+}) => {
     const formik = useFormik({
         initialValues: { value: uploaderName },
         onSubmit: async (values, { setFieldError }) => {

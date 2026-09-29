@@ -50,7 +50,7 @@ export interface DownloadManagerTransport {
     ) => Promise<string>;
 }
 
-export class DownloadManagerCore {
+class DownloadManagerCore {
     private thumbnailCache: BlobCache | null | undefined;
     private thumbnailURLPromises = new Map<
         number,

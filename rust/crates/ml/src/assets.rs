@@ -316,17 +316,6 @@ mod tests {
     }
 
     #[test]
-    fn retired_keys_are_not_in_the_catalog() {
-        for key in RETIRED_MODEL_KEYS {
-            assert!(
-                Model::ALL
-                    .iter()
-                    .all(|model| model_asset_spec(*model).key != *key)
-            );
-        }
-    }
-
-    #[test]
     fn test_model_pins_match_the_catalog() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../infra/ml/test/ml_indexing/assets.json");

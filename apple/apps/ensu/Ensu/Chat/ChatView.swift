@@ -144,6 +144,7 @@ struct ChatView: View {
             }
             .onChange(of: scenePhase) { newValue in
                 viewModel.notesStore.setForeground(newValue == .active)
+                viewModel.setChatActive(newValue == .active && !viewState.showSettings)
                 if newValue == .active {
                     viewModel.refreshModelDownloadInfo()
                 } else {
@@ -152,7 +153,17 @@ struct ChatView: View {
             }
         }
         .environmentObject(viewModel.notesStore)
-        .onAppear { viewModel.notesStore.setForeground(scenePhase == .active) }
+        .onAppear {
+            viewModel.notesStore.setForeground(scenePhase == .active)
+            viewModel.setChatActive(scenePhase == .active && !viewState.showSettings)
+        }
+        .onDisappear { viewModel.setChatActive(false) }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIApplication.didReceiveMemoryWarningNotification)
+        ) { _ in
+            viewModel.suppressChatWarmup()
+        }
         .sheet(isPresented: $viewState.showSettings) {
             SettingsView(
                 knowledgeStore: viewModel.knowledgeStore,
@@ -164,6 +175,7 @@ struct ChatView: View {
             )
         }
         .onChange(of: viewState.showSettings) { isPresented in
+            viewModel.setChatActive(!isPresented && scenePhase == .active)
             if isPresented {
                 viewState.didDismissKeyboard = true
                 isInputFocused = false
@@ -313,12 +325,6 @@ struct ChatView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .id(viewState.sessionTransitionId)
                 .transition(sessionTransition)
-                .onAppear {
-                    viewModel.autoStartModelDownloadIfNeeded()
-                }
-                .onChange(of: viewModel.messages.count) { _ in
-                    viewModel.autoStartModelDownloadIfNeeded()
-                }
                 .zIndex(0)
 
                 if viewModel.isChatUnsupported {
@@ -336,6 +342,7 @@ struct ChatView: View {
                         text: $viewModel.draftText,
                         attachments: $viewModel.draftAttachments,
                         isGenerating: viewModel.isGenerating,
+                        isSendPending: viewModel.isSendPending,
                         isDownloading: viewModel.isDownloading,
                         editingMessage: editingMessage,
                         isProcessingAttachments: viewModel.isProcessingAttachments,

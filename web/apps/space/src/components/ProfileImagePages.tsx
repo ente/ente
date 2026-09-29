@@ -7,7 +7,12 @@ import {
     EditProfilePhotoScreen,
 } from "screens/EditProfilePhotoScreen";
 import { ProfileImageViewerScreen } from "screens/ProfileImageViewerScreen";
-import { saveSpaceProfile, spaceProfileErrorMessage } from "services/profile";
+import {
+    removeSpaceProfileAvatar,
+    removeSpaceProfileCover,
+    saveSpaceProfile,
+    spaceProfileErrorMessage,
+} from "services/profile";
 import { useSpaceAppState } from "state/app-state";
 import { spaceAppBackgroundColor } from "styles/colors";
 import { useSpaceRouter } from "utils/route-transitions";
@@ -48,6 +53,7 @@ export const SpaceProfileImageViewerPage: React.FC<{
         profileLoadStatus,
         setPendingProfileAvatarFile,
         setPendingProfileCoverFile,
+        setProfile,
     } = useSpaceAppState();
     const imageFlowSource = profileImageFlowSourceFromQuery(router.query.from);
     const backRoute = savedRouteFor(imageFlowSource);
@@ -57,6 +63,53 @@ export const SpaceProfileImageViewerPage: React.FC<{
             void router.replace(spaceRoutes.onboarding);
         }
     }, [profile, profileLoadStatus, router]);
+
+    const removeProfileImage = async () => {
+        if (!profile) return;
+        try {
+            const savedProfile =
+                variant == "cover"
+                    ? await removeSpaceProfileCover(profile)
+                    : await removeSpaceProfileAvatar(profile);
+            setProfile((currentProfile) => {
+                if (
+                    !currentProfile ||
+                    currentProfile.spaceId != savedProfile.spaceId
+                ) {
+                    return currentProfile;
+                }
+                if (variant == "cover") {
+                    return currentProfile.avatarObjectID ==
+                        savedProfile.avatarObjectID &&
+                        currentProfile.avatarKeyVersion ==
+                            savedProfile.avatarKeyVersion
+                        ? {
+                              ...savedProfile,
+                              avatarUrl: currentProfile.avatarUrl,
+                          }
+                        : savedProfile;
+                }
+                return currentProfile.coverObjectID ==
+                    savedProfile.coverObjectID &&
+                    currentProfile.coverKeyVersion ==
+                        savedProfile.coverKeyVersion
+                    ? { ...savedProfile, coverUrl: currentProfile.coverUrl }
+                    : savedProfile;
+            });
+        } catch (error) {
+            log.error("Space profile image removal failed", error);
+            throw new Error(
+                spaceProfileErrorMessage(
+                    error,
+                    `Couldn't remove your ${variant == "cover" ? "cover image" : "profile picture"}. Please try again.`,
+                ),
+                { cause: error },
+            );
+        }
+        void router.push(backRoute).catch((error: unknown) => {
+            log.error("Failed to return to Space profile", error);
+        });
+    };
 
     if (profileLoadStatus != "ready" || !profile) {
         return (
@@ -74,6 +127,15 @@ export const SpaceProfileImageViewerPage: React.FC<{
                 profile={profile}
                 variant={variant}
                 onBack={() => void router.push(backRoute)}
+                onRemoveImage={
+                    (
+                        variant == "cover"
+                            ? profile.coverObjectID
+                            : profile.avatarObjectID
+                    )
+                        ? removeProfileImage
+                        : undefined
+                }
                 onSelectFile={(file) => {
                     if (variant == "cover") {
                         setPendingProfileCoverFile(file);

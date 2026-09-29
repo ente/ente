@@ -29,7 +29,7 @@ const PasskeyHeader: React.FC<HeaderCaptionProps> = (props) => (
     </AccountsPageTitleWithCaption>
 );
 
-export const AccountsPageTitleWithCaption: React.FC<
+const AccountsPageTitleWithCaption: React.FC<
     React.PropsWithChildren<HeaderCaptionProps>
 > = ({ caption, children }) => {
     return (
@@ -49,7 +49,7 @@ const Header_ = styled("div")`
     gap: 8px;
 `;
 
-export const AccountsPageFooterWithHost: React.FC<React.PropsWithChildren> = ({
+const AccountsPageFooterWithHost: React.FC<React.PropsWithChildren> = ({
     children,
 }) => {
     const [host, setHost] = useState<string | undefined>();
@@ -71,7 +71,7 @@ export const AccountsPageFooterWithHost: React.FC<React.PropsWithChildren> = ({
     );
 };
 
-export type PasskeyVerificationStatus = "waiting" | "checking" | "pending";
+type PasskeyVerificationStatus = "waiting" | "checking" | "pending";
 
 export interface VerifyingPasskeyPresentationProps {
     email: string | undefined;

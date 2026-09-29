@@ -1,13 +1,9 @@
 import { downloadManager } from "ente-gallery/services/download";
 import { extractRawExif, parseExif } from "ente-gallery/services/exif";
 import { hlsPlaylistDataForFile } from "ente-gallery/services/video";
-import {
-    createFileViewerDataSource,
-    type ItemData,
-    type ItemDataOpts,
-} from "./data-source-core";
+import { createFileViewerDataSource, type ItemData } from "./data-source-core";
 
-export type { ItemData, ItemDataOpts };
+export type { ItemData };
 
 export const {
     logoutFileViewerDataSource,
@@ -21,7 +17,6 @@ export const {
     fileInfoExifForFile,
     updateFileInfoExifIfNeeded,
     forgetExifForItemData,
-    forgetExif,
 } = createFileViewerDataSource({
     downloadManager,
     hlsPlaylistDataForFile,

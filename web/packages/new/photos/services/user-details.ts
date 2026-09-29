@@ -69,7 +69,7 @@ const BonusData = z.object({
     storageBonuses: Bonus.array().nullish().transform(nullishToEmpty),
 });
 
-export type BonusData = z.infer<typeof BonusData>;
+type BonusData = z.infer<typeof BonusData>;
 
 const UserDetails = z.object({
     email: z.string(),

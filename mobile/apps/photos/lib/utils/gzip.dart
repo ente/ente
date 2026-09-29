@@ -1,9 +1,9 @@
 import "dart:convert";
 import "dart:io";
+import "dart:typed_data";
 
 import "package:computer/computer.dart";
 import "package:ente_crypto/ente_crypto.dart";
-import "package:flutter/foundation.dart";
 
 class ChaChaEncryptionResult {
   final String encData;
@@ -12,10 +12,31 @@ class ChaChaEncryptionResult {
   ChaChaEncryptionResult({required this.encData, required this.header});
 }
 
-Uint8List _unGzipUInt8List(Uint8List compressedData) {
-  final codec = GZipCodec();
-  final List<int> decompressedList = codec.decode(compressedData);
-  return Uint8List.fromList(decompressedList);
+Uint8List gunzipBytes(Uint8List compressedData, {int? maxOutputBytes}) {
+  final output = _GzipOutputSink(maxOutputBytes);
+  final decoder = gzip.decoder.startChunkedConversion(output);
+  decoder.add(compressedData);
+  decoder.close();
+  return output.bytes.takeBytes();
+}
+
+class _GzipOutputSink implements Sink<List<int>> {
+  final int? maxOutputBytes;
+  final bytes = BytesBuilder(copy: false);
+
+  _GzipOutputSink(this.maxOutputBytes);
+
+  @override
+  void add(List<int> data) {
+    if (maxOutputBytes != null &&
+        bytes.length + data.length > maxOutputBytes!) {
+      throw const FormatException("Decompressed data exceeds the allowed size");
+    }
+    bytes.add(data);
+  }
+
+  @override
+  void close() {}
 }
 
 Uint8List _gzipUInt8List(Uint8List data) {
@@ -28,12 +49,18 @@ Future<Map<String, dynamic>> decryptAndUnzipJson(
   Uint8List key, {
   required String encryptedData,
   required String header,
+  int? maxOutputBytes,
 }) async {
   final Computer computer = Computer.shared();
   final response = await computer
       .compute<Map<String, dynamic>, Map<String, dynamic>>(
         _decryptAndUnzipJsonSync,
-        param: {"key": key, "encryptedData": encryptedData, "header": header},
+        param: {
+          "key": key,
+          "encryptedData": encryptedData,
+          "header": header,
+          "maxOutputBytes": maxOutputBytes,
+        },
         taskName: "decryptAndUnzipJson",
       );
   return response;
@@ -43,13 +70,17 @@ Map<String, dynamic> decryptAndUnzipJsonSync(
   Uint8List key, {
   required String encryptedData,
   required String header,
+  int? maxOutputBytes,
 }) {
   final decryptedData = chachaDecryptData({
     "source": CryptoUtil.base642bin(encryptedData),
     "key": key,
     "header": CryptoUtil.base642bin(header),
   });
-  final decompressedData = _unGzipUInt8List(decryptedData);
+  final decompressedData = gunzipBytes(
+    decryptedData,
+    maxOutputBytes: maxOutputBytes,
+  );
   final json = utf8.decode(decompressedData);
   return jsonDecode(json);
 }
@@ -93,5 +124,6 @@ Map<String, dynamic> _decryptAndUnzipJsonSync(Map<String, dynamic> args) {
     args["key"],
     encryptedData: args["encryptedData"],
     header: args["header"],
+    maxOutputBytes: args["maxOutputBytes"],
   );
 }

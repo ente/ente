@@ -1,4 +1,7 @@
-use super::{AccountSpaceCtx, decrypt_post_object_metadata, ensure_post_objects_are_photos};
+use super::{
+    AccountSpaceCtx, PostPhotoInput, decrypt_post_object_metadata, ensure_post_objects_are_photos,
+    retain_content_error,
+};
 use crate::crypto::{decrypt_secretbox_payload, encrypt_secretbox_payload, generate_key};
 use crate::error::{Error, Result};
 use crate::models::{
@@ -13,6 +16,36 @@ use ente_core::{b64, http};
 impl AccountSpaceCtx {
     pub fn generate_post_key(&self) -> Vec<u8> {
         generate_key()
+    }
+
+    pub async fn create_photo_post(
+        &self,
+        space_id: &str,
+        photos: impl ExactSizeIterator<Item = PostPhotoInput>,
+        caption: Option<&str>,
+    ) -> Result<Post> {
+        let photo_count = photos.len();
+        if !(1..=10).contains(&photo_count) {
+            return Err(Error::InvalidInput("Choose between 1 and 10 photos".into()));
+        }
+        let post_key = self.generate_post_key();
+        let mut objects = Vec::with_capacity(photo_count);
+        for (position, photo) in photos.enumerate() {
+            let mut object = self
+                .upload_post_photo_asset(space_id, &post_key, &photo.bytes, photo.options)
+                .await?;
+            object.position = Some(position as i32);
+            objects.push(object);
+        }
+        let (post_id, _) = self
+            .create_post(
+                space_id,
+                &objects,
+                caption.map(str::as_bytes),
+                Some(&post_key),
+            )
+            .await?;
+        self.get_post(space_id, post_id, Some(space_id)).await
     }
 
     pub async fn create_post(
@@ -421,13 +454,6 @@ fn utf8_field(bytes: Vec<u8>, field: &str) -> Result<String> {
         .map_err(|error| Error::InvalidInput(format!("invalid {field} utf8: {error}")))
 }
 
-fn retain_content_error<T>(result: Result<T>) -> Result<Result<T>> {
-    match result {
-        Err(error) if !error.is_content_error() => Err(error),
-        result => Ok(result),
-    }
-}
-
 pub(super) fn open_post_content(
     post: &mut PostResponse,
     decrypted: Result<DecryptedPost>,
@@ -472,14 +498,7 @@ pub(super) fn opened_post(
         post_id: post.post_id,
         space_id: post.space_id,
         space_slug: post.space_slug,
-        author: SpaceActor {
-            space_id: post.author.space_id,
-            space_slug: post.author.space_slug,
-            public_key: post.author.public_key,
-            key_version: post.author.key_version,
-            profile,
-            avatar: post.author.avatar,
-        },
+        author: SpaceActor::from_response(post.author, profile),
         content,
         created_at: post.created_at,
         viewer_liked: post.viewer_liked,

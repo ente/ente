@@ -114,6 +114,7 @@
         "rust/crates/exif/**",
         "rust/crates/location/**",
         "rust/crates/photos/**",
+        "rust/crates/photos-export/**",
         "rust/crates/test-support/**",
         "rust/crates/vecdb/**"
     ],

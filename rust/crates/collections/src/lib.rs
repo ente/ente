@@ -45,6 +45,8 @@ pub enum Error {
     InvalidCollection { id: i64, reason: &'static str },
     #[error("file changes did not advance the cursor for collection {0}")]
     CursorDidNotAdvance(i64),
+    #[error("invalid source page: {0}")]
+    InvalidPage(&'static str),
 }
 
 #[cfg(test)]

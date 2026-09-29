@@ -522,12 +522,11 @@ func insertKeyAttributes(t *testing.T, db *sql.DB, userID int64) {
 	t.Helper()
 	_, err := db.Exec(
 		`INSERT INTO key_attributes(
-			user_id, kek_salt, kek_hash_bytes, encrypted_key, key_decryption_nonce,
+			user_id, kek_salt, encrypted_key, key_decryption_nonce,
 			public_key, encrypted_secret_key, secret_key_decryption_nonce, mem_limit, ops_limit
-		) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 		userID,
 		"kek-salt",
-		[]byte("kek-hash"),
 		"encrypted-key",
 		"key-nonce",
 		"public-key",

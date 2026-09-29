@@ -26,8 +26,8 @@ const avatarFadeSx = {
     "@media (prefers-reduced-motion: reduce)": { animation: "none" },
 } as const;
 
-export const spaceHomeHeaderHeight = 64;
-export const spaceHomeHeaderBarHeight = 44;
+const spaceHomeHeaderHeight = 64;
+const spaceHomeHeaderBarHeight = 44;
 
 interface SpaceHomeHeaderProps {
     children?: React.ReactNode;

@@ -7,6 +7,7 @@ struct MessageInputView: View {
     @Binding var text: String
     @Binding var attachments: [ChatAttachment]
     let isGenerating: Bool
+    let isSendPending: Bool
     let isDownloading: Bool
     let editingMessage: RenderedChatMessage?
     let isProcessingAttachments: Bool
@@ -30,15 +31,13 @@ struct MessageInputView: View {
     private let placeholder = "Write a message..."
 
     private var canSend: Bool {
-        let hasContent =
-            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
-        return hasContent && !isGenerating && !isDownloading && !voiceInputState.blocksSend
+        !isGenerating && isSendEnabled
     }
 
     private var isSendEnabled: Bool {
         let hasContent =
             !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
-        return hasContent && !isDownloading && !voiceInputState.blocksSend
+        return hasContent && !isDownloading && !isSendPending && !voiceInputState.blocksSend
     }
 
     private var isImageAttachmentLimitReached: Bool {

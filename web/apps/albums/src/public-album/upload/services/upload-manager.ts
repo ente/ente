@@ -34,9 +34,9 @@ import { FileType } from "ente-media/file-type";
 import { potentialFileTypeFromExtension } from "ente-media/live-photo";
 import { wait } from "ente-utils/promise";
 
-export type FileID = number;
+type FileID = number;
 
-export type PercentageUploaded = number;
+type PercentageUploaded = number;
 export type UploadFileNames = Map<FileID, string>;
 
 export interface UploadCounter {
@@ -49,15 +49,15 @@ export interface InProgressUpload {
     progress: PercentageUploaded;
 }
 
-export type FinishedUploadType = UploadResult["type"];
+type FinishedUploadType = UploadResult["type"];
 
-export type InProgressUploads = Map<FileID, PercentageUploaded>;
+type InProgressUploads = Map<FileID, PercentageUploaded>;
 
-export type FinishedUploads = Map<FileID, FinishedUploadType>;
+type FinishedUploads = Map<FileID, FinishedUploadType>;
 
 export type SegregatedFinishedUploads = Map<FinishedUploadType, FileID[]>;
 
-export interface ProgressUpdater {
+interface ProgressUpdater {
     setPercentComplete: React.Dispatch<React.SetStateAction<number>>;
     setUploadCounter: React.Dispatch<React.SetStateAction<UploadCounter>>;
     setUploadPhase: (phase: UploadPhase) => void;

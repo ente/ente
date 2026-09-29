@@ -101,19 +101,19 @@ public struct EnteToggleStyle: ToggleStyle {
             HStack {
                 configuration.label
                 Spacer(minLength: EnteSpacing.md)
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(configuration.isOn ? palette.primary : palette.fill)
                     .overlay {
                         Circle()
-                            .fill(configuration.isOn ? palette.reverseText : palette.primary)
-                            .frame(width: 25, height: 25)
-                            .padding(3)
+                            .fill(.white)
+                            .frame(width: 20, height: 20)
+                            .padding(2)
                             .frame(
                                 maxWidth: .infinity,
                                 alignment: configuration.isOn ? .trailing : .leading,
                             )
                     }
-                    .frame(width: 51, height: 31)
+                    .frame(width: 40, height: 24)
                     .animation(.easeInOut(duration: EnteMotion.quick), value: configuration.isOn)
             }
             .frame(minHeight: 44)

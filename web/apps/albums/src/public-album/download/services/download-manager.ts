@@ -15,16 +15,11 @@ import {
 } from "ente-base/http";
 import { customAPIOrigin } from "ente-base/origins";
 import {
-    NetworkDownloadError,
     createDownloadManager,
-    isNetworkDownloadError,
     type FileDownloadOpts,
     type RenderableSourceURLs,
 } from "ente-gallery/services/download-core";
 import type { EnteFile } from "ente-media/file";
-
-export { NetworkDownloadError, isNetworkDownloadError };
-export type { FileDownloadOpts, RenderableSourceURLs };
 
 class DownloadManager {
     private core = createDownloadManager({

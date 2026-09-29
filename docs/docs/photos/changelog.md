@@ -7,6 +7,28 @@ description: Release notes of recent updates to Ente Photos mobile and desktop a
 
 A short summary list of changes to the Ente Photos mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v1.3.64 (mobile) - Sep 2026
+
+- Added a thumbnail filmstrip for quickly previewing and navigating nearby photos and videos in the gallery viewer.
+- Added support for sharing photos from person pages.
+- Set photos as your home screen, lock screen, or both wallpapers on Android, with a preview to adjust the crop.
+- Added press and hold 2x playback for videos (@fosszil)
+- Gallery scrolling performance improvements.
+- Made back buttons easier to tap without changing their appearance or spacing.
+- Fixed device storage buildup caused by temporary Live Photo videos left behind during backup on iOS.
+- Create albums from unmatched album searches.
+- Added Slideshow to on-device albums.
+- Added longer slideshow duration options.
+- Show archived albums in Albums search results.
+- Show person-aware avatars in the file details "Added by" row when the uploader resolves to a person.
+- Updated the People menu to match the current Photos interface.
+- Updated the person cover photo picker to match the current Photos interface.
+- Updated the person picker app bar and sort menu, and fixed overflowing person names.
+- Fixed uploaded photos appearing as not uploaded after signing back in on iOS.
+- Fixed panoramas appearing upside down on some Android devices.
+- Fixed image and video viewer status bar styles. (@r4khul)
+- Show load errors for Referrals and Cast sessions.
+
 ## v1.7.29 (desktop) - Sep 2026
 
 - New accounts now select storage plan before entering their gallery.

@@ -2,6 +2,7 @@ mod api;
 mod args;
 mod core_db;
 mod db;
+mod export;
 mod home;
 mod login;
 mod output;
@@ -28,7 +29,7 @@ use args::{
 use output::AccountView;
 use vault::{State, Vault};
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() {
     if let Err(error) = run(Cli::parse()).await {
         eprintln!("Error: {error:#}");

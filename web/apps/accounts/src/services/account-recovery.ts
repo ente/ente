@@ -6,7 +6,7 @@ const AccountRecoveryResponse = z.object({
     status: z.enum(["ready", "recovered"]),
 });
 
-export type AccountRecoveryResponse = z.infer<typeof AccountRecoveryResponse>;
+type AccountRecoveryResponse = z.infer<typeof AccountRecoveryResponse>;
 
 const AccountRecoveryErrorCode = z.enum([
     "ACCOUNT_RECOVERY_INVALID_LINK",

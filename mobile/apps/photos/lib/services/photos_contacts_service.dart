@@ -148,13 +148,8 @@ class PhotosContactsService {
   }) => _store.ensureReady(baseUrl: baseUrl, userId: userId);
 
   @visibleForTesting
-  void debugHydrateContacts(
-    List<contacts.ContactRecord> records, {
-    bool markHydrated = false,
-  }) => _store.debugHydrateContacts(records, markHydrated: markHydrated);
-
-  @visibleForTesting
-  void debugReset({bool notify = false}) => _store.clearSession(notify: notify);
+  void debugHydrateContacts(List<contacts.ContactRecord> records) =>
+      _store.debugHydrateContacts(records);
 
   Future<void> close() => _store.close();
 

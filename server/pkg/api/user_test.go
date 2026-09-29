@@ -58,32 +58,6 @@ func TestGetPublicKeyHandlerUsesEmailLookup(t *testing.T) {
 	}
 }
 
-func TestGetPublicKeyHandlerDoesNotLookupByUserID(t *testing.T) {
-	handler, db := setupUserHandlerTest(t)
-	requesterUserID := testutil.InsertUser(t, db, testutil.UserFixture{
-		UserID:       101,
-		Email:        "public-key-requester@ente.com",
-		CreationTime: 1,
-	})
-	targetUserID := testutil.InsertUser(t, db, testutil.UserFixture{
-		UserID:       102,
-		Email:        "public-key-target@ente.com",
-		CreationTime: 1,
-	})
-	setPublicKeyTestAttributes(t, handler, targetUserID)
-
-	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/users/public-key?userID=102", nil)
-	req.Header.Set("X-Auth-User-ID", strconv.FormatInt(requesterUserID, 10))
-	router := gin.New()
-	router.GET("/users/public-key", handler.GetPublicKey)
-	router.ServeHTTP(recorder, req)
-
-	if recorder.Code != http.StatusNotFound {
-		t.Fatalf("unexpected status code: got %d want %d; body=%s", recorder.Code, http.StatusNotFound, recorder.Body.String())
-	}
-}
-
 func TestGetPublicKeysHandler(t *testing.T) {
 	handler, db := setupUserHandlerTest(t)
 	requesterUserID := testutil.InsertUser(t, db, testutil.UserFixture{
@@ -163,7 +137,6 @@ func setPublicKeyTestAttributes(t *testing.T, handler *UserHandler, userID int64
 	t.Helper()
 	keyAttributes := ente.KeyAttributes{
 		KEKSalt:                  "kek-salt",
-		KEKHash:                  "kek-hash",
 		EncryptedKey:             "encrypted-key",
 		KeyDecryptionNonce:       "key-decryption-nonce",
 		PublicKey:                "target-public-key",

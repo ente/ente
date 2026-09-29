@@ -147,7 +147,7 @@ fn simplify(mut hull: Vec<Point>, count: usize) -> Vec<Point> {
     hull
 }
 
-fn canonical(mut p: [Point; 4], extent: SourceExtent) -> Quad {
+pub(super) fn canonical(mut p: [Point; 4], extent: SourceExtent) -> Quad {
     if area(&p) < 0.0 {
         p.reverse();
     }
@@ -943,6 +943,19 @@ pub(super) fn refine_capture(
     quad: Quad,
     needs_complete_support: bool,
 ) -> OpResult<Option<Quad>> {
+    refine_capture_with_support(source, quad, needs_complete_support, 3)
+}
+
+pub(super) fn refine_capture_region(source: &ImageU8, quad: Quad) -> OpResult<Quad> {
+    Ok(refine_capture_with_support(source, quad, false, 4)?.unwrap_or(quad))
+}
+
+fn refine_capture_with_support(
+    source: &ImageU8,
+    quad: Quad,
+    needs_complete_support: bool,
+    minimum_supported_sides: usize,
+) -> OpResult<Option<Quad>> {
     let extent = SourceExtent::new(source.width, source.height)?;
     validate_quad(quad, extent)?;
     let scale = (640.0 / extent.width.max(extent.height)).min(1.0);
@@ -1051,7 +1064,7 @@ pub(super) fn refine_capture(
     let color_samples = std::array::from_fn::<_, 4, _>(|side| {
         color_edge_scores(&preview, [p[side], p[(side + 1) % 4]], band * 3.0)
     });
-    if (supported < 3 || needs_complete_support)
+    if (supported < minimum_supported_sides || needs_complete_support)
         && color_samples
             .iter()
             .any(|samples| samples.supported_positions() < 32)

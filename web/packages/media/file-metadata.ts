@@ -172,14 +172,6 @@ export const fileCameraModel = (file: EnteFile): string | undefined => {
     return model;
 };
 
-export const fileCameraLabel = (file: EnteFile): string | undefined => {
-    const make = fileCameraMake(file);
-    const model = fileCameraModel(file);
-    if (!make && !model) return undefined;
-    if (make && model) return `${make} ${model}`;
-    return model ?? make;
-};
-
 export const fileDurationString = (file: EnteFile): string | undefined => {
     const d = file.metadata.duration;
     if (!d) return undefined;
@@ -251,9 +243,7 @@ export const parseMetadataDate = (
 
 const dropLast = (s: string) => (s ? s.substring(0, s.length - 1) : s);
 
-export const createPhotoDate = (
-    dateLike: ParsedMetadataDate | string | number,
-) => {
+const createPhotoDate = (dateLike: ParsedMetadataDate | string | number) => {
     switch (typeof dateLike) {
         case "object":
             return new Date(dateLike.dateTime);
