@@ -908,7 +908,7 @@ class LocalSettings {
   Future<void> markInitialMemoriesNotificationScheduled() async {
     await _prefs.setInt(
       _kInitialMemoriesNotificationScheduledAt,
-      DateTime.now().millisecondsSinceEpoch,
+      DateTime.now().microsecondsSinceEpoch,
     );
   }
 

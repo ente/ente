@@ -719,17 +719,17 @@ class MemoriesCacheService {
   }
 
   Future<void> _backfillInitialMemoriesNotification(
-    MemoriesCache? oldCache,
+    MemoriesCache? cache,
   ) async {
-    if (oldCache == null ||
+    if (cache == null ||
         localSettings.initialMemoriesNotificationScheduledAt() != null) {
       return;
     }
     final cutoff = DateTime.now()
         .subtract(const Duration(days: 21))
         .microsecondsSinceEpoch;
-    if (oldCache.peopleShownLogs.any((log) => log.lastTimeShown <= cutoff) ||
-        oldCache.clipShownLogs.any((log) => log.lastTimeShown <= cutoff)) {
+    if (cache.peopleShownLogs.any((log) => log.lastTimeShown <= cutoff) ||
+        cache.clipShownLogs.any((log) => log.lastTimeShown <= cutoff)) {
       await localSettings.markInitialMemoriesNotificationScheduled();
     }
   }
@@ -867,13 +867,12 @@ class MemoriesCacheService {
     }
   }
 
-  Future<void> _scheduleMemoriesNotification(List<SmartMemory> memories) async {
+  Future<void> _showMemoriesReadyNotification(
+    List<SmartMemory> memories,
+  ) async {
     if (!flagService.internalUser ||
         !memories.any(
-          (m) =>
-              (m.type == .people || m.type == .clip) &&
-              m.memories.isNotEmpty &&
-              m.shouldShowNow(),
+          (m) => (m.type == .people || m.type == .clip) && m.shouldShowNow(),
         )) {
       return;
     }
@@ -917,12 +916,14 @@ class MemoriesCacheService {
           _shouldUpdate || forced || forceInitialMemoriesRefresh;
       if (!shouldUpdate) {
         _logger.info(
-          "No update needed (shouldUpdate: $_shouldUpdate, forced: $forced)",
+          "No update needed (shouldUpdate: $_shouldUpdate, forced: $forced, "
+          "forceInitialMemoriesRefresh: $forceInitialMemoriesRefresh)",
         );
         return;
       }
       _logger.info(
-        "Updating memories cache (shouldUpdate: $_shouldUpdate, forced: $forced)",
+        "Updating memories cache (shouldUpdate: $_shouldUpdate, forced: "
+        "$forced, forceInitialMemoriesRefresh: $forceInitialMemoriesRefresh)",
       );
       _isUpdatingMemories = true;
       try {
@@ -1022,7 +1023,7 @@ class MemoriesCacheService {
         if (forceInitialMemoriesRefresh) {
           await localSettings.markForcedInitialMemoriesRefresh();
         }
-        await _scheduleMemoriesNotification(_cachedMemories!);
+        await _showMemoriesReadyNotification(_cachedMemories!);
         w?.logAndReset('_cacheUpdated method done');
       } catch (e, s) {
         _logger.severe("Error updating memories cache", e, s);
