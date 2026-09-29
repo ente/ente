@@ -109,6 +109,7 @@ type SpacePostRecord struct {
 }
 
 type SpacePostAssetRecord struct {
+	Role           string
 	AssetID        int64
 	PostID         int64
 	ObjectKey      string

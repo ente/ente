@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"slices"
 	"strconv"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ente/museum/pkg/utils/config"
@@ -52,21 +53,39 @@ func TestCreatePostRequiresAssetMetadataCipher(t *testing.T) {
 
 func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
 	for _, test := range []struct {
-		count     int
-		abandoned int
+		count      int
+		videos     int
+		abandoned  int
+		concurrent bool
+		legacy     bool
 	}{
 		{count: 1},
+		{count: 1, videos: 1},
+		{count: 1, legacy: true},
+		{count: 1, videos: 1, legacy: true},
 		{count: 2},
+		{count: 2, videos: 1, concurrent: true},
 		{count: 10},
 		{count: 10, abandoned: 1},
 		{count: 10, abandoned: 10},
+		{count: 10, videos: 5},
+		{count: 10, videos: 10, abandoned: 20},
 	} {
-		t.Run(fmt.Sprintf("%d_photos_after_%d_abandoned", test.count, test.abandoned), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%d_items_%d_videos_after_%d_abandoned_concurrent_%t_legacy_%t", test.count, test.videos, test.abandoned, test.concurrent, test.legacy), func(t *testing.T) {
 			controller, repos, ctx := setupPostsControllerTest(t)
+			notifier := newRecordingSpaceActivityNotifier()
+			controller.ActivityNotifier = notifier
+			firstHead := make(chan struct{})
+			releaseFirstHead := make(chan struct{})
+			var headCount atomic.Int32
 			storage := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodHead {
 					w.WriteHeader(http.StatusMethodNotAllowed)
 					return
+				}
+				if test.concurrent && headCount.Add(1) == 1 {
+					close(firstHead)
+					<-releaseFirstHead
 				}
 				w.Header().Set("Content-Length", "123")
 			}))
@@ -107,17 +126,48 @@ func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
 					Position:       position,
 					MetadataCipher: "bWV0YWRhdGE=",
 				}
+				if position < test.videos {
+					objects[position].Video = &models.PostObjectPayload{ObjectKey: reserve(), Size: 123, Position: position, MetadataCipher: "bWV0YWRhdGE="}
+				}
 			}
 			requestObjects := slices.Clone(objects)
 			slices.Reverse(requestObjects)
 			caption := "Y2FwdGlvbg=="
-			created, err := controller.Create(ctx, space, models.CreatePostRequest{
+			request := models.CreatePostRequest{
+				ClientRequestID:  "retry-this-post",
 				EncryptedPostKey: "cG9zdC1rZXk=",
 				CaptionCipher:    &caption,
 				KeyVersion:       space.CurrentVersion,
 				Objects:          requestObjects,
-			})
+			}
+			if test.legacy {
+				request.ClientRequestID = ""
+			}
+			var concurrentResponse *models.CreatePostResponse
+			var concurrentError error
+			concurrentDone := make(chan struct{})
+			if test.concurrent {
+				go func() {
+					concurrentResponse, concurrentError = controller.Create(ctx, space, request)
+					close(concurrentDone)
+				}()
+				<-firstHead
+			}
+			created, err := controller.Create(ctx, space, request)
+			if test.concurrent {
+				close(releaseFirstHead)
+				<-concurrentDone
+				require.NoError(t, concurrentError)
+				require.Equal(t, created, concurrentResponse)
+			}
 			require.NoError(t, err)
+			if !test.legacy {
+				retried, err := controller.Create(ctx, space, request)
+				require.NoError(t, err)
+				require.Equal(t, created.PostID, retried.PostID)
+			}
+			require.Equal(t, created.PostID, requireSpaceActivity(t, notifier).postID)
+			requireNoSpaceActivity(t, notifier)
 			feed, err := controller.ListFeed(ctx, space, models.ListFeedRequest{Limit: 10})
 			require.NoError(t, err)
 			require.Len(t, feed.Items, 1)
@@ -125,8 +175,41 @@ func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
 			require.Equal(t, caption, feed.Items[0].CaptionCipher)
 			require.Equal(t, objects, feed.Items[0].Objects)
 			for _, object := range objects {
+				if object.Video != nil {
+					_, err := repos.Assets.GetTempObject(ctx, object.Video.ObjectKey, spacerepo.TempObjectPurposePost, &space.SpaceID)
+					require.ErrorIs(t, err, sql.ErrNoRows)
+				}
 				_, err := repos.Assets.GetTempObject(ctx, object.ObjectKey, spacerepo.TempObjectPurposePost, &space.SpaceID)
 				require.ErrorIs(t, err, sql.ErrNoRows)
+			}
+			for _, object := range objects {
+				parts := []models.PostObjectPayload{object}
+				if object.Video != nil {
+					parts = append(parts, *object.Video)
+				}
+				for _, part := range parts {
+					bucket, err := repos.Assets.GetAssetBucketID(ctx, space.SpaceID, part.ObjectKey)
+					require.NoError(t, err)
+					require.Equal(t, "b2-eu-cen", bucket)
+				}
+			}
+			require.NoError(t, controller.Delete(ctx, space, created.PostID))
+			for _, object := range objects {
+				parts := []models.PostObjectPayload{object}
+				if object.Video != nil {
+					parts = append(parts, *object.Video)
+				}
+				for _, part := range parts {
+					_, err := repos.Assets.GetAssetBucketID(ctx, space.SpaceID, part.ObjectKey)
+					require.ErrorIs(t, err, sql.ErrNoRows)
+					var queued bool
+					err = repos.Assets.DB.QueryRowContext(ctx, `SELECT EXISTS (
+                        SELECT 1 FROM space_temp_objects WHERE object_key = $1 AND purpose = $2
+                        AND expires_at <= now_utc_micro_seconds() AND cleanup_after > now_utc_micro_seconds()
+                    )`, part.ObjectKey, spacerepo.TempObjectPurposePost).Scan(&queued)
+					require.NoError(t, err)
+					require.True(t, queued)
+				}
 			}
 			for _, objectKey := range abandoned {
 				staged, err := repos.Assets.GetTempObject(ctx, objectKey, spacerepo.TempObjectPurposePost, &space.SpaceID)
@@ -170,6 +253,21 @@ func TestCreatePostRejectsInvalidObjectPosition(t *testing.T) {
 			require.ErrorContains(t, err, "invalid object position")
 		})
 	}
+}
+
+func TestCreatePostRejectsNestedVideo(t *testing.T) {
+	_, err := (&PostsController{}).Create(t.Context(), &spacerepo.SpaceRecord{}, models.CreatePostRequest{
+		EncryptedPostKey: "cG9zdC1rZXk=",
+		KeyVersion:       1,
+		Objects: []models.PostObjectPayload{{
+			ObjectKey: "preview",
+			Video: &models.PostObjectPayload{
+				ObjectKey: "video",
+				Video:     &models.PostObjectPayload{ObjectKey: "nested"},
+			},
+		}},
+	})
+	require.ErrorContains(t, err, "invalid nested video")
 }
 
 func TestListPostsHydratesPostAssets(t *testing.T) {

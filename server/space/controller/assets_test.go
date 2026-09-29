@@ -32,12 +32,12 @@ func TestPresignUploadStoresMetadata(t *testing.T) {
 	require.NoError(t, err)
 	const client = "io.ente.space.web/1.0"
 	resp, err := module.Assets.PresignUpload(ctx, space, models.PresignUploadRequest{
-		Size: 5, ContentMD5: "5d41402abc4b2a76b9719d911017c592",
+		Size: 10 * 1024 * 1024, ContentMD5: "5d41402abc4b2a76b9719d911017c592",
 	}, client)
 	require.NoError(t, err)
 	rec, err := repos.Assets.GetTempObject(ctx, resp.ObjectKey, spacerepo.TempObjectPurposePost, &space.SpaceID)
 	require.NoError(t, err)
-	require.Equal(t, int64(5), rec.ExpectedSize)
+	require.Equal(t, int64(10*1024*1024), rec.ExpectedSize)
 	require.True(t, rec.ContentMD5.Valid)
 	require.Equal(t, resp.Headers["Content-MD5"], rec.ContentMD5.String)
 	require.True(t, rec.Client.Valid)

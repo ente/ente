@@ -47,34 +47,73 @@ func (c *PostsController) Create(ctx context.Context, space *repo.SpaceRecord, r
 	if err != nil {
 		return nil, err
 	}
-	assets := make([]repo.SpacePostAssetRecord, 0, len(req.Objects))
-	for _, object := range req.Objects {
-		if strings.TrimSpace(object.ObjectKey) == "" {
-			return nil, ente.NewBadRequestWithMessage("objectKey is required for each object")
+	if len(req.ClientRequestID) > 64 {
+		return nil, ente.NewBadRequestWithMessage("invalid client request id")
+	}
+	if req.ClientRequestID != "" {
+		postID, err := c.PostsRepo.PostIDForRequest(ctx, space.SpaceID, req.ClientRequestID)
+		if err == nil {
+			return &models.CreatePostResponse{PostID: postID}, nil
 		}
-		if err := validateSpaceTextFieldBytes("objectKey", object.ObjectKey, maxSpaceObjectKeyBytes); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, err
 		}
-		if object.Position < 0 || object.Position >= maxSpacePostObjects {
+	}
+	assets := make([]repo.SpacePostAssetRecord, 0, len(req.Objects)*2)
+	positions := make(map[int]bool)
+	keys := make(map[string]bool)
+	for _, object := range req.Objects {
+		if object.Position < 0 || object.Position >= maxSpacePostObjects || positions[object.Position] {
 			return nil, ente.NewBadRequestWithMessage("invalid object position")
 		}
-		metadataCipher, err := decodeEncodedSpaceField("metadataCipher", object.MetadataCipher, maxSpaceAssetMetadataEncodedBytes, maxSpaceAssetMetadataDecodedBytes)
-		if err != nil {
-			return nil, err
+		positions[object.Position] = true
+		parts := []models.PostObjectPayload{object}
+		if object.Video != nil {
+			if object.Video.Video != nil {
+				return nil, ente.NewBadRequestWithMessage("invalid nested video")
+			}
+			parts = append(parts, *object.Video)
 		}
-		staged, err := verifyStagedUpload(ctx, c.AssetsRepo, object.ObjectKey, repo.TempObjectPurposePost, &space.SpaceID)
-		if err != nil {
-			return nil, err
+		for index, part := range parts {
+			if strings.TrimSpace(part.ObjectKey) == "" || keys[part.ObjectKey] {
+				return nil, ente.NewBadRequestWithMessage("a unique objectKey is required for each asset")
+			}
+			keys[part.ObjectKey] = true
+			if err := validateSpaceTextFieldBytes("objectKey", part.ObjectKey, maxSpaceObjectKeyBytes); err != nil {
+				return nil, err
+			}
+			metadataCipher, err := decodeEncodedSpaceField("metadataCipher", part.MetadataCipher, maxSpaceAssetMetadataEncodedBytes, maxSpaceAssetMetadataDecodedBytes)
+			if err != nil {
+				return nil, err
+			}
+			staged, err := verifyStagedUpload(ctx, c.AssetsRepo, part.ObjectKey, repo.TempObjectPurposePost, &space.SpaceID)
+			if err != nil {
+				if req.ClientRequestID != "" {
+					postID, lookupErr := c.PostsRepo.PostIDForRequest(ctx, space.SpaceID, req.ClientRequestID)
+					if lookupErr == nil {
+						return &models.CreatePostResponse{PostID: postID}, nil
+					}
+					if !errors.Is(lookupErr, sql.ErrNoRows) {
+						return nil, lookupErr
+					}
+				}
+				return nil, err
+			}
+			role := "preview"
+			if index == 1 {
+				role = "video"
+			}
+			assets = append(assets, repo.SpacePostAssetRecord{
+				ObjectKey:      staged.ObjectKey,
+				BucketID:       staged.BucketID,
+				Size:           sql.NullInt64{Int64: staged.ExpectedSize, Valid: staged.ExpectedSize > 0},
+				Position:       object.Position,
+				MetadataCipher: metadataCipher,
+				Role:           role,
+			})
 		}
-		assets = append(assets, repo.SpacePostAssetRecord{
-			ObjectKey:      staged.ObjectKey,
-			BucketID:       staged.BucketID,
-			Size:           sql.NullInt64{Int64: staged.ExpectedSize, Valid: staged.ExpectedSize > 0},
-			Position:       object.Position,
-			MetadataCipher: metadataCipher,
-		})
 	}
-	postID, postCount, err := c.PostsRepo.CreatePost(ctx, space.SpaceID, encryptedPostKey, captionCipher, req.KeyVersion, assets)
+	postID, postCount, err := c.PostsRepo.CreatePost(ctx, space.SpaceID, encryptedPostKey, captionCipher, req.KeyVersion, assets, req.ClientRequestID)
 	if err != nil {
 		if errors.Is(stacktrace.RootCause(err), sql.ErrNoRows) {
 			return nil, ente.NewBadRequestWithMessage("keyVersion does not match current space version")
@@ -90,7 +129,9 @@ func (c *PostsController) Create(ctx context.Context, space *repo.SpaceRecord, r
 			space.SpaceID, space.OwnerID, postCount, repo.MaxPostsPerSpace,
 		))
 	}
-	c.notifyFriendsOfNewPost(spaceActivityActor(space), postID)
+	if postCount > 0 {
+		c.notifyFriendsOfNewPost(spaceActivityActor(space), postID)
+	}
 	return &models.CreatePostResponse{PostID: postID}, nil
 }
 

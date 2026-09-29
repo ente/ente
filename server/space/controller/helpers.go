@@ -114,8 +114,20 @@ func toPostResponse(post *spacerepo.SpacePostRecord, assets []spacerepo.SpacePos
 	}
 	if len(assets) > 0 {
 		resp.Objects = make([]models.PostObjectPayload, 0, len(assets))
+		videos := make(map[int]*models.PostObjectPayload)
 		for _, asset := range assets {
-			resp.Objects = append(resp.Objects, toPostObjectPayload(asset))
+			if asset.Role == "video" {
+				video := toPostObjectPayload(asset)
+				videos[asset.Position] = &video
+			}
+		}
+		for _, asset := range assets {
+			if asset.Role == "video" {
+				continue
+			}
+			object := toPostObjectPayload(asset)
+			object.Video = videos[asset.Position]
+			resp.Objects = append(resp.Objects, object)
 		}
 	}
 	return resp

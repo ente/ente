@@ -217,7 +217,7 @@ func testCreatePost(ctx context.Context, module *Module, _ int64, spaceID string
 	if captionCipher != nil {
 		caption = testSpaceBytes(*captionCipher)
 	}
-	postID, _, err := module.Posts.CreatePost(ctx, spaceID, testSpaceBytes(encryptedPostKey), caption, keyVersion, objects)
+	postID, _, err := module.Posts.CreatePost(ctx, spaceID, testSpaceBytes(encryptedPostKey), caption, keyVersion, objects, "")
 	return postID, err
 }
 
@@ -275,7 +275,7 @@ func TestCreatePostEnforcesSpacePostLimit(t *testing.T) {
 	`, space.SpaceID, space.CurrentVersion, MaxPostsPerSpace)
 	require.NoError(t, err)
 
-	_, postCount, err := module.Posts.CreatePost(ctx, space.SpaceID, testSpaceBytes("post-key"), nil, space.CurrentVersion, nil)
+	_, postCount, err := module.Posts.CreatePost(ctx, space.SpaceID, testSpaceBytes("post-key"), nil, space.CurrentVersion, nil, "")
 	require.ErrorIs(t, err, ErrSpacePostLimitReached)
 	require.Equal(t, MaxPostsPerSpace, postCount)
 
@@ -290,7 +290,7 @@ func TestCreatePostEnforcesSpacePostLimit(t *testing.T) {
 	`, space.SpaceID)
 	require.NoError(t, err)
 
-	postID, postCount, err := module.Posts.CreatePost(ctx, space.SpaceID, testSpaceBytes("post-key"), nil, space.CurrentVersion, nil)
+	postID, postCount, err := module.Posts.CreatePost(ctx, space.SpaceID, testSpaceBytes("post-key"), nil, space.CurrentVersion, nil, "")
 	require.NoError(t, err)
 	require.NotZero(t, postID)
 	require.Equal(t, MaxPostsPerSpace, postCount)

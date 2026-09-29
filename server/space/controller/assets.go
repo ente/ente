@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	maxPostUploadBytes     int64 = 5 * 1024 * 1024
+	maxPostUploadBytes     int64 = 15 * 1024 * 1024
 	maxAvatarUploadBytes   int64 = 2 * 1024 * 1024
 	maxCoverUploadBytes    int64 = 2 * 1024 * 1024
 	uploadURLExpiry              = spacerepo.SpaceUploadURLExpiry

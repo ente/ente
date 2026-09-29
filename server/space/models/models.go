@@ -291,6 +291,7 @@ type ShareUpdatePayload struct {
 }
 
 type CreatePostRequest struct {
+	ClientRequestID  string              `json:"clientRequestId,omitempty" binding:"max=64"`
 	EncryptedPostKey string              `json:"encryptedPostKey" binding:"required"`
 	KeyVersion       int                 `json:"keyVersion" binding:"required,gt=0"`
 	CaptionCipher    *string             `json:"captionCipher,omitempty"`
@@ -380,10 +381,11 @@ type ConversationsResponse struct {
 }
 
 type PostObjectPayload struct {
-	ObjectKey      string `json:"objectKey" binding:"required"`
-	Size           int64  `json:"size,omitempty" binding:"omitempty,gt=0"`
-	Position       int    `json:"position,omitempty" binding:"gte=0"`
-	MetadataCipher string `json:"metadataCipher" binding:"required"`
+	Video          *PostObjectPayload `json:"video,omitempty" binding:"omitempty"`
+	ObjectKey      string             `json:"objectKey" binding:"required"`
+	Size           int64              `json:"size,omitempty" binding:"omitempty,gt=0"`
+	Position       int                `json:"position,omitempty" binding:"gte=0"`
+	MetadataCipher string             `json:"metadataCipher" binding:"required"`
 }
 
 type PostResponse struct {
