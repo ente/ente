@@ -46,12 +46,6 @@ import "package:photos/utils/ml_util.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:synchronized/synchronized.dart";
 
-bool _isWithinInitialMemoriesWindow(DateTime? installTime) {
-  if (installTime == null) return false;
-  final installAge = DateTime.now().difference(installTime);
-  return !installAge.isNegative && installAge < const Duration(days: 21);
-}
-
 class MemoriesCacheService {
   static const _lastMemoriesCacheUpdateTimeKey = "lastMemoriesCacheUpdateTime";
   static const _showAnyMemoryKey = "memories.enabled";
@@ -848,12 +842,17 @@ class MemoriesCacheService {
     }
   }
 
+  bool _isWithinInitialMemoriesWindow() {
+    final installTime = ServiceLocator.instance.packageInfo.installTime;
+    if (installTime == null) return false;
+    final installAge = DateTime.now().difference(installTime);
+    return !installAge.isNegative && installAge < const Duration(days: 21);
+  }
+
   Future<bool> _shouldForceInitialMemoriesRefresh() async {
     if (!flagService.internalUser ||
         localSettings.hasForcedInitialMemoriesRefresh() ||
-        !_isWithinInitialMemoriesWindow(
-          ServiceLocator.instance.packageInfo.installTime,
-        ) ||
+        !_isWithinInitialMemoriesWindow() ||
         !await _isMlReady()) {
       return false;
     }
@@ -884,9 +883,7 @@ class MemoriesCacheService {
       return;
     }
     if (localSettings.initialMemoriesNotificationScheduledAt() != null) return;
-    if (!_isWithinInitialMemoriesWindow(
-      ServiceLocator.instance.packageInfo.installTime,
-    )) {
+    if (!_isWithinInitialMemoriesWindow()) {
       await localSettings.markInitialMemoriesNotificationScheduled();
       return;
     }
