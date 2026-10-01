@@ -6,7 +6,7 @@ edition.workspace = true
 museum = []
 
 [dependencies]
-bip39 = { version = "2.0.0", default-features = false, features = ["std"] }
+bip39 = { version = "3.0.0", default-features = false, features = ["std"] }
 ente-core.workspace = true
 getrandom.workspace = true
 hex = "0.4.0"
