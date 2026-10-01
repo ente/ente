@@ -14,7 +14,7 @@ log.workspace = true
 md-5.workspace = true
 rand_core_06 = { package = "rand_core", version = "0.6.0", features = ["getrandom"] }
 reqwest = { workspace = true, features = ["http2", "charset", "system-proxy", "json", "rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
-salsa20 = "0.10.0"
+salsa20 = "0.11.0"
 serde.workspace = true
 serde_json.workspace = true
 subtle.workspace = true
