@@ -4,6 +4,7 @@
 final class MemoriesExportChannelAdapter {
     private let channel: FlutterMethodChannel
     private var isAttached = true
+    private var exportTask: Task<Void, Never>?
 
     init(registrar: FlutterPluginRegistrar) {
         channel = FlutterMethodChannel(
@@ -19,8 +20,16 @@ final class MemoriesExportChannelAdapter {
         guard isAttached else { return }
         switch call.method {
         case "memoriesExport.export":
-            result(FlutterError(code: "not_implemented", message: "Memories export is not implemented", details: nil))
+            exportTask = Task {
+                defer { exportTask = nil }
+                if Task.isCancelled {
+                    result(nil)
+                } else {
+                    result(FlutterError(code: "not_implemented", message: "Memories export is not implemented", details: nil))
+                }
+            }
         case "memoriesExport.cancel":
+            exportTask?.cancel()
             result(nil)
         default:
             result(FlutterMethodNotImplemented)
@@ -33,6 +42,7 @@ final class MemoriesExportChannelAdapter {
     }
 
     func detach() {
+        exportTask?.cancel()
         isAttached = false
         channel.setMethodCallHandler(nil)
     }
