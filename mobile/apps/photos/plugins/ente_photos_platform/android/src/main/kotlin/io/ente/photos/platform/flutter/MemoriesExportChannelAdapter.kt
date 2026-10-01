@@ -18,14 +18,9 @@ internal class MemoriesExportChannelAdapter {
         )
         channel?.setMethodCallHandler({ call, result ->
             if (call.method == "memoriesExport.export") {
-                val cancelFlag = AtomicBoolean(false)
-                activeExportCancelFlag = cancelFlag
+                activeExportCancelFlag = AtomicBoolean(false)
                 mainHandler.post({
-                    if (cancelFlag.get()) {
-                        result.success(null)
-                    } else {
-                        result.error("not_implemented", "Memories export is not implemented", null)
-                    }
+                    result.success(null)
                     activeExportCancelFlag = null
                 })
             } else if (call.method == "memoriesExport.cancel") {

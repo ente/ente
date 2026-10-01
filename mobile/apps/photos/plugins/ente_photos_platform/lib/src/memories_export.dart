@@ -64,7 +64,14 @@ class MemoriesExportClient {
     if (stopped == null) return;
     if (!_cancelRequested) {
       _cancelRequested = true;
-      await _channel.invokeMethod<void>('memoriesExport.cancel');
+      try {
+        await _channel.invokeMethod<void>('memoriesExport.cancel');
+      } catch (_) {
+        if (_exportStopped == stopped) {
+          _cancelRequested = false;
+        }
+        rethrow;
+      }
     }
     await stopped.future;
   }

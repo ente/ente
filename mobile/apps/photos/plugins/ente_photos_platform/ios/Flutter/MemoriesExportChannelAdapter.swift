@@ -22,11 +22,7 @@ final class MemoriesExportChannelAdapter {
         case "memoriesExport.export":
             exportTask = Task {
                 defer { exportTask = nil }
-                if Task.isCancelled {
-                    result(nil)
-                } else {
-                    result(FlutterError(code: "not_implemented", message: "Memories export is not implemented", details: nil))
-                }
+                result(nil)
             }
         case "memoriesExport.cancel":
             exportTask?.cancel()
