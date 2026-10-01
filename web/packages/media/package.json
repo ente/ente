@@ -5,9 +5,9 @@
     "dependencies": {
         "ente-base": "*",
         "ente-utils": "*",
-        "file-type": "21.3.4",
+        "file-type": "22.1.1",
         "heic-convert": "2.1.0",
-        "jszip": "3.10.1"
+        "jszip": "3.10.2"
     },
     "devDependencies": {
         "@types/heic-convert": "2.1.1",
