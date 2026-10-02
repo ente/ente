@@ -19,6 +19,7 @@ import { fileLogID, type EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
 import { updateFilePublicMagicMetadata } from "ente-new/photos/services/file";
 import { savedCollectionFiles } from "ente-new/photos/services/photos-fdb";
+import { settingsSnapshot } from "ente-new/photos/services/settings";
 import { savedTrashItemFileIDs } from "ente-new/photos/services/trash";
 import { gunzipWithLimit, gzip } from "ente-new/photos/utils/gzip";
 import { randomSample } from "ente-utils/array";
@@ -631,6 +632,7 @@ const processQueueItem = async ({
             file.id,
             fetchURL,
             authToken,
+            settingsSnapshot().previewUploadV2Enabled,
         );
     } catch (e) {
         // Native already retries upload failures other than 4xx responses.
