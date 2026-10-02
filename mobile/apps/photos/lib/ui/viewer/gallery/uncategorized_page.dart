@@ -11,6 +11,7 @@ import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/search/hierarchical/album_filter.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/ignored_files_service.dart';
 import "package:photos/ui/components/empty_state_component.dart";
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
@@ -83,7 +84,11 @@ class UnCategorizedPage extends StatelessWidget {
       ],
       tagPrefix: tagPrefix,
       selectedFiles: _selectedFiles,
-      sortAsyncFn: () => collection.pubMagicMetadata.asc ?? false,
+      sortOrder: () =>
+          (CollectionsService.instance.getCollectionByID(collection.id) ??
+                  collection)
+              .pubMagicMetadata
+              .sortOrder,
       initialFiles: null,
       albumName: context.strings.uncategorized,
       emptyState: EmptyStateComponent(

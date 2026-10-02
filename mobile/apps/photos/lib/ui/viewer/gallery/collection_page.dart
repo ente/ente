@@ -12,6 +12,7 @@ import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/search/hierarchical/album_filter.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/ignored_files_service.dart';
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
 import "package:photos/ui/viewer/gallery/empty_album_state.dart";
@@ -99,7 +100,11 @@ class CollectionPage extends StatelessWidget {
       selectedFiles: _selectedFiles,
       initialFiles: initialFiles,
       albumName: c.collection.displayName,
-      sortAsyncFn: () => c.collection.pubMagicMetadata.asc ?? false,
+      sortOrder: () =>
+          (CollectionsService.instance.getCollectionByID(c.collection.id) ??
+                  c.collection)
+              .pubMagicMetadata
+              .sortOrder,
       addHeaderOrFooterEmptyState: false,
       showSelectAll: true,
       emptyState: galleryType == GalleryType.ownedCollection

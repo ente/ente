@@ -20,6 +20,7 @@ import 'package:photos/db/device_files_db.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/db/social_db.dart';
 import 'package:photos/db/trash_db.dart';
+import "package:photos/events/collection_meta_event.dart";
 import 'package:photos/events/collection_updated_event.dart';
 import 'package:photos/events/contact_relationships_invalidated_event.dart';
 import 'package:photos/events/files_updated_event.dart';
@@ -195,7 +196,18 @@ class CollectionsService {
     _logger.info("[COLLECTIONS] Updated ${updatedCollections.length} in DB");
 
     for (final collection in fetchedCollections) {
+      final previousSort =
+          _collectionIDToCollections[collection.id]?.pubMagicMetadata.sortOrder;
       _cacheLocalPathAndCollection(collection);
+      if (previousSort != null &&
+          previousSort != collection.pubMagicMetadata.sortOrder) {
+        Bus.instance.fire(
+          CollectionMetaEvent(
+            collection.id,
+            CollectionMetaEventType.sortChanged,
+          ),
+        );
+      }
     }
 
     _logger.info("Collections synced");
@@ -1428,6 +1440,7 @@ class CollectionsService {
         jsonToUpdate,
       );
       collection.mMbPubVersion = currentVersion + 1;
+      await _db.insert([collection]);
       _cacheLocalPathAndCollection(collection);
       sync().ignore();
     } on DioException catch (e) {

@@ -4243,6 +4243,8 @@
   "sort": "Sort",
   "sortAlbumsBy": "Sort by",
   "sortAToZ": "A-Z",
+  "sortFilenameAscending": "File name (A–Z)",
+  "sortFilenameDescending": "File name (Z–A)",
   "sortNewestFirst": "Newest first",
   "sortOldestFirst": "Oldest first",
   "sortZToA": "Z-A",

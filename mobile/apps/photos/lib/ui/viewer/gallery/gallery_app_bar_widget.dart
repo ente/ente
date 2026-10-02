@@ -20,6 +20,7 @@ import 'package:photos/events/subscription_purchased_event.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/device_collection.dart';
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_sort_order.dart";
 import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/metadata/common_keys.dart";
@@ -1183,8 +1184,12 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
   }
 
   Future<void> _showSortOption(BuildContext bContext) async {
-    final bool? sortByAsc = await showMenu<bool>(
+    final collection =
+        CollectionsService.instance.getCollectionByID(widget.collection!.id) ??
+        widget.collection!;
+    final sortOrder = await showMenu<FileSortOrder>(
       context: bContext,
+      initialValue: collection.pubMagicMetadata.sortOrder,
       position: RelativeRect.fromLTRB(
         MediaQuery.of(context).size.width,
         kToolbarHeight + 12,
@@ -1192,19 +1197,24 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         0,
       ),
       items: [
-        PopupMenuItem(
-          value: false,
-          child: Text(context.strings.sortNewestFirst),
-        ),
-        PopupMenuItem(
-          value: true,
-          child: Text(context.strings.sortOldestFirst),
-        ),
+        for (final order in FileSortOrder.values)
+          CheckedPopupMenuItem(
+            value: order,
+            checked: order == collection.pubMagicMetadata.sortOrder,
+            child: Text(switch (order) {
+              FileSortOrder.newestFirst => context.strings.sortNewestFirst,
+              FileSortOrder.oldestFirst => context.strings.sortOldestFirst,
+              FileSortOrder.filenameAscending =>
+                context.strings.sortFilenameAscending,
+              FileSortOrder.filenameDescending =>
+                context.strings.sortFilenameDescending,
+            }),
+          ),
       ],
     );
-    if (sortByAsc != null) {
+    if (sortOrder != null) {
       if (!bContext.mounted) return;
-      unawaited(changeSortOrder(bContext, widget.collection!, sortByAsc));
+      unawaited(changeSortOrder(bContext, collection, sortOrder));
     }
   }
 

@@ -11,6 +11,7 @@ import "package:photos/events/files_updated_event.dart";
 import 'package:photos/events/force_reload_home_gallery_event.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/file/file.dart';
+import "package:photos/models/file/file_sort_order.dart";
 import "package:photos/models/metadata/collection_magic.dart";
 import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/models/metadata/file_magic.dart";
@@ -188,10 +189,10 @@ Future<bool> prepareSharedAlbumsForHiding(
 Future<void> changeSortOrder(
   BuildContext context,
   Collection collection,
-  bool sortedInAscOrder,
+  FileSortOrder sortOrder,
 ) async {
   try {
-    final Map<String, dynamic> update = {"asc": sortedInAscOrder};
+    final update = sortOrder.metadata;
     await CollectionsService.instance.updatePublicMagicMetadata(
       collection,
       update,
@@ -200,7 +201,7 @@ Future<void> changeSortOrder(
       CollectionMetaEvent(collection.id, CollectionMetaEventType.sortChanged),
     );
   } catch (e, s) {
-    _logger.severe("failed to update collection visibility", e, s);
+    _logger.severe("failed to update collection sort order", e, s);
     if (context.mounted) {
       showShortToast(context, context.strings.somethingWentWrong);
     }
@@ -448,6 +449,14 @@ Future<void> _updatePublicMetadata(
 
     if (_shouldReloadGallery(key)) {
       Bus.instance.fire(ForceReloadHomeGalleryEvent("FileMetadataChange-$key"));
+    }
+    if (key == editNameKey) {
+      for (final collectionID
+          in files.map((f) => f.collectionID).nonNulls.toSet()) {
+        Bus.instance.fire(
+          CollectionUpdatedEvent(collectionID, files, "filename_updated"),
+        );
+      }
     }
   } catch (e, s) {
     _logger.severe("failed to update $key = $value", e, s);

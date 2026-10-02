@@ -8,6 +8,7 @@ import "package:photos/events/collection_updated_event.dart";
 import 'package:photos/models/collection/collection.dart';
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/selected_files.dart";
+import 'package:photos/services/collections_service.dart';
 import "package:photos/services/ignored_files_service.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
@@ -101,8 +102,13 @@ class _PickCoverPhotoWidgetState extends State<PickCoverPhotoWidget> {
               selectedFiles: _selectedFiles,
               limitSelectionToOne: true,
               showSelectAll: false,
-              sortAsyncFn: () =>
-                  widget.collection.pubMagicMetadata.asc ?? false,
+              sortOrder: () =>
+                  (CollectionsService.instance.getCollectionByID(
+                            widget.collection.id,
+                          ) ??
+                          widget.collection)
+                      .pubMagicMetadata
+                      .sortOrder,
               disablePinnedGroupHeader: true,
               disableVerticalPaddingForScrollbar: true,
             ),
