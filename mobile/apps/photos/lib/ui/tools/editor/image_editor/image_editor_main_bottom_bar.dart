@@ -114,6 +114,13 @@ class ImageEditorMainBottomBarState extends State<ImageEditorMainBottomBar>
                           },
                         ),
                         CircularIconButton(
+                          hugeIcon: HugeIcons.strokeRoundedText,
+                          label: context.strings.imageEditorText,
+                          onTap: () {
+                            widget.editor.openTextEditor();
+                          },
+                        ),
+                        CircularIconButton(
                           hugeIcon: HugeIcons.strokeRoundedSticker,
                           label: context.strings.sticker,
                           onTap: () {
