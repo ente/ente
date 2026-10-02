@@ -2067,7 +2067,12 @@ const Page: React.FC = () => {
                     files={filteredFiles}
                     onShowMap={handleShowCollectionMap}
                     enableDownload={true}
-                    disableGrouping={state.searchSuggestion?.type == "clip"}
+                    disableGrouping={
+                        state.searchSuggestion?.type == "clip" ||
+                        (!isInSearchMode &&
+                            activeCollection?.pubMagicMetadata?.data.sortBy ===
+                                "name")
+                    }
                     enableSelect={true}
                     selected={selected}
                     setSelected={setSelected}

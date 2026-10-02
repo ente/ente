@@ -955,6 +955,8 @@
     "hide": "Hide",
     "unhide": "Unhide",
     "sort_by": "Sort by",
+    "album_sort_name_asc": "Filename (A–Z)",
+    "album_sort_name_desc": "Filename (Z–A)",
     "newest_first": "Newest first",
     "oldest_first": "Oldest first",
     "most_relevant": "Most relevant",
