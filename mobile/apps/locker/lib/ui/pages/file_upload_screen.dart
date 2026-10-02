@@ -252,6 +252,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
               ),
               const SizedBox(height: 12),
               SafeArea(
+                minimum: const EdgeInsets.only(bottom: 8),
                 child: ButtonComponent(
                   label: context.strings.save,
                   onTap: () async {

@@ -4203,6 +4203,7 @@
   },
   "skip": "Skip",
   "skippedFiles": "Skipped files",
+  "sharedFilesSkipped": "Some shared files could not be read or had the same name. They were skipped.",
   "slideshow": "Slideshow",
   "slideshowSettings": "Slideshow settings",
   "smartMemories": "Smart memories",
