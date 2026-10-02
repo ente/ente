@@ -4,6 +4,8 @@ struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
 
     @Environment(\.scenePhase) private var scenePhase
+    @State private var notificationOwner = UUID()
+    @ObservedObject private var notifications = ResponseNotifications.shared
     @ObservedObject private var modelSettings = ModelSettingsStore.shared
 
     @StateObject private var viewState = ChatViewState()
@@ -163,6 +165,7 @@ struct ChatView: View {
                 if newValue == .active {
                     viewModel.voiceTranscriber.setForeground(true)
                     viewModel.refreshModelDownloadInfo()
+                    notifications.claimPrompt(owner: notificationOwner)
                 } else {
                     viewModel.voiceTranscriber.setForeground(false)
                 }
@@ -175,15 +178,39 @@ struct ChatView: View {
             viewModel.setChatActive(isChatActive)
         }
         .onChange(of: isChatActive) { viewModel.setChatActive($0) }
-        .onDisappear { viewModel.setChatActive(false) }
+        .onDisappear {
+            viewModel.setChatActive(false)
+            notifications.releasePrompt(owner: notificationOwner)
+        }
         .onReceive(
             NotificationCenter.default.publisher(
                 for: UIApplication.didReceiveMemoryWarningNotification)
         ) { _ in
             viewModel.handleMemoryPressure()
         }
+        .sheet(
+            isPresented: Binding(
+                get: {
+                    notifications.showPermissionContext
+                        && notifications.promptOwner == notificationOwner && !viewState.showSettings
+                },
+                set: { if !$0 { notifications.showPermissionContext = false } })
+        ) {
+            NotificationPermissionContext()
+        }
+        .onChange(of: notifications.showPermissionContext) { show in
+            if show && scenePhase == .active { notifications.claimPrompt(owner: notificationOwner) }
+        }
+        .task(id: notifications.pendingRoute) {
+            guard let route = notifications.pendingRoute else { return }
+            viewState.showSettings = false
+            viewState.isDrawerOpen = false
+            viewModel.openResponse(route)
+            notifications.pendingRoute = nil
+        }
         .sheet(isPresented: $viewState.showSettings) {
             SettingsView(
+                notificationOwner: notificationOwner,
                 knowledgeStore: viewModel.knowledgeStore,
                 notesStore: viewModel.notesStore,
                 onSignIn: {
@@ -372,7 +399,6 @@ struct ChatView: View {
                         attachments: $viewModel.draftAttachments,
                         supportsImageAttachments: viewModel.supportsImageAttachments,
                         isGenerating: viewModel.isGenerating,
-                        isSendPending: viewModel.isSendPending,
                         isDownloading: viewModel.isDownloading,
                         editingMessage: editingMessage,
                         isProcessingAttachments: viewModel.isProcessingAttachments,

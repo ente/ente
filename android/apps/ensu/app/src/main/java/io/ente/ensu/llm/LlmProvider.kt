@@ -575,25 +575,6 @@ class LlmProvider(
         }
     }
 
-    suspend fun resetContext() {
-        withModelContext {
-            withResources {
-                val model = loadedModel ?: return@withResources
-                val key = currentModelKey ?: return@withResources
-                val contextParams =
-                    LlmContextParams(
-                        contextSize = currentContextLength,
-                        nThreads = null,
-                        nThreadsGeneration = generationThreads(),
-                        nBatch = LlmModelSelection(key.id, key.requestedContextLength).batchSize,
-                    )
-                loadedContext?.destroy()
-                loadedContext = model.newContext(contextParams)
-                currentContextLength = loadedContext?.contextSize()?.toInt()
-            }
-        }
-    }
-
     private fun LlmMessage.roleString(): String {
         return when (role) {
             LlmMessageRole.User -> "user"
@@ -744,6 +725,7 @@ class LlmProvider(
             object : LlmGenerationEventCallback {
                 override fun onEvent(event: LlmGenerationEvent) {
                     when (event) {
+                        is LlmGenerationEvent.PromptProgress -> Unit
                         is LlmGenerationEvent.Text -> {
                             currentJobId = event.jobId
                             if (isCancelled()) llmCancel(event.jobId)

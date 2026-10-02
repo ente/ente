@@ -34,6 +34,8 @@ import io.ente.ensu.llm.automaticMaxOutputTokens
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.logging.LogLevel
 import io.ente.ensu.notes.NotesStore
+import io.ente.ensu.notifications.BackgroundGeneration
+import io.ente.ensu.notifications.NotificationPermissions
 import io.ente.ensu.settings.SessionPreferencesDataStore
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -59,6 +61,8 @@ import kotlinx.coroutines.withContext
 
 internal class ChatStoreActions(
     private val state: MutableStateFlow<AppState>,
+    private val backgroundGeneration: BackgroundGeneration,
+    private val notificationPermissions: NotificationPermissions,
     private val sessionPreferences: SessionPreferencesDataStore,
     private val chatRepository: ChatRepository,
     private val llmProvider: LlmProvider,
@@ -80,6 +84,17 @@ internal class ChatStoreActions(
     private val sessionAccessTimes = mutableMapOf<String, Long>()
     private var scope: CoroutineScope? = null
     private var generationJob: Job? = null
+    private var initialSessionLoad: Job? = null
+    private val notificationNavigation = NotificationNavigation { error ->
+        logRepository.log(
+            LogLevel.Error,
+            "Failed to open notification conversation",
+            details = error.message,
+            tag = "Chat",
+            throwable = error,
+        )
+    }
+    val openedNotification = notificationNavigation.opened
     private var sessionSummaryJob: Job? = null
     @Volatile private var stopRequested = false
     @Volatile private var activePreparation: ConversationPreparationControl? = null
@@ -131,7 +146,7 @@ internal class ChatStoreActions(
         }
 
         if (state.value.chat.sessions.isEmpty()) {
-            loadSessionsFromDb()
+            initialSessionLoad = loadSessionsFromDb()
         }
 
         scope.launch {
@@ -181,6 +196,7 @@ internal class ChatStoreActions(
 
     fun createNewSession(): String {
         check(sourceInventoryReady)
+        notificationNavigation.cancel()
         resetGenerationState()
 
         val session = chatRepository.createSession("New Chat")
@@ -210,6 +226,7 @@ internal class ChatStoreActions(
     fun startNewSessionDraft() {
         if (state.value.chat.isDownloading) return
 
+        notificationNavigation.cancel()
         resetGenerationState()
         attachmentActions.discardAttachments(state.value.chat.attachments)
         state.update { appState ->
@@ -227,7 +244,38 @@ internal class ChatStoreActions(
         }
     }
 
+    suspend fun openNotification(
+        sessionId: String,
+        messageId: String?,
+        awaitReady: suspend () -> Unit,
+    ) = notificationNavigation.open {
+        awaitReady()
+        val conversation =
+            loadNotificationConversation(
+                initialSessionLoad = initialSessionLoad,
+                sessionId = sessionId,
+                messageId = messageId,
+                listSessions = chatRepository::listSessions,
+                getMessages = chatRepository::getMessages,
+                onSessionFound = ::resetGenerationState,
+            ) ?: return@open false
+        state.update {
+            it.copy(
+                chat = it.chat.copy(sessions = conversation.sessions, currentSessionId = sessionId)
+            )
+        }
+        cacheMessages(sessionId, conversation.messages)
+        branchSelections[sessionId] = conversation.branchSelections.toMutableMap()
+        rebuildChatState(sessionId)
+        true
+    }
+
+    fun cancelNotificationNavigation() = notificationNavigation.cancel()
+
+    fun acknowledgeOpenedNotification(token: String) = notificationNavigation.acknowledge(token)
+
     fun selectSession(sessionId: String) {
+        notificationNavigation.cancel()
         resetGenerationState()
         state.update { appState ->
             appState.copy(chat = appState.chat.copy(currentSessionId = sessionId))
@@ -240,6 +288,7 @@ internal class ChatStoreActions(
     }
 
     fun deleteSession(sessionId: String) {
+        notificationNavigation.cancel()
         val currentState = state.value
         val isCurrent = currentState.chat.currentSessionId == sessionId
 
@@ -329,6 +378,7 @@ internal class ChatStoreActions(
     }
 
     fun updateBranchSelection(messageId: String, selectedIndex: Int) {
+        notificationNavigation.cancel()
         if (state.value.chat.isGenerating) {
             resetGenerationState()
         }
@@ -353,6 +403,7 @@ internal class ChatStoreActions(
         val message = messageStore[sessionId]?.firstOrNull { it.id == messageId } ?: return
         if (message.author != MessageAuthor.User) return
 
+        notificationNavigation.cancel()
         clearTransientAssistantError()
         state.update { appState ->
             appState.copy(
@@ -382,6 +433,7 @@ internal class ChatStoreActions(
     }
 
     fun stopGeneration() {
+        backgroundGeneration.cancelAttempt(activeGenerationToken)
         if (state.value.chat.preparationStatus != null) activePreparation?.cancel()
         activeFollowup?.cancel()
         stopRequested = true
@@ -394,8 +446,6 @@ internal class ChatStoreActions(
             refreshSourceInventory()
             return
         }
-        val priorGeneration = generationJob
-        val priorSummary = sessionSummaryJob
         if (state.value.chat.isGenerating) {
             stopGeneration()
         }
@@ -414,24 +464,7 @@ internal class ChatStoreActions(
                 messageStore[sessionId]?.firstOrNull { it.id == parentId }
             } ?: return
 
-        val sourceSelection = currentSourceSelection()
-        priorGeneration?.cancel()
-        priorSummary?.cancel()
-        llmProvider.stopGeneration()
-        val ownerScope = scope ?: return
-        ownerScope.launch {
-            priorGeneration?.join()
-            priorSummary?.join()
-            if (
-                parent.attachments.none { it.type == AttachmentType.Image } ||
-                    llmProvider.supportsImages(
-                        modelSettingsActions.resolveSelection(state.value.modelSettings)
-                    )
-            ) {
-                llmProvider.resetContext()
-            }
-            startGeneration(sessionId, parent, sourceSelection)
-        }
+        startGeneration(sessionId, parent)
     }
 
     fun sendMessage() {
@@ -493,6 +526,7 @@ internal class ChatStoreActions(
         updateCurrentSessionPreview(sessionId, text, timestamp)
         rebuildChatState(sessionId)
         startGeneration(sessionId, userMessage)
+        notificationPermissions.onSend()
         logRepository.log(
             LogLevel.Info,
             "Message sent",
@@ -528,9 +562,9 @@ internal class ChatStoreActions(
         rebuildChatState(state.value.chat.currentSessionId)
     }
 
-    fun loadSessionsFromDb() {
-        val scope = scope ?: return
-        scope.launch(Dispatchers.IO) {
+    private fun loadSessionsFromDb(): Job? {
+        val scope = scope ?: return null
+        return scope.launch(Dispatchers.IO) {
             val loaded =
                 try {
                     chatRepository.listSessions()
@@ -587,6 +621,7 @@ internal class ChatStoreActions(
             return
         }
         modelSettingsActions.cancelChatWarmup(releaseLoadedModel = false)
+        notificationNavigation.cancel()
         val priorGeneration = generationJob
         val priorSummary = sessionSummaryJob
         activePreparation?.cancel()
@@ -619,6 +654,13 @@ internal class ChatStoreActions(
 
         clearTransientAssistantError()
         val generationToken = nextGenerationToken()
+        backgroundGeneration.begin(
+            generationToken,
+            sessionId,
+            userMessage.id,
+            userMessage.text,
+            ::stopGeneration,
+        )
         streamingParentId = userMessage.id
         state.update { appState ->
             appState.copy(
@@ -906,7 +948,10 @@ internal class ChatStoreActions(
         activeJob.invokeOnCompletion {
             closeFollowup(followup)
             notesScope.close()
-            scope.launch { settleGenerationIfActive(generationToken, sessionId) }
+            scope.launch {
+                backgroundGeneration.finish(generationToken)
+                settleGenerationIfActive(generationToken, sessionId)
+            }
         }
     }
 
@@ -1111,8 +1156,8 @@ internal class ChatStoreActions(
                 }
             }
         } catch (err: Throwable) {
-            interrupted = stopRequested
-            if (!interrupted) {
+            interrupted = true
+            if (!stopRequested) {
                 logRepository.log(
                     LogLevel.Error,
                     "Generation failed",
@@ -1291,10 +1336,7 @@ internal class ChatStoreActions(
                             buffer,
                             tokens,
                             generated.getOrNull()?.totalTimeMs,
-                            interrupted =
-                                stopRequested ||
-                                    error is LlmException.Cancelled ||
-                                    error is kotlinx.coroutines.CancellationException,
+                            interrupted = stopRequested || error != null,
                             shouldUpdateUi = isActive(),
                             saveAnswer = { chatRepository.insertPreparedAnswer(preparation, it) },
                         )
@@ -1411,6 +1453,12 @@ internal class ChatStoreActions(
                             tokensPerSecond = tokensPerSecond,
                         )
 
+                    if (!interrupted && !stopRequested)
+                        backgroundGeneration.completed(
+                            activeGenerationToken,
+                            assistantMessage.id,
+                            cleanAssistantText(assistantMessage.text),
+                        )
                     messageStore.getOrPut(sessionId) { mutableListOf() }.add(assistantMessage)
                     updateSelectionForParent(sessionId, parentMessage.id, assistantMessage.id)
                     updateCurrentSessionPreview(
@@ -1451,7 +1499,7 @@ internal class ChatStoreActions(
                 )
             }
         }
-        if (shouldUpdateUi) {
+        if (shouldUpdateUi && backgroundGeneration.isForeground) {
             scheduleSessionSummary(sessionId)
         }
     }
@@ -1636,6 +1684,10 @@ internal class ChatStoreActions(
 
     private suspend fun loadMessagesFromDb(sessionId: String) {
         val messages = withContext(Dispatchers.IO) { chatRepository.getMessages(sessionId) }
+        cacheMessages(sessionId, messages)
+    }
+
+    private fun cacheMessages(sessionId: String, messages: List<ChatMessage>) {
         messageStore[sessionId] = messages.toMutableList()
         branchSelections.getOrPut(sessionId) { mutableMapOf() }.clear()
         markSessionAccess(sessionId)
@@ -2017,6 +2069,7 @@ internal class ChatStoreActions(
     }
 
     private fun cancelGeneration() {
+        backgroundGeneration.cancelAttempt(activeGenerationToken)
         clearTransientAssistantError()
         activePreparation?.cancel()
         activeFollowup?.cancel()

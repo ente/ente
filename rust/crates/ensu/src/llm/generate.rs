@@ -599,13 +599,13 @@ fn generate_chat_stream(
                     return Err(Error::InvalidInput("Context batch size is 0".to_string()));
                 }
 
-                let keep = append_only_prefix_len(cached_tokens, &prompt_tokens);
+                let keep = prepare_prompt_cache(ctx, cached_tokens, &prompt_tokens);
 
-                if keep == 0 {
-                    ctx.clear_kv_cache();
-                    cached_tokens.clear();
-                }
-
+                job.sink.add(GenerationEvent::PromptProgress {
+                    job_id,
+                    processed_tokens: keep as i32,
+                    total_tokens: job.prompt_tokens,
+                });
                 let mut token_offset = keep;
                 let mut logits_index: i32 = 0;
                 while token_offset < prompt_tokens.len() {
@@ -639,6 +639,11 @@ fn generate_chat_stream(
                         logits_index = (chunk.len() - 1) as i32;
                     }
                     token_offset = end;
+                    job.sink.add(GenerationEvent::PromptProgress {
+                        job_id,
+                        processed_tokens: end as i32,
+                        total_tokens: job.prompt_tokens,
+                    });
                 }
 
                 let mut sampler = build_sampler(ctx.model, &sampler_request, ctx.n_ctx() as i32)?;
@@ -765,11 +770,40 @@ fn generate_chat_stream(
     Ok(summary)
 }
 
-fn append_only_prefix_len(cached: &[LlamaToken], prompt: &[LlamaToken]) -> usize {
-    if !cached.is_empty() && cached.len() < prompt.len() && prompt.starts_with(cached) {
-        cached.len()
-    } else {
+fn prepare_prompt_cache(
+    ctx: &mut LlamaContext,
+    cached: &mut Vec<LlamaToken>,
+    prompt: &[LlamaToken],
+) -> usize {
+    let can_rewind = !ctx.model.is_recurrent() && !ctx.model.is_hybrid();
+    let mut keep = reusable_prefix_len(cached, prompt, can_rewind);
+    if keep > 0
+        && keep < cached.len()
+        && !matches!(
+            ctx.clear_kv_cache_seq(Some(0), Some(keep as u32), None),
+            Ok(true)
+        )
+    {
+        keep = 0;
+    }
+    if keep == 0 {
+        ctx.clear_kv_cache();
+    }
+    cached.truncate(keep);
+    keep
+}
+
+fn reusable_prefix_len(cached: &[LlamaToken], prompt: &[LlamaToken], can_rewind: bool) -> usize {
+    let keep = cached
+        .iter()
+        .zip(prompt)
+        .take_while(|(cached, prompt)| cached == prompt)
+        .count()
+        .min(prompt.len().saturating_sub(1));
+    if !can_rewind && keep < cached.len() {
         0
+    } else {
+        keep
     }
 }
 
@@ -785,7 +819,7 @@ pub fn cancel(job_id: JobId) {
 
 #[cfg(test)]
 mod tests {
-    use super::{StreamDecoder, append_only_prefix_len};
+    use super::{StreamDecoder, reusable_prefix_len};
     use llama_cpp_2::token::LlamaToken;
 
     fn tokens(ids: &[i32]) -> Vec<LlamaToken> {
@@ -853,23 +887,26 @@ mod tests {
     }
 
     #[test]
-    fn only_strict_extensions_reuse_cache() {
-        assert_eq!(append_only_prefix_len(&[], &tokens(&[1])), 0);
-        assert_eq!(
-            append_only_prefix_len(&tokens(&[1, 2]), &tokens(&[1, 2])),
-            0
-        );
-        assert_eq!(
-            append_only_prefix_len(&tokens(&[1, 2, 3]), &tokens(&[1, 2])),
-            0
-        );
-        assert_eq!(
-            append_only_prefix_len(&tokens(&[1, 2]), &tokens(&[1, 3, 4])),
-            0
-        );
-        assert_eq!(
-            append_only_prefix_len(&tokens(&[1, 2]), &tokens(&[1, 2, 3])),
-            2
-        );
+    fn reuses_only_supported_prompt_prefixes() {
+        for (cached, prompt, rewind, append_only) in [
+            (vec![], vec![1], 0, 0),
+            (vec![1, 2], vec![], 0, 0),
+            (vec![1], vec![1], 0, 0),
+            (vec![1, 2], vec![1], 0, 0),
+            (vec![1, 2], vec![1, 2], 1, 0),
+            (vec![1, 2, 3], vec![1, 2], 1, 0),
+            (vec![1, 2, 3], vec![1, 2, 4, 5], 2, 0),
+            (vec![1, 2], vec![1, 3, 4], 1, 0),
+            (vec![1, 2], vec![1, 2, 3], 2, 2),
+            (vec![1, 2], vec![9, 2, 3], 0, 0),
+        ] {
+            for (can_rewind, expected) in [(true, rewind), (false, append_only)] {
+                assert_eq!(
+                    reusable_prefix_len(&tokens(&cached), &tokens(&prompt), can_rewind),
+                    expected,
+                    "cached={cached:?}, prompt={prompt:?}, can_rewind={can_rewind}"
+                );
+            }
+        }
     }
 }

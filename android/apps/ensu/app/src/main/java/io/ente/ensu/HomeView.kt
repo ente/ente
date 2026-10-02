@@ -102,6 +102,24 @@ fun HomeView(
         val whatsNewService = remember(context) { WhatsNewService(context.applicationContext) }
         var pendingWhatsNew by remember { mutableStateOf<PendingWhatsNew?>(null) }
 
+        LaunchedEffect(store) {
+            store.openedNotification.collect { opened ->
+                if (opened != null) {
+                    deleteSessionTarget = null
+                    imagePreviewAttachment = null
+                    showLogShareDialog = false
+                    showSignInComingSoon = false
+                    pendingWhatsNew = null
+                    navController.navigate(HomeRoute.Chat) {
+                        popUpTo(HomeRoute.Chat) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    store.acknowledgeOpenedNotification(opened)
+                    drawerState.close()
+                }
+            }
+        }
+
         val handleSignInRequest: () -> Unit = { showSignInComingSoon = true }
 
         val imagePicker =
@@ -191,6 +209,7 @@ fun HomeView(
             }
 
         BackHandler(enabled = !isChatRoute) {
+            store.cancelNotificationNavigation()
             if (!navController.popBackStack()) {
                 navController.navigate(HomeRoute.Chat) { launchSingleTop = true }
             }
@@ -304,6 +323,7 @@ fun HomeView(
                     },
                     onDeleteSession = { session -> deleteSessionTarget = session },
                     onOpenSettings = {
+                        store.cancelNotificationNavigation()
                         navController.navigate(HomeRoute.Settings) {
                             launchSingleTop = true
                             restoreState = true

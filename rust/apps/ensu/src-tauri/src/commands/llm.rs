@@ -213,23 +213,6 @@ enum Event {
     },
 }
 
-impl From<llm::GenerationEvent> for Event {
-    fn from(value: llm::GenerationEvent) -> Self {
-        match value {
-            llm::GenerationEvent::Text {
-                job_id,
-                text,
-                token_id,
-            } => Self::Text {
-                job_id,
-                text,
-                token_id,
-            },
-            llm::GenerationEvent::Done { summary } => Self::Done { summary },
-        }
-    }
-}
-
 const EVENT_BATCH_MS: u64 = 80;
 const EVENT_BATCH_BYTES: usize = 2048;
 
@@ -279,6 +262,7 @@ impl EventSink {
 impl llm::EventSink for EventSink {
     fn add(&mut self, event: llm::GenerationEvent) {
         match event {
+            llm::GenerationEvent::PromptProgress { .. } => {}
             llm::GenerationEvent::Text {
                 job_id,
                 text,

@@ -318,22 +318,27 @@ actor LlmProvider {
 
     func ensureChatModelAssetsReady(
         _ selection: LlmModelSelection,
+        downloadContext: AssetDownloadContext = .independent,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void
     ) async throws {
         let capability = currentChatDeviceCapability()
         guard capability.isChatSupported else {
             throw UnsupportedDeviceMemoryError(capability: capability)
         }
-        try await downloadAssets([chatAsset(selection)], onProgress: onProgress)
+        try await downloadAssets(
+            [chatAsset(selection)], downloadContext: downloadContext, onProgress: onProgress)
         assetStore.cleanupObsoleteChatModels(selection.id)
     }
 
     func ensureModelReady(
         _ selection: LlmModelSelection,
+        downloadContext: AssetDownloadContext = .independent,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void
     ) async throws {
         try await withModelLock {
-            try await ensureModelReadyLocked(selection, onProgress: onProgress, allowRecovery: true)
+            try await ensureModelReadyLocked(
+                selection, onProgress: onProgress, allowRecovery: true,
+                downloadContext: downloadContext)
         }
     }
 
@@ -383,7 +388,8 @@ actor LlmProvider {
         _ selection: LlmModelSelection,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void,
         allowRecovery: Bool,
-        shouldDownload: Bool = true
+        shouldDownload: Bool = true,
+        downloadContext: AssetDownloadContext = .independent
     ) async throws {
         chatWarmupOwner = nil
         let capability = currentChatDeviceCapability()
@@ -407,7 +413,8 @@ actor LlmProvider {
         let asset = chatAsset(selection)
         let wasAlreadyDownloaded = assetStore.isDownloaded(asset)
         if shouldDownload {
-            try await downloadAssets([asset], onProgress: onProgress)
+            try await downloadAssets(
+                [asset], downloadContext: downloadContext, onProgress: onProgress)
         }
 
         assetStore.cleanupObsoleteChatModels(selection.id)
@@ -422,7 +429,8 @@ actor LlmProvider {
             if allowRecovery, wasAlreadyDownloaded, assetStore.removeDownloaded(asset) {
                 onProgress(DownloadProgress(percent: 0, status: "Starting download..."))
                 try await ensureModelReadyLocked(
-                    selection, onProgress: onProgress, allowRecovery: false)
+                    selection, onProgress: onProgress, allowRecovery: false,
+                    downloadContext: downloadContext)
                 return
             }
             throw error
@@ -432,9 +440,11 @@ actor LlmProvider {
 
     private func downloadAssets(
         _ assets: [Asset],
+        downloadContext: AssetDownloadContext = .independent,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void
     ) async throws {
-        try await assetStore.download(assets: assets) { progress in
+        try await assetStore.download(assets: assets, context: downloadContext) {
+            progress in
             onProgress(
                 DownloadProgress(
                     percent: min(max(Int(progress.percentage), 0), 99),
@@ -490,6 +500,7 @@ actor LlmProvider {
 
     func withConversationContext<T: Sendable>(
         _ selection: LlmModelSelection,
+        downloadContext: AssetDownloadContext = .independent,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void = { _ in },
         _ operation: @MainActor (LlmContext, ChatGenerationControl) async throws -> T
     ) async throws -> T {
@@ -503,7 +514,8 @@ actor LlmProvider {
                     generationControl.withLock { $0 = nil }
                 }
                 try await ensureModelReadyLocked(
-                    selection, onProgress: onProgress, allowRecovery: true)
+                    selection, onProgress: onProgress, allowRecovery: true,
+                    downloadContext: downloadContext)
                 try control.checkCancellation()
                 guard let context = loadedContext else {
                     throw CancellationError()
@@ -524,6 +536,7 @@ actor LlmProvider {
         temperature: Float,
         maxTokens: UInt32,
         control: ChatGenerationControl,
+        onPromptProgress: (@Sendable (Int32, Int32) -> Void)? = nil,
         onToken: @escaping @Sendable (String) -> Void
     ) async throws -> GenerationSummary {
         try await generateChatLocked(
@@ -533,6 +546,7 @@ actor LlmProvider {
             temperature: temperature,
             maxTokens: Int(maxTokens),
             control: control,
+            onPromptProgress: onPromptProgress,
             onToken: onToken
         )
     }
@@ -545,6 +559,7 @@ actor LlmProvider {
         maxTokens: Int?,
         contextOverride: LlmContext? = nil,
         control: ChatGenerationControl,
+        onPromptProgress: (@Sendable (Int32, Int32) -> Void)? = nil,
         onToken: @escaping @Sendable (String) -> Void
     ) async throws -> GenerationSummary {
         let capability = currentChatDeviceCapability()
@@ -591,9 +606,14 @@ actor LlmProvider {
         )
 
         let sink = CallbackSink { event in
-            if case let .text(jobId, text, _) = event {
+            switch event {
+            case let .promptProgress(_, processed, total):
+                onPromptProgress?(processed, total)
+            case let .text(jobId, text, _):
                 control.setJob(jobId)
                 onToken(text)
+            case .done:
+                break
             }
         }
 
@@ -690,18 +710,6 @@ actor LlmProvider {
             control.cancel(invalidatePreparation: invalidatePreparation)
         } else {
             llmCancel(jobId: 0)
-        }
-    }
-
-    func resetContext() async {
-        try? await withModelLock {
-            guard let model = loadedModel, let key = currentModelKey else { return }
-            let selection = LlmModelSelection(id: key.id, contextLength: key.requestedContextLength)
-            let contextParams = LlmContextParams(
-                contextSize: currentContextLength.map(Int32.init), nThreads: nil,
-                nThreadsGeneration: nil, nBatch: Int32(selection.batchSize))
-            loadedContext = nil
-            loadedContext = try? model.newContext(params: contextParams)
         }
     }
 

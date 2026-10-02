@@ -83,6 +83,11 @@ pub struct LlmGenerationSummary {
 
 #[derive(Debug, Clone, uniffi::Enum)]
 pub enum LlmGenerationEvent {
+    PromptProgress {
+        job_id: i64,
+        processed_tokens: i32,
+        total_tokens: i32,
+    },
     Text {
         job_id: i64,
         text: String,
@@ -323,6 +328,15 @@ impl From<llm::GenerationSummary> for LlmGenerationSummary {
 impl From<llm::GenerationEvent> for LlmGenerationEvent {
     fn from(value: llm::GenerationEvent) -> Self {
         match value {
+            llm::GenerationEvent::PromptProgress {
+                job_id,
+                processed_tokens,
+                total_tokens,
+            } => Self::PromptProgress {
+                job_id,
+                processed_tokens,
+                total_tokens,
+            },
             llm::GenerationEvent::Text {
                 job_id,
                 text,

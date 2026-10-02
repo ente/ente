@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		A70000012F11111100AA0001 = {isa = PBXBuildFile; fileRef = A70000022F11111100AA0001; };
+		A60000012F11111100AA0001 = {isa = PBXBuildFile; fileRef = A60000022F11111100AA0001; };
 		A50000012F11111100AA0001 = {isa = PBXBuildFile; fileRef = A50000022F11111100AA0001; };
 		A40000012F11111100AA0001 = {isa = PBXBuildFile; fileRef = A40000022F11111100AA0001; };
 		A30000012F11111100AA0001 = {isa = PBXBuildFile; fileRef = A30000022F11111100AA0001; };
@@ -33,6 +34,7 @@
 		A70000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCaptureDeliveryTests.swift; sourceTree = "<group>"; };
 		A50000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgePreferencesTests.swift; sourceTree = "<group>"; };
 		A40000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelMemoryCoordinationTests.swift; sourceTree = "<group>"; };
+		A60000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseNotificationTests.swift; sourceTree = "<group>"; };
 		A30000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageMarkdownTests.swift; sourceTree = "<group>"; };
 		A20000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesIntegrationTests.swift; sourceTree = "<group>"; };
 		A10000022F11111100AA0001 /* LlmIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlmIntegrationTests.swift; sourceTree = "<group>"; };
@@ -92,6 +94,7 @@
 				A50000022F11111100AA0001,
 				A20000022F11111100AA0001,
 				A30000022F11111100AA0001,
+				A60000022F11111100AA0001,
 			);
 			path = EnsuTests;
 			sourceTree = "<group>";
@@ -264,6 +267,7 @@
 				A50000012F11111100AA0001,
 				A20000012F11111100AA0001,
 				A30000012F11111100AA0001,
+				A60000012F11111100AA0001,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

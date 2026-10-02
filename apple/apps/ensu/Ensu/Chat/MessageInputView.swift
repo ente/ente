@@ -8,7 +8,6 @@ struct MessageInputView: View {
     @Binding var attachments: [ChatAttachment]
     let supportsImageAttachments: Bool
     let isGenerating: Bool
-    let isSendPending: Bool
     let isDownloading: Bool
     let editingMessage: RenderedChatMessage?
     let isProcessingAttachments: Bool
@@ -40,7 +39,7 @@ struct MessageInputView: View {
     private var isSendEnabled: Bool {
         let hasContent =
             !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
-        return hasContent && !isDownloading && !isSendPending
+        return hasContent && !isDownloading
             && !voiceService.blocksComposer
     }
 
@@ -113,7 +112,7 @@ struct MessageInputView: View {
                             }
                             .disabled(
                                 editingMessage != nil || !supportsImageAttachments
-                                    || isGenerating || isSendPending || isDownloading
+                                    || isGenerating || isDownloading
                                     || isImageAttachmentLimitReached
                             )
                             .photosPicker(
@@ -175,7 +174,7 @@ struct MessageInputView: View {
                         if editingMessage == nil {
                             VoiceInputButton(
                                 service: voiceService,
-                                enabled: !isGenerating && !isDownloading && !isSendPending
+                                enabled: !isGenerating && !isDownloading
                             ) {
                                 hapticTap()
                                 isFocused = false

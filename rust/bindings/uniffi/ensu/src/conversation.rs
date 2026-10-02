@@ -344,6 +344,11 @@ impl core::Effects for NativeEffects<'_> {
             .owner
             .context
             .generate_chat_stream(generation, &mut |event| {
+                if matches!(&event, llm::GenerationEvent::PromptProgress { .. })
+                    || matches!(&event, llm::GenerationEvent::Text { text, .. } if !text.is_empty())
+                {
+                    self.callback.on_progress();
+                }
                 if let llm::GenerationEvent::Text {
                     job_id,
                     text: delta,

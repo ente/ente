@@ -116,6 +116,7 @@ fn cancellation_is_acknowledged_before_another_text_event() {
                 }
             }
             GenerationEvent::Done { .. } => done = true,
+            GenerationEvent::PromptProgress { .. } => {}
         });
         assert!(cancelled && !done);
         assert!(matches!(result, Err(llm::Error::Cancelled)));

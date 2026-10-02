@@ -3,11 +3,28 @@ import Foundation
 
 private let logger = EnsuLogging.shared.logger("AssetStore")
 
+enum AssetDownloadContext: Sendable {
+    case independent
+    case externallyCovered(onProgress: @Sendable (AssetDownloadProgress) -> Void)
+}
+
 final class AssetStore: Sendable {
     private let core: AssetStoreCore
+    private let backgroundDownloads: any AssetDownloadBackgroundScheduling
+
+    @MainActor
+    init(
+        core: AssetStoreCore,
+        backgroundDownloads: any AssetDownloadBackgroundScheduling =
+            SystemAssetDownloadBackgroundScheduler()
+    ) {
+        self.core = core
+        self.backgroundDownloads = backgroundDownloads
+    }
 
     @MainActor
     init() async {
+        backgroundDownloads = SystemAssetDownloadBackgroundScheduler()
         let baseDir =
             FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
@@ -99,6 +116,7 @@ final class AssetStore: Sendable {
     @MainActor
     func download(
         assets: [Asset],
+        context: AssetDownloadContext = .independent,
         onProgress: @escaping @Sendable (AssetDownloadProgress) -> Void
     ) async throws {
         let token = CancellationToken()
@@ -107,8 +125,8 @@ final class AssetStore: Sendable {
         }
 
         let leaseId: UUID?
-        if #available(iOS 26.0, *) {
-            leaseId = AssetDownloadBackgroundTask.begin {
+        if case .independent = context {
+            leaseId = backgroundDownloads.begin {
                 token.cancel()
             }
         } else {
@@ -116,23 +134,24 @@ final class AssetStore: Sendable {
         }
         var succeeded = false
         defer {
-            if #available(iOS 26.0, *), let leaseId {
-                AssetDownloadBackgroundTask.end(id: leaseId, success: succeeded)
-            }
+            if let leaseId { backgroundDownloads.end(id: leaseId, success: succeeded) }
         }
 
-        let callback = AssetDownloadCallbackSink { progress in
+        let callback = AssetDownloadCallbackSink { [backgroundDownloads] progress in
             if let line = progress.logLine {
                 logger.info(line)
             }
-            if #available(iOS 26.0, *), let leaseId {
+            if let leaseId {
                 Task { @MainActor in
-                    AssetDownloadBackgroundTask.update(
+                    backgroundDownloads.update(
                         id: leaseId,
                         downloadedBytes: progress.downloadedBytes,
                         totalBytes: progress.totalBytes
                     )
                 }
+            }
+            if case let .externallyCovered(reportProgress) = context {
+                reportProgress(progress)
             }
             onProgress(progress)
         }
@@ -155,6 +174,33 @@ private final class AssetDownloadCallbackSink: AssetDownloadCallback {
 
     func onProgress(progress: AssetDownloadProgress) {
         onProgressHandler(progress)
+    }
+}
+
+@MainActor
+protocol AssetDownloadBackgroundScheduling: Sendable {
+    func begin(onExpiration: @escaping @Sendable () -> Void) -> UUID?
+    func update(id: UUID, downloadedBytes: Int64, totalBytes: Int64?)
+    func end(id: UUID, success: Bool)
+}
+
+private struct SystemAssetDownloadBackgroundScheduler: AssetDownloadBackgroundScheduling {
+    func begin(onExpiration: @escaping @Sendable () -> Void) -> UUID? {
+        guard #available(iOS 26.0, *) else { return nil }
+        return AssetDownloadBackgroundTask.begin(onExpiration: onExpiration)
+    }
+
+    func update(id: UUID, downloadedBytes: Int64, totalBytes: Int64?) {
+        if #available(iOS 26.0, *) {
+            AssetDownloadBackgroundTask.update(
+                id: id, downloadedBytes: downloadedBytes, totalBytes: totalBytes)
+        }
+    }
+
+    func end(id: UUID, success: Bool) {
+        if #available(iOS 26.0, *) {
+            AssetDownloadBackgroundTask.end(id: id, success: success)
+        }
     }
 }
 

@@ -11,8 +11,13 @@ import io.ente.ensu.bindings.transcriptionModelAsset
 import io.ente.ensu.knowledge.KnowledgeProvider
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.logging.LogLevel
+import io.ente.ensu.notifications.BackgroundGeneration
+import io.ente.ensu.notifications.NotificationPermissions
 
 class EnsuApplication : Application() {
+    val backgroundGeneration by lazy { BackgroundGeneration(this) }
+    val notificationPermissions by lazy { NotificationPermissions(this) }
+    val runtime by lazy { AppRuntime(this) }
     val logRepository by lazy { FileLogRepository(this) }
     val assetStore by lazy { AssetStore(this) }
     val knowledgeProvider by lazy { KnowledgeProvider(assetStore) }
@@ -29,6 +34,7 @@ class EnsuApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        registerActivityLifecycleCallbacks(backgroundGeneration)
         initRustLogging(EnsuRustLogSink(logRepository))
     }
 }
