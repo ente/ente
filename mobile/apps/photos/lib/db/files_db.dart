@@ -548,6 +548,15 @@ class FilesDB with SqlDbBase {
     return convertToFiles(results)[0];
   }
 
+  Future<List<EnteFile>> getFilesByLocalID(String localID) async {
+    final db = await instance.sqliteAsyncDB;
+    final results = await db.getAll(
+      'SELECT * FROM $filesTable WHERE $columnLocalID = ?',
+      [localID],
+    );
+    return convertToFiles(results);
+  }
+
   Future<EnteFile?> getUploadedFile(int uploadedID, int collectionID) async {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll(
