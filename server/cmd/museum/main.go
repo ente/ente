@@ -406,6 +406,7 @@ func main() {
 	collectionController := &collections.CollectionController{
 		CollectionRepo:        collectionRepo,
 		EmailCtrl:             emailNotificationCtrl,
+		PushCtrl:              pushController,
 		AccessCtrl:            accessCtrl,
 		CollectionLinkCtrl:    collectionLinkCtrl,
 		UserRepo:              userRepo,

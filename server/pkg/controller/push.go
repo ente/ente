@@ -66,6 +66,33 @@ func NewPushController(pushRepo *repo.PushTokenRepository, taskLockRepo *repo.Ta
 	return &PushController{PushRepo: pushRepo, TaskLockRepo: taskLockRepo, HostName: hostName, fcm: client}
 }
 
+func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int64) {
+	if viper.GetBool("internal.silent") || c.fcm == nil {
+		return
+	}
+	ctx = context.WithoutCancel(ctx)
+	lookupCtx, cancel := context.WithTimeout(ctx, 5*gotime.Second)
+	tokens, err := c.PushRepo.GetFCMTokensForAlbumShare(lookupCtx, recipients)
+	cancel()
+	if err != nil {
+		log.WithError(err).Warn("album share push token lookup failed")
+		return
+	}
+	for _, token := range tokens {
+		err := c.fcm.sendMessage(ctx, map[string]any{
+			"token":        token,
+			"notification": map[string]string{"title": "Ente Photos", "body": "An album was shared with you"},
+			"apns": map[string]any{
+				"headers": map[string]string{"apns-push-type": "alert", "apns-priority": "10", "apns-expiration": "0"},
+				"payload": map[string]any{"aps": map[string]any{"sound": "default"}},
+			},
+		})
+		if err != nil {
+			log.WithError(err).Warn("album share push failed; album remains shared")
+		}
+	}
+}
+
 // fcmClient sends pushes via the FCM HTTP v1 API directly. We avoid the Firebase
 // Admin SDK because it pulls in the entire google.golang.org/api + Firestore +
 // OpenTelemetry tree just to send a push.
@@ -224,21 +251,23 @@ func (c *PushController) pruneTokens(fcmTokens []string) {
 }
 
 func (c *fcmClient) send(ctx context.Context, token string, data map[string]string) error {
-	body, err := json.Marshal(map[string]any{
-		"message": map[string]any{
-			"token":   token,
-			"data":    data,
-			"android": map[string]any{"priority": "high"},
-			"apns": map[string]any{
-				"headers": map[string]string{
-					"apns-push-type": "background",
-					"apns-priority":  "5",
-					"apns-topic":     "io.ente.frame",
-				},
-				"payload": map[string]any{"aps": map[string]any{"content-available": 1}},
+	return c.sendMessage(ctx, map[string]any{
+		"token":   token,
+		"data":    data,
+		"android": map[string]any{"priority": "high"},
+		"apns": map[string]any{
+			"headers": map[string]string{
+				"apns-push-type": "background",
+				"apns-priority":  "5",
+				"apns-topic":     "io.ente.frame",
 			},
+			"payload": map[string]any{"aps": map[string]any{"content-available": 1}},
 		},
 	})
+}
+
+func (c *fcmClient) sendMessage(ctx context.Context, message map[string]any) error {
+	body, err := json.Marshal(map[string]any{"message": message})
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}

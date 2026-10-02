@@ -9,10 +9,14 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
+	"github.com/ente/museum/pkg/repo"
 	log "github.com/sirupsen/logrus"
 	logtest "github.com/sirupsen/logrus/hooks/test"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
@@ -181,4 +185,125 @@ func hasLog(hook *logtest.Hook, level log.Level, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestAlbumSharePushOnlyInternalIOSRecipients(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	silent := viper.GetBool("internal.silent")
+	t.Cleanup(func() { testutil.ResetTables(t, db); viper.Set("internal.silent", silent) })
+	for _, u := range []testutil.UserFixture{{UserID: 1, Email: "owner@example.com", CreationTime: 1}, {UserID: 2, Email: "recipient@example.com", CreationTime: 1}} {
+		testutil.InsertUser(t, db, u)
+	}
+	r := &repo.PushTokenRepository{DB: db}
+	require.NoError(t, r.AddToken(2, ente.PushTokenRequest{FCMToken: "ios-device", APNSToken: "apns-device"}))
+	require.NoError(t, r.AddToken(2, ente.PushTokenRequest{FCMToken: "android-device"}))
+	_, err := db.Exec(`INSERT INTO push_tokens (user_id, fcm_token, apns_token) VALUES (2, 'empty-apns', '')`)
+	require.NoError(t, err)
+	var messages []map[string]any
+	c := &PushController{PushRepo: r, fcm: &fcmClient{projectID: "test", httpClient: &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		var body struct{ Message map[string]any }
+		require.NoError(t, json.NewDecoder(req.Body).Decode(&body))
+		messages = append(messages, body.Message)
+		return jsonResponse(http.StatusOK, `{}`), nil
+	})}}}
+	viper.Set("internal.silent", false)
+	c.NotifyAlbumShare(context.Background(), []int64{2})
+	require.Empty(t, messages, "ordinary users must not receive push")
+	_, err = db.Exec(`INSERT INTO remote_store (user_id, key_name, key_value) VALUES (2, 'internalUser', 'false')`)
+	require.NoError(t, err)
+	c.NotifyAlbumShare(context.Background(), []int64{2})
+	require.Empty(t, messages, "the internal flag must be true")
+	_, err = db.Exec(`UPDATE remote_store SET key_value = 'true' WHERE user_id = 2 AND key_name = 'internalUser'`)
+	require.NoError(t, err)
+	c.NotifyAlbumShare(context.Background(), []int64{1})
+	viper.Set("internal.silent", true)
+	c.NotifyAlbumShare(context.Background(), []int64{2})
+	require.Empty(t, messages)
+	viper.Set("internal.silent", false)
+	c.NotifyAlbumShare(context.Background(), []int64{1, 2})
+	require.Len(t, messages, 1)
+	require.Equal(t, "ios-device", messages[0]["token"])
+	require.Equal(t, map[string]any{"title": "Ente Photos", "body": "An album was shared with you"}, messages[0]["notification"])
+	require.Equal(t, map[string]any{
+		"headers": map[string]any{"apns-push-type": "alert", "apns-priority": "10", "apns-expiration": "0"},
+		"payload": map[string]any{"aps": map[string]any{"sound": "default"}},
+	}, messages[0]["apns"])
+	require.Nil(t, messages[0]["android"])
+	require.Nil(t, messages[0]["data"])
+	require.NoError(t, r.AddToken(1, ente.PushTokenRequest{FCMToken: "ios-device", APNSToken: "apns-device"}))
+	c.NotifyAlbumShare(context.Background(), []int64{2})
+	require.Len(t, messages, 1, "token registered to another account must not receive the alert")
+}
+
+func TestPushTokenFollowsCurrentAccount(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	for _, id := range []int64{1, 2} {
+		testutil.InsertUser(t, db, testutil.UserFixture{UserID: id, CreationTime: 1, Email: string(rune('a'+id)) + "@example.com"})
+	}
+	r := &repo.PushTokenRepository{DB: db}
+	for _, id := range []int64{1, 2} {
+		if err := r.AddToken(id, ente.PushTokenRequest{FCMToken: "test-device"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var owner int64
+	if err := db.QueryRow(`SELECT user_id FROM push_tokens WHERE fcm_token = 'test-device'`).Scan(&owner); err != nil {
+		t.Fatal(err)
+	}
+	if owner != 2 {
+		t.Fatalf("token owner = %d, want current account 2", owner)
+	}
+}
+
+func TestAlbumSharePushSurvivesSlowDelivery(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	silent := viper.GetBool("internal.silent")
+	t.Cleanup(func() { testutil.ResetTables(t, db); viper.Set("internal.silent", silent) })
+	viper.Set("internal.silent", false)
+	testutil.InsertUser(t, db, testutil.UserFixture{UserID: 1, Email: "internal@example.com", CreationTime: 1})
+	_, err := db.Exec(`INSERT INTO remote_store (user_id, key_name, key_value) VALUES (1, 'internalUser', 'true')`)
+	require.NoError(t, err)
+	r := &repo.PushTokenRepository{DB: db}
+	for _, token := range []string{"first-device", "second-device"} {
+		require.NoError(t, r.AddToken(1, ente.PushTokenRequest{FCMToken: token, APNSToken: "apns"}))
+	}
+	delivered := 0
+	done := make(chan struct{})
+	c := &PushController{PushRepo: r, fcm: &fcmClient{projectID: "test", httpClient: &http.Client{
+		Timeout: fcmSendTimeout,
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if delivered == 0 {
+				timer := time.NewTimer(6 * time.Second)
+				defer timer.Stop()
+				select {
+				case <-timer.C:
+				case <-req.Context().Done():
+					return nil, req.Context().Err()
+				}
+			}
+			if err := req.Context().Err(); err != nil {
+				return nil, err
+			}
+			delivered++
+			if delivered == 2 {
+				close(done)
+			}
+			return jsonResponse(http.StatusOK, `{}`), nil
+		}),
+	}}}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	go c.NotifyAlbumShare(ctx, []int64{1})
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("both devices should receive a push despite a slow send and a cancelled request")
+	}
 }

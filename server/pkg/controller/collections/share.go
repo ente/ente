@@ -44,7 +44,7 @@ func (c *CollectionController) Share(ctx *gin.Context, req ente.AlterShareReques
 	if err := validateShareRecipient(fromUserID, collection.Owner.ID, toUserID); err != nil {
 		return nil, err
 	}
-	err = c.CollectionRepo.Share(
+	added, err := c.CollectionRepo.Share(
 		req.CollectionID,
 		collection.Owner.ID,
 		toUserID,
@@ -54,6 +54,9 @@ func (c *CollectionController) Share(ctx *gin.Context, req ente.AlterShareReques
 	)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
+	}
+	if added && collection.App == string(ente.Photos) {
+		go c.PushCtrl.NotifyAlbumShare(ctx.Request.Context(), []int64{toUserID})
 	}
 	sharees, err := c.GetSharees(ctx, req.CollectionID, fromUserID)
 	if err != nil {
@@ -104,7 +107,7 @@ func (c *CollectionController) BatchShare(ctx *gin.Context, shares []ente.AlterS
 		})
 	}
 
-	err = c.CollectionRepo.BatchShare(
+	added, err := c.CollectionRepo.BatchShare(
 		ctx.Request.Context(),
 		collection.ID,
 		collection.Owner.ID,
@@ -113,6 +116,9 @@ func (c *CollectionController) BatchShare(ctx *gin.Context, shares []ente.AlterS
 	)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
+	}
+	if len(added) > 0 && collection.App == string(ente.Photos) {
+		go c.PushCtrl.NotifyAlbumShare(ctx.Request.Context(), added)
 	}
 	sharees, err := c.GetSharees(ctx, collection.ID, fromUserID)
 	if err != nil {
@@ -178,9 +184,10 @@ func (c *CollectionController) BulkShare(
 		}
 	}
 
+	notify := false
 	results := make([]ente.BulkCollectionShareResult, 0, len(req.Collections))
 	for _, item := range req.Collections {
-		status, err := c.shareCollectionWithUserID(
+		status, addedShare, err := c.shareCollectionWithUserID(
 			ctx,
 			fromUserID,
 			req.RecipientUserID,
@@ -195,10 +202,14 @@ func (c *CollectionController) BulkShare(
 			}).Warn("bulk collection share failed")
 			status = ente.CollectionShareOperationFailed
 		}
+		notify = notify || (err == nil && addedShare)
 		results = append(results, ente.BulkCollectionShareResult{
 			CollectionID: item.CollectionID,
 			Status:       status,
 		})
+	}
+	if notify {
+		go c.PushCtrl.NotifyAlbumShare(ctx.Request.Context(), []int64{req.RecipientUserID})
 	}
 	return results, nil
 }
@@ -219,19 +230,19 @@ func (c *CollectionController) shareCollectionWithUserID(
 	toUserID int64,
 	source ente.CollectionShareSource,
 	item ente.BulkCollectionShareItem,
-) (ente.CollectionShareStatus, error) {
+) (ente.CollectionShareStatus, bool, error) {
 	if err := validateSealedCollectionKey(item.EncryptedKey); err != nil {
-		return "", err
+		return "", false, err
 	}
 	collection, err := c.collectionForShareMutation(item.CollectionID, fromUserID)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	if source == ente.AutomaticShare && fromUserID != collection.Owner.ID {
-		return "", stacktrace.Propagate(ente.ErrPermissionDenied, "")
+		return "", false, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
 	if !collection.AllowParticipantSharing(item.Role) {
-		return "", stacktrace.Propagate(
+		return "", false, stacktrace.Propagate(
 			ente.ErrBadRequest,
 			"sharing %s as %s is not allowed",
 			collection.Type,
@@ -239,11 +250,11 @@ func (c *CollectionController) shareCollectionWithUserID(
 		)
 	}
 	if err := validateShareRecipient(fromUserID, collection.Owner.ID, toUserID); err != nil {
-		return "", err
+		return "", false, err
 	}
 	updationTime := time.Microseconds()
 	if source == ente.ManualShare {
-		err := c.CollectionRepo.Share(
+		added, err := c.CollectionRepo.Share(
 			item.CollectionID,
 			collection.Owner.ID,
 			toUserID,
@@ -251,9 +262,9 @@ func (c *CollectionController) shareCollectionWithUserID(
 			item.Role,
 			updationTime,
 		)
-		return ente.CollectionShared, err
+		return ente.CollectionShared, added && collection.App == string(ente.Photos), err
 	}
-	return c.CollectionRepo.ShareAutomatically(
+	status, err := c.CollectionRepo.ShareAutomatically(
 		ctx,
 		item.CollectionID,
 		collection.Owner.ID,
@@ -262,6 +273,7 @@ func (c *CollectionController) shareCollectionWithUserID(
 		item.Role,
 		updationTime,
 	)
+	return status, false, err
 }
 
 func (c *CollectionController) collectionForShareMutation(
@@ -361,7 +373,7 @@ func (c *CollectionController) JoinViaLink(ctx *gin.Context, req ente.JoinCollec
 	if collectionLinkToken.EnableCollect {
 		role = ente.COLLABORATOR
 	}
-	joinErr := c.CollectionRepo.Share(req.CollectionID, collection.Owner.ID, userID, req.EncryptedKey, role, time.Microseconds())
+	_, joinErr := c.CollectionRepo.Share(req.CollectionID, collection.Owner.ID, userID, req.EncryptedKey, role, time.Microseconds())
 	if joinErr != nil {
 		return stacktrace.Propagate(joinErr, "")
 	}

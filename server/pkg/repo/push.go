@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/ente/museum/ente"
@@ -16,7 +17,7 @@ type PushTokenRepository struct {
 func (repo *PushTokenRepository) AddToken(userID int64, token ente.PushTokenRequest) error {
 	_, err := repo.DB.Exec(`INSERT INTO push_tokens(user_id, fcm_token, apns_token) VALUES($1, $2, $3) 
 			ON CONFLICT (fcm_token) DO UPDATE
-			SET apns_token = $3`,
+			SET user_id = $1, apns_token = $3`,
 		userID, token.FCMToken, token.APNSToken)
 	return stacktrace.Propagate(err, "")
 }
@@ -64,4 +65,23 @@ func (repo *PushTokenRepository) RemoveTokensForUser(userID int64) error {
 	// periodically pruned).
 	_, err := repo.DB.Exec(`DELETE FROM push_tokens WHERE user_id = $1`, userID)
 	return stacktrace.Propagate(err, "")
+}
+
+func (repo *PushTokenRepository) GetFCMTokensForAlbumShare(ctx context.Context, userIDs []int64) ([]string, error) {
+	rows, err := repo.DB.QueryContext(ctx, `SELECT p.fcm_token FROM push_tokens p
+		JOIN remote_store r ON r.user_id = p.user_id AND r.key_name = $2 AND r.key_value = 'true'
+		WHERE r.user_id = ANY($1) AND p.apns_token <> ''`, pq.Array(userIDs), string(ente.IsInternalUser))
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+	var tokens []string
+	for rows.Next() {
+		var token string
+		if err := rows.Scan(&token); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		tokens = append(tokens, token)
+	}
+	return tokens, stacktrace.Propagate(rows.Err(), "")
 }
