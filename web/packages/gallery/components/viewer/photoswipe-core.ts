@@ -80,6 +80,7 @@ export interface FileViewerPhotoSwipeCoreOptions<
         FileViewerPhotoSwipeAnnotatedFile,
 > {
     initialIndex: number;
+    autoPlayMutedVideos?: boolean;
     showFullscreenButton?: boolean;
     disableEscapeClose?: boolean;
     disableGestureClose?: boolean;
@@ -114,6 +115,7 @@ export class FileViewerPhotoSwipe<
 
     constructor({
         initialIndex,
+        autoPlayMutedVideos = false,
         haveUser,
         isPublicAlbum,
         publicAlbumLogoHTML,
@@ -274,14 +276,18 @@ export class FileViewerPhotoSwipe<
                     const mcID = `ente-mc-hls-${file.id}`;
                     return {
                         ...itemData,
-                        html: hlsVideoHTML(videoPlaylistURL, mcID),
+                        html: hlsVideoHTML(
+                            videoPlaylistURL,
+                            mcID,
+                            autoPlayMutedVideos,
+                        ),
                         mediaControllerID: mcID,
                     };
                 } else if (videoURL) {
                     const mcID = `ente-mc-orig-${file.id}`;
                     return {
                         ...itemData,
-                        html: videoHTML(videoURL, mcID),
+                        html: videoHTML(videoURL, mcID, autoPlayMutedVideos),
                         mediaControllerID: mcID,
                     };
                 }
@@ -1647,15 +1653,23 @@ export class FileViewerPhotoSwipe<
     refreshCurrentSlideCommentCountIfNeeded: () => void;
 }
 
-const hlsVideoHTML = (url: string, mediaControllerID: string) => `
+const hlsVideoHTML = (
+    url: string,
+    mediaControllerID: string,
+    autoPlayMuted: boolean,
+) => `
 <media-controller id="${mediaControllerID}" nohotkeys>
-  <hls-video playsinline slot="media" src="${url}"></hls-video>
+  <hls-video ${autoPlayMuted ? "autoplay muted" : ""} playsinline slot="media" src="${url}"></hls-video>
 </media-controller>
 `;
 
-const videoHTML = (url: string, mediaControllerID: string) => `
+const videoHTML = (
+    url: string,
+    mediaControllerID: string,
+    autoPlayMuted: boolean,
+) => `
 <media-controller class="ente-vanilla-video" id="${mediaControllerID}" nohotkeys>
-  <video playsinline slot="media" src="${url}"></video>
+  <video ${autoPlayMuted ? "autoplay muted" : ""} playsinline slot="media" src="${url}"></video>
 </media-controller>
 `;
 
