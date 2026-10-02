@@ -670,6 +670,13 @@
       ]
     },
     {
+      "title": "Cybersicherheitsportal",
+      "slug": "cybersicherheitsportal",
+      "altNames": [
+        "CSBW"
+      ]
+    },
+    {
       "title": "Daisycon",
       "slug": "daisycon",
       "hex": "9cd137"
