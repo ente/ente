@@ -5,11 +5,14 @@ import 'dart:math' as math;
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:hugeicons/hugeicons.dart';
 import 'package:logging/logging.dart';
 import 'package:pdfx/pdfx.dart' as pdf;
 
 enum _ViewerAction { download, openExternally }
+
+typedef _RenderedPdfPage = ({MemoryImage image, double aspectRatio});
 
 class DocumentViewerPage extends StatefulWidget {
   const DocumentViewerPage({
@@ -38,23 +41,21 @@ class DocumentViewerPage extends StatefulWidget {
 class _DocumentViewerPageState extends State<DocumentViewerPage> {
   static final _logger = Logger('DocumentViewerPage');
   static const _maxImageDimension = 3072;
-  final _scrollController = ScrollController();
   final _transformation = TransformationController();
+  final _pageAspectRatios = <int, double>{};
   pdf.PdfDocument? _document;
   Future<void>? _pendingRender;
   ImageProvider? _image;
-  int _page = 1;
   bool _loading = false;
   bool _failed = false;
-  bool _zoomed = false;
+  final _zoomedPdfPages = <int>{};
 
   @override
   void initState() {
     super.initState();
-    _transformation.addListener(_onZoomChanged);
     if (widget.isPdf) {
       _loading = true;
-      _pendingRender = _renderPage(1);
+      _pendingRender = _openDocument();
     } else {
       _image = ResizeImage(
         FileImage(widget.localFile),
@@ -65,29 +66,31 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     }
   }
 
-  void _showPage(int page) {
-    if (_loading) return;
-    _image?.evict();
-    setState(() {
-      _loading = true;
-      _failed = false;
-      _image = null;
-      _page = page;
-    });
-    _transformation.value = Matrix4.identity();
-    _pendingRender = _renderPage(page);
+  Future<void> _openDocument() async {
+    try {
+      _document = await widget.openPdf(widget.localFile.path);
+      if (mounted) setState(() => _loading = false);
+    } catch (error, stack) {
+      _logger.warning('Failed to open PDF document', error, stack);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _failed = true;
+        });
+      }
+    }
   }
 
-  Future<void> _renderPage(int number) async {
-    try {
-      _document ??= await widget.openPdf(widget.localFile.path);
-      if (!mounted) return;
+  Future<_RenderedPdfPage?> _renderPage(int number, bool Function() isActive) {
+    // Android permits only one open native page per document at a time.
+    final result = _pendingRender!.then<_RenderedPdfPage?>((_) async {
+      if (!mounted || !isActive()) return null;
       final page = await _document!.getPage(number);
-      pdf.PdfPageImage? rendered;
       try {
-        if (!mounted) return;
+        if (!mounted || !isActive()) return null;
+        _pageAspectRatios[number] = page.width / page.height;
         final scale = _maxImageDimension / math.max(page.width, page.height);
-        rendered = await page.render(
+        final rendered = await page.render(
           width: page.width * scale,
           height: page.height * scale,
           format: pdf.PdfPageImageFormat.png,
@@ -96,24 +99,22 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         if (rendered == null) {
           throw StateError('PDF page could not be rendered');
         }
+        if (!mounted || !isActive()) return null;
+        return (
+          image: MemoryImage(rendered.bytes),
+          aspectRatio: page.width / page.height,
+        );
       } finally {
         await page.close();
       }
-      if (!mounted) return;
-      setState(() {
-        _page = number;
-        _image = MemoryImage(rendered!.bytes);
-        _loading = false;
-      });
-    } catch (error, stack) {
-      _logger.warning('Failed to render PDF page', error, stack);
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _failed = true;
-        });
-      }
-    }
+    });
+    _pendingRender = result.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stack) {
+        _logger.warning('Failed to render PDF page', error, stack);
+      },
+    );
+    return result;
   }
 
   Future<void> _closeDocument() async {
@@ -130,29 +131,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   void dispose() {
     unawaited(_closeDocument());
     _image?.evict();
-    _scrollController.dispose();
     _transformation.dispose();
     super.dispose();
-  }
-
-  void _onInteractionUpdate(ScaleUpdateDetails details) {
-    if (details.pointerCount != 1 ||
-        _transformation.value.getMaxScaleOnAxis() > 1.01 ||
-        !_scrollController.hasClients) {
-      return;
-    }
-    final position = _scrollController.position;
-    _scrollController.jumpTo(
-      (position.pixels - details.focalPointDelta.dy).clamp(
-        position.minScrollExtent,
-        position.maxScrollExtent,
-      ),
-    );
-  }
-
-  void _onZoomChanged() {
-    final zoomed = _transformation.value.getMaxScaleOnAxis() > 1.01;
-    if (zoomed != _zoomed) setState(() => _zoomed = zoomed);
   }
 
   @override
@@ -161,10 +141,32 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     final l10n = context.strings;
     return Scaffold(
       backgroundColor: colors.backgroundBase,
-      body: AppBarComponent(
-        title: widget.fileName,
-        controller: _scrollController,
-        physics: _zoomed ? const NeverScrollableScrollPhysics() : null,
+      appBar: AppBar(
+        backgroundColor: colors.backgroundBase,
+        foregroundColor: colors.textBase,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        toolbarHeight: math.max(
+          kToolbarHeight,
+          MediaQuery.textScalerOf(context).scale(20) * 1.4,
+        ),
+        leading: IconButtonComponent(
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01),
+          variant: IconButtonComponentVariant.unfilled,
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onTap: () => Navigator.maybePop(context),
+        ),
+        title: Tooltip(
+          message: widget.fileName,
+          child: Text(
+            widget.fileName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyles.display3.copyWith(color: colors.textBase),
+          ),
+        ),
         actions: [
           if (widget.onShare != null)
             IconButtonComponent(
@@ -205,91 +207,64 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
             ),
           ),
         ],
-        slivers: [
-          SliverLayoutBuilder(
-            builder: (context, constraints) => SliverToBoxAdapter(
-              child: SizedBox(
-                height: constraints.remainingPaintExtent,
-                child: SafeArea(
-                  top: false,
-                  bottom: !widget.isPdf,
-                  child: Padding(
-                    padding: const EdgeInsets.all(Spacing.lg),
-                    child: _loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _failed
-                        ? _buildError(context)
-                        : InteractiveViewer(
-                            transformationController: _transformation,
-                            minScale: 1,
-                            maxScale: 4,
-                            onInteractionUpdate: _onInteractionUpdate,
-                            child: SizedBox.expand(
-                              child: Image(
-                                image: _image!,
-                                fit: BoxFit.contain,
-                                frameBuilder: (_, child, frame, synchronous) =>
-                                    synchronous || frame != null
-                                    ? child
-                                    : const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                errorBuilder: (_, error, stack) =>
-                                    _buildError(context),
-                              ),
-                            ),
-                          ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _failed
+            ? _buildError(context)
+            : widget.isPdf
+            ? Scrollbar(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(Spacing.lg),
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+                  addAutomaticKeepAlives: false,
+                  physics: _zoomedPdfPages.isNotEmpty
+                      ? const NeverScrollableScrollPhysics()
+                      : null,
+                  itemCount: _document!.pagesCount,
+                  itemBuilder: (context, index) => _PdfPageTile(
+                    key: ValueKey(index),
+                    number: index + 1,
+                    total: _document!.pagesCount,
+                    aspectRatio: _pageAspectRatios[index + 1] ?? 3 / 4,
+                    renderPage: _renderPage,
+                    errorBuilder: _buildError,
+                    onZoomChanged: (zoomed) {
+                      if (mounted && _zoomedPdfPages.contains(index) != zoomed) {
+                        setState(() {
+                          if (zoomed) {
+                            _zoomedPdfPages.add(index);
+                          } else {
+                            _zoomedPdfPages.remove(index);
+                          }
+                        });
+                      }
+                    },
+                  ),
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(Spacing.lg),
+                child: InteractiveViewer(
+                  transformationController: _transformation,
+                  minScale: 1,
+                  maxScale: 4,
+                  child: SizedBox.expand(
+                    child: Image(
+                      image: _image!,
+                      fit: BoxFit.contain,
+                      frameBuilder: (_, child, frame, synchronous) =>
+                          synchronous || frame != null
+                          ? child
+                          : const Center(child: CircularProgressIndicator()),
+                      errorBuilder: (_, error, stack) => _buildError(context),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
       ),
-      bottomNavigationBar: widget.isPdf && (_document?.pagesCount ?? 0) > 0
-          ? SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-                child: Row(
-                  children: [
-                    IconButtonComponent(
-                      icon: const HugeIcon(
-                        icon: HugeIcons.strokeRoundedArrowLeft01,
-                      ),
-                      variant: IconButtonComponentVariant.unfilled,
-                      tooltip: l10n.previous,
-                      onTap: !_loading && _page > 1
-                          ? () => _showPage(_page - 1)
-                          : null,
-                    ),
-                    Expanded(
-                      child: Text(
-                        l10n.scanPageOfTotal(
-                          current: _page,
-                          total: _document!.pagesCount,
-                        ),
-                        textAlign: TextAlign.center,
-                        style: TextStyles.mini.copyWith(
-                          color: colors.textLight,
-                        ),
-                      ),
-                    ),
-                    IconButtonComponent(
-                      icon: const HugeIcon(
-                        icon: HugeIcons.strokeRoundedArrowRight01,
-                      ),
-                      variant: IconButtonComponentVariant.unfilled,
-                      tooltip: l10n.next,
-                      onTap: !_loading && _page < _document!.pagesCount
-                          ? () => _showPage(_page + 1)
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : null,
     );
   }
 
@@ -313,5 +288,103 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         ],
       ),
     ),
+  );
+}
+
+class _PdfPageTile extends StatefulWidget {
+  const _PdfPageTile({
+    super.key,
+    required this.number,
+    required this.total,
+    required this.aspectRatio,
+    required this.renderPage,
+    required this.errorBuilder,
+    required this.onZoomChanged,
+  });
+
+  final int number;
+  final int total;
+  final double aspectRatio;
+  final Future<_RenderedPdfPage?> Function(int, bool Function()) renderPage;
+  final WidgetBuilder errorBuilder;
+  final ValueChanged<bool> onZoomChanged;
+
+  @override
+  State<_PdfPageTile> createState() => _PdfPageTileState();
+}
+
+class _PdfPageTileState extends State<_PdfPageTile> {
+  final _transformation = TransformationController();
+  _RenderedPdfPage? _rendered;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformation.addListener(() {
+      widget.onZoomChanged(_transformation.value.getMaxScaleOnAxis() > 1.01);
+    });
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    try {
+      final rendered = await widget.renderPage(widget.number, () => mounted);
+      if (mounted) {
+        setState(() => _rendered = rendered);
+      } else {
+        unawaited(rendered?.image.evict());
+      }
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_transformation.value.getMaxScaleOnAxis() > 1.01) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onZoomChanged(false);
+      });
+    }
+    _rendered?.image.evict();
+    _transformation.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      AspectRatio(
+        aspectRatio: _rendered?.aspectRatio ?? widget.aspectRatio,
+        child: _failed
+            ? widget.errorBuilder(context)
+            : _rendered == null
+            ? const Center(child: CircularProgressIndicator())
+            : InteractiveViewer(
+                transformationController: _transformation,
+                minScale: 1,
+                maxScale: 4,
+                child: Image(
+                  image: _rendered!.image,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stack) =>
+                      widget.errorBuilder(context),
+                ),
+              ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+        child: Text(
+          context.strings.scanPageOfTotal(
+            current: widget.number,
+            total: widget.total,
+          ),
+          style: TextStyles.mini.copyWith(
+            color: context.componentColors.textLight,
+          ),
+        ),
+      ),
+    ],
   );
 }
