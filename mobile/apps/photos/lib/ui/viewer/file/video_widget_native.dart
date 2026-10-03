@@ -8,6 +8,7 @@ import "package:logging/logging.dart";
 import "package:native_video_player/native_video_player.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/events/details_sheet_event.dart";
 import "package:photos/events/guest_view_event.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/events/resume_video_event.dart";
@@ -77,6 +78,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     with WidgetsBindingObserver {
   final Logger _logger = Logger("VideoWidgetNative");
   final _progressNotifier = ValueNotifier<double?>(null);
+  late StreamSubscription<DetailsSheetEvent> detailsSheetEventSubscription;
   late StreamSubscription<PauseVideoEvent> pauseVideoSubscription;
   late StreamSubscription<ResumeVideoEvent> resumeVideoSubscription;
   StreamSubscription<VideoMuteChangedEvent>? _muteSubscription;
@@ -98,6 +100,9 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   StreamSubscription<DownloadTask>? downloadTaskSubscription;
   final _transformationController = TransformationController();
   bool _isZooming = false;
+  Object? _detailsSheetIdentity;
+  bool _isDetailsSheetOpen = false;
+  bool _wasPlayingBeforeDetailsSheet = false;
   OverlayEntry? _longPressSpeedIndicatorEntry;
 
   @override
@@ -128,20 +133,41 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     _seekController.addListener(_syncSeekInteraction);
     WidgetsBinding.instance.addObserver(this);
 
-    if (widget.selectedPreview) {
-      loadPreview();
-    } else {
-      loadOriginal();
-    }
-
     pauseVideoSubscription = Bus.instance.on<PauseVideoEvent>().listen((event) {
       if (event.fileTag != null && event.fileTag != widget.file.tag) return;
       _controller?.pause();
     });
+    detailsSheetEventSubscription = Bus.instance.on<DetailsSheetEvent>().listen(
+      (event) {
+        if (!event.isSameFile(fileIdentity: _detailsSheetIdentity)) {
+          return;
+        }
+        if (event.opened) {
+          if (_isDetailsSheetOpen) return;
+          _wasPlayingBeforeDetailsSheet =
+              _controller?.playbackStatus == PlaybackStatus.playing ||
+              (widget.isActive && !_isPlaybackReady.value);
+          _isDetailsSheetOpen = true;
+          if (widget.isActive) {
+            rememberDetailsSheetResumeIntent(
+              _detailsSheetIdentity!,
+              _wasPlayingBeforeDetailsSheet,
+            );
+          }
+          _controller?.pause();
+        } else {
+          _isDetailsSheetOpen = false;
+          if (_wasPlayingBeforeDetailsSheet && widget.isActive) {
+            _controller?.play();
+          }
+          _wasPlayingBeforeDetailsSheet = false;
+        }
+      },
+    );
     resumeVideoSubscription = Bus.instance.on<ResumeVideoEvent>().listen((
       event,
     ) {
-      if (widget.isActive) _controller?.play();
+      if (widget.isActive && !_isDetailsSheetOpen) _controller?.play();
     });
     if (!widget.isFromMemories) {
       _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
@@ -190,9 +216,34 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_detailsSheetIdentity != null) return;
+    _detailsSheetIdentity = detailsSheetIdentityFor(context, widget.file);
+    final sheetState = detailsSheetPlaybackStateFor(
+      _detailsSheetIdentity!,
+      widget.isActive,
+    );
+    _isDetailsSheetOpen = sheetState.isOpen;
+    _wasPlayingBeforeDetailsSheet = sheetState.shouldResume;
+
+    if (widget.selectedPreview) {
+      loadPreview();
+    } else {
+      loadOriginal();
+    }
+  }
+
+  @override
   void didUpdateWidget(covariant VideoWidgetNative oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive != widget.isActive) {
+      if (widget.isActive && _isDetailsSheetOpen) {
+        _wasPlayingBeforeDetailsSheet = detailsSheetPlaybackStateFor(
+          _detailsSheetIdentity!,
+          true,
+        ).shouldResume;
+      }
       unawaited(_syncPlayback());
     }
     if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {
@@ -304,6 +355,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     }
     _streamSwitchedSubscription?.cancel();
     _guestViewEventSubscription.cancel();
+    detailsSheetEventSubscription.cancel();
     pauseVideoSubscription.cancel();
     resumeVideoSubscription.cancel();
     _muteSubscription?.cancel();
@@ -358,7 +410,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     return Hero(
       tag: widget.tagPrefix! + widget.file.tag,
       child: VisibilityDetector(
-        key: Key(widget.file.generatedID.toString()),
+        key: ObjectKey(this),
         onVisibilityChanged: (info) {
           if (info.visibleFraction == 1) {
             setState(() {
@@ -662,7 +714,9 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     _seekController.reset(duration: _seekController.duration);
     _debouncer.cancelDebounceTimer();
     await _controller?.stop();
-    if (widget.isActive && localSettings.shouldLoopVideo()) {
+    if (widget.isActive &&
+        !_isDetailsSheetOpen &&
+        localSettings.shouldLoopVideo()) {
       Bus.instance.fire(SeekbarTriggeredEvent(position: 0));
       await _controller?.play();
     }
@@ -682,7 +736,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   Future<void> _syncPlayback() async {
     final controller = _controller;
     if (controller == null) return;
-    if (widget.isActive) {
+    if (widget.isActive && !_isDetailsSheetOpen) {
       await controller.play();
     } else {
       await controller.pause();
