@@ -5,7 +5,6 @@ import 'dart:math' as math;
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:hugeicons/hugeicons.dart';
 import 'package:logging/logging.dart';
 import 'package:pdfx/pdfx.dart' as pdf;
@@ -42,18 +41,22 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   static final _logger = Logger('DocumentViewerPage');
   static const _maxImageDimension = 3072;
   final _transformation = TransformationController();
+  final _pdfTransformation = TransformationController();
+  final _pdfPage = ValueNotifier(1);
   final _pageAspectRatios = <int, double>{};
+  List<double> _pdfPageOffsets = [];
+  Size _pdfViewport = Size.zero;
   pdf.PdfDocument? _document;
   Future<void>? _pendingRender;
   ImageProvider? _image;
   bool _loading = false;
   bool _failed = false;
-  final _zoomedPdfPages = <int>{};
 
   @override
   void initState() {
     super.initState();
     if (widget.isPdf) {
+      _pdfTransformation.addListener(_updatePdfPage);
       _loading = true;
       _pendingRender = _openDocument();
     } else {
@@ -69,6 +72,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   Future<void> _openDocument() async {
     try {
       _document = await widget.openPdf(widget.localFile.path);
+      if (_document!.pagesCount < 1) throw StateError('PDF has no pages');
       if (mounted) setState(() => _loading = false);
     } catch (error, stack) {
       _logger.warning('Failed to open PDF document', error, stack);
@@ -88,7 +92,10 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
       final page = await _document!.getPage(number);
       try {
         if (!mounted || !isActive()) return null;
-        _pageAspectRatios[number] = page.width / page.height;
+        final aspectRatio = page.width / page.height;
+        if ((_pageAspectRatios[number] ?? 3 / 4) != aspectRatio) {
+          setState(() => _pageAspectRatios[number] = aspectRatio);
+        }
         final scale = _maxImageDimension / math.max(page.width, page.height);
         final rendered = await page.render(
           width: page.width * scale,
@@ -132,6 +139,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     unawaited(_closeDocument());
     _image?.evict();
     _transformation.dispose();
+    _pdfTransformation.dispose();
+    _pdfPage.dispose();
     super.dispose();
   }
 
@@ -215,36 +224,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
             : _failed
             ? _buildError(context)
             : widget.isPdf
-            ? Scrollbar(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(Spacing.lg),
-                  scrollCacheExtent: const ScrollCacheExtent.pixels(0),
-                  addAutomaticKeepAlives: false,
-                  physics: _zoomedPdfPages.isNotEmpty
-                      ? const NeverScrollableScrollPhysics()
-                      : null,
-                  itemCount: _document!.pagesCount,
-                  itemBuilder: (context, index) => _PdfPageTile(
-                    key: ValueKey(index),
-                    number: index + 1,
-                    total: _document!.pagesCount,
-                    aspectRatio: _pageAspectRatios[index + 1] ?? 3 / 4,
-                    renderPage: _renderPage,
-                    errorBuilder: _buildError,
-                    onZoomChanged: (zoomed) {
-                      if (mounted && _zoomedPdfPages.contains(index) != zoomed) {
-                        setState(() {
-                          if (zoomed) {
-                            _zoomedPdfPages.add(index);
-                          } else {
-                            _zoomedPdfPages.remove(index);
-                          }
-                        });
-                      }
-                    },
-                  ),
-                ),
-              )
+            ? _buildPdf(context)
             : Padding(
                 padding: const EdgeInsets.all(Spacing.lg),
                 child: InteractiveViewer(
@@ -267,6 +247,148 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
       ),
     );
   }
+
+  int _pageAt(double y) {
+    var low = 0;
+    var high = _pdfPageOffsets.length - 2;
+    while (low < high) {
+      final middle = (low + high + 1) ~/ 2;
+      if (_pdfPageOffsets[middle] <= y) {
+        low = middle;
+      } else {
+        high = middle - 1;
+      }
+    }
+    return low;
+  }
+
+  void _updatePdfPage() {
+    if (_pdfPageOffsets.length < 2) return;
+    final center = _pdfTransformation.toScene(
+      Offset(_pdfViewport.width / 2, _pdfViewport.height / 2),
+    );
+    _pdfPage.value = _pageAt(center.dy) + 1;
+  }
+
+  Widget _buildPdf(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      _pdfViewport = constraints.biggest;
+      final width = constraints.maxWidth - Spacing.lg * 2;
+      _pdfPageOffsets = [Spacing.lg];
+      for (var page = 1; page <= _document!.pagesCount; page++) {
+        _pdfPageOffsets.add(
+          _pdfPageOffsets.last +
+              width / (_pageAspectRatios[page] ?? 3 / 4) +
+              Spacing.md,
+        );
+      }
+      final height = math.max(
+        constraints.maxHeight,
+        _pdfPageOffsets.last - Spacing.md + Spacing.lg,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final matrix = _pdfTransformation.value.clone();
+        final scale = matrix.getMaxScaleOnAxis();
+        final translation = matrix.getTranslation();
+        final x = translation.x.clamp(
+          math.min(0.0, constraints.maxWidth * (1 - scale)),
+          0.0,
+        );
+        final y = translation.y.clamp(
+          constraints.maxHeight - height * scale,
+          0.0,
+        );
+        if (x != translation.x || y != translation.y) {
+          matrix.setTranslationRaw(x.toDouble(), y.toDouble(), 0);
+          _pdfTransformation.value = matrix;
+        }
+        _updatePdfPage();
+      });
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          InteractiveViewer.builder(
+            transformationController: _pdfTransformation,
+            alignment: Alignment.topLeft,
+            minScale: 1,
+            maxScale: 4,
+            builder: (context, viewport) {
+              final first = math.max(0, _pageAt(viewport.point0.y) - 1);
+              final last = math.min(
+                _document!.pagesCount - 1,
+                _pageAt(viewport.point2.y) + 1,
+              );
+              return SizedBox(
+                width: constraints.maxWidth,
+                height: height,
+                child: Stack(
+                  children: [
+                    for (var index = first; index <= last; index++)
+                      Positioned(
+                        key: ValueKey(index),
+                        top: _pdfPageOffsets[index],
+                        left: Spacing.lg,
+                        right: Spacing.lg,
+                        height:
+                            _pdfPageOffsets[index + 1] -
+                            _pdfPageOffsets[index] -
+                            Spacing.md,
+                        child: _PdfPageTile(
+                          number: index + 1,
+                          renderPage: _renderPage,
+                          errorBuilder: _buildError,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: Spacing.sm),
+              child: IgnorePointer(
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _pdfPage,
+                  builder: (context, page, _) => Semantics(
+                    label: context.strings.scanPageOfTotal(
+                      current: page,
+                      total: _document!.pagesCount,
+                    ),
+                    child: ExcludeSemantics(
+                      child: Container(
+                        constraints: BoxConstraints(
+                          maxWidth: constraints.maxWidth / 2,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Spacing.md,
+                          vertical: Spacing.sm,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.componentColors.fillDark,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '$page / ${_document!.pagesCount}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyles.mini.copyWith(
+                            color: context.componentColors.textBase,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
 
   Widget _buildError(BuildContext context) => Center(
     child: SingleChildScrollView(
@@ -293,37 +415,26 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
 
 class _PdfPageTile extends StatefulWidget {
   const _PdfPageTile({
-    super.key,
     required this.number,
-    required this.total,
-    required this.aspectRatio,
     required this.renderPage,
     required this.errorBuilder,
-    required this.onZoomChanged,
   });
 
   final int number;
-  final int total;
-  final double aspectRatio;
   final Future<_RenderedPdfPage?> Function(int, bool Function()) renderPage;
   final WidgetBuilder errorBuilder;
-  final ValueChanged<bool> onZoomChanged;
 
   @override
   State<_PdfPageTile> createState() => _PdfPageTileState();
 }
 
 class _PdfPageTileState extends State<_PdfPageTile> {
-  final _transformation = TransformationController();
   _RenderedPdfPage? _rendered;
   bool _failed = false;
 
   @override
   void initState() {
     super.initState();
-    _transformation.addListener(() {
-      widget.onZoomChanged(_transformation.value.getMaxScaleOnAxis() > 1.01);
-    });
     unawaited(_load());
   }
 
@@ -342,49 +453,18 @@ class _PdfPageTileState extends State<_PdfPageTile> {
 
   @override
   void dispose() {
-    if (_transformation.value.getMaxScaleOnAxis() > 1.01) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onZoomChanged(false);
-      });
-    }
     _rendered?.image.evict();
-    _transformation.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      AspectRatio(
-        aspectRatio: _rendered?.aspectRatio ?? widget.aspectRatio,
-        child: _failed
-            ? widget.errorBuilder(context)
-            : _rendered == null
-            ? const Center(child: CircularProgressIndicator())
-            : InteractiveViewer(
-                transformationController: _transformation,
-                minScale: 1,
-                maxScale: 4,
-                child: Image(
-                  image: _rendered!.image,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stack) =>
-                      widget.errorBuilder(context),
-                ),
-              ),
-      ),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
-        child: Text(
-          context.strings.scanPageOfTotal(
-            current: widget.number,
-            total: widget.total,
-          ),
-          style: TextStyles.mini.copyWith(
-            color: context.componentColors.textLight,
-          ),
-        ),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) => _failed
+      ? widget.errorBuilder(context)
+      : _rendered == null
+      ? const Center(child: CircularProgressIndicator())
+      : Image(
+          image: _rendered!.image,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stack) => widget.errorBuilder(context),
+        );
 }
