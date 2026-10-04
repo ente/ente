@@ -77,6 +77,15 @@ class WindowListenerService with WindowListener, TrayListener {
     return Size(w, h);
   }
 
+  // Position in screen pixels (see _pixelRatio), size in logical pixels.
+  Rect? _savedBounds() {
+    final x = _preferences.getDouble('windowX');
+    final y = _preferences.getDouble('windowY');
+    if (x == null || y == null) return null;
+    final size = _savedWindowSize();
+    return Rect.fromLTWH(x, y, size.width, size.height);
+  }
+
   bool getIsMaximized() {
     if (isMenubarMode()) return false;
     return _preferences.getBool('is_maximized') ?? initialIsMaximized;
@@ -87,11 +96,10 @@ class WindowListenerService with WindowListener, TrayListener {
   Future<void> restoreWindowPosition() async {
     _saveBoundsTimer?.cancel();
     try {
-      final x = _preferences.getDouble('windowX');
-      final y = _preferences.getDouble('windowY');
-      if (x == null || y == null) return;
+      final saved = _savedBounds();
+      if (saved == null) return;
       final displays = await screenRetriever.getAllDisplays();
-      final display = _nearestDisplay(Offset(x, y), displays);
+      final display = _nearestDisplay(saved.center, displays);
       if (display == null) return;
       // Keep the whole window on a connected display; one may have been
       // unplugged or had its resolution lowered since the position was saved.
@@ -99,11 +107,17 @@ class WindowListenerService with WindowListener, TrayListener {
       // display with a different DPI, so fit it using that display's scale.
       final area = display.bounds;
       final scale = display.scale;
-      final size = _savedWindowSize() * scale;
+      final size = saved.size * scale;
       final width = min(size.width, area.width);
       final height = min(size.height, area.height);
-      final left = x.clamp(area.left, max(area.left, area.right - width));
-      final top = y.clamp(area.top, max(area.top, area.bottom - height));
+      final left = saved.left.clamp(
+        area.left,
+        max(area.left, area.right - width),
+      );
+      final top = saved.top.clamp(
+        area.top,
+        max(area.top, area.bottom - height),
+      );
       final ratio = _pixelRatio();
       await windowManager.setBounds(
         Rect.fromLTWH(left / ratio, top / ratio, width / scale, height / scale),
@@ -140,12 +154,15 @@ class WindowListenerService with WindowListener, TrayListener {
       final bounds = await windowManager.getBounds();
       // Only the normal-state rect is worth remembering. Checked after reading
       // the rect, so a maximize in between cannot slip a maximized rect through.
-      if (await windowManager.isMaximized() ||
-          await windowManager.isMinimized() ||
+      if (await windowManager.isMinimized() ||
           await windowManager.isFullScreen()) {
         return;
       }
       final ratio = _pixelRatio();
+      if (await windowManager.isMaximized()) {
+        await _followMaximizedDisplay(bounds.center * ratio);
+        return;
+      }
       _pendingBounds = Rect.fromLTWH(
         bounds.left * ratio,
         bounds.top * ratio,
@@ -153,6 +170,29 @@ class WindowListenerService with WindowListener, TrayListener {
         bounds.height,
       );
     } catch (_) {}
+  }
+
+  // Win+Shift+Arrow moves a maximized window to another display without
+  // unmaximizing it. Carry the normal rect along, as Windows does, so the
+  // window reopens maximized on that display.
+  Future<void> _followMaximizedDisplay(Offset center) async {
+    final normal = _pendingBounds ?? _savedBounds();
+    if (normal == null) return;
+    final displays = await screenRetriever.getAllDisplays();
+    final from = _nearestDisplay(normal.center, displays)?.bounds;
+    final target = _nearestDisplay(center, displays);
+    if (from == null || target == null || from == target.bounds) return;
+    // Same offset within the new display's work area, fitted to it in case
+    // that display is smaller.
+    final to = target.bounds;
+    final size = normal.size * target.scale;
+    final moved = normal.shift(to.topLeft - from.topLeft);
+    _pendingBounds = Rect.fromLTWH(
+      max(to.left, min(moved.left, to.right - size.width)),
+      max(to.top, min(moved.top, to.bottom - size.height)),
+      normal.width,
+      normal.height,
+    );
   }
 
   Future<void> _saveWindowBounds() async {
