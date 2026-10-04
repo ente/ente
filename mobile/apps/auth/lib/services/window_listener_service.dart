@@ -10,6 +10,11 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:win32/win32.dart';
 import 'package:window_manager/window_manager.dart';
 
+// A display's visible area in the coordinates positions are saved in (screen
+// pixels on Windows, logical elsewhere) and the scale from its own logical
+// pixels to them.
+typedef _DisplayArea = ({Rect bounds, double scale});
+
 class WindowListenerService with WindowListener, TrayListener {
   static const double initialWindowHeight = 1200.0;
   static const double initialWindowWidth = 800.0;
@@ -24,6 +29,10 @@ class WindowListenerService with WindowListener, TrayListener {
   bool _isOneOffWindowed = false;
   bool _launchMenubarMode = false;
   Timer? _saveBoundsTimer;
+  // The next save's payload: position in screen pixels and size in logical
+  // pixels, captured while the window was in its normal state so that
+  // maximizing or minimizing right after a move cannot discard the move.
+  Rect? _pendingBounds;
 
   bool get isOneOffWindowed => _isOneOffWindowed;
 
@@ -82,15 +91,23 @@ class WindowListenerService with WindowListener, TrayListener {
       final y = _preferences.getDouble('windowY');
       if (x == null || y == null) return;
       final displays = await screenRetriever.getAllDisplays();
-      final area = _nearestDisplayBounds(Offset(x, y), displays);
-      if (area == null) return;
+      final display = _nearestDisplay(Offset(x, y), displays);
+      if (display == null) return;
       // Keep the whole window on a connected display; one may have been
       // unplugged or had its resolution lowered since the position was saved.
+      // Sizes are logical and Windows rescales the window when it lands on a
+      // display with a different DPI, so fit it using that display's scale.
+      final area = display.bounds;
+      final scale = display.scale;
+      final size = _savedWindowSize() * scale;
+      final width = min(size.width, area.width);
+      final height = min(size.height, area.height);
+      final left = x.clamp(area.left, max(area.left, area.right - width));
+      final top = y.clamp(area.top, max(area.top, area.bottom - height));
       final ratio = _pixelRatio();
-      final size = _savedWindowSize() * ratio;
-      final left = x.clamp(area.left, max(area.left, area.right - size.width));
-      final top = y.clamp(area.top, max(area.top, area.bottom - size.height));
-      await windowManager.setPosition(Offset(left / ratio, top / ratio));
+      await windowManager.setBounds(
+        Rect.fromLTWH(left / ratio, top / ratio, width / scale, height / scale),
+      );
     } catch (_) {}
   }
 
@@ -105,30 +122,49 @@ class WindowListenerService with WindowListener, TrayListener {
   @override
   void onWindowMoved() => _scheduleSaveWindowBounds();
 
-  // Drags emit an event per frame; save once the window settles.
+  // Drags emit an event per frame; write the preferences once the window
+  // settles. Windows only emits these events during interactive drags, so the
+  // rect can be captured right away there. macOS and Linux also emit them
+  // while maximizing, so there the rect is read only once the window settles.
   void _scheduleSaveWindowBounds() {
+    if (Platform.isWindows) unawaited(_captureWindowBounds());
     _saveBoundsTimer?.cancel();
     _saveBoundsTimer = Timer(const Duration(milliseconds: 500), () {
       unawaited(_saveWindowBounds());
     });
   }
 
-  Future<void> _saveWindowBounds() async {
-    _saveBoundsTimer?.cancel();
+  Future<void> _captureWindowBounds() async {
     if (isMenubarMode() && !_isOneOffWindowed) return;
     try {
-      // Only the normal-state rect is worth remembering.
+      final bounds = await windowManager.getBounds();
+      // Only the normal-state rect is worth remembering. Checked after reading
+      // the rect, so a maximize in between cannot slip a maximized rect through.
       if (await windowManager.isMaximized() ||
           await windowManager.isMinimized() ||
           await windowManager.isFullScreen()) {
         return;
       }
-      final bounds = await windowManager.getBounds();
       final ratio = _pixelRatio();
+      _pendingBounds = Rect.fromLTWH(
+        bounds.left * ratio,
+        bounds.top * ratio,
+        bounds.width,
+        bounds.height,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _saveWindowBounds() async {
+    _saveBoundsTimer?.cancel();
+    await _captureWindowBounds();
+    final bounds = _pendingBounds;
+    if (bounds == null) return;
+    try {
       await _preferences.setDouble('windowWidth', bounds.width);
       await _preferences.setDouble('windowHeight', bounds.height);
-      await _preferences.setDouble('windowX', bounds.left * ratio);
-      await _preferences.setDouble('windowY', bounds.top * ratio);
+      await _preferences.setDouble('windowX', bounds.left);
+      await _preferences.setDouble('windowY', bounds.top);
     } catch (_) {}
   }
 
@@ -193,11 +229,11 @@ class WindowListenerService with WindowListener, TrayListener {
     final tray = await trayManager.getBounds();
     final anchor = cursor ?? tray?.center;
     if (anchor != null) {
-      final displayBounds = _nearestDisplayBounds(anchor, displays);
+      final displayBounds = _nearestDisplay(anchor, displays)?.bounds;
       final trayOnSameDisplay =
           tray != null &&
           displayBounds != null &&
-          _nearestDisplayBounds(tray.center, displays) == displayBounds;
+          _nearestDisplay(tray.center, displays)?.bounds == displayBounds;
       double x = (trayOnSameDisplay ? tray.center.dx : anchor.dx) - w / 2;
       final double y = trayOnSameDisplay
           ? tray.bottom + 4
@@ -230,8 +266,8 @@ class WindowListenerService with WindowListener, TrayListener {
   // visible rect excludes the menu bar and Dock strips, so a menubar click
   // is slightly outside every rect; nearest-rect matching absorbs that
   // without needing the exact strip sizes.
-  Rect? _nearestDisplayBounds(Offset point, List<Display> displays) {
-    Rect? best;
+  _DisplayArea? _nearestDisplay(Offset point, List<Display> displays) {
+    _DisplayArea? best;
     double bestDistance = double.infinity;
     for (final display in displays) {
       final position = display.visiblePosition;
@@ -239,7 +275,9 @@ class WindowListenerService with WindowListener, TrayListener {
       if (position == null) continue;
       // Windows reports each display in its own DPI; macOS and Linux already
       // report global logical coordinates.
-      final scale = Platform.isWindows ? (display.scaleFactor ?? 1) : 1;
+      final scale = Platform.isWindows
+          ? (display.scaleFactor ?? 1).toDouble()
+          : 1.0;
       final bounds = Rect.fromLTWH(
         position.dx * scale,
         position.dy * scale,
@@ -255,7 +293,7 @@ class WindowListenerService with WindowListener, TrayListener {
       final distance = dx * dx + dy * dy;
       if (distance < bestDistance) {
         bestDistance = distance;
-        best = bounds;
+        best = (bounds: bounds, scale: scale);
       }
     }
     return best;
