@@ -318,10 +318,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         math.min(0.0, constraints.maxWidth * (1 - scale)),
         0.0,
       );
-      final y = (translation.y - anchorShift * scale).clamp(
-        constraints.maxHeight - height * scale,
-        0.0,
-      );
+      final y = (translation.y == 0 ? 0.0 : translation.y - anchorShift * scale)
+          .clamp(constraints.maxHeight - height * scale, 0.0);
       if (x != translation.x || y != translation.y) {
         matrix.setTranslationRaw(x.toDouble(), y.toDouble(), 0);
         _pdfTransformation.value = matrix;
