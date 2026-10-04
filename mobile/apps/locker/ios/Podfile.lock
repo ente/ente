@@ -64,6 +64,9 @@ PODS:
     - Flutter
   - package_info_plus (0.4.5):
     - Flutter
+  - pdfx (1.0.0):
+    - Flutter
+    - FlutterMacOS
   - rive_native (0.0.1):
     - Flutter
   - SDWebImage (5.21.5):
@@ -134,6 +137,7 @@ DEPENDENCIES:
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
   - open_file_ios (from `.symlinks/plugins/open_file_ios/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
+  - pdfx (from `.symlinks/plugins/pdfx/darwin`)
   - rive_native (from `.symlinks/plugins/rive_native/ios`)
   - sentry_flutter (from `.symlinks/plugins/sentry_flutter/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
@@ -188,6 +192,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/open_file_ios/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
+  pdfx:
+    :path: ".symlinks/plugins/pdfx/darwin"
   rive_native:
     :path: ".symlinks/plugins/rive_native/ios"
   sentry_flutter:
@@ -227,6 +233,7 @@ SPEC CHECKSUMS:
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
   open_file_ios: 46184d802ee7959203f6392abcfa0dd49fdb5be0
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
+  pdfx: 0e2c594a0400d6ef30f6d7ed08147b32c9cf848d
   rive_native: a57df296c558867395bfe82fafe857ec67640f58
   SDWebImage: e9c98383c7572d713c1a0d7dd2783b10599b9838
   Sentry: 2cbbe3592f30050c60e916c63c7f5a2fa584005e

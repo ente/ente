@@ -52,6 +52,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   ImageProvider? _image;
   bool _loading = false;
   bool _failed = false;
+  Completer<void>? _pdfInteraction;
+  int _pdfLayoutRevision = 0;
 
   @override
   void initState() {
@@ -114,7 +116,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         }
         if (!mounted || !isActive()) return null;
         if ((_pageAspectRatios[number] ?? 3 / 4) != aspectRatio) {
-          setState(() => _pageAspectRatios[number] = aspectRatio);
+          unawaited(_updatePdfAspectRatio(number, aspectRatio));
         }
         return (image: MemoryImage(rendered.bytes), aspectRatio: aspectRatio);
       } finally {
@@ -130,6 +132,17 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     return result;
   }
 
+  Future<void> _updatePdfAspectRatio(int number, double aspectRatio) async {
+    while (_pdfInteraction != null) {
+      await _pdfInteraction!.future;
+    }
+    if (!mounted || _pageAspectRatios[number] == aspectRatio) return;
+    setState(() {
+      _pageAspectRatios[number] = aspectRatio;
+      _pdfLayoutRevision++;
+    });
+  }
+
   Future<void> _closeDocument() async {
     try {
       // Native pages must finish rendering and close before their document.
@@ -142,6 +155,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
 
   @override
   void dispose() {
+    _pdfInteraction?.complete();
+    _pdfInteraction = null;
     unawaited(_closeDocument());
     _image?.evict();
     _transformation.dispose();
@@ -329,10 +344,17 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         fit: StackFit.expand,
         children: [
           InteractiveViewer.builder(
+            // Reflow invalidates the old gesture and inertia coordinates.
+            key: ValueKey('pdf-layout-$_pdfLayoutRevision'),
             transformationController: _pdfTransformation,
             alignment: Alignment.topLeft,
             minScale: 1,
             maxScale: 4,
+            onInteractionStart: (_) => _pdfInteraction ??= Completer<void>(),
+            onInteractionEnd: (_) {
+              _pdfInteraction?.complete();
+              _pdfInteraction = null;
+            },
             builder: (context, viewport) {
               final first = math.max(0, _pageAt(viewport.point0.y) - 1);
               final last = math.min(
