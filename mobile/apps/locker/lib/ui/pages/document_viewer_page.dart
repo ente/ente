@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
@@ -92,10 +93,6 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
       final page = await _document!.getPage(number);
       try {
         if (!mounted || !isActive()) return null;
-        final aspectRatio = page.width / page.height;
-        if ((_pageAspectRatios[number] ?? 3 / 4) != aspectRatio) {
-          setState(() => _pageAspectRatios[number] = aspectRatio);
-        }
         final scale = _maxImageDimension / math.max(page.width, page.height);
         final rendered = await page.render(
           width: page.width * scale,
@@ -106,11 +103,20 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         if (rendered == null) {
           throw StateError('PDF page could not be rendered');
         }
+        final buffer = await ui.ImmutableBuffer.fromUint8List(rendered.bytes);
+        late double aspectRatio;
+        try {
+          final descriptor = await ui.ImageDescriptor.encoded(buffer);
+          aspectRatio = descriptor.width / descriptor.height;
+          descriptor.dispose();
+        } finally {
+          buffer.dispose();
+        }
         if (!mounted || !isActive()) return null;
-        return (
-          image: MemoryImage(rendered.bytes),
-          aspectRatio: page.width / page.height,
-        );
+        if ((_pageAspectRatios[number] ?? 3 / 4) != aspectRatio) {
+          setState(() => _pageAspectRatios[number] = aspectRatio);
+        }
+        return (image: MemoryImage(rendered.bytes), aspectRatio: aspectRatio);
       } finally {
         await page.close();
       }
@@ -272,6 +278,17 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
 
   Widget _buildPdf(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
+      // Keep the same point on the visible page when lazy page sizes change.
+      final anchor = _pdfTransformation.toScene(
+        _pdfViewport.center(Offset.zero),
+      );
+      final anchorPage = _pageAt(anchor.dy);
+      final anchorFraction = _pdfPageOffsets.isEmpty
+          ? null
+          : (anchor.dy - _pdfPageOffsets[anchorPage]) /
+                (_pdfPageOffsets[anchorPage + 1] -
+                    _pdfPageOffsets[anchorPage] -
+                    Spacing.md);
       _pdfViewport = constraints.biggest;
       final width = constraints.maxWidth - Spacing.lg * 2;
       _pdfPageOffsets = [Spacing.lg];
@@ -286,25 +303,30 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         constraints.maxHeight,
         _pdfPageOffsets.last - Spacing.md + Spacing.lg,
       );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final matrix = _pdfTransformation.value.clone();
-        final scale = matrix.getMaxScaleOnAxis();
-        final translation = matrix.getTranslation();
-        final x = translation.x.clamp(
-          math.min(0.0, constraints.maxWidth * (1 - scale)),
-          0.0,
-        );
-        final y = translation.y.clamp(
-          constraints.maxHeight - height * scale,
-          0.0,
-        );
-        if (x != translation.x || y != translation.y) {
-          matrix.setTranslationRaw(x.toDouble(), y.toDouble(), 0);
-          _pdfTransformation.value = matrix;
-        }
-        _updatePdfPage();
-      });
+      final anchorShift = anchorFraction == null
+          ? 0.0
+          : _pdfPageOffsets[anchorPage] +
+                anchorFraction *
+                    (_pdfPageOffsets[anchorPage + 1] -
+                        _pdfPageOffsets[anchorPage] -
+                        Spacing.md) -
+                anchor.dy;
+      final matrix = _pdfTransformation.value.clone();
+      final scale = matrix.getMaxScaleOnAxis();
+      final translation = matrix.getTranslation();
+      final x = translation.x.clamp(
+        math.min(0.0, constraints.maxWidth * (1 - scale)),
+        0.0,
+      );
+      final y = (translation.y - anchorShift * scale).clamp(
+        constraints.maxHeight - height * scale,
+        0.0,
+      );
+      if (x != translation.x || y != translation.y) {
+        matrix.setTranslationRaw(x.toDouble(), y.toDouble(), 0);
+        _pdfTransformation.value = matrix;
+      }
+      _updatePdfPage();
       return Stack(
         fit: StackFit.expand,
         children: [
