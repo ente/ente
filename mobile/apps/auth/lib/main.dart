@@ -114,6 +114,7 @@ void main() async {
       );
       bool isMaximized = WindowListenerService.instance.getIsMaximized();
       await windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await WindowListenerService.instance.restoreWindowPosition();
         await auth_dir_utils.DirectoryUtils.migrateNamingChanges();
         await windowManager.show();
         if (isMaximized) {

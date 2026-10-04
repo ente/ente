@@ -1,0 +1,1 @@
+- Remember the desktop window position when reopening the app.

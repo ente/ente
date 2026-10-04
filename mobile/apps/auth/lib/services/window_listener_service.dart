@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:ente_auth/services/preference_service.dart';
 import 'package:flutter/widgets.dart';
@@ -22,6 +23,7 @@ class WindowListenerService with WindowListener, TrayListener {
   bool _isQuitting = false;
   bool _isOneOffWindowed = false;
   bool _launchMenubarMode = false;
+  Timer? _saveBoundsTimer;
 
   bool get isOneOffWindowed => _isOneOffWindowed;
 
@@ -71,18 +73,71 @@ class WindowListenerService with WindowListener, TrayListener {
     return _preferences.getBool('is_maximized') ?? initialIsMaximized;
   }
 
-  @override
-  void onWindowResize() {
-    if (isMenubarMode() && !_isOneOffWindowed) return;
-    unawaited(_saveWindowSize());
+  /// Moves the window back to where it was last closed. Runs before the window
+  /// is shown, so the default position never flashes.
+  Future<void> restoreWindowPosition() async {
+    _saveBoundsTimer?.cancel();
+    try {
+      final x = _preferences.getDouble('windowX');
+      final y = _preferences.getDouble('windowY');
+      if (x == null || y == null) return;
+      final displays = await screenRetriever.getAllDisplays();
+      final area = _nearestDisplayBounds(Offset(x, y), displays);
+      if (area == null) return;
+      // Keep the whole window on a connected display; one may have been
+      // unplugged or had its resolution lowered since the position was saved.
+      final ratio = _pixelRatio();
+      final size = _savedWindowSize() * ratio;
+      final left = x.clamp(area.left, max(area.left, area.right - size.width));
+      final top = y.clamp(area.top, max(area.top, area.bottom - size.height));
+      await windowManager.setPosition(Offset(left / ratio, top / ratio));
+    } catch (_) {}
   }
 
-  Future<void> _saveWindowSize() async {
-    final width = (await windowManager.getSize()).width;
-    final height = (await windowManager.getSize()).height;
-    await _preferences.setDouble('windowWidth', width);
-    await _preferences.setDouble('windowHeight', height);
+  @override
+  void onWindowResize() => _scheduleSaveWindowBounds();
+
+  @override
+  void onWindowMove() => _scheduleSaveWindowBounds();
+
+  // macOS reports drags through onWindowMoved; Windows and Linux through
+  // onWindowMove.
+  @override
+  void onWindowMoved() => _scheduleSaveWindowBounds();
+
+  // Drags emit an event per frame; save once the window settles.
+  void _scheduleSaveWindowBounds() {
+    _saveBoundsTimer?.cancel();
+    _saveBoundsTimer = Timer(const Duration(milliseconds: 500), () {
+      unawaited(_saveWindowBounds());
+    });
   }
+
+  Future<void> _saveWindowBounds() async {
+    _saveBoundsTimer?.cancel();
+    if (isMenubarMode() && !_isOneOffWindowed) return;
+    try {
+      // Only the normal-state rect is worth remembering.
+      if (await windowManager.isMaximized() ||
+          await windowManager.isMinimized() ||
+          await windowManager.isFullScreen()) {
+        return;
+      }
+      final bounds = await windowManager.getBounds();
+      final ratio = _pixelRatio();
+      await _preferences.setDouble('windowWidth', bounds.width);
+      await _preferences.setDouble('windowHeight', bounds.height);
+      await _preferences.setDouble('windowX', bounds.left * ratio);
+      await _preferences.setDouble('windowY', bounds.top * ratio);
+    } catch (_) {}
+  }
+
+  // window_manager maps Windows coordinates through the pixel ratio of the
+  // display the window is currently on, so positions are stored in screen
+  // pixels to stay comparable across launches and displays. macOS and Linux
+  // already use one global logical coordinate space.
+  double _pixelRatio() =>
+      Platform.isWindows ? windowManager.getDevicePixelRatio() : 1.0;
 
   @override
   void onWindowMaximize() {
@@ -182,11 +237,14 @@ class WindowListenerService with WindowListener, TrayListener {
       final position = display.visiblePosition;
       final size = display.visibleSize ?? display.size;
       if (position == null) continue;
+      // Windows reports each display in its own DPI; macOS and Linux already
+      // report global logical coordinates.
+      final scale = Platform.isWindows ? (display.scaleFactor ?? 1) : 1;
       final bounds = Rect.fromLTWH(
-        position.dx,
-        position.dy,
-        size.width,
-        size.height,
+        position.dx * scale,
+        position.dy * scale,
+        size.width * scale,
+        size.height * scale,
       );
       final dx = point.dx < bounds.left
           ? bounds.left - point.dx
@@ -259,6 +317,7 @@ class WindowListenerService with WindowListener, TrayListener {
   }
 
   Future<void> _hideWindow() async {
+    await _saveWindowBounds();
     await windowManager.hide();
     if (isMenubarMode()) {
       if (_isOneOffWindowed) {
@@ -320,6 +379,7 @@ class WindowListenerService with WindowListener, TrayListener {
   Future<void> _quitApp() async {
     if (_isQuitting) return;
     _isQuitting = true;
+    await _saveWindowBounds();
 
     if (Platform.isWindows) {
       final int hProcess = GetCurrentProcess();
