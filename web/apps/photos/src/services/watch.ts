@@ -243,6 +243,12 @@ class FolderWatcher {
                 return;
             }
 
+            // A user upload can start while the watches are being read.
+            if (this.isUploaderBusy()) {
+                this.triggerSyncWithDisk();
+                return;
+            }
+
             this.activeWatch = watch;
             this.uploadRunning = true;
 

@@ -10,11 +10,15 @@ const { electron, state, uploadManager, watch } = vi.hoisted(() => {
     };
     const state: {
         files: string[];
+        onGetWatches?: () => void;
         onAddFile?: (path: string, w: FolderWatch) => void;
     } = { files: [] };
     const electron = {
         watch: {
-            get: () => Promise.resolve([watch]),
+            get: () => {
+                state.onGetWatches?.();
+                return Promise.resolve([watch]);
+            },
             onAddFile: (f: (path: string, w: FolderWatch) => void) =>
                 (state.onAddFile = f),
             onRemoveFile: () => undefined,
@@ -44,6 +48,7 @@ vi.mock("../src/services/upload-manager", () => ({ uploadManager }));
 beforeEach(() => {
     vi.useFakeTimers();
     state.files = [];
+    state.onGetWatches = undefined;
     uploadManager.isUploadRunning.mockReturnValue(false);
 });
 
@@ -92,6 +97,28 @@ test("folder watch waits for uploads started outside the upload dialog", async (
     expect(upload).not.toHaveBeenCalled();
 
     uploadManager.isUploadRunning.mockReturnValue(false);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(upload).toHaveBeenCalledExactlyOnceWith("watched", [
+        "/photos/watched/a.jpg",
+    ]);
+});
+
+test("folder watch rechecks the uploader after reading the watches", async () => {
+    let isUploadInProgress = false;
+    const { upload } = await initWatcher(() => isUploadInProgress);
+
+    // A user upload starts while the watcher reads the watches.
+    state.onGetWatches = () => {
+        isUploadInProgress = true;
+        state.onGetWatches = undefined;
+    };
+    addFile("/photos/watched/a.jpg");
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(upload).not.toHaveBeenCalled();
+
+    isUploadInProgress = false;
     await vi.advanceTimersByTimeAsync(2000);
 
     expect(upload).toHaveBeenCalledExactlyOnceWith("watched", [
