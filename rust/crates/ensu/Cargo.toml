@@ -28,7 +28,7 @@ tempfile.workspace = true
 # macOS disables OpenMP because Apple's clang lacks libomp. llama.cpp uses its
 # own thread pool, Accelerate, and Metal on arm64 instead.
 [target.'cfg(target_os = "macos")'.dependencies]
-llama-cpp-2 = { version = "=0.1.144", default-features = false, features = ["mtmd"] }
+llama-cpp-2 = { version = "=0.1.156", default-features = false, features = ["mtmd"] }
 
 # Linux Vulkan needs a system Vulkan loader and glslc.
 [target.'cfg(target_os = "linux")'.dependencies]
