@@ -60,11 +60,13 @@
         "base-x": "5.0.1"
     },
     "devDependencies": {
+        "@typescript-eslint/parser": "8.61.0",
         "concurrently": "10.0.5",
         "eslint": "10.11.0",
         "knip": "6.31.0",
         "prettier": "3.8.3",
-        "typescript": "6.0.3"
+        "typescript": "6.0.3",
+        "typescript-eslint": "8.61.0"
     },
     "packageManager": "npm@11.12.1"
 }
