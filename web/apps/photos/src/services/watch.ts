@@ -76,6 +76,11 @@ class FolderWatcher {
         return this.isPaused;
     }
 
+    // Uploads share one uploader, so wait for the current one to finish.
+    private isUploaderBusy() {
+        return this.isUploadInProgress!() || uploadManager.isUploadRunning();
+    }
+
     pauseRunningSync() {
         // User uploads share this uploader with folder watch.
         this.isPaused = true;
@@ -202,11 +207,7 @@ class FolderWatcher {
         if (this.eventQueue.length == 0 || this.activeWatch || this.isPaused)
             return;
 
-        // Uploads share one uploader, so wait for the current one to finish.
-        if (
-            this.eventQueue[0]?.action == "upload" &&
-            this.isUploadInProgress!()
-        ) {
+        if (this.eventQueue[0]?.action == "upload" && this.isUploaderBusy()) {
             this.debouncedRunNextEvent();
             return;
         }

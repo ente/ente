@@ -1,28 +1,32 @@
 import type { FolderWatch } from "ente-base/types/ipc";
-import { afterEach, expect, test, vi } from "vitest";
-import watcher from "../src/services/watch";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-const { electron, watch } = vi.hoisted(() => {
+const { electron, state, uploadManager, watch } = vi.hoisted(() => {
     const watch: FolderWatch = {
         collectionMapping: "root",
         folderPath: "/photos/watched",
         syncedFiles: [],
         ignoredFiles: [],
     };
-    const listeners: { onAddFile?: (path: string, w: FolderWatch) => void } =
-        {};
+    const state: {
+        files: string[];
+        onAddFile?: (path: string, w: FolderWatch) => void;
+    } = { files: [] };
     const electron = {
-        listeners,
         watch: {
             get: () => Promise.resolve([watch]),
             onAddFile: (f: (path: string, w: FolderWatch) => void) =>
-                (listeners.onAddFile = f),
+                (state.onAddFile = f),
             onRemoveFile: () => undefined,
             onRemoveDir: () => undefined,
         },
-        fs: { findFiles: () => Promise.resolve([]) },
+        fs: { findFiles: () => Promise.resolve([...state.files]) },
     };
-    return { electron, watch };
+    const uploadManager = {
+        isUploadRunning: vi.fn(() => false),
+        cancelRunningUpload: vi.fn(),
+    };
+    return { electron, state, uploadManager, watch };
 });
 
 vi.mock("ente-base/electron", () => ({ ensureElectron: () => electron }));
@@ -35,20 +39,35 @@ vi.mock("ente-new/photos/services/collection", () => ({
 vi.mock("ente-new/photos/services/file", () => ({
     computeAllCollectionFilesFromSaved: vi.fn(),
 }));
-vi.mock("../src/services/upload-manager", () => ({
-    uploadManager: { cancelRunningUpload: vi.fn() },
-}));
+vi.mock("../src/services/upload-manager", () => ({ uploadManager }));
+
+beforeEach(() => {
+    vi.useFakeTimers();
+    state.files = [];
+    uploadManager.isUploadRunning.mockReturnValue(false);
+});
 
 afterEach(() => vi.useRealTimers());
 
-test("folder watch waits for an upload already in progress", async () => {
-    vi.useFakeTimers();
-    let isUploadInProgress = true;
+const initWatcher = async (isUploadInProgress: () => boolean) => {
+    vi.resetModules();
+    const { default: watcher } = await import("../src/services/watch");
     const upload = vi.fn();
-    watcher.init(upload, vi.fn(), () => isUploadInProgress);
+    watcher.init(upload, vi.fn(), isUploadInProgress);
     await vi.advanceTimersByTimeAsync(2000);
+    return { watcher, upload };
+};
 
-    electron.listeners.onAddFile!("/photos/watched/a.jpg", watch);
+const addFile = (path: string) => {
+    state.files.push(path);
+    state.onAddFile!(path, watch);
+};
+
+test("folder watch waits for an upload already in progress", async () => {
+    let isUploadInProgress = true;
+    const { watcher, upload } = await initWatcher(() => isUploadInProgress);
+
+    addFile("/photos/watched/a.jpg");
     await vi.advanceTimersByTimeAsync(5000);
 
     expect(upload).not.toHaveBeenCalled();
@@ -61,4 +80,21 @@ test("folder watch waits for an upload already in progress", async () => {
         "/photos/watched/a.jpg",
     ]);
     expect(watcher.isUploadRunning()).toBe(true);
+});
+
+test("folder watch waits for uploads started outside the upload dialog", async () => {
+    uploadManager.isUploadRunning.mockReturnValue(true);
+    const { upload } = await initWatcher(() => false);
+
+    addFile("/photos/watched/a.jpg");
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(upload).not.toHaveBeenCalled();
+
+    uploadManager.isUploadRunning.mockReturnValue(false);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(upload).toHaveBeenCalledExactlyOnceWith("watched", [
+        "/photos/watched/a.jpg",
+    ]);
 });
