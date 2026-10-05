@@ -6,9 +6,9 @@
         "test": "vitest --run"
     },
     "dependencies": {
-        "@fontsource-variable/outfit": "5.2.8",
-        "@hugeicons/core-free-icons": "1.2.1",
-        "@hugeicons/react": "1.1.6",
+        "@fontsource-variable/outfit": "5.3.0",
+        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/react": "1.1.10",
         "ente-accounts": "*",
         "ente-base": "*",
         "ente-contacts": "*",
@@ -16,6 +16,6 @@
     },
     "devDependencies": {
         "ente-build-config": "*",
-        "vitest": "4.1.11"
+        "vitest": "5.0.2"
     }
 }
