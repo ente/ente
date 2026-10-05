@@ -1,4 +1,3 @@
-const path = require("path");
 const baseConfig = require("ente-base/next.config.base.js");
 
 module.exports = {
@@ -14,14 +13,8 @@ module.exports = {
         });
         nextConfig.resolve.alias = {
             ...(nextConfig.resolve.alias || {}),
-            "qr-raw/decode.js": path.resolve(
-                __dirname,
-                "../../node_modules/qr/decode.js",
-            ),
-            "qr-raw/index.js": path.resolve(
-                __dirname,
-                "../../node_modules/qr/index.js",
-            ),
+            "qr-raw/decode.js": require.resolve("qr/decode.js"),
+            "qr-raw/index.js": require.resolve("qr"),
         };
 
         return nextConfig;
