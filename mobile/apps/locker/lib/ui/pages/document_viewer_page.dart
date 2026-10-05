@@ -43,6 +43,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   static const _maxImageDimension = 3072;
   final _transformation = TransformationController();
   final _pdfTransformation = TransformationController();
+  final _pdfContentKey = GlobalKey();
   final _pdfPage = ValueNotifier(1);
   final _pageAspectRatios = <int, double>{};
   List<double> _pdfPageOffsets = [];
@@ -54,6 +55,55 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   bool _failed = false;
   Completer<void>? _pdfInteraction;
   int _pdfLayoutRevision = 0;
+  bool _toolbarVisible = true;
+
+  double get _toolbarHeight => math.max(
+    kToolbarHeight,
+    MediaQuery.textScalerOf(context).scale(20) * 1.4,
+  );
+
+  void _setToolbarVisible(bool visible) {
+    if (_toolbarVisible == visible ||
+        _loading ||
+        _failed ||
+        MediaQuery.accessibleNavigationOf(context)) {
+      return;
+    }
+    setState(() => _toolbarVisible = visible);
+  }
+
+  void _onZoom(ScaleUpdateDetails details) {
+    if (details.pointerCount > 1 && (details.scale - 1).abs() > 0.01) {
+      _setToolbarVisible(false);
+    }
+  }
+
+  PreferredSizeWidget _overlayToolbar(AppBar toolbar) {
+    final visible =
+        _toolbarVisible ||
+        _loading ||
+        _failed ||
+        MediaQuery.accessibleNavigationOf(context);
+    return PreferredSize(
+      preferredSize: toolbar.preferredSize,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: ExcludeFocus(
+          excluding: !visible,
+          child: ExcludeSemantics(
+            excluding: !visible,
+            child: AnimatedOpacity(
+              opacity: visible ? 1 : 0,
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              child: toolbar,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -171,100 +221,117 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     final l10n = context.strings;
     return Scaffold(
       backgroundColor: colors.backgroundBase,
-      appBar: AppBar(
-        backgroundColor: colors.backgroundBase,
-        foregroundColor: colors.textBase,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        toolbarHeight: math.max(
-          kToolbarHeight,
-          MediaQuery.textScalerOf(context).scale(20) * 1.4,
-        ),
-        leading: IconButtonComponent(
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01),
-          variant: IconButtonComponentVariant.unfilled,
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          onTap: () => Navigator.maybePop(context),
-        ),
-        title: Tooltip(
-          message: widget.fileName,
-          child: Text(
-            widget.fileName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyles.display3.copyWith(color: colors.textBase),
+      extendBodyBehindAppBar: true,
+      appBar: _overlayToolbar(
+        AppBar(
+          backgroundColor: colors.backgroundBase,
+          foregroundColor: colors.textBase,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: false,
+          toolbarHeight: _toolbarHeight,
+          leading: IconButtonComponent(
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01),
+            variant: IconButtonComponentVariant.unfilled,
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onTap: () => Navigator.maybePop(context),
           ),
-        ),
-        actions: [
-          if (widget.onShare != null)
-            IconButtonComponent(
-              icon: const HugeIcon(icon: HugeIcons.strokeRoundedShare08),
-              variant: IconButtonComponentVariant.unfilled,
-              tooltip: l10n.shareLink,
-              onTap: () => widget.onShare!(context),
+          title: Tooltip(
+            message: widget.fileName,
+            child: Text(
+              widget.fileName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyles.display3.copyWith(color: colors.textBase),
             ),
-          Builder(
-            builder: (buttonContext) => IconButtonComponent(
-              icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical),
-              variant: IconButtonComponentVariant.unfilled,
-              tooltip: l10n.more,
-              shouldSurfaceExecutionStates: false,
-              onTap: () async {
-                final action = await showEntePopupMenu<_ViewerAction>(
-                  context: buttonContext,
-                  options: [
-                    if (widget.onDownload != null)
+          ),
+          actions: [
+            if (widget.onShare != null)
+              IconButtonComponent(
+                icon: const HugeIcon(icon: HugeIcons.strokeRoundedShare08),
+                variant: IconButtonComponentVariant.unfilled,
+                tooltip: l10n.shareLink,
+                onTap: () => widget.onShare!(context),
+              ),
+            Builder(
+              builder: (buttonContext) => IconButtonComponent(
+                icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical),
+                variant: IconButtonComponentVariant.unfilled,
+                tooltip: l10n.more,
+                shouldSurfaceExecutionStates: false,
+                onTap: () async {
+                  final action = await showEntePopupMenu<_ViewerAction>(
+                    context: buttonContext,
+                    options: [
+                      if (widget.onDownload != null)
+                        EntePopupMenuOption(
+                          value: _ViewerAction.download,
+                          label: l10n.download,
+                        ),
                       EntePopupMenuOption(
-                        value: _ViewerAction.download,
-                        label: l10n.download,
+                        value: _ViewerAction.openExternally,
+                        label: l10n.openInAnotherApp,
                       ),
-                    EntePopupMenuOption(
-                      value: _ViewerAction.openExternally,
-                      label: l10n.openInAnotherApp,
-                    ),
-                  ],
-                );
-                if (!context.mounted || action == null) return;
-                switch (action) {
-                  case _ViewerAction.download:
-                    await widget.onDownload!(context);
-                  case _ViewerAction.openExternally:
-                    await widget.onOpenExternally(context);
-                }
-              },
+                    ],
+                  );
+                  if (!context.mounted || action == null) return;
+                  switch (action) {
+                    case _ViewerAction.download:
+                      await widget.onDownload!(context);
+                    case _ViewerAction.openExternally:
+                      await widget.onOpenExternally(context);
+                  }
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-      body: SafeArea(
-        top: false,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _failed
-            ? _buildError(context)
-            : widget.isPdf
-            ? _buildPdf(context)
-            : Padding(
-                padding: const EdgeInsets.all(Spacing.lg),
-                child: InteractiveViewer(
-                  transformationController: _transformation,
-                  minScale: 1,
-                  maxScale: 4,
-                  child: SizedBox.expand(
-                    child: Image(
-                      image: _image!,
-                      fit: BoxFit.contain,
-                      frameBuilder: (_, child, frame, synchronous) =>
-                          synchronous || frame != null
-                          ? child
-                          : const Center(child: CircularProgressIndicator()),
-                      errorBuilder: (_, error, stack) => _buildError(context),
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTap: () => _setToolbarVisible(!_toolbarVisible),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _failed
+                ? _buildError(context)
+                : widget.isPdf
+                ? _buildPdf(context)
+                : InteractiveViewer(
+                    transformationController: _transformation,
+                    minScale: 1,
+                    maxScale: 4,
+                    onInteractionUpdate: _onZoom,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        Spacing.lg,
+                        _toolbarHeight + Spacing.lg,
+                        Spacing.lg,
+                        Spacing.lg,
+                      ),
+                      child: SizedBox.expand(
+                        child: Image(
+                          image: _image!,
+                          fit: BoxFit.contain,
+                          frameBuilder: (_, child, frame, synchronous) =>
+                              synchronous || frame != null
+                              ? child
+                              : const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                          errorBuilder: (_, error, stack) =>
+                              _buildError(context),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
+          ),
+        ),
       ),
     );
   }
@@ -306,7 +373,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
                     Spacing.md);
       _pdfViewport = constraints.biggest;
       final width = constraints.maxWidth - Spacing.lg * 2;
-      _pdfPageOffsets = [Spacing.lg];
+      _pdfPageOffsets = [_toolbarHeight + Spacing.lg];
       for (var page = 1; page <= _document!.pagesCount; page++) {
         _pdfPageOffsets.add(
           _pdfPageOffsets.last +
@@ -350,6 +417,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
             alignment: Alignment.topLeft,
             minScale: 1,
             maxScale: 4,
+            onInteractionUpdate: _onZoom,
             onInteractionStart: (_) => _pdfInteraction ??= Completer<void>(),
             onInteractionEnd: (_) {
               _pdfInteraction?.complete();
@@ -362,6 +430,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
                 _pageAt(viewport.point2.y) + 1,
               );
               return SizedBox(
+                // Keep rendered tiles alive when the gesture state is reset.
+                key: _pdfContentKey,
                 width: constraints.maxWidth,
                 height: height,
                 child: Stack(
