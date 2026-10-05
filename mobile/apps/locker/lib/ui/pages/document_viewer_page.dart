@@ -358,6 +358,31 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
     _pdfPage.value = _pageAt(center.dy) + 1;
   }
 
+  void _scrollPdf(double direction) {
+    if (_pdfInteraction != null) {
+      return;
+    }
+    final matrix = _pdfTransformation.value.clone();
+    final translation = matrix.getTranslation();
+    final height = math.max(
+      _pdfViewport.height,
+      _pdfPageOffsets.last - Spacing.md + Spacing.lg,
+    );
+    final minimum = math.min(
+      0.0,
+      _pdfViewport.height - height * matrix.getMaxScaleOnAxis(),
+    );
+    final step = math.max(1.0, _pdfViewport.height - _toolbarHeight) * 0.8;
+    final y = (translation.y + direction * step).clamp(minimum, 0.0);
+    if (y == translation.y) {
+      return;
+    }
+    matrix.setTranslationRaw(translation.x, y.toDouble(), 0);
+    // Cancel any old fling before applying an accessibility scroll.
+    setState(() => _pdfLayoutRevision++);
+    _pdfTransformation.value = matrix;
+  }
+
   Widget _buildPdf(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       // Keep the same point on the visible page when lazy page sizes change.
@@ -407,87 +432,102 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         _pdfTransformation.value = matrix;
       }
       _updatePdfPage();
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          InteractiveViewer.builder(
-            // Reflow invalidates the old gesture and inertia coordinates.
-            key: ValueKey('pdf-layout-$_pdfLayoutRevision'),
-            transformationController: _pdfTransformation,
-            alignment: Alignment.topLeft,
-            minScale: 1,
-            maxScale: 4,
-            onInteractionUpdate: _onZoom,
-            onInteractionStart: (_) => _pdfInteraction ??= Completer<void>(),
-            onInteractionEnd: (_) {
-              _pdfInteraction?.complete();
-              _pdfInteraction = null;
-            },
-            builder: (context, viewport) {
-              final first = math.max(0, _pageAt(viewport.point0.y) - 1);
-              final last = math.min(
-                _document!.pagesCount - 1,
-                _pageAt(viewport.point2.y) + 1,
-              );
-              return SizedBox(
-                // Keep rendered tiles alive when the gesture state is reset.
-                key: _pdfContentKey,
-                width: constraints.maxWidth,
-                height: height,
-                child: Stack(
-                  children: [
-                    for (var index = first; index <= last; index++)
-                      Positioned(
-                        key: ValueKey(index),
-                        top: _pdfPageOffsets[index],
-                        left: Spacing.lg,
-                        right: Spacing.lg,
-                        height:
-                            _pdfPageOffsets[index + 1] -
-                            _pdfPageOffsets[index] -
-                            Spacing.md,
-                        child: _PdfPageTile(
-                          number: index + 1,
-                          renderPage: _renderPage,
-                          errorBuilder: _buildError,
+      return AnimatedBuilder(
+        animation: _pdfTransformation,
+        builder: (context, child) {
+          final matrix = _pdfTransformation.value;
+          final y = matrix.getTranslation().y;
+          final minimum =
+              constraints.maxHeight - height * matrix.getMaxScaleOnAxis();
+          return Semantics(
+            container: true,
+            onScrollUp: y > minimum ? () => _scrollPdf(-1) : null,
+            onScrollDown: y < 0 ? () => _scrollPdf(1) : null,
+            child: child,
+          );
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            InteractiveViewer.builder(
+              // Reflow invalidates the old gesture and inertia coordinates.
+              key: ValueKey('pdf-layout-$_pdfLayoutRevision'),
+              transformationController: _pdfTransformation,
+              alignment: Alignment.topLeft,
+              minScale: 1,
+              maxScale: 4,
+              onInteractionUpdate: _onZoom,
+              onInteractionStart: (_) => _pdfInteraction ??= Completer<void>(),
+              onInteractionEnd: (_) {
+                _pdfInteraction?.complete();
+                _pdfInteraction = null;
+              },
+              builder: (context, viewport) {
+                final first = math.max(0, _pageAt(viewport.point0.y) - 1);
+                final last = math.min(
+                  _document!.pagesCount - 1,
+                  _pageAt(viewport.point2.y) + 1,
+                );
+                return SizedBox(
+                  // Keep rendered tiles alive when the gesture state is reset.
+                  key: _pdfContentKey,
+                  width: constraints.maxWidth,
+                  height: height,
+                  child: Stack(
+                    children: [
+                      for (var index = first; index <= last; index++)
+                        Positioned(
+                          key: ValueKey(index),
+                          top: _pdfPageOffsets[index],
+                          left: Spacing.lg,
+                          right: Spacing.lg,
+                          height:
+                              _pdfPageOffsets[index + 1] -
+                              _pdfPageOffsets[index] -
+                              Spacing.md,
+                          child: _PdfPageTile(
+                            number: index + 1,
+                            renderPage: _renderPage,
+                            errorBuilder: _buildError,
+                          ),
                         ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: Spacing.sm),
+                child: IgnorePointer(
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _pdfPage,
+                    builder: (context, page, _) => Semantics(
+                      label: context.strings.scanPageOfTotal(
+                        current: page,
+                        total: _document!.pagesCount,
                       ),
-                  ],
-                ),
-              );
-            },
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: Spacing.sm),
-              child: IgnorePointer(
-                child: ValueListenableBuilder<int>(
-                  valueListenable: _pdfPage,
-                  builder: (context, page, _) => Semantics(
-                    label: context.strings.scanPageOfTotal(
-                      current: page,
-                      total: _document!.pagesCount,
-                    ),
-                    child: ExcludeSemantics(
-                      child: Container(
-                        constraints: BoxConstraints(
-                          maxWidth: constraints.maxWidth / 2,
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.md,
-                          vertical: Spacing.sm,
-                        ),
-                        decoration: BoxDecoration(
-                          color: context.componentColors.fillDark,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '$page / ${_document!.pagesCount}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyles.mini.copyWith(
-                            color: context.componentColors.textBase,
+                      child: ExcludeSemantics(
+                        child: Container(
+                          constraints: BoxConstraints(
+                            maxWidth: constraints.maxWidth / 2,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Spacing.md,
+                            vertical: Spacing.sm,
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.componentColors.fillDark,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$page / ${_document!.pagesCount}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyles.mini.copyWith(
+                              color: context.componentColors.textBase,
+                            ),
                           ),
                         ),
                       ),
@@ -496,8 +536,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     },
   );
