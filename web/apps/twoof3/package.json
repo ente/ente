@@ -5,7 +5,7 @@
     "dependencies": {
         "@fontsource/space-grotesk": "5.3.0",
         "ente-base": "*",
-        "qr": "0.7.0"
+        "qr": "0.6.0"
     },
     "devDependencies": {
         "ente-build-config": "*"

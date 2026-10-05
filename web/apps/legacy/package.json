@@ -8,7 +8,7 @@
         "ente-base": "*",
         "ente-legacy-wasm": "*",
         "pdfjs-dist": "6.3.289",
-        "qr": "0.7.0"
+        "qr": "0.6.0"
     },
     "devDependencies": {
         "ente-build-config": "*"
