@@ -18,7 +18,7 @@
         "ente-prelogin-wasm": "*",
         "ente-space-wasm": "*",
         "photoswipe": "5.4.4",
-        "react-easy-crop": "6.2.3",
+        "react-easy-crop": "5.5.7",
         "thumbhash": "0.1.1"
     },
     "devDependencies": {
