@@ -29,17 +29,17 @@
         "react-i18next": "17.0.15",
         "react-leaflet": "5.0.0",
         "react-select": "5.10.2",
-        "react-virtualized-auto-sizer": "2.0.3",
-        "react-window": "2.3.3",
+        "react-virtualized-auto-sizer": "1.0.26",
+        "react-window": "1.8.11",
         "sanitize-filename": "1.6.4",
         "similarity-transformation": "0.0.1",
         "supercluster": "9.1.0"
     },
     "devDependencies": {
-        "@types/node": "26.6.2",
+        "@types/node": "24.12.4",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
-        "@types/react-window": "2.0.0",
+        "@types/react-window": "1.8.8",
         "ente-build-config": "*",
         "vitest": "5.0.1"
     }

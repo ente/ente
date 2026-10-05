@@ -10,10 +10,10 @@
         "eslint-plugin-react": "7.37.5",
         "eslint-plugin-react-hooks": "7.1.1",
         "eslint-plugin-react-refresh": "0.5.7",
-        "prettier": "3.9.9",
+        "prettier": "3.8.3",
         "prettier-plugin-organize-imports": "4.3.0",
         "prettier-plugin-packagejson": "3.0.2",
-        "typescript": "7.0.2",
-        "typescript-eslint": "8.70.1"
+        "typescript": "6.0.3",
+        "typescript-eslint": "8.61.0"
     }
 }

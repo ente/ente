@@ -62,9 +62,9 @@
     "devDependencies": {
         "concurrently": "10.0.5",
         "eslint": "10.11.0",
-        "knip": "6.38.0",
-        "prettier": "3.9.9",
-        "typescript": "7.0.2"
+        "knip": "6.31.0",
+        "prettier": "3.8.3",
+        "typescript": "6.0.3"
     },
     "packageManager": "npm@11.12.1"
 }
