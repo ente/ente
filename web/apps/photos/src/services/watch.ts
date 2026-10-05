@@ -31,6 +31,7 @@ class FolderWatcher {
         | ((collectionName: string, filePaths: string[]) => void)
         | undefined;
     private onTriggerRemotePull: (() => void) | undefined;
+    private isUploadInProgress: (() => boolean) | undefined;
 
     private debouncedRunNextEvent: () => void;
 
@@ -42,9 +43,11 @@ class FolderWatcher {
     init(
         upload: (collectionName: string, filePaths: string[]) => void,
         onTriggerRemotePull: () => void,
+        isUploadInProgress: () => boolean,
     ) {
         this.upload = upload;
         this.onTriggerRemotePull = onTriggerRemotePull;
+        this.isUploadInProgress = isUploadInProgress;
         this.registerListeners();
         this.initializeAccessibilityState();
         this.triggerSyncWithDisk();
@@ -198,6 +201,15 @@ class FolderWatcher {
     private async runNextEvent() {
         if (this.eventQueue.length == 0 || this.activeWatch || this.isPaused)
             return;
+
+        // Uploads share one uploader, so wait for the current one to finish.
+        if (
+            this.eventQueue[0]?.action == "upload" &&
+            this.isUploadInProgress!()
+        ) {
+            this.debouncedRunNextEvent();
+            return;
+        }
 
         const event = this.dequeueClubbedEvent();
         if (!event) return;
