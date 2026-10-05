@@ -1,4 +1,8 @@
 {
+  "createMyAccount": "Buat akun saya",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
   "about": "Tentang",
   "account": "Akun",
   "activeSessions": "Sesi aktif",
@@ -35,6 +39,7 @@
   "addToAlbum": "Tambah ke album",
   "addToEnte": "Tambah ke Ente",
   "addToHiddenAlbum": "Tambah ke album tersembunyi",
+  "addTrustedPerson": "Tambah orang tepercaya",
   "advanced": "Lanjutan",
   "after1Day": "Setelah 1 hari",
   "after1Hour": "Setelah 1 jam",
@@ -126,6 +131,7 @@
   "backedUpFolders": "Folder yang dicadangkan",
   "backup": "Pencadangan",
   "backupFailed": "Pencadangan gagal",
+  "backupFolderLabel": "Folder cadangan:",
   "backupOverMobileData": "Cadangkan dengan data seluler",
   "backupSettings": "Pengaturan pencadangan",
   "backupStatus": "Status pencadangan",

@@ -1,8 +1,4 @@
 {
-  "bringMemoriesTogether": "思い出をひとつにまとめよう",
-  "createMyAccount": "アカウントを作成",
-  "localGalleryPermissionDesc": "写真へのアクセスを許可すると、顔認識で整理できます。すべての処理はデバイス上で行われます。",
-  "onboardingOrganizeDesc": "写真や動画を整理。すべての思い出をひとつの場所に。",
   "acceptTrustInvite": "招待を受け入れる",
   "account": "アカウント",
   "accountCredentials": "シークレット",

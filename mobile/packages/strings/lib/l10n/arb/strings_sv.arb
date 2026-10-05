@@ -227,7 +227,7 @@
   "allowDownloads": "Tillåt nedladdningar",
   "allowJoining": "Tillåt att gå med",
   "allowJoiningAlbum": "Tillåt att gå med till albumet",
-  "allowJoiningDescription": "Personer som kan se ditt album och har ett Ente-konto kan gå med i albumet och få uppdateringar",
+  "allowJoiningDescription": "Personer med ett Ente-konto kan gå med i ditt album och få uppdateringar",
   "allowPermBody": "Tillåt åtkomst till dina foton i Inställningar så att Ente kan visa och säkerhetskopiera ditt bibliotek.",
   "allowPermTitle": "Tillåt åtkomst till foton",
   "allPersonGroupingWillReset": "Alla grupperingar för personen återställs och du förlorar alla förslag för personen",
@@ -1303,7 +1303,7 @@
   "enableAutomaticBackups": "Automatisk säkerhetskopiering",
   "enableBackupsIosInstruction": "För att aktivera säkerhetskopior på iOS, välj en mapp i Filer (till exempel \"På min iPhone\").",
   "enableComment": "Kommentarer och reaktioner",
-  "enableDownloadsToAllowJoining": "Aktivera hämtningar för att tillåta andra att gå med.",
+  "enableDownloadsToAllowJoining": "Aktivera hämtningar för att kunna gå med.",
   "enabled": "Aktiverad",
   "enableMaps": "Aktivera kartor",
   "encrypted": "Krypterad",
@@ -1956,9 +1956,7 @@
   "imageEditorExposure": "Exponering",
   "imageEditorFade": "Tona",
   "imageEditorHue": "Nyans",
-  "imageEditorLuminance": "Luminans",
   "imageEditorSaturation": "Mättnad",
-  "imageEditorSharpness": "Skärpa",
   "imageEditorTemperature": "Temperatur",
   "imageNotAnalyzed": "Bild inte analyserad",
   "immediate": "Omedelbart",
@@ -4466,7 +4464,7 @@
     }
   },
   "trashIsEmpty": "Papperskorgen är tom",
-  "trim": "Trimma",
+  "trim": "Beskär",
   "tripInYear": "Resa under {year}",
   "@tripInYear": {
     "placeholders": {
@@ -5025,7 +5023,6 @@
   "youAreViewer": "Du är visningsbehörig",
   "youAreCollaborator": "Du är samarbetspartner",
   "youAreAdmin": "Du är administratör",
-  "emptyAlbumShareMessage": "Du har inte delat det här albumet med någon ännu.",
   "addPeople": "Lägg till personer",
   "fromYourContacts": "Från dina kontakter",
   "chooseAccess": "Välj åtkomst",
@@ -5068,7 +5065,7 @@
       }
     }
   },
-  "removePersonBody": "{count, plural, =0{Personen förlorar omedelbart åtkomsten till albumet.} one{Personen förlorar omedelbart åtkomsten till albumet. Fotot som personen lade till tas bort.} other{Personen förlorar omedelbart åtkomsten till albumet. De {count} foton som personen lade till tas bort.}}",
+  "removePersonBody": "{count, plural, =0{Personen förlorar omedelbart åtkomsten till albumet.} one{Personen förlorar omedelbart åtkomsten till albumet. Det {count} foto som personen lade till tas bort.} other{Personen förlorar omedelbart åtkomsten till albumet. De {count} foton som personen lade till tas bort.}}",
   "@removePersonBody": {
     "placeholders": {
       "count": {
@@ -5084,7 +5081,7 @@
       }
     }
   },
-  "leaveAlbumBody": "{count, plural, =0{Du förlorar omedelbart åtkomsten till albumet.} one{Du förlorar omedelbart åtkomsten till albumet. Fotot som du lade till tas bort.} other{Du förlorar omedelbart åtkomsten till albumet. De {count} foton som du lade till tas bort.}}",
+  "leaveAlbumBody": "{count, plural, =0{Du förlorar omedelbart åtkomsten till albumet.} one{Du förlorar omedelbart åtkomsten till albumet. Det {count} foto som du lade till tas bort.} other{Du förlorar omedelbart åtkomsten till albumet. De {count} foton som du lade till tas bort.}}",
   "@leaveAlbumBody": {
     "placeholders": {
       "count": {

@@ -1,8 +1,20 @@
 {
-  "bringMemoriesTogether": "Bring deine Erinnerungen zusammen",
+  "bringMemoriesTogether": "Führe deine Erinnerungen zusammen",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
   "createMyAccount": "Mein Konto erstellen",
-  "localGalleryPermissionDesc": "Erteile die Berechtigung, auf deine Fotos zuzugreifen und sie mit Gesichtserkennung zu organisieren. Die gesamte Verarbeitung erfolgt auf deinem Gerät.",
-  "onboardingOrganizeDesc": "Organisiere deine Fotos und Videos. Alle Erinnerungen an einem Ort.",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "localGalleryPermissionDesc": "Erteile die Berechtigung, um auf Fotos zuzugreifen und mit Gesichtserkennung zu organisieren, vollständig auf deinem Gerät verarbeitet.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "Organisiere deine Fotos und Videos. Jede Erinnerung, an einem einzigen Ort.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
   "wallpaper": "Hintergrundbild",
   "setWallpaper": "Hintergrundbild festlegen",
   "wallpaperHome": "Startbildschirm",
@@ -299,7 +311,7 @@
       "versionValue": {}
     }
   },
-  "architecture": "Icons designen",
+  "architecture": "Ikonisches Design",
   "archive": "Archiv",
   "@archive": {
     "description": "Action of 'Archiving' an element"
@@ -834,6 +846,7 @@
   "credentialNotesHint": "Wiederherstellungsmethoden, Sicherheitsfragen, ...",
   "criticalUpdateAvailable": "Wichtige Aktualisierung verfügbar",
   "crop": "Zuschneiden",
+  "cropAndRotate": "Zuschneiden & Drehen",
   "curatedMemories": "Ausgewählte Erinnerungen",
   "currentBackupFolder": "Aktueller Sicherungsordner:",
   "currentlyRunning": "läuft gerade",
@@ -1466,7 +1479,7 @@
       }
     }
   },
-  "memoryLaneCaptionYearsAgo": "{name} {count, plural, one{vor {number} Jahr} other{vor {number} Jahren}}",
+  "memoryLaneCaptionYearsAgo": "{name} {count, plural, one{vor einem Jahr} other{vor {number} Jahren}}",
   "@memoryLaneCaptionYearsAgo": {
     "description": "Memory Lane caption in elapsed years. Always keep the number, including for one.",
     "placeholders": {
@@ -1482,7 +1495,7 @@
       }
     }
   },
-  "memoryLaneCaptionMonthsAgo": "{name} {count, plural, one{vor {number} Monat} other{vor {number} Monaten}}",
+  "memoryLaneCaptionMonthsAgo": "{name} {count, plural, one{vor einem Monat} other{vor {number} Monaten}}",
   "@memoryLaneCaptionMonthsAgo": {
     "description": "Memory Lane caption in elapsed months. Always keep the number, including for one.",
     "placeholders": {
@@ -1498,7 +1511,7 @@
       }
     }
   },
-  "memoryLaneCaptionWeeksAgo": "{name} {count, plural, one{vor {number} Woche} other{vor {number} Wochen}}",
+  "memoryLaneCaptionWeeksAgo": "{name} {count, plural, one{vor einer Woche} other{vor {number} Wochen}}",
   "@memoryLaneCaptionWeeksAgo": {
     "description": "Memory Lane caption in elapsed weeks. Always keep the number, including for one.",
     "placeholders": {
@@ -1514,7 +1527,7 @@
       }
     }
   },
-  "memoryLaneCaptionDaysAgo": "{name} {count, plural, one{vor {number} Tag} other{vor {number} Tagen}}",
+  "memoryLaneCaptionDaysAgo": "{name} {count, plural, one{vor einem Tag} other{vor {number} Tagen}}",
   "@memoryLaneCaptionDaysAgo": {
     "description": "Memory Lane caption in elapsed days. Always keep the number, including for one.",
     "placeholders": {
@@ -1845,10 +1858,9 @@
   "imageEditorExposure": "Belichtung",
   "imageEditorFade": "Überblenden",
   "imageEditorHue": "Farbton",
-  "imageEditorLuminance": "Leuchtdichte",
   "imageEditorSaturation": "Sättigung",
-  "imageEditorSharpness": "Schärfe",
   "imageEditorTemperature": "Temperatur",
+  "imageEditorTint": "Farbton",
   "imageNotAnalyzed": "Bild nicht analysiert",
   "immediately": "Sofort",
   "@immediately": {
@@ -1865,6 +1877,15 @@
   "importEnteEncGuide": "Wählen Sie die von Ente exportierte, verschlüsselte JSON-Datei",
   "importEnterSetupKey": "Einen Setup-Schlüssel eingeben",
   "importFailureDesc": "Die ausgewählte Datei konnte nicht verarbeitet werden.",
+  "importFileTooLarge": "Die ausgewählte Datei ist zu groß. Maximale Größe: {size}.",
+  "@importFileTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "10 MiB"
+      }
+    }
+  },
   "importFromGallery": "Aus Galerie importieren",
   "importInstruction": "Bitte wählen Sie eine Datei die Codes in folgendem Format beinhaltet",
   "importLabel": "Importieren",
@@ -2354,6 +2375,10 @@
   "@mediaManagementHintTitle": {
     "description": "Title of a sheet prompting Android users to enable media management permission."
   },
+  "meetEnteLocker": "Lerne Ente Locker kennen",
+  "@meetEnteLocker": {
+    "description": "Button in the Photos changelog that opens the Ente Locker website"
+  },
   "members": "Mitglieder",
   "memberStorageUsed": "{amount} verwendet",
   "@memberStorageUsed": {
@@ -2365,6 +2390,8 @@
     }
   },
   "memories": "Erinnerungen",
+  "memoriesReadyNotificationTitle": "Entdecke deine Erinnerungen wieder ✨",
+  "memoriesReadyNotificationBody": "Maßgeschneidert für dich, auf deinem Handy.",
   "memoriesWidgetDesc": "Wähle die Arten von Erinnerungen, die du auf der Startseite sehen möchtest.",
   "memoryCount": "{count, plural, =0{keine Erinnerungen} one{{formattedCount} Erinnerung} other{{formattedCount} Erinnerungen}}",
   "@memoryCount": {
@@ -2634,6 +2661,7 @@
   },
   "noResult": "Kein Ergebnis",
   "noResultsFound": "Keine Ergebnisse gefunden",
+  "noMatchingResultsFound": "Keine passenden Ergebnisse gefunden",
   "noSessionsFound": "Keine Sitzungen gefunden!",
   "noSimilarImagesFound": "Keine ähnlichen Bilder gefunden",
   "noSuggestionsForPerson": "Keine Vorschläge für {personName}",
@@ -4028,6 +4056,7 @@
   "sortNewestFirst": "Neueste zuerst",
   "sortOldestFirst": "Älteste zuerst",
   "sortZToA": "Z-A",
+  "speed": "Geschwindigkeit",
   "sportsAction": "Zocken",
   "sportsWithThem": "Sport mit {name}",
   "@sportsWithThem": {
@@ -4091,6 +4120,7 @@
       }
     }
   },
+  "straighten": "Ausrichten",
   "streamDetails": "Stream-Details",
   "streetArt": "Straßenkunst-Geschichten",
   "streetFood": "Streetfood-Happen",
@@ -4705,7 +4735,7 @@
   "youAreViewer": "Du bist ein Zuschauer",
   "youAreCollaborator": "Du bist ein Bearbeiter",
   "youAreAdmin": "Du bist ein Administrator",
-  "emptyAlbumShareMessage": "Du hast dieses Album noch nicht mit jemandem geteilt.",
+  "emptyAlbumShareMessage": "Füge eine Person hinzu,\num dein Album mit ihr zu teilen",
   "addPeople": "Personen hinzufügen",
   "fromYourContacts": "Aus deinen Kontakten",
   "chooseAccess": "Zugriff auswählen",
