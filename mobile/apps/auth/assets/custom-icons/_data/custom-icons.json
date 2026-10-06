@@ -745,6 +745,11 @@
       "title": "DMarket"
     },
     {
+      "title": "Doccle",
+      "slug": "doccle",
+      "hex": "91cd44"
+    },
+    {
       "title": "Docker",
       "slug": "docker",
       "altNames": [
@@ -795,11 +800,6 @@
     },
     {
       "title": "Doppler"
-    },
-    {
-      "title": "Doccle",
-      "slug": "doccle",
-      "hex": "91cd44"
     },
     {
       "title": "DreamHost Panel",
