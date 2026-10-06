@@ -797,6 +797,11 @@
       "title": "Doppler"
     },
     {
+      "title": "Doccle",
+      "slug": "doccle",
+      "hex": "91cd44"
+    },
+    {
       "title": "DreamHost Panel",
       "slug": "dreamhost_panel"
     },
