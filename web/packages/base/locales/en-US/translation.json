@@ -980,6 +980,7 @@
     "download_failed": "Download failed",
     "download_failed_network_offline": "Connection lost",
     "download_failed_file_error": "Some files failed",
+    "download_failed_blob_creation_failed": "Not enough disk space",
     "retry": "Retry",
     "download_progress": "{{count, number}} / {{total, number}} files",
     "christmas": "Christmas",

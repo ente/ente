@@ -11,6 +11,7 @@ import type {
     AddSaveGroup,
     UpdateSaveGroup,
 } from "../components/utils/save-groups";
+import { BlobCreationFailedError } from "./download-core";
 
 export interface BrowserSaveDownloader {
     fileBlob(file: EnteFile): Promise<Blob>;
@@ -162,7 +163,14 @@ export const downloadAndSaveFilesWeb = async ({
                 } catch (e) {
                     log.error("File download failed", e);
                     failedFiles.push(singleFile);
-                    updateSaveGroup((g) => ({ ...g, failed: g.failed + 1 }));
+                    updateSaveGroup((g) => ({
+                        ...g,
+                        failed: g.failed + 1,
+                        failureReason:
+                            e instanceof BlobCreationFailedError
+                                ? "blob_creation_failed"
+                                : g.failureReason,
+                    }));
                 }
             } else {
                 nextZipBatchIndex = await saveAsZip(
@@ -460,7 +468,10 @@ const saveAsZip = async (
             }
             updateSaveGroup((g) => ({
                 ...g,
-                failureReason: g.failureReason ?? "file_error",
+                failureReason:
+                    e instanceof BlobCreationFailedError
+                        ? "blob_creation_failed"
+                        : (g.failureReason ?? "file_error"),
             }));
         }
 
