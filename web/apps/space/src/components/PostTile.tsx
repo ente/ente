@@ -289,7 +289,7 @@ export const SpacePostTile: React.FC<SpacePostTileProps> = ({
                 >
                     <Box
                         sx={{
-                            border: "1px solid rgba(255, 255, 255, 0.5)",
+                            border: "0.5px solid rgba(255, 255, 255, 0.5)",
                             borderRadius: "50%",
                             flexShrink: 0,
                         }}
