@@ -3,12 +3,14 @@ import { SpaceAvatarImage } from "components/AvatarImage";
 import React from "react";
 
 interface SpacePostAvatarProps {
+    plain?: boolean;
     ready: boolean;
     size: number;
     src?: string | null;
 }
 
 export const SpacePostAvatar: React.FC<SpacePostAvatarProps> = ({
+    plain = false,
     ready,
     size,
     src,
@@ -45,16 +47,18 @@ export const SpacePostAvatar: React.FC<SpacePostAvatarProps> = ({
                 <SpaceAvatarImage src={src} borderRadius="50%" />
             </Box>
         )}
-        <Box
-            aria-hidden
-            sx={{
-                border: "1px solid rgba(255, 255, 255, 0.16)",
-                borderRadius: "50%",
-                boxShadow: "0 1px 4px rgba(0, 0, 0, 0.24)",
-                inset: 0,
-                pointerEvents: "none",
-                position: "absolute",
-            }}
-        />
+        {!plain && (
+            <Box
+                aria-hidden
+                sx={{
+                    border: "1px solid rgba(255, 255, 255, 0.16)",
+                    borderRadius: "50%",
+                    boxShadow: "0 1px 4px rgba(0, 0, 0, 0.24)",
+                    inset: 0,
+                    pointerEvents: "none",
+                    position: "absolute",
+                }}
+            />
+        )}
     </Box>
 );

@@ -287,13 +287,24 @@ export const SpacePostTile: React.FC<SpacePostTileProps> = ({
                         },
                     }}
                 >
-                    <SpacePostAvatar
-                        ready={!isAvatarPending && decodedAvatar.ready}
-                        size={26}
-                        src={
-                            decodedAvatar.failed ? undefined : decodedAvatar.src
-                        }
-                    />
+                    <Box
+                        sx={{
+                            border: "1px solid rgba(255, 255, 255, 0.5)",
+                            borderRadius: "50%",
+                            flexShrink: 0,
+                        }}
+                    >
+                        <SpacePostAvatar
+                            plain
+                            ready={!isAvatarPending && decodedAvatar.ready}
+                            size={26}
+                            src={
+                                decodedAvatar.failed
+                                    ? undefined
+                                    : decodedAvatar.src
+                            }
+                        />
+                    </Box>
                 </Box>
             )}
         </Box>
