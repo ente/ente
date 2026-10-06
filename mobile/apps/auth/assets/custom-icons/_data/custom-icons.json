@@ -1903,6 +1903,11 @@
       "title": "Parsec"
     },
     {
+      "title": "Passbolt",
+      "slug": "passbolt",
+      "hex": "D40101"
+    },
+    {
       "title": "Patchmon",
       "slug": "patchmon"
     },
