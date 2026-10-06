@@ -1,17 +1,17 @@
-import { Stack } from "@mui/material";
-import {
-    RowButton,
-    RowButtonDivider,
-    RowButtonGroup,
-} from "ente-base/components/RowButton";
+import { summarizeFreeUpSpace } from "@/services/free-up-space";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Skeleton, Stack, Typography } from "@mui/material";
+import { RowButton, RowButtonDivider } from "ente-base/components/RowButton";
 import {
     TitledNestedSidebarDrawer,
     type NestedSidebarDrawerVisibilityProps,
 } from "ente-base/components/mui/SidebarDrawer";
+import log from "ente-base/log";
+import { formattedByteSize } from "ente-gallery/utils/units";
 import type { SidebarActionID } from "ente-new/photos/services/search/types";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 export type FreeUpSpaceAction = Extract<
     SidebarActionID,
@@ -31,6 +31,42 @@ export const FreeUpSpace: React.FC<FreeUpSpaceProps> = ({
     onActionHandled,
 }) => {
     const router = useRouter();
+    const [summary, setSummary] = useState<
+        ReturnType<typeof summarizeFreeUpSpace> | undefined
+    >();
+    const [analysisFailed, setAnalysisFailed] = useState(false);
+
+    useEffect(() => {
+        if (!open) return;
+        let cancelled = false;
+        setSummary(undefined);
+        setAnalysisFailed(false);
+        const analyze = async () => {
+            try {
+                const [{ findLargeFiles }, { deduceDuplicates }] =
+                    await Promise.all([
+                        import("@/services/large-files"),
+                        import("@/services/dedup"),
+                    ]);
+                const [largeFiles, duplicateGroups] = await Promise.all([
+                    findLargeFiles("all"),
+                    deduceDuplicates(),
+                ]);
+                if (!cancelled) {
+                    setSummary(
+                        summarizeFreeUpSpace(largeFiles, duplicateGroups),
+                    );
+                }
+            } catch (e) {
+                log.error("Failed to analyze storage cleanup", e);
+                if (!cancelled) setAnalysisFailed(true);
+            }
+        };
+        void analyze();
+        return () => {
+            cancelled = true;
+        };
+    }, [open]);
 
     const handleRootClose = useCallback(() => {
         onClose();
@@ -73,17 +109,102 @@ export const FreeUpSpace: React.FC<FreeUpSpaceProps> = ({
             title={t("free_up_space")}
         >
             <Stack sx={{ px: 2, py: 1, gap: 3 }}>
-                <RowButtonGroup>
+                <Typography sx={{ color: "text.muted" }}>
+                    {t("free_up_space_description")}
+                </Typography>
+                <Stack
+                    aria-live="polite"
+                    sx={{
+                        p: 2.5,
+                        gap: 1,
+                        borderRadius: 3,
+                        bgcolor: "primary.main",
+                        color: "primary.contrastText",
+                    }}
+                >
+                    <Typography sx={{ opacity: 0.7 }}>
+                        {t("you_can_free_up")}
+                    </Typography>
+                    {summary ? (
+                        <Typography variant="h2" sx={{ fontWeight: 600 }}>
+                            {formattedByteSize(summary.reclaimableSize, 1)}
+                        </Typography>
+                    ) : analysisFailed ? (
+                        <Typography>{t("generic_error_retry")}</Typography>
+                    ) : (
+                        <Skeleton
+                            width="60%"
+                            height={40}
+                            sx={{ bgcolor: "currentColor", opacity: 0.15 }}
+                            aria-label={t("loading")}
+                        />
+                    )}
+                </Stack>
+                <Stack>
                     <RowButton
-                        label={t("deduplicate_files")}
-                        onClick={handleDeduplicate}
+                        variant="secondary"
+                        endIcon={
+                            <ChevronRightIcon sx={{ color: "text.muted" }} />
+                        }
+                        label={
+                            <Stack sx={{ gap: 0.5, textAlign: "left" }}>
+                                <Typography>
+                                    {t("large_files_title")}
+                                </Typography>
+                                <Typography
+                                    variant="small"
+                                    sx={{ color: "text.muted" }}
+                                >
+                                    {summary
+                                        ? t("large_files_summary", {
+                                              count: summary.largeFileCount,
+                                              size: formattedByteSize(
+                                                  summary.largeFileSize,
+                                                  1,
+                                              ),
+                                          })
+                                        : t(
+                                              analysisFailed
+                                                  ? "generic_error"
+                                                  : "loading",
+                                          )}
+                                </Typography>
+                            </Stack>
+                        }
+                        onClick={handleLargeFiles}
                     />
                     <RowButtonDivider />
                     <RowButton
-                        label={t("large_files_title")}
-                        onClick={handleLargeFiles}
+                        variant="secondary"
+                        endIcon={
+                            <ChevronRightIcon sx={{ color: "text.muted" }} />
+                        }
+                        label={
+                            <Stack sx={{ gap: 0.5, textAlign: "left" }}>
+                                <Typography>{t("duplicates_title")}</Typography>
+                                <Typography
+                                    variant="small"
+                                    sx={{ color: "text.muted" }}
+                                >
+                                    {summary
+                                        ? t("duplicate_groups_summary", {
+                                              count: summary.duplicateGroupCount,
+                                              size: formattedByteSize(
+                                                  summary.duplicateSize,
+                                                  1,
+                                              ),
+                                          })
+                                        : t(
+                                              analysisFailed
+                                                  ? "generic_error"
+                                                  : "loading",
+                                          )}
+                                </Typography>
+                            </Stack>
+                        }
+                        onClick={handleDeduplicate}
                     />
-                </RowButtonGroup>
+                </Stack>
             </Stack>
         </TitledNestedSidebarDrawer>
     );
