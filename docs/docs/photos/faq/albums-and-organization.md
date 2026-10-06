@@ -82,7 +82,7 @@ Slideshow plays the photos in an album one after another, full screen, on your d
 
 ### How do I start a slideshow from an album? {#start-album-slideshow}
 
-Album slideshows are available in Ente Photos on iOS and Android for both Ente albums and **On device** albums.
+Album slideshows are available in Ente Photos on iOS, Android, and desktop. Mobile supports both Ente albums and **On device** albums; desktop supports Ente albums.
 
 **On mobile:**
 
@@ -91,15 +91,21 @@ Album slideshows are available in Ente Photos on iOS and Android for both Ente a
 3. Tap the three dots in the top-right corner.
 4. Tap **Slideshow**.
 
+**On desktop:**
+
+1. Open an Ente album.
+2. Click the three dots in the top-right corner.
+3. Click **Slideshow**.
+
 ### Can I create one slideshow from multiple albums? {#slideshow-multiple-albums}
 
-Yes. Open the **Albums** tab. Press and hold an Ente album, then select the other albums. Tap **Slideshow** at the bottom of the screen.
+On mobile, open the **Albums** tab. Press and hold an Ente album, then select the other albums. Tap **Slideshow** at the bottom of the screen.
 
-You can select albums you own and albums shared with you.
+You can select albums you own and albums shared with you. On desktop, start a slideshow from one open album.
 
 ### What can I change during a slideshow? {#album-slideshow-settings}
 
-Tap the middle of the screen to show the controls. Then tap the settings button in the top-right corner. You can choose:
+On mobile, tap the middle of the screen to show the controls. On desktop, move the pointer or press a key. Then select the settings button in the top-right corner. You can choose:
 
 - **Time per photo:** 5, 10, 15, or 30 seconds; or 1, 5, or 10 minutes
 - **Photo order:** In order or Shuffle
@@ -107,9 +113,9 @@ Tap the middle of the screen to show the controls. Then tap the settings button 
 
 ### How do I control a slideshow? {#control-album-slideshow}
 
-Tap the left side of the screen to see the previous photo. Tap the right side to see the next photo. Tap the middle to show or hide the controls.
+On mobile, tap the left side of the screen to see the previous photo or the right side to see the next photo. Tap the middle to show or hide the controls.
 
-Tap pause to stop the slideshow or play to continue.
+On desktop, click the previous and next buttons or use the left and right arrow keys. Click pause or play, or press the Space bar, to stop or continue the slideshow.
 
 ### Which items appear in an album slideshow? {#album-slideshow-supported-items}
 
