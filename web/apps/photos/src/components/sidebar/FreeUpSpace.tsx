@@ -6,6 +6,7 @@ import {
     TitledNestedSidebarDrawer,
     type NestedSidebarDrawerVisibilityProps,
 } from "ente-base/components/mui/SidebarDrawer";
+import { formattedNumber, ut } from "ente-base/i18n";
 import log from "ente-base/log";
 import { formattedByteSize } from "ente-gallery/utils/units";
 import type { SidebarActionID } from "ente-new/photos/services/search/types";
@@ -110,7 +111,9 @@ export const FreeUpSpace: React.FC<FreeUpSpaceProps> = ({
         >
             <Stack sx={{ px: 2, py: 1, gap: 3 }}>
                 <Typography sx={{ color: "text.muted" }}>
-                    {t("free_up_space_description")}
+                    {ut(
+                        "Review large files and duplicates to reclaim storage.",
+                    )}
                 </Typography>
                 <Stack
                     aria-live="polite"
@@ -123,7 +126,7 @@ export const FreeUpSpace: React.FC<FreeUpSpaceProps> = ({
                     }}
                 >
                     <Typography sx={{ opacity: 0.7 }}>
-                        {t("you_can_free_up")}
+                        {ut("You can free up")}
                     </Typography>
                     {summary ? (
                         <Typography variant="h2" sx={{ fontWeight: 600 }}>
@@ -156,13 +159,9 @@ export const FreeUpSpace: React.FC<FreeUpSpaceProps> = ({
                                     sx={{ color: "text.muted" }}
                                 >
                                     {summary
-                                        ? t("large_files_summary", {
-                                              count: summary.largeFileCount,
-                                              size: formattedByteSize(
-                                                  summary.largeFileSize,
-                                                  1,
-                                              ),
-                                          })
+                                        ? ut(
+                                              `${formattedNumber(summary.largeFileCount)} ${summary.largeFileCount === 1 ? "file" : "files"} of 10 MB or more · ${formattedByteSize(summary.largeFileSize, 1)}`,
+                                          )
                                         : t(
                                               analysisFailed
                                                   ? "generic_error"
@@ -181,19 +180,15 @@ export const FreeUpSpace: React.FC<FreeUpSpaceProps> = ({
                         }
                         label={
                             <Stack sx={{ gap: 0.5, textAlign: "left" }}>
-                                <Typography>{t("duplicates_title")}</Typography>
+                                <Typography>{ut("Duplicates")}</Typography>
                                 <Typography
                                     variant="small"
                                     sx={{ color: "text.muted" }}
                                 >
                                     {summary
-                                        ? t("duplicate_groups_summary", {
-                                              count: summary.duplicateGroupCount,
-                                              size: formattedByteSize(
-                                                  summary.duplicateSize,
-                                                  1,
-                                              ),
-                                          })
+                                        ? ut(
+                                              `${formattedNumber(summary.duplicateGroupCount)} ${summary.duplicateGroupCount === 1 ? "group" : "groups"} · ${formattedByteSize(summary.duplicateSize, 1)}`,
+                                          )
                                         : t(
                                               analysisFailed
                                                   ? "generic_error"
