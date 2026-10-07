@@ -118,14 +118,21 @@ export const Preferences: React.FC<PreferencesProps> = ({
 }) => {
     const { show: showDomainSettings, props: domainSettingsVisibilityProps } =
         useModalVisibility();
-    const { show: showMapSettings, props: mapSettingsVisibilityProps } =
-        useModalVisibility();
     const {
         show: showAdvancedSettings,
         props: advancedSettingsVisibilityProps,
     } = useModalVisibility();
     const { show: showMLSettings, props: mlSettingsVisibilityProps } =
         useModalVisibility();
+
+    const { mapEnabled } = useSettingsSnapshot();
+    const [mapErrorMessage, setMapErrorMessage] = useState<string>();
+    const handleToggleMap = useCallback(() => {
+        setMapErrorMessage(undefined);
+        void updateMapEnabled(!mapEnabled).catch(() => {
+            setMapErrorMessage(t("generic_error"));
+        });
+    }, [mapEnabled]);
 
     const hlsGenStatusSnapshot = useHLSGenerationStatusSnapshot();
     const isHLSGenerationEnabled = !!hlsGenStatusSnapshot?.enabled;
@@ -143,9 +150,6 @@ export const Preferences: React.FC<PreferencesProps> = ({
             case "preferences.customDomains":
                 showDomainSettings();
                 break;
-            case "preferences.map":
-                showMapSettings();
-                break;
             case "preferences.advanced":
             case "preferences.fasterUpload":
             case "preferences.openOnStartup":
@@ -154,6 +158,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
             case "preferences.mlSearch":
                 showMLSettings();
                 break;
+            case "preferences.map":
             case "preferences.language":
             case "preferences.theme":
             case "preferences.streamableVideos":
@@ -167,7 +172,6 @@ export const Preferences: React.FC<PreferencesProps> = ({
         showAdvancedSettings,
         showDomainSettings,
         showMLSettings,
-        showMapSettings,
     ]);
 
     const handleRootClose = () => {
@@ -200,11 +204,26 @@ export const Preferences: React.FC<PreferencesProps> = ({
                     endIcon={<ChevronRightIcon />}
                     onClick={showDomainSettings}
                 />
-                <RowButton
-                    endIcon={<ChevronRightIcon />}
-                    label={t("map")}
-                    onClick={showMapSettings}
-                />
+                <Stack>
+                    <RowButtonGroup>
+                        <RowSwitch
+                            label={t("map")}
+                            checked={mapEnabled}
+                            onClick={handleToggleMap}
+                        />
+                    </RowButtonGroup>
+                    <RowButtonGroupHint>
+                        {t("maps_privacy_notice")}
+                    </RowButtonGroupHint>
+                    {mapErrorMessage && (
+                        <Typography
+                            variant="small"
+                            sx={{ color: "critical.main", mt: 0.5 }}
+                        >
+                            {mapErrorMessage}
+                        </Typography>
+                    )}
+                </Stack>
                 <RowButton
                     endIcon={<ChevronRightIcon />}
                     label={t("advanced")}
@@ -257,10 +276,6 @@ export const Preferences: React.FC<PreferencesProps> = ({
             </Stack>
             <DomainSettings
                 {...domainSettingsVisibilityProps}
-                onRootClose={onRootClose}
-            />
-            <MapSettings
-                {...mapSettingsVisibilityProps}
                 onRootClose={onRootClose}
             />
             <AdvancedSettings
@@ -532,61 +547,6 @@ const DomainItem: React.FC<React.PropsWithChildren<DomainSectionProps>> = ({
         {children}
     </Stack>
 );
-
-const MapSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
-    open,
-    onClose,
-    onRootClose,
-}) => {
-    const { mapEnabled } = useSettingsSnapshot();
-    const [errorMessage, setErrorMessage] = useState<string | undefined>();
-
-    const handleToggle = useCallback(() => {
-        setErrorMessage(undefined);
-        void updateMapEnabled(!mapEnabled).catch(() => {
-            setErrorMessage(t("generic_error"));
-        });
-    }, [mapEnabled]);
-
-    const handleRootClose = () => {
-        onClose();
-        onRootClose();
-    };
-
-    return (
-        <TitledNestedSidebarDrawer
-            maxWidth="440px"
-            {...{ open, onClose }}
-            onRootClose={handleRootClose}
-            title={t("map")}
-        >
-            <Stack sx={{ px: 2, py: "20px" }}>
-                <RowButtonGroup>
-                    <RowSwitch
-                        label={t("enabled")}
-                        checked={mapEnabled}
-                        onClick={handleToggle}
-                    />
-                </RowButtonGroup>
-                <RowButtonGroupHint>
-                    {t("maps_privacy_notice")}
-                </RowButtonGroupHint>
-                {errorMessage && (
-                    <Typography
-                        variant="small"
-                        sx={{
-                            color: "critical.main",
-                            mt: 0.5,
-                            textAlign: "center",
-                        }}
-                    >
-                        {errorMessage}
-                    </Typography>
-                )}
-            </Stack>
-        </TitledNestedSidebarDrawer>
-    );
-};
 
 const AdvancedSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
     open,

@@ -4,9 +4,11 @@ import {
 } from "@/services/recovery-key";
 import { Box, Stack } from "@mui/material";
 import { RecoveryKey } from "ente-accounts/components/RecoveryKey";
+import { updateSavedLocalUser } from "ente-accounts/services/accounts-db";
 import { openAccountsManagePasskeysPage } from "ente-accounts/services/passkey";
 import { getActiveSessions } from "ente-accounts/services/sessions";
 import { isDesktop } from "ente-base/app";
+import { EnteSwitch } from "ente-base/components/EnteSwitch";
 import {
     TitledNestedSidebarDrawer,
     type NestedSidebarDrawerVisibilityProps,
@@ -21,7 +23,7 @@ import {
     suppressAutoLockOnBlurForTrustedPrompt,
 } from "ente-new/photos/services/app-lock";
 import type { SidebarActionID } from "ente-new/photos/services/search/types";
-import { get2FAStatus } from "ente-new/photos/services/user";
+import { disable2FA, get2FAStatus } from "ente-new/photos/services/user";
 import {
     familyMemberStorageLimit,
     isFamilyAdmin,
@@ -36,7 +38,6 @@ import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { DeleteAccount } from "../account/DeleteAccount";
 import { SessionsSettings } from "../account/SessionsSettings";
-import { TwoFactorSettings } from "../account/TwoFactorSettings";
 import { ManageMemberSubscription } from "./ManageMemberSubscription";
 import { openManageSubscription } from "./subscription";
 
@@ -72,6 +73,7 @@ export const Account: React.FC<AccountProps> = ({
     const { showMiniDialog } = useBaseContext();
     const userDetails = useUserDetailsSnapshot();
     const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean>();
+    const [disablingTwoFactor, setDisablingTwoFactor] = useState(false);
     const [sessionCount, setSessionCount] = useState<number>();
 
     let planSubtext: string | undefined;
@@ -109,20 +111,13 @@ export const Account: React.FC<AccountProps> = ({
     } = useModalVisibility();
     const { show: showRecoveryKey, props: recoveryKeyVisibilityProps } =
         useModalVisibility();
-    const { show: showTwoFactor, props: twoFactorVisibilityProps } =
-        useModalVisibility();
     const { show: showSessions, props: sessionsVisibilityProps } =
         useModalVisibility();
     const { show: showDeleteAccount, props: deleteAccountVisibilityProps } =
         useModalVisibility();
 
     useEffect(() => {
-        if (
-            !open ||
-            twoFactorVisibilityProps.open ||
-            sessionsVisibilityProps.open
-        )
-            return;
+        if (!open || sessionsVisibilityProps.open) return;
         let cancelled = false;
         void Promise.all([
             get2FAStatus().catch(() => undefined),
@@ -135,7 +130,7 @@ export const Account: React.FC<AccountProps> = ({
         return () => {
             cancelled = true;
         };
-    }, [open, twoFactorVisibilityProps.open, sessionsVisibilityProps.open]);
+    }, [open, sessionsVisibilityProps.open]);
 
     const isNonAdminFamilyMember = useMemo(
         () =>
@@ -211,8 +206,62 @@ export const Account: React.FC<AccountProps> = ({
         showDeleteAccount();
     }, [showDeleteAccount]);
 
+    const configureTwoFactor = useCallback(() => {
+        onClose();
+        onRootClose();
+        void router.push("/two-factor/setup");
+    }, [onClose, onRootClose, router]);
+
+    const handleTwoFactorToggle = useCallback(() => {
+        if (twoFactorEnabled === undefined || disablingTwoFactor) return;
+        if (!twoFactorEnabled) {
+            configureTwoFactor();
+            return;
+        }
+        showMiniDialog({
+            title: t("disable_two_factor"),
+            message: t("disable_two_factor_message"),
+            continue: {
+                text: t("disable"),
+                color: "critical",
+                action: async () => {
+                    setDisablingTwoFactor(true);
+                    try {
+                        await disable2FA();
+                        updateSavedLocalUser({ isTwoFactorEnabled: undefined });
+                        setTwoFactorEnabled(false);
+                    } finally {
+                        setDisablingTwoFactor(false);
+                    }
+                },
+            },
+        });
+    }, [
+        twoFactorEnabled,
+        disablingTwoFactor,
+        configureTwoFactor,
+        showMiniDialog,
+    ]);
+
+    const handleReconfigureTwoFactor = useCallback(() => {
+        showMiniDialog({
+            title: t("update_two_factor"),
+            message: t("update_two_factor_message"),
+            continue: {
+                text: t("update"),
+                color: "primary",
+                action: configureTwoFactor,
+            },
+        });
+    }, [configureTwoFactor, showMiniDialog]);
+
     useEffect(() => {
         if (!open || !pendingAction) return;
+        if (
+            pendingAction == "account.twoFactor" &&
+            twoFactorEnabled === undefined
+        )
+            return;
         switch (pendingAction) {
             case "account.subscription":
                 handleManageSubscription();
@@ -221,8 +270,10 @@ export const Account: React.FC<AccountProps> = ({
                 void handleRecoveryKey();
                 break;
             case "account.twoFactor.reconfigure":
+                handleReconfigureTwoFactor();
+                break;
             case "account.twoFactor":
-                showTwoFactor();
+                handleTwoFactorToggle();
                 break;
             case "account.passkeys":
                 void handlePasskeys();
@@ -252,7 +303,9 @@ export const Account: React.FC<AccountProps> = ({
         open,
         onActionHandled,
         pendingAction,
-        showTwoFactor,
+        handleReconfigureTwoFactor,
+        handleTwoFactorToggle,
+        twoFactorEnabled,
     ]);
 
     return (
@@ -279,8 +332,26 @@ export const Account: React.FC<AccountProps> = ({
                             ? undefined
                             : t(twoFactorEnabled ? "on" : "off")
                     }
-                    onClick={showTwoFactor}
+                    endIcon={
+                        <EnteSwitch
+                            checked={twoFactorEnabled === true}
+                            disabled={
+                                twoFactorEnabled === undefined ||
+                                disablingTwoFactor
+                            }
+                            onChange={handleTwoFactorToggle}
+                            slotProps={{
+                                input: { "aria-label": t("two_factor") },
+                            }}
+                        />
+                    }
                 />
+                {twoFactorEnabled && (
+                    <RowCard
+                        title={t("update_two_factor")}
+                        onClick={handleReconfigureTwoFactor}
+                    />
+                )}
                 <RowCard title={t("passkeys")} onClick={handlePasskeys} />
                 <RowCard
                     title={t("active_sessions")}
@@ -320,10 +391,6 @@ export const Account: React.FC<AccountProps> = ({
                     {...{ userDetails }}
                 />
             )}
-            <TwoFactorSettings
-                {...twoFactorVisibilityProps}
-                onRootClose={onRootClose}
-            />
             <SessionsSettings
                 {...sessionsVisibilityProps}
                 onRootClose={onRootClose}
