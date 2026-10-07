@@ -34,6 +34,18 @@ export function MinimizedUploadProgress() {
         useMinimizedUploadDrag(dragSurfaceRef);
     const progress = normalizePercent(percentComplete);
     const showUploadProgress = context.uploadPhase == "uploading";
+    let etaText: string | undefined;
+    if (showUploadProgress && uploadETA !== undefined) {
+        if (uploadETA < 60) {
+            etaText = t("upload_eta_seconds", {
+                count: Math.max(1, uploadETA),
+            });
+        } else {
+            etaText = t("upload_eta_minutes", {
+                count: Math.ceil(uploadETA / 60),
+            });
+        }
+    }
     const hasFailures =
         uploadCompletionCounts(
             context.finishedUploads,
@@ -102,7 +114,7 @@ export function MinimizedUploadProgress() {
                                 ? uploadCountsText(context)
                                 : uploadStatusText(context.uploadPhase)}
                         </Typography>
-                        {showUploadProgress && uploadETA !== undefined && (
+                        {etaText && (
                             <Typography
                                 sx={[
                                     minimizedSubtitleSx,
@@ -113,13 +125,7 @@ export function MinimizedUploadProgress() {
                                     hasFailures && failureForegroundSx,
                                 ]}
                             >
-                                {uploadETA < 60
-                                    ? t("upload_eta_seconds", {
-                                          count: Math.max(1, uploadETA),
-                                      })
-                                    : t("upload_eta_minutes", {
-                                          count: Math.ceil(uploadETA / 60),
-                                      })}
+                                {etaText}
                             </Typography>
                         )}
                     </Stack>

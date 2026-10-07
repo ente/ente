@@ -7,10 +7,8 @@ import type { CryptoWorker } from "ente-base/crypto/worker";
 import { ensureElectron } from "ente-base/electron";
 import { basename, nameAndExtension } from "ente-base/file-name";
 import {
-    ensureOk,
     HTTPError,
     retryAsyncOperation,
-    type HTTPRequestRetrier,
     type PublicAlbumsCredentials,
 } from "ente-base/http";
 import log from "ente-base/log";
@@ -417,7 +415,9 @@ const removePotentialLivePhotoSuffix = (name: string, suffix?: string) => {
     return foundSuffix ? name.slice(0, foundSuffix.length * -1) : name;
 };
 
-const uploadItemSize = async (uploadItem: UploadItem): Promise<number> => {
+export const uploadItemSize = async (
+    uploadItem: UploadItem,
+): Promise<number> => {
     if (uploadItem instanceof File) return uploadItem.size;
     if (typeof uploadItem == "string")
         return ensureElectron().pathOrZipItemSize(uploadItem);
@@ -474,6 +474,11 @@ interface UploadContext {
     publicAlbumsCredentials?: PublicAlbumsCredentials;
     abortIfCancelled: () => void;
     updateUploadProgress: (fileLocalID: number, percentage: number) => void;
+    updateUploadBytes?: (
+        fileLocalID: number,
+        uploadedBytes: number,
+        totalBytes: number,
+    ) => void;
 }
 
 export const upload = async (
@@ -1315,8 +1320,12 @@ const uploadToBucket = async (
         "file" | "thumbnail" | "metadata" | "pubMagicMetadata"
     >
 > => {
-    const { isCFUploadProxyDisabled, abortIfCancelled, updateUploadProgress } =
-        uploadContext;
+    const {
+        isCFUploadProxyDisabled,
+        abortIfCancelled,
+        updateUploadProgress,
+        updateUploadBytes,
+    } = uploadContext;
     const checksumEnabled = areChecksumProtectedUploadsEnabled();
     const shouldSendContentChecksum =
         checksumEnabled || !!uploadContext.publicAlbumsCredentials;
@@ -1324,7 +1333,7 @@ const uploadToBucket = async (
     const { localID, file, thumbnail, metadata, pubMagicMetadata } =
         encryptedFilePieces;
 
-    const requestRetrier = createAbortableRetryEnsuringHTTPOk(abortIfCancelled);
+    const requestRetrier = createAbortableRetry(abortIfCancelled);
 
     const maxPercent = Math.floor(95 + 5 * Math.random());
 
@@ -1332,6 +1341,19 @@ const uploadToBucket = async (
     let fileSize: number;
 
     const encryptedData = file.encryptedData;
+    let encryptedFileSize: number;
+    if (encryptedData instanceof Uint8Array) {
+        encryptedFileSize = encryptedData.length;
+    } else {
+        encryptedFileSize = encryptedData.encryptedSize;
+    }
+    const totalBytes = encryptedFileSize + thumbnail.encryptedData.length;
+    updateUploadBytes?.(localID, 0, totalBytes);
+    let onFileProgress: ((uploadedBytes: number) => void) | undefined;
+    if (updateUploadBytes) {
+        onFileProgress = (uploadedBytes) =>
+            updateUploadBytes(localID, uploadedBytes, totalBytes);
+    }
     if (
         !(encryptedData instanceof Uint8Array) &&
         encryptedData.chunkCount >= multipartChunksPerPart
@@ -1344,6 +1366,7 @@ const uploadToBucket = async (
                 requestRetrier,
                 maxPercent,
                 checksumEnabled,
+                onFileProgress,
             ));
     } else {
         const data =
@@ -1365,10 +1388,12 @@ const uploadToBucket = async (
         if (shouldUseWorker) {
             await putFileViaWorker(fileUploadURL.url, data, requestRetrier, {
                 contentMd5: fileMd5,
+                onProgress: onFileProgress,
             });
         } else {
             await putFile(fileUploadURL.url, data, requestRetrier, {
                 contentMd5: fileMd5,
+                onProgress: onFileProgress,
             });
         }
         updateUploadProgress(localID, maxPercent);
@@ -1386,19 +1411,28 @@ const uploadToBucket = async (
             : undefined,
     );
     const shouldUseWorkerForThumbnail = !isCFUploadProxyDisabled;
+    let onThumbnailProgress: ((uploadedBytes: number) => void) | undefined;
+    if (updateUploadBytes) {
+        onThumbnailProgress = (uploadedBytes) =>
+            updateUploadBytes(
+                localID,
+                encryptedFileSize + uploadedBytes,
+                totalBytes,
+            );
+    }
     if (shouldUseWorkerForThumbnail) {
         await putFileViaWorker(
             thumbnailUploadURL.url,
             thumbnail.encryptedData,
             requestRetrier,
-            { contentMd5: thumbnailMd5 },
+            { contentMd5: thumbnailMd5, onProgress: onThumbnailProgress },
         );
     } else {
         await putFile(
             thumbnailUploadURL.url,
             thumbnail.encryptedData,
             requestRetrier,
-            { contentMd5: thumbnailMd5 },
+            { contentMd5: thumbnailMd5, onProgress: onThumbnailProgress },
         );
     }
 
@@ -1418,15 +1452,13 @@ const uploadToBucket = async (
     };
 };
 
-const createAbortableRetryEnsuringHTTPOk =
-    (abortIfCancelled: () => void): HTTPRequestRetrier =>
+const createAbortableRetry =
+    (abortIfCancelled: () => void): typeof retryAsyncOperation =>
     (request, opts) =>
         retryAsyncOperation(
             async () => {
                 abortIfCancelled();
-                const r = await request();
-                ensureOk(r);
-                return r;
+                return request();
             },
             {
                 ...opts,
@@ -1440,9 +1472,10 @@ const uploadStreamUsingMultipart = async (
     fileLocalID: number,
     dataStream: EncryptedFileStream,
     uploadContext: UploadContext,
-    requestRetrier: HTTPRequestRetrier,
+    requestRetrier: typeof retryAsyncOperation,
     maxPercent: number,
     checksumEnabled: boolean,
+    onProgress?: (uploadedBytes: number) => void,
 ) => {
     const { isCFUploadProxyDisabled, abortIfCancelled, updateUploadProgress } =
         uploadContext;
@@ -1493,6 +1526,7 @@ const uploadStreamUsingMultipart = async (
 
         const percentPerPart = maxPercent / uploadPartCount;
         const completedParts: MultipartCompletedPart[] = [];
+        let uploadedBytes = 0;
         for (const [
             index,
             partUploadURL,
@@ -1505,19 +1539,26 @@ const uploadStreamUsingMultipart = async (
             if (!partData || !checksum) {
                 throw new Error("Multipart checksum part mismatch");
             }
+            const partOffset = uploadedBytes;
+            let onPartProgress: ((bytes: number) => void) | undefined;
+            if (onProgress) {
+                onPartProgress = (bytes) => onProgress(partOffset + bytes);
+            }
 
             const eTag = !isCFUploadProxyDisabled
                 ? await putFilePartViaWorker(
                       partUploadURL,
                       partData,
                       requestRetrier,
-                      { contentMd5: checksum },
+                      { contentMd5: checksum, onProgress: onPartProgress },
                   )
                 : await putFilePart(partUploadURL, partData, requestRetrier, {
                       contentMd5: checksum,
+                      onProgress: onPartProgress,
                   });
             if (!eTag) throw new Error(eTagMissingErrorMessage);
 
+            uploadedBytes += partData.length;
             updateUploadProgress(fileLocalID, percentPerPart * partNumber);
             completedParts.push({ partNumber, eTag });
             parts[index] = new Uint8Array(0);
@@ -1567,7 +1608,12 @@ const uploadStreamUsingMultipart = async (
 
         const partNumber = index + 1;
         const partData = await nextMultipartUploadPart(streamReader);
+        const partOffset = fileSize;
         fileSize += partData.length;
+        let onPartProgress: ((bytes: number) => void) | undefined;
+        if (onProgress) {
+            onPartProgress = (bytes) => onProgress(partOffset + bytes);
+        }
         const checksum = deferPartChecksums
             ? computeMd5Base64(partData)
             : undefined;
@@ -1577,10 +1623,11 @@ const uploadStreamUsingMultipart = async (
                   partUploadURL,
                   partData,
                   requestRetrier,
-                  { contentMd5: checksum },
+                  { contentMd5: checksum, onProgress: onPartProgress },
               )
             : await putFilePart(partUploadURL, partData, requestRetrier, {
                   contentMd5: checksum,
+                  onProgress: onPartProgress,
               });
         if (!eTag) throw new Error(eTagMissingErrorMessage);
 

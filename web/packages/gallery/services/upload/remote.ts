@@ -1,15 +1,15 @@
+import axios from "axios";
 import {
     authenticatedPublicAlbumsRequestHeaders,
     authenticatedRequestHeaders,
     ensureOk,
     publicRequestHeaders,
-    type HTTPRequestRetrier,
     type PublicAlbumsCredentials,
+    type retryAsyncOperation,
 } from "ente-base/http";
 import { apiURL, uploaderOrigin } from "ente-base/origins";
 import { RemoteEnteFile, type RemoteFileMetadata } from "ente-media/file";
 import type { RemoteMagicMetadata } from "ente-media/magic-metadata";
-import { nullToUndefined } from "ente-utils/transform";
 import { z } from "zod";
 
 const ObjectUploadURL = z.object({ objectKey: z.string(), url: z.string() });
@@ -143,93 +143,116 @@ export const fetchMultipartUploadURLs = async (uploadPartCount: number) => {
 
 interface PutFileOptions {
     contentMd5?: string;
+    onProgress?: (uploadedBytes: number) => void;
 }
 
-interface PutPartOptions {
-    contentMd5?: string;
-}
+const putUpload = async (
+    url: string,
+    data: Uint8Array<ArrayBuffer>,
+    headers: Record<string, string>,
+    onProgress?: (uploadedBytes: number) => void,
+) => {
+    onProgress?.(0);
+    try {
+        const res = await axios.put<unknown>(url, data, {
+            headers: { "Content-Type": false, ...headers },
+            transformRequest: [],
+            onUploadProgress: ({ loaded }) =>
+                onProgress?.(Math.min(loaded, data.length)),
+        });
+        onProgress?.(data.length);
+        return res;
+    } catch (e) {
+        onProgress?.(0);
+        throw e;
+    }
+};
 
 export const putFile = async (
     fileUploadURL: string,
     fileData: Uint8Array<ArrayBuffer>,
-    retrier: HTTPRequestRetrier,
+    retrier: typeof retryAsyncOperation,
     options?: PutFileOptions,
 ) =>
     retrier(() =>
-        fetch(fileUploadURL, {
-            method: "PUT",
-            headers: {
+        putUpload(
+            fileUploadURL,
+            fileData,
+            {
                 ...publicRequestHeaders(),
                 ...(options?.contentMd5 && {
                     "Content-MD5": options.contentMd5,
                 }),
             },
-            body: fileData,
-        }),
+            options?.onProgress,
+        ),
     );
 
 export const putFileViaWorker = async (
     fileUploadURL: string,
     fileData: Uint8Array<ArrayBuffer>,
-    retrier: HTTPRequestRetrier,
+    retrier: typeof retryAsyncOperation,
     options?: PutFileOptions,
 ) =>
     retrier(async () =>
-        fetch(`${await uploaderOrigin()}/file-upload`, {
-            method: "PUT",
-            headers: {
+        putUpload(
+            `${await uploaderOrigin()}/file-upload`,
+            fileData,
+            {
                 ...publicRequestHeaders(),
                 "UPLOAD-URL": fileUploadURL,
                 ...(options?.contentMd5 && {
                     "CONTENT-MD5": options.contentMd5,
                 }),
             },
-            body: fileData,
-        }),
+            options?.onProgress,
+        ),
     );
 
 export const putFilePart = async (
     partUploadURL: string,
     partData: Uint8Array<ArrayBuffer>,
-    retrier: HTTPRequestRetrier,
-    options?: PutPartOptions,
+    retrier: typeof retryAsyncOperation,
+    options?: PutFileOptions,
 ) => {
     const res = await retrier(() =>
-        fetch(partUploadURL, {
-            method: "PUT",
-            headers: {
+        putUpload(
+            partUploadURL,
+            partData,
+            {
                 ...publicRequestHeaders(),
                 ...(options?.contentMd5 && {
                     "Content-MD5": options.contentMd5,
                 }),
             },
-            body: partData,
-        }),
+            options?.onProgress,
+        ),
     );
-    return nullToUndefined(res.headers.get("etag"));
+    return z.string().optional().parse(res.headers.etag);
 };
 
 export const putFilePartViaWorker = async (
     partUploadURL: string,
     partData: Uint8Array<ArrayBuffer>,
-    retrier: HTTPRequestRetrier,
-    options?: PutPartOptions,
+    retrier: typeof retryAsyncOperation,
+    options?: PutFileOptions,
 ) => {
     const origin = await uploaderOrigin();
     const res = await retrier(() =>
-        fetch(`${origin}/multipart-upload`, {
-            method: "PUT",
-            headers: {
+        putUpload(
+            `${origin}/multipart-upload`,
+            partData,
+            {
                 ...publicRequestHeaders(),
                 "UPLOAD-URL": partUploadURL,
                 ...(options?.contentMd5 && {
                     "CONTENT-MD5": options.contentMd5,
                 }),
             },
-            body: partData,
-        }),
+            options?.onProgress,
+        ),
     );
-    return z.object({ etag: z.string() }).parse(await res.json()).etag;
+    return z.object({ etag: z.string() }).parse(res.data).etag;
 };
 
 export interface MultipartCompletedPart {
@@ -251,32 +274,39 @@ const createMultipartUploadRequestBody = (
 export const completeMultipartUpload = (
     completionURL: string,
     completedParts: MultipartCompletedPart[],
-    retrier: HTTPRequestRetrier,
+    retrier: typeof retryAsyncOperation,
 ) =>
-    retrier(() =>
-        fetch(completionURL, {
+    retrier(async () => {
+        const res = await fetch(completionURL, {
             method: "POST",
             headers: { ...publicRequestHeaders(), "Content-Type": "text/xml" },
             body: createMultipartUploadRequestBody(completedParts),
-        }),
-    );
+        });
+        ensureOk(res);
+        return res;
+    });
 
 export const completeMultipartUploadViaWorker = async (
     completionURL: string,
     completedParts: MultipartCompletedPart[],
-    retrier: HTTPRequestRetrier,
+    retrier: typeof retryAsyncOperation,
 ) =>
-    retrier(async () =>
-        fetch(`${await uploaderOrigin()}/multipart-complete`, {
-            method: "POST",
-            headers: {
-                ...publicRequestHeaders(),
-                "Content-Type": "text/xml",
-                "UPLOAD-URL": completionURL,
+    retrier(async () => {
+        const res = await fetch(
+            `${await uploaderOrigin()}/multipart-complete`,
+            {
+                method: "POST",
+                headers: {
+                    ...publicRequestHeaders(),
+                    "Content-Type": "text/xml",
+                    "UPLOAD-URL": completionURL,
+                },
+                body: createMultipartUploadRequestBody(completedParts),
             },
-            body: createMultipartUploadRequestBody(completedParts),
-        }),
-    );
+        );
+        ensureOk(res);
+        return res;
+    });
 
 export interface PostEnteFileRequest {
     collectionID: number;

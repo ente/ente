@@ -33,6 +33,7 @@ import UploadService, {
     upload,
     uploadCancelledErrorMessage,
     uploadItemFileName,
+    uploadItemSize,
     type PotentialLivePhotoAsset,
     type UploadAsset,
 } from "ente-gallery/services/upload/upload-service";
@@ -151,6 +152,7 @@ interface ProgressUpdater {
     setUploadFileNames: (filenames: UploadFileNames) => void;
     setHasLivePhotos: React.Dispatch<React.SetStateAction<boolean>>;
     setUploadProgressView: React.Dispatch<React.SetStateAction<boolean>>;
+    setUploadETA: (eta: number | undefined) => void;
 }
 
 const maxConcurrentUploads = 4;
@@ -173,6 +175,13 @@ class UIService {
     private totalFilesCount = 0;
     private inProgressUploads: InProgressUploads = new Map();
     private finishedUploads: FinishedUploads = new Map();
+    private uploadBytes = new Map<
+        number,
+        { total: number | undefined; uploaded: number }
+    >();
+    private transferredBytes = 0;
+    private transferSamples: { time: number; bytes: number }[] = [];
+    private lastTransferTime: number | undefined;
 
     init(progressUpdater: ProgressUpdater) {
         this.progressUpdater = progressUpdater;
@@ -180,6 +189,7 @@ class UIService {
         this.progressUpdater.setUploadFileNames(this.filenames);
         this.progressUpdater.setHasLivePhotos(this.hasLivePhoto);
         this.progressUpdater.setUploadProgressView(this.uploadProgressView);
+        this.updateUploadETA();
         this.progressUpdater.setUploadCounter({
             finished: this.filesUploadedCount,
             total: this.totalFilesCount,
@@ -197,6 +207,11 @@ class UIService {
         this.filesUploadedCount = 0;
         this.inProgressUploads = new Map<number, number>();
         this.finishedUploads = new Map<number, FinishedUploadType>();
+        this.uploadBytes.clear();
+        this.transferredBytes = 0;
+        this.transferSamples = [];
+        this.lastTransferTime = undefined;
+        this.progressUpdater.setUploadETA(undefined);
         this.updateProgressBarUI();
     }
 
@@ -217,6 +232,7 @@ class UIService {
     setUploadPhase(phase: UploadPhase) {
         this.uploadPhase = phase;
         this.progressUpdater.setUploadPhase(phase);
+        this.updateUploadETA();
     }
 
     setFiles(files: { localID: number; fileName: string }[]) {
@@ -243,6 +259,8 @@ class UIService {
     moveFileToResultList(key: number, type: FinishedUploadType) {
         this.finishedUploads.set(key, type);
         this.inProgressUploads.delete(key);
+        this.uploadBytes.delete(key);
+        this.updateUploadETA();
         this.updateProgressBarUI();
     }
 
@@ -282,6 +300,81 @@ class UIService {
     updateUploadProgress(fileLocalID: number, percentage: number) {
         this.inProgressUploads.set(fileLocalID, Math.round(percentage));
         this.updateProgressBarUI();
+    }
+
+    setUploadSizes(items: { localID: number; size: number | undefined }[]) {
+        this.uploadBytes = new Map(
+            items.map(({ localID, size }) => [
+                localID,
+                { total: size, uploaded: 0 },
+            ]),
+        );
+    }
+
+    updateUploadBytes(localID: number, uploaded: number, total: number) {
+        if (this.uploadPhase != "uploading") return;
+        const previous = this.uploadBytes.get(localID);
+        if (!previous) return;
+
+        uploaded = Math.max(0, Math.min(uploaded, total));
+        const delta = uploaded - previous.uploaded;
+        const now = performance.now();
+        if (delta < 0) {
+            this.transferSamples = [];
+            this.lastTransferTime = undefined;
+        } else if (delta > 0) {
+            if (!this.transferSamples.length)
+                this.transferSamples.push({
+                    time: now,
+                    bytes: this.transferredBytes,
+                });
+            this.lastTransferTime = now;
+        }
+        this.transferredBytes += delta;
+        this.uploadBytes.set(localID, { total, uploaded });
+    }
+
+    updateUploadETA() {
+        let eta: number | undefined;
+        if (this.uploadPhase == "uploading" && this.uploadBytes.size) {
+            const now = performance.now();
+            if (this.transferSamples.length) {
+                this.transferSamples.push({
+                    time: now,
+                    bytes: this.transferredBytes,
+                });
+                while (
+                    this.transferSamples.length > 1 &&
+                    this.transferSamples[1]!.time <= now - 30000
+                ) {
+                    this.transferSamples.shift();
+                }
+            }
+
+            let remainingBytes = 0;
+            let unknownSize = false;
+            for (const { total, uploaded } of this.uploadBytes.values()) {
+                if (total === undefined) unknownSize = true;
+                else remainingBytes += Math.max(0, total - uploaded);
+            }
+
+            const firstSample = this.transferSamples[0];
+            if (
+                !unknownSize &&
+                remainingBytes > 0 &&
+                this.lastTransferTime !== undefined &&
+                now - this.lastTransferTime < 15000 &&
+                firstSample &&
+                now - firstSample.time >= 5000 &&
+                this.transferredBytes > firstSample.bytes
+            ) {
+                eta = Math.ceil(
+                    (remainingBytes * (now - firstSample.time)) /
+                        ((this.transferredBytes - firstSample.bytes) * 1000),
+                );
+            }
+        }
+        this.progressUpdater.setUploadETA(eta);
     }
 }
 
@@ -370,7 +463,10 @@ class UploadManager {
         log.info(`Uploading ${itemsWithCollection.length} files`);
         this.uploadInProgress = true;
 
-        const logInterval = setInterval(logAboutMemoryPressureIfNeeded, 1000);
+        const logInterval = setInterval(() => {
+            logAboutMemoryPressureIfNeeded();
+            this.uiService.updateUploadETA();
+        }, 1000);
 
         try {
             await this.updateExistingFilesAndCollections(collections);
@@ -509,6 +605,24 @@ class UploadManager {
     ) {
         this.itemsToBeUploaded = [...this.itemsToBeUploaded, ...mediaItems];
         this.uiService.reset(mediaItems.length);
+        const sizes: { localID: number; size: number | undefined }[] = [];
+        for (const item of mediaItems) {
+            this.abortIfCancelled();
+            const assets = [];
+            if (item.isLivePhoto) {
+                assets.push(
+                    item.livePhotoAssets!.image,
+                    item.livePhotoAssets!.video,
+                );
+            } else {
+                assets.push(item.uploadItem!);
+            }
+            const size = await Promise.all(assets.map(uploadItemSize))
+                .then((sizes) => sizes.reduce((sum, size) => sum + size, 0))
+                .catch(() => undefined);
+            sizes.push({ localID: item.localID, size });
+        }
+        this.uiService.setUploadSizes(sizes);
         await UploadService.setFileCount(mediaItems.length);
         this.uiService.setUploadPhase("uploading");
 
@@ -543,6 +657,7 @@ class UploadManager {
             abortIfCancelled: this.abortIfCancelled.bind(this),
             updateUploadProgress:
                 uiService.updateUploadProgress.bind(uiService),
+            updateUploadBytes: uiService.updateUploadBytes.bind(uiService),
         };
 
         while (this.itemsToBeUploaded.length > 0) {

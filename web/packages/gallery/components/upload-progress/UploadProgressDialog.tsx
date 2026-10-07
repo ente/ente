@@ -119,22 +119,24 @@ function UploadProgressSummary() {
             : uploadPhase == "cancelling"
               ? t("upload_finishing_active")
               : uploadCountsText(context);
-    const progressCaption =
-        uploadPhase == "readingMetadata"
-            ? t("upload_reading_file_information")
-            : uploadPhase == "cancelling"
-              ? t("this_may_take_a_moment")
-              : isUploading
-                ? uploadETA === undefined
-                    ? uploadStatusText(uploadPhase)
-                    : uploadETA < 60
-                      ? t("upload_eta_seconds", {
-                            count: Math.max(1, uploadETA),
-                        })
-                      : t("upload_eta_minutes", {
-                            count: Math.ceil(uploadETA / 60),
-                        })
-                : undefined;
+    let progressCaption: string | undefined;
+    if (uploadPhase == "readingMetadata") {
+        progressCaption = t("upload_reading_file_information");
+    } else if (uploadPhase == "cancelling") {
+        progressCaption = t("this_may_take_a_moment");
+    } else if (isUploading) {
+        if (uploadETA === undefined) {
+            progressCaption = uploadStatusText(uploadPhase);
+        } else if (uploadETA < 60) {
+            progressCaption = t("upload_eta_seconds", {
+                count: Math.max(1, uploadETA),
+            });
+        } else {
+            progressCaption = t("upload_eta_minutes", {
+                count: Math.ceil(uploadETA / 60),
+            });
+        }
+    }
 
     return (
         <Box sx={summaryLayoutSx}>
