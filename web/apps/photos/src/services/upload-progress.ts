@@ -81,7 +81,9 @@ export class UploadProgressTracker {
                 this.uploadOverheadCount++;
             }
         }
-        const delta = reset ? 0 : Math.max(0, uploaded - previous.uploaded);
+        const delta = reset
+            ? uploaded - previous.uploaded
+            : Math.max(0, uploaded - previous.uploaded);
         if (delta > 0) {
             if (!this.transferSamples.length)
                 this.transferSamples.push({
@@ -171,7 +173,10 @@ export class UploadProgressTracker {
         }
         if (unknownCount) {
             if (!knownCount) return;
-            remainingBytes += (unknownCount * knownBytes) / knownCount;
+            const estimatedUnknownBytes =
+                (unknownCount * knownBytes) / knownCount;
+            if (estimatedUnknownBytes > remainingBytes) return;
+            remainingBytes += estimatedUnknownBytes;
         }
 
         const firstSample = this.transferSamples[0];
