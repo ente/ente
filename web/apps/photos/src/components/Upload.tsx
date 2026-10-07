@@ -7,11 +7,7 @@ import { UploadConfirmationDialog } from "@/components/UploadConfirmationDialog"
 import { downloadAppDialogAttributes } from "@/components/utils/download";
 import type {
     ImportSource,
-    InProgressUpload,
-    SegregatedFinishedUploads,
     UploadBatchResult,
-    UploadCounter,
-    UploadFileNames,
     UploadItemWithCollection,
 } from "@/services/upload-manager";
 import {
@@ -45,6 +41,7 @@ import type {
     ZipItem,
 } from "ente-base/types/ipc";
 import type { UploadTypeSelectorIntent } from "ente-gallery/components/Upload";
+import { initialUploadProgressState } from "ente-gallery/components/upload-progress-stats";
 import {
     uploadSheetMediaQuery,
     uploadSheetPaperSx,
@@ -61,7 +58,6 @@ import {
     type FileAndPath,
     type UploadItem,
     type UploadItemAndPath,
-    type UploadPhase,
 } from "ente-gallery/services/upload";
 import {
     tryParseTakeoutAlbumNameMetadataJSON,
@@ -200,20 +196,9 @@ export const Upload: React.FC<UploadProps> = ({
         showCanvasReadbackBlockedDialog,
         setShowCanvasReadbackBlockedDialog,
     ] = useState(false);
-    const [uploadPhase, setUploadPhase] = useState<UploadPhase>("preparing");
-    const [uploadFileNames, setUploadFileNames] = useState<UploadFileNames>();
-    const [uploadCounter, setUploadCounter] = useState<UploadCounter>({
-        finished: 0,
-        total: 0,
-    });
-    const [inProgressUploads, setInProgressUploads] = useState(
-        new Array<InProgressUpload>(),
+    const [uploadProgress, setUploadProgress] = useState(
+        initialUploadProgressState,
     );
-    const [finishedUploads, setFinishedUploads] =
-        useState<SegregatedFinishedUploads>(new Map());
-    const [percentComplete, setPercentComplete] = useState(0);
-    const [uploadETA, setUploadETA] = useState<number>();
-    const [hasLivePhotos, setHasLivePhotos] = useState(false);
     const [prefilledNewAlbumName, setPrefilledNewAlbumName] = useState("");
     const [uploadConfirmation, setUploadConfirmation] = useState<
         UploadConfirmationState | undefined
@@ -325,18 +310,9 @@ export const Upload: React.FC<UploadProps> = ({
 
     useEffect(() => {
         uploadManager.init(
-            {
-                setPercentComplete,
-                setUploadCounter,
-                setInProgressUploads,
-                setFinishedUploads,
-                setUploadPhase,
-                setUploadFileNames,
-                setHasLivePhotos,
-                setUploadProgressView,
-                setUploadETA,
-            },
+            setUploadProgress,
             onUploadFile,
+            setUploadProgressView,
         );
 
         if (uploadManager.isUploadRunning()) {
@@ -450,7 +426,10 @@ export const Upload: React.FC<UploadProps> = ({
                 !uploadRunning.current
             ) {
                 uploadManager.prepareForNewUpload();
-                setUploadPhase("done");
+                setUploadProgress((progress) => ({
+                    ...progress,
+                    uploadPhase: "done",
+                }));
                 uploadManager.showUploadProgressDialog();
             }
             return;
@@ -585,7 +564,10 @@ export const Upload: React.FC<UploadProps> = ({
     const preCollectionCreationAction = () => {
         onCloseCollectionSelector?.();
         props.setShouldDisableDropzone(uploadManager.isUploadInProgress());
-        setUploadPhase("preparing");
+        setUploadProgress((progress) => ({
+            ...progress,
+            uploadPhase: "preparing",
+        }));
         uploadManager.showUploadProgressDialog();
     };
 
@@ -1225,15 +1207,8 @@ export const Upload: React.FC<UploadProps> = ({
             <UploadProgress
                 open={uploadProgressView}
                 onClose={closeUploadProgress}
-                percentComplete={percentComplete}
-                uploadETA={uploadETA}
-                uploadFileNames={uploadFileNames!}
-                uploadCounter={uploadCounter}
-                uploadPhase={uploadPhase}
-                inProgressUploads={inProgressUploads}
-                hasLivePhotos={hasLivePhotos}
+                progress={uploadProgress}
                 retryFailed={retryFailed}
-                finishedUploads={finishedUploads}
                 preUploadSkippedFiles={preUploadSkippedFiles}
                 cancelUploads={cancelUploads}
             />

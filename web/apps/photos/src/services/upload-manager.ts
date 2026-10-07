@@ -8,13 +8,16 @@ import { isDevBuild } from "ente-base/env";
 import { lowercaseExtension, nameAndExtension } from "ente-base/file-name";
 import log from "ente-base/log";
 import { ComlinkWorker } from "ente-base/worker/comlink-worker";
+import type {
+    FinishedUploadType,
+    UploadProgressState,
+} from "ente-gallery/components/upload-progress-stats";
 import {
     markUploadedAndObtainProcessableItem,
     shouldDisableCFUploadProxy,
     uploadPathPrefix,
     type ClusteredUploadItem,
     type UploadItemAndPath,
-    type UploadPhase,
     type UploadResult,
     type UploadableUploadItem,
 } from "ente-gallery/services/upload";
@@ -51,31 +54,8 @@ import { computeNormalCollectionFilesFromSaved } from "ente-new/photos/services/
 import { indexNewUpload } from "ente-new/photos/services/ml";
 import { settingsSnapshot } from "ente-new/photos/services/settings";
 import { wait } from "ente-utils/promise";
+import { UploadProgressTracker } from "./upload-progress";
 import watcher from "./watch";
-
-type FileID = number;
-
-type PercentageUploaded = number;
-export type UploadFileNames = Map<FileID, string>;
-
-export interface UploadCounter {
-    finished: number;
-    total: number;
-}
-
-export interface InProgressUpload {
-    localFileID: FileID;
-    progress: PercentageUploaded;
-}
-
-// The UI groups addedSymlink with uploaded.
-type FinishedUploadType = Exclude<UploadResult["type"], "addedSymlink">;
-
-type InProgressUploads = Map<FileID, PercentageUploaded>;
-
-type FinishedUploads = Map<FileID, FinishedUploadType>;
-
-export type SegregatedFinishedUploads = Map<FinishedUploadType, FileID[]>;
 
 interface UploadBatchItemResult {
     localID: number;
@@ -139,294 +119,12 @@ const successfulFileFromUploadResult = (
     }
 };
 
-interface ProgressUpdater {
-    setPercentComplete: React.Dispatch<React.SetStateAction<number>>;
-    setUploadCounter: React.Dispatch<React.SetStateAction<UploadCounter>>;
-    setUploadPhase: (phase: UploadPhase) => void;
-    setInProgressUploads: React.Dispatch<
-        React.SetStateAction<InProgressUpload[]>
-    >;
-    setFinishedUploads: React.Dispatch<
-        React.SetStateAction<SegregatedFinishedUploads>
-    >;
-    setUploadFileNames: (filenames: UploadFileNames) => void;
-    setHasLivePhotos: React.Dispatch<React.SetStateAction<boolean>>;
-    setUploadProgressView: React.Dispatch<React.SetStateAction<boolean>>;
-    setUploadETA: (eta: number | undefined) => void;
-}
-
 const maxConcurrentUploads = 4;
+const maxConcurrentSizeLookups = 4;
 
 export type UploadItemWithCollection = UploadAsset & {
     localID: number;
     collectionID: number;
-};
-
-class UIService {
-    private progressUpdater!: ProgressUpdater;
-
-    private uploadPhase: UploadPhase = "preparing";
-    private filenames = new Map<number, string>();
-    private hasLivePhoto = false;
-    private uploadProgressView = false;
-
-    private perFileProgress = 0;
-    private filesUploadedCount = 0;
-    private totalFilesCount = 0;
-    private inProgressUploads: InProgressUploads = new Map();
-    private finishedUploads: FinishedUploads = new Map();
-    private uploadBytes = new Map<
-        number,
-        { total: number | undefined; uploaded: number }
-    >();
-    private transferredBytes = 0;
-    private transferSamples: { time: number; bytes: number }[] = [];
-    private lastTransferTime: number | undefined;
-
-    init(progressUpdater: ProgressUpdater) {
-        this.progressUpdater = progressUpdater;
-        this.progressUpdater.setUploadPhase(this.uploadPhase);
-        this.progressUpdater.setUploadFileNames(this.filenames);
-        this.progressUpdater.setHasLivePhotos(this.hasLivePhoto);
-        this.progressUpdater.setUploadProgressView(this.uploadProgressView);
-        this.updateUploadETA();
-        this.progressUpdater.setUploadCounter({
-            finished: this.filesUploadedCount,
-            total: this.totalFilesCount,
-        });
-        this.progressUpdater.setInProgressUploads(
-            convertInProgressUploadsToList(this.inProgressUploads),
-        );
-        this.progressUpdater.setFinishedUploads(
-            groupByResult(this.finishedUploads),
-        );
-    }
-
-    reset(count = 0) {
-        this.setTotalFileCount(count);
-        this.filesUploadedCount = 0;
-        this.inProgressUploads = new Map<number, number>();
-        this.finishedUploads = new Map<number, FinishedUploadType>();
-        this.uploadBytes.clear();
-        this.transferredBytes = 0;
-        this.transferSamples = [];
-        this.lastTransferTime = undefined;
-        this.progressUpdater.setUploadETA(undefined);
-        this.updateProgressBarUI();
-    }
-
-    setTotalFileCount(count: number) {
-        this.totalFilesCount = count;
-        if (count > 0) {
-            this.perFileProgress = 100 / this.totalFilesCount;
-        } else {
-            this.perFileProgress = 0;
-        }
-    }
-
-    setFileProgress(key: number, progress: number) {
-        this.inProgressUploads.set(key, progress);
-        this.updateProgressBarUI();
-    }
-
-    setUploadPhase(phase: UploadPhase) {
-        this.uploadPhase = phase;
-        this.progressUpdater.setUploadPhase(phase);
-        this.updateUploadETA();
-    }
-
-    setFiles(files: { localID: number; fileName: string }[]) {
-        const filenames = new Map(files.map((f) => [f.localID, f.fileName]));
-        this.filenames = filenames;
-        this.progressUpdater.setUploadFileNames(filenames);
-    }
-
-    setHasLivePhoto(hasLivePhoto: boolean) {
-        this.hasLivePhoto = hasLivePhoto;
-        this.progressUpdater.setHasLivePhotos(hasLivePhoto);
-    }
-
-    setUploadProgressView(uploadProgressView: boolean) {
-        this.uploadProgressView = uploadProgressView;
-        this.progressUpdater.setUploadProgressView(uploadProgressView);
-    }
-
-    increaseFileUploaded() {
-        this.filesUploadedCount++;
-        this.updateProgressBarUI();
-    }
-
-    moveFileToResultList(key: number, type: FinishedUploadType) {
-        this.finishedUploads.set(key, type);
-        this.inProgressUploads.delete(key);
-        this.uploadBytes.delete(key);
-        this.updateUploadETA();
-        this.updateProgressBarUI();
-    }
-
-    hasFilesInResultList() {
-        return this.finishedUploads.size > 0;
-    }
-
-    private updateProgressBarUI() {
-        const {
-            setPercentComplete,
-            setUploadCounter,
-            setInProgressUploads,
-            setFinishedUploads,
-        } = this.progressUpdater;
-        setUploadCounter({
-            finished: this.filesUploadedCount,
-            total: this.totalFilesCount,
-        });
-        let percentComplete =
-            this.perFileProgress *
-            (this.finishedUploads.size || this.filesUploadedCount);
-
-        for (const progress of this.inProgressUploads.values()) {
-            if (progress < 0) {
-                continue;
-            }
-            percentComplete += (this.perFileProgress * progress) / 100;
-        }
-
-        setPercentComplete(percentComplete);
-        setInProgressUploads(
-            convertInProgressUploadsToList(this.inProgressUploads),
-        );
-        setFinishedUploads(groupByResult(this.finishedUploads));
-    }
-
-    updateUploadProgress(fileLocalID: number, percentage: number) {
-        this.inProgressUploads.set(fileLocalID, Math.round(percentage));
-        this.updateProgressBarUI();
-    }
-
-    async setUploadSizes(items: ClusteredUploadItem[]) {
-        this.uploadBytes = new Map(
-            items.map(({ localID }) => [
-                localID,
-                { total: undefined, uploaded: 0 },
-            ]),
-        );
-        const uploadBytes = this.uploadBytes;
-        const remainingItems = items.values();
-        await Promise.all(
-            Array.from({ length: maxConcurrentUploads }, async () => {
-                for (const item of remainingItems) {
-                    if (
-                        this.uploadPhase != "uploading" ||
-                        this.uploadBytes !== uploadBytes
-                    )
-                        return;
-                    const entry = uploadBytes.get(item.localID);
-                    if (!entry || entry.total !== undefined) continue;
-                    const assets = [];
-                    if (item.isLivePhoto) {
-                        assets.push(
-                            item.livePhotoAssets!.image,
-                            item.livePhotoAssets!.video,
-                        );
-                    } else {
-                        assets.push(item.uploadItem!);
-                    }
-                    try {
-                        const size = await Promise.all(
-                            assets.map(uploadItemSize),
-                        ).then((sizes) =>
-                            sizes.reduce((sum, size) => sum + size, 0),
-                        );
-                        if (this.uploadBytes.get(item.localID) === entry)
-                            entry.total = size;
-                    } catch {
-                        continue;
-                    }
-                }
-            }),
-        );
-    }
-
-    updateUploadBytes(localID: number, uploaded: number, total: number) {
-        if (this.uploadPhase != "uploading") return;
-        const previous = this.uploadBytes.get(localID);
-        if (!previous) return;
-
-        uploaded = Math.max(0, Math.min(uploaded, total));
-        const delta = uploaded - previous.uploaded;
-        const now = performance.now();
-        if (delta < 0) {
-            this.transferSamples = [];
-            this.lastTransferTime = undefined;
-        } else if (delta > 0) {
-            if (!this.transferSamples.length)
-                this.transferSamples.push({
-                    time: now,
-                    bytes: this.transferredBytes,
-                });
-            this.lastTransferTime = now;
-        }
-        this.transferredBytes += delta;
-        this.uploadBytes.set(localID, { total, uploaded });
-    }
-
-    updateUploadETA() {
-        let eta: number | undefined;
-        if (this.uploadPhase == "uploading" && this.uploadBytes.size) {
-            const now = performance.now();
-            if (this.transferSamples.length) {
-                this.transferSamples.push({
-                    time: now,
-                    bytes: this.transferredBytes,
-                });
-                while (
-                    this.transferSamples.length > 1 &&
-                    this.transferSamples[1]!.time <= now - 30000
-                ) {
-                    this.transferSamples.shift();
-                }
-            }
-
-            let remainingBytes = 0;
-            let unknownSize = false;
-            for (const { total, uploaded } of this.uploadBytes.values()) {
-                if (total === undefined) unknownSize = true;
-                else remainingBytes += Math.max(0, total - uploaded);
-            }
-
-            const firstSample = this.transferSamples[0];
-            if (
-                !unknownSize &&
-                remainingBytes > 0 &&
-                this.lastTransferTime !== undefined &&
-                now - this.lastTransferTime < 15000 &&
-                firstSample &&
-                now - firstSample.time >= 5000 &&
-                this.transferredBytes > firstSample.bytes
-            ) {
-                eta = Math.ceil(
-                    (remainingBytes * (now - firstSample.time)) /
-                        ((this.transferredBytes - firstSample.bytes) * 1000),
-                );
-            }
-        }
-        this.progressUpdater.setUploadETA(eta);
-    }
-}
-
-function convertInProgressUploadsToList(inProgressUploads: InProgressUploads) {
-    return [...inProgressUploads.entries()].map(([localFileID, progress]) => ({
-        localFileID,
-        progress,
-    }));
-}
-
-const groupByResult = (finishedUploads: FinishedUploads) => {
-    const groups: SegregatedFinishedUploads = new Map();
-    for (const [localID, result] of finishedUploads) {
-        if (!groups.has(result)) groups.set(result, []);
-        groups.get(result)!.push(localID);
-    }
-    return groups;
 };
 
 class UploadManager {
@@ -444,19 +142,33 @@ class UploadManager {
     private fatalUploadError: Error | undefined;
     private shouldUploadBeCancelled = false;
 
-    private uiService = new UIService();
+    private progress = new UploadProgressTracker();
+    private onProgress: ((progress: UploadProgressState) => void) | undefined;
+    private uploadProgressView = false;
+    private onUploadProgressView: ((open: boolean) => void) | undefined;
+    private sizeDiscoveryController: AbortController | undefined;
 
     public init(
-        progressUpdater: ProgressUpdater,
+        onProgress: (progress: UploadProgressState) => void,
         onUploadFile: (file: EnteFile) => void,
+        onUploadProgressView: (open: boolean) => void,
     ) {
-        this.uiService.init(progressUpdater);
+        this.onProgress = onProgress;
+        this.onUploadProgressView = onUploadProgressView;
+        this.publishProgress();
+        onUploadProgressView(this.uploadProgressView);
         UploadService.init(undefined);
         this.onUploadFile = onUploadFile;
     }
 
+    private publishProgress(progress = this.progress) {
+        if (progress !== this.progress) return;
+        this.onProgress?.(progress.snapshot(performance.now()));
+    }
+
     logout() {
         // TODO: Consolidate state in one place instead of spreading it.
+        this.sizeDiscoveryController?.abort();
         UploadService.logout();
     }
 
@@ -475,16 +187,19 @@ class UploadManager {
         this.shouldUploadBeCancelled = false;
         this.fatalUploadError = undefined;
 
-        this.uiService.reset();
-        this.uiService.setUploadPhase("preparing");
+        this.sizeDiscoveryController?.abort();
+        this.progress = new UploadProgressTracker();
+        this.publishProgress();
     }
 
     showUploadProgressDialog() {
-        this.uiService.setUploadProgressView(true);
+        this.uploadProgressView = true;
+        this.onUploadProgressView?.(true);
     }
 
     hideUploadProgressDialog() {
-        this.uiService.setUploadProgressView(false);
+        this.uploadProgressView = false;
+        this.onUploadProgressView?.(false);
     }
 
     public async uploadItems(
@@ -500,7 +215,7 @@ class UploadManager {
 
         const logInterval = setInterval(() => {
             logAboutMemoryPressureIfNeeded();
-            this.uiService.updateUploadETA();
+            this.publishProgress();
         }, 1000);
 
         try {
@@ -510,13 +225,17 @@ class UploadManager {
                 makeUploadItemWithCollectionIDAndName,
             );
 
-            this.uiService.setFiles(namedItems);
+            this.progress.filenames = new Map(
+                namedItems.map(({ localID, fileName }) => [localID, fileName]),
+            );
+            this.publishProgress();
 
             const [metadataItems, mediaItems] =
                 splitMetadataAndMediaItems(namedItems);
 
             if (metadataItems.length) {
-                this.uiService.setUploadPhase("readingMetadata");
+                this.progress.phase = "readingMetadata";
+                this.publishProgress();
                 await this.parseMetadataJSONFiles(metadataItems);
             }
 
@@ -528,11 +247,15 @@ class UploadManager {
 
                 this.abortIfCancelled();
 
-                this.uiService.setFiles(clusteredMediaItems);
-
-                this.uiService.setHasLivePhoto(
-                    mediaItems.length != clusteredMediaItems.length,
+                this.progress.filenames = new Map(
+                    clusteredMediaItems.map(({ localID, fileName }) => [
+                        localID,
+                        fileName,
+                    ]),
                 );
+                this.progress.hasLivePhotos =
+                    mediaItems.length != clusteredMediaItems.length;
+                this.publishProgress();
 
                 await this.uploadMediaItems(clusteredMediaItems, options);
             }
@@ -542,7 +265,8 @@ class UploadManager {
                 throw e;
             }
         } finally {
-            this.uiService.setUploadPhase("done");
+            this.progress.phase = "done";
+            this.publishProgress();
             void globalThis.electron?.clearPendingUploads();
             for (let i = 0; i < maxConcurrentUploads; i++) {
                 this.comlinkCryptoWorkers[i]?.terminate();
@@ -559,7 +283,7 @@ class UploadManager {
         }
 
         return {
-            processedAny: this.uiService.hasFilesInResultList(),
+            processedAny: this.progress.finished.size > 0,
             itemResults: [...this.itemResults],
         };
     }
@@ -618,7 +342,8 @@ class UploadManager {
     private async parseMetadataJSONFiles(
         items: UploadItemWithCollectionIDAndName[],
     ) {
-        this.uiService.reset(items.length);
+        this.progress.reset(items.length);
+        this.publishProgress();
 
         for (const item of items) {
             this.abortIfCancelled();
@@ -630,7 +355,8 @@ class UploadManager {
                 if (isJSON || !this.parsedMetadataJSONMap.has(key))
                     this.parsedMetadataJSONMap.set(key, metadata);
             }
-            this.uiService.increaseFileUploaded();
+            this.progress.uploadedCount++;
+            this.publishProgress();
         }
     }
 
@@ -639,29 +365,79 @@ class UploadManager {
         options?: UploadItemsOptions,
     ) {
         this.itemsToBeUploaded = [...this.itemsToBeUploaded, ...mediaItems];
-        this.uiService.reset(mediaItems.length);
+        const progress = this.progress;
+        progress.reset(mediaItems.length);
         await UploadService.setFileCount(mediaItems.length);
-        this.uiService.setUploadPhase("uploading");
+        progress.phase = "uploading";
+        for (const { localID } of mediaItems)
+            progress.bytes.set(localID, { total: undefined, uploaded: 0 });
+        this.publishProgress(progress);
 
-        void this.uiService.setUploadSizes(mediaItems);
-        const uploadProcesses = new Array<Promise<void>>();
-        for (
-            let i = 0;
-            i < maxConcurrentUploads && this.itemsToBeUploaded.length > 0;
-            i++
-        ) {
-            this.comlinkCryptoWorkers[i] = createComlinkCryptoWorker();
-            const worker = await this.comlinkCryptoWorkers[i]!.remote;
-            uploadProcesses.push(this.uploadNextItemInQueue(worker, options));
+        const controller = new AbortController();
+        this.sizeDiscoveryController = controller;
+        void this.discoverUploadSizes(mediaItems, progress, controller.signal);
+        try {
+            const uploadProcesses = new Array<Promise<void>>();
+            for (
+                let i = 0;
+                i < maxConcurrentUploads && this.itemsToBeUploaded.length > 0;
+                i++
+            ) {
+                this.comlinkCryptoWorkers[i] = createComlinkCryptoWorker();
+                const worker = await this.comlinkCryptoWorkers[i]!.remote;
+                uploadProcesses.push(
+                    this.uploadNextItemInQueue(worker, progress, options),
+                );
+            }
+            await Promise.all(uploadProcesses);
+        } finally {
+            controller.abort();
+            if (this.sizeDiscoveryController === controller)
+                this.sizeDiscoveryController = undefined;
         }
-        await Promise.all(uploadProcesses);
+    }
+
+    private async discoverUploadSizes(
+        items: ClusteredUploadItem[],
+        progress: UploadProgressTracker,
+        signal: AbortSignal,
+    ) {
+        const remainingItems = items.values();
+        await Promise.all(
+            Array.from({ length: maxConcurrentSizeLookups }, async () => {
+                for (const item of remainingItems) {
+                    if (signal.aborted) return;
+                    const entry = progress.bytes.get(item.localID);
+                    if (!entry || entry.total !== undefined) continue;
+                    const assets = item.isLivePhoto
+                        ? [
+                              item.livePhotoAssets!.image,
+                              item.livePhotoAssets!.video,
+                          ]
+                        : [item.uploadItem!];
+                    try {
+                        const sizes = await Promise.all(
+                            assets.map(uploadItemSize),
+                        );
+                        signal.throwIfAborted();
+                        if (progress.bytes.get(item.localID) === entry)
+                            entry.total = sizes.reduce(
+                                (sum, size) => sum + size,
+                                0,
+                            );
+                    } catch {
+                        continue;
+                    }
+                }
+            }),
+        );
     }
 
     private async uploadNextItemInQueue(
         worker: CryptoWorker,
+        progress: UploadProgressTracker,
         options?: UploadItemsOptions,
     ) {
-        const uiService = this.uiService;
         const settings = settingsSnapshot();
         const uploadContext = {
             isCFUploadProxyDisabled: shouldDisableCFUploadProxy(),
@@ -673,9 +449,25 @@ class UploadManager {
                 options?.skipDuplicateAddToUploadCollection,
             includePartnerSharedFiles: options?.includePartnerSharedFiles,
             abortIfCancelled: this.abortIfCancelled.bind(this),
-            updateUploadProgress:
-                uiService.updateUploadProgress.bind(uiService),
-            updateUploadBytes: uiService.updateUploadBytes.bind(uiService),
+            updateUploadProgress: (localID: number, percentage: number) => {
+                if (progress.phase != "uploading") return;
+                progress.inProgress.set(localID, Math.round(percentage));
+                this.publishProgress(progress);
+            },
+            updateUploadBytes: (
+                localID: number,
+                uploaded: number,
+                total: number,
+                reset: boolean,
+            ) => {
+                progress.updateBytes(
+                    localID,
+                    uploaded,
+                    total,
+                    reset,
+                    performance.now(),
+                );
+            },
         };
 
         while (this.itemsToBeUploaded.length > 0) {
@@ -687,7 +479,8 @@ class UploadManager {
             const collection = this.collections.get(collectionID)!;
             const uploadableItem = { ...clusteredItem, collection };
 
-            uiService.setFileProgress(localID, 0);
+            progress.inProgress.set(localID, 0);
+            this.publishProgress(progress);
             await wait(0);
 
             let uploadResult: UploadResult;
@@ -728,8 +521,8 @@ class UploadManager {
                 uploadResult,
             );
 
-            uiService.moveFileToResultList(localID, finishedUploadType);
-            uiService.increaseFileUploaded();
+            progress.finish(localID, finishedUploadType);
+            this.publishProgress(progress);
             UploadService.reducePendingUploadCount();
         }
     }
@@ -781,7 +574,9 @@ class UploadManager {
 
     public cancelRunningUpload() {
         log.info("User cancelled upload");
-        this.uiService.setUploadPhase("cancelling");
+        this.sizeDiscoveryController?.abort();
+        this.progress.phase = "cancelling";
+        this.publishProgress();
         this.shouldUploadBeCancelled = true;
     }
 

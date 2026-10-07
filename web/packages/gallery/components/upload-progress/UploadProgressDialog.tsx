@@ -23,6 +23,7 @@ import { useUploadProgressContext } from "./context";
 import {
     normalizePercent,
     uploadCountsText,
+    uploadETAText,
     uploadStatusText,
 } from "./helpers";
 import { UploadProgressDetails } from "./UploadProgressDetails";
@@ -125,17 +126,8 @@ function UploadProgressSummary() {
     } else if (uploadPhase == "cancelling") {
         progressCaption = t("this_may_take_a_moment");
     } else if (isUploading) {
-        if (uploadETA === undefined) {
-            progressCaption = uploadStatusText(uploadPhase);
-        } else if (uploadETA < 60) {
-            progressCaption = t("upload_eta_seconds", {
-                count: Math.max(1, uploadETA),
-            });
-        } else {
-            progressCaption = t("upload_eta_minutes", {
-                count: Math.ceil(uploadETA / 60),
-            });
-        }
+        progressCaption =
+            uploadETAText(uploadETA) ?? uploadStatusText(uploadPhase);
     }
 
     return (

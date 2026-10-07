@@ -1,30 +1,16 @@
 import type { PreUploadSkippedFile } from "ente-base/types/ipc";
-import type { UploadPhase } from "ente-gallery/services/upload";
 import { createContext, useContext } from "react";
-import type {
-    InProgressUpload,
-    SegregatedFinishedUploads,
-    UploadCounter,
-    UploadFileNames,
-} from "../upload-progress-stats";
+import type { UploadProgressState } from "../upload-progress-stats";
 
 export interface DragPosition {
     x: number;
     y: number;
 }
 
-export interface UploadProgressContextT {
+export interface UploadProgressContextT extends UploadProgressState {
     onClose: () => void;
-    uploadCounter: UploadCounter;
-    uploadPhase: UploadPhase;
-    percentComplete: number;
-    uploadETA?: number;
     retryFailed: () => void;
-    inProgressUploads: InProgressUpload[];
-    uploadFileNames: UploadFileNames;
-    finishedUploads: SegregatedFinishedUploads;
     preUploadSkippedFiles: PreUploadSkippedFile[];
-    hasLivePhotos: boolean;
     setExpanded: (expanded: boolean) => void;
     dragPosition: DragPosition | undefined;
     setDragPosition: (dragPosition: DragPosition | undefined) => void;

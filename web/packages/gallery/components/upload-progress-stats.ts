@@ -17,6 +17,27 @@ export type SegregatedFinishedUploads = Map<FinishedUploadType, number[]>;
 
 export type UploadFileNames = Map<number, string>;
 
+export interface UploadProgressState {
+    uploadPhase: UploadPhase;
+    uploadCounter: UploadCounter;
+    percentComplete: number;
+    uploadETA?: number;
+    inProgressUploads: InProgressUpload[];
+    uploadFileNames: UploadFileNames;
+    finishedUploads: SegregatedFinishedUploads;
+    hasLivePhotos: boolean;
+}
+
+export const initialUploadProgressState: UploadProgressState = {
+    uploadPhase: "preparing",
+    uploadCounter: { finished: 0, total: 0 },
+    percentComplete: 0,
+    inProgressUploads: [],
+    uploadFileNames: new Map(),
+    finishedUploads: new Map(),
+    hasLivePhotos: false,
+};
+
 // These are terminal outcomes, including skipped and failed attempts.
 export const finishedStatKinds = ["completed", "skipped", "failed"] as const;
 

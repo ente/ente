@@ -67,8 +67,10 @@ import {
     putFilePartViaWorker,
     putFileViaWorker,
     type MultipartCompletedPart,
+    type MultipartUploadURLs,
     type ObjectUploadURL,
     type PostEnteFileRequest,
+    type UploadByteProgress,
 } from "./remote";
 import {
     fallbackThumbnail,
@@ -478,6 +480,7 @@ interface UploadContext {
         fileLocalID: number,
         uploadedBytes: number,
         totalBytes: number,
+        reset: boolean,
     ) => void;
 }
 
@@ -1348,11 +1351,11 @@ const uploadToBucket = async (
         encryptedFileSize = encryptedData.encryptedSize;
     }
     const totalBytes = encryptedFileSize + thumbnail.encryptedData.length;
-    updateUploadBytes?.(localID, 0, totalBytes);
-    let onFileProgress: ((uploadedBytes: number) => void) | undefined;
+    updateUploadBytes?.(localID, 0, totalBytes, false);
+    let onFileProgress: UploadByteProgress | undefined;
     if (updateUploadBytes) {
-        onFileProgress = (uploadedBytes) =>
-            updateUploadBytes(localID, uploadedBytes, totalBytes);
+        onFileProgress = (uploadedBytes, reset) =>
+            updateUploadBytes(localID, uploadedBytes, totalBytes, reset);
     }
     if (
         !(encryptedData instanceof Uint8Array) &&
@@ -1411,13 +1414,14 @@ const uploadToBucket = async (
             : undefined,
     );
     const shouldUseWorkerForThumbnail = !isCFUploadProxyDisabled;
-    let onThumbnailProgress: ((uploadedBytes: number) => void) | undefined;
+    let onThumbnailProgress: UploadByteProgress | undefined;
     if (updateUploadBytes) {
-        onThumbnailProgress = (uploadedBytes) =>
+        onThumbnailProgress = (uploadedBytes, reset) =>
             updateUploadBytes(
                 localID,
                 encryptedFileSize + uploadedBytes,
                 totalBytes,
+                reset,
             );
     }
     if (shouldUseWorkerForThumbnail) {
@@ -1475,7 +1479,7 @@ const uploadStreamUsingMultipart = async (
     requestRetrier: typeof retryAsyncOperation,
     maxPercent: number,
     checksumEnabled: boolean,
-    onProgress?: (uploadedBytes: number) => void,
+    onProgress?: UploadByteProgress,
 ) => {
     const { isCFUploadProxyDisabled, abortIfCancelled, updateUploadProgress } =
         uploadContext;
@@ -1485,117 +1489,55 @@ const uploadStreamUsingMultipart = async (
         uploadContext.deferMultipartChecksums &&
         !uploadContext.publicAlbumsCredentials;
 
-    const { stream } = dataStream;
-    const streamReader = stream.getReader();
-
+    const streamReader = dataStream.stream.getReader();
     let uploadPartCount = Math.ceil(
         dataStream.chunkCount / multipartChunksPerPart,
     );
+    let parts: Uint8Array<ArrayBuffer>[] | undefined;
+    let partMd5s: string[] | undefined;
+    let multipartUploadURLs: MultipartUploadURLs;
 
     if (shouldSendPartChecksums && !deferPartChecksums) {
-        const parts: Uint8Array<ArrayBuffer>[] = [];
-        const partMd5s: string[] = [];
-        let fileSize = 0;
+        parts = [];
+        partMd5s = [];
+        let contentLength = 0;
         while (true) {
             abortIfCancelled();
             const partData = await nextMultipartUploadPart(streamReader);
             if (partData.length === 0) break;
             parts.push(partData);
-            fileSize += partData.length;
+            contentLength += partData.length;
             partMd5s.push(computeMd5Base64(partData));
         }
         const { done } = await streamReader.read();
         if (!done) throw new Error("More chunks than expected");
 
         uploadPartCount = parts.length;
-        if (uploadPartCount == 0) {
+        if (uploadPartCount == 0)
             throw new Error("Multipart upload produced no parts");
-        }
-        const firstPartLength = parts[0]?.length ?? 0;
-        if (firstPartLength == 0) {
-            throw new Error("Multipart part length missing");
-        }
-        const partLength = firstPartLength;
+        const partLength = parts[0]?.length ?? 0;
+        if (partLength == 0) throw new Error("Multipart part length missing");
 
-        const multipartUploadURLs =
-            await uploadService.fetchMultipartUploadURLs(uploadPartCount, {
-                contentLength: fileSize,
-                partLength,
-                partMd5s,
-            });
-
-        const percentPerPart = maxPercent / uploadPartCount;
-        const completedParts: MultipartCompletedPart[] = [];
-        let uploadedBytes = 0;
-        for (const [
-            index,
-            partUploadURL,
-        ] of multipartUploadURLs.partURLs.entries()) {
-            abortIfCancelled();
-
-            const partNumber = index + 1;
-            const partData = parts[index];
-            const checksum = partMd5s[index];
-            if (!partData || !checksum) {
-                throw new Error("Multipart checksum part mismatch");
-            }
-            const partOffset = uploadedBytes;
-            let onPartProgress: ((bytes: number) => void) | undefined;
-            if (onProgress) {
-                onPartProgress = (bytes) => onProgress(partOffset + bytes);
-            }
-
-            const eTag = !isCFUploadProxyDisabled
-                ? await putFilePartViaWorker(
-                      partUploadURL,
-                      partData,
-                      requestRetrier,
-                      { contentMd5: checksum, onProgress: onPartProgress },
-                  )
-                : await putFilePart(partUploadURL, partData, requestRetrier, {
-                      contentMd5: checksum,
-                      onProgress: onPartProgress,
-                  });
-            if (!eTag) throw new Error(eTagMissingErrorMessage);
-
-            uploadedBytes += partData.length;
-            updateUploadProgress(fileLocalID, percentPerPart * partNumber);
-            completedParts.push({ partNumber, eTag });
-            parts[index] = new Uint8Array(0);
-        }
-
-        const completionURL = multipartUploadURLs.completeURL;
-        if (!isCFUploadProxyDisabled) {
-            await completeMultipartUploadViaWorker(
-                completionURL,
-                completedParts,
-                requestRetrier,
-            );
-        } else {
-            await completeMultipartUpload(
-                completionURL,
-                completedParts,
-                requestRetrier,
-            );
-        }
-
-        return { objectKey: multipartUploadURLs.objectKey, fileSize };
+        multipartUploadURLs = await uploadService.fetchMultipartUploadURLs(
+            uploadPartCount,
+            { contentLength, partLength, partMd5s },
+        );
+    } else {
+        const partLength = Math.min(
+            dataStream.encryptedSize,
+            multipartChunksPerPart *
+                (streamEncryptionChunkSize + streamEncryptionChunkOverhead),
+        );
+        multipartUploadURLs = deferPartChecksums
+            ? await uploadService.fetchMultipartUploadURLsWithoutChecksums(
+                  dataStream.encryptedSize,
+                  partLength,
+              )
+            : await uploadService.fetchMultipartUploadURLs(uploadPartCount);
     }
 
-    const partLength = Math.min(
-        dataStream.encryptedSize,
-        multipartChunksPerPart *
-            (streamEncryptionChunkSize + streamEncryptionChunkOverhead),
-    );
-    const multipartUploadURLs = deferPartChecksums
-        ? await uploadService.fetchMultipartUploadURLsWithoutChecksums(
-              dataStream.encryptedSize,
-              partLength,
-          )
-        : await uploadService.fetchMultipartUploadURLs(uploadPartCount);
-    if (multipartUploadURLs.partURLs.length != uploadPartCount) {
+    if (multipartUploadURLs.partURLs.length != uploadPartCount)
         throw new Error("Unexpected multipart upload URL count");
-    }
 
     const percentPerPart = maxPercent / uploadPartCount;
     let fileSize = 0;
@@ -1607,17 +1549,22 @@ const uploadStreamUsingMultipart = async (
         abortIfCancelled();
 
         const partNumber = index + 1;
-        const partData = await nextMultipartUploadPart(streamReader);
-        const partOffset = fileSize;
-        fileSize += partData.length;
-        let onPartProgress: ((bytes: number) => void) | undefined;
-        if (onProgress) {
-            onPartProgress = (bytes) => onProgress(partOffset + bytes);
-        }
-        const checksum = deferPartChecksums
-            ? computeMd5Base64(partData)
-            : undefined;
+        const partData = parts
+            ? parts[index]
+            : await nextMultipartUploadPart(streamReader);
+        if (!partData?.length) throw new Error("Multipart part missing");
+        const checksum = partMd5s
+            ? partMd5s[index]
+            : deferPartChecksums
+              ? computeMd5Base64(partData)
+              : undefined;
+        if (partMd5s && !checksum)
+            throw new Error("Multipart checksum part mismatch");
 
+        const partOffset = fileSize;
+        const onPartProgress: UploadByteProgress | undefined = onProgress
+            ? (bytes, reset) => onProgress(partOffset + bytes, reset)
+            : undefined;
         const eTag = !isCFUploadProxyDisabled
             ? await putFilePartViaWorker(
                   partUploadURL,
@@ -1631,22 +1578,23 @@ const uploadStreamUsingMultipart = async (
               });
         if (!eTag) throw new Error(eTagMissingErrorMessage);
 
+        fileSize += partData.length;
         updateUploadProgress(fileLocalID, percentPerPart * partNumber);
         completedParts.push({ partNumber, eTag });
+        if (parts) parts[index] = new Uint8Array(0);
     }
     const { done } = await streamReader.read();
     if (!done) throw new Error("More chunks than expected");
 
-    const completionURL = multipartUploadURLs.completeURL;
     if (!isCFUploadProxyDisabled) {
         await completeMultipartUploadViaWorker(
-            completionURL,
+            multipartUploadURLs.completeURL,
             completedParts,
             requestRetrier,
         );
     } else {
         await completeMultipartUpload(
-            completionURL,
+            multipartUploadURLs.completeURL,
             completedParts,
             requestRetrier,
         );

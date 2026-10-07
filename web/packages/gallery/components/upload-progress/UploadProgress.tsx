@@ -1,12 +1,6 @@
 import type { PreUploadSkippedFile } from "ente-base/types/ipc";
-import type { UploadPhase } from "ente-gallery/services/upload";
 import { useEffect, useState } from "react";
-import type {
-    InProgressUpload,
-    SegregatedFinishedUploads,
-    UploadCounter,
-    UploadFileNames,
-} from "../upload-progress-stats";
+import type { UploadProgressState } from "../upload-progress-stats";
 import { UploadCompletion } from "../UploadCompletion";
 import { UploadProgressContext, type DragPosition } from "./context";
 import { MinimizedUploadProgress } from "./MinimizedUploadProgress";
@@ -16,16 +10,9 @@ import { UploadProgressDialog } from "./UploadProgressDialog";
 interface UploadProgressProps {
     open: boolean;
     onClose: () => void;
-    uploadCounter: UploadCounter;
-    uploadPhase: UploadPhase;
-    percentComplete: number;
-    uploadETA?: number;
+    progress: UploadProgressState;
     retryFailed: () => void;
-    inProgressUploads: InProgressUpload[];
-    uploadFileNames: UploadFileNames;
-    finishedUploads: SegregatedFinishedUploads;
     preUploadSkippedFiles?: PreUploadSkippedFile[];
-    hasLivePhotos: boolean;
     cancelUploads: () => void;
 }
 
@@ -39,18 +26,12 @@ export function UploadProgress(props: UploadProgressProps) {
 
 function UploadProgressBody({
     onClose,
-    uploadCounter,
-    uploadPhase,
-    percentComplete,
-    uploadETA,
+    progress,
     retryFailed,
-    uploadFileNames,
-    hasLivePhotos,
-    inProgressUploads,
-    finishedUploads,
     preUploadSkippedFiles = emptyPreUploadSkippedFiles,
     cancelUploads,
 }: UploadProgressProps) {
+    const { uploadPhase, finishedUploads } = progress;
     const [expanded, setExpanded] = useState(false);
     const [dragPosition, setDragPosition] = useState<DragPosition>();
     const [showStopConfirmation, setShowStopConfirmation] = useState(false);
@@ -97,16 +78,9 @@ function UploadProgressBody({
 
     const contextValue = {
         onClose: handleClose,
-        uploadCounter,
-        uploadPhase,
-        percentComplete,
-        uploadETA,
+        ...progress,
         retryFailed: handleRetryFailed,
-        inProgressUploads,
-        uploadFileNames,
-        finishedUploads,
         preUploadSkippedFiles,
-        hasLivePhotos,
         setExpanded,
         dragPosition,
         setDragPosition,

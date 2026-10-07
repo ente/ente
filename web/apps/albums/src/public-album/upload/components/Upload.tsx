@@ -443,14 +443,16 @@ export const Upload: React.FC<UploadProps> = ({
             <UploadProgress
                 open={uploadProgressView}
                 onClose={closeUploadProgress}
-                percentComplete={percentComplete}
-                uploadFileNames={uploadFileNames}
-                uploadCounter={uploadCounter}
-                uploadPhase={uploadPhase}
-                inProgressUploads={inProgressUploads}
-                hasLivePhotos={hasLivePhotos}
+                progress={{
+                    percentComplete,
+                    uploadFileNames,
+                    uploadCounter,
+                    uploadPhase,
+                    inProgressUploads,
+                    hasLivePhotos,
+                    finishedUploads,
+                }}
                 retryFailed={retryFailed}
-                finishedUploads={finishedUploads}
                 cancelUploads={cancelUploads}
             />
             <CanvasReadbackBlockedDialog

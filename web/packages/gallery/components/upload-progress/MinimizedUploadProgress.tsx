@@ -22,6 +22,7 @@ import { useUploadProgressContext } from "./context";
 import {
     normalizePercent,
     uploadCountsText,
+    uploadETAText,
     uploadStatusText,
 } from "./helpers";
 import { useMinimizedUploadDrag } from "./use-minimized-upload-drag";
@@ -34,18 +35,7 @@ export function MinimizedUploadProgress() {
         useMinimizedUploadDrag(dragSurfaceRef);
     const progress = normalizePercent(percentComplete);
     const showUploadProgress = context.uploadPhase == "uploading";
-    let etaText: string | undefined;
-    if (showUploadProgress && uploadETA !== undefined) {
-        if (uploadETA < 60) {
-            etaText = t("upload_eta_seconds", {
-                count: Math.max(1, uploadETA),
-            });
-        } else {
-            etaText = t("upload_eta_minutes", {
-                count: Math.ceil(uploadETA / 60),
-            });
-        }
-    }
+    const etaText = showUploadProgress ? uploadETAText(uploadETA) : undefined;
     const hasFailures =
         uploadCompletionCounts(
             context.finishedUploads,

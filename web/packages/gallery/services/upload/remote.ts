@@ -126,7 +126,7 @@ const MultipartUploadURLs = z.object({
     completeURL: z.string(),
 });
 
-type MultipartUploadURLs = z.infer<typeof MultipartUploadURLs>;
+export type MultipartUploadURLs = z.infer<typeof MultipartUploadURLs>;
 
 const MultipartUploadURLsResponse = z.object({ urls: MultipartUploadURLs });
 
@@ -140,51 +140,72 @@ export const fetchMultipartUploadURLs = async (uploadPartCount: number) => {
     return MultipartUploadURLsResponse.parse(await res.json()).urls;
 };
 
+export type UploadByteProgress = (
+    uploadedBytes: number,
+    reset: boolean,
+) => void;
+
 interface PutFileOptions {
     contentMd5?: string;
-    onProgress?: (uploadedBytes: number) => void;
+    onProgress?: UploadByteProgress;
+}
+
+export class UploadRequestError extends Error {
+    constructor(readonly status?: number) {
+        super(
+            status === undefined
+                ? "Upload request failed"
+                : `Upload failed (${status})`,
+        );
+        this.name = "UploadRequestError";
+    }
 }
 
 const putUpload = (
     url: string,
     data: Uint8Array<ArrayBuffer>,
     headers: Record<string, string>,
-    onProgress?: (uploadedBytes: number) => void,
+    onProgress?: UploadByteProgress,
 ) =>
-    new Promise<XMLHttpRequest>((resolve, reject) => {
-        const request = new XMLHttpRequest();
-        request.upload.onprogress = ({ loaded }) =>
-            onProgress?.(Math.min(loaded, data.length));
-        request.onload = () => {
-            if (request.status < 200 || request.status >= 300) {
-                onProgress?.(0);
-                reject(new Error(`Upload failed (${request.status})`));
-                return;
-            }
-            onProgress?.(data.length);
-            resolve(request);
-        };
-        request.onerror =
-            request.ontimeout =
-            request.onabort =
-                () => {
-                    onProgress?.(0);
-                    reject(new TypeError("Upload request failed"));
-                };
-        request.open("PUT", url);
-        for (const [name, value] of Object.entries(headers))
-            request.setRequestHeader(name, value);
-        onProgress?.(0);
-        request.send(data);
-    });
+    new Promise<{ eTag: string | undefined; responseText: string }>(
+        (resolve, reject) => {
+            const request = new XMLHttpRequest();
+            request.upload.onprogress = ({ loaded }) =>
+                onProgress?.(Math.min(loaded, data.length), false);
+            request.onload = () => {
+                if (request.status < 200 || request.status >= 300) {
+                    onProgress?.(0, true);
+                    reject(new UploadRequestError(request.status));
+                    return;
+                }
+                onProgress?.(data.length, false);
+                resolve({
+                    eTag: request.getResponseHeader("etag") ?? undefined,
+                    responseText: request.responseText,
+                });
+            };
+            request.onerror =
+                request.ontimeout =
+                request.onabort =
+                    () => {
+                        onProgress?.(0, true);
+                        reject(new UploadRequestError());
+                    };
+            request.open("PUT", url);
+            for (const [name, value] of Object.entries(headers))
+                request.setRequestHeader(name, value);
+            onProgress?.(0, false);
+            request.send(data);
+        },
+    );
 
 export const putFile = async (
     fileUploadURL: string,
     fileData: Uint8Array<ArrayBuffer>,
     retrier: typeof retryAsyncOperation,
     options?: PutFileOptions,
-) =>
-    retrier(() =>
+) => {
+    await retrier(() =>
         putUpload(
             fileUploadURL,
             fileData,
@@ -197,14 +218,15 @@ export const putFile = async (
             options?.onProgress,
         ),
     );
+};
 
 export const putFileViaWorker = async (
     fileUploadURL: string,
     fileData: Uint8Array<ArrayBuffer>,
     retrier: typeof retryAsyncOperation,
     options?: PutFileOptions,
-) =>
-    retrier(async () =>
+) => {
+    await retrier(async () =>
         putUpload(
             `${await uploaderOrigin()}/file-upload`,
             fileData,
@@ -218,6 +240,7 @@ export const putFileViaWorker = async (
             options?.onProgress,
         ),
     );
+};
 
 export const putFilePart = async (
     partUploadURL: string,
@@ -238,7 +261,7 @@ export const putFilePart = async (
             options?.onProgress,
         ),
     );
-    return res.getResponseHeader("etag") ?? undefined;
+    return res.eTag;
 };
 
 export const putFilePartViaWorker = async (
@@ -282,27 +305,29 @@ const createMultipartUploadRequestBody = (
     return `<CompleteMultipartUpload>\n${resultParts.join("\n")}\n</CompleteMultipartUpload>`;
 };
 
-export const completeMultipartUpload = (
+export const completeMultipartUpload = async (
     completionURL: string,
     completedParts: MultipartCompletedPart[],
     retrier: typeof retryAsyncOperation,
-) =>
-    retrier(async () => {
+) => {
+    await retrier(async () => {
         const res = await fetch(completionURL, {
             method: "POST",
             headers: { ...publicRequestHeaders(), "Content-Type": "text/xml" },
             body: createMultipartUploadRequestBody(completedParts),
+        }).catch(() => {
+            throw new UploadRequestError();
         });
-        ensureOk(res);
-        return res;
+        if (!res.ok) throw new UploadRequestError(res.status);
     });
+};
 
 export const completeMultipartUploadViaWorker = async (
     completionURL: string,
     completedParts: MultipartCompletedPart[],
     retrier: typeof retryAsyncOperation,
-) =>
-    retrier(async () => {
+) => {
+    await retrier(async () => {
         const res = await fetch(
             `${await uploaderOrigin()}/multipart-complete`,
             {
@@ -314,10 +339,12 @@ export const completeMultipartUploadViaWorker = async (
                 },
                 body: createMultipartUploadRequestBody(completedParts),
             },
-        );
-        ensureOk(res);
-        return res;
+        ).catch(() => {
+            throw new UploadRequestError();
+        });
+        if (!res.ok) throw new UploadRequestError(res.status);
     });
+};
 
 export interface PostEnteFileRequest {
     collectionID: number;

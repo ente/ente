@@ -72,6 +72,13 @@ export const statEmptyMessageKeys: Record<FinishedStatKind, string> = {
     failed: "upload_empty_failed",
 };
 
+export const uploadETAText = (eta: number | undefined) => {
+    if (eta === undefined) return;
+    return eta < 60
+        ? t("upload_eta_seconds", { count: Math.max(1, eta) })
+        : t("upload_eta_minutes", { count: Math.ceil(eta / 60) });
+};
+
 export const uploadStatusText = (uploadPhase: UploadPhase) => {
     switch (uploadPhase) {
         case "preparing":
