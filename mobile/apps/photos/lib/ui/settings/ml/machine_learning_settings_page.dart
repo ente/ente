@@ -10,6 +10,8 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/events/notification_event.dart";
+import "package:photos/events/tab_changed_event.dart";
+import "package:photos/models/home_tab.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
 import "package:photos/services/machine_learning/ml_model_assets.dart";
@@ -24,6 +26,7 @@ import "package:photos/ui/settings/ml/ml_user_dev_screen.dart";
 import "package:photos/utils/email_util.dart";
 import "package:photos/utils/ml_util.dart";
 import "package:photos/utils/network_util.dart";
+import "package:styled_text/styled_text.dart";
 
 class MachineLearningSettingsPage extends StatefulWidget {
   const MachineLearningSettingsPage({super.key});
@@ -143,41 +146,37 @@ class _MachineLearningSettingsPageState
   }
 
   Widget _buildDisabledMLScreen(BuildContext context) {
-    return SettingsPageScaffold(
-      title: context.strings.mlConsent,
-      children: [
-        const _MLConsentDescription(),
-        const SizedBox(height: 20),
-        Center(
-          child: Image.asset(
-            "assets/ducky_ml.png",
-            height: 150,
-            fit: BoxFit.contain,
+    return PopScope(
+      onPopInvokedWithResult: (_, _) => unawaited(_handleDisabledScreenExit()),
+      child: SettingsPageScaffold(
+        title: context.strings.machineLearning,
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            child: ButtonComponent(
+              label: context.strings.mlConsent,
+              isDisabled: !_hasAcknowledgedMLConsent,
+              onTap: () async {
+                if (!_hasAcknowledgedMLConsent) return;
+                await toggleMlConsent(openSearchTab: true);
+              },
+            ),
           ),
         ),
-        const SizedBox(height: 18),
-        _buildDisabledConsentAckRow(context),
-        const SizedBox(height: 20),
-        ButtonComponent(
-          label: context.strings.mlConsent,
-          isDisabled: !_hasAcknowledgedMLConsent,
-          onTap: () async {
-            if (!_hasAcknowledgedMLConsent) return;
-            await toggleMlConsent();
-          },
-        ),
-        const SizedBox(height: 12),
-        ButtonComponent(
-          label: context.strings.cancel,
-          variant: ButtonComponentVariant.secondary,
-          onTap: () async {
-            await _handleDisabledScreenExit();
-            if (context.mounted) {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-      ],
+        children: [
+          const _MLConsentDescription(),
+          const SizedBox(height: 20),
+          Center(
+            child: Image.asset(
+              "assets/ducky_ml.png",
+              height: 150,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildDisabledConsentAckRow(context),
+        ],
+      ),
     );
   }
 
@@ -214,7 +213,7 @@ class _MachineLearningSettingsPageState
     Bus.instance.fire(NotificationEvent());
   }
 
-  Future<void> toggleMlConsent() async {
+  Future<void> toggleMlConsent({bool openSearchTab = false}) async {
     final oldMlConsent = hasGrantedMLConsent;
     final oldMlEnabled = oldMlConsent && localSettings.isMLLocalIndexingEnabled;
     final mlConsent = !oldMlConsent;
@@ -236,6 +235,15 @@ class _MachineLearningSettingsPageState
       await MLService.instance.init();
       await SemanticSearchService.instance.init();
       unawaited(MLService.instance.runAllML(force: true));
+      if (openSearchTab && mounted) {
+        Navigator.of(
+          context,
+        ).popUntil((route) => route.isFirst && !route.willHandlePopInternally);
+        Bus.instance.fire(
+          TabChangedEvent(searchTabIndex, TabChangedEventSource.mlConsent),
+        );
+        return;
+      }
     }
     if (mounted) {
       setState(() {});
@@ -267,7 +275,7 @@ class _MachineLearningSettingsPageState
           Expanded(
             child: Text(
               context.strings.mlConsentConfirmation,
-              style: TextStyles.mini.copyWith(color: colors.textLight),
+              style: TextStyles.body.copyWith(color: colors.textLight),
             ),
           ),
         ],
@@ -346,28 +354,29 @@ class _MLConsentDescription extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.componentColors;
+    final textStyle = TextStyles.body.copyWith(
+      color: context.componentColors.textLight,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          context.strings.mlConsentDescription,
-          textAlign: TextAlign.left,
-          style: TextStyles.mini.copyWith(color: colors.textLight),
-        ),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: () async => _openMLPrivacyPolicy(context),
-          child: Text(
-            context.strings.mlConsentPrivacy,
-            textAlign: TextAlign.left,
-            style: TextStyles.mini.copyWith(
-              color: colors.textLight,
-              decoration: TextDecoration.underline,
-              decorationColor: colors.textLight,
+        for (final paragraph in context.strings.mlConsentDescription.split(
+          "\n\n",
+        )) ...[Text(paragraph, style: textStyle), const SizedBox(height: 8)],
+        StyledText(
+          text: context.strings.mlConsentPrivacyDetails,
+          style: textStyle,
+          tags: {
+            'policy': StyledTextActionTag(
+              (String? text, Map<String?, String?> attrs) =>
+                  _openMLPrivacyPolicy(context),
+              style: textStyle.copyWith(
+                decoration: TextDecoration.underline,
+                decorationColor: textStyle.color,
+              ),
             ),
-          ),
+          },
         ),
       ],
     );

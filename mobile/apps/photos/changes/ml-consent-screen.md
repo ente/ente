@@ -1,0 +1,1 @@
+- Refreshed the machine learning consent screen. Enabling it now takes you to Search.
