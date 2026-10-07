@@ -643,7 +643,8 @@ class UploadManager {
         await UploadService.setFileCount(mediaItems.length);
         this.uiService.setUploadPhase("uploading");
 
-        const uploadProcesses = [this.uiService.setUploadSizes(mediaItems)];
+        void this.uiService.setUploadSizes(mediaItems);
+        const uploadProcesses = new Array<Promise<void>>();
         for (
             let i = 0;
             i < maxConcurrentUploads && this.itemsToBeUploaded.length > 0;
