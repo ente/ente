@@ -302,12 +302,47 @@ class UIService {
         this.updateProgressBarUI();
     }
 
-    setUploadSizes(items: { localID: number; size: number | undefined }[]) {
+    async setUploadSizes(items: ClusteredUploadItem[]) {
         this.uploadBytes = new Map(
-            items.map(({ localID, size }) => [
+            items.map(({ localID }) => [
                 localID,
-                { total: size, uploaded: 0 },
+                { total: undefined, uploaded: 0 },
             ]),
+        );
+        const uploadBytes = this.uploadBytes;
+        const remainingItems = items.values();
+        await Promise.all(
+            Array.from({ length: maxConcurrentUploads }, async () => {
+                for (const item of remainingItems) {
+                    if (
+                        this.uploadPhase != "uploading" ||
+                        this.uploadBytes !== uploadBytes
+                    )
+                        return;
+                    const entry = uploadBytes.get(item.localID);
+                    if (!entry || entry.total !== undefined) continue;
+                    const assets = [];
+                    if (item.isLivePhoto) {
+                        assets.push(
+                            item.livePhotoAssets!.image,
+                            item.livePhotoAssets!.video,
+                        );
+                    } else {
+                        assets.push(item.uploadItem!);
+                    }
+                    try {
+                        const size = await Promise.all(
+                            assets.map(uploadItemSize),
+                        ).then((sizes) =>
+                            sizes.reduce((sum, size) => sum + size, 0),
+                        );
+                        if (this.uploadBytes.get(item.localID) === entry)
+                            entry.total = size;
+                    } catch {
+                        continue;
+                    }
+                }
+            }),
         );
     }
 
@@ -605,28 +640,10 @@ class UploadManager {
     ) {
         this.itemsToBeUploaded = [...this.itemsToBeUploaded, ...mediaItems];
         this.uiService.reset(mediaItems.length);
-        const sizes: { localID: number; size: number | undefined }[] = [];
-        for (const item of mediaItems) {
-            this.abortIfCancelled();
-            const assets = [];
-            if (item.isLivePhoto) {
-                assets.push(
-                    item.livePhotoAssets!.image,
-                    item.livePhotoAssets!.video,
-                );
-            } else {
-                assets.push(item.uploadItem!);
-            }
-            const size = await Promise.all(assets.map(uploadItemSize))
-                .then((sizes) => sizes.reduce((sum, size) => sum + size, 0))
-                .catch(() => undefined);
-            sizes.push({ localID: item.localID, size });
-        }
-        this.uiService.setUploadSizes(sizes);
         await UploadService.setFileCount(mediaItems.length);
         this.uiService.setUploadPhase("uploading");
 
-        const uploadProcesses = new Array<Promise<void>>();
+        const uploadProcesses = [this.uiService.setUploadSizes(mediaItems)];
         for (
             let i = 0;
             i < maxConcurrentUploads && this.itemsToBeUploaded.length > 0;

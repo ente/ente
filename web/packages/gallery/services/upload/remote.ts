@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
     authenticatedPublicAlbumsRequestHeaders,
     authenticatedRequestHeaders,
@@ -146,27 +145,38 @@ interface PutFileOptions {
     onProgress?: (uploadedBytes: number) => void;
 }
 
-const putUpload = async (
+const putUpload = (
     url: string,
     data: Uint8Array<ArrayBuffer>,
     headers: Record<string, string>,
     onProgress?: (uploadedBytes: number) => void,
-) => {
-    onProgress?.(0);
-    try {
-        const res = await axios.put<unknown>(url, data, {
-            headers: { "Content-Type": false, ...headers },
-            transformRequest: [],
-            onUploadProgress: ({ loaded }) =>
-                onProgress?.(Math.min(loaded, data.length)),
-        });
-        onProgress?.(data.length);
-        return res;
-    } catch (e) {
+) =>
+    new Promise<XMLHttpRequest>((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.upload.onprogress = ({ loaded }) =>
+            onProgress?.(Math.min(loaded, data.length));
+        request.onload = () => {
+            if (request.status < 200 || request.status >= 300) {
+                onProgress?.(0);
+                reject(new Error(`Upload failed (${request.status})`));
+                return;
+            }
+            onProgress?.(data.length);
+            resolve(request);
+        };
+        request.onerror =
+            request.ontimeout =
+            request.onabort =
+                () => {
+                    onProgress?.(0);
+                    reject(new TypeError("Upload request failed"));
+                };
+        request.open("PUT", url);
+        for (const [name, value] of Object.entries(headers))
+            request.setRequestHeader(name, value);
         onProgress?.(0);
-        throw e;
-    }
-};
+        request.send(data);
+    });
 
 export const putFile = async (
     fileUploadURL: string,
@@ -228,7 +238,7 @@ export const putFilePart = async (
             options?.onProgress,
         ),
     );
-    return z.string().optional().parse(res.headers.etag);
+    return res.getResponseHeader("etag") ?? undefined;
 };
 
 export const putFilePartViaWorker = async (
@@ -252,7 +262,8 @@ export const putFilePartViaWorker = async (
             options?.onProgress,
         ),
     );
-    return z.object({ etag: z.string() }).parse(res.data).etag;
+    return z.object({ etag: z.string() }).parse(JSON.parse(res.responseText))
+        .etag;
 };
 
 export interface MultipartCompletedPart {
