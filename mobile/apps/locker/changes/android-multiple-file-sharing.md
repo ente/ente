@@ -1,1 +1,0 @@
-- Added support for sharing multiple files into Locker on Android, with a warning for files that were skipped.

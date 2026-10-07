@@ -1,1 +1,0 @@
-- Fix document scanner crashes on iPhone 17
