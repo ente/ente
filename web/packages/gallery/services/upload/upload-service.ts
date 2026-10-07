@@ -481,6 +481,7 @@ interface UploadContext {
         uploadedBytes: number,
         totalBytes: number,
         reset: boolean,
+        fileSize?: number,
     ) => void;
 }
 
@@ -602,6 +603,7 @@ export const upload = async (
         const backupedFile = await uploadToBucket(
             encryptedFilePieces,
             uploadContext,
+            fileSize,
         );
 
         abortIfCancelled();
@@ -1317,6 +1319,7 @@ const areUint8ArraysEqual = (a: Uint8Array, b: Uint8Array) => {
 const uploadToBucket = async (
     encryptedFilePieces: EncryptedFilePieces,
     uploadContext: UploadContext,
+    originalFileSize: number,
 ): Promise<
     Pick<
         PostEnteFileRequest,
@@ -1351,7 +1354,7 @@ const uploadToBucket = async (
         encryptedFileSize = encryptedData.encryptedSize;
     }
     const totalBytes = encryptedFileSize + thumbnail.encryptedData.length;
-    updateUploadBytes?.(localID, 0, totalBytes, false);
+    updateUploadBytes?.(localID, 0, totalBytes, false, originalFileSize);
     let onFileProgress: UploadByteProgress | undefined;
     if (updateUploadBytes) {
         onFileProgress = (uploadedBytes, reset) =>

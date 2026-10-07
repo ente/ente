@@ -431,30 +431,43 @@ class UploadManager {
         await Promise.all(
             Array.from({ length: maxConcurrentSizeLookups }, async () => {
                 for (const item of remainingItems) {
-                    if (signal.aborted) return;
-                    const entry = progress.bytes.get(item.localID);
-                    if (!entry || entry.total !== undefined) continue;
                     const assets = item.isLivePhoto
                         ? [
                               item.livePhotoAssets!.image,
                               item.livePhotoAssets!.video,
                           ]
                         : [item.uploadItem!];
-                    try {
-                        const sizes = await Promise.allSettled(
-                            assets.map(uploadItemSize),
-                        );
-                        signal.throwIfAborted();
-                        if (
-                            progress.bytes.get(item.localID) === entry &&
-                            sizes.every((size) => size.status == "fulfilled")
-                        )
-                            entry.total = sizes.reduce(
-                                (sum, size) => sum + size.value,
-                                0,
+                    for (let attempt = 0; attempt < 3; attempt++) {
+                        if (attempt) await wait(1000);
+                        try {
+                            signal.throwIfAborted();
+                            const entry = progress.bytes.get(item.localID);
+                            if (
+                                !entry ||
+                                entry.total !== undefined ||
+                                entry.fileSize !== undefined
+                            )
+                                break;
+                            const sizes = await Promise.allSettled(
+                                assets.map(uploadItemSize),
                             );
-                    } catch {
-                        continue;
+                            signal.throwIfAborted();
+                            if (progress.bytes.get(item.localID) !== entry)
+                                break;
+                            if (
+                                sizes.every(
+                                    (size) => size.status == "fulfilled",
+                                )
+                            ) {
+                                entry.fileSize = sizes.reduce(
+                                    (sum, size) => sum + size.value,
+                                    0,
+                                );
+                                break;
+                            }
+                        } catch {
+                            if (signal.aborted) return;
+                        }
                     }
                 }
             }),
@@ -487,6 +500,7 @@ class UploadManager {
                 uploaded: number,
                 total: number,
                 reset: boolean,
+                fileSize?: number,
             ) => {
                 progress.updateBytes(
                     localID,
@@ -494,6 +508,7 @@ class UploadManager {
                     total,
                     reset,
                     performance.now(),
+                    fileSize,
                 );
             },
         };

@@ -74,9 +74,10 @@ export const statEmptyMessageKeys: Record<FinishedStatKind, string> = {
 
 export const uploadETAText = (eta: number | undefined) => {
     if (eta === undefined) return;
-    return eta < 60
-        ? t("upload_eta_seconds", { count: Math.max(1, eta) })
-        : t("upload_eta_minutes", { count: Math.ceil(eta / 60) });
+    if (eta < 60) return t("upload_eta_seconds", { count: Math.max(1, eta) });
+    if (eta < 3600)
+        return t("upload_eta_minutes", { count: Math.ceil(eta / 60) });
+    return t("upload_eta_hours", { count: Math.ceil(eta / 3600) });
 };
 
 export const uploadStatusText = (uploadPhase: UploadPhase) => {

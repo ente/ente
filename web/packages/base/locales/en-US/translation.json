@@ -122,6 +122,8 @@
     "upload_eta_seconds_other": "About {{count, number}} seconds remaining",
     "upload_eta_minutes_one": "About {{count, number}} minute remaining",
     "upload_eta_minutes_other": "About {{count, number}} minutes remaining",
+    "upload_eta_hours_one": "About {{count, number}} hour remaining",
+    "upload_eta_hours_other": "About {{count, number}} hours remaining",
     "upload_reading_file_information": "Reading file information",
     "this_may_take_a_moment": "This may take a moment",
     "percent_complete": "{{percent, number}}%",

@@ -1,3 +1,7 @@
+import {
+    streamEncryptionChunkOverhead,
+    streamEncryptionChunkSize,
+} from "ente-base/crypto/types";
 import type {
     FinishedUploadType,
     UploadProgressState,
@@ -12,11 +16,18 @@ export class UploadProgressTracker {
     totalCount = 0;
     inProgress = new Map<number, number>();
     finished = new Map<number, FinishedUploadType>();
-    bytes = new Map<number, { total: number | undefined; uploaded: number }>();
+    bytes = new Map<
+        number,
+        { total: number | undefined; uploaded: number; fileSize?: number }
+    >();
 
     private transferredBytes = 0;
     private transferSamples: { time: number; bytes: number }[] = [];
     private lastTransferTime: number | undefined;
+    private knownUploadBytes = 0;
+    private knownUploadCount = 0;
+    private uploadOverheadBytes = 0;
+    private uploadOverheadCount = 0;
 
     reset(count: number) {
         this.totalCount = count;
@@ -27,6 +38,10 @@ export class UploadProgressTracker {
         this.transferredBytes = 0;
         this.transferSamples = [];
         this.lastTransferTime = undefined;
+        this.knownUploadBytes = 0;
+        this.knownUploadCount = 0;
+        this.uploadOverheadBytes = 0;
+        this.uploadOverheadCount = 0;
     }
 
     finish(localID: number, type: FinishedUploadType) {
@@ -42,17 +57,31 @@ export class UploadProgressTracker {
         total: number,
         reset: boolean,
         now: number,
+        fileSize?: number,
     ) {
         if (this.phase != "uploading") return;
         const previous = this.bytes.get(localID);
         if (!previous) return;
 
         uploaded = Math.max(0, Math.min(uploaded, total));
-        const delta = uploaded - previous.uploaded;
-        if (reset) {
-            this.transferSamples = [];
-            this.lastTransferTime = undefined;
+        if (previous.total === undefined) {
+            this.knownUploadBytes += total;
+            this.knownUploadCount++;
+            const originalFileSize = fileSize ?? previous.fileSize;
+            if (originalFileSize !== undefined) {
+                this.uploadOverheadBytes += Math.max(
+                    0,
+                    total -
+                        originalFileSize -
+                        Math.ceil(
+                            originalFileSize / streamEncryptionChunkSize,
+                        ) *
+                            streamEncryptionChunkOverhead,
+                );
+                this.uploadOverheadCount++;
+            }
         }
+        const delta = reset ? 0 : Math.max(0, uploaded - previous.uploaded);
         if (delta > 0) {
             if (!this.transferSamples.length)
                 this.transferSamples.push({
@@ -115,15 +144,38 @@ export class UploadProgressTracker {
         }
 
         let remainingBytes = 0;
-        let unknownSize = false;
-        for (const { total, uploaded } of this.bytes.values()) {
-            if (total === undefined) unknownSize = true;
-            else remainingBytes += Math.max(0, total - uploaded);
+        let knownBytes = this.knownUploadBytes;
+        let knownCount = this.knownUploadCount;
+        let unknownCount = 0;
+        const overhead = this.uploadOverheadCount
+            ? this.uploadOverheadBytes / this.uploadOverheadCount
+            : 0;
+        for (const { total, uploaded, fileSize } of this.bytes.values()) {
+            const estimatedTotal =
+                total ??
+                (fileSize === undefined
+                    ? undefined
+                    : fileSize +
+                      Math.ceil(fileSize / streamEncryptionChunkSize) *
+                          streamEncryptionChunkOverhead +
+                      overhead);
+            if (estimatedTotal === undefined) {
+                unknownCount++;
+            } else {
+                remainingBytes += Math.max(0, estimatedTotal - uploaded);
+                if (total === undefined) {
+                    knownBytes += estimatedTotal;
+                    knownCount++;
+                }
+            }
+        }
+        if (unknownCount) {
+            if (!knownCount) return;
+            remainingBytes += (unknownCount * knownBytes) / knownCount;
         }
 
         const firstSample = this.transferSamples[0];
         if (
-            !unknownSize &&
             remainingBytes > 0 &&
             this.lastTransferTime !== undefined &&
             now - this.lastTransferTime < 15000 &&
