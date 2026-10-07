@@ -19,6 +19,7 @@ interface UploadProgressProps {
     uploadCounter: UploadCounter;
     uploadPhase: UploadPhase;
     percentComplete: number;
+    uploadETA?: number;
     retryFailed: () => void;
     inProgressUploads: InProgressUpload[];
     uploadFileNames: UploadFileNames;
@@ -41,6 +42,7 @@ function UploadProgressBody({
     uploadCounter,
     uploadPhase,
     percentComplete,
+    uploadETA,
     retryFailed,
     uploadFileNames,
     hasLivePhotos,
@@ -98,6 +100,7 @@ function UploadProgressBody({
         uploadCounter,
         uploadPhase,
         percentComplete,
+        uploadETA,
         retryFailed: handleRetryFailed,
         inProgressUploads,
         uploadFileNames,

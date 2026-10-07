@@ -212,6 +212,7 @@ export const Upload: React.FC<UploadProps> = ({
     const [finishedUploads, setFinishedUploads] =
         useState<SegregatedFinishedUploads>(new Map());
     const [percentComplete, setPercentComplete] = useState(0);
+    const [uploadETA, setUploadETA] = useState<number>();
     const [hasLivePhotos, setHasLivePhotos] = useState(false);
     const [prefilledNewAlbumName, setPrefilledNewAlbumName] = useState("");
     const [uploadConfirmation, setUploadConfirmation] = useState<
@@ -333,6 +334,7 @@ export const Upload: React.FC<UploadProps> = ({
                 setUploadFileNames,
                 setHasLivePhotos,
                 setUploadProgressView,
+                setUploadETA,
             },
             onUploadFile,
         );
@@ -1224,6 +1226,7 @@ export const Upload: React.FC<UploadProps> = ({
                 open={uploadProgressView}
                 onClose={closeUploadProgress}
                 percentComplete={percentComplete}
+                uploadETA={uploadETA}
                 uploadFileNames={uploadFileNames!}
                 uploadCounter={uploadCounter}
                 uploadPhase={uploadPhase}

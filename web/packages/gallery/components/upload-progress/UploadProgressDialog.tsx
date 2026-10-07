@@ -106,7 +106,7 @@ function UploadProgressHeader() {
 
 function UploadProgressSummary() {
     const context = useUploadProgressContext();
-    const { uploadPhase, percentComplete } = context;
+    const { uploadPhase, percentComplete, uploadETA } = context;
     const isUploading = uploadPhase == "uploading";
     const isDeterminate = isUploading || uploadPhase == "readingMetadata";
     const progress = normalizePercent(percentComplete);
@@ -125,7 +125,15 @@ function UploadProgressSummary() {
             : uploadPhase == "cancelling"
               ? t("this_may_take_a_moment")
               : isUploading
-                ? uploadStatusText(uploadPhase)
+                ? uploadETA === undefined
+                    ? uploadStatusText(uploadPhase)
+                    : uploadETA < 60
+                      ? t("upload_eta_seconds", {
+                            count: Math.max(1, uploadETA),
+                        })
+                      : t("upload_eta_minutes", {
+                            count: Math.ceil(uploadETA / 60),
+                        })
                 : undefined;
 
     return (
@@ -159,7 +167,9 @@ function UploadProgressSummary() {
                                 <Typography
                                     sx={[
                                         mutedCaptionSx,
-                                        isUploading && animatedEllipsisSx,
+                                        isUploading &&
+                                            uploadETA === undefined &&
+                                            animatedEllipsisSx,
                                     ]}
                                 >
                                     {progressCaption}

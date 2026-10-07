@@ -28,7 +28,7 @@ import { useMinimizedUploadDrag } from "./use-minimized-upload-drag";
 
 export function MinimizedUploadProgress() {
     const context = useUploadProgressContext();
-    const { onClose, percentComplete, setExpanded } = context;
+    const { onClose, percentComplete, setExpanded, uploadETA } = context;
     const dragSurfaceRef = useRef<HTMLDivElement>(null);
     const { dragPosition, dragHandleProps } =
         useMinimizedUploadDrag(dragSurfaceRef);
@@ -102,6 +102,26 @@ export function MinimizedUploadProgress() {
                                 ? uploadCountsText(context)
                                 : uploadStatusText(context.uploadPhase)}
                         </Typography>
+                        {showUploadProgress && uploadETA !== undefined && (
+                            <Typography
+                                sx={[
+                                    minimizedSubtitleSx,
+                                    {
+                                        whiteSpace: "normal",
+                                        overflowWrap: "anywhere",
+                                    },
+                                    hasFailures && failureForegroundSx,
+                                ]}
+                            >
+                                {uploadETA < 60
+                                    ? t("upload_eta_seconds", {
+                                          count: Math.max(1, uploadETA),
+                                      })
+                                    : t("upload_eta_minutes", {
+                                          count: Math.ceil(uploadETA / 60),
+                                      })}
+                            </Typography>
+                        )}
                     </Stack>
                     <IconButton
                         aria-label={t("expand")}
