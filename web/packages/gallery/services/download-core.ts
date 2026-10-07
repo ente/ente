@@ -406,7 +406,45 @@ class DownloadManagerCore {
         file: EnteFile,
         stream: ReadableStream<Uint8Array> | null,
     ) {
-        const blob = await readStreamToBlob(stream);
+        const reader = stream?.getReader();
+        let readError: unknown;
+        let hasReadError: boolean | undefined;
+        let cancelled = false;
+        let blob: Blob;
+        try {
+            let body: ReadableStream<Uint8Array> | null = null;
+            if (reader) {
+                body = new ReadableStream<Uint8Array>({
+                    async pull(controller) {
+                        let result: ReadableStreamReadResult<Uint8Array>;
+                        try {
+                            result = await reader.read();
+                        } catch (e) {
+                            if (!cancelled) {
+                                readError = e;
+                                hasReadError = true;
+                            }
+                            throw e;
+                        }
+                        if (cancelled) return;
+                        if (result.done) controller.close();
+                        else controller.enqueue(result.value);
+                    },
+                    cancel(reason: unknown) {
+                        cancelled = true;
+                        return reader.cancel(reason);
+                    },
+                });
+            }
+            blob = await new Response(body).blob();
+        } catch (e) {
+            if (hasReadError) throw readError;
+            cancelled = true;
+            await reader?.cancel(e).catch(() => undefined);
+            throw new BlobCreationFailedError(e);
+        } finally {
+            reader?.releaseLock();
+        }
         if (blob.type) return blob;
 
         try {
@@ -525,63 +563,3 @@ const createRenderableSourceURLs = async (
         }
     }
 };
-
-class ErrorTrackingReader {
-    error?: { error: unknown };
-    cancelled = false;
-
-    constructor(private reader: ReadableStreamDefaultReader<Uint8Array>) {}
-
-    async read() {
-        try {
-            return await this.reader.read();
-        } catch (e) {
-            if (!this.cancelled) this.error = { error: e };
-            throw e;
-        }
-    }
-
-    cancel(reason: unknown) {
-        this.cancelled = true;
-        return this.reader.cancel(reason);
-    }
-
-    releaseLock() {
-        this.reader.releaseLock();
-    }
-}
-
-async function readStreamToBlob(
-    stream: ReadableStream<Uint8Array> | null,
-): Promise<Blob> {
-    let reader: ErrorTrackingReader | undefined;
-    if (stream) reader = new ErrorTrackingReader(stream.getReader());
-
-    try {
-        let body: ReadableStream<Uint8Array> | null = null;
-        if (reader) body = copyReaderToStream(reader);
-        return await new Response(body).blob();
-    } catch (e) {
-        if (reader?.error) throw reader.error.error;
-        await reader?.cancel(e).catch(() => undefined);
-        throw new BlobCreationFailedError(e);
-    } finally {
-        reader?.releaseLock();
-    }
-}
-
-function copyReaderToStream(
-    reader: ErrorTrackingReader,
-): ReadableStream<Uint8Array> {
-    return new ReadableStream<Uint8Array>({
-        async pull(controller) {
-            const result = await reader.read();
-            if (reader.cancelled) return;
-            if (result.done) controller.close();
-            else controller.enqueue(result.value);
-        },
-        cancel(reason: unknown) {
-            return reader.cancel(reason);
-        },
-    });
-}

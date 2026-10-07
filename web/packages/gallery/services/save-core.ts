@@ -163,14 +163,13 @@ export const downloadAndSaveFilesWeb = async ({
                 } catch (e) {
                     log.error("File download failed", e);
                     failedFiles.push(singleFile);
-                    updateSaveGroup((g) => ({
-                        ...g,
-                        failed: g.failed + 1,
-                        failureReason:
-                            e instanceof BlobCreationFailedError
-                                ? "blob_creation_failed"
-                                : g.failureReason,
-                    }));
+                    updateSaveGroup((g) => {
+                        let failureReason = g.failureReason;
+                        if (e instanceof BlobCreationFailedError) {
+                            failureReason = "blob_creation_failed";
+                        }
+                        return { ...g, failed: g.failed + 1, failureReason };
+                    });
                 }
             } else {
                 nextZipBatchIndex = await saveAsZip(
@@ -466,13 +465,13 @@ const saveAsZip = async (
                 }));
                 return false;
             }
-            updateSaveGroup((g) => ({
-                ...g,
-                failureReason:
-                    e instanceof BlobCreationFailedError
-                        ? "blob_creation_failed"
-                        : (g.failureReason ?? "file_error"),
-            }));
+            updateSaveGroup((g) => {
+                let failureReason = g.failureReason ?? "file_error";
+                if (e instanceof BlobCreationFailedError) {
+                    failureReason = "blob_creation_failed";
+                }
+                return { ...g, failureReason };
+            });
         }
 
         return true;
