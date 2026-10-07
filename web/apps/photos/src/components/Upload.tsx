@@ -425,12 +425,7 @@ export const Upload: React.FC<UploadProps> = ({
                 nextPreUploadSkippedFiles.length > 0 &&
                 !uploadRunning.current
             ) {
-                uploadManager.prepareForNewUpload();
-                setUploadProgress((progress) => ({
-                    ...progress,
-                    uploadPhase: "done",
-                }));
-                uploadManager.showUploadProgressDialog();
+                uploadManager.finishEmptyUpload();
             }
             return;
         }

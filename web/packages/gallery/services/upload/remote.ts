@@ -150,7 +150,7 @@ interface PutFileOptions {
     onProgress?: UploadByteProgress;
 }
 
-export class UploadRequestError extends Error {
+class UploadRequestError extends Error {
     constructor(readonly status?: number) {
         super(
             status === undefined

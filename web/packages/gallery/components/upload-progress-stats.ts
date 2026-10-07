@@ -1,11 +1,6 @@
 import type { PreUploadSkippedFile } from "ente-base/types/ipc";
 import type { UploadPhase, UploadResult } from "ente-gallery/services/upload";
 
-export interface UploadCounter {
-    finished: number;
-    total: number;
-}
-
 export interface InProgressUpload {
     localFileID: number;
     progress: number;
@@ -15,15 +10,13 @@ export type FinishedUploadType = Exclude<UploadResult["type"], "addedSymlink">;
 
 export type SegregatedFinishedUploads = Map<FinishedUploadType, number[]>;
 
-export type UploadFileNames = Map<number, string>;
-
 export interface UploadProgressState {
     uploadPhase: UploadPhase;
-    uploadCounter: UploadCounter;
+    uploadCounter: { finished: number; total: number };
     percentComplete: number;
     uploadETA?: number;
     inProgressUploads: InProgressUpload[];
-    uploadFileNames: UploadFileNames;
+    uploadFileNames: Map<number, string>;
     finishedUploads: SegregatedFinishedUploads;
     hasLivePhotos: boolean;
 }

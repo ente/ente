@@ -147,6 +147,7 @@ class UploadManager {
     private uploadProgressView = false;
     private onUploadProgressView: ((open: boolean) => void) | undefined;
     private sizeDiscoveryController: AbortController | undefined;
+    private sizeDiscoveryTasks = new Set<Promise<void>>();
 
     public init(
         onProgress: (progress: UploadProgressState) => void,
@@ -200,6 +201,13 @@ class UploadManager {
     hideUploadProgressDialog() {
         this.uploadProgressView = false;
         this.onUploadProgressView?.(false);
+    }
+
+    public finishEmptyUpload() {
+        this.prepareForNewUpload();
+        this.progress.phase = "done";
+        this.publishProgress();
+        this.showUploadProgressDialog();
     }
 
     public async uploadItems(
@@ -267,7 +275,16 @@ class UploadManager {
         } finally {
             this.progress.phase = "done";
             this.publishProgress();
-            void globalThis.electron?.clearPendingUploads();
+            const progress = this.progress;
+            void Promise.all(this.sizeDiscoveryTasks)
+                .then(() =>
+                    this.progress === progress && !this.uploadInProgress
+                        ? globalThis.electron?.clearPendingUploads()
+                        : undefined,
+                )
+                .catch((e: unknown) =>
+                    log.error("Failed to clear pending uploads", e),
+                );
             for (let i = 0; i < maxConcurrentUploads; i++) {
                 this.comlinkCryptoWorkers[i]?.terminate();
             }
@@ -375,7 +392,15 @@ class UploadManager {
 
         const controller = new AbortController();
         this.sizeDiscoveryController = controller;
-        void this.discoverUploadSizes(mediaItems, progress, controller.signal);
+        const sizeDiscovery = this.discoverUploadSizes(
+            mediaItems,
+            progress,
+            controller.signal,
+        ).catch((e: unknown) => log.error("Upload size discovery failed", e));
+        this.sizeDiscoveryTasks.add(sizeDiscovery);
+        void sizeDiscovery.then(() =>
+            this.sizeDiscoveryTasks.delete(sizeDiscovery),
+        );
         try {
             const uploadProcesses = new Array<Promise<void>>();
             for (
@@ -416,13 +441,16 @@ class UploadManager {
                           ]
                         : [item.uploadItem!];
                     try {
-                        const sizes = await Promise.all(
+                        const sizes = await Promise.allSettled(
                             assets.map(uploadItemSize),
                         );
                         signal.throwIfAborted();
-                        if (progress.bytes.get(item.localID) === entry)
+                        if (
+                            progress.bytes.get(item.localID) === entry &&
+                            sizes.every((size) => size.status == "fulfilled")
+                        )
                             entry.total = sizes.reduce(
-                                (sum, size) => sum + size,
+                                (sum, size) => sum + size.value,
                                 0,
                             );
                     } catch {
