@@ -205,9 +205,23 @@ class UploadManager {
 
     public finishEmptyUpload() {
         this.prepareForNewUpload();
+        this.finishUpload();
+        this.showUploadProgressDialog();
+    }
+
+    private finishUpload() {
         this.progress.phase = "done";
         this.publishProgress();
-        this.showUploadProgressDialog();
+        const progress = this.progress;
+        void Promise.all(this.sizeDiscoveryTasks)
+            .then(() =>
+                this.progress === progress && !this.uploadInProgress
+                    ? globalThis.electron?.clearPendingUploads()
+                    : undefined,
+            )
+            .catch((e: unknown) =>
+                log.error("Failed to clear pending uploads", e),
+            );
     }
 
     public async uploadItems(
@@ -273,18 +287,7 @@ class UploadManager {
                 throw e;
             }
         } finally {
-            this.progress.phase = "done";
-            this.publishProgress();
-            const progress = this.progress;
-            void Promise.all(this.sizeDiscoveryTasks)
-                .then(() =>
-                    this.progress === progress && !this.uploadInProgress
-                        ? globalThis.electron?.clearPendingUploads()
-                        : undefined,
-                )
-                .catch((e: unknown) =>
-                    log.error("Failed to clear pending uploads", e),
-                );
+            this.finishUpload();
             for (let i = 0; i < maxConcurrentUploads; i++) {
                 this.comlinkCryptoWorkers[i]?.terminate();
             }
