@@ -104,7 +104,7 @@ func TestMessageLikeAndDeleteAccess(t *testing.T) {
 	require.True(t, errors.Is(err, ente.ErrPermissionDenied))
 	thread, _, err := repos.Messages.ListThread(ctx, aliceSpace.SpaceID, bobSpace.SpaceID, "", 10)
 	require.NoError(t, err)
-	require.Len(t, thread, 2)
+	require.Len(t, thread, 1)
 
 	require.Error(t, controller.Delete(ctx, aliceSpace, message.MessageID))
 	err = controller.Delete(ctx, bobSpace, message.MessageID)
@@ -120,7 +120,7 @@ func TestListThreadHidesDeletedTargetOwner(t *testing.T) {
 
 	page, err := controller.ListThread(ctx, aliceSpace, bobSpace.SpaceID, models.ListMessageThreadRequest{})
 	require.NoError(t, err)
-	require.Len(t, page.Items, 2)
+	require.Len(t, page.Items, 1)
 
 	_, err = repos.Spaces.DB.Exec(`UPDATE users SET encrypted_email = NULL WHERE user_id = $1`, bobID)
 	require.NoError(t, err)

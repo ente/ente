@@ -7,16 +7,18 @@ import (
 )
 
 type Module struct {
-	Spaces   *SpacesRepository
-	Posts    *PostsRepository
-	Friends  *FriendsRepository
-	Messages *MessagesRepository
-	Assets   *AssetsRepository
-	Read     *ReadMarkersRepository
-	Sessions *SessionsRepository
-	Drips    *DripsRepository
-	Links    *LinksRepository
-	WebPush  *WebPushRepository
+	Spaces        *SpacesRepository
+	Posts         *PostsRepository
+	Friends       *FriendsRepository
+	Messages      *MessagesRepository
+	Assets        *AssetsRepository
+	Read          *ReadMarkersRepository
+	Sessions      *SessionsRepository
+	Drips         *DripsRepository
+	Links         *LinksRepository
+	WebPush       *WebPushRepository
+	Notifications *NotificationsRepository
+	Pokes         *PokesRepository
 }
 
 type SpacesRepository struct {
@@ -266,15 +268,17 @@ type SpaceWebPushSubscriptionRecord struct {
 
 func NewModule(db *sql.DB, s3Config *s3config.S3Config) *Module {
 	return &Module{
-		Spaces:   &SpacesRepository{DB: db},
-		Posts:    &PostsRepository{DB: db},
-		Friends:  &FriendsRepository{DB: db},
-		Messages: &MessagesRepository{DB: db},
-		Assets:   &AssetsRepository{DB: db, S3Config: s3Config},
-		Read:     &ReadMarkersRepository{DB: db},
-		Sessions: &SessionsRepository{DB: db},
-		Drips:    &DripsRepository{DB: db},
-		Links:    &LinksRepository{DB: db},
-		WebPush:  &WebPushRepository{DB: db},
+		Spaces:        &SpacesRepository{DB: db},
+		Posts:         &PostsRepository{DB: db},
+		Friends:       &FriendsRepository{DB: db},
+		Messages:      &MessagesRepository{DB: db},
+		Assets:        &AssetsRepository{DB: db, S3Config: s3Config},
+		Read:          &ReadMarkersRepository{DB: db},
+		Sessions:      &SessionsRepository{DB: db},
+		Drips:         &DripsRepository{DB: db},
+		Links:         &LinksRepository{DB: db},
+		WebPush:       &WebPushRepository{DB: db},
+		Notifications: &NotificationsRepository{DB: db},
+		Pokes:         &PokesRepository{DB: db},
 	}
 }

@@ -66,13 +66,6 @@ func (r *ReadMarkersRepository) HasUnreadNotifications(ctx context.Context, view
 			 AND nrm.friend_space_id = activity.friend_space_id
 			WHERE activity.notification_created_at > COALESCE(nrm.read_at, 0)
 			LIMIT 1
-			) OR EXISTS (
-				SELECT 1
-				FROM space_friend_requests fr
-				JOIN spaces requester_space ON requester_space.space_id = fr.requester_space_id
-				JOIN users requester_owner ON requester_owner.user_id = requester_space.owner_id AND requester_owner.encrypted_email IS NOT NULL
-				WHERE fr.target_space_id = $1
-				LIMIT 1
 			)
 	`, strings.TrimSpace(viewerSpaceID)).Scan(&exists); err != nil {
 		return false, stacktrace.Propagate(err, "")
