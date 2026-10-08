@@ -233,7 +233,7 @@ SPEC CHECKSUMS:
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
   open_file_ios: 46184d802ee7959203f6392abcfa0dd49fdb5be0
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
-  pdfx: 0e2c594a0400d6ef30f6d7ed08147b32c9cf848d
+  pdfx: 824a9108791a81e400da7d1a903ab73668365072
   rive_native: a57df296c558867395bfe82fafe857ec67640f58
   SDWebImage: e9c98383c7572d713c1a0d7dd2783b10599b9838
   Sentry: 2cbbe3592f30050c60e916c63c7f5a2fa584005e
