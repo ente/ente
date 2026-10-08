@@ -1,1 +1,1 @@
-- Refreshed the machine learning consent screen and added a consent sheet for the home banner, Search and People widgets.
+- Refreshed the machine learning consent screen and added a consent sheet for the home banner and People widgets.
