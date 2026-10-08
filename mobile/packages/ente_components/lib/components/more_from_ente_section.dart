@@ -52,38 +52,34 @@ class _MoreFromEnteBrand extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
 
-    return SizedBox(
+    return Column(
       key: const ValueKey('more-from-ente-brand'),
-      width: _brandWidth,
-      height: _brandHeight,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SizedBox(
-            height: _moreFromLineHeight,
-            child: Text(
-              label,
-              maxLines: 1,
-              style: TextStyle(
-                color: colors.primary,
-                fontFamily: 'Gochi Hand',
-                package: 'ente_components',
-                fontFamilyFallback: const [TextStyles.fontFamily],
-                fontSize: 26.279,
-                height: 1.02,
-                letterSpacing: -1.0512,
-              ),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _moreFromLineHeight),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: colors.primary,
+              fontFamily: 'Gochi Hand',
+              package: 'ente_components',
+              fontFamilyFallback: const [TextStyles.fontFamily],
+              fontSize: 26.279,
+              height: 1.02,
+              letterSpacing: -1.0512,
             ),
           ),
-          SvgPicture.asset(
-            'packages/ente_components/assets/ente_wordmark.svg',
-            width: _wordmarkWidth,
-            height: _wordmarkHeight,
-            fit: BoxFit.fill,
-            colorFilter: ColorFilter.mode(colors.textBase, BlendMode.srcIn),
-          ),
-        ],
-      ),
+        ),
+        SvgPicture.asset(
+          'packages/ente_components/assets/ente_wordmark.svg',
+          width: _wordmarkWidth,
+          height: _wordmarkHeight,
+          fit: BoxFit.fill,
+          colorFilter: ColorFilter.mode(colors.textBase, BlendMode.srcIn),
+        ),
+      ],
     );
   }
 }
@@ -153,11 +149,9 @@ const _appLabels = <ComponentApp, String>{
   ComponentApp.locker: 'Locker',
 };
 
-const double _brandWidth = 103;
-const double _brandHeight = 45.43;
-const double _moreFromLineHeight = 27;
 const double _wordmarkWidth = 62;
 const double _wordmarkHeight = 18.43;
+const double _moreFromLineHeight = 27;
 const double _sectionGap = 16;
 const double _appTileSize = 52;
 const double _appIconSize = 31;

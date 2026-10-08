@@ -36,36 +36,53 @@ export const ManageMemberSubscription: React.FC<
         });
 
     return (
-        <Dialog {...{ open, onClose, fullScreen }} maxWidth="xs" fullWidth>
-            <SpacedRow sx={{ p: "20px 8px 12px 16px" }}>
-                <Stack>
-                    <Typography variant="h3">{t("subscription")}</Typography>
-                    <Typography sx={{ color: "text.muted" }}>
+        <Dialog
+            {...{ open, onClose, fullScreen }}
+            maxWidth="xs"
+            fullWidth
+            aria-labelledby="member-subscription-title"
+            slotProps={{
+                paper: { sx: { borderRadius: fullScreen ? 0 : "20px" } },
+            }}
+        >
+            <SpacedRow
+                sx={{
+                    p: "24px 16px 16px 24px",
+                    "& .MuiIconButton-root": { color: "text.muted" },
+                }}
+            >
+                <Stack sx={{ gap: 0.5 }}>
+                    <Typography variant="h2" id="member-subscription-title">
+                        {t("subscription")}
+                    </Typography>
+                    <Typography variant="small" sx={{ color: "text.muted" }}>
                         {t("family_plan")}
                     </Typography>
                 </Stack>
                 <DialogCloseIconButton {...{ onClose }} />
             </SpacedRow>
-            <DialogContent>
-                <Stack sx={{ alignItems: "center", mx: 2 }}>
-                    <Box sx={{ mb: 4 }}>
+            <DialogContent sx={{ "&&": { p: "8px 24px 24px" } }}>
+                <Stack sx={{ gap: 3 }}>
+                    <Box
+                        sx={{
+                            p: 2,
+                            borderRadius: "16px",
+                            bgcolor: "fill.faint",
+                        }}
+                    >
                         <Typography sx={{ color: "text.muted" }}>
                             {t("subscription_info_family")}
                         </Typography>
-                        <Typography>
+                        <Typography sx={{ mt: 0.5, overflowWrap: "anywhere" }}>
                             {familyAdminEmail(userDetails) ?? ""}
                         </Typography>
                     </Box>
-                    <img
-                        height={256}
-                        src="/images/family-plan/1x.png"
-                        srcSet="/images/family-plan/2x.png 2x, /images/family-plan/3x.png 3x"
-                    />
                     <FocusVisibleButton
                         fullWidth
-                        variant="outlined"
+                        variant="contained"
                         color="critical"
                         onClick={confirmLeaveFamily}
+                        sx={{ borderRadius: "20px", minHeight: 48 }}
                     >
                         {t("leave_family_plan")}
                     </FocusVisibleButton>

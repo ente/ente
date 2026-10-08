@@ -24,6 +24,7 @@ import {
 import Typography from "@mui/material/Typography";
 import { isDesktop } from "ente-base/app";
 import { LinkButton } from "ente-base/components/LinkButton";
+import { AttributedMiniDialog } from "ente-base/components/MiniDialog";
 import {
     RowButton,
     RowButtonEndActivityIndicator,
@@ -31,6 +32,7 @@ import {
 import { SpacedRow } from "ente-base/components/containers";
 import { SidebarDrawer } from "ente-base/components/mui/SidebarDrawer";
 import { SidebarPanelContext } from "ente-base/components/mui/SidebarDrawerContext";
+import { useAttributedMiniDialog } from "ente-base/components/utils/dialog";
 import {
     useModalVisibility,
     type ModalVisibilityProps,
@@ -126,13 +128,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const { show: showExport, props: exportVisibilityProps } =
         useModalVisibility();
     const { onClose: closeExport } = exportVisibilityProps;
-
-    useEffect(() => {
-        if (!open) closeExport();
-    }, [open, closeExport]);
+    const {
+        show: showManageMemberSubscription,
+        props: manageMemberSubscriptionVisibilityProps,
+    } = useModalVisibility();
+    const { onClose: closeMemberSubscription } =
+        manageMemberSubscriptionVisibilityProps;
 
     const { watchFolderView, setWatchFolderView } = usePhotosAppContext();
     const { showMiniDialog, logout } = useBaseContext();
+    const {
+        showMiniDialog: showDownloadAppDialog,
+        miniDialogProps: downloadAppDialogProps,
+    } = useAttributedMiniDialog();
+    const { onClose: closeDownloadAppDialog } = downloadAppDialogProps;
+
+    useEffect(() => {
+        if (!open) {
+            closeExport();
+            closeMemberSubscription();
+            closeDownloadAppDialog();
+        }
+    }, [open, closeExport, closeMemberSubscription, closeDownloadAppDialog]);
 
     const [pendingAccountAction, setPendingAccountAction] =
         useState<AccountAction>();
@@ -149,6 +166,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         helpVisibilityProps.onClose();
         freeUpSpaceVisibilityProps.onClose();
         closeExport();
+        closeMemberSubscription();
+        closeDownloadAppDialog();
         setWatchFolderView(false);
         onCloseOverlays();
     }, [
@@ -158,6 +177,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         helpVisibilityProps,
         freeUpSpaceVisibilityProps,
         closeExport,
+        closeMemberSubscription,
+        closeDownloadAppDialog,
         setWatchFolderView,
         onCloseOverlays,
     ]);
@@ -198,7 +219,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     const handleShowExport = useCallback(() => {
         if (!isDesktop) {
-            showMiniDialog(downloadAppDialogAttributes());
+            closeMemberSubscription();
+            showDownloadAppDialog(downloadAppDialogAttributes());
             return;
         }
 
@@ -211,7 +233,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 log.error("Failed to authenticate before export", error);
             }
         })();
-    }, [closeSections, onAuthenticateUser, showExport, showMiniDialog]);
+    }, [
+        closeSections,
+        closeMemberSubscription,
+        onAuthenticateUser,
+        showExport,
+        showDownloadAppDialog,
+    ]);
 
     const performSidebarAction = useCallback(
         async (actionID: SidebarActionID) => {
@@ -299,7 +327,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <>
                     <UserDetailsSection
                         sidebarOpen={open}
-                        {...{ onShowPlanSelector }}
+                        {...{
+                            onShowPlanSelector,
+                            showManageMemberSubscription,
+                            manageMemberSubscriptionVisibilityProps,
+                        }}
                     />
                     <Stack
                         sx={{
@@ -342,6 +374,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </>
             }
         >
+            <AttributedMiniDialog
+                {...downloadAppDialogProps}
+                sx={(theme) => ({
+                    "& .MuiDialog-paper": { borderRadius: "20px" },
+                    "& .MuiDialog-paper > .MuiStack-root": {
+                        p: "24px 24px 8px",
+                    },
+                    "& .MuiDialogContent-root": { p: "16px 24px 24px" },
+                    "& .MuiDialogTitle-root": theme.typography.h2,
+                    "& .MuiButton-root": {
+                        borderRadius: "12px",
+                        minHeight: 48,
+                    },
+                })}
+            />
             {open && exportVisibilityProps.open && (
                 <Export
                     {...exportVisibilityProps}
@@ -595,17 +642,17 @@ const HeaderSection: React.FC<SectionProps> = ({ onCloseSidebar }) => (
 
 type UserDetailsSectionProps = Pick<SidebarProps, "onShowPlanSelector"> & {
     sidebarOpen: boolean;
+    showManageMemberSubscription: () => void;
+    manageMemberSubscriptionVisibilityProps: ModalVisibilityProps;
 };
 
 const UserDetailsSection: React.FC<UserDetailsSectionProps> = ({
     sidebarOpen,
     onShowPlanSelector,
+    showManageMemberSubscription,
+    manageMemberSubscriptionVisibilityProps,
 }) => {
     const userDetails = useUserDetailsSnapshot();
-    const {
-        show: showManageMemberSubscription,
-        props: manageMemberSubscriptionVisibilityProps,
-    } = useModalVisibility();
 
     useEffect(() => {
         if (sidebarOpen) void pullUserDetails();

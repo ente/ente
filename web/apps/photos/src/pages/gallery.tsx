@@ -22,7 +22,6 @@ import { FileListWithViewer } from "@/components/FileListWithViewer";
 import { FixCreationTime } from "@/components/FixCreationTime";
 import { PlanSelector } from "@/components/PlanSelector";
 import { QuickLinkCreatedNotification } from "@/components/QuickLinkCreatedNotification";
-import { SearchBar, type SearchBarProps } from "@/components/SearchBar";
 import {
     SelectedFileOptions,
     type CollectionOp,
@@ -36,6 +35,10 @@ import {
     SearchResultsHeader,
     type RemotePullOpts,
 } from "@/components/gallery";
+import {
+    NormalNavbarContents,
+    UploadButton,
+} from "@/components/gallery/NormalNavbarContents";
 import {
     findCollectionCreatingIfNeeded,
     performCollectionOp,
@@ -53,11 +56,8 @@ import { useIsOffline } from "@/components/utils/use-is-offline";
 import { shouldShowWhatsNew } from "@/services/changelog";
 import exportService from "@/services/export";
 import { processPendingAlbumJoin } from "@/services/join-album";
-import { Upload01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import MenuIcon from "@mui/icons-material/Menu";
 import { IconButton, Link, Stack, Typography } from "@mui/material";
 import { sessionExpiredDialogAttributes } from "ente-accounts/components/utils/dialog";
 import {
@@ -73,14 +73,12 @@ import { NavbarBase } from "ente-base/components/Navbar";
 import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import { CenteredRow } from "ente-base/components/containers";
 import { TranslucentLoadingOverlay } from "ente-base/components/loaders";
-import type { ButtonishProps } from "ente-base/components/mui";
-import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { errorDialogAttributes } from "ente-base/components/utils/dialog";
-import { useIsSmallWidth } from "ente-base/components/utils/hooks";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import { subscribeMainWindowFocus } from "ente-base/electron";
 import { isNamedError } from "ente-base/error";
+import { isHTTPErrorWithStatus } from "ente-base/http";
 import { hasPendingAlbumToJoin } from "ente-base/join-album";
 import log from "ente-base/log";
 import {
@@ -1143,6 +1141,22 @@ const Page: React.FC = () => {
         }
     };
 
+    const onSendLinkError = useCallback(
+        (e: unknown) => {
+            if (isHTTPErrorWithStatus(e, 402)) {
+                log.error("Could not create share link", e);
+                showMiniDialog(
+                    errorDialogAttributes(
+                        t("share_link_subscription_required"),
+                    ),
+                );
+            } else {
+                onGenericError(e);
+            }
+        },
+        [showMiniDialog, onGenericError],
+    );
+
     const createFileOpHandler =
         (op: FileOp, options?: { suppressSelectionBar?: boolean }) => () => {
             void (async () => {
@@ -1250,7 +1264,11 @@ const Page: React.FC = () => {
                     clearSelection();
                     await remotePull({ silent: true, source: `file-op:${op}` });
                 } catch (e) {
-                    onGenericError(e);
+                    if (op == "sendLink") {
+                        onSendLinkError(e);
+                    } else {
+                        onGenericError(e);
+                    }
                 } finally {
                     if (options?.suppressSelectionBar) {
                         setSuppressContextSelectionBar(false);
@@ -1494,7 +1512,7 @@ const Page: React.FC = () => {
                 setPublicLinkToast({ open: true, url: resolvedURL });
                 await remotePull({ silent: true, source: "viewer-send-link" });
             } catch (e) {
-                onGenericError(e);
+                onSendLinkError(e);
             } finally {
                 hideLoadingBar();
             }
@@ -1506,7 +1524,7 @@ const Page: React.FC = () => {
             customDomain,
             quickLinkVisibility,
             remotePull,
-            onGenericError,
+            onSendLinkError,
         ],
     );
 
@@ -2246,53 +2264,6 @@ const preloadImage = (imgBasePath: string) => {
     const srcset: string[] = [];
     for (let i = 1; i <= 3; i++) srcset.push(`${imgBasePath}/${i}x.png ${i}x`);
     new Image().srcset = srcset.join(",");
-};
-
-type NormalNavbarContentsProps = SearchBarProps & {
-    onSidebar: () => void;
-    onUpload: () => void;
-};
-
-const NormalNavbarContents: React.FC<NormalNavbarContentsProps> = ({
-    onSidebar,
-    onUpload,
-    ...props
-}) => (
-    <>
-        <SidebarButton onClick={onSidebar} />
-        <SearchBar {...props} />
-        <UploadButton onClick={onUpload} />
-    </>
-);
-
-const SidebarButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <IconButton {...{ onClick }}>
-        <MenuIcon />
-    </IconButton>
-);
-
-const UploadButton: React.FC<ButtonishProps> = ({ onClick }) => {
-    const disabled = uploadManager.isUploadInProgress();
-    const isSmallWidth = useIsSmallWidth();
-
-    const icon = <HugeiconsIcon icon={Upload01Icon} size={20} />;
-
-    return (
-        <>
-            {isSmallWidth ? (
-                <IconButton {...{ onClick, disabled }}>{icon}</IconButton>
-            ) : (
-                <FocusVisibleButton
-                    color="secondary"
-                    startIcon={icon}
-                    sx={{ borderRadius: "16px" }}
-                    {...{ onClick, disabled }}
-                >
-                    {t("upload")}
-                </FocusVisibleButton>
-            )}
-        </>
-    );
 };
 
 interface SectionNavbarContentsProps {

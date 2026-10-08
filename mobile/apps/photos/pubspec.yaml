@@ -119,7 +119,7 @@ dependencies:
   flutter_sodium:
     git:
       url: https://github.com/ente/flutter_sodium
-      ref: a05d5b1bfdce64a387f8f5970160b22ce7b88282
+      ref: 88b8b971521d4423eaa9b467d4b2baa4fd5e0962
   flutter_staggered_grid_view: 0.7.0
   flutter_svg: 2.3.0
   flutter_timezone: 4.1.1

@@ -25,7 +25,6 @@ import "package:photos/ui/home/memories/memory_music_session.dart";
 import "package:photos/ui/home/memories/memory_progress_indicator.dart";
 import "package:photos/ui/home/memories/memory_viewer_constants.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
-import "package:photos/ui/viewer/people/memory_lane_page.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 import "package:photos/utils/share_util.dart";
@@ -38,21 +37,10 @@ Future<void> openMemoryLanePage(
 }) async {
   if (!context.mounted || (!isCluster && person == null)) return;
 
-  final Widget page;
-  if (flagService.internalUser) {
-    page = MemoryLanePageV2(
-      personId: personId,
-      isCluster: isCluster,
-      person: person,
-    );
-  } else {
-    page = MemoryLanePage(
-      personId: personId,
-      isCluster: isCluster,
-      person: person,
-    );
-  }
-  await routeToPage(context, page);
+  await routeToPage(
+    context,
+    MemoryLanePageV2(personId: personId, isCluster: isCluster, person: person),
+  );
 }
 
 class MemoryLanePageV2 extends StatefulWidget {
@@ -409,11 +397,6 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
         if (creationDate != null) {
           final now = DateTime.now();
           final today = DateTime.utc(now.year, now.month, now.day);
-          final photoDate = DateTime.utc(
-            creationDate.year,
-            creationDate.month,
-            creationDate.day,
-          );
           var months =
               (now.year - creationDate.year) * 12 +
               now.month -
@@ -427,7 +410,6 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
             ),
           );
           if (today.isBefore(anniversary)) months--;
-          final days = today.difference(photoDate).inDays;
           if (months >= 12) {
             captionValue = months ~/ 12;
             caption = context.strings.memoryLaneCaptionYearsAgo(
@@ -435,29 +417,8 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
               count: captionValue,
               number: captionPlaceholder,
             );
-          } else if (months >= 1) {
-            captionValue = months;
-            caption = context.strings.memoryLaneCaptionMonthsAgo(
-              name: name ?? "",
-              count: captionValue,
-              number: captionPlaceholder,
-            );
-          } else if (days >= 7) {
-            captionValue = days ~/ 7;
-            caption = context.strings.memoryLaneCaptionWeeksAgo(
-              name: name ?? "",
-              count: captionValue,
-              number: captionPlaceholder,
-            );
-          } else if (days >= 1) {
-            captionValue = days;
-            caption = context.strings.memoryLaneCaptionDaysAgo(
-              name: name ?? "",
-              count: captionValue,
-              number: captionPlaceholder,
-            );
           } else {
-            caption = context.strings.memoryLaneCaptionToday(name: name ?? "");
+            caption = context.strings.memoryLaneCaptionNow(name: name ?? "");
           }
           caption = caption.trim();
         }

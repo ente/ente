@@ -59,7 +59,14 @@ export const AuthenticateUser: React.FC<AuthenticateUserProps> = ({
     >
         <Stack sx={{ p: "20px", gap: "20px" }}>
             <Stack direction="row" sx={v2HeaderRowSx}>
-                <DialogTitle sx={{ ...v2TitleSx, "&&": { p: 0 } }}>
+                <DialogTitle
+                    sx={{
+                        ...v2TitleSx,
+                        fontSize: "20px",
+                        lineHeight: "28px",
+                        "&&": { p: 0 },
+                    }}
+                >
                     {t("password")}
                 </DialogTitle>
                 <IconButton

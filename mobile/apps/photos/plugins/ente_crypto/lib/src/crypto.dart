@@ -7,6 +7,7 @@ import "package:crypto/crypto.dart";
 import "package:ente_crypto/src/models/derived_key_result.dart";
 import "package:ente_crypto/src/models/encryption_result.dart";
 import "package:ente_crypto/src/models/errors.dart";
+import "package:ente_crypto/src/uint8_list_equals.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter_sodium/flutter_sodium.dart";
 import "package:logging/logging.dart";
@@ -206,7 +207,7 @@ Future<FileEncryptResult> chachaEncryptFileWithVerification(
           null,
         );
 
-        if (!_uint8listEquals(pullResult.m, buffer)) {
+        if (!uint8ListEquals(pullResult.m, buffer)) {
           throw Exception(
             "$kBitFlipErrorTag Data corruption detected at chunk $chunkIndex",
           );
@@ -312,34 +313,6 @@ Future<FileEncryptResult> chachaEncryptFileWithVerification(
     }
     rethrow;
   }
-}
-
-bool _uint8listEquals(Uint8List a, Uint8List b) {
-  if (identical(a, b)) return true;
-  if (a.length != b.length) return false;
-
-  final len = a.length;
-  int i = 0;
-
-  while (i + 7 < len) {
-    final va = a.buffer.asByteData().getUint64(
-      a.offsetInBytes + i,
-      Endian.little,
-    );
-    final vb = b.buffer.asByteData().getUint64(
-      b.offsetInBytes + i,
-      Endian.little,
-    );
-    if (va != vb) return false;
-    i += 8;
-  }
-
-  while (i < len) {
-    if (a[i] != b[i]) return false;
-    i++;
-  }
-
-  return true;
 }
 
 Future<void> chachaDecryptFile(Map<String, dynamic> args) async {
