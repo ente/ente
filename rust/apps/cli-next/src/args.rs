@@ -77,7 +77,7 @@ pub enum Command {
         #[command(flatten)]
         selector: AccountSelector,
         #[command(subcommand)]
-        command: SessionCommand,
+        command: AuthCommand,
     },
     #[command(about = "Manage accounts on this device", alias = "account")]
     Accounts {
@@ -96,6 +96,50 @@ Keep the same home and key across unattended invocations."
         #[command(subcommand)]
         command: VaultCommand,
     },
+}
+
+#[derive(Subcommand)]
+pub enum AuthCommand {
+    #[command(flatten)]
+    Session(SessionCommand),
+    #[command(about = "Export your Auth codes; encrypted by default")]
+    Export(AuthExportArgs),
+    #[command(about = "Decrypt an Auth export without an account")]
+    Decrypt {
+        #[arg(value_name = "PATH")]
+        input: PathBuf,
+        #[arg(
+            long,
+            value_name = "PATH|-",
+            help = "Write to a new file; defaults to stdout"
+        )]
+        output: Option<PathBuf>,
+    },
+}
+
+#[derive(Args)]
+pub struct AuthExportArgs {
+    #[arg(
+        value_name = "DIR",
+        required_unless_present = "output",
+        conflicts_with = "output"
+    )]
+    pub directory: Option<PathBuf>,
+    #[arg(
+        long,
+        value_name = "PATH|-",
+        help = "Write to a new file, or stdout with -"
+    )]
+    pub output: Option<PathBuf>,
+    #[arg(long, help = "Export readable URI lines without encryption")]
+    pub plaintext: bool,
+    #[arg(
+        long,
+        value_name = "N",
+        requires = "directory",
+        help = "Keep the N newest backups in this format"
+    )]
+    pub keep: Option<NonZeroUsize>,
 }
 
 #[derive(Subcommand)]

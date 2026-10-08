@@ -24,6 +24,7 @@ members = [
     "bindings/wasm/space",
     "crates/accounts",
     "crates/assets",
+    "crates/auth",
     "crates/cast",
     "crates/collections",
     "crates/contacts",
@@ -59,6 +60,7 @@ dirs = "7.0.0"
 encoding_rs = "0.8.35"
 ente-accounts = { path = "crates/accounts" }
 ente-assets = { path = "crates/assets" }
+ente-auth = { path = "crates/auth" }
 ente-cast = { path = "crates/cast" }
 ente-collections = { path = "crates/collections" }
 ente-contacts = { path = "crates/contacts" }

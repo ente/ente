@@ -9,11 +9,12 @@ museum = []
 
 [dependencies]
 anyhow.workspace = true
-chrono = { workspace = true, features = ["std"] }
+chrono = { workspace = true, features = ["std", "clock"] }
 clap = { workspace = true, features = ["derive"] }
 dialoguer = { workspace = true, features = ["password"] }
 dirs.workspace = true
 ente-accounts.workspace = true
+ente-auth.workspace = true
 ente-collections.workspace = true
 ente-core.workspace = true
 ente-photos.workspace = true

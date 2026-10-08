@@ -1,5 +1,6 @@
 mod api;
 mod args;
+mod auth;
 mod core_db;
 mod db;
 mod export;
@@ -66,13 +67,7 @@ async fn run(cli: Cli) -> Result<()> {
             .await
         }
         Command::Auth { selector, command } => {
-            session(
-                Product::Auth,
-                command,
-                selector.account.as_deref(),
-                &options,
-            )
-            .await
+            auth::run(command, selector.account.as_deref(), &options).await
         }
         Command::Accounts { command } => account_command(command, &options).await,
         Command::Vault {

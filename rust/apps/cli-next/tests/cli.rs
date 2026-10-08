@@ -744,6 +744,9 @@ fn failure(output: &Output) -> String {
 #[path = "support/files.rs"]
 mod files;
 
+#[path = "support/auth.rs"]
+mod auth;
+
 #[cfg(feature = "museum")]
 #[path = "support/museum.rs"]
 mod museum;
