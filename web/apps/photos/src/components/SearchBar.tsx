@@ -73,6 +73,15 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
     const isSmallWidth = useIsSmallWidth();
     const [open, setOpen] = useState(false);
     const [searchResetKey, setSearchResetKey] = useState(0);
+    const [previousIsInSearchMode, setPreviousIsInSearchMode] = useState(
+        props.isInSearchMode,
+    );
+
+    // Reset the kept-mounted input for every path that leaves an active search.
+    if (previousIsInSearchMode !== props.isInSearchMode) {
+        setPreviousIsInSearchMode(props.isInSearchMode);
+        if (previousIsInSearchMode) setSearchResetKey((key) => key + 1);
+    }
     const shortcut =
         typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent)
             ? "⌘K"
@@ -82,7 +91,6 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
     const closeSearch = () => setOpen(false);
     const clearSearch = () => {
         props.onSelectSearchOption(undefined, { shouldExitSearchMode: true });
-        setSearchResetKey((key) => key + 1);
         setOpen(false);
     };
 
