@@ -27,7 +27,10 @@ export const NormalNavbarContents: React.FC<NormalNavbarContentsProps> = ({
 );
 
 const SidebarButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <IconButton {...{ onClick }}>
+    <IconButton
+        {...{ onClick }}
+        sx={{ "@media (min-width: 720px)": { display: "none" } }}
+    >
         <MenuIcon />
     </IconButton>
 );

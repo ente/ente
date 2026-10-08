@@ -467,6 +467,7 @@
     "sharing_already_shared": "You're already sharing this with {{email}}",
     "sharing_album_not_allowed": "Sharing album not allowed",
     "sharing_disabled_for_free_accounts": "Sharing is disabled for free accounts",
+    "share_link_subscription_required": "An active subscription is required to create this link. Please check your subscription status.",
     "link_edit_disabled_for_free_accounts": "You need a paid subscription to change this link setting",
     "sharing_user_does_not_exist": "Could not find a user with that email",
     "search": "Search",

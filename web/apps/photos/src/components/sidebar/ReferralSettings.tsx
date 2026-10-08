@@ -295,10 +295,10 @@ export const ReferralSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
         >
             <Stack
                 sx={{
-                    pl: "calc(16px + 0.5rem)",
-                    pr: 2,
+                    px: 2,
                     py: 1,
                     gap: screen == "details" ? 2 : 3,
+                    maxWidth: 552,
                 }}
             >
                 {contents}
@@ -391,7 +391,7 @@ const MainContents: React.FC<MainContentsProps> = ({
                             }
                         />
                         <Typography
-                            variant="small"
+                            variant="mini"
                             sx={{ px: 1, color: "text.muted" }}
                         >
                             {codeChangeHint}
@@ -405,15 +405,15 @@ const MainContents: React.FC<MainContentsProps> = ({
                 </>
             )}
 
-            <RowButtonGroup sx={{ borderRadius: "14px", overflow: "hidden" }}>
+            <RowButtonGroup
+                sx={{ bgcolor: "background.default", borderRadius: "14px" }}
+            >
                 {referralView.enableApplyCode && (
                     <>
                         <RowButton
                             variant="secondary"
                             label={t("apply_code")}
-                            endIcon={
-                                <ChevronRightIcon className="ente-chevron-right" />
-                            }
+                            endIcon={<ChevronRightIcon />}
                             onClick={onApplyCode}
                         />
                         <RowButtonDivider />
@@ -422,9 +422,7 @@ const MainContents: React.FC<MainContentsProps> = ({
                 <RowButton
                     variant="secondary"
                     label={t("faq")}
-                    endIcon={
-                        <ChevronRightIcon className="ente-chevron-right" />
-                    }
+                    endIcon={<ChevronRightIcon />}
                     onClick={() =>
                         openURL(
                             "https://ente.com/help/photos/features/account/referral-program/",
@@ -435,9 +433,7 @@ const MainContents: React.FC<MainContentsProps> = ({
                 <RowButton
                     variant="secondary"
                     label={t("details")}
-                    endIcon={
-                        <ChevronRightIcon className="ente-chevron-right" />
-                    }
+                    endIcon={<ChevronRightIcon />}
                     onClick={onShowDetails}
                 />
             </RowButtonGroup>
@@ -458,7 +454,7 @@ const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
         sx={{
             position: "relative",
             border: "1px dashed",
-            borderColor: "fill.muted",
+            borderColor: "stroke.faint",
             borderRadius: "14px",
             px: 2,
             py: "26px",
@@ -466,11 +462,12 @@ const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
         }}
     >
         <Typography
-            variant="h2"
-            component="h3"
+            variant="h3"
             sx={{
-                fontSize: "28px",
                 letterSpacing: "0.08em",
+                fontFamily: '"Outfit Variable", sans-serif',
+                fontSize: "28px",
+                lineHeight: "32px",
                 overflowWrap: "anywhere",
                 ...(onEdit && { px: 6 }),
             }}
@@ -531,29 +528,26 @@ const SuccessContents: React.FC<SuccessContentsProps> = ({
                     />
                 </Box>
                 <Typography
-                    variant="h2"
-                    component="h3"
-                    sx={{ textAlign: "center" }}
+                    variant="h3"
+                    sx={{
+                        textAlign: "center",
+                        fontFamily: '"Outfit Variable", sans-serif',
+                        lineHeight: "32px",
+                    }}
                 >
                     {t("referral_storage_claimed", {
                         storageAmountInGB: planInfo.storageInGB,
                     })}
                 </Typography>
                 <Typography
-                    variant="h5"
-                    sx={{
-                        fontSize: "16px",
-                        lineHeight: "22px",
-                        textAlign: "center",
-                        pt: 1,
-                    }}
+                    sx={{ fontWeight: "medium", textAlign: "center", pt: 1 }}
                 >
                     {t("earn_more_space")}
                 </Typography>
             </Stack>
             <Stack sx={{ gap: 3 }}>
                 <ReferralCodeCard code={code} />
-                <Typography sx={{ color: "text.muted" }}>
+                <Typography variant="small" sx={{ color: "text.muted" }}>
                     {t("referral_storage_for_both", {
                         storageAmountInGB: planInfo.storageInGB,
                     })}
@@ -563,13 +557,13 @@ const SuccessContents: React.FC<SuccessContentsProps> = ({
                     storageInGB={planInfo.storageInGB}
                 />
             </Stack>
-            <RowButtonGroup sx={{ borderRadius: "14px", overflow: "hidden" }}>
+            <RowButtonGroup
+                sx={{ bgcolor: "background.default", borderRadius: "14px" }}
+            >
                 <RowButton
                     variant="secondary"
                     label={t("details")}
-                    endIcon={
-                        <ChevronRightIcon className="ente-chevron-right" />
-                    }
+                    endIcon={<ChevronRightIcon />}
                     onClick={onShowDetails}
                 />
             </RowButtonGroup>
@@ -798,7 +792,7 @@ const InviteShareButton: React.FC<InviteShareButtonProps> = ({
         <Button
             fullWidth
             color="accent"
-            sx={{ minHeight: 48, borderRadius: "12px" }}
+            sx={{ minHeight: 48, borderRadius: "12px", fontSize: "14px" }}
             onClick={() => void handleShare()}
         >
             <span aria-live="polite">
@@ -818,7 +812,12 @@ const HowItWorks: React.FC<{ storageInGB: number }> = ({ storageInGB }) => (
             t("referral_step_2"),
             t("referral_step_3", { storageInGB }),
         ].map((step) => (
-            <Typography component="li" key={step}>
+            <Typography
+                component="li"
+                variant="small"
+                sx={{ lineHeight: "20px" }}
+                key={step}
+            >
                 {step}
             </Typography>
         ))}
@@ -879,7 +878,7 @@ const DetailsContents: React.FC<DetailsContentsProps> = ({
         <>
             <Stack
                 divider={<RowButtonDivider />}
-                sx={{ bgcolor: "fill.faint", borderRadius: "14px" }}
+                sx={{ bgcolor: "background.default", borderRadius: "14px" }}
             >
                 {stats.map(({ label, value }) => (
                     <Stack
@@ -894,15 +893,20 @@ const DetailsContents: React.FC<DetailsContentsProps> = ({
                             py: 1.75,
                         }}
                     >
-                        <Typography>{label}</Typography>
-                        <Typography sx={{ fontWeight: 600 }}>
+                        <Typography variant="small" sx={{ lineHeight: "20px" }}>
+                            {label}
+                        </Typography>
+                        <Typography
+                            variant="small"
+                            sx={{ fontWeight: "medium", lineHeight: "20px" }}
+                        >
                             {value}
                         </Typography>
                     </Stack>
                 ))}
             </Stack>
             <Typography
-                variant="small"
+                variant="mini"
                 sx={{ color: "text.faint", whiteSpace: "pre-line" }}
             >
                 {t("referral_usable_info")}

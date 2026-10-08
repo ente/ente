@@ -802,8 +802,28 @@ export const FileList: React.FC<FileListProps> = ({
     }
 
     return (
-        <Box sx={{ position: "relative", width, height }}>
+        <Box
+            sx={(theme) => ({
+                position: "relative",
+                width,
+                height,
+                "& > .gallery-file-list": {
+                    scrollbarWidth: "thin",
+                    scrollbarColor: `${theme.vars.palette.stroke.muted} transparent`,
+                    "&::-webkit-scrollbar": { width: "6px", height: "6px" },
+                    "&::-webkit-scrollbar-track": { background: "transparent" },
+                    "&::-webkit-scrollbar-thumb": {
+                        backgroundColor: theme.vars.palette.stroke.muted,
+                        borderRadius: "8px",
+                    },
+                    "&::-webkit-scrollbar-corner": {
+                        background: "transparent",
+                    },
+                },
+            })}
+        >
             <VariableSizeList
+                className="gallery-file-list"
                 key={key}
                 ref={listRef}
                 outerRef={outerRef}

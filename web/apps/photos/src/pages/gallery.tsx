@@ -35,6 +35,7 @@ import {
     SearchResultsHeader,
     type RemotePullOpts,
 } from "@/components/gallery";
+import { GalleryLayout } from "@/components/gallery/GalleryLayout";
 import {
     NormalNavbarContents,
     UploadButton,
@@ -78,6 +79,7 @@ import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import { subscribeMainWindowFocus } from "ente-base/electron";
 import { isNamedError } from "ente-base/error";
+import { isHTTPErrorWithStatus } from "ente-base/http";
 import { hasPendingAlbumToJoin } from "ente-base/join-album";
 import log from "ente-base/log";
 import {
@@ -1140,6 +1142,22 @@ const Page: React.FC = () => {
         }
     };
 
+    const onSendLinkError = useCallback(
+        (e: unknown) => {
+            if (isHTTPErrorWithStatus(e, 402)) {
+                log.error("Could not create share link", e);
+                showMiniDialog(
+                    errorDialogAttributes(
+                        t("share_link_subscription_required"),
+                    ),
+                );
+            } else {
+                onGenericError(e);
+            }
+        },
+        [showMiniDialog, onGenericError],
+    );
+
     const createFileOpHandler =
         (op: FileOp, options?: { suppressSelectionBar?: boolean }) => () => {
             void (async () => {
@@ -1247,7 +1265,11 @@ const Page: React.FC = () => {
                     clearSelection();
                     await remotePull({ silent: true, source: `file-op:${op}` });
                 } catch (e) {
-                    onGenericError(e);
+                    if (op == "sendLink") {
+                        onSendLinkError(e);
+                    } else {
+                        onGenericError(e);
+                    }
                 } finally {
                     if (options?.suppressSelectionBar) {
                         setSuppressContextSelectionBar(false);
@@ -1491,7 +1513,7 @@ const Page: React.FC = () => {
                 setPublicLinkToast({ open: true, url: resolvedURL });
                 await remotePull({ silent: true, source: "viewer-send-link" });
             } catch (e) {
-                onGenericError(e);
+                onSendLinkError(e);
             } finally {
                 hideLoadingBar();
             }
@@ -1503,7 +1525,7 @@ const Page: React.FC = () => {
             customDomain,
             quickLinkVisibility,
             remotePull,
-            onGenericError,
+            onSendLinkError,
         ],
     );
 
@@ -1899,242 +1921,264 @@ const Page: React.FC = () => {
                 files={fixCreationTimeFiles}
                 onRemotePull={remotePull}
             />
-            <NavbarBase
-                sx={[
-                    {
-                        mb: "12px",
-                        px: "24px",
-                        "@media (width < 720px)": { px: "4px" },
-                    },
-                    showSelectionBar && { borderColor: "accent.main" },
-                ]}
+            <GalleryLayout
+                onSettings={showSidebar}
+                header={
+                    <NavbarBase
+                        sx={[
+                            {
+                                "@media (min-width: 720px)": {
+                                    borderBottom: 0,
+                                    pr: "4px",
+                                },
+                                px: "24px",
+                                "@media (width < 720px)": { px: "4px" },
+                            },
+                            showSelectionBar && { borderColor: "accent.main" },
+                        ]}
+                    >
+                        {showSelectionBar ? (
+                            <SelectedFileOptions
+                                barMode={barMode}
+                                isInSearchMode={isInSearchMode}
+                                collection={
+                                    isInSearchMode
+                                        ? undefined
+                                        : activeCollection
+                                }
+                                collectionSummary={
+                                    isInSearchMode
+                                        ? undefined
+                                        : activeCollectionSummary
+                                }
+                                selectedFileCount={selected.count}
+                                selectedOwnFileCount={selected.ownCount}
+                                selectedFavoriteCount={selectedFavoriteCount}
+                                onClearSelection={clearSelection}
+                                onRemoveFilesFromCollection={
+                                    handleRemoveFilesFromCollection
+                                }
+                                onOpenCollectionSelector={
+                                    handleOpenCollectionSelector
+                                }
+                                onSelectAll={handleSelectAll}
+                                isAllSelected={isAllSelectedInView}
+                                {...{
+                                    createOnCreateForCollectionOp,
+                                    createOnSelectForCollectionOp,
+                                    createFileOpHandler,
+                                    onShowAssignPersonDialog:
+                                        showAddPersonAction
+                                            ? showContextMenuAssignPerson
+                                            : undefined,
+                                }}
+                                onEditLocation={showEditLocation}
+                            />
+                        ) : barMode == "hidden-albums" ? (
+                            <SectionNavbarContents
+                                title={t("section_hidden")}
+                                onBack={() => dispatch({ type: "showAlbums" })}
+                                onUpload={openUploader}
+                            />
+                        ) : !isInSearchMode && isInArchiveSection ? (
+                            <SectionNavbarContents
+                                title={t("section_archive")}
+                                onBack={() => dispatch({ type: "showAlbums" })}
+                                onUpload={openUploader}
+                            />
+                        ) : (
+                            <NormalNavbarContents
+                                {...{ isInSearchMode }}
+                                onSidebar={showSidebar}
+                                onUpload={openUploader}
+                                onShowSearchInput={() =>
+                                    dispatch({ type: "enterSearchMode" })
+                                }
+                                onSelectSearchOption={handleSelectSearchOption}
+                                onSelectPeople={() =>
+                                    dispatch({ type: "showPeople" })
+                                }
+                                onSelectPerson={handleSelectPerson}
+                            />
+                        )}
+                    </NavbarBase>
+                }
             >
-                {showSelectionBar ? (
-                    <SelectedFileOptions
-                        barMode={barMode}
-                        isInSearchMode={isInSearchMode}
-                        collection={
-                            isInSearchMode ? undefined : activeCollection
-                        }
-                        collectionSummary={
-                            isInSearchMode ? undefined : activeCollectionSummary
-                        }
-                        selectedFileCount={selected.count}
-                        selectedOwnFileCount={selected.ownCount}
-                        selectedFavoriteCount={selectedFavoriteCount}
-                        onClearSelection={clearSelection}
-                        onRemoveFilesFromCollection={
-                            handleRemoveFilesFromCollection
-                        }
-                        onOpenCollectionSelector={handleOpenCollectionSelector}
-                        onSelectAll={handleSelectAll}
-                        isAllSelected={isAllSelectedInView}
-                        {...{
-                            createOnCreateForCollectionOp,
-                            createOnSelectForCollectionOp,
-                            createFileOpHandler,
-                            onShowAssignPersonDialog: showAddPersonAction
-                                ? showContextMenuAssignPerson
-                                : undefined,
-                        }}
-                        onEditLocation={showEditLocation}
-                    />
-                ) : barMode == "hidden-albums" ? (
-                    <SectionNavbarContents
-                        title={t("section_hidden")}
-                        onBack={() => dispatch({ type: "showAlbums" })}
-                        onUpload={openUploader}
-                    />
-                ) : !isInSearchMode && isInArchiveSection ? (
-                    <SectionNavbarContents
-                        title={t("section_archive")}
-                        onBack={() => dispatch({ type: "showAlbums" })}
-                        onUpload={openUploader}
-                    />
-                ) : (
-                    <NormalNavbarContents
-                        {...{ isInSearchMode }}
-                        onSidebar={showSidebar}
-                        onUpload={openUploader}
-                        onShowSearchInput={() =>
-                            dispatch({ type: "enterSearchMode" })
-                        }
-                        onSelectSearchOption={handleSelectSearchOption}
-                        onSelectPeople={() => dispatch({ type: "showPeople" })}
-                        onSelectPerson={handleSelectPerson}
-                    />
-                )}
-            </NavbarBase>
-            {isFirstLoad && <FirstLoadMessage />}
-            {isOffline && <OfflineMessage />}
+                {isFirstLoad && <FirstLoadMessage />}
+                {isOffline && <OfflineMessage />}
 
-            <GalleryBarAndListHeader
-                {...{
-                    user,
-                    // TODO: These are incorrect assertions, the types of the
-                    // component need to be updated.
-                    activeCollection: activeCollection!,
-                    activeCollectionID: activeCollectionID!,
-                    activePerson,
-                    setFileListHeader,
-                    saveGroups,
-                    canCreateAlbum: !isInArchiveSection,
-                    onAddSaveGroup,
-                    onEditAlbumDetails: showEditAlbumDetails,
-                    onShowMap: handleShowCollectionMap,
-                    onCollectionSlideshow: startSlideshow,
-                }}
-                mode={barMode}
-                shouldHide={isInSearchMode}
-                barCollectionSummaries={barCollectionSummaries}
-                emailByUserID={state.emailByUserID}
-                shareSuggestionEmails={state.shareSuggestionEmails}
-                people={
-                    (state.view?.type == "people"
-                        ? state.view.visiblePeople
-                        : undefined) ?? []
-                }
-                allPeople={
-                    (state.view?.type == "people"
-                        ? state.view.people
-                        : undefined) ?? []
-                }
-                onChangeMode={handleChangeBarMode}
-                setBlockingLoad={setBlockingLoad}
-                setActiveCollectionID={handleShowCollectionSummaryWithID}
-                hasActiveFileSelection={hasActiveFileSelection}
-                onRemotePull={remotePull}
-                onSelectPerson={handleSelectPerson}
-            />
-
-            <Upload
-                {...{
-                    user,
-                    dragAndDropFiles,
-                    uploadTypeSelectorIntent,
-                    uploadTypeSelectorView,
-                }}
-                isFirstUpload={haveOnlySystemCollections(
-                    normalCollectionSummaries,
-                )}
-                activeCollection={activeCollection}
-                closeUploadTypeSelector={setUploadTypeSelectorView.bind(
-                    null,
-                    false,
-                )}
-                setLoading={setBlockingLoad}
-                setShouldDisableDropzone={setShouldDisableDropzone}
-                onRemotePull={remotePull}
-                onRemoteFilesPull={remoteFilesPull}
-                onOpenCollectionSelector={handleOpenCollectionSelector}
-                onCloseCollectionSelector={handleCloseCollectionSelector}
-                onUploadFile={(file) => dispatch({ type: "uploadFile", file })}
-                onShowPlanSelector={showPlanSelector}
-                onShowSessionExpiredDialog={showSessionExpiredDialog}
-                isInHiddenSection={barMode == "hidden-albums"}
-            />
-            <Sidebar
-                {...sidebarVisibilityProps}
-                onClose={handleSidebarClose}
-                normalCollectionSummaries={normalCollectionSummaries}
-                uncategorizedCollectionSummaryID={
-                    state.uncategorizedCollectionSummaryID
-                }
-                pendingAction={pendingSidebarAction}
-                onActionHandled={handleSidebarActionHandled}
-                onShowPlanSelector={showPlanSelector}
-                onShowCollectionSummary={handleSidebarShowCollectionSummary}
-                collectionNameByID={collectionNameByID}
-                onCloseOverlays={closeSidebarOverlays}
-                onAuthenticateUser={authenticateUser}
-            >
-                {sidebarVisibilityProps.open && subscriptionDialogs}
-            </Sidebar>
-            <WhatsNew {...whatsNewVisibilityProps} />
-            <AssignPersonDialog
-                {...contextMenuAssignPersonProps}
-                people={namedPeople}
-                title={t("add_a_person")}
-                onSelectPerson={handleContextMenuSelectPerson}
-            />
-            {!isInSearchMode &&
-            !isFirstLoad &&
-            !state.collectionFiles.length &&
-            activeCollectionID === PseudoCollectionID.all ? (
-                <GalleryEmptyState
-                    isUploadInProgress={uploadManager.isUploadInProgress()}
-                    onUpload={openUploader}
-                />
-            ) : !isInSearchMode &&
-              !isFirstLoad &&
-              state.view?.type == "people" &&
-              !state.view.activePerson ? (
-                <PeopleEmptyState />
-            ) : (
-                <FileListWithViewer
-                    mode={barMode}
-                    modePlus={isInSearchMode ? "search" : barMode}
-                    header={fileListHeader}
-                    footer={fileListFooter}
-                    user={user}
-                    files={filteredFiles}
-                    onShowMap={handleShowCollectionMap}
-                    enableDownload={true}
-                    disableGrouping={
-                        state.searchSuggestion?.type == "clip" ||
-                        (!isInSearchMode &&
-                            activeCollection?.pubMagicMetadata?.data.sortBy ===
-                                "fileName")
-                    }
-                    enableSelect={true}
-                    selected={selected}
-                    setSelected={setSelected}
-                    // TODO: Incorrect assertion, need to update the type
-                    activeCollectionID={activeCollectionID!}
-                    activeCollectionSummary={activeCollectionSummary}
-                    activePersonID={activePerson?.id}
-                    isInIncomingSharedCollection={activeCollectionSummary?.attributes.has(
-                        "sharedIncoming",
-                    )}
-                    isInHiddenSection={barMode == "hidden-albums"}
-                    onContextMenuAction={handleContextMenuAction}
-                    onContextMenuOpenChange={setIsContextMenuOpen}
-                    suppressSelectionUI={suppressContextSelectionBar}
-                    showAddPersonAction={showAddPersonAction}
-                    showEditLocationAction={selected.ownCount > 0}
+                <GalleryBarAndListHeader
                     {...{
-                        favoriteFileIDs,
-                        collectionNameByID,
-                        fileNormalCollectionIDs,
-                        fileCollectionIDs,
-                        hiddenCollectionIDs,
-                        pendingFavoriteUpdates,
-                        pendingVisibilityUpdates,
+                        user,
+                        // TODO: These are incorrect assertions, the types of the
+                        // component need to be updated.
+                        activeCollection: activeCollection!,
+                        activeCollectionID: activeCollectionID!,
+                        activePerson,
+                        setFileListHeader,
+                        saveGroups,
+                        canCreateAlbum: !isInArchiveSection,
                         onAddSaveGroup,
+                        onEditAlbumDetails: showEditAlbumDetails,
+                        onShowMap: handleShowCollectionMap,
+                        onCollectionSlideshow: startSlideshow,
                     }}
-                    collectionSummaries={normalCollectionSummaries}
+                    mode={barMode}
+                    shouldHide={isInSearchMode}
+                    barCollectionSummaries={barCollectionSummaries}
                     emailByUserID={state.emailByUserID}
-                    onToggleFavorite={handleFileViewerToggleFavorite}
-                    onFileVisibilityUpdate={
-                        handleFileViewerFileVisibilityUpdate
+                    shareSuggestionEmails={state.shareSuggestionEmails}
+                    people={
+                        (state.view?.type == "people"
+                            ? state.view.visiblePeople
+                            : undefined) ?? []
                     }
-                    onSendLink={handleFileViewerSendLink}
-                    onMarkTempDeleted={handleMarkTempDeleted}
-                    onSetOpenFileViewer={setIsFileViewerOpen}
+                    allPeople={
+                        (state.view?.type == "people"
+                            ? state.view.people
+                            : undefined) ?? []
+                    }
+                    onChangeMode={handleChangeBarMode}
+                    setBlockingLoad={setBlockingLoad}
+                    setActiveCollectionID={handleShowCollectionSummaryWithID}
+                    hasActiveFileSelection={hasActiveFileSelection}
+                    onRemotePull={remotePull}
+                    onSelectPerson={handleSelectPerson}
+                />
+
+                <Upload
+                    {...{
+                        user,
+                        dragAndDropFiles,
+                        uploadTypeSelectorIntent,
+                        uploadTypeSelectorView,
+                    }}
+                    isFirstUpload={haveOnlySystemCollections(
+                        normalCollectionSummaries,
+                    )}
+                    activeCollection={activeCollection}
+                    closeUploadTypeSelector={setUploadTypeSelectorView.bind(
+                        null,
+                        false,
+                    )}
+                    setLoading={setBlockingLoad}
+                    setShouldDisableDropzone={setShouldDisableDropzone}
                     onRemotePull={remotePull}
                     onRemoteFilesPull={remoteFilesPull}
-                    onVisualFeedback={handleVisualFeedback}
-                    onSelectCollection={handleSelectCollection}
-                    onSelectPerson={handleSelectPerson}
-                    onAddFileToCollection={handleAddSingleFileToCollection}
-                    pendingFileIndex={pendingFileNavigation?.fileIndex}
-                    pendingFileSidebar={pendingFileNavigation?.sidebar}
-                    pendingHighlightCommentID={pendingFileNavigation?.commentID}
-                    onPendingNavigationConsumed={
-                        handlePendingNavigationConsumed
+                    onOpenCollectionSelector={handleOpenCollectionSelector}
+                    onCloseCollectionSelector={handleCloseCollectionSelector}
+                    onUploadFile={(file) =>
+                        dispatch({ type: "uploadFile", file })
                     }
+                    onShowPlanSelector={showPlanSelector}
+                    onShowSessionExpiredDialog={showSessionExpiredDialog}
+                    isInHiddenSection={barMode == "hidden-albums"}
                 />
-            )}
+                <Sidebar
+                    {...sidebarVisibilityProps}
+                    onClose={handleSidebarClose}
+                    normalCollectionSummaries={normalCollectionSummaries}
+                    uncategorizedCollectionSummaryID={
+                        state.uncategorizedCollectionSummaryID
+                    }
+                    pendingAction={pendingSidebarAction}
+                    onActionHandled={handleSidebarActionHandled}
+                    onShowPlanSelector={showPlanSelector}
+                    onShowCollectionSummary={handleSidebarShowCollectionSummary}
+                    collectionNameByID={collectionNameByID}
+                    onCloseOverlays={closeSidebarOverlays}
+                    onAuthenticateUser={authenticateUser}
+                >
+                    {sidebarVisibilityProps.open && subscriptionDialogs}
+                </Sidebar>
+                <WhatsNew {...whatsNewVisibilityProps} />
+                <AssignPersonDialog
+                    {...contextMenuAssignPersonProps}
+                    people={namedPeople}
+                    title={t("add_a_person")}
+                    onSelectPerson={handleContextMenuSelectPerson}
+                />
+                {!isInSearchMode &&
+                !isFirstLoad &&
+                !state.collectionFiles.length &&
+                activeCollectionID === PseudoCollectionID.all ? (
+                    <GalleryEmptyState
+                        isUploadInProgress={uploadManager.isUploadInProgress()}
+                        onUpload={openUploader}
+                    />
+                ) : !isInSearchMode &&
+                  !isFirstLoad &&
+                  state.view?.type == "people" &&
+                  !state.view.activePerson ? (
+                    <PeopleEmptyState />
+                ) : (
+                    <FileListWithViewer
+                        mode={barMode}
+                        modePlus={isInSearchMode ? "search" : barMode}
+                        header={fileListHeader}
+                        footer={fileListFooter}
+                        user={user}
+                        files={filteredFiles}
+                        onShowMap={handleShowCollectionMap}
+                        enableDownload={true}
+                        disableGrouping={
+                            state.searchSuggestion?.type == "clip" ||
+                            (!isInSearchMode &&
+                                activeCollection?.pubMagicMetadata?.data
+                                    .sortBy === "fileName")
+                        }
+                        enableSelect={true}
+                        selected={selected}
+                        setSelected={setSelected}
+                        // TODO: Incorrect assertion, need to update the type
+                        activeCollectionID={activeCollectionID!}
+                        activeCollectionSummary={activeCollectionSummary}
+                        activePersonID={activePerson?.id}
+                        isInIncomingSharedCollection={activeCollectionSummary?.attributes.has(
+                            "sharedIncoming",
+                        )}
+                        isInHiddenSection={barMode == "hidden-albums"}
+                        onContextMenuAction={handleContextMenuAction}
+                        onContextMenuOpenChange={setIsContextMenuOpen}
+                        suppressSelectionUI={suppressContextSelectionBar}
+                        showAddPersonAction={showAddPersonAction}
+                        showEditLocationAction={selected.ownCount > 0}
+                        {...{
+                            favoriteFileIDs,
+                            collectionNameByID,
+                            fileNormalCollectionIDs,
+                            fileCollectionIDs,
+                            hiddenCollectionIDs,
+                            pendingFavoriteUpdates,
+                            pendingVisibilityUpdates,
+                            onAddSaveGroup,
+                        }}
+                        collectionSummaries={normalCollectionSummaries}
+                        emailByUserID={state.emailByUserID}
+                        onToggleFavorite={handleFileViewerToggleFavorite}
+                        onFileVisibilityUpdate={
+                            handleFileViewerFileVisibilityUpdate
+                        }
+                        onSendLink={handleFileViewerSendLink}
+                        onMarkTempDeleted={handleMarkTempDeleted}
+                        onSetOpenFileViewer={setIsFileViewerOpen}
+                        onRemotePull={remotePull}
+                        onRemoteFilesPull={remoteFilesPull}
+                        onVisualFeedback={handleVisualFeedback}
+                        onSelectCollection={handleSelectCollection}
+                        onSelectPerson={handleSelectPerson}
+                        onAddFileToCollection={handleAddSingleFileToCollection}
+                        pendingFileIndex={pendingFileNavigation?.fileIndex}
+                        pendingFileSidebar={pendingFileNavigation?.sidebar}
+                        pendingHighlightCommentID={
+                            pendingFileNavigation?.commentID
+                        }
+                        onPendingNavigationConsumed={
+                            handlePendingNavigationConsumed
+                        }
+                    />
+                )}
+            </GalleryLayout>
             {slideshow &&
                 slideshow.collectionID === activeCollection?.id &&
                 !isInSearchMode && (
