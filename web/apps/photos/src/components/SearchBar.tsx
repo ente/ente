@@ -117,6 +117,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
                     open={open}
                     onClose={closeSearch}
                     keepMounted
+                    disableRestoreFocus
                     fullWidth
                     maxWidth={false}
                     aria-label={t("search")}
@@ -201,6 +202,17 @@ const SearchInput: React.FC<
         // blurInputOnSelect leaves react-select's menu open.
         if (value) {
             selectRef.current?.blur();
+            if (
+                type == "collection" ||
+                type == "person" ||
+                type == "sidebarAction"
+            ) {
+                // Clear AsyncSelect's old results after blur preserves the query.
+                selectRef.current?.onInputChange("", {
+                    action: "set-value",
+                    prevInputValue: inputValue,
+                });
+            }
             onClose();
         }
     };
@@ -230,6 +242,10 @@ const SearchInput: React.FC<
 
     const resetSearch = () => {
         selectRef.current?.blur();
+        selectRef.current?.onInputChange("", {
+            action: "set-value",
+            prevInputValue: inputValue,
+        });
 
         setValue(null);
         setInputValue("");
@@ -416,14 +432,6 @@ const createSelectStyles = (
 });
 
 const Control = ({ children, ...props }: ControlProps<SearchOption, false>) => {
-    const isMac =
-        typeof navigator !== "undefined" &&
-        navigator.userAgent.toUpperCase().includes("MAC");
-    const shortcutKey = isMac ? "⌘ K" : "Ctrl + K";
-
-    const hasValue =
-        props.getValue().length > 0 || props.selectProps.inputValue;
-
     return (
         <SelectComponents.Control {...props}>
             <Stack direction="row" sx={{ alignItems: "center", flex: 1 }}>
@@ -437,26 +445,6 @@ const Control = ({ children, ...props }: ControlProps<SearchOption, false>) => {
                     {iconForOption(props.getValue()[0])}
                 </Box>
                 {children}
-                {!hasValue && (
-                    <Box
-                        sx={{
-                            display: ["none", "none", "inline-flex"],
-                            alignItems: "center",
-                            pr: "8px",
-                            color: "text.faint",
-                            fontSize: "12px",
-                            fontFamily: "monospace",
-                            border: "1px solid",
-                            borderColor: "stroke.faint",
-                            borderRadius: "4px",
-                            px: "6px",
-                            py: "2px",
-                            mr: "8px",
-                        }}
-                    >
-                        {shortcutKey}
-                    </Box>
-                )}
             </Stack>
         </SelectComponents.Control>
     );
