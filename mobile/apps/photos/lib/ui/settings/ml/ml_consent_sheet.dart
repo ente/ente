@@ -13,16 +13,17 @@ import "package:styled_text/styled_text.dart";
 
 Future<bool> showMLConsentSheet(BuildContext context) async {
   Future<void>? enabling;
+  var enabled = false;
   var declined = false;
   await showBottomSheetComponent<void>(
     context: context,
     builder: (_) => _MLConsentSheet(
-      onEnable: () => enabling = enableMLConsent(),
+      onEnable: () => enabling = enableMLConsent().then((_) => enabled = true),
       onDecline: () => declined = true,
     ),
   );
   await enabling?.catchError((Object _) {});
-  if (hasGrantedMLConsent) {
+  if (enabled) {
     return true;
   }
   if (declined) {
