@@ -221,7 +221,7 @@ class MLConsentCancelLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = onTap == null
         ? context.componentColors.textLightest
-        : context.componentColors.textLight;
+        : context.componentColors.textBase;
     return Semantics(
       button: true,
       enabled: onTap != null,
@@ -233,8 +233,9 @@ class MLConsentCancelLink extends StatelessWidget {
           child: Center(
             child: Text(
               context.strings.cancel,
-              style: TextStyles.bodyLink.copyWith(
+              style: TextStyles.bodyBold.copyWith(
                 color: color,
+                decoration: TextDecoration.underline,
                 decorationColor: color,
               ),
             ),
