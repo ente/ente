@@ -1,4 +1,4 @@
-LOCK TABLE space_messages IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE space_friend_requests, space_messages IN SHARE ROW EXCLUSIVE MODE;
 
 CREATE TABLE space_post_likes (
     like_id TEXT PRIMARY KEY,
@@ -8,6 +8,19 @@ CREATE TABLE space_post_likes (
     UNIQUE (post_id, actor_space_id)
 );
 
+CREATE TABLE space_pokes (
+    poke_id TEXT PRIMARY KEY,
+    sender_space_id TEXT NOT NULL REFERENCES spaces (space_id) ON DELETE CASCADE,
+    recipient_space_id TEXT NOT NULL REFERENCES spaces (space_id) ON DELETE CASCADE,
+    client_request_id TEXT NOT NULL,
+    created_at BIGINT NOT NULL DEFAULT now_utc_micro_seconds(),
+    CHECK (sender_space_id <> recipient_space_id),
+    UNIQUE (sender_space_id, recipient_space_id, client_request_id)
+);
+
+CREATE INDEX idx_space_pokes_recipient_created
+    ON space_pokes (recipient_space_id, created_at DESC);
+
 CREATE TABLE space_notifications (
     notification_id TEXT PRIMARY KEY,
     recipient_space_id TEXT NOT NULL REFERENCES spaces (space_id) ON DELETE CASCADE,
@@ -16,8 +29,15 @@ CREATE TABLE space_notifications (
     post_like_id TEXT REFERENCES space_post_likes (like_id) ON DELETE CASCADE,
     created_at BIGINT NOT NULL DEFAULT now_utc_micro_seconds(),
     read_at BIGINT,
+    friend_request_id BIGINT REFERENCES space_friend_requests (request_id) ON DELETE CASCADE,
+    poke_id TEXT REFERENCES space_pokes (poke_id) ON DELETE CASCADE,
     CHECK (recipient_space_id <> actor_space_id),
-    CHECK (kind = 'post_like' AND post_like_id IS NOT NULL),
+    CONSTRAINT chk_space_notifications_target CHECK (
+        (kind = 'post_like' AND post_like_id IS NOT NULL AND friend_request_id IS NULL AND poke_id IS NULL)
+        OR (kind = 'friend_request' AND friend_request_id IS NOT NULL AND post_like_id IS NULL AND poke_id IS NULL)
+        OR (kind = 'friend_accepted' AND post_like_id IS NULL AND friend_request_id IS NULL AND poke_id IS NULL)
+        OR (kind = 'poke' AND poke_id IS NOT NULL AND post_like_id IS NULL AND friend_request_id IS NULL)
+    ),
     UNIQUE (recipient_space_id, kind, post_like_id)
 );
 
@@ -30,6 +50,11 @@ CREATE INDEX idx_space_notifications_unread
 
 CREATE INDEX idx_space_notifications_post_like
     ON space_notifications (post_like_id);
+
+CREATE UNIQUE INDEX idx_space_notifications_friend_request
+    ON space_notifications (friend_request_id) WHERE friend_request_id IS NOT NULL;
+
+CREATE UNIQUE INDEX idx_space_notifications_poke ON space_notifications (poke_id);
 
 INSERT INTO space_post_likes (like_id, post_id, actor_space_id, created_at)
 SELECT m.message_id, m.reply_post_id, m.sender_space_id, m.created_at
@@ -47,8 +72,24 @@ JOIN space_posts p ON p.post_id = l.post_id
 LEFT JOIN space_notification_read_markers marker
     ON marker.viewer_space_id = p.space_id AND marker.friend_space_id = l.actor_space_id;
 
-DELETE FROM space_messages WHERE kind = 'post_like';
+INSERT INTO space_notifications (
+    notification_id, recipient_space_id, actor_space_id, kind, friend_request_id, created_at
+)
+SELECT 'wnot_request_' || request_id, target_space_id, requester_space_id, 'friend_request', request_id, created_at
+FROM space_friend_requests;
+
+INSERT INTO space_notifications (
+    notification_id, recipient_space_id, actor_space_id, kind, created_at, read_at
+)
+SELECT m.message_id, m.recipient_space_id, m.sender_space_id, 'friend_accepted', m.created_at,
+       CASE WHEN marker.read_at >= m.created_at THEN marker.read_at END
+FROM space_messages m
+LEFT JOIN space_notification_read_markers marker
+    ON marker.viewer_space_id = m.recipient_space_id AND marker.friend_space_id = m.sender_space_id
+WHERE m.kind = 'friend_added';
+
+DELETE FROM space_messages WHERE kind IN ('post_like', 'friend_added');
 
 ALTER TABLE space_messages DROP CONSTRAINT chk_space_messages_kind;
 ALTER TABLE space_messages ADD CONSTRAINT chk_space_messages_kind
-    CHECK (kind IN ('regular', 'post_reply', 'friend_added'));
+    CHECK (kind IN ('regular', 'post_reply'));

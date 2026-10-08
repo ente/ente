@@ -261,13 +261,9 @@ func TestNotificationsMigrationPreservesLikesAndReadState(t *testing.T) {
 	require.NoError(t, err)
 	down, err := os.ReadFile("migrations/149_space_notifications.down.sql")
 	require.NoError(t, err)
-	friendDown, err := os.ReadFile("migrations/150_space_friend_notifications.down.sql")
-	require.NoError(t, err)
 	tx, err := module.Posts.DB.BeginTx(ctx, nil)
 	require.NoError(t, err)
 	defer tx.Rollback()
-	_, err = tx.ExecContext(ctx, string(friendDown))
-	require.NoError(t, err)
 	_, err = tx.ExecContext(ctx, string(down))
 	require.NoError(t, err)
 	for index, timestamp := range []int64{1000, 3000, 5000} {
