@@ -471,7 +471,6 @@
     "link_edit_disabled_for_free_accounts": "You need a paid subscription to change this link setting",
     "sharing_user_does_not_exist": "Could not find a user with that email",
     "search": "Search",
-    "search_shortcut": "Search ({{shortcut}})",
     "people_search_hint": "Search people",
     "search_results": "Search results",
     "no_results": "No results found",

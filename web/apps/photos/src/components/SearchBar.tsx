@@ -102,7 +102,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
                     </EnteLogoBox>
                 )}
             </Box>
-            <Tooltip title={t("search_shortcut", { shortcut })}>
+            <Tooltip title={`Search (${shortcut})`}>
                 <FocusVisibleButton
                     color="secondary"
                     aria-label={t("search")}
@@ -173,7 +173,6 @@ const SearchInput: React.FC<
     // undefined makes react-select switch from controlled to uncontrolled.
     const [value, setValue] = useState<SearchOption | null>(null);
     const [inputValue, setInputValue] = useState("");
-    const [isFocused, setIsFocused] = useState(false);
     const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
 
     const theme = useTheme();
@@ -215,6 +214,13 @@ const SearchInput: React.FC<
     };
 
     const handleInputChange = (value: string, actionMeta: InputActionMeta) => {
+        // AsyncSelect otherwise clears loaded options when the input blurs.
+        if (
+            actionMeta.action === "input-blur" ||
+            actionMeta.action === "menu-close"
+        ) {
+            return inputValue;
+        }
         if (actionMeta.action == "input-change") {
             setIsKeyboardNavigating(false);
             setInputValue(value);
@@ -227,6 +233,7 @@ const SearchInput: React.FC<
                 });
             }
         }
+        return value;
     };
 
     const resetSearch = () => {
@@ -250,7 +257,6 @@ const SearchInput: React.FC<
     };
 
     const handleFocus = () => {
-        setIsFocused(true);
         // Refocusing needs an input nudge to reopen unchanged suggestions.
         if (inputValue) {
             selectRef.current?.onInputChange(inputValue, {
@@ -261,7 +267,6 @@ const SearchInput: React.FC<
     };
 
     const handleBlur = () => {
-        setIsFocused(false);
         setIsKeyboardNavigating(false);
     };
 
@@ -291,7 +296,7 @@ const SearchInput: React.FC<
                 aria-label={t("search")}
                 escapeClearsValue
                 menuIsOpen={
-                    isFocused && (inputValue !== "" || shouldShowEmptyState(""))
+                    open && (inputValue !== "" || shouldShowEmptyState(""))
                 }
                 onFocus={handleFocus}
                 onBlur={handleBlur}
