@@ -75,6 +75,8 @@ class _MLConsentSheetState extends State<_MLConsentSheet> {
     return BottomSheetComponent(
       title: context.strings.machineLearning,
       closeTooltip: context.strings.close,
+      borderSide: BorderSide(color: context.componentColors.strokeDark),
+      actionsTopSpacing: Spacing.xxl,
       content: Flexible(
         fit: FlexFit.loose,
         child: IgnorePointer(
@@ -92,7 +94,7 @@ class _MLConsentSheetState extends State<_MLConsentSheet> {
                 ),
                 const SizedBox(height: 20),
                 const MLConsentDescription(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 MLConsentAcknowledgement(
                   selected: _hasAcknowledged,
                   onChanged: () {
