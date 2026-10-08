@@ -256,13 +256,18 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
       return;
     }
     _isEnteringLocalGallery = true;
-    await AppLifecycleService.instance.preferencesReloaded;
-    await localSettings.setAppMode(AppMode.localGallery);
-    localSettings.localGalleryModeEnabledThisSession = true;
-    await setMLConsent(true);
-    Bus.instance.fire(AppModeChangedEvent());
-    await permissionService.onUpdatePermission(state);
-    await localSettings.setLocalGalleryOnboardingPending(false);
+    try {
+      await AppLifecycleService.instance.preferencesReloaded;
+      await localSettings.setAppMode(AppMode.localGallery);
+      localSettings.localGalleryModeEnabledThisSession = true;
+      await setMLConsent(true);
+      Bus.instance.fire(AppModeChangedEvent());
+      await permissionService.onUpdatePermission(state);
+      await localSettings.setLocalGalleryOnboardingPending(false);
+    } catch (e) {
+      _isEnteringLocalGallery = false;
+      rethrow;
+    }
     SyncService.instance.onPermissionGranted().ignore();
     Bus.instance.fire(PermissionGrantedEvent());
     try {

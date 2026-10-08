@@ -29,7 +29,9 @@ class AppLifecycleService {
   Future<void> get preferencesReloaded => _preferencesReload;
 
   Future<void> reloadPreferences() {
-    _preferencesReload = _preferences.reload();
+    _preferencesReload = _preferences.reload().catchError((Object e) {
+      _logger.warning("Failed to reload preferences", e);
+    });
     return _preferencesReload;
   }
 
