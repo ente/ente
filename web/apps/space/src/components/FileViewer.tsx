@@ -160,8 +160,7 @@ interface SpaceFileViewerProps {
     onEditDraftPhoto?: () => void;
     onDeletePost?: () => Promise<void> | void;
     onDraftPostExitAnimationStart?: () => void;
-    onDraftPostExitStart?: () => void;
-    onDraftPostPublished?: () => void;
+    onDraftPostExitStart?: () => Promise<void>;
     onAddFriendForPostAction?: (intent: SpaceInviteIntent) => void;
     onOpenProfile?: () => void;
     onPublishDraftPost?: (caption: string) => Promise<void>;
@@ -376,8 +375,6 @@ const SpaceViewerPhotoOverlay: React.FC<{
                             bgcolor: "rgba(32, 32, 32, 0.85)",
                             borderRadius: "16px",
                             boxSizing: "border-box",
-                            fontWeight: 400,
-                            lineHeight: "22px",
                             maxHeight: "33svh",
                             overflowWrap: "anywhere",
                             overflowY: "auto",
@@ -412,7 +409,6 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     onDeletePost,
     onDraftPostExitAnimationStart,
     onDraftPostExitStart,
-    onDraftPostPublished,
     onAddFriendForPostAction,
     onOpenProfile,
     onPublishDraftPost,
@@ -824,10 +820,16 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                 return;
             }
             setDraftPostExitPhase("waiting-for-keyboard");
-            onDraftPostExitStart?.();
+            const exitReady = onDraftPostExitStart?.();
             dismissCaptionKeyboard(() => {
-                setDraftPostExitPhase("animating");
-                onDraftPostExitAnimationStart?.();
+                void Promise.resolve(exitReady)
+                    .catch((error: unknown) => {
+                        log.error("Failed to open the home feed", error);
+                    })
+                    .then(() => {
+                        setDraftPostExitPhase("animating");
+                        onDraftPostExitAnimationStart?.();
+                    });
             });
             void publication.catch((error: unknown) => {
                 log.error("Failed to publish space post", error);
@@ -1109,16 +1111,11 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         onClose();
     }, [isDeleteExit, onClose]);
 
-    const finishDraftPostExit = React.useCallback(() => {
-        onClose();
-        onDraftPostPublished?.();
-    }, [onClose, onDraftPostPublished]);
-
     React.useEffect(() => {
         if (!isDraftPostExitAnimating) return;
         if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-            finishDraftPostExit();
-    }, [finishDraftPostExit, isDraftPostExitAnimating]);
+            onClose();
+    }, [onClose, isDraftPostExitAnimating]);
 
     React.useEffect(() => {
         const root = viewerRootRef.current;
@@ -1412,7 +1409,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                 )
                     return;
 
-                finishDraftPostExit();
+                onClose();
             }}
             sx={{
                 bgcolor: "rgb(0 0 0 / var(--space-viewer-bg-opacity, 1))",

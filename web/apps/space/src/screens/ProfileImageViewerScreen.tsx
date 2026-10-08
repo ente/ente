@@ -208,7 +208,7 @@ export const ProfileImageViewerScreen: React.FC<
                 background: spaceAppBackground,
                 color: textBase,
                 display: "grid",
-                minHeight: "100svh",
+                minHeight: "var(--space-page-height, 100svh)",
                 overflowX: "hidden",
                 placeItems: { xs: "stretch", sm: "start center" },
             }}
@@ -219,7 +219,7 @@ export const ProfileImageViewerScreen: React.FC<
                     boxSizing: "border-box",
                     display: "grid",
                     gridTemplateRows: "56px minmax(0, 1fr) auto",
-                    minHeight: "100svh",
+                    minHeight: "var(--space-page-height, 100svh)",
                     mx: "auto",
                     width: "100%",
                     "@media (min-width: 600px)": { maxWidth: 390 },

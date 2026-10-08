@@ -37,6 +37,7 @@ const parentRoutePaths = (path: string) => {
         {
             "/app/friends": ["/app/profile"],
             "/app/messages": ["/app"],
+            "/app/notifications": ["/app"],
             "/app/profile": ["/app"],
             "/app/profile/cover": ["/app/profile"],
             "/app/profile/cover-edit": ["/app/profile/cover"],
@@ -76,20 +77,6 @@ const routeMotionDirection = (
     return "forward";
 };
 
-const routeSlideDirection = (
-    currentPath: string,
-    targetPath: string | undefined,
-    direction: SpaceRouteMotionDirection,
-): SpaceRouteMotionDirection => {
-    if (currentPath == "/app" && targetPath == "/app/settings") {
-        return "back";
-    }
-    if (currentPath == "/app/settings" && targetPath == "/app") {
-        return "forward";
-    }
-    return direction;
-};
-
 const recordRoutePush = (
     currentPath: string,
     targetPath: string,
@@ -126,10 +113,7 @@ const recordRouteReplace = (targetPath: string) => {
 const prefersReducedMotion = () =>
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const startSpaceRouteTransition = async <T,>(
-    direction: SpaceRouteMotionDirection,
-    updateRoute: () => Promise<T>,
-) => {
+const startSpaceRouteTransition = async <T,>(updateRoute: () => Promise<T>) => {
     if (
         typeof document == "undefined" ||
         typeof document.startViewTransition != "function" ||
@@ -142,7 +126,7 @@ const startSpaceRouteTransition = async <T,>(
     const root = document.documentElement;
     let result: T;
 
-    root.dataset.spaceRouteMotion = direction;
+    root.dataset.spaceRouteMotion = "fade";
 
     const transition = document.startViewTransition(async () => {
         result = await updateRoute();
@@ -178,9 +162,8 @@ const pushSpaceRoute = async (
     }
 
     const direction = routeMotionDirection(currentPath, targetPath);
-    const didNavigate = await startSpaceRouteTransition(
-        routeSlideDirection(currentPath, targetPath, direction),
-        () => router.push(url, as, options),
+    const didNavigate = await startSpaceRouteTransition(() =>
+        router.push(url, as, options),
     );
     if (didNavigate) recordRoutePush(currentPath, targetPath, direction);
     return didNavigate;
@@ -201,40 +184,32 @@ const backSpaceRoute = (router: NextRouter) => {
     const currentPath = routePath(router.asPath);
     const targetPath = previousStackRoute();
 
-    void startSpaceRouteTransition(
-        routeSlideDirection(currentPath, targetPath, "back"),
-        () => {
-            const routeChangePromise = new Promise<boolean>(
-                (resolve, reject) => {
-                    const cleanup = () => {
-                        router.events.off(
-                            "routeChangeComplete",
-                            handleComplete,
-                        );
-                        router.events.off("routeChangeError", handleError);
-                    };
-                    const handleComplete = () => {
-                        cleanup();
-                        resolve(true);
-                    };
-                    const handleError = (error: unknown) => {
-                        cleanup();
-                        reject(
-                            error instanceof Error
-                                ? error
-                                : new Error("Space route change failed"),
-                        );
-                    };
+    void startSpaceRouteTransition(() => {
+        const routeChangePromise = new Promise<boolean>((resolve, reject) => {
+            const cleanup = () => {
+                router.events.off("routeChangeComplete", handleComplete);
+                router.events.off("routeChangeError", handleError);
+            };
+            const handleComplete = () => {
+                cleanup();
+                resolve(true);
+            };
+            const handleError = (error: unknown) => {
+                cleanup();
+                reject(
+                    error instanceof Error
+                        ? error
+                        : new Error("Space route change failed"),
+                );
+            };
 
-                    router.events.on("routeChangeComplete", handleComplete);
-                    router.events.on("routeChangeError", handleError);
-                },
-            );
+            router.events.on("routeChangeComplete", handleComplete);
+            router.events.on("routeChangeError", handleError);
+        });
 
-            router.back();
-            return routeChangePromise;
-        },
-    )
+        router.back();
+        return routeChangePromise;
+    })
         .then((didNavigate) => {
             if (didNavigate && targetPath) {
                 recordRoutePush(currentPath, targetPath, "back");
@@ -296,9 +271,8 @@ export const useSpaceRouteTransitionPopState = () => {
 
             if (!targetPath || targetPath == currentPath) return true;
 
-            void startSpaceRouteTransition(
-                routeSlideDirection(currentPath, targetPath, "back"),
-                () => router.replace(state.url, state.as, state.options),
+            void startSpaceRouteTransition(() =>
+                router.replace(state.url, state.as, state.options),
             )
                 .then((didNavigate) => {
                     if (didNavigate) {

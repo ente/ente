@@ -15,6 +15,7 @@ import {
     loadCurrentSpaceProfilePostsPage,
     removeCurrentSpaceFriend,
     replyToCurrentPost,
+    sendCurrentPoke,
     setCurrentPostLiked,
     type SpaceProfilePost,
 } from "services/space";
@@ -168,6 +169,9 @@ export const AuthenticatedFriendProfile: React.FC<
                 onLoadPostImage={loadCurrentSpacePostAssetURL}
                 onMessageFriend={() =>
                     void router.push(spaceRoutes.message(friendSpaceId))
+                }
+                onPokeFriend={(requestID) =>
+                    sendCurrentPoke(actorSpaceId, friendSpaceId, requestID)
                 }
                 onOpenProfileCover={() => setOpenProfileImage("cover")}
                 onOpenProfilePhoto={() => setOpenProfileImage("avatar")}

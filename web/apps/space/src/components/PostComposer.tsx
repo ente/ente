@@ -49,16 +49,16 @@ let nextDraftPhotoID = 0;
 const draftPhotos = (files: File[]): DraftPhoto[] =>
     files.map((file) => ({ file, id: nextDraftPhotoID++ }));
 
-export const SpacePostComposer: React.FC<{
+const SpacePostComposer: React.FC<{
     files: File[];
     onClose: () => void;
     onPublish: (
         images: SpaceDraftPostImage[],
         caption: string,
     ) => Promise<void>;
-    onPublished?: () => void;
     profile: SetupProfile;
-}> = ({ files, onClose, onPublish, onPublished, profile }) => {
+}> = ({ files, onClose, onPublish, profile }) => {
+    const router = useSpaceRouter();
     const displayName =
         profile.fullName.trim() || profile.username.trim() || "You";
     const [drafts, setDrafts] = React.useState(() => draftPhotos(files));
@@ -429,11 +429,14 @@ export const SpacePostComposer: React.FC<{
                     exportsRef.current.clear();
                     setEditorSnapshot({ drafts, activeIndex });
                 }}
-                onDraftPostExitStart={() => setIsPublishing(true)}
-                onDraftPostExitAnimationStart={() => setIsExiting(true)}
-                onDraftPostPublished={() => {
-                    void clearBrowserBackState("back").then(onPublished);
+                onDraftPostExitStart={async () => {
+                    setIsPublishing(true);
+                    await clearBrowserBackState("back");
+                    if (router.pathname != spaceRoutes.home)
+                        await router.replace(spaceRoutes.home);
+                    window.scrollTo({ top: 0, behavior: "instant" });
                 }}
+                onDraftPostExitAnimationStart={() => setIsExiting(true)}
                 onPublishDraftPost={
                     preparationError || isPreparing || !drafts.length
                         ? undefined
@@ -498,7 +501,6 @@ export const SpacePostComposerHost: React.FC = () => {
         publishPost,
         setPendingPostPhotoFiles,
     } = useSpaceAppState();
-    const router = useSpaceRouter();
     if (!pendingPostPhotoFiles || !profile) return null;
     return (
         <SpacePostComposer
@@ -506,11 +508,6 @@ export const SpacePostComposerHost: React.FC = () => {
             onClose={() => setPendingPostPhotoFiles(null)}
             onPublish={async (images, caption) => {
                 await publishPost(images, caption);
-            }}
-            onPublished={() => {
-                if (router.pathname != spaceRoutes.home)
-                    void router.push(spaceRoutes.home);
-                else window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             profile={profile}
         />

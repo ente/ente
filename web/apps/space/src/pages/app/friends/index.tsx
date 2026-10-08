@@ -14,6 +14,7 @@ import {
     loadCurrentSpaceFriends,
     removeCurrentSpaceFriend,
     requestFriendByUsername,
+    sendCurrentPoke,
     type SpaceFriendRequest,
 } from "services/space";
 import { useSpaceAppState } from "state/app-state";
@@ -90,7 +91,6 @@ const Page: React.FC = () => {
                 friends={friends}
                 isLoading={isFriendsLoading}
                 onLoadFriendAvatar={loadCurrentFriendAvatarURL}
-                onBack={() => void router.push(spaceRoutes.profile)}
                 onAddFriend={async (username) => {
                     const actorSpaceId = profile.spaceId;
                     if (!actorSpaceId) throw new Error("Missing space.");
@@ -118,6 +118,17 @@ const Page: React.FC = () => {
                         );
                     }
                     return status;
+                }}
+                onPoke={async (friendID, requestID) => {
+                    const actorSpaceId = profile.spaceId;
+                    const friend = friends.find((item) => item.id == friendID);
+                    if (!actorSpaceId || !friend?.spaceId)
+                        throw new Error("Missing space.");
+                    await sendCurrentPoke(
+                        actorSpaceId,
+                        friend.spaceId,
+                        requestID,
+                    );
                 }}
                 onMessage={(friendID) => {
                     const friend = friends.find(

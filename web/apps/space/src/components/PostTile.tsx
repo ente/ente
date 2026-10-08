@@ -291,7 +291,6 @@ export const SpacePostTile: React.FC<SpacePostTileProps> = ({
                     }}
                 >
                     <SpacePostAvatar
-                        outerRing
                         ready={!isAvatarPending && decodedAvatar.ready}
                         size={26}
                         src={

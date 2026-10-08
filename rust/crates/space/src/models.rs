@@ -220,6 +220,23 @@ pub struct MessagePage {
     pub next_cursor: String,
 }
 
+pub struct Notification {
+    pub notification_id: String,
+    pub kind: String,
+    pub actors: Vec<SpaceActor>,
+    pub actor_count: i64,
+    pub post_id: Option<i64>,
+    pub friend_request_id: Option<i64>,
+    pub created_at: String,
+    pub unread: bool,
+}
+
+pub struct NotificationPage {
+    pub latest_post_created_at: Option<String>,
+    pub items: Vec<Notification>,
+    pub next_cursor: String,
+}
+
 pub struct MessageActivity {
     pub id: String,
     pub activity_type: String,
@@ -240,7 +257,6 @@ pub struct ConversationChatSummary {
 
 pub struct Conversations {
     pub friends: Vec<SpaceFriend>,
-    pub pending_requests: Vec<SpaceFriendRequest>,
     pub chat_summaries: BTreeMap<String, ConversationChatSummary>,
     pub latest_post_created_at: Option<String>,
 }

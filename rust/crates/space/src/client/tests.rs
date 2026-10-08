@@ -82,8 +82,8 @@ async fn message_thread_keeps_content_failures_local_to_each_message() {
         "regular",
         br#"{"version":1,"kind":"poke","text":"Poked"}"#,
     );
-    let mut event = message("event", "post_like", b"");
-    event.text = "Liked your post".into();
+    let mut event = message("event", "friend_added", b"");
+    event.text = "You are now friends".into();
     let mut deleted = message("deleted", "regular", b"");
     deleted.is_deleted = true;
     let corrupt = message("corrupt", "regular", b"not-json");
@@ -105,28 +105,27 @@ async fn message_thread_keeps_content_failures_local_to_each_message() {
         .await
         .unwrap();
     assert_eq!(opened.next_cursor, "next");
-    assert_eq!(opened.items.len(), 6);
+    assert_eq!(opened.items.len(), 5);
     assert_eq!(content(&opened.items[0]).text, "hello");
     assert!(opened.items[0].reaction.is_err());
     assert_eq!(
         content(&opened.items[0]).reply_object_key.as_deref(),
         Some("photo")
     );
-    assert_eq!(opened.items[1].kind, "poke");
-    assert_eq!(content(&opened.items[1]).text, "Poked");
-    assert_eq!(opened.items[2].kind, "post_like");
-    assert_eq!(content(&opened.items[2]).text, "Liked your post");
-    assert!(opened.items[3].content.as_ref().unwrap().is_none());
+    assert!(opened.items.iter().all(|item| item.kind != "poke"));
+    assert_eq!(opened.items[1].kind, "friend_added");
+    assert_eq!(content(&opened.items[1]).text, "You are now friends");
+    assert!(opened.items[2].content.as_ref().unwrap().is_none());
     assert!(matches!(
-        &opened.items[4].content,
+        &opened.items[3].content,
         Err(Error::InvalidInput(_))
     ));
-    assert_eq!(content(&opened.items[5]).text, "hello");
+    assert_eq!(content(&opened.items[4]).text, "hello");
     request.assert_async().await;
 }
 
 #[tokio::test]
-async fn unread_poke_uses_latest_activity_kind() {
+async fn unread_poke_is_hidden_after_identifying_its_kind() {
     let server = Server::new_async().await;
     let ctx = test_account_ctx(&server.url());
     let activity = MessageConversationActivity {
@@ -158,7 +157,7 @@ async fn unread_poke_uses_latest_activity_kind() {
         .await
         .unwrap();
 
-    assert_eq!(summary.unread_activities[0].kind, "poke");
+    assert!(summary.unread_activities.is_empty());
 }
 
 #[tokio::test]
@@ -1826,73 +1825,22 @@ async fn message_actions_use_message_endpoints() {
 }
 
 #[tokio::test]
-async fn poke_message_requests_special_notification() {
+async fn pokes_use_their_own_endpoint_and_retry_id() {
     let mut server = Server::new_async().await;
-    let space_root_key = generate_key();
-    let ctx = test_account_ctx_with_space_root_key(&server.url(), space_root_key);
-    let (friend_public_key, _) = generate_keypair().expect("valid friend keypair");
-
-    let friends = server
-        .mock("GET", "/spaces/space_owner_main/friends")
-        .match_header("x-space-session-token", "space-session-token")
-        .with_status(200)
-        .with_body(
-            json!([{
-                "friend": {
-                    "spaceId": "space_friend",
-                    "spaceSlug": "friend",
-                    "publicKey": b64::encode(&friend_public_key),
-                    "keyVersion": 2
-                },
-                "shareKeyVersion": 2,
-                "createdAt": "2026-04-16T00:00:00Z"
-            }])
-            .to_string(),
-        )
-        .create_async()
-        .await;
+    let ctx = test_account_ctx(&server.url());
     let poke = server
         .mock(
             "POST",
-            "/spaces/space_owner_main/friends/space_friend/messages",
+            "/spaces/space_owner_main/friends/space_friend/pokes",
         )
         .match_header("x-space-session-token", "space-session-token")
-        .match_body(Matcher::AllOf(vec![
-            Matcher::Regex("\"notificationKind\":\"poke\"".into()),
-            Matcher::Regex("\"messageCipher\":\"[^\"]+\"".into()),
-            Matcher::Regex("\"senderEncryptedMessageKey\":\"[^\"]+\"".into()),
-            Matcher::Regex("\"recipientEncryptedMessageKey\":\"[^\"]+\"".into()),
-        ]))
+        .match_body(Matcher::Json(json!({"clientRequestId":"poke-request-1"})))
         .with_status(200)
-        .with_body_from_request(|request| {
-            let body: serde_json::Value = serde_json::from_slice(request.body().unwrap()).unwrap();
-            json!({
-                "messageId": "wmsg_poke",
-                "kind": "regular",
-                "senderSpaceId": "space_owner_main",
-                "recipientSpaceId": "space_friend",
-                "messageCipher": body["messageCipher"],
-                "encryptedMessageKey": body["senderEncryptedMessageKey"],
-                "liked": false,
-                "viewerLiked": false,
-                "isDeleted": false,
-                "createdAt": "2026-04-16T00:00:00Z",
-                "updatedAt": "2026-04-16T00:00:00Z"
-            })
-            .to_string()
-            .into_bytes()
-        })
         .create_async()
         .await;
-
-    let message = ctx
-        .send_poke("space_owner_main", "space_friend")
+    ctx.send_poke("space_owner_main", "space_friend", "poke-request-1")
         .await
-        .expect("poke should be sent");
-
-    assert_eq!(message.message_id, "wmsg_poke");
-    assert_eq!(message.kind, "poke");
-    friends.assert_async().await;
+        .unwrap();
     poke.assert_async().await;
 }
 
@@ -2454,4 +2402,96 @@ fn build_history_walks_back_versions() {
     assert_eq!(history.get(&3), Some(&v3));
     assert_eq!(history.get(&2), Some(&v2));
     assert_eq!(history.get(&1), Some(&v1));
+}
+
+#[tokio::test]
+async fn legacy_pokes_are_hidden_from_threads_previews_and_unread_status() {
+    for has_message in [true, false] {
+        let mut server = Server::new_async().await;
+        let ctx = test_account_ctx(&server.url());
+        let key = generate_key();
+        let encrypted_key =
+            b64::encode(&seal_with_public_key(&key, &test_public_key(&ctx)).unwrap());
+        let make_message = |id: &str, kind: &str, created_at: &str| {
+            let cipher = b64::encode(&encrypt_secretbox_payload(&key, &serde_json::to_vec(&json!({"version":1,"kind":kind,"text":if kind == "poke" {"Poked"} else {"Hello"}})).unwrap()).unwrap());
+            json!({"messageId":id,"kind":"regular","senderSpaceId":"space_friend","recipientSpaceId":"space_owner_main","messageCipher":cipher,"encryptedMessageKey":encrypted_key,"liked":false,"viewerLiked":false,"isDeleted":false,"createdAt":created_at,"updatedAt":created_at})
+        };
+        let poke = make_message("poke", "poke", "2026-10-07T12:00:00Z");
+        let message = make_message("message", "regular", "2026-10-06T12:00:00Z");
+        let make_activity = |message: &serde_json::Value| {
+            let mut activity = message.clone();
+            activity["id"] = json!(format!(
+                "message:{}",
+                message["messageId"].as_str().unwrap()
+            ));
+            activity["type"] = json!("message");
+            activity
+        };
+        let mut unread = vec![make_activity(&poke)];
+        if has_message {
+            unread.push(make_activity(&message));
+        }
+        let conversations = server.mock("GET", "/spaces/space_owner_main/conversations")
+            .with_body(json!({"friends":[],"chatSummaries":{"space_friend":{"latestActivity":make_activity(&poke),"unreadActivities":unread}}}).to_string())
+            .expect(2).create_async().await;
+        let first = server
+            .mock(
+                "GET",
+                "/spaces/space_owner_main/friends/space_friend/messages",
+            )
+            .match_query(Matcher::Exact("limit=100".into()))
+            .with_body(json!({"items":[poke],"nextCursor":"older"}).to_string())
+            .expect(2)
+            .create_async()
+            .await;
+        let second = server
+            .mock(
+                "GET",
+                "/spaces/space_owner_main/friends/space_friend/messages",
+            )
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("cursor".into(), "older".into()),
+                Matcher::UrlEncoded("limit".into(), "100".into()),
+            ]))
+            .with_body(json!({"items":if has_message {vec![message]} else {vec![]}}).to_string())
+            .expect(2)
+            .create_async()
+            .await;
+        let status = server
+            .mock("GET", "/spaces/space_owner_main/unread")
+            .with_body(json!({"notificationsUnread":true}).to_string())
+            .create_async()
+            .await;
+        let result = ctx.list_conversations("space_owner_main").await.unwrap();
+        if has_message {
+            let summary = &result.chat_summaries["space_friend"];
+            assert_eq!(summary.latest_activity.kind, "regular");
+            assert_eq!(
+                summary
+                    .latest_activity
+                    .content
+                    .as_ref()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .text,
+                "Hello"
+            );
+            assert_eq!(summary.unread_activities.len(), 1);
+            assert_eq!(summary.unread_activities[0].kind, "regular");
+        } else {
+            assert!(result.chat_summaries.is_empty());
+        }
+        assert_eq!(
+            ctx.unread_status("space_owner_main")
+                .await
+                .unwrap()
+                .notifications_unread,
+            has_message
+        );
+        conversations.assert_async().await;
+        first.assert_async().await;
+        second.assert_async().await;
+        status.assert_async().await;
+    }
 }

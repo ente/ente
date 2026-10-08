@@ -52,7 +52,7 @@ export const SpaceRouteFallback: React.FC<SpaceRouteFallbackProps> = ({
                 alignItems: "center",
                 background: spaceAppBackground,
                 display: "grid",
-                minHeight: "100svh",
+                minHeight: "var(--space-page-height, 100svh)",
                 placeItems: "center",
                 px: 3,
                 textAlign: "center",

@@ -18,9 +18,6 @@ use crate::transport::{
 };
 use ente_core::b64;
 
-const MESSAGE_NOTIFICATION_KIND_POKE: &str = "poke";
-const POKE_MESSAGE_TEXT: &str = "Poked";
-
 impl AccountSpaceCtx {
     pub async fn list_conversations(&self, space_id: &str) -> Result<Conversations> {
         let path = format!("/spaces/{space_id}/conversations");
@@ -38,18 +35,51 @@ impl AccountSpaceCtx {
         }
         let mut chat_summaries = std::collections::BTreeMap::new();
         for (friend_space_id, summary) in response.chat_summaries {
-            chat_summaries.insert(
-                friend_space_id,
-                self.open_conversation_summary(space_id, summary).await?,
-            );
+            let mut summary = self.open_conversation_summary(space_id, summary).await?;
+            if summary.latest_activity.kind == MESSAGE_KIND_POKE {
+                let mut cursor = None;
+                let message = loop {
+                    let page = self
+                        .list_message_thread(space_id, &friend_space_id, cursor, Some(100))
+                        .await?;
+                    if let Some(message) = page
+                        .items
+                        .into_iter()
+                        .find(|item| !matches!(item.content, Ok(None)))
+                    {
+                        break Some(message);
+                    }
+                    if page.next_cursor.is_empty() {
+                        break None;
+                    }
+                    cursor = Some(page.next_cursor);
+                };
+                let Some(message) = message else {
+                    continue;
+                };
+                let outgoing = message.sender_space_id == space_id;
+                let activity_type = if message.kind == MESSAGE_KIND_POST_REPLY && !outgoing {
+                    "post_reply"
+                } else {
+                    "message"
+                };
+                summary.latest_activity = MessageActivity {
+                    id: format!("{activity_type}:{}", message.message_id),
+                    activity_type: activity_type.into(),
+                    kind: message.kind,
+                    created_at: message.created_at,
+                    outgoing,
+                    message_id: Some(message.message_id),
+                    content: message.content,
+                    reaction: message.reaction,
+                    post_id: message.reply_post_id,
+                    post_space_id: message.reply_post_id.map(|_| message.recipient_space_id),
+                };
+            }
+            chat_summaries.insert(friend_space_id, summary);
         }
         Ok(Conversations {
             friends,
-            pending_requests: response
-                .pending_requests
-                .into_iter()
-                .map(Into::into)
-                .collect(),
             chat_summaries,
             latest_post_created_at: response.latest_post_created_at,
         })
@@ -62,31 +92,40 @@ impl AccountSpaceCtx {
         cursor: Option<String>,
         limit: Option<i32>,
     ) -> Result<MessagePage> {
-        let mut query = Vec::new();
-        if let Some(value) = cursor.filter(|value| !value.trim().is_empty()) {
-            query.push(("cursor", value));
+        let mut cursor = cursor;
+        loop {
+            let mut query = Vec::new();
+            if let Some(value) = cursor.filter(|value| !value.trim().is_empty()) {
+                query.push(("cursor", value));
+            }
+            if let Some(value) = limit {
+                query.push(("limit", value.to_string()));
+            }
+            let path = format!("/spaces/{viewer_space_id}/friends/{space_id}/messages");
+            let page: MessagePageResponse = self
+                .api()
+                .get(&path)
+                .query(&query)
+                .send()
+                .await?
+                .error_for_status()?
+                .json()
+                .await?;
+            let mut items = Vec::with_capacity(page.items.len());
+            for message in page.items {
+                let message = self.open_message(viewer_space_id, message).await?;
+                if message.kind != MESSAGE_KIND_POKE {
+                    items.push(message);
+                }
+            }
+            if !items.is_empty() || page.next_cursor.is_empty() {
+                return Ok(MessagePage {
+                    items,
+                    next_cursor: page.next_cursor,
+                });
+            }
+            cursor = Some(page.next_cursor);
         }
-        if let Some(value) = limit {
-            query.push(("limit", value.to_string()));
-        }
-        let path = format!("/spaces/{viewer_space_id}/friends/{space_id}/messages");
-        let page: MessagePageResponse = self
-            .api()
-            .get(&path)
-            .query(&query)
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
-        let mut items = Vec::with_capacity(page.items.len());
-        for message in page.items {
-            items.push(self.open_message(viewer_space_id, message).await?);
-        }
-        Ok(MessagePage {
-            items,
-            next_cursor: page.next_cursor,
-        })
     }
 
     async fn open_message(
@@ -97,7 +136,7 @@ impl AccountSpaceCtx {
         let mut kind = message.kind.clone();
         let content = if message.is_deleted {
             Ok(None)
-        } else if kind == "post_like" || kind == "friend_added" {
+        } else if kind == "friend_added" {
             Ok(Some(MessageContent {
                 text: message.text.clone(),
                 reply_object_key: None,
@@ -179,6 +218,7 @@ impl AccountSpaceCtx {
                 activity.kind = MESSAGE_KIND_POKE.to_owned();
             }
         }
+        unread_activities.retain(|activity| activity.kind != MESSAGE_KIND_POKE);
         Ok(ConversationChatSummary {
             latest_activity,
             unread_activities,
@@ -257,21 +297,6 @@ impl AccountSpaceCtx {
                 reply_object_key: None,
             },
             None,
-        )
-        .await
-    }
-
-    pub async fn send_poke(&self, sender_space_id: &str, space_id: &str) -> Result<Message> {
-        self.send_direct_message(
-            sender_space_id,
-            space_id,
-            MessagePayload {
-                version: 1,
-                kind: MESSAGE_KIND_POKE.to_owned(),
-                text: POKE_MESSAGE_TEXT.to_owned(),
-                reply_object_key: None,
-            },
-            Some(MESSAGE_NOTIFICATION_KIND_POKE),
         )
         .await
     }

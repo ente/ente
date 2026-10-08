@@ -5,6 +5,8 @@ mod keys;
 mod links;
 mod media;
 mod messages;
+mod notifications;
+mod pokes;
 mod posts;
 mod profiles;
 mod reactions;

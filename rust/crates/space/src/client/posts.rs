@@ -186,14 +186,23 @@ impl AccountSpaceCtx {
 
     pub async fn unread_status(&self, space_id: &str) -> Result<SpaceUnreadStatusResponse> {
         let path = format!("/spaces/{space_id}/unread");
-        Ok(self
+        let mut status: SpaceUnreadStatusResponse = self
             .api()
             .get(&path)
             .send()
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        if status.notifications_unread {
+            status.notifications_unread = self
+                .list_conversations(space_id)
+                .await?
+                .chat_summaries
+                .values()
+                .any(|summary| !summary.unread_activities.is_empty());
+        }
+        Ok(status)
     }
 
     pub async fn mark_notifications_read(

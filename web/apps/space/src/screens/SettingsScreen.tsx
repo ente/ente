@@ -416,7 +416,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 background: spaceAppBackground,
                 color: textBase,
                 display: "grid",
-                minHeight: "100svh",
+                minHeight: "var(--space-page-height, 100svh)",
                 overflowX: "hidden",
                 placeItems: { xs: "stretch", sm: "start center" },
             }}
@@ -428,7 +428,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     boxSizing: "border-box",
                     display: "flex",
                     flexDirection: "column",
-                    minHeight: "100svh",
+                    minHeight: "var(--space-page-height, 100svh)",
                     mx: "auto",
                     width: "100%",
                     "@media (min-width: 600px)": { maxWidth: 390 },
@@ -448,7 +448,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     <Box
                         component="button"
                         type="button"
-                        aria-label="Back to profile"
+                        aria-label="Back to home"
                         onClick={onBack}
                         sx={{
                             alignItems: "center",
@@ -659,7 +659,7 @@ export const ChangeNameSettingsScreen: React.FC<
                 background: spaceAppBackground,
                 color: textBase,
                 display: "grid",
-                minHeight: "100svh",
+                minHeight: "var(--space-page-height, 100svh)",
                 overflowX: "hidden",
                 placeItems: { xs: "stretch", sm: "start center" },
             }}
@@ -671,7 +671,7 @@ export const ChangeNameSettingsScreen: React.FC<
                     boxSizing: "border-box",
                     display: "flex",
                     flexDirection: "column",
-                    minHeight: "100svh",
+                    minHeight: "var(--space-page-height, 100svh)",
                     mx: "auto",
                     width: "100%",
                     "@media (min-width: 600px)": { maxWidth: 390 },
