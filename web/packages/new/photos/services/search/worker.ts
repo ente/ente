@@ -68,7 +68,7 @@ export class SearchWorker {
         // \b does not handle Unicode word boundaries.
         return suggestionsForString(
             s,
-            new RegExp("(^|[\\s.,!?\"'-_])" + s, "i"),
+            new RegExp("(^|[\\s.,!?\"'_-])" + s, "i"),
             searchString,
             this.collectionsAndFiles,
             this.people,
