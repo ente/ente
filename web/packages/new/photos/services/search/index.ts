@@ -50,7 +50,7 @@ export const updateSearchCollectionsAndFiles = (
     const normalCollectionFiles = collectionFiles.filter(
         (f) => !hiddenFileIDs.has(f.id),
     );
-    void worker().then((w) =>
+    return worker().then((w) =>
         w.setCollectionsAndFiles({
             currentUserID: ensureLocalUser().id,
             collections: normalCollections,
@@ -62,6 +62,9 @@ export const updateSearchCollectionsAndFiles = (
 
 export const setSearchPeople = (people: NamedPerson[]) =>
     void worker().then((w) => w.setPeople(people));
+
+export const searchDiscoverySuggestions = () =>
+    worker().then((w) => w.discoverySuggestions());
 
 export const searchOptionsForString = async (searchString: string) => {
     const t = Date.now();

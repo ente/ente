@@ -671,7 +671,7 @@ const Page: React.FC = () => {
     }, [router.isReady]);
 
     useEffect(() => {
-        updateSearchCollectionsAndFiles(
+        void updateSearchCollectionsAndFiles(
             state.collections,
             state.collectionFiles,
             state.hiddenCollectionIDs,

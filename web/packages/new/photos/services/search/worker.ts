@@ -21,6 +21,7 @@ import {
     savedLocationTags,
     type LocationTag,
 } from "../user-entity";
+import { searchDiscoveryLabels } from "./discovery";
 import type {
     City,
     LabelledFileType,
@@ -76,6 +77,33 @@ export class SearchWorker {
             this.locationTags,
             this.cities,
         );
+    }
+
+    discoverySuggestions() {
+        const { collections, collectionFiles } = this.collectionsAndFiles;
+        const counts = new Map<number, number>();
+        for (const file of collectionFiles) {
+            counts.set(
+                file.collectionID,
+                (counts.get(file.collectionID) ?? 0) + 1,
+            );
+        }
+        return searchDiscoveryLabels([
+            ...collections.map(({ id, name }) => ({
+                type: "collection" as const,
+                label: name,
+                fileCount: counts.get(id) ?? 0,
+            })),
+            ...this.locationTags.map((locationTag) => ({
+                type: "location" as const,
+                label: locationTag.name,
+                fileCount: filterSearchableFiles(this.collectionsAndFiles, {
+                    type: "location",
+                    locationTag,
+                    label: locationTag.name,
+                }).length,
+            })),
+        ]);
     }
 
     filterSearchableFiles(suggestion: SearchSuggestion) {
