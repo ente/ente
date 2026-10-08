@@ -221,13 +221,17 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
           Platform.isIOS &&
           await permissionService.getPermissionState() !=
               PermissionState.notDetermined;
+      await localSettings.setLocalGalleryOnboardingPending(true);
       final state = await permissionService.requestPhotoMangerPermissions();
       _logger.info("Offline permission state: $state");
       if (state.hasAccess) {
-        await _enterLocalGallery(state);
+        // Otherwise the resume check enters after the preference reload.
+        if (WidgetsBinding.instance.lifecycleState ==
+            AppLifecycleState.resumed) {
+          await _enterLocalGallery(state);
+        }
       } else if (wasDecidedBefore ||
           permissionService.hasAttemptedPermission()) {
-        await localSettings.setLocalGalleryOnboardingPending(true);
         await PhotoManager.openSetting();
       } else {
         await permissionService.setHasAttemptedPermission();
@@ -238,7 +242,8 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
   }
 
   Future<void> _enterLocalGalleryIfPermitted() async {
-    if (!widget.startWithoutAccount) {
+    if (!widget.startWithoutAccount ||
+        !localSettings.isLocalGalleryOnboardingPending) {
       return;
     }
     try {
@@ -258,6 +263,9 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
     _isEnteringLocalGallery = true;
     try {
       await AppLifecycleService.instance.preferencesReloaded;
+      if (!mounted || !widget.startWithoutAccount) {
+        return;
+      }
       await localSettings.setAppMode(AppMode.localGallery);
       localSettings.localGalleryModeEnabledThisSession = true;
       try {
