@@ -432,6 +432,7 @@ class DownloadManagerCore {
                         else controller.enqueue(result.value);
                     },
                     cancel(reason: unknown) {
+                        if (cancelled) return;
                         cancelled = true;
                         return reader.cancel(reason);
                     },
@@ -449,6 +450,7 @@ class DownloadManagerCore {
                 { cause: e },
             );
         } finally {
+            cancelled = true;
             reader?.releaseLock();
         }
         if (blob.type) return blob;
