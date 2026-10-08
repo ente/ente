@@ -13,16 +13,21 @@ import "package:styled_text/styled_text.dart";
 
 Future<bool> showMLConsentSheet(BuildContext context) async {
   Future<void>? enabling;
+  var declined = false;
   await showBottomSheetComponent<void>(
     context: context,
-    builder: (_) =>
-        _MLConsentSheet(onEnable: () => enabling = enableMLConsent()),
+    builder: (_) => _MLConsentSheet(
+      onEnable: () => enabling = enableMLConsent(),
+      onDecline: () => declined = true,
+    ),
   );
   await enabling?.catchError((Object _) {});
   if (hasGrantedMLConsent) {
     return true;
   }
-  await markMLConsentPromptSeen();
+  if (declined) {
+    await markMLConsentPromptSeen();
+  }
   return false;
 }
 
@@ -44,9 +49,10 @@ Future<void> markMLConsentPromptSeen() async {
 }
 
 class _MLConsentSheet extends StatefulWidget {
-  const _MLConsentSheet({required this.onEnable});
+  const _MLConsentSheet({required this.onEnable, required this.onDecline});
 
   final Future<void> Function() onEnable;
+  final VoidCallback onDecline;
 
   @override
   State<_MLConsentSheet> createState() => _MLConsentSheetState();
@@ -111,6 +117,14 @@ class _MLConsentSheetState extends State<_MLConsentSheet> {
           label: context.strings.mlConsent,
           isDisabled: !_hasAcknowledged,
           onTap: _enable,
+        ),
+        MLConsentCancelLink(
+          onTap: _isEnabling
+              ? null
+              : () {
+                  widget.onDecline();
+                  Navigator.of(context).pop();
+                },
         ),
       ],
     );
@@ -193,6 +207,39 @@ class MLConsentAcknowledgement extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class MLConsentCancelLink extends StatelessWidget {
+  const MLConsentCancelLink({super.key, required this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = onTap == null
+        ? context.componentColors.textLightest
+        : context.componentColors.textLight;
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
+          child: Center(
+            child: Text(
+              context.strings.cancel,
+              style: TextStyles.bodyLink.copyWith(
+                color: color,
+                decorationColor: color,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

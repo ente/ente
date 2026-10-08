@@ -53,18 +53,21 @@ void main() {
     expect(_enableButton(tester).isDisabled, isTrue);
   });
 
-  testWidgets("closing returns false and records the prompt as seen", (
-    tester,
-  ) async {
-    final result = await _openSheet(tester);
-
+  testWidgets("only cancel records the prompt as seen", (tester) async {
+    final closed = await _openSheet(tester);
     await tester.tap(find.byTooltip("Close"));
     await tester.pumpAndSettle();
 
-    expect(await result, isFalse);
+    expect(await closed, isFalse);
+    expect(localSettings.hasSeenMLEnablingBanner, isFalse);
+
+    final cancelled = await _openSheet(tester);
+    await tester.tap(find.text("Cancel"));
+    await tester.pumpAndSettle();
+
+    expect(await cancelled, isFalse);
     expect(localSettings.hasSeenMLEnablingBanner, isTrue);
     expect(hasGrantedMLConsent, isFalse);
-    expect(find.text(_enableLabel), findsNothing);
   });
 
   testWidgets(
