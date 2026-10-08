@@ -5,6 +5,7 @@ import {
     decryptStreamChunk,
     initChunkDecryption,
 } from "ente-base/crypto";
+import { namedError } from "ente-base/error";
 import log from "ente-base/log";
 import type { EnteFile } from "ente-media/file";
 import { fileFileName } from "ente-media/file-metadata";
@@ -441,7 +442,12 @@ class DownloadManagerCore {
             if (hasReadError) throw readError;
             cancelled = true;
             await reader?.cancel(e).catch(() => undefined);
-            throw new BlobCreationFailedError(e);
+            log.error("Failed to create file blob", e);
+            throw namedError(
+                "blob_creation_failed",
+                "Failed to create file blob",
+                { cause: e },
+            );
         } finally {
             reader?.releaseLock();
         }
@@ -484,24 +490,6 @@ const wrapErrors = <T>(op: () => Promise<T>) =>
     op().catch((e: unknown) => {
         throw new NetworkDownloadError(e);
     });
-
-export class BlobCreationFailedError extends Error {
-    constructor(cause: unknown) {
-        let message = "Failed to create file blob";
-        if (cause instanceof Error && !cause.stack) {
-            message += `: ${cause.name}: ${cause.message}`;
-        } else if (typeof cause === "string") {
-            message += `: ${cause}`;
-        }
-
-        super(message, { cause });
-        this.name = "BlobCreationFailedError";
-        if (cause instanceof Error && cause.stack) {
-            const stack = this.stack ?? `${this.name}: ${this.message}`;
-            this.stack = `${stack}\nCaused by: ${cause.stack}`;
-        }
-    }
-}
 
 const createRenderableSourceURLs = async (
     file: EnteFile,
