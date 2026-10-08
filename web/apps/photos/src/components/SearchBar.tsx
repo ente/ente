@@ -10,16 +10,19 @@ import CameraIcon from "@mui/icons-material/PhotoCameraOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
 import {
     Box,
+    Dialog,
     Divider,
     IconButton,
     Stack,
     styled,
+    Tooltip,
     Typography,
     useTheme,
     type Theme,
 } from "@mui/material";
 import { EnteLogo, EnteLogoBox } from "ente-base/components/EnteLogo";
 import type { ButtonishProps } from "ente-base/components/mui";
+import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
 import {
     hlsGenerationStatusSnapshot,
@@ -57,7 +60,6 @@ import AsyncSelect from "react-select/async";
 
 export interface SearchBarProps {
     isInSearchMode: boolean;
-    onShowSearchInput: () => void;
     onSelectSearchOption: (
         o: SearchOption | undefined,
         options?: { shouldExitSearchMode?: boolean },
@@ -66,44 +68,98 @@ export interface SearchBarProps {
     onSelectPerson: (personID: string) => void;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({
-    isInSearchMode,
-    onShowSearchInput,
-    ...rest
-}) => {
+export const SearchBar: React.FC<SearchBarProps> = (props) => {
     const isSmallWidth = useIsSmallWidth();
+    const [open, setOpen] = useState(false);
+    const shortcut =
+        typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent)
+            ? "⌘K"
+            : "Ctrl+K";
+
+    const showSearch = () => setOpen(true);
+    const closeSearch = () => setOpen(false);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+                event.preventDefault();
+                setOpen(true);
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     return (
-        <Box sx={{ flex: 1, px: ["4px", "24px"] }}>
-            {isSmallWidth && !isInSearchMode ? (
-                <MobileSearchArea onSearch={onShowSearchInput} />
-            ) : (
-                <SearchInput {...{ isInSearchMode }} {...rest} />
-            )}
-        </Box>
+        <>
+            <Box sx={{ flex: 1 }}>
+                {isSmallWidth && (
+                    <EnteLogoBox sx={{ mx: "auto", pl: "24px" }}>
+                        <EnteLogo height={15} />
+                    </EnteLogoBox>
+                )}
+            </Box>
+            <Tooltip title={t("search_shortcut", { shortcut })}>
+                <FocusVisibleButton
+                    color="secondary"
+                    aria-label={t("search")}
+                    aria-haspopup="dialog"
+                    onClick={showSearch}
+                    sx={{
+                        minWidth: 0,
+                        width: isSmallWidth ? 40 : 48,
+                        height: isSmallWidth ? 40 : 48,
+                        p: 0,
+                        mr: "8px",
+                        borderRadius: "16px",
+                    }}
+                >
+                    <HugeiconsIcon icon={Search01Icon} size={20} />
+                </FocusVisibleButton>
+            </Tooltip>
+            <Dialog
+                open={open}
+                onClose={closeSearch}
+                keepMounted
+                fullWidth
+                maxWidth={false}
+                aria-label={t("search")}
+                slotProps={{
+                    backdrop: { sx: { backgroundColor: "rgba(0,0,0,0.4)" } },
+                    paper: {
+                        sx: {
+                            width: "621px",
+                            maxWidth: "calc(100% - 24px)",
+                            m: "12px",
+                            maxHeight: "calc(100dvh - 24px)",
+                            p: "20px",
+                            borderRadius: "20px",
+                            bgcolor: "background.default",
+                            backgroundImage: "none",
+                            border: "1px solid",
+                            borderColor: "stroke.faint",
+                            boxShadow: "0 24px 60px rgba(0,0,0,.25)",
+                            overflow: "auto",
+                        },
+                    },
+                }}
+            >
+                <SearchInput {...props} open={open} onClose={closeSearch} />
+            </Dialog>
+        </>
     );
 };
 
-interface MobileSearchAreaProps {
-    onSearch: () => void;
-}
-
-const MobileSearchArea: React.FC<MobileSearchAreaProps> = ({ onSearch }) => (
-    <Stack direction="row" sx={{ alignItems: "center" }}>
-        <EnteLogoBox sx={{ mx: "auto", pl: "24px" }}>
-            <EnteLogo height={15} />
-        </EnteLogoBox>
-        <IconButton onClick={onSearch}>
-            <HugeiconsIcon icon={Search01Icon} />
-        </IconButton>
-    </Stack>
-);
-
-const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
+const SearchInput: React.FC<
+    SearchBarProps & { open: boolean; onClose: () => void }
+> = ({
     isInSearchMode,
     onSelectSearchOption,
     onSelectPeople,
     onSelectPerson,
+    open,
+    onClose,
 }) => {
     const selectRef = useRef<SelectInstance<SearchOption> | null>(null);
     // Subscribe even though reads happen through peopleStateSnapshot().
@@ -119,16 +175,9 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
     const components = useMemo(() => ({ Control, Input, Option }), []);
 
     useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-                event.preventDefault();
-                selectRef.current?.focus();
-            }
-        };
-
-        document.addEventListener("keydown", handleKeyDown);
-        return () => document.removeEventListener("keydown", handleKeyDown);
-    }, []);
+        if (open) selectRef.current?.focus();
+        else selectRef.current?.blur();
+    }, [open]);
 
     const handleChange = (value: SearchOption | null) => {
         const type = value?.suggestion.type;
@@ -149,7 +198,10 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
         });
 
         // blurInputOnSelect leaves react-select's menu open.
-        if (value) selectRef.current?.blur();
+        if (value) {
+            selectRef.current?.blur();
+            onClose();
+        }
     };
 
     const handleInputChange = (value: string, actionMeta: InputActionMeta) => {
@@ -173,6 +225,7 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
         setInputValue("");
 
         onSelectSearchOption(undefined, { shouldExitSearchMode: true });
+        onClose();
     };
 
     const handleSelectPeople = () => {
@@ -203,6 +256,7 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
     const handleKeyDown = (event: React.KeyboardEvent) => {
         if (event.key === "Escape") {
             selectRef.current?.blur();
+            onClose();
         }
     };
 
@@ -219,6 +273,7 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
                 onInputChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 isClearable
+                aria-label={t("search")}
                 escapeClearsValue
                 menuIsOpen={
                     isFocused && (inputValue !== "" || shouldShowEmptyState(""))
@@ -259,7 +314,6 @@ const SearchInputWrapper = styled("div")`
     justify-content: center;
     gap: 8px;
     background: transparent;
-    max-width: 484px;
     margin: auto;
 `;
 
@@ -274,13 +328,17 @@ const createSelectStyles = (
     theme: Theme,
 ): StylesConfig<SearchOption, false> => ({
     container: (style) => ({ ...style, flex: 1 }),
-    control: (style, { isFocused }) => ({
+    control: (style) => ({
         ...style,
-        backgroundColor: theme.vars.palette.background.searchInput,
-        borderColor: isFocused ? theme.vars.palette.accent.main : "transparent",
+        minHeight: "52px",
+        borderRadius: "12px",
+        backgroundColor: theme.vars.palette.background.paper,
+        borderColor: theme.vars.palette.stroke.faint,
         boxShadow: "none",
+        fontSize: "14px",
+        fontWeight: 500,
         ":hover": {
-            borderColor: theme.vars.palette.accent.light,
+            borderColor: theme.vars.palette.stroke.faint,
             cursor: "text",
         },
     }),
@@ -291,7 +349,9 @@ const createSelectStyles = (
     }),
     menu: (style) => ({
         ...style,
-        marginTop: "1px",
+        position: "relative",
+        top: "auto",
+        marginTop: "24px",
         backgroundColor: theme.vars.palette.background.elevatedPaper,
     }),
     option: (style, { isFocused }) => ({
@@ -330,8 +390,8 @@ const Control = ({ children, ...props }: ControlProps<SearchOption, false>) => {
                 <Box
                     sx={{
                         display: "inline-flex",
-                        pl: "8px",
-                        color: "stroke.muted",
+                        pl: "16px",
+                        color: "text.muted",
                     }}
                 >
                     {iconForOption(props.getValue()[0])}

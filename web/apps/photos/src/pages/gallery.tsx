@@ -1959,9 +1959,6 @@ const Page: React.FC = () => {
                         {...{ isInSearchMode }}
                         onSidebar={showSidebar}
                         onUpload={openUploader}
-                        onShowSearchInput={() =>
-                            dispatch({ type: "enterSearchMode" })
-                        }
                         onSelectSearchOption={handleSelectSearchOption}
                         onSelectPeople={() => dispatch({ type: "showPeople" })}
                         onSelectPerson={handleSelectPerson}
@@ -2262,9 +2259,9 @@ const NormalNavbarContents: React.FC<NormalNavbarContentsProps> = ({
     ...props
 }) => (
     <>
-        {!props.isInSearchMode && <SidebarButton onClick={onSidebar} />}
+        <SidebarButton onClick={onSidebar} />
         <SearchBar {...props} />
-        {!props.isInSearchMode && <UploadButton onClick={onUpload} />}
+        <UploadButton onClick={onUpload} />
     </>
 );
 
