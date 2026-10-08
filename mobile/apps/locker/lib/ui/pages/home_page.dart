@@ -418,23 +418,56 @@ class _HomePageState extends UploaderPageState<HomePage>
     }
 
     try {
+      final files = <File>[];
+      final seen = <String>{};
+      var skippedCount = 0;
       for (final sharedFile in sharedFiles) {
-        _logger.info('Processing shared file');
-        if (sharedFile.path.isNotEmpty) {
-          final file = File(sharedFile.path);
-          if (await file.exists()) {
-            _logger.info('File exists, uploading');
-            await uploadFiles([file]);
-          } else {
-            _logger.warning('Shared file does not exist');
+        if (seen.contains(sharedFile.path)) {
+          skippedCount++;
+          continue;
+        }
+        final file = File(sharedFile.path);
+        try {
+          final reader = await file.open();
+          try {
+            await reader.read(1);
+          } finally {
+            await reader.close();
           }
-        } else {
-          _logger.warning('Shared file has empty path');
+          seen.add(sharedFile.path);
+          files.add(file);
+        } on FileSystemException {
+          // The plugin also labels files with captions as text; probe them first.
+          if (sharedFile.type != SharedMediaType.text &&
+              sharedFile.type != SharedMediaType.url &&
+              sharedFile.type != SharedMediaType.mailto) {
+            skippedCount++;
+          }
         }
       }
+      if (!mounted) return;
 
-      await ReceiveSharingIntent.instance.reset();
-      _logger.info('Reset sharing intent after handling files');
+      if (skippedCount > 0) {
+        _logger.warning('Skipped $skippedCount unreadable or repeated files');
+        await showBottomSheetComponent(
+          context: context,
+          builder: (sheetContext) => BottomSheetComponent(
+            title: context.strings.skippedFiles,
+            message: context.strings.sharedFilesSkipped,
+            illustration: LockerBottomSheetIllustration.warningGrey,
+            actions: [
+              ButtonComponent(
+                label: context.strings.ok,
+                onTap: () => Navigator.of(sheetContext).pop(),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (mounted && files.isNotEmpty) {
+        await uploadFiles(files);
+      }
     } catch (e) {
       _logger.severe('Error handling shared files: $e');
       if (mounted) {
@@ -455,6 +488,8 @@ class _HomePageState extends UploaderPageState<HomePage>
           ),
         );
       }
+    } finally {
+      await ReceiveSharingIntent.instance.reset();
     }
   }
 

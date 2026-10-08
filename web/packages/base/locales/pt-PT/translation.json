@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Backups privados<br/>para as suas memórias",
     "intro_slide_1": "Criptografia de ponta a ponta por padrão",
     "intro_slide_2_title": "Armazenado seguramente<br/>em um local avançado",
@@ -955,6 +959,8 @@
     "hide": "Ocultar",
     "unhide": "Mostrar",
     "sort_by": "Ordenar por",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Mais recentes primeiro",
     "oldest_first": "Mais antigo primeiro",
     "most_relevant": "Mais relevante",

@@ -74,6 +74,7 @@ android {
         multiDexEnabled true
         consumerProguardFiles 'proguard-rules.pro'
         ndk {
+            abiFilters.clear()
             abiFilters "armeabi-v7a", "arm64-v8a"
         }
     }
@@ -92,29 +93,17 @@ android {
         independent {
             dimension "default"
             applicationIdSuffix ".independent"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
         dev {
             dimension "default"
             applicationIdSuffix ".dev"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
         playstore {
             dimension "default"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
         fdroid {
             dimension "default"
             applicationIdSuffix ".fdroid"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
     }
 
@@ -125,10 +114,6 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            ndk {
-                abiFilters.clear()
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
             minifyEnabled true
             proguardFiles getDefaultProguardFile(
                 "proguard-android-optimize.txt",
@@ -137,6 +122,9 @@ android {
         debug {
           applicationIdSuffix '.debug'
           versionNameSuffix "-debug"
+          ndk {
+            abiFilters "x86_64"
+          }
           externalNativeBuild {
             cmake {
               arguments "-DANDROID_PACKAGE_NAME=${android.defaultConfig.applicationId}${applicationIdSuffix}"

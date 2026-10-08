@@ -29,10 +29,12 @@ class HierarchicalSearchGallery extends StatefulWidget {
   final String tagPrefix;
   final SelectedFiles? selectedFiles;
   final GalleryAppBarConfig? appBar;
+  final int? hiddenCollectionID;
   const HierarchicalSearchGallery({
     required this.tagPrefix,
     this.selectedFiles,
     this.appBar,
+    this.hiddenCollectionID,
     super.key,
   });
 
@@ -103,7 +105,10 @@ class _HierarchicalSearchGalleryState extends State<HierarchicalSearchGallery> {
     }
 
     _isLoading.value = true;
-    final filterdFiles = await getFilteredFiles(filters);
+    final filterdFiles = await getFilteredFiles(
+      filters,
+      hiddenCollectionID: widget.hiddenCollectionID,
+    );
 
     _setFilteredFiles(filterdFiles);
     if (!mounted) return;

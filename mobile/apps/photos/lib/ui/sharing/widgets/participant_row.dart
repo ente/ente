@@ -98,12 +98,14 @@ class ParticipantRow extends StatelessWidget {
     required this.role,
     required this.currentUserID,
     this.trailing,
+    this.onLongPress,
   });
 
   final User user;
   final CollectionParticipantRole role;
   final int currentUserID;
   final Widget? trailing;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +124,7 @@ class ParticipantRow extends StatelessWidget {
             size: IconSizes.small,
             strokeWidth: 1.6,
           ),
-      isDisabled: true,
+      onLongPress: onLongPress,
     );
   }
 }

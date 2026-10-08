@@ -92,6 +92,7 @@ const kBGProcessingTaskMLLockWaitIOS = Duration(seconds: 60);
 const kBGTaskMLSelfStopAndroid = Duration(minutes: 9);
 const kBGProcessingTaskMLSelfStopAndroid = Duration(minutes: 8);
 bool isProcessBg = true;
+bool isIOSBackgroundRefresh = false;
 bool _stopHearBeat = false;
 bool _isSyncInitialized = false;
 bool _isRustInitialized = false;
@@ -248,23 +249,22 @@ Future<void> runBackgroundTask(
   String taskId,
   TimeLogger tlog, {
   String mode = 'normal',
-  Duration? mlSelfStop,
+  required Duration? mlSelfStop,
   Duration? mlLockWait,
   MlRunControl? control,
   bool Function()? shouldStop,
 }) async {
+  isIOSBackgroundRefresh =
+      Platform.isIOS && taskId == BgTaskUtils.iOSBackgroundAppRefreshTask;
   // Created at task start so a stop that fires before ML begins stays
   // latched for the whole task.
   final mlRunControl = control ?? MlRunControl();
-  final mlBudget =
-      mlSelfStop ??
-      (Platform.isIOS ? kBGTaskMLSelfStopIOS : kBGTaskMLSelfStopAndroid);
-  if (mlBudget <= Duration.zero) {
+  if (mlSelfStop != null && mlSelfStop <= Duration.zero) {
     mlRunControl.requestStop(MlStopReason.backgroundDeadline);
   }
-  final mlSelfStopTimer = mlBudget > Duration.zero
+  final mlSelfStopTimer = mlSelfStop != null && mlSelfStop > Duration.zero
       ? Timer(
-          mlBudget,
+          mlSelfStop,
           () => mlRunControl.requestStop(MlStopReason.backgroundDeadline),
         )
       : null;
@@ -414,6 +414,7 @@ Future<void> _runMinimally(
           if (shouldStop?.call() ?? false) return;
           final disposition = await MLService.instance.runAllML(
             force: false,
+            remoteSyncOnly: isIOSBackgroundRefresh,
             allowImageIndexing: BgTaskUtils.allowsImageIndexing(taskId),
             maxFilesToIndex: BgTaskUtils.isRefreshTask(taskId) ? 100 : null,
             control: mlRunControl,

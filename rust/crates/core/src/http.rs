@@ -361,6 +361,10 @@ impl Response {
 pub struct SuccessResponse(reqwest::Response);
 
 impl SuccessResponse {
+    pub fn url(&self) -> &reqwest::Url {
+        self.0.url()
+    }
+
     pub fn headers(&self) -> &reqwest::header::HeaderMap {
         self.0.headers()
     }

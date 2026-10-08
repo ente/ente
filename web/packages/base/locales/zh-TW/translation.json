@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "為您的回憶提供<br/>私密備份",
     "intro_slide_1": "預設採用端對端加密",
     "intro_slide_2_title": "安全存放<br/>於防空避難所",
@@ -955,6 +959,8 @@
     "hide": "隱藏",
     "unhide": "取消隱藏",
     "sort_by": "排序方式",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "最新優先",
     "oldest_first": "最舊優先",
     "most_relevant": "最相關",

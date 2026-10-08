@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Ιδιωτικά αντίγραφα ασφαλείας<br/>για τις αναμνήσεις σας",
     "intro_slide_1": "Από προεπιλογή κρυπτογραφημένο από άκρο σε άκρο",
     "intro_slide_2_title": "Αποθηκεύεται με ασφάλεια<br/>σε καταφύγιο",
@@ -955,6 +959,8 @@
     "hide": "Απόκρυψη",
     "unhide": "Επανεμφάνιση",
     "sort_by": "Ταξινόμηση κατά",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Νεότερα πρώτα",
     "oldest_first": "Παλαιότερα πρώτα",
     "most_relevant": "",

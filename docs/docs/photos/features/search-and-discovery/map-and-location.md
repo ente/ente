@@ -36,6 +36,8 @@ Open `Settings` and use the toggle switch to turn the map feature on or off.
 
 Open `Settings > Preferences > Advanced > Map` and toggle the map settings on or off.
 
+![Map settings enabled on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-map-settings.png){width=720px}
+
 ### View photos on the map
 
 **On mobile:**
@@ -48,6 +50,10 @@ Open `Settings > Preferences > Advanced > Map` and toggle the map settings on or
 
 1. Click the globe icon in the top right of the header
 2. Browse your photos on the map
+
+![Map view with location pins for photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-map-view.png){width=720px}
+
+![Map view zoomed into a city cluster with photo list on Ente Photos web](https://docs-assets.ente.com/screenshots/web-map-view-cluster.png){width=720px}
 
 **View a specific album on the map:**
 
@@ -107,6 +113,10 @@ Location tags are custom labels you create to organize photos by location. Unlik
 2. Tap the overflow menu (⋮) and select **Info**
 3. Select **Add Location**
 4. Enter the location name and define a radius
+
+![Photo info sidebar showing location map pin on Ente Photos web](https://docs-assets.ente.com/screenshots/web-info-location-add.png){width=720px}
+
+![Add location dialog with map and search on Ente Photos web](https://docs-assets.ente.com/screenshots/web-add-location-exif.png){width=720px}
 
 **From the search tab:**
 

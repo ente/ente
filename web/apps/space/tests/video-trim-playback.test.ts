@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createVideoTrimPlayback } from "../src/components/video-trim/playback";
 
+vi.mock("ente-base/log-web", () => ({ logToDisk: vi.fn() }));
+
 class Video extends EventTarget {
     currentTime = 0;
     paused = true;
@@ -47,6 +49,7 @@ beforeEach(() => {
 afterEach(() => {
     playback.dispose();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
 });
 
 const renderFrame = () => {
@@ -186,4 +189,30 @@ test("closing the editor pauses playback and removes the frame monitor", () => {
     video.currentTime = 12;
     video.dispatchEvent(new Event("timeupdate"));
     expect(video.currentTime).toBe(12);
+});
+
+test("a stuck preview reports an error and can be played again", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(video, "play").mockImplementationOnce(
+        () => new Promise(() => undefined),
+    );
+    playback.toggle();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(onError).toHaveBeenCalledTimes(1);
+    playback.toggle();
+    expect(video.paused).toBe(false);
+    video.dispatchEvent(new Event("playing"));
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(onError).toHaveBeenCalledTimes(1);
+});
+
+test("closing or pausing a loading preview cancels its timeout", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(video, "play").mockImplementationOnce(
+        () => new Promise(() => undefined),
+    );
+    playback.toggle();
+    playback.dispose();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(onError).not.toHaveBeenCalled();
 });

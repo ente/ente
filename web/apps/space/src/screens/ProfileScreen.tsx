@@ -27,11 +27,9 @@ import {
     type SpaceViewerPostActionMode,
 } from "components/FileViewer";
 import { SpacePostComposer } from "components/PostComposer";
+import { SpacePostGrid } from "components/PostGrid";
 import { SpacePostPhotoInput } from "components/PostPhotoInput";
-import {
-    SpacePostPhotosBadge,
-    SpacePostVideoBadge,
-} from "components/PostPhotosBadge";
+import { SpacePostTile, type SpacePostTileItem } from "components/PostTile";
 import { SpaceLoadingSpinner } from "components/RouteFallback";
 import { SpaceShareIcon } from "components/ShareInviteButton";
 import { SpaceSkipLink } from "components/SkipLink";
@@ -40,11 +38,7 @@ import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React, { useState } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import type { SpaceInviteIntent } from "services/invite";
-import {
-    isSpaceContentError,
-    type SpacePostAsset,
-    type SpacePostPhoto,
-} from "services/space";
+import { isSpaceContentError, type SpacePostAsset } from "services/space";
 import { spaceEmptyStateButtonSx } from "styles/buttons";
 import {
     spaceAppBackground,
@@ -55,7 +49,6 @@ import {
     spaceText,
     spaceTextMuted,
 } from "styles/colors";
-import { spaceProfilePostRadius } from "styles/tiles";
 import { spaceTouchTargetSize } from "styles/touch-targets";
 import { firstNameFrom } from "utils/display";
 import {
@@ -63,9 +56,6 @@ import {
     type SpaceDraftPostImage,
 } from "utils/post-image";
 import { viewerPhotosFromPost } from "utils/post-photos";
-import { profilePhotoGap, profilePhotoRows } from "utils/profile-photo-layout";
-import { profilePostSections } from "utils/profile-post-sections";
-import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 
 const green = "#08C225";
 const dangerColor = "#F63A3A";
@@ -75,7 +65,7 @@ const coverForeground = "#FFFFFF";
 const profileIdentityColor = spaceText;
 const profileStatsColor = spaceTextMuted;
 const profileStatsValueColor = spaceText;
-const profileCoverBackground = "#1F1F1F";
+const profileCoverBackground = spaceSurface;
 const profileCoverTopShadow =
     "linear-gradient(180deg, rgba(0, 0, 0, 0.26) 0%, rgba(0, 0, 0, 0.18) 36%, rgba(0, 0, 0, 0.08) 72%, rgba(0, 0, 0, 0) 100%)";
 const profileCoverSkeletonBackground = spaceSurface;
@@ -85,7 +75,7 @@ const profileAvatarSize = 132;
 const profileCoverHeight =
     profileHeaderHeight + profileAvatarTopOffset + profileAvatarSize / 2;
 const photoPlaceholderBackground = spaceSurface;
-const profileCoverRadius = "12px";
+const profileCoverRadius = "24px";
 const profilePostLoadRootMargin = "800px 0px";
 const publicProfilePostLoadRootMargin = "400px 0px";
 interface ProfilePhotoDimensions {
@@ -93,35 +83,12 @@ interface ProfilePhotoDimensions {
     width: number;
 }
 
-export interface ProfilePostItem {
-    avatarUrl?: string | null;
-    caption?: string;
-    friendID?: string;
-    height?: number;
-    id: string;
-    imageAsset?: SpacePostAsset;
-    imageUrl?: string;
-    photos?: SpacePostPhoto[];
-    isUnavailable?: boolean;
-    name?: string;
-    postId?: number;
-    spaceId?: string;
-    timestampMs: number;
-    thumbHash?: string;
-    viewerLiked?: boolean;
-    width?: number;
-}
+export type ProfilePostItem = SpacePostTileItem;
 
 interface SelectedProfilePost {
     id: string;
     photo: SpaceViewerPhoto;
     photoIndex: number;
-}
-
-interface ProfilePhotoTile {
-    aspectRatio: number;
-    index: number;
-    item: ProfilePostItem;
 }
 
 const profilePostImageCacheKey = (item: ProfilePostItem) =>
@@ -239,203 +206,6 @@ const ProfilePostLoadingIndicator: React.FC = () => (
     </Box>
 );
 
-interface ProfilePostTileProps {
-    displayName: string;
-    flexGrow: number;
-    imageUrl?: string;
-    index: number;
-    isUnavailable: boolean;
-    item: ProfilePostItem;
-    loadRootMargin: string;
-    onImageDecodeError: () => void;
-    onLoadImage: () => Promise<string | undefined>;
-    onOpen: (imageUrl: string) => void;
-    onRememberDimensions: (itemID: string, image: HTMLImageElement) => void;
-}
-
-const ProfilePostTile: React.FC<ProfilePostTileProps> = ({
-    displayName,
-    flexGrow,
-    imageUrl,
-    index,
-    isUnavailable: isPostUnavailable,
-    item,
-    loadRootMargin,
-    onImageDecodeError,
-    onLoadImage,
-    onOpen,
-    onRememberDimensions,
-}) => {
-    const [shouldLoad, setShouldLoad] = React.useState(Boolean(imageUrl));
-    const [readyImageUrl, setReadyImageUrl] = React.useState<string>();
-    const [imageDecodeFailed, setImageDecodeFailed] = React.useState(false);
-    const tileRef = React.useRef<HTMLButtonElement | null>(null);
-    const thumbHashDataURL = React.useMemo(
-        () => thumbHashDataURLFromBase64(item.thumbHash),
-        [item.thumbHash],
-    );
-    const isCurrentImageReady = Boolean(imageUrl && readyImageUrl == imageUrl);
-    const isUnavailable = isPostUnavailable || imageDecodeFailed;
-    const photoCount = item.photos?.length ?? 1;
-
-    React.useEffect(() => {
-        if (imageUrl) setShouldLoad(true);
-    }, [imageUrl]);
-
-    React.useEffect(() => {
-        if (isUnavailable) return;
-        if (shouldLoad || imageUrl) return;
-        const element = tileRef.current;
-        if (!element) return;
-        if (
-            typeof window == "undefined" ||
-            !("IntersectionObserver" in window)
-        ) {
-            setShouldLoad(true);
-            return;
-        }
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries.some((entry) => entry.isIntersecting)) {
-                    setShouldLoad(true);
-                    observer.disconnect();
-                }
-            },
-            { rootMargin: loadRootMargin },
-        );
-        observer.observe(element);
-        return () => observer.disconnect();
-    }, [imageUrl, isUnavailable, loadRootMargin, shouldLoad]);
-
-    React.useEffect(() => {
-        if (isUnavailable) return;
-        if (!shouldLoad || imageUrl) return;
-        void onLoadImage().catch((error: unknown) => {
-            log.warn("Failed to load profile post image", error);
-        });
-    }, [imageUrl, isUnavailable, onLoadImage, shouldLoad]);
-
-    return (
-        <Box
-            ref={tileRef}
-            component="button"
-            type="button"
-            aria-label={
-                isUnavailable
-                    ? "Post unavailable"
-                    : `Open ${displayName} post ${index + 1}${
-                          photoCount > 1 ? `, ${photoCount} photos` : ""
-                      }`
-            }
-            disabled={!imageUrl || isUnavailable}
-            onClick={() => {
-                if (imageUrl && !isUnavailable) onOpen(imageUrl);
-            }}
-            sx={{
-                appearance: "none",
-                bgcolor: photoPlaceholderBackground,
-                border: 0,
-                borderRadius: `${spaceProfilePostRadius}px`,
-                cursor: imageUrl && !isUnavailable ? "pointer" : "default",
-                display: "block",
-                flex: `${flexGrow} 1 0px`,
-                height: "100%",
-                minWidth: 0,
-                opacity: 1,
-                overflow: "hidden",
-                p: 0,
-                position: "relative",
-                "&:focus-visible": {
-                    outline: `2px solid ${green}`,
-                    outlineOffset: -2,
-                },
-            }}
-        >
-            {!isUnavailable && thumbHashDataURL ? (
-                <Box
-                    component="img"
-                    alt=""
-                    aria-hidden
-                    src={thumbHashDataURL}
-                    sx={{
-                        display: "block",
-                        filter: "blur(14px)",
-                        height: "100%",
-                        inset: 0,
-                        objectFit: "cover",
-                        objectPosition: "center",
-                        position: "absolute",
-                        transform: "scale(1.08)",
-                        width: "100%",
-                    }}
-                />
-            ) : null}
-            {!isUnavailable && imageUrl ? (
-                <Box
-                    component="img"
-                    alt={`${displayName} post ${index + 1}`}
-                    onLoad={(event) => {
-                        setReadyImageUrl(imageUrl);
-                        onRememberDimensions(item.id, event.currentTarget);
-                    }}
-                    onError={() => {
-                        log.warn(
-                            `Post ${item.postId} is unavailable because the browser could not decode its image`,
-                        );
-                        setImageDecodeFailed(true);
-                        onImageDecodeError();
-                    }}
-                    src={imageUrl}
-                    sx={{
-                        display: "block",
-                        height: "100%",
-                        inset: 0,
-                        objectFit: "cover",
-                        objectPosition: "center",
-                        opacity:
-                            isCurrentImageReady || !thumbHashDataURL ? 1 : 0,
-                        position: "absolute",
-                        transition: thumbHashDataURL
-                            ? "opacity 220ms ease"
-                            : "none",
-                        width: "100%",
-                        "@media (prefers-reduced-motion: reduce)": {
-                            opacity: 1,
-                            transition: "none",
-                        },
-                    }}
-                />
-            ) : null}
-            {!isUnavailable && (
-                <>
-                    <SpacePostPhotosBadge count={photoCount} inset={8} />
-                    <SpacePostVideoBadge
-                        durationMs={item.photos?.[0]?.video?.durationMs}
-                        size={18}
-                    />
-                </>
-            )}
-            {isUnavailable && (
-                <Box
-                    sx={{
-                        alignItems: "center",
-                        color: textSoft,
-                        display: "flex",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        height: "100%",
-                        justifyContent: "center",
-                        width: "100%",
-                    }}
-                >
-                    Post unavailable
-                </Box>
-            )}
-        </Box>
-    );
-};
-
 interface ProfileScreenProps {
     friendsCount?: number;
     headerVariant?: "friend" | "owner" | "public" | "public-anonymous";
@@ -539,8 +309,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         Record<string, true>
     >({});
     const [loadedCoverUrl, setLoadedCoverUrl] = useState<string | null>(null);
-    const [postGridWidth, setPostGridWidth] = useState(0);
-    const postGridRef = React.useRef<HTMLDivElement | null>(null);
     const postInputRef = React.useRef<HTMLInputElement | null>(null);
     const postImageLoadsInFlightRef = React.useRef<
         Map<string, Promise<string | undefined>>
@@ -581,17 +349,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const canOpenProfileCover = Boolean(onOpenProfileCover);
     const canOpenProfilePhoto = Boolean(onOpenProfilePhoto);
     const hasProfilePosts = postsSharedCount > 0;
-    React.useLayoutEffect(() => {
-        const grid = postGridRef.current;
-        if (!grid) return;
-
-        const observer = new ResizeObserver(([entry]) =>
-            setPostGridWidth(entry!.contentRect.width),
-        );
-        setPostGridWidth(grid.getBoundingClientRect().width);
-        observer.observe(grid);
-        return () => observer.disconnect();
-    }, [hasProfilePosts]);
     const shouldShowPostLoadingIndicator =
         isPostsLoading && (showPostLoadingIndicator ?? true);
     const isCoverImageLoading = Boolean(
@@ -742,22 +499,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         [loadedPhotoDimensionsByID],
     );
 
-    const photoSections = profilePostSections(
-        visiblePostItems.map((item, index) => {
-            const { width, height } = dimensionsForPost(item);
-            return {
-                aspectRatio: width > 0 && height > 0 ? width / height : 1,
-                index,
-                item,
-                timestampMs: item.timestampMs,
-            };
-        }),
-    ).map(({ id, title, items }) => ({
-        id,
-        title,
-        rows: profilePhotoRows(items, postGridWidth),
-    }));
-
     const profileViewerPhotos = viewerPostItems.flatMap((item) =>
         viewerPhotosFromPost({
             ...item,
@@ -808,16 +549,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         });
     };
 
-    const renderPostTile = (
-        { aspectRatio, index, item }: ProfilePhotoTile,
-        rowAspectRatio: number,
-    ) => {
+    const renderPostTile = (item: ProfilePostItem, index: number) => {
         const imageUrl = loadedPostImageURLFor(item);
         const isUnavailable = !viewerPostIndexByID.has(item.id);
         return (
-            <ProfilePostTile
+            <SpacePostTile
                 key={item.id}
-                flexGrow={aspectRatio / rowAspectRatio}
                 displayName={displayName}
                 imageUrl={imageUrl}
                 index={index}
@@ -868,7 +605,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         : undefined,
                     mx: "auto",
                     position: "relative",
-                    px: 2,
+                    px: "8px",
                     py: 0,
                     width: "100%",
                     zIndex: 3,
@@ -1019,7 +756,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                     justifyContent: "flex-end",
                                     p: 0,
                                     width: spaceTouchTargetSize,
-                                    "& svg path:first-of-type": {
+                                    "& svg path:last-of-type": {
                                         display: "none",
                                     },
                                     "&:focus-visible": {
@@ -1177,7 +914,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         alignItems: "center",
                         display: "flex",
                         flexDirection: "column",
-                        px: "16px",
+                        px: "8px",
                         position: "relative",
                         pt: `${profileAvatarTopOffset}px`,
                         textAlign: "center",
@@ -1594,66 +1331,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 >
                     {hasProfilePosts ? (
                         <Box
-                            ref={postGridRef}
                             sx={{
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: "24px",
                                 mt: "6px",
-                                mx: "16px",
-                                width: "calc(100% - 32px)",
+                                mx: "8px",
+                                width: "calc(100% - 16px)",
                             }}
                         >
-                            {photoSections.map(({ id, title, rows }) => (
-                                <Box
-                                    component="section"
-                                    key={id}
-                                    aria-label={title}
-                                >
-                                    <Box
-                                        component="h2"
-                                        sx={{
-                                            color: textSoft,
-                                            fontFamily:
-                                                '"Inter Variable", Inter, sans-serif',
-                                            fontSize: 13,
-                                            fontWeight: 700,
-                                            lineHeight: "18px",
-                                            m: 0,
-                                            pb: "8px",
-                                        }}
-                                    >
-                                        {title}
-                                    </Box>
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: `${profilePhotoGap}px`,
-                                        }}
-                                    >
-                                        {rows.map((row) => (
-                                            <Box
-                                                key={row.tiles[0]!.item.id}
-                                                sx={{
-                                                    display: "flex",
-                                                    flexShrink: 0,
-                                                    gap: `${profilePhotoGap}px`,
-                                                    height: row.height,
-                                                    width: row.width,
-                                                }}
-                                            >
-                                                {row.tiles.map((tile) =>
-                                                    renderPostTile(
-                                                        tile,
-                                                        row.aspectRatio,
-                                                    ),
-                                                )}
-                                            </Box>
-                                        ))}
-                                    </Box>
-                                </Box>
-                            ))}
+                            <SpacePostGrid
+                                items={visiblePostItems}
+                                postCount={displayedPostsCount}
+                                renderTile={renderPostTile}
+                            />
                         </Box>
                     ) : shouldShowPostLoadingIndicator ? (
                         <ProfilePostLoadingIndicator />

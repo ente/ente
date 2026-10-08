@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "",
     "intro_slide_1": "",
     "intro_slide_2_title": "",
@@ -955,6 +959,8 @@
     "hide": "隱藏",
     "unhide": "解除隱藏",
     "sort_by": "",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "",
     "oldest_first": "",
     "most_relevant": "",

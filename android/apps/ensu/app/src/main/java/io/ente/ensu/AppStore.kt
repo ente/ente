@@ -3,7 +3,6 @@ package io.ente.ensu
 import android.content.Context
 import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.bindings.ConfigDefaults
-import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.chat.Attachment
 import io.ente.ensu.chat.AttachmentStoreActions
 import io.ente.ensu.chat.ChatMessage
@@ -33,10 +32,9 @@ class AppStore(
     context: Context,
     private val sessionPreferences: SessionPreferencesDataStore,
     chatRepository: ChatRepository,
-    llmProvider: LlmProvider,
+    val llmProvider: LlmProvider,
     knowledgeProvider: KnowledgeProvider,
     val assetStore: AssetStore,
-    val transcriber: Transcriber,
     private val deviceCapabilityProvider: AndroidDeviceCapabilityProvider,
     val configDefaults: ConfigDefaults,
     private val logRepository: FileLogRepository,
@@ -95,11 +93,24 @@ class AppStore(
         _state.value = _state.value.copy(chat = _state.value.chat.copy(isModelStateKnown = true))
     }
 
-    fun setChatActive(active: Boolean) = modelSettingsActions.setChatActive(active)
+    fun setChatActive(active: Boolean) {
+        if (!active) chatActions.cancelSessionSummary()
+        modelSettingsActions.setChatActive(active)
+    }
 
-    fun suppressChatWarmup() = modelSettingsActions.suppressChatWarmup()
+    fun setAppForeground(active: Boolean) = modelSettingsActions.setAppForeground(active)
 
-    fun trackVoiceInput(job: Job) = modelSettingsActions.trackVoiceInput(job)
+    fun setPickerPending(pending: Boolean) = modelSettingsActions.setPickerPending(pending)
+
+    fun handleMemoryPressure() {
+        chatActions.cancelSessionSummary()
+        modelSettingsActions.handleMemoryPressure()
+    }
+
+    fun trackVoiceInput(job: Job) {
+        chatActions.cancelSessionSummary()
+        modelSettingsActions.trackVoiceInput(job)
+    }
 
     fun refreshDeviceCapability(scope: CoroutineScope? = null) {
         val capability = deviceCapabilityProvider.chatCapability()
@@ -189,9 +200,6 @@ class AppStore(
 
     fun startModelDownload(userInitiated: Boolean = true) =
         modelSettingsActions.startModelDownload(userInitiated)
-
-    fun prewarmImageInferenceIfDownloaded() =
-        modelSettingsActions.prewarmImageInferenceIfDownloaded()
 
     fun refreshModelDownloadInfo() = modelSettingsActions.refreshModelDownloadInfo()
 

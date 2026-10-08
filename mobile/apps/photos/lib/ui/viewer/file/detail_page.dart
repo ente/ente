@@ -1018,10 +1018,12 @@ class _GalleryFileViewerBottomOverlay extends StatelessWidget {
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.transparent,
+                                Colors.black.withValues(alpha: 0.025),
+                                Colors.black.withValues(alpha: 0.05),
                                 Colors.black.withValues(alpha: 0.6),
                                 Colors.black.withValues(alpha: 0.72),
                               ],
-                              stops: const [0, 0.8, 1],
+                              stops: const [0, 0.05, 0.1, 0.8, 1],
                             ),
                           ),
                         ),

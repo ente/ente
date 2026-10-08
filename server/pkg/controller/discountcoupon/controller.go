@@ -27,6 +27,7 @@ var AllowedProviders = map[string]bool{
 	"Windscribe":   true,
 	"LeaveMeAlone": true,
 	"Obscura":      true,
+	"Addy":         true,
 	"Test":         true,
 }
 
@@ -163,6 +164,9 @@ func (c *Controller) sendCouponEmail(ctx context.Context, user ente.User, coupon
 	case "Obscura":
 		subject = "Ente Friends - Obscura discount code"
 		templateName = "discount_coupon_obscura.html"
+	case "Addy":
+		subject = "Ente Friends - addy.io discount code"
+		templateName = "discount_coupon_addy.html"
 	case "Test":
 		subject = "Ente Friends - Test trial code"
 		templateName = "discount_coupon_test.html"

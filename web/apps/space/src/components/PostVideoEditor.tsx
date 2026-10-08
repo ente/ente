@@ -8,20 +8,25 @@ import {
 import { createVideoTrimPlayback } from "components/video-trim/playback";
 import React from "react";
 import {
+    spaceControlBackgroundHover,
+    spaceSurface,
+    spaceText,
+    spaceTextMuted,
+} from "styles/colors";
+import {
     clampVideoCover,
     initialSpaceVideoEdit,
     maxSpaceVideoDuration,
-    openSpaceVideo,
-    seekSpaceVideo,
+    spaceVideoFrames,
     type SpacePostVideoEdit,
 } from "utils/post-video";
 
 const control = {
     alignItems: "center",
-    bgcolor: "#1C1C1E",
+    bgcolor: spaceSurface,
     border: 0,
     borderRadius: "999px",
-    color: "#F2F2F2",
+    color: spaceText,
     cursor: "pointer",
     display: "inline-flex",
     font: "inherit",
@@ -122,38 +127,30 @@ export const SpacePostVideoEditor: React.FC<{
         const urls: string[] = [];
         const timer = window.setTimeout(() => {
             void (async () => {
-                const { video, dispose } = await openSpaceVideo(file, signal);
-                try {
-                    const times = Array.from(
-                        { length: 8 },
-                        (_, i) => visibleStart + (span * (i + 0.5)) / 8,
-                    );
-                    for (const time of times) {
-                        await seekSpaceVideo(video, time, signal);
-                        const canvas = document.createElement("canvas");
-                        canvas.width = 80;
-                        canvas.height = 64;
-                        const scale = Math.max(
-                            80 / video.videoWidth,
-                            64 / video.videoHeight,
+                const times = Array.from(
+                    { length: 8 },
+                    (_, i) => visibleStart + (span * (i + 0.5)) / 8,
+                );
+                const frames = await spaceVideoFrames(file, times, 128, signal);
+                for (const frame of frames) {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 80;
+                    canvas.height = 64;
+                    const scale = Math.max(80 / frame.width, 64 / frame.height);
+                    const width = frame.width * scale;
+                    const height = frame.height * scale;
+                    canvas
+                        .getContext("2d")!
+                        .drawImage(
+                            frame,
+                            (80 - width) / 2,
+                            (64 - height) / 2,
+                            width,
+                            height,
                         );
-                        const width = video.videoWidth * scale;
-                        const height = video.videoHeight * scale;
-                        canvas
-                            .getContext("2d")!
-                            .drawImage(
-                                video,
-                                (80 - width) / 2,
-                                (64 - height) / 2,
-                                width,
-                                height,
-                            );
-                        urls.push(canvas.toDataURL("image/jpeg", 0.65));
-                    }
-                    if (!signal.aborted) setFrames(urls);
-                } finally {
-                    dispose();
+                    urls.push(canvas.toDataURL("image/jpeg", 0.65));
                 }
+                if (!signal.aborted) setFrames(urls);
             })().catch(() => {
                 if (!signal.aborted) setFrames([]);
             });
@@ -402,7 +399,7 @@ export const SpacePostVideoEditor: React.FC<{
                         sx={{
                             height: 64,
                             position: "relative",
-                            bgcolor: "#1C1C1E",
+                            bgcolor: spaceSurface,
                             borderRadius: "8px",
                             touchAction: "none",
                             userSelect: "none",
@@ -581,7 +578,7 @@ export const SpacePostVideoEditor: React.FC<{
                         sx={{
                             position: "relative",
                             display: "flex",
-                            bgcolor: "#1C1C1E",
+                            bgcolor: spaceSurface,
                             borderRadius: "999px",
                             px: "4px",
                         }}
@@ -594,7 +591,7 @@ export const SpacePostVideoEditor: React.FC<{
                                 bottom: 4,
                                 left: 4,
                                 width: "calc((100% - 8px) / 2)",
-                                bgcolor: "#3A3A3C",
+                                bgcolor: spaceControlBackgroundHover,
                                 borderRadius: "999px",
                                 pointerEvents: "none",
                                 transform: `translateX(${mode == "trim" ? 0 : 100}%)`,
@@ -619,7 +616,9 @@ export const SpacePostVideoEditor: React.FC<{
                                     p: 0,
                                     bgcolor: "transparent",
                                     color:
-                                        mode == value ? "#FFFFFF" : "#A6A6A6",
+                                        mode == value
+                                            ? "#FFFFFF"
+                                            : spaceTextMuted,
                                 }}
                             >
                                 {value == "trim" ? "Trim" : "Cover"}

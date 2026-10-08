@@ -41,6 +41,7 @@ import {
     CollectionSubType,
     type Collection,
 } from "ente-media/collection";
+import type { CollectionSortBy } from "ente-media/collection-sort";
 import { ItemVisibility } from "ente-media/file-metadata";
 import {
     GalleryItemsHeaderAdapter,
@@ -417,15 +418,12 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
         await deleteShareURL(activeCollection.id);
     });
 
-    const changeSortOrderAsc = wrap(async () => {
-        if (!activeCollection) return;
-        await updateCollectionSortOrder(activeCollection, true);
-    });
-
-    const changeSortOrderDesc = wrap(async () => {
-        if (!activeCollection) return;
-        await updateCollectionSortOrder(activeCollection, false);
-    });
+    const changeSortOrder = (sortBy: CollectionSortBy, asc: boolean) => {
+        wrap(async () => {
+            if (!activeCollection) return;
+            await updateCollectionSortOrder(activeCollection, asc, sortBy);
+        })();
+    };
 
     let menuOptions: React.ReactNode[] = [];
     // MUI rejects fragments here, so return keyed arrays.
@@ -717,8 +715,13 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
                 {...sortOrderMenuVisibilityProps}
                 overflowMenuIconRef={overflowMenuIconRef}
                 sortAsc={activeCollection?.pubMagicMetadata?.data.asc ?? false}
-                onAscClick={changeSortOrderAsc}
-                onDescClick={changeSortOrderDesc}
+                sortBy={
+                    activeCollection?.pubMagicMetadata?.data.sortBy ===
+                    "fileName"
+                        ? "fileName"
+                        : "date"
+                }
+                onSort={changeSortOrder}
             />
         </Box>
     );
@@ -1025,28 +1028,24 @@ interface CollectionSortOrderMenuProps {
     onClose: () => void;
     overflowMenuIconRef: React.RefObject<SVGSVGElement | null>;
     sortAsc: boolean;
-    onAscClick: () => void;
-    onDescClick: () => void;
+    sortBy: CollectionSortBy;
+    onSort: (sortBy: CollectionSortBy, asc: boolean) => void;
 }
 
-const CollectionSortOrderMenu: React.FC<CollectionSortOrderMenuProps> = ({
+function CollectionSortOrderMenu({
     open,
     onClose,
     overflowMenuIconRef,
     sortAsc,
-    onAscClick,
-    onDescClick,
-}) => {
-    const handleAscClick = () => {
-        onAscClick();
-        onClose();
-    };
-
-    const handleDescClick = () => {
-        onDescClick();
-        onClose();
-    };
-
+    sortBy,
+    onSort,
+}: CollectionSortOrderMenuProps) {
+    const options: { by: CollectionSortBy; asc: boolean; label: string }[] = [
+        { by: "date", asc: false, label: t("newest_first") },
+        { by: "date", asc: true, label: t("oldest_first") },
+        { by: "fileName", asc: true, label: t("album_sort_name_asc") },
+        { by: "fileName", asc: false, label: t("album_sort_name_desc") },
+    ];
     return (
         <Menu
             id="collection-files-sort"
@@ -1054,26 +1053,27 @@ const CollectionSortOrderMenu: React.FC<CollectionSortOrderMenuProps> = ({
             open={open}
             onClose={onClose}
             slotProps={{
-                list: {
-                    disablePadding: true,
-                    "aria-labelledby": "collection-files-sort",
-                },
+                list: { disablePadding: true, "aria-label": t("sort_by") },
             }}
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
             transformOrigin={{ vertical: "top", horizontal: "right" }}
         >
-            <OverflowMenuOption
-                onClick={handleDescClick}
-                endIcon={!sortAsc ? <CheckIcon /> : undefined}
-            >
-                {t("newest_first")}
-            </OverflowMenuOption>
-            <OverflowMenuOption
-                onClick={handleAscClick}
-                endIcon={sortAsc ? <CheckIcon /> : undefined}
-            >
-                {t("oldest_first")}
-            </OverflowMenuOption>
+            {options.map(({ by, asc, label }) => (
+                <OverflowMenuOption
+                    key={`${by}-${asc}`}
+                    onClick={() => {
+                        onSort(by, asc);
+                        onClose();
+                    }}
+                    endIcon={
+                        sortBy === by && sortAsc === asc ? (
+                            <CheckIcon />
+                        ) : undefined
+                    }
+                >
+                    {label}
+                </OverflowMenuOption>
+            ))}
         </Menu>
     );
-};
+}

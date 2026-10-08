@@ -3,7 +3,6 @@ import 'dart:convert';
 import "dart:io";
 import "dart:math" as math;
 
-import "package:chewie/chewie.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
@@ -15,12 +14,11 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/module/metadata/local_file.dart";
-import "package:photos/module/metadata/video.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
+import "package:photos/ui/viewer/file/external_video_viewer.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
-import "package:video_player/video_player.dart";
 
 class FileViewer extends StatefulWidget {
   final SharedMediaFile? sharedMediaFile;
@@ -43,14 +41,12 @@ class FileViewerState extends State<FileViewer> {
   ];
 
   final action = AppLifecycleService.instance.mediaExtensionAction;
-  ChewieController? controller;
-  VideoPlayerController? videoController;
   final Logger _logger = Logger("FileViewer");
-  double? aspectRatio;
   Future<AssetEntity?>? mediaStoreAssetFuture;
   Future<DetailPageConfiguration?>? reviewGalleryConfigFuture;
   Future<Uint8List?>? grantedImageBytesFuture;
-  bool _isInitializingVideoController = false;
+  final _externalVideoKey = GlobalKey<ExternalVideoViewerState>();
+  bool _isVideoFullscreen = false;
   bool _isClosingViewer = false;
   bool get _isExternalView =>
       widget.sharedMediaFile == null &&
@@ -72,103 +68,8 @@ class FileViewerState extends State<FileViewer> {
       mediaStoreAssetFuture = _loadMediaStoreAsset(action.data);
       reviewGalleryConfigFuture = _loadReviewGalleryConfig();
     }
-    if (action.type == MediaType.video ||
-        widget.sharedMediaFile?.type == SharedMediaType.video) {
-      if (!_isExternalView) {
-        _initializeVideoController();
-      }
-    } else if (action.type == MediaType.image &&
-        mediaStoreAssetFuture == null) {
+    if (action.type == MediaType.image && mediaStoreAssetFuture == null) {
       mediaStoreAssetFuture = _loadMediaStoreAsset(action.data);
-    }
-  }
-
-  Future<void> _initializeVideoController() async {
-    if (_isInitializingVideoController || controller != null) {
-      return;
-    }
-    _isInitializingVideoController = true;
-    try {
-      await _fetchAspectRatio();
-      if (!mounted) {
-        return;
-      }
-      initController();
-    } finally {
-      _isInitializingVideoController = false;
-    }
-  }
-
-  Future<void> _fetchAspectRatio() async {
-    try {
-      final videoPath = widget.sharedMediaFile?.path ?? action.data;
-      if (videoPath == null) {
-        _logger.warning("Video path is null, using default aspect ratio");
-        aspectRatio = 16 / 9;
-        return;
-      }
-
-      final videoFile = File(videoPath);
-      if (!await videoFile.exists()) {
-        _logger.warning(
-          "Video file does not exist, using default aspect ratio",
-        );
-        aspectRatio = 16 / 9;
-        return;
-      }
-
-      final videoProps = await getVideoProps(videoFile);
-      if (videoProps != null &&
-          videoProps.width != null &&
-          videoProps.height != null &&
-          videoProps.height != 0) {
-        aspectRatio = videoProps.width! / videoProps.height!;
-        _logger.info("Fetched video aspect ratio: $aspectRatio");
-      } else {
-        _logger.warning(
-          "Could not get video dimensions, using default aspect ratio",
-        );
-        aspectRatio = 16 / 9;
-      }
-    } catch (e) {
-      _logger.severe("Error fetching video aspect ratio: $e");
-      aspectRatio = 16 / 9;
-    }
-  }
-
-  @override
-  void dispose() {
-    videoController?.dispose();
-    controller?.dispose();
-    super.dispose();
-  }
-
-  void initController() async {
-    videoController = VideoPlayerController.contentUri(
-      widget.sharedMediaFile?.path != null
-          ? Uri.parse(widget.sharedMediaFile!.path)
-          : Uri.parse(action.data!),
-    );
-    controller = ChewieController(
-      videoPlayerController: videoController!,
-      autoInitialize: true,
-      aspectRatio: aspectRatio ?? 16 / 9,
-      autoPlay: true,
-      looping: true,
-      showOptions: false,
-      materialProgressColors: ChewieProgressColors(
-        playedColor: const Color.fromRGBO(45, 194, 98, 1.0),
-        handleColor: Colors.white,
-        bufferedColor: Colors.white,
-      ),
-    );
-    controller!.addListener(() {
-      if (!controller!.isFullScreen) {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      }
-    });
-    if (mounted) {
-      setState(() {});
     }
   }
 
@@ -510,21 +411,35 @@ class FileViewerState extends State<FileViewer> {
   }
 
   Widget _buildVideoViewer() {
-    if (controller != null) {
-      return Chewie(controller: controller!);
+    final uri = widget.sharedMediaFile?.path ?? action.data;
+    if (uri == null || uri.isEmpty) {
+      _logger.severe("Video URI is missing");
+      return const Icon(Icons.error);
     }
-    unawaited(_initializeVideoController());
-    return const CircularProgressIndicator();
+    return ExternalVideoViewer(
+      uri: uri,
+      key: _externalVideoKey,
+      onBackPressed: () => unawaited(_closeViewer()),
+      onFullscreenChanged: (fullscreen) {
+        setState(() => _isVideoFullscreen = fullscreen);
+      },
+    );
   }
 
   Widget _buildSingleFileScaffold() {
+    final isVideo =
+        action.type == MediaType.video ||
+        widget.sharedMediaFile?.type == SharedMediaType.video;
+    final uri = widget.sharedMediaFile?.path ?? action.data;
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: _closeViewer,
-          icon: const Icon(Icons.arrow_back),
-        ),
-      ),
+      appBar: isVideo && uri != null && uri.isNotEmpty
+          ? null
+          : AppBar(
+              leading: IconButton(
+                onPressed: _closeViewer,
+                icon: const Icon(Icons.arrow_back),
+              ),
+            ),
       body: Column(
         children: [
           Expanded(
@@ -579,13 +494,15 @@ class FileViewerState extends State<FileViewer> {
     final scaffold = _isExternalView
         ? _buildReviewGalleryOrFallback()
         : _buildSingleFileScaffold();
-    if (!_isExternalView) {
-      return scaffold;
-    }
     return PopScope(
-      canPop: false,
+      canPop: !_isExternalView && !_isVideoFullscreen,
       onPopInvokedWithResult: (didPop, result) {
-        unawaited(_closeViewer());
+        if (didPop) return;
+        if (_isVideoFullscreen) {
+          unawaited(_externalVideoKey.currentState?.exitFullscreen());
+        } else if (_isExternalView) {
+          unawaited(_closeViewer());
+        }
       },
       child: scaffold,
     );

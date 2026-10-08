@@ -17,7 +17,13 @@ jobs:
         if: >-
             github.repository == 'ente/ente' &&
             contains(fromJSON('[24503581,231175576,239996999,64626875,293300083,77285023,2698932,281837475,113718372]'), github.event.pull_request.user.id) &&
-            github.event.sender.id == github.event.pull_request.user.id &&
+            (
+                github.event.sender.id == github.event.pull_request.user.id ||
+                (
+                    github.event.pull_request.user.id == 293300083 &&
+                    github.event.sender.id == 77285023
+                )
+            ) &&
             github.triggering_actor == github.event.sender.login &&
             github.event.pull_request.changed_files <= 100 &&
             !github.event.pull_request.draft

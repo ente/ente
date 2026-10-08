@@ -383,7 +383,6 @@ export const performSidebarAction = async (
 
         case "utility.export":
             ctx.onShowExport();
-            ctx.onClose();
             return Promise.resolve();
 
         case "utility.logout":

@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "为您的回忆<br/>私密备份",
     "intro_slide_1": "默认端到端加密",
     "intro_slide_2_title": "安全地存放<br/>在一个掩护所中",
@@ -955,6 +959,8 @@
     "hide": "隐藏",
     "unhide": "取消隐藏",
     "sort_by": "排序方式",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "最新在前",
     "oldest_first": "最旧在前",
     "most_relevant": "最相关",

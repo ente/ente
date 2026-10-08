@@ -1,15 +1,16 @@
-export const spaceAppBackgroundColor = "#1C1C1E";
+export const spaceAppBackgroundColor = "#000000";
 
 export const spaceAppBackground = spaceAppBackgroundColor;
 
-export const spaceDialogBackground = "#323232";
-export const spaceSurface = "#28282B";
-export const spaceSurfaceHover = "#3A3A3A";
-export const spaceControlBackground = "#343434";
-export const spaceControlBackgroundHover = "#3E3E3E";
-export const spaceMenuBackground = "#424242";
-export const spaceMenuHover = "#505050";
-export const spaceText = "#F2F2F2";
-export const spaceTextMuted = "#B0B0B0";
+export const spaceDialogBackground = "#242424";
+export const spaceSurface = "#1A1A1A";
+export const spaceHomeSurface = "#202020";
+export const spaceSurfaceHover = "#262626";
+export const spaceControlBackground = "#242424";
+export const spaceControlBackgroundHover = "#303030";
+export const spaceMenuBackground = "#262626";
+export const spaceMenuHover = "#333333";
+export const spaceText = "#FFFFFF";
+export const spaceTextMuted = "#A0A0A0";
 export const spaceOnAccent = "#FFFFFF";
 export const spaceDanger = "#F63A3A";

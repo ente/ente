@@ -22,6 +22,8 @@ When another app asks you to attach a photo or video — for example a messenger
 3. Browse your Ente library and select one or more items
 4. Tap **Use** (or the equivalent confirmation) to send them back to the original app
 
+![Android file picker listing Ente Photos beside Drive and Photos under Browse files in other apps](https://docs-assets.ente.com/screenshots/phone-android-gallery-ente-picker.png){width=320px}
+
 The picker opens directly in Ente without interrupting your normal session, and the original app receives the files you selected.
 
 Ente registers as a handler for the standard Android picker intents, so it works with:

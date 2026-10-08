@@ -24,7 +24,7 @@ import {
 
 const green = "#08C225";
 const textBase = spaceText;
-const profileCoverBackground = "#1F1F1F";
+const profileCoverBackground = spaceSurface;
 const profileAvatarSkeletonBackground = spaceSurface;
 export const friendProfileImageViewerBackground = "#000000";
 

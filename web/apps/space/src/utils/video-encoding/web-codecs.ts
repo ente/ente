@@ -214,7 +214,7 @@ export const encodeVideoWithWebCodecs = async (
             codec: "avc1.640028",
             width: Math.floor((width * scale) / 2) * 2,
             height: Math.floor((height * scale) / 2) * 2,
-            bitrate: 8_000_000,
+            bitrate: 4_000_000,
             bitrateMode: "variable",
             framerate: frameRate,
             latencyMode: "realtime",
@@ -267,7 +267,7 @@ export const encodeVideoWithWebCodecs = async (
             "30000",
             ...(edit.muted
                 ? ["-an"]
-                : ["-map", "0:a:0?", "-c:a", "aac", "-b:a", "192k"]),
+                : ["-map", "0:a:0?", "-c:a", "aac", "-b:a", "128k"]),
             "-map_metadata",
             "-1",
             "-map_metadata:s",

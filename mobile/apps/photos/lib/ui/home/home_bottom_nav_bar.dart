@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/tab_changed_event.dart';
+import 'package:photos/models/home_tab.dart';
 import "package:photos/models/selected_albums.dart";
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/ui/tabs/nav_bar.dart';
@@ -21,12 +22,14 @@ class HomeBottomNavigationBar extends StatefulWidget {
     this.selectedFiles,
     this.selectedAlbums, {
     required this.selectedTabIndex,
+    required this.showFeed,
     super.key,
   });
 
   final SelectedFiles selectedFiles;
   final SelectedAlbums selectedAlbums;
   final int selectedTabIndex;
+  final bool showFeed;
 
   @override
   State<HomeBottomNavigationBar> createState() =>
@@ -134,6 +137,7 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
                   children: [
                     _HomeNavBar(
                       selectedIndex: currentTabIndex,
+                      showFeed: widget.showFeed,
                       onTabChange: (index) {
                         _onTabChange(index, mode: "OnPressed");
                       },
@@ -150,7 +154,11 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
 }
 
 class _HomeNavBar extends StatelessWidget {
-  const _HomeNavBar({required this.selectedIndex, required this.onTabChange});
+  const _HomeNavBar({
+    required this.selectedIndex,
+    required this.showFeed,
+    required this.onTabChange,
+  });
 
   static const _tabs = [
     _HomeNavTab(
@@ -180,11 +188,13 @@ class _HomeNavBar extends StatelessWidget {
   ];
 
   final int selectedIndex;
+  final bool showFeed;
   final ValueChanged<int> onTabChange;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
+    final tabIndices = homeTabIndices(showFeed: showFeed);
     return GNav(
       curve: Curves.easeOutExpo,
       backgroundColor: colors.fillLight,
@@ -203,24 +213,28 @@ class _HomeNavBar extends StatelessWidget {
       tabBorderRadius: Radii.md,
       tabBackgroundColor: colors.fillDark,
       haptic: false,
-      selectedIndex: selectedIndex,
-      onTabChange: onTabChange,
-      tabs: List.generate(_tabs.length, (index) {
+      selectedIndex: tabIndices.indexOf(selectedIndex),
+      onTabChange: (index) => onTabChange(tabIndices[index]),
+      tabs: List.generate(tabIndices.length, (index) {
+        final tabIndex = tabIndices[index];
+        final tab = _tabs[tabIndex];
         return GButton(
           margin: EdgeInsets.only(
             left: index == 0 ? Spacing.lg : _homeNavItemSpacing,
-            right: index == _tabs.length - 1 ? Spacing.lg : _homeNavItemSpacing,
+            right: index == tabIndices.length - 1
+                ? Spacing.lg
+                : _homeNavItemSpacing,
             top: Spacing.md,
             bottom: Spacing.md,
           ),
           text: '',
-          semanticLabel: _tabs[index].semanticLabel,
-          semanticIdentifier: _tabs[index].semanticIdentifier,
+          semanticLabel: tab.semanticLabel,
+          semanticIdentifier: tab.semanticIdentifier,
           leading: SizedBox.square(
             dimension: IconSizes.small,
             child: _HomeNavIcon(
-              tab: _tabs[index],
-              selected: selectedIndex == index,
+              tab: tab,
+              selected: selectedIndex == tabIndex,
               color: colors.iconColor,
             ),
           ),

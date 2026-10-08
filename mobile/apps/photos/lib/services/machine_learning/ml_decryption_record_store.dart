@@ -4,6 +4,7 @@ import "package:synchronized/synchronized.dart";
 
 class MlDecryptionRecordStore {
   static const _preferenceKey = "ml_decryption_record_file_ids";
+  static const maxRecords = 100;
 
   final SharedPreferences _preferences;
   final Lock _lock = Lock();
@@ -13,9 +14,9 @@ class MlDecryptionRecordStore {
 
   List<int> get fileIDs {
     final result = <int>{};
-    for (final value
-        in _preferences.getStringList(_preferenceKey) ?? const []) {
-      final fileID = int.tryParse(value);
+    final values = _preferences.get(_preferenceKey) as List<Object?>?;
+    for (final value in values?.take(maxRecords) ?? const []) {
+      final fileID = value is String ? int.tryParse(value) : null;
       if (fileID != null) {
         result.add(fileID);
       }
@@ -25,10 +26,16 @@ class MlDecryptionRecordStore {
 
   int get count => fileIDs.length;
 
+  bool get _hasOversizedRecords =>
+      ((_preferences.get(_preferenceKey) as List<Object?>?)?.length ?? 0) >
+      maxRecords;
+
   Future<void> add(int fileID) async {
     await _lock.synchronized(() async {
       final updatedFileIDs = fileIDs.toSet();
-      if (!updatedFileIDs.add(fileID)) {
+      final added =
+          updatedFileIDs.length < maxRecords && updatedFileIDs.add(fileID);
+      if (!added && !_hasOversizedRecords) {
         return;
       }
       await _store(
@@ -40,12 +47,11 @@ class MlDecryptionRecordStore {
 
   Future<void> removeAll(Iterable<int> fileIDs) async {
     final fileIDsToRemove = fileIDs.toSet();
-    if (fileIDsToRemove.isEmpty) return;
     await _lock.synchronized(() async {
       final updatedFileIDs = this.fileIDs.toSet();
       final previousCount = updatedFileIDs.length;
       updatedFileIDs.removeAll(fileIDsToRemove);
-      if (updatedFileIDs.length == previousCount) {
+      if (updatedFileIDs.length == previousCount && !_hasOversizedRecords) {
         return;
       }
       await _store(updatedFileIDs, "Failed to prune ML decryption records");

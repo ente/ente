@@ -25,6 +25,14 @@ Passkeys get enabled if you add one (or more) passkeys to your account. Converse
 
 To add and remove passkeys, use the _Passkey_ option in the settings menu. This will open the Ente Accounts web app (_accounts.ente.com_), where you can manage your passkeys.
 
+<div align="center">
+
+![Passkeys management page with the Add passkey button on Ente Accounts web](https://docs-assets.ente.com/screenshots/web-passkeys-manage.png){width=720px}
+
+![Add passkey button highlighted on the Passkeys management page in Ente Accounts web](https://docs-assets.ente.com/screenshots/web-passkeys-add-callout.png){width=720px}
+
+</div>
+
 > [!NOTE]
 >
 > Ente Accounts has moved from _accounts.ente.io_ to _accounts.ente.com_. Older passkeys created on the old domain continue to work, and Ente will automatically open the right domain for your account. New passkeys are created on _accounts.ente.com_.

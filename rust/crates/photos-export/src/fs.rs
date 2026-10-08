@@ -130,6 +130,24 @@ pub fn sync_move(source: &Path, destination: &Path) -> Result<()> {
     Ok(())
 }
 
+pub fn free_rename(source: &Path, destination: &Path) -> Result<()> {
+    ensure!(
+        !destination.try_exists()? || names::same_path(source, destination),
+        super::Conflict(format!(
+            "at {}: occupied rename target",
+            destination.display()
+        ))
+    );
+    Ok(())
+}
+
+pub fn move_file(source: &Path, destination: &Path) -> Result<()> {
+    free_rename(source, destination)?;
+    create_directory(destination.parent().context("move has no parent")?)?;
+    fs::rename(source, destination)?;
+    sync_move(source, destination)
+}
+
 pub struct Json {
     pub value: Value,
     pub bytes: Vec<u8>,

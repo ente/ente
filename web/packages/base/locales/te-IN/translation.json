@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "మీ జ్ఞాపకాల కోసం<br/>ప్రైవేట్ బ్యాకప్‌లు",
     "intro_slide_1": "డిఫాల్ట్‌గా ఎండ్-టు-ఎండ్ ఎన్‌క్రిప్ట్ చేయబడింది",
     "intro_slide_2_title": "ఫాల్‌అవుట్ షెల్టర్‌లో<br/>సురక్షితంగా భద్రపరచబడింది",
@@ -955,6 +959,8 @@
     "hide": "",
     "unhide": "",
     "sort_by": "",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "",
     "oldest_first": "",
     "most_relevant": "",

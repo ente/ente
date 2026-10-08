@@ -8,6 +8,7 @@ import {
     type StorageBonusDetails,
 } from "@/services/storage-bonus";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import EditIcon from "@mui/icons-material/Edit";
 import { Box, Button, IconButton, Stack, Typography } from "@mui/material";
 import { TitledMiniDialog } from "ente-base/components/MiniDialog";
@@ -270,6 +271,8 @@ export const ReferralSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
 
     return (
         <TitledNestedSidebarDrawer
+            maxWidth="440px"
+            showBackButton={screen != "main" ? true : undefined}
             {...{ open }}
             onClose={handleClose}
             onRootClose={handleRootClose}
@@ -278,10 +281,28 @@ export const ReferralSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
                     ? "details"
                     : screen == "success"
                       ? "code_applied"
-                      : "referrals",
+                      : "earn_free_storage",
             )}
+            caption={
+                screen == "main" && referralView.status == "loaded"
+                    ? t(
+                          referralView.value.planInfo.isEnabled
+                              ? "share_code_earn_storage"
+                              : "referrals_paused",
+                      )
+                    : undefined
+            }
         >
-            <Stack sx={{ px: 2, py: 1, gap: 3 }}>{contents}</Stack>
+            <Stack
+                sx={{
+                    pl: "calc(16px + 0.5rem)",
+                    pr: 2,
+                    py: 1,
+                    gap: screen == "details" ? 2 : 3,
+                }}
+            >
+                {contents}
+            </Stack>
             {isEditCodeDialogOpen && referralView.status == "loaded" && (
                 <EditCodeDialog
                     open={isEditCodeDialogOpen}
@@ -357,16 +378,6 @@ const MainContents: React.FC<MainContentsProps> = ({
 
     return (
         <>
-            <Stack sx={{ gap: 0.5 }}>
-                <Typography variant="h5">{t("earn_free_storage")}</Typography>
-                <Typography sx={{ color: "text.muted" }}>
-                    {t(
-                        planInfo.isEnabled
-                            ? "share_code_earn_storage"
-                            : "referrals_paused",
-                    )}
-                </Typography>
-            </Stack>
             {planInfo.isEnabled && (
                 <>
                     <Stack sx={{ gap: 1 }}>
@@ -394,12 +405,15 @@ const MainContents: React.FC<MainContentsProps> = ({
                 </>
             )}
 
-            <RowButtonGroup>
+            <RowButtonGroup sx={{ borderRadius: "14px", overflow: "hidden" }}>
                 {referralView.enableApplyCode && (
                     <>
                         <RowButton
                             variant="secondary"
                             label={t("apply_code")}
+                            endIcon={
+                                <ChevronRightIcon className="ente-chevron-right" />
+                            }
                             onClick={onApplyCode}
                         />
                         <RowButtonDivider />
@@ -408,6 +422,9 @@ const MainContents: React.FC<MainContentsProps> = ({
                 <RowButton
                     variant="secondary"
                     label={t("faq")}
+                    endIcon={
+                        <ChevronRightIcon className="ente-chevron-right" />
+                    }
                     onClick={() =>
                         openURL(
                             "https://ente.com/help/photos/features/account/referral-program/",
@@ -418,6 +435,9 @@ const MainContents: React.FC<MainContentsProps> = ({
                 <RowButton
                     variant="secondary"
                     label={t("details")}
+                    endIcon={
+                        <ChevronRightIcon className="ente-chevron-right" />
+                    }
                     onClick={onShowDetails}
                 />
             </RowButtonGroup>
@@ -438,16 +458,18 @@ const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
         sx={{
             position: "relative",
             border: "1px dashed",
-            borderColor: "stroke.muted",
-            borderRadius: 2,
+            borderColor: "fill.muted",
+            borderRadius: "14px",
             px: 2,
-            py: 3,
+            py: "26px",
             textAlign: "center",
         }}
     >
         <Typography
-            variant="h3"
+            variant="h2"
+            component="h3"
             sx={{
+                fontSize: "28px",
                 letterSpacing: "0.08em",
                 overflowWrap: "anywhere",
                 ...(onEdit && { px: 6 }),
@@ -462,13 +484,14 @@ const ReferralCodeCard: React.FC<ReferralCodeCardProps> = ({
                 sx={{
                     position: "absolute",
                     top: "50%",
-                    right: 4,
-                    width: 48,
-                    height: 48,
+                    right: 8,
+                    width: 44,
+                    height: 44,
+                    borderRadius: "12px",
                     transform: "translateY(-50%)",
                 }}
             >
-                <EditIcon />
+                <EditIcon sx={{ fontSize: 20 }} />
             </IconButton>
         )}
     </Box>
@@ -490,26 +513,45 @@ const SuccessContents: React.FC<SuccessContentsProps> = ({
             <Stack
                 role="status"
                 aria-live="polite"
-                sx={{ alignItems: "center", gap: 1, pt: 2 }}
+                sx={{ alignItems: "center", gap: 1.5, pt: 1, pb: 0.5 }}
             >
-                <CheckCircleOutlinedIcon
-                    sx={{ color: "accent.main", fontSize: 72 }}
-                />
-                <Typography variant="h3" sx={{ textAlign: "center" }}>
+                <Box
+                    sx={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: "50%",
+                        bgcolor:
+                            "color-mix(in srgb, var(--mui-palette-accent-main) 12%, transparent)",
+                        display: "grid",
+                        placeItems: "center",
+                    }}
+                >
+                    <CheckCircleOutlinedIcon
+                        sx={{ color: "accent.main", fontSize: 40 }}
+                    />
+                </Box>
+                <Typography
+                    variant="h2"
+                    component="h3"
+                    sx={{ textAlign: "center" }}
+                >
                     {t("referral_storage_claimed", {
                         storageAmountInGB: planInfo.storageInGB,
                     })}
                 </Typography>
+                <Typography
+                    variant="h5"
+                    sx={{
+                        fontSize: "16px",
+                        lineHeight: "22px",
+                        textAlign: "center",
+                        pt: 1,
+                    }}
+                >
+                    {t("earn_more_space")}
+                </Typography>
             </Stack>
-            <RowButtonGroup>
-                <RowButton
-                    variant="secondary"
-                    label={t("details")}
-                    onClick={onShowDetails}
-                />
-            </RowButtonGroup>
-            <Stack sx={{ gap: 2 }}>
-                <Typography variant="h5">{t("earn_more_space")}</Typography>
+            <Stack sx={{ gap: 3 }}>
                 <ReferralCodeCard code={code} />
                 <Typography sx={{ color: "text.muted" }}>
                     {t("referral_storage_for_both", {
@@ -521,6 +563,16 @@ const SuccessContents: React.FC<SuccessContentsProps> = ({
                     storageInGB={planInfo.storageInGB}
                 />
             </Stack>
+            <RowButtonGroup sx={{ borderRadius: "14px", overflow: "hidden" }}>
+                <RowButton
+                    variant="secondary"
+                    label={t("details")}
+                    endIcon={
+                        <ChevronRightIcon className="ente-chevron-right" />
+                    }
+                    onClick={onShowDetails}
+                />
+            </RowButtonGroup>
         </>
     );
 };
@@ -743,7 +795,12 @@ const InviteShareButton: React.FC<InviteShareButtonProps> = ({
     };
 
     return (
-        <Button fullWidth color="accent" onClick={() => void handleShare()}>
+        <Button
+            fullWidth
+            color="accent"
+            sx={{ minHeight: 48, borderRadius: "12px" }}
+            onClick={() => void handleShare()}
+        >
             <span aria-live="polite">
                 {t(copied ? "invite_copied" : "share_invite")}
             </span>
@@ -822,7 +879,7 @@ const DetailsContents: React.FC<DetailsContentsProps> = ({
         <>
             <Stack
                 divider={<RowButtonDivider />}
-                sx={{ bgcolor: "fill.faint", borderRadius: 2 }}
+                sx={{ bgcolor: "fill.faint", borderRadius: "14px" }}
             >
                 {stats.map(({ label, value }) => (
                     <Stack
@@ -838,7 +895,7 @@ const DetailsContents: React.FC<DetailsContentsProps> = ({
                         }}
                     >
                         <Typography>{label}</Typography>
-                        <Typography sx={{ fontWeight: "medium" }}>
+                        <Typography sx={{ fontWeight: 600 }}>
                             {value}
                         </Typography>
                     </Stack>

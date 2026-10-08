@@ -1,9 +1,8 @@
-import { Box, Dialog, useMediaQuery } from "@mui/material";
+import { Box, Dialog } from "@mui/material";
 import {
     SpaceActionFeedbackIcon,
     spaceActionDoneDurationMs,
 } from "components/ActionFeedback";
-import { SpaceBottomSheetTransition } from "components/BottomSheetTransition";
 import { SpaceShareInviteButton } from "components/ShareInviteButton";
 import type { FriendProfile } from "data/friends";
 import log from "ente-base/log";
@@ -44,7 +43,6 @@ export const SpaceAddFriendDialog: React.FC<SpaceAddFriendDialogProps> = ({
     username: currentUsername,
 }) => {
     const titleID = React.useId();
-    const isBottomSheet = useMediaQuery("(max-width: 599px)");
     const [username, setUsername] = React.useState("");
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isSent, setIsSent] = React.useState(false);
@@ -119,11 +117,6 @@ export const SpaceAddFriendDialog: React.FC<SpaceAddFriendDialogProps> = ({
             onClose={isSubmitting ? undefined : onClose}
             maxWidth={false}
             aria-labelledby={titleID}
-            slots={
-                isBottomSheet
-                    ? { transition: SpaceBottomSheetTransition }
-                    : undefined
-            }
             slotProps={{
                 paper: {
                     sx: {

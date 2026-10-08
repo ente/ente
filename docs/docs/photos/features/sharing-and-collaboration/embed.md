@@ -27,6 +27,8 @@ The simplest way to get the embed code is directly from Ente, whether you're on 
 4. Open the link settings ("Manage link")
 5. Click the "Copy embed HTML" button
 
+![Copy embed HTML highlighted in the manage link panel on Ente Photos web](https://docs-assets.ente.com/screenshots/web-embed-copy-html-callout.png){width=720px}
+
 **On mobile:**
 
 1. Open the album in the Ente app

@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Anılarınız için<br/>özel yedeklemeler",
     "intro_slide_1": "Varsayılan olarak uçtan uca şifrelenmiştir",
     "intro_slide_2_title": "Güvenle saklanır<br/>bir nükleer sığınakta",
@@ -955,6 +959,8 @@
     "hide": "Gizle",
     "unhide": "Göster",
     "sort_by": "Sırala",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Yeniden eskiye",
     "oldest_first": "Eskiden yeniye",
     "most_relevant": "",

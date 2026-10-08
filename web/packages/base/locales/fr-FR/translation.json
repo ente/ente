@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Sauvegardes privées<br/>pour vos souvenirs",
     "intro_slide_1": "Chiffrement de bout en bout par défaut",
     "intro_slide_2_title": "Sécurisé <br/>dans un abri antiatomique",
@@ -955,6 +959,8 @@
     "hide": "Masquer",
     "unhide": "Afficher",
     "sort_by": "Trier par",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Plus récent en premier",
     "oldest_first": "Plus ancien en premier",
     "most_relevant": "Le plus pertinent",

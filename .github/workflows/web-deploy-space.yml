@@ -1,0 +1,40 @@
+name: "Deploy (Space)"
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        environment: production
+
+        defaults:
+            run:
+                working-directory: web
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+            - name: Setup node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+              with:
+                  node-version: 24
+                  cache: "npm"
+                  cache-dependency-path: "web/package-lock.json"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Audit dependencies
+              run: npm audit --audit-level critical
+
+            - name: Deploy space
+              uses: ./.github/actions/deploy-web-app
+              with:
+                  app: space
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}

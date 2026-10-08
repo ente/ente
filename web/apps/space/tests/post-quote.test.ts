@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { SpaceMediaRateLimitError } from "../src/services/media-load";
 import {
     postQuoteErrorState,
     postQuoteKey,
@@ -63,4 +64,14 @@ test("unavailable posts and temporary failures have different states", () => {
         error.name = name;
         expect(postQuoteErrorState(error)).toEqual({ isUnavailable: true });
     }
+});
+
+test("rate-limited photo previews preserve the cooldown for the retry control", () => {
+    const error = new SpaceMediaRateLimitError(
+        new Error("Rate limit breached"),
+    );
+    expect(postQuoteErrorState(error)).toEqual({
+        hasLoadError: true,
+        retryAt: error.retryAt,
+    });
 });

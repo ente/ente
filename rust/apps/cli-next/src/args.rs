@@ -141,7 +141,7 @@ pub struct ExportArgs {
     pub exclude_album: Vec<String>,
     #[arg(
         long,
-        help = "Reconnect an existing export after moving it or losing local state"
+        help = "Take over an old CLI/Desktop export or reconnect an existing one"
     )]
     pub adopt: bool,
     #[arg(

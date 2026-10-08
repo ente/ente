@@ -370,11 +370,17 @@ async fn exercise(origin: String) -> TestResult {
     assert!(file_record["ente"].get("visibility").is_none());
     let adopted = TestHome::new();
     adopted.write_vault(&home.read_vault());
-    fs::write(
-        shared_export.join("Monsoon 🌧/original.jpg"),
-        vec![0; original.len()],
-    )
-    .unwrap();
+    let shared_original = shared_export.join("Monsoon 🌧/original.jpg");
+    fs::write(&shared_original, vec![0; original.len()]).unwrap();
+    let output = adopted.run(&[
+        "photos",
+        "export",
+        shared_export.to_str().unwrap(),
+        "--adopt",
+    ]);
+    assert!(failure(&output).contains("locally changed media"));
+    assert_eq!(fs::read(&shared_original).unwrap(), vec![0; original.len()]);
+    fs::remove_file(&shared_original).unwrap();
     adopted.json(&[
         "photos",
         "export",

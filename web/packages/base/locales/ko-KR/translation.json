@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "당신의 추억을 위한<br/>비공개 백업",
     "intro_slide_1": "종단간 암호화",
     "intro_slide_2_title": "방공호에서<br/>안전하게 보관",
@@ -955,6 +959,8 @@
     "hide": "",
     "unhide": "",
     "sort_by": "",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "",
     "oldest_first": "",
     "most_relevant": "",

@@ -5,6 +5,8 @@ description: Secure, encrypted storage for your family's important documents, pa
 
 # Ente Locker
 
+![Screenshots of Ente Locker](https://docs-assets.ente.com/screenshots/readme-locker.png)
+
 Ente Locker is a private space to store, share, and pass on your most important digital information. It's end-to-end encrypted, so we can't see your data - ever.
 
 Locker is available for iOS, Android, and the web at [locker.ente.com](https://locker.ente.com).

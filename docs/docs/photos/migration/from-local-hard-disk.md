@@ -25,6 +25,8 @@ Use the Ente desktop app to upload photos and videos from your computer or an ex
 
 ## Understanding folder structure options
 
+![Multiple folders detected — single album or separate albums](https://docs-assets.ente.com/screenshots/desktop-import-albums-choice.png){width=720px}
+
 When you upload a folder, Ente will ask how you want to organize your photos:
 
 **Single album**: Creates one Ente album containing all files from all subfolders. Best for a collection where folder structure doesn't matter.

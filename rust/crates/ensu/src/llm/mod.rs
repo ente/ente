@@ -3,6 +3,7 @@ mod embed;
 mod event;
 mod generate;
 mod history;
+pub mod memory;
 mod model;
 mod worker;
 

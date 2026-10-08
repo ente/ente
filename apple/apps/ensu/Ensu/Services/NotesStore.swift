@@ -396,6 +396,11 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                         }
                     }
                 }
+            } catch is ModelMemoryDeferred {
+                enqueue(id, due: Date().addingTimeInterval(30))
+                update(id) {
+                    $0.status = .pending; $0.progress = nil
+                }
             } catch NotesError.Cancelled {
                 if snapshot == nil { scans.insert(id) }
                 let saved = try? await provider.inspect(id)

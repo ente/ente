@@ -1,10 +1,9 @@
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CheckIcon from "@mui/icons-material/Check";
 import DevicesIcon from "@mui/icons-material/Devices";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {
     Box,
     CircularProgress,
-    Divider,
     IconButton,
     Stack,
     Typography,
@@ -16,11 +15,12 @@ import {
     terminateSession,
     type Session,
 } from "ente-accounts/services/sessions";
-import { RowButton, RowButtonGroup } from "ente-base/components/RowButton";
 import {
     TitledNestedSidebarDrawer,
     type NestedSidebarDrawerVisibilityProps,
 } from "ente-base/components/mui/SidebarDrawer";
+import { MenuComponent } from "ente-base/components/v2/MenuComponent";
+import { MenuGroupComponent } from "ente-base/components/v2/MenuGroupComponent";
 import { useBaseContext } from "ente-base/context";
 import { isHTTP401Error } from "ente-base/http";
 import { formattedDateTime } from "ente-base/i18n-date";
@@ -47,6 +47,7 @@ export const SessionsSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
 
     return (
         <TitledNestedSidebarDrawer
+            maxWidth="440px"
             {...{ open, onClose }}
             onRootClose={handleRootClose}
             title={t("active_sessions")}
@@ -207,8 +208,8 @@ const SessionsSettingsContents: React.FC<SessionsSettingsContentsProps> = ({
             <Typography variant="small" sx={{ px: 0, color: "text.faint" }}>
                 {t("active_sessions_hint")}
             </Typography>
-            <RowButtonGroup>
-                {sessions.map((session, index) => (
+            <MenuGroupComponent dividerInset={68}>
+                {sessions.map((session) => (
                     <SessionRow
                         key={session.token}
                         session={session}
@@ -217,10 +218,9 @@ const SessionsSettingsContents: React.FC<SessionsSettingsContentsProps> = ({
                             currentToken,
                         )}
                         onTerminate={() => handleTerminateSession(session)}
-                        showDivider={index < sessions.length - 1}
                     />
                 ))}
-            </RowButtonGroup>
+            </MenuGroupComponent>
         </Stack>
     );
 };
@@ -229,58 +229,42 @@ interface SessionRowProps {
     session: Session;
     isCurrentDevice: boolean;
     onTerminate: () => void;
-    showDivider: boolean;
 }
 
 const SessionRow: React.FC<SessionRowProps> = ({
     session,
     isCurrentDevice,
     onTerminate,
-    showDivider,
 }) => {
     const lastUsedFormatted = formattedDateTime(session.lastUsedTime);
 
     return (
-        <>
-            <RowButton
-                startIcon={<DevicesIcon />}
-                label={
-                    <Stack sx={{ gap: 0.5, alignItems: "flex-start" }}>
-                        <Typography
-                            sx={{
-                                fontWeight: isCurrentDevice ? "bold" : "medium",
-                                color: isCurrentDevice
-                                    ? "accent.main"
-                                    : "text.base",
-                                textAlign: "left",
-                            }}
-                        >
-                            {isCurrentDevice
-                                ? t("this_device")
-                                : session.prettyUA}
-                        </Typography>
-                        {!isCurrentDevice && (
-                            <Typography
-                                variant="small"
-                                sx={{ color: "text.muted" }}
-                            >
-                                {session.ip.length > 28
-                                    ? `${session.ip.slice(0, 28)}…`
-                                    : session.ip}
-                            </Typography>
-                        )}
+        <MenuComponent
+            startIcon={<DevicesIcon />}
+            title={isCurrentDevice ? t("this_device") : session.prettyUA}
+            endIcon={
+                isCurrentDevice ? (
+                    <CheckIcon sx={{ fontSize: 20, color: "accent.main" }} />
+                ) : undefined
+            }
+            description={
+                <Stack sx={{ gap: 0.5, mt: 0.5 }}>
+                    {!isCurrentDevice && (
                         <Typography
                             variant="small"
-                            sx={{ color: "text.faint" }}
+                            sx={{ color: "text.muted" }}
                         >
-                            {lastUsedFormatted}
+                            {session.ip.length > 28
+                                ? `${session.ip.slice(0, 28)}…`
+                                : session.ip}
                         </Typography>
-                    </Stack>
-                }
-                endIcon={<ChevronRightIcon />}
-                onClick={onTerminate}
-            />
-            {showDivider && <Divider sx={{ opacity: 0.4 }} />}
-        </>
+                    )}
+                    <Typography variant="small" sx={{ color: "text.faint" }}>
+                        {lastUsedFormatted}
+                    </Typography>
+                </Stack>
+            }
+            onClick={onTerminate}
+        />
     );
 };

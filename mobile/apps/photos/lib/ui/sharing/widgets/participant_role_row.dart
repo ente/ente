@@ -43,6 +43,7 @@ class ParticipantRoleRow extends StatefulWidget {
 
 class _ParticipantRoleRowState extends State<ParticipantRoleRow> {
   bool _isChangingRole = false;
+  final _menuKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +52,7 @@ class _ParticipantRoleRowState extends State<ParticipantRoleRow> {
       user: widget.user,
       role: role,
       currentUserID: widget.currentUserID,
+      onLongPress: _isChangingRole ? null : _showMenu,
       trailing: _isChangingRole
           ? SizedBox.square(
               dimension: IconSizes.small,
@@ -60,10 +62,9 @@ class _ParticipantRoleRowState extends State<ParticipantRoleRow> {
               ),
             )
           : EntePopupMenuButton<_ParticipantRoleAction>(
+              key: _menuKey,
               optionsBuilder: () => _options(context),
-              onSelected: (action) => action == _ParticipantRoleAction.remove
-                  ? _removeParticipant()
-                  : _changeRole(action.role!),
+              onSelected: _onSelected,
               child: HugeIcon(
                 icon: albumSharingRoleIcon(role),
                 color: context.componentColors.textBase,
@@ -73,6 +74,22 @@ class _ParticipantRoleRowState extends State<ParticipantRoleRow> {
             ),
     );
   }
+
+  Future<void> _showMenu() async {
+    final action = await showEntePopupMenu<_ParticipantRoleAction>(
+      context: _menuKey.currentContext!,
+      options: _options(context),
+    );
+    if (!mounted || action == null) {
+      return;
+    }
+    await _onSelected(action);
+  }
+
+  Future<void> _onSelected(_ParticipantRoleAction action) =>
+      action == _ParticipantRoleAction.remove
+      ? _removeParticipant()
+      : _changeRole(action.role!);
 
   List<EntePopupMenuOption<_ParticipantRoleAction>> _options(
     BuildContext context,

@@ -86,6 +86,26 @@ impl From<Error> for JsValue {
         if let Some(name) = error.name() {
             js_error.set_name(name);
         }
+        if let Error::Space(ente_space::Error::Http(http_error)) = &error
+            && let Some(status) = http_error.status_code()
+        {
+            let _ = js_sys::Reflect::set(&js_error, &"status".into(), &status.into());
+        }
+        let code = match &error {
+            Error::Space(ente_space::Error::Http(ente_core::http::Error::Api { code, .. })) => {
+                Some(code.as_str())
+            }
+            Error::Space(ente_space::Error::Http(ente_core::http::Error::Network(_))) => {
+                Some("network_error")
+            }
+            Error::Space(ente_space::Error::Http(ente_core::http::Error::Parse(_))) => {
+                Some("response_parse_error")
+            }
+            _ => error.name(),
+        };
+        if let Some(code) = code {
+            let _ = js_sys::Reflect::set(&js_error, &"code".into(), &code.into());
+        }
         js_error.into()
     }
 }

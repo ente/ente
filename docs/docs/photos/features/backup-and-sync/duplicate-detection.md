@@ -28,6 +28,8 @@ The duplicate detection works slightly differently on each platform to match pla
 
 ### Mobile (iOS and Android)
 
+![Free up space menu with Duplicates highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-free-up-duplicates-callout.png){width=320px}
+
 - Uses hash-based detection for exact duplicates
 - If uploading to the same album: duplicate is skipped
 - If uploading to a different album: creates a symlink (no data uploaded)

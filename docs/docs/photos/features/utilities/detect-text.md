@@ -22,11 +22,16 @@ Detect Text lets you pull text out of your photos without leaving Ente Photos. R
 **On mobile:**
 
 1. Open a photo or screenshot in the viewer.
+
+![Cafe menu photo open in the Ente Photos mobile viewer](https://docs-assets.ente.com/screenshots/phone-detect-text-viewer.png){width=320px}
+
 2. Touch and hold on the text in the photo.
 3. Ente detects the text on-device and shows a text-selection overlay.
 4. Drag the selection handles, or double tap a line, to highlight exactly what you need.
 5. Tap **Copy** to copy the selected text, or tap **Select all** to copy everything Ente detected.
 6. Tap outside the selection or return to the viewer when you are done.
+
+![Detect Text overlay on a cafe menu photo in the Ente Photos mobile viewer](https://docs-assets.ente.com/screenshots/phone-detect-text-selection.png){width=320px}
 
 After copying, the text stays on your clipboard so you can paste it into messages, notes, or other apps.
 

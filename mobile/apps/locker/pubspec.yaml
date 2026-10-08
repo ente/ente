@@ -1,7 +1,7 @@
 name: locker
 description: "Ente Locker – Safe space for your important documents"
 publish_to: "none"
-version: 1.0.10+182
+version: 1.0.11+182
 
 resolution: workspace
 environment:
@@ -11,7 +11,7 @@ dependencies:
   adaptive_theme: 3.7.2
   app_links: 6.4.1
   bip39: 1.0.6
-  camera: 0.11.2+1
+  camera: 0.12.1
   collection: 1.19.1
   convert: 3.1.2
   crypto: 3.0.7

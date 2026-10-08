@@ -94,20 +94,31 @@ impl AccountSpaceCtx {
             objects: objects.to_vec(),
         };
         let path = format!("/spaces/{space_id}/posts");
-        let response = self
-            .api()
-            .post(&path)
-            .json(&request)
-            .send()
-            .await?
-            .error_for_code()
-            .await
-            .map_err(|error| match &error {
-                http::Error::Api { code, .. } if code == "CONFLICT" => Error::PostLimitReached,
-                _ => error.into(),
-            })?
-            .json::<CreatePostResponse>()
-            .await?;
+        let response = http::retry_if(
+            || async {
+                self.api()
+                    .post(&path)
+                    .json(&request)
+                    .send()
+                    .await?
+                    .error_for_code()
+                    .await?
+                    .json::<CreatePostResponse>()
+                    .await
+            },
+            |error| {
+                request
+                    .client_request_id
+                    .as_ref()
+                    .is_some_and(|id| !id.is_empty())
+                    && error.is_retryable()
+            },
+        )
+        .await
+        .map_err(|error| match &error {
+            http::Error::Api { code, .. } if code == "CONFLICT" => Error::PostLimitReached,
+            _ => error.into(),
+        })?;
         Ok((response.post_id, post_key_bytes))
     }
 

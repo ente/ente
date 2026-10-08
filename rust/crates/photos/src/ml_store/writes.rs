@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use ente_vecdb::VecDb;
 
 use super::fill::decode_centroid;
 use super::{Error, FillState, Index, IndexResult, MlStore, Result, state};
-use crate::ml_db::{ClipEmbedding, ClusterSummary};
+use crate::ml_db::{self, ClipEmbedding, ClusterSummary};
 
 #[derive(Default)]
 struct IndexBatch {
@@ -25,6 +25,10 @@ impl FromIterator<(String, Option<Vec<f32>>)> for IndexBatch {
                 None => batch.rejected_keys.push(key),
             }
         }
+        let accepted: HashSet<&str> = batch.keys.iter().map(String::as_str).collect();
+        batch
+            .rejected_keys
+            .retain(|key| !accepted.contains(key.as_str()));
         batch
     }
 }
@@ -35,11 +39,9 @@ impl MlStore {
             return Ok(());
         }
         let _mutations = self.lock_mutations();
-        self.db.insert_clip_rows(embeddings)?;
-        if self.index_is_stale(Index::Clip)? {
-            return Ok(());
-        }
-        self.apply_batch(Index::Clip, &clip_batch(embeddings))
+        self.upsert(Index::Clip, &clip_batch(embeddings), || {
+            self.db.insert_clip_rows(embeddings)
+        })
     }
 
     pub fn delete_clip(&self, file_ids: &[i64]) -> Result<()> {
@@ -66,11 +68,9 @@ impl MlStore {
             return Ok(());
         }
         let _mutations = self.lock_mutations();
-        self.db.upsert_cluster_summary_rows(summary)?;
-        if self.index_is_stale(Index::ClusterCentroid)? {
-            return Ok(());
-        }
-        self.apply_batch(Index::ClusterCentroid, &centroid_batch(summary))
+        self.upsert(Index::ClusterCentroid, &centroid_batch(summary), || {
+            self.db.upsert_cluster_summary_rows(summary)
+        })
     }
 
     pub fn delete_cluster_summary(&self, cluster_id: &str) -> Result<()> {
@@ -103,11 +103,26 @@ impl MlStore {
         Ok(state::read(&self.db, index)? == FillState::Stale)
     }
 
-    fn apply_batch(&self, index: Index, batch: &IndexBatch) -> Result<()> {
-        self.index_write(index, |vecdb| {
-            vecdb.bulk_remove(&batch.rejected_keys)?;
-            vecdb.bulk_add(&batch.keys, &batch.vectors)
-        })
+    fn upsert(
+        &self,
+        index: Index,
+        batch: &IndexBatch,
+        write_rows: impl FnOnce() -> ml_db::Result<()>,
+    ) -> Result<()> {
+        if self.index_is_stale(index)? {
+            return write_rows().map_err(Into::into);
+        }
+        match self.index_write(index, |vecdb| vecdb.bulk_add(&batch.keys, &batch.vectors)) {
+            Ok(()) => {
+                write_rows()?;
+                self.index_write(index, |vecdb| vecdb.bulk_remove(&batch.rejected_keys))
+            }
+            Err(Error::Index(error)) => {
+                write_rows()?;
+                Err(Error::Index(error))
+            }
+            Err(error) => Err(error),
+        }
     }
 
     fn index_write<T>(
@@ -385,7 +400,7 @@ mod tests {
     }
 
     #[test]
-    fn failed_cluster_summary_upserts_leave_sql_and_index_untouched() {
+    fn failed_cluster_summary_upserts_leave_sql_untouched_and_the_index_ahead() {
         let (directory, store) = open();
         store.fill_cluster_centroid_index(false).unwrap();
         let summaries: HashMap<String, ClusterSummary> = (0..=400)
@@ -398,11 +413,61 @@ mod tests {
             Err(Error::Database(_))
         ));
         assert_eq!(store.db().count_cluster_summaries().unwrap(), 0);
-        assert_eq!(live_count(&store, Index::ClusterCentroid), 0);
+        assert_eq!(live_count(&store, Index::ClusterCentroid), 401);
         assert_eq!(
             store.fill_state(Index::ClusterCentroid).unwrap(),
             FillState::Filled
         );
+    }
+
+    #[test]
+    fn failed_upserts_keep_vectors_of_rejected_keys() {
+        let (directory, store) = open();
+        store.fill_cluster_centroid_index(false).unwrap();
+        store
+            .cluster_summary_update(&HashMap::from([centroid("c1", 1)]))
+            .unwrap();
+        deny_cluster_summary_inserts_after(&directory.path().join(DB_FILE), 1);
+        let malformed = ClusterSummary {
+            avg: encode_evector(&[1.0, 2.0]),
+            count: 1,
+        };
+
+        assert!(matches!(
+            store.cluster_summary_update(&HashMap::from([
+                ("c1".to_string(), malformed),
+                centroid("c2", 2)
+            ])),
+            Err(Error::Database(_))
+        ));
+        assert_eq!(store.db().count_cluster_summaries().unwrap(), 1);
+        assert!(store.contains(Index::ClusterCentroid, "c1").unwrap());
+        assert!(store.contains(Index::ClusterCentroid, "c2").unwrap());
+        assert_eq!(
+            store.fill_state(Index::ClusterCentroid).unwrap(),
+            FillState::Filled
+        );
+    }
+
+    #[test]
+    fn accepted_embeddings_win_over_rejected_duplicates_in_one_batch() {
+        let (_directory, store) = open();
+        store.fill_clip_index(false).unwrap();
+        for accepted_first in [true, false] {
+            let mut marker = clips([1]);
+            marker[0].embedding = vec![];
+            let mut batch = clips([1]);
+            if accepted_first {
+                batch.extend(marker);
+            } else {
+                batch.splice(0..0, marker);
+            }
+            store.put_clip(&batch).unwrap();
+            assert!(
+                store.contains(Index::Clip, "1").unwrap(),
+                "accepted_first: {accepted_first}"
+            );
+        }
     }
 
     #[test]

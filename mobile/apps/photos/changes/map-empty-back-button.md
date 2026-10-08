@@ -1,0 +1,1 @@
+- Fixed a missing back button on the map when no photos have a location.

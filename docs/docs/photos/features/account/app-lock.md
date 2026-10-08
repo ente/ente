@@ -11,11 +11,15 @@ App lock adds a local protection layer to Ente Photos, so the app requires authe
 
 **On mobile:** Open `Settings > Security > App lock`, then turn on **App lock**.
 
+![App lock toggle highlighted on the App lock settings screen in Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-app-lock-toggle-callout.png){width=320px}
+
 **On desktop:** Open `Settings > Preferences > App lock`, then turn on **App lock**.
 
 ## Lock methods
 
 Choose from the following lock methods:
+
+![App lock settings showing Device lock, Pin lock, Password, Auto lock, and Hide content on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-app-lock-settings.png){width=320px}
 
 - **Device lock**: Face Recognition, Fingerprint, or your device passcode/password.
 - **PIN lock**: Set a custom PIN for Ente Photos.
@@ -29,9 +33,13 @@ On desktop, **Device lock** is currently available only on macOS.
 
 Configure **Auto lock** to choose when Ente Photos locks after being put in the background: Immediately, 5s, 15s, 1m, 5m, or 30m.
 
+![Auto lock row highlighted on the App lock settings screen in Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-app-lock-autolock-callout.png){width=320px}
+
 ## Hide content
 
 Enable **Hide content** to hide Ente Photos content in the app switcher (and disable screenshots on Android).
+
+![Hide content toggle highlighted on the App lock settings screen in Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-app-lock-hide-content-callout.png){width=320px}
 
 `Hide content` is currently available only in the app (mobile).
 

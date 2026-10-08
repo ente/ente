@@ -55,7 +55,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             llmProvider = llmProvider,
             knowledgeProvider = knowledgeProvider,
             assetStore = assetStore,
-            transcriber = transcriber,
             deviceCapabilityProvider = deviceCapabilityProvider,
             configDefaults = configDefaults,
             logRepository = logRepository,

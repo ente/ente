@@ -14,6 +14,8 @@ This page walks through both sides of a paste: creating a link as the sender, an
 3. (Optional) Click the lock icon next to the counter to require a password. See [Password protection](#password-protection) below.
 4. Click the send button (the arrow icon at the bottom-right of the input). If password protection is on, enter the password twice in the dialog that appears, then click "Create".
 
+![Populated create form on Ente Paste web with guest wifi note typed and send control ready](https://docs-assets.ente.com/screenshots/web-paste-create.png){width=720px}
+
 Ente encrypts the text in your browser and uploads only the ciphertext. The page then shows your one-time link.
 
 > [!NOTE]
@@ -57,6 +59,8 @@ A regular Paste link is already end-to-end encrypted. Password protection adds v
 
 After you create a paste, the link card on the page offers three ways to hand the link to someone.
 
+![One-time link card on Ente Paste web with Copy highlighted after copying the link](https://docs-assets.ente.com/screenshots/web-paste-share.png){width=720px}
+
 ### Copy
 
 Click "Copy" to put the link on your clipboard. A "Copied to clipboard." confirmation appears underneath the button and fades out after about a second.
@@ -93,6 +97,8 @@ This confirmation only appears for the sender on the create page. Recipients fol
 ## Open a paste
 
 When the recipient opens the link:
+
+![Opened paste on Ente Paste web showing decrypted text, Copy, and removed-from-servers confirmation](https://docs-assets.ente.com/screenshots/web-paste-open.png){width=720px}
 
 1. Their browser fetches the ciphertext from Ente.
 2. The browser pulls the decryption key out of the URL fragment (the part after `#`) and decrypts the text locally. While this happens they see "Opening secure paste... Decrypting in your browser."

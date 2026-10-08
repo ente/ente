@@ -9,6 +9,18 @@ This guide walks you through creating your first item in Ente Locker. You'll lea
 
 ## Adding an item
 
+![Save to Locker menu with Document, File, Note, Thing, and Secret](https://docs-assets.ente.com/screenshots/locker-save-menu.png){width=320px}
+
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+![Document row in Save to Locker menu](https://docs-assets.ente.com/screenshots/locker-document-row-callout.png){width=280px}
+
+![File row in Save to Locker menu](https://docs-assets.ente.com/screenshots/locker-file-row-callout.png){width=280px}
+
+![Secret row in Save to Locker menu](https://docs-assets.ente.com/screenshots/locker-secret-row-callout.png){width=280px}
+
+</div>
+
 1. Open Ente Locker
 2. Tap the **+** button at the bottom of the screen
 3. Select the type of item you want to add:
@@ -65,6 +77,8 @@ Use Uncategorized for items you want to organize later.
 Learn more about [Collections](/locker/features/organization/collections).
 
 ## Viewing your items
+
+![Locker home with items you can open and browse](https://docs-assets.ente.com/screenshots/locker-home-populated.png){width=320px}
 
 From the home screen:
 

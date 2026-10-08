@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Приватные резервные копии<br/>для ваших воспоминаний",
     "intro_slide_1": "Сквозное шифрование по умолчанию",
     "intro_slide_2_title": "Надежно хранится<br/>в ядерном бункере",
@@ -955,6 +959,8 @@
     "hide": "Скрыть",
     "unhide": "Показать",
     "sort_by": "Сортировать по",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Сначала новые",
     "oldest_first": "Сначала старые",
     "most_relevant": "Самые актуальные",

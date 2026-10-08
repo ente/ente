@@ -63,11 +63,16 @@ class FlexLayoutCalculator {
       targetRowHeight * maximumRowHeightFactor,
     );
     final preferredTileWidth = targetRowHeight * _preferredTileWidthFactor;
+    final maximumCandidateRowLength =
+        JustifiedLayoutCalculator.responsiveMaximumItemsPerRowFor(
+          availableWidth,
+        );
 
     for (var start = count - 1; start >= 0; start--) {
       var ratioSum = 0.0;
       var minimumRatio = double.infinity;
-      for (var end = start; end < count; end++) {
+      final candidateEnd = math.min(count, start + maximumCandidateRowLength);
+      for (var end = start; end < candidateEnd; end++) {
         ratioSum += ratios[end];
         minimumRatio = math.min(minimumRatio, ratios[end]);
         final itemCount = end - start + 1;

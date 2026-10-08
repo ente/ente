@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Privé back-ups<br/>voor uw herinneringen",
     "intro_slide_1": "Standaard end-to-end versleuteld",
     "intro_slide_2_title": "Veilig opgeslagen<br/>in een kernbunker",
@@ -955,6 +959,8 @@
     "hide": "Verbergen",
     "unhide": "Zichtbaar maken",
     "sort_by": "Sorteren op",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Nieuwste eerst",
     "oldest_first": "Oudste eerst",
     "most_relevant": "",

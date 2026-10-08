@@ -1,0 +1,1 @@
+- Fixed Photos, Videos, and Live Photos filters showing empty results in hidden albums.

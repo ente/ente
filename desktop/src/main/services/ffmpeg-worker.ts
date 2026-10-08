@@ -1,7 +1,7 @@
 import shellescape from "any-shell-escape";
 import { expose } from "comlink";
 import pathToFfmpeg from "ffmpeg-static";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import fs_ from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -39,6 +39,7 @@ export interface FFmpegUtilityProcess {
         fileID: number,
         fetchURL: string,
         authToken: string,
+        previewUploadV2: boolean,
     ) => Promise<FFmpegGenerateHLSPlaylistAndSegmentsResult | undefined>;
 
     ffmpegDetermineVideoDuration: (inputFilePath: string) => Promise<number>;
@@ -151,6 +152,7 @@ const ffmpegGenerateHLSPlaylistAndSegments = async (
     fileID: number,
     fetchURL: string,
     authToken: string,
+    previewUploadV2: boolean,
 ): Promise<FFmpegGenerateHLSPlaylistAndSegmentsResult | undefined> => {
     const { isH264, isHDR, bitrate } =
         await detectVideoCharacteristics(inputFilePath);
@@ -268,6 +270,7 @@ const ffmpegGenerateHLSPlaylistAndSegments = async (
             fileID,
             fetchURL,
             authToken,
+            previewUploadV2,
         );
     } catch (e) {
         log.error("HLS generation failed", e);
@@ -401,34 +404,109 @@ const uploadVideoSegments = async (
     fileID: number,
     fetchURL: string,
     authToken: string,
+    previewUploadV2: boolean,
 ) => {
     // Leave headroom below Cloudflare's 100 MB limit for self-hosters.
     const partSize = 96 * 1024 * 1024;
     const partCount = Math.ceil(videoSize / partSize);
 
-    const { objectID, url, partURLs, completeURL } =
-        await getFilePreviewDataUploadURL(
-            partCount,
-            fileID,
-            fetchURL,
-            authToken,
-        );
+    if (previewUploadV2 && (videoSize <= 0 || videoSize > 10 * 1024 ** 3))
+        throw new Error("Preview size must be between 1 byte and 10 GiB");
 
-    if (url) {
-        await uploadVideoSegmentsSingle(videoFilePath, videoSize, url);
-    } else if (partURLs && completeURL) {
+    const partMD5s = previewUploadV2
+        ? await computeVideoPartMD5s(videoFilePath, videoSize, partSize)
+        : undefined;
+
+    const { objectID, url, partURLs, completeURL } = partMD5s
+        ? await getPreviewUploadURLWithMetadata(
+              fileID,
+              videoSize,
+              partSize,
+              partMD5s,
+              fetchURL,
+              authToken,
+          )
+        : await getFilePreviewDataUploadURL(
+              partCount,
+              fileID,
+              fetchURL,
+              authToken,
+          );
+
+    if (url && partCount == 1) {
+        await uploadVideoSegmentsSingle(
+            videoFilePath,
+            videoSize,
+            url,
+            partMD5s?.[0],
+        );
+    } else if (partURLs?.length == partCount && completeURL) {
         await uploadVideoSegmentsMultipart(
             videoFilePath,
             videoSize,
             partSize,
             partURLs,
             completeURL,
+            partMD5s,
         );
     } else {
         throw new Error("Malformed upload URLs");
     }
 
     return objectID;
+};
+
+const computeVideoPartMD5s = async (
+    videoFilePath: string,
+    videoSize: number,
+    partSize: number,
+) => {
+    const checksums: string[] = [];
+    for (let start = 0; start < videoSize; start += partSize) {
+        const end = Math.min(start + partSize, videoSize) - 1;
+        const hash = createHash("md5");
+        for await (const chunk of fs_.createReadStream(videoFilePath, {
+            start,
+            end,
+        })) {
+            hash.update(chunk as Buffer);
+        }
+        checksums.push(hash.digest("base64"));
+    }
+    return checksums;
+};
+
+const getPreviewUploadURLWithMetadata = async (
+    fileID: number,
+    contentLength: number,
+    partLength: number,
+    partMd5s: string[],
+    fetchURL: string,
+    authToken: string,
+) => {
+    const isMultipart = partMd5s.length > 1;
+    const url = isMultipart
+        ? new URL("multipart-preview-upload-url", fetchURL)
+        : fetchURL;
+    const body = JSON.stringify({
+        fileID,
+        type: "vid_preview",
+        contentLength,
+        ...(isMultipart
+            ? { partLength, partMd5s }
+            : { contentMD5: partMd5s[0] }),
+    });
+    const res = await retryEnsuringHTTPOk(() =>
+        fetch(url, {
+            method: "POST",
+            headers: {
+                ...authenticatedRequestHeaders(desktopAppVersion(), authToken),
+                "Content-Type": "application/json",
+            },
+            body,
+        }),
+    );
+    return FilePreviewDataUploadURLResponse.parse(await res.json());
 };
 
 const FilePreviewDataUploadURLResponse = z.object({
@@ -470,6 +548,7 @@ const uploadVideoSegmentsSingle = (
     videoFilePath: string,
     videoSize: number,
     objectUploadURL: string,
+    contentMD5?: string,
 ) =>
     retryEnsuringHTTPOk(() =>
         // Electron's net.fetch is 40-50x slower for this streaming PUT.
@@ -479,6 +558,7 @@ const uploadVideoSegmentsSingle = (
             headers: {
                 ...publicRequestHeaders(desktopAppVersion()),
                 "Content-Length": `${videoSize}`,
+                ...(contentMD5 ? { "Content-MD5": contentMD5 } : {}),
             },
             // @ts-expect-error Node fetch accepts duplex streaming.
             duplex: "half",
@@ -517,6 +597,7 @@ const uploadVideoSegmentsMultipart = async (
     partSize: number,
     partUploadURLs: string[],
     completionURL: string,
+    partMD5s?: string[],
 ) => {
     let partNumber = 0;
     let start = 0;
@@ -525,12 +606,14 @@ const uploadVideoSegmentsMultipart = async (
         partNumber += 1;
         const size = Math.min(start + partSize, videoSize) - start;
         const end = start + size - 1;
+        const contentMD5 = partMD5s?.[partNumber - 1];
         const res = await retryEnsuringHTTPOk(() =>
             fetch(partUploadURL, {
                 method: "PUT",
                 headers: {
                     ...publicRequestHeaders(desktopAppVersion()),
                     "Content-Length": `${size}`,
+                    ...(contentMD5 ? { "Content-MD5": contentMD5 } : {}),
                 },
                 // @ts-expect-error Node fetch accepts duplex streaming.
                 duplex: "half",

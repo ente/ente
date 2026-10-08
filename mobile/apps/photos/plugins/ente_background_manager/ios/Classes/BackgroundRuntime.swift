@@ -25,7 +25,8 @@ final class BackgroundRuntime: NSObject {
     let task: BGTask
     let configuration: TaskConfiguration
     let startedAt: TimeInterval
-    let invocation = UUID().uuidString
+    let invocation: String
+    let trace: BackgroundStartupTrace
     var engine: FlutterEngine?
     var channel: FlutterMethodChannel?
     var ready = false
@@ -35,10 +36,12 @@ final class BackgroundRuntime: NSObject {
     var foregroundTimer: DispatchWorkItem?
     var stopResults: [FlutterResult] = []
 
-    init(task: BGTask, configuration: TaskConfiguration, startedAt: TimeInterval) {
+    init(task: BGTask, configuration: TaskConfiguration, trace: BackgroundStartupTrace) {
       self.task = task
       self.configuration = configuration
-      self.startedAt = startedAt
+      self.startedAt = trace.startedAt
+      self.invocation = trace.invocation
+      self.trace = trace
     }
   }
 
@@ -65,14 +68,21 @@ final class BackgroundRuntime: NSObject {
 
   func register(identifier: String, processing: Bool) -> Bool {
     if let existing = registrations[identifier] { return existing == processing }
-    let registered = BGTaskScheduler.shared.register(
-      forTaskWithIdentifier: identifier, using: .main
-    ) { task in
-      let startedAt = ProcessInfo.processInfo.systemUptime
-      MainActor.assumeIsolated {
-        self.deliver(task, startedAt: startedAt)
+    let trace = BackgroundStartupTrace(scope: identifier)
+    let registered = trace.measure("task.register") {
+      BGTaskScheduler.shared.register(
+        forTaskWithIdentifier: identifier, using: .main
+      ) { task in
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        let deliveryTrace = BackgroundStartupTrace(
+          scope: task.identifier, invocation: UUID().uuidString, startedAt: startedAt)
+        deliveryTrace.event("task.delivered")
+        MainActor.assumeIsolated {
+          self.deliver(task, trace: deliveryTrace)
+        }
       }
     }
+    trace.event("task.register.result", detail: "registered=\(registered)")
     if registered {
       registrations[identifier] = processing
     } else {
@@ -248,20 +258,25 @@ final class BackgroundRuntime: NSObject {
     }
   }
 
-  private func deliver(_ task: BGTask, startedAt: TimeInterval) {
+  private func deliver(_ task: BGTask, trace: BackgroundStartupTrace) {
     scheduleRevision += 1
     guard configuration.enabled,
       let policy = configuration.tasks.first(where: { $0.identifier == task.identifier })
     else {
       BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: task.identifier)
+      trace.event("task.skipped", detail: "reason=disabled")
       report(identifier: task.identifier, outcome: "skipped", reason: "disabled")
       task.setTaskCompleted(success: true)
+      trace.event("task.completed", detail: "success=true")
       return
     }
     do {
-      try submit(policy, delayMs: policy.frequencyMs)
-      try recordSubmitted(policy)
+      try trace.measure("task.reschedule") {
+        try submit(policy, delayMs: policy.frequencyMs)
+        try recordSubmitted(policy)
+      }
     } catch {
+      trace.event("task.reschedule.failed")
       report(
         identifier: task.identifier, outcome: "failed", reason: "schedule",
         error: String(describing: error))
@@ -271,9 +286,10 @@ final class BackgroundRuntime: NSObject {
       occupant.configuration.kind == "refresh", !occupant.retiring, waiting == nil,
       !["foreground", "requested", "system"].contains(occupant.stopReason ?? "")
     {
-      let run = Run(task: task, configuration: policy, startedAt: startedAt)
+      let run = Run(task: task, configuration: policy, trace: trace)
       waiting = run
       observeExpiration(run)
+      trace.event("task.waitingForRefresh")
       Self.logger.info("\(policy.identifier, privacy: .public): waiting for refresh")
       if let budget = policy.runBudgetMs {
         let remaining = budget - elapsed(run)
@@ -301,18 +317,23 @@ final class BackgroundRuntime: NSObject {
       skip = nil
     }
     if let skip {
+      trace.event("task.skipped", detail: "reason=\(skip)")
       report(identifier: task.identifier, outcome: "skipped", reason: skip)
       task.setTaskCompleted(success: true)
+      trace.event("task.completed", detail: "success=true")
       return
     }
-    let run = Run(task: task, configuration: policy, startedAt: startedAt)
+    let run = Run(task: task, configuration: policy, trace: trace)
     start(run)
   }
 
   private func observeExpiration(_ run: Run) {
+    let trace = run.trace
     run.task.expirationHandler = { [weak run] in
+      trace.event("task.expiration.received")
       DispatchQueue.main.async {
         guard let run else { return }
+        trace.event("task.expiration.handled")
         if self.waiting === run {
           self.finishWaiting(run, outcome: "stopped", reason: "expired", success: false)
         } else if self.active === run {
@@ -324,6 +345,8 @@ final class BackgroundRuntime: NSObject {
   }
 
   private func start(_ run: Run) {
+    run.trace.event(
+      "task.start", detail: "applicationState=\(UIApplication.shared.applicationState.rawValue)")
     let policy = run.configuration
     active = run
     observeExpiration(run)
@@ -336,19 +359,25 @@ final class BackgroundRuntime: NSObject {
       DispatchQueue.main.asyncAfter(
         deadline: .now() + Double(max(0, budget - elapsed(run))) / 1000, execute: timer)
     }
-    guard let callback = FlutterCallbackCache.lookupCallbackInformation(policy.callbackHandle),
+    let callback = run.trace.measure("task.callbackLookup") {
+      FlutterCallbackCache.lookupCallbackInformation(policy.callbackHandle)
+    }
+    guard let callback,
       let registrant
     else {
       retire(
         run, outcome: "failed", reason: "bootstrap", error: "Background dispatcher is unavailable")
       return
     }
-    let engine = FlutterEngine(
-      name: "ente-background-\(run.invocation)", project: nil, allowHeadlessExecution: true)
+    let engine = run.trace.measure("task.engine.create") {
+      FlutterEngine(
+        name: "ente-background-\(run.invocation)", project: nil, allowHeadlessExecution: true)
+    }
     run.engine = engine
-    guard
+    let engineStarted = run.trace.measure("task.engine.run") {
       engine.run(withEntrypoint: callback.callbackName, libraryURI: callback.callbackLibraryPath)
-    else {
+    }
+    guard engineStarted else {
       retire(run, outcome: "failed", reason: "bootstrap", error: "Flutter engine failed to start")
       return
     }
@@ -367,6 +396,7 @@ final class BackgroundRuntime: NSObject {
             FlutterError(code: "bootstrap", message: "Dispatcher already started", details: nil))
           return
         }
+        run.trace.event("task.dart.ready")
         run.ready = true
         var data: [String: Any] = [
           "identifier": policy.identifier,
@@ -387,13 +417,16 @@ final class BackgroundRuntime: NSObject {
           )
           return
         }
+        run.trace.event("task.dart.complete", detail: "outcome=\(outcome)")
         result(nil)
         self.retire(run, outcome: outcome, reason: run.stopReason, error: data["error"] as? String)
       default:
         result(FlutterMethodNotImplemented)
       }
     }
-    registrant(engine)
+    run.trace.measure("task.plugins") {
+      registrant(engine)
+    }
   }
 
   private func finishWaiting(
@@ -405,6 +438,8 @@ final class BackgroundRuntime: NSObject {
     run.budgetTimer?.cancel()
     run.task.expirationHandler = nil
     run.task.setTaskCompleted(success: success)
+    run.trace.event(
+      "task.completed", detail: "outcome=\(outcome) reason=\(reason) success=\(success)")
     report(identifier: run.configuration.identifier, outcome: outcome, reason: reason)
   }
 
@@ -443,6 +478,7 @@ final class BackgroundRuntime: NSObject {
     guard active === run, !run.retiring else { return }
     if run.stopReason == nil {
       run.stopReason = reason
+      run.trace.event("task.stop", detail: "reason=\(reason) dartReady=\(run.ready)")
       if run.ready {
         run.channel?.invokeMethod(
           "stop", arguments: ["invocation": run.invocation, "reason": reason])
@@ -469,12 +505,16 @@ final class BackgroundRuntime: NSObject {
     run.foregroundTimer?.cancel()
     run.task.expirationHandler = nil
     let terminal = outcome == "completed" && run.stopReason != nil ? "stopped" : outcome
+    run.trace.event("task.retire", detail: "outcome=\(terminal) reason=\(reason ?? "none")")
     run.channel?.setMethodCallHandler(nil)
-    run.engine?.destroyContext()
+    run.trace.measure("task.engine.destroy") {
+      run.engine?.destroyContext()
+    }
     run.channel = nil
     run.engine = nil
-    run.task.setTaskCompleted(
-      success: success ?? (terminal != "failed" && terminal != "forcedTeardown"))
+    let completedSuccessfully = success ?? (terminal != "failed" && terminal != "forcedTeardown")
+    run.task.setTaskCompleted(success: completedSuccessfully)
+    run.trace.event("task.completed", detail: "success=\(completedSuccessfully)")
     active = nil
     startWaiting()
     if terminal != "completed" {

@@ -13,6 +13,7 @@ use crate::transport::{
 use crate::{
     MAX_SPACE_AVATAR_UPLOAD_BYTES, MAX_SPACE_COVER_UPLOAD_BYTES, MAX_SPACE_POST_UPLOAD_BYTES,
 };
+use ente_core::http;
 
 impl AccountSpaceCtx {
     pub async fn upload_post_video_asset(
@@ -69,7 +70,8 @@ impl AccountSpaceCtx {
             .json(&request)
             .send()
             .await?
-            .error_for_status()?
+            .error_for_code()
+            .await?
             .json()
             .await?)
     }
@@ -125,15 +127,19 @@ impl AccountSpaceCtx {
     }
 
     pub async fn upload_bytes(&self, presign: &PresignUploadResponse, body: &[u8]) -> Result<()> {
-        let request = presign.headers.iter().fold(
-            self.api().http().put(&presign.url),
-            |request, (name, value)| request.header(name, value),
-        );
-        request
-            .body(body.to_vec())
-            .send()
-            .await?
-            .error_for_status()?;
+        http::retry(|| async {
+            let request = presign.headers.iter().fold(
+                self.api().http().put(&presign.url),
+                |request, (name, value)| request.header(name, value),
+            );
+            request
+                .body(body.to_vec())
+                .send()
+                .await?
+                .error_for_status()?;
+            Ok(())
+        })
+        .await?;
         Ok(())
     }
 

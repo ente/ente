@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "پشتیبان گیری خصوصی<br/>برای خاطرات شما",
     "intro_slide_1": "به صورت پیش‌فرض رمزگذاری سرتاسر",
     "intro_slide_2_title": "حفاظت کاملا مطمئن<br/>در حریم امن و شخصی",
@@ -955,6 +959,8 @@
     "hide": "",
     "unhide": "",
     "sort_by": "",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "",
     "oldest_first": "",
     "most_relevant": "",

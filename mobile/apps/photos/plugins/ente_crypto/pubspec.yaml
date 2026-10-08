@@ -12,6 +12,7 @@ dependencies:
       ref: 82e365fed8a1a76f6eea0220de98389eed7b0445
   convert: 3.1.2
   crypto: 3.0.7
+  ffi: 2.2.0
   flutter:
     sdk: flutter
   flutter_sodium:
@@ -22,5 +23,7 @@ dependencies:
   
 dev_dependencies:
   flutter_lints: 6.0.0
+  flutter_test:
+    sdk: flutter
 
 flutter:

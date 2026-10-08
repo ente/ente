@@ -278,6 +278,54 @@ impl Run<'_> {
         Ok(())
     }
 
+    fn verify_pending_media(&self, target: &Pending, action: &Action) -> Result<()> {
+        let components = store::lock(self.store)?.components(&target.owner)?;
+        for component in components {
+            if target.retained && component.location.folder == target.folder {
+                continue;
+            }
+            let mut path = self.path(&component.location)?;
+            match action {
+                Action::Move {
+                    source,
+                    destination,
+                    role,
+                    ..
+                } if *role == component.role => {
+                    if Properties::optional(&self.path(source)?)?.is_none() {
+                        if target.retained {
+                            continue;
+                        }
+                        path = self.path(destination)?;
+                    }
+                }
+                Action::Publish {
+                    temporary,
+                    destination,
+                    output:
+                        Output::Media {
+                            role, size, hash, ..
+                        },
+                } if *role == component.role => {
+                    path = self.path(destination)?;
+                    if Properties::optional(&self.path(temporary)?)?.is_none()
+                        && Properties::optional(&path)?.is_some()
+                        && fs::matches(&path, *size, hash, self.cancel)?
+                    {
+                        continue;
+                    }
+                }
+                _ => {}
+            }
+            ensure!(
+                Properties::optional(&path)?.is_none()
+                    || fs::matches(&path, component.size, &component.hash, self.cancel)?,
+                super::Conflict(format!("at {}: locally changed media", path.display()))
+            );
+        }
+        Ok(())
+    }
+
     fn finish_action(
         &self,
         target: &mut Pending,
@@ -288,13 +336,30 @@ impl Run<'_> {
             return Ok(());
         };
         self.check_cancel()?;
+        let current_media = recovering
+            && matches!(
+                action,
+                Action::Move { .. }
+                    | Action::Publish {
+                        output: Output::Media { .. },
+                        ..
+                    }
+            )
+            && store::lock(self.store)?.db.query_row(
+                "SELECT EXISTS(SELECT 1 FROM desired_files WHERE album=?1 AND file=?2 AND failure IS NULL)",
+                params![target.album, target.file],
+                |r| r.get::<_, bool>(0),
+            )?;
+        if current_media {
+            self.verify_pending_media(target, &action)?;
+        }
         match action {
             Action::Directory { source } => {
                 let destination = names::check(self.root, &target.album_path())?;
                 if let Some(source) = source {
                     let source = names::check(self.root, &source)?;
                     if directory_exists(&source)? {
-                        free_rename(&source, &destination)?;
+                        fs::free_rename(&source, &destination)?;
                         disk::rename(&source, &destination)?;
                     } else if !directory_exists(&destination)? {
                         let unrepairable: bool = store::lock(self.store)?
@@ -389,22 +454,21 @@ impl Run<'_> {
                 let from = self.path(&source)?;
                 let to = self.path(&destination)?;
                 if Properties::optional(&from)?.is_some() {
-                    free_rename(&from, &to)?;
-                    fs::create_directory(to.parent().context("move has no parent")?)?;
-                    disk::rename(&from, &to)?;
+                    fs::move_file(&from, &to)?;
                 } else if Properties::optional(&to)?.is_some() {
                     ensure!(
-                        fs::matches(&to, size, &hash, self.cancel)?,
+                        (recovering && (target.retained || !current_media))
+                            || fs::matches(&to, size, &hash, self.cancel)?,
                         super::Conflict(format!("at {}: moved bytes differ", to.display()))
                     );
+                    fs::sync_move(&from, &to)?;
                 } else {
                     ensure!(
-                        !target.retained,
+                        !target.retained || current_media,
                         "retained original is missing at both move endpoints"
                     );
                     return self.clear_action(target);
                 }
-                fs::sync_move(&from, &to)?;
                 let store = store::lock(self.store)?;
                 let transaction = store.db.unchecked_transaction()?;
                 let mut component = store
@@ -553,7 +617,7 @@ impl Run<'_> {
         }
         let from = self.path(&component.location)?;
         let to = self.path(&destination)?;
-        free_rename(&from, &to)?;
+        fs::free_rename(&from, &to)?;
         let properties = Properties::optional(&from)?;
         if properties.is_none() {
             ensure!(!target.retained, "previously published original is missing");
@@ -592,17 +656,6 @@ fn directory_exists(path: &Path) -> Result<bool> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(error) => Err(error.into()),
     }
-}
-
-fn free_rename(source: &Path, destination: &Path) -> Result<()> {
-    ensure!(
-        !destination.try_exists()? || names::same_path(source, destination),
-        super::Conflict(format!(
-            "at {}: occupied rename target",
-            destination.display()
-        ))
-    );
-    Ok(())
 }
 
 impl Run<'_> {
@@ -752,15 +805,11 @@ impl Run<'_> {
         let parent = if retained { "Trash" } else { "" };
         let names = if let Some(existing) = &existing
             && (retained || existing.name == name)
+            && let Some(name) = existing.path.rsplit('/').next()
+            && names::valid(name, true)
+            && names::available(&store, parent, &[name.to_owned()], &owner, "album")?
         {
-            vec![
-                existing
-                    .path
-                    .rsplit('/')
-                    .next()
-                    .context("empty album path")?
-                    .to_owned(),
-            ]
+            vec![name.to_owned()]
         } else {
             names::allocate(&store, parent, name, "album", None, &owner)?
         };
@@ -820,7 +869,7 @@ impl Run<'_> {
             let source = existing.as_ref().map(|album| album.path.clone());
             let destination = names::check(self.root, &target_path)?;
             if let Some(source) = &source {
-                free_rename(&names::check(self.root, source)?, &destination)?;
+                fs::free_rename(&names::check(self.root, source)?, &destination)?;
             } else {
                 ensure!(
                     !destination.try_exists()?,
@@ -925,6 +974,7 @@ impl Run<'_> {
             .collect::<Result<_>>()?;
         let compatible = |names: &[String]| {
             names.len() == roles.len()
+                && names.iter().all(|name| names::valid(name, false))
                 && (roles.len() == 1
                     || names.iter().zip(&extensions).all(|(name, extension)| {
                         names::split(name, false).1 == names::portable(extension)
@@ -940,6 +990,7 @@ impl Run<'_> {
                 && previous.name == file.name
                 && previous.kind == file.kind.as_str()
                 && compatible(&previous.names)
+                && names::available(&store, &album.key, &previous.names, &owner, &file.kind)?
             {
                 return Ok(previous);
             }
@@ -953,7 +1004,8 @@ impl Run<'_> {
         }) && components
             .iter()
             .all(|component| component.location.folder == album.key)
-            && compatible(&existing_names);
+            && compatible(&existing_names)
+            && names::available(&store, &album.key, &existing_names, &owner, &file.kind)?;
         let transaction = store.db.unchecked_transaction()?;
         let names = if unchanged {
             existing_names
@@ -1339,10 +1391,6 @@ impl Run<'_> {
             }
         }
         let components = store::lock(self.store)?.components(&placement.id)?;
-        for component in &components {
-            Properties::read(&self.path(&component.location)?)
-                .context("previously published original is missing")?;
-        }
         let active = store::lock(self.store)?
             .album(placement.album, false)?
             .context("missing active album")?;
@@ -1409,6 +1457,11 @@ impl Run<'_> {
     }
 
     fn finish_retention(&self, target: &mut Pending) -> Result<()> {
+        let restoring: bool = store::lock(self.store)?.db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM desired_files WHERE album=?1 AND file=?2 AND failure IS NULL)",
+            params![target.album, target.file],
+            |r| r.get(0),
+        )?;
         let components = store::lock(self.store)?.components(&target.owner)?;
         for component in &components {
             let name = target_component(target, &component.role)?;
@@ -1416,12 +1469,24 @@ impl Run<'_> {
                 folder: target.folder.clone(),
                 name: name.into(),
             };
-            self.move_media(target, component, location, component.properties.as_ref())?;
+            let from = self.path(&component.location)?;
+            if restoring && Properties::optional(&from)?.is_none() {
+                fs::free_rename(&from, &self.path(&location)?)?;
+                let mut missing = component.clone();
+                missing.location = location;
+                missing.properties = None;
+                missing.intended_time = None;
+                store::lock(self.store)?.save_component(&missing)?;
+            } else {
+                self.move_media(target, component, location, component.properties.as_ref())?;
+            }
         }
         let components = store::lock(self.store)?.components(&target.owner)?;
         for component in &components {
-            Properties::read(&self.path(&component.location)?)
-                .context("retained original is missing")?;
+            if !restoring {
+                Properties::read(&self.path(&component.location)?)
+                    .context("retained original is missing")?;
+            }
             let previous = store::lock(self.store)?
                 .json_record(&target.owner, Some(&component.role))?
                 .context("missing retained metadata")?;
@@ -1536,9 +1601,21 @@ impl Run<'_> {
             |r| r.get(0),
         )?;
         ensure!(!incomplete, "album has unfinished retention");
-        self.retained_album(&active)?;
+        let (bound, record) = {
+            let store = store::lock(self.store)?;
+            (
+                store
+                    .db
+                    .query_row("SELECT bound FROM export WHERE id=1", [], |r| {
+                        r.get::<_, bool>(0)
+                    })?,
+                store.json_record(&active.key, None)?,
+            )
+        };
+        if bound || record.is_some() {
+            self.retained_album(&active)?;
+        }
         let mut target = self.album_target(id, &active.name, false)?;
-        let record = store::lock(self.store)?.json_record(&active.key, None)?;
         if let Some(record) = record
             && let Some(location) = record.location
         {
@@ -1564,7 +1641,7 @@ impl Run<'_> {
         store
             .db
             .execute(
-                "DELETE FROM albums WHERE key=?1 AND NOT EXISTS(SELECT 1 FROM temporaries WHERE folder=?1)",
+                "DELETE FROM albums WHERE key=?1 AND (SELECT bound FROM export WHERE id=1)=1 AND NOT EXISTS(SELECT 1 FROM temporaries WHERE folder=?1)",
                 [&active.key],
             )?;
         store.clear_pending(&target.owner)?;

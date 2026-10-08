@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "win32_window.h"
+#include "window_geometry_channel.h"
 
 class FlutterWindow : public Win32Window {
  public:
@@ -23,6 +24,8 @@ class FlutterWindow : public Win32Window {
   flutter::DartProject project_;
 
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
+      geometry_channel_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

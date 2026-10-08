@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use ente_core::crypto::hash;
-use ente_photos_export::{AdoptionRequired, Export};
+use ente_photos_export::Export;
 use tokio::sync::watch;
 
 use crate::{
@@ -26,13 +26,6 @@ pub async fn run(args: ExportArgs, selected: Option<&str>, options: &Options) ->
         runtime.block_on(run_locked(args, selected.as_deref(), as_json))
     })
     .await?
-    .map_err(|error| {
-        if error.is::<AdoptionRequired>() {
-            error.context("this export requires --adopt")
-        } else {
-            error
-        }
-    })
 }
 
 async fn run_locked(args: ExportArgs, selected: Option<&str>, as_json: bool) -> Result<()> {
@@ -81,7 +74,14 @@ async fn run_locked(args: ExportArgs, selected: Option<&str>, as_json: bool) -> 
         let mut source_db = db::open(&account_home.path, &account.db_key, true)?;
         let mut source = source::ReplicaSource::new(&mut source_db, session.user_id);
         export
-            .prepare(connection, &mut source, &session, &mut cancel, &report)
+            .prepare(
+                connection,
+                db::scratch,
+                &mut source,
+                &session,
+                &mut cancel,
+                &report,
+            )
             .await?;
         drop(source);
         drop(source_db);

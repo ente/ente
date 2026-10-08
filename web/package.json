@@ -57,7 +57,16 @@
     "overrides": {
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
-        "base-x": "5.0.1"
+        "base-x": "5.0.1",
+        "concurrently": {
+            "shell-quote": "1.11.0"
+        },
+        "micromark-extension-math": {
+            "katex": "0.18.2"
+        },
+        "rehype-katex": {
+            "katex": "0.18.2"
+        }
     },
     "devDependencies": {
         "concurrently": "10.0.4",

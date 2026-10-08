@@ -17,8 +17,7 @@ dependencies:
   backup_exclusion:
     path: ../../packages/backup_exclusion
   bip39: 1.0.6
-  camera: 0.11.2+1
-  chewie: 1.13.0
+  camera: 0.12.1
   collection: 1.19.1
   computer: # logged task name in verbose in fork
     git:

@@ -320,7 +320,7 @@ export const FriendQuickActionsDialog: React.FC<
                                     animation: "none",
                                 },
                                 ...(action.icon == BubbleChatIcon && {
-                                    "& svg path:first-of-type": {
+                                    "& svg path:last-of-type": {
                                         display: "none",
                                     },
                                 }),

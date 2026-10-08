@@ -45,6 +45,17 @@ impl Context {
         Self::spawn(move || LocalContext::new(&model, params))
     }
 
+    pub fn new_title(
+        model: &ModelRef,
+        chat_context_size: u32,
+        n_threads: Option<i32>,
+    ) -> Result<ContextRef, Error> {
+        Self::new(
+            model,
+            super::memory::title_context_params(chat_context_size, n_threads),
+        )
+    }
+
     pub fn new_embedding(
         model: &ModelRef,
         params: EmbeddingContextParams,
@@ -63,6 +74,13 @@ impl Context {
 
     pub fn context_size(&self) -> u32 {
         self.context_size
+    }
+
+    pub fn release_multimodal(&self) {
+        let _ = self.worker.call(|context| {
+            context.release_multimodal();
+            Ok(())
+        });
     }
 
     pub fn embed(&self, query: &str) -> Result<Vec<f32>, Error> {
@@ -209,6 +227,11 @@ pub(super) struct LocalContext {
 impl LocalContext {
     pub fn context_size(&self) -> u32 {
         lock(&self.state).cell.borrow_dependent().n_ctx()
+    }
+
+    fn release_multimodal(&self) {
+        let _state = lock(&self.state);
+        *lock(&self.mtmd_context) = None;
     }
 
     fn try_new(

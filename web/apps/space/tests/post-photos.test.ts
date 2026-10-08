@@ -1,5 +1,58 @@
 import { expect, test } from "vitest";
-import { viewerPhotosFromPost } from "../src/utils/post-photos";
+import {
+    spacePostFrameAspectRatio,
+    viewerPhotosFromPost,
+} from "../src/utils/post-photos";
+
+test("matching portrait videos use their full frame before and after publication", () => {
+    const drafts = [
+        { width: 1440, height: 2560 },
+        { width: 720, height: 1280 },
+        { width: 720, height: 1280 },
+    ];
+    const published = drafts.map(() => ({ width: 576, height: 1024 }));
+
+    expect(spacePostFrameAspectRatio(drafts)).toBe(9 / 16);
+    expect(spacePostFrameAspectRatio(published)).toBe(9 / 16);
+});
+
+test.each([0, 1, 2])(
+    "mixed video ratios use a square frame with cover index %i",
+    (coverIndex) => {
+        const videos = [
+            { width: 1920, height: 1080 },
+            { width: 1080, height: 1080 },
+            { width: 1080, height: 1920 },
+        ];
+        const drafts = [
+            ...videos.slice(coverIndex),
+            ...videos.slice(0, coverIndex),
+        ];
+        const published = drafts.map(({ width, height }) => ({
+            width: width / 2,
+            height: height / 2,
+        }));
+
+        expect(spacePostFrameAspectRatio(drafts)).toBe(1);
+        expect(spacePostFrameAspectRatio(published)).toBe(1);
+    },
+);
+
+test("a single portrait keeps the feed height limit", () => {
+    expect(spacePostFrameAspectRatio([{ width: 720, height: 1280 }])).toBe(
+        3 / 4,
+    );
+});
+
+test("matching ratios tolerate rounding during resizing", () => {
+    expect(
+        spacePostFrameAspectRatio([
+            { width: 1920, height: 1080 },
+            { width: 1024, height: 576 },
+            { width: 854, height: 480 },
+        ]),
+    ).toBe(16 / 9);
+});
 
 test("profile navigation groups photos under their post and resets each counter", () => {
     const posts = [

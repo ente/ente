@@ -1,0 +1,1 @@
+- Fixed the photo editor reappearing without its tools after cancelling an edit.

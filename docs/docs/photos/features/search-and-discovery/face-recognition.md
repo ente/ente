@@ -31,6 +31,8 @@ Open `Settings > Machine learning`, enable **Machine learning** and/or **Local i
 
 Open `Settings > Preferences > Machine learning`, enable **Machine learning** and/or **Local indexing**, and monitor indexing progress.
 
+![Enable machine learning button highlighted on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-ml-enable-callout.png){width=720px}
+
 > [!NOTE]
 >
 > Face recognition is not available on photos.ente.com. You must use the mobile or desktop app.
@@ -50,6 +52,8 @@ After enabling face recognition:
 - Keep the app open during initial indexing
 - Once indexed on one device, the indexes sync to other devices
 
+![Machine learning indexing progress showing Enabled and Processed percent on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-ml-indexing-progress.png){width=720px}
+
 Learn more about [Machine learning](/photos/features/search-and-discovery/machine-learning).
 
 ## Using Face Recognition
@@ -65,6 +69,8 @@ Learn more about [Machine learning](/photos/features/search-and-discovery/machin
 **On desktop:**
 
 - Access the People section through the top tab
+
+![Named person with populated memories on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-face-named-person.png){width=720px}
 
 ### Naming persons
 
@@ -84,6 +90,12 @@ Once faces are grouped, you can assign names to identify people:
 2. Click **Add a name**
 3. If other named people exist, search for and select the person, or select **New person** to create one
 4. When creating a new person, enter the name and click **Add**
+
+![New person tile highlighted in the Add name dialog on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-face-add-name-callout.png){width=720px}
+
+![New person dialog with name entered on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-face-new-person-dialog.png){width=720px}
+
+![Named person with populated memories on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-face-named-person.png){width=720px}
 
 After naming, you can search for that person by typing their name in the search bar.
 
@@ -121,6 +133,8 @@ If the same person is split into multiple groupings, you can merge them by assig
 - Similarly, use the **Add a name** button
 - Select an existing person from the list to merge
 
+![Merge by selecting an existing named person in Add name on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-face-merge-callout.png){width=720px}
+
 ### De-merging persons
 
 If incorrectly grouped faces were merged, you can undo the merge.
@@ -128,9 +142,9 @@ If incorrectly grouped faces were merged, you can undo the merge.
 **On mobile:**
 
 1. Open the person
-2. Tap **Review suggestions**
-3. Tap the **History icon** (top right)
-4. Tap the **minus icon** beside the group you want to de-merge
+2. Open **More**, then **Edit**
+3. Scroll to the **Merged photos** section
+4. Tap the **minus** on the cluster you want to de-merge
 
 **On desktop:**
 
@@ -139,6 +153,8 @@ If incorrectly grouped faces were merged, you can undo the merge.
 3. Click the **history icon** (top right)
 4. Undo previous merges if necessary
 
+![Red minus on a merged face cluster highlighted in Edit person on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-face-demerge-callout.png){width=360px}
+
 ### Removing incorrect faces from a person
 
 Sometimes the wrong face gets grouped with a person. You can remove incorrect faces:
@@ -146,29 +162,33 @@ Sometimes the wrong face gets grouped with a person. You can remove incorrect fa
 **On mobile:**
 
 1. Open the person from the People section
-2. Tap the three dots (overflow menu)
-3. Select **Edit**
-4. Long-press on photos with incorrect faces
-5. Select the photos to remove
-6. Tap **Remove** from the action bar
+2. Open **More**, then **Edit**
+3. Under **Merged photos**, tap the cluster containing the incorrect faces
+4. Long-press photos with incorrect faces and select them
+5. Swipe the action bar if needed, then tap **Not this person?**
 
 **On desktop:**
 
 - Currently, editing face groupings is only supported on mobile
 - Desktop can view and name persons, but not modify groupings
 
+![Not this person action highlighted after selecting a face photo on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-face-remove-callout.png){width=360px}
+
 ### Changing the cover photo for a person
 
 **On mobile:**
 
 1. Open the person grouping
-2. Long-press the image you want as the cover
-3. Tap **Use as cover**
+2. Open **More**
+3. Tap **Set cover**
+4. Choose the photo to use as the cover
 
 **On desktop:**
 
 - Desktop currently doesn't support picking a cover
 - It defaults to the most recent image
+
+![Set cover menu row highlighted on a person page on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-face-set-cover-callout.png){width=360px}
 
 ### Ignoring certain persons
 
@@ -190,6 +210,8 @@ You can tell the app not to show certain face groupings.
 
 - Use the **Ignore** option from the top right menu
 - To undo, open that person via file info and select **Show person**
+
+![Ignore person menu row highlighted on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-face-ignore-callout.png){width=720px}
 
 ## Special Cases
 

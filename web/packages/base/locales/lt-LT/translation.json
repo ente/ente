@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Privačios atsarginės kopijos<br/>jūsų prisiminimams",
     "intro_slide_1": "Pagal numatytąjį užšifruota visapusiškai",
     "intro_slide_2_title": "Saugiai saugoma<br/>priešgaisrinėje slėptuvėje",
@@ -955,6 +959,8 @@
     "hide": "Slėpti",
     "unhide": "Rodyti",
     "sort_by": "Rikiuoti pagal",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Naujausią pirmiausiai",
     "oldest_first": "Seniausią pirmiausiai",
     "most_relevant": "Aktualiausią",

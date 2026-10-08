@@ -2,7 +2,10 @@ import { encryptBox, openSpaceAccountContext } from "ente-space-wasm";
 import { afterEach, expect, test, vi } from "vitest";
 import { CachedSpacePost } from "../src/services/post-cache";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+});
 
 const photo = (index: number) => ({
     bytes: new TextEncoder().encode("RIFF\x04\x00\x00\x00WEBP"),
@@ -232,16 +235,168 @@ test("copies typed-array photo bytes without JavaScript iteration", async () => 
 });
 
 test("a failed photo upload does not publish a partial post", async () => {
+    vi.useFakeTimers();
     const { ctx, calls, createPhotoPost } = await uploadFixture(true);
     try {
-        await expect(
+        const failure = expect(
             createPhotoPost(
                 "test-space",
                 [photo(0), photo(1), photo(2)],
                 "Caption",
             ),
         ).rejects.toThrow();
+        await vi.runAllTimersAsync();
+        await failure;
         expect(calls).not.toContain("POST /spaces/test-space/posts");
+    } finally {
+        ctx.free();
+    }
+});
+
+test.each([429, 503, "network"] as const)(
+    "retries a %s transfer failure using the same bytes and upload URL",
+    async (failure) => {
+        vi.useFakeTimers();
+        const bodies: ArrayBuffer[] = [];
+        const urls: string[] = [];
+        const { ctx, calls, createPhotoPost } = await uploadFixture(
+            false,
+            (request) => {
+                if (request.method != "PUT") return undefined;
+                return (async () => {
+                    urls.push(request.url);
+                    bodies.push(await request.arrayBuffer());
+                    if (bodies.length == 1) {
+                        if (failure == "network")
+                            throw new TypeError("Failed to fetch");
+                        return new Response("", { status: failure });
+                    }
+                    return new Response("", { status: 200 });
+                })();
+            },
+        );
+        try {
+            const publication = createPhotoPost(
+                "test-space",
+                [photo(0)],
+                "Caption",
+            );
+            await vi.runAllTimersAsync();
+            await expect(publication).resolves.toMatchObject({ postId: 501 });
+            expect(urls).toHaveLength(2);
+            expect(urls[1]).toBe(urls[0]);
+            expect(bodies[1]).toEqual(bodies[0]);
+            expect(
+                calls.filter((call) => call.endsWith("/uploads/presign")),
+            ).toHaveLength(1);
+        } finally {
+            ctx.free();
+        }
+    },
+);
+
+test("retries a lost creation response with an identical request", async () => {
+    vi.useFakeTimers();
+    let lostRequest: UploadedPost | undefined;
+    let attempts = 0;
+    const { ctx, created, createPhotoPost } = await uploadFixture(
+        false,
+        (request) => {
+            if (request.method != "POST" || !request.url.endsWith("/posts"))
+                return undefined;
+            attempts += 1;
+            if (attempts > 1) return undefined;
+            return (async () => {
+                lostRequest = (await request.json()) as UploadedPost;
+                throw new TypeError("Response lost");
+            })();
+        },
+    );
+    try {
+        const publication = createPhotoPost(
+            "test-space",
+            [photo(0)],
+            "Caption",
+        );
+        await vi.runAllTimersAsync();
+        await expect(publication).resolves.toMatchObject({ postId: 501 });
+        expect(attempts).toBe(2);
+        expect(created()).toEqual(lostRequest);
+        expect(lostRequest!.clientRequestId).toBeTruthy();
+    } finally {
+        ctx.free();
+    }
+});
+
+test("preserves the unfinished upload limit code without retrying it", async () => {
+    let attempts = 0;
+    const { ctx, createPhotoPost } = await uploadFixture(false, (request) => {
+        if (!request.url.endsWith("/uploads/presign")) return undefined;
+        attempts += 1;
+        return Promise.resolve(
+            Response.json(
+                { code: "SPACE_UPLOAD_LIMIT_REACHED" },
+                { status: 429 },
+            ),
+        );
+    });
+    try {
+        await expect(
+            createPhotoPost("test-space", [photo(0)], "Caption"),
+        ).rejects.toMatchObject({
+            status: 429,
+            code: "SPACE_UPLOAD_LIMIT_REACHED",
+        });
+        expect(attempts).toBe(1);
+    } finally {
+        ctx.free();
+    }
+});
+
+test.each([503, "network"] as const)(
+    "exposes structured diagnostics after exhausting %s upload retries",
+    async (failure) => {
+        vi.useFakeTimers();
+        const { ctx, createPhotoPost } = await uploadFixture(
+            false,
+            (request) => {
+                if (request.method != "PUT") return undefined;
+                if (failure == "network")
+                    return Promise.reject(new TypeError("Failed to fetch"));
+                return Promise.resolve(new Response("", { status: failure }));
+            },
+        );
+        try {
+            const rejection = expect(
+                createPhotoPost("test-space", [photo(0)], "Caption"),
+            ).rejects.toMatchObject(
+                failure == "network"
+                    ? { code: "network_error" }
+                    : { status: 503 },
+            );
+            await vi.runAllTimersAsync();
+            await rejection;
+        } finally {
+            ctx.free();
+        }
+    },
+);
+
+test("exposes the permanent post limit as a diagnostic code", async () => {
+    const { ctx, createPhotoPost } = await uploadFixture(false, (request) => {
+        if (request.method != "POST" || !request.url.endsWith("/posts"))
+            return undefined;
+        return Promise.resolve(
+            Response.json({ code: "CONFLICT" }, { status: 409 }),
+        );
+    });
+    try {
+        await expect(
+            createPhotoPost("test-space", [photo(0)], "Caption"),
+        ).rejects.toMatchObject({
+            name: "post_limit_reached",
+            code: "post_limit_reached",
+        });
     } finally {
         ctx.free();
     }

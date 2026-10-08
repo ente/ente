@@ -93,6 +93,19 @@ Duplicates can occur:
 >
 > Special mention to l1br3770 for his [detailed guide](https://www.reddit.com/r/enteio/comments/1jyxk4b/howto_migration_from_google_photos_pitfalls/).
 
+### I imported Google Takeout, but the same photos are on my Android phone. How do I avoid uploading them again? {#takeout-android-existing-photos}
+
+Ente skips files that match an existing backup. If Google Photos compressed or edited a photo, the copy on your phone may be different and could upload again.
+
+To back up new phone photos without uploading your existing folders again:
+
+1. When you sign in to Ente on Android, choose to set up backup later.
+2. Let your Ente library sync to the app.
+3. Open `Settings > Backup > Backup settings` and turn on **Backup only new photos**.
+4. Open `Settings > Backup > Backed up folders` and select the folders where you save new photos, such as **Camera**.
+
+The setting uses the time you turn it on as the cutoff. Older photos in those folders will not be uploaded. See [Backup only new photos](/photos/faq/backup-and-sync#backup-only-new-photos) for details.
+
 ### Will Ente automatically clean up a messy, duplicate-filled library when I import it? {#dedup-before-import-messy-library}
 
 Not entirely. Ente's deduplication only catches exact duplicates - same file name and hash. If any service compressed some of your originals, for example using Storage saver, the compressed and original versions have different hashes and won't be detected as duplicates.

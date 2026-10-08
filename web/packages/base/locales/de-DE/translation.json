@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Private Sicherungen<br/>für Ihre Erinnerungen",
     "intro_slide_1": "Standardmäßig Ende-zu-Ende verschlüsselt",
     "intro_slide_2_title": "Sicher gespeichert<br/>in einem Luftschutzbunker",
@@ -955,6 +959,8 @@
     "hide": "Ausblenden",
     "unhide": "Einblenden",
     "sort_by": "Sortieren nach",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Neueste zuerst",
     "oldest_first": "Älteste zuerst",
     "most_relevant": "Relevanteste",

@@ -4,12 +4,19 @@ import { Box, Skeleton } from "@mui/material";
 import { keyframes } from "@mui/material/styles";
 import { SpacePostVideoBadge } from "components/PostPhotosBadge";
 import React from "react";
+import {
+    spaceControlBackground,
+    spaceControlBackgroundHover,
+    spaceText,
+} from "styles/colors";
 import { maxSpacePostPhotos, movePostPhoto } from "utils/post-photos";
 
 interface StripPhoto {
     id: number;
     imageUrl?: string;
     isLoading?: boolean;
+    hasError?: boolean;
+    isVideo?: boolean;
     durationMs?: number;
 }
 
@@ -30,7 +37,7 @@ const iconButtonSx = {
     alignItems: "center",
     background: "none",
     border: 0,
-    color: "#D8D8D8",
+    color: spaceText,
     cursor: "pointer",
     display: "flex",
     justifyContent: "center",
@@ -240,11 +247,22 @@ export const SpacePostPhotoStrip: React.FC<{
                         pointerEvents: "none",
                     }}
                 />
+            ) : photo.hasError ? (
+                <Box
+                    component="span"
+                    sx={{ color: "#FF8A8A", fontSize: 20, fontWeight: 700 }}
+                >
+                    !
+                </Box>
             ) : (
                 <Skeleton
                     animation="wave"
                     variant="rectangular"
-                    sx={{ width: "100%", height: "100%", bgcolor: "#242424" }}
+                    sx={{
+                        width: "100%",
+                        height: "100%",
+                        bgcolor: spaceControlBackground,
+                    }}
                 />
             )}
             <SpacePostVideoBadge durationMs={photo.durationMs} size={12} />
@@ -311,7 +329,7 @@ export const SpacePostPhotoStrip: React.FC<{
                                         component="button"
                                         type="button"
                                         data-photo-index={index}
-                                        aria-label={`${photo.durationMs ? "Video" : "Photo"} ${index + 1}`}
+                                        aria-label={`${photo.isVideo || photo.durationMs ? "Video" : "Photo"} ${index + 1}${photo.hasError ? ", couldn't prepare" : ""}`}
                                         aria-pressed={
                                             photo.id == photos[activeIndex]?.id
                                         }
@@ -350,11 +368,10 @@ export const SpacePostPhotoStrip: React.FC<{
                                         }}
                                         sx={{
                                             ...iconButtonSx,
-                                            bgcolor: "#242424",
+                                            bgcolor: spaceControlBackground,
                                             outline:
-                                                photo.imageUrl &&
                                                 photo.id ==
-                                                    photos[activeIndex]?.id
+                                                photos[activeIndex]?.id
                                                     ? "1.5px solid #FFFFFF"
                                                     : "none",
                                             outlineOffset: "-1.5px",
@@ -399,7 +416,8 @@ export const SpacePostPhotoStrip: React.FC<{
                                                     component="span"
                                                     sx={{
                                                         alignItems: "center",
-                                                        bgcolor: "#3A3A3A",
+                                                        bgcolor:
+                                                            spaceControlBackgroundHover,
                                                         border: "1px solid #000000",
                                                         borderRadius: "50%",
                                                         display: "flex",
@@ -428,7 +446,7 @@ export const SpacePostPhotoStrip: React.FC<{
                                 onClick={onAdd}
                                 sx={{
                                     ...iconButtonSx,
-                                    bgcolor: "#242424",
+                                    bgcolor: spaceControlBackground,
                                     borderRadius: "9px",
                                     flexShrink: 0,
                                     width: photoSize,
@@ -482,7 +500,7 @@ export const SpacePostPhotoStrip: React.FC<{
                         borderRadius: "9px",
                         outline: "1.5px solid #FFFFFF",
                         outlineOffset: "-1.5px",
-                        bgcolor: "#242424",
+                        bgcolor: spaceControlBackground,
                         overflow: "hidden",
                         boxShadow: "0 4px 12px #00000088",
                         transform: "scale(1.04)",

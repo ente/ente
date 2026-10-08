@@ -1,0 +1,1 @@
+- Improved gallery layout calculation speed for the internal Justified · Flex option, especially on wider screens.

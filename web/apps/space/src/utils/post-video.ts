@@ -1,3 +1,4 @@
+import { logToDisk } from "ente-base/log-web";
 import type { FFmpegCommand } from "ente-base/types/ipc";
 import type { PreparedSpacePostImage } from "utils/post-image";
 import { thumbHashBase64FromCanvas } from "utils/thumbhash";
@@ -20,6 +21,10 @@ export interface SpaceVideoInfo {
 }
 
 export const maxSpaceVideoDuration = 10;
+
+const useSoftwareVideoFrames = () =>
+    navigator.userAgent.includes("Android") &&
+    navigator.userAgent.includes("Firefox/");
 
 export const isSpaceVideoFile = (file: File) =>
     file.type.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/i.test(file.name);
@@ -44,13 +49,21 @@ const waitForVideo = (
     signal?: AbortSignal,
 ) =>
     new Promise<void>((resolve, reject) => {
+        let frameCallback: number | undefined;
         const finish = (error?: Error) => {
             window.clearTimeout(timer);
+            if (frameCallback != undefined)
+                video.cancelVideoFrameCallback(frameCallback);
             video.removeEventListener(event, ready);
             video.removeEventListener("error", failed);
             signal?.removeEventListener("abort", abort);
-            if (error) reject(error);
-            else resolve();
+            if (error) {
+                if (!signal?.aborted)
+                    logToDisk(
+                        `[error] Space video event=${event} failed code=${video.error?.code ?? 0} readyState=${video.readyState} networkState=${video.networkState}`,
+                    );
+                reject(error);
+            } else resolve();
         };
         const ready = () => finish();
         const failed = () =>
@@ -60,13 +73,18 @@ const waitForVideo = (
             () => finish(new Error("The video took too long to load.")),
             30_000,
         );
-        video.addEventListener(event, ready, { once: true });
+        if (
+            event == "loadeddata" &&
+            typeof video.requestVideoFrameCallback == "function"
+        )
+            frameCallback = video.requestVideoFrameCallback(ready);
+        else video.addEventListener(event, ready, { once: true });
         video.addEventListener("error", failed, { once: true });
         signal?.addEventListener("abort", abort, { once: true });
         if (signal?.aborted) abort();
     });
 
-export const openSpaceVideo = async (file: Blob, signal?: AbortSignal) => {
+const openSpaceVideo = async (file: Blob, signal?: AbortSignal) => {
     signal?.throwIfAborted();
     const video = document.createElement("video");
     const url = URL.createObjectURL(file);
@@ -91,7 +109,7 @@ export const openSpaceVideo = async (file: Blob, signal?: AbortSignal) => {
     }
 };
 
-export const seekSpaceVideo = async (
+const seekSpaceVideo = async (
     video: HTMLVideoElement,
     time: number,
     signal?: AbortSignal,
@@ -104,8 +122,15 @@ export const seekSpaceVideo = async (
     await ready;
 };
 
-export const spaceVideoInfo = async (file: File): Promise<SpaceVideoInfo> => {
-    const { video, dispose } = await openSpaceVideo(file);
+export const spaceVideoInfo = async (
+    file: File,
+    signal?: AbortSignal,
+): Promise<SpaceVideoInfo> => {
+    if (useSoftwareVideoFrames()) {
+        const { determineVideoInfoWeb } = await import("./video-encoding/web");
+        return determineVideoInfoWeb(file, signal);
+    }
+    const { video, dispose } = await openSpaceVideo(file, signal);
     try {
         if (!Number.isFinite(video.duration) || video.duration <= 0)
             throw new Error("This video has no readable duration.");
@@ -119,46 +144,102 @@ export const spaceVideoInfo = async (file: File): Promise<SpaceVideoInfo> => {
     }
 };
 
+export const spaceVideoFrames = async (
+    file: Blob,
+    times: number[],
+    maxDimension: number,
+    signal?: AbortSignal,
+) => {
+    const startedAt = Date.now();
+    const software = useSoftwareVideoFrames();
+    const frames: HTMLCanvasElement[] = [];
+    const draw = (source: CanvasImageSource, width: number, height: number) => {
+        const scale = Math.min(1, maxDimension / Math.max(width, height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Couldn't prepare the video cover.");
+        context.drawImage(source, 0, 0, canvas.width, canvas.height);
+        const sample = document.createElement("canvas");
+        sample.width = sample.height = 1;
+        const sampleContext = sample.getContext("2d")!;
+        sampleContext.drawImage(canvas, 0, 0, 1, 1);
+        if (sampleContext.getImageData(0, 0, 1, 1).data[3] == 0)
+            throw new Error("Couldn't read a video frame. Please try again.");
+        frames.push(canvas);
+    };
+    try {
+        if (software) {
+            const { extractVideoFramesWeb } =
+                await import("./video-encoding/web");
+            const blobs = await extractVideoFramesWeb(
+                file,
+                times,
+                maxDimension,
+                signal,
+            );
+            for (const blob of blobs) {
+                signal?.throwIfAborted();
+                const bitmap = await createImageBitmap(blob);
+                try {
+                    draw(bitmap, bitmap.width, bitmap.height);
+                } finally {
+                    bitmap.close();
+                }
+            }
+        } else {
+            const { video, dispose } = await openSpaceVideo(file, signal);
+            try {
+                for (const time of times) {
+                    await seekSpaceVideo(video, time, signal);
+                    draw(video, video.videoWidth, video.videoHeight);
+                }
+            } finally {
+                dispose();
+            }
+        }
+        logToDisk(
+            `[info] Space video frames backend=${software ? "wasm" : "browser"} count=${frames.length} bytes=${file.size} elapsedMs=${Date.now() - startedAt}`,
+        );
+        return frames;
+    } catch (error) {
+        if (!signal?.aborted)
+            logToDisk(
+                `[error] Space video frames failed backend=${software ? "wasm" : "browser"} count=${frames.length}/${times.length} bytes=${file.size} elapsedMs=${Date.now() - startedAt}`,
+            );
+        throw error;
+    }
+};
+
 export const spaceVideoCover = async (
     file: Blob,
     time: number,
     signal?: AbortSignal,
 ): Promise<PreparedSpacePostImage> => {
-    const { video, dispose } = await openSpaceVideo(file, signal);
-    try {
-        await seekSpaceVideo(video, time, signal);
-        const scale = Math.min(
-            1,
-            1280 / Math.max(video.videoWidth, video.videoHeight),
-        );
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(video.videoWidth * scale);
-        canvas.height = Math.round(video.videoHeight * scale);
-        const context = canvas.getContext("2d");
-        if (!context) throw new Error("Couldn't prepare the video cover.");
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const thumbHash = thumbHashBase64FromCanvas(canvas);
-        const blob = await new Promise<Blob>((resolve, reject) =>
-            canvas.toBlob(
-                (blob) =>
-                    blob
-                        ? resolve(blob)
-                        : reject(
-                              new Error("Couldn't prepare the video cover."),
-                          ),
-                "image/webp",
-                0.85,
-            ),
-        );
-        return {
-            file: new File([blob], "cover.webp", { type: blob.type }),
-            width: canvas.width,
-            height: canvas.height,
-            thumbHash,
-        };
-    } finally {
-        dispose();
-    }
+    const [canvas] = await spaceVideoFrames(file, [time], 960, signal);
+    if (!canvas) throw new Error("Couldn't prepare the video cover.");
+    const thumbHash = thumbHashBase64FromCanvas(canvas);
+    const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(
+            (blob) =>
+                blob
+                    ? resolve(blob)
+                    : reject(new Error("Couldn't prepare the video cover.")),
+            "image/webp",
+            0.8,
+        ),
+    );
+    signal?.throwIfAborted();
+    logToDisk(
+        `[info] Space video cover prepared width=${canvas.width} height=${canvas.height} bytes=${blob.size}`,
+    );
+    return {
+        file: new File([blob], "cover.webp", { type: blob.type }),
+        width: canvas.width,
+        height: canvas.height,
+        thumbHash,
+    };
 };
 
 const videoExportCommand = (
@@ -175,7 +256,7 @@ const videoExportCommand = (
     "0:v:0",
     ...(edit.muted
         ? ["-an"]
-        : ["-map", "0:a:0?", "-c:a", "aac", "-b:a", "192k"]),
+        : ["-map", "0:a:0?", "-c:a", "aac", "-b:a", "128k"]),
     "-map_metadata",
     "-1",
     "-map_metadata:s",
@@ -185,7 +266,7 @@ const videoExportCommand = (
     "-vf",
     [
         "fps=30:start_time=0",
-        "scale=w='trunc(iw*min(1,min(1920/max(iw,ih),1080/min(iw,ih)))/2)*2':h='trunc(ih*min(1,min(1920/max(iw,ih),1080/min(iw,ih)))/2)*2'",
+        "scale=w='trunc(iw*min(1,min(1280/max(iw,ih),720/min(iw,ih)))/2)*2':h='trunc(ih*min(1,min(1280/max(iw,ih),720/min(iw,ih)))/2)*2'",
         ...(hdr
             ? [
                   "zscale=transfer=linear",
@@ -201,11 +282,11 @@ const videoExportCommand = (
     "-preset",
     "veryfast",
     "-crf",
-    "20",
+    "23",
     "-maxrate",
-    "8M",
+    "4M",
     "-bufsize",
-    "16M",
+    "8M",
     "-movflags",
     "+faststart",
     outputPathPlaceholder,
@@ -216,7 +297,7 @@ const exports = new WeakMap<
     { key: string; file: File; durationMs: number }
 >();
 
-export const prepareSpaceVideo = async (
+const exportSpaceVideo = async (
     file: File,
     edit: SpacePostVideoEdit,
     signal?: AbortSignal,
@@ -245,6 +326,7 @@ export const prepareSpaceVideo = async (
         if (output.size > 15 * 1024 * 1024 - 42)
             throw new Error("This video is too large. Try a shorter trim.");
         const outputDuration = await determineVideoDurationWeb(output, signal);
+        signal?.throwIfAborted();
         if (
             !Number.isFinite(outputDuration) ||
             outputDuration <= 0 ||
@@ -258,6 +340,29 @@ export const prepareSpaceVideo = async (
         };
         exports.set(file, exported);
     }
+    return { file: exported.file, durationMs: exported.durationMs };
+};
+
+export const startSpaceVideoExport = (file: File, edit: SpacePostVideoEdit) => {
+    const controller = new AbortController();
+    return {
+        edit: { ...edit },
+        promise: exportSpaceVideo(file, edit, controller.signal),
+        cancel: () => controller.abort(),
+    };
+};
+
+export type SpaceVideoExport = ReturnType<typeof startSpaceVideoExport>;
+
+export const prepareSpaceVideo = async (
+    file: File,
+    edit: SpacePostVideoEdit,
+    signal?: AbortSignal,
+    pendingExport?: SpaceVideoExport["promise"],
+) => {
+    signal?.throwIfAborted();
+    const exported = await (pendingExport ??
+        exportSpaceVideo(file, edit, signal));
     signal?.throwIfAborted();
     const cover = await spaceVideoCover(
         exported.file,

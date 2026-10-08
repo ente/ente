@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:ente_auth/services/preference_service.dart';
+import 'package:ente_auth/services/windows_window_placement.dart';
 import 'package:flutter/widgets.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +19,7 @@ class WindowListenerService with WindowListener, TrayListener {
   static const double maxWindowHeight = 8192.0;
   static const double maxWindowWidth = 8192.0;
   late SharedPreferences _preferences;
+  WindowsWindowPlacement? _windowsPlacement;
   bool _isListening = false;
   bool _isQuitting = false;
   bool _isOneOffWindowed = false;
@@ -32,6 +34,9 @@ class WindowListenerService with WindowListener, TrayListener {
 
   Future<void> init() async {
     _preferences = await SharedPreferences.getInstance();
+    if (Platform.isWindows) {
+      _windowsPlacement ??= WindowsWindowPlacement(_preferences);
+    }
     // Snapshot at launch: toggling the setting mid-session persists the pref
     // but must not reroute window behavior until restart, since the
     // startup-only window setup (title bar, size, activation policy) only
@@ -71,11 +76,33 @@ class WindowListenerService with WindowListener, TrayListener {
     return _preferences.getBool('is_maximized') ?? initialIsMaximized;
   }
 
+  Future<bool> restoreWindowPlacement(bool wasMaximized) async {
+    return await _windowsPlacement?.restore(_savedWindowSize(), wasMaximized) ??
+        wasMaximized;
+  }
+
+  Future<void> finishWindowRestore() async {
+    await _windowsPlacement?.startSaving();
+  }
+
   @override
   void onWindowResize() {
+    if (_windowsPlacement != null) return;
     if (isMenubarMode() && !_isOneOffWindowed) return;
     unawaited(_saveWindowSize());
   }
+
+  @override
+  void onWindowMoved() => unawaited(_windowsPlacement?.save());
+
+  @override
+  void onWindowResized() => unawaited(_windowsPlacement?.save());
+
+  @override
+  void onWindowMinimize() => unawaited(_windowsPlacement?.save());
+
+  @override
+  void onWindowRestore() => unawaited(_windowsPlacement?.save());
 
   Future<void> _saveWindowSize() async {
     final width = (await windowManager.getSize()).width;
@@ -86,11 +113,19 @@ class WindowListenerService with WindowListener, TrayListener {
 
   @override
   void onWindowMaximize() {
+    if (_windowsPlacement != null) {
+      unawaited(_windowsPlacement!.save(maximized: true));
+      return;
+    }
     unawaited(_preferences.setBool('is_maximized', true));
   }
 
   @override
   void onWindowUnmaximize() {
+    if (_windowsPlacement != null) {
+      unawaited(_windowsPlacement!.save(maximized: false));
+      return;
+    }
     unawaited(_preferences.setBool('is_maximized', false));
   }
 
@@ -259,6 +294,7 @@ class WindowListenerService with WindowListener, TrayListener {
   }
 
   Future<void> _hideWindow() async {
+    await _windowsPlacement?.save();
     await windowManager.hide();
     if (isMenubarMode()) {
       if (_isOneOffWindowed) {
@@ -322,6 +358,7 @@ class WindowListenerService with WindowListener, TrayListener {
     _isQuitting = true;
 
     if (Platform.isWindows) {
+      await _windowsPlacement?.save();
       final int hProcess = GetCurrentProcess();
       try {
         await trayManager.destroy();

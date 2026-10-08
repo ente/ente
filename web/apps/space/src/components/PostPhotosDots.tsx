@@ -3,9 +3,11 @@ import { Box } from "@mui/material";
 export const SpacePostPhotosDots = ({
     index,
     count,
+    activeColor = "#08C225",
 }: {
     index: number;
     count: number;
+    activeColor?: string;
 }) =>
     count > 1 ? (
         <Box
@@ -25,14 +27,11 @@ export const SpacePostPhotosDots = ({
                     key={photoIndex}
                     component="span"
                     sx={{
-                        bgcolor:
-                            photoIndex == index
-                                ? "#FFFFFF"
-                                : "rgba(255, 255, 255, 0.4)",
+                        bgcolor: photoIndex == index ? activeColor : "#FFFFFF",
                         borderRadius: "50%",
                         boxShadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
-                        height: 5,
-                        width: 5,
+                        height: photoIndex == index ? 6 : 5,
+                        width: photoIndex == index ? 6 : 5,
                     }}
                 />
             ))}

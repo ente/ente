@@ -245,7 +245,7 @@ DEPENDENCIES:
   - app_links (from `.symlinks/plugins/app_links/ios`)
   - audio_session (from `.symlinks/plugins/audio_session/ios`)
   - backup_exclusion (from `.symlinks/plugins/backup_exclusion/ios`)
-  - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
+  - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/darwin`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - ente_background_manager (from `.symlinks/plugins/ente_background_manager/ios`)
@@ -330,7 +330,7 @@ EXTERNAL SOURCES:
   backup_exclusion:
     :path: ".symlinks/plugins/backup_exclusion/ios"
   camera_avfoundation:
-    :path: ".symlinks/plugins/camera_avfoundation/ios"
+    :path: ".symlinks/plugins/camera_avfoundation/darwin"
   connectivity_plus:
     :path: ".symlinks/plugins/connectivity_plus/ios"
   device_info_plus:
@@ -444,7 +444,7 @@ SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
   audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
   backup_exclusion: 4d22d4efd0f5bc0190c41502ed47ffa84eca0edb
-  camera_avfoundation: 5675ca25298b6f81fa0a325188e7df62cc217741
+  camera_avfoundation: 968a9a5323c79a99c166ad9d7866bfd2047b5a9b
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   ente_background_manager: f10e3bd64ccd32a3232f0fbacabdd5545af8d81e

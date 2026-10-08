@@ -114,7 +114,7 @@ internal fun HomeNavigation(
                         onVoiceInputJob = store::trackVoiceInput,
                         chatState = appState.chat,
                         assetStore = store.assetStore,
-                        transcriber = store.transcriber,
+                        llmProvider = store.llmProvider,
                         isDrawerOpen = drawerState.currentValue == DrawerValue.Open,
                         onMessageChange = store::updateMessageText,
                         onSend = store::sendMessage,
@@ -166,7 +166,7 @@ internal fun HomeNavigation(
                     popEnterTransition = { backEnter() },
                     popExitTransition = { backExit() },
                 ) {
-                    NotesSettingsScreen(store.notesStore)
+                    NotesSettingsScreen(store.notesStore, store::setPickerPending)
                 }
                 composable(
                     route = HomeRoute.Knowledge,

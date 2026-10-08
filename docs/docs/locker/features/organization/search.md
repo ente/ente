@@ -9,6 +9,10 @@ Search helps you find any item in your Locker quickly. Search works locally on y
 
 ## Using search
 
+![Search your documents bar on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-search-callout.png){width=320px}
+
+![Typed search with filtered Home Wi-Fi result on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-search-typed-callout.png){width=320px}
+
 1. Tap the search icon on the home screen
 2. Type your search query
 3. Results appear as you type

@@ -25,6 +25,7 @@ import "package:photos/models/search/hierarchical/uploader_filter.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/contacts/contact_identity_resolver.dart";
+import "package:photos/services/filter/db_filters.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/magic_cache_service.dart";
@@ -77,19 +78,31 @@ Future<void> _hydrateFaceFilterMatches(FaceFilter filter) async {
 }
 
 Future<List<EnteFile>> getFilteredFiles(
-  List<HierarchicalSearchFilter> filters,
-) async {
+  List<HierarchicalSearchFilter> filters, {
+  int? hiddenCollectionID,
+}) async {
   final logger = Logger("HierarchicalSearchUtil");
   final mlDataDB = MLDataDB.instance;
   late final List<EnteFile> filteredFiles;
-  final files = await SearchService.instance.getAllFilesForHierarchicalSearch();
+  final files = hiddenCollectionID == null
+      ? await SearchService.instance.getAllFilesForHierarchicalSearch()
+      : (await FilesDB.instance.getFilesInCollection(
+          hiddenCollectionID,
+          galleryLoadStartTime,
+          galleryLoadEndTime,
+        )).files;
   final resultsNeverComputedFilters = <HierarchicalSearchFilter>[];
-  final ignoredCollections = CollectionsService.instance
-      .getHiddenCollectionIds();
 
   logger.info("Getting filtered files for Filters: $filters");
   for (HierarchicalSearchFilter filter in filters) {
-    if (filter is FaceFilter && filter.matchedUploadedIDs.isEmpty) {
+    if (hiddenCollectionID != null &&
+        filter is AlbumFilter &&
+        filter.collectionID != hiddenCollectionID &&
+        filter.matchedUploadedIDs.isEmpty) {
+      final uploadedIDs = await FilesDB.instance
+          .getUploadedFileIDsInCollections({filter.collectionID});
+      filter.matchedUploadedIDs.addAll(uploadedIDs);
+    } else if (filter is FaceFilter && filter.matchedUploadedIDs.isEmpty) {
       try {
         await _hydrateFaceFilterMatches(filter);
       } catch (e) {
@@ -181,11 +194,21 @@ Future<List<EnteFile>> getFilteredFiles(
       }
     }
 
-    filteredFiles = await FilesDB.instance.getFilesFromIDs(
-      filteredUploadedIDs.toList(),
-      dedupeByUploadId: true,
-      collectionsToIgnore: ignoredCollections,
-    );
+    if (hiddenCollectionID != null) {
+      filteredFiles = await applyDBFilters(
+        files
+            .where((file) => filteredUploadedIDs.contains(file.uploadedFileID))
+            .toList(),
+        DBFilterOptions(dedupeUploadID: true),
+      );
+    } else {
+      filteredFiles = await FilesDB.instance.getFilesFromIDs(
+        filteredUploadedIDs.toList(),
+        dedupeByUploadId: true,
+        collectionsToIgnore: CollectionsService.instance
+            .getHiddenCollectionIds(),
+      );
+    }
   } catch (e) {
     Logger("HierarchicalSearchUtil").severe("Failed to get filtered files: $e");
   }

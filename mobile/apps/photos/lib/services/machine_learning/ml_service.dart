@@ -339,6 +339,7 @@ class MLService {
 
   Future<MlRunDisposition> runAllML({
     bool force = false,
+    bool remoteSyncOnly = false,
     bool allowImageIndexing = true,
     int? maxFilesToIndex,
     MlRunControl? control,
@@ -392,6 +393,7 @@ class MLService {
           disposition = await _runAllMLProtected(
             mode: mode,
             force: force,
+            remoteSyncOnly: remoteSyncOnly,
             allowImageIndexing: allowImageIndexing,
             maxFilesToIndex: maxFilesToIndex,
             control: runControl,
@@ -434,6 +436,7 @@ class MLService {
   Future<MlRunDisposition> _runAllMLProtected({
     required MLMode mode,
     required bool force,
+    required bool remoteSyncOnly,
     required bool allowImageIndexing,
     required int? maxFilesToIndex,
     required MlRunControl control,
@@ -445,10 +448,30 @@ class MLService {
     }
     final mlDataDB = _dbForMode(mode);
     try {
+      if (remoteSyncOnly && mode == MLMode.localGallery) {
+        return MlRunDisposition.completed;
+      }
       await _sync();
       if (control.stopRequested) {
         _logRunStopped(control, "after sync");
         return MlRunDisposition.stopped;
+      }
+
+      if (remoteSyncOnly) {
+        if (localSettings.remoteFetchEnabled && canFetch()) {
+          await _fetchAndIndexAllImages(
+            mode: mode,
+            control: control,
+            allowImageIndexing: false,
+          );
+        }
+        if (control.stopRequested) {
+          return MlRunDisposition.stopped;
+        }
+        await PersonService.instance.sync();
+        return control.stopRequested
+            ? MlRunDisposition.stopped
+            : MlRunDisposition.completed;
       }
 
       final int unclusteredFacesCount = await mlDataDB
@@ -609,7 +632,11 @@ class MLService {
         );
       }
       final Stream<List<FileMLInstruction>> instructionStream =
-          fetchEmbeddingsAndInstructions(fileDownloadMlLimit, mode: mode);
+          fetchEmbeddingsAndInstructions(
+            fileDownloadMlLimit,
+            mode: mode,
+            control: control,
+          );
 
       int fileAnalyzedCount = 0;
       int fileAttemptCount = 0;

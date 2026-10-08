@@ -7,6 +7,12 @@ description: Frequently asked questions about albums, slideshows, hiding, archiv
 
 ## Albums {#albums-section}
 
+### How do I change an album's cover or description? {#edit-album-details}
+
+Open the album and select the three-dot menu, then **Edit details**. To change the cover, select the pencil icon on the current cover and choose a photo. You can also add or update the album description here. Save your changes when finished.
+
+See the [Albums guide](/photos/features/albums-and-organization/albums) for steps on mobile, web, and desktop.
+
 ### Can Ente albums be nested? {#nested-albums}
 
 No, Ente albums cannot be nested currently. When you upload a nested folder structure using the "Separate albums" option, Ente will create a separate album for each nested folder, but these albums themselves will not be nested - they will all appear as top-level albums.
@@ -78,11 +84,11 @@ This will reliably preserve the shared album name and contents.
 
 ### What does Slideshow do? {#what-is-album-slideshow}
 
-Slideshow plays the photos in an album one after another, full screen, on your device. It is especially useful on large screen devices such as tablets and iPads, where you can leave an album playing like a photo frame.
+Slideshow plays the photos in an album one after another, full screen, on your device. It is especially useful on large screens such as tablets and computers, where you can leave an album playing like a photo frame.
 
 ### How do I start a slideshow from an album? {#start-album-slideshow}
 
-Album slideshows are available in Ente Photos on iOS and Android for both Ente albums and **On device** albums.
+Album slideshows are available in Ente Photos on iOS and Android for both Ente albums and **On device** albums. They are also available for Ente albums in the desktop app.
 
 **On mobile:**
 
@@ -91,15 +97,21 @@ Album slideshows are available in Ente Photos on iOS and Android for both Ente a
 3. Tap the three dots in the top-right corner.
 4. Tap **Slideshow**.
 
+**On desktop:**
+
+1. Open an album.
+2. Click the three dots in the top-right corner.
+3. Click **Slideshow**.
+
 ### Can I create one slideshow from multiple albums? {#slideshow-multiple-albums}
 
-Yes. Open the **Albums** tab. Press and hold an Ente album, then select the other albums. Tap **Slideshow** at the bottom of the screen.
+On mobile, yes. Open the **Albums** tab. Press and hold an Ente album, then select the other albums. Tap **Slideshow** at the bottom of the screen.
 
 You can select albums you own and albums shared with you.
 
 ### What can I change during a slideshow? {#album-slideshow-settings}
 
-Tap the middle of the screen to show the controls. Then tap the settings button in the top-right corner. You can choose:
+On mobile, tap the middle of the screen to show the controls. On desktop, move the pointer over the slideshow to show the controls. Then tap or click the settings button in the top-right corner. You can choose:
 
 - **Time per photo:** 5, 10, 15, or 30 seconds; or 1, 5, or 10 minutes
 - **Photo order:** In order or Shuffle
@@ -110,6 +122,8 @@ Tap the middle of the screen to show the controls. Then tap the settings button 
 Tap the left side of the screen to see the previous photo. Tap the right side to see the next photo. Tap the middle to show or hide the controls.
 
 Tap pause to stop the slideshow or play to continue.
+
+On desktop, you can also use the left and right arrow keys to move between photos, and the space bar to pause or resume.
 
 ### Which items appear in an album slideshow? {#album-slideshow-supported-items}
 

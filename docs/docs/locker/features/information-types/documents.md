@@ -20,6 +20,14 @@ Documents let you upload and store files securely with end-to-end encryption. St
 
 ## Scanning a document
 
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+![Document row in Save to Locker menu](https://docs-assets.ente.com/screenshots/locker-document-row-callout.png){width=320px}
+
+![Auto mode control highlighted on Ente Locker Android document scanner](https://docs-assets.ente.com/screenshots/locker-document-scanner-auto-callout.png){width=320px}
+
+</div>
+
 Document scanning is available in the Locker mobile app on Android and iOS.
 
 1. Tap the camera button on the home screen
@@ -33,6 +41,8 @@ Document scanning is available in the Locker mobile app on Android and iOS.
 Locker combines all scanned pages into one PDF before uploading it.
 
 ## Uploading an existing file
+
+![Locker home after uploading a file (insurance-sample.jpg) on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-after-file.png){width=320px}
 
 1. Open Ente Locker
 2. Tap the **+** button

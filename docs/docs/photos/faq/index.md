@@ -62,6 +62,7 @@ Jump to a category:
 
 ### Albums
 
+- [How do I change an album's cover or description?](/photos/faq/albums-and-organization#edit-album-details)
 - [Can Ente albums be nested?](/photos/faq/albums-and-organization#nested-albums)
 - [What happens when I upload a nested folder structure?](/photos/faq/albums-and-organization#nested-folders)
 - [Can I sync a folder with multiple subfolders?](/photos/faq/albums-and-organization#sync-subfolders)
@@ -137,6 +138,7 @@ Jump to a category:
 - [What file formats can I backup?](/photos/faq/backup-and-sync#backup-file-formats)
 - [Does Ente compress my photos during backup?](/photos/faq/backup-and-sync#does-ente-compress)
 - [How can I check my backup status?](/photos/faq/backup-and-sync#check-backup-status)
+- [Will turning Optimize iPhone Storage back on upload my photos again?](/photos/faq/backup-and-sync#optimize-storage-reupload)
 - [Does Ente backup Live Photos from iPhone?](/photos/faq/backup-and-sync#live-photos-backup)
 - [Can I pick photos from Ente in other apps?](/photos/faq/backup-and-sync#pick-photos-in-other-apps)
 - [Can I open photos from my camera app in Ente?](/photos/faq/backup-and-sync#open-camera-photos-in-ente)
@@ -189,6 +191,7 @@ Jump to a category:
 
 ### Viewing Metadata
 
+- [Why is my iPhone Portrait photo smaller in Ente than in Apple Photos?](/photos/faq/metadata-and-editing#portrait-photo-size)
 - [What metadata does Ente preserve during import?](/photos/faq/metadata-and-editing#metadata-preserved)
 - [How does Ente handle Exif data and descriptions?](/photos/faq/metadata-and-editing#exif-handling)
 - [Where does Ente import photo dates from?](/photos/faq/metadata-and-editing#photo-date-sources)
@@ -228,6 +231,7 @@ Jump to a category:
 ### Importing from Google Photos
 
 - [How much Ente storage do I need when importing my Google Photos Takeout?](/photos/faq/migration#google-takeout-storage)
+- [I imported Google Takeout, but the same photos are on my Android phone. How do I avoid uploading them again?](/photos/faq/migration#takeout-android-existing-photos)
 
 ## Search and Discovery
 
@@ -239,6 +243,7 @@ Jump to a category:
 - [Is my location data sent to Ente servers?](/photos/faq/search-and-discovery#privacy)
 - [Can I view all albums on the map at once?](/photos/faq/search-and-discovery#all-albums)
 - [How do I access the map view?](/photos/faq/search-and-discovery#access-map)
+- [Why does the Map setting turn back on?](/photos/faq/search-and-discovery#map-turns-back-on)
 
 ### Location Tags
 
@@ -472,6 +477,7 @@ Jump to a category:
 
 ### Other Advanced Features
 
+- [Which keyboard shortcuts can I use in Ente Photos on web and desktop?](/photos/faq/advanced-features#keyboard-shortcuts)
 - [Can I access Ente from multiple browsers?](/photos/faq/advanced-features#multiple-browsers)
 - [Does Ente have an API?](/photos/faq/advanced-features#api)
 - [Can I self-host Ente?](/photos/faq/advanced-features#self-hosting)

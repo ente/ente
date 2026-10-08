@@ -35,6 +35,13 @@ class PreferenceService {
     _prefs = await SharedPreferences.getInstance();
   }
 
+  String get lastSelectedTag => _prefs.getString("lastSelectedTag") ?? "";
+  set lastSelectedTag(String tag) {
+    if (lastSelectedTag != tag) {
+      _prefs.setString("lastSelectedTag", tag).ignore();
+    }
+  }
+
   bool hasShownCoachMark() {
     if (shouldSkipAuthGuidance) {
       return true;

@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "プライベートバックアップ<br/>あなたの思い出のために",
     "intro_slide_1": "デフォルトでエンドツーエンド暗号化されています",
     "intro_slide_2_title": "安全に保管されています<br/>シェルターで",
@@ -955,6 +959,8 @@
     "hide": "非表示",
     "unhide": "再表示",
     "sort_by": "Sort by",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "新しい順",
     "oldest_first": "古い順",
     "most_relevant": "",

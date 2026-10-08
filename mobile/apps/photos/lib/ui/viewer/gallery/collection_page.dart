@@ -147,6 +147,9 @@ class CollectionPage extends StatelessWidget {
                                   tagPrefix: tagPrefix,
                                   selectedFiles: _selectedFiles,
                                   appBar: appBar,
+                                  hiddenCollectionID: c.collection.isHidden()
+                                      ? c.collection.id
+                                      : null,
                                 )
                               : gallery;
                         },

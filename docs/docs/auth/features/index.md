@@ -9,13 +9,19 @@ This page outlines the key features available in Ente Auth.
 
 ### Icons
 
+![Choose icon picker with 1password tile highlighted on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-icons-picker-callout.png){width=320px}
+
 Ente Auth supports the icon pack provided by [simple-icons](https://github.com/simple-icons/simple-icons). If an icon you need is missing, please refer to the [docs/adding-icons](https://github.com/ente/ente/blob/main/mobile/apps/auth/docs/adding-icons.md) guide for instructions on how to contribute.
 
 ### Search
 
+![Typed GitHub search with filtered result on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-search-typed.png){width=320px}
+
 Quickly find your codes by searching based on issuer or account name. You can also configure the app to focus the search bar automatically on app start by going to **Settings → General → Focus search on app start**.
 
 ### Tags
+
+![Work tag chip selected with filtered codes on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-tags.png){width=320px}
 
 Organize and filter your codes with ease using tags.
 
@@ -24,9 +30,13 @@ Organize and filter your codes with ease using tags.
 
 ### Pinning
 
+![Pin action beside pinned codes list on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-pinning-duo.png){width=680px}
+
 Highlight your frequently used services by pinning them to the top of your code list. To pin a code, long-press (mobile) or right-click (desktop) the code and select "Pin". Pinned entries show a pin indicator in the list so you can quickly spot them.
 
 ### Multi-select
+
+![Multi-select toolbar with two codes selected on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-multiselect.png){width=320px}
 
 Select multiple codes to perform bulk operations and access additional options.
 
@@ -46,9 +56,13 @@ Available actions in multi-select mode include sharing, tagging, pinning, copyin
 
 ### Notes
 
+![Notes field with Primary photos account on Ente Auth mobile edit form](https://docs-assets.ente.com/screenshots/auth-notes-callout.png){width=320px}
+
 Add additional information to your codes using notes. Notes can be added during the process of creating or modifying a code.
 
 ### Sharing
+
+![Share codes duration sheet with Share button on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-share.png){width=320px}
 
 Securely share codes temporarily with others.
 
@@ -57,6 +71,8 @@ Securely share codes temporarily with others.
 - This generates a unique, time-limited link. Recipients can view the codes for the specified duration without gaining access to the underlying secret key. After the link expires, the recipients will no longer be able to view new codes.
 
 ### Custom sorting
+
+![Edit order sheet with Issuer, Account, Frequently used, Recently used, Custom on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-sort-callout.png){width=320px}
 
 Customize the order in which your codes are displayed. Ente Auth provides several sorting options:
 
@@ -70,6 +86,8 @@ Access the sort menu in the top-right corner (next to the search icon) to change
 
 ### Offline mode
 
+![Use without backups entry on Ente Auth mobile login](https://docs-assets.ente.com/screenshots/auth-offline-entry-callout.png){width=320px}
+
 Ente Auth can be used offline. Choose "Use without backups" on the login screen. In this mode, your codes are stored locally on your device.
 
 Unlike when using an account, data is not synced or backed up to the cloud. You are responsible for manually backing up your codes.
@@ -80,6 +98,8 @@ Learn more about [using offline mode safely](offline-mode).
 
 ### Display options
 
+![General display toggles on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-display.png){width=320px}
+
 Customize how your codes are displayed for optimal usability.
 
 - **Show large icons:** Display codes with larger icons for enhanced visibility.
@@ -87,6 +107,8 @@ Customize how your codes are displayed for optimal usability.
 - **Hide codes:** Hide the actual code values for extra privacy. Double-tap a code to reveal it when needed.
 
 ### App lock
+
+![App lock settings with toggles on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-applock-callout.png){width=320px}
 
 Add an additional layer of protection using the app lock. Choose from the following lock methods:
 
@@ -96,9 +118,13 @@ Add an additional layer of protection using the app lock. Choose from the follow
 
 Additionally, configure **Auto lock** to automatically lock the app after a specified period of time (options: Immediately, 5s, 15s, 1m, 5m, 30m).
 
+![Auto lock timing sheet with 15s selected on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-auto-lock-callout.png){width=320px}
+
 App lock protects access to the app UI. It is not a recovery password for your codes and does not re-encrypt the stored Auth data.
 
 ### Import / Export
+
+![Import codes provider list on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-import-hub.png){width=320px}
 
 Ente Auth offers various import and export options for your codes.
 
@@ -109,9 +135,13 @@ For detailed instructions, refer to the [migration guides](../migration/).
 
 ### Deduplicate codes
 
+![Deduplicate codes list with Ente (2) duplicates on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-deduplicate-callout.png){width=320px}
+
 If you import codes and end up with duplicates, you can easily remove them. Go to **Settings → Data → Duplicate codes** to find and remove duplicate codes.
 
 ### Trash
+
+![Trash view with Restore action on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-trash-restore-callout.png){width=320px}
 
 Manage unwanted codes by moving them to the Trash. The Trash is not cleared automatically, giving you the flexibility to restore or permanently delete codes at any time.
 
@@ -120,6 +150,8 @@ Manage unwanted codes by moving them to the Trash. The Trash is not cleared auto
 - **Managing trashed codes:** In the Trash view, you can either permanently delete codes or restore them back to your main list.
 
 ### Scan QR
+
+![Scan QR camera with Import from Gallery on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-scan-qr-callout.png){width=320px}
 
 Easily add or share entries using QR codes:
 
@@ -130,5 +162,7 @@ Easily add or share entries using QR codes:
     > [!NOTE]
     >
     > The "Import from Gallery" feature is particularly useful when you have a screenshot or photo of a QR code. Simply save the QR code image to your device and use this feature to import it without needing to display it on another screen.
+
+![Show entry as QR for Stripe auth@ente.com on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-show-qr-callout.png){width=320px}
 
 - **Show entry as QR code:** On all apps, you can long-press (mobile) or right-click (desktop) a code and select "QR". This allows you to easily share the complete entry (including the secret) with others by letting them scan the displayed QR code. This can also be used to easily add the same entry to another authenticator app or service.

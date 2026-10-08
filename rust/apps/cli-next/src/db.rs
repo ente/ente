@@ -42,3 +42,31 @@ pub fn connect(path: &Path, key: &DbKey, create: bool) -> Result<Connection> {
         .context("cannot open the encrypted database")?;
     Ok(connection)
 }
+
+pub fn scratch(path: &Path) -> Result<Connection> {
+    connect(
+        path,
+        &DbKey(*ente_core::crypto::Key::generate().as_bytes()),
+        true,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scratch_pages_require_the_discarded_attempt_key() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("index.db");
+        let db = scratch(&path).unwrap();
+        db.execute_batch(
+            "CREATE TABLE names(name TEXT); INSERT INTO names VALUES('private export album');",
+        )
+        .unwrap();
+        drop(db);
+        let bytes = std::fs::read(&path).unwrap();
+        assert!(!bytes.starts_with(b"SQLite format 3"));
+        assert!(scratch(&path).is_err());
+    }
+}

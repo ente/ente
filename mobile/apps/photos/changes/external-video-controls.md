@@ -1,0 +1,1 @@
+- Updated videos opened from other apps to use the in-app player's controls, including double-tap seeking and hold for 2× playback.

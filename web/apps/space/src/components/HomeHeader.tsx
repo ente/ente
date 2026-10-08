@@ -7,6 +7,7 @@ import type { SetupProfile } from "screens/SetupProfileScreen";
 import { useSpaceAppState } from "state/app-state";
 import {
     spaceAppBackgroundColor,
+    spaceHomeSurface,
     spaceSurface,
     spaceText,
 } from "styles/colors";
@@ -14,7 +15,6 @@ import { spaceTouchTargetSize } from "styles/touch-targets";
 
 const green = "#08C225";
 const dangerColor = "#F63A3A";
-const headerBackground = "#2C2C2E";
 const headerActionSize = spaceTouchTargetSize;
 const headerAvatarImageSize = 28;
 const headerChatCircleSize = 36;
@@ -26,7 +26,7 @@ const avatarFadeSx = {
     "@media (prefers-reduced-motion: reduce)": { animation: "none" },
 } as const;
 
-const spaceHomeHeaderHeight = 64;
+const spaceHomeHeaderHeight = 68;
 const spaceHomeHeaderBarHeight = 44;
 
 interface SpaceHomeHeaderProps {
@@ -58,21 +58,21 @@ export const SpaceHomeHeader: React.FC<SpaceHomeHeaderProps> = ({
             gridTemplateColumns: `${headerSideWidth}px minmax(0, 1fr) ${headerSideWidth}px`,
             height: spaceHomeHeaderHeight,
             maxWidth: "100%",
-            pb: 2,
+            pb: "12px",
             position: "relative",
-            pt: 1.5,
-            px: 2,
+            pt: "12px",
+            px: "8px",
             width: "100%",
             zIndex: 4,
             "&::after": {
-                bgcolor: headerBackground,
-                borderRadius: "16px",
+                bgcolor: spaceHomeSurface,
+                borderRadius: "24px",
                 content: '""',
                 height: spaceHomeHeaderBarHeight,
-                left: "16px",
+                left: "8px",
                 pointerEvents: "none",
                 position: "absolute",
-                right: "16px",
+                right: "8px",
                 top: "12px",
                 zIndex: 0,
             },
@@ -212,7 +212,7 @@ export const SpaceHomeHeader: React.FC<SpaceHomeHeaderProps> = ({
                     justifyContent: "center",
                     position: "relative",
                     width: headerChatCircleSize,
-                    "& svg path:first-of-type": { display: "none" },
+                    "& svg path:last-of-type": { display: "none" },
                 }}
             >
                 <HugeiconsIcon
@@ -233,7 +233,7 @@ export const SpaceHomeHeader: React.FC<SpaceHomeHeaderProps> = ({
                                 "&::after": { display: "none" },
                             },
                             bgcolor: dangerColor,
-                            border: `2px solid ${headerBackground}`,
+                            border: `2px solid ${spaceHomeSurface}`,
                             borderRadius: "50%",
                             boxSizing: "border-box",
                             height: 12.5,

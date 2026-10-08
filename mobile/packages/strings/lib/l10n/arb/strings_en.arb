@@ -1968,14 +1968,48 @@
   "ignore": "Ignore",
   "ignored": "ignored",
   "ignorePerson": "Ignore person",
+  "imageEditorAlignCenter": "Align center",
+  "imageEditorAlignLeft": "Align left",
+  "imageEditorAlignRight": "Align right",
+  "imageEditorBackgroundColor": "Background color",
+  "imageEditorBlue": "Blue",
+  "imageEditorBold": "Bold",
   "imageEditorBrightness": "Brightness",
   "imageEditorContrast": "Contrast",
+  "imageEditorCustomColor": "Custom color",
+  "imageEditorDuplicate": "Duplicate",
+  "imageEditorEnterText": "Enter text",
   "imageEditorExposure": "Exposure",
   "imageEditorFade": "Fade",
+  "imageEditorGreen": "Green",
   "imageEditorHue": "Hue",
+  "imageEditorItalic": "Italic",
+  "imageEditorNoBackground": "No background",
+  "@imageEditorNoBackground": {
+    "description": "Text background style with no visible background"
+  },
+  "imageEditorOrange": "Orange",
+  "imageEditorPink": "Pink",
+  "imageEditorPurple": "Purple",
+  "imageEditorRed": "Red",
   "imageEditorSaturation": "Saturation",
+  "imageEditorSolidBackground": "Solid background",
+  "@imageEditorSolidBackground": {
+    "description": "Text background style with a fully opaque color"
+  },
+  "imageEditorTeal": "Teal",
   "imageEditorTemperature": "Temperature",
+  "imageEditorText": "Text",
+  "@imageEditorText": {
+    "description": "Tool for adding text to a photo"
+  },
+  "imageEditorTextColor": "Text color",
   "imageEditorTint": "Tint",
+  "imageEditorTranslucentBackground": "Translucent background",
+  "@imageEditorTranslucentBackground": {
+    "description": "Text background style with a half-transparent color"
+  },
+  "imageEditorWhite": "White",
   "imageNotAnalyzed": "Image not analyzed",
   "immediate": "Immediate",
   "immediately": "Immediately",
@@ -2561,7 +2595,7 @@
   },
   "memories": "Memories",
   "memoriesReadyNotificationTitle": "Rediscover your memories ✨",
-  "memoriesReadyNotificationBody": "Tailored for you, crafted on your phone.",
+  "memoriesReadyNotificationBody": "Curated for you, on your phone",
   "memoriesWidgetDesc": "Select the kinds of memories you want to see on your home screen.",
   "memoryCount": "{count, plural, =0{no memories} one{{formattedCount} memory} other{{formattedCount} memories}}",
   "@memoryCount": {
@@ -4005,6 +4039,10 @@
   "sendInvite": "Send invite",
   "sendLink": "Send link",
   "sendLogsDescription": "This will send across logs to help us debug your issue. While we take precautions to ensure that sensitive information is not logged, we encourage you to view these logs before sharing them.",
+  "sendPhoto": "Send photo",
+  "@sendPhoto": {
+    "description": "Share a copy of the current photo using the system share sheet, as opposed to sending a viewing link"
+  },
   "sendQrCode": "Send QR code",
   "sendToEmail": "Send to {email}",
   "@sendToEmail": {
@@ -4014,6 +4052,10 @@
         "example": "support@ente.com"
       }
     }
+  },
+  "sendVideo": "Send video",
+  "@sendVideo": {
+    "description": "Share a copy of the current video using the system share sheet, as opposed to sending a viewing link"
   },
   "serverEndpoint": "Server endpoint",
   "@serverEndpoint": {
@@ -4204,6 +4246,7 @@
   },
   "skip": "Skip",
   "skippedFiles": "Skipped files",
+  "sharedFilesSkipped": "Some shared files could not be read or had the same name. They were skipped.",
   "slideshow": "Slideshow",
   "slideshowSettings": "Slideshow settings",
   "smartMemories": "Smart memories",

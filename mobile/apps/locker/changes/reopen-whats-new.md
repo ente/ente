@@ -1,1 +1,0 @@
-- Added a shortcut to reopen What's new from the version number in Locker settings.

@@ -47,17 +47,17 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import io.ente.ensu.assets.AssetStore
-import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.device.ChatDeviceCapability
+import io.ente.ensu.llm.LlmProvider
 import kotlinx.coroutines.Job
 
 @Composable
 fun ChatView(
     chatState: ChatState,
     assetStore: AssetStore,
-    transcriber: Transcriber,
+    llmProvider: LlmProvider,
     isDrawerOpen: Boolean,
     onMessageChange: (String) -> Unit,
     onSend: () -> Unit,
@@ -90,7 +90,7 @@ fun ChatView(
     val voiceController =
         rememberVoiceTranscriptionController(
             assetStore = assetStore,
-            transcriber = transcriber,
+            llmProvider = llmProvider,
             onVoiceInputJob = onVoiceInputJob,
             onTranscript = { transcript ->
                 latestOnMessageChange(appendVoiceTranscript(latestMessageText, transcript))

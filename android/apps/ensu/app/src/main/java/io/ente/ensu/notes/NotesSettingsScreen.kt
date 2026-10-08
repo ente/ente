@@ -35,11 +35,12 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun NotesSettingsScreen(store: NotesStore) {
+fun NotesSettingsScreen(store: NotesStore, onPickerPending: (Boolean) -> Unit) {
     val state by store.state.collectAsState()
     var removing by remember { mutableStateOf<NoteCollectionState?>(null) }
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            onPickerPending(false)
             uri?.let(store::add)
         }
     LazyColumn(
@@ -133,7 +134,15 @@ fun NotesSettingsScreen(store: NotesStore) {
         item {
             CompactButton(
                 label = "Add notes folder",
-                onClick = { picker.launch(null) },
+                onClick = {
+                    onPickerPending(true)
+                    try {
+                        picker.launch(null)
+                    } catch (error: Exception) {
+                        onPickerPending(false)
+                        throw error
+                    }
+                },
             )
         }
         item {

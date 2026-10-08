@@ -46,6 +46,8 @@ The desktop apps auto-update on macOS, Linux, and Windows, so once installed you
 
 ## Send your first message
 
+![Populated Ensu web chat after sending a first message, with user bubble, streamed assistant reply, and composer](https://docs-assets.ente.com/screenshots/ensu-web-first-message.png){width=720px}
+
 1. Open Ensu.
 2. Type into the chat composer at the bottom of the screen.
 3. Send. The model loads (a few seconds the first time, faster on later messages) and starts streaming a response.

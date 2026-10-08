@@ -1,10 +1,10 @@
 import "dart:async";
-import "dart:io";
 
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photo_manager/photo_manager.dart";
@@ -19,9 +19,11 @@ import 'package:photos/module/metadata/panorama.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/states/detail_page_state.dart";
+import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
 import "package:photos/ui/viewer/actions/suggest_delete_sheet.dart";
+import "package:photos/ui/viewer/file/file_share_button.dart";
 import "package:photos/utils/delete_file_util.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/share_util.dart";
@@ -96,6 +98,7 @@ class FileBottomBarState extends State<FileBottomBar> {
   }
 
   Widget _getBottomBar() {
+    final file = widget.file;
     final isInSharedCollection =
         InheritedDetailPageState.maybeOf(
           context,
@@ -150,22 +153,15 @@ class FileBottomBarState extends State<FileBottomBar> {
       }
 
       children.add(
-        Tooltip(
-          message: context.strings.share,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: IconButton(
-              key: shareButtonKey,
-              icon: Platform.isAndroid
-                  ? const HugeIcon(
-                      icon: HugeIcons.strokeRoundedShare08,
-                      color: Colors.white,
-                    )
-                  : const Icon(CupertinoIcons.share, color: Colors.white),
-              onPressed: () {
-                share(context, [widget.file], shareButtonKey: shareButtonKey);
-              },
-            ),
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: FileShareButton(
+            key: shareButtonKey,
+            canSendLink: file.isUploaded && file.isOwner && !isFileHidden,
+            isVideo: file.isVideo,
+            onSendFile: () =>
+                share(context, [file], shareButtonKey: shareButtonKey),
+            onSendLink: () => _sendLink(file),
           ),
         ),
       );
@@ -231,6 +227,44 @@ class FileBottomBarState extends State<FileBottomBar> {
       onFileRemoved: widget.onFileRemoved,
       isLocalOnlyContext: widget.isLocalOnlyContext,
     );
+  }
+
+  Future<void> _sendLink(EnteFile file) async {
+    if (!file.isUploaded || !file.isOwner) {
+      showShortToast(
+        context,
+        context.strings.canOnlyCreateLinkForFilesOwnedByYou,
+      );
+      return;
+    }
+    final dialog = createProgressDialog(
+      context,
+      context.strings.creatingLink,
+      isDismissible: true,
+    );
+    await dialog.show();
+    if (!mounted) {
+      await dialog.hide();
+      return;
+    }
+    final Collection? sharedLinkCollection = await CollectionActions(
+      CollectionsService.instance,
+    ).createSharedCollectionLink(context, [file]);
+    if (!mounted) {
+      await dialog.hide();
+      return;
+    }
+    if (sharedLinkCollection == null) {
+      await dialog.hide();
+      return;
+    }
+    final String url = CollectionsService.instance.getPublicUrl(
+      sharedLinkCollection,
+    );
+    await dialog.hide();
+    unawaited(Clipboard.setData(ClipboardData(text: url)));
+    if (!mounted) return;
+    await shareLinkWithDescription(url, context: context, key: shareButtonKey);
   }
 
   void _addTrashOptions(List<Widget> children) {

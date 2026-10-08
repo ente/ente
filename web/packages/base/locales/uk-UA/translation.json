@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Приватні резервні копії<br/>для ваших спогадів",
     "intro_slide_1": "Наскрізне шифрування по стандарту",
     "intro_slide_2_title": "Безпечно зберігається<br/>у бомбосховищі",
@@ -955,6 +959,8 @@
     "hide": "Приховати",
     "unhide": "Показати",
     "sort_by": "Сортувати за",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Спочатку найновіші",
     "oldest_first": "Спочатку найстаріші",
     "most_relevant": "Найактуальніші",

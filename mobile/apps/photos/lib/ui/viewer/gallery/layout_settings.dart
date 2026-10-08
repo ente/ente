@@ -140,11 +140,16 @@ class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
 
   Future<void> _applyJustifiedLayout(JustifiedLayoutStrategy strategy) async {
     if (!isJustifiedLayoutAvailable) return;
+    final resetGridSize =
+        strategy == JustifiedLayoutStrategy.flex &&
+        localSettings.getPhotoGridSize() != 2;
     if (localSettings.getGalleryLayoutType() != GalleryLayoutType.justified ||
-        localSettings.getJustifiedLayoutStrategy() != strategy) {
+        localSettings.getJustifiedLayoutStrategy() != strategy ||
+        resetGridSize) {
       await Future.wait([
         localSettings.setGalleryLayoutType(GalleryLayoutType.justified),
         localSettings.setJustifiedLayoutStrategy(strategy),
+        if (resetGridSize) localSettings.setPhotoGridSize(2),
       ]);
       Bus.instance.fire(GalleryLayoutChangedEvent());
     }

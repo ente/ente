@@ -77,6 +77,8 @@ The initial backup can take time depending on:
 
 **Tips to speed up initial backup:**
 
+If the app is slow or crashes while backing up a large library, temporarily turn off **Machine learning** and **Video streaming** in Settings. This leaves more of your device's resources available for backup. Turn them back on after the backup finishes.
+
 **On iOS:**
 
 - Open [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) under `Settings > Backup > Backup settings` and tap **Start backup mode**
@@ -186,6 +188,8 @@ Ente automatically detects and handles duplicate files during upload:
 
 This happens automatically in the background without any action required from you.
 
+Duplicate detection looks for the same file. An edited or compressed version has different contents, so Ente may back it up as a separate photo. On web and desktop, the filename must also match for automatic duplicate detection.
+
 Learn more in the [Duplicate detection guide](/photos/features/backup-and-sync/duplicate-detection).
 
 ### What file formats can I backup? {#backup-file-formats}
@@ -227,6 +231,12 @@ Open `Settings > Backup > Backup status` to see:
 When Optimize iPhone Storage is enabled, iOS keeps lower-resolution previews on your device. Ente displays those previews during on-device viewing.
 
 However, for backup, Ente always retrieves the original, full-resolution photo or video directly from iCloud. The same full-resolution files will be available when you download them from Ente.
+
+### Will turning Optimize iPhone Storage back on upload my photos again? {#optimize-storage-reupload}
+
+No. Ente remembers which photos in your iPhone or iPad library have already been backed up. Turning on **Optimize iPhone Storage** or **Optimize iPad Storage** changes which copies iOS keeps on your device, but it does not make those photos new to Ente. They will not be backed up again.
+
+For a new or edited photo, iOS may need to fetch the full-resolution original from iCloud before Ente can back it up. Keep the device connected to the internet while that backup finishes.
 
 ### Does Ente backup Live Photos from iPhone? {#live-photos-backup}
 

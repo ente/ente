@@ -23,7 +23,17 @@ pub fn lock(store: &Mutex<Store>) -> Result<MutexGuard<'_, Store>> {
         .map_err(|_| anyhow::anyhow!("export database mutex poisoned"))
 }
 
-#[derive(Clone)]
+pub fn json<T: DeserializeOwned>(
+    db: &Connection,
+    sql: &str,
+    parameters: impl rusqlite::Params,
+) -> Result<Option<T>> {
+    let text: Option<String> = db.query_row(sql, parameters, |r| r.get(0)).optional()?;
+    text.map(|text| serde_json::from_str(&text).map_err(Into::into))
+        .transpose()
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Album {
     pub key: String,
     pub id: i64,
@@ -44,7 +54,7 @@ impl Album {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Placement {
     pub id: String,
     pub album: i64,
@@ -73,7 +83,7 @@ pub struct Location {
     pub name: String,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Component {
     pub placement: String,
     pub role: Role,
@@ -158,7 +168,7 @@ pub fn system_time(time: SystemTime) -> i128 {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct JsonRecord {
     pub owner: String,
     pub role: Option<Role>,
@@ -334,7 +344,7 @@ impl Store {
         if let Some(existing) = existing {
             ensure!(
                 existing == destination.as_os_str().as_encoded_bytes(),
-                AdoptionRequired("destination association does not match")
+                AdoptionRequired("destination association does not match; use --adopt")
             );
         } else {
             connection.execute(
@@ -533,19 +543,6 @@ impl Store {
                 [owner],
             )?;
         Ok(())
-    }
-
-    pub fn json<T: DeserializeOwned>(
-        &self,
-        sql: &str,
-        parameters: impl rusqlite::Params,
-    ) -> Result<Option<T>> {
-        let text: Option<String> = self
-            .db
-            .query_row(sql, parameters, |r| r.get(0))
-            .optional()?;
-        text.map(|text| serde_json::from_str(&text).map_err(Into::into))
-            .transpose()
     }
 
     pub fn temporary(&self, temporary: &Temporary) -> Result<()> {

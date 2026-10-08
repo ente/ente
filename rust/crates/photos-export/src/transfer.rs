@@ -39,29 +39,26 @@ pub fn roles(file: &FileSnapshot) -> Vec<Role> {
     }
 }
 
-pub fn verify(
-    run: &Run<'_>,
-    component: &Component,
-    file: &FileSnapshot,
-    signature: &str,
-) -> Result<Option<Properties>> {
-    let path = run.path(&component.location)?;
-    let Some(properties) = Properties::optional(&path)? else {
-        return Ok(None);
-    };
-    if expected_hash(file, &component.role).is_some_and(|hash| hash != component.hash)
+fn source_changed(component: &Component, file: &FileSnapshot, signature: &str) -> bool {
+    !roles(file).contains(&component.role)
+        || expected_hash(file, &component.role).is_some_and(|hash| hash != component.hash)
         || (expected_hash(file, &component.role).is_none()
             && component
                 .signature
                 .as_ref()
                 .is_some_and(|original| original != signature))
-    {
+}
+
+fn verify(run: &Run<'_>, component: &Component, replacing: bool) -> Result<Option<Properties>> {
+    let path = run.path(&component.location)?;
+    let Some(properties) = Properties::optional(&path)? else {
         return Ok(None);
-    }
-    if component.properties.as_ref() != Some(&properties)
-        && !fs::matches(&path, component.size, &component.hash, run.cancel)?
-    {
-        return Ok(None);
+    };
+    if replacing || component.properties.as_ref() != Some(&properties) {
+        ensure!(
+            fs::matches(&path, component.size, &component.hash, run.cancel)?,
+            super::Conflict(format!("at {}: locally changed media", path.display()))
+        );
     }
     Ok(Some(properties))
 }
@@ -87,23 +84,30 @@ pub async fn prepare(run: &Run<'_>, session: &Session, file: &FileSnapshot) -> R
         };
         after = album;
         let result = (|| {
-            let components = {
+            let (components, retained_folder) = {
                 let store = store::lock(run.store)?;
-                needs_bytes |= store
+                let retained_folder = store
                     .pending_file(album, file.id)?
-                    .is_some_and(|pending| pending.retained);
-                store
+                    .filter(|pending| pending.retained)
+                    .map(|pending| pending.folder);
+                let components = store
                     .placement(album, file.id)?
                     .map(|placement| store.components(&placement.id))
                     .transpose()?
-                    .unwrap_or_default()
+                    .unwrap_or_default();
+                (components, retained_folder)
             };
             let mut verified = Vec::new();
+            let replacing = components
+                .iter()
+                .any(|component| source_changed(component, file, &signature));
             for component in &components {
-                if !roles.contains(&component.role) {
+                if retained_folder.as_ref() == Some(&component.location.folder) {
                     continue;
                 }
-                if let Some(properties) = verify(run, component, file, &signature)? {
+                if let Some(properties) = verify(run, component, replacing)?
+                    && !source_changed(component, file, &signature)
+                {
                     verified.push((component.role.clone(), properties));
                 }
             }

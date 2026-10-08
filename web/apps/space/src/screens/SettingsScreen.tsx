@@ -5,6 +5,7 @@ import {
     CustomerSupportIcon,
     Image01Icon,
     Logout05Icon,
+    LogsIcon,
     Notification02Icon,
     ScreenAddToHomeIcon,
     UserEdit01Icon,
@@ -18,6 +19,8 @@ import { SpaceNotificationPermissionInstructions } from "components/Notification
 import { SpacePWAInstallInstructions } from "components/PWAInstallPrompt";
 import { SpaceSkipLink } from "components/SkipLink";
 import log from "ente-base/log";
+import { savedLogs } from "ente-base/log-web";
+import { saveStringAsFile } from "ente-base/utils/web";
 import {
     isSpaceIOS,
     isSpaceStandalone,
@@ -553,6 +556,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                         href={supportMailURL}
                         icon={CustomerSupportIcon}
                         label="Support"
+                    />
+                    <SettingsRow
+                        icon={LogsIcon}
+                        label="Download logs"
+                        onClick={() =>
+                            saveStringAsFile(
+                                savedLogs(),
+                                `ente-space-logs-${Date.now()}.txt`,
+                            )
+                        }
                     />
                     <SettingsRow
                         danger

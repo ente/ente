@@ -26,11 +26,19 @@ Collaborative albums allow multiple Ente users to contribute photos to the same 
 4. Choose permissions (Viewer, Collaborator, or Admin)
 5. Send the invitation
 
+![Share with Ente users in the share panel on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-share-ente-users.png){width=720px}
+
 Recipients receive a notification and can access the shared album from their Ente app.
+
+![Shared album appearing in the recipient library on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-shared-with-you.png){width=720px}
 
 Multiple albums can be selected (long press to select), and choosing Share will apply sharing to all selected albums at once.
 
 ### Permissions explained
+
+![Collaborator role highlighted in the share panel on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-role-picker-callout.png){width=720px}
+
+![Owner, collaborators, and viewers breakdown for a shared album on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-participants-roles.png){width=720px}
 
 **Viewers can:**
 
@@ -103,6 +111,8 @@ Album owners and admins can suggest that other participants delete their photos 
 3. Tap the suggest deletion action
 4. Confirm the suggestion
 
+![Suggest deletion action highlighted in the selection toolbar on Ente Photos mobile, Friends album filtered to Alex with one collaborator photo selected](https://docs-assets.ente.com/screenshots/phone-suggest-deletion-callout.png){width=320px}
+
 **What happens:**
 
 - Photos are immediately removed from the album
@@ -150,6 +160,8 @@ Collect links are public links with the "Allow adding photos" option enabled. An
 4. Tap "Copy link"
 5. Share the link with anyone you want to collect photos from
 
+![Album share panel on Ente Photos mobile with Add collaborator Create public link and Create collaborative link](https://docs-assets.ente.com/screenshots/phone-collab-share-panel.png){width=320px}
+
 **On web/desktop:**
 
 1. Open the album
@@ -157,6 +169,8 @@ Collect links are public links with the "Allow adding photos" option enabled. An
 3. Select "Collect photos"
 4. Click "Copy link"
 5. Share the link with others
+
+![Allow adding photos toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-allow-adding-callout.png){width=720px}
 
 Anyone with the link can view existing photos and add their own through their web browser. They can also download photos if you haven't disabled downloads.
 
@@ -190,6 +204,8 @@ When someone adds a photo via a collect link:
 3. **Change to view-only**: Convert the collect link to a regular public link
 
 **View contributors:** Currently, you cannot see who added which photos to a collect link. All collected photos appear in the album without attribution. We're considering adding this feature based on user feedback.
+
+![Manage public link options on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link.png){width=720px}
 
 ## Comparison
 

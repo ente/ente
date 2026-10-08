@@ -31,6 +31,7 @@ members = [
     "crates/ensu",
     "crates/ensu-crypto",
     "crates/exif",
+    "crates/icons",
     "crates/image",
     "crates/legacy",
     "crates/location",
@@ -54,7 +55,8 @@ anyhow = "1.0.104"
 chrono = { version = "0.4.45", default-features = false }
 clap = "4.6.7"
 dialoguer = { version = "0.12.0", default-features = false }
-dirs = "6.0.0"
+dirs = "7.0.0"
+encoding_rs = "0.8.35"
 ente-accounts = { path = "crates/accounts" }
 ente-assets = { path = "crates/assets" }
 ente-cast = { path = "crates/cast" }
@@ -66,6 +68,7 @@ ente-ensu-crypto = { path = "crates/ensu-crypto" }
 ente-exif = { path = "crates/exif" }
 ente-frb-lib = { path = "bindings/frb/lib" }
 ente-frb-log = { path = "bindings/frb/log" }
+ente-icons = { path = "crates/icons" }
 ente-image = { path = "crates/image" }
 ente-legacy = { path = "crates/legacy" }
 ente-location = { path = "crates/location" }
@@ -96,10 +99,12 @@ md-5 = "0.11.0"
 mockito = "1.7.2"
 ort = { version = "=2.0.0-rc.13", default-features = false }
 ort-sys = { version = "=2.0.0-rc.13", default-features = false }
+psl = "2.1.239"
 quick-xml = "0.42.0"
 regex = "1.13.1"
 reqwest = { version = "0.12.28", default-features = false }
 rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"] }
+scraper = { version = "0.27.0", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
 serde_json = "1.0.151"
@@ -109,7 +114,7 @@ srp = { version = "0.7.0-rc.3", default-features = false }
 subtle = "2.0.0"
 tar = "0.4.46"
 tempfile = "3.27.0"
-thiserror = "2.0.20"
+thiserror = "2.0.21"
 tokio = "1.53.1"
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }
 unicode-normalization = "0.1.25"

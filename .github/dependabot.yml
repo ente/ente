@@ -11,6 +11,52 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+    ignore:
+      # Remove after addressing the new unused-export findings.
+      - dependency-name: "knip"
+        versions: [">=6.38.0"]
+      # Remove after migrating the repository's script formatting.
+      - dependency-name: "prettier"
+        versions: [">=3.9.9"]
+      # Remove after migrating Space away from the baseUrl compiler option.
+      - dependency-name: "typescript"
+        versions: [">=7.0.0"]
+      # Remove after adapting existing code to the new lint rules.
+      - dependency-name: "typescript-eslint"
+        versions: [">=8.70.1"]
+      # Remove after adapting test callbacks to the new setImmediate types.
+      - dependency-name: "@types/node"
+        versions: [">=26.6.2"]
+      # Remove after migrating the stream-decryption calls and their types.
+      - dependency-name: "libsodium-wrappers-sumo"
+        versions: [">=0.8.4"]
+      - dependency-name: "@types/libsodium-wrappers-sumo"
+        versions: [">=0.8.2"]
+      # Remove after migrating upload callback types.
+      - dependency-name: "react-dropzone"
+        versions: [">=20.1.2"]
+      # Remove after migrating the existing virtualized lists from the v1 APIs.
+      - dependency-name: "react-virtualized-auto-sizer"
+        versions: [">=2.0.0"]
+      - dependency-name: "react-window"
+        versions: [">=2.0.0"]
+      - dependency-name: "@types/react-window"
+        versions: [">=2.0.0"]
+      # Remove after replacing the redirectToCheckout API used by Payments.
+      - dependency-name: "@stripe/stripe-js"
+        versions: [">=9.17.0"]
+      # Remove after migrating Ensu's inference API usage.
+      - dependency-name: "@wllama/wllama"
+        versions: [">=3.6.1"]
+      # Remove after migrating the QR decoder's pixel-data types.
+      - dependency-name: "qr"
+        versions: [">=0.7.0"]
+      # Remove after aligning the CSS with rehype-katex's rendering version.
+      - dependency-name: "katex"
+        versions: [">=0.18.9"]
+      # Remove after preserving Photos' en-GB month/day search parsing.
+      - dependency-name: "chrono-node"
+        versions: [">=2.10.1"]
     groups:
       web:
         applies-to: "version-updates"
@@ -47,6 +93,13 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+    ignore:
+      # Remove when crypto_secretbox also uses salsa20 0.11.
+      - dependency-name: "salsa20"
+        versions: ["=0.11.0"]
+      # Remove after migrating the chat-template API and all platform pins.
+      - dependency-name: "llama-cpp-2"
+        versions: ["=0.1.157"]
     groups:
       rust:
         applies-to: "version-updates"

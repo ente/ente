@@ -129,7 +129,6 @@ class _PhotoPinFramePainter extends CustomPainter {
     const pointerRadius = 1.0;
     const curveRadius = Radius.circular(pointerRadius);
     final tangentHeight = size.height - body.bottom - pointerRadius * 2;
-    // A shared tangent keeps the circular rounds within the same size and anchor.
     final angle =
         math.atan2(tangentHeight, halfWidth) +
         math.asin(

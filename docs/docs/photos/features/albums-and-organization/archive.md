@@ -21,10 +21,14 @@ You can remove a photo (owned by you) or an album from your **home timeline** by
 - Click the overflow menu (three dots)
 - Select **Archive album**
 
+![Archive album option highlighted in the overflow menu on Ente Photos mobile and web](https://docs-assets.ente.com/screenshots/duo-album-overflow-archive.png){width=900px}
+
 ### Archive Photo
 
 - Long press to select the photo
 - Select **Archive** from the bottom menu
+
+![Archive action highlighted in the bottom bar on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-photo-archive-action-callout.png){width=320px}
 
 ### View Archived Photos and Albums
 
@@ -34,10 +38,18 @@ You can remove a photo (owned by you) or an album from your **home timeline** by
 - Tap on 'v' icon at the right.
 - Tap **Archive**
 
+![Archive option highlighted in the Albums More sheet on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-albums-archive-nav.png){width=320px}
+
+![Archive view showing archived albums and photos on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-archive-view.png){width=320px}
+
 **On web/desktop:**
 
 - Click the menu icon (three horizontal lines) at top left
 - Select **Archive**
+
+![Archive item in the sidebar menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-archive-sidebar.png){width=720px}
+
+![Archive view showing archived albums and photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-archive-view.png){width=720px}
 
 ### Metadata Privacy
 

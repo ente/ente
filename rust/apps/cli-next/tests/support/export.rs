@@ -162,8 +162,11 @@ fn export_metadata_updates_and_repairs_preserve_source_values() -> TestResult {
             }
             export(&home, &root, &["--album", "Travel"]);
             place(origin,&account,favorites,&favorites_key,file,&key,"add-files").await;
+            let mut edited_metadata=json!({"editedName":"Renamed.jpg","editedTime":1_700_000_002_654_321i64,"caption":"","lat":0,"long":0,"dateTime":"2023:11:15 03:43:22","offsetTime":"+05:30","w":4096,"h":3072,"cameraMake":"Example","cameraModel":"Camera","uploaderName":"Guest","mediaType":1,"mvi":123});
             for (version,lat,long) in [(1,0,77),(2,12,0),(3,0,0)] {
-                edit_file(origin,&account,file,&key,version,json!({"editedName":"Renamed.jpg","editedTime":1_700_000_002_654_321i64,"caption":"","lat":lat,"long":long,"dateTime":"2023:11:15 03:43:22","offsetTime":"+05:30","w":4096,"h":3072,"cameraMake":"Example","cameraModel":"Camera","uploaderName":"Guest","mediaType":1,"mvi":123})).await;
+                edited_metadata["lat"]=json!(lat);
+                edited_metadata["long"]=json!(long);
+                edit_file(origin,&account,file,&key,version,edited_metadata.clone()).await;
                 export(&home,&root,&["--album","Family"]);
                 let record=read_json(&root.join("Family/metadata/Renamed.jpg.json"));
                 assert_eq!(record["description"],"");
@@ -187,7 +190,29 @@ fn export_metadata_updates_and_repairs_preserve_source_values() -> TestResult {
             export(&home,&root,&["--album","Family"]);
             assert!(read_json(&root.join("Family/metadata/Renamed.jpg.json")).get("custom").is_none());
             fs::write(root.join("Family/Renamed.jpg"),vec![0;original.len()])?;
-            export(&home,&root,&["--album","Family"]);
+            let db=export_database(&home);
+            let baseline: String=db.query_row("SELECT hash FROM components WHERE folder=?1",[format!("active:{family}")],|r|r.get(0))?;
+            let state=home.read_vault();
+            let saved=&state["accounts"][0];
+            let replica=rusqlite::Connection::open(home.dir.path().join("accounts").join(saved["storage_id"].as_str().unwrap()).join("data.db"))?;
+            let db_key: Vec<u8>=serde_json::from_value(saved["db_key"].clone())?;
+            let hex: String=db_key.iter().map(|byte|format!("{byte:02x}")).collect();
+            replica.pragma_update(None,"key",format!("x'{hex}'"))?;
+            let before: i64=replica.query_row("SELECT files_cursor FROM photos_collections WHERE id=?1",[family],|r|r.get(0))?;
+            edited_metadata["caption"]=json!("source advanced");
+            edit_file(origin,&account,file,&key,4,edited_metadata).await;
+            let output=home.run(&["photos","export",root.to_str().unwrap(),"--json"]);
+            assert!(failure(&output).contains("locally changed media"));
+            let result: Value=serde_json::from_slice(&output.stdout)?;
+            assert_eq!(result["complete"],false);
+            assert_eq!(result["conflicts"],1);
+            assert_eq!(fs::read(root.join("Family/Renamed.jpg"))?,vec![0;original.len()]);
+            assert_eq!(read_json(&root.join("Travel/metadata/Renamed.jpg.json"))["description"],"source advanced");
+            let after: i64=replica.query_row("SELECT files_cursor FROM photos_collections WHERE id=?1",[family],|r|r.get(0))?;
+            assert!(after>before);
+            assert_eq!(db.query_row("SELECT hash FROM components WHERE folder=?1",[format!("active:{family}")],|r|r.get::<_,String>(0))?,baseline);
+            fs::rename(root.join("Family/Renamed.jpg"),destination.path().join("local-edit.jpg"))?;
+            export(&home,&root,&[]);
             assert_eq!(fs::read(root.join("Family/Renamed.jpg"))?,original);
             assert_eq!(objects.reads(),initial_reads+1);
             Ok(())
@@ -365,6 +390,22 @@ fn export_adopts_relocated_output_and_verifies_later_selections() -> TestResult 
             assert_eq!(objects.reads(), reads);
             assert_eq!(fs::read(relocated.join("export.json"))?, root_bytes);
             fs::write(relocated.join("Work/Work.jpg"), b"xxxx")?;
+            let output = fresh.run(&[
+                "photos",
+                "export",
+                relocated.to_str().unwrap(),
+                "--album",
+                "Work",
+                "--json",
+            ]);
+            assert!(failure(&output).contains("locally changed media"));
+            assert_eq!(
+                serde_json::from_slice::<Value>(&output.stdout)?["conflicts"],
+                1
+            );
+            assert_eq!(fs::read(relocated.join("Work/Work.jpg"))?, b"xxxx");
+            assert_eq!(objects.reads(), reads);
+            fs::remove_file(relocated.join("Work/Work.jpg"))?;
             export(&fresh, &relocated, &["--album", "Work"]);
             assert_eq!(objects.reads(), reads + 1);
             assert_eq!(fs::read(relocated.join("Work/Work.jpg"))?, b"work");
@@ -1675,4 +1716,77 @@ async fn export_account(origin: &str) -> (AuthenticatedAccount, TestHome, String
     let home = TestHome::new();
     login(&home, "photos", &email, &["--host", origin]);
     (account, home, email)
+}
+
+#[test]
+fn export_adopts_go_and_desktop_fixtures_with_a_real_source_account() -> TestResult {
+    Museum::run(|museum| {
+        tokio::runtime::Runtime::new()?.block_on(async {
+            let origin = museum.endpoint();
+            let objects = museum.object_store();
+            let (account, home, _) = export_account(origin).await;
+            let (album, key) = create_album(origin, &account, "Family", "album").await;
+            let fixtures =
+                Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/export-adoption");
+            let bytes = b"adoption integration original".to_vec();
+            let (file, _) = upload_fixture(
+                origin,
+                &account,
+                album,
+                &key,
+                &bytes,
+                metadata("Photo.jpg", &bytes),
+            )
+            .await;
+            for producer in ["go", "desktop"] {
+                let directory = tempfile::tempdir()?;
+                let root = directory.path().join("photos");
+                fs::create_dir_all(root.join("Family"))?;
+                fs::write(root.join("Family/Photo.jpg"), &bytes)?;
+                if producer == "go" {
+                    fs::create_dir_all(root.join("Family/.meta"))?;
+                    let mut record = read_json(&fixtures.join("go-album.json"));
+                    record["id"] = json!(album);
+                    record["ownerID"] = json!(account.user_id);
+                    record["accountOwnerIDs"] = json!([account.user_id]);
+                    fs::write(
+                        root.join("Family/.meta/album_meta.json"),
+                        serde_json::to_vec(&record)?,
+                    )?;
+                    let mut record = read_json(&fixtures.join("go-file.json"));
+                    record["info"]["id"] = json!(file);
+                    record["info"]["ownerID"] = json!(account.user_id);
+                    record["info"]["hash"] = json!(digest(&bytes));
+                    fs::write(
+                        root.join("Family/.meta/Photo.jpg.json"),
+                        serde_json::to_vec(&record)?,
+                    )?;
+                } else {
+                    let mut record =
+                        json!({"version":5,"collectionExportNames":{},"fileExportNames":{}});
+                    record["collectionExportNames"][album.to_string()] = json!("Family");
+                    record["fileExportNames"][format!("{file}_{album}_100")] = json!("Photo.jpg");
+                    fs::write(
+                        root.join("export_status.json"),
+                        serde_json::to_vec(&record)?,
+                    )?;
+                }
+                let reads = objects.reads();
+                let output = home.run(&["photos", "export", root.to_str().unwrap()]);
+                assert_eq!(
+                    failure(&output),
+                    "Error: This folder contains an export from the old CLI or Ente Desktop. Use --adopt if you want to take it over.\n"
+                );
+                let result = export(&home, &root, &["--adopt", "--album", "Family"]);
+                assert_eq!(result["copies"]["completed"], 1);
+                assert_eq!(objects.reads(), reads);
+                assert_eq!(fs::read(root.join("Family/Photo.jpg"))?, bytes);
+                assert_eq!(
+                    read_json(&root.join("Family/metadata/Photo.jpg.json"))["ente"]["fileID"],
+                    file.to_string()
+                );
+            }
+            Ok(())
+        })
+    })
 }

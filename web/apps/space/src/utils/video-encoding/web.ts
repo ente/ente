@@ -2,6 +2,7 @@ import { FFFSType, FFmpeg } from "@ffmpeg/ffmpeg";
 import { joinPath } from "ente-base/file-name";
 import { newID } from "ente-base/id";
 import log from "ente-base/log";
+import { logToDisk } from "ente-base/log-web";
 import type { FFmpegCommand } from "ente-base/types/ipc";
 import { ensureArrayBufferBacked } from "ente-utils/bytes";
 import { PromiseQueue } from "ente-utils/promise";
@@ -9,42 +10,242 @@ import { z } from "zod";
 import { inputPathPlaceholder, outputPathPlaceholder } from "./constants";
 import type { VideoTranscodeEdit } from "./web-codecs";
 
-let _ffmpeg: Promise<FFmpeg> | undefined;
+let _ffmpeg: { instance: FFmpeg; ready: Promise<void> } | undefined;
 
 const _ffmpegTaskQueue = new PromiseQueue<unknown>();
 
-const ffmpegLazy = (signal?: AbortSignal): Promise<FFmpeg> =>
-    (_ffmpeg ??= createFFmpeg(signal));
+const ffmpegLazy = () => {
+    if (!_ffmpeg) {
+        const instance = new FFmpeg();
+        _ffmpeg = { instance, ready: loadFFmpeg(instance) };
+    }
+    return _ffmpeg;
+};
 
-const createFFmpeg = async (signal?: AbortSignal) => {
-    const ffmpeg = new FFmpeg();
+const loadFFmpeg = async (ffmpeg: FFmpeg) => {
+    const startedAt = Date.now();
+    const timeout = new AbortController();
+    const timer = setTimeout(() => {
+        timeout.abort();
+        ffmpeg.terminate();
+    }, 60_000);
+    logToDisk("[info] Space video encoder loading");
     try {
-        await ffmpeg.load(
-            {
-                coreURL:
-                    "https://assets.ente.com/ffmpeg-core-0.12.10/ffmpeg-core.js",
-                wasmURL:
-                    "https://assets.ente.com/ffmpeg-core-0.12.10/ffmpeg-core.wasm",
-            },
-            { signal },
+        await ffmpeg.load({
+            coreURL:
+                "https://assets.ente.com/ffmpeg-core-0.12.10/ffmpeg-core.js",
+            wasmURL:
+                "https://assets.ente.com/ffmpeg-core-0.12.10/ffmpeg-core.wasm",
+        });
+        logToDisk(
+            `[info] Space video encoder loaded elapsedMs=${Date.now() - startedAt}`,
         );
-        return ffmpeg;
     } catch (error) {
         ffmpeg.terminate();
-        _ffmpeg = undefined;
+        if (_ffmpeg?.instance == ffmpeg) _ffmpeg = undefined;
+        logToDisk(
+            `[error] Space video encoder load ${timeout.signal.aborted ? "timeout" : "failed"} elapsedMs=${Date.now() - startedAt}`,
+        );
+        if (timeout.signal.aborted)
+            throw new Error(
+                "The video processor took too long to load. Please try again.",
+                { cause: error },
+            );
         throw error;
+    } finally {
+        clearTimeout(timer);
     }
 };
 
 export const preloadVideoEncoderWeb = async () => {
-    await ffmpegLazy();
+    await ffmpegLazy().ready;
 };
 
 export const determineVideoDurationWeb = async (
     blob: Blob,
     signal?: AbortSignal,
 ): Promise<number> =>
-    runFFmpegTask((ffmpeg) => ffprobeExecVideoDuration(ffmpeg, blob), signal);
+    runFFmpegTask(
+        "duration",
+        blob.size,
+        (ffmpeg) => ffprobeExecVideoDuration(ffmpeg, blob),
+        signal,
+    );
+
+export const determineVideoInfoWeb = (blob: Blob, signal?: AbortSignal) =>
+    runFFmpegTask(
+        "metadata",
+        blob.size,
+        (ffmpeg) =>
+            withInputMount(ffmpeg, blob, async (inputPath) => {
+                const json = await ffprobeOutput(
+                    ffmpeg,
+                    [
+                        "-v",
+                        "error",
+                        "-select_streams",
+                        "v:0",
+                        "-show_entries",
+                        "format=duration:stream=width,height:stream_side_data=rotation",
+                        "-of",
+                        "json",
+                        "-o",
+                        "output.json",
+                        inputPath,
+                    ],
+                    "output.json",
+                );
+                const info = z
+                    .object({
+                        format: z.object({
+                            duration: z.coerce.number().positive(),
+                        }),
+                        streams: z
+                            .array(
+                                z.object({
+                                    width: z.number().positive(),
+                                    height: z.number().positive(),
+                                    side_data_list: z
+                                        .array(
+                                            z.object({
+                                                rotation: z.number().optional(),
+                                            }),
+                                        )
+                                        .optional(),
+                                }),
+                            )
+                            .nonempty(),
+                    })
+                    .parse(JSON.parse(json));
+                const stream = info.streams[0]!;
+                const rotation =
+                    stream.side_data_list?.find(
+                        (data) => data.rotation != undefined,
+                    )?.rotation ?? 0;
+                const sideways = Math.abs(rotation % 180) == 90;
+                return {
+                    duration: info.format.duration,
+                    width: sideways ? stream.height : stream.width,
+                    height: sideways ? stream.width : stream.height,
+                };
+            }),
+        signal,
+    );
+
+export const extractVideoFramesWeb = (
+    blob: Blob,
+    times: number[],
+    maxDimension: number,
+    signal?: AbortSignal,
+) =>
+    runFFmpegTask(
+        "frames",
+        blob.size,
+        async (ffmpeg, signal) => {
+            const frames: Blob[] = [];
+            await withInputMount(ffmpeg, blob, async (inputPath) => {
+                const outputPath = newID("frame_") + ".png";
+                const hdr = await isHDRVideo(ffmpeg, inputPath);
+                try {
+                    for (const time of times) {
+                        signal.throwIfAborted();
+                        const json = await ffprobeOutput(
+                            ffmpeg,
+                            [
+                                "-v",
+                                "error",
+                                "-select_streams",
+                                "v:0",
+                                "-read_intervals",
+                                `${time}%${time + 1}`,
+                                "-show_entries",
+                                "packet=pts_time:format=start_time",
+                                "-of",
+                                "json",
+                                "-o",
+                                "frame.json",
+                                inputPath,
+                            ],
+                            "frame.json",
+                        );
+                        const probe = z
+                            .object({
+                                format: z.object({
+                                    start_time: z.coerce.number().optional(),
+                                }),
+                                packets: z
+                                    .array(
+                                        z.object({
+                                            pts_time: z.coerce.number(),
+                                        }),
+                                    )
+                                    .nonempty(),
+                            })
+                            .parse(JSON.parse(json));
+                        const start = probe.format.start_time ?? 0;
+                        const timestamps = probe.packets.map(
+                            (packet) => packet.pts_time - start,
+                        );
+                        const frameTime = timestamps.reduce(
+                            (closest, timestamp) =>
+                                Math.abs(timestamp - time) <
+                                Math.abs(closest - time)
+                                    ? timestamp
+                                    : closest,
+                        );
+                        const status = await ffmpeg.exec([
+                            "-ss",
+                            String(Math.max(0, frameTime - 0.000001)),
+                            "-i",
+                            inputPath,
+                            "-map",
+                            "0:v:0",
+                            "-frames:v",
+                            "1",
+                            "-an",
+                            "-vf",
+                            [
+                                `scale=w='min(${maxDimension},iw)':h='min(${maxDimension},ih)':force_original_aspect_ratio=decrease`,
+                                ...(hdr
+                                    ? [
+                                          "zscale=transfer=linear",
+                                          "tonemap=tonemap=hable:desat=0",
+                                          "zscale=primaries=709:transfer=709:matrix=709",
+                                      ]
+                                    : []),
+                                "format=rgb24",
+                                "setsar=1",
+                            ].join(","),
+                            "-map_metadata",
+                            "-1",
+                            "-update",
+                            "1",
+                            outputPath,
+                        ]);
+                        if (status != 0)
+                            throw new Error("Couldn't extract a video frame.");
+                        const bytes = await ffmpeg.readFile(outputPath);
+                        if (typeof bytes == "string")
+                            throw new Error("Expected a video frame.");
+                        frames.push(
+                            new Blob([ensureArrayBufferBacked(bytes)], {
+                                type: "image/png",
+                            }),
+                        );
+                        await ffmpeg.deleteFile(outputPath);
+                    }
+                } finally {
+                    if (ffmpeg.loaded) {
+                        const files = await ffmpeg.listDir("/");
+                        if (files.some((file) => file.name == outputPath))
+                            await ffmpeg.deleteFile(outputPath);
+                    }
+                }
+            });
+            return frames;
+        },
+        signal,
+    );
 
 export const transcodeVideoWeb = (
     blob: Blob,
@@ -52,56 +253,108 @@ export const transcodeVideoWeb = (
     fallbackCommand: FFmpegCommand,
     signal?: AbortSignal,
 ) =>
-    runFFmpegTask(async (ffmpeg) => {
-        if (
-            typeof VideoDecoder !== "undefined" &&
-            typeof VideoEncoder !== "undefined"
-        ) {
-            try {
-                const { encodeVideoWithWebCodecs } =
-                    await import("./web-codecs");
-                const result = await withInputMount(ffmpeg, blob, (inputPath) =>
-                    encodeVideoWithWebCodecs(
+    runFFmpegTask(
+        "export",
+        blob.size,
+        async (ffmpeg, signal) => {
+            if (
+                typeof VideoDecoder !== "undefined" &&
+                typeof VideoEncoder !== "undefined"
+            ) {
+                try {
+                    const { encodeVideoWithWebCodecs } =
+                        await import("./web-codecs");
+                    const result = await withInputMount(
                         ffmpeg,
-                        inputPath,
                         blob,
-                        edit,
-                        signal,
-                    ),
-                );
-                if (result) {
-                    log.debug(() => "Encoded video with WebCodecs");
-                    return result;
+                        (inputPath) =>
+                            encodeVideoWithWebCodecs(
+                                ffmpeg,
+                                inputPath,
+                                blob,
+                                edit,
+                                signal,
+                            ),
+                    );
+                    if (result) {
+                        logToDisk(
+                            `[info] Space video encoded encoder=webcodecs bytes=${result.byteLength}`,
+                        );
+                        return result;
+                    }
+                } catch {
+                    signal.throwIfAborted();
+                    logToDisk(
+                        "[warn] Space video WebCodecs export failed, using software encoder",
+                    );
                 }
-            } catch (error) {
-                signal?.throwIfAborted();
-                log.warn("WebCodecs export failed, using FFmpeg", error);
             }
-        }
-        signal?.throwIfAborted();
-        return ffmpegExec(ffmpeg, fallbackCommand, "mp4", blob);
-    }, signal);
+            signal.throwIfAborted();
+            logToDisk("[info] Space video encoding encoder=wasm");
+            const result = await ffmpegExec(
+                ffmpeg,
+                fallbackCommand,
+                "mp4",
+                blob,
+            );
+            logToDisk(
+                `[info] Space video encoded encoder=wasm bytes=${result.byteLength}`,
+            );
+            return result;
+        },
+        signal,
+        300_000,
+    );
 
 const runFFmpegTask = <T>(
-    task: (ffmpeg: FFmpeg) => Promise<T>,
+    stage: string,
+    bytes: number,
+    task: (ffmpeg: FFmpeg, signal: AbortSignal) => Promise<T>,
     signal?: AbortSignal,
+    timeout = 60_000,
 ): Promise<T> => {
     const pending = _ffmpegTaskQueue.add(async () => {
         signal?.throwIfAborted();
-        const ffmpeg = await ffmpegLazy(signal);
-        signal?.throwIfAborted();
+        const engine = ffmpegLazy();
+        const ffmpeg = engine.instance;
+        const controller = new AbortController();
+        const cancel = () => controller.abort(signal?.reason);
         const abort = () => {
             ffmpeg.terminate();
-            _ffmpeg = undefined;
+            if (_ffmpeg == engine) _ffmpeg = undefined;
         };
-        signal?.addEventListener("abort", abort, { once: true });
+        const timer = setTimeout(
+            () =>
+                controller.abort(
+                    new DOMException(
+                        "Video processing took too long. Try a shorter clip.",
+                        "TimeoutError",
+                    ),
+                ),
+            timeout,
+        );
+        signal?.addEventListener("abort", cancel, { once: true });
+        controller.signal.addEventListener("abort", abort, { once: true });
+        const startedAt = Date.now();
+        logToDisk(`[info] Space video stage=${stage} started bytes=${bytes}`);
         try {
-            return await task(ffmpeg);
+            await engine.ready;
+            controller.signal.throwIfAborted();
+            const result = await task(ffmpeg, controller.signal);
+            logToDisk(
+                `[info] Space video stage=${stage} completed elapsedMs=${Date.now() - startedAt}`,
+            );
+            return result;
         } catch (error) {
-            signal?.throwIfAborted();
+            logToDisk(
+                `[error] Space video stage=${stage} ${signal?.aborted ? "canceled" : controller.signal.aborted ? "timeout" : "failed"} elapsedMs=${Date.now() - startedAt}`,
+            );
+            controller.signal.throwIfAborted();
             throw error;
         } finally {
-            signal?.removeEventListener("abort", abort);
+            clearTimeout(timer);
+            signal?.removeEventListener("abort", cancel);
+            controller.signal.removeEventListener("abort", abort);
         }
     }) as Promise<T>;
     if (!signal) return pending;
@@ -229,7 +482,7 @@ const isHDRVideo = async (ffmpeg: FFmpeg, inputFilePath: string) => {
             ffmpeg,
             [
                 ["-i", inputFilePath],
-                "-show_streams",
+                ["-show_entries", "stream=color_transfer"],
                 ["-select_streams", "v:0"],
                 ["-of", "json"],
                 ["-o", "output.json"],

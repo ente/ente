@@ -18,6 +18,14 @@ Notes let you store any text securely with end-to-end encryption. Use them for s
 
 ## Creating a note
 
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+![Note row in Save to Locker menu](https://docs-assets.ente.com/screenshots/locker-note-row-callout.png){width=320px}
+
+![Add Note form on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-note-form.png){width=320px}
+
+</div>
+
 1. Open Ente Locker
 2. Tap the **+** button
 3. Select **Note**

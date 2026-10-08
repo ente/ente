@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Privata säkerhetskopior<br/>för dina minnen",
     "intro_slide_1": "Totalsträckskryptering som standard",
     "intro_slide_2_title": "",
@@ -955,6 +959,8 @@
     "hide": "Dölj",
     "unhide": "",
     "sort_by": "Sortera efter",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "",
     "oldest_first": "",
     "most_relevant": "",

@@ -55,6 +55,10 @@ Yes! By default, the map view shows photos from all your albums. You can also:
 
 Learn more in the [Map and location guide](/photos/features/search-and-discovery/map-and-location).
 
+### Why does the Map setting turn back on? {#map-turns-back-on}
+
+On mobile, opening the map from Search or an album turns Map back on so the view can load. If you want to keep it off, avoid opening either map view. If you opened one, turn Map off again in Settings.
+
 ## Location Tags
 
 ### How are location tags different from map view? {#location-tags-vs-map}
@@ -227,9 +231,13 @@ Similarly, on desktop you can use the "Add a name" button to merge people by sel
 
 ### How can I remove an incorrectly grouped face from a person? {#remove-incorrect-face}
 
-On our mobile app, open up the person from the People section, click on the three dots to open up overflow menu, and click on Edit. Now you will be presented with the list of all photos that were merged to create this person.
+If the same person is tagged on two different faces in one photo, one of those faces may be in the wrong group.
 
-You can click on the merged photos and select the photos you think are incorrectly grouped (by long-pressing on them) and select "Remove" from the action bar that pops up to remove any incorrect faces.
+1. Open the photo and tap the incorrectly named person.
+2. Scroll to the face clusters.
+3. Remove the cluster containing the wrong face.
+
+Ente uses that correction to avoid suggesting the same cluster for that person again. If you need to undo a previous merge, open the person, select **Review suggestions**, then open **History** and undo that merge.
 
 ### How do I change the cover for a recognized person? {#change-person-cover}
 

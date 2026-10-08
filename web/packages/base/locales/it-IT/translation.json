@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Backup privati<br/>dei tuoi ricordi",
     "intro_slide_1": "Crittografia end-to-end",
     "intro_slide_2_title": "Salvati in modo sicuro<br/>in un rifugio antiatomico",
@@ -955,6 +959,8 @@
     "hide": "Nascondi",
     "unhide": "Mostra",
     "sort_by": "Ordina per",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Dal più recente",
     "oldest_first": "Dal più vecchio",
     "most_relevant": "",

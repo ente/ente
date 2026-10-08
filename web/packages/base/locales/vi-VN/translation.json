@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Sao lưu riêng tư<br/>cho những kỷ niệm của bạn",
     "intro_slide_1": "Mã hóa đầu cuối theo mặc định",
     "intro_slide_2_title": "Lưu trữ an toàn<br/>ở hầm trú ẩn hạt nhân",
@@ -955,6 +959,8 @@
     "hide": "Ẩn",
     "unhide": "Hiện",
     "sort_by": "Sắp xếp theo",
+    "album_sort_name_asc": "Tên tệp (A–Z)",
+    "album_sort_name_desc": "Tên tệp (Z–A)",
     "newest_first": "Mới nhất trước",
     "oldest_first": "Cũ nhất trước",
     "most_relevant": "Liên quan nhất",

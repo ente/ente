@@ -1,6 +1,15 @@
 use super::*;
 use crate::export_process::ExportChild;
 
+#[path = "export_engine.rs"]
+mod engine;
+
+#[path = "export_media.rs"]
+mod media;
+
+#[path = "export_adoption.rs"]
+mod adoption;
+
 fn listing(server: &mut mockito::ServerGuard, albums: Value) -> mockito::Mock {
     server
         .mock("GET", "/collections/v2")
@@ -1909,7 +1918,7 @@ fn export_recovers_cross_album_publication_after_album_rename() {
 }
 
 #[test]
-fn export_repairs_missing_or_changed_cross_album_publications() {
+fn export_restores_missing_cross_album_publications_and_preserves_edits() {
     for (owned, missing) in [(false, true), (false, false), (true, true), (true, false)] {
         let mut fixture = interrupted_cross_album_publication(owned, 2);
         let root = fixture.root.path();
@@ -1925,7 +1934,7 @@ fn export_repairs_missing_or_changed_cross_album_publications() {
             json!([revision(collection(2, "Renamed", &fixture.key), 80)]),
         );
         page(&mut fixture.server, 2, 50, json!([]), false).create();
-        if !missing && !owned {
+        if !missing {
             let result = run(&fixture.home, root, &["--album", "Renamed"], false);
             assert!(result["conflicts"].as_i64().unwrap() > 0);
             assert_eq!(fs::read(root.join("Renamed/Photo.jpg")).unwrap(), b"wrong");
@@ -2311,12 +2320,6 @@ fn export_automatically_retries_saved_selected_album_and_file_failures() {
         1
     );
     assert_component(&root, "First", "Photo.jpg", b"original");
-    assert!(
-        !home
-            .run(&["photos", "export", root.to_str().unwrap(), "--retry-failed"])
-            .status
-            .success()
-    );
     first_page.assert();
     fetched.assert();
 }

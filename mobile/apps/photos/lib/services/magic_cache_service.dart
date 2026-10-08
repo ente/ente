@@ -14,6 +14,7 @@ import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/file_uploaded_event.dart";
 import "package:photos/events/magic_cache_updated_event.dart";
 import "package:photos/events/tab_changed_event.dart";
+import "package:photos/main.dart" show isIOSBackgroundRefresh;
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/discover/prompt.dart";
@@ -332,6 +333,7 @@ class MagicCacheService {
     bool forced = false,
     bool interactive = false,
   }) async {
+    if (isIOSBackgroundRefresh) return;
     if (!enableDiscover) {
       return;
     }

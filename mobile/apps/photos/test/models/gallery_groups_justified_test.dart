@@ -167,7 +167,8 @@ void main() {
       1,
     );
     final flex = groups().groupLayouts.single as JustifiedSectionLayout;
-    expect(flex.rows.single.itemWidths, hasLength(4));
+    expect(flex.rows.map((row) => row.itemWidths.length), [3, 1]);
+    _expectRowsCoverFiles(flex, files.length);
   });
 
   test("routes Flex with its non-final singleton tuning", () async {

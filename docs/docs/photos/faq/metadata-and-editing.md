@@ -7,6 +7,12 @@ description: Frequently asked questions about photo metadata, EXIF data, and edi
 
 ## Viewing Metadata
 
+### Why is my iPhone Portrait photo smaller in Ente than in Apple Photos? {#portrait-photo-size}
+
+Apple Photos may include extra Portrait depth and adjustment data when showing an asset's size. Ente backs up the full-resolution image provided by iOS without compressing it, but that image file can be smaller than the complete Apple Photos asset. To compare them, export the photo from Apple Photos using **Current** and check its file size and resolution against the copy in Ente.
+
+Ente preserves the current look of the photo, but not Apple's separate editable Portrait data. If you restore the image from Ente, controls such as changing the depth or removing the Portrait effect may no longer be available. Keep a copy in Apple Photos or iCloud if you need those controls.
+
 ### What metadata does Ente preserve during import? {#metadata-preserved}
 
 Ente reads and preserves:

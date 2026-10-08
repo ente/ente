@@ -40,6 +40,14 @@ If the service only offers a QR code and no setup key, check its security settin
 
 All codes you backup via Ente is stored with end-to-end encryption. This means only you can access your codes. Our apps are open source and our cryptography has been externally audited.
 
+### Where are my 2FA codes stored? {#where-codes-are-stored}
+
+When you use Ente Auth with an account, your codes are encrypted on your device before they sync. Ente's servers store only encrypted copies of your codes and master key. They cannot read your codes or password.
+
+When you sign in, your device uses your password to unlock the master key locally. The key is then protected by your device's secure storage. Keep your recovery key safe so you can regain access if you forget your password.
+
+If you choose **Use without backups**, your codes stay on that device and are not synced to Ente. Make an [encrypted export or local backup](/auth/migration/export) before changing devices or resetting it.
+
 ### How can I delete or edit codes?
 
 You can delete or edit a code by long pressing (or right clicking on desktop) on that item.

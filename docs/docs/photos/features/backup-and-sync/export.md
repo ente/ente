@@ -37,6 +37,10 @@ The desktop app offers continuous export, which automatically exports new items 
 - Incremental exports only download new or changed files
 - The web app does not support export; use the desktop app or CLI
 
+![Export data dialog with destination folder on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-export-data.png){width=720px}
+
+![Start button highlighted in the Export data dialog on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-export-data-start-callout.png){width=720px}
+
 ### CLI export
 
 For advanced users and automation, use the [Ente CLI](/photos/features/utilities/cli) to export via command line. The CLI is particularly useful for:

@@ -174,19 +174,25 @@ class _GallerySettingsScreenState extends State<GallerySettingsScreen> {
         !isJustifiedLayoutAvailable) {
       return;
     }
+    final resetGridSize =
+        strategy == JustifiedLayoutStrategy.flex &&
+        localSettings.getPhotoGridSize() != 2;
     if (localSettings.getGalleryLayoutType() == layoutType &&
         (strategy == null ||
-            localSettings.getJustifiedLayoutStrategy() == strategy)) {
+            localSettings.getJustifiedLayoutStrategy() == strategy) &&
+        !resetGridSize) {
       return;
     }
     await Future.wait([
       localSettings.setGalleryLayoutType(layoutType),
       if (strategy != null) localSettings.setJustifiedLayoutStrategy(strategy),
+      if (resetGridSize) localSettings.setPhotoGridSize(2),
     ]);
     if (mounted) {
       setState(() {
         _layoutType = layoutType;
         if (strategy != null) _justifiedStrategy = strategy;
+        _photoGridSize = localSettings.getPhotoGridSize();
       });
     }
     Bus.instance.fire(GalleryLayoutChangedEvent());

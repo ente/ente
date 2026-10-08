@@ -6,6 +6,8 @@ import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/core/configuration.dart';
+import 'package:photos/core/event_bus.dart';
+import 'package:photos/events/contact_relationships_invalidated_event.dart';
 import 'package:photos/models/api/collection/user.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/services/collections_service.dart';
@@ -29,6 +31,8 @@ class ShareCollectionPage extends StatefulWidget {
 
 class _ShareCollectionPageState extends State<ShareCollectionPage> {
   late Collection _collection;
+  late final StreamSubscription<ContactRelationshipsInvalidatedEvent>
+  _relationshipsSubscription;
   final CollectionActions collectionActions = CollectionActions(
     CollectionsService.instance,
   );
@@ -37,7 +41,25 @@ class _ShareCollectionPageState extends State<ShareCollectionPage> {
   @override
   void initState() {
     super.initState();
-    _collection = widget.collection;
+    _collection =
+        CollectionsService.instance.getCollectionByID(widget.collection.id) ??
+        widget.collection;
+    _relationshipsSubscription = Bus.instance
+        .on<ContactRelationshipsInvalidatedEvent>()
+        .listen((event) {
+          final latest = CollectionsService.instance.getCollectionByID(
+            _collection.id,
+          );
+          if (latest != null && !identical(latest, _collection)) {
+            setState(() => _collection = latest);
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _relationshipsSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _refreshCollection() async {

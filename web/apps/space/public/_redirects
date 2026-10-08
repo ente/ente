@@ -1,3 +1,4 @@
+/_next/*    /_next/:splat    200
 /app    /app    200
 /app/friends    /app/friends    200
 /app/messages    /app/messages    200

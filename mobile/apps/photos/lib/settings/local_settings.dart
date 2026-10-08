@@ -304,7 +304,9 @@ class LocalSettings {
 
   JustifiedLayoutStrategy getJustifiedLayoutStrategy() {
     return switch (_prefs.getString(kJustifiedLayoutStrategy)) {
-      "flex" || "flexFullRows" => JustifiedLayoutStrategy.flex,
+      "flex" ||
+      "flexFullRows" ||
+      "flexOptimized" => JustifiedLayoutStrategy.flex,
       _ => JustifiedLayoutStrategy.comfortLarge,
     };
   }

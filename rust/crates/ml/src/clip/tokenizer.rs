@@ -78,7 +78,10 @@ impl ClipTextTokenizer {
     fn from_vocabulary(vocabulary: &str) -> MlResult<Self> {
         let (byte_encoder, byte_encoder_values) = bytes_to_unicode()?;
 
-        let split = vocabulary.split('\n').collect::<Vec<_>>();
+        let split = vocabulary
+            .split('\n')
+            .take(BPE_MERGES_END_EXCLUSIVE)
+            .collect::<Vec<_>>();
         if split.len() < BPE_MERGES_END_EXCLUSIVE {
             return Err(MlError::Runtime(format!(
                 "invalid clip vocab: expected at least {BPE_MERGES_END_EXCLUSIVE} lines, got {}",
@@ -325,7 +328,9 @@ fn bytes_to_unicode() -> MlResult<(HashMap<u8, String>, Vec<String>)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ClipTextTokenizer, basic_clean, token_pattern, whitespace_clean};
+    use super::{
+        BPE_MERGES_END_EXCLUSIVE, ClipTextTokenizer, basic_clean, token_pattern, whitespace_clean,
+    };
 
     fn cleaned_tokens(text: &str) -> Vec<String> {
         let clean_text = whitespace_clean(&basic_clean(text)).to_lowercase();
@@ -374,5 +379,39 @@ mod tests {
             err.to_string().contains("invalid clip vocab"),
             "unexpected error: {err}",
         );
+    }
+
+    #[test]
+    fn uses_the_last_supported_merge_and_ignores_later_merges() {
+        let vocabulary = format!(
+            "#version: 0.2\n{}a b</w>",
+            "\n".repeat(BPE_MERGES_END_EXCLUSIVE - 2),
+        );
+        let mut tokenizer = ClipTextTokenizer::from_vocabulary(&vocabulary).unwrap();
+        let expected = tokenizer.tokenize("ab ac").unwrap();
+        assert_eq!(tokenizer.encode("ab").unwrap(), [512]);
+
+        for suffix in ["\n", "\na c</w>", "\na c</w>\n"] {
+            let mut extended =
+                ClipTextTokenizer::from_vocabulary(&format!("{vocabulary}{suffix}")).unwrap();
+            assert_eq!(extended.tokenize("ab ac").unwrap(), expected);
+            assert!(!extended.encoder.contains_key("ac</w>"));
+        }
+    }
+
+    #[test]
+    fn counts_the_trailing_empty_line_at_the_vocabulary_boundary() {
+        let vocabulary = "\n".repeat(BPE_MERGES_END_EXCLUSIVE - 2);
+        let Err(error) = ClipTextTokenizer::from_vocabulary(&vocabulary) else {
+            panic!("expected incomplete vocabulary to fail");
+        };
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "runtime error: invalid clip vocab: expected at least {BPE_MERGES_END_EXCLUSIVE} lines, got {}",
+                BPE_MERGES_END_EXCLUSIVE - 1,
+            ),
+        );
+        assert!(ClipTextTokenizer::from_vocabulary(&format!("{vocabulary}\n")).is_ok());
     }
 }

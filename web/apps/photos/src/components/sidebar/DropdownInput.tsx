@@ -38,7 +38,15 @@ export const DropdownInput = <T extends string>({
         renderValue={() => {
             const label = options.find((o) => o.value == selected)?.label;
             return label ? (
-                <Typography sx={{ whiteSpace: "normal" }}>{label}</Typography>
+                <Typography
+                    sx={{
+                        whiteSpace: "normal",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                    }}
+                >
+                    {label}
+                </Typography>
             ) : (
                 <Typography sx={{ color: "text.muted" }}>
                     {placeholder}

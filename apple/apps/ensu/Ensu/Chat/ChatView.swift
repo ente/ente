@@ -143,6 +143,7 @@ struct ChatView: View {
                 viewModel.modelSelectionChanged()
             }
             .onChange(of: scenePhase) { newValue in
+                viewModel.setAppForeground(newValue != .background)
                 viewModel.notesStore.setForeground(newValue == .active)
                 viewModel.setChatActive(newValue == .active && !viewState.showSettings)
                 if newValue == .active {
@@ -154,6 +155,7 @@ struct ChatView: View {
         }
         .environmentObject(viewModel.notesStore)
         .onAppear {
+            viewModel.setAppForeground(scenePhase != .background)
             viewModel.notesStore.setForeground(scenePhase == .active)
             viewModel.setChatActive(scenePhase == .active && !viewState.showSettings)
         }
@@ -162,7 +164,7 @@ struct ChatView: View {
             NotificationCenter.default.publisher(
                 for: UIApplication.didReceiveMemoryWarningNotification)
         ) { _ in
-            viewModel.suppressChatWarmup()
+            viewModel.handleMemoryPressure()
         }
         .sheet(isPresented: $viewState.showSettings) {
             SettingsView(

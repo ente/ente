@@ -23,10 +23,14 @@ Hiding differs from [Archiving](./archive) in that hidden content won't appear a
 - Click the overflow menu (three dots)
 - Select **Hide album**
 
+![Hide album option highlighted in the overflow menu on Ente Photos mobile and web](https://docs-assets.ente.com/screenshots/duo-album-overflow-hide.png){width=900px}
+
 ### Hide photo
 
 - Select the photo
 - Tap/click **Hide** from the selection menu
+
+![Hide action highlighted in the bottom bar on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-photo-hide-action-callout.png){width=320px}
 
 ### View hidden photos and albums
 
@@ -37,11 +41,21 @@ Hiding differs from [Archiving](./archive) in that hidden content won't appear a
 - Tap **Hidden**
 - Authenticate with biometrics or passcode
 
+![Hidden option highlighted in the Albums More sheet on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-albums-hidden-nav.png){width=320px}
+
+![Hidden view showing hidden albums and photos on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-hidden-view.png){width=320px}
+
 **On web/desktop:**
 
 - Click the menu icon (three horizontal lines) at top left
 - Select **Hidden**
 - Authenticate with your Ente password
+
+![Hidden item in the sidebar menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-hidden-sidebar.png){width=720px}
+
+![Password authentication dialog for Hidden on Ente Photos web](https://docs-assets.ente.com/screenshots/web-hidden-auth.png){width=720px}
+
+![Hidden view showing hidden albums and photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-hidden-view.png){width=720px}
 
 ### Add photos to a hidden album (web/desktop)
 
@@ -50,7 +64,11 @@ Hiding differs from [Archiving](./archive) in that hidden content won't appear a
 3. Click **Add to album**
 4. Select another hidden album, or create a new one
 
+![Add to album dialog on Ente Photos web with the Birthdays hidden album destination highlighted](https://docs-assets.ente.com/screenshots/web-hidden-add-to-album-callout.png){width=720px}
+
 ### Unhide album
+
+![Unhide album option highlighted in the overflow menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-overflow-unhide-callout.png){width=720px}
 
 - Open the hidden album
 - Click the overflow menu (three dots)
@@ -62,6 +80,8 @@ Hiding differs from [Archiving](./archive) in that hidden content won't appear a
 - Tap/click **Unhide** from the selection menu
 - Select the album to restore the photo to
 
+![Hidden items gallery with real photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-hidden-hub-populated.png){width=720px}
+
 ### Clean up hidden (mobile only)
 
 On the mobile app, you can perform cleanup actions on your hidden files:
@@ -72,6 +92,8 @@ On the mobile app, you can perform cleanup actions on your hidden files:
 Note: If you use "Clean up hidden files" and it acts on an album shared with you, the files from that album that you own will remain in the hidden section even after you unhide the shared album. You will need to manually move them from hidden to the album you want them in.
 
 These options appear at the top of the **Hidden** section, and are only visible when there are files that the action can be performed on.
+
+![Clean up hidden files control highlighted at the top of the Hidden section on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-cleanup-hidden-files-callout.png){width=320px}
 
 ## Metadata Privacy
 

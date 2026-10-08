@@ -28,8 +28,20 @@ Legacy Kit creation and management are available in **Ente Locker on mobile**.
 1. Open Ente Locker.
 2. Open the Locker menu.
 3. Tap **Legacy**.
+
+<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+
+![Legacy entry in Locker drawer](https://docs-assets.ente.com/screenshots/locker-legacy-drawer-callout.png){width=320px}
+
+![Legacy home with Create legacy kit](https://docs-assets.ente.com/screenshots/locker-legacy-home-callout.png){width=320px}
+
+</div>
+
 4. Open **Legacy kits**.
 5. Tap **Create legacy kit**.
+
+![Create legacy kit intro with Continue](https://docs-assets.ente.com/screenshots/locker-legacy-kits-callout.png){width=320px}
+
 6. Name the 3 recovery sheets.
 7. Select the recovery wait time.
 8. Authenticate when prompted.

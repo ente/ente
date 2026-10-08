@@ -23,6 +23,8 @@ Share an entire album via a public link:
 4. Tap "Manage link" to configure optional [link features](#link-features) like album layout, password protection, link expiry, allow adding photos, etc
 5. Tap "Copy link" and share it
 
+![Create public link highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-album-share-create-link-callout.png){width=320px}
+
 **On web/desktop:**
 
 1. Open the album
@@ -30,6 +32,8 @@ Share an entire album via a public link:
 3. Select "Create link"
 4. Click "Manage link" to configure optional [link features](#link-features) like album layout, password protection, link expiry, allow adding photos, etc
 5. Click "Copy link" and share it
+
+![Create public link highlighted in the share panel on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-share-create-link-callout.png){width=720px}
 
 ### Quick link (from selected photos)
 
@@ -50,6 +54,8 @@ You can create a quick link in any of these ways:
 2. Select multiple files and use the "Send link" action in the top navbar
 3. Open a file in the viewer and use "Send link" from the viewer menu
 
+![Link created toast after Send link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-quick-link-created.png){width=720px}
+
 **How it works:** Ente creates a special album behind the scenes and adds your selected photos to it. The link works exactly like a regular public link - recipients see an album with the photos you selected.
 
 **Managing quick links:**
@@ -61,6 +67,8 @@ You can create a quick link in any of these ways:
 ## Link features
 
 Public links support powerful customization, security, and control features:
+
+![Allow downloads highlighted in Manage link on Ente Photos mobile and web](https://docs-assets.ente.com/screenshots/duo-album-manage-link-callout.png){width=900px}
 
 ### Album layout
 
@@ -92,6 +100,8 @@ Add a password to your link for an extra layer of security. Recipients must ente
 - Limiting access to a specific group
 - Adding security beyond link secrecy
 
+![Password lock toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-password-callout.png){width=720px}
+
 ### Link expiry
 
 Set an expiration date for your link. After this time, the link automatically stops working.
@@ -107,6 +117,8 @@ Set an expiration date for your link. After this time, the link automatically st
 - Custom date/time
 - Common presets (7 days, 30 days, etc.)
 - Can be extended or changed later
+
+![Link expiry row highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-expiry-callout.png){width=720px}
 
 ### Device limits
 
@@ -127,6 +139,8 @@ A "device" is determined by the combination of IP address and browser/app (User-
 - Preventing viral spread of the link
 - Adding accountability to sharing
 
+![Device limit row highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-device-limit-callout.png){width=720px}
+
 ### Prevent downloads
 
 Disable the option to download original quality photos. Recipients can still view photos and take screenshots, but can't download the original files.
@@ -140,6 +154,8 @@ Disable the option to download original quality photos. Recipients can still vie
 > [!NOTE]
 >
 > This doesn't prevent screenshots or screen recording, but does make it harder for recipients to get high-quality copies.
+
+![Allow downloads toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-callout.png){width=720px}
 
 ### Allow joining album
 
@@ -185,6 +201,8 @@ When disabled, anyone with the link can still view the album in a browser, but t
 
 Enable photo uploads through the link. Anyone with the link can add photos to the album via web browser - no Ente account needed.
 
+![Allow adding photos toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-allow-adding-callout.png){width=720px}
+
 **When to use:**
 
 - Collecting event photos from guests
@@ -207,12 +225,16 @@ Learn more in the [Custom domains guide](/photos/features/sharing-and-collaborat
 
 ### View all your links
 
+![Links list with public albums on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-links-list.png){width=320px}
+
 **On mobile:**
 
 - To see shared albums, open the Albums tab and use the "Shared" tab (albums you've shared) or the "Received" tab (albums shared with you)
 - To see quick links, open the Albums tab, tap on 'v' icon at the right, then tap "Links"
 
 ### Edit link settings
+
+![Manage link settings on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-callout.png){width=720px}
 
 1. Find the link in your sharing list
 2. Tap/click the three dots menu
@@ -231,6 +253,8 @@ Changes apply immediately - anyone accessing the link will see the updated setti
 
 Deleting a link makes it immediately inaccessible. The photos in the album remain in your account.
 
+![Remove link highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-remove-callout.png){width=720px}
+
 ### Convert quick link to regular album
 
 Quick links create special albums. You can convert them to regular albums:
@@ -240,6 +264,8 @@ Quick links create special albums. You can convert them to regular albums:
 3. Tap "Links"
 4. Find the quick link and tap the three dots menu
 5. Select "Convert to album"
+
+![Convert to album highlighted in the link album More menu on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-convert-to-album-callout.png){width=320px}
 
 The album becomes a regular album in your Albums tab, and the link continues to work.
 

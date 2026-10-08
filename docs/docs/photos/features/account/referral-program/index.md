@@ -15,7 +15,7 @@ You can find your referral code under `Settings > Referrals`.
 
 <div align="center">
 
-![Claim free storage screen](free-storage.png){width=400px}
+![Get free storage / Referrals on Ente Photos mobile and web showing your referral code](https://docs-assets.ente.com/screenshots/duo-referral-claim-storage.png){width=900px}
 
 </div>
 
@@ -27,7 +27,7 @@ As a new user, you get an extra 10 GB as soon as you apply a referral code. No p
 
 <div align="center">
 
-![Apply referral code screen](referral-code-application.png){width=400px}
+![Apply code dialog on the Referrals screen in Ente Photos web](https://docs-assets.ente.com/screenshots/web-referral-apply-code.png){width=720px}
 
 </div>
 

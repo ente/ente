@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Cadangan pribadi<br/>untuk kenanganmu",
     "intro_slide_1": "Dirancang dengan enkripsi ujung ke ujung",
     "intro_slide_2_title": "Tersimpan aman<br/>di tempat pengungsian",
@@ -955,6 +959,8 @@
     "hide": "Sembunyikan",
     "unhide": "",
     "sort_by": "Urut berdasarkan",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "",
     "oldest_first": "",
     "most_relevant": "",

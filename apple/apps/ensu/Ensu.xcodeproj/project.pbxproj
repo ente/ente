@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A40000012F11111100AA0001 = {isa = PBXBuildFile; fileRef = A40000022F11111100AA0001; };
 		A30000012F11111100AA0001 = {isa = PBXBuildFile; fileRef = A30000022F11111100AA0001; };
 		A20000012F11111100AA0001 = {isa = PBXBuildFile; fileRef = A20000022F11111100AA0001; };
 		A10000012F11111100AA0001 /* LlmIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000022F11111100AA0001 /* LlmIntegrationTests.swift */; };
@@ -27,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A40000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelMemoryCoordinationTests.swift; sourceTree = "<group>"; };
 		A30000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageMarkdownTests.swift; sourceTree = "<group>"; };
 		A20000022F11111100AA0001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesIntegrationTests.swift; sourceTree = "<group>"; };
 		A10000022F11111100AA0001 /* LlmIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlmIntegrationTests.swift; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000022F11111100AA0001 /* LlmIntegrationTests.swift */,
+				A40000022F11111100AA0001,
 				A20000022F11111100AA0001,
 				A30000022F11111100AA0001,
 			);
@@ -250,6 +253,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000012F11111100AA0001 /* LlmIntegrationTests.swift in Sources */,
+				A40000012F11111100AA0001,
 				A20000012F11111100AA0001,
 				A30000012F11111100AA0001,
 			);

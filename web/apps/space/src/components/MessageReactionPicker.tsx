@@ -1,6 +1,7 @@
 import { Add01Icon, Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, Dialog, Popover, useMediaQuery } from "@mui/material";
+import { keyframes } from "@mui/material/styles";
 import { SpaceBottomSheetTransition } from "components/BottomSheetTransition";
 import {
     emojiName,
@@ -25,6 +26,11 @@ import {
 
 const emojiFont =
     '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+const pickerEnter = keyframes`
+    from { opacity: 0; scale: 0.94; }
+    70% { opacity: 1; scale: 1.015; }
+    to { opacity: 1; scale: 1; }
+`;
 const buttonSx = {
     alignItems: "center",
     appearance: "none",
@@ -42,10 +48,19 @@ const buttonSx = {
     lineHeight: 1,
     p: 0,
     width: 40,
+    transition: "transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1)",
     "&:hover, &[aria-pressed=true]": { bgcolor: spaceMenuHover },
+    "@media (hover: hover)": {
+        "&:hover": { transform: "translateY(-2px) scale(1.12)" },
+    },
+    "&:active": { transform: "scale(0.9)" },
     "&:focus-visible": {
         outline: `2px solid ${spaceTextMuted}`,
         outlineOffset: -2,
+    },
+    "@media (prefers-reduced-motion: reduce)": {
+        transition: "none",
+        "&:hover, &:active": { transform: "none" },
     },
 };
 
@@ -76,6 +91,10 @@ export const MessageQuickReactions: React.FC<{
                 maxWidth: "calc(100vw - 16px)",
                 outline: 0,
                 p: "5px",
+                "& > button": {
+                    transition: "none",
+                    "&:hover, &:active": { transform: "none" },
+                },
             }}
         >
             {quickReactionEmojis(selected).map((emoji) => {
@@ -142,6 +161,9 @@ export const MessageReactionPicker: React.FC<{
     onClose: () => void;
 }> = ({ selected, onSelect, onClose }) => {
     const isBottomSheet = useMediaQuery("(max-width: 599px)");
+    const prefersReducedMotion = useMediaQuery(
+        "(prefers-reduced-motion: reduce)",
+    );
     const resultsID = React.useId();
     const [open, setOpen] = React.useState(true);
     useBrowserBackClose({
@@ -200,19 +222,21 @@ export const MessageReactionPicker: React.FC<{
             onClose={() => setOpen(false)}
             maxWidth={false}
             slots={
-                isBottomSheet
+                isBottomSheet && !prefersReducedMotion
                     ? { transition: SpaceBottomSheetTransition }
                     : undefined
             }
+            transitionDuration={prefersReducedMotion ? 0 : undefined}
             sx={{ zIndex: 1500 }}
             slotProps={{
                 paper: {
                     "aria-label": "React to message",
                     style: {
                         translate: `0 ${dragOffset}px`,
-                        transition: isDragging
-                            ? "none"
-                            : "translate 160ms ease-out",
+                        transition:
+                            isDragging || prefersReducedMotion
+                                ? "none"
+                                : "translate 160ms ease-out",
                     },
                     sx: {
                         bgcolor: spaceDialogBackground,
@@ -222,7 +246,7 @@ export const MessageReactionPicker: React.FC<{
                         boxSizing: "border-box",
                         display: "flex",
                         flexDirection: "column",
-                        height: "min(420px, 60dvh)",
+                        height: "min(340px, 50dvh)",
                         left: 0,
                         m: 0,
                         maxHeight: "calc(100dvh - 16px)",
@@ -231,6 +255,13 @@ export const MessageReactionPicker: React.FC<{
                         p: "0 16px max(16px, env(safe-area-inset-bottom))",
                         position: "fixed",
                         width: "100vw",
+                        animation: open
+                            ? `${pickerEnter} 280ms ease-out`
+                            : "none",
+                        transformOrigin: "bottom center",
+                        "@media (prefers-reduced-motion: reduce)": {
+                            animation: "none",
+                        },
                         "@media (min-width: 600px)": {
                             borderRadius: "20px",
                             bottom: "auto",
@@ -238,6 +269,7 @@ export const MessageReactionPicker: React.FC<{
                             p: "0 20px 20px",
                             top: "50%",
                             transform: "translate(-50%, -50%)",
+                            transformOrigin: "center",
                             width: 420,
                         },
                     },
@@ -293,6 +325,10 @@ export const MessageReactionPicker: React.FC<{
                     touchAction: "none",
                     width: "100%",
                     "&:hover": { bgcolor: "transparent" },
+                    "@media (hover: hover)": {
+                        "&:hover": { transform: "none" },
+                    },
+                    "&:active": { transform: "none" },
                 }}
             >
                 <Box
@@ -456,6 +492,7 @@ export const MessageReactionPicker: React.FC<{
                 anchorPosition={tonePicker?.position}
                 onClose={() => setTonePicker(null)}
                 transformOrigin={{ vertical: "bottom", horizontal: "center" }}
+                transitionDuration={prefersReducedMotion ? 0 : "auto"}
                 sx={{ zIndex: 1501 }}
                 slotProps={{
                     paper: {

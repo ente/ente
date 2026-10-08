@@ -84,7 +84,6 @@ class _AuthQrDialogState extends State<AuthQrDialog> {
     final double qrSize = min(screenWidth - 80, 300.0);
     final enteTextTheme = getEnteTextTheme(context);
 
-    // Keep data modules black for scanability.
     const qrTextColor = textBaseLight;
 
     return Semantics(

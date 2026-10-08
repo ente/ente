@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import "package:hugeicons/hugeicons.dart";
@@ -76,9 +77,10 @@ class ImageEditorMainBottomBarState extends State<ImageEditorMainBottomBar>
                 child: SingleChildScrollView(
                   clipBehavior: Clip.none,
                   scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      minWidth: min(constraints.maxWidth, 600),
+                      minWidth: min(constraints.maxWidth - 2 * Spacing.sm, 600),
                       maxWidth: 600,
                     ),
                     child: Row(
@@ -111,6 +113,13 @@ class ImageEditorMainBottomBarState extends State<ImageEditorMainBottomBar>
                           label: context.strings.draw,
                           onTap: () {
                             widget.editor.openPaintEditor();
+                          },
+                        ),
+                        CircularIconButton(
+                          hugeIcon: HugeIcons.strokeRoundedText,
+                          label: context.strings.imageEditorText,
+                          onTap: () {
+                            widget.editor.openTextEditor();
                           },
                         ),
                         CircularIconButton(

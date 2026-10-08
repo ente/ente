@@ -25,7 +25,7 @@ zeroize.workspace = true
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 bytes = "1.12.1"
 futures-core = "0.3.34"
-reqwest = { workspace = true, features = ["stream"] }
+reqwest = { workspace = true, features = ["stream", "gzip", "brotli"] }
 tokio = { workspace = true, features = ["time"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

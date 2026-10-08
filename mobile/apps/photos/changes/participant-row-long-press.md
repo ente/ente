@@ -1,0 +1,1 @@
+- Added support for opening participant options by long pressing their row in album sharing.

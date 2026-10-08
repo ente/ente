@@ -156,10 +156,12 @@ class VideoBottomScrim extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
+                    Colors.black.withValues(alpha: 0.025),
+                    Colors.black.withValues(alpha: 0.05),
                     Colors.black.withValues(alpha: 0.6),
                     Colors.black.withValues(alpha: 0.72),
                   ],
-                  stops: const [0, 0.8, 1],
+                  stops: const [0, 0.05, 0.1, 0.8, 1],
                 ),
               ),
             ),
@@ -174,11 +176,13 @@ class VideoProgressRow extends StatelessWidget {
   final Widget seekBar;
   final String elapsedTime;
   final String totalTime;
+  final Widget muteButton;
 
   const VideoProgressRow({
     required this.seekBar,
     required this.elapsedTime,
     required this.totalTime,
+    this.muteButton = const VideoMuteButton(),
     super.key,
   });
 
@@ -202,7 +206,7 @@ class VideoProgressRow extends StatelessWidget {
             const SizedBox(width: 16),
             Text('$elapsedTime / $totalTime', style: timeStyle),
             const SizedBox(width: 7),
-            const VideoMuteButton(),
+            muteButton,
           ],
         ),
       ),

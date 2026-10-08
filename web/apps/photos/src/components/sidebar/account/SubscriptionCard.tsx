@@ -1,5 +1,4 @@
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import CircleIcon from "@mui/icons-material/Circle";
 import {
     Box,
     Skeleton,
@@ -8,7 +7,6 @@ import {
     styled,
     useMediaQuery,
 } from "@mui/material";
-import { Overlay } from "ente-base/components/containers";
 import type { ButtonishProps } from "ente-base/components/mui";
 import { bytesInGB, formattedStorageByteSize } from "ente-gallery/utils/units";
 import { UnstyledButton } from "ente-new/photos/components/UnstyledButton";
@@ -34,25 +32,27 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         <Skeleton
             animation="wave"
             variant="rectangular"
-            height={152}
-            sx={{ borderRadius: "8px" }}
+            height={130}
+            sx={{ borderRadius: "15px" }}
         />
     ) : (
-        <Box sx={{ position: "relative", color: "white" }}>
-            <BackgroundOverlay />
+        <Box
+            sx={{
+                position: "relative",
+                color: "white",
+                minHeight: 130,
+                borderRadius: "15px",
+                fontFamily: "'Outfit Variable', sans-serif",
+                backgroundImage:
+                    "radial-gradient(circle, rgba(255, 255, 255, 0.024) 1.45px, transparent 1.45px), linear-gradient(to top, #212121, #434343)",
+                backgroundSize: "15.65px 15.65px, 100% 100%",
+                "& .MuiTypography-root": { fontFamily: "inherit" },
+            }}
+        >
             <SubscriptionCardContentOverlay userDetails={userDetails} />
             <ClickOverlay onClick={onClick} />
         </Box>
     );
-
-const BackgroundOverlay: React.FC = () => (
-    <img
-        style={{ aspectRatio: "2/1", verticalAlign: "bottom" }}
-        width="100%"
-        src="/images/subscription-card-background/1x.png"
-        srcSet="/images/subscription-card-background/2x.png 2x, /images/subscription-card-background/3x.png 3x"
-    />
-);
 
 const ClickOverlay: React.FC<ButtonishProps> = ({ onClick }) => (
     <ClickOverlayButton onClick={onClick}>
@@ -73,16 +73,21 @@ const ClickOverlayButton = styled(UnstyledButton)(
     align-items: center;
 
     color: inherit;
+    border-radius: 15px;
+
+    & > svg {
+        margin-inline-end: 8px;
+    }
 
     &:focus-visible {
         outline: 1.5px solid ${theme.vars.palette.stroke.base};
         outline-offset: 2px;
-        border-radius: 3px;
+        border-radius: 15px;
     }
     &:active {
         outline: 2px solid ${theme.vars.palette.stroke.faint};
         outline-offset: 1px;
-        border-radius: 3px;
+        border-radius: 15px;
     }
 `,
 );
@@ -100,36 +105,26 @@ const SubscriptionCardContentOverlay: React.FC<
         : undefined;
 
     return (
-        <Overlay>
-            <Stack
-                sx={{
-                    height: "100%",
-                    justifyContent: "space-between",
-                    padding: "20px 16px",
-                }}
-            >
-                {inFamily ? (
-                    storageLimit ? (
-                        <UserSubscriptionCardContents
-                            userDetails={userDetails}
-                            totalStorage={storageLimit}
-                        />
-                    ) : (
-                        <FamilySubscriptionCardContents
-                            userDetails={userDetails}
-                        />
-                    )
-                ) : (
+        <Stack sx={{ gap: "16px", padding: "20px 16px 16px" }}>
+            {inFamily ? (
+                storageLimit !== undefined ? (
                     <UserSubscriptionCardContents
                         userDetails={userDetails}
-                        totalStorage={
-                            userDetails.subscription.storage +
-                            userDetails.storageBonus
-                        }
+                        totalStorage={storageLimit}
                     />
-                )}
-            </Stack>
-        </Overlay>
+                ) : (
+                    <FamilySubscriptionCardContents userDetails={userDetails} />
+                )
+            ) : (
+                <UserSubscriptionCardContents
+                    userDetails={userDetails}
+                    totalStorage={
+                        userDetails.subscription.storage +
+                        userDetails.storageBonus
+                    }
+                />
+            )}
+        </Stack>
     );
 };
 
@@ -157,16 +152,36 @@ interface StorageSectionProps {
 
 const StorageSection: React.FC<StorageSectionProps> = ({ usage, storage }) => {
     const isExtraSmallWidth = useMediaQuery("(width < 360px)");
-    const label = isExtraSmallWidth
-        ? `${bytesInGB(usage)} /  ${bytesInGB(storage)} ${t("storage_unit.gb")} ${t("used")}`
-        : `${formattedStorageByteSize(usage, { round: true })} ${t("of")} ${formattedStorageByteSize(storage)} ${t("used")}`;
+    const label = isExtraSmallWidth ? (
+        `${bytesInGB(usage)} /  ${bytesInGB(storage)} ${t("storage_unit.gb")} ${t("used")}`
+    ) : (
+        <>
+            {formattedStorageByteSize(usage, { round: true })}
+            <Box component="span" sx={{ opacity: 0.7, whiteSpace: "pre" }}>
+                {`  ${t("of")}  `}
+            </Box>
+            {`${formattedStorageByteSize(storage)} ${t("used")}`}
+        </>
+    );
 
     return (
         <Box>
-            <Typography variant="small" sx={{ opacity: 0.7 }}>
+            <Typography variant="tiny" sx={{ opacity: 0.7, mb: "2px" }}>
                 {t("storage")}
             </Typography>
-            <Typography variant="h3">{label}</Typography>
+            <Typography
+                variant="h3"
+                noWrap
+                sx={{
+                    fontSize: "24px",
+                    lineHeight: "32px",
+                    fontWeight: 700,
+                    letterSpacing: "-1px",
+                    paddingInlineEnd: "24px",
+                }}
+            >
+                {label}
+            </Typography>
         </Box>
     );
 };
@@ -186,16 +201,16 @@ const IndividualUsageSection: React.FC<IndividualUsageSectionProps> = ({
     // Use the unsuffixed key as the fallback for languages with more plural forms.
     <Stack sx={{ gap: 1.5 }}>
         <UsageBar>
-            <UsageBarSegment
-                {...{ usage, storage }}
-                fillColor="rgba(255 255 255 / 1)"
-            />
+            <UsageBarSegment {...{ usage, storage }} fillColor="#08C225" />
         </UsageBar>
         <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-            <Typography variant="mini">
+            <Typography variant="tiny">
                 {`${formattedStorageByteSize(storage - usage)} ${t("free")}`}
             </Typography>
-            <Typography variant="mini" sx={{ fontWeight: "medium" }}>
+            <Typography
+                variant="tiny"
+                sx={{ fontWeight: 600, color: "rgba(165, 165, 165, 0.79)" }}
+            >
                 {t("photos_count", { count: fileCount })}
             </Typography>
         </Stack>
@@ -205,8 +220,8 @@ const IndividualUsageSection: React.FC<IndividualUsageSectionProps> = ({
 const UsageBar = styled("div")`
     position: relative;
     height: 4px;
-    border-radius: 4px;
-    background-color: rgba(255 255 255 / 0.2);
+    border-radius: 2px;
+    background-color: rgba(193, 193, 193, 0.11);
 `;
 
 type UsageBarSegmentProps = UsageStorage & { fillColor: string };
@@ -223,12 +238,12 @@ const UsageBarSegment: React.FC<UsageBarSegmentProps> = ({
             top: 0,
             width: "max(var(--et-width), 2px)",
             height: "4px",
-            borderRadius: "4px",
+            borderRadius: "2px",
             backgroundColor: "var(--et-background-color)",
         }}
         style={
             {
-                "--et-width": `${Math.min(usage / storage, 1) * 100}%`,
+                "--et-width": `${storage > 0 ? Math.min(usage / storage, 1) * 100 : 0}%`,
                 "--et-background-color": fillColor,
             } as React.CSSProperties
         }
@@ -267,22 +282,22 @@ const FamilyUsageSection: React.FC<FamilyUsageSectionProps> = ({
 }) => (
     <Stack sx={{ gap: 1.5 }}>
         <UsageBar>
+            <UsageBarSegment {...{ usage, storage }} fillColor="#F4D93B" />
             <UsageBarSegment
                 {...{ storage }}
                 usage={userUsage}
-                fillColor="rgba(255 255 255 / 1)"
-            />
-            <UsageBarSegment
-                {...{ usage, storage }}
-                fillColor="rgba(255 255 255 / 0.6)"
+                fillColor="#08C225"
             />
         </UsageBar>
         <Stack direction="row" sx={{ justifyContent: "space-between" }}>
             <Stack direction="row" sx={{ gap: 1.5 }}>
-                <Legend label={t("you")} opacity={1} />
-                <Legend label={t("family")} opacity={0.8} />
+                <Legend label={t("you")} color="#08C225" />
+                <Legend label={t("family")} color="#F4D93B" />
             </Stack>
-            <Typography variant="mini" sx={{ fontWeight: "medium" }}>
+            <Typography
+                variant="tiny"
+                sx={{ fontWeight: 600, color: "rgba(165, 165, 165, 0.79)" }}
+            >
                 {t("photos_count", { count: fileCount })}
             </Typography>
         </Stack>
@@ -291,21 +306,23 @@ const FamilyUsageSection: React.FC<FamilyUsageSectionProps> = ({
 
 interface LegendProps {
     label: string;
-    opacity: number;
+    color: string;
 }
 
-const Legend: React.FC<LegendProps> = ({ label, opacity }) => (
-    <Stack direction="row" sx={{ alignItems: "center", opacity }}>
-        <LegendDot />
-        <Typography variant="mini" sx={{ fontWeight: "medium" }}>
+const Legend: React.FC<LegendProps> = ({ label, color }) => (
+    <Stack direction="row" sx={{ alignItems: "center" }}>
+        <LegendDot sx={{ color }} />
+        <Typography variant="tiny" sx={{ fontWeight: 600 }}>
             {label}
         </Typography>
     </Stack>
 );
 
-const LegendDot = styled(CircleIcon)`
-    font-size: 8.71px;
-    margin: 0;
+const LegendDot = styled("span")`
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
     margin-inline-end: 4px;
-    color: inherit;
+    border-radius: 50%;
+    background-color: currentColor;
 `;

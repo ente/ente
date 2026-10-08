@@ -203,7 +203,7 @@ fn handle(stream: TcpStream, root: &Path, control: &ObjectStoreControl) -> TestR
             };
             if control
                 .interrupted
-                .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |left| {
+                .try_update(Ordering::SeqCst, Ordering::SeqCst, |left| {
                     left.checked_sub(1)
                 })
                 .is_ok()

@@ -118,7 +118,7 @@ class JustifiedLayoutCalculator {
         .toDouble();
   }
 
-  static int _maximumItemsPerRowFor(double availableWidth) {
+  static int responsiveMaximumItemsPerRowFor(double availableWidth) {
     if (availableWidth < _mediumWidthBreakpoint) {
       return _compactMaximumItemsPerRow;
     }
@@ -171,7 +171,7 @@ class JustifiedLayoutCalculator {
     final rows = <JustifiedRowLayout>[];
     final pendingRatios = <double>[];
     final maximumRowHeight = targetRowHeight * maximumRowHeightFactor;
-    final maximumItemsPerRow = _maximumItemsPerRowFor(availableWidth);
+    final maximumItemsPerRow = responsiveMaximumItemsPerRowFor(availableWidth);
     // On wider galleries, prefer a partial final row once its configured
     // growth limit is reached. Compact layouts retain their tail treatment.
     final limitsFinalRowGrowth = availableWidth >= _mediumWidthBreakpoint;

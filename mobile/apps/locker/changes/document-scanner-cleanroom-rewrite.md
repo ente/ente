@@ -1,1 +1,0 @@
-- Cleanroom rewrite of document scanner pipeline

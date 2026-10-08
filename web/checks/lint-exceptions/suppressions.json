@@ -20,6 +20,9 @@
     "web/apps/photos/src/components/PlanSelector.tsx": [
         "react-hooks/exhaustive-deps"
     ],
+    "web/apps/photos/src/components/sidebar/accounts/subscription.ts": [
+        "@typescript-eslint/no-floating-promises"
+    ],
     "web/apps/photos/src/components/sidebar/Sidebar.tsx": [
         "@typescript-eslint/no-floating-promises"
     ],

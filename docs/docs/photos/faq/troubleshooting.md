@@ -150,6 +150,8 @@ If some files fail to download from your Ente library on web or desktop, you can
 
 When files fail to download, a modal dialog appears showing the failed downloads. Click the **retry icon** in the modal to attempt downloading the failed files again.
 
+If a photo or video fails to load in the desktop viewer, use **Retry** in the viewer to try the download again. The viewer shows download progress while the file loads.
+
 ### Why can't the app detect certain file types? {#file-type-detection}
 
 The desktop/web app tries to detect if a particular file is a video or image. If the detection fails, the app skips the upload.

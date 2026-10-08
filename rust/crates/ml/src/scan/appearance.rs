@@ -769,7 +769,10 @@ fn render(
     }
 }
 
-fn stroke_contrast(image: &ImageU8, valid: Option<&[u8]>) -> Vec<f32> {
+fn stroke_contrast<'a>(
+    image: &ImageU8,
+    valid: Option<&'a [u8]>,
+) -> impl Iterator<Item = f32> + use<'a> {
     let width = image.width as usize;
     let height = image.height as usize;
     let tables = transfer_tables();
@@ -791,10 +794,10 @@ fn stroke_contrast(image: &ImageU8, valid: Option<&[u8]>) -> Vec<f32> {
         })
         .collect();
     let radius = width.max(height).div_ceil(192).max(2);
-    let mut contrasts = vec![0.0; width * height];
-    for (index, &level) in background.iter().enumerate() {
+    (0..background.len()).map(move |index| {
+        let level = background[index];
         if valid.is_some_and(|mask| mask[index] == 0) {
-            continue;
+            return 0.0;
         }
         let x = index % width;
         let y = index / width;
@@ -806,15 +809,13 @@ fn stroke_contrast(image: &ImageU8, valid: Option<&[u8]>) -> Vec<f32> {
                 .min(background[(y + distance).min(height - 1) * width + x]);
             paper = paper.max(horizontal).max(vertical);
         }
-        let contrast = (1.0 - level / paper.max(0.01)).max(0.0);
-        contrasts[index] = contrast;
-    }
-    contrasts
+        (1.0 - level / paper.max(0.01)).max(0.0)
+    })
 }
 
-fn enhance_neutral_strokes(image: &mut ImageU8, contrasts: &[f32]) {
+fn enhance_neutral_strokes(image: &mut ImageU8, contrasts: impl IntoIterator<Item = f32>) {
     let tables = transfer_tables();
-    for (pixel, &contrast) in image.data.as_chunks_mut::<3>().0.iter_mut().zip(contrasts) {
+    for (pixel, contrast) in image.data.as_chunks_mut::<3>().0.iter_mut().zip(contrasts) {
         if contrast <= 0.02 {
             continue;
         }
@@ -1052,7 +1053,7 @@ pub(super) fn render_document(
         matches!(mode, ColorMode::Grayscale),
     );
     if let Some(contrasts) = contrasts {
-        enhance_neutral_strokes(image, &contrasts);
+        enhance_neutral_strokes(image, contrasts);
     }
     if let Some(contrasts) = light_contrasts {
         enhance_light_strokes(image, &contrasts, dark_support);
@@ -1063,6 +1064,21 @@ pub(super) fn render_document(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn neutral_stroke_contrast_keeps_original_pixels_and_invalid_mask() {
+        let mut page = image(9, 9, [255; 3]);
+        page.data[40 * 3..41 * 3].fill(0);
+        let mut valid = vec![1; 81];
+        valid[0] = 0;
+        let contrasts = stroke_contrast(&page, Some(&valid));
+
+        page.data.fill(255);
+
+        let mut expected = vec![0.0; 81];
+        expected[40] = 1.0;
+        assert_eq!(contrasts.collect::<Vec<_>>(), expected);
+    }
 
     #[test]
     fn light_text_on_dark_stock_gains_contrast_without_lifting_the_stock() {

@@ -21,6 +21,7 @@ import io.ente.ensu.bindings.withNotesCollectionLabel
 import io.ente.ensu.coroutines.runCatchingCancellable
 import io.ente.ensu.llm.LlmProvider
 import io.ente.ensu.llm.ModelMaintenance
+import io.ente.ensu.llm.ModelMemoryDeferred
 import io.ente.ensu.llm.withMaintenanceSuspended
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.logging.LogLevel
@@ -524,6 +525,14 @@ class NotesStore(
                 } finally {
                     if (!completed) {
                         when (failure) {
+                            is ModelMemoryDeferred -> {
+                                pending[id]?.let {
+                                    pending[id] = it.copy(due = System.currentTimeMillis() + 30_000)
+                                }
+                                update(id) {
+                                    it.copy(status = NotesStatus.Pending, progress = null)
+                                }
+                            }
                             null,
                             is NotesException.Cancelled -> {
                                 if (snapshot == null) scans.add(id)

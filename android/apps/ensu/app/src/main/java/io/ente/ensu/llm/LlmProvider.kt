@@ -1,27 +1,33 @@
 package io.ente.ensu.llm
 
+import android.os.SystemClock
 import android.util.Log
 import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.bindings.Asset
 import io.ente.ensu.bindings.KnowledgeEmbeddingConfig
 import io.ente.ensu.bindings.LlmChatMessage as NativeChatMessage
+import io.ente.ensu.bindings.LlmChatModelMemory
 import io.ente.ensu.bindings.LlmChatRequest
 import io.ente.ensu.bindings.LlmContext
 import io.ente.ensu.bindings.LlmContextParams
 import io.ente.ensu.bindings.LlmGenerationEvent
 import io.ente.ensu.bindings.LlmGenerationEventCallback
 import io.ente.ensu.bindings.LlmGenerationSummary as NativeSummary
+import io.ente.ensu.bindings.LlmMemoryOperation
 import io.ente.ensu.bindings.LlmModel
 import io.ente.ensu.bindings.LlmModelLoadParams
+import io.ente.ensu.bindings.ModelRuntimeSurface
 import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.bindings.knowledgeEmbeddingModelAsset
 import io.ente.ensu.bindings.llmAsset
 import io.ente.ensu.bindings.llmCancel
+import io.ente.ensu.bindings.llmHasRequiredWorkReserve
 import io.ente.ensu.bindings.llmInitBackend
-import io.ente.ensu.coroutines.runCatchingCancellable
+import io.ente.ensu.bindings.llmMemoryBudget
 import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.device.requireChatSupported
 import io.ente.ensu.settings.IS_ENSU_PACKS_ENABLED
+import io.ente.ensu.toDirectByteBuffer
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
@@ -32,6 +38,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+
+internal class ModelMemoryDeferred : Exception()
+
+internal class ModelMemoryUnavailable :
+    Exception("Not enough free memory. Close other apps and try again.")
 
 class RequiredModelValidationError(val modelId: String) :
     Exception("Downloaded model failed validation: $modelId")
@@ -58,6 +69,130 @@ class LlmProvider(
     private val activeDownloads = AtomicInteger()
     private val embeddingAsset = knowledgeEmbeddingModelAsset()
     private var chatWarmupOwner: String? = null
+    private var voiceOwner: String? = null
+    @Volatile private var chatForeground = false
+    @Volatile private var appForeground = false
+    private val memoryPressure = ModelMemoryPressure(SystemClock::elapsedRealtime)
+
+    private fun canAllocate(
+        operation: LlmMemoryOperation,
+        queryBytes: Int? = null,
+    ): Boolean {
+        val chat =
+            currentModelKey
+                ?.takeIf { operation == LlmMemoryOperation.EMBEDDING }
+                ?.let {
+                    LlmChatModelMemory(
+                        modelId = it.id,
+                        modelBytes =
+                            assetStore.llmModelPath(llmAsset(it.id))?.length()?.toULong() ?: 0uL,
+                        contextSize = (currentContextLength ?: 12000).toUInt(),
+                    )
+                }
+        val budget =
+            llmMemoryBudget(
+                ModelRuntimeSurface.ANDROID,
+                operation,
+                chat,
+                queryBytes?.coerceAtLeast(0)?.toULong(),
+            )
+        val headroom =
+            deviceCapabilityProvider.modelMemoryHeadroom(
+                optionalReserveCapBytes = budget.systemReserveCapBytes?.toLong()
+            )
+        return headroom != null && headroom >= budget.requiredBytes
+    }
+
+    private fun hasRequiredWorkReserve(): Boolean =
+        llmHasRequiredWorkReserve(
+            deviceCapabilityProvider.modelMemoryHeadroom(optionalWork = false)
+        )
+
+    private fun releaseProjector() {
+        loadedContext?.releaseMultimodal()
+    }
+
+    internal fun setChatForeground(active: Boolean) {
+        chatForeground = active
+    }
+
+    internal suspend fun setAppForeground(active: Boolean) {
+        appForeground = active
+        if (!active) releaseIdleResources()
+    }
+
+    internal suspend fun handleMemoryPressure() {
+        memoryPressure.requestEviction()
+        releaseIdleResources()
+    }
+
+    private suspend fun releaseIdleResources() =
+        withContext(ioDispatcher) { modelLoadMutex.withLock { releaseIdleResourcesLocked() } }
+
+    private fun releaseIdleResourcesLocked(force: Boolean = false) {
+        val eviction = memoryPressure.pendingEviction()
+        if (force || !appForeground || memoryPressure.suppressesOptionalWork()) {
+            unloadTranscriptionModelIfLoaded()
+            unloadModel()
+            if (eviction != null) memoryPressure.didRelease(eviction)
+        }
+    }
+
+    private suspend fun <T> withResources(
+        retainAfterCooldown: Boolean = false,
+        block: suspend () -> T,
+    ): T {
+        var releaseAfterUse = false
+        return withModelResources(modelLoadMutex, { releaseIdleResourcesLocked(releaseAfterUse) }) {
+            releaseAfterUse = !retainAfterCooldown && memoryPressure.suppressesOptionalWork()
+            block()
+        }
+    }
+
+    suspend fun prewarmVoice(owner: String) = withModelContext {
+        withResources {
+            currentCoroutineContext().ensureActive()
+            if (!chatForeground || memoryPressure.suppressesOptionalWork()) return@withResources
+            prepareVoiceResources()
+            var completed = false
+            try {
+                transcriber.loadModel()
+                currentCoroutineContext().ensureActive()
+                voiceOwner = owner
+                completed = true
+            } finally {
+                if (!completed) unloadTranscriptionModelIfLoaded()
+            }
+        }
+    }
+
+    suspend fun releaseVoice(owner: String) =
+        withContext(ioDispatcher) {
+            modelLoadMutex.withLock { if (voiceOwner == owner) unloadTranscriptionModelIfLoaded() }
+        }
+
+    suspend fun transcribe(inputSampleRate: UInt, pcm: ByteArray): String = withModelContext {
+        withResources {
+            currentCoroutineContext().ensureActive()
+            prepareVoiceResources()
+            try {
+                val result = transcriber.transcribe(inputSampleRate, pcm.toDirectByteBuffer())
+                currentCoroutineContext().ensureActive()
+                result
+            } finally {
+                unloadTranscriptionModelIfLoaded()
+            }
+        }
+    }
+
+    private fun prepareVoiceResources() {
+        releaseProjector()
+        if (voiceOwner == null && !canAllocate(LlmMemoryOperation.VOICE)) {
+            unloadModel()
+            if (!hasRequiredWorkReserve()) throw ModelMemoryUnavailable()
+        }
+    }
+
     internal var modelMaintenance: ModelMaintenance? = null
 
     private suspend fun <T> withModelContext(block: suspend () -> T): T =
@@ -81,33 +216,67 @@ class LlmProvider(
     val isDownloadActive: Boolean
         get() = activeDownloads.get() > 0
 
-    suspend fun ensureModelReady(
+    suspend fun ensureChatModelAssetsReady(
         selection: LlmModelSelection,
         onProgress: (DownloadProgress) -> Unit,
     ) {
-        withModelContext {
-            modelLoadMutex.withLock { ensureModelReadyLocked(selection, onProgress) }
-        }
+        deviceCapabilityProvider.chatCapability().requireChatSupported()
+        val asset = chatAsset(selection)
+        downloadAssets(listOf(asset), onProgress)
+        if (!assetStore.isDownloaded(asset)) throw RequiredModelValidationError(selection.id)
     }
 
     internal suspend fun prewarmChatModelIfDownloaded(
         selection: LlmModelSelection,
         owner: String,
-    ): Unit = withModelContext {
-        modelLoadMutex.withLock {
-            currentCoroutineContext().ensureActive()
-            if (!isChatModelReady(selection)) return@withLock
-            unloadTranscriptionModelIfLoaded()
-            currentCoroutineContext().ensureActive()
-            if (loadedContextLength(selection) != null) return@withLock
-            try {
-                ensureModelReadyLocked(selection, {}, allowRecovery = false, shouldDownload = false)
+    ): ChatWarmupResult = withModelContext {
+        val result =
+            withResources(retainAfterCooldown = true) {
                 currentCoroutineContext().ensureActive()
-                chatWarmupOwner = owner
-            } catch (error: Throwable) {
-                unloadModel()
-                throw error
+                if (
+                    !chatForeground ||
+                        !appForeground ||
+                        voiceOwner != null ||
+                        !isChatModelReady(selection)
+                )
+                    return@withResources ChatWarmupResult.Skipped
+                val cooldown = memoryPressure.remainingCooldownMillis()
+                if (cooldown > 0) return@withResources ChatWarmupResult.RetryAfter(cooldown)
+                if (
+                    memoryPressure.suppressesOptionalWork() ||
+                        deviceCapabilityProvider.isLowMemory()
+                )
+                    return@withResources ChatWarmupResult.Skipped
+                unloadTranscriptionModelIfLoaded()
+                currentCoroutineContext().ensureActive()
+                if (loadedContextLength(selection) != null) {
+                    if (chatWarmupOwner != null) chatWarmupOwner = owner
+                    return@withResources ChatWarmupResult.Ready
+                }
+                var completed = false
+                try {
+                    ensureModelReadyLocked(
+                        selection,
+                        {},
+                        allowRecovery = false,
+                        shouldDownload = false,
+                    )
+                    currentCoroutineContext().ensureActive()
+                    chatWarmupOwner = owner
+                    completed = true
+                } finally {
+                    if (!completed) unloadModel()
+                }
+                ChatWarmupResult.Ready
             }
+        if (result != ChatWarmupResult.Ready) return@withModelContext result
+        val cooldown = memoryPressure.remainingCooldownMillis()
+        when {
+            !appForeground -> ChatWarmupResult.Skipped
+            cooldown > 0 -> ChatWarmupResult.RetryAfter(cooldown)
+            !memoryPressure.suppressesOptionalWork() && loadedContextLength(selection) != null ->
+                ChatWarmupResult.Ready
+            else -> ChatWarmupResult.Skipped
         }
     }
 
@@ -140,7 +309,7 @@ class LlmProvider(
             if (missingAssets.isNotEmpty()) {
                 downloadAssets(missingAssets, onProgress)
             }
-            modelLoadMutex.withLock {
+            withResources {
                 if (IS_ENSU_PACKS_ENABLED && !isEmbeddingModelReady()) {
                     assetStore.removeDownloaded(embeddingAsset)
                     throw RequiredModelValidationError(knowledgeEmbedding.targetId)
@@ -158,36 +327,39 @@ class LlmProvider(
         }
     }
 
-    suspend fun generateChat(
+    internal fun generateImageChat(
+        context: LlmContext,
         selection: LlmModelSelection,
         messages: List<LlmMessage>,
         imageFiles: List<File>,
         temperature: Float,
         maxTokens: Int?,
         onToken: (String) -> Unit,
-    ): GenerationSummary = withModelContext {
-        modelLoadMutex.withLock {
-            deviceCapabilityProvider.chatCapability().requireChatSupported()
-            val context = checkNotNull(loadedContext) { "Model context not loaded" }
-            currentJobId = null
-            val mmprojPath =
-                if (imageFiles.isEmpty()) {
-                    null
-                } else {
-                    assetStore.llmMmprojPath(chatAsset(selection))?.absolutePath
-                }
-            val request =
-                chatRequest(
-                    messages.map { NativeChatMessage(it.roleString(), it.text) },
-                    imageFiles.map { it.absolutePath },
-                    mmprojPath,
-                    temperature,
-                    maxTokens,
-                )
+    ): GenerationSummary {
+        deviceCapabilityProvider.chatCapability().requireChatSupported()
+        currentJobId = null
+        val mmprojPath = assetStore.llmMmprojPath(chatAsset(selection))?.absolutePath
+        if (mmprojPath != null && !hasRequiredWorkReserve()) {
+            throw ModelMemoryUnavailable()
+        }
+        val request =
+            chatRequest(
+                messages.map { NativeChatMessage(it.roleString(), it.text) },
+                imageFiles.map { it.absolutePath },
+                mmprojPath,
+                temperature,
+                maxTokens,
+            )
 
-            unloadTranscriptionModelIfLoaded()
+        try {
             val summary = generateStreamWithCallback(context, request, onToken)
-            GenerationSummary(summary.jobId, summary.generatedTokens ?: 0, summary.totalTimeMs)
+            return GenerationSummary(
+                summary.jobId,
+                summary.generatedTokens ?: 0,
+                summary.totalTimeMs,
+            )
+        } finally {
+            releaseProjector()
         }
     }
 
@@ -196,20 +368,26 @@ class LlmProvider(
         messages: List<LlmMessage>,
         onToken: (String) -> Unit,
     ): Unit = withModelContext {
-        modelLoadMutex.withLock {
+        withResources {
             val coroutine = currentCoroutineContext()
             coroutine.ensureActive()
-            ensureModelReadyLocked(selection, onProgress = {})
-            coroutine.ensureActive()
+            if (
+                !chatForeground ||
+                    memoryPressure.suppressesOptionalWork() ||
+                    voiceOwner != null ||
+                    loadedContextLength(selection) == null
+            ) {
+                throw ModelMemoryDeferred()
+            }
             unloadTranscriptionModelIfLoaded()
+            releaseProjector()
+            if (!canAllocate(LlmMemoryOperation.TITLE)) throw ModelMemoryDeferred()
+            coroutine.ensureActive()
             val model = checkNotNull(loadedModel) { "Model not loaded" }
             model
-                .newContext(
-                    LlmContextParams(
-                        contextSize = minOf(2048, checkNotNull(currentContextLength)),
-                        nThreads = max(1, Runtime.getRuntime().availableProcessors() - 1),
-                        nBatch = 128,
-                    )
+                .newTitleContext(
+                    chatContextSize = checkNotNull(currentContextLength).toUInt(),
+                    nThreads = max(1, Runtime.getRuntime().availableProcessors() - 1),
                 )
                 .use { context ->
                     coroutine.ensureActive()
@@ -237,10 +415,13 @@ class LlmProvider(
 
     internal suspend fun <T> withConversationContext(
         selection: LlmModelSelection,
+        onProgress: (DownloadProgress) -> Unit,
         block: suspend (LlmContext) -> T,
     ): T = withModelContext {
-        modelLoadMutex.withLock {
-            ensureModelReadyLocked(selection, onProgress = {})
+        withResources {
+            currentCoroutineContext().ensureActive()
+            ensureModelReadyLocked(selection, onProgress)
+            currentCoroutineContext().ensureActive()
             unloadTranscriptionModelIfLoaded()
             block(requireNotNull(loadedContext))
         }
@@ -288,21 +469,44 @@ class LlmProvider(
             grammar = null,
         )
 
-    suspend fun <T> withChatModelReleasedForRetrieval(
-        block: suspend (embed: (String) -> List<Float>) -> T
-    ): T = withModelContext { withEmbeddingContext { embedding -> block(embedding::embed) } }
+    suspend fun <T> withRetrievalContext(
+        queryBytes: Int,
+        block: suspend (embed: (String) -> List<Float>) -> T,
+    ): T = withModelContext {
+        withEmbeddingContext(maintenance = false, queryBytes = queryBytes) { embedding ->
+            block(embedding::embed)
+        }
+    }
 
     internal suspend fun <T> withEmbeddingContext(
+        maintenance: Boolean = true,
+        queryBytes: Int = 0,
         checkCancellation: () -> Unit = {},
         block: suspend (LlmContext) -> T,
     ): T =
         withContext(ioDispatcher) {
-            modelLoadMutex.withLock {
+            withResources {
                 checkCancellation()
                 deviceCapabilityProvider.chatCapability().requireChatSupported()
                 if (!isEmbeddingModelReady()) throw EmbeddingAssetInvalid()
+                if (maintenance && (voiceOwner != null || memoryPressure.suppressesOptionalWork()))
+                    throw ModelMemoryDeferred()
                 unloadTranscriptionModelIfLoaded()
-                unloadModel()
+                releaseProjector()
+                if (
+                    !canAllocate(
+                        LlmMemoryOperation.EMBEDDING,
+                        queryBytes.takeUnless { maintenance },
+                    )
+                ) {
+                    if (maintenance && chatForeground && loadedModel != null)
+                        throw ModelMemoryDeferred()
+                    unloadModel()
+                    if (!hasRequiredWorkReserve()) {
+                        if (maintenance) throw ModelMemoryDeferred()
+                        throw ModelMemoryUnavailable()
+                    }
+                }
                 if (!backendInitialized) {
                     llmInitBackend()
                     backendInitialized = true
@@ -331,27 +535,6 @@ class LlmProvider(
             }
         }
 
-    suspend fun prewarmImageInference(selection: LlmModelSelection) {
-        withModelContext {
-            runCatchingCancellable {
-                modelLoadMutex.withLock {
-                    val asset = chatAsset(selection)
-                    if (!assetStore.isDownloaded(asset)) return@withLock
-                    val mmprojPath =
-                        assetStore.llmMmprojPath(asset)?.absolutePath?.takeIf { File(it).exists() }
-                            ?: return@withLock
-                    ensureModelReadyLocked(selection, onProgress = {})
-                    val context = loadedContext ?: return@withLock
-                    unloadTranscriptionModelIfLoaded()
-                    context.prewarmMultimodal(mmprojPath, null)
-                }
-            }
-                .onFailure { error ->
-                    Log.d("LlmProvider", "Image inference prewarm skipped", error)
-                }
-        }
-    }
-
     fun loadedContextLength(selection: LlmModelSelection): Int? {
         val modelKey = LoadedModelKey(selection.id, selection.contextLength)
         return if (currentModelKey == modelKey && loadedContext != null && loadedModel != null) {
@@ -372,8 +555,8 @@ class LlmProvider(
 
     suspend fun resetContext() {
         withModelContext {
-            modelLoadMutex.withLock {
-                val model = loadedModel ?: return@withLock
+            withResources {
+                val model = loadedModel ?: return@withResources
                 val contextParams =
                     LlmContextParams(
                         contextSize = currentContextLength,
@@ -406,6 +589,7 @@ class LlmProvider(
     }
 
     private fun unloadTranscriptionModelIfLoaded() {
+        voiceOwner = null
         runCatching {
             transcriber.unloadModel()
         }
@@ -432,6 +616,7 @@ class LlmProvider(
             return
         }
 
+        unloadTranscriptionModelIfLoaded()
         unloadModel()
 
         val asset = chatAsset(selection)

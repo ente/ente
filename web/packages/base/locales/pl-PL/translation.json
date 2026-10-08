@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Prywatne kopie zapasowe<br/>dla Twoich wspomnień",
     "intro_slide_1": "Domyślnie zaszyfrowane metodą end-to-end",
     "intro_slide_2_title": "Bezpiecznie przechowywane<br/>w awaryjnym schronieniu",
@@ -955,6 +959,8 @@
     "hide": "Ukryj",
     "unhide": "Odkryj",
     "sort_by": "Sortuj według",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Od najnowszych",
     "oldest_first": "Od najstarszych",
     "most_relevant": "",

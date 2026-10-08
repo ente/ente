@@ -1,5 +1,6 @@
 mod adopt;
 mod fs;
+mod legacy;
 mod live_photo;
 mod metadata;
 mod names;
@@ -59,9 +60,10 @@ pub struct Summary {
 pub struct Export {
     destination: PathBuf,
     expected_root: Root,
+    prepared: Option<(Store, Result<()>)>,
     root_lock: Option<File>,
     options: Options,
-    prepared: Option<(Store, Result<()>)>,
+    adopting: bool,
 }
 
 impl Export {
@@ -73,9 +75,23 @@ impl Export {
         let destination = destination(path)?;
         let expected_root = Root::new(master_key)?;
         let root_lock = open_root(&destination, &expected_root)?;
+        let adopting = root_lock.is_none() && legacy::read::recognized(&destination)?;
         ensure!(
-            !options.adopt || root_lock.is_some(),
+            !adopting || options.adopt,
+            AdoptionRequired(
+                "This folder contains an export from the old CLI or Ente Desktop. Use --adopt if you want to take it over."
+            )
+        );
+        ensure!(
+            !options.adopt || root_lock.is_some() || adopting,
             "there is no export to adopt"
+        );
+        ensure!(
+            root_lock.is_some()
+                || adopting
+                || !destination.try_exists()?
+                || std::fs::read_dir(&destination)?.next().is_none(),
+            "nonempty destination has no recognized export.json"
         );
         Ok(Self {
             destination,
@@ -83,6 +99,7 @@ impl Export {
             root_lock,
             options,
             prepared: None,
+            adopting,
         })
     }
 
@@ -105,6 +122,7 @@ impl Export {
     pub async fn prepare(
         &mut self,
         connection: rusqlite::Connection,
+        open_index: impl FnOnce(&Path) -> Result<rusqlite::Connection>,
         source: &mut impl Source,
         session: &ente_core::Session,
         cancel: &mut watch::Receiver<bool>,
@@ -114,13 +132,44 @@ impl Export {
         let bound: bool = store
             .db
             .query_row("SELECT bound FROM export WHERE id=1", [], |r| r.get(0))?;
+        let accepted = !bound
+            && store.db.query_row(
+                "SELECT EXISTS(SELECT 1 FROM albums WHERE retained=0)",
+                [],
+                |r| r.get::<_, bool>(0),
+            )?;
         ensure!(
-            self.root_lock.is_none() || bound || self.options.adopt,
-            AdoptionRequired("this export is not associated")
+            self.root_lock.is_none() || bound || accepted || self.options.adopt,
+            AdoptionRequired("this export is not associated; use --adopt")
         );
+        let initial = !bound && !accepted && self.options.adopt;
+        let index = initial.then(|| adopt::Index::new(open_index)).transpose()?;
         store.reset_desired()?;
-        if self.root_lock.is_some() && !bound {
-            adopt::scan(&self.destination, &store)?;
+        let mut failures = legacy::Failures::default();
+        self.adopting = !bound
+            && (accepted
+                || (initial && (self.adopting || legacy::read::recognized(&self.destination)?)));
+        if let Some(index) = &index {
+            let mut desktop = None;
+            failures.record(
+                legacy::read::desktop(&self.destination).map(|value| desktop = value),
+                "export_status.json",
+            )?;
+            if self.root_lock.is_some() {
+                failures.record(
+                    adopt::scan(&self.destination, index, desktop.as_ref()),
+                    "native records",
+                )?;
+            }
+            if self.adopting {
+                legacy::read::scan(
+                    &self.destination,
+                    index,
+                    session.user_id,
+                    desktop.as_ref(),
+                    &mut failures,
+                )?;
+            }
         }
         report("Refreshing album metadata.");
         tokio::select! {
@@ -157,19 +206,66 @@ impl Export {
                 "INSERT OR IGNORE INTO desired_albums(id,name) SELECT album,name FROM pending WHERE file IS NULL AND retained=0",
                 [],
             )?;
-        select(&store, &self.options)?;
-        if self.root_lock.is_none() {
-            self.root_lock = Some(initialize(&self.destination, &self.expected_root)?);
+        if let Some(index) = &index {
+            let mut albums = index.db.prepare("SELECT id,json_extract(record,'$.album.name') FROM adoption_album ORDER BY retained")?;
+            for row in
+                albums.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?
+            {
+                let (id, name) = row?;
+                store.db.execute(
+                    "INSERT OR IGNORE INTO desired_albums(id,name) VALUES(?1,?2)",
+                    params![id, name],
+                )?;
+            }
         }
-        store
-            .db
-            .execute("UPDATE export SET bound=1 WHERE id=1 AND bound=0", [])?;
-
+        if self.adopting {
+            legacy::scope(&store, &self.options, index.as_ref())?;
+        } else {
+            failures.finish()?;
+            select(&store, &self.options)?;
+        }
+        if !self.adopting {
+            if self.root_lock.is_none() {
+                self.root_lock = Some(initialize(&self.destination, &self.expected_root, false)?);
+            }
+            if !initial {
+                store
+                    .db
+                    .execute("UPDATE export SET bound=1 WHERE id=1 AND bound=0", [])?;
+            }
+        }
         let refresh_cancel = cancel.clone();
         let refreshed = tokio::select! {
             result=refresh(&store,source,session,&refresh_cancel,report)=>result,
             _=cancel.changed()=>Err(Cancelled.into()),
         };
+        if self.adopting {
+            refreshed?;
+            if let Some(index) = &index {
+                report("Verifying every existing active legacy original before adoption.");
+                legacy::Preflight {
+                    root: &self.destination,
+                    store: &store,
+                    session,
+                    index,
+                    cancel,
+                    matching_root: self.root_lock.is_some(),
+                }
+                .run(source, failures)
+                .await?;
+                if self.root_lock.is_none() {
+                    self.root_lock =
+                        Some(initialize(&self.destination, &self.expected_root, true)?);
+                }
+                legacy::move_leftovers(&self.destination, index, cancel)?;
+                adopt::accept(index, &store, false)?;
+            }
+            self.prepared = Some((store, Ok(())));
+            return Ok(());
+        }
+        if let Some(index) = &index {
+            adopt::accept(index, &store, true)?;
+        }
         self.prepared = Some((store, refreshed));
         Ok(())
     }
@@ -215,6 +311,13 @@ impl Export {
         let store = shared
             .into_inner()
             .map_err(|_| anyhow::anyhow!("export database mutex poisoned"))?;
+        if self.adopting
+            && work_complete(&store, prepared)?
+            && let Err(error) = legacy::finish(&self.destination, &store, cancel)
+        {
+            record_outcome(&store, "run", &error)?;
+            report(&format!("run: {error:#}"));
+        }
         summary(&store, &self.destination, prepared)
     }
 }
@@ -260,10 +363,6 @@ fn open_root(destination: &Path, expected: &Root) -> Result<Option<File>> {
     );
     let path = names::check(destination, "export.json")?;
     if !path.try_exists()? {
-        ensure!(
-            std::fs::read_dir(destination)?.next().is_none(),
-            "nonempty destination has no recognized export.json"
-        );
         return Ok(None);
     }
     let file = OpenOptions::new().read(true).write(true).open(&path)?;
@@ -281,7 +380,7 @@ fn open_root(destination: &Path, expected: &Root) -> Result<Option<File>> {
     Ok(Some(file))
 }
 
-fn initialize(destination: &Path, root: &Root) -> Result<File> {
+fn initialize(destination: &Path, root: &Root, legacy: bool) -> Result<File> {
     fs::create_directory(destination)?;
     let path = names::check(destination, "export.json")?;
     let mut file = OpenOptions::new()
@@ -292,8 +391,9 @@ fn initialize(destination: &Path, root: &Root) -> Result<File> {
         .context("destination was initialized by another writer; retry")?;
     file.lock().context("cannot lock the new export")?;
     ensure!(
-        std::fs::read_dir(destination)?
-            .all(|entry| entry.is_ok_and(|entry| entry.file_name() == "export.json")),
+        legacy
+            || std::fs::read_dir(destination)?
+                .all(|entry| entry.is_ok_and(|entry| entry.file_name() == "export.json")),
         "destination became nonempty during initialization"
     );
     serde_json::to_writer_pretty(&mut file, root)?;
@@ -581,8 +681,7 @@ fn transfers(
                                     "UPDATE desired_files SET claimed=1 WHERE file=?1",
                                     [id],
                                 )?;
-                            let file: FileSnapshot = store
-                                .json("SELECT record FROM sources WHERE file=?1", [id])?
+                            let file: FileSnapshot = store::json(&store.db,"SELECT record FROM sources WHERE file=?1", [id])?
                                 .context("missing file source snapshot")?;
                             transaction.commit()?;
                             file
@@ -684,6 +783,10 @@ fn fatal_cause(cause: &(dyn std::error::Error + 'static)) -> bool {
     cause.source().is_some_and(fatal_cause)
 }
 
+fn work_complete(store: &Store, prepared: bool) -> Result<bool> {
+    Ok(prepared && store.db.query_row("SELECT NOT EXISTS(SELECT 1 FROM desired_albums WHERE selected=1 AND (ready=0 OR failure IS NOT NULL)) AND NOT EXISTS(SELECT 1 FROM desired_files WHERE completed=0 OR failure IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM outcomes) AND NOT EXISTS(SELECT 1 FROM pending p JOIN desired_albums a ON a.id=p.album WHERE a.selected=1)",[],|r|r.get::<_,bool>(0))?)
+}
+
 fn summary(store: &Store, destination: &Path, prepared: bool) -> Result<Summary> {
     let unknown: bool = !prepared
         || store.db.query_row(
@@ -708,7 +811,10 @@ fn summary(store: &Store, destination: &Path, prepared: bool) -> Result<Summary>
             [],
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
         )?;
-    let complete = !unknown && failures == 0 && completed == expected;
+    let bound: bool = store
+        .db
+        .query_row("SELECT bound FROM export WHERE id=1", [], |r| r.get(0))?;
+    let complete = bound && work_complete(store, prepared)?;
     let result = json!({"destination":destination.to_string_lossy(),"complete":complete,"files":if unknown {None}else{Some(files)},"copies":if unknown {None}else{Some(json!({"expected":expected,"completed":completed,"pending":expected-completed}))},"changes":{"exported":exported,"metadataUpdated":metadata_updated,"renamed":renamed,"retained":retained},"failures":failures,"conflicts":conflicts});
     Ok(Summary {
         json: result,

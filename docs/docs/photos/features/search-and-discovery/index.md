@@ -9,6 +9,8 @@ Ente provides multiple ways to search and discover your photos. From basic date 
 
 ## Basic Search
 
+![People search on Ente Photos mobile with Emma, Kenji, and James real face thumbnails](https://docs-assets.ente.com/screenshots/phone-search-tab.png){width=320px}
+
 You can quickly access search using the keyboard shortcut:
 
 - **Windows/Linux**: `Ctrl + K`
@@ -70,6 +72,8 @@ Create custom location labels to organize and find photos by place. Location tag
 
 Location tags work entirely on your device and are end-to-end encrypted.
 
+![Map view with location pins for photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-map-view.png){width=720px}
+
 **Learn more:** [Map and location features](/photos/features/search-and-discovery/map-and-location)
 
 ## AI-Powered Search
@@ -88,6 +92,8 @@ Search for photos by the people in them:
 
 All face recognition happens on your device. Your photos and face data are never sent to Ente's servers.
 
+![Named person with populated memories on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-face-named-person.png){width=720px}
+
 **Learn more:** [Face recognition](/photos/features/search-and-discovery/face-recognition)
 
 ### Magic search
@@ -100,6 +106,8 @@ Search for photos using natural language descriptions of their content:
 - Search activities: "birthday cake", "swimming"
 
 Magic search uses on-device AI (CLIP) to understand the content of your photos. You can type natural language queries like "the red motorcycle next to a fountain" to find specific photos.
+
+![Magic search for dog playing in the snow on Ente Photos mobile and desktop](https://docs-assets.ente.com/screenshots/duo-magic-search-long.png){width=900px}
 
 **Learn more:** [Magic search](/photos/features/search-and-discovery/magic-search)
 
@@ -117,6 +125,8 @@ Open `Settings > Preferences > Machine learning` and enable **Machine learning**
 
 After enabling, the app will download and index your photos locally. This is faster over WiFi and on desktop computers.
 
+![Enable machine learning button highlighted on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-ml-enable-callout.png){width=720px}
+
 **Learn more:** [Machine learning overview](/photos/features/search-and-discovery/machine-learning)
 
 ## Discovery Features
@@ -124,6 +134,8 @@ After enabling, the app will download and index your photos locally. This is fas
 ### Memories
 
 Ente automatically creates collections of photos from past years on the same date, helping you rediscover memories.
+
+![Home gallery with Memories strip on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-home-populated.png){width=320px}
 
 To share items from a memory on mobile:
 

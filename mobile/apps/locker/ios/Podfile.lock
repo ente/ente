@@ -121,7 +121,7 @@ PODS:
 
 DEPENDENCIES:
   - app_links (from `.symlinks/plugins/app_links/ios`)
-  - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
+  - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/darwin`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - ente_locker_frb (from `.symlinks/plugins/ente_locker_frb/ios`)
   - ente_mail (from `.symlinks/plugins/ente_mail/ios`)
@@ -161,7 +161,7 @@ EXTERNAL SOURCES:
   app_links:
     :path: ".symlinks/plugins/app_links/ios"
   camera_avfoundation:
-    :path: ".symlinks/plugins/camera_avfoundation/ios"
+    :path: ".symlinks/plugins/camera_avfoundation/darwin"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
   ente_locker_frb:
@@ -215,7 +215,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
-  camera_avfoundation: 5675ca25298b6f81fa0a325188e7df62cc217741
+  camera_avfoundation: 968a9a5323c79a99c166ad9d7866bfd2047b5a9b
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
   DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60

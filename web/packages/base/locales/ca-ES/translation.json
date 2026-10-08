@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Còpies de seguretat privades<br/>pels teus records",
     "intro_slide_1": "Xifratge d'extrem a extrem per defecte",
     "intro_slide_2_title": "Emmagatzematge segur<br/>en un refugi nuclear",
@@ -955,6 +959,8 @@
     "hide": "Amaga",
     "unhide": "Mostra",
     "sort_by": "Ordena per",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "Més nous primer",
     "oldest_first": "Més antics primer",
     "most_relevant": "Més rellevant",

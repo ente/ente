@@ -1,0 +1,1 @@
+- Removed the Feed tab from Local Gallery mode.

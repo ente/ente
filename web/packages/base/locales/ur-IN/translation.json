@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "آپ کی یادوں کے لیے<br/>پرائیوٹ بیک اپس",
     "intro_slide_1": "ڈیفالٹ طور پر اینڈ ٹو اینڈ انکرپٹڈ",
     "intro_slide_2_title": "محفوظ طریقے سے<br/>فال آؤٹ شیلٹر میں محفوظ",
@@ -955,6 +959,8 @@
     "hide": "چھپائیں",
     "unhide": "Unhide کریں",
     "sort_by": "ترتیب دیں",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "سب سے نئی پہلے",
     "oldest_first": "سب سے پرانی پہلے",
     "most_relevant": "سب سے زیادہ متعلقہ",

@@ -49,6 +49,10 @@ Displays photos featuring selected people from your library. This widget helps y
 
 ### On Android
 
+![Android Widgets picker showing Ente Photos expanded with Albums Memories and People widget previews](https://docs-assets.ente.com/screenshots/phone-android-widgets-ente.png){width=320px}
+
+![Albums home screen widget on Android before customize on Ente Photos](https://docs-assets.ente.com/screenshots/phone-home-albums-widget.png){width=320px}
+
 1. Long press on an empty area of your home screen
 2. Tap **Widgets**
 3. Find and expand **Ente Photos**
@@ -61,9 +65,15 @@ If a widget has not been configured yet, tap it on your home screen to open its 
 
 ### Widget Settings
 
+![Widgets row highlighted in Ente Photos mobile Settings](https://docs-assets.ente.com/screenshots/phone-widgets-settings-row-callout.png){width=320px}
+
+![Widgets settings hub with People Albums and Memories on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-widgets-hub.png){width=320px}
+
 Open `Settings > Widgets` in the Ente app to configure your widgets.
 
 ### Configuring the Albums Widget
+
+![Select albums for the home screen Albums widget on Ente Photos mobile with Travel Maps highlighted](https://docs-assets.ente.com/screenshots/phone-widgets-albums-callout.png){width=320px}
 
 1. Open `Settings > Widgets > Albums widget`
 2. Select which albums you want to display on your home screen
@@ -71,6 +81,8 @@ Open `Settings > Widgets` in the Ente app to configure your widgets.
 4. You can select multiple albums to include more variety
 
 ### Configuring the People Widget
+
+![Select people for the home screen People widget on Ente Photos mobile with Kenji highlighted](https://docs-assets.ente.com/screenshots/phone-widgets-people-callout.png){width=320px}
 
 1. Open `Settings > Widgets > People widget`
 2. Select which people you want to feature
@@ -81,6 +93,8 @@ Open `Settings > Widgets` in the Ente app to configure your widgets.
 > You must enable [face recognition](/photos/features/search-and-discovery/face-recognition) before configuring the People widget.
 
 ### Configuring the Memories Widget
+
+![Memories widget settings on Ente Photos mobile with On this day memories highlighted](https://docs-assets.ente.com/screenshots/phone-widgets-memories-callout.png){width=320px}
 
 1. Open `Settings > Widgets > Memories widget`
 2. Toggle which memory types to include:

@@ -130,7 +130,7 @@ The gap between local and cloud models is closing every day. As smaller models i
 
 ### Does Ensu remember previous conversations? {#conversation-history}
 
-Within a single chat session, Ensu remembers what you have talked about and can refer back to it. However, if the conversation gets very long, older parts may fall out of the model's context window (the amount of text it can hold in memory at once), and it may lose track of things said much earlier.
+Within a single chat session, Ensu remembers what you have talked about and can refer back to it. In long text conversations, Ensu saves summaries of earlier messages to help with follow-up questions when those messages no longer fit in the model's context window. It may still miss details, so repeat anything important when needed.
 
 Across different sessions, Ensu does not carry over memory. Each session is independent, so the model will not recall something you discussed in a previous chat.
 

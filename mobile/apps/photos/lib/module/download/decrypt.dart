@@ -22,6 +22,9 @@ export 'package:photos/module/download/download_error.dart';
 
 final _logger = Logger('file_download_util');
 
+String getEncryptedFilePath(EnteFile file) =>
+    '${Configuration.instance.getTempDirectory()}${file.generatedID}.encrypted';
+
 Future<File?> _downloadAndDecryptPublicFile(
   EnteFile file, {
   ProgressCallback? progressCallback,
@@ -126,7 +129,7 @@ Future<File?> downloadAndDecrypt(
     '$logPrefix starting download ${formatBytes(file.fileSize ?? 0)}',
   );
   final tempDir = Configuration.instance.getTempDirectory();
-  var encryptedFilePath = '$tempDir${file.generatedID}.encrypted';
+  var encryptedFilePath = getEncryptedFilePath(file);
   var encryptedFile = File(encryptedFilePath);
 
   final startTime = DateTime.now().millisecondsSinceEpoch;

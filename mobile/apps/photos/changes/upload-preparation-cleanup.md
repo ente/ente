@@ -1,0 +1,1 @@
+- Reduced backup preparation work for libraries with many folders.

@@ -57,15 +57,40 @@ void main() {
     expect(_occupiedWidth(row), closeTo(404, 1e-9));
   });
 
-  test("can exceed Comfort's item cap to avoid a portrait orphan", () {
-    final rows = _rows(List.filled(4, 9 / 16));
+  test("bounds candidate rows at the responsive width breakpoints", () {
+    for (final (width, targetHeight, expectedMaximum) in [
+      (599.9, 320.0, 3),
+      (600.0, 320.0, 4),
+      (1007.9, 320.0, 4),
+      (1008.0, 320.0, 5),
+    ]) {
+      final atLimitRatio =
+          (width - 2 * (expectedMaximum - 1)) /
+          (expectedMaximum * targetHeight);
+      final itemCount = expectedMaximum + 1;
+      final ratio = (width - 2 * (itemCount - 1)) / (itemCount * targetHeight);
+      expect(
+        _rows(
+          List.filled(expectedMaximum, atLimitRatio),
+          width: width,
+          targetHeight: targetHeight,
+        ).single.itemWidths,
+        hasLength(expectedMaximum),
+      );
 
-    expect(rows, hasLength(1));
-    expect(rows.single.itemWidths, hasLength(4));
-    expect(_occupiedWidth(rows.single), closeTo(402, 1e-9));
+      final rows = _rows(
+        List.filled(itemCount, ratio),
+        width: width,
+        targetHeight: targetHeight,
+      );
+      expect(
+        rows.map((row) => row.itemWidths.length),
+        everyElement(lessThanOrEqualTo(expectedMaximum)),
+      );
+    }
   });
 
-  test("avoids cramped landscape rows without imposing a count cap", () {
+  test("avoids cramped landscape rows", () {
     const ratios = [0.75, 0.75, 2.0, 2.0, 2.0, 2.0, 2.0, 0.4, 0.4, 0.4];
     final compactRows = _rows(ratios, targetHeight: 224);
 

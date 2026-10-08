@@ -4,6 +4,7 @@ const blobCacheNames = [
     "thumbs",
     "face-crops",
     "space-media",
+    "space-videos",
     // Desktop only.
     "files",
 ] as const;

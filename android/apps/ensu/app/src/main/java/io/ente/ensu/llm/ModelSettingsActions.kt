@@ -22,7 +22,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -37,6 +36,9 @@ internal class ModelSettingsActions(
     private var scope: CoroutineScope? = null
     private var modelDownloadJob: Job? = null
     private var chatActive = false
+    private var appForeground = false
+    private var pickerPending = false
+    private var backgroundReleaseJob: Job? = null
     private val activeVoiceJobs = AtomicInteger()
     private var warmupSuppressed = false
     private var warmupJob: Job? = null
@@ -46,9 +48,11 @@ internal class ModelSettingsActions(
     fun bootstrap(scope: CoroutineScope) {
         this.scope = scope
         scope.launch {
+            llmProvider.setChatForeground(chatActive)
+            llmProvider.setAppForeground(appForeground)
             awaitKnowledgeReady()
             notesStore.awaitReady()
-            combine(state, notesStore.state) { _, _ -> Unit }.collect { refreshChatWarmup() }
+            state.collect { refreshChatWarmup() }
         }
     }
 
@@ -325,43 +329,78 @@ internal class ModelSettingsActions(
     fun setChatActive(active: Boolean) {
         if (chatActive == active) return
         chatActive = active
-        if (active) warmupSuppressed = false
+        llmProvider.setChatForeground(active)
+        if (active) {
+            warmupSuppressed = false
+            if (
+                warmupJob?.isActive != true &&
+                    warmupSelection?.let(llmProvider::loadedContextLength) == null
+            ) {
+                cancelChatWarmup(releaseLoadedModel = false)
+            }
+        }
         refreshChatWarmup()
     }
 
-    fun suppressChatWarmup() {
+    fun setAppForeground(active: Boolean) {
+        appForeground = active
+        backgroundReleaseJob?.cancel()
+        backgroundReleaseJob = null
+        if (active) {
+            scope?.launch { llmProvider.setAppForeground(true) }
+        } else if (pickerPending) {
+            backgroundReleaseJob = scope?.launch {
+                delay(60_000)
+                releaseBackgroundResources()
+            }
+        } else {
+            releaseBackgroundResources()
+        }
+    }
+
+    fun setPickerPending(pending: Boolean) {
+        pickerPending = pending
+    }
+
+    private fun releaseBackgroundResources() {
+        cancelChatWarmup(releaseLoadedModel = false)
+        scope?.launch { llmProvider.setAppForeground(false) }
+    }
+
+    fun handleMemoryPressure() {
         warmupSuppressed = true
         cancelChatWarmup()
+        scope?.launch { llmProvider.handleMemoryPressure() }
     }
 
     fun trackVoiceInput(job: Job) {
         activeVoiceJobs.incrementAndGet()
-        suppressChatWarmup()
+        cancelChatWarmup(releaseLoadedModel = false)
         job.invokeOnCompletion {
             if (activeVoiceJobs.decrementAndGet() == 0) scope?.launch { refreshChatWarmup() }
         }
     }
 
-    private fun cancelChatWarmup() {
+    fun cancelChatWarmup(releaseLoadedModel: Boolean = true) {
         warmupJob?.cancel()
         warmupJob = null
         val owner = warmupOwner
         warmupOwner = null
         warmupSelection = null
-        if (owner != null) scope?.launch { llmProvider.releaseChatWarmup(owner) }
+        if (owner != null && releaseLoadedModel)
+            scope?.launch { llmProvider.releaseChatWarmup(owner) }
     }
 
     private fun refreshChatWarmup() {
         val current = state.value
         val selection = resolveSelection(current.modelSettings)
         val eligible =
-            chatActive &&
+            appForeground &&
+                chatActive &&
                 !warmupSuppressed &&
                 activeVoiceJobs.get() == 0 &&
-                current.chat.deviceCapability.isChatSupported() &&
-                current.knowledge.packs.values.none { it.enabled } &&
-                notesStore.state.value.collections.isEmpty()
-        if (!eligible || (warmupSelection != null && warmupSelection != selection)) {
+                current.chat.deviceCapability.isChatSupported()
+        if (warmupSelection != null && warmupSelection != selection) {
             cancelChatWarmup()
         }
         if (
@@ -369,7 +408,7 @@ internal class ModelSettingsActions(
                 warmupOwner != null ||
                 current.chat.isGenerating ||
                 current.chat.isDownloading ||
-                !current.chat.isModelDownloaded
+                !llmProvider.isChatModelReady(selection)
         )
             return
         val scope = scope ?: return
@@ -377,23 +416,29 @@ internal class ModelSettingsActions(
         warmupOwner = owner
         warmupSelection = selection
         warmupJob = scope.launch {
+            var ready = false
             try {
                 delay(350)
                 awaitKnowledgeReady()
                 notesStore.awaitReady()
                 coroutineContext.ensureActive()
-                val latest = state.value
-                if (
-                    activeVoiceJobs.get() > 0 ||
-                        latest.chat.isGenerating ||
-                        latest.chat.isDownloading ||
-                        latest.knowledge.packs.values.any { it.enabled } ||
-                        notesStore.state.value.collections.isNotEmpty()
-                ) {
-                    if (warmupOwner == owner) cancelChatWarmup()
-                    return@launch
-                }
-                llmProvider.prewarmChatModelIfDownloaded(selection, owner)
+                ready =
+                    retryChatWarmup(
+                        isEligible = {
+                            val latest = state.value
+                            warmupOwner == owner &&
+                                resolveSelection(latest.modelSettings) == selection &&
+                                appForeground &&
+                                chatActive &&
+                                !warmupSuppressed &&
+                                activeVoiceJobs.get() == 0 &&
+                                latest.chat.deviceCapability.isChatSupported() &&
+                                !latest.chat.isGenerating &&
+                                !latest.chat.isDownloading
+                        }
+                    ) {
+                        llmProvider.prewarmChatModelIfDownloaded(selection, owner)
+                    }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
@@ -403,31 +448,14 @@ internal class ModelSettingsActions(
                     tag = "Model",
                     throwable = error,
                 )
-            }
-        }
-    }
-
-    fun prewarmImageInferenceIfDownloaded() {
-        val scope = scope ?: return
-        val currentState = state.value
-        if (currentState.chat.isGenerating || currentState.chat.isDownloading) return
-        if (!currentState.chat.deviceCapability.isChatSupported()) return
-
-        val selection = resolveSelection(currentState.modelSettings)
-        if (!llmProvider.isChatModelReady(selection)) return
-
-        scope.launch {
-            try {
-                llmProvider.prewarmImageInference(selection)
-            } catch (err: kotlinx.coroutines.CancellationException) {
-                throw err
-            } catch (err: Throwable) {
-                logRepository.log(
-                    LogLevel.Warning,
-                    "Image inference prewarm skipped",
-                    details = err.message,
-                    tag = "Model",
-                )
+            } finally {
+                if (warmupOwner == owner) {
+                    warmupJob = null
+                    if (!ready) {
+                        warmupOwner = null
+                        warmupSelection = null
+                    }
+                }
             }
         }
     }

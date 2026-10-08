@@ -12,6 +12,7 @@ import "package:photos/models/file/dummy_file.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
+import "package:photos/models/gallery/gallery_layout_config.dart";
 import "package:photos/models/gallery/justified_layout_strategy.dart";
 import "package:photos/models/gallery/justified_layout_tuning.dart";
 import "package:photos/models/metadata/file_magic.dart";
@@ -71,19 +72,55 @@ void main() {
     await localSettings.setInternalUserDisabled(false);
   });
 
+  testWidgets("Flex remains unavailable when internal features are disabled", (
+    tester,
+  ) async {
+    await localSettings.setGalleryLayoutType(GalleryLayoutType.justified);
+    await localSettings.setJustifiedLayoutStrategy(
+      JustifiedLayoutStrategy.flex,
+    );
+    await localSettings.setInternalUserDisabled(true);
+
+    expect(isJustifiedLayoutAvailable, isFalse);
+    expect(
+      resolveGalleryLayoutType(localSettings.getGalleryLayoutType()),
+      GalleryLayoutType.grid,
+    );
+    for (final settings in [
+      const Scaffold(body: GalleryLayoutSettings()),
+      const GallerySettingsScreen(fromGalleryLayoutSettingsCTA: true),
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: lightThemeData,
+          localizationsDelegates: StringsLocalizations.localizationsDelegates,
+          supportedLocales: StringsLocalizations.supportedLocales,
+          home: settings,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text("Justified · Flex (i)"), findsNothing);
+      expect(find.text("Layout (i)"), findsNothing);
+    }
+  });
+
   testWidgets(
-    "both layout menus notify galleries when only the strategy changes",
+    "selecting or reselecting Flex in either menu sets grid size 2 and notifies galleries",
     (tester) async {
       var events = 0;
       final subscription = Bus.instance.on<GalleryLayoutChangedEvent>().listen(
         (_) => events++,
       );
       addTearDown(subscription.cancel);
-      for (final quickMenu in [true, false]) {
+      for (final (quickMenu, initialStrategy) in [
+        (true, JustifiedLayoutStrategy.comfortLarge),
+        (false, JustifiedLayoutStrategy.comfortLarge),
+        (true, JustifiedLayoutStrategy.flex),
+        (false, JustifiedLayoutStrategy.flex),
+      ]) {
         await localSettings.setGalleryLayoutType(GalleryLayoutType.justified);
-        await localSettings.setJustifiedLayoutStrategy(
-          JustifiedLayoutStrategy.comfortLarge,
-        );
+        await localSettings.setJustifiedLayoutStrategy(initialStrategy);
+        await localSettings.setPhotoGridSize(4);
         events = 0;
         await tester.pumpWidget(
           MaterialApp(
@@ -116,7 +153,7 @@ void main() {
         }
         expect(find.text("Justified · Comfort"), findsNothing);
         expect(find.text("Justified · Flex Full Rows"), findsNothing);
-        await tester.tap(find.text("Justified · Flex (i)"));
+        await tester.tap(find.text("Justified · Flex (i)").hitTestable());
         await tester.pumpAndSettle();
         expect(
           localSettings.getGalleryLayoutType(),
@@ -126,7 +163,18 @@ void main() {
           localSettings.getJustifiedLayoutStrategy(),
           JustifiedLayoutStrategy.flex,
         );
+        expect(localSettings.getPhotoGridSize(), 2);
         expect(events, 1);
+        if (!quickMenu) {
+          expect(find.text("2"), findsOneWidget);
+          await tester.tap(find.text("Layout (i)"));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text("Grid"));
+          await tester.pumpAndSettle();
+          expect(localSettings.getGalleryLayoutType(), GalleryLayoutType.grid);
+          expect(localSettings.getPhotoGridSize(), 2);
+          expect(events, 2);
+        }
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpAndSettle();
       }

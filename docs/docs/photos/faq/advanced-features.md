@@ -363,6 +363,18 @@ No, home widgets are only available on mobile apps (iOS and Android). Desktop ap
 
 ## Other Advanced Features
 
+### Which keyboard shortcuts can I use in Ente Photos on web and desktop? {#keyboard-shortcuts}
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl/Cmd + K` | Focus search |
+| `Ctrl/Cmd + click` | Add photos to a selection |
+| `Shift + click` | Select a range of photos |
+| `Ctrl/Cmd + A` | Select all photos in the current view |
+| `Delete` | Move selected photos to Trash |
+
+On Mac, use `Cmd`. On Windows and Linux, use `Ctrl`. Review your selection before pressing `Delete`.
+
 ### Can I access Ente from multiple browsers? {#multiple-browsers}
 
 Yes! You can access Ente from any browser by going to [photos.ente.com](https://photos.ente.com) and logging in with your credentials.

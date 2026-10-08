@@ -1,4 +1,8 @@
 {
+    "on": "",
+    "off": "",
+    "account_sessions_one": "",
+    "account_sessions_other": "",
     "intro_slide_1_title": "Yksityiset varmuuskopiot<br/>muistoillesi",
     "intro_slide_1": "Päästä päähän -salaus käytössä oletuksena",
     "intro_slide_2_title": "Turvallisesti varastoitu<br/>väestönsuojan tiloissa",
@@ -955,6 +959,8 @@
     "hide": "",
     "unhide": "",
     "sort_by": "",
+    "album_sort_name_asc": "",
+    "album_sort_name_desc": "",
     "newest_first": "",
     "oldest_first": "",
     "most_relevant": "",

@@ -1,0 +1,1 @@
+- Replaced Chewie with the Native/MediaKit player for videos opened from other apps.

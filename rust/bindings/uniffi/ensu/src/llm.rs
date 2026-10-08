@@ -110,6 +110,16 @@ impl LlmModel {
         Ok(Arc::new(LlmContext { handle }))
     }
 
+    pub fn new_title_context(
+        &self,
+        chat_context_size: u32,
+        n_threads: Option<i32>,
+    ) -> Result<Arc<LlmContext>, LlmError> {
+        let handle = llm::Context::new_title(&self.handle, chat_context_size, n_threads)
+            .map_err(LlmError::from)?;
+        Ok(Arc::new(LlmContext { handle }))
+    }
+
     pub fn new_embedding_context(
         &self,
         n_threads: Option<i32>,
@@ -127,6 +137,10 @@ pub struct LlmContext {
 
 #[uniffi::export]
 impl LlmContext {
+    pub fn release_multimodal(&self) {
+        self.handle.release_multimodal();
+    }
+
     pub fn context_size(&self) -> u32 {
         self.handle.context_size()
     }
@@ -166,6 +180,57 @@ impl LlmContext {
         self.handle
             .prewarm_multimodal(mmproj_path, media_marker)
             .map_err(LlmError::from)
+    }
+}
+
+#[derive(Clone, Copy, uniffi::Enum)]
+pub enum LlmMemoryOperation {
+    Embedding,
+    Voice,
+    Title,
+}
+
+#[derive(uniffi::Record)]
+pub struct LlmChatModelMemory {
+    pub model_id: String,
+    pub model_bytes: u64,
+    pub context_size: u32,
+}
+
+#[derive(uniffi::Record)]
+pub struct LlmMemoryBudget {
+    pub required_bytes: u64,
+    pub system_reserve_cap_bytes: Option<u64>,
+}
+
+#[uniffi::export]
+pub fn llm_has_required_work_reserve(available_bytes: Option<u64>) -> bool {
+    llm::memory::has_required_work_reserve(available_bytes)
+}
+
+#[uniffi::export]
+pub fn llm_memory_budget(
+    surface: crate::config::ModelRuntimeSurface,
+    operation: LlmMemoryOperation,
+    loaded_chat: Option<LlmChatModelMemory>,
+    query_bytes: Option<u64>,
+) -> LlmMemoryBudget {
+    use llm::memory::MemoryOperation;
+    let operation = match operation {
+        LlmMemoryOperation::Embedding => MemoryOperation::Embedding,
+        LlmMemoryOperation::Voice => MemoryOperation::Voice,
+        LlmMemoryOperation::Title => MemoryOperation::Title,
+    };
+    let loaded_chat = loaded_chat.map(|chat| llm::memory::ChatModelMemory {
+        model_id: chat.model_id,
+        model_bytes: chat.model_bytes,
+        context_size: chat.context_size,
+    });
+    let budget =
+        llm::memory::memory_budget(surface.into(), operation, loaded_chat.as_ref(), query_bytes);
+    LlmMemoryBudget {
+        required_bytes: budget.required_bytes,
+        system_reserve_cap_bytes: budget.system_reserve_cap_bytes,
     }
 }
 

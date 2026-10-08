@@ -156,6 +156,13 @@ pub fn available(
     Ok(true)
 }
 
+pub fn valid(name: &str, album: bool) -> bool {
+    !name.is_empty()
+        && portable(name) == name
+        && !reserved(name, album)
+        && name.len() <= if album { 255 } else { 250 }
+}
+
 pub fn allocate(
     store: &Store,
     folder: &str,

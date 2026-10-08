@@ -6,10 +6,10 @@ import {
 import { SpaceBottomSheetTransition } from "components/BottomSheetTransition";
 import React from "react";
 import {
+    spaceControlBackgroundHover,
     spaceDanger,
     spaceDialogBackground,
     spaceOnAccent,
-    spaceSurface,
     spaceText,
     spaceTextMuted,
 } from "styles/colors";
@@ -156,8 +156,8 @@ export const ConfirmationActionSheet: React.FC<
                     />
                     <SheetButton
                         label={cancelLabel}
-                        backgroundColor={spaceSurface}
-                        color={spaceTextMuted}
+                        backgroundColor={spaceControlBackgroundHover}
+                        color={spaceText}
                         disabled={cancelDisabled}
                         onClick={onCancel}
                     />

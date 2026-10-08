@@ -17,6 +17,8 @@ Your photos and videos remain encrypted at all times. When you share content, on
 
 If the person you want to share with has an Ente account, you can share an album directly with them by entering their email address. They'll receive a notification and can access the shared album from their Ente app.
 
+![Populated participants list with collaborator Alex on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-participants-list.png){width=720px}
+
 **To invite someone to Ente**: Send them an invite from the app. Once they create an account, you can share albums with them.
 
 ### Share your library with family
@@ -33,6 +35,10 @@ Both shared albums and public links support [collaboration](/photos/features/sha
 
 ## Links
 
+![Share album panel on Ente Photos mobile and web](https://docs-assets.ente.com/screenshots/duo-album-share-panel.png){width=900px}
+
+![Create public link highlighted on Ente Photos mobile and web](https://docs-assets.ente.com/screenshots/duo-album-share-create-link-callout.png){width=900px}
+
 You can create links to your albums by opening an album and clicking on the Share icon. They are publicly accessible by anyone who you share the link with. They don't need an app or account.
 
 These links can be password protected, or set to expire after a while.
@@ -42,6 +48,8 @@ You can read more about the features supported by Links [here](https://ente.com/
 ## Albums
 
 If your loved ones are already on Ente, you can share an album with their registered email address.
+
+![Owner, collaborators, and viewers breakdown for a shared album on Ente Photos web](https://docs-assets.ente.com/screenshots/web-collab-participants-roles.png){width=720px}
 
 If they are on your family plan, you can use [library sharing](/photos/features/sharing-and-collaboration/library-sharing) to share your current and future albums.
 

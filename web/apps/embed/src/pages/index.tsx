@@ -16,8 +16,8 @@ import log from "ente-base/log";
 import { apiOrigin, isCustomAPIOrigin } from "ente-base/origins";
 import { downloadManager } from "ente-gallery/services/download";
 import { extractCollectionKeyFromShareURL } from "ente-gallery/services/share";
-import { sortFiles } from "ente-gallery/utils/file";
 import type { Collection } from "ente-media/collection";
+import { sortCollectionFiles } from "ente-media/collection-sort";
 import type { EnteFile } from "ente-media/file";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
@@ -270,7 +270,7 @@ export default function EmbedGallery() {
 }
 
 const sortFilesForCollection = (files: EnteFile[], collection?: Collection) =>
-    sortFiles(files, collection?.pubMagicMetadata?.data.asc ?? false);
+    sortCollectionFiles(files, collection?.pubMagicMetadata?.data);
 
 const EmbedContainer = styled("div")({
     width: "100%",

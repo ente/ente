@@ -46,13 +46,18 @@ void main() {
     },
   );
 
-  test("renamed Flex reads the former Full Rows selection", () async {
-    SharedPreferences.setMockInitialValues({
-      LocalSettings.kJustifiedLayoutStrategy: "flexFullRows",
-    });
-    final settings = LocalSettings(await SharedPreferences.getInstance());
+  test("Flex reads former Full Rows and optimized selections", () async {
+    for (final storedStrategy in ["flexFullRows", "flexOptimized"]) {
+      SharedPreferences.setMockInitialValues({
+        LocalSettings.kJustifiedLayoutStrategy: storedStrategy,
+      });
+      final settings = LocalSettings(await SharedPreferences.getInstance());
 
-    expect(settings.getJustifiedLayoutStrategy(), JustifiedLayoutStrategy.flex);
+      expect(
+        settings.getJustifiedLayoutStrategy(),
+        JustifiedLayoutStrategy.flex,
+      );
+    }
   });
 
   group("justified layout tuning", () {

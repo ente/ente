@@ -69,6 +69,7 @@ class _MachineLearningSettingsPageState
   Future<void> _pruneMlDecryptionRecords() async {
     final recordedFileIDs = mlDecryptionRecordStore.fileIDs;
     try {
+      final staleFileIDs = <int>{};
       if (recordedFileIDs.isNotEmpty) {
         await MLDataDB.instance.pruneResolvedFaceErrorResults(recordedFileIDs);
         final existingFiles = await FilesDB.instance.getFileIDToFileFromIDs(
@@ -76,15 +77,15 @@ class _MachineLearningSettingsPageState
         );
         final errorResultFileIDs = await MLDataDB.instance
             .getFileIDsWithErrorResults(recordedFileIDs);
-        final staleFileIDs = recordedFileIDs
-            .where(
-              (fileID) =>
-                  !existingFiles.containsKey(fileID) ||
-                  !errorResultFileIDs.contains(fileID),
-            )
-            .toSet();
-        await mlDecryptionRecordStore.removeAll(staleFileIDs);
+        staleFileIDs.addAll(
+          recordedFileIDs.where(
+            (fileID) =>
+                !existingFiles.containsKey(fileID) ||
+                !errorResultFileIDs.contains(fileID),
+          ),
+        );
       }
+      await mlDecryptionRecordStore.removeAll(staleFileIDs);
     } catch (error, stackTrace) {
       _logger.warning(
         "Failed to prune ML decryption records",

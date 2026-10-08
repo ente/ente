@@ -101,6 +101,8 @@ class FlagService {
 
   bool get videoEditorSpeedEnabled => internalUser;
 
+  bool get progressiveOriginalVideoPlayback => internalUser;
+
   bool get facesTimeline => true;
   bool get ritualsFlag => true;
 
