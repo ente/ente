@@ -1,5 +1,6 @@
 export 'src/country_names.dart';
 export 'src/device_health.dart';
 export 'src/device_trash.dart';
+export 'src/media_store.dart';
 export 'src/process_lock.dart';
 export 'src/wallpaper.dart';

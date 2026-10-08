@@ -1,9 +1,9 @@
 import "dart:async";
 import "dart:io";
 
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
-import "package:flutter/services.dart";
 import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/configuration.dart";
@@ -321,9 +321,9 @@ class LocalSyncService {
             currentLocalIDs.contains(file.localID)) {
           continue;
         }
-        final exists = await const MethodChannel(
-          "io.ente.photos.platform/media_store",
-        ).invokeMethod<bool>("mediaStore.assetExists", {"id": file.localID});
+        final exists = await MediaStoreClient.instance.assetExists(
+          file.localID!,
+        );
         if (exists != false) {
           continue;
         }
