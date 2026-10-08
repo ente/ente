@@ -11,6 +11,7 @@ class AppLifecycleService {
   final _logger = Logger("AppLifecycleService");
 
   bool isForeground = false;
+  Future<void> _preferencesReload = Future<void>.value();
   MediaExtentionAction mediaExtensionAction = MediaExtentionAction(
     action: IntentAction.main,
   );
@@ -23,6 +24,13 @@ class AppLifecycleService {
 
   void init(SharedPreferences preferences) {
     _preferences = preferences;
+  }
+
+  Future<void> get preferencesReloaded => _preferencesReload;
+
+  Future<void> reloadPreferences() {
+    _preferencesReload = _preferences.reload();
+    return _preferencesReload;
   }
 
   void setMediaExtensionAction(MediaExtentionAction mediaExtensionAction) {

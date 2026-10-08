@@ -15,6 +15,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/events/permission_granted_event.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import 'package:photos/services/sync/sync_service.dart';
@@ -255,6 +256,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
       return;
     }
     _isEnteringLocalGallery = true;
+    await AppLifecycleService.instance.preferencesReloaded;
     await localSettings.setAppMode(AppMode.localGallery);
     localSettings.localGalleryModeEnabledThisSession = true;
     await setMLConsent(true);
