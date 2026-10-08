@@ -57,11 +57,19 @@ pub struct Summary {
     pub expected: i64,
 }
 
+struct RootLock(File);
+
+impl Drop for RootLock {
+    fn drop(&mut self) {
+        let _ = self.0.unlock();
+    }
+}
+
 pub struct Export {
     destination: PathBuf,
     expected_root: Root,
     prepared: Option<(Store, Result<()>)>,
-    root_lock: Option<File>,
+    root_lock: Option<RootLock>,
     options: Options,
     adopting: bool,
 }
@@ -353,7 +361,7 @@ fn destination(path: &Path) -> Result<PathBuf> {
     Ok(resolved)
 }
 
-fn open_root(destination: &Path, expected: &Root) -> Result<Option<File>> {
+fn open_root(destination: &Path, expected: &Root) -> Result<Option<RootLock>> {
     if !destination.try_exists()? {
         return Ok(None);
     }
@@ -368,7 +376,8 @@ fn open_root(destination: &Path, expected: &Root) -> Result<Option<File>> {
     let file = OpenOptions::new().read(true).write(true).open(&path)?;
     file.try_lock()
         .context("another writer is maintaining this export")?;
-    let record: Root = serde_json::from_reader(&file).context("invalid export.json")?;
+    let lock = RootLock(file);
+    let record: Root = serde_json::from_reader(&lock.0).context("invalid export.json")?;
     ensure!(
         record.format == expected.format && record.version == expected.version,
         "unsupported export format"
@@ -377,30 +386,31 @@ fn open_root(destination: &Path, expected: &Root) -> Result<Option<File>> {
         record.source_verifier == expected.source_verifier,
         "this export belongs to another source account"
     );
-    Ok(Some(file))
+    Ok(Some(lock))
 }
 
-fn initialize(destination: &Path, root: &Root, legacy: bool) -> Result<File> {
+fn initialize(destination: &Path, root: &Root, legacy: bool) -> Result<RootLock> {
     fs::create_directory(destination)?;
     let path = names::check(destination, "export.json")?;
-    let mut file = OpenOptions::new()
+    let file = OpenOptions::new()
         .read(true)
         .write(true)
         .create_new(true)
         .open(&path)
         .context("destination was initialized by another writer; retry")?;
     file.lock().context("cannot lock the new export")?;
+    let mut lock = RootLock(file);
     ensure!(
         legacy
             || std::fs::read_dir(destination)?
                 .all(|entry| entry.is_ok_and(|entry| entry.file_name() == "export.json")),
         "destination became nonempty during initialization"
     );
-    serde_json::to_writer_pretty(&mut file, root)?;
-    file.write_all(b"\n")?;
-    file.sync_all()?;
+    serde_json::to_writer_pretty(&mut lock.0, root)?;
+    lock.0.write_all(b"\n")?;
+    lock.0.sync_all()?;
     fs::sync_parent(&path)?;
-    Ok(file)
+    Ok(lock)
 }
 
 fn select(store: &Store, options: &Options) -> Result<()> {
