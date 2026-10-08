@@ -587,6 +587,7 @@ const OptionContents = ({ data: option }: { data: SearchOption }) => {
     const { suggestion, fileCount, previewFiles } = option;
     const person = suggestion.type === "person" ? suggestion.person : undefined;
     const hasCover = suggestion.type === "collection" || !!person;
+    const coverFile = person?.displayFaceFile ?? previewFiles[0];
 
     return (
         <Stack
@@ -614,8 +615,9 @@ const OptionContents = ({ data: option }: { data: SearchOption }) => {
                     }}
                 >
                     <ItemCard
+                        key={`${coverFile?.id ?? "empty"}:${person?.displayFaceID ?? ""}`}
                         TileComponent={ResultCover}
-                        coverFile={person?.displayFaceFile ?? previewFiles[0]}
+                        coverFile={coverFile}
                         coverFaceID={person?.displayFaceID}
                     />
                 </Box>
