@@ -1405,18 +1405,14 @@ class FilesDB with SqlDbBase {
   Future<void> deleteLocalFile(EnteFile file) async {
     final db = await instance.sqliteAsyncDB;
     if (file.localID != null) {
-      unawaited(
-        db.execute(
-          'DELETE FROM $filesTable WHERE $columnLocalID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
-          [file.localID],
-        ),
+      await db.execute(
+        'DELETE FROM $filesTable WHERE $columnLocalID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
+        [file.localID],
       );
     } else {
-      unawaited(
-        db.execute(
-          'DELETE FROM $filesTable WHERE $columnGeneratedID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
-          [file.generatedID],
-        ),
+      await db.execute(
+        'DELETE FROM $filesTable WHERE $columnGeneratedID = ? AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)',
+        [file.generatedID],
       );
     }
   }

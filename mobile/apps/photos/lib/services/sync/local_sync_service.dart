@@ -3,6 +3,7 @@ import "dart:io";
 
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter/services.dart";
 import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/configuration.dart";
@@ -14,6 +15,7 @@ import "package:photos/db/device_files_db.dart";
 import "package:photos/db/file_updation_db.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/backup_folders_updated_event.dart";
+import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/events/permission_granted_event.dart";
 import "package:photos/events/sync_status_update_event.dart";
@@ -196,6 +198,7 @@ class LocalSyncService {
     _logger.info(
       "Loading allLocalAssets ${localAssets.length} took ${stopwatch.elapsedMilliseconds}ms ",
     );
+    await _removeMissingLocalFiles(localAssets);
     await _refreshDeviceFolderCountAndCover();
     _logger.info(
       "refreshDeviceFolderCountAndCover + allLocalAssets took ${stopwatch.elapsedMilliseconds}ms ",
@@ -293,6 +296,59 @@ class LocalSyncService {
     // syncAll can repair mappings without inserting new local files.
     // We still need the follow-up remote sync to promote those entries.
     return hasUnsyncedFiles || hasAnyMappingChanged;
+  }
+
+  Future<void> _removeMissingLocalFiles(
+    List<LocalPathAsset> localAssets,
+  ) async {
+    if (!Platform.isAndroid ||
+        !isLocalGalleryMode ||
+        !AppLifecycleService.instance.isForeground) {
+      return;
+    }
+    final removedFiles = <EnteFile>[];
+    try {
+      if (await permissionService.getPermissionState() !=
+          PermissionState.authorized) {
+        return;
+      }
+      final currentLocalIDs = localAssets
+          .expand((path) => path.localIDs)
+          .toSet();
+      final localFiles = await _db.getUnUploadedLocalFiles();
+      for (final file in localFiles) {
+        if (file.isSharedMediaToAppSandbox ||
+            currentLocalIDs.contains(file.localID)) {
+          continue;
+        }
+        final exists = await const MethodChannel(
+          "io.ente.photos.platform/media_store",
+        ).invokeMethod<bool>("mediaStore.assetExists", {"id": file.localID});
+        if (exists != false) {
+          continue;
+        }
+        if (await permissionService.getPermissionState() !=
+                PermissionState.authorized ||
+            !isLocalGalleryMode ||
+            !AppLifecycleService.instance.isForeground) {
+          break;
+        }
+        await _db.deleteLocalFile(file);
+        removedFiles.add(file);
+      }
+    } catch (e, s) {
+      _logger.warning("Failed to clean up missing local files", e, s);
+    } finally {
+      if (removedFiles.isNotEmpty) {
+        Bus.instance.fire(
+          LocalPhotosUpdatedEvent(
+            removedFiles,
+            type: EventType.deletedFromDevice,
+            source: "localSyncMissingFiles",
+          ),
+        );
+      }
+    }
   }
 
   Future<void> ignoreUpload(EnteFile file, InvalidFileError error) async {
