@@ -106,7 +106,7 @@ function UploadProgressHeader() {
 
 function UploadProgressSummary() {
     const context = useUploadProgressContext();
-    const { uploadPhase, percentComplete } = context;
+    const { uploadPhase, percentComplete, estimatedSecondsRemaining } = context;
     const isUploading = uploadPhase == "uploading";
     const isDeterminate = isUploading || uploadPhase == "readingMetadata";
     const progress = normalizePercent(percentComplete);
@@ -119,13 +119,25 @@ function UploadProgressSummary() {
             : uploadPhase == "cancelling"
               ? t("upload_finishing_active")
               : uploadCountsText(context);
+    const etaText =
+        isUploading && estimatedSecondsRemaining !== undefined
+            ? estimatedSecondsRemaining < 60
+                ? t("upload_less_than_a_minute_remaining")
+                : estimatedSecondsRemaining < 3600
+                  ? t("upload_minutes_remaining", {
+                        count: Math.round(estimatedSecondsRemaining / 60),
+                    })
+                  : t("upload_hours_remaining", {
+                        count: Math.round(estimatedSecondsRemaining / 3600),
+                    })
+            : undefined;
     const progressCaption =
         uploadPhase == "readingMetadata"
             ? t("upload_reading_file_information")
             : uploadPhase == "cancelling"
               ? t("this_may_take_a_moment")
               : isUploading
-                ? uploadStatusText(uploadPhase)
+                ? (etaText ?? uploadStatusText(uploadPhase))
                 : undefined;
 
     return (
@@ -159,7 +171,9 @@ function UploadProgressSummary() {
                                 <Typography
                                     sx={[
                                         mutedCaptionSx,
-                                        isUploading && animatedEllipsisSx,
+                                        isUploading &&
+                                            !etaText &&
+                                            animatedEllipsisSx,
                                     ]}
                                 >
                                     {progressCaption}

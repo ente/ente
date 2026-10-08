@@ -417,7 +417,9 @@ const removePotentialLivePhotoSuffix = (name: string, suffix?: string) => {
     return foundSuffix ? name.slice(0, foundSuffix.length * -1) : name;
 };
 
-const uploadItemSize = async (uploadItem: UploadItem): Promise<number> => {
+export const uploadItemSize = async (
+    uploadItem: UploadItem,
+): Promise<number> => {
     if (uploadItem instanceof File) return uploadItem.size;
     if (typeof uploadItem == "string")
         return ensureElectron().pathOrZipItemSize(uploadItem);
@@ -474,6 +476,11 @@ interface UploadContext {
     publicAlbumsCredentials?: PublicAlbumsCredentials;
     abortIfCancelled: () => void;
     updateUploadProgress: (fileLocalID: number, percentage: number) => void;
+    updateUploadBytes?: (
+        fileLocalID: number,
+        uploadedBytes: number,
+        totalBytes: number,
+    ) => void;
 }
 
 export const upload = async (
@@ -1315,8 +1322,12 @@ const uploadToBucket = async (
         "file" | "thumbnail" | "metadata" | "pubMagicMetadata"
     >
 > => {
-    const { isCFUploadProxyDisabled, abortIfCancelled, updateUploadProgress } =
-        uploadContext;
+    const {
+        isCFUploadProxyDisabled,
+        abortIfCancelled,
+        updateUploadProgress,
+        updateUploadBytes,
+    } = uploadContext;
     const checksumEnabled = areChecksumProtectedUploadsEnabled();
     const shouldSendContentChecksum =
         checksumEnabled || !!uploadContext.publicAlbumsCredentials;
@@ -1332,6 +1343,11 @@ const uploadToBucket = async (
     let fileSize: number;
 
     const encryptedData = file.encryptedData;
+    const totalBytes =
+        (encryptedData instanceof Uint8Array
+            ? encryptedData.length
+            : encryptedData.encryptedSize) + thumbnail.encryptedData.length;
+    updateUploadBytes?.(localID, 0, totalBytes);
     if (
         !(encryptedData instanceof Uint8Array) &&
         encryptedData.chunkCount >= multipartChunksPerPart
@@ -1344,6 +1360,7 @@ const uploadToBucket = async (
                 requestRetrier,
                 maxPercent,
                 checksumEnabled,
+                totalBytes,
             ));
     } else {
         const data =
@@ -1371,6 +1388,7 @@ const uploadToBucket = async (
                 contentMd5: fileMd5,
             });
         }
+        updateUploadBytes?.(localID, fileSize, totalBytes);
         updateUploadProgress(localID, maxPercent);
     }
 
@@ -1401,6 +1419,12 @@ const uploadToBucket = async (
             { contentMd5: thumbnailMd5 },
         );
     }
+
+    updateUploadBytes?.(
+        localID,
+        fileSize + thumbnail.encryptedData.length,
+        totalBytes,
+    );
 
     return {
         file: {
@@ -1443,9 +1467,14 @@ const uploadStreamUsingMultipart = async (
     requestRetrier: HTTPRequestRetrier,
     maxPercent: number,
     checksumEnabled: boolean,
+    totalBytes: number,
 ) => {
-    const { isCFUploadProxyDisabled, abortIfCancelled, updateUploadProgress } =
-        uploadContext;
+    const {
+        isCFUploadProxyDisabled,
+        abortIfCancelled,
+        updateUploadProgress,
+        updateUploadBytes,
+    } = uploadContext;
     const shouldSendPartChecksums =
         checksumEnabled || !!uploadContext.publicAlbumsCredentials;
     const deferPartChecksums =
@@ -1493,6 +1522,7 @@ const uploadStreamUsingMultipart = async (
 
         const percentPerPart = maxPercent / uploadPartCount;
         const completedParts: MultipartCompletedPart[] = [];
+        let uploadedBytes = 0;
         for (const [
             index,
             partUploadURL,
@@ -1518,6 +1548,8 @@ const uploadStreamUsingMultipart = async (
                   });
             if (!eTag) throw new Error(eTagMissingErrorMessage);
 
+            uploadedBytes += partData.length;
+            updateUploadBytes?.(fileLocalID, uploadedBytes, totalBytes);
             updateUploadProgress(fileLocalID, percentPerPart * partNumber);
             completedParts.push({ partNumber, eTag });
             parts[index] = new Uint8Array(0);
@@ -1584,6 +1616,7 @@ const uploadStreamUsingMultipart = async (
               });
         if (!eTag) throw new Error(eTagMissingErrorMessage);
 
+        updateUploadBytes?.(fileLocalID, fileSize, totalBytes);
         updateUploadProgress(fileLocalID, percentPerPart * partNumber);
         completedParts.push({ partNumber, eTag });
     }

@@ -33,6 +33,7 @@ import UploadService, {
     upload,
     uploadCancelledErrorMessage,
     uploadItemFileName,
+    uploadItemSize,
     type PotentialLivePhotoAsset,
     type UploadAsset,
 } from "ente-gallery/services/upload/upload-service";
@@ -323,7 +324,43 @@ class UploadManager {
         options?: UploadItemsOptions,
     ) {
         this.itemsToBeUploaded = [...this.itemsToBeUploaded, ...mediaItems];
-        uploadProgress.reset(mediaItems.length);
+        const fileSizes = new Map<number, number | undefined>();
+        let nextItemIndex = 0;
+        await Promise.all(
+            Array.from(
+                { length: Math.min(maxConcurrentUploads, mediaItems.length) },
+                async () => {
+                    while (nextItemIndex < mediaItems.length) {
+                        this.abortIfCancelled();
+                        const item = mediaItems[nextItemIndex++]!;
+                        try {
+                            const size = item.isLivePhoto
+                                ? (
+                                      await Promise.all([
+                                          uploadItemSize(
+                                              item.livePhotoAssets!.image,
+                                          ),
+                                          uploadItemSize(
+                                              item.livePhotoAssets!.video,
+                                          ),
+                                      ])
+                                  ).reduce((total, size) => total + size, 0)
+                                : await uploadItemSize(item.uploadItem!);
+                            fileSizes.set(item.localID, size);
+                        } catch (e) {
+                            this.abortIfCancelled();
+                            log.warn(
+                                `Could not determine size of ${item.fileName}`,
+                                e,
+                            );
+                            fileSizes.set(item.localID, undefined);
+                        }
+                    }
+                },
+            ),
+        );
+        this.abortIfCancelled();
+        uploadProgress.reset(mediaItems.length, fileSizes);
         await UploadService.setFileCount(mediaItems.length);
         uploadProgress.setUploadPhase("uploading");
 
@@ -357,6 +394,10 @@ class UploadManager {
             abortIfCancelled: this.abortIfCancelled.bind(this),
             updateUploadProgress:
                 uploadProgress.updateUploadProgress.bind(uploadProgress),
+            updateUploadBytes: uploadProgress.updateUploadBytes.bind(
+                uploadProgress,
+                uploadProgress.batchID,
+            ),
         };
 
         while (this.itemsToBeUploaded.length > 0) {
