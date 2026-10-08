@@ -13,10 +13,12 @@ import "package:photos/models/search/search_constants.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
 import "package:photos/models/selected_people.dart";
-import "package:photos/service_locator.dart" show isLocalGalleryMode;
+import "package:photos/service_locator.dart"
+    show hasGrantedMLConsent, isLocalGalleryMode;
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/collection_share_badge.dart";
 import "package:photos/ui/settings/ml/machine_learning_settings_page.dart";
+import "package:photos/ui/settings/ml/ml_consent_sheet.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/file/no_thumbnail_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
@@ -109,7 +111,11 @@ class _PeopleSectionState extends State<PeopleSection> {
         : GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              routeToPage(context, const MachineLearningSettingsPage());
+              if (hasGrantedMLConsent) {
+                routeToPage(context, const MachineLearningSettingsPage());
+              } else {
+                unawaited(showMLConsentSheet(context));
+              }
             },
             child: Padding(
               padding: const EdgeInsets.only(

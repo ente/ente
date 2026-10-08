@@ -18,15 +18,13 @@ import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
-import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/services/remote_assets_service.dart";
 import "package:photos/services/wake_lock_service.dart";
-import "package:photos/ui/common/web_page.dart";
+import "package:photos/ui/settings/ml/ml_consent_sheet.dart";
 import "package:photos/ui/settings/ml/ml_user_dev_screen.dart";
 import "package:photos/utils/email_util.dart";
 import "package:photos/utils/ml_util.dart";
 import "package:photos/utils/network_util.dart";
-import "package:styled_text/styled_text.dart";
 
 class MachineLearningSettingsPage extends StatefulWidget {
   const MachineLearningSettingsPage({super.key});
@@ -43,7 +41,6 @@ class _MachineLearningSettingsPageState
   int _titleTapCount = 0;
   Timer? _advancedOptionsTimer;
   bool _hasAcknowledgedMLConsent = false;
-  bool _hasHandledDisabledExit = false;
   bool _mlDecryptionRecordsReady = false;
 
   @override
@@ -147,7 +144,7 @@ class _MachineLearningSettingsPageState
 
   Widget _buildDisabledMLScreen(BuildContext context) {
     return PopScope(
-      onPopInvokedWithResult: (_, _) => unawaited(_handleDisabledScreenExit()),
+      onPopInvokedWithResult: (_, _) => unawaited(markMLConsentPromptSeen()),
       child: SettingsPageScaffold(
         title: context.strings.machineLearning,
         bottomNavigationBar: SafeArea(
@@ -156,15 +153,12 @@ class _MachineLearningSettingsPageState
             child: ButtonComponent(
               label: context.strings.mlConsent,
               isDisabled: !_hasAcknowledgedMLConsent,
-              onTap: () async {
-                if (!_hasAcknowledgedMLConsent) return;
-                await toggleMlConsent(openSearchTab: true);
-              },
+              onTap: _enableAndOpenSearch,
             ),
           ),
         ),
         children: [
-          const _MLConsentDescription(),
+          const MLConsentDescription(),
           const SizedBox(height: 20),
           Center(
             child: Image.asset(
@@ -174,7 +168,14 @@ class _MachineLearningSettingsPageState
             ),
           ),
           const SizedBox(height: 20),
-          _buildDisabledConsentAckRow(context),
+          MLConsentAcknowledgement(
+            selected: _hasAcknowledgedMLConsent,
+            onChanged: () {
+              setState(() {
+                _hasAcknowledgedMLConsent = !_hasAcknowledgedMLConsent;
+              });
+            },
+          ),
         ],
       ),
     );
@@ -204,83 +205,33 @@ class _MachineLearningSettingsPageState
         .ignore();
   }
 
-  Future<void> _handleDisabledScreenExit() async {
-    if (_hasHandledDisabledExit || hasGrantedMLConsent) {
-      return;
-    }
-    _hasHandledDisabledExit = true;
-    await localSettings.setHasSeenMLEnablingBanner();
-    Bus.instance.fire(NotificationEvent());
+  Future<void> _enableAndOpenSearch() async {
+    await enableMLConsent();
+    if (!mounted) return;
+    Navigator.of(
+      context,
+    ).popUntil((route) => route.isFirst && !route.willHandlePopInternally);
+    Bus.instance.fire(
+      TabChangedEvent(searchTabIndex, TabChangedEventSource.mlConsent),
+    );
   }
 
-  Future<void> toggleMlConsent({bool openSearchTab = false}) async {
-    final oldMlConsent = hasGrantedMLConsent;
-    final oldMlEnabled = oldMlConsent && localSettings.isMLLocalIndexingEnabled;
-    final mlConsent = !oldMlConsent;
-    await setMLConsent(mlConsent);
-    final newMlEnabled = mlConsent && localSettings.isMLLocalIndexingEnabled;
-    // Queue a memories cache refresh so People/Clip memories appear or
-    // disappear on the next scheduled recompute. We intentionally only queue
-    // here — the actual recompute will be picked up by the next updateCache
-    // invocation (runAllML after indexing, or the startup self-schedule).
+  Future<void> _disableMl() async {
+    final wasMlEnabled = localSettings.isMLLocalIndexingEnabled;
+    await setMLConsent(false);
+    // Queue a memories cache refresh so People/Clip memories disappear on the
+    // next scheduled recompute. We intentionally only queue here — the actual
+    // recompute will be picked up by the next updateCache invocation.
     memoriesCacheService.queueUpdateCache();
     Bus.instance.fire(NotificationEvent());
-    if (!mlConsent) {
-      MLService.instance.stopActiveRun(MlStopReason.manual);
-      unawaited(MLIndexingIsolate.instance.cleanupLocalIndexingModels());
-      if (oldMlEnabled && !newMlEnabled) {
-        await memoriesCacheService.purgeMlOnlyMemoriesFromCache();
-      }
-    } else {
-      await MLService.instance.init();
-      await SemanticSearchService.instance.init();
-      unawaited(MLService.instance.runAllML(force: true));
-      if (openSearchTab && mounted) {
-        Navigator.of(
-          context,
-        ).popUntil((route) => route.isFirst && !route.willHandlePopInternally);
-        Bus.instance.fire(
-          TabChangedEvent(searchTabIndex, TabChangedEventSource.mlConsent),
-        );
-        return;
-      }
+    MLService.instance.stopActiveRun(MlStopReason.manual);
+    unawaited(MLIndexingIsolate.instance.cleanupLocalIndexingModels());
+    if (wasMlEnabled) {
+      await memoriesCacheService.purgeMlOnlyMemoriesFromCache();
     }
     if (mounted) {
       setState(() {});
     }
-  }
-
-  Widget _buildDisabledConsentAckRow(BuildContext context) {
-    final colors = context.componentColors;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        setState(() {
-          _hasAcknowledgedMLConsent = !_hasAcknowledgedMLConsent;
-        });
-      },
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CheckboxComponent(
-            selected: _hasAcknowledgedMLConsent,
-            onChanged: (_) {
-              setState(() {
-                _hasAcknowledgedMLConsent = !_hasAcknowledgedMLConsent;
-              });
-            },
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              context.strings.mlConsentConfirmation,
-              style: TextStyles.body.copyWith(color: colors.textLight),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _getMlSettings(BuildContext context) {
@@ -298,9 +249,7 @@ class _MachineLearningSettingsPageState
           ),
           trailing: ToggleSwitchComponent.async(
             value: () => hasEnabled,
-            onChanged: () async {
-              await toggleMlConsent();
-            },
+            onChanged: _disableMl,
           ),
         ),
         const SizedBox(height: 8),
@@ -345,53 +294,6 @@ class _MachineLearningSettingsPageState
             ? MLStatusWidget(showDecryptionWarning: _mlDecryptionRecordsReady)
             : const ModelLoadingState(),
       ],
-    );
-  }
-}
-
-class _MLConsentDescription extends StatelessWidget {
-  const _MLConsentDescription();
-
-  @override
-  Widget build(BuildContext context) {
-    final textStyle = TextStyles.body.copyWith(
-      color: context.componentColors.textLight,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final paragraph in context.strings.mlConsentDescription.split(
-          "\n\n",
-        )) ...[Text(paragraph, style: textStyle), const SizedBox(height: 8)],
-        StyledText(
-          text: context.strings.mlConsentPrivacyDetails,
-          style: textStyle,
-          tags: {
-            'policy': StyledTextActionTag(
-              (String? text, Map<String?, String?> attrs) =>
-                  _openMLPrivacyPolicy(context),
-              style: textStyle.copyWith(
-                decoration: TextDecoration.underline,
-                decorationColor: textStyle.color,
-              ),
-            ),
-          },
-        ),
-      ],
-    );
-  }
-
-  Future<void> _openMLPrivacyPolicy(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return WebPage(
-            context.strings.privacyPolicyTitle,
-            "https://ente.com/privacy",
-          );
-        },
-      ),
     );
   }
 }

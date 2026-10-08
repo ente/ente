@@ -1,1 +1,1 @@
-- Refreshed the machine learning consent screen. Enabling it now takes you to Search.
+- Refreshed the machine learning consent screen and added a consent sheet for the home banner, Search and People widgets.
