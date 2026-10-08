@@ -22,7 +22,6 @@ import {
     useTheme,
     type Theme,
 } from "@mui/material";
-import { EnteLogo, EnteLogoBox } from "ente-base/components/EnteLogo";
 import type { ButtonishProps } from "ente-base/components/mui";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
@@ -95,13 +94,6 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
 
     return (
         <>
-            <Box sx={{ flex: 1 }}>
-                {isSmallWidth && (
-                    <EnteLogoBox sx={{ mx: "auto", pl: "24px" }}>
-                        <EnteLogo height={15} />
-                    </EnteLogoBox>
-                )}
-            </Box>
             <Tooltip title={`Search (${shortcut})`}>
                 <FocusVisibleButton
                     color="secondary"
