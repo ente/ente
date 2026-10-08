@@ -120,12 +120,12 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
                     disableRestoreFocus
                     fullWidth
                     maxWidth={false}
-                    aria-label={t("search")}
                     slotProps={{
                         backdrop: {
                             sx: { backgroundColor: "rgba(0,0,0,0.4)" },
                         },
                         paper: {
+                            "aria-label": t("search"),
                             sx: {
                                 width: "621px",
                                 maxWidth: "calc(100% - 24px)",
@@ -683,6 +683,7 @@ const OptionContents = ({ data: option }: { data: SearchOption }) => {
 };
 
 const ResultCover = styled("div")({
+    position: "relative",
     width: 40,
     height: 40,
     overflow: "hidden",
