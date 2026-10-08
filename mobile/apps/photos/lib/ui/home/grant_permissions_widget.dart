@@ -260,7 +260,11 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
       await AppLifecycleService.instance.preferencesReloaded;
       await localSettings.setAppMode(AppMode.localGallery);
       localSettings.localGalleryModeEnabledThisSession = true;
-      await setMLConsent(true);
+      try {
+        await setMLConsent(true);
+      } catch (e) {
+        _logger.severe("Failed to record ML consent after permission grant", e);
+      }
       Bus.instance.fire(AppModeChangedEvent());
       await permissionService.onUpdatePermission(state);
       await localSettings.setLocalGalleryOnboardingPending(false);
@@ -429,6 +433,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
                           variant: ButtonComponentVariant.neutral,
                           density: ButtonComponentDensity.compact,
                           label: context.strings.continueLabel,
+                          shouldShowSuccessState: false,
                           onTap: _onTapOfflineGrantPermission,
                         ),
                         const Flexible(child: SizedBox(height: 42)),
