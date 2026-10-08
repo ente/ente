@@ -72,6 +72,7 @@ export interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = (props) => {
     const isSmallWidth = useIsSmallWidth();
     const [open, setOpen] = useState(false);
+    const [searchResetKey, setSearchResetKey] = useState(0);
     const shortcut =
         typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent)
             ? "⌘K"
@@ -79,6 +80,11 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
 
     const showSearch = () => setOpen(true);
     const closeSearch = () => setOpen(false);
+    const clearSearch = () => {
+        props.onSelectSearchOption(undefined, { shouldExitSearchMode: true });
+        setSearchResetKey((key) => key + 1);
+        setOpen(false);
+    };
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -94,6 +100,17 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
 
     return (
         <>
+            {props.isInSearchMode && (
+                <Tooltip title={t("close")}>
+                    <IconButton
+                        aria-label={t("close")}
+                        onClick={clearSearch}
+                        sx={{ mr: "8px" }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </Tooltip>
+            )}
             <Tooltip title={`Search (${shortcut})`}>
                 <FocusVisibleButton
                     color="secondary"
@@ -143,7 +160,12 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
                         },
                     }}
                 >
-                    <SearchInput {...props} open={open} onClose={closeSearch} />
+                    <SearchInput
+                        key={searchResetKey}
+                        {...props}
+                        open={open}
+                        onClose={closeSearch}
+                    />
                 </Dialog>
             </ThemeProvider>
         </>
@@ -153,7 +175,6 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
 const SearchInput: React.FC<
     SearchBarProps & { open: boolean; onClose: () => void }
 > = ({
-    isInSearchMode,
     onSelectSearchOption,
     onSelectPeople,
     onSelectPerson,
@@ -325,12 +346,6 @@ const SearchInput: React.FC<
                     return null;
                 }}
             />
-
-            {isInSearchMode && (
-                <IconButton onClick={resetSearch}>
-                    <CloseIcon />
-                </IconButton>
-            )}
         </SearchInputWrapper>
     );
 };
