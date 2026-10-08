@@ -1,5 +1,5 @@
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import { Skeleton, styled, Typography } from "@mui/material";
+import { Box, Skeleton, styled, Typography } from "@mui/material";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
 import type { EnteFile } from "ente-media/file";
 import { faceCrop, type AnnotatedFaceID } from "ente-new/photos/services/ml";
@@ -7,6 +7,7 @@ import type {
     Person,
     PreviewableFace,
 } from "ente-new/photos/services/ml/people";
+import { t } from "i18next";
 import React, { useEffect, useState } from "react";
 import { UnstyledButton } from "./UnstyledButton";
 
@@ -21,54 +22,59 @@ export const SearchPeopleList: React.FC<SearchPeopleListProps> = ({
 }) => {
     const isSmallWidth = useIsSmallWidth();
     return (
-        <SearchPeopleContainer
-            sx={[
-                people.length > 3
-                    ? { justifyContent: "center" }
-                    : { justifyContent: "start" },
-            ]}
+        <Box
+            sx={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${isSmallWidth ? 6 : 7}, minmax(0, 1fr))`,
+                gap: "8px",
+            }}
         >
             {people.slice(0, isSmallWidth ? 6 : 7).map((person) => (
-                <SearchPersonButton
+                <UnstyledButton
                     key={person.id}
                     onClick={() => onSelectPerson(person.id)}
+                    aria-label={person.name ?? t("unnamed_person")}
+                    sx={{
+                        minWidth: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "8px",
+                        borderRadius: "8px",
+                        "&:focus-visible": {
+                            outline: "2px solid",
+                            outlineColor: "accent.main",
+                        },
+                    }}
                 >
-                    <FaceCropImageView
-                        faceID={person.displayFaceID}
-                        file={person.displayFaceFile}
-                        placeholderDimension={87}
-                    />
-                </SearchPersonButton>
+                    <Box
+                        sx={{
+                            width: "100%",
+                            maxWidth: isSmallWidth ? 44 : 52,
+                            aspectRatio: "1",
+                            borderRadius: "50%",
+                            overflow: "hidden",
+                            "& img, & .MuiSkeleton-root": {
+                                width: "100% !important",
+                                height: "100% !important",
+                                objectFit: "cover",
+                            },
+                        }}
+                    >
+                        <FaceCropImageView
+                            faceID={person.displayFaceID}
+                            file={person.displayFaceFile}
+                            placeholderDimension={isSmallWidth ? 44 : 52}
+                        />
+                    </Box>
+                    <Typography variant="mini" noWrap sx={{ maxWidth: "100%" }}>
+                        {person.name ?? t("unnamed_person")}
+                    </Typography>
+                </UnstyledButton>
             ))}
-        </SearchPeopleContainer>
+        </Box>
     );
 };
-
-const SearchPeopleContainer = styled("div")`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 5px;
-    margin-block-start: 12px;
-    margin-block-end: 15px;
-`;
-
-const SearchPersonButton = styled(UnstyledButton)(
-    ({ theme }) => `
-    width: 87px;
-    height: 87px;
-    border-radius: 50%;
-    overflow: hidden;
-    & > img {
-        width: 100%;
-        height: 100%;
-    }
-    :hover {
-        outline: 1px solid ${theme.vars.palette.stroke.faint};
-        outline-offset: 2px;
-    }
-`,
-);
 
 export interface FilePeopleListProps {
     file: EnteFile;
