@@ -49,7 +49,6 @@ class UploadProgressTracker {
     private transferredBytes = 0;
     private byteSamples: { time: number; bytes: number }[] = [];
     private uploadStartedAt: number | undefined;
-    private etaInterval: ReturnType<typeof setInterval> | undefined;
 
     getSnapshot = () => this.snapshot;
 
@@ -62,8 +61,6 @@ class UploadProgressTracker {
 
     reset(count = 0, fileSizes?: ReadonlyMap<number, number | undefined>) {
         this.batchID++;
-        clearInterval(this.etaInterval);
-        this.etaInterval = undefined;
         this.uploadStartedAt = undefined;
         this.byteSamples = [];
         this.fileBytes.clear();
@@ -87,8 +84,6 @@ class UploadProgressTracker {
     }
 
     setUploadPhase(uploadPhase: UploadPhase) {
-        clearInterval(this.etaInterval);
-        this.etaInterval = undefined;
         this.uploadStartedAt = undefined;
         this.byteSamples = [];
         if (uploadPhase == "uploading" && this.fileBytes.size > 0) {
@@ -97,16 +92,6 @@ class UploadProgressTracker {
                 time: this.uploadStartedAt,
                 bytes: this.transferredBytes,
             });
-            this.etaInterval = setInterval(() => {
-                const estimatedSecondsRemaining =
-                    this.estimateRemainingSeconds();
-                if (
-                    estimatedSecondsRemaining !==
-                    this.snapshot.estimatedSecondsRemaining
-                ) {
-                    this.updateSnapshot({ estimatedSecondsRemaining });
-                }
-            }, 1000);
         }
         this.updateSnapshot({
             uploadPhase,
@@ -136,7 +121,7 @@ class UploadProgressTracker {
 
     increaseFileUploaded() {
         this.filesUploadedCount++;
-        this.updateProgress();
+        this.updateProgress(this.snapshot.estimatedSecondsRemaining);
     }
 
     finishFile(localID: number, type: FinishedUploadType) {
@@ -152,7 +137,7 @@ class UploadProgressTracker {
         this.finishedUploads.set(localID, type);
         this.inProgressUploads.delete(localID);
         this.filesUploadedCount++;
-        this.updateProgress();
+        this.updateProgress(this.estimateRemainingSeconds());
     }
 
     hasFilesInResultList() {
@@ -161,7 +146,7 @@ class UploadProgressTracker {
 
     updateUploadProgress(localID: number, percentage: number) {
         this.inProgressUploads.set(localID, Math.round(percentage));
-        this.updateProgress();
+        this.updateProgress(this.snapshot.estimatedSecondsRemaining);
     }
 
     updateUploadBytes(
@@ -184,6 +169,7 @@ class UploadProgressTracker {
         }
 
         const bytes = Math.max(0, uploadedBytes - fileBytes.uploadedBytes);
+        if (bytes == 0 && totalBytes == fileBytes.totalBytes) return;
         if (fileBytes.totalBytes === undefined) this.unknownFileSizes--;
         this.remainingBytes += totalBytes - (fileBytes.totalBytes ?? 0) - bytes;
         fileBytes.totalBytes = totalBytes;
@@ -220,13 +206,10 @@ class UploadProgressTracker {
             this.byteSamples.shift();
         }
         const first = this.byteSamples[0];
-        const last = this.byteSamples.at(-1);
         if (
             !first ||
-            !last ||
             this.unknownFileSizes > 0 ||
-            now - this.uploadStartedAt < 5000 ||
-            now - last.time > 30_000
+            now - this.uploadStartedAt < 5000
         ) {
             return undefined;
         }
@@ -239,7 +222,7 @@ class UploadProgressTracker {
         return Number.isFinite(estimate) ? Math.ceil(estimate) : undefined;
     }
 
-    private updateProgress() {
+    private updateProgress(estimatedSecondsRemaining?: number) {
         const perFileProgress =
             this.totalFilesCount > 0 ? 100 / this.totalFilesCount : 0;
         let percentComplete =
@@ -259,7 +242,7 @@ class UploadProgressTracker {
 
         this.updateSnapshot({
             percentComplete,
-            estimatedSecondsRemaining: this.estimateRemainingSeconds(),
+            estimatedSecondsRemaining,
             uploadCounter: {
                 finished: this.filesUploadedCount,
                 total: this.totalFilesCount,
