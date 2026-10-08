@@ -9,9 +9,7 @@ The embed feature allows you to display your Ente photo albums directly on your 
 
 For example, if you have a public Ente album that you'd like to showcase on your website, you can embed it just like you would embed a YouTube video. Visitors can browse through your photos without leaving your site.
 
-## Availability
-
-The embed feature works with any public album link. Since creating public albums requires an active Ente subscription for abuse prevention, embedding also requires a subscription.
+Embedding works per album, not per file. To embed one video/image, put it in its own album and embed that album.
 
 ## How to embed
 
