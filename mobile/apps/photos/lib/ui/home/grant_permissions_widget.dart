@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:io";
 import "dart:math";
 
 import "package:ente_components/ente_components.dart";
@@ -35,8 +36,10 @@ class GrantPermissionsWidget extends StatefulWidget {
   State<GrantPermissionsWidget> createState() => _GrantPermissionsWidgetState();
 }
 
-class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
+class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
+    with WidgetsBindingObserver {
   final Logger _logger = Logger("_GrantPermissionsWidgetState");
+  bool _isEnteringLocalGallery = false;
   final Debouncer _onlyNewActionDebouncer = Debouncer(
     const Duration(milliseconds: 500),
     leading: true,
@@ -50,13 +53,23 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
       "assets/home_tab.riv",
       riveFactory: rive.Factory.flutter,
     );
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_enterLocalGalleryIfPermitted());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _permissionsAnimationLoader.dispose();
     _onlyNewActionDebouncer.cancelDebounceTimer();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_enterLocalGalleryIfPermitted());
+    }
   }
 
   @override
@@ -203,29 +216,59 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
 
   Future<void> _onTapOfflineGrantPermission() async {
     try {
+      final wasDecidedBefore =
+          Platform.isIOS &&
+          await permissionService.getPermissionState() !=
+              PermissionState.notDetermined;
       final state = await permissionService.requestPhotoMangerPermissions();
       _logger.info("Offline permission state: $state");
-      if (state == PermissionState.authorized ||
-          state == PermissionState.limited) {
-        await localSettings.setAppMode(AppMode.localGallery);
-        localSettings.localGalleryModeEnabledThisSession = true;
-        Bus.instance.fire(AppModeChangedEvent());
-        await permissionService.onUpdatePermission(state);
-        SyncService.instance.onPermissionGranted().ignore();
-        Bus.instance.fire(PermissionGrantedEvent());
-        try {
-          await setMLConsent(true);
-          await MLService.instance.init();
-          await SemanticSearchService.instance.init();
-          unawaited(MLService.instance.runAllML(force: true));
-        } catch (e) {
-          _logger.severe("Failed to initialize ML after permission grant", e);
-        }
+      if (state.hasAccess) {
+        await _enterLocalGallery(state);
+      } else if (wasDecidedBefore ||
+          permissionService.hasAttemptedPermission()) {
+        await localSettings.setLocalGalleryOnboardingPending(true);
+        await PhotoManager.openSetting();
       } else {
-        await _showPermissionDeniedDialog();
+        await permissionService.setHasAttemptedPermission();
       }
     } catch (e) {
       _logger.severe("Failed to request permission: ${e.toString()}", e);
+    }
+  }
+
+  Future<void> _enterLocalGalleryIfPermitted() async {
+    if (!widget.startWithoutAccount) {
+      return;
+    }
+    try {
+      final state = await permissionService.getPermissionState();
+      if (state.hasAccess) {
+        await _enterLocalGallery(state);
+      }
+    } catch (e) {
+      _logger.severe("Failed to check permission: ${e.toString()}", e);
+    }
+  }
+
+  Future<void> _enterLocalGallery(PermissionState state) async {
+    if (_isEnteringLocalGallery) {
+      return;
+    }
+    _isEnteringLocalGallery = true;
+    await localSettings.setAppMode(AppMode.localGallery);
+    localSettings.localGalleryModeEnabledThisSession = true;
+    await setMLConsent(true);
+    Bus.instance.fire(AppModeChangedEvent());
+    await permissionService.onUpdatePermission(state);
+    await localSettings.setLocalGalleryOnboardingPending(false);
+    SyncService.instance.onPermissionGranted().ignore();
+    Bus.instance.fire(PermissionGrantedEvent());
+    try {
+      await MLService.instance.init();
+      await SemanticSearchService.instance.init();
+      unawaited(MLService.instance.runAllML(force: true));
+    } catch (e) {
+      _logger.severe("Failed to initialize ML after permission grant", e);
     }
   }
 
@@ -239,16 +282,10 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
   }
 
   Future<void> _showPermissionDeniedDialog() async {
-    final title = widget.startWithoutAccount
-        ? context.strings.grantPermission
-        : context.strings.allowPermTitle;
-    final message = widget.startWithoutAccount
-        ? context.strings.grantPermissionDesc
-        : context.strings.allowPermBody;
     await showAlertBottomSheet(
       context,
-      title: title,
-      message: message,
+      title: context.strings.allowPermTitle,
+      message: context.strings.allowPermBody,
       assetPath: 'assets/ducky_smart_feature.png',
       buttons: [
         ButtonWidgetV2(

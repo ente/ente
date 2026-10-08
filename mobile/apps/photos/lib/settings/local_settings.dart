@@ -129,6 +129,8 @@ class LocalSettings {
   static const _kRustMlDbOverride = "ls.rust_ml_db_override";
   static const _kAppMode = "ls.app_mode";
   static const _kShowLocalGalleryModeOption = "ls.show_offline_mode_option";
+  static const _kLocalGalleryOnboardingPending =
+      "ls.local_gallery_onboarding_pending";
   static const _kDeletePreference = "delete_preference";
   static const _kMediaManagementHintDeleteAttempts =
       "media_management_hint_delete_attempts";
@@ -803,6 +805,13 @@ class LocalSettings {
 
   Future<void> setShowLocalGalleryModeOption(bool value) async {
     await _prefs.setBool(_kShowLocalGalleryModeOption, value);
+  }
+
+  bool get isLocalGalleryOnboardingPending =>
+      _prefs.getBool(_kLocalGalleryOnboardingPending) ?? false;
+
+  Future<void> setLocalGalleryOnboardingPending(bool value) async {
+    await _prefs.setBool(_kLocalGalleryOnboardingPending, value);
   }
 
   bool get isLocalGalleryGetStartedBannerDismissed {
