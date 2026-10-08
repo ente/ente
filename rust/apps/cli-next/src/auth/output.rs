@@ -82,6 +82,12 @@ impl Destination {
                     .persist_noclobber(path)
                     .map_err(|error| error.error)
                     .with_context(|| format!("cannot publish {}", path.display()))?;
+                sync_directory(parent(path)).with_context(|| {
+                    format!(
+                        "{} was published, but cannot sync its directory",
+                        path.display()
+                    )
+                })?;
                 Ok(Published {
                     path: Some(path.clone()),
                     pruned: 0,
@@ -108,6 +114,12 @@ fn stage(directory: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFile> {
     temporary.write_all(bytes)?;
     temporary.as_file().sync_all()?;
     Ok(temporary)
+}
+
+fn sync_directory(_directory: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    fs::File::open(_directory)?.sync_all()?;
+    Ok(())
 }
 
 fn backup_name(name: &str, extension: &str) -> Option<(NaiveDate, u64)> {
@@ -176,9 +188,7 @@ fn publish_directory(
             Err(error) => return Err(error.error).context("cannot publish Auth backup"),
         }
     };
-    #[cfg(unix)]
-    fs::File::open(directory)
-        .and_then(|directory| directory.sync_all())
+    sync_directory(directory)
         .context("backup published, but cannot sync its directory; older backups were kept")?;
     let mut result = Published {
         path: Some(path),
