@@ -1,135 +1,107 @@
 import log from "ente-base/log";
 import { useRouter, type NextRouter } from "next/router";
 import React from "react";
+import { spaceBackFallback } from "utils/routes";
 
-type SpaceRouteMotionDirection = "forward" | "back";
 type SpaceRouteURL = Parameters<NextRouter["push"]>[0];
 type SpaceRouteAs = Parameters<NextRouter["push"]>[1];
 type SpaceRouteOptions = Parameters<NextRouter["push"]>[2];
+type SpaceRouter = Omit<NextRouter, "back"> & {
+    back: (fallback?: string) => Promise<boolean>;
+    backTo: (path: string) => Promise<boolean>;
+};
 
 let routeMotionSequence = 0;
-let routeStack: string[] = [];
+let routeHistory: { key: string; as: string }[] = [];
+let routeHistoryIndex = -1;
+const routeHistoryStorageKey = "space-route-history";
 
-const routePath = (route: SpaceRouteURL | SpaceRouteAs): string => {
-    if (!route) return "";
-
-    if (typeof route == "string") {
-        const [routeWithoutHash = ""] = route.split("#", 1);
-        const [routeWithoutQuery = ""] = routeWithoutHash.split("?", 1);
-        const path = route.startsWith("http")
-            ? new URL(route).pathname
-            : routeWithoutQuery;
-        return path.length > 1 ? path.replace(/\/+$/, "") : path || "/";
-    }
-
-    const pathname = route.pathname;
-    if (!pathname || typeof pathname != "string") return "";
-    return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-};
-
-const parentRoutePaths = (path: string) => {
-    if (/^\/app\/messages\/[^/]+$/.test(path)) return ["/app/messages"];
-    if (/^\/app\/posts\/[^/]+\/[^/]+$/.test(path)) {
-        return ["/app"];
-    }
-
-    return (
-        {
-            "/app/friends": ["/app/profile"],
-            "/app/messages": ["/app"],
-            "/app/profile": ["/app"],
-            "/app/profile/cover": ["/app/profile"],
-            "/app/profile/cover-edit": ["/app/profile/cover"],
-            "/app/profile/photo": ["/app/profile"],
-            "/app/profile/photo-edit": ["/app/profile/photo"],
-            "/app/settings": ["/app"],
-            "/app/settings/profile/name": ["/app/settings"],
-            "/login": ["/"],
-            "/passkeys/finish": ["/passkeys/verify"],
-            "/passkeys/verify": ["/login", "/verify"],
-            "/create-profile": ["/login", "/verify"],
-            "/add-profile-photo": ["/create-profile"],
-            "/signup": ["/"],
-            "/two-factor/verify": ["/login", "/verify"],
-            "/verify": ["/login", "/signup"],
-        } satisfies Record<string, string[]>
-    )[path];
-};
-
-const previousStackRoute = () =>
-    routeStack.length > 1 ? routeStack[routeStack.length - 2] : undefined;
-
-export const hasPreviousSpaceRoute = () => Boolean(previousStackRoute());
-
-const ensureRouteStack = (currentPath: string) => {
-    if (routeStack.length == 0 && currentPath) routeStack = [currentPath];
-};
-
-const routeMotionDirection = (
-    currentPath: string,
-    targetPath: string,
-): SpaceRouteMotionDirection => {
-    ensureRouteStack(currentPath);
-
-    if (previousStackRoute() == targetPath) return "back";
-    if (parentRoutePaths(currentPath)?.includes(targetPath)) return "back";
-    return "forward";
-};
-
-const routeSlideDirection = (
-    currentPath: string,
-    targetPath: string | undefined,
-    direction: SpaceRouteMotionDirection,
-): SpaceRouteMotionDirection => {
-    if (currentPath == "/app" && targetPath == "/app/settings") {
-        return "back";
-    }
-    if (currentPath == "/app/settings" && targetPath == "/app") {
-        return "forward";
-    }
-    return direction;
-};
-
-const recordRoutePush = (
-    currentPath: string,
-    targetPath: string,
-    direction: SpaceRouteMotionDirection,
-) => {
-    ensureRouteStack(currentPath);
-
-    if (direction == "back") {
-        const targetIndex = routeStack.lastIndexOf(targetPath);
-        routeStack =
-            targetIndex >= 0
-                ? routeStack.slice(0, targetIndex + 1)
-                : [targetPath];
-        return;
-    }
-
-    if (routeStack[routeStack.length - 1] != currentPath) {
-        routeStack.push(currentPath);
-    }
-    if (routeStack[routeStack.length - 1] != targetPath) {
-        routeStack.push(targetPath);
+const saveRouteHistory = () => {
+    try {
+        sessionStorage.setItem(
+            routeHistoryStorageKey,
+            JSON.stringify({ entries: routeHistory, index: routeHistoryIndex }),
+        );
+    } catch (error) {
+        log.warn("Failed to save Space navigation history", error);
     }
 };
 
-const recordRouteReplace = (targetPath: string) => {
-    if (!targetPath) return;
-    if (routeStack.length == 0) {
-        routeStack = [targetPath];
-        return;
+const recordRoute = (action: "push" | "replace" | "pop") => {
+    const { key, as } = window.history.state as { key: string; as: string };
+    const index = routeHistory.findIndex((entry) => entry.key == key);
+    if (index >= 0) {
+        routeHistoryIndex = index;
+        routeHistory[index] = { key, as };
+    } else if (action == "push") {
+        routeHistory = routeHistory.slice(0, routeHistoryIndex + 1);
+        routeHistory.push({ key, as });
+        routeHistoryIndex = routeHistory.length - 1;
+    } else if (action == "replace" && routeHistoryIndex >= 0) {
+        routeHistory[routeHistoryIndex] = { key, as };
+    } else {
+        routeHistory = [{ key, as }];
+        routeHistoryIndex = 0;
     }
-    routeStack[routeStack.length - 1] = targetPath;
+    saveRouteHistory();
+};
+
+const initializeRouteHistory = (router: NextRouter) => {
+    if (routeHistoryIndex >= 0) return;
+    const state = window.history.state as {
+        key: string;
+        url: string;
+        as: string;
+        options: object;
+        __N: boolean;
+    };
+    const navigation = performance.getEntriesByType("navigation")[0] as
+        PerformanceNavigationTiming | undefined;
+    if (navigation?.type == "reload") {
+        try {
+            const saved = JSON.parse(
+                sessionStorage.getItem(routeHistoryStorageKey) ?? "null",
+            ) as { entries: typeof routeHistory; index: number } | null;
+            if (saved?.entries[saved.index]?.as == router.asPath) {
+                routeHistory = saved.entries;
+                routeHistoryIndex = saved.index;
+                routeHistory[routeHistoryIndex] = {
+                    key: state.key,
+                    as: state.as,
+                };
+                saveRouteHistory();
+                return;
+            }
+        } catch (error) {
+            log.warn("Failed to restore Space navigation history", error);
+        }
+    }
+
+    const parents: string[] = [];
+    let parent = spaceBackFallback(router.asPath, router.pathname);
+    while (parent) {
+        parents.unshift(parent);
+        parent = spaceBackFallback(parent);
+    }
+    for (const [index, as] of parents.entries()) {
+        const key = crypto.randomUUID();
+        window.history[index == 0 ? "replaceState" : "pushState"](
+            { ...state, key, url: as, as, options: {} },
+            "",
+            as,
+        );
+        routeHistory.push({ key, as });
+    }
+    if (parents.length > 0) window.history.pushState(state, "", state.as);
+    routeHistory.push({ key: state.key, as: state.as });
+    routeHistoryIndex = routeHistory.length - 1;
+    saveRouteHistory();
 };
 
 const prefersReducedMotion = () =>
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const startSpaceRouteTransition = async <T,>(
-    direction: SpaceRouteMotionDirection,
-    updateRoute: () => Promise<T>,
-) => {
+const startSpaceRouteTransition = async <T,>(updateRoute: () => Promise<T>) => {
     if (
         typeof document == "undefined" ||
         typeof document.startViewTransition != "function" ||
@@ -142,7 +114,7 @@ const startSpaceRouteTransition = async <T,>(
     const root = document.documentElement;
     let result: T;
 
-    root.dataset.spaceRouteMotion = direction;
+    root.dataset.spaceRouteMotion = "fade";
 
     const transition = document.startViewTransition(async () => {
         result = await updateRoute();
@@ -171,18 +143,11 @@ const pushSpaceRoute = async (
     as?: SpaceRouteAs,
     options?: SpaceRouteOptions,
 ) => {
-    const currentPath = routePath(router.asPath);
-    const targetPath = routePath(as ?? url);
-    if (!targetPath || targetPath == currentPath) {
-        return await router.push(url, as, options);
-    }
-
-    const direction = routeMotionDirection(currentPath, targetPath);
-    const didNavigate = await startSpaceRouteTransition(
-        routeSlideDirection(currentPath, targetPath, direction),
-        () => router.push(url, as, options),
+    initializeRouteHistory(router);
+    const didNavigate = await startSpaceRouteTransition(() =>
+        router.push(url, as, options),
     );
-    if (didNavigate) recordRoutePush(currentPath, targetPath, direction);
+    if (didNavigate) recordRoute("push");
     return didNavigate;
 };
 
@@ -192,58 +157,43 @@ const replaceSpaceRoute = async (
     as?: SpaceRouteAs,
     options?: SpaceRouteOptions,
 ) => {
+    initializeRouteHistory(router);
     const didNavigate = await router.replace(url, as, options);
-    if (didNavigate) recordRouteReplace(routePath(as ?? url));
+    if (didNavigate) recordRoute("replace");
     return didNavigate;
 };
 
-const backSpaceRoute = (router: NextRouter) => {
-    const currentPath = routePath(router.asPath);
-    const targetPath = previousStackRoute();
-
-    void startSpaceRouteTransition(
-        routeSlideDirection(currentPath, targetPath, "back"),
-        () => {
-            const routeChangePromise = new Promise<boolean>(
-                (resolve, reject) => {
-                    const cleanup = () => {
-                        router.events.off(
-                            "routeChangeComplete",
-                            handleComplete,
-                        );
-                        router.events.off("routeChangeError", handleError);
-                    };
-                    const handleComplete = () => {
-                        cleanup();
-                        resolve(true);
-                    };
-                    const handleError = (error: unknown) => {
-                        cleanup();
-                        reject(
-                            error instanceof Error
-                                ? error
-                                : new Error("Space route change failed"),
-                        );
-                    };
-
-                    router.events.on("routeChangeComplete", handleComplete);
-                    router.events.on("routeChangeError", handleError);
-                },
+const backSpaceRoute = (
+    router: NextRouter,
+    fallback: string,
+    index = routeHistoryIndex - 1,
+) => {
+    if (index < 0) return replaceSpaceRoute(router, fallback);
+    return new Promise<boolean>((resolve, reject) => {
+        const cleanup = () => {
+            router.events.off("routeChangeComplete", handleComplete);
+            router.events.off("routeChangeError", handleError);
+        };
+        const handleComplete = () => {
+            cleanup();
+            resolve(true);
+        };
+        const handleError = (error: unknown) => {
+            cleanup();
+            reject(
+                error instanceof Error
+                    ? error
+                    : new Error("Space route change failed"),
             );
+        };
 
-            router.back();
-            return routeChangePromise;
-        },
-    )
-        .then((didNavigate) => {
-            if (didNavigate && targetPath) {
-                recordRoutePush(currentPath, targetPath, "back");
-            }
-        })
-        .catch((error: unknown) => log.error("Failed to navigate back", error));
+        router.events.on("routeChangeComplete", handleComplete);
+        router.events.on("routeChangeError", handleError);
+        window.history.go(index - routeHistoryIndex);
+    });
 };
 
-export const useSpaceRouter = (): NextRouter => {
+export const useSpaceRouter = (): SpaceRouter => {
     const router = useRouter();
 
     return React.useMemo(
@@ -265,7 +215,18 @@ export const useSpaceRouter = (): NextRouter => {
                         ) => replaceSpaceRoute(target, url, as, options);
                     }
                     if (property == "back") {
-                        return () => backSpaceRoute(target);
+                        return (fallback = "/app") =>
+                            backSpaceRoute(target, fallback);
+                    }
+                    if (property == "backTo") {
+                        return (path: string) =>
+                            backSpaceRoute(
+                                target,
+                                path,
+                                routeHistory
+                                    .slice(0, routeHistoryIndex)
+                                    .findLastIndex((entry) => entry.as == path),
+                            );
                     }
 
                     const value = target[property as keyof NextRouter];
@@ -273,7 +234,7 @@ export const useSpaceRouter = (): NextRouter => {
                         ? value.bind(target)
                         : value;
                 },
-            }),
+            }) as SpaceRouter,
         [router],
     );
 };
@@ -286,23 +247,22 @@ export const useSpaceRouteTransitionPopState = () => {
     React.useEffect(() => {
         const scrollRestoration = window.history.scrollRestoration;
         window.history.scrollRestoration = "manual";
-        recordRouteReplace(routePath(router.asPath));
+        initializeRouteHistory(router);
 
         router.beforePopState((state) => {
-            if (state.as == asPathRef.current) return false;
+            if (
+                state.as == asPathRef.current &&
+                (window.history.state as { key: string }).key ==
+                    routeHistory[routeHistoryIndex]?.key
+            )
+                return false;
 
-            const currentPath = routePath(asPathRef.current);
-            const targetPath = routePath(state.as);
-
-            if (!targetPath || targetPath == currentPath) return true;
-
-            void startSpaceRouteTransition(
-                routeSlideDirection(currentPath, targetPath, "back"),
-                () => router.replace(state.url, state.as, state.options),
+            void startSpaceRouteTransition(() =>
+                router.replace(state.url, state.as, state.options),
             )
                 .then((didNavigate) => {
                     if (didNavigate) {
-                        recordRoutePush(currentPath, targetPath, "back");
+                        recordRoute("pop");
                     }
                 })
                 .catch((error: unknown) =>

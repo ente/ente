@@ -32,12 +32,7 @@ const spaceMessageBaseSelectColumns = `
 	m.is_deleted,
 	m.created_at,
 	m.updated_at,
-	CASE
-		WHEN m.kind = 'post_like' AND m.sender_space_id = %[1]s THEN 'You liked a post'
-		WHEN m.kind = 'post_like' THEN 'Liked your post'
-		WHEN m.kind = 'friend_added' THEN 'You are now friends'
-		ELSE ''
-	END AS text
+	'' AS text
 `
 
 func spaceMessageSelectColumns(viewerPlaceholder string) string {
@@ -102,19 +97,15 @@ FROM (
 			ELSE m.sender_space_id
 		END AS friend_space_id,
 		CASE
-			WHEN m.kind = 'post_like' THEN 'post_like'
-			WHEN m.kind = 'friend_added' THEN 'friend_added'
 			WHEN m.kind = 'post_reply' AND m.recipient_space_id = $1 THEN 'post_reply'
 			ELSE 'message'
 		END AS activity_type,
 		CASE
-			WHEN m.kind = 'post_like' THEN 'post_like:' || m.reply_post_id || ':' || m.sender_space_id
-			WHEN m.kind = 'friend_added' THEN 'friend_added:' || m.message_id
 			WHEN m.kind = 'post_reply' AND m.recipient_space_id = $1 THEN 'post_reply:' || m.message_id
 			ELSE 'message:' || m.message_id
 		END AS activity_id,
 		m.created_at AS activity_created_at,
-		CASE WHEN m.kind = 'post_like' THEN NULL::text ELSE m.message_id END AS message_id,
+		m.message_id,
 		m.reply_post_id AS post_id,
 		m.recipient_space_id AS post_space_id,
 		m.kind AS message_kind,
@@ -128,12 +119,12 @@ FROM (
 		NULL::bytea AS encrypted_reaction,
 		m.reply_message_id,
 		CASE
-			WHEN m.recipient_space_id = $1 AND m.kind IN ('regular', 'post_reply', 'post_like', 'friend_added') THEN m.created_at
+			WHEN m.recipient_space_id = $1 AND m.kind IN ('regular', 'post_reply') THEN m.created_at
 			ELSE NULL::bigint
 		END AS notification_created_at,
 		(m.sender_space_id = $1) AS is_outgoing
 	FROM peer_messages m
-	WHERE m.kind IN ('regular', 'post_reply', 'post_like', 'friend_added')
+	WHERE m.kind IN ('regular', 'post_reply')
 
 	UNION ALL
 

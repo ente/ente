@@ -58,12 +58,7 @@ interface SuggestedModel {
 }
 
 type ModelGateStatus =
-    | "checking"
-    | "missing"
-    | "preloading"
-    | "downloading"
-    | "ready"
-    | "error";
+    "checking" | "missing" | "preloading" | "downloading" | "ready" | "error";
 
 type SxEntry = Exclude<SxProps<Theme>, readonly unknown[]>;
 

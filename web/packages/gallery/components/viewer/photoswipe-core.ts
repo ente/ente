@@ -67,11 +67,7 @@ export interface FileViewerPhotoSwipeDelegate<
     shouldIgnoreKeyboardEvent: (event: KeyboardEvent) => boolean;
     performKeyAction: (
         action:
-            | "delete"
-            | "toggle-archive"
-            | "copy"
-            | "toggle-fullscreen"
-            | "help",
+            "delete" | "toggle-archive" | "copy" | "toggle-fullscreen" | "help",
     ) => void;
 }
 
@@ -310,8 +306,7 @@ export class FileViewerPhotoSwipe<
         let livePhotoPlayInitial = true;
 
         let livePhotoPlayInitialEndedEvent:
-            | { listener: () => void; video: HTMLVideoElement }
-            | undefined;
+            { listener: () => void; video: HTMLVideoElement } | undefined;
 
         let livePhotoMute = true;
 
@@ -463,8 +458,7 @@ export class FileViewerPhotoSwipe<
         };
 
         let fullscreenUIControlsHideTimer:
-            | ReturnType<typeof setTimeout>
-            | undefined;
+            ReturnType<typeof setTimeout> | undefined;
 
         let areFullscreenUIControlsHiddenByShortcut = false;
 

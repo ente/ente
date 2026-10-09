@@ -841,8 +841,7 @@ class MemoriesCacheService {
   }
 
   Future<bool> _shouldForceInitialMemoriesRefresh() async {
-    if (!flagService.internalUser ||
-        localSettings.hasForcedInitialMemoriesRefresh() ||
+    if (localSettings.hasForcedInitialMemoriesRefresh() ||
         localSettings.initialMemoriesNotificationScheduledAt() != null) {
       return false;
     }
@@ -873,10 +872,9 @@ class MemoriesCacheService {
     List<SmartMemory> memories, {
     MlRunControl? control,
   }) async {
-    if (!flagService.internalUser ||
-        !memories.any(
-          (m) => (m.type == .people || m.type == .clip) && m.shouldShowNow(),
-        )) {
+    if (!memories.any(
+      (m) => (m.type == .people || m.type == .clip) && m.shouldShowNow(),
+    )) {
       return;
     }
     if (localSettings.initialMemoriesNotificationScheduledAt() != null) return;

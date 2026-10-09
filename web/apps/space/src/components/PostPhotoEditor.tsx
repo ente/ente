@@ -16,7 +16,6 @@ import log from "ente-base/log";
 import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React from "react";
 import {
-    spaceControlBackground,
     spaceControlBackgroundHover,
     spaceSurface,
     spaceText,
@@ -258,31 +257,18 @@ export const SpacePostPhotoEditor: React.FC<{
                     onClick={onClose}
                     sx={{
                         ...buttonSx,
+                        color: "#C0C0C0",
                         justifySelf: "start",
                         width: 44,
-                        ml: "-8px",
+                        ml: "-12px",
                         p: 0,
                     }}
                 >
-                    <Box
-                        component="span"
-                        sx={{
-                            alignItems: "center",
-                            bgcolor: spaceControlBackground,
-                            borderRadius: "50%",
-                            color: "#E4E4E4",
-                            display: "flex",
-                            height: 32,
-                            justifyContent: "center",
-                            width: 32,
-                        }}
-                    >
-                        <HugeiconsIcon
-                            icon={Cancel01Icon}
-                            size={20}
-                            strokeWidth={1.8}
-                        />
-                    </Box>
+                    <HugeiconsIcon
+                        icon={Cancel01Icon}
+                        size={20}
+                        strokeWidth={1.8}
+                    />
                 </Box>
                 <Box
                     id="space-photo-editor-title"

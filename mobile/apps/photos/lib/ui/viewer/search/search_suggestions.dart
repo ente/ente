@@ -239,6 +239,7 @@ class SearchResultsWidgetGenerator extends StatelessWidget {
             albumSearchResult.collectionWithThumbnail,
             tagPrefix: result.heroTag(),
           ),
+          useFadeTransition: true,
         ),
       );
     } else if (result is DeviceAlbumSearchResult) {

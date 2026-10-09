@@ -1,0 +1,2 @@
+- Updated video processing to FFmpeg 9.0.2, with native Windows ARM64 support.
+- Fixed video preview generation when temporary folder paths contain spaces.

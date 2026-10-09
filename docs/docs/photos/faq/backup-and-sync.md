@@ -270,6 +270,18 @@ Live Photos behave differently depending on how you share them:
 - **Using "Download"**: Downloads the complete Live Photo (image + video)
 - **Using "Share" button to save/download**: Only saves the still image
 
+### Can I save just the still image from a Live Photo or remove its motion clip? {#live-photo-still-only}
+
+Ente's **Download** option saves both parts of a Live Photo. To save only the still image, open the photo in Ente and use **Share** instead.
+
+Ente does not offer a way to remove only the motion clip from a Live Photo already backed up to Ente. If you want to keep only a still photo in your Ente library:
+
+1. Use **Share** to save the still image as a separate photo.
+2. Back up that still image to Ente and check that it appears in your library.
+3. If you no longer want the original Live Photo in Ente, delete it there separately.
+
+This replaces the Live Photo with a separate still copy. It does not change the original Live Photo in your device's photo library.
+
 ### How do I stop Live Photos from autoplaying as I scroll through an album? {#live-photo-autoplay-album}
 
 On web and desktop, opening a Live Photo plays its motion once automatically. In an album full of iOS Live Photos, this means each one animates as you scroll to it. (The mobile app is different - there, Live Photos only play when you long-press them.)

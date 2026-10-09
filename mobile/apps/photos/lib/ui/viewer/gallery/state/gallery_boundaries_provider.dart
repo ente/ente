@@ -22,6 +22,8 @@ class GalleryBoundariesProviderState extends State<GalleryBoundariesProvider> {
   // Top edge of the bottom fixed widget.
   late final ValueNotifier<double?> bottomBoundaryNotifier;
 
+  late final ValueNotifier<double?> selectionSheetMinHeightNotifier;
+
   late final ValueNotifier<ScrollController?> scrollControllerNotifier;
 
   @override
@@ -29,6 +31,7 @@ class GalleryBoundariesProviderState extends State<GalleryBoundariesProvider> {
     super.initState();
     topBoundaryNotifier = ValueNotifier<double?>(null);
     bottomBoundaryNotifier = ValueNotifier<double?>(null);
+    selectionSheetMinHeightNotifier = ValueNotifier<double?>(null);
     scrollControllerNotifier = ValueNotifier<ScrollController?>(null);
   }
 
@@ -36,6 +39,7 @@ class GalleryBoundariesProviderState extends State<GalleryBoundariesProvider> {
   void dispose() {
     topBoundaryNotifier.dispose();
     bottomBoundaryNotifier.dispose();
+    selectionSheetMinHeightNotifier.dispose();
     scrollControllerNotifier.dispose();
     super.dispose();
   }
@@ -50,6 +54,10 @@ class GalleryBoundariesProviderState extends State<GalleryBoundariesProvider> {
 
   void setBottomBoundary(double? boundary) {
     bottomBoundaryNotifier.value = boundary;
+  }
+
+  void setSelectionSheetMinHeight(double? height) {
+    selectionSheetMinHeightNotifier.value = height;
   }
 
   @override
@@ -72,6 +80,9 @@ class InheritedGalleryBoundaries extends InheritedWidget {
   ValueNotifier<double?> get bottomBoundaryNotifier =>
       state.bottomBoundaryNotifier;
 
+  ValueNotifier<double?> get selectionSheetMinHeightNotifier =>
+      state.selectionSheetMinHeightNotifier;
+
   ValueNotifier<ScrollController?> get scrollControllerNotifier =>
       state.scrollControllerNotifier;
 
@@ -85,6 +96,10 @@ class InheritedGalleryBoundaries extends InheritedWidget {
 
   void setBottomBoundary(double? boundary) {
     state.setBottomBoundary(boundary);
+  }
+
+  void setSelectionSheetMinHeight(double? height) {
+    state.setSelectionSheetMinHeight(height);
   }
 
   @override

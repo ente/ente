@@ -954,6 +954,10 @@ impl VecDb {
         Ok(self.open_state()?.arena.is_empty())
     }
 
+    pub fn is_closed(&self) -> bool {
+        self.shared.is_closed()
+    }
+
     fn open_state(&self) -> Result<RwLockReadGuard<'_, SearchState>, VecDbError> {
         self.shared.ensure_open()?;
         let st = self.shared.state_read();
@@ -2674,6 +2678,7 @@ mod tests {
     }
 
     fn assert_key_reads_open(db: &VecDb, key: &str, live: usize) {
+        assert!(!db.is_closed());
         assert_eq!(db.len().unwrap(), live);
         assert!(!db.is_empty().unwrap());
         assert!(db.contains(key).unwrap());
@@ -2683,6 +2688,7 @@ mod tests {
     }
 
     fn assert_key_reads_closed(db: &VecDb) {
+        assert!(db.is_closed());
         assert!(matches!(db.contains("key-0"), Err(VecDbError::Closed)));
         assert!(matches!(db.get("key-0"), Err(VecDbError::Closed)));
         assert!(matches!(db.get_attrs("key-0"), Err(VecDbError::Closed)));

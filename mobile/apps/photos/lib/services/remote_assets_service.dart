@@ -20,7 +20,6 @@ class RemoteAssetsService {
   final StreamController<(String, int, int)> _progressController =
       StreamController<(String, int, int)>.broadcast();
   final Map<String, Lock> _assetLocks = {};
-  Future<void>? _oldModelsCleanupFuture;
 
   Stream<(String, int, int)> get progressStream => _progressController.stream;
 
@@ -68,7 +67,6 @@ class RemoteAssetsService {
     bool refetch = false,
     String? expectedSha256,
   }) async {
-    await cleanupOldModelsIfNeeded();
     final file = await getAsset(
       remotePath,
       refetch: refetch,
@@ -196,51 +194,6 @@ class RemoteAssetsService {
         _emitProgress(url, received, total);
       },
     );
-  }
-
-  Future<void> cleanupOldModelsIfNeeded() =>
-      _oldModelsCleanupFuture ??= _cleanupOldModels();
-
-  Future<void> _cleanupOldModels() async {
-    try {
-      const oldModelNames = [
-        "https://models.ente.io/clip-image-vit-32-float32.onnx",
-        "https://models.ente.io/clip-text-vit-32-uint8.onnx",
-        "https://models.ente.io/mobileclip_s2_image_opset18_rgba_sim.onnx",
-        "https://models.ente.io/mobileclip_s2_image_opset18_rgba_opt.onnx",
-        "https://models.ente.io/mobileclip_s2_text_int32.onnx",
-        "https://models.ente.io/yolov5s_face_opset18_rgba_opt.onnx",
-        "https://models.ente.io/yolov5s_face_opset18_rgba_opt_nosplits.onnx",
-        "https://models.ente.io/yolov5s_face_640_640_dynamic.onnx",
-        "https://models.ente.io/mobilefacenet_opset15.onnx",
-        "https://models.ente.com/yolov5s_face_640_640_dynamic.onnx",
-        "https://models.ente.com/mobilefacenet_opset15.onnx",
-        "https://models.ente.io/mobileclip_s2_image.onnx",
-        "https://models.ente.com/mobileclip_s2_image.onnx",
-      ];
-
-      await cleanupSelectedModels(oldModelNames);
-      _logger.info("Old ML models cleaned up");
-    } catch (_) {
-      _oldModelsCleanupFuture = null;
-      rethrow;
-    }
-  }
-
-  Future<void> cleanupSelectedModels(List<String> modelRemotePaths) async {
-    for (final remotePath in modelRemotePaths) {
-      final localPath = await _getLocalPath(remotePath);
-      final hasArtifacts =
-          await File(localPath).exists() ||
-          await File(_tempPath(localPath)).exists() ||
-          await File(_resumeMetadataPath(_tempPath(localPath))).exists();
-      if (hasArtifacts) {
-        _logger.info(
-          'Removing unused ML model ${remotePath.split('/').last} at $localPath',
-        );
-        await _deleteAssetArtifacts(localPath);
-      }
-    }
   }
 
   Dio get _dio => NetworkClient.instance.downloadDio;

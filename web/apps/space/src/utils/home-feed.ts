@@ -25,29 +25,25 @@ export const homeFeedEntries = (
         ),
     );
     const entries: HomeFeedEntry[] = [
-        ...localFeedPosts.map(
-            (item): HomeFeedEntry => ({
-                identity:
-                    item.status == "posted" || item.status == "ready"
-                        ? `post:${item.post.postId}`
-                        : item.postId
-                          ? `post:${item.postId}`
-                          : `local:${item.id}`,
-                item,
-                kind: "local",
-                renderKey: `local:${item.id}`,
-            }),
-        ),
+        ...localFeedPosts.map((item): HomeFeedEntry => ({
+            identity:
+                item.status == "posted" || item.status == "ready"
+                    ? `post:${item.post.postId}`
+                    : item.postId
+                      ? `post:${item.postId}`
+                      : `local:${item.id}`,
+            item,
+            kind: "local",
+            renderKey: `local:${item.id}`,
+        })),
         ...feedItems
             .filter((item) => !localResolvedPostIds.has(item.postId))
-            .map(
-                (item): HomeFeedEntry => ({
-                    identity: `post:${item.postId}`,
-                    item,
-                    kind: "remote",
-                    renderKey: `post:${item.postId}`,
-                }),
-            ),
+            .map((item): HomeFeedEntry => ({
+                identity: `post:${item.postId}`,
+                item,
+                kind: "remote",
+                renderKey: `post:${item.postId}`,
+            })),
     ];
     const latest: HomeFeedEntry[] = [];
     const history: SpacePost[] = [];

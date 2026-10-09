@@ -15,6 +15,7 @@ class AppNavigationService {
       AppNavigationService._privateConstructor();
 
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  final routeObserver = RouteObserver<PageRoute<dynamic>>();
   final Logger _logger = Logger("AppNavigationService");
   // Serialize push initiation so multi-step external launches keep their
   // intended stack order even when navigator attachment is delayed by unlock.
@@ -25,6 +26,7 @@ class AppNavigationService {
   Future<T?> pushPage<T extends Object>(
     Widget page, {
     bool forceCustomPageRoute = false,
+    bool useFadeTransition = false,
   }) {
     final pushResult = Completer<T?>();
     final scheduledPush = _lastScheduledPush
@@ -46,6 +48,7 @@ class AppNavigationService {
               navigator,
               page,
               forceCustomPageRoute: forceCustomPageRoute,
+              useFadeTransition: useFadeTransition,
             );
             unawaited(
               routeFuture.then(
@@ -76,6 +79,7 @@ class AppNavigationService {
     NavigatorState navigator,
     Widget page, {
     bool forceCustomPageRoute = false,
+    bool useFadeTransition = false,
   }) {
     if (Platform.isAndroid || forceCustomPageRoute) {
       return navigator.push(_buildPageRoute(page));
@@ -83,6 +87,7 @@ class AppNavigationService {
 
     return navigator.push(
       SwipeableRouteBuilder(
+        useFadeTransition: useFadeTransition,
         pageBuilder: (context, animation, secondaryAnimation) {
           return page;
         },

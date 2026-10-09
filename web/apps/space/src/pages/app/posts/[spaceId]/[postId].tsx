@@ -13,7 +13,7 @@ import {
 import { useSpaceAppState } from "state/app-state";
 import { spaceAppBackgroundColor } from "styles/colors";
 import { viewerPhotosFromPost } from "utils/post-photos";
-import { hasPreviousSpaceRoute, useSpaceRouter } from "utils/route-transitions";
+import { useSpaceRouter } from "utils/route-transitions";
 import { postPhotoIdFromObjectKey, spaceRoutes } from "utils/routes";
 
 const postBackground = "#000000";
@@ -141,11 +141,7 @@ const Page: React.FC = () => {
     }, [post?.spaceId, post?.username, profile?.spaceId, router, spaceId]);
 
     const closePost = React.useCallback(() => {
-        if (hasPreviousSpaceRoute()) {
-            router.back();
-            return;
-        }
-        void router.replace(spaceRoutes.home);
+        void router.back(spaceRoutes.home);
     }, [router]);
 
     if (

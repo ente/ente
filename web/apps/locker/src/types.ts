@@ -8,10 +8,7 @@ export type LockerItemType =
     | "file";
 
 export type LockerCollectionParticipantRole =
-    | "VIEWER"
-    | "COLLABORATOR"
-    | "ADMIN"
-    | "OWNER";
+    "VIEWER" | "COLLABORATOR" | "ADMIN" | "OWNER";
 
 export interface LockerCollectionParticipant {
     id: number;

@@ -49,11 +49,7 @@ import { t } from "i18next";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type ReferralScreen =
-    | "main"
-    | "apply-refreshing"
-    | "apply-refresh-error"
-    | "success"
-    | "details";
+    "main" | "apply-refreshing" | "apply-refresh-error" | "success" | "details";
 
 type Loadable<T> =
     | { status: "loading" }

@@ -723,7 +723,7 @@ class _FeedScreenState extends State<FeedScreen> {
           CollectionWithThumbnail(collection, null),
           fileToJumpTo: fileToJumpTo,
         ),
-        forceCustomPageRoute: true,
+        useFadeTransition: true,
       ),
     );
   }

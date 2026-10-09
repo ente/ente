@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ente/museum/ente"
@@ -53,4 +54,30 @@ func TestGetCollectionFileState(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertState(CollectionFileDeleted, collectionID, fileID)
+}
+
+func TestVerifyAllFileIDsExistsInCollectionRejectsPendingRemove(t *testing.T) {
+	_, db := setupAccessibleObjectTest(t)
+	repository := &CollectionRepository{DB: db}
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID: 2, Email: "copy-membership@ente.com", CreationTime: 1,
+	})
+	collectionID := insertObjectTestCollection(t, db, ownerID)
+	otherCollectionID := insertObjectTestCollection(t, db, ownerID)
+	fileID := insertObjectTestFile(t, db, ownerID)
+	linkObjectTestFileToCollection(t, db, collectionID, fileID, ownerID)
+	linkObjectTestFileToCollection(t, db, otherCollectionID, fileID, ownerID)
+
+	if err := repository.VerifyAllFileIDsExistsInCollection(t.Context(), collectionID, []int64{fileID}); err != nil {
+		t.Fatalf("active source membership rejected: %v", err)
+	}
+	if _, err := db.Exec(`UPDATE collection_files SET action = $1 WHERE collection_id = $2 AND file_id = $3`, ente.ActionRemove, collectionID, fileID); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.VerifyAllFileIDsExistsInCollection(t.Context(), collectionID, []int64{fileID}); !errors.Is(err, ente.ErrPermissionDenied) {
+		t.Fatalf("pending removal error = %v, want permission denied", err)
+	}
+	if err := repository.VerifyAllFileIDsExistsInCollection(t.Context(), otherCollectionID, []int64{fileID}); err != nil {
+		t.Fatalf("active membership in another collection rejected: %v", err)
+	}
 }

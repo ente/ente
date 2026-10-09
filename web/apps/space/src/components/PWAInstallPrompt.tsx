@@ -213,12 +213,12 @@ export const SpacePWAPromptBanner: React.FC<SpacePWAPromptBannerProps> = ({
             position: "fixed",
             top:
                 placement == "top"
-                    ? "calc(env(safe-area-inset-top) + 12px)"
+                    ? "calc(env(safe-area-inset-top) + 8px)"
                     : undefined,
             transform: hidden
                 ? placement == "bottom"
                     ? "translate(-50%, calc(100% + env(safe-area-inset-bottom) + 16px))"
-                    : "translate(-50%, calc(-100% - env(safe-area-inset-top) - 12px))"
+                    : "translate(-50%, calc(-100% - env(safe-area-inset-top) - 8px))"
                 : "translate(-50%, 0)",
             transition: "transform 180ms ease",
             width: "100%",
@@ -233,7 +233,7 @@ export const SpacePWAPromptBanner: React.FC<SpacePWAPromptBannerProps> = ({
             sx={{
                 alignItems: "center",
                 bgcolor: spaceHomeSurface,
-                borderRadius: "24px",
+                borderRadius: "32px",
                 boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
                 color: textBase,
                 display: "flex",

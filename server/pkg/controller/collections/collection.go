@@ -25,9 +25,14 @@ const (
 	CollectionDiffLimit = 2500
 )
 
+type CollectionPushNotifier interface {
+	NotifyAlbumShare(ctx context.Context, recipients []int64)
+}
+
 type CollectionController struct {
 	CollectionLinkCtrl    *public.CollectionLinkController
 	EmailCtrl             *email.EmailNotificationController
+	PushCtrl              CollectionPushNotifier
 	AccessCtrl            access.Controller
 	BillingCtrl           *controller.BillingController
 	UserLookup            controller.UserLookup

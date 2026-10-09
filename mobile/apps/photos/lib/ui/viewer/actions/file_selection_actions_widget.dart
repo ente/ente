@@ -2,7 +2,6 @@ import "dart:async";
 import "dart:io";
 
 import "package:ente_components/ente_components.dart";
-import "package:ente_icons/ente_icons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
@@ -43,7 +42,7 @@ import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import 'package:photos/ui/collections/collection_action_sheet.dart';
 import "package:photos/ui/common/photo_library_add_permission.dart";
 import 'package:photos/ui/components/action_sheet_widget.dart';
-import "package:photos/ui/components/bottom_action_bar/selection_action_button_widget.dart";
+import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/notification/toast.dart';
@@ -66,11 +65,15 @@ class FileSelectionActionsWidget extends StatefulWidget {
   final SelectedFiles selectedFiles;
   final PersonEntity? person;
   final String? clusterID;
+  final Widget selectionControls;
+  final Color? backgroundColor;
 
   const FileSelectionActionsWidget(
     this.type,
     this.selectedFiles, {
     super.key,
+    required this.selectionControls,
+    this.backgroundColor,
     this.collection,
     this.person,
     this.clusterID,
@@ -170,18 +173,17 @@ class _FileSelectionActionsWidgetState
         isCollectionOwnerOrAdmin &&
         split.ownedByOtherUsers.isNotEmpty;
 
-    // Hidden items remain in the list so their removal can animate.
-    final List<SelectionActionButton> items = [];
+    final List<SelectionSheetAction> items = [];
     if (widget.type == GalleryType.trash) {
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           hugeIcon: HugeIcons.strokeRoundedRestoreBin,
           labelText: context.strings.restore,
           onTap: _restore,
         ),
       );
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           hugeIcon: HugeIcons.strokeRoundedDelete01,
           labelText: context.strings.permanentlyDelete,
           onTap: _permanentlyDeleteFromTrash,
@@ -190,7 +192,7 @@ class _FileSelectionActionsWidgetState
       );
     } else if (widget.type == GalleryType.cleanupHiddenFromDevice) {
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           hugeIcon: HugeIcons.strokeRoundedDelete01,
           labelText: context.strings.deleteFromDevice,
           onTap: _deleteSelectedFromDevice,
@@ -199,7 +201,7 @@ class _FileSelectionActionsWidgetState
       );
     } else if (widget.type == GalleryType.deleteSuggestions) {
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           hugeIcon: HugeIcons.strokeRoundedDelete01,
           labelText: context.strings.delete,
           onTap: split.ownedByCurrentUser.isNotEmpty ? _onDeleteClick : null,
@@ -207,7 +209,7 @@ class _FileSelectionActionsWidgetState
         ),
       );
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           hugeIcon: HugeIcons.strokeRoundedCancel01,
           labelText: context.strings.rejectSuggestions,
           onTap: widget.selectedFiles.files.isNotEmpty
@@ -218,8 +220,9 @@ class _FileSelectionActionsWidgetState
     } else {
       if (widget.type != GalleryType.sharedPublicCollection) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.share,
+            gridOrder: 0,
             hugeIcon: Platform.isIOS
                 ? HugeIcons.strokeRoundedShare03
                 : HugeIcons.strokeRoundedShare08,
@@ -231,7 +234,7 @@ class _FileSelectionActionsWidgetState
 
       if (_canShowOfflineLinkOption(widget.selectedFiles.files)) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedLink02,
             labelText: pendingTranslation("(i) Offline link"),
             onTap: _showOfflineLinkShareSheet,
@@ -242,17 +245,19 @@ class _FileSelectionActionsWidgetState
       if (widget.type.showCreateLink()) {
         if (_cachedCollectionForSharedLink != null && anyUploadedFiles) {
           items.add(
-            SelectionActionButton(
+            SelectionSheetAction(
               hugeIcon: HugeIcons.strokeRoundedCopy01,
               labelText: context.strings.copyLink,
+              gridOrder: 1,
               onTap: anyUploadedFiles ? _sendLink : null,
             ),
           );
         } else {
           items.add(
-            SelectionActionButton(
-              hugeIcon: HugeIcons.strokeRoundedNavigation03,
+            SelectionSheetAction(
+              hugeIcon: HugeIcons.strokeRoundedLink02,
               labelText: context.strings.sendLink,
+              gridOrder: 1,
               onTap: anyUploadedFiles ? _onSendLinkTapped : null,
               shouldShow: ownedFilesCount > 0,
               key: sendLinkButtonKey,
@@ -267,17 +272,19 @@ class _FileSelectionActionsWidgetState
       if (widget.type.showAddToAlbum() && !isLocalGalleryMode) {
         if (showUploadIcon) {
           items.add(
-            SelectionActionButton(
+            SelectionSheetAction(
               hugeIcon: HugeIcons.strokeRoundedCloudUpload,
               labelText: context.strings.addToEnte,
+              gridOrder: 4,
               onTap: _addToAlbum,
             ),
           );
         } else {
           items.add(
-            SelectionActionButton(
+            SelectionSheetAction(
               hugeIcon: HugeIcons.strokeRoundedImageAdd01,
               labelText: context.strings.addToAlbum,
+              gridOrder: 4,
               onTap: _addToAlbum,
             ),
           );
@@ -286,9 +293,10 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showAddtoHiddenAlbum()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedImageAdd01,
             labelText: context.strings.addToAlbum,
+            gridOrder: 4,
             onTap: _addToHiddenAlbum,
           ),
         );
@@ -296,7 +304,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showMoveToAlbum()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedArrowRight01,
             labelText: context.strings.moveToAlbum,
             onTap: anyUploadedFiles ? _moveFiles : null,
@@ -307,7 +315,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showMovetoHiddenAlbum()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedArrowRight01,
             labelText: context.strings.moveToAlbum,
             onTap: _moveFilesToHiddenAlbum,
@@ -317,7 +325,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showRemoveFromAlbum()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedRemove01,
             labelText: context.strings.removeFromAlbum,
             onTap: removeCount > 0 ? _removeFilesFromAlbum : null,
@@ -328,7 +336,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showRemoveFromHiddenAlbum()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedRemove01,
             labelText: context.strings.removeFromAlbum,
             onTap: _removeFilesFromHiddenAlbum,
@@ -338,7 +346,7 @@ class _FileSelectionActionsWidgetState
 
       if (canSuggestDeleteAction) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedFlag01,
             labelText: context.strings.suggestDeletion,
             onTap: _onSuggestDelete,
@@ -348,9 +356,10 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showDeleteOption()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedDelete01,
             labelText: context.strings.delete,
+            gridOrder: 3,
             onTap: anyOwnedFiles ? _onDeleteClick : null,
             shouldShow: allOwnedFiles,
             isCritical: true,
@@ -360,7 +369,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showRestoreOption()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedRestoreBin,
             labelText: context.strings.restore,
             onTap: _restore,
@@ -370,7 +379,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showPermanentlyDeleteOption()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedDelete01,
             labelText: context.strings.permanentlyDelete,
             onTap: _permanentlyDeleteFromTrash,
@@ -381,8 +390,9 @@ class _FileSelectionActionsWidgetState
 
       if (showDownloadOption) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.download,
+            gridOrder: 7,
             hugeIcon: HugeIcons.strokeRoundedDownload01,
             onTap: () => _download(widget.selectedFiles.files.toList()),
           ),
@@ -391,18 +401,20 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showFavoriteOption()) {
         items.add(
-          SelectionActionButton(
-            iconWidget: const Icon(EnteIcons.favoriteStroke),
+          SelectionSheetAction(
+            hugeIcon: HugeIcons.strokeRoundedStar,
             labelText: context.strings.favorite,
+            gridOrder: 2,
             onTap: anyUploadedFiles ? _onFavoriteClick : null,
             shouldShow: ownedFilesCount > 0,
           ),
         );
       } else if (widget.type.showUnFavoriteOption()) {
         items.add(
-          SelectionActionButton(
-            iconWidget: const Icon(EnteIcons.favoriteFilled),
+          SelectionSheetAction(
+            iconWidget: const Icon(Icons.star_rounded),
             labelText: context.strings.removeFromFavorite,
+            gridOrder: 2,
             onTap: _onUnFavoriteClick,
             shouldShow: ownedFilesCount > 0,
           ),
@@ -412,7 +424,7 @@ class _FileSelectionActionsWidgetState
       if (flagService.manualTagFileToPerson &&
           widget.type.showAddToPersonOption()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedUserAdd01,
             labelText: context.strings.addToPerson,
             onTap: hasUploadedFileIDs ? _onAddFilesToPerson : null,
@@ -423,7 +435,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type == GalleryType.peopleTag && widget.person != null) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedUserRemove01,
             labelText: context.strings.notPersonLabel(
               name: widget.person!.data.name,
@@ -433,7 +445,7 @@ class _FileSelectionActionsWidgetState
         );
         if (ownedFilesCount == 1) {
           items.add(
-            SelectionActionButton(
+            SelectionSheetAction(
               hugeIcon: HugeIcons.strokeRoundedImage01,
               labelText: context.strings.useAsCover,
               onTap: anyUploadedFiles ? _setPersonCover : null,
@@ -444,7 +456,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type == GalleryType.cluster && widget.clusterID != null) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.notThisPerson,
             hugeIcon: HugeIcons.strokeRoundedUserRemove01,
             onTap: _onRemoveFromClusterClicked,
@@ -454,7 +466,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type != GalleryType.sharedPublicCollection) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedGridView,
             labelText: context.strings.createCollage,
             onTap: _onCreateCollageClicked,
@@ -465,18 +477,20 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showHideOption()) {
         items.add(
-          SelectionActionButton(
-            hugeIcon: HugeIcons.strokeRoundedViewOffSlash,
+          SelectionSheetAction(
+            hugeIcon: HugeIcons.strokeRoundedViewOff,
             labelText: context.strings.hide,
+            gridOrder: 5,
             onTap: anyUploadedFiles ? _onHideClick : null,
             shouldShow: ownedFilesCount > 0,
           ),
         );
       } else if (widget.type.showUnHideOption()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedView,
             labelText: context.strings.unhide,
+            gridOrder: 5,
             onTap: _onUnhideClick,
             shouldShow: ownedFilesCount > 0,
           ),
@@ -485,18 +499,20 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showArchiveOption()) {
         items.add(
-          SelectionActionButton(
-            hugeIcon: HugeIcons.strokeRoundedArchive03,
+          SelectionSheetAction(
+            hugeIcon: HugeIcons.strokeRoundedInboxDownload,
             labelText: context.strings.archive,
+            gridOrder: 6,
             onTap: anyUploadedFiles ? _onArchiveClick : null,
             shouldShow: ownedFilesCount > 0,
           ),
         );
       } else if (widget.type.showUnArchiveOption()) {
         items.add(
-          SelectionActionButton(
-            hugeIcon: HugeIcons.strokeRoundedUnarchive03,
+          SelectionSheetAction(
+            hugeIcon: HugeIcons.strokeRoundedInboxUpload,
             labelText: context.strings.unarchive,
+            gridOrder: 6,
             onTap: _onUnArchiveClick,
             shouldShow: ownedFilesCount > 0,
           ),
@@ -505,7 +521,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showRestoreOption()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedRestoreBin,
             labelText: context.strings.restore,
             onTap: _restore,
@@ -515,7 +531,7 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showPermanentlyDeleteOption()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             hugeIcon: HugeIcons.strokeRoundedDelete01,
             labelText: context.strings.permanentlyDelete,
             onTap: _permanentlyDeleteFromTrash,
@@ -526,12 +542,12 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showBulkEditTime()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             shouldShow: widget.selectedFiles.files.every(
               (element) => (element.ownerID == currentUserID),
             ),
             labelText: context.strings.editTime,
-            hugeIcon: HugeIcons.strokeRoundedDateTime,
+            hugeIcon: HugeIcons.strokeRoundedClock01,
             onTap: () async {
               final newDate = await showEditDateSheet(
                 context,
@@ -547,19 +563,19 @@ class _FileSelectionActionsWidgetState
 
       if (widget.type.showEditLocation()) {
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             shouldShow: widget.selectedFiles.files.any(
               (element) => (element.ownerID == currentUserID),
             ),
             labelText: context.strings.editLocation,
-            hugeIcon: HugeIcons.strokeRoundedMapsEditing,
+            hugeIcon: HugeIcons.strokeRoundedLocation01,
             onTap: _editLocation,
           ),
         );
       }
 
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           hugeIcon: HugeIcons.strokeRoundedIncognito,
           labelText: context.strings.guestView,
           onTap: _onGuestViewClick,
@@ -567,40 +583,11 @@ class _FileSelectionActionsWidgetState
       );
     }
 
-    if (items.isNotEmpty) {
-      final scrollController = ScrollController();
-      // h4ck: https://github.com/flutter/flutter/issues/57920#issuecomment-893970066
-      return MediaQuery(
-        data: MediaQuery.of(context).removePadding(removeBottom: true),
-        child: SafeArea(
-          top: false,
-          child: Scrollbar(
-            radius: const Radius.circular(1),
-            thickness: 2,
-            controller: scrollController,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(
-                decelerationRate: ScrollDecelerationRate.fast,
-              ),
-              scrollDirection: Axis.horizontal,
-              child: Container(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(width: 4),
-                    ...items,
-                    const SizedBox(width: 4),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    return const SizedBox();
+    return SelectionActionSheet(
+      actions: items,
+      selectionControls: widget.selectionControls,
+      backgroundColor: widget.backgroundColor,
+    );
   }
 
   Future<void> _editLocation() async {

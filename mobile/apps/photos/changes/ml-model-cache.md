@@ -1,0 +1,1 @@
+- Migrate ML model download to the rust assets crate

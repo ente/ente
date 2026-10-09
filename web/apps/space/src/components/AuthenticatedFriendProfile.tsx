@@ -15,6 +15,7 @@ import {
     loadCurrentSpaceProfilePostsPage,
     removeCurrentSpaceFriend,
     replyToCurrentPost,
+    sendCurrentPoke,
     setCurrentPostLiked,
     type SpaceProfilePost,
 } from "services/space";
@@ -22,7 +23,7 @@ import { useSpaceAppState } from "state/app-state";
 import { spaceAppBackgroundColor } from "styles/colors";
 import { profilePostItemsFromPosts } from "utils/post-display";
 import { spaceDefaultCoverImagePath } from "utils/post-image";
-import { hasPreviousSpaceRoute, useSpaceRouter } from "utils/route-transitions";
+import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
 
 interface AuthenticatedFriendProfileProps {
@@ -123,11 +124,7 @@ export const AuthenticatedFriendProfile: React.FC<
     }, [friendSpaceId, profile?.spaceId]);
 
     const goBack = () => {
-        if (hasPreviousSpaceRoute()) {
-            router.back();
-        } else {
-            void router.push(spaceRoutes.home);
-        }
+        void router.back(spaceRoutes.home);
     };
 
     const unfriend = React.useCallback(async () => {
@@ -168,6 +165,9 @@ export const AuthenticatedFriendProfile: React.FC<
                 onLoadPostImage={loadCurrentSpacePostAssetURL}
                 onMessageFriend={() =>
                     void router.push(spaceRoutes.message(friendSpaceId))
+                }
+                onPokeFriend={(requestID) =>
+                    sendCurrentPoke(actorSpaceId, friendSpaceId, requestID)
                 }
                 onOpenProfileCover={() => setOpenProfileImage("cover")}
                 onOpenProfilePhoto={() => setOpenProfileImage("avatar")}

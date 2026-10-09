@@ -870,7 +870,10 @@ fn dark_stock_support(analysis: &Analysis) -> f32 {
     transition(total, 0.55, 0.75) * transition(regions[2], 0.35, 0.6)
 }
 
-fn light_stroke_contrast(image: &ImageU8, valid: Option<&[u8]>) -> Vec<f32> {
+fn light_stroke_contrast<'a>(
+    image: &ImageU8,
+    valid: Option<&'a [u8]>,
+) -> impl Iterator<Item = f32> + use<'a> {
     let width = image.width as usize;
     let height = image.height as usize;
     let tables = transfer_tables();
@@ -892,10 +895,10 @@ fn light_stroke_contrast(image: &ImageU8, valid: Option<&[u8]>) -> Vec<f32> {
         })
         .collect();
     let radius = width.max(height).div_ceil(192).max(2);
-    let mut contrasts = vec![0.0; width * height];
-    for (index, &level) in background.iter().enumerate() {
+    (0..background.len()).map(move |index| {
+        let level = background[index];
         if valid.is_some_and(|mask| mask[index] == 0) {
-            continue;
+            return 0.0;
         }
         let x = index % width;
         let y = index / width;
@@ -917,14 +920,17 @@ fn light_stroke_contrast(image: &ImageU8, valid: Option<&[u8]>) -> Vec<f32> {
                 contrast = contrast.max(difference * agreement * darkness);
             }
         }
-        contrasts[index] = contrast;
-    }
-    contrasts
+        contrast
+    })
 }
 
-fn enhance_light_strokes(image: &mut ImageU8, contrasts: &[f32], support: f32) {
+fn enhance_light_strokes(
+    image: &mut ImageU8,
+    contrasts: impl IntoIterator<Item = f32>,
+    support: f32,
+) {
     let tables = transfer_tables();
-    for (pixel, &contrast) in image.data.as_chunks_mut::<3>().0.iter_mut().zip(contrasts) {
+    for (pixel, contrast) in image.data.as_chunks_mut::<3>().0.iter_mut().zip(contrasts) {
         let weight = support * transition(contrast, 0.005, 0.025);
         if weight == 0.0 {
             continue;
@@ -1056,7 +1062,7 @@ pub(super) fn render_document(
         enhance_neutral_strokes(image, contrasts);
     }
     if let Some(contrasts) = light_contrasts {
-        enhance_light_strokes(image, &contrasts, dark_support);
+        enhance_light_strokes(image, contrasts, dark_support);
     }
     Ok(mode)
 }
@@ -1074,6 +1080,22 @@ mod tests {
         let contrasts = stroke_contrast(&page, Some(&valid));
 
         page.data.fill(255);
+
+        let mut expected = vec![0.0; 81];
+        expected[40] = 1.0;
+        assert_eq!(contrasts.collect::<Vec<_>>(), expected);
+    }
+
+    #[test]
+    fn light_stroke_contrast_keeps_original_pixels_and_invalid_mask() {
+        let mut page = image(9, 9, [0; 3]);
+        page.data[0..3].fill(255);
+        page.data[40 * 3..41 * 3].fill(255);
+        let mut valid = vec![1; 81];
+        valid[0] = 0;
+        let contrasts = light_stroke_contrast(&page, Some(&valid));
+
+        page.data.fill(0);
 
         let mut expected = vec![0.0; 81];
         expected[40] = 1.0;

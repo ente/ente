@@ -1,10 +1,18 @@
 import {
     BubbleChatIcon,
+    Cancel01Icon,
     HandPointingRightIcon,
+    Tick02Icon,
     UserIcon,
+    UserRemove01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, Dialog, useMediaQuery } from "@mui/material";
+import {
+    spaceActionDoneDurationMs,
+    SpaceActionFeedbackIcon,
+    type SpaceActionPhase,
+} from "components/ActionFeedback";
 import { SpaceAvatarImage } from "components/AvatarImage";
 import type { FriendProfile } from "data/friends";
 import log from "ente-base/log";
@@ -28,9 +36,14 @@ interface FriendQuickActionsDialogProps {
     avatarUrl?: string | null;
     friend: FriendProfile;
     onClose: () => void;
-    onMessage: () => void;
-    onPoke: () => Promise<void>;
-    onProfile: () => void;
+    onMessage?: () => void;
+    onPoke?: () => Promise<void>;
+    onProfile?: () => void;
+    onUnfriend?: () => void;
+    requestActions?: {
+        onAccept?: () => Promise<boolean>;
+        onCancel: () => Promise<void>;
+    };
 }
 
 export const FriendQuickActionsDialog: React.FC<
@@ -43,18 +56,27 @@ export const FriendQuickActionsDialog: React.FC<
     onMessage,
     onPoke,
     onProfile,
+    onUnfriend,
+    requestActions,
 }) => {
     const [open, setOpen] = React.useState(true);
     const [pokePhase, setPokePhase] = React.useState<"busy" | "done" | null>(
         null,
     );
     const [pokeFailed, setPokeFailed] = React.useState(false);
+    const [requestAction, setRequestAction] = React.useState<{
+        type: "accept" | "cancel";
+        phase: SpaceActionPhase;
+    } | null>(null);
+    const [requestFailed, setRequestFailed] = React.useState(false);
     const paperRef = React.useRef<HTMLDivElement>(null);
     const nameID = React.useId();
     const prefersReducedMotion = useMediaQuery(
         "(prefers-reduced-motion: reduce)",
     );
-    const displayName = friend.fullName.trim() || friend.username;
+    const displayName = requestActions
+        ? `@${friend.username}`
+        : friend.fullName.trim() || friend.username;
     const { clearBrowserBackState } = useBrowserBackClose({
         open,
         onClose: () => setOpen(false),
@@ -67,6 +89,15 @@ export const FriendQuickActionsDialog: React.FC<
         return () => window.clearTimeout(timeout);
     }, [pokePhase]);
 
+    React.useEffect(() => {
+        if (requestAction?.phase != "done") return;
+        const timeout = window.setTimeout(
+            () => setOpen(false),
+            spaceActionDoneDurationMs,
+        );
+        return () => window.clearTimeout(timeout);
+    }, [requestAction?.phase]);
+
     const navigate = async (action: () => void) => {
         await clearBrowserBackState("back");
         setOpen(false);
@@ -74,7 +105,7 @@ export const FriendQuickActionsDialog: React.FC<
     };
 
     const poke = async () => {
-        if (pokePhase) return;
+        if (!onPoke || pokePhase) return;
         setPokePhase("busy");
         setPokeFailed(false);
         try {
@@ -87,32 +118,91 @@ export const FriendQuickActionsDialog: React.FC<
         }
     };
 
+    const updateRequest = async (
+        action: "accept" | "cancel",
+        handler: () => Promise<void> | Promise<boolean>,
+    ) => {
+        if (requestAction) return;
+        setRequestAction({ type: action, phase: "busy" });
+        setRequestFailed(false);
+        try {
+            const accepted = await handler();
+            if (action == "accept" && accepted)
+                setRequestAction({ type: action, phase: "done" });
+            else setOpen(false);
+        } catch (error) {
+            log.error("Failed to update friend request", error);
+            setRequestAction(null);
+            setRequestFailed(true);
+        }
+    };
+
     const actions = [
         {
+            label: "Accept request",
+            text: "Accept",
+            available: Boolean(requestActions?.onAccept),
+            icon: Tick02Icon,
+            disabled: requestAction !== null,
+            busy:
+                requestAction?.type == "accept" &&
+                requestAction.phase == "busy",
+            done:
+                requestAction?.type == "accept" &&
+                requestAction.phase == "done",
+            doneLabel: "Request accepted",
+            phase: requestAction?.type == "accept" ? requestAction.phase : null,
+            onClick: () =>
+                requestActions?.onAccept &&
+                void updateRequest("accept", requestActions.onAccept),
+        },
+        {
+            label: "Cancel request",
+            text: requestActions?.onAccept ? "Cancel" : "Cancel request",
+            busyText: "Canceling…",
+            available: Boolean(requestActions),
+            icon: Cancel01Icon,
+            disabled: requestAction !== null,
+            busy: requestAction?.type == "cancel",
+            onClick: () =>
+                requestActions &&
+                void updateRequest("cancel", requestActions.onCancel),
+        },
+        {
             label: "Poke",
+            available: Boolean(onPoke),
             icon: HandPointingRightIcon,
             active: pokePhase !== null,
             done: pokePhase == "done",
+            doneLabel: "Poke sent",
             disabled: pokePhase !== null,
             busy: pokePhase == "busy",
             onClick: () => void poke(),
         },
         {
             label: "Message",
+            available: Boolean(onMessage),
             icon: BubbleChatIcon,
-            onClick: () => void navigate(onMessage),
+            onClick: () => onMessage && void navigate(onMessage),
         },
         {
             label: "Profile",
+            available: Boolean(onProfile),
             icon: UserIcon,
-            onClick: () => void navigate(onProfile),
+            onClick: () => onProfile && void navigate(onProfile),
         },
-    ];
+        {
+            label: "Unfriend",
+            available: Boolean(onUnfriend),
+            icon: UserRemove01Icon,
+            onClick: () => onUnfriend && void navigate(onUnfriend),
+        },
+    ].filter((action) => action.available);
 
     return (
         <Dialog
             open={open}
-            onClose={() => setOpen(false)}
+            onClose={requestAction ? undefined : () => setOpen(false)}
             aria-labelledby={nameID}
             maxWidth={false}
             transitionDuration={prefersReducedMotion ? 0 : 220}
@@ -122,6 +212,7 @@ export const FriendQuickActionsDialog: React.FC<
                     ref: paperRef,
                     sx: {
                         bgcolor: spaceSurface,
+                        border: "1px solid #383838",
                         boxShadow: "0 24px 64px rgba(0, 0, 0, 0.48)",
                         borderRadius: `${dialogRadius}px`,
                         boxSizing: "border-box",
@@ -184,12 +275,14 @@ export const FriendQuickActionsDialog: React.FC<
                     width: `min(calc(100% - ${dialogPadding * 2}px), calc(100svh - ${dialogPadding * 3 + actionHeight + 32}px))`,
                 }}
             >
-                <SpaceAvatarImage src={avatarUrl} />
+                <SpaceAvatarImage
+                    src={requestActions ? undefined : avatarUrl}
+                />
                 <Box
                     aria-hidden
                     sx={{
                         background:
-                            "linear-gradient(rgba(0, 0, 0, 0.52), transparent 55%)",
+                            "linear-gradient(rgba(0, 0, 0, 0.28), transparent 40%)",
                         inset: 0,
                         pointerEvents: "none",
                         position: "absolute",
@@ -219,7 +312,7 @@ export const FriendQuickActionsDialog: React.FC<
                 >
                     {displayName}
                 </Box>
-                {pokeFailed && (
+                {(pokeFailed || requestFailed) && (
                     <Box
                         role="alert"
                         sx={{
@@ -236,7 +329,9 @@ export const FriendQuickActionsDialog: React.FC<
                             textAlign: "center",
                         }}
                     >
-                        Couldn’t send your poke. Tap Poke to retry.
+                        {requestFailed
+                            ? "Couldn’t update the request. Please try again."
+                            : "Couldn’t send your poke. Tap Poke to retry."}
                     </Box>
                 )}
             </Box>
@@ -244,18 +339,24 @@ export const FriendQuickActionsDialog: React.FC<
                 sx={{
                     display: "grid",
                     gap: "6px",
-                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    gridTemplateColumns: `repeat(${actions.length}, minmax(0, 1fr))`,
                     p: `${dialogPadding}px`,
                 }}
             >
                 {actions.map((action, index) => (
                     <Box
                         key={index}
+                        className={
+                            action.icon == Tick02Icon ? "green-bg" : undefined
+                        }
                         component="button"
                         type="button"
                         disabled={action.disabled}
                         aria-busy={action.busy}
-                        aria-label={action.done ? "Poke sent" : action.label}
+                        aria-label={
+                            action.done ? action.doneLabel : action.label
+                        }
+                        title={action.done ? action.doneLabel : action.label}
                         aria-live={
                             action.done !== undefined ? "polite" : undefined
                         }
@@ -263,14 +364,23 @@ export const FriendQuickActionsDialog: React.FC<
                         sx={{
                             alignItems: "center",
                             appearance: "none",
-                            bgcolor: spaceDialogBackground,
+                            bgcolor:
+                                action.icon == Tick02Icon
+                                    ? "#08C225"
+                                    : spaceDialogBackground,
                             border: 0,
                             borderRadius: `${innerRadius}px`,
-                            color: action.active
-                                ? "color(display-p3 0.0314 0.7608 0.1451)"
-                                : spaceText,
+                            color:
+                                action.icon == Tick02Icon
+                                    ? "#FFFFFF"
+                                    : action.active
+                                      ? "color(display-p3 0.0314 0.7608 0.1451)"
+                                      : "#D8D8D8",
                             cursor: action.disabled ? "default" : "pointer",
                             display: "grid",
+                            fontFamily: '"Inter Variable", Inter, sans-serif',
+                            fontSize: 14,
+                            fontWeight: 600,
                             justifyItems: "center",
                             height: actionHeight,
                             minWidth: 0,
@@ -278,10 +388,16 @@ export const FriendQuickActionsDialog: React.FC<
                             ...(action.label != "Poke" && {
                                 transition: "background-color 120ms ease",
                                 "&:hover:not(:disabled)": {
-                                    bgcolor: spaceSurfaceHover,
+                                    bgcolor:
+                                        action.icon == Tick02Icon
+                                            ? "#07A820"
+                                            : spaceSurfaceHover,
                                 },
                                 "&:active:not(:disabled)": {
-                                    bgcolor: spaceAppBackgroundColor,
+                                    bgcolor:
+                                        action.icon == Tick02Icon
+                                            ? "#078D1C"
+                                            : spaceAppBackgroundColor,
                                 },
                             }),
                             "&:focus-visible": {
@@ -290,48 +406,58 @@ export const FriendQuickActionsDialog: React.FC<
                             },
                         }}
                     >
-                        <Box
-                            component="span"
-                            aria-hidden
-                            sx={{
-                                alignItems: "center",
-                                display: "flex",
-                                height: 24,
-                                justifyContent: "center",
-                                width: 24,
-                                animation: action.active
-                                    ? "spacePokeJab 2000ms ease-in-out"
-                                    : "none",
-                                "@keyframes spacePokeJab": {
-                                    "0%, 100%": {
-                                        transform:
-                                            "translate(0, 0) rotate(0deg) scale(1)",
+                        {action.phase ? (
+                            <SpaceActionFeedbackIcon phase={action.phase} />
+                        ) : action.text ? (
+                            action.busy ? (
+                                action.busyText
+                            ) : (
+                                action.text
+                            )
+                        ) : (
+                            <Box
+                                component="span"
+                                aria-hidden
+                                sx={{
+                                    alignItems: "center",
+                                    display: "flex",
+                                    height: 24,
+                                    justifyContent: "center",
+                                    width: 24,
+                                    animation: action.active
+                                        ? "spacePokeJab 2000ms ease-in-out"
+                                        : "none",
+                                    "@keyframes spacePokeJab": {
+                                        "0%, 100%": {
+                                            transform:
+                                                "translate(0, 0) rotate(0deg) scale(1)",
+                                        },
+                                        "27.5%, 52%, 73.75%": {
+                                            transform:
+                                                "translate(20px, -80px) rotate(-40deg) scale(3)",
+                                        },
+                                        "41%, 63%": {
+                                            transform:
+                                                "translate(36px, -94px) rotate(-40deg) scale(3)",
+                                        },
                                     },
-                                    "27.5%, 52%, 73.75%": {
-                                        transform:
-                                            "translate(20px, -80px) rotate(-40deg) scale(3)",
+                                    "@media (prefers-reduced-motion: reduce)": {
+                                        animation: "none",
                                     },
-                                    "41%, 63%": {
-                                        transform:
-                                            "translate(36px, -94px) rotate(-40deg) scale(3)",
-                                    },
-                                },
-                                "@media (prefers-reduced-motion: reduce)": {
-                                    animation: "none",
-                                },
-                                ...(action.icon == BubbleChatIcon && {
-                                    "& svg path:last-of-type": {
-                                        display: "none",
-                                    },
-                                }),
-                            }}
-                        >
-                            <HugeiconsIcon
-                                icon={action.icon}
-                                size={24}
-                                strokeWidth={2.2}
-                            />
-                        </Box>
+                                    ...(action.icon == BubbleChatIcon && {
+                                        "& svg path:last-of-type": {
+                                            display: "none",
+                                        },
+                                    }),
+                                }}
+                            >
+                                <HugeiconsIcon
+                                    icon={action.icon}
+                                    size={24}
+                                    strokeWidth={2.2}
+                                />
+                            </Box>
+                        )}
                     </Box>
                 ))}
             </Box>

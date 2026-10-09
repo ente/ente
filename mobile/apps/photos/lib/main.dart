@@ -580,11 +580,7 @@ Future<void> _init(
       await _scheduleFGHomeWidgetSync();
     }
 
-    if (Platform.isIOS) {
-      PushService.instance
-          .init(onBackgroundPush: _handleBackgroundPush)
-          .ignore();
-    }
+    PushService.instance.init(onBackgroundPush: _handleBackgroundPush).ignore();
     _logger.info("PushService/HomeWidget done $tlog");
     unawaited(MLService.instance.init());
     try {

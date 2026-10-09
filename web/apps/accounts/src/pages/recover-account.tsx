@@ -23,10 +23,7 @@ type Phase =
     | "failed";
 
 type AccountRecoveryErrorPhase =
-    | "invalid"
-    | "expired"
-    | "emailInUse"
-    | "unavailable";
+    "invalid" | "expired" | "emailInUse" | "unavailable";
 
 const accountRecoveryErrorPhases: Record<
     AccountRecoveryErrorCode,

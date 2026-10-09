@@ -61,6 +61,7 @@ impl MlStore {
     }
 
     pub fn fill_state(&self, index: Index) -> Result<FillState> {
+        self.ensure_index_open(index)?;
         state::read(&self.db, index)
     }
 
@@ -124,6 +125,15 @@ impl MlStore {
         self.indexes[index.position()].with_open(&self.db, operation)
     }
 
+    fn ensure_index_open(&self, index: Index) -> Result<()> {
+        let slot = &self.indexes[index.position()];
+        if slot.is_open() {
+            return Ok(());
+        }
+        let _mutations = self.lock_mutations();
+        slot.reopen(&self.db)
+    }
+
     fn read_index<T>(
         &self,
         index: Index,
@@ -133,6 +143,12 @@ impl MlStore {
         if let Some(outcome) = slot.with_open_handle(&operation) {
             return outcome;
         }
+        for _ in 0..2 {
+            self.ensure_index_open(index)?;
+            if let Some(outcome) = slot.with_open_handle(&operation) {
+                return outcome;
+            }
+        }
         let _mutations = self.lock_mutations();
         slot.with_open(&self.db, operation)
     }
@@ -140,6 +156,7 @@ impl MlStore {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::{Cell, RefCell};
     use std::fs;
     use std::path::{Path, PathBuf};
 
@@ -255,6 +272,12 @@ mod tests {
         paths.iter().all(|path| path.exists())
     }
 
+    fn clear_and_repopulate(writer: &MlStore, file_id: i64) {
+        writer.clear_all().unwrap();
+        writer.put_clip(&clips([file_id])).unwrap();
+        writer.fill_clip_index(false).unwrap();
+    }
+
     #[test]
     fn open_creates_no_index_files_and_fillable_indexes_start_stale() {
         let (directory, store) = open();
@@ -327,6 +350,99 @@ mod tests {
                 .get_vector(Index::Clip, "1")
                 .unwrap()
                 .is_none()
+        );
+    }
+
+    #[test]
+    fn cold_reads_open_the_index_and_keep_it_open() {
+        let (directory, writer) = open();
+        writer.fill_clip_index(false).unwrap();
+        writer.put_clip(&clips([1, 2])).unwrap();
+        writer.release().unwrap();
+        drop(writer);
+
+        let reader = open_in(&directory);
+        assert!(reader.contains(Index::Clip, "1").unwrap());
+        reader.put_clip(&clips([3])).unwrap();
+        let unflushed = reader.stats(Index::Clip).unwrap();
+        assert_ne!(unflushed.records_since_snapshot, 0);
+
+        assert!(reader.contains(Index::Clip, "3").unwrap());
+        assert_eq!(live_count(&reader, Index::Clip), 3);
+        assert_eq!(reader.stats(Index::Clip).unwrap(), unflushed);
+    }
+
+    #[test]
+    fn cold_reads_run_outside_the_mutation_lock() {
+        let (directory, writer) = open();
+        writer.fill_clip_index(false).unwrap();
+        writer.put_clip(&clips([1])).unwrap();
+        writer.release().unwrap();
+
+        let reader = open_in(&directory);
+        let lock_is_free = || reader.locks.mutations.try_lock().is_ok();
+        let found_unlocked = |key: &str| {
+            reader
+                .read_index(Index::Clip, |vecdb| {
+                    vecdb.contains(key).map(|found| (found, lock_is_free()))
+                })
+                .unwrap()
+        };
+        assert_eq!(found_unlocked("1"), (true, true));
+
+        writer.clear_all().unwrap();
+        writer.put_clip(&clips([2])).unwrap();
+        writer.fill_clip_index(false).unwrap();
+        assert_eq!(found_unlocked("2"), (true, true));
+    }
+
+    #[test]
+    fn cold_reads_closed_during_the_read_retry_outside_the_mutation_lock() {
+        let (directory, writer) = open();
+        writer.fill_clip_index(false).unwrap();
+        writer.put_clip(&clips([1])).unwrap();
+        writer.release().unwrap();
+
+        let reader = open_in(&directory);
+        let lock_is_free = || reader.locks.mutations.try_lock().is_ok();
+        let invocations = Cell::new(0);
+        let outcome = reader
+            .read_index(Index::Clip, |vecdb| {
+                invocations.set(invocations.get() + 1);
+                if invocations.get() == 1 {
+                    clear_and_repopulate(&writer, 2);
+                }
+                vecdb.contains("2").map(|found| (found, lock_is_free()))
+            })
+            .unwrap();
+        assert_eq!(invocations.get(), 2);
+        assert_eq!(outcome, (true, true));
+    }
+
+    #[test]
+    fn reads_closed_in_every_unlocked_attempt_fall_back_to_the_locked_path() {
+        let (directory, writer) = open();
+        writer.fill_clip_index(false).unwrap();
+        writer.put_clip(&clips([1])).unwrap();
+        writer.release().unwrap();
+
+        let reader = open_in(&directory);
+        let lock_is_free = || reader.locks.mutations.try_lock().is_ok();
+        let lock_free_per_invocation = RefCell::new(Vec::new());
+        let found = reader
+            .read_index(Index::Clip, |vecdb| {
+                let unlocked = lock_is_free();
+                lock_free_per_invocation.borrow_mut().push(unlocked);
+                if unlocked {
+                    clear_and_repopulate(&writer, 2);
+                }
+                vecdb.contains("2")
+            })
+            .unwrap();
+        assert!(found);
+        assert_eq!(
+            *lock_free_per_invocation.borrow(),
+            [true, true, false, false]
         );
     }
 

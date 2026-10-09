@@ -118,19 +118,6 @@ jobs:
             - name: Fetch binary dependencies and rebuild native modules
               run: npm run postinstall
 
-            - name: Create universal ffmpeg binaries for macOS
-              if: startsWith(matrix.os, 'macos')
-              # ffmpeg-static ships each macOS architecture separately; combine them with lipo.
-              run: |
-                  rm -f node_modules/ffmpeg-static/ffmpeg
-                  npm_config_arch=arm64 node node_modules/ffmpeg-static/install.js
-                  mv node_modules/ffmpeg-static/ffmpeg ffmpeg-arm64
-                  npm_config_arch=x64 node node_modules/ffmpeg-static/install.js
-                  mv node_modules/ffmpeg-static/ffmpeg ffmpeg-x64
-                  lipo -create ffmpeg-arm64 ffmpeg-x64 -output node_modules/ffmpeg-static/ffmpeg
-                  rm ffmpeg-arm64 ffmpeg-x64
-                  file node_modules/ffmpeg-static/ffmpeg
-
             - name: Install libarchive-tools for pacman build
               if: startsWith(matrix.os, 'ubuntu')
               run: sudo apt-get update && sudo apt-get install libarchive-tools

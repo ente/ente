@@ -1,8 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    io::{self, IsTerminal},
-    path::Path,
-};
+use std::{collections::BTreeMap, path::Path};
 
 use anyhow::{Context, Result, ensure};
 use dialoguer::{Input, Password, Select, console::Term};
@@ -18,7 +14,7 @@ use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::{
     api,
-    args::{LoginArgs, Product},
+    args::{LoginArgs, Options, Product},
     parse_json, read_input,
     vault::{Account, AccountKeys, DbKey, State, StoredSession, Vault},
 };
@@ -27,6 +23,7 @@ pub async fn login(
     product: Product,
     args: LoginArgs,
     selected: Option<&str>,
+    options: &Options,
 ) -> Result<(State, usize)> {
     enum Target<'a> {
         Existing(&'a str),
@@ -40,6 +37,11 @@ pub async fn login(
         )?),
     };
     let credentials = args.input.as_deref().map(Credentials::read).transpose()?;
+    let interactive = credentials.is_none() && options.can_prompt();
+    ensure!(
+        credentials.is_some() || interactive,
+        "login requires email and password; supply --input <file> or --input -"
+    );
     let vault = Vault::open()?;
     if let Some(name) = args.name.as_deref() {
         vault.state.check_name(name)?;
@@ -58,7 +60,6 @@ pub async fn login(
         .ping()
         .await
         .context("cannot reach the selected Ente server")?;
-    let interactive = credentials.is_none();
     let mut credentials = match credentials {
         Some(credentials) => credentials,
         None => Credentials::prompt()?,
@@ -88,7 +89,7 @@ pub async fn login(
         if snapshot_existing.is_none() {
             while let Err(error) = snapshot.check_name(&new_name) {
                 if !interactive {
-                    return Err(error);
+                    return Err(error.context("supply a different local account name with --name"));
                 }
                 eprintln!("{error}");
                 new_name = Input::new()
@@ -228,10 +229,6 @@ impl Credentials {
     }
 
     fn prompt() -> Result<Self> {
-        ensure!(
-            io::stdin().is_terminal() && io::stderr().is_terminal(),
-            "noninteractive login requires --input <file> or --input -"
-        );
         Ok(Self {
             email: Input::new()
                 .with_prompt("Email")
@@ -292,7 +289,7 @@ async fn authenticate(
                 if use_passkey {
                     ensure!(
                         interactive,
-                        "passkey login requires an interactive terminal"
+                        "passkey login requires an interactive terminal without --input or --no-input"
                     );
                     let url = flow.passkey_url(client, "ente-cli://passkey")?;
                     eprintln!("Open this URL to verify your passkey:\n{url}");

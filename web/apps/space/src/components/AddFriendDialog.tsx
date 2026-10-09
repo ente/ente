@@ -321,7 +321,7 @@ export const SpaceAddFriendDialog: React.FC<SpaceAddFriendDialogProps> = ({
                     ) : isSent ? (
                         <SpaceActionFeedbackIcon phase="done" />
                     ) : (
-                        "Send request"
+                        "Send friend request"
                     )}
                 </Box>
                 {profileLink && (

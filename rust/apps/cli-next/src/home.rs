@@ -8,6 +8,8 @@ use std::{
 use anyhow::{Context, Result, bail, ensure};
 use uuid::Uuid;
 
+use crate::vault::{Account, State};
+
 pub struct AccountHome {
     pub path: PathBuf,
     _lock: File,
@@ -16,6 +18,24 @@ pub struct AccountHome {
 pub struct RemovalGuard {
     _lock: File,
     home: AccountHome,
+}
+
+pub fn open_account(selected: Option<&str>, create: bool) -> Result<(Account, AccountHome)> {
+    let state = State::load()?;
+    let id = state.accounts[state.resolve(selected)?].storage_id;
+    let home = lock_account(id, create)?;
+    let Some(account) = State::load()?
+        .accounts
+        .into_iter()
+        .find(|account| account.storage_id == id)
+    else {
+        home.for_removal()?.remove()?;
+        bail!("account was removed while waiting for access");
+    };
+    if create {
+        self::create(&home.path)?;
+    }
+    Ok((account, home))
 }
 
 pub fn application_home() -> Result<PathBuf> {

@@ -9,19 +9,14 @@ interface NotesIndexCompletion {
 type NotesIndexActivity = "starting" | "queued" | "failed" | null;
 
 export type NotesCollectionActivity =
-    | "starting"
-    | "waitingForGeneration"
-    | "waitingForModel"
-    | "failed"
-    | null;
+    "starting" | "waitingForGeneration" | "waitingForModel" | "failed" | null;
 
 export interface NotesCollectionView extends NotesCollection {
     activity: NotesCollectionActivity;
 }
 
 type NotesRemovalStart =
-    | { kind: "wait" }
-    | { kind: "start"; queuedForce?: boolean };
+    { kind: "wait" } | { kind: "start"; queuedForce?: boolean };
 
 export class NotesLifecycleController {
     private readonly active = new Set<string>();

@@ -15,6 +15,81 @@ fn login_and_photos_across_processes() -> TestResult {
     Museum::run_async(exercise)
 }
 
+#[test]
+fn auth_login_refresh_and_offline_export_across_processes() -> TestResult {
+    Museum::run_async(|origin| async move {
+        let email = format!("auth-export-{}@example.org", Uuid::new_v4());
+        let owner = create_account(&origin, &email).await;
+        let home = TestHome::new();
+        login(&home, "auth", &email, &["--host", &origin, "--no-input"]);
+        let export = ["auth", "export", "--output", "-", "--plaintext"];
+        assert!(success(home.run(&export)).stdout.is_empty());
+        let key = Key::generate();
+        let wrapped = secretbox::encrypt(
+            key.as_bytes(),
+            &Key::try_from_slice(&owner.secrets.master_key).unwrap(),
+        );
+        let body = home.dir.path().join("request.json");
+        fs::write(&body, serde_json::to_vec(&json!({"encryptedKey": b64::encode(&wrapped.encrypted_data), "header": b64::encode(wrapped.nonce.as_bytes())})).unwrap()).unwrap();
+        success(home.run(&[
+            "auth",
+            "api",
+            "/authenticator/key",
+            "--method",
+            "POST",
+            "--body",
+            body.to_str().unwrap(),
+        ]));
+        let uri = "otpauth://hotp/Museum?secret=JBSWY3DPEHPK3PXP&counter=17";
+        let encrypted = blob::encrypt_json(&uri, &key).unwrap();
+        fs::write(&body, serde_json::to_vec(&json!({"encryptedData": b64::encode(&encrypted.encrypted_data), "header": b64::encode(encrypted.decryption_header.as_bytes())})).unwrap()).unwrap();
+        let created = home.json(&[
+            "auth",
+            "api",
+            "/authenticator/entity",
+            "--method",
+            "POST",
+            "--body",
+            body.to_str().unwrap(),
+        ]);
+        assert_eq!(
+            success(home.run(&export)).stdout,
+            format!("{uri}\n").as_bytes()
+        );
+        let changed = format!("{uri}&codeDisplay=%7B%22trashed%22%3Atrue%7D");
+        let encrypted = blob::encrypt_json(&changed, &key).unwrap();
+        fs::write(&body, serde_json::to_vec(&json!({"id": created["id"], "encryptedData": b64::encode(&encrypted.encrypted_data), "header": b64::encode(encrypted.decryption_header.as_bytes())})).unwrap()).unwrap();
+        success(home.run(&[
+            "auth",
+            "api",
+            "/authenticator/entity",
+            "--method",
+            "PUT",
+            "--body",
+            body.to_str().unwrap(),
+        ]));
+        assert_eq!(
+            success(home.run(&export)).stdout,
+            format!("{changed}\n").as_bytes()
+        );
+        assert_eq!(
+            success(home.command(&export).arg("--offline").output().unwrap()).stdout,
+            format!("{changed}\n").as_bytes()
+        );
+        success(home.run(&[
+            "auth",
+            "api",
+            "/authenticator/entity",
+            "--method",
+            "DELETE",
+            "--query",
+            &format!("id={}", created["id"].as_str().unwrap()),
+        ]));
+        assert!(success(home.run(&export)).stdout.is_empty());
+        Ok(())
+    })
+}
+
 #[cfg(unix)]
 #[test]
 fn login_save_failures_follow_the_vault_replacement() -> TestResult {

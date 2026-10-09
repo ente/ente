@@ -371,20 +371,16 @@ const locationSuggestions = (
         .filter((c) => !matchingLocationTagLNames.has(c.name.toLowerCase()));
 
     return [
-        matchingLocationTags.map(
-            (locationTag): SearchSuggestion => ({
-                type: "location",
-                locationTag,
-                label: locationTag.name,
-            }),
-        ),
-        matchingCities.map(
-            (city): SearchSuggestion => ({
-                type: "city",
-                city,
-                label: city.name,
-            }),
-        ),
+        matchingLocationTags.map((locationTag): SearchSuggestion => ({
+            type: "location",
+            locationTag,
+            label: locationTag.name,
+        })),
+        matchingCities.map((city): SearchSuggestion => ({
+            type: "city",
+            city,
+            label: city.name,
+        })),
     ].flat();
 };
 

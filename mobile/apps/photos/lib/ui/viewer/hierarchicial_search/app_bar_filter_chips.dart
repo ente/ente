@@ -10,7 +10,9 @@ import "package:photos/ui/viewer/hierarchicial_search/filter_options_bottom_shee
 import "package:photos/utils/hierarchical_search_util.dart";
 
 class AppBarFilterChips extends StatefulWidget {
-  const AppBarFilterChips({super.key});
+  const AppBarFilterChips({super.key, this.animateRecommendations = false});
+
+  final bool animateRecommendations;
 
   static const bottomPadding = 8.0;
 
@@ -87,13 +89,13 @@ class _AppBarFilterChipsState extends State<AppBarFilterChips> {
     final recommendations = getRecommendedFiltersForAppBar(
       searchFilterDataProvider,
     );
-    if (appliedFilters.isEmpty && recommendations.isEmpty) {
+    final hasFilters = appliedFilters.isNotEmpty || recommendations.isNotEmpty;
+    if (!hasFilters && !widget.animateRecommendations) {
       return const SizedBox.shrink();
     }
 
     final chipHeight = AppBarFilterChips.chipHeight(context);
-
-    return Padding(
+    final chips = Padding(
       padding: const EdgeInsets.only(bottom: AppBarFilterChips.bottomPadding),
       child: SizedBox(
         width: double.infinity,
@@ -103,11 +105,12 @@ class _AppBarFilterChipsState extends State<AppBarFilterChips> {
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
             children: [
-              _buildAllFiltersButton(
-                context,
-                searchFilterDataProvider,
-                chipHeight,
-              ),
+              if (hasFilters)
+                _buildAllFiltersButton(
+                  context,
+                  searchFilterDataProvider,
+                  chipHeight,
+                ),
               for (final filter in appliedFilters)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -123,6 +126,16 @@ class _AppBarFilterChipsState extends State<AppBarFilterChips> {
         ),
       ),
     );
+    return widget.animateRecommendations
+        ? AnimatedOpacity(
+            opacity: hasFilters ? 1 : 0,
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 180),
+            curve: Curves.easeInOut,
+            child: chips,
+          )
+        : chips;
   }
 
   Widget _buildAllFiltersButton(

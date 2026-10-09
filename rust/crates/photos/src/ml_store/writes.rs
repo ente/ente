@@ -546,7 +546,11 @@ mod tests {
         store.db().set_meta("clip.fill", "filled").unwrap();
         assert!(matches!(store.put_clip(&clips([1])), Err(Error::Index(_))));
         assert_eq!(store.db().count_clip_rows().unwrap(), 1);
-        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
+        assert!(matches!(
+            store.fill_state(Index::Clip),
+            Err(Error::Index(_))
+        ));
+        assert_eq!(meta(&store, "clip.fill"), None);
         store.put_clip(&clips([2])).unwrap();
         assert_eq!(store.db().count_clip_rows().unwrap(), 2);
     }

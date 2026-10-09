@@ -16,6 +16,22 @@ type ReadMarkersController struct {
 	ReadMarkersRepo *repo.ReadMarkersRepository
 }
 
+func (c *ReadMarkersController) ListUnreadActivities(ctx context.Context, viewerSpace *repo.SpaceRecord, req models.ListUnreadActivitiesRequest) (*models.UnreadActivityPage, error) {
+	activities, nextCursor, err := c.ReadMarkersRepo.ListUnreadActivities(ctx, viewerSpace.SpaceID, req.Cursor, req.Limit)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]models.UnreadActivityResponse, 0, len(activities))
+	for _, activity := range activities {
+		items = append(items, models.UnreadActivityResponse{
+			Kind:                activity.Kind,
+			MessageCipher:       encodeSpaceField(activity.MessageCipher),
+			EncryptedMessageKey: encodeSpaceField(activity.EncryptedMessageKey),
+		})
+	}
+	return &models.UnreadActivityPage{Items: items, NextCursor: nextCursor}, nil
+}
+
 func (c *ReadMarkersController) GetUnreadStatus(ctx context.Context, viewerSpace *repo.SpaceRecord) (*models.SpaceUnreadStatusResponse, error) {
 	notificationsUnread, err := c.ReadMarkersRepo.HasUnreadNotifications(ctx, viewerSpace.SpaceID)
 	if err != nil {

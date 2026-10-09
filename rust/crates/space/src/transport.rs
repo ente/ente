@@ -129,6 +129,22 @@ pub struct SpaceUnreadStatusResponse {
     pub notifications_unread: bool,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UnreadActivityResponse {
+    pub kind: String,
+    pub message_cipher: String,
+    pub encrypted_message_key: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UnreadActivityPageResponse {
+    pub items: Vec<UnreadActivityResponse>,
+    #[serde(default)]
+    pub next_cursor: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LikeMessageResponse {
     pub liked: bool,
@@ -228,8 +244,6 @@ pub struct ConversationChatSummaryResponse {
 #[serde(rename_all = "camelCase")]
 pub struct ConversationsResponse {
     pub friends: Vec<SpaceFriendResponse>,
-    #[serde(default)]
-    pub pending_requests: Vec<SpaceFriendRequestResponse>,
     #[serde(default)]
     pub chat_summaries: std::collections::BTreeMap<String, ConversationChatSummaryResponse>,
     #[serde(default)]
@@ -677,4 +691,33 @@ pub struct SpaceLookupResponse {
     pub owner: String,
     #[serde(default)]
     pub public_key: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationResponse {
+    pub notification_id: String,
+    pub notification_ids: Vec<String>,
+    pub kind: String,
+    pub actors: Vec<SpaceActorResponse>,
+    pub actor_count: i64,
+    pub post_id: Option<i64>,
+    pub friend_request_id: Option<i64>,
+    pub created_at: String,
+    pub unread: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationPageResponse {
+    #[serde(default)]
+    pub latest_post_created_at: Option<String>,
+    pub items: Vec<NotificationResponse>,
+    #[serde(default)]
+    pub next_cursor: String,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct NotificationUnreadResponse {
+    pub unread: bool,
 }

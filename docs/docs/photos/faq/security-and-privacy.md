@@ -228,6 +228,17 @@ Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you 
 
 To know details of how your data is deleted, including when you delete your account, please see https://ente.com/blog/how-ente-deletes-data/.
 
+### Will deleting my Ente Auth or Locker account also delete my Photos account? {#shared-account-deletion}
+
+Yes, if you use the same Ente account in those apps. **Delete account** deletes that account and its Photos, Auth, and Locker data, no matter which app you select it from.
+
+If you want to stop using just one app:
+
+1. Check which Ente account you are signed in to in each app.
+2. Sign out of or uninstall the app you no longer want to use. Do not select **Delete account**.
+
+Your account and data in the other apps stay available. If you created separate Ente accounts, deleting one does not delete the others.
+
 ## Trust and Reliability
 
 ### Why should I trust Ente for long-term data storage? {#trust}

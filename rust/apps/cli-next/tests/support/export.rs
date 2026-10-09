@@ -1775,7 +1775,7 @@ fn export_adopts_go_and_desktop_fixtures_with_a_real_source_account() -> TestRes
                 let output = home.run(&["photos", "export", root.to_str().unwrap()]);
                 assert_eq!(
                     failure(&output),
-                    "Error: This folder contains an export from the old CLI or Ente Desktop. Use --adopt if you want to take it over.\n"
+                    format!("Error: cannot open Photos export {}: This folder contains an export from the old CLI or Ente Desktop. Use --adopt if you want to take it over.\n", root.display())
                 );
                 let result = export(&home, &root, &["--adopt", "--album", "Family"]);
                 assert_eq!(result["copies"]["completed"], 1);

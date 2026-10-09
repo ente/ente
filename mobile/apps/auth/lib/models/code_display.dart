@@ -81,10 +81,7 @@ class CodeDisplay {
 
   static CodeDisplay? fromUri(Uri uri, {bool safeParsing = false}) {
     if (!uri.queryParameters.containsKey("codeDisplay")) return null;
-    final String codeDisplay = uri.queryParameters['codeDisplay']!.replaceAll(
-      '%2C',
-      ',',
-    );
+    final String codeDisplay = uri.queryParameters['codeDisplay']!;
     return _parseCodeDisplayJson(codeDisplay, safeParsing);
   }
 

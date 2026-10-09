@@ -62,7 +62,7 @@ const Page: React.FC = () => {
                 errorMessage={setupError}
                 isSubmitting={isSubmitting}
                 onBack={() =>
-                    void router.push(
+                    void router.back(
                         spaceRoutes.createProfile(createProfileSource),
                     )
                 }

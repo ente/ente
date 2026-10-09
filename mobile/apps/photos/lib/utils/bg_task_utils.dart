@@ -25,6 +25,7 @@ void callbackDispatcher() {
     String? failure = "Task didn't run";
     bool timedOut = false;
     bool ownsPipeline = false;
+    final isPushRefresh = taskName == BgTaskUtils.androidPushRefreshTask;
     final isIOSProcessingTask =
         Platform.isIOS && taskName == BgTaskUtils.iOSBackgroundProcessingTask;
     final prefs = await SharedPreferences.getInstance();
@@ -38,7 +39,7 @@ void callbackDispatcher() {
       () async {
         try {
           BgTaskUtils.$.info('Task started $tlog');
-          if (await BackgroundTasks.nativeEnabled(prefs)) {
+          if (!isPushRefresh && await BackgroundTasks.nativeEnabled(prefs)) {
             await BackgroundTasks.configure();
             failure = null;
             return;
@@ -56,7 +57,7 @@ void callbackDispatcher() {
             failure = null;
             return;
           }
-          if (await BackgroundTasks.nativeEnabled(prefs)) {
+          if (!isPushRefresh && await BackgroundTasks.nativeEnabled(prefs)) {
             await BackgroundTasks.configure();
             failure = null;
             return;
@@ -114,7 +115,8 @@ void callbackDispatcher() {
       return;
     });
 
-    if (ownsPipeline &&
+    if (!isPushRefresh &&
+        ownsPipeline &&
         !timedOut &&
         await BackgroundTasks.nativeEnabled(prefs)) {
       await BackgroundTasks.configure().catchError((Object _) {});
@@ -135,6 +137,7 @@ class BgTaskUtils {
   static const iOSBackgroundProcessingTask =
       "io.ente.frame.iOSBackgroundProcessing";
   static const androidPeriodicTask = "io.ente.photos.androidPeriodicTask";
+  static const androidPushRefreshTask = "io.ente.photos.androidPushRefresh";
   static const androidBackgroundProcessingTask =
       "io.ente.photos.androidBackgroundProcessing";
 
@@ -145,7 +148,8 @@ class BgTaskUtils {
 
   static bool isRefreshTask(String taskName) =>
       taskName == iOSBackgroundAppRefreshTask ||
-      taskName == androidPeriodicTask;
+      taskName == androidPeriodicTask ||
+      taskName == androidPushRefreshTask;
 
   static Duration taskStartupElapsedFor(
     String taskName,
@@ -281,6 +285,18 @@ class BgTaskUtils {
       DateTime.now().microsecondsSinceEpoch,
     );
     await prefs.remove(kLastBGTaskHeartBeatTime);
+  }
+
+  static Future<void> scheduleAndroidBackgroundRefresh() async {
+    await workmanager.Workmanager().initialize(callbackDispatcher);
+    await workmanager.Workmanager().registerOneOffTask(
+      androidPushRefreshTask,
+      androidPushRefreshTask,
+      constraints: workmanager.Constraints(
+        networkType: workmanager.NetworkType.connected,
+      ),
+      existingWorkPolicy: workmanager.ExistingWorkPolicy.keep,
+    );
   }
 
   static Future<void> configureWorkmanager() async {

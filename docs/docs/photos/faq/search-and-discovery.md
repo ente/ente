@@ -410,6 +410,17 @@ You can then search for words in those descriptions to find the photos.
 
 Learn more in [Metadata and Editing FAQ](/photos/faq/metadata-and-editing#descriptions).
 
+## Memories
+
+### How do I mute the music in Memories? {#mute-memories-music}
+
+To watch a memory without music in the mobile app:
+
+1. Open the memory.
+2. Tap the speaker icon to mute the music.
+
+Tap the speaker icon again to turn the music back on.
+
 ## General Search
 
 ### How do I search my photos? {#how-to-search}
@@ -419,6 +430,15 @@ Ente supports multiple search types:
 **Date search**: Search by date, month, or year **Location search**: Find photos taken in specific locations (if they have GPS data) **Magic search**: Natural language descriptions of photo content **Face search**: Find photos of specific people **Description search**: Search descriptions/captions you've added **File name search**: Search by original file name
 
 Simply type in the search bar and Ente will show matching results across all these categories.
+
+### Why does searching for a month show photos from other years? {#month-search-other-years}
+
+Ente shows different types of search results. A **Magic search** result looks for visual content, so it may show photos from other dates. Choose the date result to filter by when a photo was taken.
+
+1. Type a month and year, such as `July 2019`.
+2. Select the matching result under **Moments**, rather than **Magic**.
+
+For place searches, select the matching result under **Locations**.
 
 ### Can I save my searches? {#save-searches}
 

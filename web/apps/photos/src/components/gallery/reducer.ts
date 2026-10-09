@@ -47,10 +47,7 @@ import React, { useReducer } from "react";
 // TODO: Deprecated(?). Use GalleryView instead. Deprecated if it can be used in
 // all cases where the bar mode was in use.
 export type GalleryBarMode =
-    | "albums"
-    | "hidden-albums"
-    | "archive-albums"
-    | "people";
+    "albums" | "hidden-albums" | "archive-albums" | "people";
 
 type GalleryView =
     | {

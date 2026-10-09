@@ -20,9 +20,7 @@ interface LockerUploadAllowance {
 }
 
 type LockerUploadPreflightFailureReason =
-    | "fileCountLimit"
-    | "fileTooLarge"
-    | "storageLimit";
+    "fileCountLimit" | "fileTooLarge" | "storageLimit";
 
 export interface LockerUploadPreflightFailure {
     reason: LockerUploadPreflightFailureReason;

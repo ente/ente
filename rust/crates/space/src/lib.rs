@@ -15,9 +15,9 @@ pub use error::{Error, Result};
 pub use models::{
     ConversationChatSummary, Conversations, CreatedSpace, CreatedSpaceLink, DecryptedFriendShare,
     DecryptedSpaceProfile, HydratedKeys, Message, MessageActivity, MessageContent, MessagePage,
-    MessagePayload, OpenAccountSpaceCtxInput, OpenSpaceLinkCtxInput, Post, PostAsset, PostContent,
-    PostObjectMetadata, PostPage, PostPhoto, PostVideo, SpaceActor, SpaceFriend,
-    SpaceFriendRequest, SpaceProfile, SpaceSentFriendRequest,
+    MessagePayload, Notification, NotificationPage, OpenAccountSpaceCtxInput,
+    OpenSpaceLinkCtxInput, Post, PostAsset, PostContent, PostObjectMetadata, PostPage, PostPhoto,
+    PostVideo, SpaceActor, SpaceFriend, SpaceFriendRequest, SpaceProfile, SpaceSentFriendRequest,
 };
 pub use transport::{
     ConversationChatSummaryResponse, ConversationsResponse, EntityKeyPayload,

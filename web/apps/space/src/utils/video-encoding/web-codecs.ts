@@ -91,8 +91,7 @@ export const encodeVideoWithWebCodecs = async (
             probePath,
             inputPath,
         ]);
-        if (status !== 0 && status !== -1)
-            throw new Error("Couldn't read video packets");
+        if (status !== 0) throw new Error("Couldn't read video packets");
         const json = await ffmpeg.readFile(probePath, "utf8");
         if (typeof json !== "string")
             throw new Error("Expected video information");
@@ -262,7 +261,7 @@ export const encodeVideoWithWebCodecs = async (
             "-c:v",
             "copy",
             "-bsf:v",
-            "setts=ts=N*1000:duration=1000:time_base=1/30000",
+            `setts=ts=N:duration=1:time_base=1/${frameRate}`,
             "-video_track_timescale",
             "30000",
             ...(edit.muted

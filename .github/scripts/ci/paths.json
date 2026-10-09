@@ -109,6 +109,7 @@
         "rust/apps/cli-next/**",
         "rust/crates/accounts/**",
         "rust/crates/assets/**",
+        "rust/crates/auth/**",
         "rust/crates/collections/**",
         "rust/crates/core/**",
         "rust/crates/exif/**",

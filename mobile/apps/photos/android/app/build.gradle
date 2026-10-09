@@ -1,8 +1,13 @@
 plugins {
+    id "com.google.gms.google-services" version "4.4.4" apply false
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
     id 'org.jetbrains.kotlin.plugin.serialization' version '2.2.20'
+}
+
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
 }
 
 def localProperties = new Properties()

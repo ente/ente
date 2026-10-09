@@ -14,11 +14,9 @@ import "package:photos/events/tab_changed_event.dart";
 import "package:photos/models/home_tab.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
-import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
-import "package:photos/services/remote_assets_service.dart";
 import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/settings/ml/ml_consent_sheet.dart";
 import "package:photos/ui/settings/ml/ml_user_dev_screen.dart";
@@ -321,18 +319,18 @@ class _ModelLoadingStateState extends State<ModelLoadingState> {
 
   @override
   void initState() {
-    _progressStream = RemoteAssetsService.instance.progressStream.listen((
+    _progressStream = MLModelDownloadService.instance.progressStream.listen((
       event,
     ) {
-      final String url = event.$1;
+      final String model = event.$1;
       String title = "";
-      if (url.contains(ClipImageModel.remoteFileName)) {
+      if (model == "clip-image") {
         title = "Image Model";
-      } else if (url.contains(ClipTextModel.remoteFileName)) {
+      } else if (model == "clip-text") {
         title = "Text Model";
-      } else if (url.contains(FaceDetectionModel.remoteFileName)) {
+      } else if (model == "face-detection") {
         title = "Face Detection Model";
-      } else if (url.contains(FaceEmbeddingModel.remoteFileName)) {
+      } else if (model == "face-embedding") {
         title = "Face Embedding Model";
       }
       if (title.isNotEmpty) {

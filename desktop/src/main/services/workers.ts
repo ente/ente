@@ -124,7 +124,14 @@ const createFFmpegUtilityProcessEndpoint = () => {
     );
 
     const appVersion = app.getVersion();
-    child.postMessage({ appVersion }, [port1]);
+    const ffmpegPath = path.join(
+        app.isPackaged
+            ? process.resourcesPath
+            : path.join(app.getAppPath(), "build"),
+        "ffmpeg",
+        process.platform == "win32" ? "ffmpeg.exe" : "ffmpeg",
+    );
+    child.postMessage({ appVersion, ffmpegPath }, [port1]);
 
     child.on("message", (m: unknown) => {
         if (m && typeof m == "object" && "method" in m) {

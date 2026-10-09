@@ -41,12 +41,7 @@ interface ImageAttachment {
 }
 
 type SuggestedModelStatus =
-    | "checking"
-    | "missing"
-    | "preloading"
-    | "downloading"
-    | "ready"
-    | "error";
+    "checking" | "missing" | "preloading" | "downloading" | "ready" | "error";
 
 export type ChatComposerHandle = ChatInputHandle;
 

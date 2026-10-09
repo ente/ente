@@ -14,7 +14,6 @@ import {
     focusFeedPost,
     registerFeedPost,
 } from "components/feed-video-playback";
-import { SpaceFeedPostButton } from "components/FeedPostButton";
 import {
     SpaceFileViewer,
     type SpaceViewerPhoto,
@@ -30,7 +29,6 @@ import {
 } from "components/post-like-animation";
 import { SpacePostAvatar } from "components/PostAvatar";
 import { SpacePostGrid } from "components/PostGrid";
-import { SpacePostPhotoInput } from "components/PostPhotoInput";
 import { SpacePostPhotosCounter } from "components/PostPhotosCounter";
 import { SpacePostPhotosDots } from "components/PostPhotosDots";
 import { SpacePostTile } from "components/PostTile";
@@ -109,17 +107,13 @@ interface HomeScreenProps {
     friendRequestSentToastName?: string;
     hasFeedLoadMoreError?: boolean;
     hasMoreFeedItems?: boolean;
-    hasUnreadMessages?: boolean;
     isFeedLoading?: boolean;
-    isFeedComplete?: boolean;
     isFeedLoadingMore?: boolean;
     localFeedPosts?: LocalSpaceFeedPost[];
     feedSession?: SpaceFeedSession;
-    showFirstPostPrompt?: boolean;
     showInstallPrompt?: boolean;
     showInviteFriendsToast?: boolean;
     onAddFriend: () => void;
-    onPostPhotoSelect: (files: File[]) => void;
     onRetryPost?: (localPostId: string) => Promise<void>;
     onDeletePost?: (postId: number) => Promise<void> | void;
     onLoadMoreFeedItems?: () => Promise<void> | void;
@@ -128,7 +122,6 @@ interface HomeScreenProps {
     onFriendRequestSentToastClose?: () => void;
     onInviteFriendsToastClose?: () => void;
     onOpenFriend?: (friendID: string, username?: string) => void;
-    onOpenMessages?: () => void;
     onOpenProfile?: () => void;
     onReplyToPost?: (
         postSpaceId: string,
@@ -1482,7 +1475,6 @@ const FeedItem: React.FC<FeedItemProps> = ({
                         }}
                     >
                         <SpacePostAvatar
-                            outerRing
                             ready={isAvatarReady}
                             size={feedAvatarSize}
                             src={displayAvatarUrl}
@@ -1728,7 +1720,7 @@ const AddedFriendToast: React.FC<AddedFriendToastProps> = ({
             px: feedHorizontalPadding,
             pointerEvents: "none",
             position: "fixed",
-            top: "calc(env(safe-area-inset-top) + 12px)",
+            top: "calc(env(safe-area-inset-top) + 8px)",
             transform: "translateX(-50%)",
             width: "100%",
             zIndex: 20,
@@ -1741,7 +1733,7 @@ const AddedFriendToast: React.FC<AddedFriendToastProps> = ({
             sx={{
                 alignItems: "center",
                 bgcolor: spaceHomeSurface,
-                borderRadius: "24px",
+                borderRadius: "32px",
                 boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
                 boxSizing: "border-box",
                 color: textBase,
@@ -1846,17 +1838,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     friendRequestSentToastName,
     hasFeedLoadMoreError = false,
     hasMoreFeedItems = false,
-    hasUnreadMessages,
     isFeedLoading = false,
-    isFeedComplete = false,
     isFeedLoadingMore = false,
     localFeedPosts = [],
     feedSession,
-    showFirstPostPrompt = false,
     showInstallPrompt = false,
     showInviteFriendsToast = false,
     onAddFriend,
-    onPostPhotoSelect,
     onRetryPost,
     onDeletePost,
     onLoadMoreFeedItems,
@@ -1865,7 +1853,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     onFriendRequestSentToastClose,
     onInviteFriendsToastClose,
     onOpenFriend,
-    onOpenMessages,
     onOpenProfile,
     onReplyToPost,
     onSetPostLiked,
@@ -1890,7 +1877,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         Record<string, true>
     >({});
     const newestLocalPostID = localFeedPosts[0]?.id;
-    const postInputRef = React.useRef<HTMLInputElement | null>(null);
     const feedLoadMoreRef = React.useRef<HTMLDivElement | null>(null);
     const feedAvatarLoadsInFlightRef = React.useRef<
         Map<string, Promise<string | null>>
@@ -1911,6 +1897,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         );
     const hasFeedItems =
         latestFeedEntries.length > 0 || gridFeedItems.length > 0;
+    const viewerPosts = [
+        ...latestFeedEntries.flatMap((entry) =>
+            entry.kind == "remote"
+                ? [entry.item]
+                : entry.item.status == "posted" || entry.item.status == "ready"
+                  ? [entry.item.post]
+                  : [],
+        ),
+        ...gridFeedItems,
+    ].filter(
+        (item) =>
+            !item.isUnavailable &&
+            !unavailableFeedPostsByKey[feedPostImageCacheKey(item)],
+    );
     const isEmptyFeedLoading = !hasFeedItems && isFeedLoading;
     const showFeedCards = hasFeedItems;
     const isInstallPromptEnabled =
@@ -1918,10 +1918,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         !friendRequestSentToastName &&
         !showInviteFriendsToast &&
         !selectedViewer;
-    const showUnreadIndicator = hasUnreadMessages === true;
-    const openPostPhotoPicker = () => {
-        postInputRef.current?.click();
-    };
     const openFeedPhoto = (
         post: SpacePost,
         photo: SpaceViewerPhoto,
@@ -2055,6 +2051,42 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         },
         [loadedFeedAvatarURLFor, onLoadPostAvatar],
     );
+    const navigatePost = (direction: -1 | 1) => {
+        const postIndex = viewerPosts.findIndex(
+            (post) => post.postId == selectedViewer?.photo.postId,
+        );
+        const post = viewerPosts[postIndex + direction];
+        if (!post) return false;
+        const photo = viewerPhotosFromPost({
+            ...post,
+            avatarUrl: loadedFeedAvatarURLFor(post),
+        })[0]!;
+        openFeedPhoto(post, {
+            ...photo,
+            imageUrl:
+                loadedFeedImageURLFor({
+                    ...spacePostPhotos(post)[0]!,
+                    postId: post.postId,
+                    spaceId: post.spaceId,
+                }) ?? "",
+        });
+        setFeedPhotoIndices((current) => ({ ...current, [post.postId]: 0 }));
+        void loadFeedPostAvatar(post).then((avatarUrl) => {
+            setSelectedViewer((current) =>
+                current?.photo.postId == post.postId
+                    ? {
+                          ...current,
+                          photo: { ...current.photo, avatarUrl },
+                          photos: current.photos.map((photo) => ({
+                              ...photo,
+                              avatarUrl,
+                          })),
+                      }
+                    : current,
+            );
+        });
+        return true;
+    };
     const feedItemFor = (
         item: SpacePost,
         key: React.Key,
@@ -2238,8 +2270,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 bgcolor: homeBackground,
                 color: textBase,
                 display: "grid",
-                minHeight: "100svh",
-                overflowX: "hidden",
+                minHeight: "var(--space-page-height, 100svh)",
+                overflowX: "clip",
                 placeItems: { xs: "stretch", sm: "start center" },
                 position: "relative",
             }}
@@ -2255,25 +2287,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     bgcolor: homeBackground,
                     boxSizing: "border-box",
                     maxWidth: "100%",
-                    minHeight: "100svh",
+                    minHeight: "var(--space-page-height, 100svh)",
                     minWidth: 0,
                     mx: "auto",
-                    overflowX: "hidden",
+                    overflowX: "clip",
                     width: "100%",
                     "@media (min-width: 600px)": { maxWidth: 390 },
                 }}
             >
-                <SpaceHomeHeader
-                    profile={profile}
-                    showUnreadIndicator={showUnreadIndicator}
-                    onOpenMessages={onOpenMessages}
-                    onOpenProfile={onOpenProfile}
-                >
-                    <SpacePostPhotoInput
-                        inputRef={postInputRef}
-                        onSelect={onPostPhotoSelect}
-                    />
-                </SpaceHomeHeader>
+                <SpaceHomeHeader />
                 <Box
                     component="section"
                     id="space-main-content"
@@ -2285,11 +2307,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         flexDirection: "column",
                         gap: 0,
                         justifyContent: showFeedCards ? "flex-start" : "center",
-                        minHeight: "calc(100svh - 68px)",
+                        minHeight:
+                            "calc(var(--space-page-height, 100svh) - 60px)",
                         minWidth: 0,
-                        pb: "calc(env(safe-area-inset-bottom) + 112px)",
+                        pb: showFeedCards ? "24px" : "12px",
                         px: feedHorizontalPadding,
-                        pt: showFeedCards ? 0 : "8px",
+                        pt: showFeedCards ? 0 : "4px",
                         width: "100%",
                     }}
                 >
@@ -2314,10 +2337,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         <>
                             <SpacePostGrid
                                 postCount={
-                                    isFeedComplete
-                                        ? latestFeedEntries.length +
-                                          gridFeedItems.length
-                                        : undefined
+                                    latestFeedEntries.length +
+                                    gridFeedItems.length
                                 }
                                 items={gridFeedItems.map((item) => {
                                     const photo = spacePostPhotos(item)[0]!;
@@ -2498,7 +2519,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                 color: "#FFFFFF",
                                 display: "flex",
                                 flexDirection: "column",
-                                height: "calc(100svh - 184px - env(safe-area-inset-bottom))",
+                                height: "calc(var(--space-page-height, 100svh) - 76px)",
                                 minHeight: 360,
                                 overflow: "hidden",
                                 px: "24px",
@@ -2569,7 +2590,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     size={18}
                                     strokeWidth={1.8}
                                 />
-                                Add friend
+                                Add friends
                             </Box>
                             <Box sx={{ flexGrow: 1, minHeight: "32px" }} />
                             <Box
@@ -2591,10 +2612,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         </Box>
                     )}
                 </Box>
-                <SpaceFeedPostButton
-                    onClick={openPostPhotoPicker}
-                    showFirstPostPrompt={showFirstPostPrompt}
-                />
                 {selectedViewer && (
                     <SpaceFileViewer
                         closeOnSwipePastEnd
@@ -2616,6 +2633,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         onLoadPhoto={onLoadPostImage}
                         postActionMode={selectedViewer.postActionMode}
                         onClose={closeSelectedPhoto}
+                        onNavigatePost={navigatePost}
                         onOpenProfile={
                             selectedPhotoIsOwn && onOpenProfile
                                 ? () => {

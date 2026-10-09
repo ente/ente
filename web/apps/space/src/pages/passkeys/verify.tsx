@@ -119,7 +119,7 @@ const Page: React.FC = () => {
             <PasskeyVerificationScreen
                 canUseTwoFactor={verification.hasTwoFactorFallback}
                 errorMessage={errorMessage}
-                onBack={() => void router.push(spaceRoutes.login)}
+                onBack={() => void router.back(spaceRoutes.login)}
                 onCheckStatus={() => void checkStatus()}
                 onTryAgain={tryAgain}
                 onUseTwoFactor={useTwoFactor}

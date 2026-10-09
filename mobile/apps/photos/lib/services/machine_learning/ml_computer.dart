@@ -7,14 +7,16 @@ import "package:logging/logging.dart";
 import "package:photos/core/errors.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/models/ml/vector.dart";
+import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/machine_learning/ml_constants.dart";
-import "package:photos/services/machine_learning/ml_model_assets.dart";
+import "package:photos/services/machine_learning/ml_exceptions.dart";
+import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/services/machine_learning/webgpu_execution_policy.dart";
-import "package:photos/services/remote_assets_service.dart";
+import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
 import "package:photos/utils/isolate/isolate_operations.dart";
 import "package:photos/utils/isolate/super_isolate.dart";
-import "package:synchronized/synchronized.dart";
+import "package:photos/utils/network_util.dart";
 
 @pragma('vm:entry-point')
 class MLComputer extends SuperIsolate {
@@ -22,9 +24,6 @@ class MLComputer extends SuperIsolate {
   Logger get logger => _logger;
   final _logger = Logger('MLComputer');
 
-  final _initModelLock = Lock();
-  String? _clipTextModelPath;
-  String? _clipTextVocabPath;
   Future<void>? _clipTextWarmupFuture;
 
   @override
@@ -75,27 +74,28 @@ class MLComputer extends SuperIsolate {
 
   Future<List<double>> runClipText(String query) async {
     try {
-      await _ensureLoadedClipTextModel();
-      final modelPath = _clipTextModelPath;
-      final vocabPath = _clipTextVocabPath;
-      if (modelPath == null || modelPath.trim().isEmpty) {
-        throw Exception(
-          "RustMLMissingModelPath: Missing required model path: clipTextModelPath",
-        );
-      }
-      if (vocabPath == null || vocabPath.trim().isEmpty) {
-        throw Exception(
-          "RustMLMissingModelPath: Missing required model path: clipTextVocabPath",
+      final assetsDir = await MLModelDownloadService.instance
+          .getAssetsDirectory();
+      final hasModel = await rust_ml.isClipTextDownloaded(
+        assetsDir: assetsDir,
+        includeVocab: false,
+      );
+      if (!hasModel && !(isLocalGalleryMode || await canUseHighBandwidth())) {
+        throw WiFiUnavailableError(
+          "Could not download clip text model because high bandwidth "
+          "connectivity is unavailable",
         );
       }
       final enableWebGpu = await webGpuExecutionPolicy.isEligible();
       final isolateResult = await runInIsolate(IsolateOperation.runClipText, {
         "text": query,
-        "clipTextModelPath": modelPath,
-        "clipTextVocabPath": vocabPath,
+        "assetsDir": assetsDir,
         "enableWebGpu": enableWebGpu,
       });
       if (isolateResult is RustCorruptModelException) {
+        throw isolateResult;
+      }
+      if (isolateResult is ModelDownloadNetworkException) {
         throw isolateResult;
       }
       final textEmbedding = isolateResult as List<double>;
@@ -129,37 +129,6 @@ class MLComputer extends SuperIsolate {
       _logger.warning("Clip text warmup failed in MLComputer", e, s);
       rethrow;
     }
-  }
-
-  Future<void> _ensureLoadedClipTextModel() async {
-    return _initModelLock.synchronized(() async {
-      try {
-        if (_clipTextVocabPath == null) {
-          final tokenizerRemotePath = ClipTextModel.instance.vocabRemotePath;
-          _clipTextVocabPath = await RemoteAssetsService.instance.getAssetPath(
-            tokenizerRemotePath,
-            expectedSha256: ClipTextModel.instance.vocabSha256,
-          );
-        }
-
-        if (_clipTextModelPath != null) {
-          return;
-        }
-
-        final String? downloadedModelPath = await ClipTextModel.instance
-            .downloadModelSafe();
-        if (downloadedModelPath == null) {
-          throw WiFiUnavailableError(
-            "Could not download clip text model because high bandwidth "
-            "connectivity is unavailable",
-          );
-        }
-        _clipTextModelPath = downloadedModelPath;
-      } catch (e, s) {
-        _logger.severe("Could not load clip text model in MLComputer", e, s);
-        rethrow;
-      }
-    });
   }
 
   Future<Map<String, List<QueryResult>>> computeBulkSimilarities(

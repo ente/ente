@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ente_components/ente_components.dart';
@@ -5,6 +6,7 @@ import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:locker/models/file_type.dart';
+import 'package:locker/models/info/info_item.dart';
 import 'package:locker/services/configuration.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 import 'package:locker/services/files/sync/models/file_magic.dart';
@@ -160,5 +162,76 @@ void main() {
     await tester.enterText(find.byType(TextField).at(1), '   ');
     await tester.enterText(find.byType(TextField).first, 'Manual title');
     expect(state.validateForm(), isFalse);
+  });
+
+  testWidgets('generated Note titles preserve whole characters at the limit', (
+    tester,
+  ) async {
+    await showPage(tester, const PersonalNotePage());
+    final state = tester.state(find.byType(PersonalNotePage)) as dynamic;
+    const prefix = 'RC285-edge-1234567890123456789012345678';
+
+    for (final character in ['😀', '👩🏽‍💻', 'e\u0301']) {
+      final content = '$prefix${character}end';
+      await tester.enterText(find.byType(TextField).at(1), content);
+      final data = state.createInfoData();
+      expect(data.title, '$prefix$character...');
+      expect(data.content, content);
+    }
+  });
+
+  testWidgets('generated Note titles count emoji as whole characters', (
+    tester,
+  ) async {
+    await showPage(tester, const PersonalNotePage());
+    final state = tester.state(find.byType(PersonalNotePage)) as dynamic;
+    final content = List.filled(40, '😀').join();
+    await tester.enterText(find.byType(TextField).at(1), content);
+    expect(state.createInfoData().title, content);
+  });
+
+  testWidgets('generated Note titles keep first-line and word limits', (
+    tester,
+  ) async {
+    await showPage(tester, const PersonalNotePage());
+    final state = tester.state(find.byType(PersonalNotePage)) as dynamic;
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      '  one two three four five six\nsecond line',
+    );
+    expect(state.createInfoData().title, 'one two three four five');
+
+    const manualTitle = 'My 👩🏽‍💻 note title';
+    await tester.enterText(find.byType(TextField).first, manualTitle);
+    expect(state.createInfoData().title, manualTitle);
+  });
+
+  testWidgets('a generated emoji title reopens intact for editing', (
+    tester,
+  ) async {
+    await showPage(tester, const PersonalNotePage());
+    final state = tester.state(find.byType(PersonalNotePage)) as dynamic;
+    const content = 'RC285-edge-1234567890123456789012345678😀end';
+    const expectedTitle = 'RC285-edge-1234567890123456789012345678😀...';
+    await tester.enterText(find.byType(TextField).at(1), content);
+    final data = state.createInfoData() as PersonalNoteData;
+    final file = EnteFile()
+      ..fileType = FileType.info
+      ..ownerID = 1
+      ..title = data.title
+      ..pubMagicMetadata = PubMagicMetadata(
+        info: jsonDecode(jsonEncode({'type': 'note', 'data': data.toJson()})),
+        noThumb: true,
+      );
+    await tester.pumpWidget(const SizedBox.shrink());
+    await showPage(tester, PersonalNotePage(existingFile: file));
+
+    await tester.tap(find.byType(TextField).first);
+    await tester.pump();
+    expect(tester.testTextInput.editingState!['text'], expectedTitle);
+    expect(
+      tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
+      content,
+    );
   });
 }

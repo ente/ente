@@ -297,9 +297,9 @@ export const GalleryBarAndListHeader: React.FC<
                     <CollectionShare
                         {...collectionShareVisibilityProps}
                         onClose={closeCollectionShare}
-                        collectionSummary={
-                            toShowCollectionSummaries.get(activeCollectionID!)!
-                        }
+                        collectionSummary={toShowCollectionSummaries.get(
+                            activeCollectionID!,
+                        )!}
                         collection={activeCollection}
                         intent={collectionShareIntent}
                         {...{

@@ -34,6 +34,7 @@ class GalleryGroups {
   final bool showSelectAll;
   final _logger = Logger("GalleryGroups");
   final bool showGallerySettingsCTA;
+  final Widget? groupHeaderAction;
   final GalleryLayoutType? layoutTypeOverride;
   final bool justifiedLayoutAvailable;
 
@@ -52,6 +53,7 @@ class GalleryGroups {
     required this.showSelectAll,
     this.limitSelectionToOne = false,
     this.showGallerySettingsCTA = false,
+    this.groupHeaderAction,
     this.layoutTypeOverride,
     required this.justifiedLayoutAvailable,
   }) {
@@ -307,6 +309,7 @@ class GalleryGroups {
       selectedFiles: selectedFiles,
       showSelectAll: showSelectAll && !limitSelectionToOne,
       showGalleryLayoutSettingCTA: rowIndex == 0 && showGallerySettingsCTA,
+      action: rowIndex == 0 ? groupHeaderAction : null,
     );
   }
 

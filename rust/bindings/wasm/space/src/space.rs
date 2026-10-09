@@ -337,6 +337,52 @@ pub struct PostPage {
 
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+pub struct Notification {
+    notification_id: String,
+    notification_ids: Vec<String>,
+    kind: String,
+    actors: Vec<SpaceActorResponse>,
+    actor_count: i64,
+    post_id: Option<i64>,
+    friend_request_id: Option<i64>,
+    created_at: String,
+    unread: bool,
+}
+
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationPage {
+    latest_post_created_at: Option<String>,
+    items: Vec<Notification>,
+    next_cursor: String,
+}
+
+impl From<ente_space::NotificationPage> for NotificationPage {
+    fn from(page: ente_space::NotificationPage) -> Self {
+        Self {
+            latest_post_created_at: page.latest_post_created_at,
+            items: page
+                .items
+                .into_iter()
+                .map(|item| Notification {
+                    notification_id: item.notification_id,
+                    notification_ids: item.notification_ids,
+                    kind: item.kind,
+                    actors: item.actors.into_iter().map(Into::into).collect(),
+                    actor_count: item.actor_count,
+                    post_id: item.post_id,
+                    friend_request_id: item.friend_request_id,
+                    created_at: item.created_at,
+                    unread: item.unread,
+                })
+                .collect(),
+            next_cursor: page.next_cursor,
+        }
+    }
+}
+
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
 pub struct MessageResponse {
     message_id: String,
     kind: String,
@@ -442,7 +488,6 @@ impl From<ente_space::ConversationChatSummary> for ConversationChatSummaryRespon
 #[serde(rename_all = "camelCase")]
 pub struct ConversationsResponse {
     friends: Vec<SpaceFriendResponse>,
-    pending_requests: Vec<SpaceFriendRequestResponse>,
     chat_summaries: BTreeMap<String, ConversationChatSummaryResponse>,
     latest_post_created_at: Option<String>,
 }
@@ -451,11 +496,6 @@ impl From<ente_space::Conversations> for ConversationsResponse {
     fn from(conversations: ente_space::Conversations) -> Self {
         Self {
             friends: conversations.friends.into_iter().map(Into::into).collect(),
-            pending_requests: conversations
-                .pending_requests
-                .into_iter()
-                .map(Into::into)
-                .collect(),
             chat_summaries: conversations
                 .chat_summaries
                 .into_iter()
@@ -1148,6 +1188,39 @@ impl SpaceAccountCtxHandle {
         PostPage::from(page).into_js().map_err(Into::into)
     }
 
+    #[wasm_bindgen(js_name = listNotifications)]
+    pub async fn list_notifications(
+        &self,
+        space_id: String,
+        cursor: Option<String>,
+        limit: Option<i32>,
+    ) -> Result<<NotificationPage as Tsify>::JsType, Error> {
+        NotificationPage::from(
+            self.inner
+                .list_notifications(&space_id, cursor, limit)
+                .await?,
+        )
+        .into_js()
+        .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = notificationsUnread)]
+    pub async fn notifications_unread(&self, space_id: String) -> Result<bool, Error> {
+        Ok(self.inner.notifications_unread(&space_id).await?)
+    }
+
+    #[wasm_bindgen(js_name = markNotificationItemsRead)]
+    pub async fn mark_notification_items_read(
+        &self,
+        space_id: String,
+        notification_ids: Vec<String>,
+    ) -> Result<(), Error> {
+        self.inner
+            .mark_notification_items_read(&space_id, notification_ids)
+            .await?;
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = unreadStatus)]
     pub async fn unread_status(
         &self,
@@ -1391,9 +1464,12 @@ impl SpaceAccountCtxHandle {
         &self,
         sender_space_id: String,
         space_id: String,
-    ) -> Result<<MessageResponse as Tsify>::JsType, Error> {
-        let message = self.inner.send_poke(&sender_space_id, &space_id).await?;
-        MessageResponse::from(message).into_js().map_err(Into::into)
+        client_request_id: String,
+    ) -> Result<(), Error> {
+        Ok(self
+            .inner
+            .send_poke(&sender_space_id, &space_id, &client_request_id)
+            .await?)
     }
 
     #[wasm_bindgen(js_name = replyToMessage)]

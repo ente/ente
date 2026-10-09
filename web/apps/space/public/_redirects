@@ -3,6 +3,7 @@
 /app/friends    /app/friends    200
 /app/messages    /app/messages    200
 /app/messages/*    /app/messages/[spaceId]    200
+/app/notifications    /app/notifications    200
 /app/posts/*    /app/posts/[spaceId]/[postId]    200
 /app/profile    /app/profile    200
 /app/profile/cover    /app/profile/cover    200

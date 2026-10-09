@@ -23,6 +23,16 @@ description: Frequently asked questions about Ente Auth
 4. Enter the account name, issuer, and secret (setup key).
 5. Save and verify the generated code.
 
+### What should I enter in the Secret field when adding a code manually? {#manual-secret-field}
+
+Enter the two-factor setup key provided by the service you are securing. It is not your login password or Ente password.
+
+1. On the service's two-factor setup page, look for **Show setup key** or **Can't scan?**
+2. In Ente Auth, choose **Enter details manually** and enter that setup key in **Secret**.
+3. Save the entry and enter the code Ente Auth generates on the service's setup page to verify it.
+
+Keep the setup key private.
+
 ### Why does Ente Auth say "No QR code found in image"? {#qr-code-not-scanning}
 
 If the QR code is sharp and high-resolution but Ente Auth still won't scan it, the most likely cause is that the service is using a QR format Ente Auth doesn't recognise. Some sites embed proprietary or non-standard data instead of the standard `otpauth://` URI that authenticator apps expect.
@@ -119,6 +129,8 @@ No, Ente Auth does not require an account. You can choose to use the app without
 You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account.
 
 Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you delete your account (irrespective of which app you delete it from) since Photos, Auth, and Locker use the same underlying account.
+
+If you want to stop using only one app, see [Will deleting my Ente Auth or Locker account also delete my Photos account?](/photos/faq/security-and-privacy#shared-account-deletion).
 
 To know details of how your data is deleted, including when you delete your account, please see https://ente.com/blog/how-ente-deletes-data/.
 

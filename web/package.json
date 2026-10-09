@@ -55,8 +55,8 @@
         "test": "npm run test --workspace ente-wasm-tests && npm run test --workspace ente-prelogin-wasm && npm run test --workspace ente-locker-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace locker && npm run test --workspace paste && npm run test --workspace photos && npm run test --workspace space"
     },
     "overrides": {
-        "@types/react": "19.2.17",
-        "@types/react-dom": "19.2.3",
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
         "base-x": "5.0.1",
         "concurrently": {
             "shell-quote": "1.11.0"
@@ -69,10 +69,10 @@
         }
     },
     "devDependencies": {
-        "concurrently": "10.0.4",
-        "eslint": "10.4.1",
+        "concurrently": "10.0.5",
+        "eslint": "10.11.0",
         "knip": "6.31.0",
-        "prettier": "3.8.3",
+        "prettier": "3.9.9",
         "typescript": "6.0.3"
     },
     "packageManager": "npm@11.12.1"

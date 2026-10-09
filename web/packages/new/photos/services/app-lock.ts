@@ -724,9 +724,7 @@ export const attemptUnlock = async (input: string): Promise<UnlockResult> => {
 };
 
 export type ReauthenticateWithAppLockResult =
-    | "authenticated"
-    | "cancelled"
-    | "fallback";
+    "authenticated" | "cancelled" | "fallback";
 
 export const reauthenticateWithAppLock =
     async (): Promise<ReauthenticateWithAppLockResult> => {

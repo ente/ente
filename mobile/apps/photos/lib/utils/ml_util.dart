@@ -799,82 +799,10 @@ Future<MLResult> analyzeImageRust(Map args) async {
     final bool runFaces = args["runFaces"] as bool;
     final bool runClip = args["runClip"] as bool;
     final bool runPets = args["runPets"] as bool? ?? false;
-    final String? faceDetectionModelPath =
-        args["faceDetectionModelPath"] as String?;
-    final String? faceEmbeddingModelPath =
-        args["faceEmbeddingModelPath"] as String?;
-    final String? clipImageModelPath = args["clipImageModelPath"] as String?;
-    final String? petFaceDetectionModelPath =
-        args["petFaceDetectionModelPath"] as String?;
-    final String? petFaceEmbeddingDogModelPath =
-        args["petFaceEmbeddingDogModelPath"] as String?;
-    final String? petFaceEmbeddingCatModelPath =
-        args["petFaceEmbeddingCatModelPath"] as String?;
-    final String? petBodyDetectionModelPath =
-        args["petBodyDetectionModelPath"] as String?;
-    final String? petBodyEmbeddingDogModelPath =
-        args["petBodyEmbeddingDogModelPath"] as String?;
-    final String? petBodyEmbeddingCatModelPath =
-        args["petBodyEmbeddingCatModelPath"] as String?;
-    bool isMissingModelPath(String? path) =>
-        path == null || path.trim().isEmpty;
-    final missingModelPaths = <String>[];
-    if (runFaces) {
-      if (isMissingModelPath(faceDetectionModelPath)) {
-        missingModelPaths.add("faceDetectionModelPath");
-      }
-      if (isMissingModelPath(faceEmbeddingModelPath)) {
-        missingModelPaths.add("faceEmbeddingModelPath");
-      }
-    }
-    if (runClip && isMissingModelPath(clipImageModelPath)) {
-      missingModelPaths.add("clipImageModelPath");
-    }
-    if (runPets) {
-      if (isMissingModelPath(petFaceDetectionModelPath)) {
-        missingModelPaths.add("petFaceDetectionModelPath");
-      }
-      if (isMissingModelPath(petFaceEmbeddingDogModelPath)) {
-        missingModelPaths.add("petFaceEmbeddingDogModelPath");
-      }
-      if (isMissingModelPath(petFaceEmbeddingCatModelPath)) {
-        missingModelPaths.add("petFaceEmbeddingCatModelPath");
-      }
-      if (isMissingModelPath(petBodyDetectionModelPath)) {
-        missingModelPaths.add("petBodyDetectionModelPath");
-      }
-      if (isMissingModelPath(petBodyEmbeddingDogModelPath)) {
-        missingModelPaths.add("petBodyEmbeddingDogModelPath");
-      }
-      if (isMissingModelPath(petBodyEmbeddingCatModelPath)) {
-        missingModelPaths.add("petBodyEmbeddingCatModelPath");
-      }
-    }
-    if (missingModelPaths.isNotEmpty) {
-      throw Exception(
-        "RustMLMissingModelPath: Missing required model paths: ${missingModelPaths.join(', ')}",
-      );
-    }
-
-    // The Rust runtime creates sessions lazily, so configure execution
-    // behavior here as well in case the runtime was not prepared explicitly
-    // in this isolate.
     await rust_ml.setMlExecutionConfig(
       enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
     );
 
-    final modelPaths = rust_ml.RustModelPaths(
-      faceDetection: faceDetectionModelPath ?? "",
-      faceEmbedding: faceEmbeddingModelPath ?? "",
-      clipImage: clipImageModelPath ?? "",
-      clipText: "",
-      petFaceDetection: petFaceDetectionModelPath ?? "",
-      petFaceEmbeddingDog: petFaceEmbeddingDogModelPath ?? "",
-      petFaceEmbeddingCat: petFaceEmbeddingCatModelPath ?? "",
-      petBodyDetection: petBodyDetectionModelPath ?? "",
-      petBodyEmbeddingDog: petBodyEmbeddingDogModelPath ?? "",
-      petBodyEmbeddingCat: petBodyEmbeddingCatModelPath ?? "",
-    );
     Future<rust_ml.AnalyzeImageResult> runRustAnalyzeForPath(
       String analyzePath,
     ) {
@@ -885,7 +813,7 @@ Future<MLResult> analyzeImageRust(Map args) async {
           runFaces: runFaces,
           runClip: runClip,
           runPets: runPets,
-          modelPaths: modelPaths,
+          assetsDir: args["assetsDir"] as String,
         ),
       );
     }
@@ -894,6 +822,8 @@ Future<MLResult> analyzeImageRust(Map args) async {
     rust_ml.AnalyzeImageResult rustResult;
     try {
       rustResult = await runRustAnalyzeForPath(imagePath);
+    } on rust_ml.RustMlError_ModelDownloadNetwork catch (e) {
+      throw ModelDownloadNetworkException(e.message);
     } catch (e, s) {
       if (!_isRustImageIssue(e)) {
         if (_isRustCorruptModelIssue(e)) {
@@ -1022,7 +952,7 @@ Future<MLResult> analyzeImageRust(Map args) async {
 
     return result;
   } catch (e, s) {
-    if (isExpectedMlSkipError(e)) {
+    if (e is ModelDownloadNetworkException || isExpectedMlSkipError(e)) {
       rethrow;
     }
     _logger.severe("Could not analyze image with Rust pipeline", e, s);

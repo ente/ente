@@ -68,24 +68,20 @@ func upsertFriendShare(ctx context.Context, execer friendShareExecer, share frie
 	return stacktrace.Propagate(err, "")
 }
 
-func insertFriendAddedActivityTx(ctx context.Context, tx *sql.Tx, senderSpaceID string, recipientSpaceID string) (int64, error) {
-	var createdAt int64
-	if err := tx.QueryRowContext(ctx, `
-		INSERT INTO space_messages (
-			message_id,
-			sender_space_id,
-			recipient_space_id,
-			kind
-		)
-		VALUES ($1, $2, $3, 'friend_added')
-		RETURNING created_at
-	`, base.MustNewID("wmsg"), senderSpaceID, recipientSpaceID).Scan(&createdAt); err != nil {
-		return 0, stacktrace.Propagate(err, "")
+func completeFriendRequestNotificationsTx(ctx context.Context, tx *sql.Tx, actorSpaceID string, recipientSpaceID string) error {
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE space_notifications
+		SET kind = 'friend_accepted', friend_request_id = NULL,
+		    created_at = now_utc_micro_seconds(), read_at = now_utc_micro_seconds()
+		WHERE kind = 'friend_request' AND recipient_space_id = $1 AND actor_space_id = $2
+	`, actorSpaceID, recipientSpaceID); err != nil {
+		return stacktrace.Propagate(err, "")
 	}
-	if err := upsertNotificationReadMarker(ctx, tx, senderSpaceID, recipientSpaceID, createdAt); err != nil {
-		return 0, err
-	}
-	return createdAt, nil
+	_, err := tx.ExecContext(ctx, `
+		INSERT INTO space_notifications (notification_id, recipient_space_id, actor_space_id, kind)
+		VALUES ($1, $2, $3, 'friend_accepted')
+	`, base.MustNewID("wnot"), recipientSpaceID, actorSpaceID)
+	return stacktrace.Propagate(err, "")
 }
 
 func (r *FriendsRepository) CreateFriendRequest(ctx context.Context, requesterID int64, requesterSpaceID string, targetSpaceID string, requesterFriendSealedSpaceKey []byte, requesterKeyVersion int) (*SpaceFriendRequestRecord, bool, bool, error) {
@@ -195,11 +191,11 @@ func (r *FriendsRepository) CreateFriendRequest(ctx context.Context, requesterID
 		); err != nil {
 			return nil, false, false, err
 		}
+		if err := completeFriendRequestNotificationsTx(ctx, tx, requesterSpaceID, targetSpaceID); err != nil {
+			return nil, false, false, err
+		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM space_friend_requests WHERE request_id = $1`, reverse.RequestID); err != nil {
 			return nil, false, false, stacktrace.Propagate(err, "")
-		}
-		if _, err := insertFriendAddedActivityTx(ctx, tx, requesterSpaceID, targetSpaceID); err != nil {
-			return nil, false, false, err
 		}
 		reverse.RequesterID = targetOwnerID
 		reverse.RequesterSpaceID = targetSpaceID
@@ -244,6 +240,12 @@ func (r *FriendsRepository) CreateFriendRequest(ctx context.Context, requesterID
 			VALUES ($1, $2, $3, $4)
 			RETURNING request_id, created_at
 		`, requesterSpaceID, targetSpaceID, requesterFriendSealedSpaceKey, requesterKeyVersion).Scan(&rec.RequestID, &rec.CreatedAt); err != nil {
+		return nil, false, false, stacktrace.Propagate(err, "")
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO space_notifications (notification_id, recipient_space_id, actor_space_id, kind, friend_request_id, created_at)
+		VALUES ($1, $2, $3, 'friend_request', $4, $5)
+	`, base.MustNewID("wnot"), targetSpaceID, requesterSpaceID, rec.RequestID, rec.CreatedAt); err != nil {
 		return nil, false, false, stacktrace.Propagate(err, "")
 	}
 	rec.RequesterID = requesterID
@@ -383,17 +385,17 @@ func (r *FriendsRepository) ConfirmFriendRequest(ctx context.Context, targetSpac
 		return 0, false, err
 	}
 
+	if !alreadyFriends {
+		if err := completeFriendRequestNotificationsTx(ctx, tx, targetSpaceID, requesterSpaceID); err != nil {
+			return 0, false, err
+		}
+	}
 	if _, err := tx.ExecContext(ctx, `
 		DELETE FROM space_friend_requests
 		WHERE request_id = $1
 		   OR (requester_space_id = $2 AND target_space_id = $3)
 	`, requestID, targetSpaceID, requesterSpaceID); err != nil {
 		return 0, false, stacktrace.Propagate(err, "")
-	}
-	if !alreadyFriends {
-		if _, err := insertFriendAddedActivityTx(ctx, tx, targetSpaceID, requesterSpaceID); err != nil {
-			return 0, false, err
-		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -495,6 +497,12 @@ func (r *FriendsRepository) DeleteFriendship(ctx context.Context, actorSpaceID s
 		WHERE (space_id = $1 AND friend_space_id = $2)
 		   OR (space_id = $2 AND friend_space_id = $1)
 	`, targetSpaceID, actorSpaceID); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM space_notifications WHERE kind IN ('friend_accepted', 'poke')
+		AND ((recipient_space_id = $1 AND actor_space_id = $2) OR (recipient_space_id = $2 AND actor_space_id = $1))
+	`, actorSpaceID, targetSpaceID); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	return stacktrace.Propagate(tx.Commit(), "")

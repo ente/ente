@@ -222,6 +222,7 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
         initial: widget.savedThemeMode ?? AdaptiveThemeMode.system,
         builder: (lightTheme, dartTheme) => MaterialApp(
           navigatorKey: AppNavigationService.instance.navigatorKey,
+          navigatorObservers: [AppNavigationService.instance.routeObserver],
           title: "ente",
           themeMode: ThemeMode.system,
           theme: lightTheme,

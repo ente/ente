@@ -8,6 +8,7 @@ import { SpacePublicProfileNotificationControl } from "components/PublicProfileN
 import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
 import React, { useEffect, useMemo, useState } from "react";
+import { FriendRequestScreen } from "screens/FriendRequestScreen";
 import { OnboardingScreen, onboardingGreen } from "screens/OnboardingScreen";
 import { ProfileScreen } from "screens/ProfileScreen";
 import {
@@ -26,6 +27,7 @@ import {
     type SpaceInviteRoute,
 } from "services/invite";
 import {
+    clearSpaceFriendsCache,
     loadCurrentSpaceRelationship,
     loadPublicSpaceIdentity,
     openPublicSpaceLink,
@@ -602,8 +604,11 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
             <>
                 <SpacePageMeta
                     themeColor={
-                        publicLink ? spaceAppBackgroundColor : "#FFFFFF"
+                        publicLink || profile
+                            ? spaceAppBackgroundColor
+                            : "#FFFFFF"
                     }
+                    title={profile && !publicLink ? "Add friend" : undefined}
                     preview="invite"
                 />
                 {publicLink ? (
@@ -620,7 +625,13 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
                             onAddFriendForPostAction={(intent) =>
                                 void addFriend(intent)
                             }
-                            onBack={() => window.location.assign("/")}
+                            onBack={() =>
+                                void router.back(
+                                    profile
+                                        ? spaceRoutes.home
+                                        : spaceRoutes.onboarding,
+                                )
+                            }
                             onCreateSpace={createSpace}
                             onLoadPostImage={publicLink.loadPostImage}
                             postItems={publicPostItems}
@@ -637,6 +648,25 @@ export const Page: React.FC<PageProps> = ({ invitePreview }) => {
                         />
                         {!profile && <SpaceMobileBestToast />}
                     </>
+                ) : profile ? (
+                    <FriendRequestScreen
+                        key={publicIdentity.spaceId}
+                        username={publicIdentity.username}
+                        onBack={() => void router.back(spaceRoutes.friends)}
+                        onAddFriend={async () => {
+                            const status = await requestFriendByUsername({
+                                spaceUsername: publicIdentity.username,
+                            });
+                            clearPendingSpaceInvite();
+                            clearPendingSpaceInviteFriend();
+                            clearPendingSpaceInviteIntent();
+                            if (status == "friend") {
+                                clearSpaceFriendsCache();
+                                setAuthenticatedProfileRoute("friend");
+                            }
+                            return status;
+                        }}
+                    />
                 ) : (
                     <PublicFriendRequestScreen
                         identity={publicIdentity}

@@ -7,6 +7,9 @@ final _logger = Logger('PlainTextImportParser');
 
 List<Code> parsePlainTextImport(String content) {
   final trimmedContent = content.trim();
+  if (trimmedContent.isEmpty) {
+    return [];
+  }
   if (trimmedContent.startsWith('otpauth://')) {
     return _parseOTPAuthCodes(trimmedContent);
   }

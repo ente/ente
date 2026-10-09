@@ -549,9 +549,7 @@ export const FileList: React.FC<FileListProps> = ({
                         ? { mode: "people" as const, personID: activePersonID }
                         : {
                               mode: (mode ?? "albums") as
-                                  | "albums"
-                                  | "hidden-albums"
-                                  | "archive-albums",
+                                  "albums" | "hidden-albums" | "archive-albums",
                               collectionID: activeCollectionID,
                           };
                 setSelected({

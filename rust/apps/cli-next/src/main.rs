@@ -1,5 +1,6 @@
 mod api;
 mod args;
+mod auth;
 mod core_db;
 mod db;
 mod export;
@@ -16,7 +17,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail, ensure};
-use clap::Parser;
+use clap::{Arg, ArgAction, CommandFactory, FromArgMatches};
 use ente_core::{b64, crypto::Key};
 use serde::de::DeserializeOwned;
 use serde_json::json;
@@ -31,10 +32,45 @@ use vault::{State, Vault};
 
 #[tokio::main]
 async fn main() {
-    if let Err(error) = run(Cli::parse()).await {
+    let mut command = Cli::command().subcommand_required(false).arg(
+        Arg::new("help-all")
+            .long("help-all")
+            .action(ArgAction::SetTrue)
+            .help("Print help for all commands"),
+    );
+    let matches = command.get_matches_mut();
+    let result = if matches.get_flag("help-all") {
+        command.build();
+        print_all_help(&mut command, &mut std::io::stdout().lock())
+    } else {
+        let cli = Cli::from_arg_matches(&matches)
+            .unwrap_or_else(|error| error.format(&mut command).exit());
+        run(cli).await
+    };
+    if let Err(error) = result {
         eprintln!("Error: {error:#}");
         std::process::exit(1);
     }
+}
+
+fn print_all_help(command: &mut clap::Command, output: &mut impl Write) -> Result<()> {
+    writeln!(
+        output,
+        "=== {} ===",
+        command.get_bin_name().unwrap_or_else(|| command.get_name())
+    )?;
+    writeln!(output, "{}", command.render_long_help())?;
+    let mut children: Vec<_> = command
+        .get_subcommands_mut()
+        .filter(|child| !child.is_hide_set() && child.get_name() != "help")
+        .collect();
+    children.sort_by(|a, b| {
+        (a.get_display_order(), a.get_name()).cmp(&(b.get_display_order(), b.get_name()))
+    });
+    for child in children {
+        print_all_help(child, output)?;
+    }
+    Ok(())
 }
 
 async fn run(cli: Cli) -> Result<()> {
@@ -66,13 +102,7 @@ async fn run(cli: Cli) -> Result<()> {
             .await
         }
         Command::Auth { selector, command } => {
-            session(
-                Product::Auth,
-                command,
-                selector.account.as_deref(),
-                &options,
-            )
-            .await
+            auth::run(command, selector.account.as_deref(), &options).await
         }
         Command::Accounts { command } => account_command(command, &options).await,
         Command::Vault {
@@ -107,7 +137,7 @@ async fn session(
             api::raw(&state.accounts[index], product, args).await
         }
         SessionCommand::Login(args) => {
-            let (state, index) = login::login(product, args, selected).await?;
+            let (state, index) = login::login(product, args, selected, options).await?;
             let account = AccountView::new(&state.accounts[index], state.selected);
             if options.json {
                 output::json(&json!({ "account": account, "product": product }))
@@ -287,11 +317,14 @@ fn output_account(state: State, index: usize, json_output: bool) -> Result<()> {
 fn read_input(path: &Path) -> Result<Zeroizing<Vec<u8>>> {
     let mut bytes = Zeroizing::new(Vec::new());
     if path == Path::new("-") {
-        std::io::stdin().read_to_end(&mut bytes)?;
+        std::io::stdin()
+            .read_to_end(&mut bytes)
+            .context("cannot read stdin")?;
     } else {
         std::fs::File::open(path)
             .with_context(|| format!("cannot open {}", path.display()))?
-            .read_to_end(&mut bytes)?;
+            .read_to_end(&mut bytes)
+            .with_context(|| format!("cannot read {}", path.display()))?;
     }
     Ok(bytes)
 }

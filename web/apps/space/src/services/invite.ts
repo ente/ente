@@ -90,8 +90,7 @@ export const savePendingSpaceInviteIntent = (intent: SpaceInviteIntent) => {
 };
 
 export const savedPendingSpaceInviteIntent = ():
-    | SpaceInviteIntent
-    | undefined => {
+    SpaceInviteIntent | undefined => {
     const intent = sessionStorage.getItem(pendingSpaceInviteIntentKey);
     return intent == "like" || intent == "reply" ? intent : undefined;
 };

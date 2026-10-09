@@ -536,12 +536,19 @@ func (repo *CollectionRepository) Share(
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	_, err = tx.ExecContext(context, `UPDATE collections SET updation_time = $1 WHERE collection_id = $2`, updationTime, collectionID)
+	result, err := tx.ExecContext(context, `UPDATE collections SET updation_time = $1
+		WHERE collection_id = $2 AND is_deleted = FALSE`, updationTime, collectionID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	err = tx.Commit()
-	return stacktrace.Propagate(err, "")
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if updated == 0 {
+		return stacktrace.Propagate(ente.ErrCollectionDeleted, "")
+	}
+	return stacktrace.Propagate(tx.Commit(), "")
 }
 
 func (repo *CollectionRepository) BatchShare(

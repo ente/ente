@@ -63,7 +63,7 @@ const Page: React.FC = () => {
             <LoginScreen
                 errorMessage={loginError}
                 isSubmitting={isSubmitting}
-                onBack={() => void router.push(spaceRoutes.onboarding)}
+                onBack={() => void router.back(spaceRoutes.onboarding)}
                 onContinue={async (credentials) => {
                     setIsSubmitting(true);
                     setLoginError(undefined);

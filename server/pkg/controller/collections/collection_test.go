@@ -81,6 +81,9 @@ func TestGetCollectionPointResponsesForViewer(t *testing.T) {
 	if castCollection.MagicMetadata != nil || castCollection.PublicMagicMetadata == nil {
 		t.Fatalf("cast metadata = (%+v, %+v)", castCollection.MagicMetadata, castCollection.PublicMagicMetadata)
 	}
+	if castCollection.PublicURLs == nil || len(castCollection.PublicURLs) != 0 {
+		t.Fatalf("cast public URLs = %#v, want empty array", castCollection.PublicURLs)
+	}
 }
 
 func TestGetFileForViewer(t *testing.T) {

@@ -111,7 +111,9 @@ class SettingsWidget extends StatelessWidget {
         onVersionTap: () => _openChangeLog(context),
       ),
       if (hasLoggedIn &&
-          (FeatureFlagService.instance.internalUser || kDebugMode)) ...[
+          (FeatureFlagService.instance.internalUser ||
+              FeatureFlagService.instance.isInternalUserDisabled ||
+              kDebugMode)) ...[
         SettingsItem(
           icon: HugeIcons.strokeRoundedBug02,
           title: "Debug",

@@ -24,7 +24,6 @@ import "package:photos/models/gallery_type.dart";
 import 'package:photos/models/selected_files.dart';
 import "package:photos/service_locator.dart" show localSettings;
 import "package:photos/settings/local_settings.dart" show GalleryLayoutType;
-import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/group_header_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/type.dart";
@@ -41,7 +40,6 @@ import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart
 import "package:photos/ui/viewer/gallery/swipe_selection_wrapper.dart";
 import "package:photos/ui/viewer/gallery/swipe_to_select_helper.dart";
 import "package:photos/utils/hierarchical_search_util.dart";
-import "package:photos/utils/misc_util.dart";
 import "package:photos/utils/widget_util.dart";
 
 typedef GalleryLoader =
@@ -80,6 +78,7 @@ class Gallery extends StatefulWidget {
   final Duration priorityReloadDebounceTime;
   final GalleryType? galleryType;
   final bool showGallerySettingsCTA;
+  final Widget? groupHeaderAction;
   final GalleryLayoutType? layoutTypeOverride;
 
   // Return null to force a full reload.
@@ -133,6 +132,7 @@ class Gallery extends StatefulWidget {
     this.galleryType,
     this.disableVerticalPaddingForScrollbar = false,
     this.showGallerySettingsCTA = false,
+    this.groupHeaderAction,
     this.layoutTypeOverride,
     this.fileToJumpTo,
     this.newLocalFilesResolver,
@@ -170,7 +170,7 @@ class GalleryState extends State<Gallery> {
   final _scrollController = ScrollController();
   final _headerKey = GlobalKey();
   final _headerHeightNotifier = ValueNotifier<double?>(null);
-  final miscUtil = MiscUtil();
+  Timer? _headerHeightRetryTimer;
   final scrollBarInUseNotifier = ValueNotifier<bool>(false);
   late GroupType _groupType;
   final scrollbarBottomPaddingNotifier = ValueNotifier<double>(0);
@@ -329,22 +329,10 @@ class GalleryState extends State<Gallery> {
       });
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _selectedFilesListener();
-      try {
-        final headerRenderBox = await miscUtil
-            .getNonNullValueWithRetry(
-              () => _headerKey.currentContext?.findRenderObject(),
-              retryInterval: const Duration(milliseconds: 750),
-              id: "headerRenderBox",
-            )
-            .then((value) => value as RenderBox);
-
-        _headerHeightNotifier.value = headerRenderBox.size.height;
-      } catch (e, s) {
-        _logger.warning("Error getting renderBox offset", e, s);
-      }
-      setState(() {});
+      _measureHeaderHeight();
     });
 
     widget.selectedFiles?.addListener(_selectedFilesListener);
@@ -380,7 +368,17 @@ class GalleryState extends State<Gallery> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(context);
-    _boundariesProvider = GalleryBoundariesProvider.of(context);
+    final boundaries = GalleryBoundariesProvider.of(context);
+    if (_boundariesProvider != boundaries) {
+      _boundariesProvider?.selectionSheetMinHeightNotifier.removeListener(
+        _selectedFilesListener,
+      );
+      _boundariesProvider = boundaries;
+      _boundariesProvider?.selectionSheetMinHeightNotifier.addListener(
+        _selectedFilesListener,
+      );
+    }
+    _selectedFilesListener();
   }
 
   void _updateGalleryGroups({bool callSetState = true}) {
@@ -396,6 +394,7 @@ class GalleryState extends State<Gallery> {
       showSelectAll: widget.showSelectAll,
       limitSelectionToOne: widget.limitSelectionToOne,
       showGallerySettingsCTA: widget.showGallerySettingsCTA,
+      groupHeaderAction: widget.groupHeaderAction,
       layoutTypeOverride: widget.layoutTypeOverride,
       justifiedLayoutAvailable: isJustifiedLayoutAvailable,
     );
@@ -498,10 +497,12 @@ class GalleryState extends State<Gallery> {
   void _selectedFilesListener() {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final extra = widget.galleryType == GalleryType.homepage ? 76.0 : 0.0;
-    widget.selectedFiles?.files.isEmpty ?? true
-        ? scrollbarBottomPaddingNotifier.value = bottomInset + extra
-        : scrollbarBottomPaddingNotifier.value =
-              FileSelectionOverlayBar.roughHeight + bottomInset;
+    final minHeight =
+        _boundariesProvider?.selectionSheetMinHeightNotifier.value;
+    scrollbarBottomPaddingNotifier.value =
+        (widget.selectedFiles?.files.isNotEmpty ?? false) && minHeight != null
+        ? minHeight
+        : bottomInset + extra;
   }
 
   void _setGroupType() {
@@ -739,7 +740,13 @@ class GalleryState extends State<Gallery> {
 
   @override
   void dispose() {
-    _boundariesProvider?.setScrollController(null);
+    _boundariesProvider?.selectionSheetMinHeightNotifier.removeListener(
+      _selectedFilesListener,
+    );
+    if (_boundariesProvider?.scrollControllerNotifier.value ==
+        _scrollController) {
+      _boundariesProvider?.setScrollController(null);
+    }
 
     _reloadEventSubscription?.cancel();
     _layoutChangeSubscription?.cancel();
@@ -751,12 +758,31 @@ class GalleryState extends State<Gallery> {
     _priorityDebouncer.cancelDebounceTimer();
     _scrollController.dispose();
     scrollBarInUseNotifier.dispose();
+    _headerHeightRetryTimer?.cancel();
     _headerHeightNotifier.dispose();
     widget.selectedFiles?.removeListener(_selectedFilesListener);
     scrollbarBottomPaddingNotifier.dispose();
     _swipeHelper?.dispose();
     _swipeActiveNotifier.dispose();
     super.dispose();
+  }
+
+  void _measureHeaderHeight() {
+    if (!mounted) return;
+    try {
+      final renderBox = _headerKey.currentContext?.findRenderObject();
+      if (renderBox is! RenderBox || !renderBox.hasSize) {
+        _headerHeightRetryTimer = Timer(
+          const Duration(milliseconds: 750),
+          _measureHeaderHeight,
+        );
+        return;
+      }
+      _headerHeightNotifier.value = renderBox.size.height;
+    } catch (e, s) {
+      _logger.warning("Error getting renderBox offset", e, s);
+    }
+    if (mounted) setState(() {});
   }
 
   double get _headerHeight {
@@ -1001,7 +1027,27 @@ class GalleryState extends State<Gallery> {
                                 SectionedListSliver(
                                   sectionLayouts: groups.groupLayouts,
                                 ),
-                                SliverToBoxAdapter(child: widget.footer),
+                                SliverToBoxAdapter(
+                                  child: ValueListenableBuilder<double>(
+                                    valueListenable:
+                                        scrollbarBottomPaddingNotifier,
+                                    builder: (context, height, child) =>
+                                        ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            minHeight:
+                                                (widget
+                                                        .selectedFiles
+                                                        ?.files
+                                                        .isNotEmpty ??
+                                                    false)
+                                                ? height
+                                                : 0,
+                                          ),
+                                          child: child,
+                                        ),
+                                    child: widget.footer,
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -1022,6 +1068,7 @@ class GalleryState extends State<Gallery> {
                               scrollbarInUseNotifier: scrollBarInUseNotifier,
                               showGallerySettingsCTA:
                                   widget.showGallerySettingsCTA,
+                              groupHeaderAction: widget.groupHeaderAction,
                             )
                           : const SizedBox.shrink(),
                     ],
@@ -1071,6 +1118,7 @@ class PinnedGroupHeader extends StatefulWidget {
   final bool showSelectAll;
   final ValueNotifier<bool> scrollbarInUseNotifier;
   final bool showGallerySettingsCTA;
+  final Widget? groupHeaderAction;
   static const kScaleDurationInMilliseconds = 200;
   static const kTrailingIconsFadeInDelayMs = 0;
   static const kTrailingIconsFadeInDurationMs = 200;
@@ -1085,6 +1133,7 @@ class PinnedGroupHeader extends StatefulWidget {
     required this.showSelectAll,
     required this.scrollbarInUseNotifier,
     required this.showGallerySettingsCTA,
+    required this.groupHeaderAction,
     super.key,
   });
 
@@ -1301,6 +1350,7 @@ class _PinnedGroupHeaderState extends State<PinnedGroupHeader>
                           showSelectAll: widget.showSelectAll,
                           showGalleryLayoutSettingCTA:
                               widget.showGallerySettingsCTA,
+                          action: widget.groupHeaderAction,
                           showTrailingIcons: !inUse,
                           isPinnedHeader: true,
                           fadeInTrailingIcons: fadeInTrailingIcons,

@@ -338,29 +338,42 @@ func (repo *UserAuthRepository) RemoveTokensForApps(userID int64, apps []ente.Ap
 }
 
 func (repo *UserAuthRepository) markTokensDeleted(query string, args ...interface{}) ([]RevokedToken, error) {
-	return markTokensDeleted(repo.DB, query, args...)
+	tx, err := repo.DB.Begin()
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+	tokens, err := markTokensDeleted(tx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	return tokens, nil
 }
 
-type rowsQueryer interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-}
-
-func markTokensDeleted(queryer rowsQueryer, query string, args ...interface{}) ([]RevokedToken, error) {
-	rows, err := queryer.Query(query, args...)
+func markTokensDeleted(tx *sql.Tx, query string, args ...interface{}) ([]RevokedToken, error) {
+	rows, err := tx.Query(query, args...)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	defer rows.Close()
 
 	tokens := make([]RevokedToken, 0)
+	var hashes pq.ByteaArray
 	for rows.Next() {
 		var token RevokedToken
 		if err = rows.Scan(&token.App, &token.TokenHash); err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
 		tokens = append(tokens, token)
+		hashes = append(hashes, token.TokenHash)
 	}
 	if err = rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	if _, err = tx.Exec(`DELETE FROM push_tokens WHERE session_token_hash = ANY($1)`, hashes); err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	return tokens, nil

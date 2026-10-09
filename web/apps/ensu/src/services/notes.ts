@@ -5,12 +5,7 @@ export interface NotesCollection {
     id: string;
     label: string;
     status:
-        | "indexing"
-        | "updating"
-        | "ready"
-        | "pending"
-        | "unavailable"
-        | "error";
+        "indexing" | "updating" | "ready" | "pending" | "unavailable" | "error";
     indexingProgress: number | null;
     indexedDocumentCount: number;
     lastUpdatedAtMs: number | null;

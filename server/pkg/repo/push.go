@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/ente/museum/ente"
@@ -13,16 +14,34 @@ type PushTokenRepository struct {
 	DB *sql.DB
 }
 
-func (repo *PushTokenRepository) AddToken(userID int64, token ente.PushTokenRequest) error {
-	_, err := repo.DB.Exec(`INSERT INTO push_tokens(user_id, fcm_token, apns_token) VALUES($1, $2, $3) 
+func (repo *PushTokenRepository) AddToken(userID int64, sessionTokenHash []byte, token ente.PushTokenRequest) error {
+	result, err := repo.DB.Exec(`INSERT INTO push_tokens(user_id, fcm_token, apns_token, session_token_hash, platform)
+			SELECT user_id, $2, $3, token_hash, $5 FROM tokens
+			WHERE user_id = $1 AND token_hash = $4 AND is_deleted = false FOR SHARE
 			ON CONFLICT (fcm_token) DO UPDATE
-			SET apns_token = $3`,
-		userID, token.FCMToken, token.APNSToken)
-	return stacktrace.Propagate(err, "")
+			SET user_id = EXCLUDED.user_id, apns_token = EXCLUDED.apns_token, session_token_hash = EXCLUDED.session_token_hash,
+				platform = EXCLUDED.platform`,
+		userID, token.FCMToken, token.APNSToken, sessionTokenHash, token.Platform)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if count == 0 {
+		return ente.ErrAuthenticationRequired
+	}
+	return nil
 }
 
 func (repo *PushTokenRepository) GetTokensToBeNotified(lastNotificationTime int64, limit int) ([]ente.PushToken, error) {
-	rows, err := repo.DB.Query(`SELECT user_id, fcm_token, created_at, last_notified_at FROM push_tokens WHERE last_notified_at < $1 LIMIT $2`, lastNotificationTime, limit)
+	rows, err := repo.DB.Query(`SELECT p.user_id, p.fcm_token, p.created_at, p.last_notified_at FROM push_tokens p
+		WHERE p.last_notified_at < $1 AND p.platform = 'ios'
+		AND (p.session_token_hash IS NULL OR EXISTS (
+			SELECT 1 FROM tokens t WHERE t.token_hash = p.session_token_hash
+			AND t.user_id = p.user_id AND t.is_deleted = false
+		)) LIMIT $2`, lastNotificationTime, limit)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -37,6 +56,27 @@ func (repo *PushTokenRepository) GetTokensToBeNotified(lastNotificationTime int6
 		tokens = append(tokens, token)
 	}
 	return tokens, nil
+}
+
+func (repo *PushTokenRepository) GetTokensForAlbumShare(ctx context.Context, userIDs []int64) ([]ente.PushToken, error) {
+	rows, err := repo.DB.QueryContext(ctx, `SELECT p.fcm_token FROM push_tokens p
+		JOIN tokens t ON t.token_hash = p.session_token_hash AND t.user_id = p.user_id AND t.is_deleted = false AND t.app = $3
+		JOIN remote_store r ON r.user_id = p.user_id AND r.key_name = $2 AND r.key_value = 'true'
+		WHERE p.user_id = ANY($1) AND p.platform = 'android'`,
+		pq.Array(userIDs), string(ente.IsInternalUser), string(ente.Photos))
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+	var tokens []ente.PushToken
+	for rows.Next() {
+		var token ente.PushToken
+		if err := rows.Scan(&token.FCMToken); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		tokens = append(tokens, token)
+	}
+	return tokens, stacktrace.Propagate(rows.Err(), "")
 }
 
 func (repo *PushTokenRepository) SetLastNotificationTimeToNow(pushTokens []ente.PushToken) error {

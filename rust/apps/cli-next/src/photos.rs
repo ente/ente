@@ -11,7 +11,6 @@ use crate::{
     db, home,
     output::{self, AlbumView, FileView},
     replica::Replica,
-    vault::{Account, State},
 };
 
 const MAX_CANDIDATES: usize = 10;
@@ -35,7 +34,7 @@ pub async fn run(
             ),
         "original files are not stored locally; download requires network access"
     );
-    let (account, home) = open_account(selected, !options.offline)?;
+    let (account, home) = home::open_account(selected, !options.offline)?;
     let session = api::session(&account, Product::Photos)?;
     let mut db = db::open(&home.path, &account.db_key, !options.offline)?;
     let mut replica = Replica::new(&mut db, session.user_id);
@@ -198,15 +197,20 @@ async fn file(
                 .parent()
                 .filter(|p| !p.as_os_str().is_empty())
                 .unwrap_or(Path::new("."));
-            let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
+            let mut temporary = tempfile::NamedTempFile::new_in(parent)
+                .with_context(|| format!("cannot prepare download to {}", output.display()))?;
             files::download(session, file.id, &file.key, &file.header, || {
                 let file = temporary.as_file_mut();
                 file.set_len(0)?;
                 file.rewind()?;
                 file.try_clone()
             })
-            .await?;
-            temporary.as_file().sync_all()?;
+            .await
+            .with_context(|| format!("cannot download file {}", file.id))?;
+            temporary
+                .as_file()
+                .sync_all()
+                .with_context(|| format!("cannot sync download to {}", output.display()))?;
             let bytes = temporary.as_file().metadata()?.len();
             temporary
                 .persist_noclobber(&output)
@@ -221,24 +225,6 @@ async fn file(
     }?;
     ensure!(!incomplete, "file results are incomplete");
     Ok(())
-}
-
-fn open_account(selected: Option<&str>, create: bool) -> Result<(Account, home::AccountHome)> {
-    let state = State::load()?;
-    let id = state.accounts[state.resolve(selected)?].storage_id;
-    let home = home::lock_account(id, create)?;
-    let Some(account) = State::load()?
-        .accounts
-        .into_iter()
-        .find(|account| account.storage_id == id)
-    else {
-        home.for_removal()?.remove()?;
-        bail!("account was removed while waiting for access");
-    };
-    if create {
-        home::create(&home.path)?;
-    }
-    Ok((account, home))
 }
 
 fn select<T>(

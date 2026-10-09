@@ -108,7 +108,7 @@ const Page: React.FC = () => {
             <SetupProfileScreen
                 initialProfile={pendingCreateProfile}
                 onBack={() =>
-                    void router.push(
+                    void router.back(
                         backSource == "login"
                             ? spaceRoutes.login
                             : spaceRoutes.verify,

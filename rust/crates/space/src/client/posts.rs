@@ -1,6 +1,6 @@
 use super::{
-    AccountSpaceCtx, PostPhotoInput, decrypt_post_object_metadata, ensure_post_objects_supported,
-    retain_content_error,
+    AccountSpaceCtx, MESSAGE_KIND_POKE, MESSAGE_KIND_REGULAR, PostPhotoInput,
+    decrypt_post_object_metadata, ensure_post_objects_supported, retain_content_error,
 };
 use crate::crypto::{decrypt_secretbox_payload, encrypt_secretbox_payload, generate_key};
 use crate::error::{Error, Result};
@@ -10,7 +10,8 @@ use crate::models::{
 };
 use crate::transport::{
     CreatePostRequest, CreatePostResponse, LikePostResponse, PostObjectPayload, PostPageResponse,
-    PostResponse, SpaceActorResponse, SpaceUnreadStatusResponse, UpdatePostCaptionRequest,
+    PostResponse, SpaceActorResponse, SpaceUnreadStatusResponse, UnreadActivityPageResponse,
+    UpdatePostCaptionRequest,
 };
 use ente_core::{b64, http};
 
@@ -186,14 +187,51 @@ impl AccountSpaceCtx {
 
     pub async fn unread_status(&self, space_id: &str) -> Result<SpaceUnreadStatusResponse> {
         let path = format!("/spaces/{space_id}/unread");
-        Ok(self
+        let mut status: SpaceUnreadStatusResponse = self
             .api()
             .get(&path)
             .send()
             .await?
             .error_for_status()?
             .json()
-            .await?)
+            .await?;
+        if status.notifications_unread {
+            let path = format!("/spaces/{space_id}/unread/activities");
+            let mut cursor = String::new();
+            loop {
+                let page: UnreadActivityPageResponse = self
+                    .api()
+                    .get(&path)
+                    .query(&[("cursor", &cursor)])
+                    .send()
+                    .await?
+                    .error_for_status()?
+                    .json()
+                    .await?;
+                for activity in page.items {
+                    if activity.kind != MESSAGE_KIND_REGULAR
+                        || !retain_content_error(
+                            self.decrypt_message_fields(
+                                space_id,
+                                &activity.kind,
+                                &activity.encrypted_message_key,
+                                &activity.message_cipher,
+                            )
+                            .await,
+                        )?
+                        .is_ok_and(|payload| payload.kind == MESSAGE_KIND_POKE)
+                    {
+                        return Ok(status);
+                    }
+                }
+                if page.next_cursor.is_empty() {
+                    status.notifications_unread = false;
+                    break;
+                }
+                cursor = page.next_cursor;
+            }
+        }
+        Ok(status)
     }
 
     pub async fn mark_notifications_read(

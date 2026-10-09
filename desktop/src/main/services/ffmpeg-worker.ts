@@ -1,6 +1,5 @@
 import shellescape from "any-shell-escape";
 import { expose } from "comlink";
-import pathToFfmpeg from "ffmpeg-static";
 import { createHash, randomBytes } from "node:crypto";
 import fs_ from "node:fs";
 import fs from "node:fs/promises";
@@ -64,13 +63,19 @@ process.parentPort.once("message", (e) => {
 });
 
 let _desktopAppVersion: string | undefined;
+let _ffmpegPath: string | undefined;
 
 const desktopAppVersion = () => _desktopAppVersion!;
 
-const FFmpegWorkerInitData = z.object({ appVersion: z.string() });
+const FFmpegWorkerInitData = z.object({
+    appVersion: z.string(),
+    ffmpegPath: z.string(),
+});
 
 const parseInitData = (data: unknown) => {
-    _desktopAppVersion = FFmpegWorkerInitData.parse(data).appVersion;
+    const init = FFmpegWorkerInitData.parse(data);
+    _desktopAppVersion = init.appVersion;
+    _ffmpegPath = init.ffmpegPath;
 };
 
 const mainProcess = (method: string, param: unknown) =>
@@ -115,11 +120,7 @@ const substitutePlaceholders = (
         }
     });
 
-// Packaged dependencies live outside the archive at this rewritten path.
-// https://github.com/eugeneware/ffmpeg-static/issues/16
-const ffmpegBinaryPath = () => {
-    return pathToFfmpeg!.replace("app.asar", "app.asar.unpacked");
-};
+const ffmpegBinaryPath = () => _ffmpegPath!;
 
 const ffmpegConvertToMP4 = async (
     inputFilePath: string,
@@ -249,7 +250,7 @@ const ffmpegGenerateHLSPlaylistAndSegments = async (
             fs.writeFile(keyInfoPath, keyInfo, { encoding: "utf8" }),
         ]);
 
-        const commandWithRedirection = `${shellescape(command)} 2>${stderrPath}`;
+        const commandWithRedirection = `${shellescape(command)} 2>${shellescape([stderrPath])}`;
 
         await execAsyncWorker(commandWithRedirection);
 

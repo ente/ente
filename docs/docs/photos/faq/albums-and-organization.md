@@ -13,6 +13,14 @@ Open the album and select the three-dot menu, then **Edit details**. To change t
 
 See the [Albums guide](/photos/features/albums-and-organization/albums) for steps on mobile, web, and desktop.
 
+### Can I manually arrange photos and videos within an album? {#manual-album-order}
+
+Ente does not currently support dragging photos and videos into a custom order within an album. To change the order using the options available in your app:
+
+1. Open the album.
+2. Open the three-dot menu.
+3. Select **Sort by** and choose an option.
+
 ### Can Ente albums be nested? {#nested-albums}
 
 No, Ente albums cannot be nested currently. When you upload a nested folder structure using the "Separate albums" option, Ente will create a separate album for each nested folder, but these albums themselves will not be nested - they will all appear as top-level albums.
@@ -109,9 +117,11 @@ On mobile, yes. Open the **Albums** tab. Press and hold an Ente album, then sele
 
 You can select albums you own and albums shared with you.
 
+On desktop, slideshows play photos from one open album; combining multiple albums is currently supported only on mobile.
+
 ### What can I change during a slideshow? {#album-slideshow-settings}
 
-On mobile, tap the middle of the screen to show the controls. On desktop, move the pointer over the slideshow to show the controls. Then tap or click the settings button in the top-right corner. You can choose:
+On mobile, tap the middle of the screen to show the controls. On desktop, move the pointer over the slideshow to show the controls. The controls also appear when you use the left or right arrow key to change photos or the Space bar to pause or resume. Then tap or click the settings button in the top-right corner. You can choose:
 
 - **Time per photo:** 5, 10, 15, or 30 seconds; or 1, 5, or 10 minutes
 - **Photo order:** In order or Shuffle
@@ -286,6 +296,10 @@ Open the photo, tap the three dots menu (overflow menu), and select "Hide" (the 
 > [!NOTE]
 >
 > Hidden items may still appear in "On device" albums within Ente as long as they're present in your native device gallery. Once you remove them from your device, they'll stop showing up there.
+
+### Why does a photo appear in both Hidden and a hidden album? {#hidden-photo-in-album}
+
+A photo may appear in both Hidden and a hidden album if you first add it to Hidden, then choose **Add to album**. It is the same photo in both views, not a duplicate. Deleting it from either view deletes it everywhere.
 
 ### How do I archive photos in Ente? {#how-to-archive}
 

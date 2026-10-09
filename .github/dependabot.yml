@@ -99,7 +99,6 @@ updates:
         versions: ["=0.11.0"]
       # Remove after migrating the chat-template API and all platform pins.
       - dependency-name: "llama-cpp-2"
-        versions: ["=0.1.157"]
     groups:
       rust:
         applies-to: "version-updates"

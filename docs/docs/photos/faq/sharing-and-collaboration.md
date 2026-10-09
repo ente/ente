@@ -447,6 +447,16 @@ For existing album links shared while on the free plan, the device limit will no
 
 Once you upgrade to a paid plan, all future public links will have no device limit unless you set one yourself.
 
+### How do I keep the same public link and QR code after reaching the 10-device limit on the free plan? {#keep-public-link-after-device-limit}
+
+1. Upgrade the album owner's Ente account to a paid plan (the lowest tier, 50 GB monthly, is enough).
+2. Open the album and manage its existing public link.
+3. Set **Device limit** to **None**.
+
+The link URL stays the same. Only the album owner needs a paid plan; people opening the link can use free accounts.
+
+Sharing the album directly with another Ente user gives them access in the app, but scanning the QR code still uses the public link and its device limit.
+
 ### Why do emails on my feed appear masked for public links? {#masked-emails-public-links}
 
 On public links, contributor emails are masked by default to protect privacy.
@@ -608,6 +618,15 @@ If you're the owner of shared albums and your paid subscription expires:
 - You won't be able to modify existing share settings
 
 Receiving shared albums works on free accounts, so if someone shares with you, you can still access those albums even without a paid plan.
+
+### Why can't I create a public link after my subscription expires? {#expired-subscription-public-links}
+
+An expired paid subscription does not automatically switch your account to the free plan. While the account is in this expired state, you cannot create a new public link, even though active free accounts can.
+
+1. To keep your paid plan, renew your subscription.
+2. To move to the free plan, contact support during the 30-day grace period. If your storage exceeds the free plan's 10 GB limit, you will need to reduce it.
+
+Once your account has an active plan, try creating the link again. See [What happens when my subscription expires?](/photos/faq/storage-and-plans#subscription-expires) for details about the grace period.
 
 ## Security and Privacy
 

@@ -63,14 +63,8 @@ class RustMLDataDB implements IMLDataDB<int> {
     }
   }
 
-  Future<rust.FillState> fillState(rust.Index index) async {
-    final db = await store;
-    await _openIndex(db, index);
-    return db.fillState(index: index);
-  }
-
-  Future<void> _openIndex(rust.MlStore db, rust.Index index) =>
-      db.stats(index: index);
+  Future<rust.FillState> fillState(rust.Index index) async =>
+      (await store).fillState(index: index);
 
   Future<void> releaseVectorIndexes() async {
     if (_dbFuture == null) return;

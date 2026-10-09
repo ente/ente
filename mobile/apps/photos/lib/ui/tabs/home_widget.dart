@@ -422,6 +422,7 @@ class _HomeWidgetState extends State<HomeWidget> {
         await routeToPage(
           context,
           CollectionPage(CollectionWithThumbnail(collection, null)),
+          useFadeTransition: true,
         );
         return;
       }
@@ -1341,6 +1342,7 @@ class _HomeWidgetState extends State<HomeWidget> {
           // ignore: unawaited_futures
           AppNavigationService.instance.pushPage(
             CollectionPage(CollectionWithThumbnail(collection, thumbnail)),
+            useFadeTransition: true,
           );
         }
       }

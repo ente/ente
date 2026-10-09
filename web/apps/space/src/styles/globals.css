@@ -7,79 +7,91 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-html[data-space-route-motion] {
-    overflow-x: hidden;
+.space-app-layout {
+    --space-bottom-nav-height: calc(60px + env(safe-area-inset-bottom));
+    --space-page-height: calc(
+        var(--space-viewport-height, 100svh) - var(--space-bottom-nav-height)
+    );
+    min-height: 100svh;
+    padding-bottom: var(--space-bottom-nav-height);
+}
+
+.space-unread-indicator {
+    z-index: 1;
+}
+
+.space-unread-indicator::after {
+    animation: spaceUnreadBadgePing 1.25s cubic-bezier(0, 0, 0.2, 1) 1 forwards;
+    background-color: inherit;
+    border-radius: 50%;
+    content: "";
+    inset: 0;
+    opacity: 0.75;
+    pointer-events: none;
+    position: absolute;
+    z-index: -1;
+}
+
+@keyframes spaceUnreadBadgePing {
+    75%,
+    100% {
+        opacity: 0;
+        transform: scale(2.5);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .space-unread-indicator::after {
+        display: none;
+    }
+}
+
+::view-transition-group(space-bottom-nav) {
+    z-index: 1;
+    animation: none;
+}
+
+::view-transition-old(space-bottom-nav) {
+    display: none;
+}
+
+::view-transition-new(space-bottom-nav) {
+    animation: none;
 }
 
 html[data-space-route-motion]::view-transition-old(root),
 html[data-space-route-motion]::view-transition-new(root) {
-    animation-duration: 220ms;
+    animation-duration: 180ms;
     animation-fill-mode: both;
     animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
     mix-blend-mode: normal;
 }
 
-html[data-space-route-motion="forward"]::view-transition-old(root) {
-    animation-name: space-route-forward-old;
+html[data-space-route-motion]::view-transition-old(root) {
+    animation-name: space-route-fade-out;
 }
 
-html[data-space-route-motion="forward"]::view-transition-new(root) {
-    animation-name: space-route-forward-new;
+html[data-space-route-motion]::view-transition-new(root) {
+    animation-name: space-route-fade-in;
 }
 
-html[data-space-route-motion="back"]::view-transition-old(root) {
-    animation-name: space-route-back-old;
-}
-
-html[data-space-route-motion="back"]::view-transition-new(root) {
-    animation-name: space-route-back-new;
-}
-
-@keyframes space-route-forward-old {
+@keyframes space-route-fade-out {
     from {
         opacity: 1;
-        transform: translateX(0);
     }
 
     to {
-        opacity: 0.92;
-        transform: translateX(-18px);
+        opacity: 0;
     }
 }
 
-@keyframes space-route-forward-new {
+@keyframes space-route-fade-in {
     from {
-        opacity: 0.96;
-        transform: translateX(28px);
+        opacity: 0;
     }
 
     to {
         opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes space-route-back-old {
-    from {
-        opacity: 1;
-        transform: translateX(0);
-    }
-
-    to {
-        opacity: 0.92;
-        transform: translateX(18px);
-    }
-}
-
-@keyframes space-route-back-new {
-    from {
-        opacity: 0.96;
-        transform: translateX(-28px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
     }
 }
 

@@ -107,6 +107,20 @@ impl Slot {
         operation(vecdb).map_err(Into::into)
     }
 
+    pub(super) fn is_open(&self) -> bool {
+        self.read_handle().as_ref().is_some_and(is_live)
+    }
+
+    pub(super) fn reopen(&self, db: &MlDb) -> Result<()> {
+        let mut handle = self.write_handle();
+        if handle.as_ref().is_some_and(is_live) {
+            return Ok(());
+        }
+        *handle = None;
+        *handle = Some(self.open(db)?);
+        Ok(())
+    }
+
     pub(super) fn release(&self) -> Result<()> {
         match self.write_handle().take() {
             Some(vecdb) => vecdb.flush().map_err(Into::into),
@@ -168,6 +182,10 @@ fn is_unusable(error: &VecDbError) -> bool {
             | VecDbError::DimensionMismatch { .. }
             | VecDbError::StorageMismatch { .. }
     )
+}
+
+fn is_live(vecdb: &VecDb) -> bool {
+    !vecdb.is_closed()
 }
 
 fn unless_closed<T>(outcome: IndexResult<T>) -> Option<Result<T>> {
@@ -378,8 +396,12 @@ mod tests {
             store.contains(Index::Clip, "7"),
             Err(Error::Database(_))
         ));
+        assert!(matches!(
+            store.fill_state(Index::Clip),
+            Err(Error::Database(_))
+        ));
         assert!(foreign.contains("7").unwrap());
-        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Filled);
+        assert_eq!(meta(&store, "clip.fill").as_deref(), Some("filled"));
     }
 
     #[test]
@@ -481,5 +503,46 @@ mod tests {
         assert!(store.contains(Index::Clip, "1").unwrap());
         assert_eq!(live_count(&store, Index::Clip), 3);
         assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Filled);
+    }
+
+    #[test]
+    fn fill_state_alone_detects_lost_index_files() {
+        let (directory, store) = open();
+        store.db().insert_clip_rows(&clips(1..=3)).unwrap();
+        store.fill_clip_index(false).unwrap();
+        lose_index_files(&store, &index_path(&directory, Index::Clip));
+        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
+        assert_eq!(meta(&store, "clip.fill"), None);
+
+        store.fill_clip_index(false).unwrap();
+        VecDb::purge(&index_path(&directory, Index::Clip)).unwrap();
+        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
+        assert_eq!(meta(&store, "clip.fill"), None);
+        assert_eq!(live_count(&store, Index::Clip), 0);
+    }
+
+    #[test]
+    fn fill_state_alone_purges_an_unusable_index() {
+        let (directory, store) = open();
+        store.db().insert_clip_rows(&clips(1..=3)).unwrap();
+        store.fill_clip_index(false).unwrap();
+        store.release().unwrap();
+        corrupt_header(&index_path(&directory, Index::Clip));
+
+        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
+        assert_eq!(meta(&store, "clip.fill"), None);
+        assert_eq!(live_count(&store, Index::Clip), 0);
+    }
+
+    #[test]
+    fn fill_state_keeps_a_live_handle_open() {
+        let (_directory, store) = open();
+        store.fill_clip_index(false).unwrap();
+        store.put_clip(&clips([1, 2])).unwrap();
+        let unflushed = store.stats(Index::Clip).unwrap();
+        assert_ne!(unflushed.records_since_snapshot, 0);
+
+        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Filled);
+        assert_eq!(store.stats(Index::Clip).unwrap(), unflushed);
     }
 }

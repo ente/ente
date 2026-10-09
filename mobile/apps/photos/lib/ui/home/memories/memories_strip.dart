@@ -218,7 +218,6 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
     final oldestMemoryLaneFace = _oldestMemoryLaneFace;
     final newestMemoryLaneFace = _newestMemoryLaneFace;
     final hasMemoryLane =
-        flagService.internalUser &&
         MemoryLaneService.instance.isFeatureEnabled &&
         memoryLane != null &&
         (memoryLane.isCluster || memoryLanePerson != null) &&
@@ -391,9 +390,6 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
   }
 
   Future<void> _fetchMemoryLane() async {
-    if (!flagService.internalUser) {
-      return;
-    }
     final timeline = await MemoryLaneService.instance
         .getScheduledMemoriesStripTimeline();
     if (timeline == null) {

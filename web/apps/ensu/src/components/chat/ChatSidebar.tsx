@@ -503,12 +503,7 @@ const SessionSearchInput = memo(
 );
 
 type SessionGroupLabel =
-    | "TODAY"
-    | "YESTERDAY"
-    | "THIS WEEK"
-    | "LAST WEEK"
-    | "THIS MONTH"
-    | "OLDER";
+    "TODAY" | "YESTERDAY" | "THIS WEEK" | "LAST WEEK" | "THIS MONTH" | "OLDER";
 
 const groupSessionsByDate = (sessions: ChatSession[]) => {
     const now = new Date();

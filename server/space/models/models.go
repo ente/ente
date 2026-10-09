@@ -310,6 +310,10 @@ type UpdatePostCaptionRequest struct {
 	CaptionCipher *string `json:"captionCipher,omitempty"`
 }
 
+type CreatePokeRequest struct {
+	ClientRequestID string `json:"clientRequestId" binding:"required,max=64"`
+}
+
 type CreateMessageRequest struct {
 	MessageID                    string `json:"messageId,omitempty"`
 	MessageCipher                string `json:"messageCipher" binding:"required"`
@@ -375,7 +379,6 @@ type ConversationChatSummaryResponse struct {
 
 type ConversationsResponse struct {
 	Friends             []SpaceFriendResponse                      `json:"friends"`
-	PendingRequests     []SpaceFriendRequestResponse               `json:"pendingRequests"`
 	ChatSummaries       map[string]ConversationChatSummaryResponse `json:"chatSummaries"`
 	LatestPostCreatedAt string                                     `json:"latestPostCreatedAt,omitempty"`
 }
@@ -405,7 +408,54 @@ type SpaceUnreadStatusResponse struct {
 	NotificationsUnread bool `json:"notificationsUnread"`
 }
 
+type ListUnreadActivitiesRequest struct {
+	Cursor string `form:"cursor"`
+	Limit  int    `form:"limit" binding:"omitempty,min=1,max=100"`
+}
+
+type UnreadActivityResponse struct {
+	Kind                string `json:"kind"`
+	MessageCipher       string `json:"messageCipher"`
+	EncryptedMessageKey string `json:"encryptedMessageKey"`
+}
+
+type UnreadActivityPage struct {
+	Items      []UnreadActivityResponse `json:"items"`
+	NextCursor string                   `json:"nextCursor,omitempty"`
+}
+
 type PostPage struct {
 	Items      []PostResponse `json:"items"`
 	NextCursor string         `json:"nextCursor,omitempty"`
+}
+
+type ListNotificationsRequest struct {
+	Cursor string `form:"cursor"`
+	Limit  int    `form:"limit" binding:"omitempty,min=1,max=100"`
+}
+
+type ReadNotificationsRequest struct {
+	NotificationIDs []string `json:"notificationIds" binding:"required,min=1,max=100,dive,required,max=100"`
+}
+
+type NotificationResponse struct {
+	NotificationID  string               `json:"notificationId"`
+	NotificationIDs []string             `json:"notificationIds"`
+	Kind            string               `json:"kind"`
+	Actors          []SpaceActorResponse `json:"actors"`
+	ActorCount      int64                `json:"actorCount"`
+	PostID          *int64               `json:"postId,omitempty"`
+	CreatedAt       string               `json:"createdAt"`
+	Unread          bool                 `json:"unread"`
+	FriendRequestID *int64               `json:"friendRequestId,omitempty"`
+}
+
+type NotificationPage struct {
+	LatestPostCreatedAt string                 `json:"latestPostCreatedAt,omitempty"`
+	Items               []NotificationResponse `json:"items"`
+	NextCursor          string                 `json:"nextCursor,omitempty"`
+}
+
+type NotificationUnreadResponse struct {
+	Unread bool `json:"unread"`
 }

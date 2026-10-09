@@ -6,8 +6,9 @@ import (
 )
 
 type PushTokenRequest struct {
-	FCMToken             string `json:"fcmToken" binding:"required"`
-	APNSToken            string `json:"apnsToken"`
+	FCMToken             string  `json:"fcmToken" binding:"required"`
+	APNSToken            string  `json:"apnsToken"`
+	Platform             *string `json:"platform" binding:"required,oneof=ios android"`
 	LastNotificationTime int64
 }
 

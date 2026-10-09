@@ -47,6 +47,7 @@ import 'package:photos/ui/sharing/share_collection_page.dart';
 import 'package:photos/ui/tools/free_space_page.dart';
 import "package:photos/ui/viewer/album_slideshow/album_slideshow.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
+import "package:photos/ui/viewer/gallery/component/album_cover_app_bar.dart";
 import "package:photos/ui/viewer/gallery/component/album_description_header.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
@@ -75,10 +76,14 @@ class GalleryAppBarWidget extends StatefulWidget {
     bool? isDeviceFolderBackedUp,
     Future<void> Function()? onDisableDeviceFolderBackup,
     Collection? collection,
+    EnteFile? cover,
+    String? coverHeroTag,
+    Key? coverAppBarKey,
     List<EnteFile>? files,
     PreferredSizeWidget? bottom,
     bool showOverflowMenu = true,
   }) {
+    assert(cover == null || collection != null);
     return GalleryAppBarConfig(
       sliverBuilder: (_) => GalleryAppBarWidget._(
         type,
@@ -89,6 +94,9 @@ class GalleryAppBarWidget extends StatefulWidget {
         isDeviceFolderBackedUp: isDeviceFolderBackedUp,
         onDisableDeviceFolderBackup: onDisableDeviceFolderBackup,
         collection: collection,
+        cover: cover,
+        coverHeroTag: coverHeroTag,
+        coverAppBarKey: coverAppBarKey,
         files: files,
         bottom: bottom,
         showOverflowMenu: showOverflowMenu,
@@ -98,6 +106,7 @@ class GalleryAppBarWidget extends StatefulWidget {
         subtitle: subtitle,
         description: collection?.displayDescription,
         bottomHeight: bottom?.preferredSize.height,
+        hasCover: cover != null,
       ),
     );
   }
@@ -107,19 +116,38 @@ class GalleryAppBarWidget extends StatefulWidget {
     String? subtitle,
     String? description,
     double? bottomHeight,
+    required bool hasCover,
   }) {
     final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
       context,
     );
     final isHierarchicalSearchable =
         inheritedSearchFilterData?.isHierarchicalSearchable ?? false;
+    final hasCustomBottom = bottomHeight != null;
     bottomHeight ??= isHierarchicalSearchable
         ? AppBarFilterChips.preferredHeight(context)
         : 0.0;
-    final collapsibleBottomHeight = AlbumDescriptionHeader.preferredHeight(
-      context,
-      description,
-    );
+    final isSearching =
+        isHierarchicalSearchable &&
+        (inheritedSearchFilterData
+                ?.searchFilterDataProvider
+                ?.isSearchingNotifier
+                .value ??
+            false);
+    if (_usesCoverHeader(
+      hasCover: hasCover,
+      hasCustomBottom: hasCustomBottom,
+      isSearching: isSearching,
+    )) {
+      return AlbumCoverAppBar.resolveGeometry(
+        context,
+        collapsedHeight: toolbarHeight,
+        bottomHeight: bottomHeight,
+      );
+    }
+    final collapsibleBottomHeight = hasCustomBottom
+        ? 0.0
+        : AlbumDescriptionHeader.preferredHeight(context, description);
     return SliverAppBarComponent.resolveGeometry(
       context,
       subtitle: subtitle,
@@ -131,6 +159,12 @@ class GalleryAppBarWidget extends StatefulWidget {
     );
   }
 
+  static bool _usesCoverHeader({
+    required bool hasCover,
+    required bool hasCustomBottom,
+    required bool isSearching,
+  }) => hasCover && !hasCustomBottom && !isSearching;
+
   final GalleryType type;
   final String? title;
   final String? subtitle;
@@ -139,6 +173,9 @@ class GalleryAppBarWidget extends StatefulWidget {
   final bool? isDeviceFolderBackedUp;
   final Future<void> Function()? onDisableDeviceFolderBackup;
   final Collection? collection;
+  final EnteFile? cover;
+  final String? coverHeroTag;
+  final Key? coverAppBarKey;
   final List<EnteFile>? files;
   final PreferredSizeWidget? bottom;
   final bool showOverflowMenu;
@@ -152,6 +189,9 @@ class GalleryAppBarWidget extends StatefulWidget {
     this.isDeviceFolderBackedUp,
     this.onDisableDeviceFolderBackup,
     this.collection,
+    this.cover,
+    this.coverHeroTag,
+    this.coverAppBarKey,
     this.files,
     this.bottom,
     required this.showOverflowMenu,
@@ -276,28 +316,8 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    final descriptionHeader = AlbumDescriptionHeader.maybeOf(
-      context,
-      widget.collection?.displayDescription,
-    );
-
-    if (widget.bottom != null) {
-      return _GallerySliverAppBar(
-        title: _appBarTitle,
-        subtitle: widget.subtitle,
-        actions: _getDefaultActions(context),
-        bottom: widget.bottom,
-      );
-    }
-
-    if (!isHierarchicalSearchable) {
-      return _GallerySliverAppBar(
-        title: _appBarTitle,
-        subtitle: widget.subtitle,
-        actions: _getDefaultActions(context),
-        collapsibleBottom: descriptionHeader,
-        bottom: widget.bottom,
-      );
+    if (widget.bottom != null || !isHierarchicalSearchable) {
+      return _buildHeader(bottom: widget.bottom);
     }
 
     return ValueListenableBuilder(
@@ -308,17 +328,70 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         preferredSize: Size.fromHeight(
           AppBarFilterChips.preferredHeight(context),
         ),
-        child: const AppBarFilterChips(),
+        child: AppBarFilterChips(animateRecommendations: widget.cover != null),
       ),
-      builder: (context, isSearching, child) {
-        return _GallerySliverAppBar(
-          title: _appBarTitle,
-          subtitle: widget.subtitle,
-          actions: isSearching ? const [] : _getDefaultActions(context),
-          bottom: child as PreferredSizeWidget,
-          collapsibleBottom: descriptionHeader,
-        );
-      },
+      builder: (context, isSearching, child) => _buildHeader(
+        bottom: child as PreferredSizeWidget,
+        isSearching: isSearching,
+      ),
+    );
+  }
+
+  Widget _buildHeader({PreferredSizeWidget? bottom, bool isSearching = false}) {
+    if (GalleryAppBarWidget._usesCoverHeader(
+      hasCover: widget.cover != null,
+      hasCustomBottom: widget.bottom != null,
+      isSearching: isSearching,
+    )) {
+      return _albumCoverAppBar(bottom: bottom);
+    }
+    return _GallerySliverAppBar(
+      title: _appBarTitle,
+      subtitle: widget.subtitle,
+      actions: isSearching
+          ? const []
+          : _getDefaultActions(context, onCover: false),
+      bottom: bottom,
+      collapsibleBottom: widget.bottom == null
+          ? AlbumDescriptionHeader.maybeOf(
+              context,
+              widget.collection?.displayDescription,
+            )
+          : null,
+    );
+  }
+
+  Widget _albumCoverAppBar({PreferredSizeWidget? bottom}) {
+    final strings = context.strings;
+    return AlbumCoverAppBar(
+      key: widget.coverAppBarKey,
+      collection: widget.collection!,
+      cover: widget.cover!,
+      heroTag: widget.coverHeroTag,
+      title: _appBarTitle,
+      backgroundColor: GalleryAppBarWidget.backgroundColor(context),
+      collapsedHeight: GalleryAppBarWidget.toolbarHeight,
+      bottom: bottom,
+      actionsBuilder: (foregroundColor) => _getDefaultActions(
+        context,
+        onCover: true,
+        foregroundColor: foregroundColor,
+      ),
+      coverActions: [
+        if (widget.selectedFiles.files.isEmpty) ...[
+          AlbumCoverActionButton(
+            icon: HugeIcons.strokeRoundedPlay,
+            tooltip: strings.slideshow,
+            onTap: _startAlbumSlideshow,
+          ),
+          if (galleryType.showMap())
+            AlbumCoverActionButton(
+              icon: HugeIcons.strokeRoundedMapsLocation02,
+              tooltip: strings.map,
+              onTap: showOnMap,
+            ),
+        ],
+      ],
     );
   }
 
@@ -497,8 +570,15 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     );
   }
 
-  List<Widget> _getDefaultActions(BuildContext context) {
+  List<Widget> _getDefaultActions(
+    BuildContext context, {
+    required bool onCover,
+    Color? foregroundColor,
+  }) {
     final List<Widget> actions = <Widget>[];
+    final iconButtonVariant = onCover
+        ? IconButtonComponentVariant.unfilled
+        : IconButtonComponentVariant.primary;
     if (widget.selectedFiles.files.isNotEmpty) {
       return actions;
     }
@@ -558,8 +638,13 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       actions.add(
         IconButtonComponent(
           tooltip: strings.addFiles,
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedImageAdd01),
-          variant: IconButtonComponentVariant.primary,
+          icon: HugeIcon(
+            icon: HugeIcons.strokeRoundedImageAdd01,
+            color: foregroundColor,
+          ),
+          variant: iconButtonVariant,
+          size: onCover ? kMinInteractiveDimension : 36,
+          iconSize: onCover ? IconSizes.medium : IconSizes.small,
           shouldSurfaceExecutionStates: false,
           onTap: () async {
             await _showAddPhotoDialog(context);
@@ -576,8 +661,11 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             icon: isQuickLink && (widget.collection!.hasLink)
                 ? HugeIcons.strokeRoundedLink02
                 : HugeIcons.strokeRoundedShare08,
+            color: foregroundColor,
           ),
-          variant: IconButtonComponentVariant.primary,
+          variant: iconButtonVariant,
+          size: onCover ? kMinInteractiveDimension : 36,
+          iconSize: onCover ? IconSizes.medium : IconSizes.small,
           shouldSurfaceExecutionStates: false,
           onTap: () async {
             await _showShareCollectionDialog();
@@ -594,15 +682,22 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       return actions;
     }
 
+    final overflowMenuAction = onCover
+        ? galleryAppBarActionsSheetAction
+        : galleryAppBarPopupMenuAction;
     actions.add(
-      galleryAppBarPopupMenuAction<AlbumPopupAction>(
+      overflowMenuAction<AlbumPopupAction>(
         tooltip: strings.more,
-        icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical),
+        icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedMoreVertical,
+          color: foregroundColor,
+        ),
         optionsBuilder: () => _buildOverflowMenuOptions(
           strings: strings,
           userId: userId,
           isArchived: isArchived,
           isHidden: isHidden,
+          onCover: onCover,
         ),
         onSelected: (AlbumPopupAction value) async {
           if (value == AlbumPopupAction.editDetails) {
@@ -736,6 +831,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     required int userId,
     required bool isArchived,
     required bool isHidden,
+    required bool onCover,
   }) async {
     final warningColor = context.componentColors.warning;
     final canAutoAdd =
@@ -766,7 +862,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             size: IconSizes.small,
           ),
         ),
-      if (galleryType.showMap())
+      if (galleryType.showMap() && !onCover)
         _menuOption(
           AlbumPopupAction.map,
           strings.map,
@@ -775,7 +871,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             size: IconSizes.small,
           ),
         ),
-      if (galleryType.canSort())
+      if (galleryType.canSort() && !onCover)
         _menuOption(
           AlbumPopupAction.sort,
           strings.sortAlbumsBy,
@@ -830,7 +926,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
           (isArchived || (galleryType.canArchive() && !isHidden)))
         _menuOption(
           AlbumPopupAction.ownedArchive,
-          isArchived ? strings.unarchiveAlbum : strings.archiveAlbum,
+          isArchived ? strings.unarchive : strings.archive,
           HugeIcon(
             icon: isArchived
                 ? HugeIcons.strokeRoundedUnarchive03
@@ -844,6 +940,41 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
           isHidden ? strings.unhide : strings.hide,
           HugeIcon(
             icon: isHidden
+                ? HugeIcons.strokeRoundedView
+                : HugeIcons.strokeRoundedViewOffSlash,
+            size: IconSizes.small,
+          ),
+        ),
+      if (galleryType == GalleryType.sharedCollection)
+        _menuOption(
+          AlbumPopupAction.shareePinAlbum,
+          widget.collection!.hasShareePinned() ? strings.unpin : strings.pin,
+          HugeIcon(
+            icon: widget.collection!.hasShareePinned()
+                ? HugeIcons.strokeRoundedPinOff
+                : HugeIcons.strokeRoundedPin,
+            size: IconSizes.small,
+          ),
+        ),
+      if (galleryType == GalleryType.sharedCollection)
+        _menuOption(
+          AlbumPopupAction.sharedArchive,
+          widget.collection!.hasShareeArchived()
+              ? strings.unarchive
+              : strings.archive,
+          HugeIcon(
+            icon: widget.collection!.hasShareeArchived()
+                ? HugeIcons.strokeRoundedUnarchive03
+                : HugeIcons.strokeRoundedArchive03,
+            size: IconSizes.small,
+          ),
+        ),
+      if (galleryType == GalleryType.sharedCollection)
+        _menuOption(
+          AlbumPopupAction.sharedHide,
+          widget.collection!.hasShareeHidden() ? strings.unhide : strings.hide,
+          HugeIcon(
+            icon: widget.collection!.hasShareeHidden()
                 ? HugeIcons.strokeRoundedView
                 : HugeIcons.strokeRoundedViewOffSlash,
             size: IconSizes.small,
@@ -871,7 +1002,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             size: IconSizes.small,
           ),
         ),
-      if (_isAlbumSlideshowAvailable) _slideshowMenuOption(strings),
+      if (_isAlbumSlideshowAvailable && !onCover) _slideshowMenuOption(strings),
       if (canAutoAdd)
         _menuOption(
           AlbumPopupAction.autoAddPhotos,
@@ -884,57 +1015,26 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       if (galleryType.canDelete())
         _menuOption(
           isQuickLink ? AlbumPopupAction.removeLink : AlbumPopupAction.delete,
-          isQuickLink ? strings.removeLink : strings.deleteAlbum,
+          isQuickLink ? strings.removeLink : strings.delete,
           HugeIcon(
             icon: isQuickLink
                 ? HugeIcons.strokeRoundedLinkBackward
                 : HugeIcons.strokeRoundedDelete01,
             size: IconSizes.small,
+            color: warningColor,
           ),
-        ),
-      if (galleryType == GalleryType.sharedCollection)
-        _menuOption(
-          AlbumPopupAction.shareePinAlbum,
-          widget.collection!.hasShareePinned() ? strings.unpin : strings.pin,
-          HugeIcon(
-            icon: widget.collection!.hasShareePinned()
-                ? HugeIcons.strokeRoundedPinOff
-                : HugeIcons.strokeRoundedPin,
-            size: IconSizes.small,
-          ),
-        ),
-      if (galleryType == GalleryType.sharedCollection)
-        _menuOption(
-          AlbumPopupAction.sharedArchive,
-          widget.collection!.hasShareeArchived()
-              ? strings.unarchiveAlbum
-              : strings.archiveAlbum,
-          HugeIcon(
-            icon: widget.collection!.hasShareeArchived()
-                ? HugeIcons.strokeRoundedUnarchive03
-                : HugeIcons.strokeRoundedArchive03,
-            size: IconSizes.small,
-          ),
-        ),
-      if (galleryType == GalleryType.sharedCollection)
-        _menuOption(
-          AlbumPopupAction.sharedHide,
-          widget.collection!.hasShareeHidden() ? strings.unhide : strings.hide,
-          HugeIcon(
-            icon: widget.collection!.hasShareeHidden()
-                ? HugeIcons.strokeRoundedView
-                : HugeIcons.strokeRoundedViewOffSlash,
-            size: IconSizes.small,
-          ),
+          labelColor: warningColor,
         ),
       if (galleryType == GalleryType.sharedCollection)
         _menuOption(
           AlbumPopupAction.leave,
           strings.leaveAlbum,
-          const HugeIcon(
+          HugeIcon(
             icon: HugeIcons.strokeRoundedLogout05,
             size: IconSizes.small,
+            color: warningColor,
           ),
+          labelColor: warningColor,
         ),
       if (galleryType == GalleryType.localFolder && !_isICloudSharedAlbum)
         _menuOption(

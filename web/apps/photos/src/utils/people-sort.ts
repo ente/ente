@@ -1,10 +1,7 @@
 import type { Person } from "ente-new/photos/services/ml/people";
 
 export type PeopleSortBy =
-    | "count-desc"
-    | "count-asc"
-    | "name-asc"
-    | "name-desc";
+    "count-desc" | "count-asc" | "name-asc" | "name-desc";
 
 export const sortPeople = (people: Person[], sortBy: PeopleSortBy): Person[] =>
     [...people].sort(personComparator(sortBy));

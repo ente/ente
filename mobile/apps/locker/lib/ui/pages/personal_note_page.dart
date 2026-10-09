@@ -105,11 +105,12 @@ class _PersonalNotePageState
 
     final words = firstLine.split(RegExp(r'\s+'));
     final limitedWords = words.take(maxWords).join(' ');
+    final characters = limitedWords.characters;
 
-    if (limitedWords.length <= maxLength) {
+    if (characters.length <= maxLength) {
       return limitedWords;
     }
-    return '${limitedWords.substring(0, maxLength).trimRight()}...';
+    return '${characters.take(maxLength).toString().trimRight()}...';
   }
 
   @override

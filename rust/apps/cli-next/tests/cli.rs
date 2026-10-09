@@ -15,12 +15,26 @@ use tempfile::TempDir;
 
 #[test]
 fn reads_do_not_initialize_storage() {
+    let binary = format!("ente-cli-next{}", std::env::consts::EXE_SUFFIX);
     for existing_home in [false, true] {
         let home = TestHome::new();
         let path = home.dir.path().join("unused");
         if existing_home {
             fs::create_dir(&path).unwrap();
         }
+        let help = success(
+            home.command(&["--help-all"])
+                .env("ENTE_CLI_HOME", &path)
+                .env("ENTE_CLI_VAULT_KEY", "invalid")
+                .output()
+                .unwrap(),
+        );
+        assert!(help.stderr.is_empty());
+        let help = String::from_utf8(help.stdout).unwrap();
+        assert!(help.contains(&format!("=== {binary} ===")));
+        assert!(help.contains("Usage: ente-cli-next [OPTIONS] <COMMAND>"));
+        assert!(help.contains(&format!("=== {binary} photos file download ===")));
+        assert!(help.contains(&format!("=== {binary} vault key generate ===")));
         let output = home
             .command(&["accounts", "list"])
             .env("ENTE_CLI_HOME", &path)
@@ -87,6 +101,28 @@ fn invalid_login_host_does_not_initialize_storage() {
         .unwrap();
     assert!(failure(&output).contains("invalid API host"));
     assert!(!path.exists());
+}
+
+#[test]
+fn login_requires_input_before_storage_or_network() {
+    let home = TestHome::new();
+    let mut server = mockito::Server::new();
+    let ping = server
+        .mock("GET", "/ping")
+        .with_status(503)
+        .expect(1)
+        .create();
+    let origin = server.url();
+    let mut args = vec!["photos", "login", "--host", &origin, "--no-input"];
+    assert!(failure(&home.run(&args)).contains("supply --input"));
+    assert_eq!(fs::read_dir(home.dir.path()).unwrap().count(), 0);
+    args.extend(["--input", "-"]);
+    let output = home.with_input(
+        &args,
+        br#"{"email":"fixture@example.org","password":"secret"}"#,
+    );
+    assert!(failure(&output).contains("cannot reach the selected Ente server"));
+    ping.assert();
 }
 
 #[test]
@@ -603,8 +639,15 @@ fn native_keyring_survives_separate_processes() {
         assert_eq!(fs::read_dir(home.dir.path()).unwrap().count(), 0);
         let mut server = mockito::Server::new();
         let ping = server.mock("GET", "/ping").with_status(503).create();
+        let input = home.dir.path().join("login.json");
+        fs::write(
+            &input,
+            br#"{"email":"fixture@example.org","password":"secret"}"#,
+        )
+        .unwrap();
         let output = home
             .command(&["photos", "login", "--host", &server.url()])
+            .args(["--input", input.to_str().unwrap()])
             .env_remove("ENTE_CLI_VAULT_KEY")
             .output()
             .unwrap();
@@ -743,6 +786,9 @@ fn failure(output: &Output) -> String {
 
 #[path = "support/files.rs"]
 mod files;
+
+#[path = "support/auth.rs"]
+mod auth;
 
 #[cfg(feature = "museum")]
 #[path = "support/museum.rs"]

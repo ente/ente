@@ -34,11 +34,69 @@ async fn request_and_confirm_friend(
         .iter()
         .find(|request| request.requester.space_id == requester_space_id)
         .expect("friend request should be visible to target");
+    let pending = target_ctx
+        .list_notifications(target_space_id, None, None)
+        .await
+        .expect("request notification should load");
+    let notification = pending
+        .items
+        .iter()
+        .find(|item| item.friend_request_id == Some(request.request_id))
+        .expect("pending request should be in notifications");
+    assert_eq!(notification.kind, "friend_request");
+    let request_notification_id = notification.notification_id.clone();
+    assert!(notification.actors[0].profile.as_ref().unwrap().is_none());
+    assert!(notification.actors[0].avatar.is_none());
+    assert!(
+        requester_ctx
+            .resolve_space_key_for_version_for_viewer(
+                target_space_id,
+                Some(requester_space_id),
+                None
+            )
+            .await
+            .unwrap()
+            .is_none()
+    );
     let confirmed = target_ctx
         .confirm_friend_request(target_space_id, request.request_id)
         .await
         .expect("friend request should confirm");
     assert_eq!(confirmed.status, "friend");
+    let pending = target_ctx
+        .list_notifications(target_space_id, None, None)
+        .await
+        .expect("notifications should refresh");
+    assert!(
+        !pending
+            .items
+            .iter()
+            .any(|item| item.friend_request_id == Some(request.request_id))
+    );
+    let completed = pending
+        .items
+        .iter()
+        .find(|item| item.notification_id == request_notification_id)
+        .expect("accepted request should remain in the recipient's notifications");
+    assert_eq!(completed.kind, "friend_accepted");
+    assert_eq!(completed.actors[0].space_id, requester_space_id);
+    assert!(!completed.unread);
+    assert!(completed.actors[0].profile.as_ref().unwrap().is_some());
+    let accepted = requester_ctx
+        .list_notifications(requester_space_id, None, None)
+        .await
+        .expect("acceptance notification should load");
+    let notification = accepted
+        .items
+        .iter()
+        .find(|item| item.kind == "friend_accepted" && item.actors[0].space_id == target_space_id)
+        .expect("requester should be notified of acceptance");
+    assert!(notification.unread);
+    assert!(notification.actors[0].profile.as_ref().unwrap().is_some());
+    requester_ctx
+        .mark_notification_items_read(requester_space_id, notification.notification_ids.clone())
+        .await
+        .expect("acceptance should be readable");
 }
 
 #[test]
@@ -257,19 +315,87 @@ async fn space_bootstrap_posts_and_friend_share_suite(endpoint: &str) {
         .await
         .expect("liked post should load");
     assert!(liked_post.viewer_liked);
-    let owner_conversations = owner_ctx
-        .list_conversations(&owner_space.space_id)
+    let notifications = owner_ctx
+        .list_notifications(&owner_space.space_id, None, None)
         .await
-        .expect("owner conversations should include post like");
-    let post_like_summary = owner_conversations
-        .chat_summaries
-        .get(&friend_space.space_id)
-        .expect("friend summary should exist after post like");
-    assert_eq!(post_like_summary.latest_activity.activity_type, "post_like");
-    assert_eq!(post_like_summary.latest_activity.post_id, Some(post_id));
+        .expect("owner notifications should include post like");
+    assert_eq!(notifications.items.len(), 2);
+    assert_eq!(notifications.items[0].kind, "post_like");
+    assert_eq!(notifications.items[0].post_id, Some(post_id));
     assert_eq!(
-        post_like_summary.latest_activity.post_space_id.as_deref(),
-        Some(owner_space.space_id.as_str())
+        notifications.items[0].actors[0].space_id,
+        friend_space.space_id
+    );
+
+    let poke_request = uuid::Uuid::new_v4().to_string();
+    friend_ctx
+        .send_poke(&friend_space.space_id, &owner_space.space_id, &poke_request)
+        .await
+        .unwrap();
+    friend_ctx
+        .send_poke(&friend_space.space_id, &owner_space.space_id, &poke_request)
+        .await
+        .unwrap();
+    let pokes = owner_ctx
+        .list_notifications(&owner_space.space_id, None, None)
+        .await
+        .unwrap();
+    assert_eq!(
+        pokes
+            .items
+            .iter()
+            .filter(|item| item.kind == "poke")
+            .count(),
+        1
+    );
+    assert_eq!(pokes.items[0].kind, "poke");
+    assert_eq!(pokes.items[0].actors[0].space_id, friend_space.space_id);
+    assert!(pokes.items[0].actors[0].profile.as_ref().unwrap().is_some());
+    assert!(pokes.items[0].unread);
+    assert!(pokes.latest_post_created_at.is_some());
+    let thread = owner_ctx
+        .list_message_thread(&owner_space.space_id, &friend_space.space_id, None, None)
+        .await
+        .unwrap();
+    assert!(thread.items.is_empty());
+    assert!(
+        !owner_ctx
+            .unread_status(&owner_space.space_id)
+            .await
+            .unwrap()
+            .notifications_unread
+    );
+    friend_ctx
+        .send_message(&friend_space.space_id, &owner_space.space_id, "Hello")
+        .await
+        .unwrap();
+    assert!(
+        owner_ctx
+            .unread_status(&owner_space.space_id)
+            .await
+            .unwrap()
+            .notifications_unread
+    );
+    owner_ctx
+        .mark_notifications_read(&owner_space.space_id, &friend_space.space_id)
+        .await
+        .unwrap();
+    assert!(
+        !owner_ctx
+            .unread_status(&owner_space.space_id)
+            .await
+            .unwrap()
+            .notifications_unread
+    );
+    space::assert_http_status(
+        outsider_ctx
+            .send_poke(
+                &outsider_space.space_id,
+                &owner_space.space_id,
+                "outsider-poke",
+            )
+            .await,
+        403,
     );
 
     space::assert_http_status(

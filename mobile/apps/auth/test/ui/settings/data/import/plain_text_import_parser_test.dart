@@ -41,6 +41,11 @@ void main() {
       });
     }
 
+    test('accepts empty content', () {
+      expect(parsePlainTextImport(''), isEmpty);
+      expect(parsePlainTextImport(' \n\t'), isEmpty);
+    });
+
     test('parses the offline Maestro fixture', () async {
       final content = await File(
         'test/ui/settings/data/import/fixtures/plain_text_import.txt',

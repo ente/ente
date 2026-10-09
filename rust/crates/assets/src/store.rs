@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, OnceLock, Weak};
 
 use futures_util::future::join_all;
 use tokio::sync::{Mutex, Semaphore};
@@ -99,6 +99,10 @@ impl Asset {
 
 pub struct AssetStore {
     root: PathBuf,
+    coordination: Arc<StoreCoordination>,
+}
+
+struct StoreCoordination {
     downloader: OnceLock<Downloader>,
     asset_locks: std::sync::Mutex<HashMap<Vec<String>, Arc<Mutex<()>>>>,
     asset_slots: Semaphore,
@@ -106,12 +110,32 @@ pub struct AssetStore {
 
 impl AssetStore {
     pub fn new(root: impl Into<PathBuf>) -> Self {
-        Self {
-            root: root.into(),
-            downloader: OnceLock::new(),
-            asset_locks: std::sync::Mutex::new(HashMap::new()),
-            asset_slots: Semaphore::new(ASSET_CONCURRENCY),
-        }
+        let root = root.into();
+        let registry_root = normalized_root(root.clone());
+        static STORES: OnceLock<std::sync::Mutex<HashMap<PathBuf, Weak<StoreCoordination>>>> =
+            OnceLock::new();
+        #[expect(
+            clippy::expect_used,
+            reason = "The registry critical section invokes no caller code"
+        )]
+        let mut stores = STORES
+            .get_or_init(Default::default)
+            .lock()
+            .expect("store registry");
+        stores.retain(|_, store| store.strong_count() > 0);
+        let coordination = stores
+            .get(&registry_root)
+            .and_then(Weak::upgrade)
+            .unwrap_or_else(|| {
+                let coordination = Arc::new(StoreCoordination {
+                    downloader: OnceLock::new(),
+                    asset_locks: std::sync::Mutex::new(HashMap::new()),
+                    asset_slots: Semaphore::new(ASSET_CONCURRENCY),
+                });
+                stores.insert(registry_root, Arc::downgrade(&coordination));
+                coordination
+            });
+        Self { root, coordination }
     }
 
     pub fn asset_dir(&self, asset: &Asset) -> PathBuf {
@@ -125,6 +149,11 @@ impl AssetStore {
             }
             _ => None,
         }
+    }
+
+    pub fn staged_file_path(&self, asset: &Asset, name: &str) -> Option<PathBuf> {
+        self.file_path(asset, name)?;
+        Some(self.staging_dir(asset).join(name))
     }
 
     pub fn is_downloaded(&self, asset: &Asset) -> bool {
@@ -159,6 +188,17 @@ impl AssetStore {
         on_progress: impl FnMut(AssetDownloadProgress) + Send,
         cancellation: CancellationToken,
     ) -> Result<(), Error> {
+        self.download_with_staged_import(assets, on_progress, cancellation, |_, _| Ok(()))
+            .await
+    }
+
+    pub async fn download_with_staged_import(
+        &self,
+        assets: &[Asset],
+        on_progress: impl FnMut(AssetDownloadProgress) + Send,
+        cancellation: CancellationToken,
+        import: impl Fn(&Asset, &Path) -> Result<(), Error> + Sync,
+    ) -> Result<(), Error> {
         if cancellation.is_cancelled() {
             return Err(Error::Cancelled);
         }
@@ -183,7 +223,14 @@ impl AssetStore {
             .zip(locks)
             .enumerate()
             .map(|(asset_index, (asset, lock))| {
-                self.download_asset(asset_index, asset, lock, &progress, cancellation.clone())
+                self.download_asset(
+                    asset_index,
+                    asset,
+                    lock,
+                    &progress,
+                    cancellation.clone(),
+                    &import,
+                )
             });
         let results = join_all(jobs).await;
         if cancellation.is_cancelled() {
@@ -207,16 +254,18 @@ impl AssetStore {
         keys.iter().try_for_each(|key| self.remove_key(key))
     }
 
-    async fn download_asset<F>(
+    async fn download_asset<F, I>(
         &self,
         asset_index: usize,
         asset: &Asset,
         lock: Arc<Mutex<()>>,
         progress: &std::sync::Mutex<BatchProgress<F>>,
         cancellation: CancellationToken,
+        import: &I,
     ) -> Result<(), Error>
     where
         F: FnMut(AssetDownloadProgress) + Send,
+        I: Fn(&Asset, &Path) -> Result<(), Error> + Sync,
     {
         let _guard = tokio::select! {
             guard = lock.lock() => guard,
@@ -230,12 +279,13 @@ impl AssetStore {
             progress.lock().expect("progress lock").skip(asset_index);
             return Ok(());
         }
+        import(asset, &self.staging_dir(asset))?;
         #[expect(
             clippy::expect_used,
             reason = "The private asset semaphore is never closed"
         )]
         let _slot = tokio::select! {
-            slot = self.asset_slots.acquire() => slot.expect("asset semaphore closed"),
+            slot = self.coordination.asset_slots.acquire() => slot.expect("asset semaphore closed"),
             _ = cancellation.cancelled() => return Err(Error::Cancelled),
         };
 
@@ -271,7 +321,11 @@ impl AssetStore {
             clippy::expect_used,
             reason = "The registry critical section invokes no caller code"
         )]
-        let mut locks = self.asset_locks.lock().expect("asset lock registry");
+        let mut locks = self
+            .coordination
+            .asset_locks
+            .lock()
+            .expect("asset lock registry");
         if let Some((key, lock)) = locks.iter().find(|(key, _)| keys_overlap(key, components)) {
             if key == components {
                 return Ok(Arc::clone(lock));
@@ -297,11 +351,11 @@ impl AssetStore {
     }
 
     fn downloader(&self) -> Result<&Downloader, Error> {
-        if let Some(downloader) = self.downloader.get() {
+        if let Some(downloader) = self.coordination.downloader.get() {
             return Ok(downloader);
         }
         let downloader = Downloader::new()?;
-        Ok(self.downloader.get_or_init(|| downloader))
+        Ok(self.coordination.downloader.get_or_init(|| downloader))
     }
 
     fn staging_dir(&self, asset: &Asset) -> PathBuf {
@@ -402,6 +456,28 @@ impl AssetStore {
         remove_path(destination)?;
         fs::rename(source, destination)?;
         Ok(())
+    }
+}
+
+fn normalized_root(root: PathBuf) -> PathBuf {
+    let absolute = std::path::absolute(&root).unwrap_or(root);
+    let mut ancestor = absolute.as_path();
+    let mut missing = Vec::new();
+    loop {
+        if let Ok(mut canonical) = fs::canonicalize(ancestor) {
+            for component in missing.into_iter().rev() {
+                canonical.push(component);
+            }
+            return canonical;
+        }
+        let Some(name) = ancestor.file_name() else {
+            return absolute;
+        };
+        missing.push(name.to_os_string());
+        let Some(parent) = ancestor.parent() else {
+            return absolute;
+        };
+        ancestor = parent;
     }
 }
 
@@ -536,7 +612,11 @@ fn remove_path(path: &Path) -> Result<(), Error> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
+    use std::io::{Cursor, Read, Write};
+    use std::net::TcpListener;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    use std::thread;
+    use std::time::Duration;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use flate2::Compression;
@@ -545,6 +625,175 @@ mod tests {
     use tar::{Builder, EntryType, Header};
 
     use super::*;
+
+    #[tokio::test]
+    async fn independently_created_stores_share_a_transfer_and_allow_retry() {
+        let root = scratch_dir("shared-transfer");
+        let first = AssetStore::new(&root);
+        fs::create_dir_all(&root).unwrap();
+        let second = AssetStore::new(root.join("."));
+        assert!(Arc::ptr_eq(&first.coordination, &second.coordination));
+        let server = TestServer::new();
+        let mut model = file("model", b"model");
+        model.url = server.url.clone();
+        let asset = Asset::file(key(&["models", "shared"]), model).unwrap();
+
+        let (left, right) = tokio::join!(
+            first.download(
+                std::slice::from_ref(&asset),
+                |_| {},
+                CancellationToken::default()
+            ),
+            second.download(
+                std::slice::from_ref(&asset),
+                |_| {},
+                CancellationToken::default()
+            ),
+        );
+        left.unwrap();
+        right.unwrap();
+        assert_eq!(server.transfers.load(Ordering::SeqCst), 1);
+        assert!(second.is_downloaded(&asset));
+
+        fs::write(
+            first.asset_dir(&asset).join("model"),
+            b"trusted published bytes",
+        )
+        .unwrap();
+        second
+            .download(
+                std::slice::from_ref(&asset),
+                |_| {},
+                CancellationToken::default(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(server.transfers.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            fs::read(first.asset_dir(&asset).join("model")).unwrap(),
+            b"trusted published bytes"
+        );
+
+        first.remove(&asset).unwrap();
+        server.fail.store(true, Ordering::SeqCst);
+        assert!(
+            first
+                .download(
+                    std::slice::from_ref(&asset),
+                    |_| {},
+                    CancellationToken::default()
+                )
+                .await
+                .is_err()
+        );
+        let transfers_after_failure = server.transfers.load(Ordering::SeqCst);
+        assert!(transfers_after_failure > 1);
+        server.fail.store(false, Ordering::SeqCst);
+        second
+            .download(
+                std::slice::from_ref(&asset),
+                |_| {},
+                CancellationToken::default(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            server.transfers.load(Ordering::SeqCst),
+            transfers_after_failure + 1
+        );
+        assert_eq!(
+            fs::read(first.asset_dir(&asset).join("model")).unwrap(),
+            b"model"
+        );
+        drop(server);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[tokio::test]
+    async fn removal_uses_the_shared_download_lock() {
+        let root = scratch_dir("shared-removal");
+        let first = AssetStore::new(&root);
+        let second = AssetStore::new(&root);
+        let asset = Asset::file(key(&["models", "shared"]), file("model", b"model")).unwrap();
+        let lock = first.asset_lock(&asset).unwrap();
+        let guard = lock.lock().await;
+        assert!(matches!(second.remove(&asset), Err(AssetStoreError::Busy)));
+        drop(guard);
+        second.remove(&asset).unwrap();
+    }
+
+    struct TestServer {
+        url: String,
+        transfers: Arc<AtomicUsize>,
+        fail: Arc<AtomicBool>,
+        running: Arc<AtomicBool>,
+        worker: Option<thread::JoinHandle<()>>,
+    }
+
+    impl TestServer {
+        fn new() -> Self {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            listener.set_nonblocking(true).unwrap();
+            let url = format!("http://{}/model", listener.local_addr().unwrap());
+            let transfers = Arc::new(AtomicUsize::new(0));
+            let fail = Arc::new(AtomicBool::new(false));
+            let running = Arc::new(AtomicBool::new(true));
+            let worker = {
+                let transfers = Arc::clone(&transfers);
+                let fail = Arc::clone(&fail);
+                let running = Arc::clone(&running);
+                thread::spawn(move || {
+                    while running.load(Ordering::SeqCst) {
+                        let (mut stream, _) = match listener.accept() {
+                            Ok(connection) => connection,
+                            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                                thread::sleep(Duration::from_millis(2));
+                                continue;
+                            }
+                            Err(error) => panic!("test server: {error}"),
+                        };
+                        stream.set_nonblocking(false).unwrap();
+                        stream
+                            .set_read_timeout(Some(Duration::from_secs(5)))
+                            .unwrap();
+                        let mut request = Vec::new();
+                        while !request.ends_with(b"\r\n\r\n") {
+                            let mut byte = [0];
+                            stream.read_exact(&mut byte).unwrap();
+                            request.push(byte[0]);
+                        }
+                        let get = request.starts_with(b"GET ");
+                        if get {
+                            transfers.fetch_add(1, Ordering::SeqCst);
+                        }
+                        if get && fail.load(Ordering::SeqCst) {
+                            stream.write_all(b"HTTP/1.1 410 Gone\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
+                        } else {
+                            stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\n").unwrap();
+                            if get {
+                                thread::sleep(Duration::from_millis(20));
+                                stream.write_all(b"model").unwrap();
+                            }
+                        }
+                    }
+                })
+            };
+            Self {
+                url,
+                transfers,
+                fail,
+                running,
+                worker: Some(worker),
+            }
+        }
+    }
+
+    impl Drop for TestServer {
+        fn drop(&mut self) {
+            self.running.store(false, Ordering::SeqCst);
+            self.worker.take().unwrap().join().unwrap();
+        }
+    }
 
     #[test]
     fn store_and_operations_are_send_and_sync() {

@@ -111,6 +111,7 @@ class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
                   CollectionWithThumbnail(c, null),
                   fileToJumpTo: widget.file,
                 ),
+                useFadeTransition: true,
               );
             },
             onRemove: _canRemoveFrom(c)

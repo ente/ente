@@ -17,6 +17,17 @@ const _ffmpegTaskQueue = new PromiseQueue<unknown>();
 const ffmpegLazy = () => {
     if (!_ffmpeg) {
         const instance = new FFmpeg();
+        const failed = (error: unknown): never => {
+            if (_ffmpeg?.instance == instance) {
+                instance.terminate();
+                _ffmpeg = undefined;
+            }
+            throw error;
+        };
+        const exec = instance.exec.bind(instance);
+        const probe = instance.ffprobe.bind(instance);
+        instance.exec = (...args) => exec(...args).catch(failed);
+        instance.ffprobe = (...args) => probe(...args).catch(failed);
         _ffmpeg = { instance, ready: loadFFmpeg(instance) };
     }
     return _ffmpeg;
@@ -32,10 +43,9 @@ const loadFFmpeg = async (ffmpeg: FFmpeg) => {
     logToDisk("[info] Space video encoder loading");
     try {
         await ffmpeg.load({
-            coreURL:
-                "https://assets.ente.com/ffmpeg-core-0.12.10/ffmpeg-core.js",
+            coreURL: "https://assets.ente.com/ffmpeg-core-9.0.2/ffmpeg-core.js",
             wasmURL:
-                "https://assets.ente.com/ffmpeg-core-0.12.10/ffmpeg-core.wasm",
+                "https://assets.ente.com/ffmpeg-core-9.0.2/ffmpeg-core.wasm",
         });
         logToDisk(
             `[info] Space video encoder loaded elapsedMs=${Date.now() - startedAt}`,
@@ -44,7 +54,7 @@ const loadFFmpeg = async (ffmpeg: FFmpeg) => {
         ffmpeg.terminate();
         if (_ffmpeg?.instance == ffmpeg) _ffmpeg = undefined;
         logToDisk(
-            `[error] Space video encoder load ${timeout.signal.aborted ? "timeout" : "failed"} elapsedMs=${Date.now() - startedAt}`,
+            `[error] Space video encoder load ${timeout.signal.aborted ? "timeout" : "failed"} elapsedMs=${Date.now() - startedAt} error=${JSON.stringify(error instanceof Error ? error.toString() : error)}`,
         );
         if (timeout.signal.aborted)
             throw new Error(
@@ -282,8 +292,9 @@ export const transcodeVideoWeb = (
                         );
                         return result;
                     }
-                } catch {
+                } catch (error) {
                     signal.throwIfAborted();
+                    if (!ffmpeg.loaded) throw error;
                     logToDisk(
                         "[warn] Space video WebCodecs export failed, using software encoder",
                     );
@@ -514,7 +525,7 @@ const ffprobeOutput = async (
 
     try {
         status = await ffmpeg.ffprobe(cmd);
-        if (status !== 0 && status != -1) {
+        if (status !== 0) {
             log.info(
                 `[wasm] ffprobe command failed with exit code ${status}: ${cmd.join(" ")}`,
             );
@@ -529,7 +540,7 @@ const ffprobeOutput = async (
         try {
             if (ffmpeg.loaded) await ffmpeg.deleteFile(outputPath);
         } catch (e) {
-            if (status === 0 || status == -1) {
+            if (status === 0) {
                 log.error(`Failed to remove output ${outputPath}`, e);
             }
         }

@@ -116,23 +116,14 @@ class AlbumRowItemWidget extends StatelessWidget {
                                   externalSelection ??
                                   selectedAlbums?.isAlbumSelected(c) ??
                                   false;
-                              final String heroTag = tagPrefix + thumbnail.tag;
                               final thumbnailWidget = ThumbnailWidget(
                                 thumbnail,
                                 shouldShowFavoriteIcon: false,
                                 shouldShowSyncStatus: false,
-                                key: Key(heroTag),
+                                key: Key(tagPrefix + thumbnail.tag),
                               );
                               return Hero(
-                                tag: heroTag,
-                                flightShuttleBuilder:
-                                    (
-                                      flightContext,
-                                      animation,
-                                      flightDirection,
-                                      fromHeroContext,
-                                      toHeroContext,
-                                    ) => (toHeroContext.widget as Hero).child,
+                                tag: tagPrefix,
                                 transitionOnUserGestures: true,
                                 child: ClipSmoothRect(
                                   radius: SmoothBorderRadius(
@@ -349,8 +340,10 @@ class AlbumRowItemWidget extends StatelessWidget {
           CollectionPage(
             CollectionWithThumbnail(c, thumbnail),
             tagPrefix: tagPrefix,
+            coverHeroTag: tagPrefix,
             hasVerifiedLock: hasVerifiedLock,
           ),
+          useFadeTransition: true,
         );
       },
       onLongPress: () {

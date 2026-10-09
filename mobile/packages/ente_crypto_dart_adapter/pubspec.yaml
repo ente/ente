@@ -11,7 +11,7 @@ dependencies:
   ente_crypto_dart:
     git:
       url: https://github.com/ente/ente_crypto_dart.git
-      ref: 981a9e0f4a227023991af3332ef0e6ab6d14a1c2
+      ref: b3f17aac6973b630aff663e4d9f7c6ee92334a62
   meta: 1.18.3
 
 dev_dependencies:

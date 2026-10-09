@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:dio/dio.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -71,6 +73,101 @@ void main() {
   tearDown(() async {
     await localSettings.setInternalUserDisabled(false);
   });
+
+  testWidgets("keeps the current gallery controller after an animated swap", (
+    tester,
+  ) async {
+    final boundariesKey = GlobalKey<GalleryBoundariesProviderState>();
+    late StateSetter replaceGallery;
+    var generation = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        localizationsDelegates: StringsLocalizations.localizationsDelegates,
+        supportedLocales: StringsLocalizations.supportedLocales,
+        home: GalleryBoundariesProvider(
+          key: boundariesKey,
+          child: GalleryFilesState(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                replaceGallery = setState;
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Gallery(
+                    key: ValueKey(generation),
+                    asyncLoader: (start, end, {limit, asc}) async =>
+                        FileLoadResult([_dummyFile("handoff")], false),
+                    tagPrefix: "handoff",
+                    enableFileGrouping: false,
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final controllers = boundariesKey.currentState!.scrollControllerNotifier;
+    final previous = controllers.value;
+    replaceGallery(() => generation++);
+    await tester.pump();
+    final current = controllers.value;
+    expect(current, isNotNull);
+    expect(current, isNot(same(previous)));
+    await tester.pumpAndSettle();
+    expect(controllers.value, same(current));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+    "retries late headers, refreshes pinned dates immediately and stops on disposal",
+    (tester) async {
+      final pinnedHeader = find.byWidgetPredicate(
+        (widget) => widget is GroupHeaderWidget && widget.isPinnedHeader,
+      );
+      for (final disposeWhileLoading in [false, true]) {
+        final load = Completer<FileLoadResult>();
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: lightThemeData,
+            localizationsDelegates: StringsLocalizations.localizationsDelegates,
+            supportedLocales: StringsLocalizations.supportedLocales,
+            home: _galleryHost(
+              Gallery(
+                asyncLoader: (start, end, {limit, asc}) => load.future,
+                tagPrefix: "late_header",
+                groupType: GroupType.day,
+                header: const SizedBox(height: 80),
+                loadingWidget: const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 750));
+        if (!disposeWhileLoading) {
+          load.complete(
+            FileLoadResult(List.generate(100, _justifiedTestFile), false),
+          );
+          await tester.pumpAndSettle();
+          final pinned = tester.widget<PinnedGroupHeader>(
+            find.byType(PinnedGroupHeader),
+          );
+          expect(pinned.headerHeightNotifier.value, isNull);
+          pinned.scrollController.jumpTo(160);
+          await tester.pump();
+          expect(pinnedHeader, findsNothing);
+          await tester.pump(const Duration(milliseconds: 750));
+          expect(pinned.headerHeightNotifier.value, 80);
+          expect(pinnedHeader, findsOneWidget);
+        }
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
 
   testWidgets("Flex remains unavailable when internal features are disabled", (
     tester,

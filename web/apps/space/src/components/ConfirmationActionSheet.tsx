@@ -118,6 +118,7 @@ export const ConfirmationActionSheet: React.FC<
                         m: 0,
                         px: "20px",
                         textAlign: "center",
+                        textWrap: "balance",
                     }}
                 >
                     {title}
@@ -132,6 +133,7 @@ export const ConfirmationActionSheet: React.FC<
                             mt: "8px",
                             px: "20px",
                             textAlign: "center",
+                            textWrap: "balance",
                         }}
                     >
                         {description}

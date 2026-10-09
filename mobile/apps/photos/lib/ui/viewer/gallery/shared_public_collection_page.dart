@@ -101,6 +101,7 @@ class _SharedPublicCollectionPageState
         await routeToPage(
           context,
           CollectionPage(CollectionWithThumbnail(c!, null)),
+          useFadeTransition: true,
         );
       } catch (e, s) {
         logger.severe("Failed to join public album", e, s);
@@ -249,6 +250,7 @@ class _SharedPublicCollectionPageState
         await routeToPage(
           context,
           CollectionPage(CollectionWithThumbnail(c!, null)),
+          useFadeTransition: true,
         );
       } catch (e, s) {
         logger.severe("Failed to join collection", e, s);

@@ -27,7 +27,8 @@ const Page: React.FC = () => {
         profile,
         profileLoadError,
         profileLoadStatus,
-        publishPost,
+        pendingPostPhotoFiles,
+        setPendingPostPhotoFiles,
         setLocalFeedPosts,
         setPostPublication,
     } = useSpaceAppState();
@@ -121,15 +122,13 @@ const Page: React.FC = () => {
             <ProfileScreen
                 friendsCount={friendsCount}
                 isPostsLoading={isPostsLoading}
+                isPostPhotoOpening={Boolean(pendingPostPhotoFiles)}
                 isStatsLoading={isPostsLoading}
                 postItems={postItems}
                 profile={profile}
                 showPostLoadingIndicator={showInitialPostLoadingIndicator}
-                onBack={() => void router.push(spaceRoutes.home)}
-                onPostSubmitted={() => void router.push(spaceRoutes.home)}
-                onCreatePost={async (images, caption) => {
-                    await publishPost(images, caption);
-                }}
+                onBack={() => void router.back(spaceRoutes.home)}
+                onPostPhotoSelect={setPendingPostPhotoFiles}
                 onDeletePost={async (postId) => {
                     const spaceId = profile.spaceId;
                     if (!spaceId) throw new Error("Missing space.");
@@ -196,7 +195,6 @@ const Page: React.FC = () => {
                 onOpenProfilePhoto={() =>
                     void router.push(spaceRoutes.profilePhoto)
                 }
-                onOpenSettings={() => void router.push(spaceRoutes.settings)}
                 onLoadPostImage={loadCurrentSpacePostAssetURL}
                 onSetPostLiked={async (postId, liked) => {
                     await setCurrentPostLiked(actorSpaceId, postId, liked);

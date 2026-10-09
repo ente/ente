@@ -19,7 +19,8 @@ const captionSegmenter =
 export const SpaceCaptionText: React.FC<{
     caption: string;
     lineClamp?: number;
-}> = ({ caption, lineClamp }) => {
+    onTruncationChange?: (isTruncated: boolean) => void;
+}> = ({ caption, lineClamp, onTruncationChange }) => {
     const measureRef = React.useRef<HTMLSpanElement>(null);
     const [clampedCaption, setClampedCaption] = React.useState(caption);
 
@@ -34,6 +35,7 @@ export const SpaceCaptionText: React.FC<{
             text.textContent = caption;
             if (measure.getBoundingClientRect().height <= maxHeight) {
                 setClampedCaption(caption);
+                onTruncationChange?.(false);
                 return;
             }
 
@@ -58,6 +60,7 @@ export const SpaceCaptionText: React.FC<{
             }
             text.textContent = caption;
             setClampedCaption(truncated(start));
+            onTruncationChange?.(true);
         };
 
         updateCaption();
@@ -68,7 +71,7 @@ export const SpaceCaptionText: React.FC<{
             observer.disconnect();
             document.fonts.removeEventListener("loadingdone", updateCaption);
         };
-    }, [caption, lineClamp]);
+    }, [caption, lineClamp, onTruncationChange]);
 
     const displayCaption = lineClamp ? clampedCaption : caption;
     const layerSx = {

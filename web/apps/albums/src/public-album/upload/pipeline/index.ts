@@ -43,11 +43,7 @@ export type UploadableUploadItem = ClusteredUploadItem & {
 };
 
 export type UploadPhase =
-    | "preparing"
-    | "readingMetadata"
-    | "uploading"
-    | "cancelling"
-    | "done";
+    "preparing" | "readingMetadata" | "uploading" | "cancelling" | "done";
 
 export type UploadResult =
     | { type: "unsupported" }

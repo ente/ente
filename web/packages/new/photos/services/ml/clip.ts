@@ -38,8 +38,7 @@ export const _clipMatches = async (
 };
 
 let _cachedCLIPIndexes:
-    | { fileID: number; embedding: Float32Array }[]
-    | undefined;
+    { fileID: number; embedding: Float32Array }[] | undefined;
 
 // Reusing Float32Arrays avoids conversion inside every search.
 const cachedOrReadCLIPIndexes = async () =>

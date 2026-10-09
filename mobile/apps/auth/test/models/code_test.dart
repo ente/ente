@@ -59,12 +59,17 @@ void main() {
     expect(code.secret, "ASKZNWOU6SVYAMVS");
     expect(code.counter, 15);
     code = code.copyWith(
-      display: CodeDisplay(pinned: true, tags: ["tag1", "com,ma", ';;%\$']),
+      display: CodeDisplay(
+        pinned: true,
+        tags: ["tag1", "com,ma", "%2C", "com,ma%2C", ';;%\$'],
+        note: 'Comma, literal %2C.',
+      ),
     );
     final dataToStore = code.toOTPAuthUrlFormat();
     final restoredCode = Code.fromOTPAuthUrl(jsonDecode(dataToStore));
     expect(restoredCode.display.pinned, true);
-    expect(restoredCode.display.tags, ["tag1", "com,ma", ';;%\$']);
+    expect(restoredCode.display.tags, code.display.tags);
+    expect(restoredCode.note, code.note);
     final secondDataToStore = restoredCode.toOTPAuthUrlFormat();
     expect(dataToStore, secondDataToStore);
   });

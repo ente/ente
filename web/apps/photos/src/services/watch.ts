@@ -28,8 +28,7 @@ class FolderWatcher {
     private unUploadableFilePaths = new Set<string>();
 
     private upload:
-        | ((collectionName: string, filePaths: string[]) => void)
-        | undefined;
+        ((collectionName: string, filePaths: string[]) => void) | undefined;
     private onTriggerRemotePull: (() => void) | undefined;
 
     private debouncedRunNextEvent: () => void;

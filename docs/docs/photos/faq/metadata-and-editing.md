@@ -376,6 +376,17 @@ The correction syncs to all your devices.
 
 To prevent this for future shared media, save photos to your phone's gallery first and let Ente back them up from the gallery. Ente reads dates correctly when files come from the gallery rather than directly from a sharing intent.
 
+### Why is GPS location missing when I share a photo to Ente on Android? {#android-share-gps-missing}
+
+The Android share flow or the app you share from may send Ente a copy without its GPS metadata. Ente cannot preserve location data it does not receive.
+
+To upload the original photo with its location data:
+
+1. Turn on backup for its folder in **Settings > Backup > Backed up folders**.
+2. Or open an album in Ente, tap **Add**, and select the photo from your device instead of using Android's Share menu.
+
+If the location is still missing, check that the original photo contains GPS coordinates.
+
 ### Does Ente modify any file metadata? {#modify-file-metadata}
 
 No. Ente never modifies your original files or their embedded metadata. All edits you make are stored separately in Ente's database and:

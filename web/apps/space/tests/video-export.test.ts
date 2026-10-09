@@ -24,7 +24,13 @@ vi.mock("@ffmpeg/ffmpeg", () => ({
     FFmpeg: class {
         loaded = true;
         constructor() {
-            mocks.workers.push(this);
+            mocks.workers.push({
+                loaded: this.loaded,
+                terminate: this.terminate,
+                exec: this.exec,
+                unmount: this.unmount,
+                readFile: this.readFile,
+            });
         }
         rejectLoad: ((error: Error) => void) | undefined;
         load = (...args: unknown[]) =>

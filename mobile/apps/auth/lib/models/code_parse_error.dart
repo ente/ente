@@ -83,7 +83,7 @@ bool _hasInvalidCodeDisplay(Map<String, String> queryParameters) {
     return false;
   }
   try {
-    jsonDecode(codeDisplay.replaceAll('%2C', ','));
+    jsonDecode(codeDisplay);
     return false;
   } catch (_) {
     return true;

@@ -1,0 +1,143 @@
+{
+  "project_info": {
+    "project_number": "817308839677",
+    "firebase_url": "https://ente-photos-d38a3.firebaseio.com",
+    "project_id": "ente-photos-d38a3",
+    "storage_bucket": "ente-photos-d38a3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:817308839677:android:3718b21f6652c7fc185894",
+        "android_client_info": {
+          "package_name": "io.ente.photos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZ8nli5jpqFTv7p5saSyGrUck34PC2DpQ"
+        },
+        {
+          "current_key": "AIzaSyDoyvjcoP88P956UKJCepTbhqZAoks6ntM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:817308839677:android:26cd5d62e19fc0cf185894",
+        "android_client_info": {
+          "package_name": "io.ente.photos.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZ8nli5jpqFTv7p5saSyGrUck34PC2DpQ"
+        },
+        {
+          "current_key": "AIzaSyDoyvjcoP88P956UKJCepTbhqZAoks6ntM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:817308839677:android:4f8b2f6c6e32c400185894",
+        "android_client_info": {
+          "package_name": "io.ente.photos.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZ8nli5jpqFTv7p5saSyGrUck34PC2DpQ"
+        },
+        {
+          "current_key": "AIzaSyDoyvjcoP88P956UKJCepTbhqZAoks6ntM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:817308839677:android:f21cf722b3adc034185894",
+        "android_client_info": {
+          "package_name": "io.ente.photos.dev.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZ8nli5jpqFTv7p5saSyGrUck34PC2DpQ"
+        },
+        {
+          "current_key": "AIzaSyDoyvjcoP88P956UKJCepTbhqZAoks6ntM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:817308839677:android:f795d06b3347b5fc185894",
+        "android_client_info": {
+          "package_name": "io.ente.photos.independent"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZ8nli5jpqFTv7p5saSyGrUck34PC2DpQ"
+        },
+        {
+          "current_key": "AIzaSyDoyvjcoP88P956UKJCepTbhqZAoks6ntM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:817308839677:android:863c6d1bc426a3cf185894",
+        "android_client_info": {
+          "package_name": "io.ente.photos.independent.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZ8nli5jpqFTv7p5saSyGrUck34PC2DpQ"
+        },
+        {
+          "current_key": "AIzaSyDoyvjcoP88P956UKJCepTbhqZAoks6ntM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

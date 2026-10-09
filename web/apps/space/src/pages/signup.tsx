@@ -36,7 +36,7 @@ const Page: React.FC = () => {
             <CreateAccountScreen
                 errorMessage={signupError}
                 isSubmitting={isSubmitting}
-                onBack={() => void router.push(spaceRoutes.onboarding)}
+                onBack={() => void router.back(spaceRoutes.onboarding)}
                 onCreateAccount={(input) => void createAccount(input)}
             />
         </>

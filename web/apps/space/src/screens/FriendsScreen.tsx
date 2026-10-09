@@ -1,24 +1,21 @@
 import {
+    Add01Icon,
     ArrowLeft02Icon,
-    BubbleChatIcon,
-    Cancel01Icon,
-    MoreVerticalIcon,
-    Search01Icon,
     UserAdd02Icon,
-    UserRemove01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Box, Menu, MenuItem, Skeleton } from "@mui/material";
+import { Box, Skeleton } from "@mui/material";
 import {
     spaceActionDoneDurationMs,
-    SpaceActionFeedbackIcon,
     type SpaceActionPhase,
 } from "components/ActionFeedback";
 import { SpaceAddFriendDialog } from "components/AddFriendDialog";
 import { SpaceAvatarImage } from "components/AvatarImage";
 import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
+import { FriendOrbit } from "components/FriendOrbit";
+import { FriendQuickActionsDialog } from "components/FriendQuickActionsDialog";
+import { FriendStarField } from "components/FriendStarField";
 import { SpaceLoadingSpinner } from "components/RouteFallback";
-import { SpaceShareInviteButton } from "components/ShareInviteButton";
 import { SpaceSkipLink } from "components/SkipLink";
 import type { FriendProfile } from "data/friends";
 import log from "ente-base/log";
@@ -26,21 +23,15 @@ import React, { useState } from "react";
 import type { SpaceFriendRequest } from "services/space";
 import {
     spaceAppBackground,
-    spaceDialogBackground,
-    spaceOnAccent,
     spaceSurface,
     spaceSurfaceHover,
     spaceText,
-    spaceTextMuted,
 } from "styles/colors";
 import { spaceTouchTargetSize } from "styles/touch-targets";
 
 const green = "#08C225";
 const avatarSkeletonBackground = spaceSurface;
 const textBase = spaceText;
-const textStrong = spaceText;
-const textSoft = spaceTextMuted;
-const dangerColor = "#F63A3A";
 const friendAvatarLoadRootMargin = "800px 0px";
 
 const friendAvatarCacheKey = (friend: FriendProfile) =>
@@ -56,12 +47,13 @@ interface FriendsScreenProps {
     friendRequests: SpaceFriendRequest[];
     friends: FriendProfile[];
     isLoading: boolean;
-    onAcceptFriendRequest: (requestID: number) => Promise<void>;
+    onBack: () => void;
+    onAcceptFriendRequest: (requestID: number) => Promise<boolean>;
     onDeleteFriendRequest: (requestID: number) => Promise<void>;
     onLoadFriendAvatar?: (friend: FriendProfile) => Promise<string | null>;
-    onBack?: () => void;
     onAddFriend: (username: string) => Promise<"friend" | "requested">;
     onMessage?: (friendID: string) => void;
+    onPoke?: (friendID: string, requestID: string) => Promise<void>;
     onOpenFriend?: (friendID: string) => void;
     profileLink?: string;
     username: string;
@@ -72,9 +64,7 @@ interface FriendIdentityProps {
     avatarUrl?: string | null;
     friend: FriendProfile;
     onLoadAvatar?: () => Promise<string | null | undefined>;
-    onOpen?: () => void;
-    primaryText?: string;
-    secondaryText?: string;
+    onOpen?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 const FriendIdentity: React.FC<FriendIdentityProps> = ({
@@ -82,8 +72,6 @@ const FriendIdentity: React.FC<FriendIdentityProps> = ({
     friend,
     onLoadAvatar,
     onOpen,
-    primaryText,
-    secondaryText = `@${friend.username}`,
 }) => {
     const displayName = friend.fullName.trim() || friend.username.trim();
     const avatarRef = React.useRef<HTMLDivElement | null>(null);
@@ -129,22 +117,30 @@ const FriendIdentity: React.FC<FriendIdentityProps> = ({
 
     return (
         <Box
-            component={onOpen ? "button" : "div"}
-            type={onOpen ? "button" : undefined}
+            component="button"
+            type="button"
             onClick={onOpen}
+            aria-label={`Actions for ${displayName}`}
+            aria-haspopup="dialog"
             sx={{
                 alignItems: "center",
                 bgcolor: "transparent",
                 border: 0,
-                borderRadius: "12px",
-                cursor: onOpen ? "pointer" : "default",
+                borderRadius: "50%",
+                cursor: "pointer",
                 display: "flex",
-                gap: "12px",
+                flexDirection: "column",
                 maxWidth: "100%",
                 minWidth: 0,
                 p: 0,
-                textAlign: "left",
-                width: "fit-content",
+                textAlign: "center",
+                width: "100%",
+                position: "relative",
+                transition: "scale 180ms ease",
+                "&:hover": { scale: "1.06" },
+                "@media (prefers-reduced-motion: reduce)": {
+                    transition: "none",
+                },
                 "&:focus-visible": {
                     outline: `2px solid ${green}`,
                     outlineOffset: 2,
@@ -156,13 +152,16 @@ const FriendIdentity: React.FC<FriendIdentityProps> = ({
                 sx={{
                     alignItems: "center",
                     bgcolor: avatarSkeletonBackground,
+                    border: "1px solid #454545",
                     borderRadius: "50%",
                     display: "flex",
                     flexShrink: 0,
-                    height: 44,
+                    height: "auto",
+                    aspectRatio: "1",
                     justifyContent: "center",
                     overflow: "hidden",
-                    width: 44,
+                    width: "100%",
+                    boxShadow: "0 8px 28px rgba(0, 0, 0, 0.2)",
                 }}
             >
                 {avatarUrl || !friend.avatarObjectID ? (
@@ -179,434 +178,79 @@ const FriendIdentity: React.FC<FriendIdentityProps> = ({
                     />
                 )}
             </Box>
-            <Box
-                sx={{
-                    display: "flex",
-                    flex: "0 1 auto",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    minWidth: 0,
-                }}
-            >
-                <Box
-                    sx={{
-                        color: textStrong,
-                        fontFamily: '"Inter Variable", Inter, sans-serif',
-                        fontSize: 14,
-                        fontWeight: 700,
-                        lineHeight: "20px",
-                        minWidth: 0,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                    }}
-                >
-                    {primaryText ?? displayName}
-                </Box>
-                <Box
-                    sx={{
-                        color: textSoft,
-                        fontFamily: '"Inter Variable", Inter, sans-serif',
-                        fontSize: 13,
-                        fontWeight: 500,
-                        lineHeight: "18px",
-                        minWidth: 0,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                    }}
-                >
-                    {secondaryText}
-                </Box>
-            </Box>
         </Box>
     );
 };
 
-interface FriendRowProps {
-    avatarUrl?: string | null;
-    friend: FriendProfile;
-    onLoadAvatar?: () => Promise<string | null | undefined>;
-    onMessage?: (friendID: string) => void;
-    onOpenFriend?: (friendID: string) => void;
-    onUnfriend?: (friendID: string) => void;
-}
+const orbitCircleSx = {
+    alignItems: "center",
+    bgcolor: spaceSurface,
+    border: "1px solid #454545",
+    borderRadius: "50%",
+    boxSizing: "border-box",
+    boxShadow: "0 8px 28px rgba(0, 0, 0, 0.2)",
+    color: textBase,
+    display: "flex",
+    flexDirection: "column",
+    fontFamily: '"Inter Variable", Inter, sans-serif',
+    gap: "6px",
+    height: "100%",
+    justifyContent: "center",
+    p: "12px",
+    textAlign: "center",
+    width: "100%",
+    "&:focus-visible": { outline: `2px solid ${green}`, outlineOffset: 4 },
+} as const;
 
-const FriendRow: React.FC<FriendRowProps> = ({
-    avatarUrl,
-    friend,
-    onLoadAvatar,
-    onMessage,
-    onOpenFriend,
-    onUnfriend,
-}) => {
-    const [actionsAnchor, setActionsAnchor] = useState<HTMLElement | null>(
-        null,
-    );
-    const isActionsOpen = Boolean(actionsAnchor);
-    const actionsMenuID = `friend-actions-menu-${friend.id}`;
-    const actionsButtonID = `friend-actions-button-${friend.id}`;
-    const displayName = friend.fullName.trim() || friend.username.trim();
-
-    const closeActions = () => setActionsAnchor(null);
-
-    const message = () => {
-        closeActions();
-        onMessage?.(friend.id);
-    };
-
-    const unfriend = () => {
-        closeActions();
-        onUnfriend?.(friend.id);
-    };
-
-    return (
-        <Box
-            component="li"
-            sx={{
-                alignItems: "center",
-                display: "grid",
-                gridTemplateColumns: `minmax(0, 1fr) ${spaceTouchTargetSize}px`,
-                gap: "12px",
-                listStyle: "none",
-                minHeight: 72,
-                px: "18px",
-                py: "12px",
-                width: "100%",
-            }}
-        >
-            <FriendIdentity
-                avatarUrl={avatarUrl}
-                friend={friend}
-                onLoadAvatar={onLoadAvatar}
-                onOpen={
-                    onOpenFriend ? () => onOpenFriend(friend.id) : undefined
-                }
-            />
-            <Box
-                component="button"
-                id={actionsButtonID}
-                type="button"
-                aria-label={`Actions for ${displayName}`}
-                aria-controls={isActionsOpen ? actionsMenuID : undefined}
-                aria-expanded={isActionsOpen ? "true" : undefined}
-                aria-haspopup="menu"
-                onClick={(event) => setActionsAnchor(event.currentTarget)}
-                sx={{
-                    alignItems: "center",
-                    bgcolor: "transparent",
-                    border: 0,
-                    color: textBase,
-                    cursor: "pointer",
-                    display: "flex",
-                    height: spaceTouchTargetSize,
-                    justifyContent: "flex-end",
-                    justifySelf: "flex-end",
-                    p: 0,
-                    width: spaceTouchTargetSize,
-                    "&:focus-visible": {
-                        outline: `2px solid ${green}`,
-                        outlineOffset: 2,
-                    },
-                }}
-            >
-                <HugeiconsIcon
-                    icon={MoreVerticalIcon}
-                    size={20}
-                    strokeWidth={1.8}
-                />
-            </Box>
-            <Menu
-                id={actionsMenuID}
-                anchorEl={actionsAnchor}
-                open={isActionsOpen}
-                onClose={closeActions}
-                anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-                transformOrigin={{ horizontal: "right", vertical: "top" }}
-                slotProps={{
-                    paper: {
-                        sx: {
-                            bgcolor: spaceDialogBackground,
-                            borderRadius: "14px",
-                            boxShadow: "0 14px 40px rgba(0, 0, 0, 0.16)",
-                            mt: "6px",
-                            minWidth: 0,
-                            p: "4px",
-                            width: "max-content",
-                        },
-                    },
-                    list: { "aria-labelledby": actionsButtonID, sx: { p: 0 } },
-                }}
-            >
-                {onMessage && (
-                    <MenuItem
-                        dense
-                        disableRipple
-                        onClick={message}
-                        sx={{
-                            borderRadius: "10px",
-                            color: textBase,
-                            gap: "8px",
-                            minHeight: 36,
-                            px: "9px",
-                            py: "4px",
-                            whiteSpace: "nowrap",
-                            "&.Mui-focusVisible": {
-                                bgcolor: "rgba(255, 255, 255, 0.08)",
-                            },
-                            "&:active": {
-                                bgcolor: "rgba(255, 255, 255, 0.08)",
-                            },
-                            "&:hover": { bgcolor: "rgba(255, 255, 255, 0.08)" },
-                        }}
-                    >
-                        <HugeiconsIcon
-                            icon={BubbleChatIcon}
-                            size={18}
-                            strokeWidth={1.8}
-                        />
-                        <Box
-                            sx={{
-                                fontFamily:
-                                    '"Inter Variable", Inter, sans-serif',
-                                fontSize: 13,
-                                fontWeight: 650,
-                                lineHeight: "18px",
-                            }}
-                        >
-                            Message
-                        </Box>
-                    </MenuItem>
-                )}
-                <MenuItem
-                    dense
-                    disableRipple
-                    onClick={unfriend}
-                    sx={{
-                        borderRadius: "10px",
-                        color: dangerColor,
-                        gap: "8px",
-                        minHeight: 36,
-                        px: "9px",
-                        py: "4px",
-                        whiteSpace: "nowrap",
-                        "&.Mui-focusVisible": {
-                            bgcolor: "rgba(246, 58, 58, 0.14)",
-                        },
-                        "&:active": { bgcolor: "rgba(246, 58, 58, 0.14)" },
-                        "&:hover": { bgcolor: "rgba(246, 58, 58, 0.14)" },
-                    }}
-                >
-                    <HugeiconsIcon
-                        icon={UserRemove01Icon}
-                        size={18}
-                        strokeWidth={1.8}
-                    />
-                    <Box
-                        sx={{
-                            fontFamily: '"Inter Variable", Inter, sans-serif',
-                            fontSize: 13,
-                            fontWeight: 650,
-                            lineHeight: "18px",
-                        }}
-                    >
-                        Unfriend
-                    </Box>
-                </MenuItem>
-            </Menu>
-        </Box>
-    );
-};
-
-interface FriendRequestRowProps {
-    onAccept: (requestID: number) => Promise<void>;
-    onDelete: (requestID: number) => Promise<void>;
+interface FriendRequestCircleProps {
+    onOpen: (event: React.MouseEvent<HTMLButtonElement>) => void;
     request: SpaceFriendRequest;
 }
 
-const FriendRequestRow: React.FC<FriendRequestRowProps> = ({
-    onAccept,
-    onDelete,
+const FriendRequestCircle: React.FC<FriendRequestCircleProps> = ({
+    onOpen,
     request,
-}) => {
-    const [action, setAction] = React.useState<"accept" | "delete" | null>(
-        null,
-    );
-    const isReceived = request.direction == "received";
-    const isBusy = action != null;
-    const displayName =
-        request.friend.fullName.trim() || request.friend.username.trim();
-    const runAction = (
-        nextAction: "accept" | "delete",
-        handler: (requestID: number) => Promise<void>,
-    ) => {
-        if (isBusy) return;
-        setAction(nextAction);
-        void handler(request.requestId)
-            .catch((error: unknown) =>
-                log.error("Failed to update friend request", error),
-            )
-            .finally(() => setAction(null));
-    };
-
-    return (
+}) => (
+    <Box
+        className={request.direction == "received" ? "green-bg" : undefined}
+        component="button"
+        type="button"
+        aria-label={`${request.direction == "received" ? "Friend request from" : "Pending friend request to"} @${request.friend.username}`}
+        aria-haspopup="dialog"
+        onClick={onOpen}
+        sx={{
+            ...orbitCircleSx,
+            bgcolor: request.direction == "received" ? green : "#444444",
+            borderColor:
+                request.direction == "received"
+                    ? "color(display-p3 0.32 0.88 0.4)"
+                    : "#737373",
+            boxShadow:
+                request.direction == "received"
+                    ? "0 0 18px rgba(8, 194, 37, 0.18)"
+                    : orbitCircleSx.boxShadow,
+            transition: "scale 180ms ease",
+            "&:hover": { scale: "1.06" },
+            "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+        }}
+    >
         <Box
-            component="li"
+            component="span"
+            title={`@${request.friend.username}`}
             sx={{
-                alignItems: "center",
-                display: "grid",
-                gap: "8px",
-                gridTemplateColumns: "minmax(0, 1fr) auto",
-                listStyle: "none",
-                minHeight: 72,
-                px: "18px",
-                py: "12px",
-                width: "100%",
+                fontSize: 14,
+                fontWeight: 600,
+                lineHeight: "18px",
+                maxWidth: "100%",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
             }}
         >
-            <FriendIdentity
-                friend={request.friend}
-                primaryText={`@${request.friend.username}`}
-                secondaryText={
-                    isReceived ? "Sent you a friend request" : "Request sent"
-                }
-            />
-            <Box
-                sx={{
-                    alignItems: "center",
-                    display: "flex",
-                    flexShrink: 0,
-                    gap: "6px",
-                }}
-            >
-                {isReceived ? (
-                    <>
-                        <Box
-                            className="green-bg"
-                            component="button"
-                            type="button"
-                            disabled={isBusy}
-                            onClick={() => runAction("accept", onAccept)}
-                            sx={{
-                                alignItems: "center",
-                                bgcolor: green,
-                                border: 0,
-                                borderRadius: "12px",
-                                color: spaceOnAccent,
-                                cursor: isBusy ? "default" : "pointer",
-                                display: "flex",
-                                fontFamily:
-                                    '"Inter Variable", Inter, sans-serif',
-                                fontSize: 12,
-                                fontWeight: 700,
-                                height: 34,
-                                justifyContent: "center",
-                                minWidth: 64,
-                                px: "12px",
-                                "&:disabled": { opacity: 0.6 },
-                                "&:focus-visible": {
-                                    outline: `2px solid ${green}`,
-                                    outlineOffset: 2,
-                                },
-                                "&:hover": isBusy
-                                    ? undefined
-                                    : { bgcolor: "#07A820" },
-                            }}
-                        >
-                            {action == "accept" ? (
-                                <SpaceActionFeedbackIcon
-                                    phase="busy"
-                                    size={16}
-                                />
-                            ) : (
-                                "Accept"
-                            )}
-                        </Box>
-                        <Box
-                            component="button"
-                            type="button"
-                            aria-label={`Decline friend request from ${displayName}`}
-                            disabled={isBusy}
-                            onClick={() => runAction("delete", onDelete)}
-                            sx={{
-                                alignItems: "center",
-                                bgcolor: "transparent",
-                                border: 0,
-                                borderRadius: "50%",
-                                color: textBase,
-                                cursor: isBusy ? "default" : "pointer",
-                                display: "flex",
-                                height: 34,
-                                justifyContent: "center",
-                                p: 0,
-                                width: 34,
-                                "&:disabled": { opacity: 0.45 },
-                                "&:focus-visible": {
-                                    outline: `2px solid ${green}`,
-                                    outlineOffset: 2,
-                                },
-                                "&:hover": isBusy
-                                    ? undefined
-                                    : { bgcolor: spaceSurfaceHover },
-                            }}
-                        >
-                            {action == "delete" ? (
-                                <SpaceActionFeedbackIcon
-                                    phase="busy"
-                                    size={18}
-                                />
-                            ) : (
-                                <HugeiconsIcon
-                                    icon={Cancel01Icon}
-                                    size={18}
-                                    strokeWidth={2}
-                                />
-                            )}
-                        </Box>
-                    </>
-                ) : (
-                    <Box
-                        component="button"
-                        type="button"
-                        aria-label={`Cancel friend request to ${displayName}`}
-                        disabled={isBusy}
-                        onClick={() => runAction("delete", onDelete)}
-                        sx={{
-                            alignItems: "center",
-                            bgcolor: spaceSurface,
-                            border: 0,
-                            borderRadius: "12px",
-                            color: textBase,
-                            cursor: isBusy ? "default" : "pointer",
-                            display: "flex",
-                            fontFamily: '"Inter Variable", Inter, sans-serif',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            height: 34,
-                            justifyContent: "center",
-                            minWidth: 64,
-                            px: "12px",
-                            "&:disabled": { opacity: 0.6 },
-                            "&:focus-visible": {
-                                outline: `2px solid ${green}`,
-                                outlineOffset: 2,
-                            },
-                            "&:hover": isBusy
-                                ? undefined
-                                : { bgcolor: spaceSurfaceHover },
-                        }}
-                    >
-                        {action == "delete" ? (
-                            <SpaceActionFeedbackIcon phase="busy" size={16} />
-                        ) : (
-                            "Cancel"
-                        )}
-                    </Box>
-                )}
-            </Box>
+            @{request.friend.username}
         </Box>
-    );
-};
+    </Box>
+);
 
 export const FriendsScreen: React.FC<FriendsScreenProps> = ({
     friendRequests,
@@ -614,19 +258,29 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
     isLoading,
     onAcceptFriendRequest,
     onAddFriend,
+    onBack,
     onDeleteFriendRequest,
     onLoadFriendAvatar,
-    onBack,
     onMessage,
+    onPoke,
     onOpenFriend,
     profileLink,
     username,
     onUnfriend,
 }) => {
     const [isAddFriendOpen, setIsAddFriendOpen] = React.useState(false);
-    const [searchQuery, setSearchQuery] = React.useState("");
+    const [selectedFriend, setSelectedFriend] = React.useState<{
+        friend: FriendProfile;
+        anchorRect: DOMRect;
+    } | null>(null);
+    const [selectedRequest, setSelectedRequest] = React.useState<{
+        request: SpaceFriendRequest;
+        anchorRect: DOMRect;
+    } | null>(null);
+    const pokeRequestIDs = React.useRef(new Map<string, string>());
     const [friendToUnfriend, setFriendToUnfriend] =
         React.useState<FriendProfile | null>(null);
+    const [isUnfriendOpen, setIsUnfriendOpen] = React.useState(false);
     const [unfriendActionPhase, setUnfriendActionPhase] =
         React.useState<SpaceActionPhase | null>(null);
     const [unfriendErrorMessage, setUnfriendErrorMessage] = React.useState<
@@ -635,20 +289,10 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
     const [loadedAvatarURLsByKey, setLoadedAvatarURLsByKey] = React.useState<
         Record<string, string>
     >({});
-    const [isInviteSharing, setIsInviteSharing] = React.useState(false);
     const avatarLoadsInFlightRef = React.useRef<
         Map<string, Promise<string | null | undefined>>
     >(new Map());
     const isUnfriendActionRunning = unfriendActionPhase != null;
-    const searchTerm = searchQuery.trim().toLowerCase();
-    const matchesSearch = (friend: FriendProfile) =>
-        friend.fullName.toLowerCase().includes(searchTerm) ||
-        `@${friend.username}`.toLowerCase().includes(searchTerm);
-    const visibleFriendRequests = searchTerm
-        ? friendRequests.filter((request) => matchesSearch(request.friend))
-        : friendRequests;
-    const visibleFriends = searchTerm ? friends.filter(matchesSearch) : friends;
-
     const loadedAvatarURLFor = React.useCallback(
         (friend: FriendProfile) =>
             friend.avatarUrl ??
@@ -695,7 +339,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
     const cancelUnfriend = () => {
         if (isUnfriendActionRunning) return;
         setUnfriendErrorMessage(null);
-        setFriendToUnfriend(null);
+        setIsUnfriendOpen(false);
     };
 
     const confirmUnfriend = () => {
@@ -718,13 +362,14 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
         if (unfriendActionPhase != "done") return;
 
         const timeoutID = window.setTimeout(() => {
-            setFriendToUnfriend(null);
+            setIsUnfriendOpen(false);
         }, spaceActionDoneDurationMs);
 
         return () => window.clearTimeout(timeoutID);
     }, [unfriendActionPhase]);
 
     const handleUnfriendSheetExited = () => {
+        setFriendToUnfriend(null);
         setUnfriendActionPhase(null);
         setUnfriendErrorMessage(null);
     };
@@ -737,21 +382,23 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                 color: textBase,
                 display: "grid",
                 boxSizing: "border-box",
-                minHeight: "100svh",
+                isolation: "isolate",
+                minHeight: "var(--space-page-height, 100svh)",
                 overflowX: "hidden",
                 placeItems: { xs: "stretch", sm: "start center" },
+                position: "relative",
             }}
         >
+            <FriendStarField />
             <SpaceSkipLink />
             <Box
                 sx={{
                     bgcolor: "transparent",
                     boxSizing: "border-box",
-                    minHeight: "100svh",
+                    minHeight: "var(--space-page-height, 100svh)",
                     mx: "auto",
                     position: "relative",
                     width: "100%",
-                    "@media (min-width: 600px)": { maxWidth: 390 },
                 }}
             >
                 <Box
@@ -761,6 +408,8 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                         display: "grid",
                         gridTemplateColumns: `${spaceTouchTargetSize}px 1fr ${spaceTouchTargetSize}px`,
                         height: 56,
+                        maxWidth: 390,
+                        mx: "auto",
                         px: 2,
                         width: "100%",
                     }}
@@ -768,14 +417,14 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                     <Box
                         component="button"
                         type="button"
-                        aria-label="Back to profile"
+                        aria-label="Back"
                         onClick={onBack}
                         sx={{
                             alignItems: "center",
                             bgcolor: "transparent",
                             border: 0,
                             color: textBase,
-                            cursor: onBack ? "pointer" : "default",
+                            cursor: "pointer",
                             display: "flex",
                             height: spaceTouchTargetSize,
                             justifyContent: "flex-start",
@@ -798,6 +447,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                     <Box
                         component="h1"
                         sx={{
+                            bgcolor: spaceAppBackground,
                             color: textBase,
                             fontFamily: '"Inter Variable", Inter, sans-serif',
                             fontSize: 18,
@@ -805,6 +455,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                             justifySelf: "center",
                             lineHeight: "24px",
                             m: 0,
+                            px: "4px",
                         }}
                     >
                         Friends
@@ -859,91 +510,6 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                     aria-label="Friends"
                     tabIndex={-1}
                 >
-                    {!isLoading &&
-                        (friendRequests.length > 0 ||
-                            friends.length > 0 ||
-                            Boolean(searchTerm)) && (
-                            <Box
-                                sx={{
-                                    alignItems: "center",
-                                    bgcolor: spaceSurface,
-                                    borderRadius: "14px",
-                                    display: "flex",
-                                    height: 48,
-                                    mx: "18px",
-                                    mt: "12px",
-                                    px: "14px",
-                                    "&:focus-within": {
-                                        outline: `2px solid ${green}`,
-                                    },
-                                }}
-                            >
-                                <HugeiconsIcon
-                                    icon={Search01Icon}
-                                    size={20}
-                                    color={textSoft}
-                                    strokeWidth={1.8}
-                                />
-                                <Box
-                                    component="input"
-                                    type="text"
-                                    inputMode="search"
-                                    aria-label="Search friends"
-                                    autoComplete="off"
-                                    onChange={(event) =>
-                                        setSearchQuery(event.target.value)
-                                    }
-                                    placeholder="Search"
-                                    value={searchQuery}
-                                    sx={{
-                                        bgcolor: "transparent",
-                                        border: 0,
-                                        color: textBase,
-                                        flex: 1,
-                                        fontFamily:
-                                            '"Inter Variable", Inter, sans-serif',
-                                        fontSize: 14,
-                                        fontWeight: 500,
-                                        height: "100%",
-                                        minWidth: 0,
-                                        ml: "10px",
-                                        outline: 0,
-                                        p: 0,
-                                        "&::placeholder": {
-                                            color: textSoft,
-                                            opacity: 1,
-                                        },
-                                    }}
-                                />
-                                {searchQuery && (
-                                    <Box
-                                        component="button"
-                                        type="button"
-                                        aria-label="Clear search"
-                                        onClick={() => setSearchQuery("")}
-                                        sx={{
-                                            alignItems: "center",
-                                            bgcolor: "transparent",
-                                            border: 0,
-                                            color: textSoft,
-                                            cursor: "pointer",
-                                            display: "flex",
-                                            height: spaceTouchTargetSize,
-                                            justifyContent: "center",
-                                            mr: "-14px",
-                                            p: 0,
-                                            width: spaceTouchTargetSize,
-                                        }}
-                                    >
-                                        <HugeiconsIcon
-                                            icon={Cancel01Icon}
-                                            size={18}
-                                            strokeWidth={1.8}
-                                        />
-                                    </Box>
-                                )}
-                            </Box>
-                        )}
                     {isLoading ? (
                         <Box
                             sx={{
@@ -956,106 +522,152 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                         >
                             <SpaceLoadingSpinner ariaLabel="Loading friends" />
                         </Box>
-                    ) : visibleFriendRequests.length > 0 ||
-                      visibleFriends.length > 0 ? (
-                        <Box
-                            component="ul"
-                            sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "4px",
-                                m: 0,
-                                mt: "18px",
-                                p: 0,
-                                width: "100%",
-                            }}
-                        >
-                            {visibleFriendRequests.map((request) => (
-                                <FriendRequestRow
-                                    key={`request-${request.requestId}`}
-                                    request={request}
-                                    onAccept={onAcceptFriendRequest}
-                                    onDelete={onDeleteFriendRequest}
-                                />
-                            ))}
-                            {visibleFriends.map((friend) => (
-                                <FriendRow
-                                    key={friend.id}
-                                    avatarUrl={loadedAvatarURLFor(friend)}
-                                    friend={friend}
-                                    onLoadAvatar={() =>
-                                        loadFriendAvatar(friend)
-                                    }
-                                    onMessage={onMessage}
-                                    onOpenFriend={onOpenFriend}
-                                    onUnfriend={() => {
-                                        setUnfriendErrorMessage(null);
-                                        setFriendToUnfriend(friend);
-                                    }}
-                                />
-                            ))}
-                        </Box>
-                    ) : searchTerm ? (
-                        <Box
-                            role="status"
-                            sx={{
-                                color: textSoft,
-                                display: "grid",
-                                fontFamily:
-                                    '"Inter Variable", Inter, sans-serif',
-                                fontSize: 14,
-                                lineHeight: "20px",
-                                minHeight: "max(0px, calc(100svh - 116px))",
-                                placeItems: "center",
-                                textAlign: "center",
-                            }}
-                        >
-                            No results found.
-                        </Box>
                     ) : (
-                        <Box
-                            sx={{
-                                alignItems: "center",
-                                color: textSoft,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "22px",
-                                inset: 0,
-                                justifyContent: "center",
-                                fontFamily:
-                                    '"Inter Variable", Inter, sans-serif',
-                                fontSize: 14,
-                                fontWeight: 500,
-                                lineHeight: "20px",
-                                pointerEvents: "none",
-                                position: "absolute",
-                                px: "24px",
-                                textAlign: "center",
-                            }}
-                        >
-                            <Box component="p" sx={{ m: 0, maxWidth: 260 }}>
-                                Invite your friends and family. Share everyday
-                                photos and keep up with each other.
-                            </Box>
-                            <SpaceShareInviteButton
-                                profileLink={profileLink}
-                                sharing={isInviteSharing}
-                                onShareError={(error) =>
-                                    log.error(
-                                        "Failed to share Space invite link",
-                                        error,
-                                    )
-                                }
-                                onSharingChange={setIsInviteSharing}
-                            />
-                        </Box>
+                        <FriendOrbit
+                            initialOuterID="add-friend"
+                            items={[
+                                ...friends.map((friend) => ({
+                                    id: friend.id,
+                                    content: (
+                                        <FriendIdentity
+                                            avatarUrl={loadedAvatarURLFor(
+                                                friend,
+                                            )}
+                                            friend={friend}
+                                            onLoadAvatar={() =>
+                                                loadFriendAvatar(friend)
+                                            }
+                                            onOpen={(event) =>
+                                                setSelectedFriend({
+                                                    friend,
+                                                    anchorRect:
+                                                        event.currentTarget.getBoundingClientRect(),
+                                                })
+                                            }
+                                        />
+                                    ),
+                                })),
+                                ...friendRequests.map((request) => ({
+                                    id: request.friend.id,
+                                    fixedSize: 120,
+                                    content: (
+                                        <FriendRequestCircle
+                                            request={request}
+                                            onOpen={(event) =>
+                                                setSelectedRequest({
+                                                    request,
+                                                    anchorRect:
+                                                        event.currentTarget.getBoundingClientRect(),
+                                                })
+                                            }
+                                        />
+                                    ),
+                                })),
+                                {
+                                    id: "add-friend",
+                                    fixedSize: 64,
+                                    content: (
+                                        <Box
+                                            component="button"
+                                            type="button"
+                                            aria-label="Add friend"
+                                            aria-haspopup="dialog"
+                                            aria-expanded={isAddFriendOpen}
+                                            onClick={() =>
+                                                setIsAddFriendOpen(true)
+                                            }
+                                            sx={{
+                                                ...orbitCircleSx,
+                                                transition: "scale 180ms ease",
+                                                "&:hover": {
+                                                    bgcolor: spaceSurfaceHover,
+                                                    scale: "1.06",
+                                                },
+                                                "@media (prefers-reduced-motion: reduce)":
+                                                    { transition: "none" },
+                                            }}
+                                        >
+                                            <HugeiconsIcon
+                                                icon={Add01Icon}
+                                                size={28}
+                                                strokeWidth={1.8}
+                                            />
+                                        </Box>
+                                    ),
+                                },
+                            ]}
+                        />
                     )}
                 </Box>
             </Box>
+            {selectedRequest && (
+                <FriendQuickActionsDialog
+                    anchorRect={selectedRequest.anchorRect}
+                    friend={selectedRequest.request.friend}
+                    onClose={() => setSelectedRequest(null)}
+                    requestActions={{
+                        onAccept:
+                            selectedRequest.request.direction == "received"
+                                ? () =>
+                                      onAcceptFriendRequest(
+                                          selectedRequest.request.requestId,
+                                      )
+                                : undefined,
+                        onCancel: () =>
+                            onDeleteFriendRequest(
+                                selectedRequest.request.requestId,
+                            ),
+                    }}
+                />
+            )}
+            {selectedFriend && (
+                <FriendQuickActionsDialog
+                    anchorRect={selectedFriend.anchorRect}
+                    avatarUrl={loadedAvatarURLFor(selectedFriend.friend)}
+                    friend={selectedFriend.friend}
+                    onClose={() => setSelectedFriend(null)}
+                    onMessage={
+                        onMessage
+                            ? () => onMessage(selectedFriend.friend.id)
+                            : undefined
+                    }
+                    onPoke={
+                        onPoke
+                            ? async () => {
+                                  const friendID = selectedFriend.friend.id;
+                                  const requestID =
+                                      pokeRequestIDs.current.get(friendID) ??
+                                      crypto.randomUUID();
+                                  pokeRequestIDs.current.set(
+                                      friendID,
+                                      requestID,
+                                  );
+                                  await onPoke(friendID, requestID);
+                                  pokeRequestIDs.current.delete(friendID);
+                              }
+                            : undefined
+                    }
+                    onProfile={
+                        onOpenFriend
+                            ? () => onOpenFriend(selectedFriend.friend.id)
+                            : undefined
+                    }
+                    onUnfriend={
+                        onUnfriend
+                            ? () => {
+                                  setUnfriendErrorMessage(null);
+                                  setFriendToUnfriend(selectedFriend.friend);
+                                  setIsUnfriendOpen(true);
+                              }
+                            : undefined
+                    }
+                />
+            )}
             <ConfirmationActionSheet
-                open={Boolean(friendToUnfriend)}
-                title="Are you sure you want to unfriend?"
-                confirmLabel="Yes, unfriend"
+                open={isUnfriendOpen}
+                title={`Unfriend ${friendToUnfriend?.fullName.trim().split(/\s+/)[0] || friendToUnfriend?.username}?`}
+                description="You’ll no longer see each other’s posts or message each other."
+                confirmLabel="Unfriend"
                 confirmActionPhase={unfriendActionPhase}
                 confirmDisabled={isUnfriendActionRunning}
                 errorMessage={unfriendErrorMessage}

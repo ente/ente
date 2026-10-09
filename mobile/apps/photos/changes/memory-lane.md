@@ -1,0 +1,1 @@
+- Improved memory lanes and added them to the home screen.

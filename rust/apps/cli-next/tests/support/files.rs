@@ -114,7 +114,7 @@ fn downloads_publish_only_complete_authenticated_originals() {
     ] {
         let object = server.mock("GET", "/original").with_body(bytes).create();
         let output = home.run(&args);
-        failure(&output);
+        assert!(failure(&output).contains("cannot download file 10: "));
         assert!(output.stdout.is_empty());
         assert!(!path.exists());
         assert_eq!(fs::read_dir(output_dir.path()).unwrap().count(), 0);

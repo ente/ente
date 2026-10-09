@@ -4,9 +4,9 @@ use anyhow::{Context, Result};
 use rusqlite::{Connection, OpenFlags};
 use zeroize::Zeroizing;
 
-use crate::{core_db::Db, replica, vault::DbKey};
+use crate::{auth, core_db::Db, replica, vault::DbKey};
 
-const MIGRATIONS: &[&str] = &[replica::SCHEMA];
+const MIGRATIONS: &[&str] = &[replica::SCHEMA, auth::replica::SCHEMA];
 
 pub fn open(account_dir: &Path, key: &DbKey, create: bool) -> Result<Db> {
     let connection = connect(&account_dir.join("data.db"), key, create)?;

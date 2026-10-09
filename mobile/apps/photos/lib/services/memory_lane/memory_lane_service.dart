@@ -110,34 +110,30 @@ class MemoryLaneService {
       }
       persons.addAll(await PersonService.instance.getPersons());
     }
-    if (flagService.internalUser) {
-      final assigned = <String>{};
-      for (final person in persons) {
-        for (final cluster in person.data.assigned) {
-          assigned.add(cluster.id);
-        }
-      }
-      try {
-        _topNClusters = await _mlDataDB.getClustersForMemoryLane(assigned);
-      } catch (e, s) {
-        _logger.severe("getClustersForMemoryLane failed:", e, s);
-        final cache = await _cacheService.getCache();
-        _topNClusters = cache.timelines.entries
-            .where(
-              (entry) =>
-                  entry.value.isCluster &&
-                  !assigned.contains(entry.value.personId),
-            )
-            .map((entry) => entry.key)
-            .toSet();
+    final assigned = <String>{};
+    for (final person in persons) {
+      for (final cluster in person.data.assigned) {
+        assigned.add(cluster.id);
       }
     }
-    if (flagService.internalUser) {
-      try {
-        await _scheduleTimelinesForMemoriesStrip(persons);
-      } catch (e, s) {
-        _logger.severe("_scheduleTimelinesForMemoriesStrip failed:", e, s);
-      }
+    try {
+      _topNClusters = await _mlDataDB.getClustersForMemoryLane(assigned);
+    } catch (e, s) {
+      _logger.severe("getClustersForMemoryLane failed:", e, s);
+      final cache = await _cacheService.getCache();
+      _topNClusters = cache.timelines.entries
+          .where(
+            (entry) =>
+                entry.value.isCluster &&
+                !assigned.contains(entry.value.personId),
+          )
+          .map((entry) => entry.key)
+          .toSet();
+    }
+    try {
+      await _scheduleTimelinesForMemoriesStrip(persons);
+    } catch (e, s) {
+      _logger.severe("_scheduleTimelinesForMemoriesStrip failed:", e, s);
     }
     if (!isLocalGalleryMode) {
       for (final person in persons) {
@@ -148,21 +144,19 @@ class MemoryLaneService {
         schedulePersonRecompute(person.remoteID, force: force);
       }
     }
-    if (flagService.internalUser) {
-      final cache = await _cacheService.getCache();
-      final List<Future<void>> tasks = [];
-      for (final timeline in cache.allTimelines) {
-        if (timeline.isCluster && !_topNClusters.contains(timeline.personId)) {
-          tasks.add(_cacheService.removeTimeline(timeline.personId));
-          tasks.add(_cacheService.removeComputeLogEntry(timeline.personId));
-        }
+    final cache = await _cacheService.getCache();
+    final List<Future<void>> tasks = [];
+    for (final timeline in cache.allTimelines) {
+      if (timeline.isCluster && !_topNClusters.contains(timeline.personId)) {
+        tasks.add(_cacheService.removeTimeline(timeline.personId));
+        tasks.add(_cacheService.removeComputeLogEntry(timeline.personId));
       }
-      if (tasks.isNotEmpty) {
-        unawaited(Future.wait(tasks).then((_) => _refreshReadyPersonIds()));
-      }
-      for (final cluster in _topNClusters) {
-        schedulePersonRecompute(cluster, isCluster: true, force: force);
-      }
+    }
+    if (tasks.isNotEmpty) {
+      unawaited(Future.wait(tasks).then((_) => _refreshReadyPersonIds()));
+    }
+    for (final cluster in _topNClusters) {
+      schedulePersonRecompute(cluster, isCluster: true, force: force);
     }
   }
 

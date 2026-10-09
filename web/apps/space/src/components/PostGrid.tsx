@@ -21,7 +21,6 @@ export const SpacePostGrid = <Item extends PostGridItem>({
     renderTile: (item: Item, index: number) => React.ReactNode;
 }) => {
     const [width, setWidth] = React.useState(0);
-    const [fullWidth, setFullWidth] = React.useState<boolean>();
     const gridRef = React.useRef<HTMLDivElement | null>(null);
 
     React.useLayoutEffect(() => {
@@ -34,10 +33,8 @@ export const SpacePostGrid = <Item extends PostGridItem>({
         return () => observer.disconnect();
     }, []);
 
-    if (fullWidth == undefined && width > 0 && items.length > 0)
-        setFullWidth(
-            postCount != undefined && Math.max(postCount, items.length) < 4,
-        );
+    const fullWidth =
+        postCount != undefined && Math.max(postCount, items.length) < 4;
 
     const columnCount = fullWidth ? 1 : 2;
     const columnWidth = (width - (columnCount - 1) * gap) / columnCount;

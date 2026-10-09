@@ -2,6 +2,7 @@ import "@fontsource-variable/inter";
 import "@fontsource/nunito/800.css";
 import { CssBaseline } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { SpaceAppLayout } from "components/AppNavigation";
 import { SpacePostComposerHost } from "components/PostComposer";
 import { SpaceRouteTransitionBoundary } from "components/RouteTransitionBoundary";
 import "configure-zod";
@@ -153,7 +154,9 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
             <CssBaseline enableColorScheme />
             <SpaceRouteTransitionBoundary>
                 <SpaceAppStateProvider>
-                    <Component {...pageProps} />
+                    <SpaceAppLayout>
+                        <Component {...pageProps} />
+                    </SpaceAppLayout>
                     <SpacePostComposerHost />
                 </SpaceAppStateProvider>
             </SpaceRouteTransitionBoundary>

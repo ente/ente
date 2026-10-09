@@ -574,8 +574,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: "981a9e0f4a227023991af3332ef0e6ab6d14a1c2"
-      resolved-ref: "981a9e0f4a227023991af3332ef0e6ab6d14a1c2"
+      ref: b3f17aac6973b630aff663e4d9f7c6ee92334a62
+      resolved-ref: b3f17aac6973b630aff663e4d9f7c6ee92334a62
       url: "https://github.com/ente/ente_crypto_dart.git"
     source: git
     version: "1.0.0"
@@ -1087,8 +1087,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: a05d5b1bfdce64a387f8f5970160b22ce7b88282
-      resolved-ref: a05d5b1bfdce64a387f8f5970160b22ce7b88282
+      ref: "88b8b971521d4423eaa9b467d4b2baa4fd5e0962"
+      resolved-ref: "88b8b971521d4423eaa9b467d4b2baa4fd5e0962"
       url: "https://github.com/ente/flutter_sodium"
     source: git
     version: "0.2.0"

@@ -13,10 +13,8 @@ import (
 )
 
 const (
-	spaceMessageKindRegular     = "regular"
-	spaceMessageKindPostReply   = "post_reply"
-	spaceMessageKindPostLike    = "post_like"
-	spaceMessageKindFriendAdded = "friend_added"
+	spaceMessageKindRegular   = "regular"
+	spaceMessageKindPostReply = "post_reply"
 
 	spaceMessageNotificationKindPoke = "poke"
 
@@ -144,10 +142,6 @@ func (c *MessagesController) ListConversations(ctx context.Context, viewerSpace 
 	if err != nil {
 		return nil, err
 	}
-	pendingRequests, err := c.FriendsRepo.ListFriendRequestsForSpace(ctx, viewerSpace.SpaceID)
-	if err != nil {
-		return nil, err
-	}
 	friendResponses := make([]models.SpaceFriendResponse, 0, len(friends))
 	friendSpaceIDs := make([]string, 0, len(friends))
 	for _, friend := range friends {
@@ -177,18 +171,9 @@ func (c *MessagesController) ListConversations(ctx context.Context, viewerSpace 
 			UnreadActivities: unreadActivities,
 		}
 	}
-	requestResponses := make([]models.SpaceFriendRequestResponse, 0, len(pendingRequests))
-	for _, request := range pendingRequests {
-		requestResponses = append(requestResponses, models.SpaceFriendRequestResponse{
-			RequestID: request.RequestID,
-			Requester: toActorResponse(request.Requester, true),
-			CreatedAt: formatMicros(request.CreatedAt),
-		})
-	}
 	response := &models.ConversationsResponse{
-		Friends:         friendResponses,
-		PendingRequests: requestResponses,
-		ChatSummaries:   chatSummaries,
+		Friends:       friendResponses,
+		ChatSummaries: chatSummaries,
 	}
 	if latestPostCreatedAt > 0 {
 		response.LatestPostCreatedAt = formatMicros(latestPostCreatedAt)
@@ -492,5 +477,5 @@ func toMessageConversationActivityResponse(activity repo.SpaceMessageConversatio
 }
 
 func toUnreadMessageConversationActivityResponse(activity repo.SpaceMessageConversationActivityRecord) models.MessageConversationActivityResponse {
-	return toMessageConversationActivityMetadataResponse(activity)
+	return toMessageConversationActivityResponse(activity)
 }

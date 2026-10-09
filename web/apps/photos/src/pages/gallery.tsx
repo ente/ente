@@ -762,9 +762,7 @@ const Page: React.FC = () => {
                     ? { mode: "people", personID: activePersonID }
                     : {
                           mode: barMode as
-                              | "albums"
-                              | "hidden-albums"
-                              | "archive-albums",
+                              "albums" | "hidden-albums" | "archive-albums",
                           collectionID: activeCollectionID!,
                       },
         };
@@ -791,9 +789,7 @@ const Page: React.FC = () => {
                     ? { mode: "people", personID: activePersonID }
                     : {
                           mode: barMode as
-                              | "albums"
-                              | "hidden-albums"
-                              | "archive-albums",
+                              "albums" | "hidden-albums" | "archive-albums",
                           collectionID: activeCollectionID!,
                       },
         };

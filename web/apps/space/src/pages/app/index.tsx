@@ -18,13 +18,11 @@ import { loadExistingSpaceId } from "services/profile";
 import {
     clearSpaceFriendsCache,
     deleteCurrentPost,
-    hasCurrentSpacePosts,
     loadCurrentFeedPage,
     loadCurrentFriendRequests,
     loadCurrentSpaceFriends,
     loadCurrentSpacePostAssetURL,
     loadCurrentSpacePostAvatarURL,
-    loadCurrentUnreadStatus,
     replyToCurrentPost,
     requestFriendByUsername,
     setCurrentPostLiked,
@@ -48,7 +46,6 @@ const Page: React.FC = () => {
         retryPost,
         setFriends,
         setLocalFeedPosts,
-        setPendingPostPhotoFiles,
     } = useSpaceAppState();
     const [friendRequestSentToastName, setFriendRequestSentToastName] =
         useState<string>();
@@ -60,10 +57,7 @@ const Page: React.FC = () => {
     const [feedSession, setFeedSession] = useState<SpaceFeedSession>();
     const [hasFeedLoadMoreError, setHasFeedLoadMoreError] = useState(false);
     const [feedNextCursor, setFeedNextCursor] = useState<string>();
-    const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>();
-    const [hasOwnPosts, setHasOwnPosts] = useState<boolean>();
     const [isFeedLoading, setIsFeedLoading] = useState(true);
-    const [isFeedComplete, setIsFeedComplete] = useState(false);
     const [isFeedLoadingMore, setIsFeedLoadingMore] = useState(false);
     const [isFriendsLoading, setIsFriendsLoading] = useState(true);
     const [spaceId, setSpaceId] = useState<string>();
@@ -119,23 +113,6 @@ const Page: React.FC = () => {
     }, [isAddFriendOpen, profile?.spaceId]);
 
     useEffect(() => {
-        setHasOwnPosts(undefined);
-        if (!spaceId) return;
-
-        let cancelled = false;
-        void hasCurrentSpacePosts(spaceId)
-            .then((hasPosts) => {
-                if (!cancelled) setHasOwnPosts(hasPosts);
-            })
-            .catch((error: unknown) =>
-                log.error("Failed to check for own Space posts", error),
-            );
-        return () => {
-            cancelled = true;
-        };
-    }, [spaceId]);
-
-    useEffect(() => {
         const request = { cancelled: false };
         const isCancelled = () => request.cancelled;
         let loadedSpaceId: string | undefined;
@@ -146,9 +123,7 @@ const Page: React.FC = () => {
         setFeedSession(undefined);
         setHasFeedLoadMoreError(false);
         setFeedNextCursor(undefined);
-        setHasUnreadMessages(undefined);
         setIsFeedLoading(true);
-        setIsFeedComplete(false);
         setIsFeedLoadingMore(false);
         setIsFriendsLoading(true);
         void (async () => {
@@ -165,13 +140,6 @@ const Page: React.FC = () => {
                 );
                 setFeedNextCursor(
                     cachedFeed?.dirty ? undefined : cachedFeed?.nextCursor,
-                );
-                setIsFeedComplete(
-                    Boolean(
-                        cachedFeed &&
-                        !cachedFeed.dirty &&
-                        !cachedFeed.nextCursor,
-                    ),
                 );
             };
             if (savedSpaceId) {
@@ -211,7 +179,6 @@ const Page: React.FC = () => {
                     spaceFeedSessionItems(loadedFeedSession, feed.items),
                 );
                 setFeedNextCursor(feed.nextCursor);
-                setIsFeedComplete(!feed.nextCursor);
                 const refreshedPostIDs = new Set(
                     feed.items.map((item) => item.postId),
                 );
@@ -231,20 +198,10 @@ const Page: React.FC = () => {
 
                 setIsFeedLoading(false);
                 if (!loadedSpaceId) {
-                    setHasUnreadMessages(false);
                     setIsFriendsLoading(false);
                     return;
                 }
 
-                void loadCurrentUnreadStatus(loadedSpaceId)
-                    .then((unreadStatus) => {
-                        if (!isCancelled()) {
-                            setHasUnreadMessages(unreadStatus.messagesUnread);
-                        }
-                    })
-                    .catch((error: unknown) =>
-                        log.error("Failed to load space unread status", error),
-                    );
                 void loadCurrentSpaceFriends(loadedSpaceId)
                     .then((nextFriends) => {
                         if (!isCancelled()) setFriends(nextFriends);
@@ -283,7 +240,6 @@ const Page: React.FC = () => {
                 ];
             });
             setFeedNextCursor(feed.nextCursor);
-            setIsFeedComplete(!feed.nextCursor);
         } catch (error) {
             setHasFeedLoadMoreError(true);
             log.error("Failed to load more space feed", error);
@@ -329,18 +285,11 @@ const Page: React.FC = () => {
                 feedItems={feedItems}
                 friendRequestSentToastName={friendRequestSentToastName}
                 hasFeedLoadMoreError={hasFeedLoadMoreError}
-                hasUnreadMessages={hasUnreadMessages}
                 hasMoreFeedItems={!isFeedLoading && Boolean(feedNextCursor)}
                 isFeedLoading={isFeedLoading}
-                isFeedComplete={isFeedComplete}
                 isFeedLoadingMore={isFeedLoadingMore}
                 localFeedPosts={localFeedPosts}
                 feedSession={feedSession}
-                showFirstPostPrompt={
-                    hasOwnPosts === false &&
-                    localFeedPosts.length == 0 &&
-                    !feedItems.some((post) => post.spaceId == spaceId)
-                }
                 profile={profile}
                 viewerSpaceId={spaceId ?? profile?.spaceId}
                 showInstallPrompt={
@@ -356,7 +305,6 @@ const Page: React.FC = () => {
                 onFriendRequestSentToastClose={closeFriendRequestSentToast}
                 onInviteFriendsToastClose={closeInviteFriendsToast}
                 onAddFriend={() => setIsAddFriendOpen(true)}
-                onPostPhotoSelect={setPendingPostPhotoFiles}
                 onRetryPost={retryPost}
                 onDeletePost={async (postId) => {
                     const spaceId = profile?.spaceId;
@@ -420,7 +368,6 @@ const Page: React.FC = () => {
                 onLoadMoreFeedItems={loadMoreFeedItems}
                 onLoadPostAvatar={loadCurrentSpacePostAvatarURL}
                 onLoadPostImage={loadCurrentSpacePostAssetURL}
-                onOpenMessages={() => void router.push(spaceRoutes.messages)}
                 onOpenProfile={
                     profile
                         ? () => void router.push(spaceRoutes.profile)
@@ -494,7 +441,6 @@ const Page: React.FC = () => {
                                     ),
                                 );
                                 setFeedNextCursor(feed.nextCursor);
-                                setIsFeedComplete(!feed.nextCursor);
                             } else {
                                 setFriendRequests(
                                     await loadCurrentFriendRequests(

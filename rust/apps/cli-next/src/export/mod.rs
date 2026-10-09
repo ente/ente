@@ -44,7 +44,8 @@ async fn run_locked(args: ExportArgs, selected: Option<&str>, as_json: bool) -> 
             adopt: args.adopt,
             jobs: args.jobs,
         },
-    )?;
+    )
+    .with_context(|| format!("cannot open Photos export {}", args.destination.display()))?;
     let account_home = home::lock_account(account.storage_id, true)?;
     let account = State::load()?
         .accounts

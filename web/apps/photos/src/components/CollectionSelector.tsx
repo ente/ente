@@ -47,11 +47,7 @@ import { t } from "i18next";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type CollectionSelectorAction =
-    | "upload"
-    | "add"
-    | "move"
-    | "restore"
-    | "unhide";
+    "upload" | "add" | "move" | "restore" | "unhide";
 
 export interface CollectionSelectorAttributes {
     action: CollectionSelectorAction;

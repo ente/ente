@@ -215,6 +215,7 @@ class AlbumHomeWidgetService {
     AppNavigationService.instance
         .pushPage(
           CollectionPage(CollectionWithThumbnail(collection, thumbnail)),
+          useFadeTransition: true,
         )
         .ignore();
     final getAllFilesCollection = await FilesDB.instance.getAllFilesCollection(
