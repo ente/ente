@@ -18,6 +18,7 @@ export interface UploadProgressContextT {
     uploadCounter: UploadCounter;
     uploadPhase: UploadPhase;
     percentComplete: number;
+    estimatedSecondsRemaining?: number;
     retryFailed: () => void;
     inProgressUploads: InProgressUpload[];
     uploadFileNames: UploadFileNames;
