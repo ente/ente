@@ -30,6 +30,7 @@
     "rust/crates/core/src/crypto/types.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/config.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/config/knowledge.rs": ["clippy::expect_used"],
+    "rust/crates/ensu/src/llm/chat_template_bridge.rs": ["unsafe_code"],
     "rust/crates/ensu/src/llm/generate.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/model/mod.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/platform.rs": ["unsafe_code"],

@@ -22,7 +22,7 @@ import io.ente.ensu.bindings.knowledgeEmbeddingModelAsset
 import io.ente.ensu.bindings.llmAsset
 import io.ente.ensu.bindings.llmCancel
 import io.ente.ensu.bindings.llmHasRequiredWorkReserve
-import io.ente.ensu.bindings.llmInitBackend
+import io.ente.ensu.bindings.llmInitBackendFromDirectory
 import io.ente.ensu.bindings.llmMemoryBudget
 import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.device.requireChatSupported
@@ -52,6 +52,7 @@ class LlmProvider(
     private val transcriber: Transcriber,
     private val deviceCapabilityProvider: AndroidDeviceCapabilityProvider,
     private val knowledgeEmbedding: KnowledgeEmbeddingConfig,
+    private val nativeLibraryDir: String,
     private val ioDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.IO,
 ) {
     private data class LoadedModelKey(
@@ -387,7 +388,7 @@ class LlmProvider(
             model
                 .newTitleContext(
                     chatContextSize = checkNotNull(currentContextLength).toUInt(),
-                    nThreads = max(1, Runtime.getRuntime().availableProcessors() - 1),
+                    nThreads = generationThreads(),
                 )
                 .use { context ->
                     coroutine.ensureActive()
@@ -508,7 +509,7 @@ class LlmProvider(
                     }
                 }
                 if (!backendInitialized) {
-                    llmInitBackend()
+                    llmInitBackendFromDirectory(nativeLibraryDir)
                     backendInitialized = true
                 }
 
@@ -560,8 +561,8 @@ class LlmProvider(
                 val contextParams =
                     LlmContextParams(
                         contextSize = currentContextLength,
-                        nThreads = null,
-                        nBatch = null,
+                        nThreads = generationThreads(),
+                        nBatch = 512,
                     )
                 loadedContext?.destroy()
                 loadedContext = model.newContext(contextParams)
@@ -608,7 +609,7 @@ class LlmProvider(
         deviceCapabilityProvider.chatCapability().requireChatSupported()
         val modelKey = LoadedModelKey(selection.id, selection.contextLength)
         if (!backendInitialized) {
-            llmInitBackend()
+            llmInitBackendFromDirectory(nativeLibraryDir)
             backendInitialized = true
         }
 
@@ -665,11 +666,14 @@ class LlmProvider(
 
     private fun chatAsset(selection: LlmModelSelection): Asset = llmAsset(selection.id)
 
+    private fun generationThreads(): Int =
+        (Runtime.getRuntime().availableProcessors() - 1).coerceIn(1, 3)
+
     private fun loadWithFallbacks(selection: LlmModelSelection, modelFile: File) {
         val desiredCtx = selection.contextLength ?: 12000
         val contexts =
             listOf(desiredCtx, 12000, 8192, 4096, 2048, 1024).distinct().filter { it > 0 }
-        val threads = max(1, Runtime.getRuntime().availableProcessors() - 1)
+        val threads = generationThreads()
         val batch = 512
 
         val modelParams =

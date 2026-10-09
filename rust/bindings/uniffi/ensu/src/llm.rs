@@ -347,6 +347,11 @@ pub fn llm_init_backend() -> Result<(), LlmError> {
 }
 
 #[uniffi::export]
+pub fn llm_init_backend_from_directory(directory: String) -> Result<(), LlmError> {
+    llm::init_backend_from_directory(&directory).map_err(LlmError::from)
+}
+
+#[uniffi::export]
 pub fn llm_cancel(job_id: i64) {
     llm::cancel(job_id);
 }
