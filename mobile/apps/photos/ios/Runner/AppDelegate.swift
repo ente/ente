@@ -58,7 +58,10 @@ import workmanager_apple
     startupTrace.measure("app.backgroundManager.install") {
       BackgroundManagerPlugin.install(
         isEnabled: { Self.shouldUseNativeBackgroundManager() },
-        registrant: { registry in GeneratedPluginRegistrant.register(with: registry) }
+        registrant: { registry in
+          GeneratedPluginRegistrant.register(with: registry)
+          NotificationKeyPlugin.register(in: registry)
+        }
       )
     }
     BackgroundManagerPlugin.registerTask(
@@ -68,6 +71,7 @@ import workmanager_apple
     WorkmanagerPlugin.setPluginRegistrantCallback { registry in
       BackgroundStartupTrace(scope: "workmanager").measure("task.plugins") {
         GeneratedPluginRegistrant.register(with: registry)
+        NotificationKeyPlugin.register(in: registry)
       }
     }
     startupTrace.measure("app.workmanager.register") {
@@ -87,6 +91,7 @@ import workmanager_apple
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     startupTrace.measure("app.plugins") {
       GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+      NotificationKeyPlugin.register(in: engineBridge.pluginRegistry)
     }
   }
 
@@ -141,6 +146,10 @@ import workmanager_apple
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
     let content = notification.request.content
+    if content.userInfo["notificationVersion"] != nil {
+      completionHandler([])
+      return
+    }
     // iOS suppresses foreground notification presentation unless the delegate
     // opts in. Workmanager debug notifications are silent (banner only); all
     // other notifications get the standard banner + sound + badge.

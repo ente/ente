@@ -18,6 +18,7 @@
 	<array>
 		<string>group.io.ente.frame.EnteMemoryWidget</string>
 		<string>group.io.ente.frame.ShareExtension</string>
+		<string>group.io.ente.frame.notifications</string>
 	</array>
 	<key>com.apple.developer.kernel.increased-memory-limit</key>
 	<true/>
