@@ -7,11 +7,7 @@ import { UploadConfirmationDialog } from "@/components/UploadConfirmationDialog"
 import { downloadAppDialogAttributes } from "@/components/utils/download";
 import type {
     ImportSource,
-    InProgressUpload,
-    SegregatedFinishedUploads,
     UploadBatchResult,
-    UploadCounter,
-    UploadFileNames,
     UploadItemWithCollection,
 } from "@/services/upload-manager";
 import {
@@ -20,6 +16,7 @@ import {
     uploadableMediaCount,
     uploadManager,
 } from "@/services/upload-manager";
+import { uploadProgress } from "@/services/upload-progress";
 import watcher from "@/services/watch";
 import DiscFullIcon from "@mui/icons-material/DiscFull";
 import { Dialog, type DialogProps } from "@mui/material";
@@ -61,7 +58,6 @@ import {
     type FileAndPath,
     type UploadItem,
     type UploadItemAndPath,
-    type UploadPhase,
 } from "ente-gallery/services/upload";
 import {
     tryParseTakeoutAlbumNameMetadataJSON,
@@ -95,13 +91,25 @@ import { redirectToCustomerPortal } from "ente-new/photos/services/user-details"
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { firstNonEmpty } from "ente-utils/array";
 import { t } from "i18next";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useEffectEvent,
+    useImperativeHandle,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from "react";
+
+export interface UploadHandle {
+    handleDrop: (files: File[]) => void;
+}
 
 interface UploadProps {
+    ref?: React.Ref<UploadHandle>;
     user?: LocalUser;
     isFirstUpload?: boolean;
     uploadTypeSelectorView: boolean;
-    dragAndDropFiles: File[];
     uploadTypeSelectorIntent: UploadTypeSelectorIntent;
     activeCollection?: Collection;
     closeUploadTypeSelector: () => void;
@@ -123,6 +131,7 @@ interface UploadProps {
 type UploadType = "files" | "folders" | "zips";
 
 interface UploadFilesOptions {
+    preUploadSkippedFiles: PreUploadSkippedFile[];
     persistPendingUploads?: boolean;
     postUploadTargetCollection?: Collection;
     importTakeoutFavorites?: boolean;
@@ -138,15 +147,32 @@ interface NewCollectionsOptions {
     includePartnerSharedFiles?: boolean;
 }
 
+interface UploadRequestOptions {
+    uploadType?: UploadType;
+    isDragAndDrop?: boolean;
+    skippedFiles?: PreUploadSkippedFile[];
+    pendingUpload?: Pick<
+        NewCollectionsOptions,
+        | "collectionName"
+        | "importTakeoutFavorites"
+        | "includePartnerSharedFiles"
+    >;
+}
+
+interface UploadSelection {
+    uploadItemAndPaths: UploadItemAndPath[];
+    preUploadSkippedFiles: PreUploadSkippedFile[];
+}
+
 type PendingUpload =
     | {
           type: "existing-collection";
           collection: Collection;
-          uploadItemAndPaths: UploadItemAndPath[];
+          selection: UploadSelection;
       }
     | {
           type: "new-collections";
-          uploadItemAndPaths: UploadItemAndPath[];
+          selection: UploadSelection;
           collectionNameToUploadItems: Map<string, UploadItemAndPath[]>;
           includeHiddenCollections?: boolean;
           createHidden?: boolean;
@@ -179,9 +205,9 @@ const importSourceHint = (
           : "generic";
 
 export const Upload: React.FC<UploadProps> = ({
+    ref,
     user,
     isFirstUpload,
-    dragAndDropFiles,
     onRemotePull,
     onRemoteFilesPull,
     onOpenCollectionSelector,
@@ -195,24 +221,15 @@ export const Upload: React.FC<UploadProps> = ({
     const { showNotification, watchFolderView } = usePhotosAppContext();
     const { isInternalUser } = useSettingsSnapshot();
 
-    const [uploadProgressView, setUploadProgressView] = useState(false);
+    const progress = useSyncExternalStore(
+        uploadProgress.subscribe,
+        uploadProgress.getSnapshot,
+        uploadProgress.getSnapshot,
+    );
     const [
         showCanvasReadbackBlockedDialog,
         setShowCanvasReadbackBlockedDialog,
     ] = useState(false);
-    const [uploadPhase, setUploadPhase] = useState<UploadPhase>("preparing");
-    const [uploadFileNames, setUploadFileNames] = useState<UploadFileNames>();
-    const [uploadCounter, setUploadCounter] = useState<UploadCounter>({
-        finished: 0,
-        total: 0,
-    });
-    const [inProgressUploads, setInProgressUploads] = useState(
-        new Array<InProgressUpload>(),
-    );
-    const [finishedUploads, setFinishedUploads] =
-        useState<SegregatedFinishedUploads>(new Map());
-    const [percentComplete, setPercentComplete] = useState(0);
-    const [hasLivePhotos, setHasLivePhotos] = useState(false);
     const [prefilledNewAlbumName, setPrefilledNewAlbumName] = useState("");
     const [uploadConfirmation, setUploadConfirmation] = useState<
         UploadConfirmationState | undefined
@@ -229,34 +246,13 @@ export const Upload: React.FC<UploadProps> = ({
     } = useModalVisibility();
     const didSubmitNewAlbumName = useRef(false);
 
-    const [webFiles, setWebFiles] = useState<File[]>([]);
-    const [desktopFiles, setDesktopFiles] = useState<FileAndPath[]>([]);
-    const [desktopFilePaths, setDesktopFilePaths] = useState<string[]>([]);
-    const [desktopZipItems, setDesktopZipItems] = useState<ZipItem[]>([]);
-
-    const [preUploadSkippedFiles, setPreUploadSkippedFiles] = useState<
-        PreUploadSkippedFile[]
-    >([]);
-
-    const uploadItemsAndPaths = useRef<UploadItemAndPath[]>([]);
-
-    const isPendingDesktopUpload = useRef(false);
-
-    const pendingDesktopUploadCollectionName = useRef<string | undefined>(
-        undefined,
-    );
-    const pendingDesktopUploadConfirmationOptions = useRef<
-        Pick<
-            NewCollectionsOptions,
-            "importTakeoutFavorites" | "includePartnerSharedFiles"
-        >
-    >({});
+    const uploadSelection = useRef<UploadSelection | undefined>(undefined);
+    const uploadLifetime = useRef({ active: false });
 
     const selectedUploadType = useRef<UploadType | undefined>(undefined);
 
     const currentUploadPromise = useRef<Promise<void> | undefined>(undefined);
     const uploadRunning = useRef(false);
-    const isDragAndDrop = useRef(false);
 
     // Preserve the real shared-album destination across retries.
     const retrySharedAlbumUploadTarget = useRef<Collection | undefined>(
@@ -268,12 +264,12 @@ export const Upload: React.FC<UploadProps> = ({
     // Browser selection can take over ten seconds for 100k files.
     const [isInputPending, setIsInputPending] = useState(false);
 
-    const [selectedInputFiles, setSelectedInputFiles] = useState<File[]>([]);
-
-    const handleInputSelect = useCallback((files: File[]) => {
+    const handleInputSelect = (files: File[]) => {
         setIsInputPending(false);
-        setSelectedInputFiles(files);
-    }, []);
+        const uploadType = selectedUploadType.current;
+        selectedUploadType.current = undefined;
+        void handleFiles(files, uploadType).catch(onGenericError);
+    };
 
     const handleInputCancel = useCallback(() => {
         selectedUploadType.current = undefined;
@@ -322,112 +318,123 @@ export const Upload: React.FC<UploadProps> = ({
         retrySharedAlbumUploadTarget.current = undefined;
     };
 
+    const handlePendingUpload = useEffectEvent(
+        (
+            pending: NonNullable<
+                Awaited<ReturnType<Electron["pendingUploads"]>>
+            >,
+        ) => {
+            const {
+                filePaths,
+                zipItems,
+                preUploadSkippedFiles,
+                ...pendingUpload
+            } = pending;
+            void submitUpload(
+                [
+                    ...filePaths.map((path): UploadItemAndPath => [path, path]),
+                    ...zipItems.map(
+                        (item): UploadItemAndPath => [
+                            item,
+                            joinPath(dirname(item[0]), item[1]),
+                        ],
+                    ),
+                ],
+                { skippedFiles: preUploadSkippedFiles, pendingUpload },
+            ).catch(onGenericError);
+        },
+    );
+
     useEffect(() => {
-        uploadManager.init(
-            {
-                setPercentComplete,
-                setUploadCounter,
-                setInProgressUploads,
-                setFinishedUploads,
-                setUploadPhase,
-                setUploadFileNames,
-                setHasLivePhotos,
-                setUploadProgressView,
-            },
-            onUploadFile,
-        );
+        const lifetime = { active: true };
+        uploadLifetime.current = lifetime;
+        uploadManager.init(onUploadFile);
 
         if (uploadManager.isUploadRunning()) {
             uploadManager.showUploadProgressDialog();
         }
 
         if (electron) {
-            const upload = (collectionName: string, filePaths: string[]) => {
-                isPendingDesktopUpload.current = true;
-                pendingDesktopUploadConfirmationOptions.current = {};
-                pendingDesktopUploadCollectionName.current = collectionName;
-                setDesktopFilePaths(filePaths);
-            };
-
             watcher.init(
-                upload,
+                (collectionName, filePaths) => {
+                    if (!lifetime.active) return;
+                    handlePendingUpload({
+                        collectionName,
+                        filePaths,
+                        zipItems: [],
+                    });
+                },
                 () => void onRemotePull({ source: "watcher-upload" }),
             );
 
             void electron.pendingUploads().then((pending) => {
-                if (!pending) return;
+                if (!lifetime.active || !pending) return;
 
-                const {
-                    collectionName,
-                    filePaths,
-                    zipItems,
-                    preUploadSkippedFiles,
-                    importTakeoutFavorites,
-                    includePartnerSharedFiles,
-                } = pending;
+                const { collectionName, filePaths, zipItems } = pending;
 
                 log.info(
                     `Resuming pending of upload of ${filePaths.length + zipItems.length} items${collectionName ? " to collection " + collectionName : ""}`,
                 );
-                isPendingDesktopUpload.current = true;
-                pendingDesktopUploadConfirmationOptions.current = {
-                    importTakeoutFavorites,
-                    includePartnerSharedFiles,
-                };
-                pendingDesktopUploadCollectionName.current = collectionName;
-                setDesktopFilePaths(filePaths);
-                setDesktopZipItems(zipItems);
-                setPreUploadSkippedFiles(preUploadSkippedFiles ?? []);
+                handlePendingUpload(pending);
             });
         }
+        return () => {
+            lifetime.active = false;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    useEffect(() => {
-        if (watchFolderView) {
-            return;
-        }
-
-        let files: File[];
-        isDragAndDrop.current = false;
-
-        switch (selectedUploadType.current) {
-            case "files":
-            case "folders":
-            case "zips":
-                files = selectedInputFiles;
-                break;
-
-            default:
-                isDragAndDrop.current = true;
-                files = dragAndDropFiles;
-                break;
-        }
-
+    const handleFiles = async (
+        files: File[],
+        uploadType?: UploadType,
+        isDragAndDrop = false,
+    ) => {
+        if (watchFolderView || !uploadLifetime.current.active) return;
+        const lifetime = uploadLifetime.current;
         if (electron) {
-            void desktopFilesAndZipItems(electron, files).then(
-                ({ fileAndPaths, zipItems, preUploadSkippedFiles }) => {
-                    setDesktopFiles(fileAndPaths);
-                    setDesktopZipItems(zipItems);
-                    setPreUploadSkippedFiles(preUploadSkippedFiles);
+            const { fileAndPaths, zipItems, preUploadSkippedFiles } =
+                await desktopFilesAndZipItems(electron, files);
+            if (!lifetime.active) return;
+            await submitUpload(
+                [
+                    ...fileAndPaths.map(
+                        (item): UploadItemAndPath => [item, item.path],
+                    ),
+                    ...zipItems.map(
+                        (item): UploadItemAndPath => [
+                            item,
+                            joinPath(dirname(item[0]), item[1]),
+                        ],
+                    ),
+                ],
+                {
+                    uploadType,
+                    isDragAndDrop,
+                    skippedFiles: preUploadSkippedFiles,
                 },
             );
         } else {
-            setPreUploadSkippedFiles([]);
-            setWebFiles(files);
+            await submitUpload(
+                files.map((file) => [file, pathLikeForWebFile(file)]),
+                { uploadType, isDragAndDrop },
+            );
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedInputFiles, dragAndDropFiles]);
+    };
 
-    useEffect(() => {
-        // ZIP paths are synthetic and used only for folder grouping.
-        const allItemAndPaths = [
-            webFiles.map((f) => [f, pathLikeForWebFile(f)]),
-            desktopFiles.map((fp) => [fp, fp.path]),
-            desktopFilePaths.map((p) => [p, p]),
-            desktopZipItems.map((ze) => [ze, joinPath(dirname(ze[0]), ze[1])]),
-        ].flat() as UploadItemAndPath[];
+    useImperativeHandle(ref, () => ({
+        handleDrop: (files) =>
+            void handleFiles(files, undefined, true).catch(onGenericError),
+    }));
 
+    const submitUpload = async (
+        allItemAndPaths: UploadItemAndPath[],
+        {
+            uploadType,
+            isDragAndDrop,
+            skippedFiles = [],
+            pendingUpload,
+        }: UploadRequestOptions = {},
+    ) => {
         const hiddenFiles: PreUploadSkippedFile[] = [];
         const prunedItemAndPaths = allItemAndPaths.filter(([, p]) => {
             const name = basename(p);
@@ -437,18 +444,18 @@ export const Upload: React.FC<UploadProps> = ({
             }
             return true;
         });
-        const nextPreUploadSkippedFiles =
-            preUploadSkippedFiles.concat(hiddenFiles);
-        if (hiddenFiles.length > 0)
-            setPreUploadSkippedFiles(nextPreUploadSkippedFiles);
+        const nextPreUploadSkippedFiles = skippedFiles.concat(hiddenFiles);
 
         if (prunedItemAndPaths.length == 0) {
             if (
                 nextPreUploadSkippedFiles.length > 0 &&
                 !uploadRunning.current
             ) {
+                uploadProgress.setPreUploadSkippedFiles(
+                    nextPreUploadSkippedFiles,
+                );
                 uploadManager.prepareForNewUpload();
-                setUploadPhase("done");
+                uploadProgress.setUploadPhase("done");
                 uploadManager.showUploadProgressDialog();
             }
             return;
@@ -468,7 +475,6 @@ export const Upload: React.FC<UploadProps> = ({
 
         if (!electron && !hasReliableCanvasReadback()) {
             log.warn("Canvas readback integrity check failed; blocking upload");
-            setWebFiles([]);
             selectedUploadType.current = undefined;
             setShowCanvasReadbackBlockedDialog(true);
             return;
@@ -480,110 +486,93 @@ export const Upload: React.FC<UploadProps> = ({
 
         // Do not reuse a confirmation from an earlier selection.
         setUploadConfirmation(undefined);
-        setWebFiles([]);
-        setDesktopFiles([]);
-        setDesktopFilePaths([]);
-        setDesktopZipItems([]);
 
-        uploadItemsAndPaths.current = prunedItemAndPaths;
+        const selection: UploadSelection = {
+            uploadItemAndPaths: prunedItemAndPaths,
+            preUploadSkippedFiles: nextPreUploadSkippedFiles,
+        };
+        uploadSelection.current = selection;
+        uploadProgress.setPreUploadSkippedFiles(nextPreUploadSkippedFiles);
 
-        void (async () => {
-            const _selectedUploadType = selectedUploadType.current;
-            selectedUploadType.current = undefined;
-            const _isDragAndDrop = isDragAndDrop.current;
-            isDragAndDrop.current = false;
+        const importSuggestion = await deriveImportSuggestion(
+            uploadType,
+            prunedItemAndPaths,
+        );
 
-            const importSuggestion = await deriveImportSuggestion(
-                _selectedUploadType,
-                prunedItemAndPaths,
+        if (uploadSelection.current !== selection) return;
+
+        setImportSuggestion(importSuggestion);
+
+        log.debug(() => ["Upload request", selection.uploadItemAndPaths]);
+        log.debug(() => ["Import suggestion", importSuggestion]);
+
+        props.setLoading(false);
+
+        if (pendingUpload) {
+            if (pendingUpload.collectionName) {
+                // Watch folders must match hidden albums instead of duplicating them.
+                void uploadFilesToNewCollections("root", {
+                    includeHiddenCollections: true,
+                    skipConfirmation: true,
+                    ...pendingUpload,
+                });
+            } else {
+                void uploadFilesToNewCollections("parent", {
+                    includeHiddenCollections: true,
+                    skipConfirmation: true,
+                    ...pendingUpload,
+                });
+            }
+            return;
+        }
+
+        if (electron && uploadType == "zips") {
+            void uploadFilesToNewCollections("parent");
+            return;
+        }
+
+        if (isFirstUpload && !importSuggestion.rootFolderName) {
+            importSuggestion.rootFolderName = t(
+                "autogenerated_first_album_name",
             );
+        }
 
-            if (uploadItemsAndPaths.current !== prunedItemAndPaths) return;
-
-            setImportSuggestion(importSuggestion);
-
-            log.debug(() => ["Upload request", uploadItemsAndPaths.current]);
-            log.debug(() => ["Import suggestion", importSuggestion]);
-
-            props.setLoading(false);
-
-            if (isPendingDesktopUpload.current) {
-                isPendingDesktopUpload.current = false;
-                const confirmationOptions =
-                    pendingDesktopUploadConfirmationOptions.current;
-                pendingDesktopUploadConfirmationOptions.current = {};
-                if (pendingDesktopUploadCollectionName.current) {
-                    // Watch folders must match hidden albums instead of duplicating them.
-                    void uploadFilesToNewCollections("root", {
-                        collectionName:
-                            pendingDesktopUploadCollectionName.current,
-                        includeHiddenCollections: true,
-                        skipConfirmation: true,
-                        ...confirmationOptions,
-                    });
-                    pendingDesktopUploadCollectionName.current = undefined;
-                } else {
-                    void uploadFilesToNewCollections("parent", {
-                        includeHiddenCollections: true,
-                        skipConfirmation: true,
-                        ...confirmationOptions,
-                    });
-                }
-                return;
-            }
-
-            if (electron && _selectedUploadType == "zips") {
-                void uploadFilesToNewCollections("parent");
-                return;
-            }
-
-            if (isFirstUpload && !importSuggestion.rootFolderName) {
-                importSuggestion.rootFolderName = t(
-                    "autogenerated_first_album_name",
+        if (isDragAndDrop) {
+            const canUploadToActiveCollection =
+                props.activeCollection &&
+                (props.activeCollection.owner.id == user?.id ||
+                    canAddFilesToCollection(props.activeCollection));
+            if (props.activeCollection && canUploadToActiveCollection) {
+                void uploadFilesToExistingCollection(
+                    props.activeCollection,
+                    selection,
                 );
+                return;
             }
+        }
 
-            if (_isDragAndDrop) {
-                const canUploadToActiveCollection =
-                    props.activeCollection &&
-                    (props.activeCollection.owner.id == user?.id ||
-                        canAddFilesToCollection(props.activeCollection));
-                if (props.activeCollection && canUploadToActiveCollection) {
-                    void uploadFilesToExistingCollection(
-                        props.activeCollection,
-                        prunedItemAndPaths,
-                    );
-                    return;
-                }
-            }
+        const showNextModal = importSuggestion.hasNestedFolders
+            ? () => setOpenCollectionMappingChoice(true)
+            : () => {
+                  setPrefilledNewAlbumName(importSuggestion.rootFolderName);
+                  showNewAlbumNameInput();
+              };
 
-            const showNextModal = importSuggestion.hasNestedFolders
-                ? () => setOpenCollectionMappingChoice(true)
-                : () => {
-                      setPrefilledNewAlbumName(importSuggestion.rootFolderName);
-                      showNewAlbumNameInput();
-                  };
-
-            onOpenCollectionSelector?.({
-                action: "upload",
-                activeCollectionID: props.activeCollection?.id,
-                showHiddenCollections: props.isInHiddenSection,
-                onSelectCollection: (collection) =>
-                    void uploadFilesToExistingCollection(
-                        collection,
-                        prunedItemAndPaths,
-                    ),
-                onCreateCollection: showNextModal,
-                onCancel: handleCollectionSelectorCancel,
-            });
-        })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [webFiles, desktopFiles, desktopFilePaths, desktopZipItems]);
+        onOpenCollectionSelector?.({
+            action: "upload",
+            activeCollectionID: props.activeCollection?.id,
+            showHiddenCollections: props.isInHiddenSection,
+            onSelectCollection: (collection) =>
+                void uploadFilesToExistingCollection(collection, selection),
+            onCreateCollection: showNextModal,
+            onCancel: handleCollectionSelectorCancel,
+        });
+    };
 
     const preCollectionCreationAction = () => {
         onCloseCollectionSelector?.();
         props.setShouldDisableDropzone(uploadManager.isUploadInProgress());
-        setUploadPhase("preparing");
+        uploadProgress.setUploadPhase("preparing");
         uploadManager.showUploadProgressDialog();
     };
 
@@ -676,9 +665,10 @@ export const Upload: React.FC<UploadProps> = ({
 
     const uploadFilesToExistingCollection = async (
         collection: Collection,
-        uploadItemAndPaths: UploadItemAndPath[],
+        selection: UploadSelection,
     ) => {
-        if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
+        if (uploadSelection.current !== selection) return;
+        const { uploadItemAndPaths } = selection;
 
         const hint = importSourceHint(uploadItemAndPaths, isInternalUser);
         if (uploadItemAndPaths.length > 1 || hint != "generic")
@@ -687,12 +677,12 @@ export const Upload: React.FC<UploadProps> = ({
         try {
             const { count: fileCount, importSource } =
                 await uploadableMediaCount([uploadItemAndPaths]);
-            if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
+            if (uploadSelection.current !== selection) return;
             if (fileCount == 1 && importSource == "generic") {
                 setUploadConfirmation(undefined);
                 void commitUploadToExistingCollection(
                     collection,
-                    uploadItemAndPaths,
+                    selection,
                     true,
                 );
                 return;
@@ -702,7 +692,7 @@ export const Upload: React.FC<UploadProps> = ({
                 pendingUpload: {
                     type: "existing-collection",
                     collection,
-                    uploadItemAndPaths,
+                    selection,
                 },
                 fileCount,
                 albumCount: 1,
@@ -711,7 +701,7 @@ export const Upload: React.FC<UploadProps> = ({
                 includePartnerSharedFiles: true,
             });
         } catch (e) {
-            if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
+            if (uploadSelection.current !== selection) return;
             cancelPendingUpload();
             onGenericError(e);
         }
@@ -719,7 +709,7 @@ export const Upload: React.FC<UploadProps> = ({
 
     const commitUploadToExistingCollection = async (
         collection: Collection,
-        uploadItemAndPaths: UploadItemAndPath[],
+        selection: UploadSelection,
         importTakeoutFavorites: boolean,
         includePartnerSharedFiles = true,
     ) => {
@@ -735,7 +725,7 @@ export const Upload: React.FC<UploadProps> = ({
                 throw new Error("Upload not allowed for the selected album");
             }
 
-            const uploadItemsWithCollection = uploadItemAndPaths.map(
+            const uploadItemsWithCollection = selection.uploadItemAndPaths.map(
                 ([uploadItem, path], index) => ({
                     uploadItem,
                     pathPrefix: uploadPathPrefix(path),
@@ -747,6 +737,7 @@ export const Upload: React.FC<UploadProps> = ({
                 uploadItemsWithCollection,
                 [uploadCollection],
                 {
+                    preUploadSkippedFiles: selection.preUploadSkippedFiles,
                     persistPendingUploads: uploadCollection.id == collection.id,
                     postUploadTargetCollection:
                         uploadCollection.id == collection.id
@@ -756,8 +747,8 @@ export const Upload: React.FC<UploadProps> = ({
                     includePartnerSharedFiles,
                 },
             );
-            if (uploadItemsAndPaths.current === uploadItemAndPaths) {
-                uploadItemsAndPaths.current = [];
+            if (uploadSelection.current === selection) {
+                uploadSelection.current = undefined;
             }
         } catch (e) {
             retrySharedAlbumUploadTarget.current = undefined;
@@ -778,7 +769,9 @@ export const Upload: React.FC<UploadProps> = ({
             includePartnerSharedFiles,
         }: NewCollectionsOptions = {},
     ) => {
-        const uploadItemAndPaths = uploadItemsAndPaths.current;
+        const selection = uploadSelection.current;
+        if (!selection) return;
+        const { uploadItemAndPaths } = selection;
         const hint = importSourceHint(uploadItemAndPaths, isInternalUser);
         if (
             !skipConfirmation &&
@@ -805,18 +798,18 @@ export const Upload: React.FC<UploadProps> = ({
                         collectionName,
                     );
             } catch (e) {
-                if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
+                if (uploadSelection.current !== selection) return;
                 cancelPendingUpload();
                 onGenericError(e);
                 return;
             }
         }
 
-        if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
+        if (uploadSelection.current !== selection) return;
 
         if (skipConfirmation) {
             void commitUploadToNewCollections(
-                uploadItemAndPaths,
+                selection,
                 collectionNameToUploadItems,
                 { includeHiddenCollections, createHidden },
                 importTakeoutFavorites ?? true,
@@ -830,11 +823,11 @@ export const Upload: React.FC<UploadProps> = ({
                 await uploadableMediaCount([
                     ...collectionNameToUploadItems.values(),
                 ]);
-            if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
+            if (uploadSelection.current !== selection) return;
             if (fileCount == 1 && importSource == "generic") {
                 setUploadConfirmation(undefined);
                 void commitUploadToNewCollections(
-                    uploadItemAndPaths,
+                    selection,
                     collectionNameToUploadItems,
                     { includeHiddenCollections, createHidden },
                     importTakeoutFavorites ?? true,
@@ -846,7 +839,7 @@ export const Upload: React.FC<UploadProps> = ({
                 phase: "ready",
                 pendingUpload: {
                     type: "new-collections",
-                    uploadItemAndPaths,
+                    selection,
                     collectionNameToUploadItems,
                     includeHiddenCollections,
                     createHidden,
@@ -858,14 +851,14 @@ export const Upload: React.FC<UploadProps> = ({
                 includePartnerSharedFiles: includePartnerSharedFiles ?? true,
             });
         } catch (e) {
-            if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
+            if (uploadSelection.current !== selection) return;
             cancelPendingUpload();
             onGenericError(e);
         }
     };
 
     const commitUploadToNewCollections = async (
-        uploadItemAndPaths: UploadItemAndPath[],
+        selection: UploadSelection,
         collectionNameToUploadItems: Map<string, UploadItemAndPath[]>,
         { includeHiddenCollections, createHidden }: NewCollectionsOptions,
         importTakeoutFavorites: boolean,
@@ -915,14 +908,15 @@ export const Upload: React.FC<UploadProps> = ({
             uploadItemsWithCollection,
             collections,
             {
+                preUploadSkippedFiles: selection.preUploadSkippedFiles,
                 persistPendingUploads: true,
                 postUploadTargetCollection: undefined,
                 importTakeoutFavorites,
                 includePartnerSharedFiles,
             },
         );
-        if (uploadItemsAndPaths.current === uploadItemAndPaths) {
-            uploadItemsAndPaths.current = [];
+        if (uploadSelection.current === selection) {
+            uploadSelection.current = undefined;
         }
     };
 
@@ -936,13 +930,13 @@ export const Upload: React.FC<UploadProps> = ({
         if (pendingUpload.type == "existing-collection") {
             void commitUploadToExistingCollection(
                 pendingUpload.collection,
-                pendingUpload.uploadItemAndPaths,
+                pendingUpload.selection,
                 importFavorites,
                 includePartnerSharedFiles,
             );
         } else {
             void commitUploadToNewCollections(
-                pendingUpload.uploadItemAndPaths,
+                pendingUpload.selection,
                 pendingUpload.collectionNameToUploadItems,
                 {
                     includeHiddenCollections:
@@ -957,7 +951,7 @@ export const Upload: React.FC<UploadProps> = ({
 
     const cancelPendingUpload = () => {
         setUploadConfirmation(undefined);
-        uploadItemsAndPaths.current = [];
+        uploadSelection.current = undefined;
         onCloseCollectionSelector?.();
         resetUploadUIState();
     };
@@ -983,7 +977,7 @@ export const Upload: React.FC<UploadProps> = ({
     const waitInQueueAndUploadFiles = async (
         uploadItemsWithCollection: UploadItemWithCollection[],
         collections: Collection[],
-        opts?: UploadFilesOptions,
+        opts: UploadFilesOptions,
     ) => {
         const currentPromise = currentUploadPromise.current;
         currentUploadPromise.current = (async () => {
@@ -1009,20 +1003,20 @@ export const Upload: React.FC<UploadProps> = ({
     const uploadFiles = async (
         uploadItemsWithCollection: UploadItemWithCollection[],
         collections: Collection[],
-        opts?: UploadFilesOptions,
+        opts: UploadFilesOptions,
     ) => {
         try {
             retrySharedAlbumUploadTarget.current =
-                opts?.postUploadTargetCollection;
+                opts.postUploadTargetCollection;
             retryImportTakeoutFavorites.current =
-                opts?.importTakeoutFavorites ?? true;
+                opts.importTakeoutFavorites ?? true;
             retryIncludePartnerSharedFiles.current =
-                opts?.includePartnerSharedFiles ?? true;
+                opts.includePartnerSharedFiles ?? true;
+            uploadProgress.setPreUploadSkippedFiles(opts.preUploadSkippedFiles);
             await preUploadAction();
             if (
-                opts?.persistPendingUploads &&
+                opts.persistPendingUploads &&
                 electron &&
-                !isPendingDesktopUpload.current &&
                 !watcher.isUploadRunning()
             ) {
                 await setPendingUploads(
@@ -1031,7 +1025,7 @@ export const Upload: React.FC<UploadProps> = ({
                     uploadItemsWithCollection
                         .map(({ uploadItem }) => uploadItem)
                         .filter((x) => x !== undefined),
-                    preUploadSkippedFiles,
+                    opts.preUploadSkippedFiles,
                     opts.importTakeoutFavorites ?? true,
                     opts.includePartnerSharedFiles ?? true,
                 );
@@ -1041,19 +1035,19 @@ export const Upload: React.FC<UploadProps> = ({
                 collections,
                 {
                     skipDuplicateAddToUploadCollection:
-                        !!opts?.postUploadTargetCollection,
-                    includePartnerSharedFiles: opts?.includePartnerSharedFiles,
+                        !!opts.postUploadTargetCollection,
+                    includePartnerSharedFiles: opts.includePartnerSharedFiles,
                 },
             );
             if (!batchResult.processedAny) closeUploadProgress();
             await handlePostUploadBatchResult(
                 batchResult,
-                opts?.postUploadTargetCollection,
+                opts.postUploadTargetCollection,
             );
             await handleTakeoutFavoritesPostUpload(
                 batchResult,
-                opts?.postUploadTargetCollection,
-                opts?.importTakeoutFavorites ?? true,
+                opts.postUploadTargetCollection,
+                opts.importTakeoutFavorites ?? true,
             );
             if (isDesktop) {
                 if (watcher.isUploadRunning()) {
@@ -1221,17 +1215,9 @@ export const Upload: React.FC<UploadProps> = ({
                 onSelect={handleUploadTypeSelect}
             />
             <UploadProgress
-                open={uploadProgressView}
+                {...progress}
                 onClose={closeUploadProgress}
-                percentComplete={percentComplete}
-                uploadFileNames={uploadFileNames!}
-                uploadCounter={uploadCounter}
-                uploadPhase={uploadPhase}
-                inProgressUploads={inProgressUploads}
-                hasLivePhotos={hasLivePhotos}
                 retryFailed={retryFailed}
-                finishedUploads={finishedUploads}
-                preUploadSkippedFiles={preUploadSkippedFiles}
                 cancelUploads={cancelUploads}
             />
             <CanvasReadbackBlockedDialog
