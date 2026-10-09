@@ -14,9 +14,9 @@ fast_image_resize = { workspace = true, features = ["rayon"] }
 half = "2.1.0"
 html-escape = "0.2.13"
 image.workspace = true
-imageproc = "0.25.0"
+imageproc = "0.27.0"
 log.workspace = true
-nalgebra = "0.33.2"
+nalgebra = "0.35.0"
 once_cell = "1.20.2"
 plsfix = "0.1.8"
 rayon = "1.12.0"
@@ -24,7 +24,7 @@ regex.workspace = true
 thiserror.workspace = true
 # The FRB photos bridge calls the SimSIMD symbol exported by usearch 2.21.x.
 # Newer usearch releases switched that implementation to numkong symbols.
-usearch = { version = "=2.21.4", optional = true }
+usearch = { version = "=2.26.2", optional = true }
 
 # Cargokit sets ORT_LIB_PATH to Ente's verified iOS archive.
 [target.'cfg(target_os = "ios")'.dependencies]
