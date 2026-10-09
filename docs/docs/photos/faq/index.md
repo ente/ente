@@ -37,6 +37,7 @@ Jump to a category:
 - [Why is the latest version not available on F-Droid?](/photos/faq/account-creation#fdroid-delay)
 - [How can I manually setup Ente Photos installation with Obtainium?](/photos/faq/account-creation#manual-obtanium)
 - [How do I update to the latest version?](/photos/faq/account-creation#update-latest)
+- [Why is my language not an option in Ente?](/photos/faq/account-creation#language-not-available)
 
 ### Multi-Device Setup
 

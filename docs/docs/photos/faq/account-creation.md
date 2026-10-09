@@ -75,6 +75,17 @@ Alternatively, you can follow these manual steps:
 
 **Desktop app:** You'll get an in-app notification to update. Ente desktop includes auto-update functionality - whenever updates are deployed, the app will automatically download and install them.
 
+### Why is my language not an option in Ente? {#language-not-available}
+
+Ente relies on community translations through Crowdin. A language is usually added to the apps once about 90% of it has been translated. New languages also need approval from Ente before they appear.
+
+You can help translate your language, even if it is not close to 90% yet:
+
+- [Ente Photos mobile app](https://crowdin.com/project/ente-photos-app)
+- [Ente Photos web and desktop](https://crowdin.com/project/ente-photos-web)
+
+If a new language translation is complete but is still not available in the app, email [support@ente.com](mailto:support@ente.com) so we can confirm its approval status.
+
 ## Multi-Device Setup
 
 ### How do I log in on multiple devices? {#multi-device-login}
