@@ -1,6 +1,8 @@
+import { sidebarTheme } from "@/components/sidebar/theme";
 import { sidebarSearchOptionsForString } from "@/services/search/sidebar-search-registry";
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import CalendarIcon from "@mui/icons-material/CalendarMonth";
 import CloseIcon from "@mui/icons-material/Close";
 import ImageIcon from "@mui/icons-material/Image";
@@ -10,23 +12,25 @@ import CameraIcon from "@mui/icons-material/PhotoCameraOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
 import {
     Box,
-    Divider,
+    Dialog,
     IconButton,
     Stack,
     styled,
+    ThemeProvider,
+    Tooltip,
     Typography,
     useTheme,
     type Theme,
 } from "@mui/material";
-import { EnteLogo, EnteLogoBox } from "ente-base/components/EnteLogo";
 import type { ButtonishProps } from "ente-base/components/mui";
+import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
 import {
     hlsGenerationStatusSnapshot,
     isHLSGenerationSupported,
 } from "ente-gallery/services/video";
 import { SearchPeopleList } from "ente-new/photos/components/PeopleList";
-import { ItemCard, PreviewItemTile } from "ente-new/photos/components/Tiles";
+import { ItemCard } from "ente-new/photos/components/Tiles";
 import { UnstyledButton } from "ente-new/photos/components/UnstyledButton";
 import {
     useHLSGenerationStatusSnapshot,
@@ -57,7 +61,6 @@ import AsyncSelect from "react-select/async";
 
 export interface SearchBarProps {
     isInSearchMode: boolean;
-    onShowSearchInput: () => void;
     onSelectSearchOption: (
         o: SearchOption | undefined,
         options?: { shouldExitSearchMode?: boolean },
@@ -66,44 +69,125 @@ export interface SearchBarProps {
     onSelectPerson: (personID: string) => void;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({
-    isInSearchMode,
-    onShowSearchInput,
-    ...rest
-}) => {
+export const SearchBar: React.FC<SearchBarProps> = (props) => {
     const isSmallWidth = useIsSmallWidth();
+    const [open, setOpen] = useState(false);
+    const [searchResetKey, setSearchResetKey] = useState(0);
+    const [previousIsInSearchMode, setPreviousIsInSearchMode] = useState(
+        props.isInSearchMode,
+    );
+
+    // Reset the kept-mounted input for every path that leaves an active search.
+    if (previousIsInSearchMode !== props.isInSearchMode) {
+        setPreviousIsInSearchMode(props.isInSearchMode);
+        if (previousIsInSearchMode) setSearchResetKey((key) => key + 1);
+    }
+    const shortcut =
+        typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent)
+            ? "⌘K"
+            : "Ctrl+K";
+
+    const showSearch = () => setOpen(true);
+    const closeSearch = () => setOpen(false);
+    const clearSearch = () => {
+        props.onSelectSearchOption(undefined, { shouldExitSearchMode: true });
+        setOpen(false);
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+                event.preventDefault();
+                setOpen(true);
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     return (
-        <Box sx={{ flex: 1, px: ["4px", "24px"] }}>
-            {isSmallWidth && !isInSearchMode ? (
-                <MobileSearchArea onSearch={onShowSearchInput} />
-            ) : (
-                <SearchInput {...{ isInSearchMode }} {...rest} />
+        <>
+            {props.isInSearchMode && (
+                <Tooltip title={t("close")}>
+                    <IconButton
+                        aria-label={t("close")}
+                        onClick={clearSearch}
+                        sx={{ mr: "8px" }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </Tooltip>
             )}
-        </Box>
+            <Tooltip title={`Search (${shortcut})`}>
+                <FocusVisibleButton
+                    color="secondary"
+                    aria-label={t("search")}
+                    aria-haspopup="dialog"
+                    onClick={showSearch}
+                    sx={{
+                        minWidth: 0,
+                        width: isSmallWidth ? 40 : 48,
+                        height: isSmallWidth ? 40 : 48,
+                        p: 0,
+                        mr: "8px",
+                        borderRadius: "16px",
+                    }}
+                >
+                    <HugeiconsIcon icon={Search01Icon} size={20} />
+                </FocusVisibleButton>
+            </Tooltip>
+            <ThemeProvider theme={sidebarTheme}>
+                <Dialog
+                    open={open}
+                    onClose={closeSearch}
+                    keepMounted
+                    disableRestoreFocus
+                    fullWidth
+                    maxWidth={false}
+                    slotProps={{
+                        backdrop: {
+                            sx: { backgroundColor: "rgba(0,0,0,0.4)" },
+                        },
+                        paper: {
+                            "aria-label": t("search"),
+                            sx: {
+                                width: "621px",
+                                maxWidth: "calc(100% - 24px)",
+                                m: "12px",
+                                maxHeight: "calc(100dvh - 24px)",
+                                p: "20px",
+                                borderRadius: "20px",
+                                bgcolor: "background.default",
+                                backgroundImage: "none",
+                                border: "1px solid",
+                                borderColor: "stroke.faint",
+                                boxShadow: "0 24px 60px rgba(0,0,0,.25)",
+                                overflow: "auto",
+                            },
+                        },
+                    }}
+                >
+                    <SearchInput
+                        key={searchResetKey}
+                        {...props}
+                        open={open}
+                        onClose={closeSearch}
+                    />
+                </Dialog>
+            </ThemeProvider>
+        </>
     );
 };
 
-interface MobileSearchAreaProps {
-    onSearch: () => void;
-}
-
-const MobileSearchArea: React.FC<MobileSearchAreaProps> = ({ onSearch }) => (
-    <Stack direction="row" sx={{ alignItems: "center" }}>
-        <EnteLogoBox sx={{ mx: "auto", pl: "24px" }}>
-            <EnteLogo height={15} />
-        </EnteLogoBox>
-        <IconButton onClick={onSearch}>
-            <HugeiconsIcon icon={Search01Icon} />
-        </IconButton>
-    </Stack>
-);
-
-const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
-    isInSearchMode,
+const SearchInput: React.FC<
+    SearchBarProps & { open: boolean; onClose: () => void }
+> = ({
     onSelectSearchOption,
     onSelectPeople,
     onSelectPerson,
+    open,
+    onClose,
 }) => {
     const selectRef = useRef<SelectInstance<SearchOption> | null>(null);
     // Subscribe even though reads happen through peopleStateSnapshot().
@@ -111,24 +195,20 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
     // undefined makes react-select switch from controlled to uncontrolled.
     const [value, setValue] = useState<SearchOption | null>(null);
     const [inputValue, setInputValue] = useState("");
-    const [isFocused, setIsFocused] = useState(false);
+    const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
 
     const theme = useTheme();
 
-    const styles = useMemo(() => createSelectStyles(theme), [theme]);
+    const styles = useMemo(
+        () => createSelectStyles(theme, isKeyboardNavigating),
+        [theme, isKeyboardNavigating],
+    );
     const components = useMemo(() => ({ Control, Input, Option }), []);
 
     useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-                event.preventDefault();
-                selectRef.current?.focus();
-            }
-        };
-
-        document.addEventListener("keydown", handleKeyDown);
-        return () => document.removeEventListener("keydown", handleKeyDown);
-    }, []);
+        if (open) selectRef.current?.focus();
+        else selectRef.current?.blur();
+    }, [open]);
 
     const handleChange = (value: SearchOption | null) => {
         const type = value?.suggestion.type;
@@ -149,11 +229,33 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
         });
 
         // blurInputOnSelect leaves react-select's menu open.
-        if (value) selectRef.current?.blur();
+        if (value) {
+            selectRef.current?.blur();
+            if (
+                type == "collection" ||
+                type == "person" ||
+                type == "sidebarAction"
+            ) {
+                // Clear AsyncSelect's old results after blur preserves the query.
+                selectRef.current?.onInputChange("", {
+                    action: "set-value",
+                    prevInputValue: inputValue,
+                });
+            }
+            onClose();
+        }
     };
 
     const handleInputChange = (value: string, actionMeta: InputActionMeta) => {
+        // AsyncSelect otherwise clears loaded options when the input blurs.
+        if (
+            actionMeta.action === "input-blur" ||
+            actionMeta.action === "menu-close"
+        ) {
+            return inputValue;
+        }
         if (actionMeta.action == "input-change") {
+            setIsKeyboardNavigating(false);
             setInputValue(value);
 
             if (value === "") {
@@ -164,15 +266,21 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
                 });
             }
         }
+        return value;
     };
 
     const resetSearch = () => {
         selectRef.current?.blur();
+        selectRef.current?.onInputChange("", {
+            action: "set-value",
+            prevInputValue: inputValue,
+        });
 
         setValue(null);
         setInputValue("");
 
         onSelectSearchOption(undefined, { shouldExitSearchMode: true });
+        onClose();
     };
 
     const handleSelectPeople = () => {
@@ -186,7 +294,6 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
     };
 
     const handleFocus = () => {
-        setIsFocused(true);
         // Refocusing needs an input nudge to reopen unchanged suggestions.
         if (inputValue) {
             selectRef.current?.onInputChange(inputValue, {
@@ -197,17 +304,21 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
     };
 
     const handleBlur = () => {
-        setIsFocused(false);
+        setIsKeyboardNavigating(false);
     };
 
     const handleKeyDown = (event: React.KeyboardEvent) => {
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            setIsKeyboardNavigating(true);
+        }
         if (event.key === "Escape") {
             selectRef.current?.blur();
+            onClose();
         }
     };
 
     return (
-        <SearchInputWrapper>
+        <SearchInputWrapper onMouseMove={() => setIsKeyboardNavigating(false)}>
             <AsyncSelect
                 ref={selectRef}
                 value={value}
@@ -219,9 +330,10 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
                 onInputChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 isClearable
+                aria-label={t("search")}
                 escapeClearsValue
                 menuIsOpen={
-                    isFocused && (inputValue !== "" || shouldShowEmptyState(""))
+                    open && (inputValue !== "" || shouldShowEmptyState(""))
                 }
                 onFocus={handleFocus}
                 onBlur={handleBlur}
@@ -242,12 +354,6 @@ const SearchInput: React.FC<Omit<SearchBarProps, "onShowSearchInput">> = ({
                     return null;
                 }}
             />
-
-            {isInSearchMode && (
-                <IconButton onClick={resetSearch}>
-                    <CloseIcon />
-                </IconButton>
-            )}
         </SearchInputWrapper>
     );
 };
@@ -259,7 +365,6 @@ const SearchInputWrapper = styled("div")`
     justify-content: center;
     gap: 8px;
     background: transparent;
-    max-width: 484px;
     margin: auto;
 `;
 
@@ -272,15 +377,20 @@ const loadOptions = pDebounce(async (input: string) => {
 
 const createSelectStyles = (
     theme: Theme,
+    isKeyboardNavigating: boolean,
 ): StylesConfig<SearchOption, false> => ({
     container: (style) => ({ ...style, flex: 1 }),
-    control: (style, { isFocused }) => ({
+    control: (style) => ({
         ...style,
-        backgroundColor: theme.vars.palette.background.searchInput,
-        borderColor: isFocused ? theme.vars.palette.accent.main : "transparent",
+        minHeight: "52px",
+        borderRadius: "12px",
+        backgroundColor: theme.vars.palette.background.paper,
+        borderColor: theme.vars.palette.stroke.faint,
         boxShadow: "none",
+        fontSize: "14px",
+        fontWeight: 500,
         ":hover": {
-            borderColor: theme.vars.palette.accent.light,
+            borderColor: theme.vars.palette.stroke.faint,
             cursor: "text",
         },
     }),
@@ -291,18 +401,47 @@ const createSelectStyles = (
     }),
     menu: (style) => ({
         ...style,
-        marginTop: "1px",
-        backgroundColor: theme.vars.palette.background.elevatedPaper,
+        position: "relative",
+        top: "auto",
+        marginTop: "24px",
+        backgroundColor: "transparent",
+        boxShadow: "none",
+    }),
+    menuList: (style) => ({
+        ...style,
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        padding: 0,
+        scrollbarWidth: "thin",
+        scrollbarColor: `${theme.vars.palette.stroke.muted} transparent`,
+        "@supports selector(::-webkit-scrollbar)": {
+            scrollbarWidth: "auto",
+            scrollbarColor: "auto",
+            "&::-webkit-scrollbar": { width: "4px" },
+            "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+            "&::-webkit-scrollbar-thumb": {
+                backgroundColor: theme.vars.palette.stroke.muted,
+                borderRadius: "4px",
+            },
+            "&::-webkit-scrollbar-thumb:hover": {
+                backgroundColor: theme.vars.palette.text.muted,
+            },
+            "&::-webkit-scrollbar-button": { display: "none" },
+        },
     }),
     option: (style, { isFocused }) => ({
         ...style,
         padding: 0,
         backgroundColor: "transparent !important",
         "& :hover": { cursor: "pointer" },
-        "& .option-contents": isFocused
-            ? { backgroundColor: theme.vars.palette.fill.fainter }
-            : {},
-        "&:last-child .MuiDivider-root": { display: "none" },
+        "& .option-contents":
+            isFocused && isKeyboardNavigating
+                ? {
+                      outline: `2px solid ${theme.vars.palette.accent.main}`,
+                      outlineOffset: "-2px",
+                  }
+                : {},
     }),
     placeholder: (style) => ({
         ...style,
@@ -316,47 +455,19 @@ const createSelectStyles = (
 });
 
 const Control = ({ children, ...props }: ControlProps<SearchOption, false>) => {
-    const isMac =
-        typeof navigator !== "undefined" &&
-        navigator.userAgent.toUpperCase().includes("MAC");
-    const shortcutKey = isMac ? "⌘ K" : "Ctrl + K";
-
-    const hasValue =
-        props.getValue().length > 0 || props.selectProps.inputValue;
-
     return (
         <SelectComponents.Control {...props}>
             <Stack direction="row" sx={{ alignItems: "center", flex: 1 }}>
                 <Box
                     sx={{
                         display: "inline-flex",
-                        pl: "8px",
-                        color: "stroke.muted",
+                        pl: "16px",
+                        color: "text.muted",
                     }}
                 >
                     {iconForOption(props.getValue()[0])}
                 </Box>
                 {children}
-                {!hasValue && (
-                    <Box
-                        sx={{
-                            display: ["none", "none", "inline-flex"],
-                            alignItems: "center",
-                            pr: "8px",
-                            color: "text.faint",
-                            fontSize: "12px",
-                            fontFamily: "monospace",
-                            border: "1px solid",
-                            borderColor: "stroke.faint",
-                            borderRadius: "4px",
-                            px: "6px",
-                            py: "2px",
-                            mr: "8px",
-                        }}
-                    >
-                        {shortcutKey}
-                    </Box>
-                )}
             </Stack>
         </SelectComponents.Control>
     );
@@ -492,76 +603,123 @@ const SearchPeopleHeader: React.FC<ButtonishProps> = ({ onClick }) => (
 const Option: React.FC<OptionProps<SearchOption, false>> = (props) => (
     <SelectComponents.Option {...props}>
         <OptionContents data={props.data} />
-        <Divider sx={{ mx: 2, my: 1 }} />
     </SelectComponents.Option>
 );
 
 const OptionContents = ({ data: option }: { data: SearchOption }) => {
-    if (option.suggestion.type === "sidebarAction") {
-        return (
-            <Stack
-                className="option-contents"
-                sx={{ gap: "4px", px: 2, py: 1 }}
-            >
-                <Typography variant="mini" sx={{ color: "text.muted" }}>
-                    {labelForOption(option)}
-                </Typography>
-                <Typography
+    const { suggestion, fileCount, previewFiles } = option;
+    const person = suggestion.type === "person" ? suggestion.person : undefined;
+    const hasCover = suggestion.type === "collection" || !!person;
+    const coverFile = person?.displayFaceFile ?? previewFiles[0];
+
+    return (
+        <Stack
+            direction="row"
+            className="option-contents"
+            sx={{
+                minHeight: 56,
+                alignItems: "center",
+                gap: "12px",
+                p: "8px 12px 8px 8px",
+                borderRadius: "12px",
+                textAlign: "left",
+                color: "text.base",
+                bgcolor: "background.paper",
+                "&:hover": { bgcolor: "fill.fainter" },
+            }}
+        >
+            {hasCover ? (
+                <Box
+                    aria-hidden
                     sx={{
-                        color: "text.base",
-                        fontWeight: "medium",
-                        wordBreak: "break-word",
+                        flexShrink: 0,
+                        borderRadius: person ? "50%" : "8px",
+                        overflow: "hidden",
                     }}
                 >
-                    {option.suggestion.label}
+                    <ItemCard
+                        key={`${coverFile?.id ?? "empty"}:${person?.displayFaceID ?? ""}`}
+                        TileComponent={ResultCover}
+                        coverFile={coverFile}
+                        coverFaceID={person?.displayFaceID}
+                    />
+                </Box>
+            ) : (
+                <Stack
+                    aria-hidden
+                    sx={{
+                        width: 40,
+                        height: 40,
+                        flexShrink: 0,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "text.muted",
+                        "& svg": { width: 20, height: 20 },
+                    }}
+                >
+                    {iconForOption(option)}
+                </Stack>
+            )}
+            <Stack sx={{ flex: 1, minWidth: 0, gap: "4px" }}>
+                <Typography
+                    sx={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        overflowWrap: "anywhere",
+                    }}
+                >
+                    {suggestion.label}
                 </Typography>
-                <Typography sx={{ color: "text.muted" }}>
-                    {option.suggestion.path.join(" > ")}
+                <Typography
+                    variant="mini"
+                    sx={{ color: "text.muted", overflowWrap: "anywhere" }}
+                >
+                    {suggestion.type === "sidebarAction"
+                        ? suggestion.path.join(" › ")
+                        : `${labelForOption(option)} · ${t("photos_count", { count: fileCount })}`}
                 </Typography>
             </Stack>
-        );
-    }
-    return (
-        <Stack className="option-contents" sx={{ gap: "4px", px: 2, py: 1 }}>
-            <Typography variant="mini" sx={{ color: "text.muted" }}>
-                {labelForOption(option)}
-            </Typography>
-            <Stack
-                direction="row"
-                sx={{
-                    gap: 1,
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                }}
-            >
-                <Box>
-                    <Typography
-                        sx={{
-                            color: "text.base",
-                            fontWeight: "medium",
-                            wordBreak: "break-word",
-                        }}
-                    >
-                        {option.suggestion.label}
-                    </Typography>
-                    <Typography sx={{ color: "text.muted" }}>
-                        {t("photos_count", { count: option.fileCount })}
-                    </Typography>
-                </Box>
-
-                <Stack direction="row" sx={{ gap: 1 }}>
-                    {option.previewFiles.map((file) => (
+            {!hasCover && suggestion.type !== "sidebarAction" && (
+                <Stack
+                    direction="row"
+                    aria-hidden
+                    sx={{
+                        gap: "4px",
+                        flexShrink: 0,
+                        "& > :not(:first-of-type)": {
+                            display: { xs: "none", sm: "block" },
+                        },
+                    }}
+                >
+                    {previewFiles.map((file) => (
                         <ItemCard
                             key={file.id}
                             coverFile={file}
-                            TileComponent={PreviewItemTile}
+                            TileComponent={ResultPreview}
                         />
                     ))}
                 </Stack>
-            </Stack>
+            )}
+            <ArrowForwardIosIcon
+                sx={{ fontSize: 12, color: "text.muted", flexShrink: 0 }}
+            />
         </Stack>
     );
 };
+
+const ResultCover = styled("div")({
+    position: "relative",
+    width: 40,
+    height: 40,
+    overflow: "hidden",
+    "& img": { width: "100%", height: "100%", objectFit: "cover" },
+});
+
+const ResultPreview = styled(ResultCover)({
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+});
 
 const labelForOption = (option: SearchOption) => {
     switch (option.suggestion.type) {
