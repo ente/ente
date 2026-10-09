@@ -118,7 +118,7 @@ class _HomeWidgetState extends State<HomeWidget> {
   bool _personSyncTriggered = false;
   bool _collectionsSyncTriggered = false;
   bool _isShowingChangeLog = false;
-  bool _startWithoutAccount = false;
+  bool _startWithoutAccount = localSettings.isLocalGalleryOnboardingPending;
   final isOnSearchTabNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<bool> _isAlbumsSearchActiveNotifier = ValueNotifier<bool>(
     false,
@@ -233,6 +233,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       event,
     ) {
       _startWithoutAccount = false;
+      unawaited(localSettings.setLocalGalleryOnboardingPending(false));
       setState(() {});
       _handleMissingRecoveryKey();
       if (!isLocalGalleryMode) {
@@ -859,6 +860,7 @@ class _HomeWidgetState extends State<HomeWidget> {
               !Configuration.instance.hasConfiguredAccount() &&
               !localSettings.isAppModeSet;
           if (isStartWithoutAccountFlow) {
+            unawaited(localSettings.setLocalGalleryOnboardingPending(false));
             setState(() {
               _startWithoutAccount = false;
             });

@@ -1,0 +1,1 @@
+- Local gallery setup now reliably keeps photo access granted from the system prompt or settings, and tapping Continue again after a denial opens settings.
