@@ -1,9 +1,7 @@
-use llama_cpp_2::TokenToStringError;
 use llama_cpp_2::context::LlamaContext;
 use llama_cpp_2::llama_batch::LlamaBatch;
-use llama_cpp_2::model::{AddBos, LlamaChatMessage, LlamaChatTemplate, LlamaModel};
+use llama_cpp_2::model::LlamaModel;
 use llama_cpp_2::mtmd::{MtmdBitmap, MtmdInputText, mtmd_default_marker};
-use llama_cpp_2::openai::OpenAIChatTemplateParams;
 use llama_cpp_2::sampling::LlamaSampler;
 use llama_cpp_2::token::LlamaToken;
 use serde::{Deserialize, Serialize};
@@ -16,6 +14,7 @@ use std::time::Instant;
 
 use super::context::LocalContext;
 use super::event::{EventSink, FinishReason, GenerationEvent, GenerationSummary, JobId};
+use super::template::build_chat_prompt;
 use super::{Error, format_error, lock};
 
 static JOB_COUNTER: AtomicI64 = AtomicI64::new(1);
@@ -93,106 +92,27 @@ pub struct ChatRequest {
     pub grammar: Option<String>,
 }
 
-fn token_piece_bytes(model: &LlamaModel, token: LlamaToken) -> Result<Vec<u8>, TokenToStringError> {
-    match model.token_to_piece_bytes(token, 8, true, None) {
-        #[expect(
-            clippy::expect_used,
-            reason = "llama.cpp reports insufficient buffer capacity as a negative byte count"
-        )]
-        Err(TokenToStringError::InsufficientBufferSpace(required)) => model.token_to_piece_bytes(
-            token,
-            (-required)
-                .try_into()
-                .expect("error buffer size is positive"),
-            true,
-            None,
-        ),
-        result => result,
-    }
-}
-
 fn token_piece_string(model: &LlamaModel, token: LlamaToken) -> Option<String> {
-    String::from_utf8(token_piece_bytes(model, token).ok()?).ok()
-}
-
-fn build_chat_prompt(
-    model: &LlamaModel,
-    messages: Vec<ChatMessage>,
-    template_override: Option<String>,
-    add_assistant: bool,
-) -> Result<String, Error> {
-    let template_text = match template_override {
-        Some(template) => template,
-        None => model
-            .chat_template(None)
-            .ok()
-            .and_then(|template| template.to_string().ok())
-            .unwrap_or_else(|| "chatml".to_string()),
-    };
-    let template = LlamaChatTemplate::new(&template_text)
-        .map_err(|err| Error::InvalidInput(format_error("Invalid chat template", err)))?;
-
-    if template_text.contains("enable_thinking") {
-        let messages_json = serde_json::to_string(&messages)
-            .map_err(|err| Error::InvalidInput(format_error("Invalid chat messages", err)))?;
-        let params = OpenAIChatTemplateParams {
-            messages_json: &messages_json,
-            tools_json: None,
-            tool_choice: None,
-            json_schema: None,
-            grammar: None,
-            reasoning_format: None,
-            chat_template_kwargs: Some(r#"{"enable_thinking":false}"#),
-            add_generation_prompt: add_assistant,
-            use_jinja: true,
-            parallel_tool_calls: false,
-            enable_thinking: false,
-            add_bos: false,
-            add_eos: false,
-            parse_tool_calls: false,
-        };
-        let result = model
-            .apply_chat_template_oaicompat(&template, &params)
-            .map_err(|err| Error::Llama {
-                op: "Failed to apply chat template",
-                message: err.to_string(),
-            })?;
-        return Ok(result.prompt);
+    if token.0 < 0 {
+        return None;
     }
-
-    let chat_messages = messages
-        .into_iter()
-        .map(|message| {
-            LlamaChatMessage::new(message.role, message.content)
-                .map_err(|err| Error::InvalidInput(format_error("Invalid chat message", err)))
-        })
-        .collect::<Result<Vec<_>, Error>>()?;
-
-    model
-        .apply_chat_template(&template, &chat_messages, add_assistant)
-        .map_err(|err| Error::Llama {
-            op: "Failed to apply chat template",
-            message: err.to_string(),
-        })
+    String::from_utf8(model.vocab().token_to_piece(token, true, None)).ok()
 }
 
-fn should_add_bos(model: &LlamaModel, prompt: &str) -> AddBos {
-    if let Some(bos) = token_piece_string(model, model.token_bos())
+fn should_add_bos(model: &LlamaModel, prompt: &str) -> bool {
+    if let Some(bos) = token_piece_string(model, model.vocab().bos())
         && !bos.is_empty()
         && prompt.starts_with(&bos)
     {
-        return AddBos::Never;
+        return false;
     }
-    AddBos::Always
+    true
 }
 
 fn tokenize_text_prompt(model: &LlamaModel, prompt: &str) -> Result<Vec<LlamaToken>, Error> {
     let tokens = model
-        .str_to_token(prompt, should_add_bos(model, prompt))
-        .map_err(|err| Error::Llama {
-            op: "Tokenize failed",
-            message: err.to_string(),
-        })?;
+        .vocab()
+        .tokenize(prompt.as_bytes(), should_add_bos(model, prompt), true);
     if tokens.is_empty() {
         return Err(Error::InvalidInput("Prompt produced no tokens".to_string()));
     }
@@ -334,7 +254,7 @@ impl GenerationJob<'_> {
             sampler.accept(token);
             check_cancelled(self.cancel_flag)?;
 
-            if ctx.model.is_eog_token(token) {
+            if ctx.model.vocab().is_eog(token) {
                 self.generated_tokens = self.generated_tokens.saturating_add(1);
                 self.finish_reason = FinishReason::Eog;
                 break;
@@ -345,10 +265,7 @@ impl GenerationJob<'_> {
             }
             self.generated_tokens = self.generated_tokens.saturating_add(1);
 
-            let bytes = token_piece_bytes(ctx.model, token).map_err(|err| Error::Llama {
-                op: "Detokenize failed",
-                message: err.to_string(),
-            })?;
+            let bytes = ctx.model.vocab().token_to_piece(token, true, None);
             let step = decoder.push_bytes(&bytes);
 
             if let Some(text) = step.text {
@@ -415,7 +332,11 @@ impl GenerationJob<'_> {
     }
 }
 
-fn build_sampler(model: &LlamaModel, request: &SamplingParams) -> Result<LlamaSampler, Error> {
+fn build_sampler(
+    model: &LlamaModel,
+    request: &SamplingParams,
+    context_size: i32,
+) -> Result<LlamaSampler, Error> {
     let mut samplers = Vec::new();
 
     let mut repeat_penalty = request.repeat_penalty.unwrap_or(1.0);
@@ -436,7 +357,8 @@ fn build_sampler(model: &LlamaModel, request: &SamplingParams) -> Result<LlamaSa
         || presence_penalty != 0.0
     {
         samplers.push(LlamaSampler::penalties(
-            -1,
+            model.vocab().n_tokens(),
+            context_size,
             repeat_penalty,
             frequency_penalty,
             presence_penalty,
@@ -720,7 +642,7 @@ fn generate_chat_stream(
                     token_offset = end;
                 }
 
-                let mut sampler = build_sampler(ctx.model, &sampler_request)?;
+                let mut sampler = build_sampler(ctx.model, &sampler_request, ctx.n_ctx() as i32)?;
                 sampler.accept_many(prompt_tokens.iter());
 
                 let pos = prompt_tokens.len() as i32;
@@ -746,9 +668,11 @@ fn generate_chat_stream(
                     });
                 }
                 let bitmap =
-                    MtmdBitmap::from_file(&mtmd_ctx, image_path).map_err(|err| Error::Llama {
-                        op: "Failed to load image",
-                        message: err.to_string(),
+                    MtmdBitmap::from_file(&mtmd_ctx, image_path, false).map_err(|err| {
+                        Error::Llama {
+                            op: "Failed to load image",
+                            message: err.to_string(),
+                        }
                     })?;
                 if bitmap.is_audio() {
                     return Err(Error::Unsupported("Audio inputs are not supported"));
@@ -757,7 +681,7 @@ fn generate_chat_stream(
             }
             let bitmap_refs = bitmaps.iter().collect::<Vec<_>>();
 
-            let add_special = matches!(should_add_bos(ctx.model, &prompt), AddBos::Always);
+            let add_special = should_add_bos(ctx.model, &prompt);
             let input_text = MtmdInputText {
                 text: prompt,
                 add_special,
@@ -807,7 +731,7 @@ fn generate_chat_stream(
                 })?;
             check_cancelled(&cancel_flag)?;
 
-            let mut sampler = build_sampler(ctx.model, &sampler_request)?;
+            let mut sampler = build_sampler(ctx.model, &sampler_request, ctx.n_ctx() as i32)?;
             let mut prompt_tokens = Vec::new();
             for index in 0..chunks.len() {
                 if let Some(chunk) = chunks.get(index)

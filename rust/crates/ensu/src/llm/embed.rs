@@ -1,5 +1,4 @@
 use llama_cpp_2::llama_batch::LlamaBatch;
-use llama_cpp_2::model::AddBos;
 
 use super::Error;
 use super::context::LocalContext;
@@ -41,11 +40,8 @@ impl LocalContext {
         self.with_context_and_cache_mut(|context, cached_tokens| {
             let tokens = context
                 .model
-                .str_to_token(prompt, AddBos::Always)
-                .map_err(|err| Error::Llama {
-                    op: "Embedding tokenization failed",
-                    message: err.to_string(),
-                })?;
+                .vocab()
+                .tokenize(prompt.as_bytes(), true, true);
             if tokens.is_empty() {
                 return Err(Error::InvalidInput(
                     "embedding prompt produced no tokens".to_string(),

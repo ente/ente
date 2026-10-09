@@ -7,6 +7,7 @@ ente-assets.workspace = true
 ente-core.workspace = true
 ente-ensu-crypto.workspace = true
 ente-image.workspace = true
+llama-cpp-sys-2 = { version = "=0.1.158", default-features = false, features = ["common"] }
 regex.workspace = true
 rubato = { version = "5.0.0", optional = true }
 rusqlite = { workspace = true, default-features = true, optional = true }
@@ -24,20 +25,26 @@ zstd = "0.14.0"
 [dev-dependencies]
 tempfile.workspace = true
 
+[build-dependencies]
+cc = "1.2.61"
+
 # Keep `mtmd` on every platform for multimodal support.
 # macOS disables OpenMP because Apple's clang lacks libomp. llama.cpp uses its
 # own thread pool, Accelerate, and Metal on arm64 instead.
 [target.'cfg(target_os = "macos")'.dependencies]
-llama-cpp-2 = { version = "=0.1.144", default-features = false, features = ["mtmd"] }
+llama-cpp-2 = { version = "=0.1.158", default-features = false, features = ["common", "mtmd"] }
 
 # Linux Vulkan needs a system Vulkan loader and glslc.
 [target.'cfg(target_os = "linux")'.dependencies]
-llama-cpp-2 = { version = "=0.1.144", features = ["mtmd", "vulkan"] }
+llama-cpp-2 = { version = "=0.1.158", features = ["mtmd", "vulkan"] }
 
 # Other platforms stay on CPU. Android keeps the shared C++ runtime; Windows
 # avoids Vulkan's VULKAN_SDK requirement.
-[target.'cfg(all(not(target_os = "macos"), not(target_os = "linux")))'.dependencies]
-llama-cpp-2 = { version = "=0.1.144", features = ["mtmd"] }
+[target.'cfg(all(not(target_os = "macos"), not(target_os = "linux"), not(all(target_os = "android", target_arch = "aarch64"))))'.dependencies]
+llama-cpp-2 = { version = "=0.1.158", features = ["mtmd"] }
+
+[target.'cfg(all(target_os = "android", target_arch = "aarch64"))'.dependencies]
+llama-cpp-2 = { version = "=0.1.158", features = ["dynamic-backends", "mtmd"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 ort = { workspace = true, features = ["load-dynamic"], optional = true }
