@@ -7,15 +7,15 @@
         "test": "vitest --run"
     },
     "dependencies": {
-        "@fontsource/gochi-hand": "5.2.8",
-        "@hugeicons/core-free-icons": "1.2.1",
-        "@hugeicons/react": "1.1.6",
+        "@fontsource/gochi-hand": "5.3.0",
+        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/react": "1.1.10",
         "ente-base": "*",
         "ente-paste-wasm": "*",
         "qr-code-styling": "1.9.2"
     },
     "devDependencies": {
         "ente-build-config": "*",
-        "vitest": "4.1.11"
+        "vitest": "5.0.3"
     }
 }
