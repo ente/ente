@@ -13,6 +13,7 @@ enum TabChangedEventSource {
   collectionsPage,
   backButton,
   appMode,
+  mlConsent,
 }
 
 class TabDoubleTapEvent extends Event {

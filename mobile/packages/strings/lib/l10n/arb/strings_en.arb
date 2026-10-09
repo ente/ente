@@ -2621,7 +2621,10 @@
   "mlConsent": "Enable machine learning",
   "mlConsentConfirmation": "I understand, and wish to enable machine learning",
   "mlConsentDescription": "If you enable machine learning, Ente will extract information like face geometry from files, including those shared with you.\n\nThis will happen on your device, and any generated biometric information will be end-to-end encrypted.",
-  "mlConsentPrivacy": "Please click here for more details about this feature in our privacy policy",
+  "mlConsentPrivacyDetails": "Please <policy>click here</policy> for more details about this feature in our privacy policy",
+  "@mlConsentPrivacyDetails": {
+    "description": "Machine learning consent screen sentence; only the text inside the policy tags is tappable and opens the privacy policy"
+  },
   "mlCouldNotProcessItems": "{count, plural, one{Could not process {count} item} other{Could not process {count} items}}",
   "@mlCouldNotProcessItems": {
     "description": "Title shown when machine learning could not process one or more items",

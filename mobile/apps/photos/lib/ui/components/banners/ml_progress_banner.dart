@@ -10,6 +10,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/events/notification_event.dart";
 import "package:photos/events/tab_changed_event.dart";
+import "package:photos/models/home_tab.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -24,8 +25,6 @@ class MLProgressBanner extends StatefulWidget {
 }
 
 class _MLProgressBannerState extends State<MLProgressBanner> {
-  static const int _searchTabIndex = 3;
-
   IndexStatus? _indexStatus;
   Timer? _timer;
   bool _dismissed = false;
@@ -43,7 +42,7 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
       event,
     ) {
       final wasOnSearchTab = _isOnSearchTab;
-      _isOnSearchTab = event.selectedIndex == _searchTabIndex;
+      _isOnSearchTab = event.selectedIndex == searchTabIndex;
       if (_isOnSearchTab && !wasOnSearchTab) {
         _ensurePolling();
       } else if (!_isOnSearchTab && wasOnSearchTab) {

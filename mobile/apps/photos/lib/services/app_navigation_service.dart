@@ -32,7 +32,7 @@ class AppNavigationService {
     final scheduledPush = _lastScheduledPush
         .catchError((Object _, StackTrace _) {})
         .then((_) async {
-          final navigator = await _waitForNavigator();
+          final navigator = await waitForNavigator();
           if (navigator == null) {
             _logger.warning(
               "Skipping navigation because app navigator is unavailable",
@@ -96,7 +96,7 @@ class AppNavigationService {
   }
 
   // The inner navigator may be unavailable while AppLock rebuilds after resume.
-  Future<NavigatorState?> _waitForNavigator() async {
+  Future<NavigatorState?> waitForNavigator() async {
     final binding = WidgetsBinding.instance;
     for (var attempt = 0; attempt < 120; attempt++) {
       final currentNavigator = navigator;

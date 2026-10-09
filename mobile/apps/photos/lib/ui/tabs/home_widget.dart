@@ -199,7 +199,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       _selectedTabIndex = event.selectedIndex;
       _selectedTabIndexNotifier.value = event.selectedIndex;
 
-      if (event.selectedIndex == 3) {
+      if (event.selectedIndex == searchTabIndex) {
         isOnSearchTabNotifier.value = true;
         unawaited(SemanticSearchService.instance.prepareForInteractiveSearch());
       } else {
@@ -892,7 +892,7 @@ class _HomeWidgetState extends State<HomeWidget> {
               _isAlbumsSearchActiveNotifier.value = false;
             }
           }
-          if (_selectedTabIndex == 3) {
+          if (_selectedTabIndex == searchTabIndex) {
             if (_shouldSearchTabSearchConsumeBackNotifier.value) {
               Bus.instance.fire(ClearAndUnfocusSearchBar());
               return;
