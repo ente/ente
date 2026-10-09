@@ -10,18 +10,22 @@ import "package:file_saver/file_saver.dart";
 import "package:flutter/material.dart";
 import "package:locker/models/info/info_item.dart";
 import "package:locker/services/collections/collections_service.dart";
+import "package:locker/services/configuration.dart";
 import "package:locker/services/files/download/file_downloader.dart"
     as file_downloader;
 import "package:locker/services/files/offline/offline_file_storage.dart";
 import "package:locker/services/files/sync/models/file.dart";
 import "package:locker/services/info_file_service.dart";
+import "package:locker/services/trash/models/trash_file.dart";
 import "package:locker/ui/pages/account_credentials_page.dart";
 import "package:locker/ui/pages/base_info_page.dart";
+import "package:locker/ui/pages/document_viewer_page.dart";
 import "package:locker/ui/pages/emergency_contact_page.dart";
 import "package:locker/ui/pages/personal_note_page.dart";
 import "package:locker/ui/pages/physical_records_page.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import "package:locker/utils/error_sheet.dart";
+import "package:locker/utils/file_actions.dart";
 import "package:logging/logging.dart";
 import "package:open_file/open_file.dart";
 import "package:path/path.dart" as p;
@@ -31,21 +35,6 @@ class FileUtil {
 
   static Future<void> openFile(BuildContext context, EnteFile file) async {
     final l10n = context.strings;
-
-    Future<void> showOpenFileError({
-      required String error,
-      ResultType? resultType,
-    }) async {
-      if (!context.mounted) {
-        return;
-      }
-      await _showOpenFileError(
-        context,
-        error: error,
-        resultType: resultType,
-        lockerFile: file,
-      );
-    }
 
     if (InfoFileService.instance.isInfoFile(file)) {
       return _openInfoFile(context, file);
@@ -60,12 +49,8 @@ class FileUtil {
     if (await cachedDecryptedFile.exists()) {
       final cachedSize = await cachedDecryptedFile.length();
       if (cachedSize > 0) {
-        await _launchFile(
-          cachedDecryptedFile,
-          displayName: file.displayName,
-          lockerFile: file,
-          showError: showOpenFileError,
-        );
+        if (!context.mounted) return;
+        await _openDecryptedFile(context, cachedDecryptedFile, file);
         return;
       }
       await cachedDecryptedFile.delete();
@@ -100,13 +85,9 @@ class FileUtil {
 
       await dialog?.hide();
 
+      if (!context.mounted) return;
       if (decryptedFile != null) {
-        await _launchFile(
-          decryptedFile,
-          displayName: file.displayName,
-          lockerFile: file,
-          showError: showOpenFileError,
-        );
+        await _openDecryptedFile(context, decryptedFile, file);
       } else if (context.mounted) {
         await showBottomSheetComponent(
           context: context,
@@ -404,6 +385,58 @@ class FileUtil {
         await showLockerErrorSheet(context, e);
       }
     }
+  }
+
+  static Future<void> _openDecryptedFile(
+    BuildContext context,
+    File localFile,
+    EnteFile file,
+  ) async {
+    if (!context.mounted) return;
+    Future<void> openExternally(BuildContext viewerContext) => _launchFile(
+      localFile,
+      displayName: file.displayName,
+      lockerFile: file,
+      showError: ({required error, resultType}) async {
+        if (!viewerContext.mounted) return;
+        await _showOpenFileError(
+          viewerContext,
+          error: error,
+          resultType: resultType,
+          lockerFile: file,
+        );
+      },
+    );
+
+    final extension = getPreferredFileExtension(
+      file,
+      fallbackPath: localFile.path,
+    ).toLowerCase();
+    final isPdf = extension == '.pdf';
+    final canPreview = isPdf
+        ? Platform.isAndroid || Platform.isIOS
+        : {'.png', '.jpg', '.jpeg'}.contains(extension);
+    if (!canPreview) return openExternally(context);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DocumentViewerPage(
+          localFile: localFile,
+          fileName: file.displayName,
+          isPdf: isPdf,
+          onOpenExternally: openExternally,
+          onDownload: (viewerContext) async {
+            await downloadFile(viewerContext, file);
+          },
+          onShare:
+              file is! TrashFile &&
+                  file.ownerID == Configuration.instance.getUserID()
+              ? (viewerContext) =>
+                    FileActions.shareFileLink(viewerContext, file)
+              : null,
+        ),
+      ),
+    );
   }
 
   static Future<void> _launchFile(
