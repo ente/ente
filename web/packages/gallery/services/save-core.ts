@@ -1,4 +1,5 @@
 import { assertionFailed } from "ente-base/assert";
+import { isNamedError } from "ente-base/error";
 import { nameAndExtension } from "ente-base/file-name";
 import log from "ente-base/log";
 import { saveAsFileAndRevokeObjectURL } from "ente-base/utils/web";
@@ -162,7 +163,13 @@ export const downloadAndSaveFilesWeb = async ({
                 } catch (e) {
                     log.error("File download failed", e);
                     failedFiles.push(singleFile);
-                    updateSaveGroup((g) => ({ ...g, failed: g.failed + 1 }));
+                    updateSaveGroup((g) => {
+                        let failureReason = g.failureReason;
+                        if (isNamedError(e, "blob_creation_failed")) {
+                            failureReason = "blob_creation_failed";
+                        }
+                        return { ...g, failed: g.failed + 1, failureReason };
+                    });
                 }
             } else {
                 nextZipBatchIndex = await saveAsZip(
@@ -458,10 +465,13 @@ const saveAsZip = async (
                 }));
                 return false;
             }
-            updateSaveGroup((g) => ({
-                ...g,
-                failureReason: g.failureReason ?? "file_error",
-            }));
+            updateSaveGroup((g) => {
+                let failureReason = g.failureReason ?? "file_error";
+                if (isNamedError(e, "blob_creation_failed")) {
+                    failureReason = "blob_creation_failed";
+                }
+                return { ...g, failureReason };
+            });
         }
 
         return true;

@@ -129,6 +129,8 @@ export const DownloadStatusNotifications: React.FC<
                         statusText = t("download_failed_network_offline");
                     } else if (group.failureReason === "file_error") {
                         statusText = t("download_failed_file_error");
+                    } else if (group.failureReason === "blob_creation_failed") {
+                        statusText = t("download_failed_blob_creation_failed");
                     } else {
                         statusText = t("download_failed");
                     }

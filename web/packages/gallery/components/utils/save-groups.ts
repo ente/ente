@@ -12,7 +12,7 @@ export interface SaveGroup {
     success: number;
     failed: number;
     canceller: AbortController;
-    failureReason?: "network_offline" | "file_error";
+    failureReason?: "network_offline" | "file_error" | "blob_creation_failed";
     includeZipNumber?: boolean;
     isDownloadingZip?: boolean;
     currentPart?: number;
