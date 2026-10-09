@@ -4,7 +4,7 @@
     "private": true,
     "dependencies": {
         "@fontsource-variable/outfit": "5.3.0",
-        "@hugeicons/core-free-icons": "1.2.1",
+        "@hugeicons/core-free-icons": "4.3.5",
         "@hugeicons/react": "1.1.10",
         "@noble/hashes": "2.4.0",
         "ente-accounts": "*",

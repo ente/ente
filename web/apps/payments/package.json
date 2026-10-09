@@ -9,7 +9,7 @@
         "preview": "vite preview --port 3001"
     },
     "dependencies": {
-        "@stripe/stripe-js": "1.54.2",
+        "@stripe/stripe-js": "9.16.0",
         "react": "19.3.0",
         "react-dom": "19.3.0"
     },
@@ -18,6 +18,6 @@
         "@types/react-dom": "19.3.0",
         "@vitejs/plugin-react": "6.1.1",
         "ente-build-config": "*",
-        "vite": "8.3.1"
+        "vite": "8.3.2"
     }
 }
