@@ -62,7 +62,7 @@
       "emailOrName": {}
     }
   },
-  "addedFilesToPerson": "{count, plural, one {Pridėtas {count} failas prie {personName}} few {Pridėti {count} failai prie {personName}} many {Pridėta {count} failo prie {personName}} other {Pridėta {count} failų prie {personName}}}",
+  "addedFilesToPerson": "{count, plural, one {Pridėtas {count} failas prie {personName}} few {Pridėti {count} failai prie {personName}} many {Pridėta {count} prie failo {personName}} other {Pridėta {count} failų prie {personName}}}",
   "@addedFilesToPerson": {
     "description": "Toast shown after manually tagging one or more files to a person.",
     "placeholders": {
@@ -101,7 +101,7 @@
   "addFromDevice": "Pridėti iš įrenginio",
   "addingPhotos": "Įtraukiamos nuotraukos",
   "addingToFavorites": "Pridedama prie mėgstamų...",
-  "addItem": "{count, plural, one{Pridėti {count} elementą} few{Pridėti {count} elementus} many{Pridėti {count} elemento} other{Pridėti {count} elementų}}",
+  "addItem": "{count, plural, one {Pridėti elementą} few {Pridėti elementus} many {Pridėti elemento} other {Pridėti elementų}}",
   "@addItem": {
     "description": "Page title while adding one or more items to album",
     "placeholders": {
@@ -162,7 +162,7 @@
     }
   },
   "advanced": "Išplėstiniai",
-  "aerialViews": "Vaizdai iš oro",
+  "aerialViews": "Aeronetinės perspektyvos",
   "after1Day": "Po 1 dienos",
   "after1Hour": "Po 1 valandos",
   "after1Month": "Po 1 mėnesio",
@@ -303,7 +303,7 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
-  "authenticatorCodesCount": "{count, plural, one{{formattedCount} autentifikatoriaus kodas} few{{formattedCount} autentifikatoriaus kodai} many{{formattedCount} autentifikatoriaus kodo} other{{formattedCount} autentifikatoriaus kodų}}",
+  "authenticatorCodesCount": "{count, plural, one {{formattedCount} nustatymo kodas} few {{formattedCount} nustatymo kodai} many {{formattedCount} nustatymo kodo} other {{formattedCount} nustatymo kodų}}",
   "@authenticatorCodesCount": {
     "description": "Delete impact row for Auth data",
     "placeholders": {
@@ -332,7 +332,7 @@
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
   },
-  "authToViewTrashedFiles": "Nustatykite tapatybę, kad peržiūrėtumėte išmestus failus",
+  "authToViewTrashedFiles": "Nustatykite tapatybę, kad peržiūrėtumėte savo ištuštintus failus.",
   "authToViewYourActiveSessions": "Nustatykite tapatybę, kad peržiūrėtumėte savo aktyvius seansus.",
   "authToViewYourHiddenFiles": "Nustatykite tapatybę, kad peržiūrėtumėte savo paslėptus failus.",
   "authToViewYourMemories": "Nustatykite tapatybę, kad peržiūrėtumėte savo prisiminimus.",
@@ -1176,9 +1176,7 @@
   "imageEditorExposure": "Išlaikymas",
   "imageEditorFade": "Blukimas",
   "imageEditorHue": "Atspalvis",
-  "imageEditorLuminance": "Šviesumas",
   "imageEditorSaturation": "Grynis",
-  "imageEditorSharpness": "Ryškumas",
   "imageEditorTemperature": "Temperatūra",
   "imageNotAnalyzed": "Vaizdas neanalizuotas.",
   "immediately": "Iš karto",
@@ -1293,7 +1291,7 @@
     }
   },
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Elementai rodo likusių dienų skaičių iki visiško ištrynimo.",
-  "itemsWillBeDeletedFromAllCollections": "{count, plural, one{{count} elementas bus ištrintas iš visų kolekcijų.} few{{count} elementai bus ištrinti iš visų kolekcijų.} many{{count} elemento bus ištrinta iš visų kolekcijų.} other{{count} elementų bus ištrinta iš visų kolekcijų.}} Atkurti galima iš šiukšlinės.",
+  "itemsWillBeDeletedFromAllCollections": "{count, plural, one {Šis elementas bus ištrintas iš visų kolekcijų. Jį galite atkurti iš šiukšlinės.} few {Šie elementai bus ištrinti iš visų kolekcijų. Juos galite atkurti iš šiukšlinės.} many {Šio elemento bus ištrinta iš visų kolekcijų. Jo galite atkurti iš šiukšlinės.} other{Šių elementų bus ištrinta iš visų kolekcijų. Jų galite atkurti iš šiukšlinės.}}",
   "@itemsWillBeDeletedFromAllCollections": {
     "description": "Confirmation message explaining that deleted items leave every collection and remain recoverable from Trash.",
     "placeholders": {
@@ -1589,7 +1587,7 @@
       }
     }
   },
-  "mlIndexingDescription": "Atkreipkite dėmesį, kad mašininis mokymasis padidins duomenų srauto ir akumuliatoriaus energijos sąnaudas, kol bus apdoroti visi elementai. Apsvarstykite galimybę naudoti darbalaukio programą spartesniam apdorojimui – visi rezultatai bus sinchronizuojami automatiškai.",
+  "mlIndexingDescription": "Atkreipkite dėmesį, kad mašininis mokymasis padidins pralaidumą ir akumuliatoriaus naudojimą, kol bus apdoroti visi elementai. Apsvarstykite galimybę naudoti darbalaukio programą spartesniam apdorojimui – visi rezultatai bus sinchronizuojami automatiškai.",
   "mlItemsCouldNotBeProcessed": "{count, plural, one {{count} elementas negalėjo būti apdorotas mašininiam mokymui. Susisiekite su mumis, kad galėtume padėti.} few {{count} elementai negalėjo būti apdoroti mašininiam mokymui. Susisiekite su mumis, kad galėtume padėti.} many {{count} elemento negalėjo būti apdorota mašininiam mokymui. Susisiekite su mumis, kad galėtume padėti.} other {{count} elementų negalėjo būti apdorota mašininiam mokymui. Susisiekite su mumis, kad galėtume padėti.}}",
   "@mlItemsCouldNotBeProcessed": {
     "description": "Description shown when machine learning could not process one or more items",
@@ -1776,7 +1774,7 @@
   "offlineHomeSignupBannerAction": "Kurti atsarginę kopiją dabar",
   "offlineHomeSignupBannerDescription": "Užšifruotos atsarginės kopijos tarp 3 vietų, kad jūsų prisiminimai būtų saugūs.",
   "offlineHomeSignupBannerTitle": "Apsaugokite savo prisiminimus amžinai",
-  "offlineKeyUnavailableMessage": "„Ente Auth“ negali pasiekti jūsų neprisijungus naudojamų kodų rakto.",
+  "offlineKeyUnavailableMessage": "„Ente Auth“ negali pasiekti raktą jūsų neprisijungimo kodams.",
   "offlineModeWarning": "Pasirinkote tęsti be atsarginių kopijų. Kad įsitikintumėte, jog jūsų kodai yra saugūs, pasidarykite atsargines kopijas rankiniu būdu.",
   "offlineNameFaceBannerSubtitle": "Užsiregistruokite, kad juos pažymėtumėte ir vėliau lengvai rastumėte jų nuotraukas.",
   "offlineNameFaceBannerTitle": "Duokite šiam veidui vardą",
@@ -1789,7 +1787,7 @@
     "description": "The text displayed above folders/albums stored on device",
     "type": "text"
   },
-  "oneAccountAcrossEnteApps": "Turite vieną bendrą paskyrą „Ente Photos“, „Ente Auth“ ir „Ente Locker“ programose.",
+  "oneAccountAcrossEnteApps": "Turite vieną paskyrą tarp „Ente“ nuotraukų, „Ente Auth“ ir „Ente“ spintelės.",
   "@oneAccountAcrossEnteApps": {
     "description": "Explains that account deletion affects all Ente apps"
   },
@@ -2141,7 +2139,7 @@
       "email": {}
     }
   },
-  "recreatePasswordBody": "Dabartinis įrenginys nėra pakankamai galingas, kad patvirtintų jūsų slaptažodį, bet mes galime iš naujo sugeneruoti taip, kad jis veiktų su visais įrenginiais.\n\nPrisijunkite naudodami atkūrimo raktą ir sugeneruokite iš naujo slaptažodį (jei norite, galite vėl naudoti tą patį).",
+  "recreatePasswordBody": "Dabartinis įrenginys nėra pakankamai galingas, kad patvirtintų jūsų slaptažodį, bet mes galime iš naujo sugeneruoti taip, kad jis veiktų su visais įrenginiais.\n\nPrisijunkite naudojant atkūrimo raktą ir sugeneruokite iš naujo slaptažodį (jei norite, galite vėl naudoti tą patį).",
   "@recreatePasswordBody": {
     "description": "Body text for recreate password dialog"
   },
@@ -3149,7 +3147,7 @@
   "yesCancel": "Taip, atsisakyti",
   "yesConvertToViewer": "Taip, keisti į žiūrėtoją",
   "yesDelete": "Taip, ištrinti",
-  "yesDeleteCollections": "Taip, ištrinti {count, plural, one{{count} kolekciją} few{{count} kolekcijas} many{{count} kolekcijos} other{{count} kolekcijų}}",
+  "yesDeleteCollections": "Taip, ištrinti {count, plural, one {kolekciją} few {kolekcijas} many {kolekcijos} other {kolekcijų}}",
   "@yesDeleteCollections": {
     "description": "Button label for confirming deletion of one or more collections",
     "placeholders": {

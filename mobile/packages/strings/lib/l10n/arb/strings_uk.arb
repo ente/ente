@@ -1,8 +1,4 @@
 {
-  "bringMemoriesTogether": "Зберіть свої спогади разом",
-  "createMyAccount": "Створити мій акаунт",
-  "localGalleryPermissionDesc": "Надайте дозвіл на доступ до фотографій і їх упорядкування за допомогою розпізнавання облич. Уся обробка виконується на вашому пристрої.",
-  "onboardingOrganizeDesc": "Упорядкуйте свої фото й відео. Усі спогади в одному місці.",
   "wallpaper": "Шпалери",
   "setWallpaper": "Установити шпалери",
   "wallpaperHome": "Робочий стіл",
@@ -238,7 +234,7 @@
     "description": "Success message when authentication is successful"
   },
   "authToChangeEmailVerificationSetting": "Авторизуйтесь, щоб змінити перевірку через пошту",
-  "authToChangeLockscreenSetting": "Автентифікуйтеся, щоб змінити налаштування екрана блокування",
+  "authToChangeLockscreenSetting": "Автентифікуйтеся, щоб змінити налаштувань екрана блокування",
   "authToChangeYourEmail": "Авторизуйтеся, щоб змінити електронну пошту",
   "authToChangeYourPassword": "Автентифікуйтеся, щоб змінити пароль",
   "authToConfigureTwofactorAuthentication": "Авторизуйтесь, щоб налаштувати двоетапну перевірку",
@@ -384,7 +380,7 @@
   "chooseIcon": "Оберіть іконку",
   "chooseYourPlan": "Оберіть свій план",
   "city": "У місті",
-  "citySunsets": "Сяйво заходу сонця в місті",
+  "citySunsets": "Сяйво міського заходу",
   "claimedByYou": "використано вами",
   "cleanedUpSimilarImages": "Ви звільнили {size} простору",
   "@cleanedUpSimilarImages": {
@@ -638,7 +634,7 @@
   "deleteLinkQuestion": "Видалити посилання?",
   "deleteLocation": "Видалити розташування",
   "deleteNotSupportedForSharedFiles": "Видалення не підтримується для спільних файлів",
-  "deleteOnDeviceFiles": "Видалити файли з пристрою",
+  "deleteOnDeviceFiles": "Видалити з файлів пристрою",
   "deletePhotos": "Видалити фото",
   "deletePhotosWithSize": "Видалити {count} фото ({size})",
   "@deletePhotosWithSize": {
@@ -677,7 +673,7 @@
   "deleteSharedAlbum": "Видалити спільний альбом?",
   "deleteSharedAlbumDialogBody": "Альбом буде видалено для всіх\n\nВи втратите доступ до спільних фотографій у цьому альбомі, які належать іншим",
   "deleteShareLinkConfirmation": "Люди з цим посиланням більше не зможуть отримати доступ до елемента.",
-  "deleteSuggestions": "Пропозиції щодо видалення",
+  "deleteSuggestions": "Видалити пропозиції",
   "deleteTagMessage": "Ви впевнені, що хочете видалити цю мітку? Ця дія є незворотною.",
   "deleteTagTitle": "Видалити мітку?",
   "deleteUnparseableCodeMessage": "Це назавжди видалить цей код з Auth. Він не буде переміщений до смітника.",
@@ -1018,7 +1014,7 @@
   "@facesTimelineBannerTitle": {
     "description": "Title for the Memory Lane suggestion banner shown on a person's page"
   },
-  "facesTimelineCaptionYearsAgo": "{count, plural, zero{зараз} one{# рік тому} few {# роки тому} many {# років тому} other{# років тому}}",
+  "facesTimelineCaptionYearsAgo": "{count, plural, one{# рік тому} few {# роки тому} many {# років тому} other{# років тому}}",
   "@facesTimelineCaptionYearsAgo": {
     "description": "Caption for frames when birthdate is unknown, expressing time difference",
     "placeholders": {
@@ -1246,9 +1242,7 @@
   "imageEditorExposure": "Експозиція",
   "imageEditorFade": "Вицвітання",
   "imageEditorHue": "Відтінок",
-  "imageEditorLuminance": "Світність",
   "imageEditorSaturation": "Насиченість",
-  "imageEditorSharpness": "Різкість",
   "imageEditorTemperature": "Температура",
   "imageNotAnalyzed": "Зображення не проаналізовано",
   "immediate": "Негайно",
@@ -2909,8 +2903,8 @@
   "updateAvailable": "Доступне оновлення",
   "updateBackupPassword": "Оновити пароль резервної копії",
   "updated": "Оновлено",
-  "updateSettings": "Оновити налаштування",
-  "updateTime": "Оновити час",
+  "updateSettings": "Налаштування оновлень",
+  "updateTime": "Час оновлень",
   "@updateTime": {
     "description": "Button label to update the recovery time for a trusted contact"
   },
@@ -3122,7 +3116,7 @@
   "yesCancel": "Так, скасувати",
   "yesConvertToViewer": "Так, перетворити в глядача",
   "yesDelete": "Так, видалити",
-  "yesDeleteCollections": "Так, видалити {count, plural, one{{count} колекцію} few{{count} колекції} many{{count} колекцій} other{{count} колекції}}",
+  "yesDeleteCollections": "Так, видалити {count, plural, one{колекцію} other{колекції}}",
   "@yesDeleteCollections": {
     "description": "Button label for confirming deletion of one or more collections",
     "placeholders": {
@@ -3177,7 +3171,7 @@
   "youveNoDuplicateCodesThatCanBeCleared": "У вас немає дублікатів кодів, які можна очистити",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "У цьому альбомі немає файлів, які можуть бути видалені",
   "zoomOutToSeePhotos": "Збільште, щоб побачити фотографії",
-  "backupPausedFreeUpDeviceStorage": "Резервне копіювання призупинено. Звільніть місце на цьому пристрої, щоб продовжити.",
+  "backupPausedFreeUpDeviceStorage": "Резервне копіювання призупинено. Звільніть місце на цьому пристрої для відновлення.",
   "legacyKitSheetHowToRecover": "Як відновити акаунт",
   "legacyKitSheetStepGetAnother": "Це аркуш {index} із {total}. Попросіть {names} поділитися — вам потрібен усього ще один.",
   "@legacyKitSheetStepGetAnother": {
@@ -3215,7 +3209,7 @@
       }
     }
   },
-  "legacyKitSheetStepScan": "Відскануйте {count} аркуші.",
+  "legacyKitSheetStepScan": "Проскануйте аркушів: {count}.",
   "@legacyKitSheetStepScan": {
     "description": "Third recovery step. {count} is how many sheets must be scanned together",
     "placeholders": {

@@ -1,8 +1,4 @@
 {
-  "bringMemoriesTogether": "Reúne tus recuerdos",
-  "createMyAccount": "Crear mi cuenta",
-  "localGalleryPermissionDesc": "Concede permiso para acceder y organizar tus fotos mediante reconocimiento facial. Todo el procesamiento se realiza en tu dispositivo.",
-  "onboardingOrganizeDesc": "Organiza tus fotos y vídeos. Todos tus recuerdos en un solo lugar.",
   "wallpaper": "Fondo de pantalla",
   "setWallpaper": "Establecer fondo de pantalla",
   "wallpaperHome": "Pantalla de inicio",
@@ -102,7 +98,7 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addPeopleWidgetPrompt": "Añadir un widget de personas a la pantalla de inicio para personalizarlo aquí.",
+  "addPeopleWidgetPrompt": "Añadir un widget de álbum a la pantalla de inicio para personalizarlo aquí.",
   "addPerson": "Añadir persona",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -163,7 +159,7 @@
   "albumsOnEnteEmptyFeatureShareLovedOnes": "Compártelos con seres queridos - pueden reaccionar y chatear sin una cuenta",
   "albumsOnEnteEmptyTitle": "Respalda tus recuerdos",
   "albumsReceivedEmptyFeatureAcceptInvites": "Aceptar invitaciones para ver fotos y vídeos",
-  "albumsReceivedEmptyFeatureSaveToLibrary": "Guardar recuerdos compartidos en tu propia biblioteca",
+  "albumsReceivedEmptyFeatureSaveToLibrary": "Guardar memorias compartidas en tu propia biblioteca",
   "albumsReceivedEmptyFeatureSharedByOthers": "Los álbumes compartidos por otros aparecerán aquí",
   "albumsReceivedEmptyTitle": "Ver recuerdos compartidos\n contigo",
   "albumsSharedEmptyFeatureReactAndComment": "Pueden ver, reaccionar y añadir comentarios sin una cuenta",
@@ -186,7 +182,7 @@
   "allowDownloads": "Permitir descargas",
   "allowJoining": "Permitir unirse",
   "allowJoiningAlbum": "Permitir unirse al álbum",
-  "allowJoiningDescription": "Quienes pueden ver tu álbum y tienen una cuenta de Ente pueden unirse a él y mantenerse al día",
+  "allowJoiningDescription": "Los usuarios con una cuenta de Ente pueden unirse a tu álbum y mantenerse actualizados",
   "allowPermBody": "Por favor, permite el acceso a tus fotos desde Ajustes para que Ente pueda mostrar y hacer una copia de seguridad de tu biblioteca.",
   "allowPermTitle": "Permitir el acceso a las fotos",
   "allPersonGroupingWillReset": "Se eliminarán todas las agrupaciones para esta persona, y se eliminarán todas sus sugerencias",
@@ -260,7 +256,7 @@
     "description": "Action of 'Archiving' an element"
   },
   "archiveAlbum": "Archivar álbum",
-  "archiveCollectionName": "Archivo",
+  "archiveCollectionName": "Archivar",
   "@archiveCollectionName": {
     "description": "Name of the 'Archive' collection"
   },
@@ -312,7 +308,7 @@
   "authToInitiateAccountDeletion": "Desbloquear para eliminar tu cuenta",
   "authToInitiateSignIn": "Por favor, autentícate para iniciar la sesión para realizar la copia de seguridad.",
   "authToManageLegacy": "Por favor, autentícate para administrar tus contactos de confianza",
-  "authToManageLegacyKit": "Autentícate para administrar los kits de Legacy",
+  "authToManageLegacyKit": "Autenticar para administrar kits heredados",
   "authToSetBackupPassword": "Autenticar para establecer la contraseña de la copia de seguridad",
   "authToUpdateBackupPassword": "Autenticar para actualizar contraseña de la copia de seguridad",
   "authToViewPasskey": "Por favor, autentícate para ver tu clave de acceso",
@@ -355,7 +351,7 @@
   "backingUpLastSevenDaysPhotos": "Respaldar fotos de los últimos 7 días",
   "backup": "Copia de seguridad",
   "backupAndSync": "Copia de seguridad y sincronización",
-  "backupAndSyncDesc": "Copias de seguridad automáticas, estado de sincronización y subidas",
+  "backupAndSyncDesc": "Realizar copias de seguridad automáticamente, mostrar estadísticas de sincronización y subidas",
   "backupCreated": "¡Copia de seguridad creada!",
   "backupFailed": "La copia de seguridad ha fallado",
   "backupFile": "Archivo de copia de seguridad",
@@ -368,7 +364,7 @@
   "backupModeNoBackupInProgressDescription": "Inicia una copia de seguridad. Luego, vuelve al modo de copia de seguridad.",
   "backupModePlugInPhone": "Carga tu teléfono. Las copias de seguridad consumen batería.",
   "backupModePreservingYourMemories": "Guardando tus recuerdos",
-  "backupModeScreenDimmingDescription": "La pantalla se atenúa para ahorrar batería. Tócala en cualquier momento para volver.",
+  "backupModeScreenDimmingDescription": "La pantalla se atenúa para ahorrar batería. Toca en cualquier momento para encender.",
   "backupModeScreenWillDim": "La pantalla se atenuará automáticamente para ahorrar batería",
   "backupModeSettingsDescription": "Mantén la aplicación abierta para terminar la copia de seguridad",
   "backupModeStart": "Iniciar modo de copia de seguridad",
