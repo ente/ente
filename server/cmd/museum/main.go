@@ -1059,12 +1059,14 @@ func main() {
 	authenticatorController := &authenticatorCtrl.Controller{Repo: authRepo, UserRepo: userRepo}
 	authenticatorHandler := &api.AuthenticatorHandler{Controller: authenticatorController}
 
-	privateAPI.POST("/authenticator/key", authenticatorHandler.CreateKey)
-	privateAPI.GET("/authenticator/key", authenticatorHandler.GetKey)
-	privateAPI.POST("/authenticator/entity", authenticatorHandler.CreateEntity)
-	privateAPI.PUT("/authenticator/entity", authenticatorHandler.UpdateEntity)
-	privateAPI.DELETE("/authenticator/entity", authenticatorHandler.DeleteEntity)
-	privateAPI.GET("/authenticator/entity/diff", authenticatorHandler.GetDiff)
+	authenticatorAPI := privateAPI.Group("/authenticator")
+	authenticatorAPI.Use(middleware.RequireAuthApp())
+	authenticatorAPI.POST("/key", authenticatorHandler.CreateKey)
+	authenticatorAPI.GET("/key", authenticatorHandler.GetKey)
+	authenticatorAPI.POST("/entity", authenticatorHandler.CreateEntity)
+	authenticatorAPI.PUT("/entity", authenticatorHandler.UpdateEntity)
+	authenticatorAPI.DELETE("/entity", authenticatorHandler.DeleteEntity)
+	authenticatorAPI.GET("/entity/diff", authenticatorHandler.GetDiff)
 
 	dataCleanupController := &dataCleanupCtrl.DeleteUserCleanupController{
 		Repo:           dataCleanupRepository,
