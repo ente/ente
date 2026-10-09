@@ -17,12 +17,12 @@
         "leaflet": "1.9.4",
         "leaflet-defaulticon-compatibility": "0.1.2",
         "localforage": "1.10.0",
-        "media-chrome": "4.19.2",
+        "media-chrome": "4.19.3",
         "photoswipe": "5.4.4",
         "react": "19.3.0",
         "react-dom": "19.3.0",
-        "react-dropzone": "14.2.10",
-        "react-i18next": "16.6.6",
+        "react-dropzone": "20.1.1",
+        "react-i18next": "17.0.15",
         "react-window": "1.8.11"
     },
     "devDependencies": {
