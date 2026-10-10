@@ -24,3 +24,22 @@ test("detects collection changes and drafts but ignores collection order", () =>
     expect(hasUnsavedItemChanges({}, {}, [], [1], "")).toBe(true);
     expect(hasUnsavedItemChanges({}, {}, [], [], "New collection")).toBe(true);
 });
+
+test.each([" secret", "secret ", " secret ", "   "])(
+    "reopening a Secret is unchanged, but editing password whitespace is dirty: %j",
+    (password) => {
+        const initial = { name: "Account", password };
+        expect(hasUnsavedItemChanges({ ...initial }, initial, [], [], "")).toBe(
+            false,
+        );
+        expect(
+            hasUnsavedItemChanges(
+                { ...initial, password: `${password} ` },
+                initial,
+                [],
+                [],
+                "",
+            ),
+        ).toBe(true);
+    },
+);

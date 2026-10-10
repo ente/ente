@@ -24,8 +24,16 @@ export const itemFormDataForSave = (
 ): Record<string, string> => {
     const data: Record<string, string> = Object.fromEntries(
         Object.entries(formData)
-            .filter(([, value]) => value.trim())
-            .map(([key, value]) => [key, value.trim()]),
+            .map(
+                ([key, value]) =>
+                    [
+                        key,
+                        type === "accountCredential" && key === "password"
+                            ? value
+                            : value.trim(),
+                    ] as const,
+            )
+            .filter(([, value]) => value),
     );
 
     if (type === "note" && !data.title) {

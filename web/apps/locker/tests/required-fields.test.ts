@@ -46,8 +46,37 @@ test("cleared Thing and Secret fields are omitted on save", () => {
         itemFormDataForSave("accountCredential", {
             name: "  Netflix  ",
             username: "",
-            password: "  ",
+            password: "",
             notes: "",
         }),
     ).toEqual({ name: "Netflix" });
 });
+
+test.each([" secret", "secret ", " secret ", "   "])(
+    "saving a Secret preserves password whitespace: %j",
+    (password) => {
+        const data = itemFormDataForSave("accountCredential", {
+            name: "  Account  ",
+            username: "  user  ",
+            password,
+            notes: "  Notes  ",
+        });
+        expect(data).toEqual({
+            name: "Account",
+            username: "user",
+            password,
+            notes: "Notes",
+        });
+        expect(
+            itemFormDataForSave("accountCredential", {
+                ...data,
+                name: "Renamed",
+            }),
+        ).toEqual({
+            name: "Renamed",
+            username: "user",
+            password,
+            notes: "Notes",
+        });
+    },
+);
