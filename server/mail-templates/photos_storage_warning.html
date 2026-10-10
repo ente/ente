@@ -1,0 +1,12 @@
+{{define "content"}}
+<p>Hi,</p>
+<p>You've used <strong>{{.UsagePercent}}%</strong> of the storage available to your Ente Photos account.</p>
+{{if .Full}}
+<p>Your Ente Photos storage is full. Free up space or upgrade to keep backing up new photos and videos.</p>
+{{else}}
+<p>When your storage is full, new photos and videos will stop backing up.</p>
+{{end}}
+<p>Your existing photos and videos remain accessible.</p>
+<p>You can free up space by deleting photos and videos you no longer need and emptying the trash, or upgrade your plan from Settings in Ente Photos.</p>
+<p>If you need help, reply to this email.</p>
+{{end}}

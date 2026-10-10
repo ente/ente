@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY notification_history_photos_storage_warning_once;

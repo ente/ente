@@ -300,17 +300,19 @@ func maxInt64(a int64, b int64) int64 {
 }
 
 func newStorageWarningIntegrationController(db *sql.DB) *EmailNotificationController {
+	bonusRepo := &storageBonusRepo.Repository{DB: db}
 	userRepo := &repo.UserRepository{
 		DB:                  db,
 		SecretEncryptionKey: testutil.SecretEncryptionKey(),
 		HashingKey:          testutil.HashingKey(),
+		StorageBonusRepo:    bonusRepo,
 	}
 
 	return &EmailNotificationController{
 		UserRepo:         userRepo,
 		UsageRepo:        &repo.UsageRepository{DB: db, UserRepo: userRepo},
 		BillingRepo:      &repo.BillingRepository{DB: db},
-		StorageBonusRepo: &storageBonusRepo.Repository{DB: db},
+		StorageBonusRepo: bonusRepo,
 		LockController: &lock.LockController{
 			TaskLockingRepo: &repo.TaskLockRepository{DB: db},
 			HostName:        "storage-warning-test-host",

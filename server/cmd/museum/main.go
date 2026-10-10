@@ -1398,6 +1398,7 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 
 	schedule(c, "@every 24h", func() {
 		emailNotificationCtrl.SendStorageLimitExceededMails()
+		emailNotificationCtrl.SendPhotosStorageWarningMails()
 	})
 
 	scheduleAndRun(c, "@every 24h", func() {

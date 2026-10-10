@@ -15,6 +15,7 @@ type NotificationHistoryRepository struct {
 }
 
 const (
+	StorageLimitExceededTemplateID                         = "storage_limit_exceeded"
 	StorageWarningExpiredScheduledDeletionTemplateID       = "storage_warning_expired_scheduled_deletion"
 	StorageWarningActiveOverageScheduledDeletionTemplateID = "storage_warning_active_overage_scheduled_deletion"
 	StorageWarningLoginGraceTemplateID                     = "storage_warning_login_grace_7d"
