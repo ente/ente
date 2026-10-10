@@ -3,8 +3,6 @@ import "dart:io";
 import "dart:typed_data";
 
 import "package:ente_crypto_api/ente_crypto_api.dart";
-import "package:ente_events/event_bus.dart";
-import "package:ente_events/models/signed_out_event.dart";
 import "package:ente_lock_screen/lock_screen_host.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_screen_cover/ente_screen_cover.dart";
@@ -70,10 +68,6 @@ class LockScreenSettings {
     await runLockScreenChangesMigration();
 
     await _clearLsDataInKeychainIfFreshInstall(hasOptedForOfflineMode);
-
-    Bus.instance.on<SignedOutEvent>().listen((event) {
-      removePinAndPassword();
-    });
   }
 
   Future<void> setOfflineModeWarningStatus(bool value) async {

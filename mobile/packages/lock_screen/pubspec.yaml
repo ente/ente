@@ -15,8 +15,6 @@ dependencies:
     path: ../configuration
   ente_crypto_api:
     path: ../ente_crypto_api
-  ente_events:
-    path: ../events
   ente_pure_utils:
     path: ../ente_pure_utils
   ente_screen_cover:
