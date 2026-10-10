@@ -1,0 +1,1 @@
+- Added Korean language support.
