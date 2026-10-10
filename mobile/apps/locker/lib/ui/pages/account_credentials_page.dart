@@ -92,7 +92,7 @@ class _AccountCredentialsPageState
   bool get hasUnsavedChanges {
     return _nameController.text.trim() != _initialName.trim() ||
         _usernameController.text.trim() != _initialUsername.trim() ||
-        _passwordController.text.trim() != _initialPassword.trim() ||
+        _passwordController.text != _initialPassword ||
         _notesController.text.trim() != _initialNotes.trim();
   }
 
@@ -101,7 +101,7 @@ class _AccountCredentialsPageState
     return AccountCredentialData(
       name: _nameController.text.trim(),
       username: _usernameController.text.trim(),
-      password: _passwordController.text.trim(),
+      password: _passwordController.text,
       notes: _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim(),
@@ -166,7 +166,7 @@ class _AccountCredentialsPageState
       );
     }
 
-    if (passwordText.trim().isNotEmpty) {
+    if (passwordText.isNotEmpty) {
       if (fields.isNotEmpty) fields.add(const SizedBox(height: 24));
       fields.add(
         buildViewField(

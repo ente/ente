@@ -1,0 +1,1 @@
+- Fixed Secret passwords losing leading or trailing whitespace when saving or editing.

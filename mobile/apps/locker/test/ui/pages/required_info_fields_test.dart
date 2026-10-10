@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:locker/models/file_type.dart';
 import 'package:locker/models/info/info_item.dart';
@@ -85,6 +86,115 @@ void main() {
 
     await tester.enterText(find.byType(TextField).first, '  ');
     expect(state.validateForm(), isFalse);
+  });
+
+  for (final password in [' secret', 'secret ', ' secret ', '   ']) {
+    testWidgets('Secret saves, reopens and copies exact password "$password"', (
+      tester,
+    ) async {
+      await showPage(tester, const AccountCredentialsPage());
+      await tester.enterText(find.byType(TextField).first, '  Account  ');
+      await tester.enterText(find.byType(TextField).at(1), '  username  ');
+      await tester.enterText(find.byType(TextField).at(2), password);
+      await tester.enterText(find.byType(TextField).at(3), '  notes  ');
+      final state =
+          tester.state(find.byType(AccountCredentialsPage)) as dynamic;
+      final data = state.createInfoData() as AccountCredentialData;
+      expect(data.password, password);
+      expect(data.name, 'Account');
+      expect(data.username, 'username');
+      expect(data.notes, 'notes');
+      final file = partialFile(
+        'accountCredential',
+        jsonDecode(jsonEncode(data.toJson())) as Map<String, dynamic>,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await showPage(tester, AccountCredentialsPage(existingFile: file));
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(2)).controller!.text,
+        password,
+      );
+      final reopened =
+          tester.state(find.byType(AccountCredentialsPage)) as dynamic;
+      expect(reopened.hasUnsavedChanges, isFalse);
+      await tester.enterText(find.byType(TextField).first, 'Renamed');
+      expect(reopened.createInfoData().password, password);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await showPage(
+        tester,
+        AccountCredentialsPage(mode: InfoPageMode.view, existingFile: file),
+      );
+      expect(find.text('Password'), findsOneWidget);
+      expect(find.text('••••••••'), findsOneWidget);
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      await tester.tap(find.bySemanticsLabel('copy_password'));
+      await tester.pump();
+      expect(copied, password);
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 3));
+    });
+  }
+
+  testWidgets('Secret detects edits that only change password whitespace', (
+    tester,
+  ) async {
+    await showPage(
+      tester,
+      AccountCredentialsPage(
+        existingFile: partialFile('accountCredential', {
+          'name': 'Account',
+          'password': 'secret',
+        }),
+      ),
+    );
+    final state = tester.state(find.byType(AccountCredentialsPage)) as dynamic;
+    for (final password in [' secret', 'secret ', ' secret ']) {
+      await tester.enterText(find.byType(TextField).at(2), password);
+      expect(state.hasUnsavedChanges, isTrue);
+    }
+    await tester.enterText(find.byType(TextField).at(2), 'secret');
+    expect(state.hasUnsavedChanges, isFalse);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await showPage(tester, const AccountCredentialsPage());
+    await tester.enterText(find.byType(TextField).at(2), '   ');
+    final blankState =
+        tester.state(find.byType(AccountCredentialsPage)) as dynamic;
+    expect(blankState.hasUnsavedChanges, isTrue);
+    await tester.enterText(find.byType(TextField).at(2), '');
+    expect(blankState.hasUnsavedChanges, isFalse);
+  });
+
+  testWidgets('saved whitespace-only Secret password is visible and copyable', (
+    tester,
+  ) async {
+    await showPage(
+      tester,
+      AccountCredentialsPage(
+        mode: InfoPageMode.view,
+        existingFile: partialFile('accountCredential', {
+          'name': 'Account',
+          'password': '   ',
+        }),
+      ),
+    );
+    expect(find.text('Password'), findsOneWidget);
+    expect(find.bySemanticsLabel('copy_password'), findsOneWidget);
   });
 
   testWidgets('partial Secret shows Notes without phantom credentials', (
