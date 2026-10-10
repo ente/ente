@@ -106,8 +106,6 @@ class FlagService {
   bool get facesTimeline => true;
   bool get ritualsFlag => true;
 
-  bool get stopStreamProcess => true;
-
   bool get streamEnabledByDefault => _isServerFlagEnabled(_videoStreamingFlag);
 
   bool get previewUploadV2 => _isServerFlagEnabled(_previewUploadV2Flag);

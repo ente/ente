@@ -86,11 +86,8 @@ dependencies:
   extended_image: 9.1.0
   fade_indexed_stack: 0.2.2
   fast_base58: 0.2.1
-  ffmpeg_kit_flutter:
-    git:
-      url: https://github.com/ente/ffmpeg-kit
-      path: flutter/flutter
-      ref: 15afc08775a75fe9c12de3366fa99e39bf171ccc
+  ffmpeg:
+    path: plugins/ffmpeg
   figma_squircle: 0.6.3
   file_saver: 0.3.1
   firebase_core: 3.15.1

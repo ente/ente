@@ -197,9 +197,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     _logger.info("Logging out, autoLogout: $autoLogout");
     MLService.instance.stopActiveRun(MlStopReason.logout);
     if (!autoLogout) {
-      if (flagService.stopStreamProcess) {
-        VideoPreviewService.instance.stop('logout');
-      }
+      VideoPreviewService.instance.stop('logout');
       if (SyncService.instance.isSyncInProgress()) {
         SyncService.instance.stopSync();
         try {

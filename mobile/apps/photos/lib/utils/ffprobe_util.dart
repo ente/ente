@@ -1,37 +1,13 @@
 // Adapted from: https://github.com/deckerst/aves
 
-import "package:ffmpeg_kit_flutter/media_information.dart";
-import "package:logging/logging.dart";
 import "package:photos/models/ffmpeg/ffprobe_keys.dart";
-import "package:photos/models/ffmpeg/ffprobe_props.dart";
 
 class FFProbeUtil {
-  static final _logger = Logger('FFProbeUtil');
   static const chaptersKey = 'chapters';
   static const formatKey = 'format';
   static const streamsKey = 'streams';
 
-  static Future<FFProbeProps> getProperties(
-    MediaInformation mediaInformation,
-  ) async {
-    final properties = await getMetadata(mediaInformation);
-
-    try {
-      return FFProbeProps.parseData(properties);
-    } catch (e, stackTrace) {
-      _logger.severe(
-        "Error parsing FFProbe properties: $properties",
-        e,
-        stackTrace,
-      );
-      rethrow;
-    }
-  }
-
-  static Future<Map> getMetadata(MediaInformation information) async {
-    final props = information.getAllProperties();
-    if (props == null) return {};
-
+  static Map getMetadata(Map props) {
     final chapters = props[chaptersKey];
     if (chapters is List) {
       if (chapters.isEmpty) {
@@ -115,7 +91,13 @@ class FFProbeUtil {
     }
 
     for (var key in <String>{
+      FFProbeKeys.bitrate,
       FFProbeKeys.codecProfileId,
+      FFProbeKeys.colorPrimaries,
+      FFProbeKeys.colorRange,
+      FFProbeKeys.colorSpace,
+      FFProbeKeys.colorTransfer,
+      FFProbeKeys.frameCount,
       FFProbeKeys.rFrameRate,
       'bits_per_sample',
       'closed_captions',

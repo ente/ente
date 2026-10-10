@@ -7,8 +7,7 @@ import "package:collection/collection.dart";
 import "package:dio/dio.dart";
 import "package:encrypt/encrypt.dart" as enc;
 import "package:ente_strings/ente_strings.dart";
-import "package:ffmpeg_kit_flutter/ffmpeg_kit.dart";
-import "package:ffmpeg_kit_flutter/return_code.dart";
+import "package:ffmpeg/ffmpeg.dart" as ffmpeg;
 import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_cache_manager/flutter_cache_manager.dart";
@@ -37,10 +36,10 @@ import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/video.dart";
 import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/ffmpeg_service.dart";
 import "package:photos/services/file_magic_service.dart";
 import "package:photos/services/filedata/model/file_data.dart";
 import "package:photos/services/filedata/preview_upload.dart";
-import "package:photos/services/isolated_ffmpeg_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/utils/file_key.dart";
@@ -49,8 +48,6 @@ import "package:photos/utils/hls_playlist.dart";
 import "package:photos/utils/network_util.dart";
 
 const _maxRetryCount = 3;
-const _maxFfmpegOutputLines = 24;
-const _maxFfmpegOutputChars = 4000;
 const _missingVideoStreamError = "No video stream found in FFprobe metadata";
 
 class VideoPreviewService {
@@ -66,14 +63,13 @@ class VideoPreviewService {
     : serviceLocator = ServiceLocator.instance,
       filesDB = FilesDB.instance,
       uploadLocksDB = UploadLocksDB.instance,
-      ffmpegService = IsolatedFfmpegService.instance,
+      ffmpegService = FfmpegService.instance,
       fileMagicService = FileMagicService.instance,
       cacheManager = DefaultCacheManager(),
       videoCacheManager = VideoCacheManager.instance,
+      _computeController = null,
       config = Configuration.instance {
-    if (flagService.stopStreamProcess) {
-      _registerStopSafelyListeners();
-    }
+    _registerStopSafelyListeners();
   }
 
   void _registerStopSafelyListeners() {
@@ -98,24 +94,28 @@ class VideoPreviewService {
     this.fileMagicService,
     this.ffmpegService,
     this.cacheManager,
-    this.videoCacheManager,
-  );
+    this.videoCacheManager, {
+    ComputeController? compute,
+  }) : _computeController = compute;
 
   static final VideoPreviewService instance =
       VideoPreviewService._privateConstructor();
 
   int uploadingFileId = -1;
   CancelToken? _streamingCancelToken;
-  int? _currentFfmpegSessionId;
+  FfmpegJob? _currentFfmpegJob;
 
   final Configuration config;
   final ServiceLocator serviceLocator;
   final FilesDB filesDB;
   final UploadLocksDB uploadLocksDB;
   final FileMagicService fileMagicService;
-  final IsolatedFfmpegService ffmpegService;
+  final FfmpegService ffmpegService;
   final DefaultCacheManager cacheManager;
   final CacheManager videoCacheManager;
+  final ComputeController? _computeController;
+
+  ComputeController get _compute => _computeController ?? computeController;
 
   FileDataGateway get _fileDataGateway => fileDataGateway;
 
@@ -140,37 +140,44 @@ class VideoPreviewService {
     }
   }
 
-  void clearQueue() {
-    final status = flagService.stopStreamProcess
-        ? PreviewItemStatus.paused
-        : PreviewItemStatus.uploaded;
-    for (final fileId in _items.keys) {
-      _fireVideoPreviewStateChange(fileId, status);
+  void _clearQueue() {
+    for (final entry in _items.entries) {
+      _fireVideoPreviewStateChange(
+        entry.key,
+        entry.value.status == PreviewItemStatus.uploaded
+            ? PreviewItemStatus.uploaded
+            : PreviewItemStatus.paused,
+      );
     }
     fileQueue.clear();
     _items.clear();
   }
 
   void stop(String reason) {
-    if (_items.isEmpty) return;
-
     _logger.info("Stopping streaming: $reason");
-    if (flagService.stopStreamProcess) {
-      _streamingCancelToken?.cancel();
-    }
+    _streamingCancelToken?.cancel();
     uploadingFileId = -1;
-    clearQueue();
-    computeController.releaseCompute(stream: true);
+    _clearQueue();
+    _compute.releaseCompute(stream: true);
 
-    if (flagService.stopStreamProcess && _currentFfmpegSessionId != null) {
-      unawaited(FFmpegKit.cancel(_currentFfmpegSessionId!));
-      _currentFfmpegSessionId = null;
+    if (_currentFfmpegJob != null) {
+      unawaited(_currentFfmpegJob!.cancel());
     }
   }
 
-  Future<void> stopSafely(String reason) async {
-    if (!flagService.stopStreamProcess) return;
+  Future<void> pauseForExport() async {
+    _compute.blockCompute(blocker: "video-export");
+    final job = _currentFfmpegJob;
+    if (job != null) stop("video export");
+    await job?.cancel();
+  }
 
+  void resumeAfterExport() {
+    _compute.unblockCompute(blocker: "video-export");
+    queueFiles();
+  }
+
+  Future<void> stopSafely(String reason) async {
     final item = uploadingFileId >= 0 ? _items[uploadingFileId] : null;
     if (item == null) return;
 
@@ -179,11 +186,8 @@ class VideoPreviewService {
 
     if (status == PreviewItemStatus.compressing) {
       final durationInSeconds = item.file.duration;
-      progress = await ffmpegService.getSessionProgress(
-        sessionId: _currentFfmpegSessionId,
-        duration: durationInSeconds == null
-            ? null
-            : Duration(seconds: durationInSeconds),
+      progress = _currentFfmpegJob?.progress(
+        durationInSeconds == null ? null : Duration(seconds: durationInSeconds),
       );
     }
 
@@ -361,9 +365,10 @@ class VideoPreviewService {
     bool forceUpload = false,
   }) async {
     if (_items.isEmpty) return;
-    _streamingCancelToken ??= CancelToken();
+    final cancelToken = _streamingCancelToken ??= CancelToken();
+    if (cancelToken.isCancelled) return;
 
-    if (flagService.stopStreamProcess && FileUploader.instance.isUploading) {
+    if (FileUploader.instance.isUploading) {
       stop("upload in progress");
       return;
     }
@@ -375,6 +380,7 @@ class VideoPreviewService {
 
     Object? error;
     bool removeFile = false;
+    String? previewDirectory;
     try {
       if (!enteFile.isUploaded) {
         removeFile = true;
@@ -400,16 +406,19 @@ class VideoPreviewService {
           return;
         }
       }
+      if (cancelToken.isCancelled) return;
       _logger.info(
         "Starting video preview generation for ${enteFile.displayName}",
       );
       final isManual = await uploadLocksDB.isInStreamQueue(
         enteFile.uploadedFileID!,
       );
+      if (cancelToken.isCancelled) return;
       var (props, result, file) = await _checkFileForPreviewCreation(
         enteFile,
         isManual,
       );
+      if (cancelToken.isCancelled) return;
       if (result) {
         removeFile = true;
         return;
@@ -449,13 +458,18 @@ class VideoPreviewService {
       );
 
       file ??= await getFile(enteFile, isOrigin: true);
-      if (_items.isEmpty) return;
+      if (cancelToken.isCancelled || _items.isEmpty) return;
       if (file == null) {
         error = "Unable to fetch file";
         return;
       }
 
       props ??= await getVideoProps(file);
+      if (cancelToken.isCancelled ||
+          _items.isEmpty ||
+          !_isPermissionGranted()) {
+        return;
+      }
       final fileSize = enteFile.fileSize ?? file.lengthSync();
 
       if (props == null) {
@@ -494,6 +508,7 @@ class VideoPreviewService {
       final String tempDir = config.getTempDirectory();
       final String prefix =
           "${tempDir}_${enteFile.uploadedFileID}_${newID("pv")}";
+      previewDirectory = prefix;
       Directory(prefix).createSync();
       _logger.info('Compressing video ${enteFile.displayName}');
       final key = enc.Key.fromLength(16);
@@ -517,11 +532,9 @@ class VideoPreviewService {
       final needsTonemap = isHDR;
       final applyFPS = (double.tryParse(props.fps ?? "") ?? 100) > 30;
 
-      String filters = "";
+      final videoFilters = <String>[];
 
       if (reencodeVideo) {
-        final videoFilters = <String>[];
-
         if (rescaleVideo || needsTonemap) {
           videoFilters.add(
             "scale='if(lt(iw,ih),min(720,iw),-2)':'if(lt(iw,ih),-2,min(720,ih))'",
@@ -539,42 +552,52 @@ class VideoPreviewService {
         }
 
         videoFilters.add("format=yuv420p");
-
-        filters = '-vf "${videoFilters.join(",")}" ';
       }
 
-      final command =
-          '$filters'
-          '${reencodeVideo ? '-c:v libx264 -maxrate 2000k -bufsize 4000k ' : '-c:v copy '}'
-          '-c:a aac -b:a 128k '
-          '-f hls -hls_flags single_file '
-          '-hls_list_size 0 -hls_key_info_file ${keyinfo.path} ';
+      final command = <String>[
+        '-i',
+        file.path,
+        if (videoFilters.isNotEmpty) ...['-vf', videoFilters.join(',')],
+        if (reencodeVideo) ...[
+          '-c:v',
+          'libx264',
+          '-maxrate',
+          '2000k',
+          '-bufsize',
+          '4000k',
+        ] else ...[
+          '-c:v',
+          'copy',
+        ],
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        '-f',
+        'hls',
+        '-hls_flags',
+        'single_file',
+        '-hls_list_size',
+        '0',
+        '-hls_key_info_file',
+        keyinfo.path,
+        '$prefix/output.m3u8',
+      ];
 
-      final playlistGenResult = await ffmpegService
-          .runFfmpegCancellable(
-            '-i "${file.path}" $command$prefix/output.m3u8',
-            (id) {
-              _currentFfmpegSessionId = id;
-              _logger.info("FFmpeg[$id]: $command");
-            },
-          )
-          .whenComplete(() => _currentFfmpegSessionId = null)
-          .onError((error, stackTrace) {
-            _logger.warning("FFmpeg command failed", error, stackTrace);
-            return {};
-          });
+      final playlistGenResult = await _runFfmpeg(command);
+      if (cancelToken.isCancelled) return;
 
       if (_items.isEmpty) {
         Directory(prefix).delete(recursive: true).ignore();
         return;
       }
 
-      final playlistGenReturnCode = playlistGenResult["returnCode"] as int?;
+      final playlistGenReturnCode = playlistGenResult.returnCode;
 
       String? objectId;
       int? objectSize;
 
-      if (ReturnCode.success == playlistGenReturnCode) {
+      if (playlistGenResult.isSuccess) {
         try {
           _items[enteFile.uploadedFileID!] = PreviewItem(
             status: PreviewItemStatus.uploading,
@@ -597,29 +620,28 @@ class VideoPreviewService {
             gateway: _fileDataGateway,
             dio: serviceLocator.enteDio,
             useUploadV2: flagService.previewUploadV2,
-            cancelToken: _streamingCancelToken,
+            cancelToken: cancelToken,
           );
+          if (cancelToken.isCancelled) return;
 
           objectId = result.$1;
           objectSize = result.$2;
 
-          final playlistFrameResult = await ffmpegService
-              .runFfmpeg(
-                '-allowed_extensions ALL -i "$prefix/output.m3u8" -frames:v 1 -c copy "$prefix/frame.ts"',
-              )
-              .onError((error, stackTrace) {
-                _logger.warning(
-                  "FFmpeg command failed for frame",
-                  error,
-                  stackTrace,
-                );
-                return {};
-              });
-          final playlistFrameReturnCode =
-              playlistFrameResult["returnCode"] as int?;
+          final playlistFrameResult = await _runFfmpeg([
+            '-allowed_extensions',
+            'ALL',
+            '-i',
+            '$prefix/output.m3u8',
+            '-frames:v',
+            '1',
+            '-c',
+            'copy',
+            '$prefix/frame.ts',
+          ]);
+          if (cancelToken.isCancelled) return;
           int? width, height;
           try {
-            if (ReturnCode.success == playlistFrameReturnCode) {
+            if (playlistFrameResult.isSuccess) {
               FFProbeProps? playlistFrameProps;
               final file2 = File("$prefix/frame.ts");
 
@@ -630,6 +652,7 @@ class VideoPreviewService {
           } catch (err, sT) {
             _logger.warning("Failed to fetch resolution of stream", err, sT);
           }
+          if (cancelToken.isCancelled) return;
 
           await _reportVideoPreview(
             enteFile,
@@ -638,18 +661,21 @@ class VideoPreviewService {
             objectSize: objectSize,
             width: width,
             height: height,
+            cancelToken: cancelToken,
           );
+          if (cancelToken.isCancelled) return;
 
           _logger.info("Video preview uploaded for $enteFile");
         } catch (err, sT) {
+          if (cancelToken.isCancelled) return;
           error = "Failed to upload video preview\nError: $err";
           _logger.shout("Something went wrong with preview upload", err, sT);
         }
       } else {
-        final output = playlistGenResult["output"] as String?;
+        final output = playlistGenResult.output;
         _logger.warning(
           "FFmpeg command failed with return code $playlistGenReturnCode\n"
-          "${_summarizeFfmpegOutput(output)}",
+          "${output.isEmpty ? 'FFmpeg output unavailable' : output}",
         );
         error =
             "Failed to generate video preview (return code $playlistGenReturnCode)";
@@ -676,34 +702,57 @@ class VideoPreviewService {
         Directory(prefix).delete(recursive: true).ignore();
       }
     } finally {
-      if (error != null) {
-        _retryFile(enteFile, error);
-      } else if (removeFile) {
-        _removeFile(enteFile);
-        _removeFromLocks(enteFile).ignore();
-      }
-      final bool shouldStopProcessing = _isNetworkError(error);
-
-      if (fileQueue.isNotEmpty && !shouldStopProcessing) {
-        if (error != null) {
-          _logger.info(
-            "[chunk] Error occurred, waiting before processing next item. Queue size: ${fileQueue.length}",
-          );
-          await Future.delayed(const Duration(seconds: 2));
-        }
-
-        _logger.info("[chunk] Processing ${_items.length} items for streaming");
-        final entry = fileQueue.entries.first;
-        final file = entry.value;
-        fileQueue.remove(entry.key);
-        if (ctx != null && ctx.mounted) {
-          await chunkAndUploadVideo(ctx, file, continuation: true);
-        } else {
-          await chunkAndUploadVideo(null, file, continuation: true);
+      if (cancelToken.isCancelled) {
+        if (previewDirectory != null) {
+          Directory(previewDirectory).delete(recursive: true).ignore();
         }
       } else {
-        stop(shouldStopProcessing ? "network error" : "nothing to process");
+        if (error != null) {
+          _retryFile(enteFile, error);
+        } else if (removeFile) {
+          _removeFile(enteFile);
+          _removeFromLocks(enteFile).ignore();
+        }
+        final bool shouldStopProcessing = _isNetworkError(error);
+
+        if (fileQueue.isNotEmpty && !shouldStopProcessing) {
+          if (error != null) {
+            _logger.info(
+              "[chunk] Error occurred, waiting before processing next item. Queue size: ${fileQueue.length}",
+            );
+            await Future.delayed(const Duration(seconds: 2));
+          }
+
+          if (!cancelToken.isCancelled && fileQueue.isNotEmpty) {
+            _logger.info(
+              "[chunk] Processing ${_items.length} items for streaming",
+            );
+            final entry = fileQueue.entries.first;
+            final file = entry.value;
+            fileQueue.remove(entry.key);
+            if (ctx != null && ctx.mounted) {
+              await chunkAndUploadVideo(ctx, file, continuation: true);
+            } else {
+              await chunkAndUploadVideo(null, file, continuation: true);
+            }
+          }
+        } else {
+          stop(shouldStopProcessing ? "network error" : "nothing to process");
+        }
       }
+    }
+  }
+
+  Future<ffmpeg.Result> _runFfmpeg(List<String> arguments) async {
+    final job = ffmpegService.start(arguments);
+    _currentFfmpegJob = job;
+    try {
+      return await job.completed;
+    } catch (error, stackTrace) {
+      _logger.warning("FFmpeg command failed", error, stackTrace);
+      return ffmpeg.Result(-1, error.toString());
+    } finally {
+      if (identical(_currentFfmpegJob, job)) _currentFfmpegJob = null;
     }
   }
 
@@ -809,6 +858,7 @@ class VideoPreviewService {
     required int objectSize,
     required int? width,
     required int? height,
+    required CancelToken cancelToken,
   }) async {
     _logger.fine("Pushing playlist for ${file.uploadedFileID}");
     try {
@@ -827,7 +877,7 @@ class VideoPreviewService {
         objectSize: objectSize,
         playlist: result.encData,
         playlistHeader: result.header,
-        cancelToken: _streamingCancelToken,
+        cancelToken: cancelToken,
       );
     } catch (e, s) {
       _logger.severe("Failed to report video preview", e, s);
@@ -1195,7 +1245,7 @@ class VideoPreviewService {
     return (props, skipFile, file);
   }
 
-  Future<bool> _putFilesForPreviewCreation() async {
+  Future<bool> _putFilesForPreviewCreation(CancelToken cancelToken) async {
     if (!isVideoStreamingEnabled || !await canUseHighBandwidth()) return false;
 
     Map<int, String> failureFiles = {};
@@ -1227,6 +1277,7 @@ class VideoPreviewService {
       beginDate: DateTime.now().subtract(const Duration(days: 60)),
       onlyFilesWithLocalId: true,
     );
+    if (cancelToken.isCancelled) return false;
     final previewIds = fileDataService.previewIds;
 
     _logger.info(
@@ -1251,6 +1302,7 @@ class VideoPreviewService {
       queueFile ??= await filesDB
           .getAnyUploadedFile(queueFileId)
           .catchError((e) => null);
+      if (cancelToken.isCancelled) return false;
 
       if (queueFile == null) {
         await uploadLocksDB
@@ -1271,6 +1323,7 @@ class VideoPreviewService {
       fileQueue[queueFile.uploadedFileID!] = queueFile;
     }
 
+    if (cancelToken.isCancelled) return false;
     final allFiles = files
         .where(
           (file) =>
@@ -1338,13 +1391,12 @@ class VideoPreviewService {
   }
 
   bool _allowStream() {
-    return isVideoStreamingEnabled &&
-        computeController.requestCompute(stream: true);
+    return isVideoStreamingEnabled && _compute.requestCompute(stream: true);
   }
 
   bool _allowManualStream() {
     return isVideoStreamingEnabled &&
-        computeController.requestCompute(
+        _compute.requestCompute(
           stream: true,
           bypassInteractionCheck: true,
           bypassMLWaiting: true,
@@ -1353,8 +1405,9 @@ class VideoPreviewService {
 
   bool _isPermissionGranted() {
     return isVideoStreamingEnabled &&
-        computeController.computeState == ComputeRunState.generatingStream &&
-        computeController.isDeviceHealthy;
+        !_compute.computeBlocked &&
+        _compute.computeState == ComputeRunState.generatingStream &&
+        _compute.isDeviceHealthy;
   }
 
   void queueFiles({
@@ -1363,10 +1416,9 @@ class VideoPreviewService {
     bool forceProcess = false,
   }) {
     Future.delayed(duration, () async {
-      _streamingCancelToken = null;
       if (_hasQueuedFile && !forceProcess) return;
 
-      if (flagService.stopStreamProcess && FileUploader.instance.isUploading) {
+      if (FileUploader.instance.isUploading) {
         _logger.info("Skipping stream queue - file upload in progress");
         return;
       }
@@ -1374,38 +1426,14 @@ class VideoPreviewService {
       final isStreamAllowed = isManual ? _allowManualStream() : _allowStream();
       if (!isStreamAllowed) return;
 
+      final cancelToken = CancelToken();
+      _streamingCancelToken = cancelToken;
       await _ensurePreviewIdsInitialized();
-      final result = await _putFilesForPreviewCreation();
-      if (!result) {
-        computeController.releaseCompute(stream: true);
+      if (cancelToken.isCancelled) return;
+      final result = await _putFilesForPreviewCreation(cancelToken);
+      if (!result && !cancelToken.isCancelled) {
+        _compute.releaseCompute(stream: true);
       }
     });
   }
-}
-
-String _summarizeFfmpegOutput(String? output) {
-  final trimmedOutput = output?.trim();
-  if (trimmedOutput == null || trimmedOutput.isEmpty) {
-    return "FFmpeg output unavailable";
-  }
-
-  final lines = const LineSplitter()
-      .convert(trimmedOutput)
-      .map((line) => line.trim())
-      .where((line) => line.isNotEmpty)
-      .toList();
-  final summarizedLines = lines.length > _maxFfmpegOutputLines
-      ? lines.sublist(lines.length - _maxFfmpegOutputLines)
-      : lines;
-  var summary = summarizedLines.join("\n");
-  if (summary.length > _maxFfmpegOutputChars) {
-    summary = summary.substring(summary.length - _maxFfmpegOutputChars);
-  }
-
-  final wasTruncated =
-      lines.length > summarizedLines.length ||
-      trimmedOutput.length > _maxFfmpegOutputChars;
-  return wasTruncated
-      ? "FFmpeg output (truncated):\n$summary"
-      : "FFmpeg output:\n$summary";
 }
