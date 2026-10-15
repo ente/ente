@@ -86,8 +86,13 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   Future<void> _load({bool resetView = true}) async {
     final generation = ++_loadGeneration;
     try {
-      await _lastWrite;
-      final data = await _service.loadMonth(widget.monthKey);
+      ReviewMonthData data;
+      Future<void> settled;
+      do {
+        settled = _lastWrite;
+        await settled;
+        data = await _service.loadMonth(widget.monthKey);
+      } while (!identical(settled, _lastWrite));
       if (!mounted || generation != _loadGeneration) return;
       setState(() {
         _files = data.files;
