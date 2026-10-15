@@ -86,14 +86,15 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
 
   Widget _buildReviewOptions(BuildContext context, StringsLocalizations l10n) {
     final options = <Widget>[
-      _buildFreeSpaceOption(
-        title: l10n.oldPhotos,
-        subtitle: l10n.oldPhotosDesc,
-        icon: HugeIcons.strokeRoundedClock02,
-        onTap: () async {
-          await routeToPage(context, const ReviewOldPhotosPage());
-        },
-      ),
+      if (flagService.internalUser)
+        _buildFreeSpaceOption(
+          title: l10n.oldPhotos,
+          subtitle: l10n.oldPhotosDesc,
+          icon: HugeIcons.strokeRoundedClock02,
+          onTap: () async {
+            await routeToPage(context, const ReviewOldPhotosPage());
+          },
+        ),
       if (flagService.enableVectorDb)
         _buildFreeSpaceOption(
           title: l10n.similarImages,
