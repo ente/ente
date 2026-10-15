@@ -50,15 +50,14 @@ class PhotoReviewService {
     final undoable = <(EnteFile, ReviewDecisionRecord)>[];
     for (final file in files) {
       final record = index.lookup(file);
-      if (record == null) continue;
-      decisions[fileKey(file)] = record.decision;
-      if (record.decision != ReviewDecision.deleted) {
-        undoable.add((file, record));
+      if (record == null || record.decision == ReviewDecision.deleted) {
+        continue;
       }
+      decisions[fileKey(file)] = record.decision;
+      undoable.add((file, record));
     }
     undoable.sort((a, b) => a.$2.updatedAt.compareTo(b.$2.updatedAt));
     return ReviewMonthData(
-      key: key,
       files: files,
       decisions: decisions,
       history: [for (final (file, record) in undoable) (file, record.decision)],
@@ -86,18 +85,21 @@ class PhotoReviewService {
   }
 
   Future<void> recordDeletion(
-    ReviewMonthKey month,
-    List<EnteFile> deletedFiles,
-  ) async {
+    ReviewMonthKey month, {
+    required List<EnteFile> removed,
+    required List<EnteFile> kept,
+  }) async {
     final now = _now();
-    final freedBytes = deletedFiles.fold<int>(
-      0,
-      (sum, file) => sum + (file.fileSize ?? 0),
-    );
+    final freedBytes = [
+      ...removed,
+      ...kept,
+    ].fold<int>(0, (sum, file) => sum + (file.fileSize ?? 0));
     await _db.recordDeletion(
       [
-        for (final file in deletedFiles)
+        for (final file in removed)
           _recordFor(file, month, ReviewDecision.deleted, now),
+        for (final file in kept)
+          _recordFor(file, month, ReviewDecision.keep, now),
       ],
       month.key,
       freedBytes,
@@ -111,6 +113,11 @@ class PhotoReviewService {
       months.map((month) => month.key).toList(),
       _now(),
     );
+    _notifyUpdated();
+  }
+
+  Future<void> unmarkMonthReviewed(ReviewMonthKey month) async {
+    await _db.unmarkMonthReviewed(month.key, _now());
     _notifyUpdated();
   }
 
@@ -139,7 +146,11 @@ class PhotoReviewService {
       var queued = 0;
       for (final file in entry.value) {
         final record = index.lookup(file);
-        if (record == null || record.monthKey != entry.key.key) continue;
+        if (record == null ||
+            record.monthKey != entry.key.key ||
+            record.decision == ReviewDecision.deleted) {
+          continue;
+        }
         decided++;
         if (record.decision == ReviewDecision.queued) queued++;
       }
@@ -152,8 +163,6 @@ class PhotoReviewService {
           decidedCount: decided,
           queuedCount: queued,
           markedReviewed: record?.markedReviewed ?? false,
-          freedBytes: record?.freedBytes ?? 0,
-          freedCount: record?.freedCount ?? 0,
           lastReviewedAt: record?.updatedAt ?? 0,
         ),
       );

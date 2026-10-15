@@ -181,7 +181,11 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   }
 
   void _undo() {
-    if (_history.isEmpty || _stackController.isSwipingOut) return;
+    if (_history.isEmpty ||
+        _stackController.isSwipingOut ||
+        _stackController.isDragging) {
+      return;
+    }
     final (file, direction) = _history.removeLast();
     if (!_files.contains(file)) return;
     unawaited(HapticFeedback.lightImpact());
@@ -199,16 +203,25 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
 
   void _removeFromQueue(EnteFile file) {
     unawaited(HapticFeedback.selectionClick());
+    final record = _record;
+    final unmark = record != null && record.markedReviewed;
     setState(() {
       _decisions.remove(PhotoReviewService.fileKey(file));
       _undecided.insert(0, file);
       _history.removeWhere((entry) => entry.$1 == file);
+      if (unmark) _record = record.copyWith(markedReviewed: false);
       if (_queued.isEmpty) _view = _resolveView();
     });
     _write(
       "return queued file to the deck",
       () => _service.removeDecision(file, widget.monthKey),
     );
+    if (unmark) {
+      _write(
+        "unmark month as reviewed",
+        () => _service.unmarkMonthReviewed(widget.monthKey),
+      );
+    }
   }
 
   void _openViewer(List<EnteFile> files, EnteFile file) {
@@ -234,7 +247,8 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     final hasRemote =
         !isLocalGalleryMode && queued.any((file) => file.isUploaded);
     if (!hasLocal && !hasRemote) return;
-    final deleted = <EnteFile>[];
+    final removed = <EnteFile>[];
+    final kept = <EnteFile>[];
     var deletedLocal = false;
     _deleting = true;
     try {
@@ -246,27 +260,32 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
         count: queued.length,
         onDeleteFromLocal: () async {
           final result = await deleteFilesOnDeviceOnly(context, queued);
-          deleted.addAll(result);
+          kept.addAll(result.where((file) => file.isUploaded));
+          removed.addAll(result.where((file) => !file.isUploaded));
           deletedLocal = result.isNotEmpty;
           return result.isNotEmpty;
         },
         onDeleteFromRemote: () async {
           final remote = queued.where((file) => file.isUploaded).toList();
           await deleteFilesFromRemoteOnly(context, List.of(remote));
-          deleted.addAll(remote);
+          removed.addAll(remote);
           return remote.isNotEmpty;
         },
         onDeleteFromBoth: () async {
           final result = await deleteFilesFromEverywhere(context, queued);
-          deleted.addAll(result);
+          removed.addAll(result);
           deletedLocal = result.any((file) => file.localID != null);
           return result.isNotEmpty;
         },
       );
-      if (deleted.isNotEmpty) {
+      if (removed.isNotEmpty || kept.isNotEmpty) {
         _write(
           "record deletion",
-          () => _service.recordDeletion(widget.monthKey, deleted),
+          () => _service.recordDeletion(
+            widget.monthKey,
+            removed: removed,
+            kept: kept,
+          ),
         );
       }
       if (!mounted) return;
@@ -278,7 +297,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     } finally {
       _deleting = false;
     }
-    if (mounted) await _load(resetView: deleted.isNotEmpty);
+    if (mounted) await _load(resetView: removed.isNotEmpty || kept.isNotEmpty);
   }
 
   Future<void> _reviewNextMonth() async {

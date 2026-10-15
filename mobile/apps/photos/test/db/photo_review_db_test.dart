@@ -114,6 +114,13 @@ void main() {
       final february = (await db.getMonthRecord("2026-02"))!;
       expect(february.markedReviewed, isTrue);
       expect(february.freedCount, 0);
+
+      await db.unmarkMonthReviewed("2026-01", 13);
+
+      record = (await db.getMonthRecord("2026-01"))!;
+      expect(record.markedReviewed, isFalse);
+      expect(record.freedCount, 3);
+      expect(record.updatedAt, 13);
     },
   );
 

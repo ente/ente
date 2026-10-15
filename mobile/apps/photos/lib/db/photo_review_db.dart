@@ -182,6 +182,18 @@ class PhotoReviewDB with SqlDbBase {
     );
   }
 
+  Future<void> unmarkMonthReviewed(String monthKey, int updatedAt) async {
+    final db = await database;
+    await db.execute(
+      '''
+      UPDATE $monthsTable
+      SET $columnMarkedReviewed = 0, $columnUpdatedAt = ?
+      WHERE $columnMonthKey = ?
+      ''',
+      [updatedAt, monthKey],
+    );
+  }
+
   Future<void> resetMonths(List<String> monthKeys) async {
     if (monthKeys.isEmpty) return;
     final db = await database;

@@ -9,7 +9,6 @@ void main() {
     test("round-trips through its string key", () {
       const key = ReviewMonthKey(2026, 1);
       expect(key.key, "2026-01");
-      expect(ReviewMonthKey.parse(key.key), key);
       expect(ReviewMonthKey.fromCreationTime(key.startMicros), key);
       expect(ReviewMonthKey.fromCreationTime(key.endMicros), key);
       expect(
@@ -77,9 +76,9 @@ void main() {
       expect(months[january]!.decidedCount, 2);
       expect(months[january]!.queuedCount, 1);
       expect(months[january]!.progressPercent, 66);
-      expect(months[february]!.state, ReviewMonthState.completed);
+      expect(months[february]!.state, ReviewMonthState.normal);
       expect(months[december]!.state, ReviewMonthState.normal);
-      expect(overview.bannerMonths.map((m) => m.key), [january, december]);
+      expect(overview.bannerMonths.map((m) => m.key), [january, february]);
     });
 
     test("ignores decisions recorded under a different month", () {

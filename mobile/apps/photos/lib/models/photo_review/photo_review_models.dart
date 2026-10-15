@@ -26,11 +26,6 @@ class ReviewMonthKey implements Comparable<ReviewMonthKey> {
     return ReviewMonthKey(date.year, date.month);
   }
 
-  factory ReviewMonthKey.parse(String key) {
-    final parts = key.split("-");
-    return ReviewMonthKey(int.parse(parts[0]), int.parse(parts[1]));
-  }
-
   final int year;
   final int month;
 
@@ -91,6 +86,16 @@ class ReviewMonthRecord {
   final int freedBytes;
   final int freedCount;
   final int updatedAt;
+
+  ReviewMonthRecord copyWith({required bool markedReviewed}) {
+    return ReviewMonthRecord(
+      monthKey: monthKey,
+      markedReviewed: markedReviewed,
+      freedBytes: freedBytes,
+      freedCount: freedCount,
+      updatedAt: updatedAt,
+    );
+  }
 }
 
 class ReviewMonthSummary {
@@ -101,8 +106,6 @@ class ReviewMonthSummary {
     required this.decidedCount,
     required this.queuedCount,
     required this.markedReviewed,
-    required this.freedBytes,
-    required this.freedCount,
     required this.lastReviewedAt,
   });
 
@@ -112,8 +115,6 @@ class ReviewMonthSummary {
   final int decidedCount;
   final int queuedCount;
   final bool markedReviewed;
-  final int freedBytes;
-  final int freedCount;
   final int lastReviewedAt;
 
   bool get isCompleted =>
@@ -156,14 +157,12 @@ class ReviewOverview {
 
 class ReviewMonthData {
   const ReviewMonthData({
-    required this.key,
     required this.files,
     required this.decisions,
     required this.history,
     required this.record,
   });
 
-  final ReviewMonthKey key;
   final List<EnteFile> files;
   final Map<String, ReviewDecision> decisions;
   final List<(EnteFile, ReviewDecision)> history;
