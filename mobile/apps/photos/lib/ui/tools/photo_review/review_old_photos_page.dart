@@ -33,7 +33,7 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   static const _horizontalPadding = Spacing.xl;
 
   final _service = PhotoReviewService.instance;
-  final _reloadDebouncer = Debouncer(const Duration(milliseconds: 500));
+  final _reloadDebouncer = Debouncer(const Duration(seconds: 2));
   late final StreamSubscription<FilesUpdatedEvent> _filesSubscription;
   late final StreamSubscription<PhotoReviewUpdatedEvent> _reviewSubscription;
 
