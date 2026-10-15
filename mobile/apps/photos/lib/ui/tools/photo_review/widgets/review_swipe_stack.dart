@@ -1,14 +1,18 @@
 import "dart:async";
 import "dart:math" as math;
 
-import "package:ente_components/ente_components.dart";
+import "package:ente_components/ente_components.dart" hide strokeFaintDark;
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_type.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
+import "package:photos/theme/colors.dart" show strokeFaintDark;
+import "package:photos/ui/viewer/file/file_icons_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
 enum ReviewSwipeDirection { left, right }
@@ -317,76 +321,131 @@ class _ReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
     final fileSize = file.fileSize;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size.width,
-        height: size.height,
-        decoration: BoxDecoration(
-          color: colors.fillDark,
-          borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: colors.specialWhite, width: border),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x40000000),
-              offset: Offset(0, 6.031),
-              blurRadius: 14.7,
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(radius - border),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ThumbnailWidget(
-                file,
-                key: Key("review_swipe_${file.tag}"),
-                thumbnailSize: thumbnailLargeSize,
-                shouldShowSyncStatus: false,
-                shouldShowFavoriteIcon: false,
-                shouldShowVideoDuration: true,
-                placeholderColor: colors.fillDark,
+    return Semantics(
+      button: onTap != null,
+      label: file.displayName,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: size.width,
+          height: size.height,
+          decoration: BoxDecoration(
+            color: colors.fillDark,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: colors.specialWhite, width: border),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x40000000),
+                offset: Offset(0, 6.031),
+                blurRadius: 14.7,
               ),
-              if (fileSize != null)
-                Positioned(
-                  left: Spacing.lg,
-                  top: Spacing.lg,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.md,
-                      vertical: Spacing.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.specialScrim,
-                      borderRadius: BorderRadius.circular(38),
-                    ),
-                    child: Text(
-                      formatBytes(fileSize, fileSize >= 1024 * 1024 ? 1 : 0),
-                      style: TextStyles.mini.copyWith(
-                        color: colors.specialWhite,
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(radius - border),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ThumbnailWidget(
+                  file,
+                  key: Key("review_swipe_${file.tag}"),
+                  thumbnailSize: thumbnailLargeSize,
+                  shouldShowSyncStatus: false,
+                  shouldShowFavoriteIcon: false,
+                  shouldShowVideoOverlayIcon: false,
+                  placeholderColor: colors.fillDark,
+                ),
+                if (file.fileType == FileType.video)
+                  Center(child: _VideoIndicator(duration: file.duration)),
+                if (fileSize != null)
+                  Positioned(
+                    left: Spacing.lg,
+                    top: Spacing.lg,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.md,
+                        vertical: Spacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.specialScrim,
+                        borderRadius: BorderRadius.circular(38),
+                      ),
+                      child: Text(
+                        formatBytes(fileSize, fileSize >= 1024 * 1024 ? 1 : 0),
+                        style: TextStyles.mini.copyWith(
+                          color: colors.specialWhite,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (isFavorite)
-                Positioned(
-                  right: Spacing.lg,
-                  top: Spacing.lg,
-                  child: SvgPicture.asset(
-                    "assets/photo_review/favorite_star.svg",
-                    width: 20,
-                    height: 20,
-                    colorFilter: ColorFilter.mode(
-                      colors.specialWhite,
-                      BlendMode.srcIn,
+                if (isFavorite)
+                  Positioned(
+                    right: Spacing.lg,
+                    top: Spacing.lg,
+                    child: SvgPicture.asset(
+                      "assets/photo_review/favorite_star.svg",
+                      width: 20,
+                      height: 20,
+                      colorFilter: ColorFilter.mode(
+                        colors.specialWhite,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _VideoIndicator extends StatelessWidget {
+  const _VideoIndicator({required this.duration});
+
+  final int? duration;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    final seconds = duration ?? 0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: colors.specialScrim,
+            shape: BoxShape.circle,
+            border: Border.all(color: strokeFaintDark, width: 1),
+          ),
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedPlay,
+            size: 32,
+            color: colors.specialWhite,
+          ),
+        ),
+        if (seconds > 0) ...[
+          const SizedBox(height: Spacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.md,
+              vertical: Spacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: colors.specialScrim,
+              borderRadius: BorderRadius.circular(38),
+            ),
+            child: Text(
+              formatVideoDuration(seconds),
+              style: TextStyles.mini.copyWith(color: colors.specialWhite),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

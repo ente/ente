@@ -722,15 +722,19 @@ class _QueuedTile extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: GestureDetector(
-            onTap: onTap,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(Radii.button),
-              child: ThumbnailWidget(
-                file,
-                key: Key("review_queue_${file.tag}"),
-                shouldShowSyncStatus: false,
-                placeholderColor: colors.fillDark,
+          child: Semantics(
+            button: true,
+            label: file.displayName,
+            child: GestureDetector(
+              onTap: onTap,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(Radii.button),
+                child: ThumbnailWidget(
+                  file,
+                  key: Key("review_queue_${file.tag}"),
+                  shouldShowSyncStatus: false,
+                  placeholderColor: colors.fillDark,
+                ),
               ),
             ),
           ),
