@@ -69,6 +69,10 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   @override
   void didPushNext() {
     _covered = true;
+    if (_reloadDebouncer.isActive()) {
+      _reloadDebouncer.cancelDebounce();
+      _reloadWhenUncovered = true;
+    }
   }
 
   @override
@@ -100,6 +104,10 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   }
 
   Future<void> _load() async {
+    if (_covered) {
+      _reloadWhenUncovered = true;
+      return;
+    }
     final generation = ++_loadGeneration;
     try {
       final overview = await _service.loadOverview();
