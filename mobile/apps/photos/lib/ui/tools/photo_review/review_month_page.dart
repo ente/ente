@@ -183,6 +183,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   void _undo() {
     if (_history.isEmpty || _stackController.isSwipingOut) return;
     final (file, direction) = _history.removeLast();
+    if (!_files.contains(file)) return;
     unawaited(HapticFeedback.lightImpact());
     setState(() {
       _decisions.remove(PhotoReviewService.fileKey(file));

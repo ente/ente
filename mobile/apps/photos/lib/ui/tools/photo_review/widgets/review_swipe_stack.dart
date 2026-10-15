@@ -135,7 +135,7 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
   }
 
   Future<void> _flyOut(ReviewSwipeDirection direction) async {
-    if (_flying || widget.files.isEmpty || !mounted) return;
+    if (_flying || _dragging || widget.files.isEmpty || !mounted) return;
     final file = widget.files.first;
     _flying = true;
     final width = MediaQuery.sizeOf(context).width;
