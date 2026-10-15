@@ -103,6 +103,23 @@ class PhotoReviewDB with SqlDbBase {
     });
   }
 
+  Future<void> rekeyDecisions(
+    List<ReviewDecisionRecord> records,
+    List<String> staleKeys,
+  ) async {
+    if (records.isEmpty) return;
+    final db = await database;
+    await db.writeTransaction((tx) async {
+      await _upsertDecisions(tx, records);
+      await tx.executeBatch(
+        "DELETE FROM $decisionsTable WHERE $columnFileKey = ?",
+        [
+          for (final key in staleKeys) [key],
+        ],
+      );
+    });
+  }
+
   Future<void> deleteDecision(
     String fileKey,
     String? localID,

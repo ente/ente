@@ -117,6 +117,26 @@ void main() {
     },
   );
 
+  test("rekeying moves a decision to its uploaded key unchanged", () async {
+    final db = PhotoReviewDB.instance;
+    await db.saveDecisions(
+      [_decision("l:a", "2026-01", ReviewDecision.queued, localID: "a")],
+      "2026-01",
+      10,
+    );
+
+    await db.rekeyDecisions(
+      [_decision("u:7", "2026-01", ReviewDecision.queued, localID: "a")],
+      ["l:a"],
+    );
+
+    final records = await db.getDecisionsForMonth("2026-01");
+    expect(records.map((record) => record.fileKey), ["u:7"]);
+    expect(records.single.decision, ReviewDecision.queued);
+    expect(records.single.updatedAt, 1);
+    expect((await db.getMonthRecord("2026-01"))!.updatedAt, 10);
+  });
+
   test("resetting a month clears its decisions and month record", () async {
     final db = PhotoReviewDB.instance;
     await db.saveDecisions(

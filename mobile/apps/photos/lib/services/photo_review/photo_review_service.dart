@@ -37,12 +37,15 @@ class PhotoReviewService {
     final files = await _loadFiles(0, _allTimeEndMicros);
     final decisions = await _db.getAllDecisions();
     final months = await _db.getMonthRecords();
-    return buildOverview(files, decisions, months);
+    final index = ReviewDecisionIndex(decisions);
+    await _rekeyUploadedFiles(files, index);
+    return buildOverview(files, index.records.toList(), months);
   }
 
   Future<ReviewMonthData> loadMonth(ReviewMonthKey key) async {
     final files = await _loadFiles(key.startMicros, key.endMicros);
     final index = ReviewDecisionIndex(await _db.getDecisionsForMonth(key.key));
+    await _rekeyUploadedFiles(files, index);
     final decisions = <String, ReviewDecision>{};
     final undoable = <(EnteFile, ReviewDecisionRecord)>[];
     for (final file in files) {
@@ -233,6 +236,33 @@ class PhotoReviewService {
     return result.files;
   }
 
+  Future<void> _rekeyUploadedFiles(
+    List<EnteFile> files,
+    ReviewDecisionIndex index,
+  ) async {
+    final rekeyed = <ReviewDecisionRecord>[];
+    final stale = <String>[];
+    for (final file in files) {
+      final record = index.lookup(file);
+      final key = fileKey(file);
+      if (record == null || record.fileKey == key) continue;
+      rekeyed.add(
+        ReviewDecisionRecord(
+          fileKey: key,
+          uploadedFileID: file.uploadedFileID,
+          localID: file.localID,
+          monthKey: record.monthKey,
+          decision: record.decision,
+          updatedAt: record.updatedAt,
+        ),
+      );
+      stale.add(record.fileKey);
+    }
+    if (rekeyed.isEmpty) return;
+    await _db.rekeyDecisions(rekeyed, stale);
+    rekeyed.forEach(index.add);
+  }
+
   void _notifyUpdated() {
     Bus.instance.fire(PhotoReviewUpdatedEvent());
   }
@@ -258,17 +288,21 @@ class PhotoReviewService {
 
 class ReviewDecisionIndex {
   ReviewDecisionIndex(List<ReviewDecisionRecord> records) {
-    for (final record in records) {
-      _byFileKey[record.fileKey] = record;
-      final localID = record.localID;
-      if (localID != null) {
-        _byLocalID[localID] = record;
-      }
-    }
+    records.forEach(add);
   }
 
   final Map<String, ReviewDecisionRecord> _byFileKey = {};
   final Map<String, ReviewDecisionRecord> _byLocalID = {};
+
+  Iterable<ReviewDecisionRecord> get records => _byFileKey.values;
+
+  void add(ReviewDecisionRecord record) {
+    _byFileKey[record.fileKey] = record;
+    final localID = record.localID;
+    if (localID != null) {
+      _byLocalID[localID] = record;
+    }
+  }
 
   ReviewDecisionRecord? lookup(EnteFile file) {
     final direct = _byFileKey[PhotoReviewService.fileKey(file)];
