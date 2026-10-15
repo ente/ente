@@ -15,11 +15,21 @@ class ReviewBannerCarousel extends StatefulWidget {
     super.key,
   });
 
-  static const double height = 102;
+  static const double _barHeight = 6;
 
   final List<ReviewMonthSummary> months;
   final double horizontalPadding;
   final ValueChanged<ReviewMonthSummary> onTap;
+
+  static double heightFor(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    double lineHeight(TextStyle style) =>
+        scaler.scale(style.fontSize!) * style.height!;
+    final textHeight =
+        lineHeight(ReviewBanner.captionStyle) +
+        lineHeight(ReviewBanner.titleStyle);
+    return Spacing.lg * 2 + textHeight + Spacing.md + _barHeight;
+  }
 
   @override
   State<ReviewBannerCarousel> createState() => _ReviewBannerCarouselState();
@@ -54,7 +64,7 @@ class _ReviewBannerCarouselState extends State<ReviewBannerCarousel> {
   Widget build(BuildContext context) {
     final months = widget.months;
     return SizedBox(
-      height: ReviewBannerCarousel.height,
+      height: ReviewBannerCarousel.heightFor(context),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final cardWidth = math.min(
@@ -92,6 +102,14 @@ class _ReviewBannerCarouselState extends State<ReviewBannerCarousel> {
 class ReviewBanner extends StatelessWidget {
   const ReviewBanner({required this.month, required this.onTap, super.key});
 
+  static final captionStyle = TextStyles.display3.copyWith(
+    fontSize: 12,
+    height: 20 / 12,
+  );
+  static final titleStyle = TextStyles.display2.copyWith(
+    fontWeight: FontWeight.w700,
+  );
+
   final ReviewMonthSummary month;
   final VoidCallback onTap;
 
@@ -114,8 +132,8 @@ class ReviewBanner extends StatelessWidget {
         onTap: onTap,
         child: Container(
           width: double.infinity,
-          constraints: const BoxConstraints(
-            minHeight: ReviewBannerCarousel.height,
+          constraints: BoxConstraints(
+            minHeight: ReviewBannerCarousel.heightFor(context),
           ),
           padding: const EdgeInsets.all(Spacing.lg),
           decoration: BoxDecoration(
@@ -123,10 +141,10 @@ class ReviewBanner extends StatelessWidget {
             borderRadius: BorderRadius.circular(Radii.lg),
           ),
           child: Stack(
+            alignment: AlignmentDirectional.centerStart,
             children: [
               Column(
                 mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
@@ -140,9 +158,7 @@ class ReviewBanner extends StatelessWidget {
                               caption,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyles.display3.copyWith(
-                                fontSize: 12,
-                                height: 20 / 12,
+                              style: captionStyle.copyWith(
                                 color: colors.textLighter,
                               ),
                             ),
@@ -150,8 +166,7 @@ class ReviewBanner extends StatelessWidget {
                               title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyles.display2.copyWith(
-                                fontWeight: FontWeight.w700,
+                              style: titleStyle.copyWith(
                                 color: colors.textBase,
                               ),
                             ),
