@@ -272,6 +272,8 @@ pub struct PostResponse {
     pub objects: Vec<PostObjectPayload>,
     pub created_at: String,
     pub viewer_liked: bool,
+    #[serde(default)]
+    pub like_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

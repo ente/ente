@@ -67,6 +67,7 @@ pub struct Post {
     pub content: Result<PostContent>,
     pub created_at: String,
     pub viewer_liked: bool,
+    pub like_count: i64,
 }
 
 pub struct SpaceActor {

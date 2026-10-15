@@ -13,6 +13,7 @@ import {
     loadCurrentFriendAvatarURL,
     loadCurrentMessageConversations,
     loadCurrentNotifications,
+    loadCurrentPostLikes,
 } from "../src/services/space";
 
 vi.mock("ente-base/log", () => ({ default: { warn: vi.fn() } }));
@@ -43,6 +44,7 @@ const context = {
     downloadSpaceAvatar: vi.fn(),
     listNotifications: vi.fn(),
     listConversations: vi.fn(),
+    listPostLikes: vi.fn(),
 };
 
 beforeEach(() => {
@@ -72,6 +74,27 @@ beforeEach(() => {
         pendingRequests: [],
     });
     vi.mocked(cachedSpaceMediaBlobURLIfPresent).mockResolvedValue(undefined);
+});
+
+test("post likes preserve every actor and reuse cached avatars", async () => {
+    context.listPostLikes.mockResolvedValue([
+        actor,
+        { ...actor, spaceId: "second", spaceSlug: "bob" },
+        { ...actor, spaceId: "third", spaceSlug: "alex" },
+    ]);
+    vi.mocked(cachedSpaceMediaBlobURLIfPresent).mockResolvedValue(
+        "blob:avatar",
+    );
+    const actors = await loadCurrentPostLikes("owner-space", 42);
+    expect(context.listPostLikes).toHaveBeenCalledWith("owner-space", 42n);
+    expect(actors.map((actor) => actor.username)).toEqual([
+        "maya",
+        "bob",
+        "alex",
+    ]);
+    expect(actors[0]?.avatarUrl).toBe("blob:avatar");
+    expect(context.downloadSpaceAvatar).not.toHaveBeenCalled();
+    expect(releaseCurrentSpaceContext).toHaveBeenCalledWith(context);
 });
 
 test("notifications restore the same cached avatar as Messages before returning rows", async () => {

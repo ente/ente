@@ -108,6 +108,7 @@ type SpacePostRecord struct {
 	KeyVersion       int
 	CreatedAt        int64
 	ViewerLiked      bool
+	LikeCount        int64
 }
 
 type SpacePostAssetRecord struct {

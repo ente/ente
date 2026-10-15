@@ -1696,6 +1696,60 @@ async fn like_post_uses_post_like_endpoint() {
 }
 
 #[tokio::test]
+async fn list_post_likes_skips_key_loading_when_empty() {
+    let mut server = Server::new_async().await;
+    let ctx = test_account_ctx(&server.url());
+    let likes = server
+        .mock("GET", "/spaces/space_owner_main/posts/42/likes")
+        .with_body("[]")
+        .create_async()
+        .await;
+    let shares = server
+        .mock("GET", "/spaces/space_owner_main/friends/shares")
+        .expect(0)
+        .create_async()
+        .await;
+    assert!(
+        ctx.list_post_likes("space_owner_main", 42)
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    likes.assert_async().await;
+    shares.assert_async().await;
+}
+
+#[tokio::test]
+async fn list_post_likes_returns_all_actors() {
+    let mut server = Server::new_async().await;
+    let ctx = test_account_ctx(&server.url());
+    let likes = server
+        .mock("GET", "/spaces/space_owner_main/posts/42/likes")
+        .match_header("x-space-session-token", "space-session-token")
+        .with_body(
+            json!([
+                {"spaceId":"friend1", "spaceSlug":"maya"},
+                {"spaceId":"friend2", "spaceSlug":"bob"},
+                {"spaceId":"friend3", "spaceSlug":"alex"}
+            ])
+            .to_string(),
+        )
+        .create_async()
+        .await;
+    let shares = server
+        .mock("GET", "/spaces/space_owner_main/friends/shares")
+        .with_body("[]")
+        .create_async()
+        .await;
+    let actors = ctx.list_post_likes("space_owner_main", 42).await.unwrap();
+    assert_eq!(actors.len(), 3);
+    assert_eq!(actors[0].space_slug, "maya");
+    assert_eq!(actors[2].space_id, "friend3");
+    likes.assert_async().await;
+    shares.assert_async().await;
+}
+
+#[tokio::test]
 async fn unread_badge_stops_without_loading_conversations() {
     for kind in ["regular", "post_reply"] {
         let mut server = Server::new_async().await;

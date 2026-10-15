@@ -24,6 +24,7 @@ import { SpaceCaptionText } from "components/CaptionText";
 import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
 import { spacePostLikePopDurationMs } from "components/post-like-animation";
 import { paintStretchingDot } from "components/post-photos-dots";
+import { SpacePostLikes } from "components/PostLikes";
 import { SpacePostPhotosDots } from "components/PostPhotosDots";
 import { SpacePostReplyControls } from "components/PostReplyControls";
 import { createSpaceVideoContent } from "components/PostVideoContent";
@@ -122,7 +123,8 @@ const postButtonSpin = keyframes`
     }
 `;
 
-export type SpaceViewerPostActionMode = "draft-post" | "hidden" | "like-only";
+export type SpaceViewerPostActionMode =
+    "draft-post" | "hidden" | "like-only" | "likes";
 
 interface SpaceViewerPostActionConfig {
     showLikeButton: boolean;
@@ -135,9 +137,11 @@ const spaceViewerPostActionConfigs: Record<
     "draft-post": { showLikeButton: false },
     hidden: { showLikeButton: false },
     "like-only": { showLikeButton: true },
+    likes: { showLikeButton: false },
 };
 
 export interface SpaceViewerPhoto {
+    likeCount?: number;
     preparationError?: string;
     isVideo?: boolean;
     video?: SpacePostVideo;
@@ -200,6 +204,7 @@ interface SpaceFileViewerProps {
     initialPhotoIndex?: number;
     photos?: SpaceViewerPhoto[];
     focusReplyOnOpen?: boolean;
+    showLikesOnOpen?: boolean;
     postActionMode?: SpaceViewerPostActionMode;
 }
 
@@ -486,6 +491,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     initialPhotoIndex = 0,
     photos,
     postActionMode = "like-only",
+    showLikesOnOpen = false,
 }) => {
     const [localPhotoIndex, setLocalPhotoIndex] =
         React.useState(initialPhotoIndex);
@@ -547,6 +553,11 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     const activeReplyKeyRef = React.useRef(activeReplyKey);
     activeReplyKeyRef.current = activeReplyKey;
     const activePostKey = `${activePhoto.spaceId ?? ""}:${activePhoto.postId ?? ""}`;
+    const showPostLikes = activePostActionMode == "likes";
+    const [likesPostKey, setLikesPostKey] = React.useState<string | undefined>(
+        showLikesOnOpen ? activePostKey : undefined,
+    );
+    const isLikesOpen = showPostLikes && likesPostKey == activePostKey;
     const hasPhotoLoadError = Boolean(photoLoadErrors[activePhotoKey]);
     const photoRetryAt = photoLoadErrors[activePhotoKey]?.retryAt;
     const isPhotoRateLimited = photoRetryAt !== undefined && now < photoRetryAt;
@@ -689,6 +700,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     const isSwipeBlockedRef = React.useRef(false);
     isSwipeBlockedRef.current =
         isActionsOpen ||
+        isLikesOpen ||
         addFriendSheetOpen ||
         (canDeletePost && deleteSheetOpen) ||
         isDeleteExit ||
@@ -1737,6 +1749,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         const closeOnEscape = (event: KeyboardEvent) => {
             if (
                 addFriendSheetOpen ||
+                isLikesOpen ||
                 deleteSheetOpen ||
                 isCaptionDialogOpen ||
                 isDraftPostExit ||
@@ -1758,6 +1771,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         cancelCaptionEdit,
         isDraftPostActionRunning,
         addFriendSheetOpen,
+        isLikesOpen,
         deleteSheetOpen,
         isDraftPostExit,
         isCaptionEditing,
@@ -2710,6 +2724,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
             {!isDraftPost &&
                 (hasDisplayCaption ||
                     showPhotoLikeButton ||
+                    showPostLikes ||
                     postPhotoCount > 1) &&
                 !isCaptionEditing && (
                     <Box
@@ -2784,6 +2799,20 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                 }
                             />
                         )}
+                        {showPostLikes &&
+                            activePhoto.spaceId &&
+                            activePhoto.postId && (
+                                <SpacePostLikes
+                                    likeCount={activePhoto.likeCount}
+                                    spaceId={activePhoto.spaceId}
+                                    postId={activePhoto.postId}
+                                    open={isLikesOpen}
+                                    onOpen={() =>
+                                        setLikesPostKey(activePostKey)
+                                    }
+                                    onClose={() => setLikesPostKey(undefined)}
+                                />
+                            )}
                     </Box>
                 )}
             <Modal

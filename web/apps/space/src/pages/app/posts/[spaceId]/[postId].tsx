@@ -57,6 +57,7 @@ const viewerPhotoFromPost = (post: SpacePost) => ({
     height: post.height,
     photos: post.photos,
     imageUrl: post.imageUrl ?? "",
+    likeCount: post.likeCount,
     name: post.name,
     postId: post.postId,
     spaceId: post.spaceId,
@@ -165,6 +166,7 @@ const Page: React.FC = () => {
             <SpaceRouteFallback
                 background={spaceAppBackgroundColor}
                 message={postLoadError || profileLoadError}
+                onBack={closePost}
             />
         );
     }
@@ -174,6 +176,7 @@ const Page: React.FC = () => {
             <SpaceRouteFallback
                 background={spaceAppBackgroundColor}
                 message={postLoadError || profileLoadError}
+                onBack={closePost}
             />
         );
     }
@@ -193,6 +196,7 @@ const Page: React.FC = () => {
             <SpaceRouteFallback
                 background={spaceAppBackgroundColor}
                 message="Photo unavailable."
+                onBack={closePost}
             />
         );
     }
@@ -206,7 +210,10 @@ const Page: React.FC = () => {
                 photos={photos}
                 initialPhotoIndex={photoIndex}
                 onLoadPhoto={loadCurrentSpacePostAssetURL}
-                postActionMode={isOwnPost ? "hidden" : "like-only"}
+                postActionMode={isOwnPost ? "likes" : "like-only"}
+                showLikesOnOpen={
+                    isOwnPost && valueFromQuery(router.query.likes) == "1"
+                }
                 onClose={closePost}
                 onOpenProfile={openOwnerProfile}
                 onDeletePost={

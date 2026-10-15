@@ -41,12 +41,17 @@ export const SpaceAppLayout = ({ children }: { children: React.ReactNode }) => {
     const isConversation = router.pathname.startsWith(
         `${spaceRoutes.messages}/`,
     );
+    const isPost = router.pathname.startsWith("/app/posts/");
     const isFriendPreview =
         router.pathname == spaceRoutes.friends &&
         typeof router.query.friend == "string" &&
         router.query.expanded != "1";
     const showNavigation =
-        isAppPage && Boolean(profile) && !isConversation && !isFriendPreview;
+        isAppPage &&
+        Boolean(profile) &&
+        !isConversation &&
+        !isPost &&
+        !isFriendPreview;
     const spaceID =
         isAppPage && profileLoadStatus == "ready"
             ? profile?.spaceId
@@ -174,6 +179,7 @@ export const SpaceAppLayout = ({ children }: { children: React.ReactNode }) => {
                 ref={layoutRef}
                 className={isAppPage ? "space-app-layout" : undefined}
                 data-space-conversation={isConversation || undefined}
+                data-space-post={isPost || undefined}
             >
                 {children}
                 {showNavigation && (

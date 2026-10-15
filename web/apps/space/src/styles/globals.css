@@ -57,7 +57,8 @@ html[data-space-ios-pwa]
     padding-bottom: var(--space-bottom-nav-height);
 }
 
-.space-app-layout[data-space-conversation] {
+.space-app-layout[data-space-conversation],
+.space-app-layout[data-space-post] {
     --space-bottom-nav-height: 0px;
 }
 

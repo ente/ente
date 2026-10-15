@@ -154,6 +154,12 @@ describe("Space conversation transitions", () => {
     it.each([
         ["/app/messages", "/app/messages/alex", "fade-with-navigation"],
         ["/app/messages/alex", "/app/messages", "fade-with-navigation"],
+        [
+            "/app/notifications",
+            "/app/posts/owner/42?likes=1",
+            "fade-with-navigation",
+        ],
+        ["/app/posts/owner/42", "/app/profile", "fade-with-navigation"],
         ["/app/friends", "/app/messages", "fade"],
     ])("transitions from %s to %s using %s", async (from, to, motion) => {
         const app = await setup(from);

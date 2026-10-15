@@ -36,6 +36,7 @@ export const CachedSpacePost = z.object({
         )
         .optional(),
     isUnavailable: z.boolean().optional(),
+    likeCount: z.number().optional(),
     name: z.string(),
     postId: z.number(),
     spaceId: z.string(),

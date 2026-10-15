@@ -230,10 +230,10 @@ const NotificationRow: React.FC<{
                             : () => {
                                   if (isPostLike)
                                       void router.push(
-                                          spaceRoutes.post(
+                                          `${spaceRoutes.post(
                                               spaceId,
                                               group.postId!,
-                                          ),
+                                          )}?likes=1`,
                                       );
                                   else
                                       void router.push(

@@ -14,6 +14,7 @@ export const profilePostItemsFromPosts = (
         imageUrl: post.imageUrl,
         photos: post.photos,
         isUnavailable: post.isUnavailable,
+        likeCount: post.likeCount,
         name: post.name,
         postId: post.postId,
         spaceId: post.spaceId,

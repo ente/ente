@@ -111,6 +111,7 @@ func toPostResponse(post *spacerepo.SpacePostRecord, assets []spacerepo.SpacePos
 		KeyVersion:       post.KeyVersion,
 		CreatedAt:        formatMicros(post.CreatedAt),
 		ViewerLiked:      post.ViewerLiked,
+		LikeCount:        post.LikeCount,
 	}
 	if len(assets) > 0 {
 		resp.Objects = make([]models.PostObjectPayload, 0, len(assets))

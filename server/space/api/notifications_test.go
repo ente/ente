@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -60,6 +61,17 @@ func TestNotificationsAPIIsRecipientScoped(t *testing.T) {
 	require.Equal(t, int64(1), page.Items[0].ActorCount)
 	require.True(t, page.Items[0].Unread)
 	require.NotEmpty(t, page.NextCursor)
+	likesPath := "/posts/" + strconv.FormatInt(postID, 10) + "/likes"
+	response = serve(http.MethodGet, "/spaces/"+owner.SpaceID+likesPath, "")
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	var actors []models.SpaceActorResponse
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &actors))
+	require.Len(t, actors, 1)
+	require.Equal(t, friend.SpaceID, actors[0].SpaceID)
+	response = serve(http.MethodGet, "/spaces/"+friend.SpaceID+likesPath, "")
+	require.Equal(t, http.StatusForbidden, response.Code)
+	response = serve(http.MethodGet, "/spaces/"+owner.SpaceID+"/posts/0/likes", "")
+	require.Equal(t, http.StatusBadRequest, response.Code)
 	olderResponse := serve(http.MethodGet, "/spaces/"+owner.SpaceID+"/notifications?cursor="+page.NextCursor, "")
 	require.Equal(t, http.StatusOK, olderResponse.Code, olderResponse.Body.String())
 	var olderPage models.NotificationPage

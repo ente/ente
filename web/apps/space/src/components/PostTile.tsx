@@ -17,6 +17,7 @@ import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 const green = "#08C225";
 
 export interface SpacePostTileItem {
+    likeCount?: number;
     avatarUrl?: string | null;
     caption?: string;
     friendID?: string;

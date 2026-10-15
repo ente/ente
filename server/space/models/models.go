@@ -402,6 +402,7 @@ type PostResponse struct {
 	Objects          []PostObjectPayload `json:"objects,omitempty"`
 	CreatedAt        string              `json:"createdAt"`
 	ViewerLiked      bool                `json:"viewerLiked"`
+	LikeCount        int64               `json:"likeCount"`
 }
 
 type SpaceUnreadStatusResponse struct {

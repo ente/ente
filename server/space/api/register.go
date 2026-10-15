@@ -25,6 +25,7 @@ func Register(privateAPI, publicAPI gin.IRouter, handlers *Handlers) {
 	spaceAPI.PATCH("/posts/:postID/caption", selected(handlers.UpdatePostCaption))
 	spaceAPI.PUT("/posts/:postID/like", selected(handlers.LikePost))
 	spaceAPI.DELETE("/posts/:postID/like", selected(handlers.UnlikePost))
+	spaceAPI.GET("/posts/:postID/likes", selected(handlers.ListPostLikes))
 	spaceAPI.POST("/posts/:postID/reply", selected(handlers.ReplyToPost))
 	spaceAPI.DELETE("/posts/:postID", selected(handlers.DeletePost))
 	spaceAPI.POST("/friends/:friendSpaceID/pokes", selected(handlers.CreatePoke))
