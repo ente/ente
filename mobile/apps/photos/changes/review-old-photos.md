@@ -1,0 +1,1 @@
+- Review old photos month by month from Free up space: swipe to keep or queue each photo, then delete the queue in one go.
