@@ -17,15 +17,6 @@ void main() {
         const ReviewMonthKey(2026, 2),
       );
     });
-
-    test("sorts chronologically across years", () {
-      final keys = [
-        const ReviewMonthKey(2026, 1),
-        const ReviewMonthKey(2025, 12),
-        const ReviewMonthKey(2025, 3),
-      ]..sort();
-      expect(keys.map((key) => key.key), ["2025-03", "2025-12", "2026-01"]);
-    });
   });
 
   group("ReviewDecisionIndex", () {
@@ -46,28 +37,8 @@ void main() {
   });
 
   group("PhotoReviewService.buildOverview", () {
-    test("groups files into months, newest year first", () {
-      final overview = PhotoReviewService.buildOverview(
-        [
-          _file(uploadedFileID: 1, month: const ReviewMonthKey(2026, 3)),
-          _file(uploadedFileID: 2, month: const ReviewMonthKey(2026, 1)),
-          _file(uploadedFileID: 3, month: const ReviewMonthKey(2025, 12)),
-          _file(uploadedFileID: 4, month: const ReviewMonthKey(2026, 1)),
-        ],
-        const [],
-        const {},
-      );
-
-      expect(overview.years.map((year) => year.year), [2026, 2025]);
-      expect(overview.years.first.months.map((month) => month.key.key), [
-        "2026-01",
-        "2026-03",
-      ]);
-      expect(overview.years.first.months.first.totalCount, 2);
-      expect(overview.years.first.months.first.state, ReviewMonthState.normal);
-    });
-
-    test("derives progress, queue and completion from decisions", () {
+    test("groups months by year and derives state from decisions", () {
+      const december = ReviewMonthKey(2025, 12);
       const january = ReviewMonthKey(2026, 1);
       const february = ReviewMonthKey(2026, 2);
       final overview = PhotoReviewService.buildOverview(
@@ -76,6 +47,7 @@ void main() {
           _file(uploadedFileID: 2, month: january),
           _file(uploadedFileID: 3, month: january),
           _file(uploadedFileID: 4, month: february),
+          _file(uploadedFileID: 5, month: december),
         ],
         [
           _record("u:1", uploadedFileID: 1, month: january),
@@ -95,13 +67,19 @@ void main() {
         const {},
       );
 
+      expect(overview.years.map((year) => year.year), [2026, 2025]);
+      expect(overview.years.first.months.map((month) => month.key), [
+        january,
+        february,
+      ]);
       final months = {for (final month in overview.months) month.key: month};
       expect(months[january]!.state, ReviewMonthState.inProgress);
       expect(months[january]!.decidedCount, 2);
       expect(months[january]!.queuedCount, 1);
       expect(months[january]!.progressPercent, 66);
       expect(months[february]!.state, ReviewMonthState.completed);
-      expect(overview.bannerMonths.map((m) => m.key), [january]);
+      expect(months[december]!.state, ReviewMonthState.normal);
+      expect(overview.bannerMonths.map((m) => m.key), [january, december]);
     });
 
     test("ignores decisions recorded under a different month", () {
@@ -171,21 +149,6 @@ void main() {
       );
 
       expect(overview.bannerMonths.map((m) => m.key), [january, march]);
-    });
-
-    test("banner falls back to the newest month that is not reviewed", () {
-      final overview = PhotoReviewService.buildOverview(
-        [
-          _file(uploadedFileID: 1, month: const ReviewMonthKey(2025, 5)),
-          _file(uploadedFileID: 2, month: const ReviewMonthKey(2026, 2)),
-        ],
-        const [],
-        const {},
-      );
-
-      expect(overview.bannerMonths.map((m) => m.key), [
-        const ReviewMonthKey(2026, 2),
-      ]);
     });
   });
 

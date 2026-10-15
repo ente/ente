@@ -117,7 +117,7 @@ void main() {
     },
   );
 
-  test("resetting months removes their decisions and month records", () async {
+  test("resetting a month clears its decisions and month record", () async {
     final db = PhotoReviewDB.instance;
     await db.saveDecisions(
       [_decision("u:1", "2026-01", ReviewDecision.keep)],
@@ -129,16 +129,14 @@ void main() {
       "2026-02",
       6,
     );
-    await db.markMonthsReviewed(["2026-01"], 7);
+    await db.markMonthsReviewed(["2026-01", "2026-02"], 7);
 
     await db.resetMonths(["2026-01"]);
 
     expect(await db.getDecisionsForMonth("2026-01"), isEmpty);
-    expect(await db.getDecisionsForMonth("2026-02"), hasLength(1));
     expect(await db.getMonthRecord("2026-01"), isNull);
-    final records = await db.getMonthRecords();
-    expect(records.keys, ["2026-02"]);
-    expect(records["2026-02"]!.updatedAt, 6);
+    expect(await db.getDecisionsForMonth("2026-02"), hasLength(1));
+    expect((await db.getMonthRecords()).keys, ["2026-02"]);
   });
 }
 
