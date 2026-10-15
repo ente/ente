@@ -91,6 +91,8 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
   bool _flying = false;
   bool _crossedThreshold = false;
   Size _cardSize = Size.zero;
+  _SideGlow? _keepGlow;
+  _SideGlow? _deleteGlow;
 
   @override
   void initState() {
@@ -225,6 +227,9 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
             math.pi /
             180;
 
+        _keepGlow = _glowFor(_keepGlow, context.componentColors.primary);
+        _deleteGlow = _glowFor(_deleteGlow, _SideGlow.deleteColor);
+
         return Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
@@ -232,17 +237,18 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
             Positioned(
               right: -81 - _SideGlow.spread,
               top: -_SideGlow.spread,
-              child: _SideGlow(
-                color: context.componentColors.primary,
-                opacity: glow.clamp(0, 1),
+              child: IgnorePointer(
+                child: Opacity(opacity: glow.clamp(0, 1), child: _keepGlow),
               ),
             ),
             Positioned(
               left: -72 - _SideGlow.spread,
               top: -_SideGlow.spread,
-              child: _SideGlow(
-                color: _SideGlow.deleteColor,
-                opacity: (-glow).clamp(0, 1),
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: (-glow).clamp(0, 1),
+                  child: _deleteGlow,
+                ),
               ),
             ),
             for (var index = files.length - 1; index >= 0; index--)
@@ -251,6 +257,15 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
         );
       },
     );
+  }
+
+  _SideGlow _glowFor(_SideGlow? cached, Color color) {
+    if (cached != null &&
+        cached.color == color &&
+        cached.cardHeight == _cardSize.height) {
+      return cached;
+    }
+    return _SideGlow(color: color, cardHeight: _cardSize.height);
   }
 
   Widget _positionedCard(EnteFile file, int index, double topTilt) {
@@ -462,29 +477,33 @@ class _VideoIndicator extends StatelessWidget {
 
 // Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19387-63603&m=dev
 class _SideGlow extends StatelessWidget {
-  const _SideGlow({required this.color, required this.opacity});
+  const _SideGlow({required this.color, required this.cardHeight});
 
   static const double _width = 120;
-  static const double _height = 472;
   static const double _top = 58;
-  static const double _blurSigma = 50;
+  static const double _bottomInset = 31;
+  static const double _blurSigma = 60;
   static const double spread = _blurSigma * 3;
   static const Color deleteColor = Color(0xFFFF4C38);
 
   final Color color;
-  final double opacity;
+  final double cardHeight;
 
   @override
   Widget build(BuildContext context) {
-    if (opacity <= 0) return const SizedBox.shrink();
-    const boxHeight = spread + _top + _height + spread;
-    return IgnorePointer(
+    final height = math.max(0.0, cardHeight - _bottomInset);
+    final boxHeight = spread + _top + height + spread;
+    return RepaintBoundary(
       child: ShaderMask(
         blendMode: BlendMode.dstIn,
-        shaderCallback: (bounds) => const LinearGradient(
+        shaderCallback: (bounds) => LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0x00FFFFFF), Color(0x00FFFFFF), Color(0xFFFFFFFF)],
+          colors: const [
+            Color(0x00FFFFFF),
+            Color(0x00FFFFFF),
+            Color(0xFFFFFFFF),
+          ],
           stops: [0, spread / boxHeight, (spread + _top) / boxHeight],
         ).createShader(bounds),
         child: SizedBox(
@@ -498,12 +517,12 @@ class _SideGlow extends StatelessWidget {
                 top: spread + _top,
                 child: Container(
                   width: _width,
-                  height: _height,
+                  height: height,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(_width / 2),
                     boxShadow: [
                       BoxShadow(
-                        color: color.withValues(alpha: opacity),
+                        color: color,
                         blurRadius: (_blurSigma - 0.5) / 0.57735,
                       ),
                     ],
