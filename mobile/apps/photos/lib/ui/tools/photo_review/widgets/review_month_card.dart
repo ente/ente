@@ -8,7 +8,6 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19458-216408&m=dev
 class ReviewMonthCard extends StatelessWidget {
   const ReviewMonthCard({
     required this.cover,

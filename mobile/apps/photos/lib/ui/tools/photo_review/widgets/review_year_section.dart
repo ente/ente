@@ -10,7 +10,6 @@ import "package:intl/intl.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_month_card.dart";
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19441-135429&m=dev
 class ReviewYearSection extends StatelessWidget {
   const ReviewYearSection({
     required this.year,
@@ -211,7 +210,6 @@ class ReviewYearSection extends StatelessWidget {
   }
 }
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=20035-27984&m=dev
 class _CompletedYearRow extends StatelessWidget {
   const _CompletedYearRow({
     required this.year,

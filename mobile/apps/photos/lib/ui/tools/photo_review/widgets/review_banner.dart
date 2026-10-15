@@ -6,7 +6,6 @@ import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19630-174731&m=dev
 class ReviewBannerCarousel extends StatefulWidget {
   const ReviewBannerCarousel({
     required this.months,
@@ -98,7 +97,6 @@ class _ReviewBannerCarouselState extends State<ReviewBannerCarousel> {
   }
 }
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19657-197639&m=dev
 class ReviewBanner extends StatelessWidget {
   const ReviewBanner({required this.month, required this.onTap, super.key});
 

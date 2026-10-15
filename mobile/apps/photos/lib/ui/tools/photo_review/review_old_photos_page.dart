@@ -19,7 +19,6 @@ import "package:photos/ui/tools/photo_review/widgets/review_selection_bar.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_year_section.dart";
 import "package:photos/utils/dialog_util.dart";
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19387-61138&m=dev
 class ReviewOldPhotosPage extends StatefulWidget {
   const ReviewOldPhotosPage({super.key});
 

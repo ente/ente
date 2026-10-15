@@ -26,7 +26,6 @@ import "package:photos/utils/dialog_util.dart";
 
 enum _ReviewMonthView { swipe, queue, done }
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19387-61668&m=dev
 class ReviewMonthPage extends StatefulWidget {
   const ReviewMonthPage({required this.monthKey, super.key});
 
@@ -731,7 +730,6 @@ class _RoundActionButtonState extends State<_RoundActionButton> {
   }
 }
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19387-61701&m=dev
 class _QueuedTile extends StatelessWidget {
   const _QueuedTile({
     required this.file,
@@ -803,7 +801,6 @@ class _QueuedTile extends StatelessWidget {
   }
 }
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19387-61795&m=dev
 class _CleanedUpIllustration extends StatelessWidget {
   const _CleanedUpIllustration();
 

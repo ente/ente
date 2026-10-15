@@ -3,7 +3,6 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=20035-27950&m=dev
 class ReviewSelectionBar extends StatelessWidget {
   const ReviewSelectionBar({
     required this.selectedCount,

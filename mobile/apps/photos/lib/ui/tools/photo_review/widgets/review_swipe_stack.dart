@@ -40,7 +40,6 @@ class ReviewSwipeStackController {
   }
 }
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19387-61669&m=dev
 class ReviewSwipeStack extends StatefulWidget {
   const ReviewSwipeStack({
     required this.files,
@@ -475,7 +474,6 @@ class _VideoIndicator extends StatelessWidget {
   }
 }
 
-// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19387-63603&m=dev
 class _SideGlow extends StatelessWidget {
   const _SideGlow({required this.color, required this.cardHeight});
 
