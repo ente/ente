@@ -1,4 +1,8 @@
 {
+  "allCleanedUp": "All cleaned up!",
+  "@allCleanedUp": {
+    "description": "Title shown when a month in Review old photos has nothing left to review or delete."
+  },
   "bringMemoriesTogether": "Bring your memories together",
   "@bringMemoriesTogether": {
     "description": "Title on the Local Gallery photo permission screen"
@@ -2137,6 +2141,10 @@
     }
   },
   "itemsLabel": "Items",
+  "itemsQueuedForDeletion": "Items queued for deletion",
+  "@itemsQueuedForDeletion": {
+    "description": "Subtitle of the page listing items swiped left while reviewing old photos."
+  },
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Items show the number of days remaining before permanent deletion",
   "itemsStored": "Items stored",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, one{This item will be deleted from all collections. You can recover it from Trash.} other{These items will be deleted from all collections. You can recover them from Trash.}}",
@@ -2162,6 +2170,10 @@
   "joinAlbumConfirmationDialogBody": "Joining an album will make your email visible to its participants.",
   "joinAlbumSubtext": "to view and add your photos",
   "joinAlbumSubtextViewer": "to add this to shared albums",
+  "keep": "Keep",
+  "@keep": {
+    "description": "Tooltip for the button that keeps the current photo while reviewing old photos."
+  },
   "keepOffline": "Keep offline",
   "keepPhotos": "Keep photos",
   "kiloMeterUnit": "km",
@@ -2543,6 +2555,10 @@
   },
   "maps": "Maps",
   "mapsPrivacyNotice": "Approximate coordinates will be sent to privacy conscious third parties like OpenStreetMap to show the map and location.",
+  "markAsReviewed": "Mark as reviewed",
+  "@markAsReviewed": {
+    "description": "Action that marks the selected months as fully reviewed without swiping through them."
+  },
   "markingAsImportant": "Marking as important...",
   "me": "Me",
   "mediaManagementHintMessage": "Turn on media management for Ente in settings, and the prompts stop.",
@@ -2876,6 +2892,14 @@
       }
     }
   },
+  "nothingToReviewYet": "Nothing to review yet",
+  "@nothingToReviewYet": {
+    "description": "Empty state title of Review old photos when the library has no photos."
+  },
+  "nothingToReviewYetDesc": "Your photos will show up here, month by month.",
+  "@nothingToReviewYetDesc": {
+    "description": "Empty state message of Review old photos when the library has no photos."
+  },
   "nothingToSeeHere": "Nothing to see here",
   "nothingToCleanUp": "Nothing to clean up",
   "nothingToTidyUpHere": "Nothing to tidy up here",
@@ -2912,6 +2936,14 @@
   "offlineNameFaceBannerTitle": "Give this face a name",
   "offlineSettingsBannerDesc": "Zero-knowledge encryption means your memories stay yours.",
   "offlineSettingsBannerTitle": "We can't see your photos. Ever.",
+  "oldPhotos": "Old photos",
+  "@oldPhotos": {
+    "description": "Free up space menu item that opens Review old photos."
+  },
+  "oldPhotosDesc": "Look back, keep what matters",
+  "@oldPhotosDesc": {
+    "description": "Subtitle of the Old photos menu item in Free up space."
+  },
   "onboardingDesc": "Save your photos and videos. Every memory, in one place.",
   "onboardingTitle": "For everything you don't want to forget",
   "onDevice": "Device",
@@ -3617,7 +3649,89 @@
   "retake": "Retake",
   "retry": "Retry",
   "review": "Review",
+  "reviewAgain": "Review again",
+  "@reviewAgain": {
+    "description": "Action that clears the review progress of the selected months so they can be reviewed from the start."
+  },
+  "reviewFreedUpSummary": "{count, plural, one{You freed up {size} from {count} item.} other{You freed up {size} from {count} items.}}",
+  "@reviewFreedUpSummary": {
+    "description": "Summary shown after deleting queued items while reviewing old photos.",
+    "placeholders": {
+      "size": {
+        "example": "128 MB",
+        "type": "String"
+      },
+      "count": {
+        "example": "24",
+        "type": "int"
+      }
+    }
+  },
+  "reviewKeptEverything": "You kept everything in this month.",
+  "@reviewKeptEverything": {
+    "description": "Summary shown when a month was reviewed and nothing was deleted."
+  },
+  "reviewLetsGetStartedWith": "Let’s get started with",
+  "@reviewLetsGetStartedWith": {
+    "description": "Caption above the month name on the Review old photos banner before any month has been started."
+  },
+  "reviewNextMonth": "Review next month",
+  "@reviewNextMonth": {
+    "description": "Button that opens the next month that still has photos to review."
+  },
+  "reviewOldPhotos": "Review old photos",
+  "@reviewOldPhotos": {
+    "description": "Title of the page that lists months of photos to review."
+  },
+  "reviewPercentReviewed": "{percent}% reviewed",
+  "@reviewPercentReviewed": {
+    "description": "Progress label on the Review old photos banner.",
+    "placeholders": {
+      "percent": {
+        "example": "40",
+        "type": "int"
+      }
+    }
+  },
+  "reviewPickUpAgain": "Pick up again",
+  "@reviewPickUpAgain": {
+    "description": "Caption above the month name on the Review old photos banner when a month is partly reviewed."
+  },
+  "reviewProgressCount": "{reviewed}/{total} reviewed",
+  "@reviewProgressCount": {
+    "description": "Progress label while swiping through a month of photos.",
+    "placeholders": {
+      "reviewed": {
+        "example": "40",
+        "type": "int"
+      },
+      "total": {
+        "example": "60",
+        "type": "int"
+      }
+    }
+  },
+  "reviewRemovedItemsSummary": "{count, plural, one{You removed {count} item.} other{You removed {count} items.}}",
+  "@reviewRemovedItemsSummary": {
+    "description": "Summary shown after deleting queued items whose size is unknown.",
+    "placeholders": {
+      "count": {
+        "example": "24",
+        "type": "int"
+      }
+    }
+  },
   "reviewSuggestions": "Review suggestions",
+  "reviewYouReviewedYear": "You reviewed {year}!",
+  "@reviewYouReviewedYear": {
+    "description": "Shown in place of the month grid once every month of a year is reviewed.",
+    "placeholders": {
+      "year": {
+        "example": "2026",
+        "type": "String"
+      }
+    }
+  },
   "revoke": "Revoke",
   "revokeInvite": "Revoke invite",
   "@revokeInvite": {
@@ -3898,7 +4012,15 @@
   "secretCanNotBeEmpty": "Secret can not be empty",
   "security": "Security",
   "securityDesc": "Encryption, recovery keys, app lock, and account protection",
+  "seeAll": "See all",
+  "@seeAll": {
+    "description": "Expands the collapsed month grid of a fully reviewed year."
+  },
   "seeAllCollections": "All collections",
+  "seeLess": "See less",
+  "@seeLess": {
+    "description": "Collapses the month grid of a fully reviewed year."
+  },
   "seePublicAlbumLinksInApp": "See public album links in app",
   "selectAlbumsToBackUpToEnte": "Select albums to back up to Ente",
   "selectAlbumToLikePhoto": "Select the album to like this photo",
@@ -3992,6 +4114,16 @@
   },
   "selectStartOfRange": "Select start of range",
   "selectTime": "Select time",
+  "selectYear": "Select {year}",
+  "@selectYear": {
+    "description": "Accessibility label of the control that selects every month of a year.",
+    "placeholders": {
+      "year": {
+        "example": "2026",
+        "type": "String"
+      }
+    }
+  },
   "selectYourFace": "Select your face",
   "selfiesWithThem": "Selfies with {name}",
   "@selfiesWithThem": {
@@ -4382,6 +4514,14 @@
   "sunrise": "On the horizon",
   "support": "Support",
   "supportEnte": "Support <bold-green>ente</bold-green>",
+  "swipeLeftToDelete": "Swipe left to delete",
+  "@swipeLeftToDelete": {
+    "description": "Coach mark shown the first time a month is reviewed."
+  },
+  "swipeRightToKeep": "Swipe right to keep",
+  "@swipeRightToKeep": {
+    "description": "Coach mark shown the first time a month is reviewed."
+  },
   "syncing": "Syncing...",
   "syncProgress": "{completed}/{total} memories preserved",
   "@syncProgress": {
