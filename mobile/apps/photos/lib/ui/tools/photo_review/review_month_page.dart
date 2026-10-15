@@ -43,6 +43,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   static const _undoButtonSize = 46.0;
   static const _actionButtonSpacing = 40.0;
   static const _bottomActionInset = 25.0;
+  static const _queueTileExtent = 120.0;
 
   final _service = PhotoReviewService.instance;
   final _stackController = ReviewSwipeStackController();
@@ -331,10 +332,123 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     final colors = context.componentColors;
     final l10n = context.strings;
     final queuedCount = _queued.length;
-    final bottomInset = math.max(
-      MediaQuery.paddingOf(context).bottom,
-      _bottomActionInset,
+    final padding = MediaQuery.paddingOf(context);
+    final landscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final actions = [
+      _RoundActionButton(
+        size: _actionButtonSize,
+        background: colors.fillBase,
+        tooltip: l10n.delete,
+        icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedDelete01,
+          size: 28,
+          strokeWidth: 2.117,
+          color: colors.textReverse,
+        ),
+        onTap: () =>
+            unawaited(_stackController.swipe(ReviewSwipeDirection.left)),
+      ),
+      _RoundActionButton(
+        size: _undoButtonSize,
+        background: colors.fillLight,
+        tooltip: l10n.undo,
+        enabled: _history.isNotEmpty,
+        icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedUndo03,
+          size: 21.135,
+          strokeWidth: 1.554,
+          color: colors.textBase,
+        ),
+        onTap: _undo,
+      ),
+      _RoundActionButton(
+        size: _actionButtonSize,
+        background: colors.primary,
+        tooltip: l10n.keep,
+        icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedTick02,
+          size: 28,
+          strokeWidth: 2.117,
+          color: colors.specialWhite,
+        ),
+        onTap: () =>
+            unawaited(_stackController.swipe(ReviewSwipeDirection.right)),
+      ),
+    ];
+    final deck = Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.lg,
+            Spacing.sm,
+            Spacing.lg,
+            0,
+          ),
+          child: _ProgressHeader(reviewed: _decidedCount, total: _files.length),
+        ),
+        const SizedBox(height: 9),
+        Expanded(
+          child: ReviewSwipeStack(
+            files: _undecided,
+            controller: _stackController,
+            onSwiped: _onSwiped,
+            onCardTap: (file) => _openViewer(_undecided, file),
+            isFavorite: (file) =>
+                FavoritesService.instance.isFavoriteCache(file),
+          ),
+        ),
+      ],
     );
+    final Widget body;
+    if (landscape) {
+      final bottom = math.max(padding.bottom, Spacing.xl);
+      body = Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(bottom: bottom),
+            child: deck,
+          ),
+          Positioned(
+            top: Spacing.sm,
+            bottom: bottom,
+            right: math.max(padding.right, Spacing.xl),
+            width: _actionButtonSize,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final action in actions.reversed) ...[
+                    if (action != actions.last)
+                      const SizedBox(height: Spacing.xl),
+                    action,
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      body = Column(
+        children: [
+          Expanded(child: deck),
+          const SizedBox(height: Spacing.xl),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (final action in actions) ...[
+                if (action != actions.first)
+                  const SizedBox(width: _actionButtonSpacing),
+                action,
+              ],
+            ],
+          ),
+          SizedBox(height: math.max(padding.bottom, _bottomActionInset)),
+        ],
+      );
+    }
     return AppBarComponent(
       title: title,
       physics: const NeverScrollableScrollPhysics(),
@@ -362,93 +476,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       ],
       slivers: [
         SliverFillRemaining(
-          child: !_loaded
-              ? const Center(child: LoadingComponent())
-              : Stack(
-                  children: [
-                    Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            Spacing.lg,
-                            Spacing.sm,
-                            Spacing.lg,
-                            0,
-                          ),
-                          child: _ProgressHeader(
-                            reviewed: _decidedCount,
-                            total: _files.length,
-                          ),
-                        ),
-                        const SizedBox(height: 9),
-                        Expanded(
-                          child: ReviewSwipeStack(
-                            files: _undecided,
-                            controller: _stackController,
-                            onSwiped: _onSwiped,
-                            onCardTap: (file) => _openViewer(_undecided, file),
-                            isFavorite: (file) =>
-                                FavoritesService.instance.isFavoriteCache(file),
-                          ),
-                        ),
-                        const SizedBox(height: Spacing.xl),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _RoundActionButton(
-                              size: _actionButtonSize,
-                              background: colors.fillBase,
-                              tooltip: l10n.delete,
-                              icon: HugeIcon(
-                                icon: HugeIcons.strokeRoundedDelete01,
-                                size: 28,
-                                strokeWidth: 2.117,
-                                color: colors.textReverse,
-                              ),
-                              onTap: () => unawaited(
-                                _stackController.swipe(
-                                  ReviewSwipeDirection.left,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: _actionButtonSpacing),
-                            _RoundActionButton(
-                              size: _undoButtonSize,
-                              background: colors.fillLight,
-                              tooltip: l10n.undo,
-                              enabled: _history.isNotEmpty,
-                              icon: HugeIcon(
-                                icon: HugeIcons.strokeRoundedUndo03,
-                                size: 21.135,
-                                strokeWidth: 1.554,
-                                color: colors.textBase,
-                              ),
-                              onTap: _undo,
-                            ),
-                            const SizedBox(width: _actionButtonSpacing),
-                            _RoundActionButton(
-                              size: _actionButtonSize,
-                              background: colors.primary,
-                              tooltip: l10n.keep,
-                              icon: HugeIcon(
-                                icon: HugeIcons.strokeRoundedTick02,
-                                size: 28,
-                                strokeWidth: 2.117,
-                                color: colors.specialWhite,
-                              ),
-                              onTap: () => unawaited(
-                                _stackController.swipe(
-                                  ReviewSwipeDirection.right,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: bottomInset),
-                      ],
-                    ),
-                  ],
-                ),
+          child: !_loaded ? const Center(child: LoadingComponent()) : body,
         ),
       ],
     );
@@ -476,8 +504,8 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
                   Spacing.xl,
                 ),
                 sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: _queueTileExtent,
                     mainAxisSpacing: Spacing.lg,
                     crossAxisSpacing: 10,
                   ),

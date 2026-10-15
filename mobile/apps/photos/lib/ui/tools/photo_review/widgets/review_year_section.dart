@@ -26,7 +26,13 @@ class ReviewYearSection extends StatelessWidget {
   static const double _slotWidth = 90.205;
   static const double _slotHeight = 124.927;
   static const double _rowSpacing = 32;
+  static const double _minSlotGap = 12;
   static const double _tiltDegrees = 2;
+
+  static int _slotsPerRow(double width) {
+    final usable = width - Spacing.sm * 2 + _minSlotGap;
+    return math.max(1, (usable / (_slotWidth + _minSlotGap)).floor());
+  }
 
   final ReviewYearSummary year;
   final Set<ReviewMonthKey> selectedMonths;
@@ -101,21 +107,40 @@ class ReviewYearSection extends StatelessWidget {
             onSeeAll: () => onExpandedChanged(true),
           )
         else ...[
-          for (var start = 0; start < year.months.length; start += 3) ...[
-            if (start > 0) const SizedBox(height: _rowSpacing),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final perRow = _slotsPerRow(constraints.maxWidth);
+              return Column(
                 children: [
-                  for (var index = start; index < start + 3; index++)
-                    index < year.months.length
-                        ? _monthSlot(context, year.months[index], index)
-                        : const SizedBox(width: _slotWidth),
+                  for (
+                    var start = 0;
+                    start < year.months.length;
+                    start += perRow
+                  ) ...[
+                    if (start > 0) const SizedBox(height: _rowSpacing),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.sm,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          for (
+                            var index = start;
+                            index < start + perRow;
+                            index++
+                          )
+                            index < year.months.length
+                                ? _monthSlot(context, year.months[index], index)
+                                : const SizedBox(width: _slotWidth),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
-              ),
-            ),
-          ],
+              );
+            },
+          ),
           if (completed) ...[
             const SizedBox(height: Spacing.xl),
             Center(

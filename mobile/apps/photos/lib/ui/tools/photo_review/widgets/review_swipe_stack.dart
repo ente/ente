@@ -58,6 +58,7 @@ class ReviewSwipeStack extends StatefulWidget {
   static const double _backCardScale = 273 / 312.9;
   static const double _backCardShift = 23;
   static const double _backCardTilt = 4.06;
+  static const double _minCardWidth = 80;
   static const double _cardRadius = 21;
   static const double _cardBorder = 4.2;
   static const double _maxTiltDegrees = 12;
@@ -200,7 +201,7 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
               (constraints.maxHeight - ReviewSwipeStack.backCardPeek) *
                   ReviewSwipeStack.aspectRatio,
             )
-            .clamp(120.0, double.infinity);
+            .clamp(ReviewSwipeStack._minCardWidth, double.infinity);
         _cardSize = Size(width, width / ReviewSwipeStack.aspectRatio);
         final files = widget.files.take(3).toList();
         final glow =
