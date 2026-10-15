@@ -41,6 +41,8 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   final Set<ReviewMonthKey> _selected = {};
   final Set<int> _expandedYears = {};
   bool _selectionMode = false;
+  final _selectionBarKey = GlobalKey();
+  double _selectionBarHeight = 0;
   int _loadGeneration = 0;
   bool _covered = false;
   bool _reloadWhenUncovered = false;
@@ -91,6 +93,15 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
     _reviewSubscription.cancel();
     _reloadDebouncer.cancelDebounceTimer();
     super.dispose();
+  }
+
+  void _measureSelectionBar(Duration _) {
+    final box =
+        _selectionBarKey.currentContext?.findRenderObject() as RenderBox?;
+    final height = box?.size.height ?? 0;
+    if (mounted && height != _selectionBarHeight) {
+      setState(() => _selectionBarHeight = height);
+    }
   }
 
   void _scheduleReload({required bool debounce}) {
@@ -197,6 +208,7 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback(_measureSelectionBar);
     final colors = context.componentColors;
     final l10n = context.strings;
     final overview = _overview;
@@ -263,7 +275,9 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
                         _horizontalPadding,
                         Spacing.xxl,
                         _horizontalPadding,
-                        _selectionMode ? 200 : Spacing.xxl,
+                        _selectionMode
+                            ? _selectionBarHeight + Spacing.xxl
+                            : Spacing.xxl,
                       ),
                       sliver: SliverList.list(
                         children: [
@@ -309,6 +323,7 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
                 child: IgnorePointer(
                   ignoring: !_selectionMode,
                   child: ReviewSelectionBar(
+                    key: _selectionBarKey,
                     selectedCount: _selected.length,
                     allSelected: allSelected,
                     onSelectAll: () {
