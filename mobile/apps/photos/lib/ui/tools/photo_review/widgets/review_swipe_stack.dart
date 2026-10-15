@@ -1,7 +1,7 @@
 import "dart:async";
 import "dart:math" as math;
 
-import "package:ente_components/ente_components.dart" hide strokeFaintDark;
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -11,7 +11,6 @@ import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
-import "package:photos/theme/colors.dart" show strokeFaintDark;
 import "package:photos/ui/viewer/file/file_icons_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
@@ -31,8 +30,14 @@ class ReviewSwipeStackController {
 
   bool get isSwipingOut => _state?._flying ?? false;
 
+  bool get isDragging => _state?._dragging ?? false;
+
   Future<void> swipe(ReviewSwipeDirection direction) async {
     await _state?._flyOut(direction);
+  }
+
+  void _detach(_ReviewSwipeStackState state) {
+    if (identical(_state, state)) _state = null;
   }
 
   void revealFromSide(ReviewSwipeDirection direction) {
@@ -109,14 +114,14 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
   void didUpdateWidget(covariant ReviewSwipeStack oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller._state = null;
+      oldWidget.controller._detach(this);
       widget.controller._state = this;
     }
   }
 
   @override
   void dispose() {
-    widget.controller._state = null;
+    widget.controller._detach(this);
     _animation.dispose();
     super.dispose();
   }
@@ -291,13 +296,15 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
       ..scaleByDouble(scale, scale, 1, 1)
       ..translateByDouble(-_cardSize.width / 2, -_cardSize.height / 2, 0, 1);
 
-    final card = _ReviewCard(
-      file: file,
-      size: _cardSize,
-      radius: ReviewSwipeStack._cardRadius,
-      border: ReviewSwipeStack._cardBorder,
-      isFavorite: widget.isFavorite(file),
-      onTap: isTop ? () => widget.onCardTap(file) : null,
+    final card = RepaintBoundary(
+      child: _ReviewCard(
+        file: file,
+        size: _cardSize,
+        radius: ReviewSwipeStack._cardRadius,
+        border: ReviewSwipeStack._cardBorder,
+        isFavorite: widget.isFavorite(file),
+        onTap: isTop ? () => widget.onCardTap(file) : null,
+      ),
     );
 
     return Positioned(
@@ -444,7 +451,10 @@ class _VideoIndicator extends StatelessWidget {
           decoration: BoxDecoration(
             color: colors.specialScrim,
             shape: BoxShape.circle,
-            border: Border.all(color: strokeFaintDark, width: 1),
+            border: Border.all(
+              color: colors.specialWhite.withValues(alpha: 0.16),
+              width: 1,
+            ),
           ),
           child: HugeIcon(
             icon: HugeIcons.strokeRoundedPlay,
