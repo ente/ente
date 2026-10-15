@@ -65,6 +65,8 @@ class ReviewSwipeStack extends StatefulWidget {
   static const double _swipeFraction = 0.3;
   static const double _glowFraction = 0.21;
   static const double _flingVelocity = 800;
+  static const double _verticalDamping = 0.2;
+  static const double _maxVerticalDrift = 24;
 
   final List<EnteFile> files;
   final ReviewSwipeStackController controller;
@@ -136,10 +138,7 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
     final file = widget.files.first;
     _flying = true;
     final width = MediaQuery.sizeOf(context).width;
-    final target = Offset(
-      direction.sign * (width + _cardSize.width),
-      _drag.dy.clamp(-40, 40),
-    );
+    final target = Offset(direction.sign * (width + _cardSize.width), _drag.dy);
     unawaited(HapticFeedback.mediumImpact());
     await _animateTo(target, curve: Curves.easeIn);
     if (!mounted) return;
@@ -167,7 +166,17 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
 
   void _onPanUpdate(DragUpdateDetails details) {
     if (!_dragging) return;
-    setState(() => _drag += details.delta);
+    setState(() {
+      final dy =
+          _drag.dy + details.delta.dy * ReviewSwipeStack._verticalDamping;
+      _drag = Offset(
+        _drag.dx + details.delta.dx,
+        dy.clamp(
+          -ReviewSwipeStack._maxVerticalDrift,
+          ReviewSwipeStack._maxVerticalDrift,
+        ),
+      );
+    });
     final crossed = _drag.dx.abs() >= _threshold;
     if (crossed != _crossedThreshold) {
       _crossedThreshold = crossed;
