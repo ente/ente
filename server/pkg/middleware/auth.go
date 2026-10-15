@@ -123,6 +123,21 @@ func RejectAuthApp() gin.HandlerFunc {
 	}
 }
 
+func RequireAuthApp() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		app, ok := auth.GetAuthenticatedApp(c)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing authenticated app"})
+			return
+		}
+		if app != ente.Auth {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "invalid app for endpoint"})
+			return
+		}
+		c.Next()
+	}
+}
+
 // NOTE: Should be added after TokenAuthMiddleware middleware
 func (m *AuthMiddleware) AdminAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
