@@ -115,7 +115,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           ]);
         if (resetView ||
             (_view == _ReviewMonthView.queue && _queued.isEmpty) ||
-            (_view == _ReviewMonthView.swipe && _undecided.isEmpty)) {
+            (_view == _ReviewMonthView.swipe && !_canSwipe)) {
           _view = _resolveView();
         }
       });
@@ -150,14 +150,13 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       );
   }
 
+  bool get _canSwipe =>
+      _undecided.isNotEmpty && !(_record?.markedReviewed ?? false);
+
   _ReviewMonthView _resolveView() {
-    if (_queued.isNotEmpty && _undecided.isEmpty) {
-      return _ReviewMonthView.queue;
-    }
-    if (_undecided.isEmpty || (_record?.markedReviewed ?? false)) {
-      return _ReviewMonthView.done;
-    }
-    return _ReviewMonthView.swipe;
+    if (_canSwipe) return _ReviewMonthView.swipe;
+    if (_queued.isNotEmpty) return _ReviewMonthView.queue;
+    return _ReviewMonthView.done;
   }
 
   List<EnteFile> get _queued => [
@@ -173,7 +172,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       _decisions[PhotoReviewService.fileKey(file)] = direction.decision;
       _undecided.remove(file);
       _history.add((file, direction));
-      if (_undecided.isEmpty) _view = _resolveView();
+      if (!_canSwipe) _view = _resolveView();
     });
     _write(
       "record decision",
@@ -309,8 +308,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     final colors = context.componentColors;
     final locale = Localizations.localeOf(context).toString();
     final title = DateFormat.yMMMM(locale).format(widget.monthKey.start);
-    final canReturnToSwipe =
-        _view == _ReviewMonthView.queue && _undecided.isNotEmpty;
+    final canReturnToSwipe = _view == _ReviewMonthView.queue && _canSwipe;
     return PopScope(
       canPop: !canReturnToSwipe,
       onPopInvokedWithResult: (didPop, _) {
@@ -491,9 +489,9 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           child: AppBarComponent(
             title: title,
             subtitle: l10n.itemsQueuedForDeletion,
-            onBack: _undecided.isEmpty
-                ? null
-                : () => setState(() => _view = _ReviewMonthView.swipe),
+            onBack: _canSwipe
+                ? () => setState(() => _view = _ReviewMonthView.swipe)
+                : null,
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
