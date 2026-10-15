@@ -293,6 +293,7 @@ flutter:
     - assets/icons/
     - assets/icons/nav_bar/
     - assets/launcher_icon/
+    - assets/photo_review/
   fonts:
     # TODO: Migrate legacy Photos text styles to ente_components fonts, then
     # remove this app-local Inter declaration.
