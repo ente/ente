@@ -18,7 +18,6 @@ import "package:photos/models/photo_review/photo_review_models.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/favorites_service.dart";
 import "package:photos/services/photo_review/photo_review_service.dart";
-import "package:photos/ui/tools/photo_review/widgets/review_swipe_coach.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_swipe_stack.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
@@ -59,7 +58,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   bool _loaded = false;
   bool _deleting = false;
   _ReviewMonthView _view = _ReviewMonthView.swipe;
-  ReviewSwipeDirection? _coachDirection;
 
   @override
   void initState() {
@@ -116,11 +114,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           _view = _resolveView();
         }
       });
-      if (_view == _ReviewMonthView.swipe &&
-          _coachDirection == null &&
-          !localSettings.hasShownPhotoReviewSwipeCoach()) {
-        _startCoach();
-      }
     } catch (e, s) {
       _logger.severe("Failed to load month ${widget.monthKey}", e, s);
       if (!mounted) return;
@@ -170,31 +163,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
 
   int get _decidedCount => _files.length - _undecided.length;
 
-  void _startCoach() {
-    setState(() => _coachDirection = ReviewSwipeDirection.right);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _stackController.showCoach(_coachDirection);
-    });
-  }
-
-  void _advanceCoach() {
-    if (_coachDirection == ReviewSwipeDirection.right) {
-      setState(() => _coachDirection = ReviewSwipeDirection.left);
-      _stackController.showCoach(_coachDirection);
-      return;
-    }
-    _endCoach();
-  }
-
-  void _endCoach({bool resetCard = true}) {
-    if (_coachDirection == null) return;
-    setState(() => _coachDirection = null);
-    if (resetCard) _stackController.showCoach(null);
-    unawaited(localSettings.setPhotoReviewSwipeCoachShown());
-  }
-
   Future<void> _onSwiped(EnteFile file, ReviewSwipeDirection direction) async {
-    _endCoach(resetCard: false);
     setState(() {
       _decisions[PhotoReviewService.fileKey(file)] = direction.decision;
       _undecided.remove(file);
@@ -415,7 +384,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
                             onCardTap: (file) => _openViewer(_undecided, file),
                             isFavorite: (file) =>
                                 FavoritesService.instance.isFavoriteCache(file),
-                            onDragStarted: _endCoach,
                           ),
                         ),
                         const SizedBox(height: Spacing.xl),
@@ -474,15 +442,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
                         SizedBox(height: bottomInset),
                       ],
                     ),
-                    if (_coachDirection != null)
-                      Positioned.fill(
-                        child: ReviewSwipeCoach(
-                          direction: _coachDirection!,
-                          bottomInset:
-                              bottomInset + _actionButtonSize + Spacing.xl,
-                          onTap: _advanceCoach,
-                        ),
-                      ),
                   ],
                 ),
         ),

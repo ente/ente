@@ -34,10 +34,6 @@ class ReviewSwipeStackController {
   void revealFromSide(ReviewSwipeDirection direction) {
     _state?._revealFromSide(direction);
   }
-
-  void showCoach(ReviewSwipeDirection? direction) {
-    _state?._showCoach(direction);
-  }
 }
 
 // Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/ENTE-VISUAL-DESIGN?node-id=19387-61669&m=dev
@@ -48,7 +44,6 @@ class ReviewSwipeStack extends StatefulWidget {
     required this.onSwiped,
     required this.onCardTap,
     required this.isFavorite,
-    required this.onDragStarted,
     super.key,
   });
 
@@ -63,7 +58,6 @@ class ReviewSwipeStack extends StatefulWidget {
   static const double _cardBorder = 4.2;
   static const double _maxTiltDegrees = 12;
   static const double _swipeFraction = 0.3;
-  static const double _coachFraction = 0.25;
   static const double _glowFraction = 0.21;
   static const double _flingVelocity = 800;
 
@@ -73,7 +67,6 @@ class ReviewSwipeStack extends StatefulWidget {
   onSwiped;
   final ValueChanged<EnteFile> onCardTap;
   final bool Function(EnteFile file) isFavorite;
-  final VoidCallback onDragStarted;
 
   @override
   State<ReviewSwipeStack> createState() => _ReviewSwipeStackState();
@@ -159,24 +152,12 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
     unawaited(_animateTo(Offset.zero));
   }
 
-  void _showCoach(ReviewSwipeDirection? direction) {
-    if (!mounted || _dragging || _flying) return;
-    final target = direction == null
-        ? Offset.zero
-        : Offset(
-            direction.sign * _cardSize.width * ReviewSwipeStack._coachFraction,
-            0,
-          );
-    unawaited(_animateTo(target));
-  }
-
   void _onPanStart(DragStartDetails details) {
     if (_flying) return;
     _animation.stop();
     _tween = null;
     _dragging = true;
     _crossedThreshold = false;
-    widget.onDragStarted();
   }
 
   void _onPanUpdate(DragUpdateDetails details) {

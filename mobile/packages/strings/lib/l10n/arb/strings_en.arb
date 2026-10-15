@@ -4514,14 +4514,6 @@
   "sunrise": "On the horizon",
   "support": "Support",
   "supportEnte": "Support <bold-green>ente</bold-green>",
-  "swipeLeftToDelete": "Swipe left to delete",
-  "@swipeLeftToDelete": {
-    "description": "Coach mark shown the first time a month is reviewed."
-  },
-  "swipeRightToKeep": "Swipe right to keep",
-  "@swipeRightToKeep": {
-    "description": "Coach mark shown the first time a month is reviewed."
-  },
   "syncing": "Syncing...",
   "syncProgress": "{completed}/{total} memories preserved",
   "@syncProgress": {

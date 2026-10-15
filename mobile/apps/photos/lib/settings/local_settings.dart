@@ -118,8 +118,6 @@ class LocalSettings {
       "media_management_hint_delete_attempts";
   static const _kMediaManagementHintDismissedAt =
       "media_management_hint_dismissed_at";
-  static const _kPhotoReviewSwipeCoachShown =
-      "ls.photo_review_swipe_coach_shown";
   static const _kIsFromLocalGalleryToEnte =
       "ls.pending_backup_selection_from_local_import";
 
@@ -767,14 +765,6 @@ class LocalSettings {
     } else {
       await _prefs.setString(_kDeletePreference, preference._serializedValue);
     }
-  }
-
-  bool hasShownPhotoReviewSwipeCoach() {
-    return _prefs.getBool(_kPhotoReviewSwipeCoachShown) ?? false;
-  }
-
-  Future<void> setPhotoReviewSwipeCoachShown() async {
-    await _prefs.setBool(_kPhotoReviewSwipeCoachShown, true);
   }
 
   Future<void> setCraftingMemoriesBannerDismissed() async {
