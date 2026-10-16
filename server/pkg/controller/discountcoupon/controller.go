@@ -200,7 +200,7 @@ func (c *Controller) AddCoupons(ctx *gin.Context, req AddCouponsRequest) error {
 	if len(validCodes) == 0 {
 		return nil
 	}
-	err := c.Repo.AddCoupons(ctx, req.ProviderName, req.Codes)
+	err := c.Repo.AddCoupons(ctx, req.ProviderName, validCodes)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to add coupons")
 	}
