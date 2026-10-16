@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:io";
 import "dart:math" as math;
 
+import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -143,12 +144,21 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   void _onFilesUpdated(FilesUpdatedEvent event) {
     if (!_loaded || _deleting) return;
     final affected = event.type == EventType.addedOrUpdated
-        ? event.updatedFiles.any((file) => _isLoaded(file) != _isInMonth(file))
-        : event.updatedFiles.any((file) => _isLoaded(file) || _isInMonth(file));
+        ? event.updatedFiles.any(_outdatesDeck)
+        : event.updatedFiles.any(
+            (file) => _loadedFile(file) != null || _isInMonth(file),
+          );
     if (affected) unawaited(_load(resetView: false));
   }
 
-  bool _isLoaded(EnteFile file) => _files.any(
+  bool _outdatesDeck(EnteFile file) {
+    final loaded = _loadedFile(file);
+    if (loaded == null) return _isInMonth(file);
+    if (!_isInMonth(file)) return true;
+    return loaded.uploadedFileID == null && file.uploadedFileID != null;
+  }
+
+  EnteFile? _loadedFile(EnteFile file) => _files.firstWhereOrNull(
     (loaded) =>
         (file.generatedID != null && loaded.generatedID == file.generatedID) ||
         (file.uploadedFileID != null &&
