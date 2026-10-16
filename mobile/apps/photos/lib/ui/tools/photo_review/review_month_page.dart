@@ -200,7 +200,9 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
 
   int get _decidedCount => _files.length - _undecided.length;
 
-  Future<void> _onSwiped(EnteFile file, ReviewSwipeDirection direction) async {
+  Future<void> _onSwiped(EnteFile swiped, ReviewSwipeDirection direction) async {
+    final file = _loadedFile(swiped);
+    if (file == null) return;
     setState(() {
       _decisions[PhotoReviewService.fileKey(file)] = direction.decision;
       _undecided.remove(file);
