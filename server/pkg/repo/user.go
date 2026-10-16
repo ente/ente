@@ -474,7 +474,7 @@ func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuot
 
 func (repo *UserRepository) GetUsersWhoUpgradedNDaysAgo(days int) ([]ente.User, error) {
 	rows, err := repo.DB.Query(`
-        SELECT u.user_id, u.encrypted_email, u.email_decryption_nonce, u.email_hash, u.creation_time 
+        SELECT u.user_id, u.encrypted_email, u.email_decryption_nonce, u.email_hash, u.creation_time, u.family_admin_id
         FROM users u
         INNER JOIN subscriptions s ON u.user_id = s.user_id
         WHERE s.upgraded_at >= $1 AND s.upgraded_at < $2 AND u.encrypted_email IS NOT NULL`,
@@ -487,7 +487,7 @@ func (repo *UserRepository) GetUsersWhoUpgradedNDaysAgo(days int) ([]ente.User, 
 	for rows.Next() {
 		var user ente.User
 		var encryptedEmail, nonce []byte
-		err := rows.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.CreationTime)
+		err := rows.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.CreationTime, &user.FamilyAdminID)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
