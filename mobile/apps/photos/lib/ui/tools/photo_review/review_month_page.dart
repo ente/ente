@@ -141,16 +141,26 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   }
 
   void _onFilesUpdated(FilesUpdatedEvent event) {
-    if (!_loaded || _deleting || event.type == EventType.addedOrUpdated) {
-      return;
-    }
-    final changed = event.updatedFiles.map(PhotoReviewService.fileKey).toSet();
-    if (!_files.any(
-      (file) => changed.contains(PhotoReviewService.fileKey(file)),
-    )) {
-      return;
-    }
-    unawaited(_load(resetView: false));
+    if (!_loaded || _deleting) return;
+    final affected = event.type == EventType.addedOrUpdated
+        ? event.updatedFiles.any((file) => _isLoaded(file) != _isInMonth(file))
+        : event.updatedFiles.any((file) => _isLoaded(file) || _isInMonth(file));
+    if (affected) unawaited(_load(resetView: false));
+  }
+
+  bool _isLoaded(EnteFile file) => _files.any(
+    (loaded) =>
+        (file.generatedID != null && loaded.generatedID == file.generatedID) ||
+        (file.uploadedFileID != null &&
+            loaded.uploadedFileID == file.uploadedFileID) ||
+        (file.localID != null && loaded.localID == file.localID),
+  );
+
+  bool _isInMonth(EnteFile file) {
+    final creationTime = file.creationTime;
+    return creationTime != null &&
+        creationTime >= widget.monthKey.startMicros &&
+        creationTime <= widget.monthKey.endMicros;
   }
 
   void _rebuildUndecided() {
