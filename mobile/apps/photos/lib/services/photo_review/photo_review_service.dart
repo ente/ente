@@ -37,14 +37,14 @@ class PhotoReviewService {
     final decisions = await _db.getAllDecisions();
     final months = await _db.getMonthRecords();
     final index = ReviewDecisionIndex(decisions);
-    await _rekeyUploadedFiles(files, index);
+    await _reconcileDecisions(files, index);
     return buildOverview(files, index.records.toList(), months);
   }
 
   Future<ReviewMonthData> loadMonth(ReviewMonthKey key) async {
     final files = await _loadFiles(key.startMicros, key.endMicros);
     final index = ReviewDecisionIndex(await _db.getDecisionsForMonth(key.key));
-    await _rekeyUploadedFiles(files, index);
+    await _reconcileDecisions(files, index);
     final decisions = <String, ReviewDecision>{};
     final undoable = <(EnteFile, ReviewDecisionRecord)>[];
     for (final file in files) {
@@ -145,9 +145,7 @@ class PhotoReviewService {
       var queued = 0;
       for (final file in entry.value) {
         final record = index.lookup(file);
-        if (record == null ||
-            record.monthKey != entry.key.key ||
-            record.decision == ReviewDecision.deleted) {
+        if (record == null || record.decision == ReviewDecision.deleted) {
           continue;
         }
         decided++;
@@ -244,31 +242,35 @@ class PhotoReviewService {
     return result.files;
   }
 
-  Future<void> _rekeyUploadedFiles(
+  Future<void> _reconcileDecisions(
     List<EnteFile> files,
     ReviewDecisionIndex index,
   ) async {
-    final rekeyed = <ReviewDecisionRecord>[];
+    final updated = <ReviewDecisionRecord>[];
     final stale = <String>[];
     for (final file in files) {
       final record = index.lookup(file);
+      final creationTime = file.creationTime;
+      if (record == null || creationTime == null) continue;
       final key = fileKey(file);
-      if (record == null || record.fileKey == key) continue;
-      rekeyed.add(
+      final monthKey = ReviewMonthKey.fromCreationTime(creationTime).key;
+      if (record.fileKey == key && record.monthKey == monthKey) continue;
+      updated.add(
         ReviewDecisionRecord(
           fileKey: key,
           uploadedFileID: file.uploadedFileID,
           localID: file.localID,
-          monthKey: record.monthKey,
+          monthKey: monthKey,
           decision: record.decision,
           updatedAt: record.updatedAt,
         ),
       );
-      stale.add(record.fileKey);
+      if (record.fileKey != key) stale.add(record.fileKey);
     }
-    if (rekeyed.isEmpty) return;
-    await _db.rekeyDecisions(rekeyed, stale);
-    rekeyed.forEach(index.add);
+    if (updated.isEmpty) return;
+    await _db.rekeyDecisions(updated, stale);
+    stale.forEach(index.remove);
+    updated.forEach(index.add);
   }
 
   void _notifyUpdated() {
@@ -309,6 +311,14 @@ class ReviewDecisionIndex {
     final localID = record.localID;
     if (localID != null) {
       _byLocalID[localID] = record;
+    }
+  }
+
+  void remove(String fileKey) {
+    final record = _byFileKey.remove(fileKey);
+    final localID = record?.localID;
+    if (localID != null && identical(_byLocalID[localID], record)) {
+      _byLocalID.remove(localID);
     }
   }
 

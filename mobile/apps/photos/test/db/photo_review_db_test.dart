@@ -124,24 +124,34 @@ void main() {
     },
   );
 
-  test("rekeying moves a decision to its uploaded key unchanged", () async {
+  test("rekeying moves decisions to a new key or month unchanged", () async {
     final db = PhotoReviewDB.instance;
     await db.saveDecisions(
-      [_decision("l:a", "2026-01", ReviewDecision.queued, localID: "a")],
+      [
+        _decision("l:a", "2026-01", ReviewDecision.queued, localID: "a"),
+        _decision("u:8", "2026-01", ReviewDecision.keep),
+      ],
       "2026-01",
       10,
     );
 
     await db.rekeyDecisions(
-      [_decision("u:7", "2026-01", ReviewDecision.queued, localID: "a")],
+      [
+        _decision("u:7", "2026-01", ReviewDecision.queued, localID: "a"),
+        _decision("u:8", "2026-02", ReviewDecision.keep),
+      ],
       ["l:a"],
     );
 
-    final records = await db.getDecisionsForMonth("2026-01");
-    expect(records.map((record) => record.fileKey), ["u:7"]);
-    expect(records.single.decision, ReviewDecision.queued);
-    expect(records.single.updatedAt, 1);
+    final january = await db.getDecisionsForMonth("2026-01");
+    expect(january.map((record) => record.fileKey), ["u:7"]);
+    expect(january.single.decision, ReviewDecision.queued);
+    expect(january.single.updatedAt, 1);
+    final february = await db.getDecisionsForMonth("2026-02");
+    expect(february.map((record) => record.fileKey), ["u:8"]);
+    expect(await db.getAllDecisions(), hasLength(2));
     expect((await db.getMonthRecord("2026-01"))!.updatedAt, 10);
+    expect(await db.getMonthRecord("2026-02"), isNull);
   });
 
   test("resetting a month clears its decisions and month record", () async {

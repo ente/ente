@@ -81,19 +81,6 @@ void main() {
       expect(overview.bannerMonths.map((m) => m.key), [january, february]);
     });
 
-    test("ignores decisions recorded under a different month", () {
-      const january = ReviewMonthKey(2026, 1);
-      const february = ReviewMonthKey(2026, 2);
-      final overview = PhotoReviewService.buildOverview(
-        [_file(uploadedFileID: 1, month: february)],
-        [_record("u:1", uploadedFileID: 1, month: january)],
-        const {},
-      );
-
-      expect(overview.months.single.decidedCount, 0);
-      expect(overview.months.single.state, ReviewMonthState.normal);
-    });
-
     test("marks a month completed when flagged, even with new files", () {
       const january = ReviewMonthKey(2026, 1);
       final overview = PhotoReviewService.buildOverview(
