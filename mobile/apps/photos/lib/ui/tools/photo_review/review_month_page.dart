@@ -57,6 +57,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   int _loadGeneration = 0;
   bool _loaded = false;
   bool _deleting = false;
+  bool _reportingWriteFailure = false;
   _ReviewMonthView _view = _ReviewMonthView.swipe;
 
   @override
@@ -80,7 +81,19 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       StackTrace s,
     ) {
       _logger.severe("Failed to $action", e, s);
+      unawaited(_recoverFromWriteFailure(e));
     });
+  }
+
+  Future<void> _recoverFromWriteFailure(Object error) async {
+    if (!mounted || _reportingWriteFailure) return;
+    _reportingWriteFailure = true;
+    try {
+      await showGenericErrorDialog(context: context, error: error);
+    } finally {
+      _reportingWriteFailure = false;
+    }
+    if (mounted) await _load();
   }
 
   Future<void> _load({bool resetView = true}) async {
