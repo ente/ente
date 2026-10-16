@@ -1,3 +1,4 @@
+import "package:collection/collection.dart";
 import "package:logging/logging.dart";
 import "package:photos/db/common/base.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
@@ -17,6 +18,8 @@ class PhotoReviewDB with SqlDbBase {
   static const columnMarkedReviewed = "marked_reviewed";
   static const columnFreedBytes = "freed_bytes";
   static const columnFreedCount = "freed_count";
+
+  static const _lookupChunkSize = 500;
 
   static final Logger _logger = Logger("PhotoReviewDB");
 
@@ -62,15 +65,28 @@ class PhotoReviewDB with SqlDbBase {
     return rows.map(_decisionFromRow).toList();
   }
 
-  Future<List<ReviewDecisionRecord>> getDecisionsForMonth(
-    String monthKey,
+  Future<List<ReviewDecisionRecord>> getDecisionsForFiles(
+    List<String> fileKeys,
+    List<String> localIDs,
   ) async {
     final db = await database;
-    final rows = await db.getAll(
-      "SELECT * FROM $decisionsTable WHERE $columnMonthKey = ?",
-      [monthKey],
-    );
-    return rows.map(_decisionFromRow).toList();
+    return db.readTransaction((tx) async {
+      final records = <ReviewDecisionRecord>[];
+      for (final (column, values) in [
+        (columnFileKey, fileKeys),
+        (columnLocalID, localIDs),
+      ]) {
+        for (final chunk in values.slices(_lookupChunkSize)) {
+          final placeholders = List.filled(chunk.length, "?").join(",");
+          final rows = await tx.getAll(
+            "SELECT * FROM $decisionsTable WHERE $column IN ($placeholders)",
+            chunk,
+          );
+          records.addAll(rows.map(_decisionFromRow));
+        }
+      }
+      return records;
+    });
   }
 
   Future<Map<String, ReviewMonthRecord>> getMonthRecords() async {

@@ -43,7 +43,7 @@ void main() {
       12,
     );
 
-    final january = await db.getDecisionsForMonth("2026-01");
+    final january = await _forMonth(db, "2026-01");
     expect(january, hasLength(2));
     expect(
       january.singleWhere((record) => record.fileKey == "u:1").decision,
@@ -55,6 +55,27 @@ void main() {
     );
     expect(await db.getAllDecisions(), hasLength(3));
     expect((await db.getMonthRecord("2026-01"))!.updatedAt, 12);
+  });
+
+  test("looks up decisions by file key or local ID across months", () async {
+    final db = PhotoReviewDB.instance;
+    await db.saveDecisions(
+      [
+        _decision("u:1", "2026-01", ReviewDecision.keep, localID: "a"),
+        _decision("l:b", "2026-01", ReviewDecision.queued, localID: "b"),
+      ],
+      "2026-01",
+      10,
+    );
+    await db.saveDecisions(
+      [_decision("u:3", "2026-02", ReviewDecision.keep)],
+      "2026-02",
+      11,
+    );
+
+    final records = await db.getDecisionsForFiles(["u:3", "u:9"], ["b"]);
+    expect(records.map((record) => record.fileKey).toSet(), {"u:3", "l:b"});
+    expect(await db.getDecisionsForFiles([], []), isEmpty);
   });
 
   test("deleting a decision also removes rows matched by local ID", () async {
@@ -71,12 +92,12 @@ void main() {
 
     await db.deleteDecision("l:a", "a", "2026-01", 20);
 
-    final remaining = await db.getDecisionsForMonth("2026-01");
+    final remaining = await _forMonth(db, "2026-01");
     expect(remaining.map((record) => record.fileKey), ["u:2"]);
     expect((await db.getMonthRecord("2026-01"))!.updatedAt, 20);
 
     await db.deleteDecision("u:2", null, "2026-01", 30);
-    expect(await db.getDecisionsForMonth("2026-01"), isEmpty);
+    expect(await _forMonth(db, "2026-01"), isEmpty);
   });
 
   test(
@@ -143,11 +164,11 @@ void main() {
       ["l:a"],
     );
 
-    final january = await db.getDecisionsForMonth("2026-01");
+    final january = await _forMonth(db, "2026-01");
     expect(january.map((record) => record.fileKey), ["u:7"]);
     expect(january.single.decision, ReviewDecision.queued);
     expect(january.single.updatedAt, 1);
-    final february = await db.getDecisionsForMonth("2026-02");
+    final february = await _forMonth(db, "2026-02");
     expect(february.map((record) => record.fileKey), ["u:8"]);
     expect(await db.getAllDecisions(), hasLength(2));
     expect((await db.getMonthRecord("2026-01"))!.updatedAt, 10);
@@ -170,11 +191,19 @@ void main() {
 
     await db.resetMonths(["2026-01"]);
 
-    expect(await db.getDecisionsForMonth("2026-01"), isEmpty);
+    expect(await _forMonth(db, "2026-01"), isEmpty);
     expect(await db.getMonthRecord("2026-01"), isNull);
-    expect(await db.getDecisionsForMonth("2026-02"), hasLength(1));
+    expect(await _forMonth(db, "2026-02"), hasLength(1));
     expect((await db.getMonthRecords()).keys, ["2026-02"]);
   });
+}
+
+Future<List<ReviewDecisionRecord>> _forMonth(
+  PhotoReviewDB db,
+  String monthKey,
+) async {
+  final records = await db.getAllDecisions();
+  return records.where((record) => record.monthKey == monthKey).toList();
 }
 
 ReviewDecisionRecord _decision(

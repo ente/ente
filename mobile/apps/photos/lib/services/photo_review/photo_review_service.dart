@@ -43,7 +43,11 @@ class PhotoReviewService {
 
   Future<ReviewMonthData> loadMonth(ReviewMonthKey key) async {
     final files = await _loadFiles(key.startMicros, key.endMicros);
-    final index = ReviewDecisionIndex(await _db.getDecisionsForMonth(key.key));
+    final index = ReviewDecisionIndex(
+      await _db.getDecisionsForFiles(files.map(fileKey).toList(), [
+        for (final file in files) ?file.localID,
+      ]),
+    );
     await _reconcileDecisions(files, index);
     final decisions = <String, ReviewDecision>{};
     final undoable = <(EnteFile, ReviewDecisionRecord)>[];
