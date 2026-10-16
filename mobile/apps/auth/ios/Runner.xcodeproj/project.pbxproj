@@ -14,6 +14,31 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		EA5700000000000000000002 /* Base32.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000001 /* Base32.swift */; };
+		EA5700000000000000000004 /* SecretBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000003 /* SecretBuffer.swift */; };
+		EA5700000000000000000006 /* TOTPCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000005 /* TOTPCalculator.swift */; };
+		EA5700000000000000000008 /* WatchKeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000007 /* WatchKeychainManager.swift */; };
+		EA570000000000000000000A /* WatchSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000009 /* WatchSessionManager.swift */; };
+		EA570000000000000000000C /* WatchToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA570000000000000000000B /* WatchToken.swift */; };
+		EA570000000000000000000E /* CodeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA570000000000000000000D /* CodeFormatting.swift */; };
+		EA5700000000000000000010 /* EnteAuthWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA570000000000000000000F /* EnteAuthWatchApp.swift */; };
+		EA5700000000000000000012 /* IssuerAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000011 /* IssuerAvatarView.swift */; };
+		EA5700000000000000000014 /* PeriodProgressRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000013 /* PeriodProgressRing.swift */; };
+		EA5700000000000000000016 /* TokenListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000015 /* TokenListView.swift */; };
+		EA5700000000000000000018 /* TokenRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000017 /* TokenRowView.swift */; };
+		EA570000000000000000001A /* WatchDisplayPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000019 /* WatchDisplayPreference.swift */; };
+		EA570000000000000000001C /* CryptoEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA570000000000000000001B /* CryptoEngineTests.swift */; };
+		EA570000000000000000001E /* WatchSessionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA570000000000000000001D /* WatchSessionManagerTests.swift */; };
+		EA5700000000000000000042 /* EnteWatchTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000041 /* EnteWatchTheme.swift */; };
+		EA5700000000000000000044 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000043 /* Assets.xcassets */; };
+		EA5700000000000000000048 /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000047 /* Inter-Bold.ttf */; };
+		EA570000000000000000004A /* Inter-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000049 /* Inter-Medium.ttf */; };
+		EA5700000000000000000050 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000051 /* Inter-Regular.ttf */; };
+		EA5700000000000000000052 /* Inter-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000053 /* Inter-SemiBold.ttf */; };
+		EA5700000000000000000046 /* WatchPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000045 /* WatchPresentationTests.swift */; };
+		EA5700000000000000000020 /* EnteWatchBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA570000000000000000001F /* EnteWatchBridgePlugin.swift */; };
+		EA5700000000000000000023 /* EnteAuthWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000021 /* EnteAuthWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EA5700000000000000000061 /* CopySwipeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5700000000000000000060 /* CopySwipeUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -27,8 +52,148 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+
+		EA5700000000000000000024 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA5700000000000000000002 /* Base32.swift in Sources */,
+				EA5700000000000000000004 /* SecretBuffer.swift in Sources */,
+				EA5700000000000000000006 /* TOTPCalculator.swift in Sources */,
+				EA5700000000000000000008 /* WatchKeychainManager.swift in Sources */,
+				EA570000000000000000000A /* WatchSessionManager.swift in Sources */,
+				EA570000000000000000000C /* WatchToken.swift in Sources */,
+				EA570000000000000000000E /* CodeFormatting.swift in Sources */,
+				EA5700000000000000000010 /* EnteAuthWatchApp.swift in Sources */,
+				EA5700000000000000000012 /* IssuerAvatarView.swift in Sources */,
+				EA5700000000000000000014 /* PeriodProgressRing.swift in Sources */,
+				EA5700000000000000000016 /* TokenListView.swift in Sources */,
+				EA5700000000000000000018 /* TokenRowView.swift in Sources */,
+				EA570000000000000000001A /* WatchDisplayPreference.swift in Sources */,
+				EA5700000000000000000042 /* EnteWatchTheme.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA5700000000000000000027 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA570000000000000000001C /* CryptoEngineTests.swift in Sources */,
+				EA570000000000000000001E /* WatchSessionManagerTests.swift in Sources */,
+				EA5700000000000000000046 /* WatchPresentationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA5700000000000000000025 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA5700000000000000000028 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA5700000000000000000026 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA5700000000000000000044 /* Assets.xcassets in Resources */,
+				EA5700000000000000000048 /* Inter-Bold.ttf in Resources */,
+				EA570000000000000000004A /* Inter-Medium.ttf in Resources */,
+				EA5700000000000000000050 /* Inter-Regular.ttf in Resources */,
+				EA5700000000000000000052 /* Inter-SemiBold.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA5700000000000000000029 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA5700000000000000000063 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA5700000000000000000061 /* CopySwipeUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA5700000000000000000064 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA5700000000000000000065 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA570000000000000000002A /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				EA5700000000000000000023 /* EnteAuthWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
+
+/* Begin PBXContainerItemProxy section */
+		EA570000000000000000002D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA570000000000000000002B;
+			remoteInfo = EnteAuthWatch;
+		};
+		EA570000000000000000002E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA570000000000000000002B;
+			remoteInfo = EnteAuthWatch;
+		};
+		EA5700000000000000000067 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA570000000000000000002B;
+			remoteInfo = EnteAuthWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		EA570000000000000000002F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA570000000000000000002B /* EnteAuthWatch */;
+			targetProxy = EA570000000000000000002D /* PBXContainerItemProxy */;
+		};
+		EA5700000000000000000030 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA570000000000000000002B /* EnteAuthWatch */;
+			targetProxy = EA570000000000000000002E /* PBXContainerItemProxy */;
+		};
+		EA5700000000000000000068 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA570000000000000000002B /* EnteAuthWatch */;
+			targetProxy = EA5700000000000000000067 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 /* Begin PBXFileReference section */
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
@@ -50,6 +215,33 @@
 		CCFD21A537966172738E199D /* Pods-Runner.production.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.production.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.production.xcconfig"; sourceTree = "<group>"; };
 		D28AA20446BAC82150599AAF /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F211A1D544CFA2F68CAED06B /* Pods-Runner.debug-production.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-production.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-production.xcconfig"; sourceTree = "<group>"; };
+		EA5700000000000000000001 /* Base32.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Base32.swift; sourceTree = "<group>"; };
+		EA5700000000000000000003 /* SecretBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretBuffer.swift; sourceTree = "<group>"; };
+		EA5700000000000000000005 /* TOTPCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TOTPCalculator.swift; sourceTree = "<group>"; };
+		EA5700000000000000000007 /* WatchKeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchKeychainManager.swift; sourceTree = "<group>"; };
+		EA5700000000000000000009 /* WatchSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSessionManager.swift; sourceTree = "<group>"; };
+		EA570000000000000000000B /* WatchToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchToken.swift; sourceTree = "<group>"; };
+		EA570000000000000000000D /* CodeFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeFormatting.swift; sourceTree = "<group>"; };
+		EA570000000000000000000F /* EnteAuthWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnteAuthWatchApp.swift; sourceTree = "<group>"; };
+		EA5700000000000000000011 /* IssuerAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssuerAvatarView.swift; sourceTree = "<group>"; };
+		EA5700000000000000000013 /* PeriodProgressRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodProgressRing.swift; sourceTree = "<group>"; };
+		EA5700000000000000000015 /* TokenListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenListView.swift; sourceTree = "<group>"; };
+		EA5700000000000000000017 /* TokenRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenRowView.swift; sourceTree = "<group>"; };
+		EA5700000000000000000019 /* WatchDisplayPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDisplayPreference.swift; sourceTree = "<group>"; };
+		EA570000000000000000001B /* CryptoEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoEngineTests.swift; sourceTree = "<group>"; };
+		EA570000000000000000001D /* WatchSessionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSessionManagerTests.swift; sourceTree = "<group>"; };
+		EA5700000000000000000041 /* EnteWatchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnteWatchTheme.swift; sourceTree = "<group>"; };
+		EA5700000000000000000043 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EA5700000000000000000047 /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
+		EA5700000000000000000051 /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
+		EA5700000000000000000053 /* Inter-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.ttf"; sourceTree = "<group>"; };
+		EA5700000000000000000049 /* Inter-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Medium.ttf"; sourceTree = "<group>"; };
+		EA5700000000000000000045 /* WatchPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPresentationTests.swift; sourceTree = "<group>"; };
+		EA570000000000000000001F /* EnteWatchBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnteWatchBridgePlugin.swift; sourceTree = "<group>"; };
+		EA5700000000000000000021 /* EnteAuthWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EnteAuthWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA5700000000000000000022 /* EnteAuthWatchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EnteAuthWatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA5700000000000000000060 /* CopySwipeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopySwipeUITests.swift; sourceTree = "<group>"; };
+		EA5700000000000000000062 /* EnteAuthWatchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EnteAuthWatchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +292,7 @@
 			children = (
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
+				EA5700000000000000000031 /* EnteAuthWatch */,
 				97C146EF1CF9000F007C117D /* Products */,
 				0ACBB6E499605C090E29FBC7 /* Pods */,
 				3A395285A668F1F2BB041513 /* Frameworks */,
@@ -110,6 +303,9 @@
 			isa = PBXGroup;
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
+				EA5700000000000000000021 /* EnteAuthWatch.app */,
+				EA5700000000000000000022 /* EnteAuthWatchTests.xctest */,
+				EA5700000000000000000062 /* EnteAuthWatchUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -126,8 +322,79 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				EA570000000000000000001F /* EnteWatchBridgePlugin.swift */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		EA5700000000000000000031 /* EnteAuthWatch */ = {
+			isa = PBXGroup;
+			children = (
+				EA5700000000000000000032 /* Shared */,
+				EA5700000000000000000033 /* WatchApp */,
+				EA5700000000000000000034 /* SharedTests */,
+				EA5700000000000000000069 /* UITests */,
+			);
+			path = EnteAuthWatch;
+			sourceTree = "<group>";
+		};
+		EA5700000000000000000069 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				EA5700000000000000000060 /* CopySwipeUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		EA5700000000000000000032 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				EA5700000000000000000001 /* Base32.swift */,
+				EA5700000000000000000003 /* SecretBuffer.swift */,
+				EA5700000000000000000005 /* TOTPCalculator.swift */,
+				EA5700000000000000000007 /* WatchKeychainManager.swift */,
+				EA5700000000000000000009 /* WatchSessionManager.swift */,
+				EA570000000000000000000B /* WatchToken.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		EA5700000000000000000033 /* WatchApp */ = {
+			isa = PBXGroup;
+			children = (
+				EA570000000000000000000D /* CodeFormatting.swift */,
+				EA570000000000000000000F /* EnteAuthWatchApp.swift */,
+				EA5700000000000000000011 /* IssuerAvatarView.swift */,
+				EA5700000000000000000013 /* PeriodProgressRing.swift */,
+				EA5700000000000000000015 /* TokenListView.swift */,
+				EA5700000000000000000017 /* TokenRowView.swift */,
+				EA5700000000000000000019 /* WatchDisplayPreference.swift */,
+				EA5700000000000000000041 /* EnteWatchTheme.swift */,
+				EA5700000000000000000043 /* Assets.xcassets */,
+				EA570000000000000000004B /* Fonts */,
+			);
+			path = WatchApp;
+			sourceTree = "<group>";
+		};
+		EA570000000000000000004B /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				EA5700000000000000000047 /* Inter-Bold.ttf */,
+				EA5700000000000000000049 /* Inter-Medium.ttf */,
+				EA5700000000000000000051 /* Inter-Regular.ttf */,
+				EA5700000000000000000053 /* Inter-SemiBold.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		EA5700000000000000000034 /* SharedTests */ = {
+			isa = PBXGroup;
+			children = (
+				EA570000000000000000001B /* CryptoEngineTests.swift */,
+				EA570000000000000000001D /* WatchSessionManagerTests.swift */,
+				EA5700000000000000000045 /* WatchPresentationTests.swift */,
+			);
+			path = SharedTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -143,17 +410,73 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				EA570000000000000000002A /* Embed Watch Content */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				24A75286D0BEF59803D00B53 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				EA570000000000000000002F /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
 			productType = "com.apple.product-type.application";
+		};
+
+		EA570000000000000000002B /* EnteAuthWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA5700000000000000000035 /* Build configuration list for PBXNativeTarget "EnteAuthWatch" */;
+			buildPhases = (
+				EA5700000000000000000024 /* Sources */,
+				EA5700000000000000000025 /* Frameworks */,
+				EA5700000000000000000026 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = EnteAuthWatch;
+			productName = EnteAuthWatch;
+			productReference = EA5700000000000000000021 /* EnteAuthWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA570000000000000000002C /* EnteAuthWatchTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA5700000000000000000036 /* Build configuration list for PBXNativeTarget "EnteAuthWatchTests" */;
+			buildPhases = (
+				EA5700000000000000000027 /* Sources */,
+				EA5700000000000000000028 /* Frameworks */,
+				EA5700000000000000000029 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA5700000000000000000030 /* PBXTargetDependency */,
+			);
+			name = EnteAuthWatchTests;
+			productName = EnteAuthWatchTests;
+			productReference = EA5700000000000000000022 /* EnteAuthWatchTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		EA5700000000000000000066 /* EnteAuthWatchUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA570000000000000000006E /* Build configuration list for PBXNativeTarget "EnteAuthWatchUITests" */;
+			buildPhases = (
+				EA5700000000000000000063 /* Sources */,
+				EA5700000000000000000064 /* Frameworks */,
+				EA5700000000000000000065 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA5700000000000000000068 /* PBXTargetDependency */,
+			);
+			name = EnteAuthWatchUITests;
+			productName = EnteAuthWatchUITests;
+			productReference = EA5700000000000000000062 /* EnteAuthWatchUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -167,6 +490,17 @@
 					97C146ED1CF9000F007C117D = {
 						CreatedOnToolsVersion = 7.3.1;
 						LastSwiftMigration = 1100;
+					};
+					EA570000000000000000002B = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					EA570000000000000000002C = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = EA570000000000000000002B;
+					};
+					EA5700000000000000000066 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = EA570000000000000000002B;
 					};
 				};
 			};
@@ -184,6 +518,9 @@
 			projectRoot = "";
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
+				EA570000000000000000002B /* EnteAuthWatch */,
+				EA570000000000000000002C /* EnteAuthWatchTests */,
+				EA5700000000000000000066 /* EnteAuthWatchUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -280,6 +617,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
+				EA5700000000000000000020 /* EnteWatchBridgePlugin.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -708,6 +1046,343 @@
 			};
 			name = "Debug-production";
 		};
+		EA5700000000000000000037 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_PREVIEWS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				GENERATE_INFOPLIST_FILE = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ente Auth";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = io.ente.auth;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		EA5700000000000000000038 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ente Auth";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = io.ente.auth;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
+		EA5700000000000000000039 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ente Auth";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = io.ente.auth;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Profile;
+		};
+		EA570000000000000000003A /* Production */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ente Auth";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = io.ente.auth;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Production;
+		};
+		EA570000000000000000003B /* Debug-production */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = "Ente Auth";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = io.ente.auth;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = "Debug-production";
+		};
+		EA570000000000000000003C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EnteAuthWatch.app/EnteAuthWatch";
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		EA570000000000000000003D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EnteAuthWatch.app/EnteAuthWatch";
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
+		EA570000000000000000003E /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EnteAuthWatch.app/EnteAuthWatch";
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Profile;
+		};
+		EA570000000000000000003F /* Production */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EnteAuthWatch.app/EnteAuthWatch";
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Production;
+		};
+		EA5700000000000000000040 /* Debug-production */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EnteAuthWatch.app/EnteAuthWatch";
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = "Debug-production";
+		};
+		EA570000000000000000006F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = EnteAuthWatch;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Debug;
+		};
+		EA5700000000000000000070 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = EnteAuthWatch;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Release;
+		};
+		EA5700000000000000000071 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = EnteAuthWatch;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Profile;
+		};
+		EA5700000000000000000072 /* Production */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = EnteAuthWatch;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = Production;
+		};
+		EA5700000000000000000073 /* Debug-production */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6Z68YJY9Q2;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.watch.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = EnteAuthWatch;
+				WATCHOS_DEPLOYMENT_TARGET = 26.5;
+			};
+			name = "Debug-production";
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -731,6 +1406,42 @@
 				2736837129110F9900020E26 /* Release */,
 				276E7D1328E362430089C920 /* Debug-production */,
 				276E7D0D28E361A70089C920 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EA5700000000000000000035 /* Build configuration list for PBXNativeTarget "EnteAuthWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA5700000000000000000037 /* Debug */,
+				EA5700000000000000000038 /* Release */,
+				EA5700000000000000000039 /* Profile */,
+				EA570000000000000000003A /* Production */,
+				EA570000000000000000003B /* Debug-production */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EA5700000000000000000036 /* Build configuration list for PBXNativeTarget "EnteAuthWatchTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA570000000000000000003C /* Debug */,
+				EA570000000000000000003D /* Release */,
+				EA570000000000000000003E /* Profile */,
+				EA570000000000000000003F /* Production */,
+				EA5700000000000000000040 /* Debug-production */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EA570000000000000000006E /* Build configuration list for PBXNativeTarget "EnteAuthWatchUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA570000000000000000006F /* Debug */,
+				EA5700000000000000000070 /* Release */,
+				EA5700000000000000000071 /* Profile */,
+				EA5700000000000000000072 /* Production */,
+				EA5700000000000000000073 /* Debug-production */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

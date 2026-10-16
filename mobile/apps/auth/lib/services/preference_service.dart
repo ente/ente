@@ -1,3 +1,4 @@
+import 'package:ente_auth/events/codes_updated_event.dart';
 import 'package:ente_auth/events/icons_changed_event.dart';
 import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_events/event_bus.dart';
@@ -60,6 +61,9 @@ class PreferenceService {
 
   Future<void> setCodeSortKey(CodeSortKey key) async {
     await _prefs.setInt("codeSortKey", key.index);
+    // The watch payload's sortOrder follows this key. The event is the
+    // existing codes-changed signal; it does not carry secrets.
+    Bus.instance.fire(CodesUpdatedEvent());
   }
 
   Future<void> setHasShownCoachMark(bool value) {

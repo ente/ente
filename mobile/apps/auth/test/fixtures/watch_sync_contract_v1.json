@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "timestamp": 1775736000,
+  "syncType": "DELTA",
+  "tokens": [
+    {
+      "id": "42",
+      "issuer": "GitHub",
+      "account": "octocat@github.com",
+      "secret": "JBSWY3DPEHPK3PXP",
+      "algorithm": "SHA1",
+      "digits": 6,
+      "period": 30,
+      "isFavorite": true,
+      "sortOrder": 0
+    },
+    {
+      "id": "7",
+      "issuer": "Example",
+      "account": "ada@example.com",
+      "secret": "JBSWY3DPEHPK3PXP",
+      "algorithm": "SHA256",
+      "digits": 8,
+      "period": 30,
+      "isFavorite": false,
+      "sortOrder": 1
+    }
+  ],
+  "deletedIds": ["9"]
+}

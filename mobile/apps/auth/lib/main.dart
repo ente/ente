@@ -15,6 +15,7 @@ import 'package:ente_auth/services/local_backup_service.dart';
 import 'package:ente_auth/services/notification_service.dart';
 import 'package:ente_auth/services/preference_service.dart';
 import 'package:ente_auth/services/update_service.dart';
+import 'package:ente_auth/services/watch_sync_service.dart';
 import 'package:ente_auth/services/window_listener_service.dart';
 import 'package:ente_auth/store/authenticator_db.dart';
 import 'package:ente_auth/store/code_display_store.dart';
@@ -210,6 +211,7 @@ Future<void> _init(bool bool, {String? via}) async {
   await Network.instance.init(Configuration.instance);
   await UserService.instance.init(Configuration.instance, const HomePage());
   await AuthenticatorService.instance.init();
+  WatchSyncService.instance.start();
   await BillingService.instance.init();
   await NotificationService.instance.init();
   await UpdateService.instance.init();
