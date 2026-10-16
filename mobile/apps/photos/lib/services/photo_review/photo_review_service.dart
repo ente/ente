@@ -3,6 +3,7 @@ import "dart:async";
 import "package:collection/collection.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/core/user_config.dart";
 import "package:photos/db/files_db.dart";
@@ -23,8 +24,6 @@ class PhotoReviewService {
 
   static final _logger = Logger("PhotoReviewService");
 
-  static const _allTimeEndMicros = 1 << 62;
-
   final PhotoReviewDB _db = PhotoReviewDB.instance;
 
   static String fileKey(EnteFile file) {
@@ -34,7 +33,7 @@ class PhotoReviewService {
   }
 
   Future<ReviewOverview> loadOverview() async {
-    final files = await _loadFiles(0, _allTimeEndMicros);
+    final files = await _loadFiles(galleryLoadStartTime, galleryLoadEndTime);
     final decisions = await _db.getAllDecisions();
     final months = await _db.getMonthRecords();
     final index = ReviewDecisionIndex(decisions);
