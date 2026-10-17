@@ -26,6 +26,7 @@ import "package:photos/db/ml/db.dart";
 import "package:photos/ente_theme_data.dart";
 import "package:photos/events/collection_meta_event.dart";
 import "package:photos/events/collection_updated_event.dart";
+import "package:photos/events/files_updated_event.dart";
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/collection/collection.dart";
@@ -36,6 +37,7 @@ import "package:photos/models/gallery_type.dart";
 import "package:photos/models/ignored_file.dart";
 import "package:photos/models/local_entity_data.dart";
 import "package:photos/models/metadata/collection_magic.dart";
+import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/search/hierarchical/camera_filter.dart";
@@ -168,6 +170,43 @@ void main() {
     expect(find.text("Album route"), findsNothing);
     expect(find.text("Open album"), findsOneWidget);
   });
+
+  for (final isOwner in [true, false]) {
+    testWidgets(
+      "hiding ${isOwner ? 'an owned' : 'a received'} album keeps it usable until closed",
+      (tester) async {
+        final collection = _collection(ownerID: isOwner ? 1 : 2);
+        final file = _file(1);
+        await tester.runAsync(() => FilesDB.instance.insertMultiple([file]));
+        await _pumpAlbum(tester, collection);
+        await _expectCover(tester, file, count: 1);
+
+        if (isOwner) {
+          collection.mMdVersion = 1;
+          collection.magicMetadata = CollectionMagicMetadata(
+            visibility: hiddenVisibility,
+          );
+        } else {
+          collection.sharedMmdVersion = 1;
+          collection.sharedMagicMetadata = ShareeMagicMetadata(
+            visibility: hiddenVisibility,
+          );
+        }
+        Bus.instance.fire(
+          CollectionUpdatedEvent(1, [], "test_hide", type: EventType.hide),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip("More"));
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheetComponent), findsOneWidget);
+
+        await _disposeAlbum(tester);
+        await _pumpAlbum(tester, collection);
+        expect(find.byType(Gallery), findsNothing);
+        await _disposeAlbum(tester);
+      },
+    );
+  }
 
   testWidgets("paints the pinned date flush with the album app bar", (
     tester,
@@ -1049,9 +1088,9 @@ void main() {
   );
 }
 
-Collection _collection() => Collection(
+Collection _collection({int ownerID = 1}) => Collection(
   1,
-  User(id: 1, email: "a@b.c"),
+  User(id: ownerID, email: "a@b.c"),
   "",
   null,
   "Album",

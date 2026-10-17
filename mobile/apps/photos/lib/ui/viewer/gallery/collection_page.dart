@@ -65,6 +65,7 @@ class _CollectionPageState extends State<CollectionPage> {
   EnteFile? _cover;
   EnteFile? _defaultCover;
   late final String? _coverHeroTag;
+  late final bool _wasHiddenOnOpen;
   int _coverLoadGeneration = 0;
   int _galleryLoadGeneration = 0;
 
@@ -72,6 +73,7 @@ class _CollectionPageState extends State<CollectionPage> {
   void initState() {
     super.initState();
     final collection = widget.c.collection;
+    _wasHiddenOnOpen = collection.isHidden();
     _cover =
         widget.c.thumbnail ??
         CollectionsService.instance.getCoverCache(collection);
@@ -119,7 +121,9 @@ class _CollectionPageState extends State<CollectionPage> {
   Widget build(BuildContext context) {
     final c = widget.c;
     final tagPrefix = widget.tagPrefix;
-    if (widget.hasVerifiedLock == false && c.collection.isHidden()) {
+    if (widget.hasVerifiedLock == false &&
+        _wasHiddenOnOpen &&
+        c.collection.isHidden()) {
       return const EmptyState();
     }
 
