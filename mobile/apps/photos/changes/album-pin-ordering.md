@@ -1,0 +1,1 @@
+- Fixed pinned albums not appearing first in Archive and Shared.
