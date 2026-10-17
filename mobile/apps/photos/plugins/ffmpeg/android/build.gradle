@@ -1,0 +1,75 @@
+import java.security.MessageDigest
+
+plugins {
+    id 'com.android.library'
+}
+
+group 'io.ente.ffmpeg'
+version '0.0.1'
+
+def release = '9.0.2-1'
+def checksum = 'b2e8e8ca4f6c6e0cdf0aa719f849e7f9f1ecf05c18387421a3064345d69d4649'
+def localAar = providers.environmentVariable('FFMPEG_AAR').orNull
+def archive = configurations.create('ffmpeg') {
+    canBeConsumed = false
+    transitive = false
+}
+
+if (localAar == null) {
+    repositories {
+        exclusiveContent {
+            forRepository {
+                ivy {
+                    url = 'https://github.com/ente/ffmpeg-packaging/releases/download'
+                    patternLayout { artifact '[revision]/android-ffmpeg-runtime.aar' }
+                    metadataSources { artifact() }
+                }
+            }
+            filter { includeModule('io.ente', 'ffmpeg-runtime') }
+        }
+    }
+}
+
+dependencies.add(archive.name, localAar == null ? "io.ente:ffmpeg-runtime:$release@aar" : files(localAar))
+
+def nativeLibraries = layout.buildDirectory.dir('ffmpeg-jni')
+def prepareFfmpeg = tasks.register('prepareFfmpeg') {
+    inputs.files(archive)
+    inputs.property('checksum', checksum)
+    inputs.property('sourceBuilt', localAar != null)
+    outputs.dir(nativeLibraries)
+
+    doLast {
+        def aar = archive.singleFile
+        if (localAar == null) {
+            def actual = MessageDigest.getInstance('SHA-256').digest(aar.bytes).encodeHex().toString()
+            if (actual != checksum) {
+                throw new GradleException('FFmpeg checksum mismatch')
+            }
+        }
+        def libraries = zipTree(aar).matching { include 'jni/*/libffmpeg_runtime.so' }
+        for (abi in ['arm64-v8a', 'armeabi-v7a']) {
+            if (libraries.matching { include "jni/$abi/libffmpeg_runtime.so" }.isEmpty()) {
+                throw new GradleException("FFmpeg AAR is missing $abi/libffmpeg_runtime.so")
+            }
+        }
+        project.sync { spec ->
+            spec.from(libraries)
+            spec.eachFile { details -> details.path = details.path.substring('jni/'.length()) }
+            spec.includeEmptyDirs = false
+            spec.into(nativeLibraries)
+        }
+    }
+}
+
+android {
+    namespace 'io.ente.ffmpeg'
+    defaultConfig {
+        minSdkVersion 26
+    }
+    sourceSets.main.jniLibs.srcDirs = [nativeLibraries]
+}
+
+tasks.named('preBuild').configure {
+    dependsOn prepareFfmpeg
+}

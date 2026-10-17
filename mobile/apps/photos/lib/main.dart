@@ -13,7 +13,6 @@ import "package:ente_lock_screen/ui/lock_screen.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/theme/theme_config.dart" as ente_ui;
-import "package:ffmpeg_kit_flutter/ffmpeg_kit_config.dart";
 import 'package:flutter/foundation.dart';
 import "package:flutter/gestures.dart";
 import 'package:flutter/material.dart';
@@ -124,7 +123,6 @@ void main() async {
       }
     });
   }
-  _initializeFFmpegKit().ignore();
   await rive.RiveNative.init();
   MediaKit.ensureInitialized();
 
@@ -140,11 +138,6 @@ void main() async {
   );
 
   unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
-}
-
-Future<void> _initializeFFmpegKit() async {
-  await FFmpegKitConfig.init();
-  await FFmpegKitConfig.disableLogs();
 }
 
 Future<void> _runInForeground(
