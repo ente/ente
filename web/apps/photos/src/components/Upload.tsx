@@ -352,6 +352,7 @@ export const Upload: React.FC<UploadProps> = ({
             watcher.init(
                 upload,
                 () => void onRemotePull({ source: "watcher-upload" }),
+                () => uploadRunning.current,
             );
 
             void electron.pendingUploads().then((pending) => {
