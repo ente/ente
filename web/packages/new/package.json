@@ -3,8 +3,8 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "@mui/material": "9.4.0",
-        "@mui/x-date-pickers": "9.14.0",
+        "@mui/material": "9.5.0",
+        "@mui/x-date-pickers": "9.15.0",
         "dayjs": "1.11.23",
         "ente-accounts": "*",
         "ente-base": "*",

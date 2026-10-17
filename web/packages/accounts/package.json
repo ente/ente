@@ -10,7 +10,7 @@
         "ente-prelogin-wasm": "*",
         "react": "19.3.0",
         "react-dom": "19.3.0",
-        "uuid": "14.0.2",
+        "uuid": "14.0.3",
         "zxcvbn": "4.4.2"
     },
     "devDependencies": {
