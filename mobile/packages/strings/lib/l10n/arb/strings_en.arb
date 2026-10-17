@@ -62,6 +62,7 @@
   "add": "Add",
   "addAlbumWidgetPrompt": "Add an album widget to your home screen to customize it here.",
   "addANameAndPhoto": "Add a name and photo",
+  "addAnyway": "Add anyway",
   "addCode": "Add code",
   "addedAMemoryTo": "added a memory to {albumName}",
   "@addedAMemoryTo": {
@@ -1126,6 +1127,10 @@
   "doesGroupContainMultiplePeople": "Does this grouping contain multiple people?",
   "dog": "Dog",
   "done": "Done",
+  "dontShowAgain": "Don’t show again",
+  "@dontShowAgain": {
+    "description": "Checkbox label for hiding an informational notice after confirming the action"
+  },
   "doNotSignOut": "Do not sign out",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
@@ -4121,6 +4126,12 @@
     }
   },
   "sharedPhotoNotifications": "New shared photos and albums",
+  "sharedPhotoLocationWarningTitle": "Keep photo locations",
+  "sharedPhotoLocationWarningMessage": "Photos shared from other apps may be missing their locations. Use “{addFromDevice}” in an album to keep them.",
+  "@sharedPhotoLocationWarningMessage": {
+    "description": "Precaution before backing up photos shared from another app. addFromDevice is the localized action label.",
+    "placeholders": {"addFromDevice": {"type": "String"}}
+  },
   "sharedPhotoNotificationsExplanation": "New photos and albums you are in or shared with you",
   "sharedWith": "Shared with",
   "shareItemCount": "{count, plural, one{Share {count} item} other{Share {count} items}}",
