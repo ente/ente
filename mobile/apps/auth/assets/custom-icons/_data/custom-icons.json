@@ -143,6 +143,15 @@
       ]
     },
     {
+      "title": "Aria",
+      "slug": "ariabot",
+      "hex": "121212",
+      "altNames": [
+        "aria.bot",
+        "sso.aria.bot"
+      ]
+    },
+    {
       "title": "Art Fight",
       "slug": "art_fight",
       "altNames": [
