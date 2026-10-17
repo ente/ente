@@ -126,7 +126,7 @@ wasm-bindgen = "0.2.125"
 wasm-bindgen-futures = "0.4.75"
 web-sys = "0.3.102"
 zeroize = { version = "1.9.0", features = ["derive"] }
-zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+zip = { version = "9.0.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "deny", check-cfg = ['cfg(frb_expand)'] }
